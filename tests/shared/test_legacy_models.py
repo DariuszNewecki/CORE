@@ -2,7 +2,6 @@
 # Source: src/shared/legacy_models.py
 # Symbols: 1
 
-from unittest.mock import Mock, patch
 
 import pytest
 
@@ -13,10 +12,7 @@ def test_LegacyLlmResource():
     """Test basic functionality, edge cases, and correctness of LegacyLlmResource."""
 
     # Test basic instantiation with required fields
-    resource = LegacyLlmResource(
-        name="test_model",
-        env_prefix="TEST_MODEL"
-    )
+    resource = LegacyLlmResource(name="test_model", env_prefix="TEST_MODEL")
     assert resource.name == "test_model"
     assert resource.env_prefix == "TEST_MODEL"
     assert resource.provided_capabilities == []
@@ -27,7 +23,7 @@ def test_LegacyLlmResource():
         name="another_model",
         provided_capabilities=["text_generation", "embeddings"],
         env_prefix="ANOTHER_MODEL",
-        performance_metadata={"tokens_per_second": 100, "latency_ms": 50}
+        performance_metadata={"tokens_per_second": 100, "latency_ms": 50},
     )
     assert resource.name == "another_model"
     assert resource.provided_capabilities == ["text_generation", "embeddings"]
@@ -44,9 +40,7 @@ def test_LegacyLlmResource():
 
     # Test with empty provided_capabilities list
     resource = LegacyLlmResource(
-        name="empty_caps",
-        provided_capabilities=[],
-        env_prefix="EMPTY_CAPS"
+        name="empty_caps", provided_capabilities=[], env_prefix="EMPTY_CAPS"
     )
     assert resource.provided_capabilities == []
 
@@ -54,12 +48,12 @@ def test_LegacyLlmResource():
     complex_metadata = {
         "metrics": {"accuracy": 0.95, "throughput": 1000},
         "config": {"batch_size": 32, "precision": "float16"},
-        "timestamps": ["2024-01-01T00:00:00"]
+        "timestamps": ["2024-01-01T00:00:00"],
     }
     resource = LegacyLlmResource(
         name="complex_metadata",
         env_prefix="COMPLEX_METADATA",
-        performance_metadata=complex_metadata
+        performance_metadata=complex_metadata,
     )
     assert resource.performance_metadata == complex_metadata
 
@@ -80,32 +74,24 @@ def test_LegacyLlmResource():
         LegacyLlmResource(
             name="test",
             env_prefix="TEST",
-            provided_capabilities=["valid", 123]  # Mixed types
+            provided_capabilities=["valid", 123],  # Mixed types
         )
 
     # Test that performance_metadata can be empty dict
     resource = LegacyLlmResource(
-        name="empty_metadata",
-        env_prefix="EMPTY_METADATA",
-        performance_metadata={}
+        name="empty_metadata", env_prefix="EMPTY_METADATA", performance_metadata={}
     )
     assert resource.performance_metadata == {}
 
     # Test equality comparison
     resource1 = LegacyLlmResource(
-        name="model1",
-        env_prefix="MODEL1",
-        provided_capabilities=["cap1", "cap2"]
+        name="model1", env_prefix="MODEL1", provided_capabilities=["cap1", "cap2"]
     )
     resource2 = LegacyLlmResource(
-        name="model1",
-        env_prefix="MODEL1",
-        provided_capabilities=["cap1", "cap2"]
+        name="model1", env_prefix="MODEL1", provided_capabilities=["cap1", "cap2"]
     )
     resource3 = LegacyLlmResource(
-        name="model2",
-        env_prefix="MODEL2",
-        provided_capabilities=["cap1"]
+        name="model2", env_prefix="MODEL2", provided_capabilities=["cap1"]
     )
     assert resource1 == resource2
     assert resource1 != resource3

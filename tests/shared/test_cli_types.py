@@ -3,7 +3,6 @@
 # Symbols: 2
 
 from datetime import datetime
-from unittest.mock import Mock, patch
 
 import pytest
 
@@ -19,7 +18,7 @@ def test_CommandResult():
         ok=True,
         data={"count": 5, "items": ["a", "b"]},
         duration_sec=1.5,
-        logs=["Starting", "Finished"]
+        logs=["Starting", "Finished"],
     )
 
     assert result.name == "test.command"
@@ -29,11 +28,7 @@ def test_CommandResult():
     assert result.logs == ["Starting", "Finished"]
 
     # Test with minimal required fields
-    minimal_result = CommandResult(
-        name="minimal.command",
-        ok=False,
-        data={}
-    )
+    minimal_result = CommandResult(name="minimal.command", ok=False, data={})
 
     assert minimal_result.name == "minimal.command"
     assert minimal_result.ok is False
@@ -47,7 +42,7 @@ def test_CommandResult():
         ok=True,
         data={"key": "value"},
         duration_sec=0.0,
-        logs=[]
+        logs=[],
     )
 
     assert result_with_defaults.name == "default.command"
@@ -57,27 +52,35 @@ def test_CommandResult():
     assert result_with_defaults.logs == []
 
     # Test validation: empty name should raise ValueError
-    with pytest.raises(ValueError, match="CommandResult.name must be non-empty string"):
+    with pytest.raises(
+        ValueError, match=r"CommandResult\.name must be non-empty string"
+    ):
         CommandResult(name="", ok=True, data={})
 
-    with pytest.raises(ValueError, match="CommandResult.name must be non-empty string"):
+    with pytest.raises(
+        ValueError, match=r"CommandResult\.name must be non-empty string"
+    ):
         CommandResult(name="", ok=False, data={"error": "message"})
 
     # Test validation: non-string name should raise ValueError
-    with pytest.raises(ValueError, match="CommandResult.name must be non-empty string"):
+    with pytest.raises(
+        ValueError, match=r"CommandResult\.name must be non-empty string"
+    ):
         CommandResult(name=123, ok=True, data={})
 
-    with pytest.raises(ValueError, match="CommandResult.name must be non-empty string"):
+    with pytest.raises(
+        ValueError, match=r"CommandResult\.name must be non-empty string"
+    ):
         CommandResult(name=None, ok=True, data={})
 
     # Test validation: non-dict data should raise ValueError
-    with pytest.raises(ValueError, match="CommandResult.data must be a dict"):
+    with pytest.raises(ValueError, match=r"CommandResult\.data must be a dict"):
         CommandResult(name="test.command", ok=True, data="not a dict")
 
-    with pytest.raises(ValueError, match="CommandResult.data must be a dict"):
+    with pytest.raises(ValueError, match=r"CommandResult\.data must be a dict"):
         CommandResult(name="test.command", ok=True, data=["list", "not", "dict"])
 
-    with pytest.raises(ValueError, match="CommandResult.data must be a dict"):
+    with pytest.raises(ValueError, match=r"CommandResult\.data must be a dict"):
         CommandResult(name="test.command", ok=True, data=None)
 
     # Test with complex nested data
@@ -86,14 +89,10 @@ def test_CommandResult():
         "list_of_dicts": [{"id": 1}, {"id": 2}],
         "boolean": True,
         "number": 42,
-        "none_value": None
+        "none_value": None,
     }
 
-    complex_result = CommandResult(
-        name="complex.command",
-        ok=True,
-        data=complex_data
-    )
+    complex_result = CommandResult(name="complex.command", ok=True, data=complex_data)
 
     assert complex_result.data == complex_data
     assert complex_result.data["nested"]["level1"]["level2"] == "value"
@@ -106,30 +105,21 @@ def test_CommandResult():
 
     # Test with float duration
     float_duration_result = CommandResult(
-        name="duration.command",
-        ok=True,
-        data={},
-        duration_sec=3.14159
+        name="duration.command", ok=True, data={}, duration_sec=3.14159
     )
 
     assert float_duration_result.duration_sec == pytest.approx(3.14159)
 
     # Test with negative duration (edge case, but allowed by type)
     negative_duration_result = CommandResult(
-        name="negative.duration",
-        ok=True,
-        data={},
-        duration_sec=-1.0
+        name="negative.duration", ok=True, data={}, duration_sec=-1.0
     )
 
     assert negative_duration_result.duration_sec == -1.0
 
     # Test with very large duration
     large_duration_result = CommandResult(
-        name="large.duration",
-        ok=True,
-        data={},
-        duration_sec=999999.999
+        name="large.duration", ok=True, data={}, duration_sec=999999.999
     )
 
     assert large_duration_result.duration_sec == 999999.999
@@ -142,11 +132,7 @@ def test_CommandResult():
     assert result2.logs == []  # Should not be affected
 
     # Test with empty dict data
-    empty_dict_result = CommandResult(
-        name="empty.dict",
-        ok=True,
-        data={}
-    )
+    empty_dict_result = CommandResult(name="empty.dict", ok=True, data={})
 
     assert empty_dict_result.data == {}
 
@@ -157,24 +143,21 @@ def test_CommandResult():
         data={
             "datetime": datetime(2023, 1, 1),
             "exception": ValueError("test"),
-            "function": lambda x: x * 2
-        }
+            "function": lambda x: x * 2,
+        },
     )
 
     assert isinstance(special_data_result.data["datetime"], datetime)
     assert isinstance(special_data_result.data["exception"], ValueError)
     assert callable(special_data_result.data["function"])
 
-from datetime import datetime, timedelta
-from unittest.mock import Mock, patch
 
-import pytest
-
-from shared.cli_types import CommandResult, WorkflowRun
+from shared.cli_types import WorkflowRun
 
 
 class TestCommandResult:
     """Mock CommandResult class for testing"""
+
     def __init__(self, ok=True, duration_sec=1.0):
         self.ok = ok
         self.duration_sec = duration_sec

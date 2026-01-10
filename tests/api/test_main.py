@@ -2,9 +2,7 @@
 # Source: src/api/main.py
 # Symbols: 1
 
-from unittest.mock import MagicMock, Mock, patch
 
-import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
@@ -14,48 +12,52 @@ from api.main import create_app
 def test_create_app():
     """Test that create_app returns a properly configured FastAPI application."""
 
-    # Create the app
+    # Act
     app = create_app()
 
-    # Verify it's a FastAPI instance
+    # Assert basic app configuration
     assert isinstance(app, FastAPI)
-
-    # Verify basic metadata
     assert app.title == "CORE - Self-Improving System Architect"
     assert app.version == "1.0.0"
 
-    # Verify routers are included by checking if endpoints exist
-    # We'll use TestClient to verify the health endpoint
-    client = TestClient(app)
+    # Assert routers are included
+    routes_with_prefix = [route for route in app.routes if hasattr(route, "path")]
+    paths = [route.path for route in routes_with_prefix]
 
-    # Test health endpoint
+    # Check for health endpoint
+    assert "/health" in paths
+
+    # Check for prefixed routes (knowledge and development)
+    knowledge_routes = [
+        path
+        for path in paths
+        if path.startswith("/v1/") and "knowledge" in path.lower()
+    ]
+    development_routes = [
+        path
+        for path in paths
+        if path.startswith("/v1/") and "development" in path.lower()
+    ]
+    assert len(knowledge_routes) > 0 or any(
+        "/v1" in path for path in paths
+    )  # Either specific or general check
+    assert len(development_routes) > 0 or any("/v1" in path for path in paths)
+
+    # Test health endpoint functionality
+    client = TestClient(app)
     response = client.get("/health")
+
     assert response.status_code == 200
     assert response.json() == {"status": "ok"}
 
-    # Verify exception handlers are registered by checking if app has the expected structure
-    # We can't directly test exception handlers without triggering exceptions,
-    # but we can verify the app has the expected routes
+    # Test that exception handlers are registered by checking app state
+    # (exception handlers are internal to FastAPI, but we can verify the app is functional)
+    assert hasattr(app, "exception_handlers")
 
-    # Check that routers are mounted by looking for route prefixes
-    routes = [route.path for route in app.routes]
-
-    # Should have health endpoint
-    assert "/health" in routes
-
-    # Should have routes from included routers (checking prefixes)
-    knowledge_routes = [route for route in routes if route.startswith("/v1/") and "knowledge" in route.lower()]
-    development_routes = [route for route in routes if route.startswith("/v1/") and "development" in route.lower()]
-
-    # At minimum, the prefixes should be registered
-    assert any("/v1" in route for route in routes)
-
-    # Verify lifespan is set (can't directly test without async context)
-    assert hasattr(app, 'router')
+    # Verify lifespan is set (though we can't directly test the coroutine)
+    assert hasattr(app, "router")
     assert app.router.lifespan_context is not None
 
-    # Test that the app can be instantiated multiple times without side effects
-    app2 = create_app()
-    assert isinstance(app2, FastAPI)
-    assert app2.title == app.title
-    assert app2.version == app.version
+    # Test that the app can handle a 404 (exception handlers working)
+    response = client.get("/nonexistent")
+    assert response.status_code == 404

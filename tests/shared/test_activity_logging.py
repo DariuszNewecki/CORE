@@ -16,8 +16,8 @@ def test_new_activity_run():
     test_workflow_id = "test_workflow_123"
 
     # Mock uuid4 to return a predictable value
-    mock_uuid = uuid.UUID('12345678-1234-5678-1234-567812345678')
-    with patch('uuid.uuid4', return_value=mock_uuid):
+    mock_uuid = uuid.UUID("12345678-1234-5678-1234-567812345678")
+    with patch("uuid.uuid4", return_value=mock_uuid):
         result = new_activity_run(test_workflow_id)
 
     # Verify the ActivityRun was created with correct parameters
@@ -33,22 +33,17 @@ def test_new_activity_run():
     # Test with different workflow IDs
     workflow_ids = ["", "short", "very_long_workflow_id_with_special_chars_123!@#"]
     for wf_id in workflow_ids:
-        with patch('uuid.uuid4', return_value=mock_uuid):
+        with patch("uuid.uuid4", return_value=mock_uuid):
             result = new_activity_run(wf_id)
         assert result.workflow_id == wf_id
         assert result.run_id == str(mock_uuid)
 
     # Verify uuid.uuid4 is called exactly once per invocation
-    with patch('uuid.uuid4') as mock_uuid_func:
+    with patch("uuid.uuid4") as mock_uuid_func:
         mock_uuid_func.return_value = mock_uuid
         new_activity_run(test_workflow_id)
         mock_uuid_func.assert_called_once()
 
-import time
-from contextlib import contextmanager
-from unittest.mock import ANY, Mock, call, patch
-
-import pytest
 
 from shared.activity_logging import activity_run
 
@@ -57,10 +52,12 @@ def test_activity_run():
     """Test the activity_run context manager for normal and exceptional flows."""
 
     # Mock dependencies
-    with patch("shared.activity_logging.new_activity_run") as mock_new_activity_run, \
-         patch("shared.activity_logging.log_activity") as mock_log_activity, \
-         patch("shared.activity_logging._current_run_id") as mock_current_run_id, \
-         patch("shared.activity_logging.time.time") as mock_time:
+    with (
+        patch("shared.activity_logging.new_activity_run") as mock_new_activity_run,
+        patch("shared.activity_logging.log_activity") as mock_log_activity,
+        patch("shared.activity_logging._current_run_id") as mock_current_run_id,
+        patch("shared.activity_logging.time.time") as mock_time,
+    ):
 
         # Setup mocks
         mock_run = Mock()
@@ -154,7 +151,10 @@ def test_activity_run():
         assert error_call[0][0] is mock_run2
         assert error_call[1]["event"] == "workflow_error"
         assert error_call[1]["status"] == "error"
-        assert f"Workflow {workflow_id2} failed: {exception_msg}" in error_call[1]["message"]
+        assert (
+            f"Workflow {workflow_id2} failed: {exception_msg}"
+            in error_call[1]["message"]
+        )
         assert error_call[1]["details"] == {"duration_sec": 2.25}
 
         # Verify context var was reset even after exception

@@ -3,10 +3,8 @@
 # Symbols: 1
 
 import re
-from datetime import UTC, datetime, timezone
+from datetime import UTC, datetime
 from unittest.mock import MagicMock, patch
-
-import pytest
 
 from shared.time import now_iso
 
@@ -17,7 +15,7 @@ def test_now_iso():
     mock_datetime = MagicMock()
     mock_datetime.isoformat.return_value = "2023-10-15T14:30:00.123456+00:00"
 
-    with patch('shared.time.datetime') as mock_dt:
+    with patch("shared.time.datetime") as mock_dt:
         mock_dt.now.return_value = mock_datetime
         mock_dt.UTC = UTC
 
@@ -36,15 +34,17 @@ def test_now_iso():
     assert isinstance(result, str)
 
     # Verify ISO 8601 format with timezone (should end with Z or +00:00 for UTC)
-    iso_pattern = r'^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:\d{2})$'
+    iso_pattern = r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:\d{2})$"
     assert re.match(iso_pattern, result) is not None
 
     # Specifically check it represents UTC (either Z or +00:00)
-    assert result.endswith(('Z', '+00:00')), f"Timestamp should end with Z or +00:00, got: {result}"
+    assert result.endswith(
+        ("Z", "+00:00")
+    ), f"Timestamp should end with Z or +00:00, got: {result}"
 
     # Test 3: Verify the timestamp can be parsed back to datetime
     # Remove Z and replace with +00:00 for consistent parsing
-    normalized_result = result.replace('Z', '+00:00')
+    normalized_result = result.replace("Z", "+00:00")
     parsed_dt = datetime.fromisoformat(normalized_result)
 
     # Verify it's timezone aware and in UTC

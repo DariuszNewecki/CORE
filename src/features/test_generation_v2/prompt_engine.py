@@ -67,6 +67,9 @@ class ConstitutionalTestPromptBuilder:
         parts.append(
             "  NEVER use the 'is' keyword for comparing strings, lists, or dicts."
         )
+        parts.append(
+            "- FILE PATHS: When testing file operations, pass the FULL file path, not just basename."
+        )
 
         # BOILERPLATE MANDATE: Fixes the "Missing pytest import" skip
         parts.append("- BOILERPLATE: You MUST include 'import pytest' at the top.")
@@ -87,6 +90,18 @@ class ConstitutionalTestPromptBuilder:
             "  explicitly set ALL parameters in your assertions to avoid side effects"
         )
         parts.append("  from other default behaviors.")
+
+        # ASYNC FUNCTION HANDLING: Fixes missing 'async def' in test functions
+        parts.append(
+            f"- ASYNC TESTS: Check if '{symbol_name}' is async (starts with 'async def' in TARGET CODE)."
+        )
+        parts.append(
+            "  If YES: ALL test functions that call it MUST be 'async def test_...' too."
+        )
+        parts.append(
+            "  Use 'await' when calling async functions. Add '@pytest.mark.asyncio' decorator if needed."
+        )
+        parts.append("  If NO: Use regular 'def test_...' functions.")
 
         if constraints:
             for constraint in constraints:

@@ -2,13 +2,11 @@
 # Source: src/shared/config_loader.py
 # Symbols: 1
 
-import json
 import tempfile
 from pathlib import Path
-from unittest.mock import mock_open, patch
+from unittest.mock import patch
 
 import pytest
-import yaml
 
 from shared.config_loader import load_yaml_file
 
@@ -32,7 +30,7 @@ def test_load_yaml_file():
         result = load_yaml_file(yaml_path)
         assert result == {
             "database": {"host": "localhost", "port": 5432},
-            "logging": {"level": "INFO"}
+            "logging": {"level": "INFO"},
         }
     finally:
         yaml_path.unlink()
@@ -136,8 +134,10 @@ def test_load_yaml_file():
         null_json_path.unlink()
 
     # Test 11: Encoding error
-    with patch('pathlib.Path.read_text') as mock_read:
-        mock_read.side_effect = UnicodeDecodeError('utf-8', b'', 0, 1, 'invalid continuation byte')
+    with patch("pathlib.Path.read_text") as mock_read:
+        mock_read.side_effect = UnicodeDecodeError(
+            "utf-8", b"", 0, 1, "invalid continuation byte"
+        )
 
         with tempfile.NamedTemporaryFile(suffix=".yaml", mode="w", delete=False) as f:
             encoding_error_path = Path(f.name)

@@ -482,6 +482,7 @@ class AdaptiveTestGenerator:
                     symbol_name=symbol_name,
                     test_code=normalized.code,
                     sandbox_passed=sres.passed,
+                    passing_test_names=sres.passed_tests,
                 )
                 persisted = pres.ok
                 persist_path = pres.path

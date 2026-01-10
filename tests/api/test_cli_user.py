@@ -2,9 +2,7 @@
 # Source: src/api/cli_user.py
 # Symbols: 1
 
-import asyncio
-import sys
-from unittest.mock import AsyncMock, Mock, patch
+from unittest.mock import Mock, patch
 
 import pytest
 import typer
@@ -18,15 +16,18 @@ def mock_ctx():
     ctx.invoked_subcommand = None
     return ctx
 
+
 @pytest.fixture
 def mock_logger():
-    with patch('api.cli_user.logger') as mock_logger:
+    with patch("api.cli_user.logger") as mock_logger:
         yield mock_logger
+
 
 @pytest.fixture
 def mock_handle_message():
-    with patch('api.cli_user.handle_message') as mock_handle:
+    with patch("api.cli_user.handle_message") as mock_handle:
         yield mock_handle
+
 
 def test_main_with_message(mock_ctx, mock_logger, mock_handle_message):
     """Test main function with a valid message."""
@@ -36,6 +37,7 @@ def test_main_with_message(mock_ctx, mock_logger, mock_handle_message):
 
     mock_logger.info.assert_any_call("User message: %s", message)
     mock_handle_message.assert_called_once_with(message)
+
 
 def test_main_without_message(mock_ctx, mock_logger):
     """Test main function without a message."""
@@ -48,6 +50,7 @@ def test_main_without_message(mock_ctx, mock_logger):
     mock_logger.info.assert_any_call("Usage: core <message>")
     mock_logger.info.assert_any_call('Example: core "what does ContextBuilder do?"')
 
+
 def test_main_with_subcommand(mock_ctx, mock_logger, mock_handle_message):
     """Test main function when a subcommand is invoked."""
     mock_ctx.invoked_subcommand = "some_subcommand"
@@ -56,6 +59,7 @@ def test_main_with_subcommand(mock_ctx, mock_logger, mock_handle_message):
 
     mock_logger.info.assert_not_called()
     mock_handle_message.assert_not_called()
+
 
 def test_main_keyboard_interrupt(mock_ctx, mock_logger, mock_handle_message):
     """Test main function handling KeyboardInterrupt."""
@@ -67,6 +71,7 @@ def test_main_keyboard_interrupt(mock_ctx, mock_logger, mock_handle_message):
 
     assert exc_info.value.exit_code == 130
     mock_logger.info.assert_any_call("\n\n⚠️  Interrupted by user")
+
 
 def test_main_general_exception(mock_ctx, mock_logger, mock_handle_message):
     """Test main function handling general exceptions."""
@@ -83,6 +88,7 @@ def test_main_general_exception(mock_ctx, mock_logger, mock_handle_message):
     )
     mock_logger.info.assert_any_call("\n❌ Error: %s", test_exception)
 
+
 def test_main_empty_string_message(mock_ctx, mock_logger):
     """Test main function with empty string message."""
     mock_ctx.invoked_subcommand = None
@@ -93,7 +99,8 @@ def test_main_empty_string_message(mock_ctx, mock_logger):
     assert exc_info.value.exit_code == 1
     mock_logger.info.assert_any_call("Usage: core <message>")
 
-@patch('asyncio.run')
+
+@patch("asyncio.run")
 def test_main_async_execution(mock_asyncio_run, mock_ctx, mock_logger):
     """Test that asyncio.run is called correctly."""
     message = "test message"

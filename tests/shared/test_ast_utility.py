@@ -3,9 +3,7 @@
 # Symbols: 3
 
 import ast
-from unittest.mock import Mock, patch
-
-import pytest
+from unittest.mock import Mock
 
 from shared.ast_utility import find_definition_line
 
@@ -14,77 +12,44 @@ def test_find_definition_line():
     """Test find_definition_line function with various scenarios."""
 
     # Test 1: Function without decorators
-    source_lines = [
-        "def my_function():",
-        "    pass"
-    ]
+    source_lines = ["def my_function():", "    pass"]
     node = ast.FunctionDef(name="my_function", lineno=1, decorator_list=[])
     assert find_definition_line(node, source_lines) == 1
 
     # Test 2: Class without decorators
-    source_lines = [
-        "class MyClass:",
-        "    pass"
-    ]
+    source_lines = ["class MyClass:", "    pass"]
     node = ast.ClassDef(name="MyClass", lineno=1, decorator_list=[])
     assert find_definition_line(node, source_lines) == 1
 
     # Test 3: Function with single decorator
-    source_lines = [
-        "@decorator",
-        "def my_function():",
-        "    pass"
-    ]
+    source_lines = ["@decorator", "def my_function():", "    pass"]
     decorator_node = Mock(lineno=1, end_lineno=1)
     node = ast.FunctionDef(
-        name="my_function",
-        lineno=2,
-        decorator_list=[decorator_node]
+        name="my_function", lineno=2, decorator_list=[decorator_node]
     )
     assert find_definition_line(node, source_lines) == 2
 
     # Test 4: Function with multiple decorators
-    source_lines = [
-        "@decorator1",
-        "@decorator2",
-        "def my_function():",
-        "    pass"
-    ]
+    source_lines = ["@decorator1", "@decorator2", "def my_function():", "    pass"]
     decorator1 = Mock(lineno=1, end_lineno=1)
     decorator2 = Mock(lineno=2, end_lineno=2)
     node = ast.FunctionDef(
-        name="my_function",
-        lineno=3,
-        decorator_list=[decorator1, decorator2]
+        name="my_function", lineno=3, decorator_list=[decorator1, decorator2]
     )
     assert find_definition_line(node, source_lines) == 3
 
     # Test 5: Async function with decorators
-    source_lines = [
-        "@decorator",
-        "async def my_async_function():",
-        "    pass"
-    ]
+    source_lines = ["@decorator", "async def my_async_function():", "    pass"]
     decorator_node = Mock(lineno=1, end_lineno=1)
     node = ast.AsyncFunctionDef(
-        name="my_async_function",
-        lineno=2,
-        decorator_list=[decorator_node]
+        name="my_async_function", lineno=2, decorator_list=[decorator_node]
     )
     assert find_definition_line(node, source_lines) == 2
 
     # Test 6: Class with decorators
-    source_lines = [
-        "@dataclass",
-        "class MyClass:",
-        "    field: int"
-    ]
+    source_lines = ["@dataclass", "class MyClass:", "    field: int"]
     decorator_node = Mock(lineno=1, end_lineno=1)
-    node = ast.ClassDef(
-        name="MyClass",
-        lineno=2,
-        decorator_list=[decorator_node]
-    )
+    node = ast.ClassDef(name="MyClass", lineno=2, decorator_list=[decorator_node])
     assert find_definition_line(node, source_lines) == 2
 
     # Test 7: Decorator with end_lineno (multi-line decorator)
@@ -93,13 +58,11 @@ def test_find_definition_line():
         "    arg1, arg2",
         ")",
         "def my_function():",
-        "    pass"
+        "    pass",
     ]
     decorator_node = Mock(lineno=1, end_lineno=3)
     node = ast.FunctionDef(
-        name="my_function",
-        lineno=4,
-        decorator_list=[decorator_node]
+        name="my_function", lineno=4, decorator_list=[decorator_node]
     )
     assert find_definition_line(node, source_lines) == 4
 
@@ -109,45 +72,31 @@ def test_find_definition_line():
         "# Some comment",
         "# Another comment",
         "def other_function():",
-        "    pass"
+        "    pass",
     ]
     decorator_node = Mock(lineno=1, end_lineno=1)
     node = ast.FunctionDef(
         name="my_function",
         lineno=5,  # Wrong line number
-        decorator_list=[decorator_node]
+        decorator_list=[decorator_node],
     )
     # Should fall back to node.lineno since "def my_function" not found
     assert find_definition_line(node, source_lines) == 5
 
     # Test 9: Function with decorator and whitespace variations
-    source_lines = [
-        "    @decorator",
-        "",
-        "    def my_function():",
-        "        pass"
-    ]
+    source_lines = ["    @decorator", "", "    def my_function():", "        pass"]
     decorator_node = Mock(lineno=1, end_lineno=1)
     node = ast.FunctionDef(
-        name="my_function",
-        lineno=3,
-        decorator_list=[decorator_node]
+        name="my_function", lineno=3, decorator_list=[decorator_node]
     )
     assert find_definition_line(node, source_lines) == 3
 
     # Test 10: Multiple decorators with end_lineno None (uses lineno)
-    source_lines = [
-        "@decorator1",
-        "@decorator2",
-        "def my_function():",
-        "    pass"
-    ]
+    source_lines = ["@decorator1", "@decorator2", "def my_function():", "    pass"]
     decorator1 = Mock(lineno=1, end_lineno=None)
     decorator2 = Mock(lineno=2, end_lineno=None)
     node = ast.FunctionDef(
-        name="my_function",
-        lineno=3,
-        decorator_list=[decorator1, decorator2]
+        name="my_function", lineno=3, decorator_list=[decorator1, decorator2]
     )
     # Should use lineno when end_lineno is None
     assert find_definition_line(node, source_lines) == 3
@@ -158,18 +107,10 @@ def test_find_definition_line():
     assert find_definition_line(node, source_lines) == 1
 
     # Test 12: Decorator list empty but node has decorators (shouldn't happen but test anyway)
-    source_lines = [
-        "@decorator",
-        "def my_function():",
-        "    pass"
-    ]
+    source_lines = ["@decorator", "def my_function():", "    pass"]
     node = ast.FunctionDef(name="my_function", lineno=2, decorator_list=[])
     assert find_definition_line(node, source_lines) == 2
 
-import ast
-from unittest.mock import Mock, patch
-
-import pytest
 
 from shared.ast_utility import extract_base_classes
 
@@ -178,7 +119,9 @@ def test_extract_base_classes():
     """Test extract_base_classes with various AST class definitions."""
 
     # Test 1: Simple class with no base classes
-    node1 = ast.ClassDef(name="MyClass", bases=[], keywords=[], body=[], decorator_list=[])
+    node1 = ast.ClassDef(
+        name="MyClass", bases=[], keywords=[], body=[], decorator_list=[]
+    )
     assert extract_base_classes(node1) == []
 
     # Test 2: Single simple base class
@@ -187,7 +130,7 @@ def test_extract_base_classes():
         bases=[ast.Name(id="BaseClass", ctx=ast.Load())],
         keywords=[],
         body=[],
-        decorator_list=[]
+        decorator_list=[],
     )
     assert extract_base_classes(node2) == ["BaseClass"]
 
@@ -197,11 +140,11 @@ def test_extract_base_classes():
         bases=[
             ast.Name(id="BaseClass1", ctx=ast.Load()),
             ast.Name(id="BaseClass2", ctx=ast.Load()),
-            ast.Name(id="BaseClass3", ctx=ast.Load())
+            ast.Name(id="BaseClass3", ctx=ast.Load()),
         ],
         keywords=[],
         body=[],
-        decorator_list=[]
+        decorator_list=[],
     )
     assert extract_base_classes(node3) == ["BaseClass1", "BaseClass2", "BaseClass3"]
 
@@ -212,12 +155,12 @@ def test_extract_base_classes():
             ast.Attribute(
                 value=ast.Name(id="module", ctx=ast.Load()),
                 attr="BaseClass",
-                ctx=ast.Load()
+                ctx=ast.Load(),
             )
         ],
         keywords=[],
         body=[],
-        decorator_list=[]
+        decorator_list=[],
     )
     assert extract_base_classes(node4) == ["module.BaseClass"]
 
@@ -229,15 +172,15 @@ def test_extract_base_classes():
                 value=ast.Attribute(
                     value=ast.Name(id="module", ctx=ast.Load()),
                     attr="submodule",
-                    ctx=ast.Load()
+                    ctx=ast.Load(),
                 ),
                 attr="BaseClass",
-                ctx=ast.Load()
+                ctx=ast.Load(),
             )
         ],
         keywords=[],
         body=[],
-        decorator_list=[]
+        decorator_list=[],
     )
     assert extract_base_classes(node5) == ["submodule.BaseClass"]
 
@@ -249,15 +192,19 @@ def test_extract_base_classes():
             ast.Attribute(
                 value=ast.Name(id="external", ctx=ast.Load()),
                 attr="BaseClass2",
-                ctx=ast.Load()
+                ctx=ast.Load(),
             ),
-            ast.Name(id="BaseClass3", ctx=ast.Load())
+            ast.Name(id="BaseClass3", ctx=ast.Load()),
         ],
         keywords=[],
         body=[],
-        decorator_list=[]
+        decorator_list=[],
     )
-    assert extract_base_classes(node6) == ["BaseClass1", "external.BaseClass2", "BaseClass3"]
+    assert extract_base_classes(node6) == [
+        "BaseClass1",
+        "external.BaseClass2",
+        "BaseClass3",
+    ]
 
     # Test 7: Deeply nested attribute (more than 2 levels)
     node7 = ast.ClassDef(
@@ -266,25 +213,25 @@ def test_extract_base_classes():
             ast.Attribute(
                 value=ast.Attribute(
                     value=ast.Attribute(
-                        value=ast.Name(id="a", ctx=ast.Load()),
-                        attr="b",
-                        ctx=ast.Load()
+                        value=ast.Name(id="a", ctx=ast.Load()), attr="b", ctx=ast.Load()
                     ),
                     attr="c",
-                    ctx=ast.Load()
+                    ctx=ast.Load(),
                 ),
                 attr="BaseClass",
-                ctx=ast.Load()
+                ctx=ast.Load(),
             )
         ],
         keywords=[],
         body=[],
-        decorator_list=[]
+        decorator_list=[],
     )
     assert extract_base_classes(node7) == ["c.BaseClass"]
 
     # Test 8: Empty class with empty bases list
-    node8 = ast.ClassDef(name="EmptyClass", bases=[], keywords=[], body=[], decorator_list=[])
+    node8 = ast.ClassDef(
+        name="EmptyClass", bases=[], keywords=[], body=[], decorator_list=[]
+    )
     assert extract_base_classes(node8) == []
 
     # Test 9: Class with only attribute base (no Name in value)
@@ -294,26 +241,21 @@ def test_extract_base_classes():
             ast.Attribute(
                 value=ast.Attribute(
                     value=ast.Attribute(
-                        value=ast.Name(id="x", ctx=ast.Load()),
-                        attr="y",
-                        ctx=ast.Load()
+                        value=ast.Name(id="x", ctx=ast.Load()), attr="y", ctx=ast.Load()
                     ),
                     attr="z",
-                    ctx=ast.Load()
+                    ctx=ast.Load(),
                 ),
                 attr="BaseClass",
-                ctx=ast.Load()
+                ctx=ast.Load(),
             )
         ],
         keywords=[],
         body=[],
-        decorator_list=[]
+        decorator_list=[],
     )
     assert extract_base_classes(node9) == ["z.BaseClass"]
 
-import ast
-
-import pytest
 
 from shared.ast_utility import extract_parameters
 
@@ -374,14 +316,14 @@ def test_extract_parameters():
 
     # Test edge case: node with args but no args attribute inside
     class MockNodeWithEmptyArgs:
-        args = type('EmptyArgs', (), {})()
+        args = type("EmptyArgs", (), {})()
 
     mock_empty_args_node = MockNodeWithEmptyArgs()
     assert extract_parameters(mock_empty_args_node) == []
 
     # Test edge case: node with args.args as empty list
     class MockNodeWithArgsAttr:
-        args = type('Args', (), {'args': []})()
+        args = type("Args", (), {"args": []})()
 
     mock_args_node = MockNodeWithArgsAttr()
     assert extract_parameters(mock_args_node) == []

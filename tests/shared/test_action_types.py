@@ -2,9 +2,7 @@
 # Source: src/shared/action_types.py
 # Symbols: 1
 
-import json
-from dataclasses import FrozenInstanceError, is_dataclass
-from unittest.mock import MagicMock, patch
+from dataclasses import is_dataclass
 
 import pytest
 
@@ -18,7 +16,7 @@ def test_ActionResult():
     result = ActionResult(
         action_id="check.imports",
         ok=True,
-        data={"violations_count": 0, "files_scanned": 10}
+        data={"violations_count": 0, "files_scanned": 10},
     )
 
     assert result.action_id == "check.imports"
@@ -42,7 +40,7 @@ def test_ActionResult():
         impact="MODERATE",
         logs=["Starting fix", "Processing file.py"],
         warnings=["Some items could not be fixed"],
-        suggestions=["Run check.ids to verify fixes"]
+        suggestions=["Run check.ids to verify fixes"],
     )
 
     assert result_full.action_id == "fix.ids"
@@ -77,7 +75,7 @@ def test_ActionResult():
     # Create data that's too large
     large_data = {"big_list": ["x" * 1000] * 6000}  # ~6MB when serialized
 
-    with pytest.raises(ValueError, match="ActionResult.data exceeds size limit"):
+    with pytest.raises(ValueError, match=r"ActionResult\.data exceeds size limit"):
         ActionResult(action_id="test", ok=True, data=large_data)
 
     # Test 10: Test data size limit with unserializable data (should not crash)
@@ -92,12 +90,7 @@ def test_ActionResult():
     assert result.action_id == "test"
 
     # Test 11: Test with different action_id formats
-    test_cases = [
-        "fix.ids",
-        "check.imports",
-        "generate.docs",
-        "sync.config"
-    ]
+    test_cases = ["fix.ids", "check.imports", "generate.docs", "sync.config"]
 
     for action_id in test_cases:
         result = ActionResult(action_id=action_id, ok=True, data={})
@@ -111,7 +104,7 @@ def test_ActionResult():
         "bool": True,
         "list": [1, 2, 3],
         "nested": {"key": "value"},
-        "none": None
+        "none": None,
     }
 
     result = ActionResult(action_id="test", ok=True, data=complex_data)
@@ -137,7 +130,7 @@ def test_ActionResult():
     assert result.duration_sec == -1.0
 
     # Test 16: Test MAX_DATA_SIZE_BYTES constant
-    assert hasattr(ActionResult, 'MAX_DATA_SIZE_BYTES')
+    assert hasattr(ActionResult, "MAX_DATA_SIZE_BYTES")
     assert ActionResult.MAX_DATA_SIZE_BYTES == 5 * 1024 * 1024
 
     # Test 17: Test that data within size limit works

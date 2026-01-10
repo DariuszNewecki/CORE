@@ -2,27 +2,31 @@
 # Source: src/test.py
 # Symbols: 1
 
-import pytest
 
 from test import hello_world
 
 
 def test_hello_world():
-    """Test basic functionality of hello_world function."""
-    # Test basic return value
+    """Test the hello_world function returns correct string."""
+    # Test basic functionality
     result = hello_world()
     assert result == "Hello, CORE!"
 
     # Test return type
     assert isinstance(result, str)
 
-    # Test non-empty string
-    assert len(result) > 0
-
-    # Test exact string match
-    expected = "Hello, CORE!"
-    assert result == expected
-
-    # Test string contains expected substring
+    # Test string properties
+    assert len(result) == 12
+    assert result.startswith("Hello")
+    assert result.endswith("CORE!")
     assert "CORE" in result
-    assert "Hello" in result
+
+    # Test it's not empty
+    assert result
+
+    # Test exact match (no extra whitespace)
+    assert result == "Hello, CORE!"
+
+    # Test it's not some other common string
+    assert result != "Hello, World!"
+    assert result != "Hello World"
