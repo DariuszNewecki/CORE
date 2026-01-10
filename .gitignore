@@ -22,6 +22,8 @@ coverage.json
 *.log
 *.jsonl
 src/test.py
+.env.canary
+.env.test
 
 # Editors
 .vscode/

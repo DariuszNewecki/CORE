@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import json
 import subprocess
+import time
 from pathlib import Path
 
 import typer
@@ -455,6 +456,152 @@ async def generate_adaptive_command(
         logger.error("Adaptive test generation failed: %s", e, exc_info=True)
         console.print(f"[red]❌ Generation failed: {e}[/red]")
         raise typer.Exit(code=1)
+
+
+# Add this to src/body/cli/commands/coverage.py
+# Insert after the generate_adaptive_command function (around line 200)
+
+
+@coverage_app.command("generate-adaptive-batch")
+@core_command(dangerous=True, confirmation=True)
+# ID: b8c9d0e1-f2a3-4b5c-6d7e-8f9a0b1c2d3e
+async def generate_adaptive_batch_command(
+    ctx: typer.Context,
+    pattern: str = typer.Option("src/**/*.py", help="File pattern to match"),
+    limit: int = typer.Option(10, help="Max files to process"),
+    write: bool = typer.Option(False, "--write", help="Save passing tests"),
+    min_coverage: float = typer.Option(
+        0.0, help="Only process files below this coverage %"
+    ),
+) -> None:
+    """
+    Generate tests for multiple files using adaptive V2 system.
+
+    Prioritizes files with lowest coverage first.
+    """
+    from features.self_healing.coverage_analyzer import CoverageAnalyzer
+    from features.test_generation_v2 import AdaptiveTestGenerator
+
+    core_context: CoreContext = ctx.obj
+
+    console.print(
+        "[bold cyan]🧪 Adaptive Test Generation - Batch Mode (V2)[/bold cyan]\n"
+    )
+
+    # Get coverage data
+    analyzer = CoverageAnalyzer()
+    coverage_map = analyzer.get_module_coverage()
+
+    # Find matching files
+    all_files = list(settings.REPO_PATH.glob(pattern))
+
+    # Filter and sort by coverage
+    # ID: fa722b9a-ede7-4419-9ba5-e5cdafdd8f3c
+    def get_coverage_score(file_path: Path) -> float:
+        try:
+            rel = str(file_path.relative_to(settings.REPO_PATH)).replace("\\", "/")
+            return float(coverage_map.get(rel, 0.0))
+        except (ValueError, KeyError):
+            return 0.0
+
+    # Filter by min_coverage threshold
+    eligible_files = [f for f in all_files if get_coverage_score(f) <= min_coverage]
+
+    # Sort by coverage (lowest first) and limit
+    prioritized_files = sorted(eligible_files, key=get_coverage_score)[:limit]
+
+    if not prioritized_files:
+        console.print(
+            f"[yellow]No files found matching: {pattern} with coverage <= {min_coverage}%[/yellow]"
+        )
+        return
+
+    console.print(
+        f"[cyan]Processing {len(prioritized_files)} files (Lowest Coverage First)...[/cyan]"
+    )
+    console.print(f"[dim]Min coverage threshold: {min_coverage}%[/dim]\n")
+
+    # Track totals
+    total_symbols = 0
+    total_validated = 0
+    total_sandbox_passed = 0
+    total_tests_saved = 0
+    total_failed_files = 0
+    start_time = time.time()
+
+    generator = AdaptiveTestGenerator(context=core_context)
+
+    for idx, file_path in enumerate(prioritized_files, 1):
+        rel_path = file_path.relative_to(settings.REPO_PATH)
+        current_coverage = get_coverage_score(file_path)
+
+        console.print(
+            f"\n[bold cyan][{idx}/{len(prioritized_files)}][/bold cyan] {rel_path} (coverage: {current_coverage:.1f}%)"
+        )
+
+        try:
+            result = await generator.generate_tests_for_file(
+                file_path=str(rel_path),
+                write=write,
+                max_failures_per_pattern=3,
+            )
+
+            # Accumulate stats
+            total_symbols += result.total_symbols
+            total_validated += result.tests_generated
+            total_sandbox_passed += getattr(result, "sandbox_passed", 0)
+
+            # Count tests actually saved (from persistence results)
+            for test_result in result.generated_tests:
+                if test_result.get("persisted") and test_result.get("persist_path"):
+                    # Check if it's not in morgue
+                    if "failures" not in test_result.get("persist_path", ""):
+                        total_tests_saved += 1
+
+            if result.tests_generated > 0:
+                console.print(
+                    f"  ✅ Validated: {result.tests_generated}, Sandbox passed: {getattr(result, 'sandbox_passed', 0)}"
+                )
+            else:
+                console.print("  ⚠️  No tests generated")
+                total_failed_files += 1
+
+        except Exception as e:
+            console.print(f"  ❌ Error: {e}")
+            total_failed_files += 1
+            continue
+
+    # Final summary
+    total_duration = time.time() - start_time
+
+    console.print("\n" + "=" * 80)
+    console.print("[bold]📊 Batch Generation Summary[/bold]\n")
+    console.print(f"  Files processed: {len(prioritized_files)}")
+    console.print(f"  Files failed: {total_failed_files}")
+    console.print(f"  Total symbols: {total_symbols}")
+    console.print(f"  Tests validated: {total_validated}")
+    console.print(f"  Tests sandbox-passed: {total_sandbox_passed}")
+
+    if write:
+        console.print(
+            f"  [bold green]Tests saved to suite: {total_tests_saved}[/bold green]"
+        )
+    else:
+        console.print("  [dim]Tests saved: 0 (dry-run mode, use --write to save)[/dim]")
+
+    console.print(f"\n  Duration: {total_duration:.1f}s")
+    console.print(f"  Avg per file: {total_duration/len(prioritized_files):.1f}s")
+
+    if total_tests_saved > 0:
+        console.print(
+            f"\n[bold green]✅ Successfully saved {total_tests_saved} tests to your test suite![/bold green]"
+        )
+    elif write:
+        console.print(
+            "\n[yellow]⚠️  No tests were saved (all failed validation or sandbox)[/yellow]"
+        )
+
+    console.print("=" * 80)
 
 
 @coverage_app.command("compare-methods")
