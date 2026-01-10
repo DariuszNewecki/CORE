@@ -11,15 +11,6 @@
   {
     "check_id": "architecture.max_file_size",
     "severity": "warning",
-    "message": "Module has 411 lines, exceeds limit of 400",
-    "file_path": "src/body/atomic/fix_actions.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.max_file_size",
-    "severity": "warning",
     "message": "Module has 493 lines, exceeds limit of 400",
     "file_path": "src/body/cli/commands/autonomy.py",
     "line_number": null,
@@ -31,6 +22,15 @@
     "severity": "warning",
     "message": "Module has 489 lines, exceeds limit of 400",
     "file_path": "src/body/cli/commands/coverage.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.max_file_size",
+    "severity": "warning",
+    "message": "Module has 497 lines, exceeds limit of 400",
+    "file_path": "src/body/cli/commands/inspect.py",
     "line_number": null,
     "context": {},
     "details": {}
@@ -74,7 +74,7 @@
   {
     "check_id": "architecture.max_file_size",
     "severity": "warning",
-    "message": "Module has 493 lines, exceeds limit of 400",
+    "message": "Module has 488 lines, exceeds limit of 400",
     "file_path": "src/body/evaluators/atomic_actions_evaluator.py",
     "line_number": null,
     "context": {},
@@ -146,6 +146,15 @@
   {
     "check_id": "architecture.max_file_size",
     "severity": "warning",
+    "message": "Module has 480 lines, exceeds limit of 400",
+    "file_path": "src/will/agents/code_generation/code_generator.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.max_file_size",
+    "severity": "warning",
     "message": "Module has 431 lines, exceeds limit of 400",
     "file_path": "src/will/autonomy/proposal.py",
     "line_number": null,
@@ -209,8 +218,35 @@
   {
     "check_id": "purity.no_todo_placeholders",
     "severity": "warning",
+    "message": "Forbidden Content [Line 190]: Matched restricted regex '\\bTODO\\b'",
+    "file_path": "src/body/atomic/fix_actions.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_todo_placeholders",
+    "severity": "warning",
+    "message": "Forbidden Content [Line 190]: Matched restricted regex '\\bFIXME\\b'",
+    "file_path": "src/body/atomic/fix_actions.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_todo_placeholders",
+    "severity": "warning",
     "message": "Forbidden Content [Line 273]: Matched restricted regex '\\bTODO\\b'",
     "file_path": "src/body/cli/logic/interactive_test/steps.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "autonomy.tracing.mandatory",
+    "severity": "warning",
+    "message": "Line 60: 'CoderAgent' missing mandatory call(s): ['self.tracer.record']",
+    "file_path": "src/will/agents/coder_agent.py",
     "line_number": null,
     "context": {},
     "details": {}

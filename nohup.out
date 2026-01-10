@@ -1,0 +1,164 @@
+[19:01:13] INFO     INFO:shared.infrastructure.git_service:GitService
+                    initialized for path /opt/dev/CORE
+           INFO     INFO:shared.infrastructure.intent.intent_validator:Intent
+                    validation completed: 7 documents validated
+           INFO     INFO:shared.infrastructure.intent.intent_repository:IntentRe
+                    pository indexed 7 policies and 25 rules.
+           INFO     INFO:mind.governance.intent_guard:IntentGuard initialized
+                    with 25 policy rules for file operation governance.
+
+🚨 CONFIRM DANGEROUS OPERATION
+   This will modify your codebase. Continue? [y/n]: ╭───────────────────── Traceback (most recent call last) ──────────────────────╮
+│ /opt/dev/CORE/src/shared/cli_utils.py:168 in wrapper                         │
+│                                                                              │
+│   165 │   │   │   │   )                                                      │
+│   166 │   │   │                                                              │
+│   167 │   │   │   if dangerous and confirmation and write:                   │
+│ ❱ 168 │   │   │   │   if not confirm_action(                                 │
+│   169 │   │   │   │   │   "[bold red]🚨 CONFIRM DANGEROUS OPERATION[/bold re │
+│   170 │   │   │   │   │   "   This will modify your codebase. Continue?",    │
+│   171 │   │   │   │   │   abort_message="Operation cancelled by user.",      │
+│                                                                              │
+│ ╭───────────────────────────────── locals ─────────────────────────────────╮ │
+│ │             args = ()                                                    │ │
+│ │     confirmation = True                                                  │ │
+│ │     core_context = CoreContext(                                          │ │
+│ │                    │                                                     │ │
+│ │                    registry=<body.services.service_registry.ServiceRegi… │ │
+│ │                    object at 0x761ab021bbc0>,                            │ │
+│ │                    │                                                     │ │
+│ │                    git_service=<shared.infrastructure.git_service.GitSe… │ │
+│ │                    object at 0x761ab0133ec0>,                            │ │
+│ │                    │   cognitive_service=None,                           │ │
+│ │                    │                                                     │ │
+│ │                    knowledge_service=<shared.infrastructure.knowledge.k… │ │
+│ │                    object at 0x761ab0381ca0>,                            │ │
+│ │                    │   auditor_context=None,                             │ │
+│ │                    │                                                     │ │
+│ │                    file_handler=<shared.infrastructure.storage.file_han… │ │
+│ │                    object at 0x761ab0bec920>,                            │ │
+│ │                    │   planner_config=PlannerConfig(                     │ │
+│ │                    │   │   task_timeout=300,                             │ │
+│ │                    │   │   rollback_on_failure=True,                     │ │
+│ │                    │   │   auto_commit=True                              │ │
+│ │                    │   ),                                                │ │
+│ │                    │   qdrant_service=None,                              │ │
+│ │                    │   file_content_cache={},                            │ │
+│ │                    │   _is_test_mode=False                               │ │
+│ │                    )                                                     │ │
+│ │              ctx = <click.core.Context object at 0x761ab02d80e0>         │ │
+│ │        dangerous = True                                                  │ │
+│ │           kwargs = {                                                     │ │
+│ │                    │   'ctx': <click.core.Context object at              │ │
+│ │                    0x761ab02d80e0>,                                      │ │
+│ │                    │   'pattern': 'src/**/*.py',                         │ │
+│ │                    │   'limit': 50,                                      │ │
+│ │                    │   'write': True                                     │ │
+│ │                    }                                                     │ │
+│ │ requires_context = True                                                  │ │
+│ │            write = True                                                  │ │
+│ ╰──────────────────────────────────────────────────────────────────────────╯ │
+│                                                                              │
+│ /opt/dev/CORE/src/shared/cli_utils.py:113 in confirm_action                  │
+│                                                                              │
+│   110 def confirm_action(message: str, *, abort_message: str = "Aborted.") - │
+│   111 │   """Unified confirmation prompt for dangerous operations."""        │
+│   112 │   console.print()                                                    │
+│ ❱ 113 │   confirmed = Confirm.ask(message)                                   │
+│   114 │   if not confirmed:                                                  │
+│   115 │   │   console.print(f"[yellow]{abort_message}[/yellow]")             │
+│   116 │   console.print()                                                    │
+│                                                                              │
+│ ╭───────────────────────────────── locals ─────────────────────────────────╮ │
+│ │ abort_message = 'Operation cancelled by user.'                           │ │
+│ │       message = '[bold red]🚨 CONFIRM DANGEROUS OPERATION[/bold red]\n … │ │
+│ │                 This will modify your code'+15                           │ │
+│ ╰──────────────────────────────────────────────────────────────────────────╯ │
+│                                                                              │
+│ /opt/dev/CORE/.venv/lib/python3.12/site-packages/rich/prompt.py:149 in ask   │
+│                                                                              │
+│   146 │   │   │   show_default=show_default,                                 │
+│   147 │   │   │   show_choices=show_choices,                                 │
+│   148 │   │   )                                                              │
+│ ❱ 149 │   │   return _prompt(default=default, stream=stream)                 │
+│   150 │                                                                      │
+│   151 │   def render_default(self, default: DefaultType) -> Text:            │
+│   152 │   │   """Turn the supplied default in to a Text instance.            │
+│                                                                              │
+│ ╭───────────────────────────────── locals ─────────────────────────────────╮ │
+│ │        _prompt = <rich.prompt.Confirm object at 0x761ab01ba900>          │ │
+│ │ case_sensitive = True                                                    │ │
+│ │        choices = None                                                    │ │
+│ │        console = None                                                    │ │
+│ │        default = Ellipsis                                                │ │
+│ │       password = False                                                   │ │
+│ │         prompt = '[bold red]🚨 CONFIRM DANGEROUS OPERATION[/bold red]\n… │ │
+│ │                  This will modify your code'+15                          │ │
+│ │   show_choices = True                                                    │ │
+│ │   show_default = True                                                    │ │
+│ │         stream = None                                                    │ │
+│ ╰──────────────────────────────────────────────────────────────────────────╯ │
+│                                                                              │
+│ /opt/dev/CORE/.venv/lib/python3.12/site-packages/rich/prompt.py:292 in       │
+│ __call__                                                                     │
+│                                                                              │
+│   289 │   │   while True:                                                    │
+│   290 │   │   │   self.pre_prompt()                                          │
+│   291 │   │   │   prompt = self.make_prompt(default)                         │
+│ ❱ 292 │   │   │   value = self.get_input(self.console, prompt, self.password │
+│   293 │   │   │   if value == "" and default != ...:                         │
+│   294 │   │   │   │   return default                                         │
+│   295 │   │   │   try:                                                       │
+│                                                                              │
+│ ╭───────────────────────────────── locals ─────────────────────────────────╮ │
+│ │ default = Ellipsis                                                       │ │
+│ │  prompt = <text '🚨 CONFIRM DANGEROUS OPERATION\n   This will modify     │ │
+│ │           your codebase. Continue? [y/n]: ' [Span(0, 29, 'bold red'),    │ │
+│ │           Span(75, 80, 'prompt.choices')] 'prompt'>                      │ │
+│ │    self = <rich.prompt.Confirm object at 0x761ab01ba900>                 │ │
+│ │  stream = None                                                           │ │
+│ ╰──────────────────────────────────────────────────────────────────────────╯ │
+│                                                                              │
+│ /opt/dev/CORE/.venv/lib/python3.12/site-packages/rich/prompt.py:211 in       │
+│ get_input                                                                    │
+│                                                                              │
+│   208 │   │   Returns:                                                       │
+│   209 │   │   │   str: String from user.                                     │
+│   210 │   │   """                                                            │
+│ ❱ 211 │   │   return console.input(prompt, password=password, stream=stream) │
+│   212 │                                                                      │
+│   213 │   def check_choice(self, value: str) -> bool:                        │
+│   214 │   │   """Check value is in the list of valid choices.                │
+│                                                                              │
+│ ╭───────────────────────────────── locals ─────────────────────────────────╮ │
+│ │  console = <console width=80 None>                                       │ │
+│ │ password = False                                                         │ │
+│ │   prompt = <text '🚨 CONFIRM DANGEROUS OPERATION\n   This will modify    │ │
+│ │            your codebase. Continue? [y/n]: ' [Span(0, 29, 'bold red'),   │ │
+│ │            Span(75, 80, 'prompt.choices')] 'prompt'>                     │ │
+│ │   stream = None                                                          │ │
+│ ╰──────────────────────────────────────────────────────────────────────────╯ │
+│                                                                              │
+│ /opt/dev/CORE/.venv/lib/python3.12/site-packages/rich/console.py:2151 in     │
+│ input                                                                        │
+│                                                                              │
+│   2148 │   │   │   if stream:                                                │
+│   2149 │   │   │   │   result = stream.readline()                            │
+│   2150 │   │   │   else:                                                     │
+│ ❱ 2151 │   │   │   │   result = input()                                      │
+│   2152 │   │   return result                                                 │
+│   2153 │                                                                     │
+│   2154 │   def export_text(self, *, clear: bool = True, styles: bool = False │
+│                                                                              │
+│ ╭───────────────────────────────── locals ─────────────────────────────────╮ │
+│ │    emoji = True                                                          │ │
+│ │   markup = True                                                          │ │
+│ │ password = False                                                         │ │
+│ │   prompt = <text '🚨 CONFIRM DANGEROUS OPERATION\n   This will modify    │ │
+│ │            your codebase. Continue? [y/n]: ' [Span(0, 29, 'bold red'),   │ │
+│ │            Span(75, 80, 'prompt.choices')] 'prompt'>                     │ │
+│ │     self = <console width=80 None>                                       │ │
+│ │   stream = None                                                          │ │
+│ ╰──────────────────────────────────────────────────────────────────────────╯ │
+╰──────────────────────────────────────────────────────────────────────────────╯
+OSError: [Errno 9] Bad file descriptor
