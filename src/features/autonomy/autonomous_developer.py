@@ -16,6 +16,7 @@ NEW PATTERN (Current):
 CONSTITUTIONAL FIX:
 - Removed local 'get_session' import to satisfy 'logic.di.no_global_session'.
 - Leverages the pre-wired 'context_service' from CoreContext (Inversion of Control).
+- Uses context_service property correctly (no hasattr check)
 """
 
 from __future__ import annotations
@@ -135,17 +136,15 @@ async def develop_from_goal(
 
     logger.debug("Initializing UNIX-compliant workflow specialists...")
 
-    # Get cognitive service
+    # Get cognitive service from CoreContext (already initialized)
     cognitive_service = context.cognitive_service
 
-    # Try to initialize Qdrant (optional semantic features)
+    # Get Qdrant from registry if available (respects singleton pattern)
     qdrant_service = None
     try:
-        # CONSTITUTIONAL FIX: Use the registry to get the singleton instance
-        # to ensure we don't bypass system-wide connection management.
         if context.registry:
             qdrant_service = await context.registry.get_qdrant_service()
-        logger.debug("Qdrant service resolved via Registry")
+            logger.debug("Qdrant service resolved via Registry")
     except Exception as e:
         logger.debug("Qdrant not available (optional): %s", e)
 
@@ -154,11 +153,22 @@ async def develop_from_goal(
 
     # 2. CoderAgent (for SpecificationAgent)
     prompt_pipeline = PromptPipeline(context.git_service.repo_path)
+
+    # Get ContextService via property (triggers factory if needed)
+    # CONSTITUTIONAL: Use property access, not hasattr check
+    context_service_for_codegen = None
+    try:
+        context_service_for_codegen = context.context_service
+        logger.debug("ContextService available for enriched code generation")
+    except Exception as e:
+        logger.debug("ContextService not available: %s", e)
+
     coder_agent = CoderAgent(
         cognitive_service=cognitive_service,
         prompt_pipeline=prompt_pipeline,
         auditor_context=context.auditor_context,
         qdrant_service=qdrant_service,
+        context_service=context_service_for_codegen,  # NEW: Enable context-enriched generation
     )
 
     # 3. SpecificationAgent (Engineer)

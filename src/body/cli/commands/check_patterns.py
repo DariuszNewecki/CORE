@@ -17,9 +17,14 @@ from pathlib import Path
 
 import typer
 
-from body.evaluators.pattern_evaluator import PatternEvaluator
+from body.evaluators.pattern_evaluator import (
+    PatternEvaluator,
+    format_violations,
+    load_patterns_dict,
+)
 from shared.cli_utils import core_command
 from shared.logger import getLogger
+from shared.models.pattern_graph import PatternViolation
 
 
 logger = getLogger(__name__)
@@ -43,15 +48,13 @@ async def list_patterns(
     """
     List available design patterns.
     """
-    from body.cli.logic.pattern_checker import PatternChecker
-
-    # Listing patterns is a metadata operation; we use the logic helper
+    # Load patterns directly using helper function
     repo_root = Path.cwd()
-    checker = PatternChecker(repo_root)
+    patterns = load_patterns_dict(repo_root)
 
     typer.echo("📋 Available Design Patterns:\n")
 
-    for pattern_category, pattern_spec in checker.patterns.items():
+    for pattern_category, pattern_spec in patterns.items():
         if category and pattern_category != category:
             continue
 
@@ -95,8 +98,6 @@ async def check_patterns_cmd(
     """
     Check code compliance with design patterns via the PatternEvaluator.
     """
-    from body.cli.logic.pattern_checker import PatternViolation, format_violations
-
     if not quiet:
         typer.echo(f"🔍 [V2] Checking {category} pattern compliance...")
 

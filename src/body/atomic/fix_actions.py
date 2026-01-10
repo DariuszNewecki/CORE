@@ -57,244 +57,153 @@ async def action_format_code(write: bool = False) -> ActionResult:
     Format code using Black and Ruff.
     """
     start = time.time()
-    try:
-        logger.info("Starting code formatting (Black + Ruff)")
+    # format_code() takes no parameters, uses global settings
+    format_code()
 
-        if write:
-            format_code(path=None)  # Format entire project
-            files_changed = 1
-        else:
-            files_changed = 0
-
-        return ActionResult(
-            action_id="fix.format",
-            ok=True,
-            data={
-                "files_changed": files_changed,
-                "dry_run": not write,
-            },
-            duration_sec=time.time() - start,
-        )
-    except Exception as e:
-        logger.error("Code formatting failed: %s", e, exc_info=True)
-        return ActionResult(
-            action_id="fix.format",
-            ok=False,
-            data={"error": str(e)},
-            duration_sec=time.time() - start,
-        )
-
-
-@register_action(
-    action_id="fix.ids",
-    description="Assign constitutional IDs to functions/classes",
-    category=ActionCategory.FIX,
-    policies=["constitutional_header_policy"],
-    impact_level="safe",
-)
-# ID: b2c3d4e5-f678-90ab-cdef-1234567890ab
-@atomic_action(
-    action_id="fix.ids",
-    intent="Atomic action for action_fix_ids",
-    impact=ActionImpact.WRITE_CODE,
-    policies=["atomic_actions"],
-)
-# ID: ce9fbde9-dc32-46bd-a9ac-f96b8a7fec55
-async def action_fix_ids(
-    core_context: CoreContext, write: bool = False
-) -> ActionResult:
-    """
-    Assign unique IDs to all functions and classes.
-    """
-    start = time.time()
-    try:
-        logger.info("Assigning constitutional IDs")
-        result = await fix_ids_internal(core_context, write=write)
-
-        return ActionResult(
-            action_id="fix.ids",
-            ok=result.ok,
-            data={
-                "ids_assigned": result.data.get("ids_assigned", 0),
-                "files_processed": result.data.get("files_processed", 0),
-                "dry_run": not write,
-            },
-            duration_sec=result.duration_sec,
-        )
-    except Exception as e:
-        logger.error("ID assignment failed: %s", e, exc_info=True)
-        return ActionResult(
-            action_id="fix.ids",
-            ok=False,
-            data={"error": str(e)},
-            duration_sec=time.time() - start,
-        )
-
-
-@register_action(
-    action_id="fix.headers",
-    description="Fix constitutional file headers",
-    category=ActionCategory.FIX,
-    policies=["constitutional_header_policy"],
-    impact_level="safe",
-)
-# ID: c3d4e5f6-7890-abcd-ef12-34567890abcd
-@atomic_action(
-    action_id="fix.headers",
-    intent="Atomic action for action_fix_headers",
-    impact=ActionImpact.WRITE_CODE,
-    policies=["atomic_actions"],
-)
-# ID: 0595571a-7439-4362-b62a-b1c8aac18557
-async def action_fix_headers(
-    core_context: CoreContext, write: bool = False
-) -> ActionResult:
-    """
-    Fix constitutional headers in all Python files.
-    """
-    start = time.time()
-    try:
-        logger.info("Fixing constitutional headers")
-        result = await fix_headers_internal(core_context, write=write)
-
-        return ActionResult(
-            action_id="fix.headers",
-            ok=result.ok,
-            data={
-                "headers_fixed": result.data.get("headers_fixed", 0),
-                "files_processed": result.data.get("files_processed", 0),
-                "dry_run": not write,
-            },
-            duration_sec=result.duration_sec,
-        )
-    except Exception as e:
-        logger.error("Header fixing failed: %s", e, exc_info=True)
-        return ActionResult(
-            action_id="fix.headers",
-            ok=False,
-            data={"error": str(e)},
-            duration_sec=time.time() - start,
-        )
+    return ActionResult(
+        action_id="fix.format",
+        ok=True,
+        data={"formatted": True, "write": write},
+        duration_sec=time.time() - start,
+    )
 
 
 @register_action(
     action_id="fix.docstrings",
-    description="Fix missing or incomplete docstrings",
+    description="Fix missing or malformed docstrings",
     category=ActionCategory.FIX,
-    policies=["docstring_requirements"],
+    policies=["code_quality_standards"],
     impact_level="safe",
 )
-# ID: d4e5f678-90ab-cdef-1234-567890abcdef
 @atomic_action(
     action_id="fix.docstrings",
     intent="Atomic action for action_fix_docstrings",
     impact=ActionImpact.WRITE_CODE,
     policies=["atomic_actions"],
 )
-# ID: 96483c5c-ce10-41e4-8ba5-73f4a39988dc
+# ID: c3d4e5f6-a7b8-9c0d-1e2f-3a4b5c6d7e8f
 async def action_fix_docstrings(
-    core_context: CoreContext, write: bool = False
+    core_context: CoreContext, write: bool = False, **kwargs
 ) -> ActionResult:
     """
-    Fix missing or incomplete docstrings.
+    Fix docstrings across the repository.
     """
     start = time.time()
-    try:
-        logger.info("Fixing docstrings")
-        await fix_docstrings(core_context, write=write)
+    # fix_docstrings is async and takes context + write
+    result = await fix_docstrings(context=core_context, write=write)
 
-        return ActionResult(
-            action_id="fix.docstrings",
-            ok=True,
-            data={
-                "status": "completed",
-                "dry_run": not write,
-            },
-            duration_sec=time.time() - start,
-        )
-    except Exception as e:
-        logger.error("Docstring fixing failed: %s", e, exc_info=True)
-        return ActionResult(
-            action_id="fix.docstrings",
-            ok=False,
-            data={"error": str(e)},
-            duration_sec=time.time() - start,
-        )
+    return ActionResult(
+        action_id="fix.docstrings",
+        ok=True,
+        data={"status": "completed", "write": write},
+        duration_sec=time.time() - start,
+    )
+
+
+@register_action(
+    action_id="fix.headers",
+    description="Fix file headers to match constitutional standards",
+    category=ActionCategory.FIX,
+    policies=["header_compliance"],
+    impact_level="safe",
+)
+@atomic_action(
+    action_id="fix.headers",
+    intent="Atomic action for action_fix_headers",
+    impact=ActionImpact.WRITE_CODE,
+    policies=["atomic_actions"],
+)
+# ID: d4e5f6a7-b8c9-0d1e-2f3a-4b5c6d7e8f9a
+async def action_fix_headers(
+    core_context: CoreContext, write: bool = False, **kwargs
+) -> ActionResult:
+    """
+    Fix file headers.
+    """
+    # fix_headers_internal takes context and write (not dry_run)
+    return await fix_headers_internal(core_context, write=write)
+
+
+@register_action(
+    action_id="fix.ids",
+    description="Add missing ID tags to functions and classes",
+    category=ActionCategory.FIX,
+    policies=["code_quality_standards"],
+    impact_level="safe",
+)
+@atomic_action(
+    action_id="fix.ids",
+    intent="Atomic action for action_fix_ids",
+    impact=ActionImpact.WRITE_CODE,
+    policies=["atomic_actions"],
+)
+# ID: e5f6a7b8-c9d0-1e2f-3a4b-5c6d7e8f9a0b
+async def action_fix_ids(
+    core_context: CoreContext, write: bool = False, **kwargs
+) -> ActionResult:
+    """
+    Fix missing ID tags.
+    """
+    # fix_ids_internal takes context and write (not dry_run)
+    return await fix_ids_internal(core_context, write=write)
 
 
 @register_action(
     action_id="fix.logging",
-    description="Fix logging policy violations",
+    description="Replace print statements with proper logging",
     category=ActionCategory.FIX,
-    policies=["logging_policy"],
+    policies=["code_quality_standards"],
     impact_level="safe",
 )
-# ID: e5f67890-abcd-ef12-3456-7890abcdef12
 @atomic_action(
     action_id="fix.logging",
     intent="Atomic action for action_fix_logging",
     impact=ActionImpact.WRITE_CODE,
     policies=["atomic_actions"],
 )
-# ID: ef8fe11c-fcff-49ea-a2ca-eaa9b0dbcc5e
+# ID: f6a7b8c9-d0e1-2f3a-4b5c-6d7e8f9a0b1c
 async def action_fix_logging(
-    core_context: CoreContext, write: bool = False
+    core_context: CoreContext, write: bool = False, **kwargs
 ) -> ActionResult:
     """
-    Fix logging policy violations (LOG-001, LOG-004).
+    Fix logging violations.
     """
     start = time.time()
-    try:
-        logger.info("Fixing logging violations")
-        # CONSTITUTIONAL FIX: Pass the governed file_handler
-        fixer = LoggingFixer(
-            settings.REPO_PATH,
-            file_handler=core_context.file_handler,
-            dry_run=not write,
-        )
-        result = fixer.fix_all()
+    # LoggingFixer takes repo_root, file_handler, and dry_run
+    fixer = LoggingFixer(
+        repo_root=settings.REPO_PATH,
+        file_handler=core_context.file_handler,
+        dry_run=not write,
+    )
+    result = fixer.fix_all()
 
-        return ActionResult(
-            action_id="fix.logging",
-            ok=True,
-            data={
-                "fixes_applied": result["fixes_applied"],
-                "files_modified": result["files_modified"],
-                "dry_run": not write,
-            },
-            duration_sec=time.time() - start,
-        )
-    except Exception as e:
-        logger.error("Logging fix failed: %s", e, exc_info=True)
-        return ActionResult(
-            action_id="fix.logging",
-            ok=False,
-            data={"error": str(e)},
-            duration_sec=time.time() - start,
-        )
+    return ActionResult(
+        action_id="fix.logging",
+        ok=True,
+        data=result,
+        duration_sec=time.time() - start,
+    )
 
 
 @register_action(
     action_id="fix.placeholders",
-    description="Deterministically replace forbidden placeholders (FUTURE, none, pending)",
+    description="Replace TODO/FIXME placeholders with proper implementations",
     category=ActionCategory.FIX,
-    policies=["code_standards"],
+    policies=["code_quality_standards"],
     impact_level="moderate",
 )
-# ID: 7d8e9f0a-1b2c-3d4e-5f6g-7h8i9j0k1l2m
-# ID: 4eadad7d-48b6-4799-9b52-646e4227f28e
 @atomic_action(
     action_id="fix.placeholders",
     intent="Atomic action for action_fix_placeholders",
     impact=ActionImpact.WRITE_CODE,
     policies=["atomic_actions"],
 )
-# ID: 5e5f8193-be98-4cbf-bef0-04e69d9c28ad
+# ID: 3c8e9d7f-6a5b-4e3c-9d2f-8b7e6a5f4d3c
 async def action_fix_placeholders(
-    core_context: CoreContext, write: bool = False
+    core_context: CoreContext, write: bool = False, **kwargs
 ) -> ActionResult:
     """
-    Scans src/ and replaces forbidden placeholders with constitutional alternatives.
+    Fix placeholder comments.
     """
     start = time.time()
     files_modified = 0
@@ -356,18 +265,22 @@ async def action_fix_atomic_actions(
     """
     import asyncio
 
-    # We import the string transformation helper from the command file
-    # this avoids duplicating the complex line-editing code.
+    # Import helper from command file and evaluator
     from body.cli.commands.fix.atomic_actions import _fix_file_violations
-    from body.cli.logic.atomic_actions_checker import AtomicActionsChecker
+    from body.evaluators.atomic_actions_evaluator import (
+        AtomicActionsEvaluator,
+        AtomicActionViolation,
+    )
 
     start_time = time.time()
     root_path = core_context.git_service.repo_path
 
-    checker = AtomicActionsChecker(root_path)
-    result = checker.check_all()
+    # Use Evaluator instead of Checker
+    evaluator = AtomicActionsEvaluator()
+    result_wrapper = await evaluator.execute(repo_root=root_path)
+    data = result_wrapper.data
 
-    if not result.violations:
+    if not data["violations"]:
         return ActionResult(
             action_id="fix.atomic_actions",
             ok=True,
@@ -375,9 +288,23 @@ async def action_fix_atomic_actions(
             duration_sec=time.time() - start_time,
         )
 
+    # Convert violation dicts back to objects for helper function
+    violations = [
+        AtomicActionViolation(
+            file_path=root_path / v["file"],
+            function_name=v["function"],
+            rule_id=v["rule"],
+            message=v["message"],
+            severity=v["severity"],
+            line_number=v["line"],
+            suggested_fix=v["suggested_fix"],
+        )
+        for v in data["violations"]
+    ]
+
     # Group by file
     violations_by_file = {}
-    for v in result.violations:
+    for v in violations:
         violations_by_file.setdefault(v.file_path, []).append(v)
 
     fixes_applied = 0

@@ -16,7 +16,11 @@ from pathlib import Path
 
 import typer
 
-from body.evaluators.atomic_actions_evaluator import AtomicActionsEvaluator
+from body.evaluators.atomic_actions_evaluator import (
+    AtomicActionsEvaluator,
+    AtomicActionViolation,
+    format_atomic_action_violations,
+)
 from shared.cli_utils import core_command
 from shared.logger import getLogger
 
@@ -58,10 +62,6 @@ async def check_atomic_actions_cmd(
     - Declare action_id, intent, impact, policies
     - Use structured data contracts
     """
-    from body.cli.logic.atomic_actions_checker import (
-        format_atomic_action_violations,
-    )
-
     if not quiet:
         typer.echo("🔍 [V2] Checking atomic actions pattern compliance...")
 
@@ -76,10 +76,7 @@ async def check_atomic_actions_cmd(
         typer.echo(json.dumps(data, indent=2))
 
     elif not quiet:
-        # We reconstruct the violation objects for the legacy formatter
-        # to preserve UI consistency while logic is migrated.
-        from body.cli.logic.atomic_actions_checker import AtomicActionViolation
-
+        # Reconstruct violation objects for formatter
         violations = [
             AtomicActionViolation(
                 file_path=Path(v["file"]),

@@ -2,8 +2,17 @@
   {
     "check_id": "architecture.max_file_size",
     "severity": "warning",
-    "message": "Module has 482 lines, exceeds limit of 400",
+    "message": "Module has 490 lines, exceeds limit of 400",
     "file_path": "src/body/atomic/executor.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.max_file_size",
+    "severity": "warning",
+    "message": "Module has 411 lines, exceeds limit of 400",
+    "file_path": "src/body/atomic/fix_actions.py",
     "line_number": null,
     "context": {},
     "details": {}
@@ -47,15 +56,6 @@
   {
     "check_id": "architecture.max_file_size",
     "severity": "warning",
-    "message": "Module has 403 lines, exceeds limit of 400",
-    "file_path": "src/body/cli/logic/atomic_actions_checker.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.max_file_size",
-    "severity": "warning",
     "message": "Module has 401 lines, exceeds limit of 400",
     "file_path": "src/body/cli/logic/governance_logic.py",
     "line_number": null,
@@ -67,6 +67,15 @@
     "severity": "warning",
     "message": "Module has 564 lines, exceeds limit of 400",
     "file_path": "src/body/cli/workflows/dev_sync_phases.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.max_file_size",
+    "severity": "warning",
+    "message": "Module has 493 lines, exceeds limit of 400",
+    "file_path": "src/body/evaluators/atomic_actions_evaluator.py",
     "line_number": null,
     "context": {},
     "details": {}
@@ -155,8 +164,44 @@
   {
     "check_id": "architecture.max_file_size",
     "severity": "warning",
+    "message": "Module has 444 lines, exceeds limit of 400",
+    "file_path": "src/will/interpreters/request_interpreter.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.max_file_size",
+    "severity": "warning",
+    "message": "Module has 472 lines, exceeds limit of 400",
+    "file_path": "src/will/strategists/fix_strategist.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.max_file_size",
+    "severity": "warning",
     "message": "Module has 428 lines, exceeds limit of 400",
     "file_path": "src/will/tools/architectural_context_builder.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.max_file_size",
+    "severity": "warning",
+    "message": "Module has 436 lines, exceeds limit of 400",
+    "file_path": "tests/body/evaluators/test_constitutional_evaluator.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.max_file_size",
+    "severity": "warning",
+    "message": "Module has 491 lines, exceeds limit of 400",
+    "file_path": "tests/body/evaluators/test_security_evaluator.py",
     "line_number": null,
     "context": {},
     "details": {}

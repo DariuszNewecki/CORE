@@ -28,6 +28,9 @@ from features.self_healing.test_target_analyzer import TestTargetAnalyzer
 from mind.enforcement.guard_cli import register_guard
 from shared.cli_utils import core_command
 from shared.context import CoreContext
+from shared.infrastructure.repositories.decision_trace_repository import (
+    DecisionTraceRepository,
+)
 from shared.logger import getLogger
 
 
@@ -165,6 +168,60 @@ async def common_knowledge_cmd(ctx: typer.Context) -> None:
     await find_common_knowledge()
 
 
+@inspect_app.command("decisions")
+@core_command(dangerous=False, requires_context=False)
+# ID: 8e9f0a1b-2c3d-4e5f-6a7b-8c9d0e1f2a3b
+async def decisions_cmd(
+    ctx: typer.Context,
+    recent: int = typer.Option(
+        10, "--recent", "-n", help="Number of recent traces to show"
+    ),
+    session_id: str | None = typer.Option(
+        None, "--session", "-s", help="Show specific session by ID"
+    ),
+    agent: str | None = typer.Option(
+        None, "--agent", "-a", help="Filter by agent name"
+    ),
+    pattern: str | None = typer.Option(
+        None, "--pattern", "-p", help="Filter by pattern used"
+    ),
+    failures_only: bool = typer.Option(
+        False, "--failures-only", "-f", help="Show only traces with violations"
+    ),
+    stats: bool = typer.Option(
+        False, "--stats", help="Show statistics instead of traces"
+    ),
+    details: bool = typer.Option(
+        False, "--details", "-d", help="Show full decision details"
+    ),
+) -> None:
+    """
+    Inspect decision traces from autonomous operations.
+
+    Examples:
+        core-admin inspect decisions                           # Recent traces
+        core-admin inspect decisions --session abc123          # Specific session
+        core-admin inspect decisions --failures-only           # Failures only
+        core-admin inspect decisions --agent CodeGenerator     # By agent
+        core-admin inspect decisions --pattern action_pattern --stats  # Pattern stats
+    """
+    # requires_context=False: use DB session manager directly
+    from shared.infrastructure.database.session_manager import get_session
+
+    async with get_session() as session:
+        repo = DecisionTraceRepository(session)
+
+        # Route to appropriate handler
+        if session_id:
+            await _show_session_trace(repo, session_id, details)
+        elif stats:
+            await _show_statistics(repo, pattern, days=recent)
+        elif pattern:
+            await _show_pattern_traces(repo, pattern, recent, details)
+        else:
+            await _show_recent_traces(repo, recent, agent, failures_only, details)
+
+
 @inspect_app.command("test-targets")
 @core_command(dangerous=False, requires_context=False)
 # ID: fc375cbc-c97f-40b5-a4a9-0fa4a4d7d359
@@ -228,3 +285,213 @@ async def duplicates_command(
     """
     core_context: CoreContext = ctx.obj
     await inspect_duplicates_async(context=core_context, threshold=threshold)
+
+
+# --------------------------------------------------------------------------------------
+# Helper functions (must be at end of file)
+# --------------------------------------------------------------------------------------
+
+
+def _as_bool(value: Any) -> bool:
+    """
+    Normalize repository return types (bool/str/int/None) into a boolean.
+    Supports common representations like True/"true"/"1"/1.
+    """
+    if isinstance(value, bool):
+        return value
+    if value is None:
+        return False
+    if isinstance(value, (int, float)):
+        return value != 0
+    if isinstance(value, str):
+        return value.strip().lower() in {"true", "1", "yes", "y", "t"}
+    return bool(value)
+
+
+async def _show_session_trace(
+    repo: DecisionTraceRepository, session_id: str, details: bool
+) -> None:
+    """Show a specific session trace."""
+    trace = await repo.get_by_session_id(session_id)
+
+    if not trace:
+        console.print(f"[yellow]No trace found for session: {session_id}[/yellow]")
+        return
+
+    console.print(f"\n[bold cyan]Session: {trace.session_id}[/bold cyan]")
+    console.print(f"Agent: {trace.agent_name}")
+    console.print(f"Goal: {trace.goal or 'N/A'}")
+    console.print(f"Decisions: {trace.decision_count}")
+    console.print(f"Created: {trace.created_at}")
+
+    if _as_bool(getattr(trace, "has_violations", False)):
+        console.print(f"[red]Violations: {trace.violation_count}[/red]")
+
+    if details:
+        console.print("\n[bold]Decisions:[/bold]")
+        for i, decision in enumerate(trace.decisions or [], 1):
+            agent = decision.get("agent", "N/A")
+            d_type = decision.get("decision_type", "N/A")
+            console.print(f"\n[cyan]{i}. {agent} - {d_type}[/cyan]")
+            console.print(f"  Rationale: {decision.get('rationale', 'N/A')}")
+            console.print(f"  Chosen: {decision.get('chosen_action', 'N/A')}")
+
+            confidence = decision.get("confidence")
+            if isinstance(confidence, (int, float)):
+                console.print(f"  Confidence: {confidence:.0%}")
+            else:
+                console.print("  Confidence: N/A")
+
+
+async def _show_recent_traces(
+    repo: DecisionTraceRepository,
+    limit: int,
+    agent: str | None,
+    failures_only: bool,
+    details: bool,
+) -> None:
+    """Show recent traces with optional filtering."""
+    from rich.table import Table
+
+    traces = await repo.get_recent(
+        limit=limit,
+        agent_name=agent,
+        failures_only=failures_only,
+    )
+
+    if not traces:
+        console.print("[yellow]No traces found matching criteria[/yellow]")
+        return
+
+    table = Table(title=f"Recent Decision Traces ({len(traces)})")
+    table.add_column("Session", style="cyan")
+    table.add_column("Agent", style="green")
+    table.add_column("Decisions", justify="right")
+    table.add_column("Duration", justify="right")
+    table.add_column("Status")
+    table.add_column("Created", style="dim")
+
+    for trace in traces:
+        duration_ms = getattr(trace, "duration_ms", None)
+        duration = (
+            f"{duration_ms/1000:.1f}s"
+            if isinstance(duration_ms, (int, float))
+            else "N/A"
+        )
+
+        has_violations = _as_bool(getattr(trace, "has_violations", False))
+        status = "❌ Violations" if has_violations else "✅ Clean"
+
+        created_at = getattr(trace, "created_at", None)
+        created_str = created_at.strftime("%Y-%m-%d %H:%M") if created_at else "N/A"
+
+        table.add_row(
+            (trace.session_id or "")[:12],
+            trace.agent_name or "N/A",
+            str(getattr(trace, "decision_count", 0)),
+            duration,
+            status,
+            created_str,
+        )
+
+    console.print(table)
+
+    if details and traces:
+        console.print("\n[dim]Showing details for most recent trace...[/dim]")
+        await _show_session_trace(repo, traces[0].session_id, True)
+
+
+async def _show_pattern_traces(
+    repo: DecisionTraceRepository,
+    pattern: str,
+    limit: int,
+    details: bool,
+) -> None:
+    """Show traces that used a specific pattern."""
+    from rich.table import Table
+
+    # NOTE: repository method name is assumed from your pasted implementation.
+    traces = await repo.get_pattern_stats(pattern, limit)
+
+    if not traces:
+        console.print(f"[yellow]No traces found using pattern: {pattern}[/yellow]")
+        return
+
+    console.print(f"\n[bold cyan]Traces using pattern: {pattern}[/bold cyan]")
+    console.print(f"Found: {len(traces)} traces\n")
+
+    violations = sum(1 for t in traces if _as_bool(getattr(t, "has_violations", False)))
+    success_rate = (len(traces) - violations) / len(traces) * 100 if traces else 0
+
+    console.print(f"Success rate: [green]{success_rate:.1f}%[/green]")
+    console.print(f"Violations: [red]{violations}[/red] / {len(traces)}\n")
+
+    if not details:
+        table = Table()
+        table.add_column("Session", style="cyan")
+        table.add_column("Agent")
+        table.add_column("Status")
+        table.add_column("Created", style="dim")
+
+        for trace in traces[:20]:  # Show max 20 in table
+            status = "❌" if _as_bool(getattr(trace, "has_violations", False)) else "✅"
+            created_at = getattr(trace, "created_at", None)
+            created_str = created_at.strftime("%Y-%m-%d %H:%M") if created_at else "N/A"
+            table.add_row(
+                (trace.session_id or "")[:12],
+                trace.agent_name or "N/A",
+                status,
+                created_str,
+            )
+
+        console.print(table)
+
+
+async def _show_statistics(
+    repo: DecisionTraceRepository,
+    pattern: str | None,
+    days: int = 7,
+) -> None:
+    """Show decision trace statistics."""
+    from rich.table import Table
+
+    console.print(
+        f"\n[bold cyan]Decision Trace Statistics (Last {days} days)[/bold cyan]\n"
+    )
+
+    # Get agent counts
+    agent_counts = await repo.count_by_agent(days)
+
+    if not agent_counts:
+        console.print("[yellow]No traces found in the specified time range[/yellow]")
+        return
+
+    table = Table(title="Traces by Agent")
+    table.add_column("Agent", style="cyan")
+    table.add_column("Count", justify="right")
+
+    for agent_name, count in sorted(
+        agent_counts.items(), key=lambda x: x[1], reverse=True
+    ):
+        table.add_row(agent_name, str(count))
+
+    console.print(table)
+
+    if pattern:
+        # Show pattern-specific stats
+        traces = await repo.get_pattern_stats(pattern, 1000)
+
+        if traces:
+            console.print(f"\n[bold]Pattern: {pattern}[/bold]")
+            violations = sum(
+                1 for t in traces if _as_bool(getattr(t, "has_violations", False))
+            )
+            success_rate = (
+                (len(traces) - violations) / len(traces) * 100 if traces else 0
+            )
+
+            console.print(f"Total uses: {len(traces)}")
+            console.print(f"Success rate: [green]{success_rate:.1f}%[/green]")
+            console.print(f"Violations: [red]{violations}[/red]")
+        else:
+            console.print(f"\n[yellow]No traces found for pattern: {pattern}[/yellow]")

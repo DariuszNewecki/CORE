@@ -9,6 +9,8 @@ Constitutional Compliance:
 - Single Responsibility: Only workflow coordination
 - Clear flow: Delegates to step handlers, UI shows results
 - Error handling: Proper cleanup and logging
+- DI Pattern: Uses services from CoreContext (no direct instantiation)
+- Registry Pattern: Respects singleton services via registry
 """
 
 from __future__ import annotations
@@ -30,7 +32,7 @@ from shared.config import settings
 from shared.context import CoreContext
 from shared.logger import getLogger
 from will.agents.coder_agent import CoderAgent
-from will.orchestration.cognitive_service import CognitiveService
+from will.orchestration.prompt_pipeline import PromptPipeline
 
 
 logger = getLogger(__name__)
@@ -57,7 +59,7 @@ async def run_interactive_workflow(
         # Header
         show_header(target_file)
 
-        # Initialize services
+        # Initialize services (uses CoreContext services, no direct instantiation)
         coder_agent = await _initialize_services(core_context)
 
         # ====================================================================
@@ -147,36 +149,49 @@ async def _initialize_services(core_context: CoreContext) -> CoderAgent:
     """
     Initialize required services for workflow.
 
+    CONSTITUTIONAL COMPLIANCE:
+    - Uses existing services from CoreContext (DI principle)
+    - Uses registry for service resolution (no direct instantiation)
+    - Respects singleton pattern (no duplicate instances)
+    - Proper property access for lazy-loaded services
+
     Args:
-        core_context: Core context
+        core_context: Core context with pre-initialized services
 
     Returns:
         Initialized CoderAgent
     """
-    from mind.governance.audit_context import AuditorContext
-    from will.orchestration.prompt_pipeline import PromptPipeline
+    # Use existing services from CoreContext (already initialized by CLI/API)
+    cognitive_service = core_context.cognitive_service
+    auditor_context = core_context.auditor_context
 
-    # Initialize required services
-    cognitive_service = CognitiveService(settings.REPO_PATH)
-    prompt_pipeline = PromptPipeline(settings.REPO_PATH)
-    auditor_context = AuditorContext(settings.REPO_PATH)
+    # Create PromptPipeline (stateless utility, safe to create)
+    prompt_pipeline = PromptPipeline(core_context.git_service.repo_path)
 
-    # Initialize Qdrant if available
+    # Get Qdrant from registry if available (respects singleton pattern)
     qdrant_service = None
     try:
-        from shared.infrastructure.qdrant_service import QdrantService
-
-        qdrant_service = QdrantService()
-        logger.info("Qdrant service initialized")
+        if core_context.registry:
+            qdrant_service = await core_context.registry.get_qdrant_service()
+            logger.info("Qdrant service available for semantic features")
     except Exception as e:
-        logger.warning("Qdrant service not available: %s", e)
+        logger.debug("Qdrant not available (optional): %s", e)
 
-    # Create CoderAgent
+    # Get ContextService via property (triggers factory if needed)
+    context_service = None
+    try:
+        context_service = core_context.context_service
+        logger.info("ContextService available for enriched code generation")
+    except Exception as e:
+        logger.debug("ContextService not available: %s", e)
+
+    # Create CoderAgent with all available services
     coder_agent = CoderAgent(
         cognitive_service=cognitive_service,
         prompt_pipeline=prompt_pipeline,
         auditor_context=auditor_context,
         qdrant_service=qdrant_service,
+        context_service=context_service,
     )
 
     return coder_agent

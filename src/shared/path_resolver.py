@@ -176,6 +176,20 @@ class PathResolver:
     def canary_dir(self) -> Path:
         return self.workflows_dir / "canary"
 
+    # Add after line 201 (after canary_dir property):
+
+    @property
+    # ID: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+    def morgue_dir(self) -> Path:
+        """Directory for quarantined/failed artifacts."""
+        return self.workflows_dir / "morgue"
+
+    @property
+    # ID: b2c3d4e5-f6a7-8901-bcde-f12345678901
+    def quarantine_dir(self) -> Path:
+        """Directory for artifacts pending review."""
+        return self.workflows_dir / "quarantine"
+
     @property
     # ID: c02aebe7-9030-4a29-8a0a-29f221481c3c
     def prompts_dir(self) -> Path:
