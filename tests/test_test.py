@@ -8,26 +8,21 @@ from test import hello_world
 
 
 def test_hello_world():
-    """Test the hello_world function returns correct string."""
-    # Test basic functionality
+    """Test basic functionality of hello_world function."""
+    # Test basic return value
     result = hello_world()
     assert result == "Hello, CORE!"
 
     # Test return type
     assert isinstance(result, str)
 
-    # Test string properties
-    assert len(result) == 12
-    assert result.startswith("Hello")
-    assert result.endswith("CORE!")
+    # Test non-empty string
+    assert len(result) > 0
+
+    # Test exact string match
+    expected = "Hello, CORE!"
+    assert result == expected
+
+    # Test string contains expected substring
     assert "CORE" in result
-
-    # Test it's not empty
-    assert result
-
-    # Test exact match (no extra whitespace)
-    assert result == "Hello, CORE!"
-
-    # Test it doesn't contain unexpected substrings
-    assert "World" not in result
-    assert "hello" not in result  # case-sensitive
+    assert "Hello" in result
