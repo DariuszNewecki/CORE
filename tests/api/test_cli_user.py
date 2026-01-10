@@ -12,121 +12,124 @@ import typer
 from api.cli_user import main
 
 
-@pytest.mark.parametrize("message,expected_exit_code", [
-    ("test message", None),
-    ("analyze the CoreContext class", None),
-])
-def test_main_successful_execution(message, expected_exit_code):
-    """Test main function with valid messages."""
-    mock_ctx = Mock()
+@pytest.fixture
+def mock_ctx():
+    """Mock typer.Context object."""
+    ctx = Mock(spec=typer.Context)
+    ctx.invoked_subcommand = None
+    return ctx
+
+
+@pytest.fixture
+def mock_logger():
+    """Mock the logger module."""
+    with patch('api.cli_user.logger') as mock_logger:
+        yield mock_logger
+
+
+@pytest.fixture
+def mock_handle_message():
+    """Mock the async handle_message function."""
+    with patch('api.cli_user.handle_message') as mock_handle:
+        yield mock_handle
+
+
+def test_main_with_message(mock_ctx, mock_logger, mock_handle_message):
+    """Test main function with a valid message."""
+    # Arrange
+    message = "test message"
+    mock_handle_message.return_value = None
+
+    # Act
+    main(mock_ctx, message)
+
+    # Assert
+    mock_logger.info.assert_any_call("User message: %s", message)
+    mock_handle_message.assert_called_once_with(message)
+
+
+def test_main_without_message(mock_ctx, mock_logger):
+    """Test main function without a message."""
+    # Arrange
     mock_ctx.invoked_subcommand = None
 
-    with patch("api.cli_user.logger") as mock_logger, \
-         patch("api.cli_user.asyncio.run", return_value=None) as mock_run:
+    # Act & Assert
+    with pytest.raises(typer.Exit) as exc_info:
+        main(mock_ctx, None)
 
-        # Call the function
-        try:
-            main(mock_ctx, message)
-            exit_code = 0
-        except typer.Exit as e:
-            exit_code = e.exit_code
+    assert exc_info.value.exit_code == 1
+    mock_logger.info.assert_any_call("Usage: core <message>")
+    mock_logger.info.assert_any_call('Example: core "what does ContextBuilder do?"')
 
-        # Verify logging
-        mock_logger.info.assert_any_call("User message: %s", message)
 
-        # Verify async handler was called
-        mock_run.assert_called_once()
-        call_args = mock_run.call_args[0][0]
-
-        # Verify the async function was called with correct message
-        assert call_args.__name__ == "handle_message"
-        # Note: We can't directly check the closure contents easily
-
-        if expected_exit_code is not None:
-            assert exit_code == expected_exit_code
-
-def test_main_with_subcommand():
+def test_main_with_subcommand(mock_ctx, mock_logger, mock_handle_message):
     """Test main function when a subcommand is invoked."""
-    mock_ctx = Mock()
-    mock_ctx.invoked_subcommand = "some_subcommand"
+    # Arrange
+    mock_ctx.invoked_subcommand = "subcommand"
 
-    with patch("api.cli_user.logger") as mock_logger:
-        result = main(mock_ctx, "some message")
+    # Act
+    result = main(mock_ctx, "some message")
 
-        # Should return early without processing
-        assert result is None
-        mock_logger.info.assert_not_called()
+    # Assert
+    assert result is None
+    mock_logger.info.assert_not_called()
+    mock_handle_message.assert_not_called()
 
-def test_main_empty_message():
-    """Test main function with empty message."""
-    mock_ctx = Mock()
-    mock_ctx.invoked_subcommand = None
 
-    with patch("api.cli_user.logger") as mock_logger:
-        try:
-            main(mock_ctx, "")
-            exit_code = 0
-        except typer.Exit as e:
-            exit_code = e.exit_code
-
-        # Should show usage and exit with code 1
-        assert exit_code == 1
-        mock_logger.info.assert_any_call("Usage: core <message>")
-        mock_logger.info.assert_any_call('Example: core "what does ContextBuilder do?"')
-
-def test_main_none_message():
-    """Test main function with None message (default argument)."""
-    mock_ctx = Mock()
-    mock_ctx.invoked_subcommand = None
-
-    with patch("api.cli_user.logger") as mock_logger:
-        try:
-            main(mock_ctx, None)
-            exit_code = 0
-        except typer.Exit as e:
-            exit_code = e.exit_code
-
-        # Should show usage and exit with code 1
-        assert exit_code == 1
-        mock_logger.info.assert_any_call("Usage: core <message>")
-        mock_logger.info.assert_any_call('Example: core "what does ContextBuilder do?"')
-
-def test_main_keyboard_interrupt():
+def test_main_keyboard_interrupt(mock_ctx, mock_logger, mock_handle_message):
     """Test main function handling KeyboardInterrupt."""
-    mock_ctx = Mock()
-    mock_ctx.invoked_subcommand = None
+    # Arrange
+    message = "test message"
+    mock_handle_message.side_effect = KeyboardInterrupt()
 
-    with patch("api.cli_user.logger") as mock_logger, \
-         patch("api.cli_user.asyncio.run", side_effect=KeyboardInterrupt):
+    # Act & Assert
+    with pytest.raises(typer.Exit) as exc_info:
+        main(mock_ctx, message)
 
-        try:
-            main(mock_ctx, "test message")
-            exit_code = 0
-        except typer.Exit as e:
-            exit_code = e.exit_code
+    assert exc_info.value.exit_code == 130
+    mock_logger.info.assert_any_call("\n\n⚠️  Interrupted by user")
 
-        # Should exit with code 130 for KeyboardInterrupt
-        assert exit_code == 130
-        mock_logger.info.assert_any_call("\n\n⚠️  Interrupted by user")
 
-def test_main_general_exception():
+def test_main_general_exception(mock_ctx, mock_logger, mock_handle_message):
     """Test main function handling general exceptions."""
-    mock_ctx = Mock()
+    # Arrange
+    message = "test message"
+    test_exception = Exception("Test error")
+    mock_handle_message.side_effect = test_exception
+
+    # Act & Assert
+    with pytest.raises(typer.Exit) as exc_info:
+        main(mock_ctx, message)
+
+    assert exc_info.value.exit_code == 1
+    mock_logger.error.assert_called_once_with(
+        "Failed to process message: %s", test_exception, exc_info=True
+    )
+    mock_logger.info.assert_any_call("\n❌ Error: %s", test_exception)
+
+
+def test_main_empty_string_message(mock_ctx, mock_logger):
+    """Test main function with empty string message."""
+    # Arrange
     mock_ctx.invoked_subcommand = None
-    test_exception = ValueError("Test error")
 
-    with patch("api.cli_user.logger") as mock_logger, \
-         patch("api.cli_user.asyncio.run", side_effect=test_exception):
+    # Act & Assert
+    with pytest.raises(typer.Exit) as exc_info:
+        main(mock_ctx, "")
 
-        try:
-            main(mock_ctx, "test message")
-            exit_code = 0
-        except typer.Exit as e:
-            exit_code = e.exit_code
+    assert exc_info.value.exit_code == 1
+    mock_logger.info.assert_any_call("Usage: core <message>")
 
-        # Should exit with code 1 for general exceptions
-        assert exit_code == 1
-        mock_logger.error.assert_called_once_with(
-            "Failed to process message: %s", test_exception, exc_info=True
-        )
-        mock_logger.info.assert_any_call("\n❌ Error: %s", test_exception)
+
+def test_main_async_handler_success(mock_ctx, mock_logger, mock_handle_message):
+    """Test main function successfully runs async handler."""
+    # Arrange
+    message = "analyze the CoreContext class"
+    mock_handle_message.return_value = None
+
+    # Act
+    main(mock_ctx, message)
+
+    # Assert
+    mock_handle_message.assert_called_once_with(message)
+    mock_logger.info.assert_any_call("User message: %s", message)

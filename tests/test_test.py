@@ -8,19 +8,26 @@ from test import hello_world
 
 
 def test_hello_world():
-    """Test basic functionality of hello_world function."""
+    """Test the hello_world function returns correct string."""
     # Test basic functionality
     result = hello_world()
     assert result == "Hello, CORE!"
+
+    # Test return type
     assert isinstance(result, str)
 
-    # Test that function returns a non-empty string
-    assert len(result) > 0
-
-    # Test that function always returns the same value (idempotent)
-    result2 = hello_world()
-    assert result == result2
-
-    # Test that result contains expected substring
+    # Test string properties
+    assert len(result) == 12
+    assert result.startswith("Hello")
+    assert result.endswith("CORE!")
     assert "CORE" in result
-    assert "Hello" in result
+
+    # Test it's not empty
+    assert result
+
+    # Test exact match (no extra whitespace)
+    assert result == "Hello, CORE!"
+
+    # Test it doesn't contain unexpected substrings
+    assert "World" not in result
+    assert "hello" not in result  # case-sensitive
