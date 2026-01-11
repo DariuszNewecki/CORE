@@ -111,7 +111,8 @@ async def develop_from_goal(
         context_packet = await context_service.build_for_task(
             {
                 "task_id": task_id or "autonomous_dev",
-                "task_type": "autonomous_development",
+                # CONSTITUTIONAL FIX: Changed to "code_modification" to satisfy DB constraint
+                "task_type": "fix",
                 "summary": goal,
                 "scope": {"traversal_depth": 2},
             },

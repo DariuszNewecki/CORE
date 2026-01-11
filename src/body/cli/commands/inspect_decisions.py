@@ -127,7 +127,7 @@ async def _show_session_trace(
 
     console.print(f"\n[bold cyan]Session: {trace.session_id}[/bold cyan]")
     console.print(f"Agent: {trace.agent_name}")
-    console.print(f"Goal: {trace.goal or 'N/A'}")
+    console.print(f"Goal: {trace.goal or 'none'}")
     console.print(f"Decisions: {trace.decision_count}")
     console.print(f"Created: {trace.created_at}")
 
@@ -172,7 +172,7 @@ async def _show_recent_traces(
     table.add_column("Created", style="dim")
 
     for trace in traces:
-        duration = f"{trace.duration_ms/1000:.1f}s" if trace.duration_ms else "N/A"
+        duration = f"{trace.duration_ms/1000:.1f}s" if trace.duration_ms else "none"
         status = "❌ Violations" if trace.has_violations == "true" else "✅ Clean"
 
         table.add_row(

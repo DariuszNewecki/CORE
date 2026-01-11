@@ -166,6 +166,16 @@ class CoderAgent:
         Raises:
             CodeGenerationError: If generation or validation fails
         """
+        # MANDATORY INSTRUMENTATION (Fixes autonomy.tracing.mandatory)
+        self.tracer.record(
+            agent=self.__class__.__name__,
+            decision_type="task_start",
+            rationale="Starting code generation cycle",
+            chosen_action="initialize_generation_pipeline",
+            context={"step": task.step, "goal": high_level_goal},
+            confidence=1.0,
+        )
+
         try:
             # Infer pattern and requirements
             pattern_id = self.pattern_validator.infer_pattern_id(task)
@@ -193,7 +203,7 @@ class CoderAgent:
 
                 if not pattern_approved:
                     if attempt >= self.max_correction_attempts:
-                        self.tracer.save_trace()
+                        await self.tracer.save_trace()
                         raise CodeGenerationError(
                             f"Pattern violations after {self.max_correction_attempts + 1} attempts",
                             code=current_code,
@@ -204,27 +214,36 @@ class CoderAgent:
                     )
 
                     # Attempt correction
-                    current_code = await self.correction_engine.correct_violations(
-                        code=current_code,
-                        violations=pattern_violations,
-                        pattern_id=pattern_id,
-                        task_context=task.step,
+                    correction_result = (
+                        await self.correction_engine.attempt_pattern_correction(
+                            task=task,
+                            current_code=current_code,
+                            pattern_violations=pattern_violations,
+                            pattern_id=pattern_id,
+                            pattern_requirements=pattern_requirements,
+                            goal=high_level_goal,
+                        )
                     )
+
+                    if correction_result.get("status") == "success":
+                        current_code = correction_result["code"]
                     continue
 
                 # Constitutional validation
-                (
-                    constitutional_approved,
-                    constitutional_violations,
-                ) = await validate_code_async(
+                # CONSTITUTIONAL FIX: Corrected unpacking from dict return
+                val_result = await validate_code_async(
                     current_code,
                     task.params.file_path or "generated.py",
                     self.auditor_context,
                 )
 
+                constitutional_approved = val_result["status"] == "clean"
+                constitutional_violations = val_result["violations"]
+                current_code = val_result["code"]  # Use potentially cleaned code
+
                 if not constitutional_approved:
                     if attempt >= self.max_correction_attempts:
-                        self.tracer.save_trace()
+                        await self.tracer.save_trace()
                         raise CodeGenerationError(
                             f"Constitutional violations after {self.max_correction_attempts + 1} attempts",
                             code=current_code,
@@ -235,20 +254,22 @@ class CoderAgent:
                     )
 
                     # Attempt correction
-                    current_code = await self.correction_engine.correct_violations(
-                        code=current_code,
-                        violations=[
-                            {"message": v["message"], "rule": v.get("rule", "unknown")}
-                            for v in constitutional_violations
-                        ],
-                        pattern_id=pattern_id,
-                        task_context=task.step,
+                    correction_result = (
+                        await self.correction_engine.attempt_constitutional_correction(
+                            task=task,
+                            current_code=current_code,
+                            validation_result={"violations": constitutional_violations},
+                            goal=high_level_goal,
+                        )
                     )
+
+                    if correction_result.get("status") == "success":
+                        current_code = correction_result["code"]
                     continue
 
                 # All validations passed
                 logger.info("  -> ✅ Code validated successfully!")
-                self.tracer.save_trace()
+                await self.tracer.save_trace()
                 return current_code
 
             # Should not reach here due to exception raising in loop
@@ -260,5 +281,5 @@ class CoderAgent:
             raise
         except Exception as e:
             logger.error("Code generation failed: %s", e, exc_info=True)
-            self.tracer.save_trace()
+            await self.tracer.save_trace()
             raise CodeGenerationError(f"Code generation failed: {e}") from e

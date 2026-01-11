@@ -130,7 +130,9 @@ class DecisionTracer:
         return "\n".join(lines)
 
     # ID: aa09fa09-8f93-496a-bea9-62d220708268
-    def save_trace(self) -> Path:
+    # CONSTITUTIONAL FIX: Promoted to async to handle DB persistence
+    # ID: b7edb66b-3089-4c6a-bc65-ce9a25138df2
+    async def save_trace(self) -> Path:
         """
         Save decision trace to both file (backup) and database (queryable).
 
@@ -145,7 +147,8 @@ class DecisionTracer:
 
         # Database persistence (new, for observability)
         try:
-            self._save_to_database()
+            # CONSTITUTIONAL FIX: Added await
+            await self._save_to_database()
         except Exception as e:
             # Never block on DB failures (safe_by_default)
             logger.warning(
@@ -215,7 +218,7 @@ class DecisionTracer:
                 has_violations=has_violations,
                 violation_count=violation_count,
                 duration_ms=duration_ms,
-                metadata=metadata,
+                metadata=metadata,  # Note: Repo maps this to extra_metadata column
             )
 
             await session.commit()
@@ -251,7 +254,9 @@ class DecisionTracer:
 
             # Check context for violation indicators
             if decision.context.get("violations"):
-                violation_count += decision.context.get("violations", 0)
+                # Handle both int and list-length cases
+                v = decision.context.get("violations")
+                violation_count += v if isinstance(v, int) else len(v)
 
         has_violations = violation_count > 0 if violation_count else None
 

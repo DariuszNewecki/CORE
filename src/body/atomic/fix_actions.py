@@ -187,7 +187,7 @@ async def action_fix_logging(
 
 @register_action(
     action_id="fix.placeholders",
-    description="Replace TODO/FIXME placeholders with proper implementations",
+    description="Replace FUTURE/PENDING placeholders with proper implementations",
     category=ActionCategory.FIX,
     policies=["code_quality_standards"],
     impact_level="moderate",

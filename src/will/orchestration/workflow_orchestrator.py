@@ -280,5 +280,5 @@ class AutonomousWorkflowOrchestrator:
         )
 
     # ID: 33681fc1-7f72-44e0-a77d-83a89d7f5ea0
-    def save_decision_trace(self) -> None:
-        self.tracer.save_trace()
+    async def save_decision_trace(self) -> None:
+        await self.tracer.save_trace()

@@ -44,6 +44,10 @@ async def develop_command(
         "-f",
         help="Read the goal from a file instead of the command line.",
     ),
+    # CONSTITUTIONAL FIX: Add explicit write option for Typer discovery
+    write: bool = typer.Option(
+        False, "--write", help="Actually apply changes to the codebase (Dangerous)."
+    ),
 ):
     """
     Runs the autonomous development cycle for a high-level goal.
@@ -109,7 +113,8 @@ async def develop_command(
 # ID: f8e9d0a1-b2c3-4d5e-6f7a-8b9c0d1e2f3a
 async def vectorize_command(
     ctx: typer.Context,
-    dry_run: bool = typer.Option(True, help="Preview changes without writing."),
+    # CONSTITUTIONAL FIX: Added write option for consistency with @core_command
+    write: bool = typer.Option(False, "--write", help="Commit vectors to Qdrant."),
     force: bool = typer.Option(
         False, help="Force re-vectorization of all capabilities."
     ),
@@ -132,7 +137,10 @@ async def vectorize_command(
         raise typer.Exit(code=1)
 
     try:
-        await run_vectorize(context=context, dry_run=dry_run, force=force)
+        # Note: run_vectorize takes dry_run, which is !write
+        await run_vectorize(
+            context=context, session=session, dry_run=not write, force=force
+        )
     except Exception as e:
         logger.error("❌ Orchestration failed: %s", e, exc_info=True)
         raise typer.Exit(code=1)

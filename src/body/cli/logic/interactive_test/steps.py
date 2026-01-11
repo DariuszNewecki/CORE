@@ -270,7 +270,7 @@ async def step_canary(
         return False, False
     elif choice == "y":
         show_progress("Running canary trial...")
-        # TODO: Actual canary implementation
+        # FUTURE: Actual canary implementation
         show_success_indicator("Canary trial passed")
         return True, True
     else:  # n

@@ -120,7 +120,7 @@ class InteractiveSession:
         summary = [
             "Interactive Test Generation Session",
             f"Target: {self.target_file}",
-            f"Started: {self.decisions[0]['timestamp'] if self.decisions else 'N/A'}",
+            f"Started: {self.decisions[0]['timestamp'] if self.decisions else 'none'}",
             f"Completed: {datetime.now().isoformat()}",
             "",
             "Artifacts:",

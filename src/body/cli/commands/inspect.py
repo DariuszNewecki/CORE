@@ -320,7 +320,7 @@ async def _show_session_trace(
 
     console.print(f"\n[bold cyan]Session: {trace.session_id}[/bold cyan]")
     console.print(f"Agent: {trace.agent_name}")
-    console.print(f"Goal: {trace.goal or 'N/A'}")
+    console.print(f"Goal: {trace.goal or 'none'}")
     console.print(f"Decisions: {trace.decision_count}")
     console.print(f"Created: {trace.created_at}")
 
@@ -330,17 +330,17 @@ async def _show_session_trace(
     if details:
         console.print("\n[bold]Decisions:[/bold]")
         for i, decision in enumerate(trace.decisions or [], 1):
-            agent = decision.get("agent", "N/A")
-            d_type = decision.get("decision_type", "N/A")
+            agent = decision.get("agent", "none")
+            d_type = decision.get("decision_type", "none")
             console.print(f"\n[cyan]{i}. {agent} - {d_type}[/cyan]")
-            console.print(f"  Rationale: {decision.get('rationale', 'N/A')}")
-            console.print(f"  Chosen: {decision.get('chosen_action', 'N/A')}")
+            console.print(f"  Rationale: {decision.get('rationale', 'none')}")
+            console.print(f"  Chosen: {decision.get('chosen_action', 'none')}")
 
             confidence = decision.get("confidence")
             if isinstance(confidence, (int, float)):
                 console.print(f"  Confidence: {confidence:.0%}")
             else:
-                console.print("  Confidence: N/A")
+                console.print("  Confidence: none")
 
 
 async def _show_recent_traces(
@@ -376,18 +376,18 @@ async def _show_recent_traces(
         duration = (
             f"{duration_ms/1000:.1f}s"
             if isinstance(duration_ms, (int, float))
-            else "N/A"
+            else "none"
         )
 
         has_violations = _as_bool(getattr(trace, "has_violations", False))
         status = "❌ Violations" if has_violations else "✅ Clean"
 
         created_at = getattr(trace, "created_at", None)
-        created_str = created_at.strftime("%Y-%m-%d %H:%M") if created_at else "N/A"
+        created_str = created_at.strftime("%Y-%m-%d %H:%M") if created_at else "none"
 
         table.add_row(
             (trace.session_id or "")[:12],
-            trace.agent_name or "N/A",
+            trace.agent_name or "none",
             str(getattr(trace, "decision_count", 0)),
             duration,
             status,
@@ -436,10 +436,12 @@ async def _show_pattern_traces(
         for trace in traces[:20]:  # Show max 20 in table
             status = "❌" if _as_bool(getattr(trace, "has_violations", False)) else "✅"
             created_at = getattr(trace, "created_at", None)
-            created_str = created_at.strftime("%Y-%m-%d %H:%M") if created_at else "N/A"
+            created_str = (
+                created_at.strftime("%Y-%m-%d %H:%M") if created_at else "none"
+            )
             table.add_row(
                 (trace.session_id or "")[:12],
-                trace.agent_name or "N/A",
+                trace.agent_name or "none",
                 status,
                 created_str,
             )

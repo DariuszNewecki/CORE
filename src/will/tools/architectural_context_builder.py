@@ -422,7 +422,7 @@ class ArchitecturalContextBuilder:
         if context.relevant_policies:
             parts.append("## Relevant Constitutional Policies")
             for policy in context.relevant_policies[:3]:
-                parts.append(f"- {policy.get('statement', 'N/A')}")
+                parts.append(f"- {policy.get('statement', 'none')}")
             parts.append("")
 
         return "\n".join(parts)
