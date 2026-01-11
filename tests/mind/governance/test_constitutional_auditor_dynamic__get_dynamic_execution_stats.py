@@ -20,8 +20,8 @@ def test_get_dynamic_execution_stats_normal_case():
     # The function will likely raise an Exception due to missing context attributes,
     # triggering the fallback return.
     class MockContext:
-        policies = []
-        enforcement_loader = None
+        policies: ClassVar[list] = []
+        enforcement_loader: ClassVar[Any] = None
 
     context = MockContext()
     executed_rule_ids = {"rule1", "rule2"}
@@ -39,8 +39,8 @@ def test_get_dynamic_execution_stats_empty_executed_set():
     """Test with an empty set of executed rule IDs."""
 
     class MockContext:
-        policies = []
-        enforcement_loader = None
+        policies: ClassVar[list] = []
+        enforcement_loader: ClassVar[Any] = None
 
     context = MockContext()
     executed_rule_ids = set()
@@ -81,8 +81,12 @@ def test_get_dynamic_execution_stats_coverage_calculation():
             self.rule_id = rule_id
 
     class MockContext:
-        policies = [MockRule("rule1"), MockRule("rule2"), MockRule("rule3")]
-        enforcement_loader = None
+        policies: ClassVar[list] = [
+            MockRule("rule1"),
+            MockRule("rule2"),
+            MockRule("rule3"),
+        ]
+        enforcement_loader: ClassVar[Any] = None
 
     context = MockContext()
     executed_rule_ids = {"rule1", "rule3"}

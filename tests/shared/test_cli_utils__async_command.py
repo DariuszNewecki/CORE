@@ -5,12 +5,14 @@
 - Generated: 2026-01-11 10:42:36
 """
 
-import pytest
-from shared.cli_utils import async_command
 import asyncio
+
+from shared.cli_utils import async_command
+
 
 # Detected: async_command is a decorator that returns a synchronous wrapper function
 # The wrapper runs the decorated async function via asyncio.run()
+
 
 # Test for the decorator's basic functionality
 def test_async_command_decorator_returns_wrapper():
@@ -27,6 +29,7 @@ def test_async_command_decorator_returns_wrapper():
     result = sample_async_func()
     assert result == "test_result"
 
+
 # Test for the RuntimeError when called from running event loop
 def test_async_command_raises_runtime_error_in_running_loop():
     """Test that async_command raises RuntimeError when called from running event loop."""
@@ -42,13 +45,16 @@ def test_async_command_raises_runtime_error_in_running_loop():
             return False  # Should not reach here
         except RuntimeError as e:
             error_msg = str(e)
-            expected_msg = "async_command cannot run inside an already-running event loop"
+            expected_msg = (
+                "async_command cannot run inside an already-running event loop"
+            )
             assert expected_msg in error_msg
             return True
 
     # Run the test in an event loop
     result = asyncio.run(run_in_loop())
-    assert result == True
+    assert result
+
 
 # Test that async_command works outside of running event loop
 def test_async_command_works_without_running_loop():
@@ -61,6 +67,7 @@ def test_async_command_works_without_running_loop():
     # Should work fine outside of running event loop
     result = sample_async_func(5, 3)
     assert result == 8
+
 
 # Test with async function that raises exception
 def test_async_command_propagates_exceptions():
@@ -76,6 +83,7 @@ def test_async_command_propagates_exceptions():
     except ValueError as e:
         assert str(e) == "Test error"
 
+
 # Test with async function that has no return value
 def test_async_command_with_no_return():
     """Test async_command with async function that returns None."""
@@ -88,7 +96,8 @@ def test_async_command_with_no_return():
 
     result = no_return_func()
     assert result is None
-    assert test_state["executed"] == True
+    assert test_state["executed"]
+
 
 # Test with async function that accepts arguments
 def test_async_command_with_arguments():
@@ -106,6 +115,7 @@ def test_async_command_with_arguments():
     result2 = complex_async_func(5, b=15, c=25)
     assert result2 == 45  # 5 + 15 + 25
 
+
 # Test that wrapper preserves function metadata
 def test_async_command_preserves_metadata():
     """Test that functools.wraps preserves function metadata."""
@@ -121,6 +131,7 @@ def test_async_command_preserves_metadata():
     # Check that docstring is preserved
     assert documented_func.__doc__ == "This is a test function."
 
+
 # Test nested async operations
 def test_async_command_with_nested_async_operations():
     """Test async_command with async function that does nested async operations."""
@@ -133,6 +144,7 @@ def test_async_command_with_nested_async_operations():
 
     result = nested_async_func()
     assert result == "done"
+
 
 # Test with multiple decorated functions
 def test_async_command_multiple_functions():
@@ -148,6 +160,7 @@ def test_async_command_multiple_functions():
 
     assert func1() == "first"
     assert func2() == "second"
+
 
 # Test that decorator doesn't execute function immediately
 def test_async_command_deferred_execution():

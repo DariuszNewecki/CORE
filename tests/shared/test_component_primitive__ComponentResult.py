@@ -50,7 +50,7 @@ class TestComponentResult:
 
     def test_validation_data_not_dict(self):
         """Test that non-dict data raises ValueError."""
-        with pytest.raises(ValueError, match="ComponentResult.data must be dict"):
+        with pytest.raises(ValueError, match=r"ComponentResult.data must be dict"):
             ComponentResult(
                 component_id="test",
                 ok=True,

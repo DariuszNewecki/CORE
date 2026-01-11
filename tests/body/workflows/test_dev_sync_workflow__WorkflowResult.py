@@ -5,10 +5,7 @@
 - Generated: 2026-01-11 03:32:59
 """
 
-from body.workflows.dev_sync_workflow import ActionResult, WorkflowPhase, WorkflowResult
-
-
-# Detected return type: WorkflowResult is a regular class (not async)
+from body.workflows.dev_sync_workflow import WorkflowResult
 
 
 class TestWorkflowResult:

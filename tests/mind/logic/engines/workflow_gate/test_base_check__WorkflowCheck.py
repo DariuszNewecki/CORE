@@ -110,7 +110,7 @@ async def test_workflowcheck_return_type():
 
     result = await checker.verify(None, {})
     assert isinstance(result, list)
-    assert type(result) == list
+    assert type(result) is list
 
     result = await checker.verify(None, {"fail": True})
     assert isinstance(result, list)

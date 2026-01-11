@@ -164,7 +164,7 @@ async def test_validate_with_patterns_loaded():
             "id": "test_category",
             "patterns": {"test_pattern": {"description": "Test pattern"}},
         }
-        with open(pattern_file, "w") as f:
+        with open(pattern_file, "w") as f:  # noqa: ASYNC230
             yaml.dump(pattern_data, f)
         validator = PatternValidator(repo_root)
         code = "\ndef test_function():\n    pass\n"

@@ -5,17 +5,21 @@
 - Generated: 2026-01-11 10:44:37
 """
 
-import pytest
 from pathlib import Path
+
+import pytest
+
 from shared.path_utils import get_repo_root
 
+
 # Detected return type: Path (synchronous function)
+
 
 def test_get_repo_root_finds_intent_directory():
     """Test that function finds .intent directory when starting from subdirectory."""
     # Create a temporary directory structure
-    import tempfile
     import os
+    import tempfile
 
     with tempfile.TemporaryDirectory() as tmpdir:
         # Create .intent directory at root
@@ -37,6 +41,7 @@ def test_get_repo_root_finds_intent_directory():
         finally:
             os.chdir(original_cwd)
 
+
 def test_get_repo_root_with_explicit_start_dir():
     """Test that function works with explicitly provided start directory."""
     import tempfile
@@ -52,6 +57,7 @@ def test_get_repo_root_with_explicit_start_dir():
         result = get_repo_root(start_dir=subdir)
         assert result == root_path
 
+
 def test_get_repo_root_starting_at_root():
     """Test that function works when starting at the repository root."""
     import tempfile
@@ -63,6 +69,7 @@ def test_get_repo_root_starting_at_root():
 
         result = get_repo_root(start_dir=root_path)
         assert result == root_path
+
 
 def test_get_repo_root_file_not_found_error():
     """Test that function raises FileNotFoundError when .intent directory not found."""
@@ -76,6 +83,7 @@ def test_get_repo_root_file_not_found_error():
             get_repo_root(start_dir=root_path)
 
         assert "Project root with .intent directory not found" in str(exc_info.value)
+
 
 def test_get_repo_root_filesystem_root():
     """Test behavior when reaching filesystem root without finding .intent."""
@@ -92,6 +100,7 @@ def test_get_repo_root_filesystem_root():
         # We'll test the error case
         with pytest.raises(FileNotFoundError):
             get_repo_root(start_dir=test_dir)
+
 
 def test_get_repo_root_intent_at_filesystem_root():
     """Test edge case where .intent exists at filesystem root."""
@@ -114,6 +123,7 @@ def test_get_repo_root_intent_at_filesystem_root():
         result = get_repo_root(start_dir=test_path)
         assert result == root_path
 
+
 def test_get_repo_root_returns_path_object():
     """Test that function returns a Path object."""
     import tempfile
@@ -129,10 +139,11 @@ def test_get_repo_root_returns_path_object():
         assert hasattr(result, "joinpath")
         assert hasattr(result, "is_dir")
 
+
 def test_get_repo_root_with_none_start_dir():
     """Test that function uses current directory when start_dir is None."""
-    import tempfile
     import os
+    import tempfile
 
     with tempfile.TemporaryDirectory() as tmpdir:
         root_path = Path(tmpdir)
@@ -147,6 +158,7 @@ def test_get_repo_root_with_none_start_dir():
             assert result == root_path
         finally:
             os.chdir(original_cwd)
+
 
 def test_get_repo_root_path_comparison():
     """Test that path comparisons work correctly with different path representations."""

@@ -28,7 +28,7 @@ def test_show_project_lifecycle_menu_calls_show_menu_with_correct_title():
     """Verify _show_menu receives correct title parameter."""
     try:
         pass
-    except:
+    except Exception:
         pass
 
 

@@ -44,31 +44,35 @@ def test_command_result_with_optional_fields():
 
 def test_command_result_name_validation_empty():
     """Test that empty name raises ValueError"""
-    with pytest.raises(ValueError, match="CommandResult.name must be non-empty string"):
+    with pytest.raises(
+        ValueError, match=r"CommandResult.name must be non-empty string"
+    ):
         CommandResult(name="", ok=True, data={})
 
 
 def test_command_result_name_validation_non_string():
     """Test that non-string name raises ValueError"""
-    with pytest.raises(ValueError, match="CommandResult.name must be non-empty string"):
+    with pytest.raises(
+        ValueError, match=r"CommandResult.name must be non-empty string"
+    ):
         CommandResult(name=123, ok=True, data={})
 
 
 def test_command_result_data_validation_non_dict():
     """Test that non-dict data raises ValueError"""
-    with pytest.raises(ValueError, match="CommandResult.data must be a dict"):
+    with pytest.raises(ValueError, match=r"CommandResult.data must be a dict"):
         CommandResult(name="test.command", ok=True, data="not a dict")
 
 
 def test_command_result_data_validation_list():
     """Test that list data raises ValueError"""
-    with pytest.raises(ValueError, match="CommandResult.data must be a dict"):
+    with pytest.raises(ValueError, match=r"CommandResult.data must be a dict"):
         CommandResult(name="test.command", ok=True, data=["item1", "item2"])
 
 
 def test_command_result_data_validation_none():
     """Test that None data raises ValueError"""
-    with pytest.raises(ValueError, match="CommandResult.data must be a dict"):
+    with pytest.raises(ValueError, match=r"CommandResult.data must be a dict"):
         CommandResult(name="test.command", ok=True, data=None)
 
 

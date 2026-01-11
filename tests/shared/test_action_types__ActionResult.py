@@ -60,7 +60,7 @@ class TestActionResult:
     def test_data_size_limit_enforcement(self):
         """Test data size limit enforcement."""
         large_data = {"large_string": "x" * (6 * 1024 * 1024)}
-        with pytest.raises(ValueError, match="ActionResult.data exceeds size limit"):
+        with pytest.raises(ValueError, match=r"ActionResult.data exceeds size limit"):
             ActionResult(action_id="generate.large", ok=True, data=large_data)
 
     def test_data_with_non_serializable_content(self):
