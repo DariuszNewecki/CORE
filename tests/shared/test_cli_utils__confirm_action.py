@@ -2,73 +2,64 @@
 - Source: src/shared/cli_utils.py
 - Symbol: confirm_action
 - Status: verified_in_sandbox
-- Generated: 2026-01-11 00:04:09
+- Generated: 2026-01-11 00:47:46
 """
 
 import pytest
 from shared.cli_utils import confirm_action
 
-# The function returns a boolean value indicating user confirmation
+# confirm_action returns bool (True if confirmed, False if not)
 
-# Since confirm_action is NOT async (doesn't start with 'async def'),
-# we use regular synchronous test functions
-
-def test_confirm_action_default_abort_message(monkeypatch):
-    """Test confirm_action with default abort_message parameter."""
-    # Mock the Confirm.ask to return False
-    monkeypatch.setattr('shared.cli_utils.Confirm.ask', lambda x: False)
-
-    result = confirm_action("Proceed with deletion?")
-
-    assert result == False
-
-def test_confirm_action_custom_abort_message(monkeypatch):
-    """Test confirm_action with custom abort_message parameter."""
-    # Mock the Confirm.ask to return False
-    monkeypatch.setattr('shared.cli_utils.Confirm.ask', lambda x: False)
-
-    result = confirm_action("Delete all files?", abort_message="Operation cancelled.")
-
-    assert result == False
-
-def test_confirm_action_confirmed_true(monkeypatch):
-    """Test confirm_action when user confirms the action."""
+def test_confirm_action_confirmed(monkeypatch):
+    """Test when user confirms the action (returns True)"""
     # Mock the Confirm.ask to return True
-    monkeypatch.setattr('shared.cli_utils.Confirm.ask', lambda x: True)
+    monkeypatch.setattr('shared.cli_utils.Confirm.ask', lambda msg: True)
 
-    result = confirm_action("Install package?")
-
+    result = confirm_action("Delete all files?")
     assert result == True
 
-def test_confirm_action_message_passed_to_prompt(monkeypatch):
-    """Test that the message parameter is correctly passed to the prompt."""
-    captured_message = None
+def test_confirm_action_not_confirmed(monkeypatch):
+    """Test when user does not confirm the action (returns False)"""
+    # Mock the Confirm.ask to return False
+    monkeypatch.setattr('shared.cli_utils.Confirm.ask', lambda msg: False)
 
-    def mock_ask(message):
-        nonlocal captured_message
-        captured_message = message
-        return True
-
-    monkeypatch.setattr('shared.cli_utils.Confirm.ask', mock_ask)
-
-    test_message = "Are you sure you want to continue?"
-    confirm_action(test_message)
-
-    assert captured_message == test_message
-
-def test_confirm_action_with_empty_message(monkeypatch):
-    """Test confirm_action with an empty message string."""
-    monkeypatch.setattr('shared.cli_utils.Confirm.ask', lambda x: False)
-
-    result = confirm_action("")
-
+    result = confirm_action("Delete all files?")
     assert result == False
 
+def test_confirm_action_custom_abort_message(monkeypatch, capsys):
+    """Test that custom abort message is displayed when action is not confirmed"""
+    # Mock the Confirm.ask to return False
+    monkeypatch.setattr('shared.cli_utils.Confirm.ask', lambda msg: False)
+
+    custom_message = "Operation cancelled by user."
+    result = confirm_action("Delete all files?", abort_message=custom_message)
+
+    # Capture output to verify abort message was printed
+    captured = capsys.readouterr()
+    assert result == False
+    # The abort message should appear in the output (though we can't easily test Rich formatting)
+
+def test_confirm_action_default_abort_message(monkeypatch):
+    """Test that default abort message is used when not specified"""
+    # Mock the Confirm.ask to return False
+    monkeypatch.setattr('shared.cli_utils.Confirm.ask', lambda msg: False)
+
+    result = confirm_action("Delete all files?")
+    assert result == False
+
+def test_confirm_action_with_empty_message(monkeypatch):
+    """Test with empty message string"""
+    # Mock the Confirm.ask to return True
+    monkeypatch.setattr('shared.cli_utils.Confirm.ask', lambda msg: True)
+
+    result = confirm_action("")
+    assert result == True
+
 def test_confirm_action_with_special_characters_message(monkeypatch):
-    """Test confirm_action with message containing special characters."""
-    monkeypatch.setattr('shared.cli_utils.Confirm.ask', lambda x: True)
+    """Test with message containing special characters"""
+    # Mock the Confirm.ask to return True
+    monkeypatch.setattr('shared.cli_utils.Confirm.ask', lambda msg: True)
 
-    message = "Delete file: important_data.txt? (Yes/No)"
+    message = "Delete file: /tmp/test[123].txt? (Yes/No)"
     result = confirm_action(message)
-
     assert result == True

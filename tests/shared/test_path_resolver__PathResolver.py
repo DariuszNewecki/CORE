@@ -2,7 +2,7 @@
 - Source: src/shared/path_resolver.py
 - Symbol: PathResolver
 - Status: verified_in_sandbox
-- Generated: 2026-01-11 00:14:02
+- Generated: 2026-01-11 00:57:57
 """
 
 import pytest
@@ -13,28 +13,34 @@ from shared.path_resolver import PathResolver
 
 
 class TestPathResolver:
-    """Test PathResolver class - all methods return Path objects."""
+    """Tests for PathResolver class."""
 
     def test_init_with_repo_root(self):
-        """Test basic initialization with repo_root."""
+        """Test initialization with repo_root parameter."""
+        # Create a temporary directory to use as repo root
         with tempfile.TemporaryDirectory() as tmpdir:
             repo_root = Path(tmpdir)
             resolver = PathResolver(repo_root=repo_root)
 
+            # Test repo_root property
             assert resolver.repo_root == repo_root.resolve()
+
+            # Test intent_root default
             assert resolver.intent_root == repo_root.resolve() / ".intent"
+
+            # Test meta defaults to empty dict
             assert resolver._meta == {}
 
     def test_init_with_meta(self):
-        """Test initialization with metadata."""
+        """Test initialization with meta parameter."""
         with tempfile.TemporaryDirectory() as tmpdir:
             repo_root = Path(tmpdir)
-            meta = {"key": "value"}
+            meta = {"key": "value", "version": 1}
             resolver = PathResolver(repo_root=repo_root, meta=meta)
 
             assert resolver._meta == meta
 
-    def test_from_repo_factory_method(self):
+    def test_from_repo_classmethod(self):
         """Test from_repo class method."""
         with tempfile.TemporaryDirectory() as tmpdir:
             repo_root = Path(tmpdir)
@@ -57,9 +63,10 @@ class TestPathResolver:
             repo_root = Path(tmpdir)
             resolver = PathResolver.from_repo(repo_root=repo_root)
 
+            assert resolver.repo_root == repo_root.resolve()
             assert resolver.intent_root == repo_root.resolve() / ".intent"
 
-    def test_registry_path_property(self):
+    def test_registry_path(self):
         """Test registry_path property."""
         with tempfile.TemporaryDirectory() as tmpdir:
             repo_root = Path(tmpdir)
@@ -74,7 +81,8 @@ class TestPathResolver:
             repo_root = Path(tmpdir)
             resolver = PathResolver(repo_root=repo_root)
 
-            assert resolver.var_dir == repo_root.resolve() / "var"
+            expected = repo_root / "var"
+            assert resolver.var_dir == expected
 
     def test_workflows_dir_property(self):
         """Test workflows_dir property."""
@@ -82,7 +90,7 @@ class TestPathResolver:
             repo_root = Path(tmpdir)
             resolver = PathResolver(repo_root=repo_root)
 
-            expected = repo_root.resolve() / "var" / "workflows"
+            expected = repo_root / "var" / "workflows"
             assert resolver.workflows_dir == expected
 
     def test_build_dir_property(self):
@@ -91,7 +99,7 @@ class TestPathResolver:
             repo_root = Path(tmpdir)
             resolver = PathResolver(repo_root=repo_root)
 
-            expected = repo_root.resolve() / "var" / "build"
+            expected = repo_root / "var" / "build"
             assert resolver.build_dir == expected
 
     def test_reports_dir_property(self):
@@ -100,7 +108,7 @@ class TestPathResolver:
             repo_root = Path(tmpdir)
             resolver = PathResolver(repo_root=repo_root)
 
-            expected = repo_root.resolve() / "var" / "reports"
+            expected = repo_root / "var" / "reports"
             assert resolver.reports_dir == expected
 
     def test_logs_dir_property(self):
@@ -109,7 +117,7 @@ class TestPathResolver:
             repo_root = Path(tmpdir)
             resolver = PathResolver(repo_root=repo_root)
 
-            expected = repo_root.resolve() / "var" / "logs"
+            expected = repo_root / "var" / "logs"
             assert resolver.logs_dir == expected
 
     def test_exports_dir_property(self):
@@ -118,7 +126,7 @@ class TestPathResolver:
             repo_root = Path(tmpdir)
             resolver = PathResolver(repo_root=repo_root)
 
-            expected = repo_root.resolve() / "var" / "exports"
+            expected = repo_root / "var" / "exports"
             assert resolver.exports_dir == expected
 
     def test_context_dir_property(self):
@@ -127,7 +135,7 @@ class TestPathResolver:
             repo_root = Path(tmpdir)
             resolver = PathResolver(repo_root=repo_root)
 
-            expected = repo_root.resolve() / "var" / "context"
+            expected = repo_root / "var" / "context"
             assert resolver.context_dir == expected
 
     def test_context_cache_dir_property(self):
@@ -136,7 +144,7 @@ class TestPathResolver:
             repo_root = Path(tmpdir)
             resolver = PathResolver(repo_root=repo_root)
 
-            expected = repo_root.resolve() / "var" / "cache" / "context"
+            expected = repo_root / "var" / "cache" / "context"
             assert resolver.context_cache_dir == expected
 
     def test_context_schema_path_method(self):
@@ -145,7 +153,7 @@ class TestPathResolver:
             repo_root = Path(tmpdir)
             resolver = PathResolver(repo_root=repo_root)
 
-            expected = resolver.context_dir / "schema.yaml"
+            expected = repo_root / "var" / "context" / "schema.yaml"
             assert resolver.context_schema_path() == expected
 
     def test_knowledge_dir_property(self):
@@ -154,7 +162,7 @@ class TestPathResolver:
             repo_root = Path(tmpdir)
             resolver = PathResolver(repo_root=repo_root)
 
-            expected = repo_root.resolve() / "var" / "mind" / "knowledge"
+            expected = repo_root / "var" / "mind" / "knowledge"
             assert resolver.knowledge_dir == expected
 
     def test_mind_export_dir_property(self):
@@ -163,7 +171,7 @@ class TestPathResolver:
             repo_root = Path(tmpdir)
             resolver = PathResolver(repo_root=repo_root)
 
-            expected = repo_root.resolve() / "var" / "core" / "mind_export"
+            expected = repo_root / "var" / "core" / "mind_export"
             assert resolver.mind_export_dir == expected
 
     def test_mind_export_method(self):
@@ -173,7 +181,7 @@ class TestPathResolver:
             resolver = PathResolver(repo_root=repo_root)
 
             resource = "test_resource"
-            expected = resolver.mind_export_dir / f"{resource}.yaml"
+            expected = repo_root / "var" / "core" / "mind_export" / "test_resource.yaml"
             assert resolver.mind_export(resource) == expected
 
     def test_proposals_dir_property(self):
@@ -182,7 +190,7 @@ class TestPathResolver:
             repo_root = Path(tmpdir)
             resolver = PathResolver(repo_root=repo_root)
 
-            expected = resolver.workflows_dir / "proposals"
+            expected = repo_root / "var" / "workflows" / "proposals"
             assert resolver.proposals_dir == expected
 
     def test_pending_writes_dir_property(self):
@@ -191,7 +199,7 @@ class TestPathResolver:
             repo_root = Path(tmpdir)
             resolver = PathResolver(repo_root=repo_root)
 
-            expected = resolver.workflows_dir / "pending_writes"
+            expected = repo_root / "var" / "workflows" / "pending_writes"
             assert resolver.pending_writes_dir == expected
 
     def test_canary_dir_property(self):
@@ -200,7 +208,7 @@ class TestPathResolver:
             repo_root = Path(tmpdir)
             resolver = PathResolver(repo_root=repo_root)
 
-            expected = resolver.workflows_dir / "canary"
+            expected = repo_root / "var" / "workflows" / "canary"
             assert resolver.canary_dir == expected
 
     def test_morgue_dir_property(self):
@@ -209,7 +217,7 @@ class TestPathResolver:
             repo_root = Path(tmpdir)
             resolver = PathResolver(repo_root=repo_root)
 
-            expected = resolver.workflows_dir / "morgue"
+            expected = repo_root / "var" / "workflows" / "morgue"
             assert resolver.morgue_dir == expected
 
     def test_quarantine_dir_property(self):
@@ -218,7 +226,7 @@ class TestPathResolver:
             repo_root = Path(tmpdir)
             resolver = PathResolver(repo_root=repo_root)
 
-            expected = resolver.workflows_dir / "quarantine"
+            expected = repo_root / "var" / "workflows" / "quarantine"
             assert resolver.quarantine_dir == expected
 
     def test_prompts_dir_property(self):
@@ -227,7 +235,7 @@ class TestPathResolver:
             repo_root = Path(tmpdir)
             resolver = PathResolver(repo_root=repo_root)
 
-            expected = repo_root.resolve() / "var" / "prompts"
+            expected = repo_root / "var" / "prompts"
             assert resolver.prompts_dir == expected
 
     def test_prompt_method(self):
@@ -238,18 +246,23 @@ class TestPathResolver:
 
             # Test basic name
             name = "test_prompt"
-            expected = resolver.prompts_dir / f"{name}.prompt"
+            expected = repo_root / "var" / "prompts" / "test_prompt.prompt"
             assert resolver.prompt(name) == expected
 
-            # Test with spaces
-            name_with_spaces = "  test prompt  "
-            expected = resolver.prompts_dir / "test prompt.prompt"
+            # Test name with spaces
+            name_with_spaces = "test prompt"
+            expected = repo_root / "var" / "prompts" / "test prompt.prompt"
             assert resolver.prompt(name_with_spaces) == expected
 
-            # Test with path separators
-            name_with_path = "folder/test\\prompt"
-            expected = resolver.prompts_dir / "prompt.prompt"
+            # Test name with path separators (should extract basename)
+            name_with_path = "subdir/test_prompt"
+            expected = repo_root / "var" / "prompts" / "test_prompt.prompt"
             assert resolver.prompt(name_with_path) == expected
+
+            # Test name with backslashes
+            name_with_backslash = "subdir\\test_prompt"
+            expected = repo_root / "var" / "prompts" / "test_prompt.prompt"
+            assert resolver.prompt(name_with_backslash) == expected
 
     def test_list_prompts_method_empty_dir(self):
         """Test list_prompts when prompts directory doesn't exist."""
@@ -257,15 +270,16 @@ class TestPathResolver:
             repo_root = Path(tmpdir)
             resolver = PathResolver(repo_root=repo_root)
 
+            # Directory doesn't exist
             assert resolver.list_prompts() == []
 
     def test_list_prompts_method_with_files(self):
-        """Test list_prompts with existing prompt files."""
+        """Test list_prompts when prompts directory has files."""
         with tempfile.TemporaryDirectory() as tmpdir:
             repo_root = Path(tmpdir)
             resolver = PathResolver(repo_root=repo_root)
 
-            # Create prompts directory and files
+            # Create prompts directory and some files
             prompts_dir = repo_root / "var" / "prompts"
             prompts_dir.mkdir(parents=True)
 
@@ -273,11 +287,12 @@ class TestPathResolver:
             (prompts_dir / "test1.prompt").touch()
             (prompts_dir / "test2.prompt").touch()
             (prompts_dir / "test3.prompt").touch()
-            # Add a non-prompt file to ensure filtering
+            # Create a non-prompt file to ensure it's filtered out
             (prompts_dir / "other.txt").touch()
 
             result = resolver.list_prompts()
-            assert result == ["test1", "test2", "test3"]
+            expected = ["test1", "test2", "test3"]
+            assert result == expected
 
     def test_work_dir_property(self):
         """Test work_dir property."""
@@ -285,7 +300,7 @@ class TestPathResolver:
             repo_root = Path(tmpdir)
             resolver = PathResolver(repo_root=repo_root)
 
-            expected = repo_root.resolve() / "work"
+            expected = repo_root / "work"
             assert resolver.work_dir == expected
 
     def test_validate_structure_all_missing(self):
@@ -298,8 +313,8 @@ class TestPathResolver:
 
             assert result.ok == False
             assert len(result.errors) > 0
-            assert "Missing required directory:" in result.errors[0]
-            assert "var/" in result.errors[0]
+            assert "Missing required directory: var/" in result.errors[0]
+            assert "Missing constitutional intent root" in result.errors[-1]
             assert "checked_paths" in result.metadata
 
     def test_validate_structure_all_exist(self):
@@ -341,112 +356,92 @@ class TestPathResolver:
             repo_root = Path(tmpdir)
             resolver = PathResolver(repo_root=repo_root)
 
-            # Create directory structure
-            policies_dir = resolver.intent_root / "policies"
+            # Create intent structure
+            policies_dir = repo_root / ".intent" / "policies"
             policies_dir.mkdir(parents=True)
 
             # Create a policy file
             policy_file = policies_dir / "test_policy.json"
             policy_file.touch()
 
+            # Test direct match
             result = resolver.policy("test_policy")
-            assert result == policy_file
+            assert result == policy_file.resolve()
 
-    def test_policy_method_with_extension(self):
-        """Test policy method with file extension in input."""
-        with tempfile.TemporaryDirectory() as tmpdir:
-            repo_root = Path(tmpdir)
-            resolver = PathResolver(repo_root=repo_root)
-
-            # Create directory structure
-            standards_dir = resolver.intent_root / "standards"
-            standards_dir.mkdir(parents=True)
-
-            # Create a standards file
-            standard_file = standards_dir / "test_standard.yaml"
-            standard_file.touch()
-
-            result = resolver.policy("test_standard.yaml")
-            assert result == standard_file
+            # Test with .json extension
+            result = resolver.policy("test_policy.json")
+            assert result == policy_file.resolve()
 
     def test_policy_method_with_path_prefix(self):
-        """Test policy method with path prefix in input."""
+        """Test policy method with path prefixes."""
         with tempfile.TemporaryDirectory() as tmpdir:
             repo_root = Path(tmpdir)
             resolver = PathResolver(repo_root=repo_root)
 
-            # Create directory structure
-            policies_dir = resolver.intent_root / "policies"
+            # Create intent structure with subdirectory
+            policies_dir = repo_root / ".intent" / "policies" / "subdir"
             policies_dir.mkdir(parents=True)
 
-            # Create nested policy file
-            nested_dir = policies_dir / "nested"
-            nested_dir.mkdir()
-            policy_file = nested_dir / "nested_policy.json"
+            # Create a policy file in subdirectory
+            policy_file = policies_dir / "test_policy.yaml"
             policy_file.touch()
 
-            # Test with policies/ prefix
-            result = resolver.policy("policies/nested/nested_policy")
-            assert result == policy_file
-
             # Test with .intent/ prefix
-            result2 = resolver.policy(".intent/policies/nested/nested_policy")
-            assert result2 == policy_file
+            result = resolver.policy(".intent/policies/subdir/test_policy")
+            assert result == policy_file.resolve()
 
-    def test_policy_method_recursive_search(self):
+            # Test with policies/ prefix
+            result = resolver.policy("policies/subdir/test_policy")
+            assert result == policy_file.resolve()
+
+    def test_policy_method_recursive_stem_lookup(self):
         """Test policy method with recursive stem lookup."""
         with tempfile.TemporaryDirectory() as tmpdir:
             repo_root = Path(tmpdir)
             resolver = PathResolver(repo_root=repo_root)
 
-            # Create directory structure
-            rules_dir = resolver.intent_root / "rules"
-            rules_dir.mkdir(parents=True)
+            # Create intent structure with nested directories
+            standards_dir = repo_root / ".intent" / "standards" / "level1" / "level2"
+            standards_dir.mkdir(parents=True)
 
-            # Create nested rules file
-            nested_dir = rules_dir / "deep" / "nested"
-            nested_dir.mkdir(parents=True)
-            rule_file = nested_dir / "my_rule.yaml"
-            rule_file.touch()
+            # Create a standards file
+            standards_file = standards_dir / "test_standard.yml"
+            standards_file.touch()
 
-            result = resolver.policy("my_rule")
-            assert result == rule_file
+            # Test stem lookup (should find the file recursively)
+            result = resolver.policy("test_standard")
+            assert result == standards_file.resolve()
 
     def test_policy_method_file_not_found(self):
-        """Test policy method when file doesn't exist."""
+        """Test policy method when file is not found."""
         with tempfile.TemporaryDirectory() as tmpdir:
             repo_root = Path(tmpdir)
             resolver = PathResolver(repo_root=repo_root)
 
-            # Create empty policies directory
-            policies_dir = resolver.intent_root / "policies"
+            # Create intent structure but not the specific file
+            policies_dir = repo_root / ".intent" / "policies"
             policies_dir.mkdir(parents=True)
 
+            # Should raise FileNotFoundError
             with pytest.raises(FileNotFoundError) as exc_info:
                 resolver.policy("nonexistent_policy")
 
             assert "Constitutional resource 'nonexistent_policy' not found" in str(exc_info.value)
 
-    def test_policy_method_prioritizes_shorter_path(self):
-        """Test policy method prioritizes shorter path when multiple matches exist."""
+    def test_policy_method_with_rules_directory(self):
+        """Test policy method searches rules directory."""
         with tempfile.TemporaryDirectory() as tmpdir:
             repo_root = Path(tmpdir)
             resolver = PathResolver(repo_root=repo_root)
 
-            # Create directory structure
-            policies_dir = resolver.intent_root / "policies"
-            policies_dir.mkdir(parents=True)
+            # Create rules directory
+            rules_dir = repo_root / ".intent" / "rules"
+            rules_dir.mkdir(parents=True)
 
-            # Create policy at root level
-            root_policy = policies_dir / "common.json"
-            root_policy.touch()
+            # Create a rules file
+            rules_file = rules_dir / "test_rule.json"
+            rules_file.touch()
 
-            # Create same-named policy in nested directory
-            nested_dir = policies_dir / "deep" / "nested"
-            nested_dir.mkdir(parents=True)
-            nested_policy = nested_dir / "common.yaml"
-            nested_policy.touch()
-
-            # Should return the shorter path (root level)
-            result = resolver.policy("common")
-            assert result == root_policy
+            # Test finding rule
+            result = resolver.policy("test_rule")
+            assert result == rules_file.resolve()

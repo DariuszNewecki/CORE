@@ -20,7 +20,7 @@
   {
     "check_id": "architecture.max_file_size",
     "severity": "warning",
-    "message": "Module has 489 lines, exceeds limit of 400",
+    "message": "Module has 636 lines, exceeds limit of 400",
     "file_path": "src/body/cli/commands/coverage.py",
     "line_number": null,
     "context": {},
@@ -92,7 +92,7 @@
   {
     "check_id": "architecture.max_file_size",
     "severity": "warning",
-    "message": "Module has 625 lines, exceeds limit of 400",
+    "message": "Module has 626 lines, exceeds limit of 400",
     "file_path": "src/features/test_generation_v2/adaptive_test_generator.py",
     "line_number": null,
     "context": {},
@@ -211,6 +211,24 @@
     "severity": "warning",
     "message": "Module has 491 lines, exceeds limit of 400",
     "file_path": "tests/body/evaluators/test_security_evaluator.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.max_file_size",
+    "severity": "warning",
+    "message": "Module has 447 lines, exceeds limit of 400",
+    "file_path": "tests/mind/governance/test_policy_coverage_service__PolicyCoverageService.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.max_file_size",
+    "severity": "warning",
+    "message": "Module has 447 lines, exceeds limit of 400",
+    "file_path": "tests/shared/test_path_resolver__PathResolver.py",
     "line_number": null,
     "context": {},
     "details": {}
