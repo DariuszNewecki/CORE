@@ -5,11 +5,13 @@
 - Generated: 2026-01-11 01:11:43
 """
 
-import pytest
-from shared.ast_utility import parse_metadata_comment
 import ast
 
+from shared.ast_utility import parse_metadata_comment
+
+
 # Detected return type: dict[str, str]
+
 
 def test_parse_metadata_comment_no_lineno():
     """Test node without lineno attribute returns empty dict."""
@@ -17,6 +19,7 @@ def test_parse_metadata_comment_no_lineno():
     source_lines = ["# CAPABILITY: test.key", "x = 1"]
     result = parse_metadata_comment(node, source_lines)
     assert result == {}
+
 
 def test_parse_metadata_comment_lineno_one():
     """Test node with lineno == 1 returns empty dict."""
@@ -26,6 +29,7 @@ def test_parse_metadata_comment_lineno_one():
     result = parse_metadata_comment(node, source_lines)
     assert result == {}
 
+
 def test_parse_metadata_comment_no_comment_line():
     """Test line above node is not a comment."""
     node = ast.parse("x = 1").body[0]
@@ -33,6 +37,7 @@ def test_parse_metadata_comment_no_comment_line():
     source_lines = ["y = 2", "x = 1"]
     result = parse_metadata_comment(node, source_lines)
     assert result == {}
+
 
 def test_parse_metadata_comment_comment_without_capability():
     """Test comment line without CAPABILITY keyword."""
@@ -42,6 +47,7 @@ def test_parse_metadata_comment_comment_without_capability():
     result = parse_metadata_comment(node, source_lines)
     assert result == {}
 
+
 def test_parse_metadata_comment_capability_lowercase():
     """Test case-insensitive matching of 'CAPABILITY:'."""
     node = ast.parse("x = 1").body[0]
@@ -49,6 +55,7 @@ def test_parse_metadata_comment_capability_lowercase():
     source_lines = ["# capability: domain.key", "x = 1"]
     result = parse_metadata_comment(node, source_lines)
     assert result == {"capability": "domain.key"}
+
 
 def test_parse_metadata_comment_capability_mixed_case():
     """Test case-insensitive matching with mixed case."""
@@ -58,6 +65,7 @@ def test_parse_metadata_comment_capability_mixed_case():
     result = parse_metadata_comment(node, source_lines)
     assert result == {"capability": "domain.key"}
 
+
 def test_parse_metadata_comment_valid_capability():
     """Test valid CAPABILITY comment returns correct dict."""
     node = ast.parse("x = 1").body[0]
@@ -65,6 +73,7 @@ def test_parse_metadata_comment_valid_capability():
     source_lines = ["# CAPABILITY: domain.key", "x = 1"]
     result = parse_metadata_comment(node, source_lines)
     assert result == {"capability": "domain.key"}
+
 
 def test_parse_metadata_comment_value_with_colon():
     """Test capability value containing a colon."""
@@ -74,6 +83,7 @@ def test_parse_metadata_comment_value_with_colon():
     result = parse_metadata_comment(node, source_lines)
     assert result == {"capability": "domain.key:subkey"}
 
+
 def test_parse_metadata_comment_value_with_leading_trailing_spaces():
     """Test capability value stripping."""
     node = ast.parse("x = 1").body[0]
@@ -81,6 +91,7 @@ def test_parse_metadata_comment_value_with_leading_trailing_spaces():
     source_lines = ["# CAPABILITY:   domain.key   ", "x = 1"]
     result = parse_metadata_comment(node, source_lines)
     assert result == {"capability": "domain.key"}
+
 
 def test_parse_metadata_comment_comment_with_leading_spaces():
     """Test comment line with leading spaces."""
@@ -90,6 +101,7 @@ def test_parse_metadata_comment_comment_with_leading_spaces():
     result = parse_metadata_comment(node, source_lines)
     assert result == {"capability": "domain.key"}
 
+
 def test_parse_metadata_comment_malformed_no_colon():
     """Test comment with CAPABILITY but no colon raises ValueError and returns empty dict."""
     node = ast.parse("x = 1").body[0]
@@ -97,6 +109,7 @@ def test_parse_metadata_comment_malformed_no_colon():
     source_lines = ["# CAPABILITY domain.key", "x = 1"]
     result = parse_metadata_comment(node, source_lines)
     assert result == {}
+
 
 def test_parse_metadata_comment_capability_not_at_start_of_comment():
     """Test CAPABILITY appears after comment start."""

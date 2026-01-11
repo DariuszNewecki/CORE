@@ -5,13 +5,17 @@
 - Generated: 2026-01-11 02:38:34
 """
 
-import pytest
 import asyncio
 from pathlib import Path
+
+import pytest
+
 from mind.logic.engines.workflow_gate.checks.linter import LinterComplianceCheck
+
 
 # Detected return type: async def verify() -> list[str]
 # All test functions must be async since verify() is async
+
 
 @pytest.mark.asyncio
 async def test_linter_compliance_check_initialization():
@@ -19,6 +23,7 @@ async def test_linter_compliance_check_initialization():
     check = LinterComplianceCheck()
     assert check.check_type == "linter_compliance"
     assert isinstance(check, LinterComplianceCheck)
+
 
 @pytest.mark.asyncio
 async def test_verify_with_file_path():
@@ -34,6 +39,7 @@ async def test_verify_with_file_path():
     # Could be empty list (success) or messages (failures)
     # We just verify the function runs without crashing
 
+
 @pytest.mark.asyncio
 async def test_verify_without_file_path():
     """Test verify() without file_path (checks entire repo)."""
@@ -43,6 +49,7 @@ async def test_verify_without_file_path():
 
     assert isinstance(violations, list)
     # Default targets should be ["src", "tests"]
+
 
 @pytest.mark.asyncio
 async def test_verify_timeout_simulation():
@@ -57,6 +64,7 @@ async def test_verify_timeout_simulation():
     # If ruff/black are installed, this will run normally
     # The timeout handling is internal to the function
 
+
 @pytest.mark.asyncio
 async def test_verify_tool_not_found_handling():
     """Test behavior when ruff/black are not installed (FileNotFoundError)."""
@@ -67,6 +75,7 @@ async def test_verify_tool_not_found_handling():
     assert isinstance(violations, list)
     # Could contain installation messages if tools not found
 
+
 @pytest.mark.asyncio
 async def test_verify_empty_params():
     """Test verify() with empty params dictionary."""
@@ -75,6 +84,7 @@ async def test_verify_empty_params():
     violations = await check.verify(file_path=None, params={})
 
     assert isinstance(violations, list)
+
 
 @pytest.mark.asyncio
 async def test_verify_with_non_existent_file():
@@ -86,6 +96,7 @@ async def test_verify_with_non_existent_file():
 
     assert isinstance(violations, list)
     # Should return list (could be empty or contain error messages)
+
 
 @pytest.mark.asyncio
 async def test_verify_return_type_consistency():
@@ -102,6 +113,7 @@ async def test_verify_return_type_consistency():
     assert isinstance(result2, list)
     assert all(isinstance(item, str) for item in result2)
 
+
 @pytest.mark.asyncio
 async def test_verify_concurrent_execution():
     """Test that multiple verify() calls can run concurrently."""
@@ -109,8 +121,7 @@ async def test_verify_concurrent_execution():
 
     # Create multiple coroutines
     tasks = [
-        check.verify(file_path=Path(f"/tmp/test_{i}.py"), params={})
-        for i in range(3)
+        check.verify(file_path=Path(f"/tmp/test_{i}.py"), params={}) for i in range(3)
     ]
 
     results = await asyncio.gather(*tasks)

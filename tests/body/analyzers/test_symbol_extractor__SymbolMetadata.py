@@ -5,8 +5,8 @@
 - Generated: 2026-01-11 02:46:17
 """
 
-import pytest
 from body.analyzers.symbol_extractor import SymbolMetadata
+
 
 # SymbolMetadata is a dataclass-like class, not async (no async def __init__)
 # All test functions will be regular def, not async
@@ -24,7 +24,7 @@ def test_symbol_metadata_initialization():
         is_public=True,
         complexity="medium",
         parameters=["self", "arg1", "arg2"],
-        decorators=["@pytest.mark.parametrize", "@decorator"]
+        decorators=["@pytest.mark.parametrize", "@decorator"],
     )
 
     assert metadata.name == "test_function"
@@ -33,7 +33,7 @@ def test_symbol_metadata_initialization():
     assert metadata.type == "function"
     assert metadata.line_number == 42
     assert metadata.docstring == "This is a test function."
-    assert metadata.is_public == True
+    assert metadata.is_public
     assert metadata.complexity == "medium"
     assert metadata.parameters == ["self", "arg1", "arg2"]
     assert metadata.decorators == ["@pytest.mark.parametrize", "@decorator"]
@@ -51,11 +51,11 @@ def test_symbol_metadata_with_none_docstring():
         is_public=False,
         complexity="low",
         parameters=[],
-        decorators=[]
+        decorators=[],
     )
 
     assert metadata.docstring is None
-    assert metadata.is_public == False
+    assert not metadata.is_public
     assert metadata.parameters == []
     assert metadata.decorators == []
 
@@ -72,7 +72,7 @@ def test_symbol_metadata_async_function_type():
         is_public=True,
         complexity="high",
         parameters=["session", "data"],
-        decorators=["@asynccontextmanager"]
+        decorators=["@asynccontextmanager"],
     )
 
     assert metadata.type == "async_function"
@@ -92,7 +92,7 @@ def test_symbol_metadata_class_type():
         is_public=True,
         complexity="medium",
         parameters=[],  # Classes typically have empty parameters
-        decorators=["@dataclass", "@pytest.fixture"]
+        decorators=["@dataclass", "@pytest.fixture"],
     )
 
     assert metadata.type == "class"
@@ -112,7 +112,7 @@ def test_symbol_metadata_empty_strings():
         is_public=False,
         complexity="low",
         parameters=[],
-        decorators=[]
+        decorators=[],
     )
 
     assert metadata.name == ""
@@ -134,7 +134,7 @@ def test_symbol_metadata_with_unicode():
         is_public=True,
         complexity="medium",
         parameters=["param1", "param2"],
-        decorators=["@decorator"]
+        decorators=["@decorator"],
     )
 
     assert metadata.name == "café"
@@ -155,7 +155,7 @@ def test_symbol_metadata_equality():
         is_public=True,
         complexity="low",
         parameters=[],
-        decorators=[]
+        decorators=[],
     )
 
     metadata2 = SymbolMetadata(
@@ -168,7 +168,7 @@ def test_symbol_metadata_equality():
         is_public=True,
         complexity="low",
         parameters=[],
-        decorators=[]
+        decorators=[],
     )
 
     # Compare individual fields
@@ -196,7 +196,7 @@ def test_symbol_metadata_different_values():
         is_public=True,
         complexity="low",
         parameters=["a"],
-        decorators=["@dec1"]
+        decorators=["@dec1"],
     )
 
     metadata2 = SymbolMetadata(
@@ -209,7 +209,7 @@ def test_symbol_metadata_different_values():
         is_public=False,
         complexity="high",
         parameters=["a", "b"],
-        decorators=["@dec2"]
+        decorators=["@dec2"],
     )
 
     assert metadata1.name != metadata2.name

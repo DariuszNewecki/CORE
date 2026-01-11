@@ -6,9 +6,12 @@
 """
 
 import pytest
+
 from mind.logic.engines.registry import EngineRegistry
 
+
 # Detected return type: The 'get' method returns an instance of the requested engine class (Any).
+
 
 def test_get_returns_cached_instance():
     """Test that get returns the same instance on subsequent calls."""
@@ -19,11 +22,15 @@ def test_get_returns_cached_instance():
     assert instance1 == instance2
     assert instance1 is instance2
 
+
 def test_get_raises_valueerror_for_unknown_engine():
     """Test that get raises ValueError for an unsupported engine ID."""
     EngineRegistry._instances.clear()
-    with pytest.raises(ValueError, match="Unsupported Governance Engine: unknown_engine"):
+    with pytest.raises(
+        ValueError, match="Unsupported Governance Engine: unknown_engine"
+    ):
         EngineRegistry.get("unknown_engine")
+
 
 def test_get_registers_different_engines():
     """Test that different engine IDs return different engine instances."""
@@ -36,6 +43,7 @@ def test_get_registers_different_engines():
     assert EngineRegistry._instances["ast_gate"] == ast_instance
     assert EngineRegistry._instances["glob_gate"] == glob_instance
 
+
 def test_get_all_supported_engines():
     """Test that all hardcoded engine IDs can be retrieved without error."""
     EngineRegistry._instances.clear()
@@ -46,7 +54,7 @@ def test_get_all_supported_engines():
         "regex_gate",
         "workflow_gate",
         "knowledge_gate",
-        "llm_gate"
+        "llm_gate",
     ]
     for engine_id in supported_ids:
         instance = EngineRegistry.get(engine_id)

@@ -5,8 +5,8 @@
 - Generated: 2026-01-11 02:06:50
 """
 
-import pytest
 from mind.governance.micro_proposal_validator import MicroProposalValidator
+
 
 # Detected return type: validate() returns tuple[bool, str] (synchronous)
 
@@ -42,9 +42,13 @@ class TestMicroProposalValidator:
 
     def test_step_with_model_dump_support(self):
         """Step with model_dump() method should be properly converted"""
+
         class MockPydanticModel:
             def model_dump(self):
-                return {"action": "write", "parameters": {"file_path": "/allowed/path.txt"}}
+                return {
+                    "action": "write",
+                    "parameters": {"file_path": "/allowed/path.txt"},
+                }
 
         validator = MicroProposalValidator()
         # Mock the policy to allow the path
@@ -93,7 +97,7 @@ class TestMicroProposalValidator:
 
         plan = [
             {"action": "create", "params": {"file_path": "/project/src/main.py"}},
-            {"name": "update", "parameters": {"file_path": "/docs/README.md"}}
+            {"name": "update", "parameters": {"file_path": "/docs/README.md"}},
         ]
         result = validator.validate(plan)
         assert result == (True, "")
@@ -107,10 +111,13 @@ class TestMicroProposalValidator:
         plan = [
             {"action": "create", "parameters": {"file_path": "/project/src/main.py"}},
             {"action": "read", "parameters": {"file_path": "/system/config"}},
-            {"action": "update", "parameters": {"file_path": "/project/test.py"}}
+            {"action": "update", "parameters": {"file_path": "/project/test.py"}},
         ]
         result = validator.validate(plan)
-        assert result == (False, "Path '/system/config' is explicitly forbidden by policy")
+        assert result == (
+            False,
+            "Path '/system/config' is explicitly forbidden by policy",
+        )
 
     def test_empty_allowed_list_permits_any_non_forbidden(self):
         """Empty allowed list should permit any path that's not forbidden"""
@@ -129,14 +136,21 @@ class TestMicroProposalValidator:
         validator._forbidden = ["*.bak", "*.tmp"]
 
         # Test allowed pattern matching
-        plan1 = [{"action": "read", "parameters": {"file_path": "/home/user/script.py"}}]
+        plan1 = [
+            {"action": "read", "parameters": {"file_path": "/home/user/script.py"}}
+        ]
         result1 = validator.validate(plan1)
         assert result1 == (True, "")
 
         # Test forbidden pattern matching
-        plan2 = [{"action": "write", "parameters": {"file_path": "/home/user/backup.bak"}}]
+        plan2 = [
+            {"action": "write", "parameters": {"file_path": "/home/user/backup.bak"}}
+        ]
         result2 = validator.validate(plan2)
-        assert result2 == (False, "Path '/home/user/backup.bak' is explicitly forbidden by policy")
+        assert result2 == (
+            False,
+            "Path '/home/user/backup.bak' is explicitly forbidden by policy",
+        )
 
     def test_step_with_params_key_instead_of_parameters(self):
         """Should handle 'params' key as alternative to 'parameters'"""
@@ -180,7 +194,7 @@ class TestMicroProposalValidator:
 
         plan = [
             {"action": "step1", "parameters": {"file_path": "/bad/path1"}},
-            {"action": "step2", "parameters": {"file_path": "/bad/path2"}}
+            {"action": "step2", "parameters": {"file_path": "/bad/path2"}},
         ]
         result = validator.validate(plan)
         # Should only report first error

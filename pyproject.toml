@@ -19,17 +19,16 @@ packages = [
 ]
 
 [tool.poetry.dependencies]
-# Core Python version
 python = "^3.12"
 
 # Web Framework
 fastapi = "^0.115.0"
-uvicorn = {extras = ["standard"], version = "^0.38.0"}
+uvicorn = { extras = ["standard"], version = "^0.38.0" }
 
 # Database (Async)
-sqlalchemy = {extras = ["asyncio"], version = "^2.0.36"}
+sqlalchemy = { extras = ["asyncio"], version = "^2.0.36" }
 asyncpg = "^0.31.0"
-alembic = "^1.13.0"  # For database migrations
+alembic = "^1.13.0"
 
 # Configuration & Validation
 pydantic = "^2.11"
@@ -40,7 +39,7 @@ python-dotenv = "^1.0.0"
 cryptography = "^42.0.0"
 
 # CLI & UI
-typer = {extras = ["rich"], version = "^0.16.1"}
+typer = { extras = ["rich"], version = "^0.16.1" }
 rich = "^13"
 
 # Data Processing
@@ -68,14 +67,14 @@ networkx = "^3.3"
 # Utilities
 filelock = "^3.13.0"
 
-# Dependency Injection (NEW)
+# Dependency Injection
 dependency-injector = "^4.42.0"
 
-# Observability (NEW - Optional)
-opentelemetry-api = {version = "^1.21.0", optional = true}
-opentelemetry-sdk = {version = "^1.21.0", optional = true}
-opentelemetry-instrumentation-fastapi = {version = "^0.42b0", optional = true}
-opentelemetry-instrumentation-sqlalchemy = {version = "^0.42b0", optional = true}
+# Observability (Optional)
+opentelemetry-api = { version = "^1.21.0", optional = true }
+opentelemetry-sdk = { version = "^1.21.0", optional = true }
+opentelemetry-instrumentation-fastapi = { version = "^0.42b0", optional = true }
+opentelemetry-instrumentation-sqlalchemy = { version = "^0.42b0", optional = true }
 
 [tool.poetry.extras]
 telemetry = [
@@ -150,29 +149,29 @@ extend-exclude = [
 
 [tool.ruff.lint]
 select = [
-    "E",     # pycodestyle errors
-    "W",     # pycodestyle warnings
-    "F",     # pyflakes
-    "I",     # isort
-    "UP",    # pyupgrade
-    "RUF",   # Ruff-specific rules (includes RUF029 for async)
-    "ASYNC", # flake8-async rules
+    "E",
+    "W",
+    "F",
+    "I",
+    "UP",
+    "RUF",
+    "ASYNC",
 ]
 ignore = [
-    "E402",  # Module level import not at top of file
-    "E501",  # Line too long (handled by black)
-    "B008",  # Allow function calls in argument defaults (FastAPI/Typer pattern)
-    "B904",  # Allow raise without 'from' in exception handlers
-    "B007",  # Loop control variable not used
-    "SIM102", # Allow nested if statements
-    "SIM117", # Allow nested with statements
-    "C401",  # Allow generator instead of set comprehension
-    "C408",  # Allow dict() calls
-    "C414",  # Allow list() in sorted()
-    "N806",  # Allow uppercase variable names
-    "F841",  # Allow unused local variables (sometimes intentional)
-    # CONSTITUTIONAL FIX: Removed "RUF043" which was causing the parser to fail.
+    "E402",
+    "E501",
+    "B008",
+    "B904",
+    "B007",
+    "SIM102",
+    "SIM117",
+    "C401",
+    "C408",
+    "C414",
+    "N806",
+    "F841",
 ]
+
 [tool.ruff.lint.isort]
 force-single-line = false
 lines-after-imports = 2
@@ -181,79 +180,5 @@ known-first-party = ["api", "body", "features", "mind", "services", "shared", "w
 section-order = ["future", "standard-library", "third-party", "first-party", "local-folder"]
 
 [tool.ruff.lint.per-file-ignores]
-"__init__.py" = ["F401"]  # Unused imports in __init__.py
-"tests/**/*.py" = [
-    "B008",  # Do not perform function calls in argument defaults
-    "F403", # Allow star imports in test files for resilience
-]
-
-[tool.mypy]
-python_version = "3.12"
-warn_return_any = true
-warn_unused_configs = true
-disallow_untyped_defs = false  # Start lenient, tighten later
-ignore_missing_imports = true
-plugins = ["pydantic.mypy"]
-
-[[tool.mypy.overrides]]
-module = "tests.*"
-disallow_untyped_defs = false
-
-[tool.pytest.ini_options]
-# Basic setup
-testpaths = ["tests"]
-pythonpath = ["src"]
-asyncio_mode = "auto"
-
-# Environment handling (pytest-dotenv)
-env_files = [".env.test"]
-env_override_existing_values = "true"
-
-# CLI Logging settings (moved from pytest.ini)
-log_cli = true
-log_cli_level = "INFO"
-
-# Consolidated Options
-# 1. Added --cov-report=json (Required for CORE Auditor/Remediation)
-# 2. Merged the html report path from your ini
-# 3. Kept the existing coverage and marker settings
-addopts = [
-    "--envfile", ".env.test",
-    "-v",
-    "--strict-markers",
-    "--strict-config",
-    "--cov=src",
-    "--cov-report=json",
-    "--cov-report=html:reports/htmlcov",
-    "--cov-report=term-missing:skip-covered",
-    "--html=reports/pytest-report.html",
-    "--self-contained-html",
-    "-m", "not trio"
-]
-
-markers = [
-    "unit: Unit tests (fast, no external dependencies)",
-    "integration: Integration tests (database, external services)",
-    "e2e: End-to-end tests (full system)",
-    "slow: Slow running tests",
-    "trio: marks tests to run with trio backend (skipped by default)",
-]
-
-[tool.coverage.run]
-source = ["src"]
-omit = [
-    "*/tests/*",
-    "*/__pycache__/*",
-    "*/site-packages/*",
-]
-
-[tool.coverage.report]
-exclude_lines = [
-    "pragma: no cover",
-    "def __repr__",
-    "raise AssertionError",
-    "raise NotImplementedError",
-    "if __name__ == .__main__.:",
-    "if TYPE_CHECKING:",
-    "@abstract",
-]
+"__init__.py" = ["F401"]
+"tests/**/*.py" = ["B008", "F403"]

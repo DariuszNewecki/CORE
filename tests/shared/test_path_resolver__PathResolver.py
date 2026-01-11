@@ -5,10 +5,11 @@
 - Generated: 2026-01-11 00:57:57
 """
 
-import pytest
-from pathlib import Path
 import tempfile
-import os
+from pathlib import Path
+
+import pytest
+
 from shared.path_resolver import PathResolver
 
 
@@ -48,9 +49,7 @@ class TestPathResolver:
             meta = {"test": "data"}
 
             resolver = PathResolver.from_repo(
-                repo_root=repo_root,
-                intent_root=intent_root,
-                meta=meta
+                repo_root=repo_root, intent_root=intent_root, meta=meta
             )
 
             assert resolver.repo_root == repo_root.resolve()
@@ -311,7 +310,7 @@ class TestPathResolver:
 
             result = resolver.validate_structure()
 
-            assert result.ok == False
+            assert not result.ok
             assert len(result.errors) > 0
             assert "Missing required directory: var/" in result.errors[0]
             assert "Missing constitutional intent root" in result.errors[-1]
@@ -325,10 +324,19 @@ class TestPathResolver:
 
             # Create all required directories
             for prop_name in [
-                "var_dir", "workflows_dir", "canary_dir", "proposals_dir",
-                "pending_writes_dir", "prompts_dir", "context_dir",
-                "context_cache_dir", "knowledge_dir", "logs_dir",
-                "reports_dir", "exports_dir", "build_dir"
+                "var_dir",
+                "workflows_dir",
+                "canary_dir",
+                "proposals_dir",
+                "pending_writes_dir",
+                "prompts_dir",
+                "context_dir",
+                "context_cache_dir",
+                "knowledge_dir",
+                "logs_dir",
+                "reports_dir",
+                "exports_dir",
+                "build_dir",
             ]:
                 prop = getattr(resolver, prop_name)
                 prop.mkdir(parents=True, exist_ok=True)
@@ -338,7 +346,7 @@ class TestPathResolver:
 
             result = resolver.validate_structure()
 
-            assert result.ok == True
+            assert result.ok
             assert result.errors == []
 
     def test_repr_method(self):
@@ -426,7 +434,9 @@ class TestPathResolver:
             with pytest.raises(FileNotFoundError) as exc_info:
                 resolver.policy("nonexistent_policy")
 
-            assert "Constitutional resource 'nonexistent_policy' not found" in str(exc_info.value)
+            assert "Constitutional resource 'nonexistent_policy' not found" in str(
+                exc_info.value
+            )
 
     def test_policy_method_with_rules_directory(self):
         """Test policy method searches rules directory."""

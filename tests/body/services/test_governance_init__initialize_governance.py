@@ -6,8 +6,8 @@
 - Generated: 2026-01-11 03:09:27
 """
 
-import pytest
 from body.services.governance_init import initialize_governance
+
 
 def test_initialize_governance_exception_propagation():
     """Test that exceptions from get_validator() are raised."""

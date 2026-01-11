@@ -5,8 +5,8 @@
 - Generated: 2026-01-11 03:39:50
 """
 
-import pytest
 from body.cli.commands.autonomy import reject_cmd
+
 
 # DETECTED: reject_cmd is a synchronous function (not async def)
 # It calls asyncio.run internally but is not async itself

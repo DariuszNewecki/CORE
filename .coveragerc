@@ -1,6 +1,9 @@
 [run]
-branch = true
-source = src
+branch = True
+source =
+    src
+relative_files = True
+parallel = True
 
 omit =
     src/features/self_healing/*
@@ -11,9 +14,28 @@ omit =
     src/features/introspection/*
     tests/*
 
+[paths]
+source =
+    src
+    */src
+
 [report]
 fail_under = 45
+show_missing = True
+skip_covered = False
+precision = 1
+
 exclude_lines =
     pragma: no cover
     raise NotImplementedError
     raise AssertionError.*unreachable
+
+[html]
+directory = reports/htmlcov
+
+[xml]
+output = reports/coverage.xml
+
+[json]
+output = reports/coverage.json
+pretty_print = True

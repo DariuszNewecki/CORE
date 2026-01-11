@@ -6,8 +6,10 @@
 """
 
 import pytest
-from body.cli.commands.secrets import list_secrets
+
+
 # Detected return type: The function is async and returns None, raising typer.Exit on failure.
+
 
 @pytest.mark.asyncio
 async def test_list_secrets_success():
@@ -18,6 +20,7 @@ async def test_list_secrets_success():
     # Following the STRICT FOCUS and NO MOCKING rules, we cannot proceed.
     # A placeholder is provided to show structure, but it will fail without mocking.
     pass
+
 
 @pytest.mark.asyncio
 async def test_list_secrets_failure():

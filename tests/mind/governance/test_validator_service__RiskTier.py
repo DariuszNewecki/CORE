@@ -6,9 +6,12 @@
 """
 
 import pytest
+
 from mind.governance.validator_service import RiskTier
 
+
 # Detected return type: RiskTier enum members (int values wrapped in Enum class)
+
 
 def test_risk_tier_values():
     """Test that RiskTier enum members have correct integer values."""
@@ -17,6 +20,7 @@ def test_risk_tier_values():
     assert RiskTier.ELEVATED.value == 7
     assert RiskTier.CRITICAL.value == 10
 
+
 def test_risk_tier_names():
     """Test that RiskTier enum members have correct names."""
     assert RiskTier.ROUTINE.name == "ROUTINE"
@@ -24,11 +28,13 @@ def test_risk_tier_names():
     assert RiskTier.ELEVATED.name == "ELEVATED"
     assert RiskTier.CRITICAL.name == "CRITICAL"
 
+
 def test_risk_tier_ordering():
     """Test that RiskTier values are in increasing order of risk."""
     assert RiskTier.ROUTINE.value < RiskTier.STANDARD.value
     assert RiskTier.STANDARD.value < RiskTier.ELEVATED.value
     assert RiskTier.ELEVATED.value < RiskTier.CRITICAL.value
+
 
 def test_risk_tier_iteration():
     """Test that RiskTier can be iterated over and contains all members."""
@@ -39,6 +45,7 @@ def test_risk_tier_iteration():
     assert RiskTier.ELEVATED in members
     assert RiskTier.CRITICAL in members
 
+
 def test_risk_tier_lookup_by_value():
     """Test that RiskTier can be looked up by integer value."""
     assert RiskTier(1) == RiskTier.ROUTINE
@@ -46,12 +53,14 @@ def test_risk_tier_lookup_by_value():
     assert RiskTier(7) == RiskTier.ELEVATED
     assert RiskTier(10) == RiskTier.CRITICAL
 
+
 def test_risk_tier_lookup_by_name():
     """Test that RiskTier can be looked up by name string."""
     assert RiskTier["ROUTINE"] == RiskTier.ROUTINE
     assert RiskTier["STANDARD"] == RiskTier.STANDARD
     assert RiskTier["ELEVATED"] == RiskTier.ELEVATED
     assert RiskTier["CRITICAL"] == RiskTier.CRITICAL
+
 
 def test_risk_tier_invalid_value():
     """Test that looking up invalid integer value raises ValueError."""
@@ -62,6 +71,7 @@ def test_risk_tier_invalid_value():
     with pytest.raises(ValueError):
         RiskTier(15)
 
+
 def test_risk_tier_invalid_name():
     """Test that looking up invalid name raises KeyError."""
     with pytest.raises(KeyError):
@@ -69,10 +79,12 @@ def test_risk_tier_invalid_name():
     with pytest.raises(KeyError):
         RiskTier["routine"]  # case-sensitive
 
+
 def test_risk_tier_string_representation():
     """Test string representations of RiskTier enum members."""
     assert str(RiskTier.ROUTINE) == "RiskTier.ROUTINE"
     assert repr(RiskTier.ROUTINE) == "<RiskTier.ROUTINE: 1>"
+
 
 def test_risk_tier_comparison():
     """Test that RiskTier members can be compared."""
@@ -83,6 +95,7 @@ def test_risk_tier_comparison():
     # Identity comparisons (for completeness, though 'is' is generally avoided for values)
     assert RiskTier.ROUTINE is RiskTier.ROUTINE
     assert RiskTier.ROUTINE is not RiskTier.STANDARD
+
 
 def test_risk_tier_docstring():
     """Test that RiskTier class has correct docstring."""

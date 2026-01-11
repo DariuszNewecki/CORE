@@ -7,7 +7,9 @@
 """
 
 import pytest
+
 from mind.governance.constitutional_monitor import KnowledgeGraphBuilderProtocol
+
 
 @pytest.mark.asyncio
 async def test_build_and_sync_is_async_and_returns_none():
@@ -17,9 +19,11 @@ async def test_build_and_sync_is_async_and_returns_none():
 
         async def build_and_sync(self) -> None:
             return None
+
     builder = ConcreteBuilder()
     result = await builder.build_and_sync()
     assert result is None
+
 
 @pytest.mark.asyncio
 async def test_concrete_implementation_with_side_effect():
@@ -29,9 +33,10 @@ async def test_concrete_implementation_with_side_effect():
     class ConcreteBuilder(KnowledgeGraphBuilderProtocol):
 
         async def build_and_sync(self) -> None:
-            state.append('synced')
+            state.append("synced")
+
     builder = ConcreteBuilder()
     assert state == []
     result = await builder.build_and_sync()
     assert result is None
-    assert state == ['synced']
+    assert state == ["synced"]

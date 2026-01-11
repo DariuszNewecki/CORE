@@ -5,10 +5,11 @@
 - Generated: 2026-01-11 01:38:28
 """
 
-import pytest
 from mind.governance.executable_rule import ExecutableRule
 
+
 # Detected return type: ExecutableRule is a regular class (not async)
+
 
 def test_executable_rule_initialization_with_minimal_fields():
     """Test basic initialization with required fields."""
@@ -16,7 +17,7 @@ def test_executable_rule_initialization_with_minimal_fields():
         rule_id="test.rule.id",
         engine="ast_gate",
         params={"check_type": "restrict_event_loop_creation"},
-        enforcement="error"
+        enforcement="error",
     )
 
     assert rule.rule_id == "test.rule.id"
@@ -27,7 +28,8 @@ def test_executable_rule_initialization_with_minimal_fields():
     assert rule.scope == ["src/**/*.py"]
     assert rule.exclusions == []
     assert rule.policy_id == ""
-    assert rule.is_context_level == False
+    assert not rule.is_context_level
+
 
 def test_executable_rule_initialization_with_all_fields():
     """Test initialization with all optional fields explicitly set."""
@@ -40,7 +42,7 @@ def test_executable_rule_initialization_with_all_fields():
         scope=["src/**/*.py", "lib/**/*.py"],
         exclusions=["tests/**", "docs/**"],
         policy_id="policy_001",
-        is_context_level=True
+        is_context_level=True,
     )
 
     assert rule.rule_id == "async.runtime.no_nested_loop_creation"
@@ -51,21 +53,20 @@ def test_executable_rule_initialization_with_all_fields():
     assert rule.scope == ["src/**/*.py", "lib/**/*.py"]
     assert rule.exclusions == ["tests/**", "docs/**"]
     assert rule.policy_id == "policy_001"
-    assert rule.is_context_level == True
+    assert rule.is_context_level
+
 
 def test_executable_rule_initialization_with_empty_params():
     """Test initialization with empty params dictionary."""
     rule = ExecutableRule(
-        rule_id="empty.params.rule",
-        engine="llm_gate",
-        params={},
-        enforcement="error"
+        rule_id="empty.params.rule", engine="llm_gate", params={}, enforcement="error"
     )
 
     assert rule.rule_id == "empty.params.rule"
     assert rule.engine == "llm_gate"
     assert rule.params == {}
     assert rule.enforcement == "error"
+
 
 def test_executable_rule_initialization_with_nested_params():
     """Test initialization with nested parameter structures."""
@@ -75,9 +76,9 @@ def test_executable_rule_initialization_with_nested_params():
         params={
             "check_type": "complex_check",
             "options": {"level": "high", "threshold": 0.95},
-            "patterns": ["pattern1", "pattern2"]
+            "patterns": ["pattern1", "pattern2"],
         },
-        enforcement="error"
+        enforcement="error",
     )
 
     assert rule.rule_id == "complex.params.rule"
@@ -85,24 +86,19 @@ def test_executable_rule_initialization_with_nested_params():
     assert rule.params == {
         "check_type": "complex_check",
         "options": {"level": "high", "threshold": 0.95},
-        "patterns": ["pattern1", "pattern2"]
+        "patterns": ["pattern1", "pattern2"],
     }
     assert rule.enforcement == "error"
+
 
 def test_executable_rule_default_scope_is_list():
     """Test that default scope is a list and not shared between instances."""
     rule1 = ExecutableRule(
-        rule_id="rule1",
-        engine="ast_gate",
-        params={},
-        enforcement="error"
+        rule_id="rule1", engine="ast_gate", params={}, enforcement="error"
     )
 
     rule2 = ExecutableRule(
-        rule_id="rule2",
-        engine="ast_gate",
-        params={},
-        enforcement="error"
+        rule_id="rule2", engine="ast_gate", params={}, enforcement="error"
     )
 
     # Both should have the same default value
@@ -114,20 +110,15 @@ def test_executable_rule_default_scope_is_list():
     assert rule1.scope == ["src/**/*.py", "additional/**/*.py"]
     assert rule2.scope == ["src/**/*.py"]
 
+
 def test_executable_rule_default_exclusions_is_empty_list():
     """Test that default exclusions is an empty list and not shared between instances."""
     rule1 = ExecutableRule(
-        rule_id="rule1",
-        engine="ast_gate",
-        params={},
-        enforcement="error"
+        rule_id="rule1", engine="ast_gate", params={}, enforcement="error"
     )
 
     rule2 = ExecutableRule(
-        rule_id="rule2",
-        engine="ast_gate",
-        params={},
-        enforcement="error"
+        rule_id="rule2", engine="ast_gate", params={}, enforcement="error"
     )
 
     # Both should have empty list
@@ -139,17 +130,19 @@ def test_executable_rule_default_exclusions_is_empty_list():
     assert rule1.exclusions == ["excluded/**"]
     assert rule2.exclusions == []
 
+
 def test_executable_rule_repr_method():
     """Test the __repr__ method for concise representation."""
     rule = ExecutableRule(
         rule_id="test.repr.rule",
         engine="llm_gate",
         params={"param": "value"},
-        enforcement="warning"
+        enforcement="warning",
     )
 
     # Note: Using == not 'is' for string comparison
     assert repr(rule) == "ExecutableRule(test.repr.rule, engine=llm_gate)"
+
 
 def test_executable_rule_with_context_level_engines():
     """Test that is_context_level can be set independently of engine."""
@@ -159,9 +152,9 @@ def test_executable_rule_with_context_level_engines():
         engine="knowledge_gate",
         params={},
         enforcement="error",
-        is_context_level=True
+        is_context_level=True,
     )
-    assert rule1.is_context_level == True
+    assert rule1.is_context_level
 
     # Test with file-level engine but context-level flag
     rule2 = ExecutableRule(
@@ -169,9 +162,9 @@ def test_executable_rule_with_context_level_engines():
         engine="ast_gate",  # Normally file-level
         params={},
         enforcement="error",
-        is_context_level=True  # But explicitly set to context-level
+        is_context_level=True,  # But explicitly set to context-level
     )
-    assert rule2.is_context_level == True
+    assert rule2.is_context_level
 
     # Test with context-level engine but file-level flag
     rule3 = ExecutableRule(
@@ -179,9 +172,10 @@ def test_executable_rule_with_context_level_engines():
         engine="workflow_gate",  # Normally context-level
         params={},
         enforcement="error",
-        is_context_level=False  # But explicitly set to file-level
+        is_context_level=False,  # But explicitly set to file-level
     )
-    assert rule3.is_context_level == False
+    assert not rule3.is_context_level
+
 
 def test_executable_rule_with_empty_scope_list():
     """Test initialization with explicitly empty scope list."""
@@ -190,10 +184,11 @@ def test_executable_rule_with_empty_scope_list():
         engine="glob_gate",
         params={},
         enforcement="warning",
-        scope=[]  # Explicitly empty
+        scope=[],  # Explicitly empty
     )
 
     assert rule.scope == []
+
 
 def test_executable_rule_with_special_characters_in_id():
     """Test initialization with special characters in rule_id."""
@@ -201,30 +196,26 @@ def test_executable_rule_with_special_characters_in_id():
         rule_id="special.chars.rule-1.2_3@test",
         engine="regex_gate",
         params={},
-        enforcement="error"
+        enforcement="error",
     )
 
     assert rule.rule_id == "special.chars.rule-1.2_3@test"
+
 
 def test_executable_rule_enforcement_values():
     """Test initialization with different enforcement values."""
     # Test with 'error'
     rule1 = ExecutableRule(
-        rule_id="error.rule",
-        engine="ast_gate",
-        params={},
-        enforcement="error"
+        rule_id="error.rule", engine="ast_gate", params={}, enforcement="error"
     )
     assert rule1.enforcement == "error"
 
     # Test with 'warning'
     rule2 = ExecutableRule(
-        rule_id="warning.rule",
-        engine="ast_gate",
-        params={},
-        enforcement="warning"
+        rule_id="warning.rule", engine="ast_gate", params={}, enforcement="warning"
     )
     assert rule2.enforcement == "warning"
+
 
 def test_executable_rule_statement_with_multiline_text():
     """Test initialization with multiline statement text."""
@@ -237,7 +228,7 @@ With special characters: !@#$%^&*()"""
         engine="llm_gate",
         params={},
         enforcement="error",
-        statement=multiline_statement
+        statement=multiline_statement,
     )
 
     assert rule.statement == multiline_statement

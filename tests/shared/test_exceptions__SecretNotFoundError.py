@@ -6,33 +6,36 @@
 - Generated: 2026-01-11 01:16:02
 """
 
-import pytest
 from shared.exceptions import SecretNotFoundError
+
 
 def test_secretnotfounderror_message():
     """Test the error message is formatted correctly."""
-    key = 'MY_API_KEY'
+    key = "MY_API_KEY"
     error = SecretNotFoundError(key)
-    expected_message = f'Secret not found: {key}'
+    expected_message = f"Secret not found: {key}"
     assert error.args[0] == expected_message
     assert str(error) == expected_message
 
+
 def test_secretnotfounderror_key_attribute():
     """Test that the key is stored as an instance attribute."""
-    key = 'DATABASE_PASSWORD'
+    key = "DATABASE_PASSWORD"
     error = SecretNotFoundError(key)
     assert error.key == key
+
 
 def test_secretnotfounderror_with_empty_key():
     """Test initialization with an empty key string."""
-    key = ''
+    key = ""
     error = SecretNotFoundError(key)
     assert error.key == key
-    assert str(error) == 'Secret not found: '
+    assert str(error) == "Secret not found: "
+
 
 def test_secretnotfounderror_with_special_characters_key():
     """Test initialization with a key containing special characters."""
-    key = 'key/with/slashes-and.dots'
+    key = "key/with/slashes-and.dots"
     error = SecretNotFoundError(key)
     assert error.key == key
-    assert str(error) == f'Secret not found: {key}'
+    assert str(error) == f"Secret not found: {key}"

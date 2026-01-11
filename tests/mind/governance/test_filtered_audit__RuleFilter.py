@@ -5,10 +5,11 @@
 - Generated: 2026-01-11 01:48:54
 """
 
-import pytest
 from mind.governance.filtered_audit import RuleFilter
 
+
 # Detected return type: RuleFilter.matches() returns bool
+
 
 class TestRuleFilter:
     def test_init_with_no_arguments(self):
@@ -51,8 +52,8 @@ class TestRuleFilter:
         rule1 = MockRule("any_rule", "any_policy")
         rule2 = MockRule("another_rule", "another_policy")
 
-        assert filter.matches(rule1) == True
-        assert filter.matches(rule2) == True
+        assert filter.matches(rule1)
+        assert filter.matches(rule2)
 
     def test_matches_rule_id_exact_match(self):
         """Test matches() with rule_id filter."""
@@ -66,8 +67,8 @@ class TestRuleFilter:
         matching_rule = MockRule("specific_rule", "any_policy")
         non_matching_rule = MockRule("different_rule", "any_policy")
 
-        assert filter.matches(matching_rule) == True
-        assert filter.matches(non_matching_rule) == False
+        assert filter.matches(matching_rule)
+        assert not filter.matches(non_matching_rule)
 
     def test_matches_policy_id_exact_match(self):
         """Test matches() with policy_id filter."""
@@ -81,8 +82,8 @@ class TestRuleFilter:
         matching_rule = MockRule("any_rule", "specific_policy")
         non_matching_rule = MockRule("any_rule", "different_policy")
 
-        assert filter.matches(matching_rule) == True
-        assert filter.matches(non_matching_rule) == False
+        assert filter.matches(matching_rule)
+        assert not filter.matches(non_matching_rule)
 
     def test_matches_rule_pattern_match(self):
         """Test matches() with rule pattern filter."""
@@ -97,16 +98,16 @@ class TestRuleFilter:
         rule2 = MockRule("service_prod", "any_policy")
         rule3 = MockRule("dev_service", "any_policy")
 
-        assert filter.matches(rule1) == True
-        assert filter.matches(rule2) == True
-        assert filter.matches(rule3) == False
+        assert filter.matches(rule1)
+        assert filter.matches(rule2)
+        assert not filter.matches(rule3)
 
     def test_matches_multiple_filters_any_can_match(self):
         """Test matches() when multiple filter types are set."""
         filter = RuleFilter(
             rule_ids=["exact_rule"],
             policy_ids=["exact_policy"],
-            rule_patterns=[".*pattern.*"]
+            rule_patterns=[".*pattern.*"],
         )
 
         class MockRule:
@@ -119,10 +120,10 @@ class TestRuleFilter:
         rule_by_pattern = MockRule("has_pattern_in_it", "other_policy")
         non_matching_rule = MockRule("no_match", "no_match")
 
-        assert filter.matches(rule_by_id) == True
-        assert filter.matches(rule_by_policy) == True
-        assert filter.matches(rule_by_pattern) == True
-        assert filter.matches(non_matching_rule) == False
+        assert filter.matches(rule_by_id)
+        assert filter.matches(rule_by_policy)
+        assert filter.matches(rule_by_pattern)
+        assert not filter.matches(non_matching_rule)
 
     def test_matches_case_sensitive_ids(self):
         """Test that rule_id and policy_id matches are case-sensitive."""
@@ -136,8 +137,8 @@ class TestRuleFilter:
         lowercase_rule = MockRule("myrule", "mypolicy")
         uppercase_rule = MockRule("MyRule", "MyPolicy")
 
-        assert filter.matches(lowercase_rule) == False
-        assert filter.matches(uppercase_rule) == True
+        assert not filter.matches(lowercase_rule)
+        assert filter.matches(uppercase_rule)
 
     def test_matches_pattern_case_sensitive_by_default(self):
         """Test that regex patterns are case-sensitive by default."""
@@ -151,8 +152,8 @@ class TestRuleFilter:
         lowercase_rule = MockRule("test_rule", "any")
         uppercase_rule = MockRule("Test_rule", "any")
 
-        assert filter.matches(lowercase_rule) == False
-        assert filter.matches(uppercase_rule) == True
+        assert not filter.matches(lowercase_rule)
+        assert filter.matches(uppercase_rule)
 
     def test_matches_empty_string_pattern(self):
         """Test matches() with empty string pattern."""
@@ -166,7 +167,7 @@ class TestRuleFilter:
         rule = MockRule("any_rule", "any_policy")
 
         # Empty pattern matches beginning of any string
-        assert filter.matches(rule) == True
+        assert filter.matches(rule)
 
     def test_matches_partial_pattern_match(self):
         """Test that pattern.match() requires match at beginning of string."""
@@ -180,7 +181,7 @@ class TestRuleFilter:
         rule_with_middle = MockRule("has_middle_text", "any")
 
         # pattern.match() requires match at beginning, so this should be False
-        assert filter.matches(rule_with_middle) == False
+        assert not filter.matches(rule_with_middle)
 
     def test_matches_full_string_pattern(self):
         """Test pattern that matches entire string."""
@@ -194,5 +195,5 @@ class TestRuleFilter:
         exact_match = MockRule("complete_match", "any")
         partial_match = MockRule("complete_match_extra", "any")
 
-        assert filter.matches(exact_match) == True
-        assert filter.matches(partial_match) == False
+        assert filter.matches(exact_match)
+        assert not filter.matches(partial_match)

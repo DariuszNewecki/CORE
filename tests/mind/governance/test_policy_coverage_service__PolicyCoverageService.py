@@ -5,15 +5,17 @@
 - Generated: 2026-01-11 01:52:08
 """
 
-import pytest
-from pathlib import Path
 import json
-from datetime import datetime, UTC
-import hashlib
-from mind.governance.policy_coverage_service import PolicyCoverageService, PolicyCoverageReport
+
+from mind.governance.policy_coverage_service import (
+    PolicyCoverageReport,
+    PolicyCoverageService,
+)
+
 
 # Detected return type: PolicyCoverageReport (from run() method)
 # The service is synchronous (not async), so using regular test functions
+
 
 class TestPolicyCoverageService:
     """Unit tests for PolicyCoverageService"""
@@ -46,7 +48,7 @@ class TestPolicyCoverageService:
 
         evidence_data = {
             "executed_rules": ["rule_1", "rule_2", "rule_3"],
-            "other_field": "value"
+            "other_field": "value",
         }
         evidence_path.write_text(json.dumps(evidence_data), encoding="utf-8")
 
@@ -90,14 +92,14 @@ class TestPolicyCoverageService:
                 {
                     "id": "rule_1",
                     "enforcement": "error",
-                    "check": {"engine": "test_engine"}
+                    "check": {"engine": "test_engine"},
                 },
                 {
                     "id": "rule_2",
                     "enforcement": "warn",
-                    "check": {"engine": "test_engine"}
-                }
-            ]
+                    "check": {"engine": "test_engine"},
+                },
+            ],
         }
 
         policy_file = policies_dir / "test_policy.json"
@@ -112,14 +114,14 @@ class TestPolicyCoverageService:
         assert rule1.policy_id == "test_policy"
         assert rule1.rule_id == "rule_1"
         assert rule1.enforcement == "error"
-        assert rule1.has_engine == True
+        assert rule1.has_engine
 
         # Check second rule
         rule2 = service.all_rules[1]
         assert rule2.policy_id == "test_policy"
         assert rule2.rule_id == "rule_2"
         assert rule2.enforcement == "warn"
-        assert rule2.has_engine == True
+        assert rule2.has_engine
 
     def test_discover_rules_via_intent_rule_without_engine(self, tmp_path):
         """Test rule discovery for rules without engine definition"""
@@ -131,10 +133,10 @@ class TestPolicyCoverageService:
             "rules": [
                 {
                     "id": "rule_1",
-                    "enforcement": "error"
+                    "enforcement": "error",
                     # No check/engine defined
                 }
-            ]
+            ],
         }
 
         policy_file = policies_dir / "test_policy.json"
@@ -144,7 +146,7 @@ class TestPolicyCoverageService:
 
         assert len(service.all_rules) == 1
         rule = service.all_rules[0]
-        assert rule.has_engine == False
+        assert not rule.has_engine
 
     def test_discover_rules_via_intent_invalid_json(self, tmp_path):
         """Test rule discovery skips invalid JSON files"""
@@ -169,9 +171,9 @@ class TestPolicyCoverageService:
                 {
                     "id": "std_rule_1",
                     "enforcement": "error",
-                    "check": {"engine": "std_engine"}
+                    "check": {"engine": "std_engine"},
                 }
-            ]
+            ],
         }
 
         policy_file = standards_dir / "standard_1.json"
@@ -211,14 +213,14 @@ class TestPolicyCoverageService:
                 {
                     "id": "enforced_rule",
                     "enforcement": "error",
-                    "check": {"engine": "test_engine"}
+                    "check": {"engine": "test_engine"},
                 },
                 {
                     "id": "another_rule",
                     "enforcement": "warn",
-                    "check": {"engine": "test_engine"}
-                }
-            ]
+                    "check": {"engine": "test_engine"},
+                },
+            ],
         }
 
         policy_file = policies_dir / "test_policy.json"
@@ -228,9 +230,7 @@ class TestPolicyCoverageService:
         evidence_path = tmp_path / "reports/audit/latest_audit.json"
         evidence_path.parent.mkdir(parents=True)
 
-        evidence_data = {
-            "executed_rules": ["enforced_rule"]
-        }
+        evidence_data = {"executed_rules": ["enforced_rule"]}
         evidence_path.write_text(json.dumps(evidence_data), encoding="utf-8")
 
         service = PolicyCoverageService(repo_root=tmp_path)
@@ -238,18 +238,26 @@ class TestPolicyCoverageService:
 
         assert report.summary["rules_total"] == 2
         assert report.summary["rules_enforced"] == 1
-        assert report.summary["rules_implementable"] == 1  # another_rule has engine but not enforced
+        assert (
+            report.summary["rules_implementable"] == 1
+        )  # another_rule has engine but not enforced
         assert report.summary["rules_declared_only"] == 0
-        assert report.summary["uncovered_error_rules"] == 0  # enforced_rule is error and enforced
+        assert (
+            report.summary["uncovered_error_rules"] == 0
+        )  # enforced_rule is error and enforced
 
         # Check records
-        enforced_record = next(r for r in report.records if r["rule_id"] == "enforced_rule")
+        enforced_record = next(
+            r for r in report.records if r["rule_id"] == "enforced_rule"
+        )
         assert enforced_record["coverage"] == "enforced"
-        assert enforced_record["covered"] == True
+        assert enforced_record["covered"]
 
-        implementable_record = next(r for r in report.records if r["rule_id"] == "another_rule")
+        implementable_record = next(
+            r for r in report.records if r["rule_id"] == "another_rule"
+        )
         assert implementable_record["coverage"] == "implementable"
-        assert implementable_record["covered"] == False
+        assert not implementable_record["covered"]
 
         assert report.exit_code == 0
 
@@ -265,9 +273,9 @@ class TestPolicyCoverageService:
                 {
                     "id": "critical_rule",
                     "enforcement": "error",
-                    "check": {"engine": "test_engine"}
+                    "check": {"engine": "test_engine"},
                 }
-            ]
+            ],
         }
 
         policy_file = policies_dir / "test_policy.json"
@@ -285,7 +293,9 @@ class TestPolicyCoverageService:
         assert report.summary["rules_enforced"] == 0
         assert report.summary["rules_implementable"] == 1
         assert report.summary["rules_declared_only"] == 0
-        assert report.summary["uncovered_error_rules"] == 1  # critical rule not enforced
+        assert (
+            report.summary["uncovered_error_rules"] == 1
+        )  # critical rule not enforced
 
         assert report.exit_code == 1  # Should fail due to uncovered error rule
 
@@ -300,10 +310,10 @@ class TestPolicyCoverageService:
             "rules": [
                 {
                     "id": "declared_rule",
-                    "enforcement": "warn"
+                    "enforcement": "warn",
                     # No check/engine defined
                 }
-            ]
+            ],
         }
 
         policy_file = policies_dir / "test_policy.json"
@@ -319,7 +329,7 @@ class TestPolicyCoverageService:
 
         record = report.records[0]
         assert record["coverage"] == "declared_only"
-        assert record["covered"] == False
+        assert not record["covered"]
 
         assert report.exit_code == 0
 
@@ -335,24 +345,24 @@ class TestPolicyCoverageService:
                 {
                     "id": "enforced_error",
                     "enforcement": "error",
-                    "check": {"engine": "engine1"}
+                    "check": {"engine": "engine1"},
                 },
                 {
                     "id": "uncovered_error",
                     "enforcement": "error",
-                    "check": {"engine": "engine2"}
+                    "check": {"engine": "engine2"},
                 },
                 {
                     "id": "implementable_warn",
                     "enforcement": "warn",
-                    "check": {"engine": "engine3"}
+                    "check": {"engine": "engine3"},
                 },
                 {
                     "id": "declared_only",
-                    "enforcement": "info"
+                    "enforcement": "info",
                     # No engine
-                }
-            ]
+                },
+            ],
         }
 
         policy_file = policies_dir / "mixed_policy.json"
@@ -362,9 +372,7 @@ class TestPolicyCoverageService:
         evidence_path = tmp_path / "reports/audit/latest_audit.json"
         evidence_path.parent.mkdir(parents=True)
 
-        evidence_data = {
-            "executed_rules": ["enforced_error"]
-        }
+        evidence_data = {"executed_rules": ["enforced_error"]}
         evidence_path.write_text(json.dumps(evidence_data), encoding="utf-8")
 
         service = PolicyCoverageService(repo_root=tmp_path)
@@ -372,7 +380,9 @@ class TestPolicyCoverageService:
 
         assert report.summary["rules_total"] == 4
         assert report.summary["rules_enforced"] == 1
-        assert report.summary["rules_implementable"] == 2  # uncovered_error + implementable_warn
+        assert (
+            report.summary["rules_implementable"] == 2
+        )  # uncovered_error + implementable_warn
         assert report.summary["rules_declared_only"] == 1
         assert report.summary["uncovered_error_rules"] == 1  # uncovered_error
 
@@ -410,7 +420,7 @@ class TestPolicyCoverageService:
             "rules_enforced",
             "rules_implementable",
             "rules_declared_only",
-            "uncovered_error_rules"
+            "uncovered_error_rules",
         ]
         for key in expected_summary_keys:
             assert key in report.summary
@@ -427,9 +437,9 @@ class TestPolicyCoverageService:
                 {
                     "id": "uppercase_rule",
                     "enforcement": "ERROR",  # Uppercase
-                    "check": {"engine": "test_engine"}
+                    "check": {"engine": "test_engine"},
                 }
-            ]
+            ],
         }
 
         policy_file = policies_dir / "test_policy.json"

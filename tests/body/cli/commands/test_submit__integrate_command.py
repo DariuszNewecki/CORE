@@ -7,7 +7,9 @@
 """
 
 import pytest
+
 from body.cli.commands.submit import integrate_command
+
 
 @pytest.mark.asyncio
 async def test_integrate_command_parameter_passing():
@@ -16,14 +18,23 @@ async def test_integrate_command_parameter_passing():
     class MockContext:
 
         def __init__(self):
-            self.obj = 'mock_core_context'
+            self.obj = "mock_core_context"
+
     ctx = MockContext()
-    test_messages = ['Simple message', 'Message with spaces', 'Message with special chars !@#$%', 'Message with unicode …', '', 'A' * 100]
+    test_messages = [
+        "Simple message",
+        "Message with spaces",
+        "Message with special chars !@#$%",
+        "Message with unicode …",
+        "",
+        "A" * 100,
+    ]
     for msg in test_messages:
         try:
             await integrate_command(ctx, commit_message=msg)
         except Exception:
             pass
+
 
 @pytest.mark.asyncio
 async def test_integrate_command_with_none_message():
@@ -32,6 +43,7 @@ async def test_integrate_command_with_none_message():
     class MockContext:
 
         def __init__(self):
-            self.obj = 'mock_core_context'
+            self.obj = "mock_core_context"
+
     ctx = MockContext()
     pass

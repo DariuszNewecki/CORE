@@ -5,13 +5,15 @@
 - Generated: 2026-01-11 01:56:48
 """
 
-import pytest
 from mind.governance.constitutional_auditor_dynamic import get_dynamic_execution_stats
+
 
 # Detected return type: dict[str, int]
 
+
 def test_get_dynamic_execution_stats_normal_case():
     """Test with normal inputs where rules are executed."""
+
     # Create a minimal mock context and rule IDs.
     # Since we cannot mock, we rely on the function's internal try-except
     # to catch missing attributes and return zeros.
@@ -32,8 +34,10 @@ def test_get_dynamic_execution_stats_normal_case():
     }
     assert result == expected
 
+
 def test_get_dynamic_execution_stats_empty_executed_set():
     """Test with an empty set of executed rule IDs."""
+
     class MockContext:
         policies = []
         enforcement_loader = None
@@ -49,6 +53,7 @@ def test_get_dynamic_execution_stats_empty_executed_set():
     }
     assert result == expected
 
+
 def test_get_dynamic_execution_stats_exception_handling():
     """Test that the function returns zeros on any exception."""
     # Pass None to force an exception in extract_executable_rules
@@ -63,10 +68,12 @@ def test_get_dynamic_execution_stats_exception_handling():
     }
     assert result == expected
 
+
 def test_get_dynamic_execution_stats_coverage_calculation():
     """Test the internal logic if extract_executable_rules works.
-       This test is speculative and may fail if dependencies are missing.
+    This test is speculative and may fail if dependencies are missing.
     """
+
     # Attempt to create a context that might work with extract_executable_rules.
     # Since we cannot mock, this test may also trigger the exception fallback.
     class MockRule:
@@ -87,6 +94,10 @@ def test_get_dynamic_execution_stats_coverage_calculation():
     # If it fails, result will be all zeros.
     # We only assert the structure and that no exception is thrown.
     assert isinstance(result, dict)
-    assert set(result.keys()) == {"total_executable_rules", "executed_dynamic_rules", "coverage_percent"}
+    assert set(result.keys()) == {
+        "total_executable_rules",
+        "executed_dynamic_rules",
+        "coverage_percent",
+    }
     assert all(isinstance(v, int) for v in result.values())
     assert 0 <= result["coverage_percent"] <= 100

@@ -5,10 +5,11 @@
 - Generated: 2026-01-11 01:59:46
 """
 
-import pytest
 from mind.governance.schemas import ConstitutionalPrinciple
 
+
 # Detected return type: ConstitutionalPrinciple is a class, so tests will instantiate and validate it.
+
 
 def test_constitutional_principle_instantiation():
     """Test basic instantiation with all required fields."""
@@ -19,7 +20,7 @@ def test_constitutional_principle_instantiation():
         scope=["system_behavior", "output_generation"],
         enforcement_method="automated_monitoring",
         enforcement_parameters={"threshold": 0.95, "action": "log"},
-        source_document="Core Safety Principles v2.1"
+        source_document="Core Safety Principles v2.1",
     )
     assert principle.principle_id == "TEST_ID_001"
     assert principle.statement == "All systems shall prioritize user safety."
@@ -28,6 +29,7 @@ def test_constitutional_principle_instantiation():
     assert principle.enforcement_method == "automated_monitoring"
     assert principle.enforcement_parameters == {"threshold": 0.95, "action": "log"}
     assert principle.source_document == "Core Safety Principles v2.1"
+
 
 def test_constitutional_principle_with_empty_scope_and_params():
     """Test instantiation with empty list and dict."""
@@ -38,10 +40,11 @@ def test_constitutional_principle_with_empty_scope_and_params():
         scope=[],
         enforcement_method="none",
         enforcement_parameters={},
-        source_document="Test Doc"
+        source_document="Test Doc",
     )
     assert principle.scope == []
     assert principle.enforcement_parameters == {}
+
 
 def test_constitutional_principle_field_types():
     """Verify the types of the class fields are as expected."""
@@ -52,7 +55,7 @@ def test_constitutional_principle_field_types():
         scope=["a"],
         enforcement_method="method",
         enforcement_parameters={"key": "value"},
-        source_document="doc"
+        source_document="doc",
     )
     assert isinstance(principle.principle_id, str)
     assert isinstance(principle.statement, str)

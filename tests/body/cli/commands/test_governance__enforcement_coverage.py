@@ -5,12 +5,10 @@
 - Generated: 2026-01-11 03:37:09
 """
 
-import pytest
-from body.cli.commands.governance import enforcement_coverage
 from typer.testing import CliRunner
-from typer import Context
-from pathlib import Path
-import json
+
+from body.cli.commands.governance import enforcement_coverage
+
 
 # TARGET CODE ANALYSIS:
 # - Function is 'def enforcement_coverage', NOT 'async def'. Use regular test functions.
@@ -47,8 +45,11 @@ runner = CliRunner()
 
 # Create a dummy Typer app to attach the command.
 import typer
+
+
 app = typer.Typer()
 app.command()(enforcement_coverage)
+
 
 def test_enforcement_coverage_json_output_to_console(capsys):
     """Test JSON format output to console."""
@@ -63,6 +64,7 @@ def test_enforcement_coverage_json_output_to_console(capsys):
     # # Check that JSON is printed
     # assert '"coverage"' in captured.out  # Example
 
+
 def test_enforcement_coverage_json_output_to_file(tmp_path):
     """Test JSON format output to file."""
     # output_file = tmp_path / "output.json"
@@ -75,6 +77,7 @@ def test_enforcement_coverage_json_output_to_file(tmp_path):
     # assert "coverage" in data  # Example
     pass
 
+
 def test_enforcement_coverage_summary_output_to_console(capsys):
     """Test summary format output to console."""
     # ctx = Context(app, info_name='enforcement_coverage')
@@ -84,6 +87,7 @@ def test_enforcement_coverage_summary_output_to_console(capsys):
     # assert "Constitutional Rule Enforcement Coverage" in captured.out  # Example
     pass
 
+
 def test_enforcement_coverage_hierarchical_output_to_console(capsys):
     """Test hierarchical format output to console."""
     # ctx = Context(app, info_name='enforcement_coverage')
@@ -92,6 +96,7 @@ def test_enforcement_coverage_hierarchical_output_to_console(capsys):
     # captured = capsys.readouterr()
     # assert "Hierarchical View" in captured.out  # Example
     pass
+
 
 def test_enforcement_coverage_summary_output_to_file(tmp_path):
     """Test summary format output to file."""
@@ -104,6 +109,7 @@ def test_enforcement_coverage_summary_output_to_file(tmp_path):
     # assert "Constitutional Rule Enforcement Coverage" in content  # Example
     pass
 
+
 def test_enforcement_coverage_hierarchical_output_to_file(tmp_path):
     """Test hierarchical format output to file."""
     # output_file = tmp_path / "hierarchical.md"
@@ -115,6 +121,7 @@ def test_enforcement_coverage_hierarchical_output_to_file(tmp_path):
     # assert "Hierarchical View" in content  # Example
     pass
 
+
 def test_enforcement_coverage_default_format_is_summary(capsys):
     """Test that default format is summary."""
     # ctx = Context(app, info_name='enforcement_coverage')
@@ -124,6 +131,7 @@ def test_enforcement_coverage_default_format_is_summary(capsys):
     # # The summary renderer likely includes a title
     # assert "Summary" in captured.out  # Example
     pass
+
 
 # Note: The function uses _to_rel_str, which likely converts absolute path to relative to repo_root.
 # We assume it works correctly.

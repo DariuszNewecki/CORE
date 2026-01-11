@@ -6,12 +6,16 @@
 """
 
 import pytest
+
 from body.cli.admin_cli import register_all_commands
+
 
 # Detected return type: None (function registers commands but returns nothing)
 
+
 def test_register_all_commands_adds_all_typers():
     """Test that register_all_commands adds all expected subcommands."""
+
     # Create a mock Typer instance to track calls
     class MockTyper:
         def __init__(self):
@@ -25,6 +29,7 @@ def test_register_all_commands_adds_all_typers():
             def decorator(func):
                 self.commands.append((name, func))
                 return func
+
             return decorator
 
     mock_app = MockTyper()
@@ -34,10 +39,28 @@ def test_register_all_commands_adds_all_typers():
 
     # Verify all expected typer apps were added
     expected_names = [
-        "check", "components", "coverage", "enrich", "fix", "governance",
-        "inspect", "manage", "mind", "run", "search", "submit", "secrets",
-        "context", "develop", "patterns", "dev", "atomic-actions", "autonomy",
-        "tools", "diagnostics", "interactive-test"
+        "check",
+        "components",
+        "coverage",
+        "enrich",
+        "fix",
+        "governance",
+        "inspect",
+        "manage",
+        "mind",
+        "run",
+        "search",
+        "submit",
+        "secrets",
+        "context",
+        "develop",
+        "patterns",
+        "dev",
+        "atomic-actions",
+        "autonomy",
+        "tools",
+        "diagnostics",
+        "interactive-test",
     ]
 
     # Check that we have the right number of added typers
@@ -52,8 +75,10 @@ def test_register_all_commands_adds_all_typers():
     assert len(mock_app.commands) == 1
     assert mock_app.commands[0][0] == "inspect-patterns"
 
+
 def test_register_all_commands_returns_none():
     """Test that register_all_commands returns None."""
+
     class MockTyper:
         def add_typer(self, *args, **kwargs):
             pass
@@ -61,14 +86,17 @@ def test_register_all_commands_returns_none():
         def command(self, name=None):
             def decorator(func):
                 return func
+
             return decorator
 
     mock_app = MockTyper()
     result = register_all_commands(mock_app)
-    assert result == None
+    assert result is None
+
 
 def test_register_all_commands_order_preserved():
     """Test that commands are registered in the expected order."""
+
     class MockTyper:
         def __init__(self):
             self.registration_order = []
@@ -80,6 +108,7 @@ def test_register_all_commands_order_preserved():
             def decorator(func):
                 self.registration_order.append(("command", name))
                 return func
+
             return decorator
 
     mock_app = MockTyper()
@@ -92,6 +121,7 @@ def test_register_all_commands_order_preserved():
 
     # Check last registration is the direct command
     assert mock_app.registration_order[-1] == ("command", "inspect-patterns")
+
 
 def test_register_all_commands_with_real_typer_instance():
     """Test with actual Typer instance to ensure no runtime errors."""

@@ -6,9 +6,10 @@
 """
 
 import pytest
-from body.cli.commands.secrets import get
+
 
 # Detected return type: 'get' is an async function returning None.
+
 
 @pytest.mark.asyncio
 async def test_get_success_without_show():
@@ -18,6 +19,7 @@ async def test_get_success_without_show():
     # This is a placeholder structure.
     pass
 
+
 @pytest.mark.asyncio
 async def test_get_success_with_show():
     # Test successful retrieval with show=True.
@@ -25,6 +27,7 @@ async def test_get_success_with_show():
     # this test would require a functional database setup.
     # This is a placeholder structure.
     pass
+
 
 @pytest.mark.asyncio
 async def test_get_failure_exits():

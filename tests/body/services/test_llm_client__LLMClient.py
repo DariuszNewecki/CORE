@@ -6,7 +6,9 @@
 """
 
 import pytest
+
 from body.services.llm_client import LLMClient
+
 
 # LLMClient.make_request is async def, so tests must be async too
 
@@ -18,7 +20,7 @@ async def test_llmclient_init():
         api_url="https://api.example.com/v1/chat/completions",
         api_key="test-key-123",
         model_name="test-model",
-        http_timeout=30
+        http_timeout=30,
     )
 
     assert client.api_url == "https://api.example.com/v1/chat/completions"
@@ -34,7 +36,7 @@ async def test_llmclient_init_default_timeout():
     client = LLMClient(
         api_url="https://api.example.com/v1/chat/completions",
         api_key="test-key-456",
-        model_name="test-model-2"
+        model_name="test-model-2",
     )
 
     assert client.api_url == "https://api.example.com/v1/chat/completions"
@@ -51,11 +53,12 @@ async def test_make_request_requires_async():
     client = LLMClient(
         api_url="https://api.example.com/v1/chat/completions",
         api_key="test-key",
-        model_name="test-model"
+        model_name="test-model",
     )
 
     # Check that make_request is a coroutine function
     import inspect
+
     assert inspect.iscoroutinefunction(client.make_request)
 
 

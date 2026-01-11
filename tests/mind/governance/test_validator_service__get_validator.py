@@ -5,16 +5,18 @@
 - Generated: 2026-01-11 01:25:46
 """
 
-import pytest
 from mind.governance.validator_service import get_validator
 
+
 # Detected return type: ConstitutionalValidator
+
 
 def test_get_validator_returns_same_instance():
     """Test that get_validator returns the same instance on subsequent calls."""
     validator1 = get_validator()
     validator2 = get_validator()
     assert validator1 == validator2
+
 
 def test_get_validator_returns_constitutional_validator():
     """Test that get_validator returns an instance of ConstitutionalValidator."""

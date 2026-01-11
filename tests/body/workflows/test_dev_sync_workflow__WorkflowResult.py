@@ -5,13 +5,11 @@
 - Generated: 2026-01-11 03:32:59
 """
 
-import pytest
-from body.workflows.dev_sync_workflow import WorkflowResult, WorkflowPhase, ActionResult
-from dataclasses import field
-from typing import List
-import time
+from body.workflows.dev_sync_workflow import ActionResult, WorkflowPhase, WorkflowResult
+
 
 # Detected return type: WorkflowResult is a regular class (not async)
+
 
 class TestWorkflowResult:
     """Test suite for WorkflowResult class."""
@@ -24,7 +22,7 @@ class TestWorkflowResult:
         result = WorkflowResult(workflow_id="dev.sync", phases=[phase1, phase2])
 
         # Act & Assert
-        assert result.ok == True
+        assert result.ok
 
     def test_ok_property_some_phases_fail(self):
         """Test ok property when some phases fail."""
@@ -34,7 +32,7 @@ class TestWorkflowResult:
         result = WorkflowResult(workflow_id="dev.sync", phases=[phase1, phase2])
 
         # Act & Assert
-        assert result.ok == False
+        assert not result.ok
 
     def test_ok_property_empty_phases(self):
         """Test ok property when there are no phases."""
@@ -42,7 +40,7 @@ class TestWorkflowResult:
         result = WorkflowResult(workflow_id="dev.sync", phases=[])
 
         # Act & Assert
-        assert result.ok == True
+        assert result.ok
 
     def test_total_duration_calculation(self):
         """Test total_duration property calculation."""
@@ -161,6 +159,7 @@ class TestWorkflowResult:
         assert result.phases == []
         assert isinstance(result.phases, list)
 
+
 # Mock classes for testing since we don't have the actual implementations
 class ActionResult:
     def __init__(self, ok: bool):
@@ -171,8 +170,9 @@ class ActionResult:
             return False
         return self.ok == other.ok
 
+
 class WorkflowPhase:
-    def __init__(self, ok: bool, actions: List[ActionResult], duration: float):
+    def __init__(self, ok: bool, actions: list[ActionResult], duration: float):
         self.ok = ok
         self.actions = actions
         self.duration = duration
@@ -180,6 +180,8 @@ class WorkflowPhase:
     def __eq__(self, other):
         if not isinstance(other, WorkflowPhase):
             return False
-        return (self.ok == other.ok and
-                self.actions == other.actions and
-                self.duration == other.duration)
+        return (
+            self.ok == other.ok
+            and self.actions == other.actions
+            and self.duration == other.duration
+        )

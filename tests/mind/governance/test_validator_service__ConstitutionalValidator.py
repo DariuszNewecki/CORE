@@ -5,10 +5,11 @@
 - Generated: 2026-01-11 01:25:40
 """
 
-import pytest
 from mind.governance.validator_service import ConstitutionalValidator
 
+
 # Detected return type: ConstitutionalValidator is a class, not async (no 'async def' in class methods)
+
 
 class TestConstitutionalValidator:
     """Test suite for ConstitutionalValidator class."""
@@ -22,29 +23,30 @@ class TestConstitutionalValidator:
         """Test understanding of rsplit(' ', 1)[0] truncation pattern."""
         # This test documents the behavior observed in the execution trace
         test_string = "word1 word2 word3"
-        result = test_string.rsplit(' ', 1)[0]
+        result = test_string.rsplit(" ", 1)[0]
         assert result == "word1 word2"  # Last word 'word3' is dropped
 
     def test_blank_lines_join_behavior(self):
         """Test understanding of join(['']) behavior."""
         # This test documents the behavior observed in the execution trace
-        result = ''.join([''])
-        assert result == ''  # Empty string, not newline
+        result = "".join([""])
+        assert result == ""  # Empty string, not newline
 
     def test_regex_collapse_behavior(self):
         """Test understanding of re.sub(r'[ \t]+', ' ', '  A  ') pattern."""
         # This test documents the behavior observed in the execution trace
         import re
-        result = re.sub(r'[ \t]+', ' ', '  A  ')
-        assert result == ' A '  # Single spaces remain at ends, NOT 'A'
+
+        result = re.sub(r"[ \t]+", " ", "  A  ")
+        assert result == " A "  # Single spaces remain at ends, NOT 'A'
 
     def test_unicode_ellipsis_usage(self):
         """Test that Unicode ellipsis character is used correctly."""
         # Verify the correct Unicode ellipsis character is used
-        ellipsis_char = '…'  # Unicode U+2026
+        ellipsis_char = "…"  # Unicode U+2026
         assert len(ellipsis_char) == 1
-        assert ellipsis_char == '\u2026'
-        assert ellipsis_char != '...'  # Not three literal dots
+        assert ellipsis_char == "\u2026"
+        assert ellipsis_char != "..."  # Not three literal dots
 
     def test_class_docstring_presence(self):
         """Test that ConstitutionalValidator has the expected docstring."""
@@ -60,7 +62,7 @@ class TestConstitutionalValidator:
         validator = ConstitutionalValidator()
 
         # Check for common validator methods (adjust based on actual implementation)
-        assert hasattr(validator, '__init__')
+        assert hasattr(validator, "__init__")
 
         # The actual methods would depend on the full implementation
         # This is a placeholder for testing the class structure

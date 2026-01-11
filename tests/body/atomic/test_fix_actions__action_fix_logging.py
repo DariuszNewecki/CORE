@@ -5,12 +5,15 @@
 - Generated: 2026-01-11 02:55:05
 """
 
+from unittest.mock import Mock
+
 import pytest
+
 from body.atomic.fix_actions import action_fix_logging
-import time
-from unittest.mock import Mock, AsyncMock
+
 
 # The function returns ActionResult (async function)
+
 
 @pytest.mark.asyncio
 async def test_action_fix_logging_basic_operation():
@@ -20,6 +23,7 @@ async def test_action_fix_logging_basic_operation():
 
     # Mock settings
     from body.atomic import fix_actions
+
     original_repo_path = fix_actions.settings.REPO_PATH
     fix_actions.settings.REPO_PATH = "/test/repo/path"
 
@@ -28,8 +32,8 @@ async def test_action_fix_logging_basic_operation():
     mock_fixer.fix_all.return_value = {"fixed": 3, "errors": 0}
 
     with pytest.MonkeyPatch.context() as mp:
-        mp.setattr(fix_actions, 'LoggingFixer', Mock(return_value=mock_fixer))
-        mp.setattr(fix_actions, 'time', Mock(time=Mock(return_value=1000)))
+        mp.setattr(fix_actions, "LoggingFixer", Mock(return_value=mock_fixer))
+        mp.setattr(fix_actions, "time", Mock(time=Mock(return_value=1000)))
 
         result = await action_fix_logging(mock_context, write=False)
 
@@ -41,6 +45,7 @@ async def test_action_fix_logging_basic_operation():
     assert result.data == {"fixed": 3, "errors": 0}
     assert result.duration_sec == 0.0
 
+
 @pytest.mark.asyncio
 async def test_action_fix_logging_with_write_true():
     """Test operation with write=True (not dry_run)."""
@@ -48,6 +53,7 @@ async def test_action_fix_logging_with_write_true():
     mock_context.file_handler = Mock()
 
     from body.atomic import fix_actions
+
     original_repo_path = fix_actions.settings.REPO_PATH
     fix_actions.settings.REPO_PATH = "/another/repo/path"
 
@@ -55,8 +61,8 @@ async def test_action_fix_logging_with_write_true():
     mock_fixer.fix_all.return_value = {"fixed": 5, "errors": 1}
 
     with pytest.MonkeyPatch.context() as mp:
-        mp.setattr(fix_actions, 'LoggingFixer', Mock(return_value=mock_fixer))
-        mp.setattr(fix_actions, 'time', Mock(time=Mock(side_effect=[2000, 2001])))
+        mp.setattr(fix_actions, "LoggingFixer", Mock(return_value=mock_fixer))
+        mp.setattr(fix_actions, "time", Mock(time=Mock(side_effect=[2000, 2001])))
 
         result = await action_fix_logging(mock_context, write=True)
 
@@ -67,6 +73,7 @@ async def test_action_fix_logging_with_write_true():
     assert result.data == {"fixed": 5, "errors": 1}
     assert result.duration_sec == 1.0
 
+
 @pytest.mark.asyncio
 async def test_action_fix_logging_verify_fixer_initialization():
     """Verify LoggingFixer is initialized with correct parameters."""
@@ -74,24 +81,23 @@ async def test_action_fix_logging_verify_fixer_initialization():
     mock_context.file_handler = Mock()
 
     from body.atomic import fix_actions
+
     original_repo_path = fix_actions.settings.REPO_PATH
     fix_actions.settings.REPO_PATH = "/verified/repo/path"
 
     captured_args = []
 
     def capture_fixer_args(repo_root, file_handler, dry_run):
-        captured_args.append({
-            "repo_root": repo_root,
-            "file_handler": file_handler,
-            "dry_run": dry_run
-        })
+        captured_args.append(
+            {"repo_root": repo_root, "file_handler": file_handler, "dry_run": dry_run}
+        )
         mock_fixer = Mock()
         mock_fixer.fix_all.return_value = {"fixed": 1, "errors": 0}
         return mock_fixer
 
     with pytest.MonkeyPatch.context() as mp:
-        mp.setattr(fix_actions, 'LoggingFixer', capture_fixer_args)
-        mp.setattr(fix_actions, 'time', Mock(time=Mock(return_value=3000)))
+        mp.setattr(fix_actions, "LoggingFixer", capture_fixer_args)
+        mp.setattr(fix_actions, "time", Mock(time=Mock(return_value=3000)))
 
         await action_fix_logging(mock_context, write=False)
 
@@ -102,6 +108,7 @@ async def test_action_fix_logging_verify_fixer_initialization():
     assert captured_args[0]["file_handler"] == mock_context.file_handler
     assert captured_args[0]["dry_run"] is True  # write=False means dry_run=True
 
+
 @pytest.mark.asyncio
 async def test_action_fix_logging_with_write_true_verify_dry_run():
     """Verify dry_run=False when write=True."""
@@ -109,30 +116,30 @@ async def test_action_fix_logging_with_write_true_verify_dry_run():
     mock_context.file_handler = Mock()
 
     from body.atomic import fix_actions
+
     original_repo_path = fix_actions.settings.REPO_PATH
     fix_actions.settings.REPO_PATH = "/test/path"
 
     captured_args = []
 
     def capture_fixer_args(repo_root, file_handler, dry_run):
-        captured_args.append({
-            "repo_root": repo_root,
-            "file_handler": file_handler,
-            "dry_run": dry_run
-        })
+        captured_args.append(
+            {"repo_root": repo_root, "file_handler": file_handler, "dry_run": dry_run}
+        )
         mock_fixer = Mock()
         mock_fixer.fix_all.return_value = {"fixed": 2, "errors": 0}
         return mock_fixer
 
     with pytest.MonkeyPatch.context() as mp:
-        mp.setattr(fix_actions, 'LoggingFixer', capture_fixer_args)
-        mp.setattr(fix_actions, 'time', Mock(time=Mock(side_effect=[4000, 4000.5])))
+        mp.setattr(fix_actions, "LoggingFixer", capture_fixer_args)
+        mp.setattr(fix_actions, "time", Mock(time=Mock(side_effect=[4000, 4000.5])))
 
         await action_fix_logging(mock_context, write=True)
 
     fix_actions.settings.REPO_PATH = original_repo_path
 
     assert captured_args[0]["dry_run"] is False  # write=True means dry_run=False
+
 
 @pytest.mark.asyncio
 async def test_action_fix_logging_with_additional_kwargs():
@@ -141,6 +148,7 @@ async def test_action_fix_logging_with_additional_kwargs():
     mock_context.file_handler = Mock()
 
     from body.atomic import fix_actions
+
     original_repo_path = fix_actions.settings.REPO_PATH
     fix_actions.settings.REPO_PATH = "/kwargs/test"
 
@@ -148,21 +156,19 @@ async def test_action_fix_logging_with_additional_kwargs():
     mock_fixer.fix_all.return_value = {"fixed": 0, "errors": 0}
 
     with pytest.MonkeyPatch.context() as mp:
-        mp.setattr(fix_actions, 'LoggingFixer', Mock(return_value=mock_fixer))
-        mp.setattr(fix_actions, 'time', Mock(time=Mock(return_value=5000)))
+        mp.setattr(fix_actions, "LoggingFixer", Mock(return_value=mock_fixer))
+        mp.setattr(fix_actions, "time", Mock(time=Mock(return_value=5000)))
 
         # Pass additional kwargs that should be ignored
         result = await action_fix_logging(
-            mock_context,
-            write=False,
-            extra_param="value",
-            another_param=123
+            mock_context, write=False, extra_param="value", another_param=123
         )
 
     fix_actions.settings.REPO_PATH = original_repo_path
 
     assert result.action_id == "fix.logging"
     assert result.ok is True
+
 
 @pytest.mark.asyncio
 async def test_action_fix_logging_duration_calculation():
@@ -171,6 +177,7 @@ async def test_action_fix_logging_duration_calculation():
     mock_context.file_handler = Mock()
 
     from body.atomic import fix_actions
+
     original_repo_path = fix_actions.settings.REPO_PATH
     fix_actions.settings.REPO_PATH = "/duration/test"
 
@@ -180,8 +187,8 @@ async def test_action_fix_logging_duration_calculation():
     time_values = [6000.0, 6002.5]  # 2.5 second difference
 
     with pytest.MonkeyPatch.context() as mp:
-        mp.setattr(fix_actions, 'LoggingFixer', Mock(return_value=mock_fixer))
-        mp.setattr(fix_actions, 'time', Mock(time=Mock(side_effect=time_values)))
+        mp.setattr(fix_actions, "LoggingFixer", Mock(return_value=mock_fixer))
+        mp.setattr(fix_actions, "time", Mock(time=Mock(side_effect=time_values)))
 
         result = await action_fix_logging(mock_context, write=False)
 

@@ -5,8 +5,8 @@
 - Generated: 2026-01-11 02:00:15
 """
 
-import pytest
 from mind.governance.schemas import GovernanceRegistry
+
 
 # TARGET CODE ANALYSIS:
 # - GovernanceRegistry is a regular class, not async.

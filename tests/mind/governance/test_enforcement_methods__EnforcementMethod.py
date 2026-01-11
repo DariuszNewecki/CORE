@@ -7,9 +7,10 @@
 """
 
 import pytest
-from mind.governance.enforcement_methods import EnforcementMethod
+
 from mind.governance.audit_types import AuditFinding, AuditSeverity
-from typing import Any
+from mind.governance.enforcement_methods import EnforcementMethod
+
 
 class TestEnforcementMethod:
 
@@ -20,7 +21,8 @@ class TestEnforcementMethod:
 
             def verify(self, context, rule_data):
                 return []
-        rule_id = 'test_rule_123'
+
+        rule_id = "test_rule_123"
         severity = AuditSeverity.WARNING
         method = ConcreteEnforcementMethod(rule_id=rule_id, severity=severity)
         assert method.rule_id == rule_id
@@ -33,7 +35,8 @@ class TestEnforcementMethod:
 
             def verify(self, context, rule_data):
                 return []
-        rule_id = 'test_rule_456'
+
+        rule_id = "test_rule_456"
         method = ConcreteEnforcementMethod(rule_id=rule_id)
         assert method.rule_id == rule_id
         assert method.severity == AuditSeverity.ERROR
@@ -45,9 +48,10 @@ class TestEnforcementMethod:
 
             def verify(self, context, rule_data):
                 return []
-        rule_id = 'test_rule_789'
+
+        rule_id = "test_rule_789"
         method = ConcreteEnforcementMethod(rule_id=rule_id)
-        message = 'Test finding message'
+        message = "Test finding message"
         finding = method._create_finding(message=message)
         assert isinstance(finding, AuditFinding)
         assert finding.check_id == rule_id
@@ -63,13 +67,16 @@ class TestEnforcementMethod:
 
             def verify(self, context, rule_data):
                 return []
-        rule_id = 'test_rule_file'
+
+        rule_id = "test_rule_file"
         severity = AuditSeverity.INFO
         method = ConcreteEnforcementMethod(rule_id=rule_id, severity=severity)
-        message = 'File violation found'
-        file_path = '/full/path/to/file.py'
+        message = "File violation found"
+        file_path = "/full/path/to/file.py"
         line_number = 42
-        finding = method._create_finding(message=message, file_path=file_path, line_number=line_number)
+        finding = method._create_finding(
+            message=message, file_path=file_path, line_number=line_number
+        )
         assert finding.check_id == rule_id
         assert finding.severity == severity
         assert finding.message == message
@@ -79,15 +86,16 @@ class TestEnforcementMethod:
     def test_verify_is_abstract(self):
         """Test that verify method is abstract and must be implemented."""
         with pytest.raises(TypeError):
-            EnforcementMethod(rule_id='test')
+            EnforcementMethod(rule_id="test")
 
     def test_concrete_subclass_must_implement_verify(self):
         """Test that concrete subclasses must implement verify method."""
 
         class IncompleteEnforcementMethod(EnforcementMethod):
             pass
+
         with pytest.raises(TypeError):
-            IncompleteEnforcementMethod(rule_id='test')
+            IncompleteEnforcementMethod(rule_id="test")
 
     def test_valid_concrete_subclass(self):
         """Test a valid concrete subclass implementation."""
@@ -95,14 +103,15 @@ class TestEnforcementMethod:
         class ValidEnforcementMethod(EnforcementMethod):
 
             def verify(self, context, rule_data):
-                return [self._create_finding(message='Test finding from verify')]
-        rule_id = 'concrete_rule'
+                return [self._create_finding(message="Test finding from verify")]
+
+        rule_id = "concrete_rule"
         method = ValidEnforcementMethod(rule_id=rule_id)
         context = None
-        rule_data = {'test': 'data'}
+        rule_data = {"test": "data"}
         findings = method.verify(context, rule_data)
         assert isinstance(findings, list)
         assert len(findings) == 1
         assert isinstance(findings[0], AuditFinding)
         assert findings[0].check_id == rule_id
-        assert findings[0].message == 'Test finding from verify'
+        assert findings[0].message == "Test finding from verify"

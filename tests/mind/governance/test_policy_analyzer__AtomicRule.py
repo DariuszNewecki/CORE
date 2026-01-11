@@ -5,10 +5,11 @@
 - Generated: 2026-01-11 01:28:58
 """
 
-import pytest
 from mind.governance.policy_analyzer import AtomicRule
 
+
 # Detected return type: AtomicRule is a dataclass/class constructor. Tests will verify attribute assignment and equality.
+
 
 def test_atomicrule_initialization():
     """Test basic initialization with all attributes."""
@@ -17,13 +18,14 @@ def test_atomicrule_initialization():
         principle_id="PRINCIPLE_1",
         rule_text="Do not harm others.",
         scope=["all_agents", "human_interaction"],
-        enforcement_method="self_correction"
+        enforcement_method="self_correction",
     )
     assert rule.source_file == "/full/path/to/constitution.txt"
     assert rule.principle_id == "PRINCIPLE_1"
     assert rule.rule_text == "Do not harm others."
     assert rule.scope == ["all_agents", "human_interaction"]
     assert rule.enforcement_method == "self_correction"
+
 
 def test_atomicrule_equality():
     """Test that two instances with same data are equal."""
@@ -32,20 +34,21 @@ def test_atomicrule_equality():
         principle_id="ID1",
         rule_text="Text",
         scope=["scope1"],
-        enforcement_method="method"
+        enforcement_method="method",
     )
     rule2 = AtomicRule(
         source_file="/path/file.txt",
         principle_id="ID1",
         rule_text="Text",
         scope=["scope1"],
-        enforcement_method="method"
+        enforcement_method="method",
     )
     assert rule1.source_file == rule2.source_file
     assert rule1.principle_id == rule2.principle_id
     assert rule1.rule_text == rule2.rule_text
     assert rule1.scope == rule2.scope
     assert rule1.enforcement_method == rule2.enforcement_method
+
 
 def test_atomicrule_with_empty_scope():
     """Test initialization with an empty scope list."""
@@ -54,9 +57,10 @@ def test_atomicrule_with_empty_scope():
         principle_id="P1",
         rule_text="Rule text.",
         scope=[],
-        enforcement_method="none"
+        enforcement_method="none",
     )
     assert rule.scope == []
+
 
 def test_atomicrule_with_multiline_rule_text():
     """Test that rule_text can contain newlines and special characters."""
@@ -66,9 +70,10 @@ def test_atomicrule_with_multiline_rule_text():
         principle_id="P2",
         rule_text=multiline_text,
         scope=["global"],
-        enforcement_method="log"
+        enforcement_method="log",
     )
     assert rule.rule_text == multiline_text
+
 
 def test_atomicrule_with_unicode_in_text():
     """Test handling of Unicode characters, including the ellipsis."""
@@ -78,6 +83,6 @@ def test_atomicrule_with_unicode_in_text():
         principle_id="UNICODE_TEST",
         rule_text=unicode_text,
         scope=["test"],
-        enforcement_method="review"
+        enforcement_method="review",
     )
     assert rule.rule_text == unicode_text

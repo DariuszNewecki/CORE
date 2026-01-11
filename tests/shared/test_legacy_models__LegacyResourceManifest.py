@@ -7,7 +7,9 @@
 """
 
 import pytest
+
 from shared.legacy_models import LegacyResourceManifest
+
 
 class TestLegacyResourceManifest:
 
@@ -20,13 +22,13 @@ class TestLegacyResourceManifest:
     def test_type_validation(self):
         """Test that LegacyResourceManifest validates llm_resources type."""
         with pytest.raises(ValueError):
-            LegacyResourceManifest(llm_resources='not a list')
+            LegacyResourceManifest(llm_resources="not a list")
         with pytest.raises(ValueError):
-            LegacyResourceManifest(llm_resources={'key': 'value'})
+            LegacyResourceManifest(llm_resources={"key": "value"})
 
     def test_immutability_of_list_reference(self):
         """Test that modifying the original list doesn't affect the model."""
         original_list = []
         manifest = LegacyResourceManifest(llm_resources=original_list)
-        original_list.append('new item')
+        original_list.append("new item")
         assert manifest.llm_resources == []

@@ -5,16 +5,20 @@
 - Generated: 2026-01-11 01:03:44
 """
 
-import pytest
 import json
-import tempfile
 import os
+import tempfile
+from datetime import datetime
 from pathlib import Path
-from datetime import datetime, UTC
-from unittest.mock import patch, mock_open
+from unittest.mock import patch
+
+import pytest
+
 from shared.action_logger import ActionLogger
 
+
 # Detected return type: ActionLogger.log_event returns None (void function)
+
 
 class TestActionLogger:
     def test_init_with_valid_path_creates_directory(self):
@@ -22,7 +26,7 @@ class TestActionLogger:
         with tempfile.TemporaryDirectory() as tmpdir:
             test_log_path = Path(tmpdir) / "subdir" / "actions.log"
 
-            with patch('shared.action_logger.settings') as mock_settings:
+            with patch("shared.action_logger.settings") as mock_settings:
                 mock_settings.CORE_ACTION_LOG_PATH = str(test_log_path)
                 mock_settings.REPO_PATH = Path(tmpdir)
 
@@ -33,7 +37,7 @@ class TestActionLogger:
 
     def test_init_with_empty_path_sets_log_path_to_none(self):
         """Test that ActionLogger sets log_path to None when CORE_ACTION_LOG_PATH is empty."""
-        with patch('shared.action_logger.settings') as mock_settings:
+        with patch("shared.action_logger.settings") as mock_settings:
             mock_settings.CORE_ACTION_LOG_PATH = ""
             mock_settings.REPO_PATH = Path("/some/repo")
 
@@ -43,7 +47,7 @@ class TestActionLogger:
 
     def test_init_with_missing_path_sets_log_path_to_none(self):
         """Test that ActionLogger sets log_path to None when CORE_ACTION_LOG_PATH is not set."""
-        with patch('shared.action_logger.settings') as mock_settings:
+        with patch("shared.action_logger.settings") as mock_settings:
             mock_settings.CORE_ACTION_LOG_PATH = None
             mock_settings.REPO_PATH = Path("/some/repo")
 
@@ -56,7 +60,7 @@ class TestActionLogger:
         with tempfile.TemporaryDirectory() as tmpdir:
             test_log_path = Path(tmpdir) / "actions.log"
 
-            with patch('shared.action_logger.settings') as mock_settings:
+            with patch("shared.action_logger.settings") as mock_settings:
                 mock_settings.CORE_ACTION_LOG_PATH = str(test_log_path)
                 mock_settings.REPO_PATH = Path(tmpdir)
 
@@ -69,7 +73,7 @@ class TestActionLogger:
 
                 assert test_log_path.exists()
 
-                with open(test_log_path, 'r', encoding='utf-8') as f:
+                with open(test_log_path, encoding="utf-8") as f:
                     content = f.read().strip()
                     log_entry = json.loads(content)
 
@@ -78,18 +82,20 @@ class TestActionLogger:
                     assert log_entry["details"] == test_details
 
                     # Verify timestamp is valid ISO format
-                    datetime.fromisoformat(log_entry["timestamp_utc"].replace('Z', '+00:00'))
+                    datetime.fromisoformat(
+                        log_entry["timestamp_utc"].replace("Z", "+00:00")
+                    )
 
     def test_log_event_with_none_log_path_does_nothing(self):
         """Test that log_event does nothing when log_path is None."""
-        with patch('shared.action_logger.settings') as mock_settings:
+        with patch("shared.action_logger.settings") as mock_settings:
             mock_settings.CORE_ACTION_LOG_PATH = None
             mock_settings.REPO_PATH = Path("/some/repo")
 
             logger = ActionLogger()
 
             # Mock file operations to ensure they're not called
-            with patch('pathlib.Path.open') as mock_file_open:
+            with patch("pathlib.Path.open") as mock_file_open:
                 logger.log_event("test.event", {"key": "value"})
 
                 mock_file_open.assert_not_called()
@@ -99,7 +105,7 @@ class TestActionLogger:
         with tempfile.TemporaryDirectory() as tmpdir:
             test_log_path = Path(tmpdir) / "actions.log"
 
-            with patch('shared.action_logger.settings') as mock_settings:
+            with patch("shared.action_logger.settings") as mock_settings:
                 mock_settings.CORE_ACTION_LOG_PATH = str(test_log_path)
                 mock_settings.REPO_PATH = Path(tmpdir)
 
@@ -110,7 +116,7 @@ class TestActionLogger:
                 logger.log_event("event.2", {"data": "second"})
                 logger.log_event("event.3", {"data": "third"})
 
-                with open(test_log_path, 'r', encoding='utf-8') as f:
+                with open(test_log_path, encoding="utf-8") as f:
                     lines = f.readlines()
 
                     assert len(lines) == 3
@@ -124,26 +130,22 @@ class TestActionLogger:
         with tempfile.TemporaryDirectory() as tmpdir:
             test_log_path = Path(tmpdir) / "actions.log"
 
-            with patch('shared.action_logger.settings') as mock_settings:
+            with patch("shared.action_logger.settings") as mock_settings:
                 mock_settings.CORE_ACTION_LOG_PATH = str(test_log_path)
                 mock_settings.REPO_PATH = Path(tmpdir)
 
                 logger = ActionLogger()
 
                 complex_details = {
-                    "nested": {
-                        "list": [1, 2, 3],
-                        "string": "test",
-                        "number": 42.5
-                    },
+                    "nested": {"list": [1, 2, 3], "string": "test", "number": 42.5},
                     "simple": "value",
                     "boolean": True,
-                    "null_value": None
+                    "null_value": None,
                 }
 
                 logger.log_event("complex.event", complex_details)
 
-                with open(test_log_path, 'r', encoding='utf-8') as f:
+                with open(test_log_path, encoding="utf-8") as f:
                     content = f.read().strip()
                     log_entry = json.loads(content)
 
@@ -154,7 +156,7 @@ class TestActionLogger:
         with tempfile.TemporaryDirectory() as tmpdir:
             test_log_path = Path(tmpdir) / "actions.log"
 
-            with patch('shared.action_logger.settings') as mock_settings:
+            with patch("shared.action_logger.settings") as mock_settings:
                 mock_settings.CORE_ACTION_LOG_PATH = str(test_log_path)
                 mock_settings.REPO_PATH = Path(tmpdir)
 
@@ -168,7 +170,9 @@ class TestActionLogger:
                     # This should not raise an exception
                     logger.log_event("test.event", {"key": "value"})
                 except Exception:
-                    pytest.fail("log_event should not raise exceptions on write failure")
+                    pytest.fail(
+                        "log_event should not raise exceptions on write failure"
+                    )
                 finally:
                     # Clean up permissions
                     os.chmod(test_log_path, 0o644)
@@ -178,7 +182,7 @@ class TestActionLogger:
         with tempfile.TemporaryDirectory() as tmpdir:
             test_log_path = Path(tmpdir) / "actions.log"
 
-            with patch('shared.action_logger.settings') as mock_settings:
+            with patch("shared.action_logger.settings") as mock_settings:
                 mock_settings.CORE_ACTION_LOG_PATH = str(test_log_path)
                 mock_settings.REPO_PATH = Path(tmpdir)
 
@@ -186,7 +190,7 @@ class TestActionLogger:
 
                 logger.log_event("empty.event", {})
 
-                with open(test_log_path, 'r', encoding='utf-8') as f:
+                with open(test_log_path, encoding="utf-8") as f:
                     content = f.read().strip()
                     log_entry = json.loads(content)
 
@@ -197,7 +201,7 @@ class TestActionLogger:
         with tempfile.TemporaryDirectory() as tmpdir:
             test_log_path = Path(tmpdir) / "actions.log"
 
-            with patch('shared.action_logger.settings') as mock_settings:
+            with patch("shared.action_logger.settings") as mock_settings:
                 mock_settings.CORE_ACTION_LOG_PATH = str(test_log_path)
                 mock_settings.REPO_PATH = Path(tmpdir)
 
@@ -207,13 +211,13 @@ class TestActionLogger:
                     "crate.processing.started",
                     "user.action.completed",
                     "system.health.check",
-                    "deeply.nested.event.type.here"
+                    "deeply.nested.event.type.here",
                 ]
 
                 for event_type in dot_notation_types:
                     logger.log_event(event_type, {"test": "data"})
 
-                with open(test_log_path, 'r', encoding='utf-8') as f:
+                with open(test_log_path, encoding="utf-8") as f:
                     lines = f.readlines()
 
                     for i, line in enumerate(lines):

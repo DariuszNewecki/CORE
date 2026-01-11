@@ -6,13 +6,17 @@
 """
 
 import pytest
+
 from mind.governance.violation_report import ConstitutionalViolationError
 
+
 # Detected return type: ConstitutionalViolationError is a class, not a function. It is not async.
+
 
 def test_constitutional_violation_error_is_exception_subclass():
     """Test that ConstitutionalViolationError is a subclass of Exception."""
     assert issubclass(ConstitutionalViolationError, Exception)
+
 
 def test_constitutional_violation_error_instantiation_with_message():
     """Test that ConstitutionalViolationError can be instantiated with a message."""
@@ -20,10 +24,12 @@ def test_constitutional_violation_error_instantiation_with_message():
     error_instance = ConstitutionalViolationError(error_message)
     assert str(error_instance) == error_message
 
+
 def test_constitutional_violation_error_instantiation_without_message():
     """Test that ConstitutionalViolationError can be instantiated without a message."""
     error_instance = ConstitutionalViolationError()
     assert str(error_instance) == ""
+
 
 def test_constitutional_violation_error_inherits_exception_behavior():
     """Test that ConstitutionalViolationError behaves like a standard Exception."""
@@ -32,7 +38,10 @@ def test_constitutional_violation_error_inherits_exception_behavior():
     except ConstitutionalViolationError as e:
         assert str(e) == "Test violation"
     except Exception:
-        pytest.fail("ConstitutionalViolationError should be caught by its own type, not a generic Exception.")
+        pytest.fail(
+            "ConstitutionalViolationError should be caught by its own type, not a generic Exception."
+        )
+
 
 def test_constitutional_violation_error_docstring():
     """Test that the class has the correct docstring."""

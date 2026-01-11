@@ -5,12 +5,13 @@
 - Generated: 2026-01-11 01:12:13
 """
 
-import pytest
-from shared.ast_utility import calculate_structural_hash
 import ast
-import hashlib
+
+from shared.ast_utility import calculate_structural_hash
+
 
 # Detected return type: calculate_structural_hash returns a string (hex digest).
+
 
 def test_calculate_structural_hash_basic_function():
     """Test hash calculation on a simple function node."""
@@ -25,18 +26,20 @@ def test_calculate_structural_hash_basic_function():
     hash_result2 = calculate_structural_hash(node2)
     assert hash_result == hash_result2
 
+
 def test_calculate_structural_hash_insensitive_to_docstrings():
     """Test that docstrings are stripped and do not affect the hash."""
     code_with_doc = '''def bar():
     """This is a docstring."""
     pass'''
-    code_without_doc = '''def bar():
-    pass'''
+    code_without_doc = """def bar():
+    pass"""
     node1 = ast.parse(code_with_doc)
     node2 = ast.parse(code_without_doc)
     hash1 = calculate_structural_hash(node1)
     hash2 = calculate_structural_hash(node2)
     assert hash1 == hash2
+
 
 def test_calculate_structural_hash_insensitive_to_whitespace():
     """Test that extra spaces and tabs are collapsed and do not affect hash."""
@@ -47,6 +50,7 @@ def test_calculate_structural_hash_insensitive_to_whitespace():
     hash1 = calculate_structural_hash(node1)
     hash2 = calculate_structural_hash(node2)
     assert hash1 == hash2
+
 
 def test_calculate_structural_hash_class_with_methods():
     """Test hash on a more complex class structure."""
@@ -62,8 +66,10 @@ class MyClass:
     assert isinstance(hash_result, str)
     assert len(hash_result) == 64
 
+
 def test_calculate_structural_hash_fallback_on_exception():
     """Test that fallback hash is used when primary path fails."""
+
     # Create a node that will cause ast.unparse to fail in the primary path.
     # We can't easily break ast.unparse, but we can test the fallback
     # by mocking is not allowed. However, we can rely on the fact that the
@@ -71,11 +77,13 @@ def test_calculate_structural_hash_fallback_on_exception():
     # We'll test that the function still returns a valid hash for a malformed node.
     class BadNode(ast.AST):
         pass
+
     node = BadNode()
     # This should trigger the exception path and use the fallback.
     hash_result = calculate_structural_hash(node)
     assert isinstance(hash_result, str)
     assert len(hash_result) == 64
+
 
 def test_calculate_structural_hash_module_node():
     """Test that the function works on a Module node (common case)."""
@@ -85,6 +93,7 @@ def test_calculate_structural_hash_module_node():
     assert isinstance(hash_result, str)
     assert len(hash_result) == 64
 
+
 def test_calculate_structural_hash_empty_module():
     """Test hash on an empty module."""
     code = ""
@@ -92,6 +101,7 @@ def test_calculate_structural_hash_empty_module():
     hash_result = calculate_structural_hash(node)
     assert isinstance(hash_result, str)
     assert len(hash_result) == 64
+
 
 def test_calculate_structural_hash_different_structures_produce_different_hashes():
     """Test that structurally different code produces different hashes."""

@@ -5,18 +5,16 @@
 - Generated: 2026-01-11 02:08:34
 """
 
-import pytest
 from mind.governance.meta_validator import ValidationError
 
 
 # ValidationError is a class (dataclass or pydantic model). Tests will instantiate it and check attributes.
 
+
 def test_validationerror_initialization_with_minimal_fields():
     """Test that ValidationError can be created with required fields."""
     error = ValidationError(
-        document="doc1",
-        error_type="type_mismatch",
-        message="The value is incorrect."
+        document="doc1", error_type="type_mismatch", message="The value is incorrect."
     )
     assert error.document == "doc1"
     assert error.error_type == "type_mismatch"
@@ -32,7 +30,7 @@ def test_validationerror_initialization_with_all_fields():
         error_type="missing_field",
         message="Required field 'author' is missing.",
         severity="warning",
-        field="author"
+        field="author",
     )
     assert error.document == "report.pdf"
     assert error.error_type == "missing_field"
@@ -43,21 +41,13 @@ def test_validationerror_initialization_with_all_fields():
 
 def test_validationerror_default_severity():
     """Test that the default severity is 'error'."""
-    error = ValidationError(
-        document="d",
-        error_type="t",
-        message="m"
-    )
+    error = ValidationError(document="d", error_type="t", message="m")
     assert error.severity == "error"
 
 
 def test_validationerror_default_field_is_none():
     """Test that the default field is None."""
-    error = ValidationError(
-        document="d",
-        error_type="t",
-        message="m"
-    )
+    error = ValidationError(document="d", error_type="t", message="m")
     assert error.field is None
 
 
@@ -66,10 +56,7 @@ def test_validationerror_attribute_assignment():
     test_doc = "/full/path/to/document.txt"
     test_msg = "Invalid format detected"
     err = ValidationError(
-        document=test_doc,
-        error_type="format_error",
-        message=test_msg,
-        field="header"
+        document=test_doc, error_type="format_error", message=test_msg, field="header"
     )
     assert err.document == test_doc
     assert err.message == test_msg

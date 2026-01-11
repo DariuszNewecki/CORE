@@ -5,10 +5,11 @@
 - Generated: 2026-01-11 01:59:29
 """
 
-import pytest
 from mind.governance.schemas import PatternResource
 
+
 # PatternResource is a dataclass-like class, not async - use regular test functions
+
 
 def test_pattern_resource_initialization():
     """Test basic initialization with required fields."""
@@ -18,7 +19,7 @@ def test_pattern_resource_initialization():
         title="Test Pattern",
         status="draft",
         purpose="Testing purposes",
-        source_file="/full/path/to/pattern.intent"
+        source_file="/full/path/to/pattern.intent",
     )
 
     assert pattern.pattern_id == "test-pattern"
@@ -35,7 +36,7 @@ def test_pattern_resource_with_optional_fields():
     """Test initialization with optional patterns and metadata."""
     test_patterns = [
         {"name": "pattern1", "description": "First pattern"},
-        {"name": "pattern2", "description": "Second pattern"}
+        {"name": "pattern2", "description": "Second pattern"},
     ]
     test_metadata = {"author": "Test Author", "tags": ["test", "unit"]}
 
@@ -47,7 +48,7 @@ def test_pattern_resource_with_optional_fields():
         purpose="Testing purposes",
         patterns=test_patterns,
         metadata=test_metadata,
-        source_file="/full/path/to/pattern.intent"
+        source_file="/full/path/to/pattern.intent",
     )
 
     assert pattern.patterns == test_patterns
@@ -61,7 +62,7 @@ def test_pattern_resource_default_values():
         version="1.0",
         title="Test Pattern",
         status="draft",
-        purpose="Testing purposes"
+        purpose="Testing purposes",
     )
 
     assert pattern.patterns == []
@@ -77,7 +78,7 @@ def test_pattern_resource_equality():
         title="Test Pattern",
         status="draft",
         purpose="Testing purposes",
-        source_file="/full/path/to/pattern.intent"
+        source_file="/full/path/to/pattern.intent",
     )
 
     pattern2 = PatternResource(
@@ -86,7 +87,7 @@ def test_pattern_resource_equality():
         title="Test Pattern",
         status="draft",
         purpose="Testing purposes",
-        source_file="/full/path/to/pattern.intent"
+        source_file="/full/path/to/pattern.intent",
     )
 
     assert pattern1.pattern_id == pattern2.pattern_id
@@ -100,12 +101,7 @@ def test_pattern_resource_equality():
 def test_pattern_resource_with_empty_strings():
     """Test initialization with empty string values."""
     pattern = PatternResource(
-        pattern_id="",
-        version="",
-        title="",
-        status="",
-        purpose="",
-        source_file=""
+        pattern_id="", version="", title="", status="", purpose="", source_file=""
     )
 
     assert pattern.pattern_id == ""
@@ -123,7 +119,7 @@ def test_pattern_resource_field_types():
         version="1.0",
         title="Test Pattern",
         status="draft",
-        purpose="Testing purposes"
+        purpose="Testing purposes",
     )
 
     assert isinstance(pattern.pattern_id, str)
@@ -144,7 +140,7 @@ def test_pattern_resource_with_special_characters():
         title="Test Pattern: Advanced Edition",
         status="active",
         purpose="Testing with special chars: !@#$%^&*()",
-        source_file="/full/path/with spaces/pattern.intent"
+        source_file="/full/path/with spaces/pattern.intent",
     )
 
     assert pattern.pattern_id == "test-pattern-123"

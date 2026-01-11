@@ -5,13 +5,13 @@
 - Generated: 2026-01-11 02:15:19
 """
 
-import pytest
-from mind.logic.auditor import main
-import argparse
-from pathlib import Path
 import logging
 
+from mind.logic.auditor import main
+
+
 # Detected return type: main returns int (0 for success, 1 for violations)
+
 
 def test_main_no_violations(monkeypatch, tmp_path, caplog):
     """Test main returns 0 when auditor finds no violations."""
@@ -35,6 +35,7 @@ def test_main_no_violations(monkeypatch, tmp_path, caplog):
     assert f"Auditing file: {test_file}" in caplog.text
     assert "✅ COMPLIANT: No constitutional violations found." in caplog.text
 
+
 def test_main_with_violations(monkeypatch, tmp_path, caplog):
     """Test main returns 1 and logs violations when auditor finds issues."""
     caplog.set_level(logging.INFO)
@@ -51,14 +52,14 @@ def test_main_with_violations(monkeypatch, tmp_path, caplog):
                     "rule_id": "RULE_001",
                     "severity": "error",
                     "message": "Test violation message",
-                    "violations": ["Violation detail 1", "Violation detail 2"]
+                    "violations": ["Violation detail 1", "Violation detail 2"],
                 },
                 {
                     "rule_id": "RULE_002",
                     "severity": "warning",
                     "message": "Another violation",
-                    "violations": []
-                }
+                    "violations": [],
+                },
             ]
 
     monkeypatch.setattr("mind.logic.auditor.ConstitutionalAuditor", MockAuditor)
@@ -76,6 +77,7 @@ def test_main_with_violations(monkeypatch, tmp_path, caplog):
     assert "[RULE_002] (WARNING)" in caplog.text
     assert "Issue:     Another violation" in caplog.text
 
+
 def test_main_missing_rule_id(monkeypatch, tmp_path, caplog):
     """Test main handles results with missing rule_id."""
     caplog.set_level(logging.INFO)
@@ -89,7 +91,7 @@ def test_main_missing_rule_id(monkeypatch, tmp_path, caplog):
                 {
                     "severity": "error",
                     "message": "Missing rule ID",
-                    "violations": ["detail"]
+                    "violations": ["detail"],
                 }
             ]
 
@@ -101,6 +103,7 @@ def test_main_missing_rule_id(monkeypatch, tmp_path, caplog):
     assert "[<unknown>] (ERROR)" in caplog.text
     assert "Issue:     Missing rule ID" in caplog.text
 
+
 def test_main_missing_severity(monkeypatch, tmp_path, caplog):
     """Test main handles results with missing severity."""
     caplog.set_level(logging.INFO)
@@ -111,11 +114,7 @@ def test_main_missing_severity(monkeypatch, tmp_path, caplog):
     class MockAuditor:
         def audit_file(self, path):
             return [
-                {
-                    "rule_id": "RULE_003",
-                    "message": "Missing severity",
-                    "violations": []
-                }
+                {"rule_id": "RULE_003", "message": "Missing severity", "violations": []}
             ]
 
     monkeypatch.setattr("mind.logic.auditor.ConstitutionalAuditor", MockAuditor)
@@ -124,6 +123,7 @@ def test_main_missing_severity(monkeypatch, tmp_path, caplog):
 
     assert result == 1
     assert "[RULE_003] (ERROR)" in caplog.text  # Defaults to "error" uppercase
+
 
 def test_main_missing_message(monkeypatch, tmp_path, caplog):
     """Test main handles results with missing message."""
@@ -134,13 +134,7 @@ def test_main_missing_message(monkeypatch, tmp_path, caplog):
 
     class MockAuditor:
         def audit_file(self, path):
-            return [
-                {
-                    "rule_id": "RULE_004",
-                    "severity": "warning",
-                    "violations": []
-                }
-            ]
+            return [{"rule_id": "RULE_004", "severity": "warning", "violations": []}]
 
     monkeypatch.setattr("mind.logic.auditor.ConstitutionalAuditor", MockAuditor)
 
@@ -149,6 +143,7 @@ def test_main_missing_message(monkeypatch, tmp_path, caplog):
     assert result == 1
     assert "[RULE_004] (WARNING)" in caplog.text
     assert "Issue:     " in caplog.text  # Empty message
+
 
 def test_main_none_violations(monkeypatch, tmp_path, caplog):
     """Test main handles results with None violations."""
@@ -164,7 +159,7 @@ def test_main_none_violations(monkeypatch, tmp_path, caplog):
                     "rule_id": "RULE_005",
                     "severity": "error",
                     "message": "None violations",
-                    "violations": None
+                    "violations": None,
                 }
             ]
 
@@ -176,6 +171,7 @@ def test_main_none_violations(monkeypatch, tmp_path, caplog):
     assert "[RULE_005] (ERROR)" in caplog.text
     assert "Issue:     None violations" in caplog.text
     # Should not crash when violations is None
+
 
 def test_main_empty_violations_list(monkeypatch, tmp_path, caplog):
     """Test main handles results with empty violations list."""
@@ -191,7 +187,7 @@ def test_main_empty_violations_list(monkeypatch, tmp_path, caplog):
                     "rule_id": "RULE_006",
                     "severity": "info",
                     "message": "Empty violations",
-                    "violations": []
+                    "violations": [],
                 }
             ]
 
@@ -203,6 +199,7 @@ def test_main_empty_violations_list(monkeypatch, tmp_path, caplog):
     assert "[RULE_006] (INFO)" in caplog.text
     assert "Issue:     Empty violations" in caplog.text
     # Should not print any violation items
+
 
 def test_main_default_argv(monkeypatch, tmp_path):
     """Test main uses sys.argv when argv is None."""
@@ -218,6 +215,7 @@ def test_main_default_argv(monkeypatch, tmp_path):
     # Test with explicit None (should use sys.argv)
     # We'll patch sys.argv instead
     import sys
+
     original_argv = sys.argv
     sys.argv = ["prog", str(test_file)]
 
@@ -226,6 +224,7 @@ def test_main_default_argv(monkeypatch, tmp_path):
         assert result == 0
     finally:
         sys.argv = original_argv
+
 
 def test_main_multiple_violation_details(monkeypatch, tmp_path, caplog):
     """Test main correctly formats multiple violation details."""
@@ -241,7 +240,7 @@ def test_main_multiple_violation_details(monkeypatch, tmp_path, caplog):
                     "rule_id": "RULE_007",
                     "severity": "error",
                     "message": "Multiple details",
-                    "violations": ["First", "Second", "Third"]
+                    "violations": ["First", "Second", "Third"],
                 }
             ]
 

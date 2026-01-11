@@ -7,8 +7,9 @@
 """
 
 import pytest
-from pathlib import Path
+
 from mind.logic.engines.workflow_gate.checks.audit import AuditHistoryCheck
+
 
 @pytest.mark.asyncio
 async def test_verify_no_file_path_returns_empty_list():

@@ -7,7 +7,9 @@
 """
 
 import pytest
-from shared.legacy_models import LegacyCliRegistry, LegacyCliCommand
+
+from shared.legacy_models import LegacyCliRegistry
+
 
 def test_legacy_cli_registry_empty_commands():
     """Test that a LegacyCliRegistry can be initialized with an empty command list."""
@@ -15,9 +17,10 @@ def test_legacy_cli_registry_empty_commands():
     assert registry.commands == []
     assert isinstance(registry.commands, list)
 
+
 def test_legacy_cli_registry_field_validation():
     """Test that Pydantic validates the 'commands' field type."""
     with pytest.raises(ValueError):
-        LegacyCliRegistry(commands='not a list')
+        LegacyCliRegistry(commands="not a list")
     with pytest.raises(ValueError):
-        LegacyCliRegistry(commands=[{'invalid': 'object'}])
+        LegacyCliRegistry(commands=[{"invalid": "object"}])

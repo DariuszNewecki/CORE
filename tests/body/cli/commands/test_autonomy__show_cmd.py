@@ -6,10 +6,12 @@
 """
 
 import pytest
-import re
+
 from body.cli.commands.autonomy import show_cmd
 
+
 # Detected return type: None (function executes asyncio.run(_show(proposal_id)))
+
 
 @pytest.mark.asyncio
 async def test_show_cmd_basic():
@@ -23,6 +25,7 @@ async def test_show_cmd_basic():
     except Exception:
         pass  # We expect it might fail if _show isn't mocked, but we're testing the function call
 
+
 @pytest.mark.asyncio
 async def test_show_cmd_with_truncation_pattern():
     """Test that proposal ID ending with truncation pattern works."""
@@ -31,6 +34,7 @@ async def test_show_cmd_with_truncation_pattern():
         show_cmd("proposal123…")
     except Exception:
         pass
+
 
 @pytest.mark.asyncio
 async def test_show_cmd_with_special_characters():
@@ -49,6 +53,7 @@ async def test_show_cmd_with_special_characters():
         except Exception:
             pass
 
+
 @pytest.mark.asyncio
 async def test_show_cmd_empty_string():
     """Test with empty string proposal ID."""
@@ -59,6 +64,7 @@ async def test_show_cmd_empty_string():
     except Exception:
         pass
 
+
 @pytest.mark.asyncio
 async def test_show_cmd_long_id():
     """Test with a long proposal ID."""
@@ -67,6 +73,7 @@ async def test_show_cmd_long_id():
         show_cmd(long_id)
     except Exception:
         pass
+
 
 @pytest.mark.asyncio
 async def test_show_cmd_numeric_id():

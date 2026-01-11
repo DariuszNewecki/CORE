@@ -5,12 +5,14 @@
 - Generated: 2026-01-11 02:22:45
 """
 
-import pytest
 import json
-import hashlib
 from pathlib import Path
-from unittest.mock import Mock, AsyncMock
+from unittest.mock import AsyncMock, Mock
+
+import pytest
+
 from mind.logic.engines.llm_gate import LLMGateEngine
+
 
 # TARGET CODE ANALYSIS:
 # - verify() is async (starts with 'async def')
@@ -19,16 +21,15 @@ from mind.logic.engines.llm_gate import LLMGateEngine
 # - Handles file I/O errors
 # - Handles LLM response parsing errors
 
+
 @pytest.mark.asyncio
 async def test_verify_successful_no_violation():
     """Test successful verification with no violation."""
     # Setup
     mock_llm = AsyncMock()
-    mock_llm.make_request.return_value = json.dumps({
-        "violation": False,
-        "reasoning": "Code follows the rule",
-        "finding": None
-    })
+    mock_llm.make_request.return_value = json.dumps(
+        {"violation": False, "reasoning": "Code follows the rule", "finding": None}
+    )
 
     engine = LLMGateEngine(llm_client=mock_llm)
     file_path = Path("/tmp/test.py")
@@ -36,14 +37,14 @@ async def test_verify_successful_no_violation():
 
     params = {
         "instruction": "Functions must have docstrings",
-        "rationale": "Documentation is important"
+        "rationale": "Documentation is important",
     }
 
     # Execute
     result = await engine.verify(file_path, params)
 
     # Assert
-    assert result.ok == True
+    assert result.ok
     assert result.message == "Semantic adherence verified."
     assert result.violations == []
     assert result.engine_id == "llm_gate"
@@ -51,16 +52,19 @@ async def test_verify_successful_no_violation():
     # Cleanup
     file_path.unlink()
 
+
 @pytest.mark.asyncio
 async def test_verify_successful_with_violation():
     """Test successful verification with violation."""
     # Setup
     mock_llm = AsyncMock()
-    mock_llm.make_request.return_value = json.dumps({
-        "violation": True,
-        "reasoning": "Function lacks docstring",
-        "finding": "Missing documentation"
-    })
+    mock_llm.make_request.return_value = json.dumps(
+        {
+            "violation": True,
+            "reasoning": "Function lacks docstring",
+            "finding": "Missing documentation",
+        }
+    )
 
     engine = LLMGateEngine(llm_client=mock_llm)
     file_path = Path("/tmp/test.py")
@@ -68,14 +72,14 @@ async def test_verify_successful_with_violation():
 
     params = {
         "instruction": "Functions must have docstrings",
-        "rationale": "Documentation is important"
+        "rationale": "Documentation is important",
     }
 
     # Execute
     result = await engine.verify(file_path, params)
 
     # Assert
-    assert result.ok == False
+    assert not result.ok
     assert result.message == "Semantic Violation: Function lacks docstring"
     assert result.violations == ["Missing documentation"]
     assert result.engine_id == "llm_gate"
@@ -83,16 +87,15 @@ async def test_verify_successful_with_violation():
     # Cleanup
     file_path.unlink()
 
+
 @pytest.mark.asyncio
 async def test_verify_with_violation_no_finding():
     """Test verification with violation but no finding string."""
     # Setup
     mock_llm = AsyncMock()
-    mock_llm.make_request.return_value = json.dumps({
-        "violation": True,
-        "reasoning": "Function lacks docstring",
-        "finding": None
-    })
+    mock_llm.make_request.return_value = json.dumps(
+        {"violation": True, "reasoning": "Function lacks docstring", "finding": None}
+    )
 
     engine = LLMGateEngine(llm_client=mock_llm)
     file_path = Path("/tmp/test.py")
@@ -100,20 +103,21 @@ async def test_verify_with_violation_no_finding():
 
     params = {
         "instruction": "Functions must have docstrings",
-        "rationale": "Documentation is important"
+        "rationale": "Documentation is important",
     }
 
     # Execute
     result = await engine.verify(file_path, params)
 
     # Assert
-    assert result.ok == False
+    assert not result.ok
     assert result.message == "Semantic Violation: Function lacks docstring"
     assert result.violations == []
     assert result.engine_id == "llm_gate"
 
     # Cleanup
     file_path.unlink()
+
 
 @pytest.mark.asyncio
 async def test_verify_file_read_error():
@@ -124,20 +128,18 @@ async def test_verify_file_read_error():
 
     # Non-existent file
     file_path = Path("/non/existent/file.py")
-    params = {
-        "instruction": "Test rule",
-        "rationale": "Test rationale"
-    }
+    params = {"instruction": "Test rule", "rationale": "Test rationale"}
 
     # Execute
     result = await engine.verify(file_path, params)
 
     # Assert
-    assert result.ok == False
+    assert not result.ok
     assert "IO Error" in result.message
     assert result.violations == []
     assert result.engine_id == "llm_gate"
     mock_llm.make_request.assert_not_called()
+
 
 @pytest.mark.asyncio
 async def test_verify_llm_request_error():
@@ -150,22 +152,20 @@ async def test_verify_llm_request_error():
     file_path = Path("/tmp/test.py")
     file_path.write_text("def foo(): pass", encoding="utf-8")
 
-    params = {
-        "instruction": "Test rule",
-        "rationale": "Test rationale"
-    }
+    params = {"instruction": "Test rule", "rationale": "Test rationale"}
 
     # Execute
     result = await engine.verify(file_path, params)
 
     # Assert
-    assert result.ok == False
+    assert not result.ok
     assert "LLM Reasoning Failed" in result.message
     assert result.violations == []
     assert result.engine_id == "llm_gate"
 
     # Cleanup
     file_path.unlink()
+
 
 @pytest.mark.asyncio
 async def test_verify_invalid_json_response():
@@ -178,16 +178,13 @@ async def test_verify_invalid_json_response():
     file_path = Path("/tmp/test.py")
     file_path.write_text("def foo(): pass", encoding="utf-8")
 
-    params = {
-        "instruction": "Test rule",
-        "rationale": "Test rationale"
-    }
+    params = {"instruction": "Test rule", "rationale": "Test rationale"}
 
     # Execute
     result = await engine.verify(file_path, params)
 
     # Assert
-    assert result.ok == False
+    assert not result.ok
     assert "LLM Reasoning Failed" in result.message
     assert result.violations == []
     assert result.engine_id == "llm_gate"
@@ -195,26 +192,22 @@ async def test_verify_invalid_json_response():
     # Cleanup
     file_path.unlink()
 
+
 @pytest.mark.asyncio
 async def test_verify_cache_hit():
     """Test that identical requests use cache."""
     # Setup
     mock_llm = AsyncMock()
-    mock_llm.make_request.return_value = json.dumps({
-        "violation": False,
-        "reasoning": "Cached result",
-        "finding": None
-    })
+    mock_llm.make_request.return_value = json.dumps(
+        {"violation": False, "reasoning": "Cached result", "finding": None}
+    )
 
     engine = LLMGateEngine(llm_client=mock_llm)
     file_path = Path("/tmp/test.py")
     content = "def foo(): pass"
     file_path.write_text(content, encoding="utf-8")
 
-    params = {
-        "instruction": "Cache test rule",
-        "rationale": "Cache test rationale"
-    }
+    params = {"instruction": "Cache test rule", "rationale": "Cache test rationale"}
 
     # First call - should call LLM
     result1 = await engine.verify(file_path, params)
@@ -230,16 +223,15 @@ async def test_verify_cache_hit():
     # Cleanup
     file_path.unlink()
 
+
 @pytest.mark.asyncio
 async def test_verify_cache_miss_different_content():
     """Test cache miss when content changes."""
     # Setup
     mock_llm = AsyncMock()
-    mock_llm.make_request.return_value = json.dumps({
-        "violation": False,
-        "reasoning": "Test result",
-        "finding": None
-    })
+    mock_llm.make_request.return_value = json.dumps(
+        {"violation": False, "reasoning": "Test result", "finding": None}
+    )
 
     engine = LLMGateEngine(llm_client=mock_llm)
     file_path = Path("/tmp/test.py")
@@ -259,16 +251,15 @@ async def test_verify_cache_miss_different_content():
     # Cleanup
     file_path.unlink()
 
+
 @pytest.mark.asyncio
 async def test_verify_cache_miss_different_instruction():
     """Test cache miss when instruction changes."""
     # Setup
     mock_llm = AsyncMock()
-    mock_llm.make_request.return_value = json.dumps({
-        "violation": False,
-        "reasoning": "Test result",
-        "finding": None
-    })
+    mock_llm.make_request.return_value = json.dumps(
+        {"violation": False, "reasoning": "Test result", "finding": None}
+    )
 
     engine = LLMGateEngine(llm_client=mock_llm)
     file_path = Path("/tmp/test.py")
@@ -288,16 +279,15 @@ async def test_verify_cache_miss_different_instruction():
     # Cleanup
     file_path.unlink()
 
+
 @pytest.mark.asyncio
 async def test_verify_default_rationale():
     """Test that default rationale is used when not provided."""
     # Setup
     mock_llm = AsyncMock()
-    mock_llm.make_request.return_value = json.dumps({
-        "violation": False,
-        "reasoning": "Test",
-        "finding": None
-    })
+    mock_llm.make_request.return_value = json.dumps(
+        {"violation": False, "reasoning": "Test", "finding": None}
+    )
 
     engine = LLMGateEngine(llm_client=mock_llm)
     file_path = Path("/tmp/test.py")
@@ -310,10 +300,11 @@ async def test_verify_default_rationale():
     result = await engine.verify(file_path, params)
 
     # Assert - should work with default rationale
-    assert result.ok == True
+    assert result.ok
 
     # Cleanup
     file_path.unlink()
+
 
 @pytest.mark.asyncio
 async def test_verify_missing_instruction():
@@ -337,10 +328,12 @@ async def test_verify_missing_instruction():
     # Cleanup
     file_path.unlink()
 
+
 def test_engine_id():
     """Test that engine_id is correctly set."""
     engine = LLMGateEngine(llm_client=Mock())
     assert engine.engine_id == "llm_gate"
+
 
 def test_init_with_custom_llm_client():
     """Test initialization with custom LLM client."""
@@ -348,12 +341,13 @@ def test_init_with_custom_llm_client():
     engine = LLMGateEngine(llm_client=mock_llm)
     assert engine.llm is mock_llm
 
+
 def test_init_without_llm_client():
     """Test initialization without LLM client (should create default)."""
     # This tests that the engine can be initialized without a client
     # The actual LLMClient creation depends on settings, which we don't mock
     # So we just verify the engine can be instantiated
     engine = LLMGateEngine(llm_client=None)
-    assert hasattr(engine, 'llm')
-    assert hasattr(engine, '_cache')
+    assert hasattr(engine, "llm")
+    assert hasattr(engine, "_cache")
     assert isinstance(engine._cache, dict)

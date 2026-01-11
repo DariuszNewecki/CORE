@@ -6,9 +6,12 @@
 """
 
 import pytest
+
 from mind.governance.validator_service import ApprovalType
 
+
 # Detected return type: Enum member values (strings)
+
 
 def test_approval_type_values():
     """Test that each ApprovalType enum member has the correct string value."""
@@ -17,12 +20,14 @@ def test_approval_type_values():
     assert ApprovalType.HUMAN_CONFIRMATION.value == "human_confirmation"
     assert ApprovalType.HUMAN_REVIEW.value == "human_review"
 
+
 def test_approval_type_names():
     """Test that each ApprovalType enum member has the correct name."""
     assert ApprovalType.AUTONOMOUS.name == "AUTONOMOUS"
     assert ApprovalType.VALIDATION_ONLY.name == "VALIDATION_ONLY"
     assert ApprovalType.HUMAN_CONFIRMATION.name == "HUMAN_CONFIRMATION"
     assert ApprovalType.HUMAN_REVIEW.name == "HUMAN_REVIEW"
+
 
 def test_approval_type_iteration():
     """Test that all ApprovalType enum members are present and in order."""
@@ -32,6 +37,7 @@ def test_approval_type_iteration():
     assert members[1] == ApprovalType.VALIDATION_ONLY
     assert members[2] == ApprovalType.HUMAN_CONFIRMATION
     assert members[3] == ApprovalType.HUMAN_REVIEW
+
 
 def test_approval_type_comparison():
     """Test that ApprovalType members can be compared correctly."""
@@ -43,10 +49,12 @@ def test_approval_type_comparison():
     assert ApprovalType.AUTONOMOUS != ApprovalType.HUMAN_CONFIRMATION
     assert ApprovalType.VALIDATION_ONLY != ApprovalType.HUMAN_REVIEW
 
+
 def test_approval_type_string_representation():
     """Test the string representation of ApprovalType members."""
     assert str(ApprovalType.AUTONOMOUS) == "ApprovalType.AUTONOMOUS"
     assert str(ApprovalType.HUMAN_CONFIRMATION) == "ApprovalType.HUMAN_CONFIRMATION"
+
 
 def test_approval_type_value_access():
     """Test accessing ApprovalType values through the value property."""
@@ -56,6 +64,7 @@ def test_approval_type_value_access():
     human_review = ApprovalType.HUMAN_REVIEW
     assert human_review.value == "human_review"
 
+
 def test_approval_type_membership():
     """Test that ApprovalType members are properly registered in the enum."""
     assert "AUTONOMOUS" in ApprovalType.__members__
@@ -64,12 +73,14 @@ def test_approval_type_membership():
     assert "HUMAN_REVIEW" in ApprovalType.__members__
     assert "INVALID_NAME" not in ApprovalType.__members__
 
+
 def test_approval_type_value_lookup():
     """Test looking up ApprovalType members by value."""
     assert ApprovalType("autonomous") == ApprovalType.AUTONOMOUS
     assert ApprovalType("validation_only") == ApprovalType.VALIDATION_ONLY
     assert ApprovalType("human_confirmation") == ApprovalType.HUMAN_CONFIRMATION
     assert ApprovalType("human_review") == ApprovalType.HUMAN_REVIEW
+
 
 def test_approval_type_invalid_value_lookup():
     """Test that looking up invalid values raises ValueError."""
@@ -81,6 +92,7 @@ def test_approval_type_invalid_value_lookup():
 
     with pytest.raises(ValueError):
         ApprovalType(None)
+
 
 def test_approval_type_docstring():
     """Test that the ApprovalType class has the correct docstring."""

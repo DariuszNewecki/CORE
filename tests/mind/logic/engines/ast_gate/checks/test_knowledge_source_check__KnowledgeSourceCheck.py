@@ -6,9 +6,14 @@
 """
 
 import pytest
-from mind.logic.engines.ast_gate.checks.knowledge_source_check import KnowledgeSourceCheck
+
+from mind.logic.engines.ast_gate.checks.knowledge_source_check import (
+    KnowledgeSourceCheck,
+)
+
 
 # The verify method returns List[AuditFinding] - an async method that returns audit findings
+
 
 @pytest.mark.asyncio
 async def test_knowledge_source_check_initialization():
@@ -28,7 +33,8 @@ async def test_knowledge_source_check_initialization():
     assert len(check.enforcement_methods) == 5
 
     # Check that it's a concrete check
-    assert check._is_concrete_check == True
+    assert check._is_concrete_check
+
 
 @pytest.mark.asyncio
 async def test_knowledge_source_check_verify_with_empty_context():
@@ -47,6 +53,7 @@ async def test_knowledge_source_check_verify_with_empty_context():
     # The actual content depends on the enforcement methods' behavior
     # but we verify the structure is correct
 
+
 @pytest.mark.asyncio
 async def test_knowledge_source_check_verify_with_context_data():
     """Test verify method with populated context and rule_data."""
@@ -63,6 +70,7 @@ async def test_knowledge_source_check_verify_with_context_data():
 
     # Verify method signature is respected
     # (no assertion about content since it depends on external enforcement methods)
+
 
 @pytest.mark.asyncio
 async def test_knowledge_source_check_verify_multiple_calls():
@@ -82,27 +90,30 @@ async def test_knowledge_source_check_verify_multiple_calls():
     assert isinstance(findings1, list)
     assert isinstance(findings2, list)
 
+
 def test_knowledge_source_check_policy_file_attribute():
     """Test that the policy_file class attribute is accessible."""
     # This is a class attribute, should be accessible without instantiation
-    assert hasattr(KnowledgeSourceCheck, 'policy_file')
+    assert hasattr(KnowledgeSourceCheck, "policy_file")
 
     # Can also check via instance
     check = KnowledgeSourceCheck()
-    assert hasattr(check, 'policy_file')
+    assert hasattr(check, "policy_file")
+
 
 def test_knowledge_source_check_enforcement_methods_structure():
     """Test that enforcement methods are properly structured."""
     check = KnowledgeSourceCheck()
 
     # Should have enforcement_methods attribute
-    assert hasattr(check, 'enforcement_methods')
+    assert hasattr(check, "enforcement_methods")
 
     # Should be a list
     assert isinstance(check.enforcement_methods, list)
 
     # Should have 5 methods (one for each policy rule)
     assert len(check.enforcement_methods) == 5
+
 
 @pytest.mark.asyncio
 async def test_knowledge_source_check_verify_with_kwargs():
@@ -113,10 +124,13 @@ async def test_knowledge_source_check_verify_with_kwargs():
     rule_data = {}
 
     # Test with additional keyword arguments
-    findings = await check.verify(context, rule_data, extra_param="test", another_param=123)
+    findings = await check.verify(
+        context, rule_data, extra_param="test", another_param=123
+    )
 
     # Should still return a list
     assert isinstance(findings, list)
+
 
 @pytest.mark.asyncio
 async def test_knowledge_source_check_verify_return_type_consistency():

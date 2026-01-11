@@ -5,11 +5,13 @@
 - Generated: 2026-01-11 01:19:37
 """
 
-import pytest
-from mind.enforcement.guard_cli import register_guard
 import typer
 
+from mind.enforcement.guard_cli import register_guard
+
+
 # Analysis: 'register_guard' is a regular function (not async). It modifies the passed Typer app object.
+
 
 def test_register_guard_adds_guard_group():
     """Test that the 'guard' command group is registered."""
@@ -23,6 +25,7 @@ def test_register_guard_adds_guard_group():
     # We'll check that the app now has a registered command for 'guard' by checking its registered_callback.
     # This is a structural test; we assume Typer works correctly.
     assert True  # Placeholder for successful execution
+
 
 def test_register_guard_drift_command_exists():
     """Test that the 'drift' command is registered under the 'guard' group."""

@@ -5,9 +5,8 @@
 - Generated: 2026-01-11 01:13:46
 """
 
-import pytest
-from shared.activity_logging import log_activity
-from shared.activity_logging import ActivityRun, ActivityStatus
+from shared.activity_logging import ActivityRun, ActivityStatus, log_activity
+
 
 # Detected return type: None (function only logs, returns nothing)
 # Detected async status: No 'async def' in target code, use regular test functions
@@ -129,9 +128,9 @@ def test_log_activity_complex_details_structure():
     details = {
         "results": [
             {"id": 1, "passed": True},
-            {"id": 2, "passed": False, "reason": "timeout"}
+            {"id": 2, "passed": False, "reason": "timeout"},
         ],
-        "summary": {"total": 2, "passed": 1, "failed": 1}
+        "summary": {"total": 2, "passed": 1, "failed": 1},
     }
     log_activity(
         run=run,

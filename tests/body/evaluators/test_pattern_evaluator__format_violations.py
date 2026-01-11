@@ -6,11 +6,11 @@
 - Generated: 2026-01-11 03:18:55
 """
 
-import pytest
 from body.evaluators.pattern_evaluator import format_violations
+
 
 def test_format_violations_empty_list():
     """Test that an empty violations list returns the success message."""
     result = format_violations([])
-    expected = '✅ No pattern violations found!'
+    expected = "✅ No pattern violations found!"
     assert result == expected

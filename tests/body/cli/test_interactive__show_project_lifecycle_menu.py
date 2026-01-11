@@ -6,16 +6,23 @@
 - Generated: 2026-01-11 03:14:59
 """
 
-import pytest
 from body.cli.interactive import show_project_lifecycle_menu
+
 
 def test_show_project_lifecycle_menu_is_synchronous():
     """Verify the function is not async."""
-    assert not hasattr(show_project_lifecycle_menu, '__code__') or 'async' not in show_project_lifecycle_menu.__code__.co_flags.__str__()
+    assert (
+        not hasattr(show_project_lifecycle_menu, "__code__")
+        or "async" not in show_project_lifecycle_menu.__code__.co_flags.__str__()
+    )
+
 
 def test_show_project_lifecycle_menu_has_correct_docstring():
     """Verify the function has the expected docstring."""
-    assert show_project_lifecycle_menu.__doc__ == 'Displays the Project Lifecycle submenu.'
+    assert (
+        show_project_lifecycle_menu.__doc__ == "Displays the Project Lifecycle submenu."
+    )
+
 
 def test_show_project_lifecycle_menu_calls_show_menu_with_correct_title():
     """Verify _show_menu receives correct title parameter."""
@@ -24,9 +31,11 @@ def test_show_project_lifecycle_menu_calls_show_menu_with_correct_title():
     except:
         pass
 
+
 def test_show_project_lifecycle_menu_options_structure():
     """Verify the options dictionary structure is correct."""
     assert callable(show_project_lifecycle_menu)
+
 
 def test_show_project_lifecycle_menu_no_return_value():
     """Verify function returns None."""

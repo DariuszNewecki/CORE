@@ -5,13 +5,17 @@
 - Generated: 2026-01-11 02:42:56
 """
 
-import pytest
-from api.v1.development_routes import start_development_cycle
-from fastapi import Request, BackgroundTasks
-from unittest.mock import AsyncMock, MagicMock, patch
 import uuid
+from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
+from fastapi import BackgroundTasks, Request
+
+from api.v1.development_routes import start_development_cycle
+
 
 # Detected return type: The function returns a dict with keys 'task_id' and 'status'
+
 
 @pytest.mark.asyncio
 async def test_start_development_cycle_creates_task_and_starts_background_job():
@@ -38,9 +42,11 @@ async def test_start_development_cycle_creates_task_and_starts_background_job():
     # Mock develop_from_goal
     mock_develop_from_goal = AsyncMock()
 
-    with patch('api.v1.development_routes.TaskRepository', return_value=mock_task_repo), \
-         patch('api.v1.development_routes.develop_from_goal', mock_develop_from_goal), \
-         patch('api.v1.development_routes.get_session') as mock_get_session:
+    with (
+        patch("api.v1.development_routes.TaskRepository", return_value=mock_task_repo),
+        patch("api.v1.development_routes.develop_from_goal", mock_develop_from_goal),
+        patch("api.v1.development_routes.get_session") as mock_get_session,
+    ):
 
         # Mock session context manager for background task
         mock_dev_session = AsyncMock()
@@ -52,7 +58,7 @@ async def test_start_development_cycle_creates_task_and_starts_background_job():
             request=mock_request,
             payload=mock_payload,
             background_tasks=mock_background_tasks,
-            session=mock_session
+            session=mock_session,
         )
 
         # Assertions
@@ -60,18 +66,22 @@ async def test_start_development_cycle_creates_task_and_starts_background_job():
         mock_task_repo.create.assert_called_once_with(
             intent="Build a user authentication system",
             assigned_role="AutonomousDeveloper",
-            status="planning"
+            status="planning",
         )
 
         # Check that background task was added
         assert mock_background_tasks.add_task.call_count == 1
 
         # Check the returned result
-        assert result == {"task_id": str(mock_task_id), "status": "Task accepted and running."}
+        assert result == {
+            "task_id": str(mock_task_id),
+            "status": "Task accepted and running.",
+        }
 
         # Verify the background task function would call develop_from_goal
         # We can't directly call run_development as it's nested, but we verified
         # the add_task was called with a function
+
 
 @pytest.mark.asyncio
 async def test_start_development_cycle_with_different_goal():
@@ -94,29 +104,32 @@ async def test_start_development_cycle_with_different_goal():
     mock_task.id = uuid.uuid4()
     mock_task_repo.create.return_value = mock_task
 
-    with patch('api.v1.development_routes.TaskRepository', return_value=mock_task_repo), \
-         patch('api.v1.development_routes.develop_from_goal', AsyncMock()), \
-         patch('api.v1.development_routes.get_session'):
+    with (
+        patch("api.v1.development_routes.TaskRepository", return_value=mock_task_repo),
+        patch("api.v1.development_routes.develop_from_goal", AsyncMock()),
+        patch("api.v1.development_routes.get_session"),
+    ):
 
         # Call the function
         result = await start_development_cycle(
             request=mock_request,
             payload=mock_payload,
             background_tasks=mock_background_tasks,
-            session=mock_session
+            session=mock_session,
         )
 
         # Verify the goal was passed correctly
         mock_task_repo.create.assert_called_once_with(
             intent="Implement payment processing",
             assigned_role="AutonomousDeveloper",
-            status="planning"
+            status="planning",
         )
 
         # Verify result structure
         assert "task_id" in result
         assert "status" in result
         assert result["status"] == "Task accepted and running."
+
 
 @pytest.mark.asyncio
 async def test_start_development_cycle_returns_correct_structure():
@@ -140,16 +153,18 @@ async def test_start_development_cycle_returns_correct_structure():
     mock_task.id = test_task_id
     mock_task_repo.create.return_value = mock_task
 
-    with patch('api.v1.development_routes.TaskRepository', return_value=mock_task_repo), \
-         patch('api.v1.development_routes.develop_from_goal', AsyncMock()), \
-         patch('api.v1.development_routes.get_session'):
+    with (
+        patch("api.v1.development_routes.TaskRepository", return_value=mock_task_repo),
+        patch("api.v1.development_routes.develop_from_goal", AsyncMock()),
+        patch("api.v1.development_routes.get_session"),
+    ):
 
         # Call the function
         result = await start_development_cycle(
             request=mock_request,
             payload=mock_payload,
             background_tasks=mock_background_tasks,
-            session=mock_session
+            session=mock_session,
         )
 
         # Verify result structure and types
@@ -161,6 +176,7 @@ async def test_start_development_cycle_returns_correct_structure():
         assert isinstance(result["status"], str)
         assert result["task_id"] == str(test_task_id)
         assert result["status"] == "Task accepted and running."
+
 
 @pytest.mark.asyncio
 async def test_start_development_cycle_background_task_configuration():
@@ -193,9 +209,11 @@ async def test_start_development_cycle_background_task_configuration():
 
     mock_develop_from_goal = AsyncMock()
 
-    with patch('api.v1.development_routes.TaskRepository', return_value=mock_task_repo), \
-         patch('api.v1.development_routes.develop_from_goal', mock_develop_from_goal), \
-         patch('api.v1.development_routes.get_session') as mock_get_session:
+    with (
+        patch("api.v1.development_routes.TaskRepository", return_value=mock_task_repo),
+        patch("api.v1.development_routes.develop_from_goal", mock_develop_from_goal),
+        patch("api.v1.development_routes.get_session") as mock_get_session,
+    ):
 
         # Mock session context manager
         mock_dev_session = AsyncMock()
@@ -207,7 +225,7 @@ async def test_start_development_cycle_background_task_configuration():
             request=mock_request,
             payload=mock_payload,
             background_tasks=mock_background_tasks,
-            session=mock_session
+            session=mock_session,
         )
 
         # Verify background task was added

@@ -5,9 +5,12 @@
 - Generated: 2026-01-11 02:26:43
 """
 
-import pytest
 from pathlib import Path
+
+import pytest
+
 from mind.logic.engines.workflow_gate.base_check import WorkflowCheck
+
 
 # Analysis: WorkflowCheck is an abstract base class with async verify method
 # All test functions must be async and use await
@@ -15,6 +18,7 @@ from mind.logic.engines.workflow_gate.base_check import WorkflowCheck
 
 class ConcreteWorkflowCheck(WorkflowCheck):
     """Concrete implementation for testing the abstract base class."""
+
     check_type = "test_check"
 
     async def verify(self, file_path: Path | None, params: dict[str, any]) -> list[str]:
@@ -93,7 +97,9 @@ async def test_workflowcheck_params_dict_structure():
     assert result == ["Test violation"]
 
     # Test with multiple params
-    result = await checker.verify(None, {"param1": "value1", "param2": 42, "fail": False})
+    result = await checker.verify(
+        None, {"param1": "value1", "param2": 42, "fail": False}
+    )
     assert result == []
 
 

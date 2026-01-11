@@ -5,32 +5,32 @@
 - Generated: 2026-01-11 01:21:37
 """
 
-import pytest
 from mind.governance.constitutional_monitor import RemediationResult
+
 
 # Detected return type: RemediationResult is a dataclass-like class, not a function.
 # It is synchronous, not async.
 
+
 def test_remediation_result_creation_with_defaults():
     """Test creating a RemediationResult with only required fields."""
     result = RemediationResult(success=True, fixed_count=5, failed_count=2)
-    assert result.success == True
+    assert result.success
     assert result.fixed_count == 5
     assert result.failed_count == 2
-    assert result.error == None
+    assert result.error is None
+
 
 def test_remediation_result_creation_with_error():
     """Test creating a RemediationResult with an error message."""
     result = RemediationResult(
-        success=False,
-        fixed_count=0,
-        failed_count=10,
-        error="Validation failed"
+        success=False, fixed_count=0, failed_count=10, error="Validation failed"
     )
-    assert result.success == False
+    assert not result.success
     assert result.fixed_count == 0
     assert result.failed_count == 10
     assert result.error == "Validation failed"
+
 
 def test_remediation_result_equality():
     """Test that two instances with the same data are equal."""
@@ -38,6 +38,7 @@ def test_remediation_result_equality():
     result2 = RemediationResult(success=True, fixed_count=1, failed_count=0, error=None)
     # Using '==' for value comparison as per rules
     assert result1 == result2
+
 
 def test_remediation_result_inequality():
     """Test that instances with different data are not equal."""

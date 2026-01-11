@@ -5,8 +5,8 @@
 - Generated: 2026-01-11 01:20:21
 """
 
-import pytest
 from mind.governance.policy_rule import PolicyRule
+
 
 # TARGET CODE ANALYSIS:
 # - PolicyRule.from_dict is a classmethod (sync, not async).
@@ -16,13 +16,14 @@ from mind.governance.policy_rule import PolicyRule
 # - Pattern is derived from 'scope' list (first item) or 'pattern' field.
 # - All test functions should be regular 'def', not async.
 
+
 def test_from_dict_basic_required_fields():
     """Test parsing with minimal required fields."""
     data = {
         "id": "test.rule",
         "statement": "A test description.",
         "enforcement": "error",
-        "scope": ["src/**/*.py"]
+        "scope": ["src/**/*.py"],
     }
     rule = PolicyRule.from_dict(data, source="test_policy.yaml")
     assert rule.name == "test.rule"
@@ -34,6 +35,7 @@ def test_from_dict_basic_required_fields():
     assert rule.engine is None
     assert rule.params == {}
 
+
 def test_from_dict_with_full_fields_and_check_block():
     """Test parsing with all fields including engine check block."""
     data = {
@@ -44,8 +46,8 @@ def test_from_dict_with_full_fields_and_check_block():
         "scope": ["lib/**/*.js", "test/**/*.js"],
         "check": {
             "engine": "ast_gate",
-            "params": {"check_type": "import_boundary", "allowed": ["lib"]}
-        }
+            "params": {"check_type": "import_boundary", "allowed": ["lib"]},
+        },
     }
     rule = PolicyRule.from_dict(data, source="full.json")
     assert rule.name == "custom.name"
@@ -56,6 +58,7 @@ def test_from_dict_with_full_fields_and_check_block():
     assert rule.source_policy == "full.json"
     assert rule.engine == "ast_gate"
     assert rule.params == {"check_type": "import_boundary", "allowed": ["lib"]}
+
 
 def test_from_dict_fallbacks_and_missing_data():
     """Test fallback logic when fields are missing or empty."""
@@ -74,7 +77,7 @@ def test_from_dict_fallbacks_and_missing_data():
     data2 = {
         "id": "fallback.id",
         "statement": "A statement.",
-        "enforcement": "warning"
+        "enforcement": "warning",
         # No scope or pattern
     }
     rule2 = PolicyRule.from_dict(data2)
@@ -84,32 +87,30 @@ def test_from_dict_fallbacks_and_missing_data():
     assert rule2.severity == "warning"
 
     # 'pattern' field instead of 'scope'
-    data3 = {
-        "pattern": "docs/*.md"
-    }
+    data3 = {"pattern": "docs/*.md"}
     rule3 = PolicyRule.from_dict(data3)
     assert rule3.pattern == "docs/*.md"
 
     # 'scope' is a single string? (should become list first element? Actually code expects list)
     # The code does isinstance(scope, list). If scope is a string, it will fail that check.
     # Let's test that scenario: scope is a non-list.
-    data4 = {
-        "scope": "single_string_scope"
-    }
+    data4 = {"scope": "single_string_scope"}
     rule4 = PolicyRule.from_dict(data4)
     # scope is not a list, so pattern becomes "" (empty string).
     assert rule4.pattern == ""
+
 
 def test_from_dict_check_block_non_dict():
     """Test that a non-dict 'check' block is handled safely."""
     data = {
         "id": "weird.check",
         "scope": ["a.py"],
-        "check": "not_a_dict"  # This will make isinstance(check_block, dict) False
+        "check": "not_a_dict",  # This will make isinstance(check_block, dict) False
     }
     rule = PolicyRule.from_dict(data)
     assert rule.engine is None
     assert rule.params == {}  # Because check_block is not a dict, params defaults to {}
+
 
 def test_from_dict_source_parameter():
     """Test that the source parameter is correctly assigned."""
@@ -119,6 +120,7 @@ def test_from_dict_source_parameter():
 
     rule2 = PolicyRule.from_dict(data)  # default source
     assert rule2.source_policy == "unknown"
+
 
 def test_policyrule_instance_attributes():
     """Test that a PolicyRule instance can be created directly (not just from_dict)."""
@@ -130,7 +132,7 @@ def test_policyrule_instance_attributes():
         severity="error",
         source_policy="direct",
         engine="regex_engine",
-        params={"regex": ".*"}
+        params={"regex": ".*"},
     )
     assert rule.name == "direct.rule"
     assert rule.pattern == "*.txt"
@@ -141,18 +143,16 @@ def test_policyrule_instance_attributes():
     assert rule.engine == "regex_engine"
     assert rule.params == {"regex": ".*"}
 
+
 def test_from_dict_with_empty_scope_list():
     """Test that an empty scope list results in empty pattern."""
-    data = {
-        "scope": []
-    }
+    data = {"scope": []}
     rule = PolicyRule.from_dict(data)
     assert rule.pattern == ""
 
+
 def test_from_dict_scope_list_with_non_string_first_item():
     """Test that first scope item is converted to string."""
-    data = {
-        "scope": [123, "*.py"]
-    }
+    data = {"scope": [123, "*.py"]}
     rule = PolicyRule.from_dict(data)
     assert rule.pattern == "123"  # str(123)

@@ -5,15 +5,17 @@
 - Generated: 2026-01-11 03:05:07
 """
 
-import pytest
 from body.atomic.registry import ActionCategory
 
+
 # ActionCategory is a string Enum. Its members are instances of the class, comparable to strings.
+
 
 def test_action_category_is_enum():
     """Verify ActionCategory is an Enum with string members."""
     assert isinstance(ActionCategory.FIX, ActionCategory)
     assert isinstance(ActionCategory.FIX, str)
+
 
 def test_action_category_values():
     """Verify the specific string values of each category."""
@@ -22,11 +24,18 @@ def test_action_category_values():
     assert ActionCategory.CHECK == "check"
     assert ActionCategory.BUILD == "build"
 
+
 def test_action_category_iteration():
     """Verify iteration over the enum yields all members."""
     categories = list(ActionCategory)
-    expected = [ActionCategory.FIX, ActionCategory.SYNC, ActionCategory.CHECK, ActionCategory.BUILD]
+    expected = [
+        ActionCategory.FIX,
+        ActionCategory.SYNC,
+        ActionCategory.CHECK,
+        ActionCategory.BUILD,
+    ]
     assert categories == expected
+
 
 def test_action_category_comparison_to_string():
     """Verify direct comparison to literal strings works."""
@@ -36,6 +45,7 @@ def test_action_category_comparison_to_string():
     assert ActionCategory.BUILD == "build"
     # Ensure reverse comparison also works
     assert "fix" == ActionCategory.FIX
+
 
 def test_action_category_name_access():
     """Verify the .name and .value properties."""

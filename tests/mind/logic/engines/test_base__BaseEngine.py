@@ -5,9 +5,12 @@
 - Generated: 2026-01-11 02:19:03
 """
 
-import pytest
 from pathlib import Path
+
+import pytest
+
 from mind.logic.engines.base import BaseEngine
+
 
 # Detected return type: BaseEngine is an abstract class with async abstract method 'verify'
 
@@ -22,6 +25,7 @@ class TestBaseEngine:
 
     def test_verify_is_abstract_method(self):
         """Test that verify method is abstract and must be implemented."""
+
         # Create a concrete subclass to test the abstract method
         class ConcreteEngine(BaseEngine):
             async def verify(self, file_path: Path, params: dict[str, str]) -> str:
@@ -34,6 +38,7 @@ class TestBaseEngine:
     @pytest.mark.asyncio
     async def test_concrete_implementation_works(self):
         """Test that a concrete implementation of BaseEngine works correctly."""
+
         class TestEngine(BaseEngine):
             async def verify(self, file_path: Path, params: dict[str, str]) -> str:
                 return f"Verified {file_path} with {len(params)} params"
@@ -47,6 +52,7 @@ class TestBaseEngine:
 
     def test_verify_signature(self):
         """Test that verify method has correct signature in subclasses."""
+
         class ValidEngine(BaseEngine):
             async def verify(self, file_path: Path, params: dict[str, str]) -> str:
                 return ""
@@ -65,6 +71,7 @@ class TestBaseEngine:
     @pytest.mark.asyncio
     async def test_file_path_absolute_requirement(self):
         """Test that file_path parameter expects absolute path."""
+
         class PathCheckingEngine(BaseEngine):
             async def verify(self, file_path: Path, params: dict[str, str]) -> bool:
                 return file_path.is_absolute()
@@ -74,16 +81,17 @@ class TestBaseEngine:
         # Test with absolute path
         abs_path = Path("/usr/local/bin/test")
         result = await engine.verify(abs_path, {})
-        assert result == True
+        assert result
 
         # Test with relative path (should return False per is_absolute())
         rel_path = Path("relative/path.txt")
         result = await engine.verify(rel_path, {})
-        assert result == False
+        assert not result
 
     @pytest.mark.asyncio
     async def test_params_dict_type(self):
         """Test that params is a dictionary."""
+
         class ParamsCheckingEngine(BaseEngine):
             async def verify(self, file_path: Path, params: dict[str, str]) -> int:
                 return len(params)

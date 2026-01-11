@@ -5,11 +5,12 @@
 - Generated: 2026-01-11 01:58:58
 """
 
-import pytest
 from mind.governance.schemas import PolicyResource
+
 
 # PolicyResource is a dataclass-like structure with typed fields, not a function.
 # It has synchronous __init__ method, so tests use regular 'def' functions.
+
 
 def test_policy_resource_initialization_with_minimal_fields():
     """Test basic initialization with required fields."""
@@ -18,7 +19,7 @@ def test_policy_resource_initialization_with_minimal_fields():
         version="1.0",
         title="Data Privacy Policy",
         status="active",
-        purpose="Ensure user data protection"
+        purpose="Ensure user data protection",
     )
 
     assert policy.policy_id == "PR-001"
@@ -30,11 +31,12 @@ def test_policy_resource_initialization_with_minimal_fields():
     assert policy.metadata == {}
     assert policy.source_file == ""
 
+
 def test_policy_resource_initialization_with_all_fields():
     """Test initialization with all fields including optional ones."""
     rules = [
         {"id": "R1", "description": "Encrypt all sensitive data"},
-        {"id": "R2", "description": "Regular security audits"}
+        {"id": "R2", "description": "Regular security audits"},
     ]
     metadata = {"category": "security", "author": "Governance Team"}
 
@@ -46,7 +48,7 @@ def test_policy_resource_initialization_with_all_fields():
         purpose="Manage system access permissions",
         rules=rules,
         metadata=metadata,
-        source_file="/full/path/to/policy.md"
+        source_file="/full/path/to/policy.md",
     )
 
     assert policy.policy_id == "PR-002"
@@ -58,22 +60,15 @@ def test_policy_resource_initialization_with_all_fields():
     assert policy.metadata == metadata
     assert policy.source_file == "/full/path/to/policy.md"
 
+
 def test_policy_resource_default_fields_are_independent():
     """Test that default list/dict fields are independent instances."""
     policy1 = PolicyResource(
-        policy_id="P1",
-        version="1.0",
-        title="Test1",
-        status="active",
-        purpose="Test"
+        policy_id="P1", version="1.0", title="Test1", status="active", purpose="Test"
     )
 
     policy2 = PolicyResource(
-        policy_id="P2",
-        version="1.0",
-        title="Test2",
-        status="active",
-        purpose="Test"
+        policy_id="P2", version="1.0", title="Test2", status="active", purpose="Test"
     )
 
     # Modify policy1's default fields
@@ -86,15 +81,11 @@ def test_policy_resource_default_fields_are_independent():
     assert policy1.rules == [{"test": "rule"}]
     assert policy1.metadata == {"modified": True}
 
+
 def test_policy_resource_with_empty_string_fields():
     """Test handling of empty string values."""
     policy = PolicyResource(
-        policy_id="",
-        version="",
-        title="",
-        status="",
-        purpose="",
-        source_file=""
+        policy_id="", version="", title="", status="", purpose="", source_file=""
     )
 
     assert policy.policy_id == ""
@@ -103,6 +94,7 @@ def test_policy_resource_with_empty_string_fields():
     assert policy.status == ""
     assert policy.purpose == ""
     assert policy.source_file == ""
+
 
 def test_policy_resource_field_types():
     """Verify field types accept appropriate values."""
@@ -114,7 +106,7 @@ def test_policy_resource_field_types():
         purpose="A purpose string with unicode: …",
         rules=[{"key": "value", "number": 123}],
         metadata={"nested": {"inner": "value"}, "list": [1, 2, 3]},
-        source_file="C:\\Windows\\Path\\policy.md"
+        source_file="C:\\Windows\\Path\\policy.md",
     )
 
     assert isinstance(policy.policy_id, str)
@@ -130,6 +122,7 @@ def test_policy_resource_field_types():
     assert "…" in policy.purpose
     assert policy.purpose == "A purpose string with unicode: …"
 
+
 def test_policy_resource_equality_by_value():
     """Test that two instances with same values are equal by field comparison."""
     policy1 = PolicyResource(
@@ -137,7 +130,7 @@ def test_policy_resource_equality_by_value():
         version="1.0",
         title="Test Policy",
         status="active",
-        purpose="Testing"
+        purpose="Testing",
     )
 
     policy2 = PolicyResource(
@@ -145,7 +138,7 @@ def test_policy_resource_equality_by_value():
         version="1.0",
         title="Test Policy",
         status="active",
-        purpose="Testing"
+        purpose="Testing",
     )
 
     # Compare field by field (not using 'is' operator)

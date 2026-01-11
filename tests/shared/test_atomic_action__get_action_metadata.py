@@ -5,21 +5,25 @@
 - Generated: 2026-01-11 01:02:50
 """
 
-import pytest
 from shared.atomic_action import get_action_metadata
+
 
 # The function returns ActionMetadata | None, so tests must handle both cases
 
+
 def test_get_action_metadata_without_decorator():
     """Test that a plain function without the decorator returns None."""
+
     def plain_function():
         pass
 
     result = get_action_metadata(plain_function)
     assert result is None
 
+
 def test_get_action_metadata_with_decorator():
     """Test that a decorated function returns the expected metadata."""
+
     # Create a mock decorated function with metadata
     class MockActionMetadata:
         def __init__(self):
@@ -35,8 +39,10 @@ def test_get_action_metadata_with_decorator():
     result = get_action_metadata(decorated_function)
     assert result == metadata
 
+
 def test_get_action_metadata_preserves_metadata_identity():
     """Test that the returned metadata is the exact same object."""
+
     class MockActionMetadata:
         def __init__(self):
             self.value = 42
@@ -52,8 +58,10 @@ def test_get_action_metadata_preserves_metadata_identity():
     # since we're testing it's the same object, not just equal
     assert retrieved_metadata is original_metadata
 
+
 def test_get_action_metadata_with_none_metadata():
     """Test edge case where _atomic_action_metadata is explicitly set to None."""
+
     def func_with_none_metadata():
         pass
 
@@ -62,14 +70,18 @@ def test_get_action_metadata_with_none_metadata():
     result = get_action_metadata(func_with_none_metadata)
     assert result is None
 
+
 def test_get_action_metadata_with_different_callable_types():
     """Test that function works with different types of callables."""
+
     class CallableClass:
         def __call__(self):
             pass
 
     # Test with lambda
-    lambda_func = lambda x: x * 2
+    def lambda_func(x):
+        return x * 2
+
     result = get_action_metadata(lambda_func)
     assert result is None
 

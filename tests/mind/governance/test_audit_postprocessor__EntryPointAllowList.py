@@ -5,8 +5,8 @@
 - Generated: 2026-01-11 02:03:30
 """
 
-import pytest
 from mind.governance.audit_postprocessor import EntryPointAllowList
+
 
 # EntryPointAllowList.__contains__ returns bool (detected from signature)
 
@@ -43,11 +43,27 @@ def test_default_contains_all_expected_types():
     default_list = EntryPointAllowList.default()
 
     expected_types = {
-        "data_model", "enum", "magic_method", "visitor_method", "base_class",
-        "boilerplate_method", "cli_command", "cli_wrapper", "registry_accessor",
-        "orchestrator", "factory", "provider_method", "client_surface",
-        "client_adapter", "io_handler", "git_adapter", "utility_function",
-        "knowledge_core", "governance_check", "auditor_pipeline", "capability"
+        "data_model",
+        "enum",
+        "magic_method",
+        "visitor_method",
+        "base_class",
+        "boilerplate_method",
+        "cli_command",
+        "cli_wrapper",
+        "registry_accessor",
+        "orchestrator",
+        "factory",
+        "provider_method",
+        "client_surface",
+        "client_adapter",
+        "io_handler",
+        "git_adapter",
+        "utility_function",
+        "knowledge_core",
+        "governance_check",
+        "auditor_pipeline",
+        "capability",
     }
 
     assert default_list.allowed == expected_types

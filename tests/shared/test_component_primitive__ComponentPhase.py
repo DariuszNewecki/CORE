@@ -5,10 +5,11 @@
 - Generated: 2026-01-11 00:58:14
 """
 
-import pytest
 from shared.component_primitive import ComponentPhase
 
+
 # Detected return type: ComponentPhase is an Enum member (string subclass).
+
 
 def test_component_phase_is_enum():
     """Test that ComponentPhase is an Enum with string values."""
@@ -19,6 +20,7 @@ def test_component_phase_is_enum():
     assert isinstance(ComponentPhase.RUNTIME, ComponentPhase)
     assert isinstance(ComponentPhase.EXECUTION, ComponentPhase)
 
+
 def test_component_phase_values():
     """Test the specific string values of each phase."""
     assert ComponentPhase.INTERPRET == "interpret"
@@ -27,6 +29,7 @@ def test_component_phase_values():
     assert ComponentPhase.AUDIT == "audit"
     assert ComponentPhase.RUNTIME == "runtime"
     assert ComponentPhase.EXECUTION == "execution"
+
 
 def test_component_phase_string_behavior():
     """Test that ComponentPhase members behave like strings."""
@@ -39,12 +42,14 @@ def test_component_phase_string_behavior():
     # Membership check
     assert isinstance(phase, str)
 
+
 def test_component_phase_iteration_and_membership():
     """Test that all expected members exist and can be iterated."""
     expected_phases = {"interpret", "parse", "load", "audit", "runtime", "execution"}
     actual_phases = {member.value for member in ComponentPhase}
     assert actual_phases == expected_phases
     assert len(list(ComponentPhase)) == 6
+
 
 def test_component_phase_ordering():
     """Test that the order of members matches the documented execution order."""

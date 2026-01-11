@@ -5,14 +5,16 @@
 - Generated: 2026-01-11 03:07:47
 """
 
-import pytest
 from pathlib import Path
+
 from body.services.crate_processing_service import Crate
+
 
 # TARGET CODE ANALYSIS:
 # The provided Crate class is a simple data class with two attributes: 'path' and 'manifest'.
 # It is not a function and does not contain any async methods.
 # Therefore, tests will be synchronous and focus on instantiation and attribute access.
+
 
 def test_crate_initialization():
     """Test that a Crate object can be instantiated with correct attributes."""
@@ -22,6 +24,7 @@ def test_crate_initialization():
 
     assert crate.path == test_path
     assert crate.manifest == test_manifest
+
 
 def test_crate_attributes_are_mutable():
     """Test that the Crate's attributes can be accessed and are the passed values."""
@@ -37,6 +40,7 @@ def test_crate_attributes_are_mutable():
     assert crate.manifest["key"] == "value"
     assert crate.manifest["list"] == [1, 2, 3]
 
+
 def test_crate_with_empty_manifest():
     """Test Crate initialization with an empty manifest dictionary."""
     test_path = Path("/full/path/empty.manifest")
@@ -47,9 +51,11 @@ def test_crate_with_empty_manifest():
     assert crate.manifest == {}
     assert len(crate.manifest) == 0
 
+
 def test_crate_path_is_path_object():
     """Ensure the 'path' attribute is a Path object and comparable."""
     from pathlib import Path
+
     test_path_str = "/full/absolute/path"
     crate = Crate(path=Path(test_path_str), manifest={})
 

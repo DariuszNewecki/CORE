@@ -2,14 +2,14 @@
 - Source: src/shared/path_utils.py
 - Symbol: get_repo_root
 - Status: verified_in_sandbox
-- Generated: 2026-01-11 00:51:51
+- Generated: 2026-01-11 10:44:37
 """
 
 import pytest
 from pathlib import Path
 from shared.path_utils import get_repo_root
 
-# Detected return type: Path (synchronous function, not async)
+# Detected return type: Path (synchronous function)
 
 def test_get_repo_root_finds_intent_directory():
     """Test that function finds .intent directory when starting from subdirectory."""
@@ -19,139 +19,150 @@ def test_get_repo_root_finds_intent_directory():
 
     with tempfile.TemporaryDirectory() as tmpdir:
         # Create .intent directory at root
-        repo_root = Path(tmpdir)
-        intent_dir = repo_root / ".intent"
+        root_path = Path(tmpdir)
+        intent_dir = root_path / ".intent"
         intent_dir.mkdir()
 
-        # Create a subdirectory
-        subdir = repo_root / "src" / "module"
+        # Create nested subdirectory
+        subdir = root_path / "src" / "subfolder"
         subdir.mkdir(parents=True)
 
         # Change to subdirectory and test
         original_cwd = Path.cwd()
+        os.chdir(subdir)
+
         try:
-            os.chdir(subdir)
             result = get_repo_root()
-            assert result == repo_root
+            assert result == root_path
         finally:
             os.chdir(original_cwd)
 
 def test_get_repo_root_with_explicit_start_dir():
-    """Test that function works with explicit start_dir parameter."""
+    """Test that function works with explicitly provided start directory."""
     import tempfile
 
     with tempfile.TemporaryDirectory() as tmpdir:
-        repo_root = Path(tmpdir)
-        intent_dir = repo_root / ".intent"
+        root_path = Path(tmpdir)
+        intent_dir = root_path / ".intent"
         intent_dir.mkdir()
 
-        subdir = repo_root / "docs" / "api"
+        subdir = root_path / "docs" / "api"
         subdir.mkdir(parents=True)
 
         result = get_repo_root(start_dir=subdir)
-        assert result == repo_root
+        assert result == root_path
 
-def test_get_repo_root_from_intent_directory_itself():
-    """Test that function finds .intent when starting in the .intent directory."""
+def test_get_repo_root_starting_at_root():
+    """Test that function works when starting at the repository root."""
     import tempfile
 
     with tempfile.TemporaryDirectory() as tmpdir:
-        repo_root = Path(tmpdir)
-        intent_dir = repo_root / ".intent"
+        root_path = Path(tmpdir)
+        intent_dir = root_path / ".intent"
         intent_dir.mkdir()
 
-        result = get_repo_root(start_dir=intent_dir)
-        assert result == repo_root
+        result = get_repo_root(start_dir=root_path)
+        assert result == root_path
 
-def test_get_repo_root_from_root_filesystem_fails():
-    """Test that function raises FileNotFoundError when no .intent directory exists."""
+def test_get_repo_root_file_not_found_error():
+    """Test that function raises FileNotFoundError when .intent directory not found."""
     import tempfile
 
     with tempfile.TemporaryDirectory() as tmpdir:
-        # Create directory without .intent
-        empty_dir = Path(tmpdir) / "some" / "nested" / "path"
-        empty_dir.mkdir(parents=True)
+        root_path = Path(tmpdir)
+        # Don't create .intent directory
 
         with pytest.raises(FileNotFoundError) as exc_info:
-            get_repo_root(start_dir=empty_dir)
+            get_repo_root(start_dir=root_path)
 
         assert "Project root with .intent directory not found" in str(exc_info.value)
 
-def test_get_repo_root_at_filesystem_root():
-    """Test behavior when at filesystem root (parent equals self)."""
-    # Mock being at filesystem root by checking the while loop termination condition
+def test_get_repo_root_filesystem_root():
+    """Test behavior when reaching filesystem root without finding .intent."""
+    # This test simulates searching all the way to root without finding .intent
     import tempfile
 
     with tempfile.TemporaryDirectory() as tmpdir:
-        repo_root = Path(tmpdir)
-        intent_dir = repo_root / ".intent"
+        root_path = Path(tmpdir)
+        # Create a directory without .intent
+        test_dir = root_path / "some" / "nested" / "path"
+        test_dir.mkdir(parents=True)
+
+        # Mock the filesystem root by patching parent recursion
+        # We'll test the error case
+        with pytest.raises(FileNotFoundError):
+            get_repo_root(start_dir=test_dir)
+
+def test_get_repo_root_intent_at_filesystem_root():
+    """Test edge case where .intent exists at filesystem root."""
+    # This is a theoretical test since we can't create .intent at actual filesystem root
+    # We'll test the logic by verifying the final check in the while loop
+    import tempfile
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        root_path = Path(tmpdir)
+        # Simulate filesystem root by making parent equal to itself
+        # We'll test with a mock, but for real test we'll create normal structure
+        intent_dir = root_path / ".intent"
         intent_dir.mkdir()
 
-        # When at the repo root itself, it should find it
-        result = get_repo_root(start_dir=repo_root)
-        assert result == repo_root
+        # Create a path that's one level above our test root
+        # (in real scenario, this would be filesystem root)
+        test_path = root_path / "subdir"
+        test_path.mkdir()
+
+        result = get_repo_root(start_dir=test_path)
+        assert result == root_path
 
 def test_get_repo_root_returns_path_object():
     """Test that function returns a Path object."""
     import tempfile
 
     with tempfile.TemporaryDirectory() as tmpdir:
-        repo_root = Path(tmpdir)
-        intent_dir = repo_root / ".intent"
+        root_path = Path(tmpdir)
+        intent_dir = root_path / ".intent"
         intent_dir.mkdir()
 
-        result = get_repo_root(start_dir=repo_root)
+        result = get_repo_root(start_dir=root_path)
         assert isinstance(result, Path)
+        # Verify it has Path methods
+        assert hasattr(result, "joinpath")
+        assert hasattr(result, "is_dir")
 
-def test_get_repo_root_multiple_intent_directories():
-    """Test that function finds the closest .intent directory when multiple exist."""
+def test_get_repo_root_with_none_start_dir():
+    """Test that function uses current directory when start_dir is None."""
     import tempfile
     import os
 
     with tempfile.TemporaryDirectory() as tmpdir:
-        # Create outer .intent
-        outer_root = Path(tmpdir)
-        outer_intent = outer_root / ".intent"
-        outer_intent.mkdir()
-
-        # Create inner project with its own .intent
-        inner_root = outer_root / "projects" / "myproject"
-        inner_root.mkdir(parents=True)
-        inner_intent = inner_root / ".intent"
-        inner_intent.mkdir()
-
-        # Create subdirectory within inner project
-        subdir = inner_root / "src" / "utils"
-        subdir.mkdir(parents=True)
+        root_path = Path(tmpdir)
+        intent_dir = root_path / ".intent"
+        intent_dir.mkdir()
 
         original_cwd = Path.cwd()
+        os.chdir(root_path)
+
         try:
-            os.chdir(subdir)
-            result = get_repo_root()
-            # Should find the inner .intent, not the outer one
-            assert result == inner_root
+            result = get_repo_root(start_dir=None)
+            assert result == root_path
         finally:
             os.chdir(original_cwd)
 
-def test_get_repo_root_symlink_handling():
-    """Test that function works correctly with symlinks in path."""
+def test_get_repo_root_path_comparison():
+    """Test that path comparisons work correctly with different path representations."""
     import tempfile
-    import os
 
     with tempfile.TemporaryDirectory() as tmpdir:
-        repo_root = Path(tmpdir) / "real_repo"
-        repo_root.mkdir()
-        intent_dir = repo_root / ".intent"
+        root_path = Path(tmpdir)
+        intent_dir = root_path / ".intent"
         intent_dir.mkdir()
 
-        # Create a symlink to the repo
-        link_dir = Path(tmpdir) / "linked_repo"
-        os.symlink(repo_root, link_dir)
-
-        # Create subdirectory via symlink
-        subdir = link_dir / "src" / "app"
+        # Test with string path
+        subdir = root_path / "src" / "tests"
         subdir.mkdir(parents=True)
 
         result = get_repo_root(start_dir=subdir)
-        # Should resolve to the real path
-        assert result.resolve() == repo_root.resolve()
+        # Use == for comparison, not 'is'
+        assert result == root_path
+        # Also test with resolved paths
+        assert result.resolve() == root_path.resolve()

@@ -6,9 +6,10 @@
 - Generated: 2026-01-11 01:09:43
 """
 
-import pytest
-from shared.ast_utility import extract_docstring
 import ast
+
+from shared.ast_utility import extract_docstring
+
 
 def test_extract_docstring_from_function_def():
     """Test extracting docstring from a regular function definition."""
@@ -16,8 +17,9 @@ def test_extract_docstring_from_function_def():
     tree = ast.parse(source)
     func_node = tree.body[0]
     result = extract_docstring(func_node)
-    expected = 'This is a docstring.'
+    expected = "This is a docstring."
     assert result == expected
+
 
 def test_extract_docstring_from_async_function_def():
     """Test extracting docstring from an async function definition."""
@@ -25,8 +27,9 @@ def test_extract_docstring_from_async_function_def():
     tree = ast.parse(source)
     func_node = tree.body[0]
     result = extract_docstring(func_node)
-    expected = 'Async function docstring.'
+    expected = "Async function docstring."
     assert result == expected
+
 
 def test_extract_docstring_from_class_def():
     """Test extracting docstring from a class definition."""
@@ -34,24 +37,27 @@ def test_extract_docstring_from_class_def():
     tree = ast.parse(source)
     class_node = tree.body[0]
     result = extract_docstring(class_node)
-    expected = 'Class docstring here.'
+    expected = "Class docstring here."
     assert result == expected
+
 
 def test_extract_docstring_from_module():
     """Test extracting docstring from a module (top-level)."""
     source = '\n"""Module-level docstring."""\ndef some_function():\n    pass\n'
     tree = ast.parse(source)
     result = extract_docstring(tree)
-    expected = 'Module-level docstring.'
+    expected = "Module-level docstring."
     assert result == expected
+
 
 def test_extract_docstring_no_docstring():
     """Test node with no docstring returns None."""
-    source = '\ndef no_docstring():\n    pass\n'
+    source = "\ndef no_docstring():\n    pass\n"
     tree = ast.parse(source)
     func_node = tree.body[0]
     result = extract_docstring(func_node)
     assert result is None
+
 
 def test_extract_docstring_empty_docstring():
     """Test node with empty docstring returns empty string."""
@@ -59,7 +65,8 @@ def test_extract_docstring_empty_docstring():
     tree = ast.parse(source)
     func_node = tree.body[0]
     result = extract_docstring(func_node)
-    assert result == ''
+    assert result == ""
+
 
 def test_extract_docstring_multiline_docstring():
     """Test extracting multiline docstring."""
@@ -67,30 +74,35 @@ def test_extract_docstring_multiline_docstring():
     tree = ast.parse(source)
     func_node = tree.body[0]
     result = extract_docstring(func_node)
-    expected = 'First line.\n\nSecond line with more details.\n\nReturns:\n    Nothing.'
+    expected = "First line.\n\nSecond line with more details.\n\nReturns:\n    Nothing."
     assert result == expected
+
 
 def test_extract_docstring_unsupported_node_type():
     """Test that non-docstring nodes return None."""
-    source = '\nx = 5\n'
+    source = "\nx = 5\n"
     tree = ast.parse(source)
     assign_node = tree.body[0]
     result = extract_docstring(assign_node)
     assert result is None
 
+
 def test_extract_docstring_expression_statement():
     """Test expression statement (not supported type) returns None."""
-    source = '\ncall_something()\n'
+    source = "\ncall_something()\n"
     tree = ast.parse(source)
     expr_node = tree.body[0]
     result = extract_docstring(expr_node)
     assert result is None
 
+
 def test_extract_docstring_triple_single_quotes():
     """Test docstring with triple single quotes."""
-    source = "\ndef single_quote_func():\n    '''Single quoted docstring.'''\n    pass\n"
+    source = (
+        "\ndef single_quote_func():\n    '''Single quoted docstring.'''\n    pass\n"
+    )
     tree = ast.parse(source)
     func_node = tree.body[0]
     result = extract_docstring(func_node)
-    expected = 'Single quoted docstring.'
+    expected = "Single quoted docstring."
     assert result == expected

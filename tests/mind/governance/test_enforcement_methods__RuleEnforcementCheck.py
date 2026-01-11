@@ -6,11 +6,14 @@
 """
 
 import pytest
+
 from mind.governance.enforcement_methods import RuleEnforcementCheck
+
 
 # Analysis: RuleEnforcementCheck is an abstract base class with class variables
 # and an abstract property. It does NOT appear to be async (no 'async def' in target code).
 # Therefore, use regular synchronous test functions.
+
 
 class TestRuleEnforcementCheck:
     """Tests for the RuleEnforcementCheck abstract base class."""
@@ -22,10 +25,10 @@ class TestRuleEnforcementCheck:
 
     def test_class_variables_exist(self):
         """Verify all expected class variables are present."""
-        assert hasattr(RuleEnforcementCheck, 'policy_rule_ids')
-        assert hasattr(RuleEnforcementCheck, 'policy_file')
-        assert hasattr(RuleEnforcementCheck, 'enforcement_methods')
-        assert hasattr(RuleEnforcementCheck, '_is_concrete_check')
+        assert hasattr(RuleEnforcementCheck, "policy_rule_ids")
+        assert hasattr(RuleEnforcementCheck, "policy_file")
+        assert hasattr(RuleEnforcementCheck, "enforcement_methods")
+        assert hasattr(RuleEnforcementCheck, "_is_concrete_check")
 
     def test_policy_rule_ids_default(self):
         """Verify policy_rule_ids defaults to empty list."""

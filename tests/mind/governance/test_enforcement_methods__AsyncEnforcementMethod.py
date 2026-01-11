@@ -5,20 +5,31 @@
 - Generated: 2026-01-11 01:40:45
 """
 
-import pytest
-from mind.governance.enforcement_methods import AsyncEnforcementMethod
-from mind.governance.enforcement_methods import AuditSeverity, AuditFinding
 from typing import Any
+
+import pytest
+
+from mind.governance.enforcement_methods import (
+    AsyncEnforcementMethod,
+    AuditFinding,
+    AuditSeverity,
+)
+
 
 # DETECTED: AsyncEnforcementMethod is an abstract base class (ABC) with an async abstract method 'verify_async'.
 # Therefore, test functions that instantiate and test concrete implementations must be async.
 # We will create a concrete test subclass for testing.
 
+
 class ConcreteAsyncEnforcer(AsyncEnforcementMethod):
     """Concrete implementation for testing the abstract base class."""
-    async def verify_async(self, context: Any, rule_data: dict[str, Any]) -> list[AuditFinding]:
+
+    async def verify_async(
+        self, context: Any, rule_data: dict[str, Any]
+    ) -> list[AuditFinding]:
         # Simple implementation that returns a finding using the helper method
         return [self._create_finding("Test finding", "/full/path/to/file.txt", 42)]
+
 
 @pytest.mark.asyncio
 async def test_async_enforcement_method_initialization():
@@ -31,6 +42,7 @@ async def test_async_enforcement_method_initialization():
     assert enforcer.rule_id == rule_id
     assert enforcer.severity == severity
 
+
 @pytest.mark.asyncio
 async def test_async_enforcement_method_default_severity():
     """Test that AsyncEnforcementMethod uses ERROR as default severity."""
@@ -40,6 +52,7 @@ async def test_async_enforcement_method_default_severity():
 
     assert enforcer.rule_id == rule_id
     assert enforcer.severity == AuditSeverity.ERROR
+
 
 @pytest.mark.asyncio
 async def test_async_enforcement_method_create_finding_with_all_params():
@@ -52,9 +65,7 @@ async def test_async_enforcement_method_create_finding_with_all_params():
 
     enforcer = ConcreteAsyncEnforcer(rule_id=rule_id, severity=severity)
     finding = enforcer._create_finding(
-        message=message,
-        file_path=file_path,
-        line_number=line_number
+        message=message, file_path=file_path, line_number=line_number
     )
 
     assert finding.check_id == rule_id
@@ -62,6 +73,7 @@ async def test_async_enforcement_method_create_finding_with_all_params():
     assert finding.message == message
     assert finding.file_path == file_path
     assert finding.line_number == line_number
+
 
 @pytest.mark.asyncio
 async def test_async_enforcement_method_create_finding_without_optional_params():
@@ -78,6 +90,7 @@ async def test_async_enforcement_method_create_finding_without_optional_params()
     assert finding.message == message
     assert finding.file_path is None
     assert finding.line_number is None
+
 
 @pytest.mark.asyncio
 async def test_async_enforcement_method_verify_async_returns_list_of_findings():
@@ -98,6 +111,7 @@ async def test_async_enforcement_method_verify_async_returns_list_of_findings():
     assert findings[0].message == "Test finding"
     assert findings[0].file_path == "/full/path/to/file.txt"
     assert findings[0].line_number == 42
+
 
 @pytest.mark.asyncio
 async def test_async_enforcement_method_cannot_instantiate_abstract_class():

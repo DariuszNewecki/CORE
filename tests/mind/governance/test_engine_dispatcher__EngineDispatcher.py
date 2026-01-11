@@ -5,11 +5,14 @@
 - Generated: 2026-01-11 02:12:54
 """
 
-import pytest
 from pathlib import Path
 from unittest.mock import Mock, patch
+
 from mind.governance.engine_dispatcher import EngineDispatcher
+
+
 # Detected return type: EngineDispatcher.invoke_engine returns list[ViolationReport]
+
 
 class TestEngineDispatcher:
     """Unit tests for EngineDispatcher.invoke_engine"""
@@ -83,7 +86,10 @@ class TestEngineDispatcher:
         mock_engine = Mock()
         mock_engine.verify.return_value = mock_result
 
-        with patch('mind.governance.engine_dispatcher.EngineRegistry.get', return_value=mock_engine):
+        with patch(
+            "mind.governance.engine_dispatcher.EngineRegistry.get",
+            return_value=mock_engine,
+        ):
             # Act
             result = EngineDispatcher.invoke_engine(rule, file_path, path_str)
 
@@ -115,7 +121,10 @@ class TestEngineDispatcher:
         mock_engine = Mock()
         mock_engine.verify.return_value = mock_result
 
-        with patch('mind.governance.engine_dispatcher.EngineRegistry.get', return_value=mock_engine):
+        with patch(
+            "mind.governance.engine_dispatcher.EngineRegistry.get",
+            return_value=mock_engine,
+        ):
             # Act
             result = EngineDispatcher.invoke_engine(rule, file_path, path_str)
 
@@ -125,7 +134,10 @@ class TestEngineDispatcher:
             # Check first violation
             assert result[0].rule_name == "test_rule"
             assert result[0].path == "src/main.py"
-            assert result[0].message == "Check for bad patterns: Hardcoded password detected"
+            assert (
+                result[0].message
+                == "Check for bad patterns: Hardcoded password detected"
+            )
             assert result[0].severity == "error"
             assert result[0].source_policy == "security_policy"
 
@@ -156,7 +168,10 @@ class TestEngineDispatcher:
         mock_engine = Mock()
         mock_engine.verify.side_effect = ValueError("Engine configuration error")
 
-        with patch('mind.governance.engine_dispatcher.EngineRegistry.get', return_value=mock_engine):
+        with patch(
+            "mind.governance.engine_dispatcher.EngineRegistry.get",
+            return_value=mock_engine,
+        ):
             # Act
             result = EngineDispatcher.invoke_engine(rule, file_path, path_str)
 
@@ -165,7 +180,10 @@ class TestEngineDispatcher:
             violation = result[0]
             assert violation.rule_name == "test_rule"
             assert violation.path == "test/file.py"
-            assert violation.message == "Engine failure (failing_engine): Engine configuration error"
+            assert (
+                violation.message
+                == "Engine failure (failing_engine): Engine configuration error"
+            )
             assert violation.severity == "error"
             assert violation.source_policy == "test_policy"
 
@@ -192,7 +210,10 @@ class TestEngineDispatcher:
         mock_engine = Mock()
         mock_engine.verify.return_value = mock_result
 
-        with patch('mind.governance.engine_dispatcher.EngineRegistry.get', return_value=mock_engine):
+        with patch(
+            "mind.governance.engine_dispatcher.EngineRegistry.get",
+            return_value=mock_engine,
+        ):
             # Act
             result = EngineDispatcher.invoke_engine(rule, file_path, path_str)
 
@@ -225,9 +246,14 @@ class TestEngineDispatcher:
         mock_engine = Mock()
         mock_engine.verify.return_value = mock_result
 
-        with patch('mind.governance.engine_dispatcher.EngineRegistry.get', return_value=mock_engine):
+        with patch(
+            "mind.governance.engine_dispatcher.EngineRegistry.get",
+            return_value=mock_engine,
+        ):
             # Act
             result = EngineDispatcher.invoke_engine(rule, file_path, path_str)
 
             # Assert
-            assert result == []  # Should return empty list when violations list is empty
+            assert (
+                result == []
+            )  # Should return empty list when violations list is empty
