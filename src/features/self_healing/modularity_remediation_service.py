@@ -10,6 +10,7 @@ CONSTITUTIONAL FIX:
 - Hardens the AI goal prompt to prevent path-as-code (math) hallucinations.
 - FIXED: Replaced direct 'get_session' import with 'service_registry.session'
   to satisfy logic.di.no_global_session.
+- ADDED: Logic Conservation Gate to prevent "Refactoring by Deletion".
 """
 
 from __future__ import annotations
@@ -47,9 +48,8 @@ class ModularityRemediationService:
         """Finds top offenders and heals them sequentially."""
         results = []
 
-        # 1. Get the "Hit List" (identical logic to refactor suggest)
+        # 1. Get the "Hit List"
         candidates = []
-        # Directories to skip
         skip_dirs = {
             ".venv",
             "venv",
@@ -61,11 +61,9 @@ class ModularityRemediationService:
         }
 
         for file in settings.REPO_PATH.rglob("*.py"):
-            # Skip if in excluded directories
             if any(skip_dir in file.parts for skip_dir in skip_dirs):
                 continue
 
-            # Only scan src/
             rel_path = file.relative_to(settings.REPO_PATH)
             if not str(rel_path).startswith("src/"):
                 continue
@@ -76,7 +74,6 @@ class ModularityRemediationService:
             if findings:
                 candidates.append((file, findings[0]["details"]))
 
-        # Sort by score descending (worst first)
         candidates.sort(key=lambda x: x[1]["total_score"], reverse=True)
         to_process = candidates[:limit]
 
@@ -96,16 +93,20 @@ class ModularityRemediationService:
         rel_path = str(file_path.relative_to(settings.REPO_PATH))
         start_score = details["total_score"]
 
-        # CONSTITUTIONAL FIX: Hardened prompt prevents "Math Header" hallucinations
+        # Measure original logic size (characters)
+        original_size = len(file_path.read_text(encoding="utf-8"))
+
+        # CONSTITUTIONAL FIX: Hardened prompt prevents "Math Header" AND "Logic Evaporation"
         auto_goal = (
-            f"Refactor {rel_path} to resolve modularity violations.\n"
+            f"Modularize {rel_path} to resolve architectural violations.\n"
             f"IDENTIFIED RESPONSIBILITIES: {', '.join(details['responsibilities'])}\n"
             f"CURRENT REFACTOR SCORE: {start_score:.1f}\n\n"
             f"CRITICAL CONSTITUTIONAL INSTRUCTIONS:\n"
-            f"1. EVERY file you create MUST start with a comment header like: # path/to/file.py\n"
-            f"2. DO NOT write the path as code. (Avoid: 'src / features / ...' as it causes NameErrors).\n"
-            f"3. Every public function/class MUST have a stable # ID: <uuid> anchor.\n"
-            f"4. Modularize the logic into cohesive services/repositories to reduce the score below 60.0."
+            f"1. YOU MUST MIGRATE 100% OF THE EXISTING LOGIC. Truncation is a violation.\n"
+            f"2. EVERY file you create MUST start with a comment header: # path/to/file.py\n"
+            f"3. DO NOT write the path as code (e.g., avoid 'src / features').\n"
+            f"4. All public symbols must have # ID: <uuid> tags.\n"
+            f"5. The total logic volume of the new files must match or exceed the original."
         )
 
         logger.info(
@@ -113,18 +114,34 @@ class ModularityRemediationService:
         )
 
         # 3. Trigger A3 Developer
-        # CONSTITUTIONAL FIX: Using the service_registry session factory to satisfy linter
         async with service_registry.session() as session:
-            # CONSTITUTIONAL FIX: Pass the write flag to maintain dry-run integrity
-            success, message = await develop_from_goal(
+            # We use 'crate' mode even in direct mode to inspect the result before success
+            success, action_res = await develop_from_goal(
                 session=session,
                 context=self.context,
                 goal=auto_goal,
-                output_mode="direct",
+                output_mode="crate",
                 write=write,
             )
 
-        # 4. Verify Improvement (Only if it was a real write)
+        # 4. LOGIC CONSERVATION GATE
+        if success and isinstance(action_res, dict):
+            new_files = action_res.get("files", {})
+            total_new_size = sum(len(content) for content in new_files.values())
+
+            # If the new logic is less than 40% of the original size, it's a "Lazy Failure"
+            if total_new_size < (original_size * 0.4):
+                logger.error(
+                    "❌ REJECTED: Logic Evaporation Detected. New size (%d) is too small vs original (%d).",
+                    total_new_size,
+                    original_size,
+                )
+                success = False
+                message = "Automated logic conservation check failed: Result too small."
+            else:
+                message = "Logic conservation verified."
+
+        # 5. Verify Improvement (Only if it was a real write and passed the gate)
         final_score = start_score
         if success and write:
             post_findings = self.checker.check_refactor_score(
@@ -141,5 +158,5 @@ class ModularityRemediationService:
             "start_score": start_score,
             "final_score": final_score,
             "improvement": improvement,
-            "message": message,
+            "message": message if not success else "Success",
         }

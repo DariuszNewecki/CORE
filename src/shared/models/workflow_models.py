@@ -136,6 +136,8 @@ class ExecutionResults:
     """
     The outcome of the Construction phase.
     Produced by the ExecutionAgent.
+
+    PHASE 1 ENHANCEMENT: Now captures files_written for crate extraction.
     """
 
     steps: list[ActionResult]
@@ -145,6 +147,20 @@ class ExecutionResults:
     failure_count: int
     total_duration_sec: float
     metadata: dict[str, Any] = field(default_factory=dict)
+
+    files_written: dict[str, str] = field(default_factory=dict)
+    """
+    Mapping of file_path → content for all created/edited files.
+
+    This enables crate extraction and post-execution inspection.
+    Only populated if write=True in ExecutionAgent.
+
+    Example:
+        {
+            "src/new_module.py": "# Module code here\ndef func(): pass",
+            "src/updated.py": "# Updated content",
+        }
+    """
 
     # ID: cb531304-3ade-4275-8d00-d582360db4a0
     def all_succeeded(self) -> bool:

@@ -19,6 +19,11 @@ CONSTITUTIONAL FIX:
 - Removed local 'get_session' import to satisfy 'logic.di.no_global_session'.
 - Leverages the pre-wired 'context_service' from CoreContext (Inversion of Control).
 - Uses context_service property correctly (no hasattr check)
+
+PHASE 1 ENHANCEMENT:
+- Crate extraction now uses execution_results.files_written (source of truth)
+- Instead of trying to read from step.params (unreliable)
+- Enables modularity remediation to validate actual file changes
 """
 
 from __future__ import annotations
@@ -249,14 +254,9 @@ async def develop_from_goal(
     # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
     if output_mode == "crate":
-        # Extract generated files for crate mode
-        generated_files = {}
-
-        for step in workflow_result.detailed_plan.steps:
-            if "code" in step.params and step.params.get("file_path"):
-                file_path = step.params["file_path"]
-                code = step.params["code"]
-                generated_files[file_path] = code
+        # PHASE 1 FIX: Use files_written from execution_results (source of truth)
+        # instead of trying to extract from step.params (unreliable)
+        generated_files = workflow_result.execution_results.files_written or {}
 
         result = {
             "files": generated_files,
