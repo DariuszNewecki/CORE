@@ -249,4 +249,5 @@ from . import (
     imports,  # ADDED: Covers import sorting and grouping
     list_commands,
     metadata,  # Covers ids, tags, policy-ids, duplicate-ids, purge-legacy-tags
+    modularity,
 )
