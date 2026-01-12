@@ -8,6 +8,8 @@ Translates Modularity Score violations into executable A3 goals.
 CONSTITUTIONAL FIX:
 - Propagates 'write' intent to Autonomous Developer.
 - Hardens the AI goal prompt to prevent path-as-code (math) hallucinations.
+- FIXED: Replaced direct 'get_session' import with 'service_registry.session'
+  to satisfy logic.di.no_global_session.
 """
 
 from __future__ import annotations
@@ -15,11 +17,11 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
+from body.services.service_registry import service_registry
 from features.autonomy.autonomous_developer import develop_from_goal
 from mind.logic.engines.ast_gate.checks.modularity_checks import ModularityChecker
 from shared.config import settings
 from shared.context import CoreContext
-from shared.infrastructure.database.session_manager import get_session
 from shared.logger import getLogger
 
 
@@ -111,7 +113,8 @@ class ModularityRemediationService:
         )
 
         # 3. Trigger A3 Developer
-        async with get_session() as session:
+        # CONSTITUTIONAL FIX: Using the service_registry session factory to satisfy linter
+        async with service_registry.session() as session:
             # CONSTITUTIONAL FIX: Pass the write flag to maintain dry-run integrity
             success, message = await develop_from_goal(
                 session=session,

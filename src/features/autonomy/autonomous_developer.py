@@ -15,8 +15,10 @@ NEW PATTERN (Current):
 
 CONSTITUTIONAL FIX:
 - Respects 'write' flag from CLI/Service layer to prevent unauthorized mutations.
+- FIXED: Changed task_type to "refactor" to satisfy PostgreSQL check constraint 'valid_task_type'.
 - Removed local 'get_session' import to satisfy 'logic.di.no_global_session'.
 - Leverages the pre-wired 'context_service' from CoreContext (Inversion of Control).
+- Uses context_service property correctly (no hasattr check)
 """
 
 from __future__ import annotations
@@ -119,7 +121,9 @@ async def develop_from_goal(
         context_packet = await context_service.build_for_task(
             {
                 "task_id": task_id or "autonomous_dev",
-                "task_type": "code_modification",
+                # CONSTITUTIONAL ALIGNMENT:
+                # Authoritative DB Check confirms 'refactor' is valid; 'code_modification' is not.
+                "task_type": "refactor",
                 "summary": goal,
                 "scope": {"traversal_depth": 2},
             },
@@ -133,9 +137,7 @@ async def develop_from_goal(
         )
 
     except Exception as e:
-        logger.warning(
-            "Context building failed (proceeding without enhanced context): %s", e
-        )
+        logger.error("Context building failed due to database/integrity error: %s", e)
         context_report = ""
 
     # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
