@@ -20,16 +20,7 @@
   {
     "check_id": "architecture.max_file_size",
     "severity": "warning",
-    "message": "Module has 636 lines, exceeds limit of 400",
-    "file_path": "src/body/cli/commands/coverage.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.max_file_size",
-    "severity": "warning",
-    "message": "Module has 497 lines, exceeds limit of 400",
+    "message": "Module has 499 lines, exceeds limit of 400",
     "file_path": "src/body/cli/commands/inspect.py",
     "line_number": null,
     "context": {},
@@ -65,15 +56,6 @@
   {
     "check_id": "architecture.max_file_size",
     "severity": "warning",
-    "message": "Module has 564 lines, exceeds limit of 400",
-    "file_path": "src/body/cli/workflows/dev_sync_phases.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.max_file_size",
-    "severity": "warning",
     "message": "Module has 488 lines, exceeds limit of 400",
     "file_path": "src/body/evaluators/atomic_actions_evaluator.py",
     "line_number": null,
@@ -85,15 +67,6 @@
     "severity": "warning",
     "message": "Module has 405 lines, exceeds limit of 400",
     "file_path": "src/features/self_healing/test_context_analyzer.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.max_file_size",
-    "severity": "warning",
-    "message": "Module has 626 lines, exceeds limit of 400",
-    "file_path": "src/features/test_generation_v2/adaptive_test_generator.py",
     "line_number": null,
     "context": {},
     "details": {}
@@ -193,78 +166,6 @@
     "severity": "warning",
     "message": "Module has 428 lines, exceeds limit of 400",
     "file_path": "src/will/tools/architectural_context_builder.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.max_file_size",
-    "severity": "warning",
-    "message": "Module has 436 lines, exceeds limit of 400",
-    "file_path": "tests/body/evaluators/test_constitutional_evaluator.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.max_file_size",
-    "severity": "warning",
-    "message": "Module has 524 lines, exceeds limit of 400",
-    "file_path": "tests/body/evaluators/test_pattern_evaluator__PatternEvaluator.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.max_file_size",
-    "severity": "warning",
-    "message": "Module has 491 lines, exceeds limit of 400",
-    "file_path": "tests/body/evaluators/test_security_evaluator.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.max_file_size",
-    "severity": "warning",
-    "message": "Module has 457 lines, exceeds limit of 400",
-    "file_path": "tests/mind/governance/test_policy_coverage_service__PolicyCoverageService.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.max_file_size",
-    "severity": "warning",
-    "message": "Module has 457 lines, exceeds limit of 400",
-    "file_path": "tests/shared/test_path_resolver__PathResolver.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_todo_placeholders",
-    "severity": "warning",
-    "message": "Forbidden Content [Line 190]: Matched restricted regex '\\bTODO\\b'",
-    "file_path": "src/body/atomic/fix_actions.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_todo_placeholders",
-    "severity": "warning",
-    "message": "Forbidden Content [Line 190]: Matched restricted regex '\\bFIXME\\b'",
-    "file_path": "src/body/atomic/fix_actions.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_todo_placeholders",
-    "severity": "warning",
-    "message": "Forbidden Content [Line 273]: Matched restricted regex '\\bTODO\\b'",
-    "file_path": "src/body/cli/logic/interactive_test/steps.py",
     "line_number": null,
     "context": {},
     "details": {}

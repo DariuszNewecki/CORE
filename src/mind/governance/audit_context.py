@@ -14,6 +14,11 @@ FS MUTATION POLICY:
 - No direct filesystem mutations outside governed mutation surfaces.
 - Runtime artefact writes go through FileHandler (IntentGuard enforced).
 - mkdir counts as FS mutation => only FileHandler may create directories.
+
+PERFORMANCE:
+- Module-level knowledge graph cache per repo_path
+- Cache persists for process lifetime unless explicitly cleared
+- Thread-safe for async-only usage (no thread locking)
 """
 
 from __future__ import annotations
@@ -36,6 +41,37 @@ from shared.logger import getLogger
 logger = getLogger(__name__)
 
 
+# ============================================================================
+# MODULE-LEVEL CACHE
+# ============================================================================
+# Cache structure: {repo_path_str: {knowledge_graph, symbols_map, symbols_list}}
+# Cache lifetime: Process lifetime (until explicit clear_cache() call)
+# Thread safety: Async-only (no thread locking required)
+_KNOWLEDGE_GRAPH_CACHE: dict[str, dict[str, Any]] = {}
+
+
+# ID: baa7d0a4-2b67-428c-ab64-1e3dbe009b19
+def clear_knowledge_graph_cache() -> None:
+    """
+    Clear the module-level knowledge graph cache.
+
+    Use cases:
+    - Test teardown to ensure clean state
+    - After `core-admin knowledge sync` rebuilds the graph
+    - When you need to force reload from database
+
+    This is thread-safe for async usage (no locking needed).
+    """
+    global _KNOWLEDGE_GRAPH_CACHE
+    _KNOWLEDGE_GRAPH_CACHE.clear()
+    logger.debug("Knowledge graph cache cleared")
+
+
+# ============================================================================
+# AUDITOR CONTEXT
+# ============================================================================
+
+
 # ID: 55a77b97-fc08-4b0c-b818-97b1158343e9
 class AuditorContext:
     """
@@ -45,6 +81,11 @@ class AuditorContext:
     - All .intent/ access goes through IntentRepository
     - No direct filesystem paths to .intent/ subdirectories
     - Policies loaded via IntentRepository APIs only
+
+    PERFORMANCE:
+    - Knowledge graph cached at module level per repo_path
+    - Multiple AuditorContext instances share same cache
+    - Cache invalidation via clear_knowledge_graph_cache() function
     """
 
     # ID: 4c0f2c62-3d57-4b32-8bff-76a8f3d3fd2f
@@ -216,10 +257,38 @@ class AuditorContext:
         return self.get_files(include=["src/**/*.py", "tests/**/*.py"])
 
     # ID: 3d1f1c34-fd1e-4bb8-8b4f-3f9a6c6dfd41
-    async def load_knowledge_graph(self) -> None:
+    async def load_knowledge_graph(self, force: bool = False) -> None:
         """
         Load knowledge graph from the database (SSOT).
+
+        Uses module-level cache to avoid redundant DB queries across multiple
+        AuditorContext instances (e.g., in test suites).
+
+        Args:
+            force: If True, bypass cache and reload from database. Default False.
+
+        Performance:
+        - First call: Loads from DB (~1.5s for 1449 symbols)
+        - Subsequent calls: Loads from cache (~0ms)
+        - Cache shared across all AuditorContext instances for same repo_path
+        - Cache persists for process lifetime unless cleared via clear_knowledge_graph_cache()
         """
+        cache_key = str(self.repo_path)
+
+        # PERFORMANCE FIX: Check module-level cache first
+        if not force and cache_key in _KNOWLEDGE_GRAPH_CACHE:
+            cached = _KNOWLEDGE_GRAPH_CACHE[cache_key]
+            self.knowledge_graph = cached["knowledge_graph"]
+            self.symbols_map = cached["symbols_map"]
+            self.symbols_list = cached["symbols_list"]
+            logger.debug(
+                "Knowledge graph loaded from cache (%d symbols) for %s",
+                len(self.symbols_list),
+                self.repo_path,
+            )
+            return
+
+        # Cache miss or force reload - load from database
         logger.info(
             "Loading knowledge graph from database (SSOT) for %s...", self.repo_path
         )
@@ -232,9 +301,20 @@ class AuditorContext:
                 "Loaded knowledge graph with %s symbols from database.",
                 len(self.symbols_list),
             )
+
+            # Cache the successful load
+            _KNOWLEDGE_GRAPH_CACHE[cache_key] = {
+                "knowledge_graph": self.knowledge_graph,
+                "symbols_map": self.symbols_map,
+                "symbols_list": self.symbols_list,
+            }
+
+            # Write debug artifact only on cache miss (not on every load)
             self._save_knowledge_graph_artifact()
+
         except Exception as e:
             logger.error("Failed to load knowledge graph from DB: %s", e)
+            # Don't cache errors - set empty state and allow retry
             self.knowledge_graph = {"symbols": {}}
             self.symbols_map = {}
             self.symbols_list = []
@@ -243,6 +323,8 @@ class AuditorContext:
     def _save_knowledge_graph_artifact(self) -> None:
         """
         Save knowledge graph to a runtime artefact location for debugging.
+
+        Called only on cache miss to avoid redundant disk writes.
         """
         import json
 
@@ -288,4 +370,4 @@ def _to_repo_relative_path(path: Path) -> str:
     raise ValueError(f"Path is outside repository boundary: {resolved}")
 
 
-__all__ = ["AuditorContext"]
+__all__ = ["AuditorContext", "clear_knowledge_graph_cache"]

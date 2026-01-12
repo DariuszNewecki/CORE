@@ -1,0 +1,49 @@
+{
+    "$schema": "META/rule_document.schema.json",
+    "kind": "rule_document",
+    "metadata": {
+        "id": "rules.architecture.modularity",
+        "title": "Modularity & Refactoring Standards",
+        "version": "0.1.0",
+        "authority": "policy",
+        "phase": "audit",
+        "status": "active"
+    },
+    "rules": [
+        {
+            "id": "modularity.single_responsibility",
+            "statement": "A source file SHOULD encapsulate at most 2 distinct responsibilities. Files with 3+ responsibilities are candidates for refactoring.",
+            "enforcement": "reporting",
+            "authority": "policy",
+            "phase": "audit"
+        },
+        {
+            "id": "modularity.semantic_cohesion",
+            "statement": "Functions within a module SHOULD maintain semantic cohesion >= 0.70 (measured via embedding similarity). Low cohesion indicates poor module boundaries.",
+            "enforcement": "reporting",
+            "authority": "policy",
+            "phase": "audit"
+        },
+        {
+            "id": "modularity.import_coupling",
+            "statement": "A source file SHOULD touch at most 3 distinct concern areas (database, web, CLI, testing, ML, file I/O). High coupling indicates mixed responsibilities.",
+            "enforcement": "reporting",
+            "authority": "policy",
+            "phase": "audit"
+        },
+        {
+            "id": "modularity.refactor_score_threshold",
+            "statement": "Files with refactor score >= 60 (based on responsibility count, cohesion, coupling, duplication) SHOULD be prioritized for modularization.",
+            "enforcement": "reporting",
+            "authority": "policy",
+            "phase": "audit"
+        },
+        {
+            "id": "modularity.unix_philosophy",
+            "statement": "Components SHOULD follow UNIX philosophy: do one thing well, compose via clear interfaces, minimize coupling.",
+            "enforcement": "advisory",
+            "authority": "policy",
+            "phase": "audit"
+        }
+    ]
+}

@@ -1,0 +1,25 @@
+# Modularity enforcement mapping
+checks:
+  - rule_id: modularity.single_responsibility
+    check_class: ModularityChecker
+    check_method: check_single_responsibility
+    params:
+      max_responsibilities: 2
+
+  - rule_id: modularity.semantic_cohesion
+    check_class: ModularityChecker
+    check_method: check_semantic_cohesion
+    params:
+      min_cohesion: 0.70
+
+  - rule_id: modularity.import_coupling
+    check_class: ModularityChecker
+    check_method: check_import_coupling
+    params:
+      max_concerns: 3
+
+  - rule_id: modularity.refactor_score_threshold
+    check_class: ModularityChecker
+    check_method: check_refactor_score
+    params:
+      max_score: 60

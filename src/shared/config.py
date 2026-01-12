@@ -9,6 +9,8 @@ This module is the base of the dependency tree; it contains no logic, only confi
 from __future__ import annotations
 
 import json
+import os  # ADDED
+import sys  # ADDED
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
 
@@ -36,18 +38,16 @@ class Settings(BaseSettings):
     SSOT for paths and foundational connection strings.
     """
 
-    # --- Operational State (Required by CLI callbacks and Fix commands) ---
+    # --- Operational State ---
     DEBUG: bool = False
     VERBOSE: bool = False
 
-    # Pydantic will automatically populate this from the environment variable 'CORE_ENV'
     CORE_ENV: str = Field("development", validation_alias="CORE_ENV")
 
     model_config = SettingsConfigDict(
         env_file=None, env_file_encoding="utf-8", extra="allow", case_sensitive=True
     )
 
-    # Internal cache for the PathResolver instance
     _path_resolver: PathResolver | None = PrivateAttr(default=None)
 
     # --- Canonical Roots ---
@@ -63,7 +63,6 @@ class Settings(BaseSettings):
     DATABASE_URL: str = Field(..., validation_alias="DATABASE_URL")
     QDRANT_URL: str = Field(..., validation_alias="QDRANT_URL")
 
-    # Required by llm_gate.py and others
     LLM_API_URL: str = Field("", validation_alias="LLM_API_URL")
     LLM_API_KEY: str | None = Field(None, validation_alias="LLM_API_KEY")
     LLM_MODEL_NAME: str = Field("gpt-4o", validation_alias="LLM_MODEL_NAME")
@@ -80,18 +79,36 @@ class Settings(BaseSettings):
     LLM_REQUEST_TIMEOUT: int = 300
 
     def __init__(self, **values: Any) -> None:
-        # 1. Load root .env
+        # ============================================================
+        # 1. PRE-FLIGHT DETECTION (Mirror Check)
+        # ============================================================
+        # Check if we are being run by pytest.
+        # This is the "Sovereign Fix" for the backwards prefix problem.
+        is_testing = (
+            "pytest" in sys.modules or os.getenv("PYTEST_CURRENT_TEST") is not None
+        )
+
+        if is_testing:
+            # Force the environment to TEST immediately
+            os.environ["CORE_ENV"] = "TEST"
+
+        # ============================================================
+        # 2. FILE LOADING SEQUENCE
+        # ============================================================
+        # Load root .env
         load_dotenv(dotenv_path=REPO_ROOT / ".env", override=True)
 
-        # 2. Pydantic handles CORE_ENV population here
+        # Pydantic handles CORE_ENV population here
         super().__init__(**values)
 
-        # 3. Load environment-specific file if it exists
+        # Load environment-specific file (e.g., .env.test)
         env_file_name = self._get_env_file_name(self.CORE_ENV)
         env_path = REPO_ROOT / env_file_name
+
         if env_path.exists():
+            # Override with specialized settings (this makes .env.test win)
             load_dotenv(dotenv_path=env_path, override=True)
-            # Re-run init to pick up specific vars
+            # Re-run init to pick up specific vars from .env.test
             super().__init__(**values)
 
     def _get_env_file_name(self, core_env: str) -> str:

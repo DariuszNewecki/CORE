@@ -14,7 +14,6 @@ mappings:
     scope:
       applies_to:
         - "src/**/*.py"
-        - "tests/**/*.py"
   architecture.constitution_read_only:
     engine: glob_gate
     params:

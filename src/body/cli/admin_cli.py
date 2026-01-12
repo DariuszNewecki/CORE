@@ -32,6 +32,7 @@ from body.cli.commands.diagnostics import app as diagnostics_app
 from body.cli.commands.fix import fix_app
 from body.cli.commands.inspect_patterns import inspect_patterns
 from body.cli.commands.manage import manage
+from body.cli.commands.refactor import refactor_app
 from body.cli.interactive import launch_interactive_menu
 from body.cli.logic.tools import tools_app
 from body.services.service_registry import service_registry
@@ -113,6 +114,7 @@ def register_all_commands(app_instance: typer.Typer) -> None:
     app_instance.add_typer(tools_app, name="tools")
     app_instance.add_typer(diagnostics_app, name="diagnostics")
     app_instance.add_typer(interactive_test.app, name="interactive-test")
+    app_instance.add_typer(refactor_app, name="refactor")
     app_instance.command(name="inspect-patterns")(inspect_patterns)
 
 

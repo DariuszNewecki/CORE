@@ -1,0 +1,164 @@
+# .intent/agent_roles.schema.yaml
+schema_id: schema.agent_roles
+version: "1.0.0"
+title: "CORE Agent Role Schema"
+description: >
+  Defines LLM/agent roles as contracts used by CORE to route work to models.
+  A role is model-agnostic and describes required capabilities, constraints,
+  output contracts, and quality gates.
+
+type: object
+required:
+  - schema_id
+  - version
+  - roles
+properties:
+  schema_id:
+    type: string
+    const: schema.agent_roles
+  version:
+    type: string
+  roles:
+    type: array
+    minItems: 1
+    items:
+      type: object
+      required:
+        - id
+        - title
+        - purpose
+        - primary_domain
+        - tasks
+        - output_contract
+        - constraints
+        - quality_gates
+        - routing
+      properties:
+        id:
+          type: string
+          pattern: "^role\\.[a-z0-9_\\.]{3,80}$"
+        title:
+          type: string
+        purpose:
+          type: string
+        primary_domain:
+          type: string
+          enum: [governance, engineering, security, data, operations, product]
+        tasks:
+          type: array
+          minItems: 1
+          items:
+            type: string
+            pattern: "^[a-z0-9_\\.]{3,120}$"
+        required_capabilities:
+          type: array
+          items:
+            type: string
+            pattern: "^[a-z0-9_\\.]{3,120}$"
+        output_contract:
+          type: object
+          required: [format, strict_json, schema_ref, must_include]
+          properties:
+            format:
+              type: string
+              enum: [json, markdown, diff, code, yaml]
+            strict_json:
+              type: boolean
+            schema_ref:
+              type: string
+              description: "Reference to an output schema enforced by validators."
+            must_include:
+              type: array
+              items: { type: string }
+            prohibited:
+              type: array
+              items: { type: string }
+        constraints:
+          type: object
+          required: [data_handling, determinism, max_hallucination_risk]
+          properties:
+            data_handling:
+              type: object
+              required: [no_egress, pii_policy, retention]
+              properties:
+                no_egress: { type: boolean }
+                pii_policy:
+                  type: string
+                  enum: [none, redact, allow_with_justification]
+                retention:
+                  type: string
+                  enum: [none, ephemeral, audit_log_only]
+            determinism:
+              type: object
+              required: [temperature_max, require_schema_valid_output]
+              properties:
+                temperature_max: { type: number }
+                require_schema_valid_output: { type: boolean }
+            max_hallucination_risk:
+              type: string
+              enum: [low, medium, high]
+            tool_access:
+              type: array
+              items:
+                type: string
+                enum:
+                  [
+                    filesystem_read,
+                    filesystem_write,
+                    shell,
+                    git,
+                    db_read,
+                    db_write,
+                    qdrant_read,
+                    qdrant_write,
+                    none,
+                  ]
+        quality_gates:
+          type: array
+          description: "Named gates CORE must run after the role produces output."
+          items:
+            type: object
+            required: [gate_id, enforcement]
+            properties:
+              gate_id:
+                type: string
+                pattern: "^gate\\.[a-z0-9_\\.]{3,80}$"
+              enforcement:
+                type: string
+                enum: [error, warn, log]
+              params:
+                type: object
+        routing:
+          type: object
+          required: [priority, preferred_model_families, fallback_roles]
+          properties:
+            priority:
+              type: integer
+              minimum: 1
+              maximum: 100
+            preferred_model_families:
+              type: array
+              items:
+                type: string
+                enum:
+                  [
+                    llama,
+                    qwen,
+                    mixtral,
+                    deepseek_coder,
+                    phi,
+                    mistral,
+                    gemma,
+                    other,
+                  ]
+            min_context_tokens:
+              type: integer
+              minimum: 1024
+            fallback_roles:
+              type: array
+              items:
+                type: string
+                pattern: "^role\\.[a-z0-9_\\.]{3,80}$"
+            cost_profile:
+              type: string
+              enum: [cheap, balanced, premium]

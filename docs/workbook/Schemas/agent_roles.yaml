@@ -1,0 +1,253 @@
+# .intent/agent_roles.yaml
+schema_id: schema.agent_roles
+version: "1.0.0"
+roles:
+  - id: role.governance.constitutional_reasoner
+    title: Constitutional Reasoner
+    purpose: Interpret intent/policy, resolve conflicts, and produce binding governance decisions.
+    primary_domain: governance
+    tasks:
+      - governance.policy_interpretation
+      - governance.rule_conflict_resolution
+      - governance.decision_trace_summary
+    required_capabilities:
+      - reasoning.long_horizon
+      - output.schema_strict_json
+      - governance.citation_to_inputs
+    output_contract:
+      format: json
+      strict_json: true
+      schema_ref: schema.governance_decision
+      must_include:
+        [decision, rationale, referenced_policies, constraints, confidence]
+      prohibited: [invented_sources, unverifiable_claims]
+    constraints:
+      data_handling:
+        { no_egress: true, pii_policy: redact, retention: audit_log_only }
+      determinism: { temperature_max: 0.3, require_schema_valid_output: true }
+      max_hallucination_risk: low
+      tool_access: [filesystem_read, qdrant_read, none]
+    quality_gates:
+      - gate_id: gate.json_schema_validate
+        enforcement: error
+      - gate_id: gate.no_unreferenced_claims
+        enforcement: error
+      - gate_id: gate.policy_citation_present
+        enforcement: error
+    routing:
+      priority: 95
+      preferred_model_families: [qwen, llama]
+      min_context_tokens: 8192
+      fallback_roles: [role.governance.policy_executor]
+      cost_profile: premium
+
+  - id: role.governance.policy_executor
+    title: Policy Executor
+    purpose: Convert policies/rules into executable checks, parameters, and evaluation plans.
+    primary_domain: governance
+    tasks:
+      - governance.rule_to_check_translation
+      - governance.enforcement_plan_generation
+      - governance.coverage_gap_detection
+    required_capabilities:
+      - output.schema_strict_json
+      - reasoning.symbolic
+    output_contract:
+      format: json
+      strict_json: true
+      schema_ref: schema.enforcement_plan
+      must_include: [checks, coverage_map, assumptions]
+      prohibited: [code_execution_claims]
+    constraints:
+      data_handling:
+        { no_egress: true, pii_policy: none, retention: audit_log_only }
+      determinism: { temperature_max: 0.2, require_schema_valid_output: true }
+      max_hallucination_risk: low
+      tool_access: [filesystem_read]
+    quality_gates:
+      - gate_id: gate.json_schema_validate
+        enforcement: error
+      - gate_id: gate.checks_have_inputs
+        enforcement: error
+    routing:
+      priority: 85
+      preferred_model_families: [qwen, phi]
+      min_context_tokens: 4096
+      fallback_roles: [role.governance.constitutional_reasoner]
+      cost_profile: balanced
+
+  - id: role.engineering.code_introspector
+    title: Code Introspector
+    purpose: Extract symbols, dependencies, call graphs, and structural facts with minimal hallucination.
+    primary_domain: engineering
+    tasks:
+      - engineering.symbol_extraction
+      - engineering.dependency_analysis
+      - engineering.context_packaging
+    required_capabilities:
+      - reasoning.precise
+      - output.schema_strict_json
+    output_contract:
+      format: json
+      strict_json: true
+      schema_ref: schema.code_introspection_result
+      must_include: [symbols, imports, call_edges, file_facts]
+      prohibited: [fabricated_symbols]
+    constraints:
+      data_handling:
+        { no_egress: true, pii_policy: none, retention: audit_log_only }
+      determinism: { temperature_max: 0.2, require_schema_valid_output: true }
+      max_hallucination_risk: low
+      tool_access: [filesystem_read]
+    quality_gates:
+      - gate_id: gate.json_schema_validate
+        enforcement: error
+      - gate_id: gate.symbols_exist_in_file
+        enforcement: error
+    routing:
+      priority: 90
+      preferred_model_families: [qwen, llama]
+      min_context_tokens: 8192
+      fallback_roles: [role.engineering.refactor_engineer]
+      cost_profile: balanced
+
+  - id: role.engineering.refactor_engineer
+    title: Refactor Engineer
+    purpose: Produce safe, minimal diffs aligned with architecture and governance constraints.
+    primary_domain: engineering
+    tasks:
+      - engineering.refactor_plan
+      - engineering.diff_generation
+      - engineering.architecture_alignment
+    required_capabilities:
+      - coding.refactor
+      - output.diff_generation
+      - reasoning.constraint_satisfaction
+    output_contract:
+      format: diff
+      strict_json: false
+      schema_ref: schema.unified_diff_bundle
+      must_include: [diff, rationale, risk_notes, rollback_plan]
+      prohibited: [untested_claims, unrelated_changes]
+    constraints:
+      data_handling:
+        { no_egress: true, pii_policy: none, retention: audit_log_only }
+      determinism: { temperature_max: 0.3, require_schema_valid_output: false }
+      max_hallucination_risk: medium
+      tool_access: [filesystem_read, filesystem_write, git]
+    quality_gates:
+      - gate_id: gate.diff_applies_cleanly
+        enforcement: error
+      - gate_id: gate.no_unrelated_changes
+        enforcement: error
+      - gate_id: gate.tests_required_if_touching_core_paths
+        enforcement: warn
+    routing:
+      priority: 88
+      preferred_model_families: [deepseek_coder, llama, qwen]
+      min_context_tokens: 8192
+      fallback_roles: [role.engineering.review_auditor]
+      cost_profile: premium
+
+  - id: role.engineering.test_engineer
+    title: Test Engineer
+    purpose: Generate unit/structural tests that match CORE conventions and maximize determinism.
+    primary_domain: engineering
+    tasks:
+      - engineering.test_generation
+      - engineering.fixture_design
+      - engineering.mock_strategy
+    required_capabilities:
+      - coding.testing
+      - reasoning.edge_cases
+      - output.schema_strict_json
+    output_contract:
+      format: code
+      strict_json: false
+      schema_ref: schema.test_module_bundle
+      must_include: [files, rationale, coverage_targets]
+      prohibited: [network_calls, flaky_assertions]
+    constraints:
+      data_handling:
+        { no_egress: true, pii_policy: none, retention: audit_log_only }
+      determinism: { temperature_max: 0.3, require_schema_valid_output: false }
+      max_hallucination_risk: medium
+      tool_access: [filesystem_read, filesystem_write]
+    quality_gates:
+      - gate_id: gate.pytest_collects
+        enforcement: error
+      - gate_id: gate.no_network
+        enforcement: error
+    routing:
+      priority: 80
+      preferred_model_families: [deepseek_coder, qwen, llama]
+      min_context_tokens: 8192
+      fallback_roles: [role.engineering.review_auditor]
+      cost_profile: balanced
+
+  - id: role.engineering.review_auditor
+    title: Review Auditor
+    purpose: Detect architectural violations, policy violations, risky diffs, and hidden coupling.
+    primary_domain: engineering
+    tasks:
+      - engineering.pr_review
+      - governance.enforcement_review
+      - engineering.risk_assessment
+    required_capabilities:
+      - reasoning.adversarial
+      - governance.constraint_checking
+    output_contract:
+      format: markdown
+      strict_json: false
+      schema_ref: schema.review_report
+      must_include: [findings, severity, evidence, recommended_actions]
+      prohibited: [speculation_without_evidence]
+    constraints:
+      data_handling:
+        { no_egress: true, pii_policy: none, retention: audit_log_only }
+      determinism: { temperature_max: 0.2, require_schema_valid_output: false }
+      max_hallucination_risk: low
+      tool_access: [filesystem_read, git]
+    quality_gates:
+      - gate_id: gate.findings_have_evidence
+        enforcement: error
+    routing:
+      priority: 92
+      preferred_model_families: [qwen, llama, mixtral]
+      min_context_tokens: 8192
+      fallback_roles: [role.governance.constitutional_reasoner]
+      cost_profile: balanced
+
+  - id: role.operations.triage_controller
+    title: Triage Controller
+    purpose: Rapidly classify failures, decide next action, and route to correct role with minimal context.
+    primary_domain: operations
+    tasks:
+      - operations.failure_triage
+      - operations.next_action_routing
+      - operations.log_summarization
+    required_capabilities:
+      - reasoning.fast
+      - output.schema_strict_json
+    output_contract:
+      format: json
+      strict_json: true
+      schema_ref: schema.triage_decision
+      must_include:
+        [classification, likely_root_causes, next_role, required_inputs]
+      prohibited: [long_speculation]
+    constraints:
+      data_handling:
+        { no_egress: true, pii_policy: none, retention: audit_log_only }
+      determinism: { temperature_max: 0.2, require_schema_valid_output: true }
+      max_hallucination_risk: low
+      tool_access: [filesystem_read, none]
+    quality_gates:
+      - gate_id: gate.json_schema_validate
+        enforcement: error
+    routing:
+      priority: 100
+      preferred_model_families: [phi, qwen]
+      min_context_tokens: 2048
+      fallback_roles: [role.engineering.review_auditor]
+      cost_profile: cheap
