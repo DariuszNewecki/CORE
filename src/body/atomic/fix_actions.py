@@ -5,10 +5,6 @@ Atomic Fix Actions - Code Remediation
 
 Each action does ONE thing and returns ActionResult.
 Actions are composable, auditable, and constitutionally governed.
-
-CONSTITUTIONAL COMPLIANCE:
-- Enforces governance.logic_mutation.governed by using FileHandler.
-- Uses ActionExecutor Gateway logic for all mutations.
 """
 
 from __future__ import annotations
@@ -44,7 +40,6 @@ logger = getLogger(__name__)
     policies=["code_quality_standards"],
     impact_level="safe",
 )
-# ID: a1b2c3d4-e5f6-7890-abcd-ef1234567890
 @atomic_action(
     action_id="format.code",
     intent="Atomic action for action_format_code",
@@ -57,8 +52,9 @@ async def action_format_code(write: bool = False) -> ActionResult:
     Format code using Black and Ruff.
     """
     start = time.time()
-    # format_code() takes no parameters, uses global settings
-    format_code()
+
+    # CONSTITUTIONAL FIX: Pass the write flag to the service!
+    format_code(write=write)
 
     return ActionResult(
         action_id="fix.format",
