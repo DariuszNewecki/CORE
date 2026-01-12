@@ -14,9 +14,9 @@ NEW PATTERN (Current):
   - Three-phase pipeline: Planning → Specification → Execution
 
 CONSTITUTIONAL FIX:
+- Respects 'write' flag from CLI/Service layer to prevent unauthorized mutations.
 - Removed local 'get_session' import to satisfy 'logic.di.no_global_session'.
 - Leverages the pre-wired 'context_service' from CoreContext (Inversion of Control).
-- Uses context_service property correctly (no hasattr check)
 """
 
 from __future__ import annotations
@@ -76,6 +76,7 @@ async def develop_from_goal(
     goal: str,
     task_id: str | None = None,
     output_mode: str = "direct",
+    write: bool = False,
 ):
     """
     Runs the full, end-to-end autonomous development cycle for a given goal.
@@ -84,8 +85,17 @@ async def develop_from_goal(
     1. Planning (PlannerAgent) → list[ExecutionTask]
     2. Specification (SpecificationAgent) → DetailedPlan with code
     3. Execution (ExecutionAgent) → ExecutionResults
+
+    Args:
+        session: Database session for task tracking.
+        context: The central CoreContext providing system services.
+        goal: The natural language objective.
+        task_id: Optional ID for tracking in core.tasks.
+        output_mode: 'direct' to apply changes, 'crate' to package them.
+        write: CRITICAL: If False, the cycle runs as a Dry Run (no FS mutation).
     """
     logger.info("🚀 Starting autonomous development cycle for goal: %s", goal)
+    logger.info("   [Mode: %s | Write: %s]", output_mode, write)
 
     # Update task status if tracking
     if task_id and session:
@@ -95,7 +105,7 @@ async def develop_from_goal(
         await session.commit()
 
     # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    # PHASE 0: RECONNAISSANCE (Optional - Build Context)
+    # PHASE 0: RECONNAISSANCE (Build Context)
     # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
     context_report = ""
@@ -103,16 +113,13 @@ async def develop_from_goal(
     try:
         logger.debug("Building graph-aware context for goal...")
 
-        # CONSTITUTIONAL FIX: We use the context_service property on CoreContext.
-        # This service is already initialized at the Sanctuary (API/CLI entry)
-        # with the correct session factory. No local 'get_session' import needed.
+        # We use the context_service property on CoreContext (Inversion of Control)
         context_service = context.context_service
 
         context_packet = await context_service.build_for_task(
             {
                 "task_id": task_id or "autonomous_dev",
-                # CONSTITUTIONAL FIX: Changed to "code_modification" to satisfy DB constraint
-                "task_type": "fix",
+                "task_type": "code_modification",
                 "summary": goal,
                 "scope": {"traversal_depth": 2},
             },
@@ -140,12 +147,11 @@ async def develop_from_goal(
     # Get cognitive service from CoreContext (already initialized)
     cognitive_service = context.cognitive_service
 
-    # Get Qdrant from registry if available (respects singleton pattern)
+    # Get Qdrant from registry if available
     qdrant_service = None
     try:
         if context.registry:
             qdrant_service = await context.registry.get_qdrant_service()
-            logger.debug("Qdrant service resolved via Registry")
     except Exception as e:
         logger.debug("Qdrant not available (optional): %s", e)
 
@@ -154,22 +160,12 @@ async def develop_from_goal(
 
     # 2. CoderAgent (for SpecificationAgent)
     prompt_pipeline = PromptPipeline(context.git_service.repo_path)
-
-    # Get ContextService via property (triggers factory if needed)
-    # CONSTITUTIONAL: Use property access, not hasattr check
-    context_service_for_codegen = None
-    try:
-        context_service_for_codegen = context.context_service
-        logger.debug("ContextService available for enriched code generation")
-    except Exception as e:
-        logger.debug("ContextService not available: %s", e)
-
     coder_agent = CoderAgent(
         cognitive_service=cognitive_service,
         prompt_pipeline=prompt_pipeline,
         auditor_context=context.auditor_context,
         qdrant_service=qdrant_service,
-        context_service=context_service_for_codegen,  # NEW: Enable context-enriched generation
+        context_service=context.context_service,
     )
 
     # 3. SpecificationAgent (Engineer)
@@ -179,14 +175,14 @@ async def develop_from_goal(
     )
 
     # 4. ExecutionAgent (Contractor)
+    # CONSTITUTIONAL FIX: We pass the 'write' intent here.
     action_executor = ActionExecutor(context)
-    exec_agent = ExecutionAgent(action_executor)
+    exec_agent = ExecutionAgent(action_executor, write=write)
 
     # 5. AutonomousWorkflowOrchestrator (General Contractor)
+    # CONSTITUTIONAL FIX: We pass the 'write' intent here.
     orchestrator = AutonomousWorkflowOrchestrator(
-        planner=planner,
-        spec_agent=spec_agent,
-        exec_agent=exec_agent,
+        planner=planner, spec_agent=spec_agent, exec_agent=exec_agent, write=write
     )
 
     logger.info("✅ All specialists initialized")

@@ -12,14 +12,9 @@ Orchestrates the complete A3 autonomous development loop:
 5. Feedback (Recursion) -> Error Analysis and Retry (Max 3)
 6. Construction (ExecutionAgent) -> Production Application
 
-UNIX Philosophy:
-- Does ONE thing: Manages the lifecycle, retry logic, and phase transitions.
-- Delegates all "Thinking" to Agents and all "Doing" to the Body.
-
-Constitutional Alignment:
-- A3 Maturity: Forbids direct writes; requires successful Canary Trial.
-- Headless: No terminal UI; communicates via standard logger and ActionResults.
-- Traceable: Every retry and trial failure is booked in the DecisionTracer.
+CONSTITUTIONAL FIX:
+- Propagates 'write' intent to the ExecutionAgent to prevent unauthorized mutations.
+- Enforces the 'Human-in-the-Loop' consent boundary.
 """
 
 from __future__ import annotations
@@ -52,16 +47,30 @@ class AutonomousWorkflowOrchestrator:
         planner: PlannerAgent,
         spec_agent: SpecificationAgent,
         exec_agent: ExecutionAgent,
+        write: bool = False,
     ):
         """
         Initialize the orchestrator with specialist agents.
+
+        Args:
+            planner: The Architect (Will).
+            spec_agent: The Engineer (Will).
+            exec_agent: The Contractor (Body).
+            write: CRITICAL: Human intent flag. If False, construction is simulated.
         """
         self.planner = planner
         self.spec_agent = spec_agent
         self.exec_agent = exec_agent
+        self.write = write
         self.tracer = DecisionTracer()
 
-        logger.info("AutonomousWorkflowOrchestrator initialized for A3 Specialist Mode")
+        # CONSTITUTIONAL FIX: Synchronize the Contractor's permission with Orchestrator intent.
+        self.exec_agent.write = write
+
+        logger.info(
+            "AutonomousWorkflowOrchestrator initialized [A3 Mode | Write: %s]",
+            self.write,
+        )
 
     # ID: b2c3d4e5-f678-90ab-cdef-0123456789ab
     async def execute_autonomous_goal(
@@ -148,7 +157,12 @@ class AutonomousWorkflowOrchestrator:
                 break  # Exit loop, the blueprint is proven safe!
             else:
                 logger.warning("❌ CANARY TRIAL FAILED.")
-                last_trial_feedback = f"TRIAL EVIDENCE: Your previous code failed the audit. Findings: {trial_report}"
+                last_trial_feedback = (
+                    f"### TRIAL EVIDENCE\n"
+                    f"Your previous code generation failed the constitutional audit in the sandbox.\n"
+                    f"FINDINGS: {trial_report}\n\n"
+                    f"TASK: Fix the code so it passes the audit while achieving the goal."
+                )
 
                 self.tracer.record(
                     agent="Orchestrator",
@@ -185,6 +199,7 @@ class AutonomousWorkflowOrchestrator:
 
         try:
             # The 'Contractor' applies the 'Proven Blueprint' to the production 'Body'
+            # Respects self.write inside the agent's logic.
             execution_results = await self.exec_agent.execute_plan(final_blueprint)
 
             duration = time.time() - workflow_start_time
@@ -198,7 +213,9 @@ class AutonomousWorkflowOrchestrator:
                 metadata={
                     "attempts": attempts,
                     "canary_validated": True,
-                    "final_status": "applied_after_trial",
+                    "final_status": (
+                        "applied_after_trial" if self.write else "dry_run_validated"
+                    ),
                 },
             )
 

@@ -1,10 +1,11 @@
 # src/will/agents/execution_agent.py
+# ID: 4b9a28f4-6c4d-4a5e-8f7c-9d0e1b2a3c4d
 
 """
 The ExecutionAgent (Contractor): Executes validated code blueprints.
 
-FIXED: Now skips steps that failed code generation instead of trying to execute them.
-CONSTITUTIONAL FIX: Corrected runtime imports for atomic_action and ActionImpact.
+CONSTITUTIONAL FIX: Respects the 'write' flag from the orchestrator instead
+of hardcoding write=True. Ensures dry-runs remain non-destructive.
 """
 
 from __future__ import annotations
@@ -31,20 +32,25 @@ class ExecutionAgent:
     """
     The Contractor: Executes validated code blueprints.
 
-    FIXED: Skips steps that failed code generation.
+    Skips steps that failed code generation and enforces
+    constitutional write-permission boundaries.
     """
 
-    def __init__(self, executor: ActionExecutor):
+    def __init__(self, executor: ActionExecutor, write: bool = False):
         """
         Initialize the ExecutionAgent.
 
         Args:
             executor: The ActionExecutor (The Body's Gateway).
+            write: Whether to apply changes (True) or simulate (False).
         """
         self.executor = executor
+        self.write = write
         self.tracer = DecisionTracer()
 
-        logger.info("ExecutionAgent initialized (Contractor Mode)")
+        logger.info(
+            "ExecutionAgent initialized (Contractor Mode: write=%s)", self.write
+        )
 
     # ID: b2c3d4e5-f678-90ab-cdef-0123456789ab
     async def execute_plan(
@@ -53,8 +59,6 @@ class ExecutionAgent:
     ) -> ExecutionResults:
         """
         Execute a DetailedPlan step-by-step.
-
-        This assumes the plan has already passed a Canary Trial in the sandbox.
         """
         start_time = time.time()
 
@@ -76,7 +80,7 @@ class ExecutionAgent:
                 step.description,
             )
 
-            # FIXED: Skip steps that failed code generation
+            # Check if Step was marked as failed during Engineering phase
             if step.metadata.get("generation_failed", False):
                 error_msg = step.metadata.get("error", "Code generation failed")
                 logger.warning(
@@ -95,14 +99,10 @@ class ExecutionAgent:
                 results.append(result)
                 failure_count += 1
 
-                # Mark as critical to stop execution
                 if step.is_critical:
                     aborted_at_step = i
-                    logger.error(
-                        "⛔ Critical step failed during generation. Aborting construction."
-                    )
+                    logger.error("⛔ Critical step failed during generation. Aborting.")
                     break
-
                 continue
 
             # Execution via Constitutional Gateway
@@ -111,23 +111,19 @@ class ExecutionAgent:
 
             if result.ok:
                 success_count += 1
-                logger.info("    → ✅ Applied successfully.")
+                logger.info("    → ✅ Step outcome: Success")
             else:
                 failure_count += 1
                 error = result.data.get("error", "Unknown error")
                 logger.error("    → ❌ Step failed: %s", error)
 
-                # CONSTITUTIONAL SAFETY: Abort on critical failure to prevent corruption
+                # CONSTITUTIONAL SAFETY: Abort on critical failure
                 if step.is_critical:
                     aborted_at_step = i
-                    logger.error(
-                        "⛔ Critical step failed. Aborting construction for safety."
-                    )
+                    logger.error("⛔ Critical step failed. Aborting construction.")
                     break
 
         duration = time.time() - start_time
-
-        # Final Summary for the result object
         metadata = {
             "completed_successfully": failure_count == 0,
             "total_duration_sec": duration,
@@ -145,7 +141,6 @@ class ExecutionAgent:
             duration,
         )
 
-        # Record the construction phase outcome
         self.tracer.record(
             agent="ExecutionAgent",
             decision_type="plan_execution",
@@ -155,7 +150,7 @@ class ExecutionAgent:
                 "steps": len(results),
                 "success": success_count,
                 "fail": failure_count,
-                "aborted": aborted_at_step is not None,
+                "write_mode": self.write,
             },
             confidence=1.0 if failure_count == 0 else 0.4,
         )
@@ -184,11 +179,10 @@ class ExecutionAgent:
         Invokes the ActionExecutor for a single atomic action.
         """
         try:
-            # All mutations flow through this Gateway (Mind/Body boundary)
-            # 'write=True' is used here because the decision was validated by the Trial.
+            # CONSTITUTIONAL FIX: Use self.write instead of hardcoded True
             result = await self.executor.execute(
                 action_id=step.action,
-                write=True,
+                write=self.write,
                 **step.params,
             )
 
@@ -196,8 +190,6 @@ class ExecutionAgent:
 
         except Exception as e:
             logger.error("Execution Exception in step %d: %s", step_number, e)
-
-            # Return a failed ActionResult to keep the pipeline stable
             return ActionResult(
                 action_id=step.action,
                 ok=False,
