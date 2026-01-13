@@ -3,12 +3,16 @@
 Metadata-related self-healing commands for the 'fix' CLI group.
 
 Provides:
-- fix ids
+- fix ids (Assign stable UUIDs)
 - fix purge-legacy-tags
 - fix policy-ids
-- fix tags
+- fix tags (Capability tagging)
 - fix duplicate-ids
 - fix placeholders
+
+CONSTITUTIONAL ALIGNMENT:
+- Removed legacy error decorators to prevent circular imports.
+- Orchestrates metadata health via governed atomic actions.
 """
 
 from __future__ import annotations
@@ -35,10 +39,10 @@ from shared.cli_utils import core_command
 from shared.context import CoreContext
 from shared.infrastructure.database.session_manager import get_session
 
+# We only import the App and Console from the local hub
 from . import (
     console,
     fix_app,
-    handle_command_errors,
 )
 
 
@@ -57,7 +61,6 @@ async def fix_ids_internal(context: CoreContext, write: bool = False) -> ActionR
     start_time = time.time()
 
     try:
-        # Note: assign_missing_ids now returns the count of IDs fixed
         total_assigned = await assign_missing_ids(context, write=write)
 
         return ActionResult(
@@ -65,7 +68,7 @@ async def fix_ids_internal(context: CoreContext, write: bool = False) -> ActionR
             ok=True,
             data={
                 "ids_assigned": total_assigned,
-                "files_processed": 1 if total_assigned > 0 else 0,  # Heuristic for now
+                "files_processed": 1 if total_assigned > 0 else 0,
                 "dry_run": not write,
                 "mode": "write" if write else "dry-run",
             },
@@ -130,7 +133,6 @@ async def fix_duplicate_ids_internal(
 @fix_app.command(
     "ids", help="Assigns a stable '# ID: <uuid>' to all untagged public symbols."
 )
-@handle_command_errors
 @core_command(dangerous=True, confirmation=False)
 # ID: 444bd442-cc5b-4f7a-a3d4-392ccf86e7be
 @atomic_action(
@@ -157,7 +159,6 @@ async def assign_ids_command(
     "purge-legacy-tags",
     help="Removes obsolete tag formats (e.g. old 'Tag:' or 'Metadata:' lines).",
 )
-@handle_command_errors
 @core_command(dangerous=True, confirmation=True)
 # ID: c7d68d69-bfaa-477c-a2f8-2d5a5457906a
 async def purge_legacy_tags_command(
@@ -177,7 +178,6 @@ async def purge_legacy_tags_command(
     "policy-ids",
     help="Assigns missing IDs to policy files in .intent/charter/policies/.",
 )
-@handle_command_errors
 @core_command(dangerous=True, confirmation=True)
 # ID: 31c08316-abc6-49ba-babd-938dfc0cdb09
 async def fix_policy_ids_command(
@@ -203,7 +203,6 @@ async def fix_policy_ids_command(
     "tags",
     help="Tags untagged capabilities by calling the capability-tagging service.",
 )
-@handle_command_errors
 @core_command(dangerous=True, confirmation=True)
 # ID: 54686122-b1d1-44a3-8aa6-20daacc94e01
 async def fix_tags_command(
@@ -228,7 +227,6 @@ async def fix_tags_command(
     "duplicate-ids",
     help="Resolves duplicate IDs by regenerating fresh UUIDs for conflicts.",
 )
-@handle_command_errors
 @core_command(dangerous=True, confirmation=True)
 # ID: 57c9e35a-4813-421f-89e5-7e0ef736efc2
 @atomic_action(
@@ -254,7 +252,6 @@ async def fix_duplicate_ids_command(
     "placeholders",
     help="Automated replacement of forbidden placeholders (FUTURE, pending, none).",
 )
-@handle_command_errors
 @core_command(dangerous=True, confirmation=True)
 # ID: b1c2d3e4-f5a6-7890-abcd-ef1234567890
 @atomic_action(

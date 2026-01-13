@@ -3,31 +3,33 @@
 """
 Automated Modularity Healing.
 Connects Modularity Diagnostics to the A3 Autonomous Loop.
+
+CONSTITUTIONAL ALIGNMENT:
+- Removed legacy error decorators to prevent circular imports.
+- Triggers autonomous architectural improvement via develop_from_goal.
 """
 
 from __future__ import annotations
 
 import typer
-from rich.console import Console
 from rich.table import Table
 
 from shared.cli_utils import core_command
 from shared.context import CoreContext
 
-from . import fix_app, handle_command_errors
-
-
-console = Console()
+# We only import the App and Console from the local hub
+from . import console, fix_app
 
 
 @fix_app.command("modularity", help="Autonomously modularize architectural offenders.")
-@handle_command_errors
 @core_command(dangerous=True, confirmation=True)
 # ID: d958ae30-2f04-4924-ada2-41b95a1f9a1e
 async def fix_modularity_cmd(
     ctx: typer.Context,
     min_score: float = typer.Option(
-        65.0, "--score", help="Minimum score to trigger healing"
+        None,
+        "--score",
+        help="Minimum score to trigger healing (defaults to Constitution)",
     ),
     limit: int = typer.Option(
         1, "--limit", "-n", help="Max files to heal in one batch"

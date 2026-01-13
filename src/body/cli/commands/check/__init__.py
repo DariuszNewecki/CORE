@@ -1,6 +1,10 @@
 # src/body/cli/commands/check/__init__.py
 """
 Check command group - Constitutional compliance verification.
+
+This module orchestrates the registration of all read-only validation
+and health checks. It has been cleaned to remove transitional V1/V2
+hybrid audit commands.
 """
 
 from __future__ import annotations
@@ -8,14 +12,14 @@ from __future__ import annotations
 import typer
 
 
-# Create command group
+# Create the main command group
 check_app = typer.Typer(
     help="Read-only validation and health checks.", no_args_is_help=True
 )
 
 
 def _register_rule_commands():
-    """Register rule commands."""
+    """Register specific rule-based audit commands."""
     import body.cli.commands.check.rule as rule_module
 
     for attr_name in dir(rule_module):
@@ -26,7 +30,12 @@ def _register_rule_commands():
 
 
 def _register_audit_commands():
-    """Register audit commands."""
+    """
+    Register core audit commands.
+
+    V2 ALIGNMENT: Removed 'audit-v2' and 'audit-hybrid' as the
+    primary 'audit' command is now fully unified.
+    """
     import body.cli.commands.check.audit as audit_module
 
     for attr_name in dir(audit_module):
@@ -34,14 +43,11 @@ def _register_audit_commands():
         if callable(attr) and hasattr(attr, "__name__"):
             if attr.__name__ == "audit_cmd":
                 check_app.command("audit")(attr)
-            elif attr.__name__ == "audit_v2_cmd":
-                check_app.command("audit-v2")(attr)
-            elif attr.__name__ == "audit_hybrid_cmd":
-                check_app.command("audit-hybrid")(attr)
+                break
 
 
 def _register_quality_commands():
-    """Register quality commands."""
+    """Register general code quality and system health commands."""
     import body.cli.commands.check.quality as quality_module
 
     for attr_name in dir(quality_module):
@@ -56,7 +62,7 @@ def _register_quality_commands():
 
 
 def _register_diagnostic_commands():
-    """Register diagnostic commands."""
+    """Register deep diagnostic and contract verification commands."""
     import body.cli.commands.check.diagnostics_commands as diag_module
 
     for attr_name in dir(diag_module):
@@ -69,7 +75,7 @@ def _register_diagnostic_commands():
 
 
 def _register_quality_gates_commands():
-    """Register quality gates commands."""
+    """Register automated industry-standard quality gates."""
     import body.cli.commands.check.quality_gates as qg_module
 
     for attr_name in dir(qg_module):
@@ -83,7 +89,7 @@ def _register_quality_gates_commands():
             break
 
 
-# Register all commands
+# Trigger all registrations
 _register_audit_commands()
 _register_rule_commands()
 _register_quality_commands()

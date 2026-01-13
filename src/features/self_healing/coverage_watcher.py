@@ -1,13 +1,12 @@
 # src/features/self_healing/coverage_watcher.py
+# ID: c75a7281-9bb9-4c03-8dcf-2eb38c36f9a8
 
 """
 Constitutional coverage watcher that monitors for violations and triggers
 autonomous remediation when coverage falls below the minimum threshold.
 
-CONSTITUTIONAL FIX:
-- Aligned with 'governance.artifact_mutation.traceable'.
-- Replaced direct Path writes with governed FileHandler mutations.
-- Uses central FileHandler to ensure state persistence is auditable.
+MODERNIZATION: Updated to use the settings.paths (PathResolver) standard
+instead of the deprecated settings.load() shim.
 """
 
 from __future__ import annotations
@@ -15,6 +14,8 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass
 from datetime import datetime, timedelta
+
+import yaml
 
 from features.self_healing.coverage_remediation_service import remediate_coverage
 from mind.governance.checks.coverage_check import CoverageGovernanceCheck
@@ -47,19 +48,22 @@ class CoverageWatcher:
     """
 
     def __init__(self):
-        self.policy = settings.load(
-            "charter.policies.governance.quality_assurance_policy"
-        )
-        self.checker = CoverageGovernanceCheck()
+        # MODERNIZATION: Resolve policy path via PathResolver (SSOT)
+        try:
+            policy_path = settings.paths.policy("quality_assurance")
+            self.policy = yaml.safe_load(policy_path.read_text(encoding="utf-8"))
+        except Exception as e:
+            logger.warning(
+                "Could not load quality_assurance policy via resolver: %s. Using safe defaults.",
+                e,
+            )
+            self.policy = {}
 
-        # CONSTITUTIONAL FIX: Initialize the governed mutation surface.
-        # FileHandler handles directory creation (mkdir) automatically.
+        self.checker = CoverageGovernanceCheck()
         self.fh = FileHandler(str(settings.REPO_PATH))
 
-        # Use a relative path string for the FileHandler API
+        # Relative path for the governed FileHandler API
         self.state_rel_path = "work/testing/watcher_state.json"
-
-        # We keep the absolute path for read-only checks (which are allowed)
         self.state_file_abs = settings.REPO_PATH / self.state_rel_path
 
     # ID: c0b0acc5-7030-458a-9b5e-45d03e9fe8ee
@@ -71,23 +75,27 @@ class CoverageWatcher:
         """
         logger.info("Constitutional Coverage Watch")
         findings = await self.checker.execute()
+
         if not findings:
             logger.info("Coverage compliant - no action needed")
             self._record_compliant_state()
             return {"status": "compliant", "action": "none", "findings": []}
+
         violation = self._analyze_findings(findings)
-        logger.warning("Constitutional Violation Detected")
-        logger.info("   Current: %s%%", violation.current_coverage)
-        logger.info("   Required: %s%%", violation.required_coverage)
-        logger.info("   Gap: %s%%", abs(violation.delta))
+        logger.warning(
+            "Constitutional Violation Detected: Current %s%% vs Required %s%%",
+            violation.current_coverage,
+            violation.required_coverage,
+        )
+
         if not auto_remediate:
-            logger.warning("Auto-remediation disabled - manual intervention required")
             return {
                 "status": "violation",
                 "action": "manual_required",
                 "violation": violation,
                 "findings": findings,
             }
+
         if self._in_cooldown():
             logger.warning("Remediation in cooldown period - skipping")
             return {
@@ -96,20 +104,24 @@ class CoverageWatcher:
                 "violation": violation,
                 "findings": findings,
             }
-        logger.info("Triggering Autonomous Remediation")
+
+        logger.info("Triggering Autonomous Remediation...")
         try:
-            # Logic kept identical: calls the service-level function
+            # Calls the V2-aligned service (updated in Step 2.4)
             remediation_result = await remediate_coverage(
                 context.cognitive_service, context.auditor_context
             )
             self._record_remediation(violation, remediation_result)
+
+            # Post-remediation verification
             post_findings = await self.checker.execute()
             if not post_findings:
-                logger.info("Remediation successful - coverage restored!")
+                logger.info("✅ Remediation successful - coverage restored!")
                 return {"status": "remediated", "compliant": True}
             else:
-                logger.warning("Partial remediation - some violations remain")
+                logger.warning("⚠️ Partial remediation - some violations remain")
                 return {"status": "partial_remediation", "compliant": False}
+
         except Exception as e:
             logger.error("Remediation failed: %s", e, exc_info=True)
             return {"status": "remediation_failed", "error": str(e)}
@@ -127,7 +139,7 @@ class CoverageWatcher:
                 delta=-75,
                 critical_paths_violated=[],
             )
-        # Using context variable from local scope (shadowing is avoided in findings analysis)
+
         finding_context = main_finding.context or {}
         critical_paths = [
             f.file_path for f in findings if f.check_id == "coverage.critical_path"
@@ -149,13 +161,14 @@ class CoverageWatcher:
             if not last_remediation:
                 return False
             last_time = datetime.fromisoformat(last_remediation)
+
+            # Use settings for cooldown or default to 24h
             cooldown_hours = self.policy.get("coverage_config", {}).get(
                 "remediation_cooldown_hours", 24
             )
             return datetime.now() - last_time < timedelta(hours=cooldown_hours)
-        except Exception as e:
-            logger.debug("Could not check cooldown: %s", e)
-        return False
+        except Exception:
+            return False
 
     def _record_compliant_state(self) -> None:
         try:
@@ -164,7 +177,6 @@ class CoverageWatcher:
                 existing = json.loads(self.state_file_abs.read_text(encoding="utf-8"))
                 state.update(existing)
 
-            # CONSTITUTIONAL FIX: Replace Path.write_text with FileHandler
             self.fh.write_runtime_json(self.state_rel_path, state)
         except Exception as e:
             logger.debug("Could not record state: %s", e)
@@ -183,27 +195,13 @@ class CoverageWatcher:
                         "timestamp": violation.timestamp.isoformat(),
                         "current_coverage": violation.current_coverage,
                         "required_coverage": violation.required_coverage,
-                        "delta": violation.delta,
                     },
                     "last_result": {
                         "status": result.get("status"),
                         "succeeded": result.get("succeeded", 0),
-                        "failed": result.get("failed", 0),
-                        "final_coverage": result.get("final_coverage", 0),
                     },
                 }
             )
-            state.setdefault("remediation_history", []).append(
-                {
-                    "timestamp": violation.timestamp.isoformat(),
-                    "coverage_before": violation.current_coverage,
-                    "coverage_after": result.get("final_coverage", 0),
-                    "tests_generated": result.get("succeeded", 0),
-                }
-            )
-            state["remediation_history"] = state["remediation_history"][-10:]
-
-            # CONSTITUTIONAL FIX: Replace Path.write_text with FileHandler
             self.fh.write_runtime_json(self.state_rel_path, state)
         except Exception as e:
             logger.debug("Could not record remediation: %s", e)
@@ -213,9 +211,6 @@ class CoverageWatcher:
 async def watch_and_remediate(
     context: CoreContext, auto_remediate: bool = True
 ) -> dict:
-    """
-    Public interface for coverage watching.
-    Now requires the CoreContext to be passed in.
-    """
+    """Public interface for coverage watching."""
     watcher = CoverageWatcher()
     return await watcher.check_and_remediate(context, auto_remediate=auto_remediate)

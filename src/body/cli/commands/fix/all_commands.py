@@ -5,7 +5,9 @@ Batch execution command(s) for the 'fix' CLI group.
 Provides:
 - core-admin fix all
 
-Refactored to handle async self-healing services and rule-engine integration.
+CONSTITUTIONAL ALIGNMENT:
+- Removed legacy error decorators to prevent circular imports.
+- Orchestrates Atomic Actions via the Body layer services.
 """
 
 from __future__ import annotations
@@ -31,7 +33,6 @@ from . import (
     COMMAND_CONFIG,
     console,
     fix_app,
-    handle_command_errors,
 )
 from .fix_ir import (
     fix_ir_log,
@@ -40,7 +41,6 @@ from .fix_ir import (
 
 
 @fix_app.command("all", help="Run a curated sequence of self-healing fixes.")
-@handle_command_errors
 @core_command(dangerous=True, confirmation=True)
 # ID: b117261d-e407-4ba8-871c-06982685b34f
 async def run_all_fixes(
@@ -87,34 +87,35 @@ async def run_all_fixes(
 
         # --- Formatting & Style ---
         if name == "code-style":
-            await _step("Formatting code", lambda: format_code())
+            await _step("Formatting code", lambda: format_code(write=write))
 
         # --- Metadata & IDs ---
         elif name == "ids":
             await _step(
                 "Assigning missing IDs",
-                lambda: assign_missing_ids(dry_run=dry_run),
+                lambda: assign_missing_ids(context=core_context, write=write),
             )
 
         elif name == "purge-legacy-tags":
-            # FIXED: Now treated as an async step
             await _step(
                 "Purging legacy tags",
-                lambda: purge_legacy_tags(dry_run=dry_run),
+                lambda: purge_legacy_tags(context=core_context, dry_run=dry_run),
                 is_async=True,
             )
 
         elif name == "policy-ids":
             await _step(
                 "Adding missing policy IDs",
-                lambda: add_missing_policy_ids(dry_run=dry_run),
+                lambda: add_missing_policy_ids(context=core_context, dry_run=dry_run),
+                is_async=True,
             )
 
         # --- Knowledge & Database ---
         elif name == "knowledge-sync":
             if write:
                 async with get_session() as session:
-                    stats = await run_sync_with_db(session)
+                    res_obj = await run_sync_with_db(session)
+                    stats = res_obj.data
                 console.print(
                     f"   -> Scanned: {stats['scanned']}, Updated: {stats['updated']}"
                 )
@@ -122,7 +123,7 @@ async def run_all_fixes(
                 console.print("[yellow]Skipping DB sync in dry-run mode[/yellow]")
 
         elif name == "vector-sync":
-            # ID: 0faf3025-d627-4be9-8caa-07a59867e5c6
+            # ID: cb5aab55-7778-4cdf-9f77-ffc8c221b005
             async def sync_vectors_with_session():
                 async with get_session() as session:
                     return await sync_vectors_async(
@@ -141,7 +142,7 @@ async def run_all_fixes(
         elif name == "db-registry":
             from body.cli.admin_cli import app as main_app
 
-            # ID: ebde7afa-ed88-492a-abd9-7a8b2cab87d7
+            # ID: d405b51b-f22d-4fda-b8a2-7f5f60ed0e9a
             async def sync_with_session():
                 async with get_session() as session:
                     await _sync_commands_to_db(session, main_app)

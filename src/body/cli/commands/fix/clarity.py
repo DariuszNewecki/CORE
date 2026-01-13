@@ -4,6 +4,10 @@
 """
 Clarity and complexity refactoring commands for the 'fix' CLI group.
 UPGRADED TO V2.3: Both commands now use the Universal Adaptive Workflow Pattern.
+
+CONSTITUTIONAL ALIGNMENT:
+- Removed legacy error decorators to prevent circular imports.
+- Uses V2.3 Adaptive Orchestrators for high-resilience refactoring.
 """
 
 from __future__ import annotations
@@ -15,15 +19,14 @@ import typer
 from shared.cli_utils import core_command
 from shared.context import CoreContext
 
+# We only import the App and Console from the local hub
 from . import (
     console,
     fix_app,
-    handle_command_errors,
 )
 
 
 @fix_app.command("clarity", help="Refactors a file for clarity (V2 Adaptive).")
-@handle_command_errors
 @core_command(dangerous=True, confirmation=True)
 # ID: 0047607b-cc16-46dd-82c1-45e3c7277f44
 async def fix_clarity_command(
@@ -36,7 +39,7 @@ async def fix_clarity_command(
     ),
 ) -> None:
     """
-    Uses a V2 Adaptive Loop (Analyze -> Strategize -> Refactor -> Evaluate).
+    Uses a V2.3 Adaptive Loop (Analyze -> Strategize -> Refactor -> Evaluate).
 
     This command will only apply changes if the 'Body' (Evaluator) proves
     that the new code is mathematically less complex or more readable.
@@ -65,7 +68,6 @@ async def fix_clarity_command(
 @fix_app.command(
     "complexity", help="Refactors complex code for better separation of concerns."
 )
-@handle_command_errors
 @core_command(dangerous=True, confirmation=True)
 # ID: f876296e-4f59-4729-871e-b9f14298a4b6
 async def complexity_command(

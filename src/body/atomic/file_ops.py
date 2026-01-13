@@ -3,6 +3,10 @@
 """
 Atomic File Operations - Canonical implementation of filesystem mutations.
 Governed by safe_by_default and constitutional auditing.
+
+V2 ALIGNMENT:
+- Returns the validated code in ActionResult data even during Dry Runs.
+- Enables logic conservation verification in autonomous workflows.
 """
 
 from __future__ import annotations
@@ -40,10 +44,9 @@ logger = getLogger(__name__)
 async def action_read_file(
     file_path: str, core_context: CoreContext, **kwargs
 ) -> ActionResult:
-    """Reads a file from the repository and returns its content in the ActionResult data."""
+    """Reads a file from the repository."""
     start = time.time()
     try:
-        # Resolve path safely
         full_path = core_context.git_service.repo_path / file_path
         if not full_path.exists():
             raise FileNotFoundError(f"File not found: {file_path}")
@@ -82,13 +85,15 @@ async def action_read_file(
 async def action_create_file(
     file_path: str, code: str, core_context: CoreContext, write: bool = False, **kwargs
 ) -> ActionResult:
-    """Creates a file. Enforces pre-flight validation before any bytes touch the disk."""
+    """Creates a file. Enforces pre-flight validation."""
     start = time.time()
     try:
         # 1. Validation (Safe by Default)
         validation_result = await validate_code_async(
             file_path, code, auditor_context=core_context.auditor_context
         )
+
+        # If the code is 'dirty' (constitutional violation), we stop immediately
         if validation_result["status"] == "dirty":
             return ActionResult(
                 action_id="file.create",
@@ -101,17 +106,23 @@ async def action_create_file(
             )
 
         # 2. Apply change if write is requested
+        final_code = validation_result["code"]
         if write:
-            core_context.file_handler.write_runtime_text(
-                file_path, validation_result["code"]
-            )
+            core_context.file_handler.write_runtime_text(file_path, final_code)
             if core_context.git_service.is_git_repo():
                 core_context.git_service.add(file_path)
 
+        # V2 ALIGNMENT FIX:
+        # We always return the 'code' in the result data.
+        # This allows the 'Logic Conservation Gate' to see what was planned.
         return ActionResult(
             action_id="file.create",
             ok=True,
-            data={"path": file_path, "written": write},
+            data={
+                "path": file_path,
+                "written": write,
+                "code": final_code,  # Essential for A3 loop visibility
+            },
             duration_sec=time.time() - start,
             impact=ActionImpact.WRITE_CODE,
         )
@@ -141,5 +152,5 @@ async def action_create_file(
 async def action_edit_file(
     file_path: str, code: str, core_context: CoreContext, write: bool = False, **kwargs
 ) -> ActionResult:
-    """Edits a file. Logic is identical to create but identifies as a FIX."""
+    """Edits a file. Reuses creation logic but identifies as a FIX."""
     return await action_create_file(file_path, code, core_context, write=write)

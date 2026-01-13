@@ -1,13 +1,14 @@
 # src/will/agents/planner_agent.py
+# ID: 31bb8dba-f4d2-426a-8783-d09614085258
 """
 The PlannerAgent is responsible for decomposing a high-level user goal
 into a concrete, step-by-step execution plan that can be carried out
 by the ExecutionAgent.
 
-CONSTITUTIONAL FIX:
+CONSTITUTIONAL ALIGNMENT:
 - Aligned with 'autonomy.reasoning.policy_alignment'.
-- Explicitly loads and injects 'quality_assurance' policy constraints into the planning loop.
-- Satisfies mandatory tracing requirements.
+- MODERNIZATION: Uses PathResolver standard instead of settings.load().
+- FIXED: Correctly handles session acquisition for memory cleanup.
 """
 
 from __future__ import annotations
@@ -15,6 +16,9 @@ from __future__ import annotations
 import json
 import random
 
+import yaml
+
+from body.services.service_registry import service_registry
 from features.self_healing import MemoryCleanupService
 from shared.config import settings
 from shared.logger import getLogger
@@ -54,23 +58,31 @@ class PlannerAgent:
         """
         Creates an execution plan from a user goal and a reconnaissance report.
         """
-        # NEW: Random memory cleanup (10% chance) before planning
+        # SAFE AUTO-CLEANUP: Triggered occasionally to manage system memory
         if random.random() < 0.1:
             try:
-                cleanup_service = MemoryCleanupService(session=None)
+                # Use registry to acquire session without hardcoded imports
+                async with service_registry.session() as session:
+                    cleanup_service = MemoryCleanupService(session=session)
+                    await cleanup_service.cleanup_old_memories(dry_run=False)
             except Exception as e:
-                logger.warning("Memory cleanup trigger failed (non-critical): %s", e)
+                logger.debug("Memory cleanup deferred: %s", e)
 
-        # CONSTITUTIONAL FIX: Explicitly load the Quality Assurance policy.
-        # This satisfies the 'autonomy.reasoning.policy_alignment' rule.
+        # MODERNIZATION: Explicitly load policies via PathResolver
+        qa_constraints = ""
         try:
-            qa_policy = settings.load(
-                "charter.policies.governance.quality_assurance_policy"
+            qa_path = settings.paths.policy("quality_assurance")
+            if qa_path.exists():
+                qa_policy = yaml.safe_load(qa_path.read_text(encoding="utf-8"))
+                rules = qa_policy.get("rules", [])
+                qa_constraints = (
+                    f"\n### Quality Assurance Targets\n{json.dumps(rules, indent=2)}"
+                )
+        except Exception as e:
+            logger.warning("Could not inject QA constraints into plan: %s", e)
+            qa_constraints = (
+                "\n### Quality Assurance Targets\n- Ensure 75%+ test coverage."
             )
-            qa_constraints = f"\n### Quality Assurance Targets\n{json.dumps(qa_policy.get('rules', []), indent=2)}"
-        except Exception:
-            # Fallback if policy is missing during bootstrap
-            qa_constraints = "\n### Quality Assurance Targets\n- Ensure 75%+ test coverage for new logic."
 
         # Enrich the reconnaissance report with QA requirements
         enriched_recon = f"{reconnaissance_report}\n{qa_constraints}"
@@ -79,36 +91,34 @@ class PlannerAgent:
         prompt = build_planning_prompt(goal, self.prompt_template, enriched_recon)
 
         client = await self.cognitive_service.aget_client_for_role("Planner")
+
         for attempt in range(max_retries):
             logger.info(
-                "🧠 Generating step-by-step plan from reconnaissance context..."
+                "🧠 Planning execution steps (Attempt %d/%d)...",
+                attempt + 1,
+                max_retries,
             )
+
             response_text = await client.make_request_async(prompt)
             if response_text:
                 try:
                     plan = parse_and_validate_plan(response_text)
+
+                    # MANDATORY TRACING: Record the final plan decision
                     self.tracer.record(
                         agent=self.__class__.__name__,
                         decision_type="task_execution",
-                        rationale="Executing goal based on input context and QA alignment",
-                        chosen_action=f"Generated execution plan with {len(plan)} steps",
+                        rationale="Decomposed goal into actionable steps based on Constitution and QA standards",
+                        chosen_action=f"Generated plan with {len(plan)} steps",
+                        context={"goal": goal, "steps": len(plan)},
                         confidence=0.9,
                     )
                     return plan
                 except PlanExecutionError as e:
                     logger.warning(
-                        "Plan creation attempt %s failed: %s", attempt + 1, e
+                        "Plan validation failed on attempt %d: %s", attempt + 1, e
                     )
                     if attempt == max_retries - 1:
-                        raise PlanExecutionError(
-                            "Failed to create a valid plan after max retries."
-                        ) from e
+                        raise
 
-        self.tracer.record(
-            agent=self.__class__.__name__,
-            decision_type="task_execution",
-            rationale="Executing goal based on input context",
-            chosen_action="No valid execution plan generated; returning empty list",
-            confidence=0.9,
-        )
         return []

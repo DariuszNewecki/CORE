@@ -18,11 +18,10 @@ import typer
 from shared.cli_utils import core_command
 from shared.logger import getLogger
 
-# CONSTITUTIONAL FIX: Import fix_app so the decorators @fix_app.command work
+# We only import the App and Console from the local hub
 from . import (
     console,
     fix_app,
-    handle_command_errors,
 )
 
 
@@ -73,7 +72,6 @@ def _run_ir_fix(
 
 
 @fix_app.command("ir-triage", help="Initialize or update the incident triage log.")
-@handle_command_errors
 @core_command(dangerous=True, confirmation=False)
 # ID: cfce8395-9fdd-420e-bbaf-4cc18723bd5c
 def fix_ir_triage(
@@ -92,7 +90,6 @@ def fix_ir_triage(
 
 
 @fix_app.command("ir-log", help="Initialize or update the incident response log.")
-@handle_command_errors
 @core_command(dangerous=True, confirmation=False)
 # ID: c3e0e9ae-2e2e-4c7f-ac49-a857d44bfb86
 def fix_ir_log(

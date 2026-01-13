@@ -5,12 +5,7 @@
 Service for automated architectural modularization.
 Translates Modularity Score violations into executable A3 goals.
 
-CONSTITUTIONAL FIX:
-- Propagates 'write' intent to Autonomous Developer.
-- Hardens the AI goal prompt to prevent path-as-code (math) hallucinations.
-- FIXED: Replaced direct 'get_session' import with 'service_registry.session'
-  to satisfy logic.di.no_global_session.
-- ADDED: Logic Conservation Gate to prevent "Refactoring by Deletion".
+This service acts as the 'General Contractor' for modularity health.
 """
 
 from __future__ import annotations
@@ -20,6 +15,7 @@ from typing import Any
 
 from body.services.service_registry import service_registry
 from features.autonomy.autonomous_developer import develop_from_goal
+from mind.governance.enforcement_loader import EnforcementMappingLoader
 from mind.logic.engines.ast_gate.checks.modularity_checks import ModularityChecker
 from shared.config import settings
 from shared.context import CoreContext
@@ -41,14 +37,32 @@ class ModularityRemediationService:
         self.context = context
         self.checker = ModularityChecker()
 
+    def _get_constitutional_threshold(self) -> float:
+        """Retrieves the authoritative 'max_score' from the .intent YAML."""
+        try:
+            loader = EnforcementMappingLoader(settings.REPO_PATH / ".intent")
+            strategy = loader.get_enforcement_strategy(
+                "modularity.refactor_score_threshold"
+            )
+            if strategy and "params" in strategy:
+                return float(strategy["params"].get("max_score", 60.0))
+        except Exception:
+            pass
+        return 60.0
+
     # ID: 1d090cab-0cd5-4bc3-b9a8-5f8f6023b78c
     async def remediate_batch(
-        self, min_score: float = 60.0, limit: int = 5, write: bool = False
+        self, min_score: float | None = None, limit: int = 5, write: bool = False
     ) -> list[dict[str, Any]]:
         """Finds top offenders and heals them sequentially."""
         results = []
 
-        # 1. Get the "Hit List"
+        # Use the YAML threshold if the user didn't provide a specific score
+        target_threshold = (
+            min_score if min_score is not None else self._get_constitutional_threshold()
+        )
+
+        # 1. Gather candidates (The "Hit List")
         candidates = []
         skip_dirs = {
             ".venv",
@@ -60,25 +74,28 @@ class ModularityRemediationService:
             ".pytest_cache",
         }
 
-        for file in settings.REPO_PATH.rglob("*.py"):
+        # Scan production code only
+        src_root = settings.REPO_PATH / "src"
+        for file in src_root.rglob("*.py"):
             if any(skip_dir in file.parts for skip_dir in skip_dirs):
                 continue
 
-            rel_path = file.relative_to(settings.REPO_PATH)
-            if not str(rel_path).startswith("src/"):
-                continue
-
+            # We use the new logic engine to find files above the threshold
             findings = self.checker.check_refactor_score(
-                file, {"max_score": min_score - 0.01}
+                file, {"max_score": target_threshold}
             )
             if findings:
                 candidates.append((file, findings[0]["details"]))
 
+        # Sort by worst score first
         candidates.sort(key=lambda x: x[1]["total_score"], reverse=True)
         to_process = candidates[:limit]
 
         logger.info(
-            "🛠️ Modularity Healing Batch: %d files [Write: %s]", len(to_process), write
+            "🛠️ Modularity Healing Batch: %d files [Write: %s, Threshold: %s]",
+            len(to_process),
+            write,
+            target_threshold,
         )
 
         for file_path, details in to_process:
@@ -92,30 +109,28 @@ class ModularityRemediationService:
         """Heals a single file using the A3 loop."""
         rel_path = str(file_path.relative_to(settings.REPO_PATH))
         start_score = details["total_score"]
-
-        # Measure original logic size (characters)
         original_size = len(file_path.read_text(encoding="utf-8"))
 
-        # CONSTITUTIONAL FIX: Hardened prompt prevents "Math Header" AND "Logic Evaporation"
+        # CONSTITUTIONAL FIX: Precision-engineered AI goal
         auto_goal = (
             f"Modularize {rel_path} to resolve architectural violations.\n"
-            f"IDENTIFIED RESPONSIBILITIES: {', '.join(details['responsibilities'])}\n"
-            f"CURRENT REFACTOR SCORE: {start_score:.1f}\n\n"
+            f"CURRENT MODULARITY DEBT: {start_score:.1f}/100\n"
+            f"IDENTIFIED RESPONSIBILITIES: {', '.join(details['responsibilities'])}\n\n"
             f"CRITICAL CONSTITUTIONAL INSTRUCTIONS:\n"
-            f"1. YOU MUST MIGRATE 100% OF THE EXISTING LOGIC. Truncation is a violation.\n"
-            f"2. EVERY file you create MUST start with a comment header: # path/to/file.py\n"
-            f"3. DO NOT write the path as code (e.g., avoid 'src / features').\n"
-            f"4. All public symbols must have # ID: <uuid> tags.\n"
-            f"5. The total logic volume of the new files must match or exceed the original."
+            f"1. LOGIC CONSERVATION: You must migrate 100% of the existing logic. Truncation is forbidden.\n"
+            f"2. HEADERS: Every file you create MUST start with a comment header like: # path/to/file.py\n"
+            f"3. IDENTITY: All public symbols must have # ID: <uuid> tags.\n"
+            f"4. MATHEMATICAL IMPROVEMENT: The goal is to reduce the debt score by splitting the code into smaller, more cohesive modules."
         )
 
         logger.info(
-            "🚀 Initiating A3 Healing for %s (Score: %.1f)...", rel_path, start_score
+            "🚀 Initiating A3 Healing for %s (Initial Score: %.1f)...",
+            rel_path,
+            start_score,
         )
 
-        # 3. Trigger A3 Developer
+        # 3. Trigger A3 Developer (Planning -> Specification -> Execution)
         async with service_registry.session() as session:
-            # We use 'crate' mode even in direct mode to inspect the result before success
             success, action_res = await develop_from_goal(
                 session=session,
                 context=self.context,
@@ -124,39 +139,48 @@ class ModularityRemediationService:
                 write=write,
             )
 
-        # 4. LOGIC CONSERVATION GATE
+        message = "Autonomous process completed."
+
+        # 4. LOGIC CONSERVATION GATE (The "Anti-Hallucination" Guard)
         if success and isinstance(action_res, dict):
             new_files = action_res.get("files", {})
             total_new_size = sum(len(content) for content in new_files.values())
 
-            # If the new logic is less than 40% of the original size, it's a "Lazy Failure"
+            # If the new code is suspiciously small, the AI likely "cheated" by deleting logic
             if total_new_size < (original_size * 0.4):
                 logger.error(
-                    "❌ REJECTED: Logic Evaporation Detected. New size (%d) is too small vs original (%d).",
+                    "❌ REJECTED: Logic Evaporation Detected. New size (%d chars) vs original (%d chars).",
                     total_new_size,
                     original_size,
                 )
                 success = False
-                message = "Automated logic conservation check failed: Result too small."
+                message = "REJECTED: Result too small (Logic Evaporation)."
             else:
-                message = "Logic conservation verified."
+                logger.info(
+                    "✅ Logic conservation verified (Size: %d chars).", total_new_size
+                )
 
-        # 5. Verify Improvement (Only if it was a real write and passed the gate)
+        # 5. Verify Improvement (Final Audit)
         final_score = start_score
         if success and write:
+            # Re-run the checker on the file to see if the score actually went down
             post_findings = self.checker.check_refactor_score(
                 file_path, {"max_score": 0}
             )
             if post_findings:
                 final_score = post_findings[0]["details"]["total_score"]
-
-        improvement = start_score - final_score
+                improvement = start_score - final_score
+                logger.info(
+                    "📈 Modularity Improvement: %.1f points removed.", improvement
+                )
 
         return {
             "file": rel_path,
             "success": success,
             "start_score": start_score,
             "final_score": final_score,
-            "improvement": improvement,
-            "message": message if not success else "Success",
+            "improvement": start_score - final_score,
+            "message": (
+                message if not success else "✅ Refactoring successfully applied."
+            ),
         }

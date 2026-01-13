@@ -1,10 +1,12 @@
 # src/features/self_healing/coverage_remediation_service.py
+# ID: 32606196-d12a-4480-9add-51b26f30ee22
 
 """
-Enhanced coverage remediation service with configurable generator selection.
+Enhanced coverage remediation service - V2 Adaptive Implementation.
 
-This service routes to either the original or enhanced test generator
-based on configuration, allowing gradual rollout and A/B testing.
+Following the V2 Alignment Roadmap, this service now routes all requests
+through the Enhanced/Adaptive generation path. The legacy monolithic
+V1 FullProjectRemediationService has been removed.
 """
 
 from __future__ import annotations
@@ -12,7 +14,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from features.self_healing.full_project_remediation import FullProjectRemediationService
+from features.self_healing.batch_remediation_service import BatchRemediationService
 from features.self_healing.single_file_remediation import (
     EnhancedSingleFileRemediationService,
 )
@@ -30,52 +32,35 @@ async def remediate_coverage_enhanced(
     auditor_context: AuditorContext,
     target_coverage: int | None = None,
     file_path: Path | None = None,
-    use_enhanced: bool = True,
     max_complexity: str = "MODERATE",
 ) -> dict[str, Any]:
     """
     Enhanced coverage remediation with rich context analysis.
 
-    Args:
-        cognitive_service: AI service for code generation
-        auditor_context: Constitutional audit context
-        target_coverage: Optional target coverage percentage (default: 75)
-        file_path: Optional specific file to remediate (single-file mode)
-        use_enhanced: Whether to use enhanced generator (default: True)
-        max_complexity: Maximum complexity to attempt (SIMPLE/MODERATE/COMPLEX)
-
-    Returns:
-        Remediation results and metrics.
+    If a specific file is provided, it uses surgical remediation.
+    Otherwise, it uses the BatchRemediationService to heal the project
+    prioritizing the lowest coverage areas.
     """
     if file_path:
-        logger.info("Starting enhanced single-file remediation for %s", file_path)
-        if use_enhanced:
-            service = EnhancedSingleFileRemediationService(
-                cognitive_service=cognitive_service,
-                auditor_context=auditor_context,
-                file_path=file_path,
-                max_complexity=max_complexity,
-            )
-            logger.info(
-                "Using EnhancedTestGenerator (max_complexity=%s)", max_complexity
-            )
-        else:
-            from features.self_healing.single_file_remediation import (
-                SingleFileRemediationService,
-            )
-
-            service = SingleFileRemediationService(
-                cognitive_service=cognitive_service,
-                auditor_context=auditor_context,
-                file_path=file_path,
-            )
-            logger.info("Using original TestGenerator")
+        logger.info("Starting V2 single-file remediation for: %s", file_path)
+        service = EnhancedSingleFileRemediationService(
+            cognitive_service=cognitive_service,
+            auditor_context=auditor_context,
+            file_path=file_path,
+            max_complexity=max_complexity,
+        )
         return await service.remediate()
-    logger.info("Starting full-project remediation (using original implementation)")
-    service = FullProjectRemediationService(cognitive_service, auditor_context)
-    if target_coverage is not None:
-        service.config["minimum_threshold"] = target_coverage
-    return await service.remediate()
+
+    # V2 ALIGNMENT: Project-wide remediation now uses the Batch (prioritized) path
+    logger.info("Starting V2 batch remediation (Target: %s%%)", target_coverage or 75)
+    batch_service = BatchRemediationService(
+        cognitive_service=cognitive_service,
+        auditor_context=auditor_context,
+        max_complexity=max_complexity,
+    )
+
+    # We attempt to heal a batch of files (defaulting to 5 at a time for safety)
+    return await batch_service.process_batch(count=5)
 
 
 async def _remediate_coverage(
@@ -86,15 +71,17 @@ async def _remediate_coverage(
     max_complexity: str = "MODERATE",
 ) -> dict[str, Any]:
     """
-    Default remediation function — now uses enhanced generator.
-
-    This maintains backward compatibility while defaulting to the improved version.
+    Authoritative internal entry point for coverage remediation.
+    Maintained for background watchers (e.g. coverage_watcher.py).
     """
     return await remediate_coverage_enhanced(
         cognitive_service=cognitive_service,
         auditor_context=auditor_context,
         target_coverage=target_coverage,
         file_path=file_path,
-        use_enhanced=True,
         max_complexity=max_complexity,
     )
+
+
+# Alias for external consumers
+remediate_coverage = _remediate_coverage

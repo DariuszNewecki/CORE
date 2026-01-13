@@ -20,6 +20,7 @@ Wiring:
 
 from __future__ import annotations
 
+import ast
 from pathlib import Path
 
 from mind.governance.engine_dispatcher import EngineDispatcher
@@ -162,9 +163,6 @@ class IntentGuard:
 
         Returns:
             (valid, violations) - valid=False if any violations found
-
-        Note: Uses legacy pattern validators during migration period.
-        FUTURE: Migrate pattern validation to constitutional rules.
         """
         _ = component_type  # Unused, kept for API compatibility
 
@@ -183,7 +181,25 @@ class IntentGuard:
 
         violations: list[ViolationReport] = []
 
-        # Legacy pattern validators (FUTURE: migrate to constitutional rules)
+        # FIX FOR STEP 10: Handle V2 Utility patterns.
+        # These are pure logic and only require valid syntax.
+        if pattern_id in ("pure_function", "stateless_utility"):
+            try:
+                ast.parse(code)
+                # If syntax is valid, it passes.
+            except SyntaxError as e:
+                violations.append(
+                    ViolationReport(
+                        rule_name="syntax_error",
+                        path=target_path,
+                        message=f"Syntax error in generated utility: {e}",
+                        severity="error",
+                        source_policy="code_purity",
+                    )
+                )
+                return (False, violations)
+
+        # Legacy pattern validators (for Commands and Actions)
         if pattern_id == "inspect_pattern":
             violations.extend(
                 PatternValidators.validate_inspect_pattern(code, target_path)
@@ -199,7 +215,7 @@ class IntentGuard:
         elif pattern_id == "run_pattern":
             violations.extend(PatternValidators.validate_run_pattern(code, target_path))
 
-        # Path-level enforcement
+        # Path-level enforcement (IDs, Headers, etc.)
         violations.extend(self._check_single_path(abs_target, target_path))
 
         return (len(violations) == 0, violations)

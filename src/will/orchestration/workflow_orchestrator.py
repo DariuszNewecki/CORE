@@ -12,9 +12,10 @@ Orchestrates the complete A3 autonomous development loop:
 5. Feedback (Recursion) -> Error Analysis and Retry (Max 3)
 6. Construction (ExecutionAgent) -> Production Application
 
-CONSTITUTIONAL FIX:
-- Propagates 'write' intent to the ExecutionAgent to prevent unauthorized mutations.
-- Enforces the 'Human-in-the-Loop' consent boundary.
+CONSTITUTIONAL ALIGNMENT:
+- Aligned with 'autonomy.tracing.mandatory' for all A3 decisions.
+- Enforces the 'A3 Trial-and-Error' loop standard.
+- Headless: Uses standard logging only.
 """
 
 from __future__ import annotations
@@ -51,12 +52,6 @@ class AutonomousWorkflowOrchestrator:
     ):
         """
         Initialize the orchestrator with specialist agents.
-
-        Args:
-            planner: The Architect (Will).
-            spec_agent: The Engineer (Will).
-            exec_agent: The Contractor (Body).
-            write: CRITICAL: Human intent flag. If False, construction is simulated.
         """
         self.planner = planner
         self.spec_agent = spec_agent
@@ -64,7 +59,7 @@ class AutonomousWorkflowOrchestrator:
         self.write = write
         self.tracer = DecisionTracer()
 
-        # CONSTITUTIONAL FIX: Synchronize the Contractor's permission with Orchestrator intent.
+        # Constitutional sync: Contractor's permission must match user intent.
         self.exec_agent.write = write
 
         logger.info(
@@ -88,7 +83,7 @@ class AutonomousWorkflowOrchestrator:
         logger.info("=" * 80)
 
         # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        # PHASE 1: ARCHITECTURE (Planning) - Only once
+        # PHASE 1: ARCHITECTURE (Planning)
         # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
         logger.info("📐 PHASE 1: ARCHITECTURE (Planning)")
         try:
@@ -119,30 +114,35 @@ class AutonomousWorkflowOrchestrator:
 
             # PHASE 2: ENGINEERING (Specification)
             try:
-                # Inject failure evidence from the previous trial if it exists
+                # If we have feedback from a previous failed Canary trial, give it to the Engineer
                 if last_trial_feedback:
                     self.spec_agent.update_context(last_trial_feedback)
 
-                # The Engineer produces the Blueprint (DetailedPlan)
+                # Generate code for each step
                 detailed_plan = await self.spec_agent.elaborate_plan(goal, plan)
-                final_blueprint = detailed_plan  # Capture for construction phase
+                final_blueprint = detailed_plan
             except Exception as e:
                 logger.error("❌ Engineering failed: %s", e)
                 last_trial_feedback = f"Engineering Error: {e!s}"
-                # Backtrack to start of loop for retry
                 continue
 
-            # PHASE 2.5: PACKAGING (Staging)
-            # We convert the blueprint into a filesystem transaction (The Crate)
+            # PHASE 2.5: PACKAGING (Crate creation)
+            # Collect files for the Canary to audit
             crate_id = await self._stage_in_crate(goal, final_blueprint)
+
+            # If no files were generated, we skip the Canary and go straight to Execution
+            if crate_id == "no_crate_required":
+                logger.info("No code changes detected. Skipping Canary Trial.")
+                break
+
             if not crate_id:
+                logger.error("❌ Crate packaging failed.")
                 last_trial_feedback = (
-                    "Infrastructure Error: Crate creation failed (Check model/params)."
+                    "Infrastructure Error: Failed to package Intent Crate."
                 )
                 continue
 
-            # PHASE 3: THE TRIAL (Canary Validation)
-            # We run the Audit on the Crate in the sandbox
+            # PHASE 3: THE TRIAL (Canary Sandbox)
             success, trial_report = await self._run_canary_trial(crate_id)
 
             if success:
@@ -154,26 +154,28 @@ class AutonomousWorkflowOrchestrator:
                     chosen_action="Proceed to Final Application",
                     confidence=1.0,
                 )
-                break  # Exit loop, the blueprint is proven safe!
+                break
             else:
                 logger.warning("❌ CANARY TRIAL FAILED.")
+                # Store the audit findings as feedback for the next retry
                 last_trial_feedback = (
-                    f"### TRIAL EVIDENCE\n"
-                    f"Your previous code generation failed the constitutional audit in the sandbox.\n"
-                    f"FINDINGS: {trial_report}\n\n"
-                    f"TASK: Fix the code so it passes the audit while achieving the goal."
+                    f"### CANARY AUDIT FEEDBACK\n"
+                    f"Your generated code failed validation in the sandbox with these errors:\n"
+                    f"{trial_report}\n\n"
+                    f"TASK: Fix the code and try again."
                 )
 
                 self.tracer.record(
                     agent="Orchestrator",
                     decision_type="retry_logic",
                     rationale="Canary trial detected constitutional violations.",
-                    chosen_action="Backtrack to Engineering with Feedback",
+                    chosen_action="Retry Engineering with Trial Evidence",
                     context={"attempt": attempts, "violations": trial_report},
                     confidence=0.5,
                 )
 
                 if attempts == max_attempts:
+                    logger.error("🛑 Max attempts reached. A3 Loop failed.")
                     return self._create_failed_workflow_result(
                         goal,
                         "engineering",
@@ -182,14 +184,13 @@ class AutonomousWorkflowOrchestrator:
                     )
 
         # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        # PHASE 4: CONSTRUCTION (Execution) - Final Application
+        # PHASE 4: CONSTRUCTION (Execution)
         # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        # GUARD: Prevent crash if loop exited without a valid blueprint
         if final_blueprint is None:
             return self._create_failed_workflow_result(
                 goal,
                 "engineering",
-                "Failed to generate a valid blueprint (Step params error).",
+                "Final blueprint missing",
                 time.time() - workflow_start_time,
             )
 
@@ -198,8 +199,7 @@ class AutonomousWorkflowOrchestrator:
         logger.info("-" * 80)
 
         try:
-            # The 'Contractor' applies the 'Proven Blueprint' to the production 'Body'
-            # Respects self.write inside the agent's logic.
+            # The Contractor applying the proven code to production
             execution_results = await self.exec_agent.execute_plan(final_blueprint)
 
             duration = time.time() - workflow_start_time
@@ -212,10 +212,8 @@ class AutonomousWorkflowOrchestrator:
                 total_duration_sec=duration,
                 metadata={
                     "attempts": attempts,
-                    "canary_validated": True,
-                    "final_status": (
-                        "applied_after_trial" if self.write else "dry_run_validated"
-                    ),
+                    "canary_validated": crate_id != "no_crate_required",
+                    "final_status": "completed",
                 },
             )
 
@@ -226,21 +224,19 @@ class AutonomousWorkflowOrchestrator:
             )
 
     async def _stage_in_crate(self, goal: str, detailed_plan: Any) -> str | None:
-        """Calls the Body action to stage the code in an Intent Crate."""
-        logger.info("📦 Staging blueprint in Intent Crate...")
-
-        # Collect generated code from the plan
-        files = {
-            step.params["file_path"]: step.params["code"]
-            for step in detailed_plan.steps
-            if "code" in step.params and step.params.get("file_path")
-        }
+        """Packages generated code into a staging crate."""
+        files = {}
+        for step in detailed_plan.steps:
+            # Safely extract file path and code content
+            file_path = step.params.get("file_path")
+            code = step.params.get("code")
+            if file_path and code:
+                files[file_path] = code
 
         if not files:
-            # If no files need to be written, we don't need a crate
             return "no_crate_required"
 
-        # Route through the Body's ActionExecutor (Governmental Gateway)
+        # Call the Body action to stage the crate
         result = await self.exec_agent.executor.execute(
             action_id="crate.create", write=True, intent=goal, payload_files=files
         )
@@ -248,10 +244,7 @@ class AutonomousWorkflowOrchestrator:
         return result.data.get("crate_id") if result.ok else None
 
     async def _run_canary_trial(self, crate_id: str) -> tuple[bool, str]:
-        """Invokes the CrateProcessingService (The Judge) to audit the crate."""
-        if crate_id == "no_crate_required":
-            return True, "Passed (No code changes)"
-
+        """Runs the constitutional audit on the crate in a sandbox."""
         logger.info("🧪 Sandbox: Proving Crate '%s' safe...", crate_id)
 
         try:
@@ -259,27 +252,28 @@ class AutonomousWorkflowOrchestrator:
 
             processor = CrateProcessingService()
 
-            # The Trial: Copy repo, apply crate, run audit
+            # Execute the sandbox trial
             success, findings = await processor.validate_crate_by_id(crate_id)
 
             if success:
                 return True, "Passed"
 
-            # Format failure messages for the next Engineering attempt
-            return False, " | ".join([f"[{f.check_id}] {f.message}" for f in findings])
+            # Format the findings into a readable string for the feedback loop
+            error_details = " | ".join(
+                [f"[{f.check_id}] {f.message}" for f in findings]
+            )
+            return False, error_details
 
         except Exception as e:
-            return False, f"Trial Infrastructure Error: {e!s}"
+            return False, f"Trial System Error: {e!s}"
 
     def _create_failed_workflow_result(
         self, goal: str, phase: str, error: str, duration: float
     ) -> WorkflowResult:
-        """Helper to create a compliant failure result."""
+        """Helper to create a failed workflow result."""
         from shared.models.workflow_models import DetailedPlan
 
-        # Constitutional Rule: DetailedPlan requires 'failed_at' in metadata if steps are empty
         detailed_plan = DetailedPlan(goal=goal, steps=[], metadata={"failed_at": phase})
-
         fail_res = ActionResult(
             action_id="workflow.failure", ok=False, data={"error": error}
         )
@@ -296,6 +290,7 @@ class AutonomousWorkflowOrchestrator:
             metadata={"error": error, "failed_phase": phase},
         )
 
-    # ID: 33681fc1-7f72-44e0-a77d-83a89d7f5ea0
+    # ID: b27ea6e8-673e-4058-a7e1-879c5e7ac0c2
     async def save_decision_trace(self) -> None:
+        """Save the session's decision trace."""
         await self.tracer.save_trace()

@@ -1,6 +1,6 @@
 {
   "schema_version": "0.2.0",
-  "generated_at_utc": "2026-01-12T17:10:29Z",
+  "generated_at_utc": "2026-01-13T14:17:07Z",
   "source": "core-admin check audit",
   "passed": true,
   "artifacts": {

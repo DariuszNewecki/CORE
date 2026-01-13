@@ -5,9 +5,15 @@ Code style and formatting commands for the 'fix' CLI group.
 Provides:
 - fix code-style (Black + Ruff formatting)
 - fix headers (file header compliance)
+
+CONSTITUTIONAL ALIGNMENT:
+- Logic decoupled from CLI helpers to prevent circular imports.
+- Mutation logic remains in 'internal' functions for Atomic Action use.
 """
 
 from __future__ import annotations
+
+import time
 
 import typer
 
@@ -19,18 +25,13 @@ from shared.cli_utils import core_command
 from shared.config import settings
 from shared.context import CoreContext
 
-from . import (
-    _run_with_progress,
-    console,
-    fix_app,
-    handle_command_errors,
-)
+# We only import the App and Console from the local hub
+from . import console, fix_app
 
 
 @fix_app.command(
     "code-style", help="Auto-format all code to be constitutionally compliant."
 )
-@handle_command_errors
 @core_command(dangerous=False)
 # ID: 227222a1-811d-4fd8-bd32-65329f8414ca
 def format_code_cmd(ctx: typer.Context) -> None:
@@ -38,7 +39,10 @@ def format_code_cmd(ctx: typer.Context) -> None:
     CLI entry point for `fix code-style`.
     Delegates to Black & Ruff via subprocesses.
     """
-    _run_with_progress("Formatting code", format_code)
+    # UI logic is now self-contained to prevent circular imports
+    with console.status("[cyan]Formatting code with Black and Ruff...[/cyan]"):
+        format_code()
+
     console.print("[green]✅ Code formatting completed[/green]")
 
 
@@ -56,8 +60,6 @@ async def fix_headers_internal(
     """
     Core logic for fix headers command. Now uses governed ActionExecutor.
     """
-    import time
-
     start_time = time.time()
 
     try:
@@ -67,7 +69,7 @@ async def fix_headers_internal(
             str(p.relative_to(settings.REPO_PATH)) for p in src_dir.rglob("*.py")
         ]
 
-        # FIXED: _run_header_fix_cycle is now async and requires context
+        # _run_header_fix_cycle is async and requires context
         await _run_header_fix_cycle(
             context, dry_run=not write, all_py_files=all_py_files
         )
@@ -100,7 +102,6 @@ async def fix_headers_internal(
 @fix_app.command(
     "headers", help="Ensures all files have constitutionally compliant headers."
 )
-@handle_command_errors
 @core_command(dangerous=True, confirmation=True)
 # ID: 967c7322-5732-466f-a639-cacbaae425ba
 @atomic_action(
@@ -119,6 +120,5 @@ async def fix_headers_cmd(
     """
     CLI wrapper for fix headers command.
     """
-    # FIXED: Pass CoreContext (ctx.obj)
     with console.status("[cyan]Checking file headers...[/cyan]"):
         return await fix_headers_internal(ctx.obj, write=write)

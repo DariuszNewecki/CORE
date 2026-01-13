@@ -1,5 +1,5 @@
 # src/body/cli/commands/coverage/generation_commands.py
-"""Test generation commands - adaptive and legacy methods."""
+"""Test generation commands - Pure V2 Adaptive Architecture."""
 
 from __future__ import annotations
 
@@ -21,12 +21,14 @@ console = Console()
 
 # ID: 17b95400-ab72-4f44-8a79-64bf75d93a0f
 def register_generation_commands(app: typer.Typer) -> None:
-    """Register test generation commands."""
+    """
+    Register V2 test generation commands.
+
+    LEGACY ELIMINATION: Removed 'accumulate' and 'remediate' commands
+    per Roadmap Phase 2.
+    """
     app.command("generate-adaptive")(generate_adaptive_command)
     app.command("generate-adaptive-batch")(generate_adaptive_batch_command)
-    app.command("accumulate")(accumulate_tests_command)
-    app.command("accumulate-batch")(accumulate_batch_command)
-    app.command("remediate")(remediate_coverage_cmd)
 
 
 @core_command(dangerous=True, confirmation=True)
@@ -254,146 +256,3 @@ async def generate_adaptive_batch_command(
         )
 
     console.print("=" * 80)
-
-
-@core_command(dangerous=True, confirmation=True)
-# ID: 7edff4e6-b383-47b3-8cf1-c502ba9a2d9a
-async def accumulate_tests_command(
-    ctx: typer.Context,
-    file_path: str = typer.Argument(..., help="Source file"),
-    write: bool = typer.Option(False, "--write", help="Persist results to filesystem"),
-) -> None:
-    """
-    (Legacy V1) Generate tests for individual symbols, keeping only what passes.
-    """
-    from features.self_healing.accumulative_test_service import AccumulativeTestService
-
-    core_context: CoreContext = ctx.obj
-    service = AccumulativeTestService(core_context.cognitive_service)
-    result = await service.accumulate_tests_for_file(file_path, write=write)
-
-    console.print("\n[bold]Accumulation Results:[/bold]")
-    console.print(f"  File: {result['file']}")
-    console.print(f"  Success rate: {result['success_rate']:.0%}")
-    console.print(f"  Tests kept: {result['tests_generated']}")
-
-
-@core_command(dangerous=True, confirmation=True)
-# ID: 0d846e3f-843a-463e-9355-f58c3c7bf214
-async def accumulate_batch_command(
-    ctx: typer.Context,
-    pattern: str = typer.Option("src/**/*.py", help="File pattern"),
-    limit: int = typer.Option(10, help="Max files"),
-    write: bool = typer.Option(False, "--write", help="Persist results"),
-) -> None:
-    """
-    (Legacy V1) Run symbol-by-symbol test accumulation across multiple files.
-    """
-    from features.self_healing.accumulative_test_service import AccumulativeTestService
-    from features.self_healing.coverage_analyzer import CoverageAnalyzer
-
-    core_context: CoreContext = ctx.obj
-    service = AccumulativeTestService(core_context.cognitive_service)
-    analyzer = CoverageAnalyzer()
-    coverage_map = analyzer.get_module_coverage()
-
-    all_files = list(settings.REPO_PATH.glob(pattern))
-
-    # ID: 353ee414-4202-490c-8be8-fa6d7942d737
-    def get_coverage_score(file_path: Path) -> float:
-        try:
-            rel = str(file_path.relative_to(settings.REPO_PATH)).replace("\\", "/")
-            return float(coverage_map.get(rel, 0.0))
-        except (ValueError, KeyError):
-            return 0.0
-
-    prioritized_files = sorted(all_files, key=get_coverage_score)[:limit]
-
-    if not prioritized_files:
-        console.print(f"[yellow]No files found matching: {pattern}[/yellow]")
-        return
-
-    console.print(
-        f"[cyan]Processing {len(prioritized_files)} files (Lowest Coverage First)...[/cyan]\n"
-    )
-    total_tests = 0
-    for file_path in prioritized_files:
-        rel_path = file_path.relative_to(settings.REPO_PATH)
-        result = await service.accumulate_tests_for_file(str(rel_path), write=write)
-        total_tests += result.get("tests_generated", 0)
-
-    console.print(
-        f"\n[bold green]Batch Complete! Accumulated {total_tests} new tests.[/bold green]"
-    )
-
-
-@core_command(dangerous=True, confirmation=True)
-# ID: b5a5fd3f-40df-45f5-b590-c0d158a7b7e4
-async def remediate_coverage_cmd(
-    ctx: typer.Context,
-    file: Path = typer.Option(
-        None,
-        "--file",
-        "-f",
-        help="Target specific file for test generation",
-    ),
-    count: int = typer.Option(
-        None,
-        "--count",
-        "-n",
-        help="Number of files to process (batch mode)",
-    ),
-    complexity: str = typer.Option(
-        "moderate",
-        "--complexity",
-        "-c",
-        help="Max complexity: simple, moderate, or complex",
-    ),
-) -> None:
-    """
-    Autonomously generates tests to restore constitutional coverage compliance.
-    (Legacy interface for Batch/Auto remediation)
-    """
-    from features.self_healing.batch_remediation_service import _remediate_batch
-    from features.self_healing.coverage_remediation_service import _remediate_coverage
-
-    core_context: CoreContext = ctx.obj
-    complexity_param = complexity.upper()
-
-    if file and count:
-        console.print("[red]Error: Cannot use both --file and --count[/red]")
-        raise typer.Exit(code=1)
-
-    try:
-        if count:
-            result = await _remediate_batch(
-                cognitive_service=core_context.cognitive_service,
-                auditor_context=core_context.auditor_context,
-                count=count,
-                max_complexity=complexity_param,
-            )
-        else:
-            result = await _remediate_coverage(
-                cognitive_service=core_context.cognitive_service,
-                auditor_context=core_context.auditor_context,
-                target_coverage=None,
-                file_path=file,
-                max_complexity=complexity_param,
-            )
-
-        console.print("\n[bold]📊 Remediation Summary[/bold]")
-        status = result.get("status")
-        if status in ("completed", "success"):
-            console.print(
-                "[bold green]✅ Remediation successfully completed[/bold green]"
-            )
-        else:
-            console.print(
-                f"[bold yellow]⚠️  Remediation finished with status: {status}[/bold yellow]"
-            )
-            if "error" in result:
-                console.print(f"[dim]Detail: {result['error']}[/dim]")
-    except Exception as e:
-        logger.error("Remediation failed: %s", e, exc_info=True)
-        console.print(f"[red]❌ Remediation failed: {e}[/red]")
-        raise typer.Exit(code=1)

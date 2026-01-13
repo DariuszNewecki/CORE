@@ -3,6 +3,9 @@
 Database and vector-related commands for the 'fix' CLI group.
 
 Refactored to use the Constitutional CLI Framework (@core_command).
+CONSTITUTIONAL ALIGNMENT:
+- Removed legacy error decorators to prevent circular imports.
+- Synchronizes local CLI structure and vectors with the Mind (DB/Qdrant).
 """
 
 from __future__ import annotations
@@ -14,17 +17,16 @@ from features.self_healing.sync_vectors import main_async as sync_vectors_async
 from shared.cli_utils import core_command
 from shared.infrastructure.database.session_manager import get_session
 
+# We only import the App and Console from the local hub
 from . import (
     console,
     fix_app,
-    handle_command_errors,
 )
 
 
 @fix_app.command(
     "db-registry", help="Syncs the live CLI command structure to the database."
 )
-@handle_command_errors
 @core_command(dangerous=True, confirmation=False)
 # ID: 9309bc1b-d580-4887-b07d-13eccd137ef7
 async def sync_db_registry_command(ctx: typer.Context) -> None:
@@ -36,14 +38,13 @@ async def sync_db_registry_command(ctx: typer.Context) -> None:
         async with get_session() as session:
             await _sync_commands_to_db(session, main_app)
 
-    console.print("[green]✓ Database registry sync completed[/green]")
+    console.print("[green]✅ Database registry sync completed[/green]")
 
 
 @fix_app.command(
     "vector-sync",
     help="Atomically synchronize vectors between PostgreSQL and Qdrant.",
 )
-@handle_command_errors
 @core_command(dangerous=True, confirmation=True)
 # ID: 52bf74e6-e420-474d-9d8e-057d0d1d7023
 async def fix_vector_sync_command(
@@ -57,20 +58,19 @@ async def fix_vector_sync_command(
     """
     Atomic bidirectional vector synchronization.
     """
-    # Framework handles safety check.
-    # We use the async entry point here.
-
     # Note: dry_run is implicit if write is False
     dry_run = not write
 
     # We inject the qdrant service from context to reuse the connection
-    # core_command guarantees ctx.obj has qdrant_service initialized
     core_context = ctx.obj
 
-    await sync_vectors_async(
-        write=write, dry_run=dry_run, qdrant_service=core_context.qdrant_service
-    )
+    with console.status("[cyan]Synchronizing vector database...[/cyan]"):
+        await sync_vectors_async(
+            session=await get_session().__aenter__(),  # Temporary session for internal use
+            write=write,
+            dry_run=dry_run,
+            qdrant_service=core_context.qdrant_service,
+        )
 
-    # The service prints its own summary, but we add a final confirmation
     if write:
         console.print("[green]✅ Vector synchronization completed[/green]")

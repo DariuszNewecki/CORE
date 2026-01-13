@@ -7,18 +7,23 @@ Constitutional enforcement of modularity rules:
 - Semantic cohesion
 - Import coupling
 - Comprehensive refactor scoring
+
+This module pulls its thresholds directly from the Constitution (.intent).
 """
 
 from __future__ import annotations
+
+from collections.abc import Iterable
+from pathlib import Path
 
 import typer
 from rich.console import Console
 from rich.table import Table
 
+from mind.governance.enforcement_loader import EnforcementMappingLoader
 from mind.logic.engines.ast_gate.checks.modularity_checks import ModularityChecker
 from shared.cli_utils import core_command
 from shared.config import settings
-from shared.context import CoreContext
 from shared.logger import getLogger
 
 
@@ -30,6 +35,51 @@ refactor_app = typer.Typer(
 )
 
 
+def _get_modularity_threshold() -> float:
+    """
+    Retrieves the authoritative 'max_score' from the Constitution.
+    Path: .intent/enforcement/mappings/architecture/modularity.yaml
+    """
+    try:
+        # We look into the 'Mind' (.intent) to find the current law
+        loader = EnforcementMappingLoader(settings.REPO_PATH / ".intent")
+        strategy = loader.get_enforcement_strategy(
+            "modularity.refactor_score_threshold"
+        )
+        if strategy and "params" in strategy:
+            return float(strategy["params"].get("max_score", 60.0))
+    except Exception as e:
+        logger.debug("Could not load modularity threshold from Constitution: %s", e)
+
+    return 60.0  # Safe fallback if the Mind is unreadable
+
+
+def _get_source_files() -> Iterable[Path]:
+    """
+    Standardized file enumerator. Ensures we don't analyze junk/temp folders.
+    """
+    skip_dirs = {
+        ".venv",
+        "venv",
+        ".git",
+        "work",
+        "var",
+        "__pycache__",
+        ".pytest_cache",
+        "tests",
+        "migrations",
+        "reports",
+    }
+    src_root = settings.REPO_PATH / "src"
+    if not src_root.exists():
+        return []
+
+    for file in src_root.rglob("*.py"):
+        if any(part in file.parts for part in skip_dirs):
+            continue
+        yield file
+
+
 @refactor_app.command("analyze")
 @core_command(dangerous=False)
 # ID: f1a2b3c4-d5e6-7a8b-9c0d-1e2f3a4b5c6d
@@ -39,123 +89,99 @@ async def analyze_file(
 ) -> None:
     """
     Analyze a single file for refactoring opportunities.
-
-    Checks:
-    - Responsibility count
-    - Semantic cohesion
-    - Import coupling
-    - Overall refactor score
     """
-    core_context: CoreContext = ctx.obj
     checker = ModularityChecker()
+    target_value = _get_modularity_threshold()
 
-    file = settings.REPO_PATH / file_path
-    if not file.exists():
-        console.print(f"[red]File not found: {file_path}[/red]")
+    # Locate the file on disk
+    target_file = (settings.REPO_PATH / file_path).resolve()
+    if not target_file.exists() or not target_file.is_file():
+        console.print(f"[red]Error: File not found: {file_path}[/red]")
         raise typer.Exit(1)
 
-    console.print(f"[bold cyan]🔍 Analyzing: {file_path}[/bold cyan]\n")
+    console.print(f"[bold cyan]🔍 Analyzing Modularity: {file_path}[/bold cyan]\n")
 
-    # Run all checks
-    params_resp = {"max_responsibilities": 2}
-    params_cohesion = {"min_cohesion": 0.70}
-    params_coupling = {"max_concerns": 3}
-    params_score = {"max_score": 60}
+    # Ask the logic engine for the comprehensive score.
+    # We pass 0 as the 'max_score' param to ensure the logic engine
+    # returns the full data even for healthy files.
+    score_findings = checker.check_refactor_score(target_file, {"max_score": 0})
 
-    resp_findings = checker.check_single_responsibility(file, params_resp)
-    cohesion_findings = checker.check_semantic_cohesion(file, params_cohesion)
-    coupling_findings = checker.check_import_coupling(file, params_coupling)
-    score_findings = checker.check_refactor_score(file, params_score)
-
-    # Display results
-    if not any([resp_findings, cohesion_findings, coupling_findings, score_findings]):
-        console.print("[bold green]✅ No refactoring issues detected[/bold green]")
+    if not score_findings:
+        console.print("[bold green]✅ This file is exceptionally clean.[/bold green]")
         return
 
-    # Build detailed report
-    if score_findings:
-        finding = score_findings[0]
-        details = finding["details"]
-        breakdown = details["breakdown"]
+    details = score_findings[0]["details"]
+    breakdown = details["breakdown"]
+    score = details["total_score"]
 
-        # Header
-        score = details["total_score"]
-        severity = "URGENT" if score > 75 else "HIGH" if score > 60 else "MODERATE"
-        color = "red" if score > 75 else "yellow" if score > 60 else "blue"
+    # --- 80% Gaussian Gauge Logic ---
+    if score > target_value:
+        status = "NON-COMPLIANT"
+        color = "red"
+    elif score > (target_value * 0.8):
+        status = "WARNING: BORDERLINE"
+        color = "yellow"
+    else:
+        status = "COMPLIANT"
+        color = "green"
 
+    console.print(
+        f"[{color}]Status: {status} (Score: {score:.1f} / Target: <{target_value})[/{color}]\n"
+    )
+
+    # Display the score breakdown table
+    table = Table(title="Modularity Breakdown", box=None)
+    table.add_column("Dimension", style="cyan")
+    table.add_column("Impact", justify="right")
+    table.add_column("Max Weight", justify="right")
+
+    table.add_row("Responsibilities", f"{breakdown['responsibilities']:.1f}", "40")
+    table.add_row("Semantic Cohesion", f"{breakdown['cohesion']:.1f}", "25")
+    table.add_row("Dependency Coupling", f"{breakdown['coupling']:.1f}", "20")
+    table.add_row("Code Volume", f"{breakdown['size']:.1f}", "15")
+    table.add_row("[bold]TOTAL DEBT[/bold]", f"[bold]{score:.1f}[/bold]", "100")
+    console.print(table)
+
+    # Detailed Analysis section (Responsibilities)
+    if details.get("responsibilities"):
         console.print(
-            f"[bold {color}]Refactor Score: {score:.1f}/100 ({severity})[/bold {color}]\n"
+            f"\n[bold]Detected Responsibilities ({len(details['responsibilities'])}):[/bold]"
         )
+        for resp in details["responsibilities"]:
+            console.print(f"  ❌ {resp.replace('_', ' ').title()}")
 
-        # Breakdown table
-        table = Table(title="Score Breakdown", box=None)
-        table.add_column("Component", style="cyan")
-        table.add_column("Score", justify="right")
-        table.add_column("Max", justify="right")
-
-        table.add_row(
-            "Responsibilities",
-            f"{breakdown['responsibilities']:.1f}",
-            "40",
+    # Detailed Analysis section (Cohesion & Coupling)
+    if details.get("cohesion", 1.0) < 0.70:
+        console.print(
+            f"\n[bold yellow]⚠️ Low Semantic Cohesion:[/bold yellow] {details['cohesion']:.2f}"
         )
-        table.add_row(
-            "Cohesion",
-            f"{breakdown['cohesion']:.1f}",
-            "25",
+        console.print("  Functions in this file may not belong together logically.")
+
+    if details.get("concern_count", 0) > 3:
+        console.print(
+            f"\n[bold yellow]⚠️ High Coupling:[/bold yellow] touches {details['concern_count']} areas."
         )
-        table.add_row(
-            "Coupling",
-            f"{breakdown['coupling']:.1f}",
-            "20",
+        if details.get("concerns"):
+            console.print(f"  Areas: {', '.join(details['concerns'])}")
+
+    # Logic-driven recommendations
+    console.print("\n[bold green]💡 Recommended Improvements:[/bold green]")
+    if breakdown["responsibilities"] > 20:
+        console.print(
+            "  - [bold]Split Module:[/bold] This file is doing too many things. Extract logic into new files."
         )
-        table.add_row(
-            "Size",
-            f"{breakdown['size']:.1f}",
-            "5",
+    if breakdown["cohesion"] > 12:
+        console.print(
+            "  - [bold]Refine Logic:[/bold] Group related functions more tightly to improve focus."
         )
-        table.add_row(
-            "[bold]TOTAL[/bold]",
-            f"[bold]{score:.1f}[/bold]",
-            "[bold]100[/bold]",
+    if breakdown["coupling"] > 10:
+        console.print(
+            "  - [bold]Decouple:[/bold] Reduce external imports; use 'shared' services instead of direct calls."
         )
-
-        console.print(table)
-        console.print()
-
-        # Responsibilities
-        if details["responsibilities"]:
-            console.print("[bold]Responsibilities Found:[/bold]")
-            for resp in details["responsibilities"]:
-                console.print(f"  ❌ {resp}")
-            console.print()
-
-        # Cohesion
-        if details["cohesion"] < 0.70:
-            console.print(
-                f"[bold]Semantic Cohesion:[/bold] {details['cohesion']:.2f} (min: 0.70)"
-            )
-            console.print("  ⚠️  Functions may not belong together\n")
-
-        # Coupling
-        if details["concerns"]:
-            console.print(
-                f"[bold]Coupling ({len(details['concerns'])} concerns):[/bold]"
-            )
-            for concern in details["concerns"]:
-                console.print(f"  • {concern}")
-            console.print()
-
-        # Suggestion
-        console.print("[bold]💡 Suggested Actions:[/bold]")
-
-        if details["responsibility_count"] > 2:
-            console.print("  1. Split into separate modules by responsibility")
-        if details["cohesion"] < 0.70:
-            console.print("  2. Group related functions into cohesive modules")
-        if len(details["concerns"]) > 3:
-            console.print("  3. Reduce coupling by extracting service layers")
-        if details["lines_of_code"] > 400:
-            console.print("  4. Break large file into smaller, focused modules")
+    if details.get("lines_of_code", 0) > 400:
+        console.print(
+            "  - [bold]Reduce Volume:[/bold] File is physically too long. Move helpers to 'shared/utils'."
+        )
 
 
 @refactor_app.command("suggest")
@@ -164,101 +190,65 @@ async def analyze_file(
 async def suggest_candidates(
     ctx: typer.Context,
     min_score: float = typer.Option(
-        60.0, "--min-score", help="Minimum refactor score to report"
+        None, "--min-score", help="Filter by score (defaults to Constitution limit)"
     ),
-    limit: int = typer.Option(20, "--limit", help="Max candidates to show"),
+    limit: int = typer.Option(10, "--limit", help="Number of files to show"),
 ) -> None:
     """
-    Scan entire codebase for refactoring candidates.
-
-    Sorts by refactor score (highest first) and shows files
-    that exceed the minimum threshold.
+    Rank and suggest files that need refactoring based on current score.
     """
+    target_value = _get_modularity_threshold()
+    filter_score = min_score if min_score is not None else target_value
+
     console.print(
-        f"[bold cyan]🔍 Scanning codebase for refactoring candidates (score >= {min_score})...[/bold cyan]\n"
+        f"[bold cyan]🔍 Scanning Codebase (Target Score: <{target_value})...[/bold cyan]\n"
     )
 
     checker = ModularityChecker()
     candidates = []
 
-    # Directories to skip
-    skip_dirs = {".venv", "venv", ".git", "work", "var", "__pycache__", ".pytest_cache"}
-
-    # Scan all Python files in src/ only
-    for file in settings.REPO_PATH.rglob("*.py"):
-        # Skip if in excluded directories
-        if any(skip_dir in file.parts for skip_dir in skip_dirs):
-            continue
-
-        # Only scan src/ and tests/ directories
-        rel_path = file.relative_to(settings.REPO_PATH)
-        if not (str(rel_path).startswith("src/") or str(rel_path).startswith("tests/")):
-            continue
-
-        # Skip tests for now (focus on src/)
-        if "/tests/" in str(file):
-            continue
-
+    for file in _get_source_files():
         try:
-            findings = checker.check_refactor_score(
-                file,
-                {"max_score": min_score - 0.01},  # Get all above threshold
-            )
-
+            findings = checker.check_refactor_score(file, {"max_score": 0})
             if findings:
-                details = findings[0]["details"]
-                candidates.append(
-                    {
-                        "file": rel_path,
-                        "score": details["total_score"],
-                        "responsibilities": details["responsibility_count"],
-                        "cohesion": details["cohesion"],
-                        "concerns": len(details["concerns"]),
-                        "loc": details["lines_of_code"],
-                    }
-                )
-        except Exception as e:
-            logger.debug("Failed to analyze %s: %s", file, e)
+                data = findings[0]["details"]
+                if data["total_score"] >= filter_score:
+                    candidates.append(
+                        {
+                            "file": file.relative_to(settings.REPO_PATH),
+                            "score": data["total_score"],
+                            "resp": data["responsibility_count"],
+                            "loc": data.get("lines_of_code", 0),
+                        }
+                    )
+        except Exception:
             continue
 
     if not candidates:
         console.print(
-            f"[bold green]✅ No files found with refactor score >= {min_score}[/bold green]"
+            "[bold green]✅ No files found exceeding the modularity threshold.[/bold green]"
         )
         return
 
-    # Sort by score (descending)
+    # Sort so the highest scores (most complex files) are at the top
     candidates.sort(key=lambda x: x["score"], reverse=True)
 
-    # Display table
-    table = Table(title=f"Refactoring Candidates (Top {min(limit, len(candidates))})")
-    table.add_column("File", style="cyan")
+    table = Table(title=f"Refactoring Candidates (Top {limit})")
+    table.add_column("File Path", style="cyan")
     table.add_column("Score", justify="right")
-    table.add_column("Resp", justify="right")
-    table.add_column("Cohesion", justify="right")
-    table.add_column("Concerns", justify="right")
-    table.add_column("LOC", justify="right")
+    table.add_column("Resp.", justify="right")
+    table.add_column("Lines", justify="right")
 
-    for candidate in candidates[:limit]:
-        score = candidate["score"]
-        color = "red" if score > 75 else "yellow" if score > 60 else "blue"
-
+    for c in candidates[:limit]:
+        color = "red" if c["score"] > target_value else "yellow"
         table.add_row(
-            str(candidate["file"]),
-            f"[{color}]{score:.1f}[/{color}]",
-            str(candidate["responsibilities"]),
-            f"{candidate['cohesion']:.2f}",
-            str(candidate["concerns"]),
-            str(candidate["loc"]),
+            str(c["file"]),
+            f"[{color}]{c['score']:.1f}[/{color}]",
+            str(c["resp"]),
+            str(c["loc"]),
         )
 
     console.print(table)
-    console.print(
-        f"\n[dim]Found {len(candidates)} total candidates (showing top {min(limit, len(candidates))})[/dim]"
-    )
-    console.print(
-        "[dim]Use 'core-admin refactor analyze <file>' for detailed analysis[/dim]"
-    )
 
 
 @refactor_app.command("stats")
@@ -266,74 +256,39 @@ async def suggest_candidates(
 # ID: b3c4d5e6-f7a8-9b0c-1d2e-3f4a5b6c7d8e
 async def show_stats(ctx: typer.Context) -> None:
     """
-    Show codebase modularity statistics.
-
-    Provides overview of:
-    - Average refactor score
-    - Distribution of responsibility counts
-    - Cohesion metrics
-    - Coupling distribution
+    Show aggregate codebase modularity health using Gaussian-derived risk tiers.
     """
-    console.print("[bold cyan]📊 Codebase Modularity Statistics[/bold cyan]\n")
+    console.print("[bold cyan]📊 System Modularity Statistics[/bold cyan]\n")
 
     checker = ModularityChecker()
-    all_scores = []
-    resp_counts = []
-    cohesion_scores = []
-    concern_counts = []
+    target_value = _get_modularity_threshold()
+    warning_level = target_value * 0.8  # The 80% mark
 
-    # Analyze all Python files
-    for file in settings.REPO_PATH.rglob("*.py"):
-        if "/tests/" in str(file) or "/migrations/" in str(file):
-            continue
-
+    scores = []
+    for file in _get_source_files():
         try:
-            findings = checker.check_refactor_score(file, {"max_score": 1000})
-
+            findings = checker.check_refactor_score(file, {"max_score": 0})
             if findings:
-                details = findings[0]["details"]
-                all_scores.append(details["total_score"])
-                resp_counts.append(details["responsibility_count"])
-                cohesion_scores.append(details["cohesion"])
-                concern_counts.append(len(details["concerns"]))
+                scores.append(findings[0]["details"]["total_score"])
         except Exception:
             continue
 
-    if not all_scores:
-        console.print("[yellow]No files analyzed[/yellow]")
+    if not scores:
+        console.print("[yellow]No Python files found for analysis.[/yellow]")
         return
 
-    # Calculate stats
-    avg_score = sum(all_scores) / len(all_scores)
-    avg_resp = sum(resp_counts) / len(resp_counts)
-    avg_cohesion = sum(cohesion_scores) / len(cohesion_scores)
-    avg_concerns = sum(concern_counts) / len(concern_counts)
+    avg = sum(scores) / len(scores)
+    high_risk_count = sum(1 for s in scores if s > target_value)
+    warning_count = sum(1 for s in scores if warning_level < s <= target_value)
+    healthy_count = len(scores) - high_risk_count - warning_count
 
-    high_score = sum(1 for s in all_scores if s > 75)
-    medium_score = sum(1 for s in all_scores if 60 < s <= 75)
-    low_score = sum(1 for s in all_scores if s <= 60)
+    console.print(f"Total Files Analyzed : [bold]{len(scores)}[/bold]")
+    console.print(f"Constitutional Target: <{target_value:.1f}")
+    console.print(f"Average System Score : [bold]{avg:.1f}/100[/bold]\n")
 
-    # Display
-    console.print(f"[bold]Files Analyzed:[/bold] {len(all_scores)}\n")
-
-    console.print("[bold]Average Metrics:[/bold]")
-    console.print(f"  Refactor Score: {avg_score:.1f}/100")
-    console.print(f"  Responsibilities: {avg_resp:.1f}")
-    console.print(f"  Cohesion: {avg_cohesion:.2f}")
-    console.print(f"  Concerns: {avg_concerns:.1f}\n")
-
-    console.print("[bold]Score Distribution:[/bold]")
+    console.print("[bold]Health Distribution (80% Gaussian Gauge):[/bold]")
+    console.print(f"  🔴 High Risk (>{target_value:.1f})     : {high_risk_count} files")
     console.print(
-        f"  🔴 High (>75):   {high_score} files ({high_score/len(all_scores)*100:.1f}%)"
+        f"  🟡 Warning ({warning_level:.1f}-{target_value:.1f})  : {warning_count} files"
     )
-    console.print(
-        f"  🟡 Medium (60-75): {medium_score} files ({medium_score/len(all_scores)*100:.1f}%)"
-    )
-    console.print(
-        f"  🟢 Low (<60):    {low_score} files ({low_score/len(all_scores)*100:.1f}%)\n"
-    )
-
-    health = (
-        "good" if avg_score < 50 else "fair" if avg_score < 65 else "needs attention"
-    )
-    console.print(f"[bold]Overall Health:[/bold] {health}")
+    console.print(f"  🟢 Healthy (<{warning_level:.1f})     : {healthy_count} files")

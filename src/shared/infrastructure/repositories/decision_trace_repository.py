@@ -40,7 +40,8 @@ class DecisionTraceRepository:
         """Initialize repository with database session."""
         self.session = session
 
-    # ID: 9e0f1a2b-3c4d-5e6f-7a8b-9c0d1e2f3a4b
+    # ID: 9e0f1a2b-3c4d-5e6f-7a8b-9c0d-1e2f3a4b5c6d
+    # ID: f1746e04-8e4f-4ea9-9678-948ff69793d1
     async def create(
         self,
         session_id: str,
@@ -82,7 +83,8 @@ class DecisionTraceRepository:
             ),
             violation_count=violation_count,
             duration_ms=duration_ms,
-            metadata=metadata or {},
+            extra_metadata=metadata
+            or {},  # FIXED: Map to model column name 'extra_metadata'
         )
 
         self.session.add(trace)
@@ -102,13 +104,15 @@ class DecisionTraceRepository:
         """
         Retrieve decision trace by session ID.
 
-        Args:
-            session_id: Session identifier to look up
-
-        Returns:
-            DecisionTrace if found, None otherwise
+        FIXED: If multiple snapshots exist, returns the most recent one
+        (highest decision count) to prevent MultipleResultsFound error.
         """
-        stmt = select(DecisionTrace).where(DecisionTrace.session_id == session_id)
+        stmt = (
+            select(DecisionTrace)
+            .where(DecisionTrace.session_id == session_id)
+            .order_by(desc(DecisionTrace.decision_count))
+            .limit(1)
+        )
         result = await self.session.execute(stmt)
         return result.scalar_one_or_none()
 

@@ -5,6 +5,10 @@ Import organization commands for the 'fix' CLI group.
 
 Provides:
 - fix imports (Sort and group imports according to PEP 8)
+
+CONSTITUTIONAL ALIGNMENT:
+- Removed legacy error decorators to prevent circular imports.
+- Enforces import organization standards via standard tooling.
 """
 
 from __future__ import annotations
@@ -16,10 +20,10 @@ from shared.atomic_action import atomic_action
 from shared.cli_utils import core_command
 from shared.utils.subprocess_utils import run_poetry_command
 
+# We only import the App and Console from the local hub
 from . import (
     console,
     fix_app,
-    handle_command_errors,
 )
 
 
@@ -27,7 +31,6 @@ from . import (
     "imports",
     help="Sort and group imports according to PEP 8 (stdlib → third-party → local).",
 )
-@handle_command_errors
 @core_command(dangerous=False)
 # ID: a8b9c0d1-e2f3-4a5b-6c7d-8e9f0a1b2c3d
 async def fix_imports_command(

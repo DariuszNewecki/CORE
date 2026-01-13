@@ -4,6 +4,10 @@
 Fix atomic actions pattern violations.
 Thin CLI shell delegating to body.atomic.fix_actions.
 Upgraded to V2.1: Now manages mandatory imports.
+
+CONSTITUTIONAL ALIGNMENT:
+- Removed legacy error decorators to prevent circular imports.
+- Routes all healing logic through the ActionExecutor gateway.
 """
 
 from __future__ import annotations
@@ -11,21 +15,17 @@ from __future__ import annotations
 from pathlib import Path
 
 import typer
-from rich.console import Console
 
 from body.atomic.executor import ActionExecutor
 from shared.action_types import ActionImpact, ActionResult
 from shared.atomic_action import atomic_action
 from shared.cli_utils import core_command
 
-from . import fix_app, handle_command_errors
-
-
-console = Console()
+# We only import the App and Console from the local hub
+from . import console, fix_app
 
 
 @fix_app.command("atomic-actions", help="Fix atomic actions pattern violations.")
-@handle_command_errors
 @core_command(dangerous=True, confirmation=False)
 @atomic_action(
     action_id="fix.cli.atomic_actions",
@@ -94,7 +94,7 @@ def _ensure_imports(lines: list[str]) -> list[str]:
             "from shared.action_types import" in content
             and "ActionImpact" not in content
         ):
-            # Find the line and append it (simplified for this specific task)
+            # Find the line and append it
             for i, line in enumerate(lines):
                 if "from shared.action_types import" in line:
                     lines[i] = line.replace("import ", "import ActionImpact, ")
