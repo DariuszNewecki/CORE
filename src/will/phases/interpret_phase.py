@@ -93,17 +93,15 @@ class InterpretPhase:
 
             logger.info("✅ INTERPRET: Mapped to workflow '%s'", workflow_type)
 
-            return PhaseResult(
-                name="interpret",
-                ok=True,
-                data=task_structure,
-                metadata={
-                    "interpretation_method": "deterministic_v1",
-                    "confidence": (
-                        "high" if self._is_confident(goal, workflow_type) else "medium"
-                    ),
-                },
-            )
+            # Add metadata to data dict (PhaseResult doesn't have separate metadata field)
+            task_structure["_metadata"] = {
+                "interpretation_method": "deterministic_v1",
+                "confidence": "high"
+                if self._is_confident(goal, workflow_type)
+                else "medium",
+            }
+
+            return PhaseResult(name="interpret", ok=True, data=task_structure)
 
         except Exception as e:
             logger.error("❌ INTERPRET Phase failed: %s", e, exc_info=True)
