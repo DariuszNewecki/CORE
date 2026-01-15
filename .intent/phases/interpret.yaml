@@ -1,0 +1,58 @@
+phase_type: interpret
+description: >
+  Convert natural language user intent into canonical task structure.
+  This is the constitutional entry point for the Will layer.
+
+  Interpret bridges ungoverned (human communication) with governed (system execution).
+
+inputs:
+  - user_request # Natural language goal
+  - conversation_context # Optional: prior conversation state
+  - available_workflows # Optional: valid workflow types
+
+outputs:
+  - task_structure # Canonical task definition
+  - workflow_type # Inferred or explicit workflow selection
+  - clarification_needed # Boolean: requires user input
+
+constitutional_requirements:
+  - governance.no_governance_bypass
+  - autonomy.tracing.mandatory
+
+authority: policy
+failure_mode: clarify # Ask user for more information
+max_retries: 3
+
+# Phase-specific configuration
+agent_role: IntentInterpreter
+llm_tier: high # Requires nuanced understanding
+
+permitted_actions:
+  - parse_natural_language
+  - classify_intent
+  - map_to_workflow
+  - request_clarification
+  - validate_task_structure
+
+forbidden_actions:
+  - execute_code
+  - modify_files
+  - create_policies
+  - bypass_parse_validation
+  - assert_authority
+
+success_criteria:
+  task_structure_valid: true
+  workflow_identified: true
+
+notes: >
+  INTERPRET is the first constitutional phase.
+
+  It does NOT have authority to execute - only to propose task structures
+  that will be validated in subsequent phases.
+
+  Failure mode is 'clarify' rather than 'block' because ambiguous input
+  should result in dialogue, not rejection.
+
+  This phase completes the Mind-Body-Will architecture by giving the Will
+  layer a constitutional entry point with clear boundaries.

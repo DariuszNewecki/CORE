@@ -1,0 +1,36 @@
+phase_type: test_generation
+description: >
+  Generate tests for new or modified code.
+  Tests validate behavior and increase coverage.
+
+inputs:
+  - generated_code
+  - module_context
+  - existing_test_patterns
+
+outputs:
+  - test_code
+  - coverage_projection
+  - test_manifest
+
+constitutional_requirements:
+  - code.purity.test_isolation
+  - architecture.modularity.unix_philosophy
+
+authority: policy
+failure_mode: warn # Don't block on test generation failure
+max_retries: 3
+
+# Phase-specific configuration
+agent_role: Coder
+llm_tier: medium # Can use DeepSeek for test generation
+
+validation_steps:
+  - syntax_check
+  - pytest_compatibility
+  - sandbox_validation
+
+notes: >
+  Test generation failures are non-blocking for refactoring workflows.
+  Failing tests are quarantined to var/artifacts/ for later review.
+  This phase can be skipped entirely in workflows that don't require new tests.

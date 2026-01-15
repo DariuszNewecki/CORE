@@ -1,0 +1,37 @@
+phase_type: code_generation
+description: >
+  Generate production code based on approved specification.
+  Code must pass constitutional validation before proceeding.
+
+inputs:
+  - execution_plan
+  - specification
+  - context_package
+
+outputs:
+  - generated_code
+  - file_mappings
+  - constitutional_audit_report
+
+constitutional_requirements:
+  - governance.intent_guard.mandatory
+  - code.no_forbidden_primitives
+  - code.purity.source_immutability
+  - architecture.modularity.single_responsibility
+
+authority: policy
+failure_mode: block
+max_retries: 3
+
+# Phase-specific configuration
+agent_role: Coder
+llm_tier: high # Uses Claude Sonnet for code generation
+
+validation_steps:
+  - syntax_check
+  - constitutional_audit
+  - import_safety
+
+notes: >
+  Generated code is staged in memory/crates, not written to disk.
+  Constitutional violations block progression to next phase.

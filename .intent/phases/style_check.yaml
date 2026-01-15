@@ -1,0 +1,34 @@
+phase_type: style_check
+description: >
+  Validate code against style standards (ruff, black, mypy).
+  Ensures generated code meets project conventions.
+
+inputs:
+  - generated_code
+  - project_style_config
+
+outputs:
+  - style_report
+  - formatted_code
+  - type_check_results
+
+constitutional_requirements:
+  - code.style.consistency
+
+authority: standard
+failure_mode: block
+max_retries: 1 # Auto-format can fix most issues
+
+# Phase-specific configuration
+tools:
+  - ruff_check
+  - ruff_format
+  - black
+  - mypy
+
+auto_fix: true # Automatically apply formatting
+
+notes: >
+  Style check is deterministic and fast.
+  Most violations are auto-fixable.
+  Type errors may require LLM correction (not implemented yet).

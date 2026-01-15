@@ -1,0 +1,50 @@
+workflow_type: full_feature_development
+description: >
+  End-to-end development of new features including code and tests.
+  Used for greenfield development or major feature additions.
+
+phases:
+  - interpret
+  - planning
+  - code_generation
+  - test_generation
+  - canary_validation # Run existing related tests
+  - sandbox_validation # Validate new tests
+  - style_check
+  - execution
+
+success_criteria:
+  canary_passes: true
+  new_tests_pass: true
+  style_violations: 0
+  coverage_adequate: "> 70"
+
+write_required: true
+dangerous: true
+timeout_minutes: 45
+
+# Workflow-specific configuration
+goal_template: "Develop feature: {feature_description}"
+
+pre_workflow_checks:
+  - no_conflicting_branches
+  - clean_working_directory
+
+post_workflow_actions:
+  - run_full_test_suite
+  - update_documentation
+  - record_feature_completion
+
+notes: >
+  This is the "kitchen sink" workflow for new development.
+  Includes both code generation AND test generation.
+
+  Use this for:
+  - New features from scratch
+  - Major functionality additions
+  - Complete subsystem development
+
+  Not typically used for refactoring or coverage-only work.
+
+  The interpret phase converts the user's feature request into
+  a structured development task before planning begins.

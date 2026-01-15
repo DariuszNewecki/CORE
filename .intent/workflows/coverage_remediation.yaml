@@ -1,0 +1,50 @@
+workflow_type: coverage_remediation
+description: >
+  Generate tests for existing code with low or missing test coverage.
+  Focuses on increasing coverage without modifying production code.
+
+phases:
+  - interpret
+  - planning
+  - test_generation
+  - sandbox_validation
+  - execution
+
+success_criteria:
+  at_least_one_test_passing: true
+  coverage_improvement: "> 0"
+
+write_required: true
+dangerous: false # Only writes tests, not production code
+timeout_minutes: 20
+
+# Workflow-specific configuration
+goal_template: "Generate tests for {file_path} with current coverage {current_coverage}%"
+
+pre_workflow_checks:
+  - file_exists
+  - coverage_below_threshold
+
+post_workflow_actions:
+  - recalculate_coverage
+  - quarantine_failing_tests
+  - promote_passing_tests
+
+test_promotion_strategy:
+  passing_tests: tests/ # Mirror src/ structure
+  failing_tests: var/artifacts/test_gen/failures/
+
+notes: >
+  This workflow ONLY generates tests.
+  Production code is never modified.
+
+  Passing tests are promoted to tests/.
+  Failing tests are quarantined for review.
+
+  This is the workflow that handles test coverage for:
+  - New modules created by refactoring
+  - Existing code with low coverage
+  - Uncovered public symbols
+
+  The interpret phase converts the user's coverage improvement goal into
+  a structured test generation task.

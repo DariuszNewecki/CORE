@@ -1,296 +1,225 @@
 # src/will/orchestration/workflow_orchestrator.py
-# ID: will.orchestration.workflow
+# ID: will.orchestration.workflow_orchestrator
 
 """
-AutonomousWorkflowOrchestrator - The General Contractor (A3 Specialist)
+Constitutional Workflow Orchestrator
 
-Orchestrates the complete A3 autonomous development loop:
-1. Planning (PlannerAgent) -> Strategy
-2. Engineering (SpecificationAgent) -> Code Generation (Blueprint)
-3. Packaging (Crate Action) -> Immutable Transaction Staging
-4. Trial (Crate Processor) -> Sandbox Audit (The Canary)
-5. Feedback (Recursion) -> Error Analysis and Retry (Max 3)
-6. Construction (ExecutionAgent) -> Production Application
+Dynamically composes and executes phases based on workflow definitions
+from .intent/workflows/.
 
-CONSTITUTIONAL ALIGNMENT:
-- Aligned with 'autonomy.tracing.mandatory' for all A3 decisions.
-- Enforces the 'A3 Trial-and-Error' loop standard.
-- Headless: Uses standard logging only.
+This replaces the hardcoded A3 loop with a constitutional, composable system.
 """
 
 from __future__ import annotations
 
 import time
-from typing import TYPE_CHECKING, Any
+from dataclasses import dataclass
+from typing import Any
 
-from shared.action_types import ActionResult
+import yaml
+
+from shared.config import settings
 from shared.logger import getLogger
-from shared.models.workflow_models import ExecutionResults, WorkflowResult
+from shared.models.workflow_models import PhaseResult, PhaseWorkflowResult
 from will.orchestration.decision_tracer import DecisionTracer
+from will.orchestration.phase_registry import PhaseRegistry
 
-
-if TYPE_CHECKING:
-    from will.agents.execution_agent import ExecutionAgent
-    from will.agents.planner_agent import PlannerAgent
-    from will.agents.specification_agent import SpecificationAgent
 
 logger = getLogger(__name__)
 
 
-# ID: a1b2c3d4-e5f6-7890-abcd-ef0123456789
-class AutonomousWorkflowOrchestrator:
-    """
-    The General Contractor: Coordinates the A3 Trial-and-Error loop.
-    """
+@dataclass
+# ID: 40124b3b-51eb-493c-bed4-e4a0b128443b
+class WorkflowDefinition:
+    """Parsed workflow definition from .intent/workflows/"""
 
-    def __init__(
-        self,
-        planner: PlannerAgent,
-        spec_agent: SpecificationAgent,
-        exec_agent: ExecutionAgent,
-        write: bool = False,
-    ):
-        """
-        Initialize the orchestrator with specialist agents.
-        """
-        self.planner = planner
-        self.spec_agent = spec_agent
-        self.exec_agent = exec_agent
+    workflow_type: str
+    description: str
+    phases: list[str]
+    success_criteria: dict[str, Any]
+    write_required: bool = True
+    dangerous: bool = False
+    timeout_minutes: int = 30
+
+
+@dataclass
+# ID: 6554faa6-95b1-4695-a11a-6c1ee8b86d20
+class WorkflowContext:
+    """Shared context passed through all phases"""
+
+    goal: str
+    workflow_type: str
+    write: bool
+    results: dict[str, Any]  # Accumulates outputs from each phase
+
+    def __init__(self, goal: str, workflow_type: str, write: bool):
+        self.goal = goal
+        self.workflow_type = workflow_type
         self.write = write
+        self.results = {}
+
+
+# ID: 8a7b6c5d-4e3f-2g1h-0i9j-8k7l6m5n4o3p
+# ID: 8d6f2fb6-98b9-4ddc-9fd6-c161ccbac956
+class WorkflowOrchestrator:
+    """
+    Constitutional workflow orchestrator.
+
+    Reads workflow definitions from .intent/workflows/
+    Composes phases dynamically based on goal type.
+    """
+
+    def __init__(self, phase_registry: PhaseRegistry):
+        self.phases = phase_registry
         self.tracer = DecisionTracer()
+        self.workflow_dir = settings.REPO_PATH / ".intent" / "workflows"
 
-        # Constitutional sync: Contractor's permission must match user intent.
-        self.exec_agent.write = write
+    # ID: 9b8c7d6e-5f4g-3h2i-1j0k-9l8m7n6o5p4q
+    def _load_workflow_definition(self, workflow_type: str) -> WorkflowDefinition:
+        """Load workflow definition from Constitution."""
+        workflow_path = self.workflow_dir / f"{workflow_type}.yaml"
 
-        logger.info(
-            "AutonomousWorkflowOrchestrator initialized [A3 Mode | Write: %s]",
-            self.write,
+        if not workflow_path.exists():
+            raise ValueError(
+                f"Unknown workflow type: {workflow_type}. "
+                f"Expected file: {workflow_path}"
+            )
+
+        with open(workflow_path) as f:
+            data = yaml.safe_load(f)
+
+        return WorkflowDefinition(
+            workflow_type=data["workflow_type"],
+            description=data["description"],
+            phases=data["phases"],
+            success_criteria=data["success_criteria"],
+            write_required=data.get("write_required", True),
+            dangerous=data.get("dangerous", False),
+            timeout_minutes=data.get("timeout_minutes", 30),
         )
 
-    # ID: b2c3d4e5-f678-90ab-cdef-0123456789ab
-    async def execute_autonomous_goal(
+    # ID: 0c9d8e7f-6g5h-4i3j-2k1l-0m9n8o7p6q5r
+    # ID: 754633b1-65fe-4cbb-b83b-c97a06cfac23
+    async def execute_goal(
         self,
         goal: str,
-        reconnaissance_report: str = "",
-    ) -> WorkflowResult:
+        workflow_type: str,
+        write: bool = False,
+    ) -> PhaseWorkflowResult:
         """
-        The A3 Loop: Plan -> (Spec -> Crate -> Canary -> Feedback) x3 -> Execute.
+        Execute a goal using the specified workflow pipeline.
+
+        Args:
+            goal: High-level objective
+            workflow_type: Which workflow to use (from .intent/workflows/)
+            write: Whether to apply changes
         """
-        workflow_start_time = time.time()
+        workflow_start = time.time()
+
         logger.info("=" * 80)
-        logger.info("🚀 INITIATING A3 AUTONOMOUS WORKFLOW")
+        logger.info("🎯 CONSTITUTIONAL WORKFLOW EXECUTION")
+        logger.info("Workflow: %s", workflow_type)
         logger.info("Goal: %s", goal)
+        logger.info("Write Mode: %s", write)
         logger.info("=" * 80)
 
-        # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        # PHASE 1: ARCHITECTURE (Planning)
-        # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        logger.info("📐 PHASE 1: ARCHITECTURE (Planning)")
-        try:
-            plan = await self.planner.create_execution_plan(
-                goal=goal,
-                reconnaissance_report=reconnaissance_report,
-            )
-            logger.info("✅ Plan accepted with %d conceptual steps.", len(plan))
-        except Exception as e:
-            logger.error("❌ Planning failed: %s", e)
-            return self._create_failed_workflow_result(
-                goal, "planning", str(e), time.time() - workflow_start_time
-            )
+        # Load workflow definition from Constitution
+        workflow_def = self._load_workflow_definition(workflow_type)
 
-        # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        # THE TRIAL LOOP (The A3 "Trial & Feedback" Cycle)
-        # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        attempts = 0
-        max_attempts = 3
-        last_trial_feedback = ""
-        final_blueprint = None
+        # Validate write mode if required
+        if workflow_def.write_required and not write:
+            logger.info("ℹ️  Dry-run mode: No changes will be applied")  # noqa: RUF001
 
-        while attempts < max_attempts:
-            attempts += 1
+        # Build execution context
+        context = WorkflowContext(goal=goal, workflow_type=workflow_type, write=write)
+
+        # Execute phase pipeline
+        phase_results = []
+        for phase_name in workflow_def.phases:
             logger.info("")
-            logger.info("🔄 A3 LOOP: ATTEMPT %d/%d", attempts, max_attempts)
+            logger.info("📍 PHASE: %s", phase_name.upper())
             logger.info("-" * 80)
 
-            # PHASE 2: ENGINEERING (Specification)
+            phase_start = time.time()
+
             try:
-                # If we have feedback from a previous failed Canary trial, give it to the Engineer
-                if last_trial_feedback:
-                    self.spec_agent.update_context(last_trial_feedback)
+                phase = self.phases.get(phase_name)
+                result = await phase.execute(context)
 
-                # Generate code for each step
-                detailed_plan = await self.spec_agent.elaborate_plan(goal, plan)
-                final_blueprint = detailed_plan
+                phase_duration = time.time() - phase_start
+                result.duration_sec = phase_duration
+
+                phase_results.append(result)
+
+                if result.ok:
+                    logger.info("✅ Phase completed: %.2fs", phase_duration)
+                    # Store phase outputs in context for next phase
+                    context.results[phase_name] = result.data
+                else:
+                    logger.error("❌ Phase failed: %s", result.error)
+
+                    # Check failure mode from phase definition
+                    phase_def = self._load_phase_definition(phase_name)
+                    failure_mode = phase_def.get("failure_mode", "block")
+
+                    if failure_mode == "block":
+                        logger.error("⛔ Workflow blocked by phase failure")
+                        break
+                    elif failure_mode == "warn":
+                        logger.warning("⚠️  Phase failed but workflow continues")
+                        continue
+
             except Exception as e:
-                logger.error("❌ Engineering failed: %s", e)
-                last_trial_feedback = f"Engineering Error: {e!s}"
-                continue
-
-            # PHASE 2.5: PACKAGING (Crate creation)
-            # Collect files for the Canary to audit
-            crate_id = await self._stage_in_crate(goal, final_blueprint)
-
-            # If no files were generated, we skip the Canary and go straight to Execution
-            if crate_id == "no_crate_required":
-                logger.info("No code changes detected. Skipping Canary Trial.")
-                break
-
-            if not crate_id:
-                logger.error("❌ Crate packaging failed.")
-                last_trial_feedback = (
-                    "Infrastructure Error: Failed to package Intent Crate."
-                )
-                continue
-
-            # PHASE 3: THE TRIAL (Canary Sandbox)
-            success, trial_report = await self._run_canary_trial(crate_id)
-
-            if success:
-                logger.info("✅ CANARY TRIAL PASSED.")
-                self.tracer.record(
-                    agent="Orchestrator",
-                    decision_type="canary_verdict",
-                    rationale="Blueprint passed all constitutional audits in sandbox.",
-                    chosen_action="Proceed to Final Application",
-                    confidence=1.0,
+                logger.error("💥 Phase crashed: %s", e, exc_info=True)
+                phase_results.append(
+                    PhaseResult(name=phase_name, ok=False, error=str(e))
                 )
                 break
-            else:
-                logger.warning("❌ CANARY TRIAL FAILED.")
-                # Store the audit findings as feedback for the next retry
-                last_trial_feedback = (
-                    f"### CANARY AUDIT FEEDBACK\n"
-                    f"Your generated code failed validation in the sandbox with these errors:\n"
-                    f"{trial_report}\n\n"
-                    f"TASK: Fix the code and try again."
-                )
 
-                self.tracer.record(
-                    agent="Orchestrator",
-                    decision_type="retry_logic",
-                    rationale="Canary trial detected constitutional violations.",
-                    chosen_action="Retry Engineering with Trial Evidence",
-                    context={"attempt": attempts, "violations": trial_report},
-                    confidence=0.5,
-                )
-
-                if attempts == max_attempts:
-                    logger.error("🛑 Max attempts reached. A3 Loop failed.")
-                    return self._create_failed_workflow_result(
-                        goal,
-                        "engineering",
-                        f"Failed after {max_attempts} attempts. Last evidence: {trial_report}",
-                        time.time() - workflow_start_time,
-                    )
-
-        # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        # PHASE 4: CONSTRUCTION (Execution)
-        # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        if final_blueprint is None:
-            return self._create_failed_workflow_result(
-                goal,
-                "engineering",
-                "Final blueprint missing",
-                time.time() - workflow_start_time,
-            )
-
-        logger.info("")
-        logger.info("🏗️ PHASE 4: CONSTRUCTION (Execution)")
-        logger.info("-" * 80)
-
-        try:
-            # The Contractor applying the proven code to production
-            execution_results = await self.exec_agent.execute_plan(final_blueprint)
-
-            duration = time.time() - workflow_start_time
-
-            return WorkflowResult(
-                goal=goal,
-                detailed_plan=final_blueprint,
-                execution_results=execution_results,
-                success=execution_results.all_succeeded(),
-                total_duration_sec=duration,
-                metadata={
-                    "attempts": attempts,
-                    "canary_validated": crate_id != "no_crate_required",
-                    "final_status": "completed",
-                },
-            )
-
-        except Exception as e:
-            logger.error("❌ Final execution crashed: %s", e)
-            return self._create_failed_workflow_result(
-                goal, "execution", str(e), time.time() - workflow_start_time
-            )
-
-    async def _stage_in_crate(self, goal: str, detailed_plan: Any) -> str | None:
-        """Packages generated code into a staging crate."""
-        files = {}
-        for step in detailed_plan.steps:
-            # Safely extract file path and code content
-            file_path = step.params.get("file_path")
-            code = step.params.get("code")
-            if file_path and code:
-                files[file_path] = code
-
-        if not files:
-            return "no_crate_required"
-
-        # Call the Body action to stage the crate
-        result = await self.exec_agent.executor.execute(
-            action_id="crate.create", write=True, intent=goal, payload_files=files
+        # Evaluate success criteria
+        workflow_ok = self._evaluate_success_criteria(
+            workflow_def.success_criteria, context
         )
 
-        return result.data.get("crate_id") if result.ok else None
+        workflow_duration = time.time() - workflow_start
 
-    async def _run_canary_trial(self, crate_id: str) -> tuple[bool, str]:
-        """Runs the constitutional audit on the crate in a sandbox."""
-        logger.info("🧪 Sandbox: Proving Crate '%s' safe...", crate_id)
-
-        try:
-            from body.services.crate_processing_service import CrateProcessingService
-
-            processor = CrateProcessingService()
-
-            # Execute the sandbox trial
-            success, findings = await processor.validate_crate_by_id(crate_id)
-
-            if success:
-                return True, "Passed"
-
-            # Format the findings into a readable string for the feedback loop
-            error_details = " | ".join(
-                [f"[{f.check_id}] {f.message}" for f in findings]
-            )
-            return False, error_details
-
-        except Exception as e:
-            return False, f"Trial System Error: {e!s}"
-
-    def _create_failed_workflow_result(
-        self, goal: str, phase: str, error: str, duration: float
-    ) -> WorkflowResult:
-        """Helper to create a failed workflow result."""
-        from shared.models.workflow_models import DetailedPlan
-
-        detailed_plan = DetailedPlan(goal=goal, steps=[], metadata={"failed_at": phase})
-        fail_res = ActionResult(
-            action_id="workflow.failure", ok=False, data={"error": error}
-        )
-        exec_results = ExecutionResults(
-            steps=[fail_res], success_count=0, failure_count=1, total_duration_sec=0.0
+        result = PhaseWorkflowResult(
+            ok=workflow_ok,
+            workflow_type=workflow_type,
+            phase_results=phase_results,
+            total_duration=workflow_duration,
         )
 
-        return WorkflowResult(
-            goal=goal,
-            detailed_plan=detailed_plan,
-            execution_results=exec_results,
-            success=False,
-            total_duration_sec=duration,
-            metadata={"error": error, "failed_phase": phase},
-        )
+        logger.info("=" * 80)
+        if workflow_ok:
+            logger.info("✅ WORKFLOW COMPLETED SUCCESSFULLY")
+        else:
+            logger.info("❌ WORKFLOW FAILED")
+        logger.info("Total Duration: %.2fs", workflow_duration)
+        logger.info("=" * 80)
 
-    # ID: b27ea6e8-673e-4058-a7e1-879c5e7ac0c2
-    async def save_decision_trace(self) -> None:
-        """Save the session's decision trace."""
-        await self.tracer.save_trace()
+        return result
+
+    def _load_phase_definition(self, phase_name: str) -> dict:
+        """Load phase definition from .intent/phases/"""
+        phase_path = settings.REPO_PATH / ".intent" / "phases" / f"{phase_name}.yaml"
+        with open(phase_path) as f:
+            return yaml.safe_load(f)
+
+    def _evaluate_success_criteria(
+        self, criteria: dict[str, Any], context: WorkflowContext
+    ) -> bool:
+        """Evaluate workflow success criteria against results."""
+        # Simple implementation - can be made more sophisticated
+        for key, expected in criteria.items():
+            actual = context.results.get(key)
+
+            if isinstance(expected, bool):
+                if actual != expected:
+                    return False
+            elif isinstance(expected, str) and expected.startswith(">"):
+                threshold = float(expected[1:].strip())
+                if actual is None or actual <= threshold:
+                    return False
+
+        return True

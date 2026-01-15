@@ -25,7 +25,8 @@ from .code_extractor import CodeExtractor
 from .context_builder import ContextPackageBuilder
 from .executor import TestExecutor
 from .llm_correction import LLMCorrectionService
-from .prompt_builder import PromptBuilder
+
+# from .prompt_builder import PromptBuilder
 from .single_test_fixer import SingleTestFixer, TestFailureParser
 
 
@@ -54,7 +55,7 @@ class EnhancedTestGenerator:
         self.cognitive = cognitive_service
         self.auditor = auditor_context
         self.context_builder = ContextPackageBuilder()
-        self.prompt_builder = PromptBuilder()
+        #        self.prompt_builder = PromptBuilder()
         self.code_extractor = CodeExtractor()
         self.executor = TestExecutor()
         self.complexity_filter = ComplexityFilter(max_complexity=max_complexity)

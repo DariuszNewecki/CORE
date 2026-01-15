@@ -1,0 +1,37 @@
+phase_type: canary_validation
+description: >
+  Run existing tests against new code to verify behavioral preservation.
+  This is the authoritative check for refactoring correctness.
+
+inputs:
+  - generated_code
+  - existing_test_suite
+  - affected_modules
+
+outputs:
+  - test_results
+  - behavioral_diff
+  - regression_report
+
+constitutional_requirements:
+  - autonomy.tracing.mandatory
+
+authority: policy
+failure_mode: block # Canary failure means code broke something
+max_retries: 0 # No retries - either works or doesn't
+
+# Phase-specific configuration
+validation_method: pytest_existing
+timeout_seconds: 300
+isolation: true # Run in isolated environment
+
+success_criteria:
+  all_tests_pass: true
+  no_regressions: true
+  exit_code: 0
+
+notes: >
+  Canary validation is the constitutional gatekeeper for refactoring.
+  If existing tests pass, the refactor preserves behavior.
+  If they fail, the generated code is rejected.
+  This phase establishes: WORKING CODE > MISSING TESTS.

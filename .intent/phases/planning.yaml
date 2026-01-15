@@ -1,0 +1,30 @@
+phase_type: planning
+description: >
+  Analyze the goal and current state to create an execution strategy.
+  This phase produces a conceptual plan without generating code.
+
+inputs:
+  - goal_statement
+  - reconnaissance_report
+  - constitutional_rules
+
+outputs:
+  - execution_plan
+  - affected_files
+  - risk_assessment
+
+constitutional_requirements:
+  - autonomy.tracing.mandatory
+  - governance.no_governance_bypass
+
+authority: policy
+failure_mode: block
+max_retries: 2
+
+# Phase-specific configuration
+agent_role: StrategicPlanner
+llm_tier: high # Uses Claude Sonnet for strategic thinking
+
+notes: >
+  Planning phase must complete before any code generation.
+  Output is a structured plan that guides subsequent phases.

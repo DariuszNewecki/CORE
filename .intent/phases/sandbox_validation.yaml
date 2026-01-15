@@ -1,0 +1,34 @@
+phase_type: sandbox_validation
+description: >
+  Run newly generated tests in isolation to verify they work.
+  Used for test generation workflows, not refactoring.
+
+inputs:
+  - test_code
+  - module_under_test
+
+outputs:
+  - sandbox_results
+  - passing_tests
+  - failing_tests
+
+constitutional_requirements:
+  - code.purity.test_isolation
+
+authority: policy
+failure_mode: warn # Failing tests don't block workflow
+max_retries: 0
+
+# Phase-specific configuration
+validation_method: pytest_sandbox
+timeout_seconds: 60
+isolation: true
+
+success_criteria:
+  at_least_one_passing: true
+
+notes: >
+  Sandbox validation checks if generated tests are executable.
+  Passing tests are promoted to tests/.
+  Failing tests are quarantined to var/artifacts/.
+  This phase is SKIPPED in refactoring workflows.

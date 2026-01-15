@@ -20,6 +20,8 @@ from .workflow_models import (
     DetailedPlan,
     DetailedPlanStep,
     ExecutionResults,
+    PhaseResult,
+    PhaseWorkflowResult,
     WorkflowResult,
 )
 
@@ -28,13 +30,15 @@ __all__ = [
     "AuditFinding",
     "AuditSeverity",
     "CapabilityMeta",
-    # Workflow models (NEW - Phase 1)
+    # Workflow models
     "DetailedPlan",
     "DetailedPlanStep",
     "DriftReport",
     "EmbeddingPayload",
     "ExecutionResults",
     "ExecutionTask",
+    "PhaseResult",
+    "PhaseWorkflowResult",
     "PlanExecutionError",
     "PlannerConfig",
     "TaskParams",

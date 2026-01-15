@@ -1,0 +1,42 @@
+phase_type: execution
+description: >
+  Apply validated changes to the production codebase.
+  Only executes if all prior phases succeeded.
+
+inputs:
+  - validated_code
+  - file_mappings
+  - write_mode_flag
+
+outputs:
+  - files_written
+  - git_diff
+  - action_results
+
+constitutional_requirements:
+  - governance.artifact_mutation.traceable
+  - autonomy.tracing.mandatory
+
+authority: policy
+failure_mode: block
+max_retries: 0 # Execution is atomic - no retries
+
+# Phase-specific configuration
+requires_write_flag: true
+atomic: true # All-or-nothing application
+backup_strategy: git_stash
+
+pre_execution_checks:
+  - write_mode_enabled
+  - no_uncommitted_changes
+  - constitutional_approval
+
+post_execution_actions:
+  - update_knowledge_graph
+  - vectorize_symbols
+  - record_action_results
+
+notes: >
+  Execution phase respects the --write flag.
+  Without --write, this phase outputs a dry-run report.
+  All file mutations are traced for constitutional compliance.

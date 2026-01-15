@@ -1,0 +1,46 @@
+workflow_type: refactor_modularity
+description: >
+  Split monolithic modules into cohesive units to improve architectural health.
+  Focuses on preserving behavior while improving structure.
+
+phases:
+  - interpret
+  - planning
+  - code_generation
+  - canary_validation
+  - style_check
+  - execution
+
+success_criteria:
+  canary_passes: true
+  style_violations: 0
+  modularity_score_improvement: "> 10"
+  existing_tests_pass: true
+
+write_required: true
+dangerous: true
+timeout_minutes: 30
+
+# Workflow-specific configuration
+goal_template: "Refactor {file_path} to improve modularity score from {current_score} to below {target_score}"
+
+pre_workflow_checks:
+  - file_exists
+  - modularity_score_exceeds_threshold
+  - no_active_refactoring
+
+post_workflow_actions:
+  - recalculate_modularity_score
+  - update_architectural_metrics
+  - flag_for_coverage_remediation # New modules need tests
+
+notes: >
+  This workflow does NOT generate tests.
+  New code starts with 0% coverage.
+  Coverage remediation is a separate workflow.
+
+  Success = Code works (canary) + Passes style + Better structure
+  Missing tests are addressed by fix coverage workflow later.
+
+  The interpret phase converts the user's natural language goal into
+  a structured refactoring task before planning begins.
