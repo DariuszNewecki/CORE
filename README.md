@@ -152,7 +152,7 @@ rules:
     statement: "Autonomous agents MUST NOT modify files outside their assigned lane"
     enforcement: "blocking"
     authority: "constitution"
-    phase: "runtime"  # When this rule applies
+    phase: "runtime"  # One of: interpret, parse, load, audit, runtime, execution
 ```
 
 **New in 2.2.0:** Rules explicitly declare which workflow phase they govern.
@@ -274,7 +274,7 @@ $ core-admin coverage generate-adaptive src/models/user.py --write
 
 | Category | Phase | Count | Purpose |
 |----------|-------|-------|---------|
-| **Interpreters** | INTERPRET | 0/3 | Parse intent → task structure |
+| **Interpreters** | INTERPRET | 1/3 ✅ | Parse intent → task structure |
 | **Analyzers** | PARSE | 2/5 | Extract facts |
 | **Providers** | LOAD | 3 | Data source adapters |
 | **Evaluators** | AUDIT | 2/5 | Assess quality |

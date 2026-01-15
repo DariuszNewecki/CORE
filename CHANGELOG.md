@@ -23,23 +23,29 @@ This is the **conceptual breakthrough** that makes CORE an operating system for 
 
 #### Constitutional Architecture
 
+* **INTERPRET Phase — 6th Constitutional Phase** (2026-01-15)
+  - Elevated intent interpretation to constitutional primitive
+  - First phase in governance pipeline (INTERPRET → PARSE → LOAD → AUDIT → RUNTIME → EXECUTION)
+  - Completes Mind-Body-Will architecture (Will layer now has constitutional entry point)
+  - Dynamic phase discovery from `.intent/phases/*.yaml` (zero hardcoding)
+  - Paper: `.intent/papers/CORE-Phases-as-Governance-Boundaries.md` (updated to 6 phases)
+  - Implementation: `InterpretPhase` v1 (deterministic pattern matching)
+  - Evolution path documented: v1 (deterministic) → v2 (LLM-assisted)
+  - All 3 workflows updated to start with INTERPRET phase
+  - 100% test pass rate (8/8 phase verification + 5/5 workflow inference tests)
+
+* **Dynamic Phase Registry** (2026-01-15)
+  - Phase discovery from constitutional definitions, not hardcoded imports
+  - Constitution → Implementation (proper governance direction)
+  - Minimal hardcoding: single PHASE_IMPLEMENTATIONS registry
+  - Automatic validation that phases have implementations
+  - Clear migration path for stub → real phase implementations
+
 * **Universal Workflow Pattern** (`.intent/papers/CORE-Adaptive-Workflow-Pattern.md`)
   - Canonical pattern: INTERPRET → ANALYZE → STRATEGIZE → GENERATE → EVALUATE → DECIDE
   - Constitutional phases: INTERPRET, PARSE, LOAD, AUDIT, RUNTIME, EXECUTION
   - TERMINATE boundary separates generation from finalization
   - Conceptual decision points replace magic numbers
-
-* **Component Inventory** - Complete catalog of CORE's capabilities
-  - 12 component categories mapped to workflow phases
-  - 40+ components documented with contracts
-  - Discovery mechanisms for runtime introspection
-  - Clear gaps identified (RequestInterpreter, Strategists, Evaluators)
-
-* **Modernization Roadmap** - Path to full autonomous operation
-  - Four conceptual pillars: Pattern compliance, Component clarity, Autonomous loops, Conversational routing
-  - Five-phase migration strategy
-  - Session-by-session progress tracking
-  - Clear success criteria and metrics
 
 #### Component Types Formalized
 
