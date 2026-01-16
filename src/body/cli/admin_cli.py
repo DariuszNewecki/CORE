@@ -1,7 +1,13 @@
 # src/body/cli/admin_cli.py
+# ID: body.cli.admin_cli
 
 """
 The single, canonical entry point for the core-admin CLI.
+
+Constitutional Alignment:
+- ServiceRegistry primed with session factory before any command execution
+- CoreContext initialized with proper dependency injection
+- All commands registered and discoverable
 """
 
 from __future__ import annotations
@@ -30,7 +36,6 @@ from body.cli.commands.dev_sync import dev_sync_app
 from body.cli.commands.develop import develop_app
 from body.cli.commands.diagnostics import app as diagnostics_app
 from body.cli.commands.fix import fix_app
-from body.cli.commands.inspect_patterns import inspect_patterns
 from body.cli.commands.manage import manage
 from body.cli.commands.refactor import refactor_app
 from body.cli.interactive import launch_interactive_menu
@@ -60,20 +65,26 @@ app = typer.Typer(
     no_args_is_help=False,
 )
 
+# Initialize CoreContext with proper dependency injection
 core_context = CoreContext(
     registry=service_registry,
     git_service=GitService(settings.REPO_PATH),
     file_handler=FileHandler(str(settings.REPO_PATH)),
     planner_config=PlannerConfig(),
-    cognitive_service=None,
+    cognitive_service=None,  # Lazy-loaded via registry when needed
     knowledge_service=KnowledgeService(settings.REPO_PATH),
-    qdrant_service=None,
-    auditor_context=None,
+    qdrant_service=None,  # Lazy-loaded via registry when needed
+    auditor_context=None,  # Lazy-loaded when governance commands run
 )
 
 
 def _build_context_service() -> ContextService:
-    """Factory for ContextService."""
+    """
+    Factory for ContextService.
+
+    Returns:
+        ContextService instance with proper DI
+    """
     return ContextService(
         qdrant_client=None,
         cognitive_service=None,
@@ -89,33 +100,45 @@ core_context.context_service_factory = _build_context_service
 
 # ID: c1414598-a5f8-46c2-8ff9-3a141bea3b11
 def register_all_commands(app_instance: typer.Typer) -> None:
-    """Register all command groups."""
-    app_instance.add_typer(check_app, name="check")
-    app_instance.add_typer(components_app, name="components")
-    app_instance.add_typer(coverage.coverage_app, name="coverage")
-    app_instance.add_typer(enrich.enrich_app, name="enrich")
-    app_instance.add_typer(fix_app, name="fix")
-    app_instance.add_typer(governance.governance_app, name="governance")
-    app_instance.add_typer(inspect.inspect_app, name="inspect")
-    app_instance.add_typer(manage.manage_app, name="manage")
-    app_instance.add_typer(mind.mind_app, name="mind")
-    app_instance.add_typer(run.run_app, name="run")
-    app_instance.add_typer(search.search_app, name="search")
-    app_instance.add_typer(submit.submit_app, name="submit")
-    app_instance.add_typer(secrets.app, name="secrets")
-    app_instance.add_typer(context_cli.app, name="context")
-    app_instance.add_typer(develop_app, name="develop")
-    app_instance.add_typer(check_patterns.patterns_group, name="patterns")
-    app_instance.add_typer(dev_sync_app, name="dev")
+    """
+    Register all command groups in alphabetical order.
+
+    Constitutional Note:
+    - Alphabetical ordering improves discoverability
+    - All commands operate within constitutional boundaries
+    - ServiceRegistry is primed before any command executes
+
+    Args:
+        app_instance: The Typer app to register commands to
+    """
+    # Register command groups in alphabetical order
     app_instance.add_typer(
         check_atomic_actions.atomic_actions_group, name="atomic-actions"
     )
     app_instance.add_typer(autonomy_app, name="autonomy")
-    app_instance.add_typer(tools_app, name="tools")
+    app_instance.add_typer(check_app, name="check")
+    app_instance.add_typer(components_app, name="components")
+    app_instance.add_typer(context_cli.app, name="context")
+    app_instance.add_typer(coverage.coverage_app, name="coverage")
+    app_instance.add_typer(dev_sync_app, name="dev")
+    app_instance.add_typer(develop_app, name="develop")
     app_instance.add_typer(diagnostics_app, name="diagnostics")
+    app_instance.add_typer(enrich.enrich_app, name="enrich")
+    app_instance.add_typer(fix_app, name="fix")
+    app_instance.add_typer(governance.governance_app, name="governance")
+    app_instance.add_typer(inspect.inspect_app, name="inspect")
     app_instance.add_typer(interactive_test.app, name="interactive-test")
+    app_instance.add_typer(manage.manage_app, name="manage")
+    app_instance.add_typer(mind.mind_app, name="mind")
+    app_instance.add_typer(check_patterns.patterns_group, name="patterns")
     app_instance.add_typer(refactor_app, name="refactor")
-    app_instance.command(name="inspect-patterns")(inspect_patterns)
+    app_instance.add_typer(run.run_app, name="run")
+    app_instance.add_typer(search.search_app, name="search")
+    app_instance.add_typer(secrets.app, name="secrets")
+    app_instance.add_typer(submit.submit_app, name="submit")
+    app_instance.add_typer(tools_app, name="tools")
+
+    # Note: inspect-patterns removed - use 'patterns inspect' instead
 
 
 register_all_commands(app)
@@ -124,13 +147,25 @@ register_all_commands(app)
 @app.callback(invoke_without_command=True)
 # ID: 2429907d-f6f1-47a5-a3af-5df18685c545
 def main(ctx: typer.Context) -> None:
-    """If no command is specified, launch the interactive menu."""
+    """
+    Main entry point for core-admin CLI.
 
+    If no command is specified, launches the interactive menu.
+
+    Constitutional Compliance:
+    - ServiceRegistry is primed here to ensure all commands have access
+      to a governed session factory
+    - CoreContext is injected into typer context for command access
+
+    Args:
+        ctx: Typer context object
+    """
     # CONSTITUTIONAL FIX: Prime the ServiceRegistry here.
     # This ensures every CLI command has access to a governed session factory.
     service_registry.prime(get_session)
 
     ctx.obj = core_context
+
     if ctx.invoked_subcommand is None:
         console.print(
             "[bold green]No command specified. Launching interactive menu...[/bold green]"

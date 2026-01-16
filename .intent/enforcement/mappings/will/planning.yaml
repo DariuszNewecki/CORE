@@ -1,0 +1,79 @@
+# .intent/enforcement/mappings/will/planning.yaml
+# Constitutional enforcement for planning phase
+# Version 1.1.0 - Clarified enforcement scope for planning.conceptual_only
+
+planning.no_code_generation:
+  engine: ast_gate
+  params:
+    # Validates ExecutionTask objects don't have code in params
+    check_type: executiontask_code_none
+    enforce_at: plan_creation
+  scope:
+    applies_to:
+      - src/will/agents/planner_agent.py
+      - src/will/agents/base_planner.py
+  severity: error
+  message: "PlannerAgent violated planning.no_code_generation: ExecutionTask.params.code must be None. Code generation belongs in CODE_GENERATION phase."
+
+planning.conceptual_only:
+  engine: semantic_gate
+  params:
+    check_type: no_code_patterns_in_params # CLARIFIED: Only check params
+    enforcement_scope: params_only # NEW: Explicit scope declaration
+    forbidden_patterns:
+      - "def "
+      - "class "
+      - "import "
+      - "from "
+      - "async def"
+      - "return "
+    max_pattern_matches: 0
+  scope:
+    applies_to:
+      - src/will/agents/planner_agent.py
+      - src/will/agents/base_planner.py
+  severity: error
+  message: "PlannerAgent violated planning.conceptual_only: Plan params contains code patterns. Planning must be conceptual only. Code belongs in CODE_GENERATION phase."
+  implementation_notes: |
+    CRITICAL: This check MUST ONLY examine the ExecutionTask.params dict.
+    The 'step' field contains natural language descriptions and may legitimately
+    contain words like 'import', 'from', 'class' when describing tasks conceptually.
+
+    Implementation in base_planner.py:
+      params_dict = task_dict.get("params", {})
+      params_str = json.dumps(params_dict)  # NOT json.dumps(task_dict)
+
+    This prevents false positives on descriptions like:
+      "Import configuration from database"
+      "Create class for user management"
+      "Load data from external API"
+
+planning.file_path_validation:
+  engine: regex_gate
+  params:
+    check_type: path_format_validation
+    pattern: "^(src|tests|docs)/[a-zA-Z0-9_/]+\\.py$"
+    forbidden_patterns:
+      - " / " # Spaces in path
+      - "\\\\" # Backslashes
+      - "\\s+/" # Whitespace before slash
+      - "/\\s+" # Whitespace after slash
+  scope:
+    applies_to:
+      - src/will/agents/planner_agent.py
+      - src/will/agents/base_planner.py
+  severity: error
+  message: "PlannerAgent violated planning.file_path_validation: Invalid file_path format detected. Paths must be valid repository-relative strings like 'src/foo/bar.py'."
+
+planning.trace_mandatory:
+  engine: ast_gate
+  params:
+    check_type: required_calls
+    calls:
+      - "self.tracer.record"
+    min_occurrences: 1
+  scope:
+    applies_to:
+      - src/will/agents/planner_agent.py
+  severity: warning
+  message: "PlannerAgent violated planning.trace_mandatory: Missing decision trace. All planning decisions must be recorded."

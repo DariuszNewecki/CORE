@@ -172,9 +172,20 @@ class DetailedPlanStep:
         """
         Bridge: Converts a conceptual task from the Architect into a
         concrete blueprint for the Contractor.
+
+        ROBUSTNESS FIX: Some LLMs (like DeepSeek) incorrectly put the file_path
+        value into the code field. We detect and fix this here.
         """
         # Convert Pydantic model to dict, removing None values
         params = task.params.model_dump(exclude_none=True)
+
+        # ROBUSTNESS FIX: If params["code"] looks like a file path (not actual code),
+        # remove it so the generated code can replace it properly
+        if "code" in params and "file_path" in params:
+            # If code field contains the file_path value, it's an LLM error
+            if params["code"] == params["file_path"]:
+                # Remove the incorrect code value
+                del params["code"]
 
         # Inject generated code if provided by the Engineer
         if code is not None:

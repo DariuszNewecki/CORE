@@ -96,9 +96,9 @@ class InterpretPhase:
             # Add metadata to data dict (PhaseResult doesn't have separate metadata field)
             task_structure["_metadata"] = {
                 "interpretation_method": "deterministic_v1",
-                "confidence": "high"
-                if self._is_confident(goal, workflow_type)
-                else "medium",
+                "confidence": (
+                    "high" if self._is_confident(goal, workflow_type) else "medium"
+                ),
             }
 
             return PhaseResult(name="interpret", ok=True, data=task_structure)

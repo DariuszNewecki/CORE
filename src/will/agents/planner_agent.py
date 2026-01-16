@@ -9,6 +9,7 @@ CONSTITUTIONAL ALIGNMENT:
 - Aligned with 'autonomy.reasoning.policy_alignment'.
 - MODERNIZATION: Uses PathResolver standard instead of settings.load().
 - FIXED: Correctly handles session acquisition for memory cleanup.
+- ENHANCED: Uses action introspection to provide LLM with parameter requirements.
 """
 
 from __future__ import annotations
@@ -18,11 +19,13 @@ import random
 
 import yaml
 
+from body.atomic.registry import action_registry  # FIXED: Use registry directly
 from body.services.service_registry import service_registry
 from features.self_healing import MemoryCleanupService
 from shared.config import settings
 from shared.logger import getLogger
 from shared.models import ExecutionTask, PlanExecutionError
+from will.agents.action_introspection import get_all_action_schemas
 from will.agents.base_planner import build_planning_prompt, parse_and_validate_plan
 from will.orchestration.cognitive_service import CognitiveService
 from will.orchestration.decision_tracer import DecisionTracer
@@ -70,16 +73,25 @@ class PlannerAgent:
 
         # MODERNIZATION: Explicitly load policies via PathResolver
         qa_constraints = ""
-        try:
-            qa_path = settings.paths.policy("quality_assurance")
-            if qa_path.exists():
-                qa_policy = yaml.safe_load(qa_path.read_text(encoding="utf-8"))
-                rules = qa_policy.get("rules", [])
-                qa_constraints = (
-                    f"\n### Quality Assurance Targets\n{json.dumps(rules, indent=2)}"
-                )
-        except Exception as e:
-            logger.warning("Could not inject QA constraints into plan: %s", e)
+        # Try 'purity' (V2 name) then 'quality_assurance' (V1 name)
+        for policy_name in ["purity", "quality_assurance"]:
+            try:
+                qa_path = settings.paths.policy(policy_name)
+                if qa_path.exists():
+                    content = qa_path.read_text(encoding="utf-8")
+                    # Handle both JSON and YAML rules
+                    data = (
+                        json.loads(content)
+                        if qa_path.suffix == ".json"
+                        else yaml.safe_load(content)
+                    )
+                    rules = data.get("rules", [])
+                    qa_constraints = f"\n### Quality Assurance Targets\n{json.dumps(rules, indent=2)}"
+                    break
+            except Exception:
+                continue
+
+        if not qa_constraints:
             qa_constraints = (
                 "\n### Quality Assurance Targets\n- Ensure 75%+ test coverage."
             )
@@ -87,8 +99,18 @@ class PlannerAgent:
         # Enrich the reconnaissance report with QA requirements
         enriched_recon = f"{reconnaissance_report}\n{qa_constraints}"
 
+        # ENHANCED: Build complete action schemas with parameter requirements
+        # This tells the LLM exactly what parameters each action needs
+        actions = action_registry.list_all()
+        action_schemas = get_all_action_schemas(actions)
+        action_descriptions = json.dumps(action_schemas, indent=2)
+
         max_retries = settings.model_extra.get("CORE_MAX_RETRIES", 3)
-        prompt = build_planning_prompt(goal, self.prompt_template, enriched_recon)
+
+        # FIXED: Pass all 4 required positional arguments in the correct order
+        prompt = build_planning_prompt(
+            goal, action_descriptions, enriched_recon, self.prompt_template
+        )
 
         client = await self.cognitive_service.aget_client_for_role("Planner")
 

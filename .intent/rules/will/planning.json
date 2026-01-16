@@ -1,0 +1,49 @@
+{
+    "$schema": "META/rule_document.schema.json",
+    "kind": "rule_document",
+    "metadata": {
+        "id": "rules.will.planning",
+        "title": "Planning Phase Constitutional Rules",
+        "version": "1.1.0",
+        "authority": "policy",
+        "phase": "runtime",
+        "status": "active"
+    },
+    "rules": [
+        {
+            "id": "planning.no_code_generation",
+            "statement": "PlannerAgent MUST NOT generate code in ExecutionTask.params.code field. The 'code' parameter MUST be None after the PLANNING phase. Code generation is exclusively the responsibility of the CODE_GENERATION phase via CoderAgent.",
+            "authority": "policy",
+            "phase": "runtime",
+            "enforcement": "blocking",
+            "rationale": "Separation of concerns: Planning defines WHAT to do, Code Generation defines HOW. Mixing these responsibilities bypasses constitutional validation loops (pattern checking, constitutional auditing, correction attempts) that exist only in CoderAgent. This rule prevents garbage data from being passed directly to file operations."
+        },
+        {
+            "id": "planning.conceptual_only",
+            "statement": "ExecutionTask.params dict MUST contain only conceptual parameters (file paths, action IDs, configuration values). Concrete Python code, implementation details, or code snippets MUST NOT appear in params. Natural language descriptions in the 'step' field are unrestricted.",
+            "authority": "policy",
+            "phase": "runtime",
+            "enforcement": "blocking",
+            "rationale": "PlannerAgent uses lower-tier LLMs (like DeepSeek) optimized for strategic thinking, not code generation. Code quality validation, pattern enforcement, and correction loops exist only in CoderAgent with higher-tier models. Allowing code in planning params bypasses these safeguards. ENFORCEMENT SCOPE: This rule applies ONLY to the ExecutionTask.params dict, NOT to natural language step descriptions which may legitimately contain words like 'import', 'from', 'class' when describing the task conceptually. Implementation in base_planner.py must check json.dumps(params_dict) not json.dumps(task_dict). Valid example: {'step': 'Import configuration from database', 'params': {'file_path': 'src/config.py', 'code': null}}. Invalid example: {'params': {'code': 'from os import environ'}}.",
+            "scope": {
+                "notes": "Enforcement applies to params dict only. Step descriptions use natural language without restriction."
+            }
+        },
+        {
+            "id": "planning.file_path_validation",
+            "statement": "ExecutionTask.params.file_path MUST be a valid repository-relative path string, not code content. File paths MUST match pattern: ^(src|tests|docs)/[a-zA-Z0-9_/]+\\.py$",
+            "authority": "policy",
+            "phase": "runtime",
+            "enforcement": "blocking",
+            "rationale": "Prevents the bug where PlannerAgent writes 'src / features / introspection / vectorization_service.py' as code content instead of proper filepath. This garbage then bypasses validation because it's in the wrong parameter."
+        },
+        {
+            "id": "planning.trace_mandatory",
+            "statement": "PlannerAgent MUST record decision trace for every execution plan created, including goal, step count, and planning strategy used.",
+            "authority": "policy",
+            "phase": "runtime",
+            "enforcement": "blocking",
+            "rationale": "Aligns with autonomy.tracing.mandatory. Planning decisions must be auditable for debugging and constitutional compliance verification."
+        }
+    ]
+}

@@ -169,5 +169,32 @@
     "line_number": null,
     "context": {},
     "details": {}
+  },
+  {
+    "check_id": "purity.no_todo_placeholders",
+    "severity": "warning",
+    "message": "Forbidden Content [Line 74]: Matched restricted regex '\\bTODO\\b'",
+    "file_path": "src/will/phases/stub_phases.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_todo_placeholders",
+    "severity": "warning",
+    "message": "Forbidden Content [Line 108]: Matched restricted regex '\\bTODO\\b'",
+    "file_path": "src/will/phases/stub_phases.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_todo_placeholders",
+    "severity": "warning",
+    "message": "Forbidden Content [Line 136]: Matched restricted regex '\\bTODO\\b'",
+    "file_path": "src/will/phases/stub_phases.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
   }
 ]

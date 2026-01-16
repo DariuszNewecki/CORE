@@ -47,11 +47,11 @@ PHASE_IMPLEMENTATIONS = {
     "interpret": "will.phases.interpret_phase.InterpretPhase",
     "planning": "will.phases.planning_phase.PlanningPhase",
     "code_generation": "will.phases.code_generation_phase.CodeGenerationPhase",
-    "test_generation": "will.phases.stub_phases.TestGenerationPhase",
-    "canary_validation": "will.phases.stub_phases.CanaryValidationPhase",
-    "sandbox_validation": "will.phases.stub_phases.SandboxValidationPhase",
-    "style_check": "will.phases.stub_phases.StyleCheckPhase",
-    "execution": "will.phases.stub_phases.ExecutionPhase",
+    "test_generation": "will.phases.test_generation_phase.TestGenerationPhase",
+    "canary_validation": "will.phases.canary_validation_phase.CanaryValidationPhase",
+    "sandbox_validation": "will.phases.stub_phases.SandboxValidationPhase",  # Still stub
+    "style_check": "will.phases.style_check_phase.StyleCheckPhase",
+    "execution": "will.phases.execution_phase.ExecutionPhase",
 }
 
 
