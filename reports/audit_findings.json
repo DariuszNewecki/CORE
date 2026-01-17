@@ -2,15 +2,6 @@
   {
     "check_id": "architecture.max_file_size",
     "severity": "warning",
-    "message": "Module has 490 lines, exceeds limit of 400",
-    "file_path": "src/body/atomic/executor.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.max_file_size",
-    "severity": "warning",
     "message": "Module has 493 lines, exceeds limit of 400",
     "file_path": "src/body/cli/commands/autonomy.py",
     "line_number": null,
@@ -101,7 +92,7 @@
   {
     "check_id": "architecture.max_file_size",
     "severity": "warning",
-    "message": "Module has 437 lines, exceeds limit of 400",
+    "message": "Module has 434 lines, exceeds limit of 400",
     "file_path": "src/shared/infrastructure/context/builder.py",
     "line_number": null,
     "context": {},
@@ -119,7 +110,7 @@
   {
     "check_id": "architecture.max_file_size",
     "severity": "warning",
-    "message": "Module has 480 lines, exceeds limit of 400",
+    "message": "Module has 497 lines, exceeds limit of 400",
     "file_path": "src/will/agents/code_generation/code_generator.py",
     "line_number": null,
     "context": {},
@@ -193,6 +184,15 @@
     "severity": "warning",
     "message": "Forbidden Content [Line 136]: Matched restricted regex '\\bTODO\\b'",
     "file_path": "src/will/phases/stub_phases.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_todo_placeholders",
+    "severity": "warning",
+    "message": "Forbidden Content [Line 96]: Matched restricted regex '\\bTODO\\b'",
+    "file_path": "src/will/phases/test_generation_phase.py",
     "line_number": null,
     "context": {},
     "details": {}
