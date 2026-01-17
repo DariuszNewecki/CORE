@@ -8,7 +8,7 @@ ENHANCEMENT (Context Awareness):
 - Now accepts ContextService for rich context building
 - Falls back gracefully when ContextService unavailable
 - Uses ContextPackage in standard mode (not just semantic mode)
-- Expected improvement: 70% → 90%+ autonomous success rate
+- Expected improvement: 70% to 90%+ autonomous success rate
 
 Aligned with PathResolver standards for var/prompts access.
 """
@@ -103,7 +103,7 @@ class CodeGenerator:
         Returns:
             Generated Python code as string
         """
-        logger.info("✏️  Generating code for task: '%s'...", task.step)
+        logger.info("Generating code for task: '%s'...", task.step)
 
         target_file = task.params.file_path or "unknown.py"
         symbol_name = task.params.symbol_name or ""
@@ -177,6 +177,23 @@ class CodeGenerator:
         raw_response = await generator.make_request_async(
             enriched_prompt,
             user_id="coder_agent_a2",
+        )
+
+        # OBSERVABILITY FIX: Log raw LLM response for debugging
+        logger.debug("Raw LLM response length: %d chars", len(raw_response))
+        logger.debug("Raw LLM response preview: %s", raw_response[:200])
+
+        # Record LLM response in decision trace
+        self.tracer.record(
+            agent="CodeGenerator",
+            decision_type="llm_response_received",
+            rationale=f"LLM returned {len(raw_response)} characters",
+            chosen_action="Extracting code from response",
+            context={
+                "response_length": len(raw_response),
+                "response_preview": raw_response[:500],
+            },
+            confidence=1.0,
         )
 
         code = extract_python_code_from_response(raw_response)

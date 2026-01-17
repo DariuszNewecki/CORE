@@ -3,8 +3,8 @@
     "kind": "rule_document",
     "metadata": {
         "id": "rules.code.purity",
-        "title": "Code Purity Standards",
-        "version": "1.0.0",
+        "title": "Code Purity Standards (V2.3 Reflexive)",
+        "version": "1.1.0",
         "authority": "policy",
         "phase": "audit",
         "status": "active"
@@ -29,7 +29,8 @@
             "statement": "Every public symbol MUST be preceded by a stable '# ID:' anchor comment.",
             "authority": "policy",
             "phase": "audit",
-            "enforcement": "blocking"
+            "enforcement": "reporting",
+            "rationale": "Downgraded to reporting to support autonomous refactoring loops. Missing IDs are auto-injected by the ActionExecutor Finalizer."
         },
         {
             "id": "purity.docstrings.required",
@@ -37,6 +38,14 @@
             "authority": "policy",
             "phase": "audit",
             "enforcement": "reporting"
+        },
+        {
+            "id": "purity.logic_conservation",
+            "statement": "Refactored code MUST NOT result in a character count reduction of >50% compared to original source unless explicitly authorized.",
+            "authority": "constitution",
+            "phase": "audit",
+            "enforcement": "blocking",
+            "rationale": "Pillar III: Functional Governance. Prevents 'Logic Evaporation' where AI deletes complex code to pass simple tests."
         }
     ]
 }
