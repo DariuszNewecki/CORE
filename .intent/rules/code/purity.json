@@ -46,6 +46,13 @@
             "phase": "audit",
             "enforcement": "blocking",
             "rationale": "Pillar III: Functional Governance. Prevents 'Logic Evaporation' where AI deletes complex code to pass simple tests."
+        },
+        {
+            "id": "purity.no_dead_code",
+            "statement": "Production code MUST NOT contain unreachable or dead symbols as identified by static analysis.",
+            "authority": "policy",
+            "phase": "audit",
+            "enforcement": "reporting"
         }
     ]
 }

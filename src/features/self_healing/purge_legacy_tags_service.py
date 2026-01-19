@@ -44,7 +44,10 @@ async def purge_legacy_tags(context: CoreContext, dry_run: bool = True) -> int:
     await auditor_context.load_knowledge_graph()
 
     # 2. Extract rules from the Constitution and find the "Purity" rule
-    all_rules = extract_executable_rules(auditor_context.policies)
+    # FIX: Added enforcement_loader parameter
+    all_rules = extract_executable_rules(
+        auditor_context.policies, auditor_context.enforcement_loader
+    )
     target_rule = next(
         (r for r in all_rules if r.rule_id == "purity.no_descriptive_pollution"), None
     )

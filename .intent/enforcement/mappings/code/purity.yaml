@@ -78,3 +78,19 @@ mappings:
     engine: knowledge_gate
     params:
       check_type: duplicate_ids
+
+  purity.logic_conservation:
+    engine: llm_gate
+    params:
+      instruction: >
+        Compare the proposed refactor to the original code.
+        Verify that no significant domain logic has been deleted.
+        If the code size shrunk by more than 50%, ensure it was due to
+        de-duplication, not logic removal.
+
+  purity.no_dead_code:
+    engine: workflow_gate
+    params:
+      check_type: dead_code_check
+      tool: "vulture"
+      confidence: 80

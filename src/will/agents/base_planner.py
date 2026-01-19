@@ -101,7 +101,7 @@ def parse_and_validate_plan(response_text: str) -> list[ExecutionTask]:
             # Constitutional check: valid file_path format
             if isinstance(params, dict) and "file_path" in params:
                 file_path = params.get("file_path")
-                if file_path and ("/ " in file_path or "\\" in file_path):
+                if file_path and ("/ " in file_path or chr(92) in file_path):
                     raise PlanExecutionError(
                         f"Step {i} has invalid file_path format: {file_path}"
                     )

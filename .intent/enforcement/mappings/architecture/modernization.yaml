@@ -1,0 +1,16 @@
+# .intent/enforcement/mappings/architecture/modernization.yaml
+# Visualization mapping for Evolutionary Purity
+
+mappings:
+  modernization.legacy_scars:
+    engine: llm_gate
+    params:
+      instruction: >
+        Analyze the provided code for 'Fidelity Scars' from Iterations 1 or 2.
+        Identify:
+        1. Function signatures with unused variables (e.g., 'output_mode', 'silent').
+        2. 'Shim' modules that simply wrap V2 logic to support legacy imports.
+        3. Hard-coded logic that violates the 'Everything is Reasoned' vision.
+
+        Provide a concise 'Judicial Opinion' for each finding.
+      rationale: "Evolutionary visualization: identifying the ghosts of the past."

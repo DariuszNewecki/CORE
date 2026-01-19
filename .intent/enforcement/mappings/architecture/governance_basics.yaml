@@ -70,7 +70,7 @@ mappings:
         - "bypass_governance"
         - "disable_governance"
 
-  governance.no_dangerous_execution_primitives:
+  governance.dangerous_execution_primitives:
     engine: ast_gate
     params:
       check_type: forbidden_primitives

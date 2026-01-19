@@ -1,25 +1,57 @@
-# Modularity enforcement mapping
-checks:
-  - rule_id: modularity.single_responsibility
-    check_class: ModularityChecker
-    check_method: check_single_responsibility
+# Modularity enforcement mappings
+# These rules ensure UNIX philosophy and Single Responsibility Principle
+
+mappings:
+  # LAW: Files should have a single responsibility
+  modularity.single_responsibility:
+    engine: ast_gate
     params:
+      check_type: modularity
+      check_method: check_single_responsibility
       max_responsibilities: 2
+    scope:
+      applies_to: ["src/**/*.py"]
+      excludes: ["tests/**", "scripts/**"]
 
-  - rule_id: modularity.semantic_cohesion
-    check_class: ModularityChecker
-    check_method: check_semantic_cohesion
+  # LAW: Functions within a file should be semantically cohesive
+  modularity.semantic_cohesion:
+    engine: ast_gate
     params:
+      check_type: modularity
+      check_method: check_semantic_cohesion
       min_cohesion: 0.70
+    scope:
+      applies_to: ["src/**/*.py"]
+      excludes: ["tests/**", "scripts/**"]
 
-  - rule_id: modularity.import_coupling
-    check_class: ModularityChecker
-    check_method: check_import_coupling
+  # LAW: Files should not import from too many concern areas
+  modularity.import_coupling:
+    engine: ast_gate
     params:
+      check_type: modularity
+      check_method: check_import_coupling
       max_concerns: 3
+    scope:
+      applies_to: ["src/**/*.py"]
+      excludes: ["tests/**", "scripts/**"]
 
-  - rule_id: modularity.refactor_score_threshold
-    check_class: ModularityChecker
-    check_method: check_refactor_score
+  # LAW: Files should maintain a healthy refactor score
+  modularity.refactor_score_threshold:
+    engine: ast_gate
     params:
+      check_type: modularity
+      check_method: check_refactor_score
       max_score: 60
+    scope:
+      applies_to: ["src/**/*.py"]
+      excludes: ["tests/**", "scripts/**", "**/__init__.py"]
+
+  # LAW: Maintain UNIX philosophy
+  # This uses the Judge (Local LLM) to evaluate the "Soul" of the module.
+  modularity.unix_philosophy:
+    engine: llm_gate
+    params:
+      instruction: >
+        Evaluate if this module follows the UNIX philosophy: 'Do one thing and do it well.'
+        Flag if the module is becoming a 'God Object' that handles too many unrelated concerns.
+      rationale: "Constitutional requirement for architectural simplicity."

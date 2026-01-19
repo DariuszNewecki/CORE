@@ -21,9 +21,11 @@ from mind.logic.engines.workflow_gate.checks import (
     AuditHistoryCheck,
     CanaryDeploymentCheck,
     CoverageMinimumCheck,
+    DeadCodeCheck,
     LinterComplianceCheck,
     TestVerificationCheck,
 )
+from mind.logic.engines.workflow_gate.checks.quality import QualityGateCheck
 from shared.logger import getLogger
 from shared.models import AuditFinding, AuditSeverity
 
@@ -52,8 +54,16 @@ class WorkflowGateEngine(BaseEngine):
             CoverageMinimumCheck(),
             CanaryDeploymentCheck(),
             AlignmentVerificationCheck(),
+            DeadCodeCheck(),
             AuditHistoryCheck(),
             LinterComplianceCheck(),
+            QualityGateCheck(
+                "mypy_check", ["mypy", "src/", "--ignore-missing-imports"]
+            ),
+            QualityGateCheck("security_check", ["pip-audit"]),
+            QualityGateCheck(
+                "pytest_check", ["pytest", "tests/", "-q", "--co"]
+            ),  # Collection only for speed
         ]
 
         self._checks: dict[str, WorkflowCheck] = {

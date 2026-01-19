@@ -97,7 +97,10 @@ async def inspect_duplicates_async(context: CoreContext, threshold: float) -> No
             auditor_context.qdrant_service = qdrant_service
 
         # 3. Extract all executable rules
-        all_rules = extract_executable_rules(auditor_context.policies)
+        # FIX: Added enforcement_loader parameter
+        all_rules = extract_executable_rules(
+            auditor_context.policies, auditor_context.enforcement_loader
+        )
 
         # 4. Find AST duplication rule
         ast_rule = next(

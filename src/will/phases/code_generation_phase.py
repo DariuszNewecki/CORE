@@ -8,24 +8,36 @@ The limb distinguishes between:
 - Structural Integrity (logic / syntax)
 - Functional Correctness (tests)
 
-This prevents false-negative “pain” signals that cause unnecessary rework.
+This prevents false-negative "pain" signals that cause unnecessary rework.
+
+ENHANCED (V2.4): Artifact Documentation
+- Saves all generated code to work/ directory for review
+- Creates detailed reports even in dry-run mode
+- Uses FileHandler for constitutional governance compliance
 
 Constitutional Alignment:
 - Pillar I (Octopus): Context-aware sensation.
 - Pillar III (Governance): Logic-first validation.
+- governance.artifact_mutation.traceable: All writes via FileHandler
 """
 
 from __future__ import annotations
 
-import ast
 import time
 from typing import TYPE_CHECKING
 
 from features.test_generation_v2.sandbox import PytestSandboxRunner
 from shared.infrastructure.context.limb_workspace import LimbWorkspace
+from shared.infrastructure.storage.file_handler import FileHandler
 from shared.logger import getLogger
-from shared.models.workflow_models import DetailedPlan, DetailedPlanStep, PhaseResult
+from shared.models.execution_models import DetailedPlan, DetailedPlanStep
+from shared.models.workflow_models import PhaseResult
 from will.orchestration.decision_tracer import DecisionTracer
+
+from .code_generation.artifact_saver import ArtifactSaver
+from .code_generation.code_sensor import CodeSensor
+from .code_generation.file_path_extractor import FilePathExtractor
+from .code_generation.work_directory_manager import WorkDirectoryManager
 
 
 if TYPE_CHECKING:
@@ -35,22 +47,32 @@ if TYPE_CHECKING:
 logger = getLogger(__name__)
 
 
-# ID: code_generation_reflex_pipe
-# ID: 3c4d5e6f-7g8h-9i0j-1k2l-3m4n5o6p7q8r
-# ID: b481078f-65e9-4fea-8870-373fa2a52850
+# ID: f6ad5be7-dde6-467b-8edf-767dfe62bfa2
 class CodeGenerationPhase:
-    """Orchestrates the intelligent reflexive generation loop."""
+    """
+    Code Generation Phase Component.
+
+    ENHANCED: Now saves all generated code artifacts to work/ directory
+    for review, debugging, and audit purposes.
+    """
 
     def __init__(self, core_context: CoreContext) -> None:
         self.context = core_context
-        self.tracer = DecisionTracer(agent_name="IntelligentReflexPipe")
+        self.tracer = DecisionTracer(agent_name="CodeGenerationPhase")
+
+        # Initialize components
+        self.file_handler = FileHandler(str(core_context.git_service.repo_path))
         self.execution_sensor = PytestSandboxRunner(
             core_context.file_handler,
             repo_root=str(core_context.git_service.repo_path),
         )
 
-    # ID: execute_intelligent_loop
-    # ID: 278cf35e-d02b-417f-a7c8-680420ae6562
+        self.work_dir_manager = WorkDirectoryManager(self.file_handler)
+        self.artifact_saver = ArtifactSaver(self.file_handler)
+        self.code_sensor = CodeSensor(self.execution_sensor)
+        self.path_extractor = FilePathExtractor()
+
+    # ID: e884ad19-65fd-451c-84aa-004494b56a6b
     async def execute(self, context: WorkflowContext) -> PhaseResult:
         """Execute the reflexive loop with multi-modal sensation."""
         start_time = time.perf_counter()
@@ -65,7 +87,7 @@ class CodeGenerationPhase:
 
         workspace = LimbWorkspace(self.context.git_service.repo_path)
 
-        # Lazy imports reduce cross-layer coupling and avoid cycles during orchestration.
+        # Lazy imports reduce cross-layer coupling
         from will.agents.coder_agent import CoderAgent
         from will.orchestration.prompt_pipeline import PromptPipeline
 
@@ -76,69 +98,11 @@ class CodeGenerationPhase:
             workspace=workspace,
         )
 
-        detailed_steps: list[DetailedPlanStep] = []
-        max_twitches = 3
+        # Create work directory for artifacts
+        work_dir_rel = self.work_dir_manager.create_session_directory(context.goal)
 
-        for i, task in enumerate(plan, 1):
-            # Skip non-mutating tasks in the Code Generation phase.
-            # Reading is "sensation" handled by the workspace, not a generation step.
-            task_action = getattr(task, "action", None)
-            task_step = getattr(task, "step", "") or ""
-            if (
-                task_action in ("file.read", "inspect", "analyze")
-                or "Read" in task_step
-            ):
-                logger.info(
-                    "Step %d/%d: Skipping read-only task in Code Generation phase.",
-                    i,
-                    len(plan),
-                )
-                continue
-
-            logger.info("Step %d/%d: %s", i, len(plan), task_step)
-
-            current_code: str | None = None
-            pain_signal: str | None = None
-            step_ok = False
-
-            for twitch in range(max_twitches + 1):
-                if twitch > 0:
-                    logger.info(
-                        "Twitch %d: Self-correcting based on sensation...", twitch
-                    )
-
-                # A) GENERATE / REPAIR
-                current_code = await coder.generate_or_repair(
-                    task=task,
-                    goal=context.goal,
-                    pain_signal=pain_signal,
-                    previous_code=current_code,
-                )
-
-                # B) SENSE (Multi-modal)
-                file_path = self._extract_file_path(task, i)
-                sensation_ok, pain_signal = await self._sense_artifact(
-                    file_path, current_code or ""
-                )
-
-                if sensation_ok:
-                    logger.info("Sensation: CLEAR.")
-                    workspace.update_crate({file_path: current_code or ""})
-                    step_ok = True
-                    break
-
-                logger.warning(
-                    "Sensation: PAIN. Error: %s",
-                    (pain_signal or "")[:200],
-                )
-
-            step = DetailedPlanStep.from_execution_task(task, code=current_code)
-            if not step_ok:
-                step.metadata["generation_failed"] = True
-                step.metadata["error"] = pain_signal
-                logger.error("Twitch limit reached. Step failed.")
-
-            detailed_steps.append(step)
+        # Process each task
+        detailed_steps = await self._process_tasks(plan, coder, workspace, context.goal)
 
         if not detailed_steps:
             return PhaseResult(
@@ -148,6 +112,12 @@ class CodeGenerationPhase:
                 duration_sec=time.perf_counter() - start_time,
             )
 
+        # Save all generated artifacts
+        self.artifact_saver.save_generation_artifacts(
+            detailed_steps, work_dir_rel, context.goal
+        )
+
+        # Calculate success rate
         success_count = sum(
             1 for s in detailed_steps if not s.metadata.get("generation_failed")
         )
@@ -160,63 +130,86 @@ class CodeGenerationPhase:
                 "detailed_plan": DetailedPlan(goal=context.goal, steps=detailed_steps),
                 "success_rate": success_rate,
                 "workspace": workspace.get_crate_content(),
+                "artifacts_dir": work_dir_rel,
             },
             duration_sec=time.perf_counter() - start_time,
         )
 
-    def _extract_file_path(self, task: object, step_index: int) -> str:
-        """
-        Best-effort extraction of a target file path from a task.
+    async def _process_tasks(
+        self, plan: list, coder, workspace, goal: str
+    ) -> list[DetailedPlanStep]:
+        """Process all tasks in the plan through reflex loop."""
+        detailed_steps = []
+        max_twitches = 3
 
-        This phase often operates on task objects coming from planning that may
-        be typed loosely; keep this defensive and deterministic.
-        """
-        params = getattr(task, "params", None)
-        file_path = None
+        for i, task in enumerate(plan, 1):
+            # Skip read-only tasks in code generation phase
+            if self._is_read_only_task(task):
+                logger.info(
+                    "Step %d/%d: Skipping read-only task in Code Generation phase.",
+                    i,
+                    len(plan),
+                )
+                continue
 
-        if params is not None:
-            file_path = getattr(params, "file_path", None)
-            if not file_path and isinstance(params, dict):
-                file_path = params.get("file_path")
+            task_step = getattr(task, "step", "") or ""
+            logger.info("Step %d/%d: %s", i, len(plan), task_step)
 
-        if file_path and isinstance(file_path, str):
-            return file_path
+            # Process task through reflex loop
+            step = await self._reflex_loop(
+                task, coder, workspace, goal, i, max_twitches
+            )
+            detailed_steps.append(step)
 
-        return f"work/temp_step_{step_index}.py"
+        return detailed_steps
 
-    # ID: multi_modal_sensation_logic
-    async def _sense_artifact(
-        self, file_path: str, code: str
-    ) -> tuple[bool, str | None]:
-        """
-        Multi-modal sensation logic.
+    @staticmethod
+    def _is_read_only_task(task: object) -> bool:
+        """Check if task is read-only (no code generation needed)."""
+        task_action = getattr(task, "action", None)
+        task_step = getattr(task, "step", "") or ""
 
-        - Structural sensation (universal): Python syntax must parse.
-        - Functional sensation (tests): If the artifact looks like a test, run pytest sandbox.
-        """
-        if not code:
-            return False, "No code generated."
+        return task_action in ("file.read", "inspect", "analyze") or "Read" in task_step
 
-        # 1) STRUCTURAL SENSATION (universal)
-        if file_path.endswith(".py"):
-            try:
-                ast.parse(code)
-            except SyntaxError as e:
-                return False, f"Syntax Error: {e}"
+    async def _reflex_loop(
+        self, task, coder, workspace, goal: str, step_index: int, max_twitches: int
+    ) -> DetailedPlanStep:
+        """Execute reflex loop with sensation and self-correction."""
+        file_path = self.path_extractor.extract(task, step_index)
+        current_code: str | None = None
+        pain_signal: str | None = None
+        step_ok = False
 
-        # 2) MODALITY SELECTION
-        is_test = (
-            ("test_" in file_path)
-            or ("/tests/" in file_path)
-            or ("\\tests\\" in file_path)
-        )
+        for twitch in range(max_twitches + 1):
+            if twitch > 0:
+                logger.info("Twitch %d: Self-correcting based on sensation...", twitch)
 
-        if is_test:
-            logger.debug("Modality: Functional (Pytest) for %s", file_path)
-            result = await self.execution_sensor.run(code, "reflex_check")
-            if getattr(result, "passed", False):
-                return True, None
-            return False, getattr(result, "error", "Pytest failed.")
-        else:
-            logger.debug("Modality: Structural (AST) for %s", file_path)
-            return True, None
+            # A) GENERATE / REPAIR
+            current_code = await coder.generate_or_repair(
+                task=task,
+                goal=goal,
+                pain_signal=pain_signal,
+                previous_code=current_code,
+            )
+
+            # B) SENSE (Multi-modal)
+            sensation_ok, pain_signal = await self.code_sensor.sense_artifact(
+                file_path, current_code or ""
+            )
+
+            if sensation_ok:
+                logger.info("Sensation: CLEAR.")
+                workspace.update_crate({file_path: current_code or ""})
+                step_ok = True
+                break
+
+            logger.warning("Sensation: PAIN. Error: %s", (pain_signal or "")[:200])
+
+        # Build step result
+        step = DetailedPlanStep.from_execution_task(task, code=current_code)
+        if not step_ok:
+            step.metadata["generation_failed"] = True
+            step.metadata["error"] = pain_signal
+            logger.error("Twitch limit reached. Step failed.")
+
+        return step

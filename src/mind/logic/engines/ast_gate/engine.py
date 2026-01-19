@@ -23,6 +23,7 @@ from mind.logic.engines.ast_gate.checks import (
     NamingChecks,
     PurityChecks,
 )
+from mind.logic.engines.ast_gate.checks.modularity_checks import ModularityChecker
 from mind.logic.engines.base import BaseEngine, EngineResult
 
 
@@ -59,6 +60,8 @@ class ASTGateEngine(BaseEngine):
             "decorator_args",
             "capability_assignment",
             "no_direct_writes",
+            "required_calls",  # Verified: Authorized verb
+            "modularity",
         }
     )
 
@@ -204,9 +207,6 @@ class ASTGateEngine(BaseEngine):
                 )
             )
         elif check_type == "capability_assignment":
-            # NOTE: We maintain the current call structure.
-            # If CapabilityChecks.check_capability_assignment is updated to be
-            # async in the future, we simply add 'await' here.
             violations.extend(
                 CapabilityChecks.check_capability_assignment(tree, file_path=file_path)
             )
@@ -233,6 +233,37 @@ class ASTGateEngine(BaseEngine):
                 violations.extend(
                     PurityChecks.check_decorator_args(tree, decorator, args)
                 )
+
+        # 8. MANDATORY CALLS (Logic to support planning.trace_mandatory)
+        elif check_type == "required_calls":
+            selector = params.get("selector", {})  # The filter
+            requirement = {
+                "check_type": "required_calls",
+                "calls": params.get("calls", []),
+            }
+            for node in ast.walk(tree):
+                if isinstance(
+                    node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)
+                ):
+                    # Now we only check nodes that match the name filter
+                    if GenericASTChecks.is_selected(node, selector):
+                        error = GenericASTChecks.validate_requirement(node, requirement)
+                        if error:
+                            violations.append(
+                                f"Line {node.lineno}: '{node.name}' {error}"
+                            )
+
+        # 9. MODULARITY CHECKS
+        elif check_type == "modularity":
+            checker = ModularityChecker()
+            check_method = params.get("check_method", "check_refactor_score")
+
+            if hasattr(checker, check_method):
+                method = getattr(checker, check_method)
+                findings = method(file_path, params)
+
+                for finding in findings:
+                    violations.append(finding.get("message", "Modularity violation"))
 
         return EngineResult(
             ok=(len(violations) == 0),

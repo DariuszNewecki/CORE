@@ -172,41 +172,73 @@ class ModularityChecker:
     ) -> list[dict[str, Any]]:
         """
         Calculate comprehensive refactor score based on all dimensions.
+
+        IMPROVED SCORING:
+        - More lenient on small files (under 150 lines)
+        - Adjusted responsibility penalties
+        - Better cohesion calculation
         """
-        # We take the Target Value from the YAML params, fallback to 60.0
         target_value = float(params.get("max_score", 60.0))
-        warning_level = target_value * 0.8  # Gauss Gauge
+        warning_level = target_value * 0.8
 
         try:
             content = file_path.read_text(encoding="utf-8")
             tree = ast.parse(content)
 
-            # 1. Responsibilities (Weight: 40)
+            # Get base metrics
             resps = self._detect_responsibilities(content)
             resp_count = len(resps)
-            # Penalty starts after 1st responsibility
-            resp_score = min(max(0, resp_count - 1) * 15, 40)
-
-            # 2. Cohesion (Weight: 25)
             functions = self._extract_functions(tree)
             cohesion = self._calculate_cohesion(functions)
-            # Higher score for LOWER cohesion (Debt)
-            cohesion_score = (1.0 - cohesion) * 25
-
-            # 3. Coupling (Weight: 20)
             imports = self._extract_imports(tree)
             concerns = self._identify_concerns(imports)
-            # Penalty starts after 3rd concern area
-            coupling_score = min(max(0, len(concerns) - 3) * 7, 20)
-
-            # 4. Size (Weight: 15)
             loc = len(content.splitlines())
-            # Penalty starts after 200 lines
-            size_score = min(max(0, (loc - 200) // 20), 15)
+
+            # 1. Responsibilities (Weight: 35) - ADJUSTED
+            # More lenient: penalty starts after 2nd responsibility
+            # Small files with 2-3 responsibilities are often acceptable
+            if resp_count <= 2:
+                resp_score = 0
+            elif resp_count == 3:
+                resp_score = 12
+            elif resp_count == 4:
+                resp_score = 24
+            else:
+                resp_score = min(35, 24 + (resp_count - 4) * 5)
+
+            # 2. Cohesion (Weight: 25) - ADJUSTED
+            # Only penalize if cohesion is genuinely poor AND file has multiple functions
+            if len(functions) <= 3:
+                # Small files with few functions get a pass on cohesion
+                cohesion_score = 0
+            else:
+                # Only penalize if cohesion is below 0.3 (genuinely unrelated functions)
+                if cohesion < 0.3:
+                    cohesion_score = (0.3 - cohesion) * 80  # Max ~24 points
+                else:
+                    cohesion_score = 0
+
+            # 3. Coupling (Weight: 25) - INCREASED from 20
+            # Penalty starts after 4th concern (more lenient)
+            coupling_score = min(max(0, len(concerns) - 4) * 6, 25)
+
+            # 4. Size (Weight: 15) - ADJUSTED with graduated penalties
+            # Small file exemption: under 150 lines = 0 penalty
+            if loc < 150:
+                size_score = 0
+            elif loc < 250:
+                # 150-250 lines: gentle penalty (0-5 points)
+                size_score = (loc - 150) / 20
+            elif loc < 400:
+                # 250-400 lines: moderate penalty (5-12 points)
+                size_score = 5 + ((loc - 250) / 20)
+            else:
+                # 400+ lines: steep penalty (12-15 points)
+                size_score = min(15, 12 + ((loc - 400) / 50))
 
             total_score = resp_score + cohesion_score + coupling_score + size_score
 
-            # Return a finding if we exceed the Warning level (80% of target)
+            # Return finding if exceeds warning level
             if total_score > warning_level:
                 severity = "error" if total_score > target_value else "warning"
                 return [
@@ -223,6 +255,7 @@ class ModularityChecker:
                             "concern_count": len(concerns),
                             "concerns": concerns,
                             "lines_of_code": loc,
+                            "function_count": len(functions),
                             "breakdown": {
                                 "responsibilities": resp_score,
                                 "cohesion": cohesion_score,

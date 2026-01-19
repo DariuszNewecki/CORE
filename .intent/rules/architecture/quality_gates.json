@@ -1,0 +1,35 @@
+{
+    "$schema": "META/rule_document.schema.json",
+    "kind": "rule_document",
+    "metadata": {
+        "id": "rules.architecture.quality_gates",
+        "title": "Industrial Quality Gates",
+        "version": "1.0.0",
+        "authority": "policy",
+        "phase": "audit",
+        "status": "active"
+    },
+    "rules": [
+        {
+            "id": "quality.type_safety",
+            "statement": "Production code SHOULD be type-safe as verified by MyPy static analysis.",
+            "enforcement": "advisory",
+            "authority": "policy",
+            "phase": "audit"
+        },
+        {
+            "id": "quality.security_audit",
+            "statement": "The project dependency tree SHOULD be free of known vulnerabilities as verified by pip-audit.",
+            "enforcement": "advisory",
+            "authority": "policy",
+            "phase": "audit"
+        },
+        {
+            "id": "quality.test_integrity",
+            "statement": "The project test suite SHOULD be functional and passing without collection errors.",
+            "enforcement": "advisory",
+            "authority": "policy",
+            "phase": "audit"
+        }
+    ]
+}

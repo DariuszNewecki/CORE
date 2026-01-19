@@ -1,0 +1,15 @@
+mappings:
+  quality.type_safety:
+    engine: workflow_gate
+    params:
+      check_type: mypy_check
+
+  quality.security_audit:
+    engine: workflow_gate
+    params:
+      check_type: security_check
+
+  quality.test_integrity:
+    engine: workflow_gate
+    params:
+      check_type: pytest_check

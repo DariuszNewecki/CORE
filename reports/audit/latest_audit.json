@@ -1,8 +1,8 @@
 {
   "schema_version": "0.2.0",
-  "generated_at_utc": "2026-01-17T14:26:46Z",
+  "generated_at_utc": "2026-01-19T14:27:29Z",
   "source": "core-admin check audit",
-  "passed": true,
+  "passed": false,
   "artifacts": {
     "findings": "reports/audit_findings.json",
     "processed_findings": "reports/audit_findings.processed.json"
@@ -21,6 +21,7 @@
     "data.ssot.database_primacy",
     "governance.artifact_mutation.traceable",
     "governance.constitution.read_only",
+    "governance.dangerous_execution_primitives",
     "governance.intent_meta.required",
     "governance.logic_mutation.governed",
     "governance.no_governance_bypass",
@@ -28,10 +29,25 @@
     "linkage.duplicate_ids",
     "logic.di.no_global_session",
     "logic.logging.standard_only",
+    "modernization.legacy_scars",
+    "modularity.import_coupling",
+    "modularity.refactor_score_threshold",
+    "modularity.semantic_cohesion",
+    "modularity.single_responsibility",
+    "modularity.unix_philosophy",
+    "planning.conceptual_only",
+    "planning.file_path_validation",
+    "planning.no_code_generation",
+    "planning.trace_mandatory",
     "purity.docstrings.required",
+    "purity.logic_conservation",
+    "purity.no_dead_code",
     "purity.no_metadata_decorators",
     "purity.no_todo_placeholders",
-    "purity.stable_id_anchor"
+    "purity.stable_id_anchor",
+    "quality.security_audit",
+    "quality.test_integrity",
+    "quality.type_safety"
   ],
   "executed_checks": []
 }

@@ -274,3 +274,24 @@ async def fix_placeholders_command(
     with console.status("[cyan]Purging forbidden placeholders...[/cyan]"):
         executor = ActionExecutor(ctx.obj)
         return await executor.execute("fix.placeholders", write=write)
+
+
+@fix_app.command(
+    "dead-code", help="Mechanically remove unused variables/functions found by Vulture."
+)
+@core_command(dangerous=True)
+# ID: 3e2f4d95-02db-4f55-9fdb-9e55f9a9d918
+async def fix_dead_code_cmd(
+    ctx: typer.Context,
+    write: bool = typer.Option(False, "--write", help="Apply the deletions."),
+):
+    """CLI wrapper for the Vulture Healer."""
+    from features.self_healing.vulture_healer import heal_dead_code
+
+    with console.status("[bold cyan]Snipping dead code scars...[/bold cyan]"):
+        await heal_dead_code(ctx.obj, write=write)
+
+    if not write:
+        console.print(
+            "\n[yellow]💡 Dry run complete. Use --write to apply the 'Scissors'.[/yellow]"
+        )

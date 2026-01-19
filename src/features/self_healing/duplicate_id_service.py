@@ -67,7 +67,10 @@ async def resolve_duplicate_ids(
     await auditor_context.load_knowledge_graph()
 
     # 2. Extract and Execute the Uniqueness Rule
-    all_rules = extract_executable_rules(auditor_context.policies)
+    # FIX: Added enforcement_loader parameter
+    all_rules = extract_executable_rules(
+        auditor_context.policies, auditor_context.enforcement_loader
+    )
     target_rule = next(
         (r for r in all_rules if r.rule_id == "integration.duplicate_ids_resolved"),
         None,

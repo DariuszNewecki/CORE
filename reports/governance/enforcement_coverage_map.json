@@ -1,20 +1,16 @@
 {
   "metadata": {
-    "generated_at_utc": "2026-01-03T18:39:19.803250+00:00",
-    "evidence_file": "reports/audit/latest_audit.json",
-    "evidence_key_used": "executed_rules",
-    "total_executed_ids": 26,
-    "total_policy_files": 7,
-    "flat_format_policies": 7,
-    "nested_format_policies": 0
+    "generated_at_utc": "2026-01-19T14:07:01.728696+00:00",
+    "total_policy_rules": 37,
+    "total_executed_ids": 37,
+    "total_policy_files": 10
   },
   "summary": {
-    "rules_total": 26,
-    "rules_enforced": 26,
+    "rules_total": 37,
+    "rules_enforced": 37,
     "rules_implementable": 0,
     "rules_declared_only": 0,
-    "execution_rate": 100.0,
-    "implementable_rate": 100.0
+    "execution_rate": 100.0
   },
   "entries": [
     {
@@ -23,10 +19,8 @@
         "statement": "Logic modules MUST NOT call 'asyncio.run()' or manually create new event loops.",
         "severity": "blocking",
         "policy": "rules/architecture/async_logic",
-        "category": "uncategorized",
-        "check_engine": null,
-        "check_type": null,
-        "implementable": false
+        "check_engine": "ast_gate",
+        "implementable": true
       },
       "coverage_status": "enforced",
       "in_executed_ids": true
@@ -37,10 +31,8 @@
         "statement": "Modules MUST NOT import 'get_session' globally; database access MUST be injected.",
         "severity": "blocking",
         "policy": "rules/architecture/async_logic",
-        "category": "uncategorized",
-        "check_engine": null,
-        "check_type": null,
-        "implementable": false
+        "check_engine": "ast_gate",
+        "implementable": true
       },
       "coverage_status": "enforced",
       "in_executed_ids": true
@@ -51,24 +43,8 @@
         "statement": "Operational logs MUST use standard 'getLogger' and avoid f-strings for lazy evaluation.",
         "severity": "reporting",
         "policy": "rules/architecture/async_logic",
-        "category": "uncategorized",
-        "check_engine": null,
-        "check_type": null,
-        "implementable": false
-      },
-      "coverage_status": "enforced",
-      "in_executed_ids": true
-    },
-    {
-      "rule": {
-        "rule_id": "architecture.no_direct_writes",
-        "statement": "CORE code MUST NOT perform direct filesystem writes outside governed mutation surfaces.",
-        "severity": "blocking",
-        "policy": "rules/architecture/core_safety",
-        "category": "uncategorized",
-        "check_engine": null,
-        "check_type": null,
-        "implementable": false
+        "check_engine": "ast_gate",
+        "implementable": true
       },
       "coverage_status": "enforced",
       "in_executed_ids": true
@@ -79,10 +55,8 @@
         "statement": "Async execution engines MUST NOT be instantiated at module import time.",
         "severity": "blocking",
         "policy": "rules/architecture/core_safety",
-        "category": "uncategorized",
-        "check_engine": null,
-        "check_type": null,
-        "implementable": false
+        "check_engine": "ast_gate",
+        "implementable": true
       },
       "coverage_status": "enforced",
       "in_executed_ids": true
@@ -93,10 +67,8 @@
         "statement": "Source files MUST remain below a defined maximum size to preserve maintainability.",
         "severity": "reporting",
         "policy": "rules/architecture/core_safety",
-        "category": "uncategorized",
-        "check_engine": null,
-        "check_type": null,
-        "implementable": false
+        "check_engine": "ast_gate",
+        "implementable": true
       },
       "coverage_status": "enforced",
       "in_executed_ids": true
@@ -107,10 +79,8 @@
         "statement": "The constitutional intent directory MUST be immutable.",
         "severity": "blocking",
         "policy": "rules/architecture/core_safety",
-        "category": "uncategorized",
-        "check_engine": null,
-        "check_type": null,
-        "implementable": false
+        "check_engine": "glob_gate",
+        "implementable": true
       },
       "coverage_status": "enforced",
       "in_executed_ids": true
@@ -121,10 +91,8 @@
         "statement": "Intent schema and meta artifacts MUST NOT be mutated at runtime.",
         "severity": "blocking",
         "policy": "rules/architecture/core_safety",
-        "category": "uncategorized",
-        "check_engine": null,
-        "check_type": null,
-        "implementable": false
+        "check_engine": "glob_gate",
+        "implementable": true
       },
       "coverage_status": "enforced",
       "in_executed_ids": true
@@ -135,10 +103,8 @@
         "statement": "The constitutional intent directory (.intent/**) MUST be treated as immutable by all system components.",
         "severity": "blocking",
         "policy": "rules/architecture/governance_basics",
-        "category": "uncategorized",
-        "check_engine": null,
-        "check_type": null,
-        "implementable": false
+        "check_engine": "glob_gate",
+        "implementable": true
       },
       "coverage_status": "enforced",
       "in_executed_ids": true
@@ -149,10 +115,8 @@
         "statement": "A single META directory MUST exist at .intent/META to serve as the authoritative contract for intent artifacts.",
         "severity": "advisory",
         "policy": "rules/architecture/governance_basics",
-        "category": "uncategorized",
-        "check_engine": null,
-        "check_type": null,
-        "implementable": false
+        "check_engine": "glob_gate",
+        "implementable": true
       },
       "coverage_status": "enforced",
       "in_executed_ids": true
@@ -163,10 +127,8 @@
         "statement": "Permanent modifications to production logic within 'src/' MUST occur only through governed mutation surfaces.",
         "severity": "blocking",
         "policy": "rules/architecture/governance_basics",
-        "category": "uncategorized",
-        "check_engine": null,
-        "check_type": null,
-        "implementable": false
+        "check_engine": "ast_gate",
+        "implementable": true
       },
       "coverage_status": "enforced",
       "in_executed_ids": true
@@ -177,10 +139,8 @@
         "statement": "System artifacts, logs, and reports SHOULD be generated via the FileHandler to ensure audit traceability.",
         "severity": "reporting",
         "policy": "rules/architecture/governance_basics",
-        "category": "uncategorized",
-        "check_engine": null,
-        "check_type": null,
-        "implementable": false
+        "check_engine": "ast_gate",
+        "implementable": true
       },
       "coverage_status": "enforced",
       "in_executed_ids": true
@@ -191,24 +151,92 @@
         "statement": "No action or workflow MAY bypass governance validation; if a precondition cannot be evaluated, the operation MUST be blocked.",
         "severity": "advisory",
         "policy": "rules/architecture/governance_basics",
-        "category": "uncategorized",
-        "check_engine": null,
-        "check_type": null,
-        "implementable": false
+        "check_engine": "ast_gate",
+        "implementable": true
       },
       "coverage_status": "enforced",
       "in_executed_ids": true
     },
     {
       "rule": {
-        "rule_id": "governance.no_dangerous_execution_primitives",
-        "statement": "Effectful execution MUST NOT use dangerous execution primitives (eval, exec) outside of verified sanctuary modules.",
+        "rule_id": "governance.dangerous_execution_primitives",
+        "statement": "Dangerous execution primitives (eval, exec, compile, subprocess) require documented justification. AI agent code (Will layer) MUST NOT use these primitives. Infrastructure code (Body layer) MAY use them in designated sanctuary modules with clear operational need.",
         "severity": "advisory",
         "policy": "rules/architecture/governance_basics",
-        "category": "uncategorized",
-        "check_engine": null,
-        "check_type": null,
-        "implementable": false
+        "check_engine": "ast_gate",
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "modernization.legacy_scars",
+        "statement": "Source code SHOULD be free of obsolete structural shims, unused parameters from prior iterations, and internal logic wrappers that bypass the Universal Workflow Pattern.",
+        "severity": "advisory",
+        "policy": "rules/architecture/modernization",
+        "check_engine": "llm_gate",
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "modularity.single_responsibility",
+        "statement": "A source file SHOULD encapsulate at most 2 distinct responsibilities. Files with 3+ responsibilities are candidates for refactoring.",
+        "severity": "reporting",
+        "policy": "rules/architecture/modularity",
+        "check_engine": "ast_gate",
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "modularity.semantic_cohesion",
+        "statement": "Functions within a module SHOULD maintain semantic cohesion >= 0.70 (measured via embedding similarity). Low cohesion indicates poor module boundaries.",
+        "severity": "reporting",
+        "policy": "rules/architecture/modularity",
+        "check_engine": "ast_gate",
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "modularity.import_coupling",
+        "statement": "A source file SHOULD touch at most 3 distinct concern areas (database, web, CLI, testing, ML, file I/O). High coupling indicates mixed responsibilities.",
+        "severity": "reporting",
+        "policy": "rules/architecture/modularity",
+        "check_engine": "ast_gate",
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "modularity.refactor_score_threshold",
+        "statement": "Files with refactor score >= 60 (based on responsibility count, cohesion, coupling, duplication) SHOULD be prioritized for modularization.",
+        "severity": "reporting",
+        "policy": "rules/architecture/modularity",
+        "check_engine": "ast_gate",
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "modularity.unix_philosophy",
+        "statement": "Components SHOULD follow UNIX philosophy: do one thing well, compose via clear interfaces, minimize coupling.",
+        "severity": "advisory",
+        "policy": "rules/architecture/modularity",
+        "check_engine": "llm_gate",
+        "implementable": true
       },
       "coverage_status": "enforced",
       "in_executed_ids": true
@@ -217,12 +245,10 @@
       "rule": {
         "rule_id": "linkage.assign_ids",
         "statement": "Public functions and methods MUST have unique UUID identifiers for Knowledge Graph synchronization.",
-        "severity": "blocking",
+        "severity": "reporting",
         "policy": "rules/code/linkage",
-        "category": "uncategorized",
-        "check_engine": null,
-        "check_type": null,
-        "implementable": false
+        "check_engine": "ast_gate",
+        "implementable": true
       },
       "coverage_status": "enforced",
       "in_executed_ids": true
@@ -233,10 +259,8 @@
         "statement": "Symbol identifiers (# ID:) MUST be globally unique across the entire codebase.",
         "severity": "blocking",
         "policy": "rules/code/linkage",
-        "category": "uncategorized",
-        "check_engine": null,
-        "check_type": null,
-        "implementable": false
+        "check_engine": "knowledge_gate",
+        "implementable": true
       },
       "coverage_status": "enforced",
       "in_executed_ids": true
@@ -247,10 +271,8 @@
         "statement": "Source code MUST NOT contain descriptive metadata decorators like @capability, @meta, or @owner.",
         "severity": "blocking",
         "policy": "rules/code/purity",
-        "category": "uncategorized",
-        "check_engine": null,
-        "check_type": null,
-        "implementable": false
+        "check_engine": "ast_gate",
+        "implementable": true
       },
       "coverage_status": "enforced",
       "in_executed_ids": true
@@ -261,10 +283,8 @@
         "statement": "Production code MUST NOT contain 'TODO', 'FIXME', or 'TBD' strings; use the constitutional 'FUTURE' or 'PENDING' markers.",
         "severity": "reporting",
         "policy": "rules/code/purity",
-        "category": "uncategorized",
-        "check_engine": null,
-        "check_type": null,
-        "implementable": false
+        "check_engine": "regex_gate",
+        "implementable": true
       },
       "coverage_status": "enforced",
       "in_executed_ids": true
@@ -273,12 +293,10 @@
       "rule": {
         "rule_id": "purity.stable_id_anchor",
         "statement": "Every public symbol MUST be preceded by a stable '# ID:' anchor comment.",
-        "severity": "blocking",
+        "severity": "reporting",
         "policy": "rules/code/purity",
-        "category": "uncategorized",
-        "check_engine": null,
-        "check_type": null,
-        "implementable": false
+        "check_engine": "ast_gate",
+        "implementable": true
       },
       "coverage_status": "enforced",
       "in_executed_ids": true
@@ -289,10 +307,32 @@
         "statement": "Public symbols MUST have docstrings that clarify intent and parameters for autonomous planning.",
         "severity": "reporting",
         "policy": "rules/code/purity",
-        "category": "uncategorized",
-        "check_engine": null,
-        "check_type": null,
-        "implementable": false
+        "check_engine": "llm_gate",
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "purity.logic_conservation",
+        "statement": "Refactored code MUST NOT result in a character count reduction of >50% compared to original source unless explicitly authorized.",
+        "severity": "blocking",
+        "policy": "rules/code/purity",
+        "check_engine": "llm_gate",
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "purity.no_dead_code",
+        "statement": "Production code MUST NOT contain unreachable or dead symbols as identified by static analysis.",
+        "severity": "reporting",
+        "policy": "rules/code/purity",
+        "check_engine": "workflow_gate",
+        "implementable": true
       },
       "coverage_status": "enforced",
       "in_executed_ids": true
@@ -303,10 +343,8 @@
         "statement": "Operational knowledge MUST NOT be hardcoded in files when a database representation exists.",
         "severity": "blocking",
         "policy": "rules/data/governance",
-        "category": "uncategorized",
-        "check_engine": null,
-        "check_type": null,
-        "implementable": false
+        "check_engine": "ast_gate",
+        "implementable": true
       },
       "coverage_status": "enforced",
       "in_executed_ids": true
@@ -317,10 +355,8 @@
         "statement": "Source code, logs, and prompts MUST NOT contain raw secret values or API keys.",
         "severity": "blocking",
         "policy": "rules/data/governance",
-        "category": "uncategorized",
-        "check_engine": null,
-        "check_type": null,
-        "implementable": false
+        "check_engine": "regex_gate",
+        "implementable": true
       },
       "coverage_status": "enforced",
       "in_executed_ids": true
@@ -331,10 +367,8 @@
         "statement": "Every code symbol record in the database MUST have a corresponding vector entry in the memory layer.",
         "severity": "reporting",
         "policy": "rules/data/governance",
-        "category": "uncategorized",
-        "check_engine": null,
-        "check_type": null,
-        "implementable": false
+        "check_engine": "knowledge_gate",
+        "implementable": true
       },
       "coverage_status": "enforced",
       "in_executed_ids": true
@@ -345,10 +379,8 @@
         "statement": "Autonomous agents MUST NOT modify files outside their assigned autonomy lane.",
         "severity": "blocking",
         "policy": "rules/will/autonomy",
-        "category": "uncategorized",
-        "check_engine": null,
-        "check_type": null,
-        "implementable": false
+        "check_engine": "glob_gate",
+        "implementable": true
       },
       "coverage_status": "enforced",
       "in_executed_ids": true
@@ -359,10 +391,8 @@
         "statement": "All non-trivial autonomous decisions MUST produce an inspectable trace in the Decision Log.",
         "severity": "reporting",
         "policy": "rules/will/autonomy",
-        "category": "uncategorized",
-        "check_engine": null,
-        "check_type": null,
-        "implementable": false
+        "check_engine": "ast_gate",
+        "implementable": true
       },
       "coverage_status": "enforced",
       "in_executed_ids": true
@@ -373,10 +403,56 @@
         "statement": "Agent goal planning MUST include a semantic check against the Quality Assurance policy.",
         "severity": "reporting",
         "policy": "rules/will/autonomy",
-        "category": "uncategorized",
-        "check_engine": null,
-        "check_type": null,
-        "implementable": false
+        "check_engine": "regex_gate",
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "planning.no_code_generation",
+        "statement": "PlannerAgent MUST NOT generate code in ExecutionTask.params.code field. The 'code' parameter MUST be None after the PLANNING phase. Code generation is exclusively the responsibility of the CODE_GENERATION phase via CoderAgent.",
+        "severity": "blocking",
+        "policy": "rules/will/planning",
+        "check_engine": "llm_gate",
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "planning.conceptual_only",
+        "statement": "ExecutionTask.params dict MUST contain only conceptual parameters (file paths, action IDs, configuration values). Concrete Python code, implementation details, or code snippets MUST NOT appear in params. Natural language descriptions in the 'step' field are unrestricted.",
+        "severity": "blocking",
+        "policy": "rules/will/planning",
+        "check_engine": "llm_gate",
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "planning.file_path_validation",
+        "statement": "ExecutionTask.params.file_path MUST be a valid repository-relative path string, not code content. File paths MUST match pattern: ^(src|tests|docs)/[a-zA-Z0-9_/]+\\.py$",
+        "severity": "blocking",
+        "policy": "rules/will/planning",
+        "check_engine": "regex_gate",
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "planning.trace_mandatory",
+        "statement": "PlannerAgent MUST record decision trace for every execution plan created, including goal, step count, and planning strategy used.",
+        "severity": "blocking",
+        "policy": "rules/will/planning",
+        "check_engine": "ast_gate",
+        "implementable": true
       },
       "coverage_status": "enforced",
       "in_executed_ids": true
@@ -386,7 +462,6 @@
     "architecture.constitution_read_only",
     "architecture.max_file_size",
     "architecture.meta_read_only",
-    "architecture.no_direct_writes",
     "architecture.no_module_async_engine",
     "async.no_manual_loop_run",
     "autonomy.lanes.boundary_enforcement",
@@ -397,15 +472,27 @@
     "data.ssot.database_primacy",
     "governance.artifact_mutation.traceable",
     "governance.constitution.read_only",
+    "governance.dangerous_execution_primitives",
     "governance.intent_meta.required",
     "governance.logic_mutation.governed",
-    "governance.no_dangerous_execution_primitives",
     "governance.no_governance_bypass",
     "linkage.assign_ids",
     "linkage.duplicate_ids",
     "logic.di.no_global_session",
     "logic.logging.standard_only",
+    "modernization.legacy_scars",
+    "modularity.import_coupling",
+    "modularity.refactor_score_threshold",
+    "modularity.semantic_cohesion",
+    "modularity.single_responsibility",
+    "modularity.unix_philosophy",
+    "planning.conceptual_only",
+    "planning.file_path_validation",
+    "planning.no_code_generation",
+    "planning.trace_mandatory",
     "purity.docstrings.required",
+    "purity.logic_conservation",
+    "purity.no_dead_code",
     "purity.no_metadata_decorators",
     "purity.no_todo_placeholders",
     "purity.stable_id_anchor"
@@ -426,6 +513,16 @@
       "id": "",
       "format": "flat"
     },
+    "rules/architecture/modernization": {
+      "title": "",
+      "id": "",
+      "format": "flat"
+    },
+    "rules/architecture/modularity": {
+      "title": "",
+      "id": "",
+      "format": "flat"
+    },
     "rules/code/linkage": {
       "title": "",
       "id": "",
@@ -442,6 +539,11 @@
       "format": "flat"
     },
     "rules/will/autonomy": {
+      "title": "",
+      "id": "",
+      "format": "flat"
+    },
+    "rules/will/planning": {
       "title": "",
       "id": "",
       "format": "flat"

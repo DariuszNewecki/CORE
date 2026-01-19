@@ -1,0 +1,22 @@
+{
+    "$schema": "META/rule_document.schema.json",
+    "kind": "rule_document",
+    "metadata": {
+        "id": "rules.architecture.modernization",
+        "title": "System Modernization & Evolutionary Purity",
+        "version": "1.0.0",
+        "authority": "policy",
+        "phase": "audit",
+        "status": "active"
+    },
+    "rules": [
+        {
+            "id": "modernization.legacy_scars",
+            "statement": "Source code SHOULD be free of obsolete structural shims, unused parameters from prior iterations, and internal logic wrappers that bypass the Universal Workflow Pattern.",
+            "enforcement": "advisory",
+            "authority": "policy",
+            "phase": "audit",
+            "rationale": "To visualize the gap between the Historical Body and the Future Truth defined in REBIRTH v0.1."
+        }
+    ]
+}
