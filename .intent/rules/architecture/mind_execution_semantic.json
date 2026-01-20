@@ -1,0 +1,22 @@
+{
+    "$schema": "META/rule_document.schema.json",
+    "kind": "rule_document",
+    "metadata": {
+        "id": "rules.architecture.mind_execution_semantic",
+        "title": "Mind Layer Semantic Execution Boundary",
+        "version": "0.1.0",
+        "authority": "constitution",
+        "phase": "audit",
+        "status": "active"
+    },
+    "rules": [
+        {
+            "id": "architecture.mind.no_execution_semantics",
+            "statement": "Mind layer components MUST NOT contain execution logic such as risk classification, decision-making, caching strategies, or validation enforcement. Mind components only load, parse, and provide query interfaces to .intent/ artifacts.",
+            "enforcement": "reporting",
+            "authority": "constitution",
+            "phase": "audit",
+            "rationale": "Mind is read-only governance interface. Execution logic (risk classification, decision trees, enforcement) belongs in Body layer. This semantic boundary prevents Mind from evolving into an execution layer disguised as governance."
+        }
+    ]
+}

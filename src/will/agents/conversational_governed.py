@@ -11,8 +11,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from body.services.constitutional_validator import ApprovalType, RiskTier
-from mind.governance.governance_mixin import GovernanceMixin
 from shared.logger import getLogger
+from will.agents.governance_mixin import GovernanceMixin
 
 
 logger = getLogger(__name__)

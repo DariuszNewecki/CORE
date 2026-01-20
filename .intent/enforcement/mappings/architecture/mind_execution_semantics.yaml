@@ -1,0 +1,48 @@
+# .intent/enforcement/mappings/architecture/mind_execution_semantic.yaml
+#
+# Semantic enforcement for Mind layer execution boundary.
+# Uses LLM to detect execution logic in Mind components.
+
+mappings:
+  # ==========================================================================
+  # Mind Layer Semantic Execution Check
+  # ==========================================================================
+  # Detects when Mind components contain execution logic that belongs in Body
+
+  architecture.mind.no_execution_semantics:
+    engine: llm_gate
+    params:
+      instruction: >
+        Analyze this Mind layer component for execution logic violations.
+
+        Mind components (src/mind/**/*.py) should ONLY:
+        - Load and parse .intent/ files
+        - Build indexes/caches of loaded data
+        - Provide query interfaces (get_rule, list_policies, etc)
+        - Validate structure/format of loaded data
+
+        Mind components MUST NOT:
+        - Classify risk levels or make risk decisions
+        - Implement approval logic or governance decisions
+        - Contain if/else trees for deciding what to allow
+        - Cache computed results (only cache loaded data)
+        - Enforce rules (only provide rule data)
+        - Contain business logic or algorithms
+
+        Look for patterns like:
+        - Methods that classify, decide, evaluate, enforce, or validate operations
+        - Risk tier enums with decision logic
+        - Approval type decisions
+        - Pattern matching for file paths to determine actions
+        - Custom data structures for execution state
+
+        If the file contains ONLY loading/parsing/indexing/querying of .intent/ data, respond: PASS
+        If the file contains execution logic, respond: FAIL with specific violations found.
+
+      rationale: "Semantic analysis to detect Mind components doing Body work"
+    scope:
+      applies_to:
+        - "src/mind/**/*.py"
+      excludes:
+        - "src/mind/**/*_test.py"
+        - "src/mind/**/__init__.py"

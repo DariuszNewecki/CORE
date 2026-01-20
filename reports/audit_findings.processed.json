@@ -335,7 +335,7 @@
   {
     "check_id": "modularity.single_responsibility",
     "severity": "warning",
-    "message": "Modularity Debt: 48.3/100 (Limit: 60.0)",
+    "message": "Modularity Debt: 48.4/100 (Limit: 60.0)",
     "file_path": "src/will/orchestration/client_orchestrator.py",
     "line_number": null,
     "context": {},
@@ -434,7 +434,7 @@
   {
     "check_id": "modularity.semantic_cohesion",
     "severity": "warning",
-    "message": "Modularity Debt: 48.3/100 (Limit: 60.0)",
+    "message": "Modularity Debt: 48.4/100 (Limit: 60.0)",
     "file_path": "src/will/orchestration/client_orchestrator.py",
     "line_number": null,
     "context": {},
@@ -533,7 +533,7 @@
   {
     "check_id": "modularity.import_coupling",
     "severity": "warning",
-    "message": "Modularity Debt: 48.3/100 (Limit: 60.0)",
+    "message": "Modularity Debt: 48.4/100 (Limit: 60.0)",
     "file_path": "src/will/orchestration/client_orchestrator.py",
     "line_number": null,
     "context": {},
@@ -632,7 +632,7 @@
   {
     "check_id": "modularity.refactor_score_threshold",
     "severity": "warning",
-    "message": "Modularity Debt: 48.3/100 (Limit: 60.0)",
+    "message": "Modularity Debt: 48.4/100 (Limit: 60.0)",
     "file_path": "src/will/orchestration/client_orchestrator.py",
     "line_number": null,
     "context": {},
