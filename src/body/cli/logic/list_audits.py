@@ -1,4 +1,4 @@
-# src/mind/enforcement/list_audits.py
+# src/body/cli/logic/list_audits.py
 
 """
 Provides functionality for the list_audits module.

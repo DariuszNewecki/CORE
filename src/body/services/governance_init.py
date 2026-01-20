@@ -9,7 +9,7 @@ Used during FastAPI lifespan or CLI startup to load and validate constitution.
 
 from __future__ import annotations
 
-from mind.governance.validator_service import get_validator
+from body.services.constitutional_validator import get_validator
 from shared.logger import getLogger
 
 

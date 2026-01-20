@@ -28,7 +28,12 @@ from shared.models import AuditFinding, AuditSeverity
 console = Console()
 
 
-def _to_audit_finding(raw: dict) -> AuditFinding:
+def _to_audit_finding(raw: dict | AuditFinding) -> AuditFinding:
+    # If already an AuditFinding, return as-is
+    if isinstance(raw, AuditFinding):
+        return raw
+
+    # Otherwise convert from dict
     severity_map = {
         "info": AuditSeverity.INFO,
         "warning": AuditSeverity.WARNING,

@@ -29,8 +29,8 @@
   {
     "check_id": "architecture.max_file_size",
     "severity": "warning",
-    "message": "Module has 451 lines, exceeds limit of 400",
-    "file_path": "src/mind/governance/validator_service.py",
+    "message": "Module has 426 lines, exceeds limit of 400",
+    "file_path": "src/body/services/constitutional_validator.py",
     "line_number": null,
     "context": {},
     "details": {}
@@ -103,6 +103,15 @@
     "severity": "warning",
     "message": "Module has 472 lines, exceeds limit of 400",
     "file_path": "src/will/strategists/fix_strategist.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "governance.logic_mutation.governed",
+    "severity": "error",
+    "message": "Direct file write via Path.write_text() on line 87. Use FileHandler.add_pending_write() to stage writes constitutionally.",
+    "file_path": "src/features/self_healing/vulture_healer.py",
     "line_number": null,
     "context": {},
     "details": {}
@@ -326,7 +335,7 @@
   {
     "check_id": "modularity.single_responsibility",
     "severity": "warning",
-    "message": "Modularity Debt: 53.0/100 (Limit: 60.0)",
+    "message": "Modularity Debt: 48.3/100 (Limit: 60.0)",
     "file_path": "src/will/orchestration/client_orchestrator.py",
     "line_number": null,
     "context": {},
@@ -425,7 +434,7 @@
   {
     "check_id": "modularity.semantic_cohesion",
     "severity": "warning",
-    "message": "Modularity Debt: 53.0/100 (Limit: 60.0)",
+    "message": "Modularity Debt: 48.3/100 (Limit: 60.0)",
     "file_path": "src/will/orchestration/client_orchestrator.py",
     "line_number": null,
     "context": {},
@@ -524,7 +533,7 @@
   {
     "check_id": "modularity.import_coupling",
     "severity": "warning",
-    "message": "Modularity Debt: 53.0/100 (Limit: 60.0)",
+    "message": "Modularity Debt: 48.3/100 (Limit: 60.0)",
     "file_path": "src/will/orchestration/client_orchestrator.py",
     "line_number": null,
     "context": {},
@@ -623,7 +632,7 @@
   {
     "check_id": "modularity.refactor_score_threshold",
     "severity": "warning",
-    "message": "Modularity Debt: 53.0/100 (Limit: 60.0)",
+    "message": "Modularity Debt: 48.3/100 (Limit: 60.0)",
     "file_path": "src/will/orchestration/client_orchestrator.py",
     "line_number": null,
     "context": {},
@@ -668,6 +677,33 @@
   {
     "check_id": "purity.no_todo_placeholders",
     "severity": "warning",
+    "message": "Forbidden Content [Line 45]: Matched restricted regex '\\bTODO\\b'",
+    "file_path": "src/api/main.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_todo_placeholders",
+    "severity": "warning",
+    "message": "Forbidden Content [Line 55]: Matched restricted regex '\\bTODO\\b'",
+    "file_path": "src/api/main.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_todo_placeholders",
+    "severity": "warning",
+    "message": "Forbidden Content [Line 86]: Matched restricted regex '\\bTODO\\b'",
+    "file_path": "src/api/main.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_todo_placeholders",
+    "severity": "warning",
     "message": "Forbidden Content [Line 69]: Matched restricted regex '\\bTODO\\b'",
     "file_path": "src/features/self_healing/test_generation/generation_workflow.py",
     "line_number": null,
@@ -679,6 +715,15 @@
     "severity": "warning",
     "message": "Forbidden Content [Line 95]: Matched restricted regex '\\bTODO\\b'",
     "file_path": "src/features/self_healing/test_generation/generation_workflow.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_todo_placeholders",
+    "severity": "warning",
+    "message": "Forbidden Content [Line 129]: Matched restricted regex '\\bTODO\\b'",
+    "file_path": "src/mind/governance/enforcement/async_units.py",
     "line_number": null,
     "context": {},
     "details": {}

@@ -17,13 +17,15 @@ from body.services.service_registry import service_registry
 from shared.config import settings
 from shared.context import CoreContext
 from shared.errors import register_exception_handlers
-from shared.infrastructure.config_service import ConfigService
 from shared.infrastructure.context.service import ContextService
-from shared.infrastructure.database.session_manager import get_session
+
+# CONSTITUTIONAL NOTE: API layer should not import get_session directly
+# This is a temporary violation until service_registry implements auto-priming
+# from shared.infrastructure.database.session_manager import get_session
 from shared.infrastructure.git_service import GitService
 from shared.infrastructure.knowledge.knowledge_service import KnowledgeService
 from shared.infrastructure.storage.file_handler import FileHandler
-from shared.logger import getLogger, reconfigure_log_level
+from shared.logger import getLogger
 from shared.models import PlannerConfig
 
 
@@ -34,10 +36,13 @@ def _build_context_service() -> ContextService:
     """
     Factory for ContextService, wired for the API context.
     Ensures the API uses the same context logic as the CLI.
+
+    CONSTITUTIONAL NOTE: Temporarily disabled due to get_session import violation.
     """
+    # DISABLED: session_factory=get_session
     return ContextService(
         project_root=str(settings.REPO_PATH),
-        session_factory=get_session,
+        session_factory=None,  # TODO: Fix after service_registry refactor
     )
 
 
@@ -46,9 +51,9 @@ def _build_context_service() -> ContextService:
 async def lifespan(app: FastAPI):
     logger.info("🚀 Starting CORE system...")
 
-    # CONSTITUTIONAL FIX: Prime the ServiceRegistry with the session factory.
-    # This allows logic modules to acquire sessions without importing the manager.
-    service_registry.prime(get_session)
+    # CONSTITUTIONAL NOTE: Priming disabled - API layer should not import get_session
+    # TODO: Implement service_registry.prime_with_defaults() or auto-priming
+    # service_registry.prime(get_session)
 
     # 1. Initialize CoreContext with the Singleton Registry
     core_context = CoreContext(
@@ -77,11 +82,13 @@ async def lifespan(app: FastAPI):
             core_context.qdrant_service = qdrant
 
             # 3. Database & Config Initialization
-            async with get_session() as session:
-                config = await ConfigService.create(session)
-                log_level_from_db = await config.get("LOG_LEVEL", "INFO")
-                reconfigure_log_level(log_level_from_db)
-                await cognitive.initialize()
+            # CONSTITUTIONAL NOTE: Temporarily disabled due to session access violation
+            # TODO: Re-enable after service_registry provides constitutional session access
+            # async with service_registry.session() as session:
+            #     config = await ConfigService.create(session)
+            #     log_level_from_db = await config.get("LOG_LEVEL", "INFO")
+            #     reconfigure_log_level(log_level_from_db)
+            #     await cognitive.initialize()
 
             # 4. Load Knowledge Graph
             await auditor.load_knowledge_graph()

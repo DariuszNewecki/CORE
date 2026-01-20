@@ -13,7 +13,7 @@ from typing import Any
 
 import typer
 
-from mind.governance.validator_service import can_execute_autonomously
+from body.services.constitutional_validator import can_execute_autonomously
 from shared.logger import getLogger
 
 

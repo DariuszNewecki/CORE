@@ -1,16 +1,13 @@
 # src/shared/infrastructure/database/session_manager.py
+
 """
 The single source of truth for creating and managing database sessions.
-
-Design:
-- No module-level async engine/pool creation (prevents cross-loop reuse).
-- Maintain a per-event-loop engine+sessionmaker cache.
-- Provide deterministic disposal helpers for CLI/runtime teardown.
 """
 
 from __future__ import annotations
 
 import asyncio
+import logging  # <--- ADDED
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
@@ -49,10 +46,6 @@ def _engine_echo() -> bool:
 def _create_state() -> _DbState:
     """
     Create a new engine + session factory.
-
-    IMPORTANT:
-    - This must only be called while a loop is running (loop-local resource).
-    - It must not be executed at import time.
     """
     engine = create_async_engine(
         settings.DATABASE_URL,
@@ -70,9 +63,6 @@ def _create_state() -> _DbState:
 def _get_state() -> _DbState:
     """
     Return loop-local DB state (engine + sessionmaker).
-
-    Raises:
-        RuntimeError: if called without a running event loop.
     """
     try:
         loop = asyncio.get_running_loop()
@@ -95,10 +85,6 @@ def _get_state() -> _DbState:
 async def get_session() -> AsyncGenerator[AsyncSession, None]:
     """
     Primary entry point for creating an AsyncSession in an async context manager.
-
-    Usage:
-        async with get_session() as session:
-            ...
     """
     state = _get_state()
     session: AsyncSession = state.session_factory()
@@ -121,15 +107,22 @@ async def get_db_session() -> AsyncGenerator[AsyncSession, None]:
 async def dispose_engine() -> None:
     """
     Dispose the DB engine for the CURRENT running event loop.
-    Use this for deterministic teardown in CLI runtimes.
-
-    This is the only safe disposal primitive for production paths, because
-    engines are loop-bound resources by design here.
     """
-    loop = asyncio.get_running_loop()
+    # Defensive check: if loop is already closed, we can't do much
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        return
+
     state = _DB_BY_LOOP.pop(loop, None)
     if state is None:
         return
+
+    # CONSTITUTIONAL FIX: Muzzle the pool logger.
+    # This prevents SQLAlchemy from trying to log "connection closed"
+    # while Python is unloading the pathlib/logging modules.
+    logging.getLogger("sqlalchemy.pool").setLevel(logging.CRITICAL)
+
     await state.engine.dispose()
     logger.debug("Disposed DB engine for loop id=%s", id(loop))
 
@@ -138,9 +131,5 @@ async def dispose_engine() -> None:
 async def dispose_all_engines_for_current_loop_only() -> None:
     """
     Best-effort cleanup helper used primarily in tests.
-
-    IMPORTANT:
-    - Disposing engines created in OTHER loops from the CURRENT loop is not safe.
-    - Therefore, this only disposes the current loop (same behavior as dispose_engine).
     """
     await dispose_engine()

@@ -61,6 +61,7 @@ class RuntimeValidatorService:
                 _copy_repo_tree(
                     src_root=self.repo_root,
                     dst_root=canary_path,
+                    file_handler=fh,  # CONSTITUTIONAL FIX: Pass FileHandler to helper
                     ignore_names={
                         ".git",
                         ".venv",
@@ -115,10 +116,15 @@ class RuntimeValidatorService:
 
 
 # ID: 3d6d9f9f-7874-4e77-9f5f-8b1c2c0a9d31
-def _copy_repo_tree(src_root: Path, dst_root: Path, ignore_names: set[str]) -> None:
+def _copy_repo_tree(
+    src_root: Path, dst_root: Path, file_handler: FileHandler, ignore_names: set[str]
+) -> None:
     """
     Copy a repository tree without using shutil.copytree (direct mutation primitive),
     applying a simple directory/file name ignore set.
+
+    CONSTITUTIONAL FIX: Uses FileHandler for all writes to comply with
+    architecture.mind.no_filesystem_writes rule.
 
     This is intentionally minimal and deterministic for canary use.
     """
@@ -134,9 +140,10 @@ def _copy_repo_tree(src_root: Path, dst_root: Path, ignore_names: set[str]) -> N
         dst_path = dst_root / rel
 
         if src_path.is_dir():
-            dst_path.mkdir(parents=True, exist_ok=True)
+            # CONSTITUTIONAL FIX: Use FileHandler instead of Path.mkdir()
+            file_handler.ensure_dir(rel)
             continue
 
         if src_path.is_file():
-            dst_path.parent.mkdir(parents=True, exist_ok=True)
-            dst_path.write_bytes(src_path.read_bytes())
+            # CONSTITUTIONAL FIX: Use FileHandler instead of Path.write_bytes()
+            file_handler.write_runtime_bytes(rel, src_path.read_bytes())

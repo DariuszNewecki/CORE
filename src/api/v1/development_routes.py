@@ -6,8 +6,8 @@ Provides API endpoints for initiating and managing autonomous development cycles
 UPDATED (Phase 5): Removed _ExecutionAgent dependency.
 Now uses develop_from_goal which internally uses the new UNIX-compliant pattern.
 
-CONSTITUTIONAL FIX: Uses TaskRepository instead of direct session.add/commit
-to comply with db.write_via_governed_cli rule.
+CONSTITUTIONAL FIX: Uses service_registry.session() instead of direct get_session
+to comply with architecture.api.no_direct_database_access rule.
 """
 
 from __future__ import annotations
@@ -16,9 +16,9 @@ from fastapi import APIRouter, BackgroundTasks, Depends, Request
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from body.services.service_registry import service_registry
 from features.autonomy.autonomous_developer import develop_from_goal
 from shared.context import CoreContext
-from shared.infrastructure.database.session_manager import get_session
 from shared.infrastructure.repositories.task_repository import TaskRepository
 
 
@@ -36,7 +36,7 @@ async def start_development_cycle(
     request: Request,
     payload: DevelopmentGoal,
     background_tasks: BackgroundTasks,
-    session: AsyncSession = Depends(get_session),
+    session: AsyncSession = Depends(service_registry.session),
 ):
     """
     Accepts a high-level goal, creates a task record, and starts the
@@ -45,7 +45,8 @@ async def start_development_cycle(
     UPDATED: No longer needs to build executor_agent - develop_from_goal
     handles all agent orchestration internally using UNIX-compliant pattern.
 
-    CONSTITUTIONAL: Uses TaskRepository for DB writes (db.write_via_governed_cli).
+    CONSTITUTIONAL: Uses TaskRepository for DB writes and service_registry
+    for session access (Mind-Body-Will separation).
     """
     core_context: CoreContext = request.app.state.core_context
 
@@ -62,9 +63,11 @@ async def start_development_cycle(
 
         UPDATED: Simplified! No need to build agents manually.
         develop_from_goal now handles all orchestration internally.
+
+        CONSTITUTIONAL: Uses service_registry.session() for background task.
         """
-        # Create new session for background task
-        async with get_session() as dev_session:
+        # Create new session for background task via service registry
+        async with service_registry.session() as dev_session:
             # Just call develop_from_goal!
             # It builds all agents internally using UNIX-compliant pattern
             await develop_from_goal(

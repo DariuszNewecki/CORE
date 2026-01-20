@@ -80,7 +80,7 @@ class ConstitutionalEvaluator(Component):
     def validator_service(self):
         """Lazy-load ConstitutionalValidator to avoid circular imports."""
         if self._validator_service is None:
-            from mind.governance.validator_service import get_validator
+            from body.services.constitutional_validator import get_validator
 
             self._validator_service = get_validator()
         return self._validator_service

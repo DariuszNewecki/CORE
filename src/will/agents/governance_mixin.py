@@ -12,7 +12,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-from mind.governance.validator_service import (
+from body.services.constitutional_validator import (
     ApprovalType,
     GovernanceDecision,
     RiskTier,

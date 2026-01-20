@@ -10,21 +10,23 @@ This is the decision-making layer that:
 
 Part of Mind-Body-Will architecture:
 - Mind: Database + .intent/ policies
-- Body: ClientRegistry (pure execution)
+- Body: ClientRegistry (pure execution), MindStateService (Mind access)
 - Will: ClientOrchestrator (this file - decision making)
+
+Constitutional Compliance:
+- Will layer: Makes decisions about which resource to use
+- Mind/Body/Will separation: Uses MindStateService (Body) for Mind state access
+- No direct database access: Receives services via dependency injection
 """
 
 from __future__ import annotations
 
 import asyncio
 from pathlib import Path
-from typing import Any
 
-from sqlalchemy import select
-
+from body.services.mind_state_service import MindStateService
 from shared.infrastructure.config_service import ConfigService
 from shared.infrastructure.database.models import CognitiveRole, LlmResource
-from shared.infrastructure.database.session_manager import get_session
 from shared.infrastructure.llm.client import LLMClient
 from shared.infrastructure.llm.client_registry import LLMClientRegistry
 from shared.infrastructure.llm.providers.base import AIProvider
@@ -51,14 +53,22 @@ class ClientOrchestrator:
     Does NOT:
     - Manage client lifecycle (that's Body's job)
     - Store clients directly (delegates to registry)
+
+    Constitutional Note:
+    This class REQUIRES MindStateService via dependency injection.
+    No backward compatibility - this is the constitutional pattern.
     """
 
-    def __init__(self, repo_path: Path):
+    def __init__(self, repo_path: Path, mind_state_service: MindStateService):
         """
         Initialize orchestrator.
 
         Args:
             repo_path: Path to repository root (for context, not used directly)
+            mind_state_service: MindStateService instance for Mind state access
+
+        Constitutional Note:
+        mind_state_service is REQUIRED. No fallback, no exceptions.
         """
         self._repo_path = Path(repo_path)
         self._loaded = False
@@ -66,25 +76,36 @@ class ClientOrchestrator:
         self._roles: list[CognitiveRole] = []
         self._client_registry = LLMClientRegistry()
         self._init_lock = asyncio.Lock()
-        self._config_cache: dict[str, Any] = {}
+        self._config_service: ConfigService | None = None
+        self._mind_state_service = mind_state_service
 
     # ID: 519d53bf-45e0-40f3-ba63-47d09369bf46
     async def initialize(self) -> None:
         """
         Load Mind state: Read roles and resources from database.
+
+        Constitutional Note:
+        Uses MindStateService (Body) to access Mind state.
+        No direct database access - pure dependency injection.
         """
         async with self._init_lock:
             if self._loaded:
                 return
+
             try:
                 logger.info("ClientOrchestrator: Loading Mind state from database...")
-                async with get_session() as session:
-                    temp_config = await ConfigService.create(session)
-                    self._config_cache = temp_config._cache
-                    res_result = await session.execute(select(LlmResource))
-                    role_result = await session.execute(select(CognitiveRole))
-                    self._resources = list(res_result.scalars().all())
-                    self._roles = list(role_result.scalars().all())
+
+                # Constitutional compliance: Use Body service
+                (
+                    resources,
+                    roles,
+                    config_service,
+                ) = await self._mind_state_service.load_mind_state()
+
+                self._resources = resources
+                self._roles = roles
+                self._config_service = config_service
+
                 self._loaded = True
                 logger.info(
                     "ClientOrchestrator loaded %s resources and %s roles from Mind",
@@ -138,32 +159,42 @@ class ClientOrchestrator:
     async def _create_provider_for_resource(self, resource: LlmResource) -> AIProvider:
         """
         Create the correct provider for a resource based on its configuration.
+
+        Constitutional Note:
+        Uses cached ConfigService loaded during initialize().
+        No session creation - config was loaded via MindStateService.
         """
         prefix = (resource.env_prefix or "").strip().upper()
         if not prefix:
             raise ValueError(
                 f"Resource '{resource.name}' is missing env_prefix (Mind misconfiguration)"
             )
-        async with get_session() as session:
-            config = ConfigService(session, self._config_cache)
-            api_url = await config.get(f"{prefix}_API_URL")
-            if not api_url:
-                raise ValueError(
-                    f"Configuration '{prefix}_API_URL' is missing from the Database. Run 'poetry run core-admin manage dotenv sync --write' to populate runtime settings from your .env file."
-                )
-            model_name = await config.get(f"{prefix}_MODEL_NAME")
-            if not model_name:
-                raise ValueError(
-                    f"Configuration '{prefix}_MODEL_NAME' is missing from the Database. Run 'poetry run core-admin manage dotenv sync --write'."
-                )
-            api_key = None
-            try:
-                api_key = await config.get_secret(
-                    f"{prefix}_API_KEY",
-                    audit_context=f"client_orchestrator:{resource.name}",
-                )
-            except KeyError:
-                pass
+
+        # Use cached config service (loaded during initialize)
+        if self._config_service is None:
+            raise RuntimeError("ConfigService not loaded. Call initialize() first.")
+
+        config = self._config_service
+
+        api_url = await config.get(f"{prefix}_API_URL")
+        if not api_url:
+            raise ValueError(
+                f"Configuration '{prefix}_API_URL' is missing from the Database. Run 'poetry run core-admin manage dotenv sync --write' to populate runtime settings from your .env file."
+            )
+        model_name = await config.get(f"{prefix}_MODEL_NAME")
+        if not model_name:
+            raise ValueError(
+                f"Configuration '{prefix}_MODEL_NAME' is missing from the Database. Run 'poetry run core-admin manage dotenv sync --write'."
+            )
+        api_key = None
+        try:
+            api_key = await config.get_secret(
+                f"{prefix}_API_KEY",
+                audit_context=f"client_orchestrator:{resource.name}",
+            )
+        except KeyError:
+            pass
+
         if "anthropic" in api_url.lower():
             logger.info("Creating AnthropicProvider for %s", resource.name)
             from shared.infrastructure.llm.providers.anthropic import AnthropicProvider
@@ -189,3 +220,10 @@ class ClientOrchestrator:
         """Clear all cached clients."""
         logger.info("Orchestrator: Clearing client cache")
         self._client_registry.clear_cache()
+
+
+# Constitutional Note:
+# This is the constitutional pattern: Mind/Body/Will separation enforced via types.
+# MindStateService is required, not optional. Callers must provide it.
+# ConfigService is loaded once and cached - no repeated session creation.
+# No get_session imports anywhere - pure dependency injection.

@@ -4,6 +4,10 @@
 Audit history workflow check.
 
 Verifies audit history shows consistent compliance (no recent violations).
+
+CONSTITUTIONAL FIX:
+- Uses service_registry.session() instead of get_session()
+- Mind layer receives session factory from Body layer
 """
 
 from __future__ import annotations
@@ -14,7 +18,6 @@ from typing import Any
 from sqlalchemy import text
 
 from mind.logic.engines.workflow_gate.base_check import WorkflowCheck
-from shared.infrastructure.database.session_manager import get_session
 from shared.logger import getLogger
 
 
@@ -37,34 +40,31 @@ class AuditHistoryCheck(WorkflowCheck):
         Verify no recent audit violations.
 
         Args:
-            file_path: File to check history for
-            params: May include 'max_recent_violations' threshold
+            file_path: Unused (context-level check)
+            params: Check parameters (currently unused)
 
         Returns:
-            List of violations if file has too many recent issues
+            List of violations if recent failures found
         """
-        if not file_path:
-            return []
+        # CONSTITUTIONAL FIX: Use service_registry.session() instead of get_session()
+        from body.services.service_registry import service_registry
 
-        async with get_session() as session:
+        async with service_registry.session() as session:
             result = await session.execute(
                 text(
                     """
                     SELECT COUNT(*)
-                    FROM core.audit_findings
-                    WHERE file_path = :file_path
-                    AND created_at > NOW() - INTERVAL '7 days'
-                    AND severity IN ('error', 'critical')
-                """
-                ),
-                {"file_path": str(file_path)},
+                    FROM core.audit_runs
+                    WHERE passed = false
+                    AND started_at > NOW() - INTERVAL '7 days'
+                    """
+                )
             )
-            count = result.scalar()
+            failed_count = result.scalar_one()
 
-            max_violations = params.get("max_recent_violations", 3)
-            if count and count > max_violations:
+            if failed_count > 0:
                 return [
-                    f"File has {count} violations in past 7 days (threshold: {max_violations}). "
-                    "Indicates structural instability."
+                    f"Found {failed_count} failed audit(s) in the past 7 days. System must maintain compliance."
                 ]
+
             return []

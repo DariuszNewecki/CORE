@@ -13,6 +13,11 @@ ARCHITECTURE:
 - Executes actions via ActionExecutor
 - Tracks execution state
 - Handles failures gracefully
+
+Constitutional Compliance:
+- Will layer: Makes decisions about proposal execution flow
+- Mind/Body/Will separation: Uses ProposalRepository (Shared) for DB access
+- No direct database access: Receives session via dependency injection
 """
 
 from __future__ import annotations
@@ -27,6 +32,8 @@ from will.autonomy.proposal_repository import ProposalRepository
 
 
 if TYPE_CHECKING:
+    from sqlalchemy.ext.asyncio import AsyncSession
+
     from shared.context import CoreContext
 
 logger = getLogger(__name__)
@@ -47,7 +54,11 @@ class ProposalExecutor:
 
     Usage:
         executor = ProposalExecutor(core_context)
-        result = await executor.execute("proposal-id-123", write=True)
+        result = await executor.execute("proposal-id-123", session, write=True)
+
+    Constitutional Note:
+    This class REQUIRES AsyncSession for database access.
+    No backward compatibility - this is the constitutional pattern.
     """
 
     def __init__(self, core_context: CoreContext):
@@ -66,6 +77,7 @@ class ProposalExecutor:
     async def execute(
         self,
         proposal_id: str,
+        session: AsyncSession,
         write: bool = False,
     ) -> dict[str, Any]:
         """
@@ -81,6 +93,7 @@ class ProposalExecutor:
 
         Args:
             proposal_id: Proposal to execute
+            session: AsyncSession for database operations
             write: Whether to actually apply changes (False = dry-run)
 
         Returns:
@@ -88,175 +101,173 @@ class ProposalExecutor:
 
         Examples:
             # Dry-run
-            result = await executor.execute("prop-123", write=False)
+            result = await executor.execute("prop-123", session, write=False)
 
             # Actually execute
-            result = await executor.execute("prop-123", write=True)
+            result = await executor.execute("prop-123", session, write=True)
+
+        Constitutional Note:
+        Session is REQUIRED via parameter. No fallback, no exceptions.
+        This enforces Mind/Body/Will separation at the type level.
         """
         start_time = time.time()
+        repo = ProposalRepository(session)
 
-        # Import here to avoid circular dependency
-        from shared.infrastructure.database.session_manager import get_session
+        # 1. Load proposal
+        logger.info("Loading proposal: %s", proposal_id)
+        proposal = await repo.get(proposal_id)
 
-        async with get_session() as session:
-            repo = ProposalRepository(session)
+        if not proposal:
+            error = f"Proposal not found: {proposal_id}"
+            logger.error(error)
+            return {
+                "ok": False,
+                "error": error,
+                "duration_sec": time.time() - start_time,
+            }
 
-            # 1. Load proposal
-            logger.info("Loading proposal: %s", proposal_id)
-            proposal = await repo.get(proposal_id)
+        logger.info(
+            "Loaded proposal: %s (status=%s, actions=%d)",
+            proposal.proposal_id,
+            proposal.status.value,
+            len(proposal.actions),
+        )
 
-            if not proposal:
-                error = f"Proposal not found: {proposal_id}"
-                logger.error(error)
-                return {
-                    "ok": False,
-                    "error": error,
-                    "duration_sec": time.time() - start_time,
-                }
+        # 2. Validate status
+        if proposal.status != ProposalStatus.APPROVED:
+            error = f"Proposal not approved (status={proposal.status.value})"
+            logger.error(error)
+            return {
+                "ok": False,
+                "error": error,
+                "proposal_id": proposal.proposal_id,
+                "status": proposal.status.value,
+                "duration_sec": time.time() - start_time,
+            }
+
+        # 3. Mark as executing (only if write=True)
+        if write:
+            await repo.mark_executing(proposal.proposal_id)
+            logger.info("Marked proposal as executing: %s", proposal.proposal_id)
+        else:
+            logger.info("DRY-RUN mode - not updating proposal status")
+
+        # 4. Execute actions in order
+        action_results = {}
+        all_ok = True
+
+        sorted_actions = sorted(proposal.actions, key=lambda a: a.order)
+
+        logger.info("Executing %d actions...", len(sorted_actions))
+
+        for action in sorted_actions:
+            action_start = time.time()
+            action_id = action.action_id
 
             logger.info(
-                "Loaded proposal: %s (status=%s, actions=%d)",
-                proposal.proposal_id,
-                proposal.status.value,
-                len(proposal.actions),
+                "Executing action %d/%d: %s",
+                action.order + 1,
+                len(sorted_actions),
+                action_id,
             )
 
-            # 2. Validate status
-            if proposal.status != ProposalStatus.APPROVED:
-                error = f"Proposal not approved (status={proposal.status.value})"
-                logger.error(error)
-                return {
-                    "ok": False,
-                    "error": error,
-                    "proposal_id": proposal.proposal_id,
-                    "status": proposal.status.value,
-                    "duration_sec": time.time() - start_time,
-                }
-
-            # 3. Mark as executing (only if write=True)
-            if write:
-                await repo.mark_executing(proposal.proposal_id)
-                logger.info("Marked proposal as executing: %s", proposal.proposal_id)
-            else:
-                logger.info("DRY-RUN mode - not updating proposal status")
-
-            # 4. Execute actions in order
-            action_results = {}
-            all_ok = True
-
-            sorted_actions = sorted(proposal.actions, key=lambda a: a.order)
-
-            logger.info("Executing %d actions...", len(sorted_actions))
-
-            for action in sorted_actions:
-                action_start = time.time()
-                action_id = action.action_id
-
-                logger.info(
-                    "Executing action %d/%d: %s",
-                    action.order + 1,
-                    len(sorted_actions),
-                    action_id,
+            try:
+                # Execute via ActionExecutor (unified governance)
+                result = await self.action_executor.execute(
+                    action_id=action_id,
+                    write=write,
+                    **action.parameters,
                 )
 
-                try:
-                    # Execute via ActionExecutor (unified governance)
-                    result = await self.action_executor.execute(
-                        action_id=action_id,
-                        write=write,
-                        **action.parameters,
-                    )
+                action_duration = time.time() - action_start
 
-                    action_duration = time.time() - action_start
+                action_results[action_id] = {
+                    "ok": result.ok,
+                    "duration_sec": action_duration,
+                    "data": result.data,
+                    "order": action.order,
+                }
 
-                    action_results[action_id] = {
-                        "ok": result.ok,
-                        "duration_sec": action_duration,
-                        "data": result.data,
-                        "order": action.order,
-                    }
-
-                    if not result.ok:
-                        all_ok = False
-                        logger.warning(
-                            "Action %s failed: %s",
-                            action_id,
-                            result.data.get("error", "Unknown error"),
-                        )
-                        # Continue executing other actions (fail-soft)
-                    else:
-                        logger.info(
-                            "Action %s completed successfully (%.2fs)",
-                            action_id,
-                            action_duration,
-                        )
-
-                except Exception as e:
-                    action_duration = time.time() - action_start
+                if not result.ok:
                     all_ok = False
-
-                    error_msg = f"Exception executing {action_id}: {e}"
-                    logger.error(error_msg, exc_info=True)
-
-                    action_results[action_id] = {
-                        "ok": False,
-                        "duration_sec": action_duration,
-                        "data": {
-                            "error": str(e),
-                            "error_type": type(e).__name__,
-                        },
-                        "order": action.order,
-                    }
-
-            # 5. Update final status
-            total_duration = time.time() - start_time
-
-            if write:
-                if all_ok:
-                    await repo.mark_completed(
-                        proposal.proposal_id,
-                        results=action_results,
+                    logger.warning(
+                        "Action %s failed: %s",
+                        action_id,
+                        result.data.get("error", "Unknown error"),
                     )
-                    logger.info(
-                        "Proposal completed successfully: %s (%.2fs)",
-                        proposal.proposal_id,
-                        total_duration,
-                    )
+                    # Continue executing other actions (fail-soft)
                 else:
-                    failed_actions = [
-                        aid for aid, res in action_results.items() if not res["ok"]
-                    ]
-                    reason = f"Actions failed: {', '.join(failed_actions)}"
-
-                    await repo.mark_failed(proposal.proposal_id, reason=reason)
-                    logger.error(
-                        "Proposal failed: %s - %s",
-                        proposal.proposal_id,
-                        reason,
+                    logger.info(
+                        "Action %s completed successfully (%.2fs)",
+                        action_id,
+                        action_duration,
                     )
-            else:
-                logger.info("DRY-RUN complete - no status updates")
 
-            # 6. Return comprehensive results
-            return {
-                "ok": all_ok,
-                "proposal_id": proposal.proposal_id,
-                "goal": proposal.goal,
-                "write": write,
-                "actions_executed": len(action_results),
-                "actions_succeeded": sum(1 for r in action_results.values() if r["ok"]),
-                "actions_failed": sum(
-                    1 for r in action_results.values() if not r["ok"]
-                ),
-                "action_results": action_results,
-                "duration_sec": total_duration,
-            }
+            except Exception as e:
+                action_duration = time.time() - action_start
+                all_ok = False
+
+                error_msg = f"Exception executing {action_id}: {e}"
+                logger.error(error_msg, exc_info=True)
+
+                action_results[action_id] = {
+                    "ok": False,
+                    "duration_sec": action_duration,
+                    "data": {
+                        "error": str(e),
+                        "error_type": type(e).__name__,
+                    },
+                    "order": action.order,
+                }
+
+        # 5. Update final status
+        total_duration = time.time() - start_time
+
+        if write:
+            if all_ok:
+                await repo.mark_completed(
+                    proposal.proposal_id,
+                    results=action_results,
+                )
+                logger.info(
+                    "Proposal completed successfully: %s (%.2fs)",
+                    proposal.proposal_id,
+                    total_duration,
+                )
+            else:
+                failed_actions = [
+                    aid for aid, res in action_results.items() if not res["ok"]
+                ]
+                reason = f"Actions failed: {', '.join(failed_actions)}"
+
+                await repo.mark_failed(proposal.proposal_id, reason=reason)
+                logger.error(
+                    "Proposal failed: %s - %s",
+                    proposal.proposal_id,
+                    reason,
+                )
+        else:
+            logger.info("DRY-RUN complete - no status updates")
+
+        # 6. Return comprehensive results
+        return {
+            "ok": all_ok,
+            "proposal_id": proposal.proposal_id,
+            "goal": proposal.goal,
+            "write": write,
+            "actions_executed": len(action_results),
+            "actions_succeeded": sum(1 for r in action_results.values() if r["ok"]),
+            "actions_failed": sum(1 for r in action_results.values() if not r["ok"]),
+            "action_results": action_results,
+            "duration_sec": total_duration,
+        }
 
     # ID: executor_execute_batch
     # ID: 5e4800f3-ea82-483c-9ecb-1a27a43e516d
     async def execute_batch(
         self,
         proposal_ids: list[str],
+        session: AsyncSession,
         write: bool = False,
     ) -> dict[str, Any]:
         """
@@ -264,10 +275,14 @@ class ProposalExecutor:
 
         Args:
             proposal_ids: List of proposal IDs to execute
+            session: AsyncSession for database operations
             write: Whether to apply changes
 
         Returns:
             Batch execution results
+
+        Constitutional Note:
+        Session is REQUIRED. Single session reused for all proposals (efficient).
         """
         start_time = time.time()
         results = {}
@@ -276,7 +291,7 @@ class ProposalExecutor:
 
         for proposal_id in proposal_ids:
             try:
-                result = await self.execute(proposal_id, write=write)
+                result = await self.execute(proposal_id, session, write=write)
                 results[proposal_id] = result
             except Exception as e:
                 logger.error(
@@ -310,3 +325,10 @@ class ProposalExecutor:
             "results": results,
             "duration_sec": total_duration,
         }
+
+
+# Constitutional Note:
+# This is the constitutional pattern: session required via method signature.
+# ProposalRepository already took session via DI (correct).
+# No get_session imports anywhere - pure dependency injection.
+# Type system enforces Mind/Body/Will separation.

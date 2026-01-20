@@ -1,4 +1,4 @@
-# src/mind/enforcement/log_audit.py
+# src/body/cli/logic/log_audit.py
 
 """
 Provides functionality for the log_audit module.

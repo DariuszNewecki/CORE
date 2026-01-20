@@ -79,10 +79,11 @@ async def refactor_command(
     goal_content = _format_refactor_goal(raw_goal)
 
     if goal_content != raw_goal:
-        logger.info("📝 Formatted goal for INTERPRET phase: %s", goal_content)
+        logger.info("🔍 Formatted goal for INTERPRET phase: %s", goal_content)
 
     # 3. Pre-flight checks
     load_dotenv()
+
     async with get_session() as session:
         from shared.infrastructure.config_service import ConfigService
 

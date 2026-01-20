@@ -1,13 +1,13 @@
 {
   "metadata": {
-    "generated_at_utc": "2026-01-19T14:07:01.728696+00:00",
-    "total_policy_rules": 37,
-    "total_executed_ids": 37,
-    "total_policy_files": 10
+    "generated_at_utc": "2026-01-20T09:08:07.438346+00:00",
+    "total_policy_rules": 54,
+    "total_executed_ids": 54,
+    "total_policy_files": 12
   },
   "summary": {
-    "rules_total": 37,
-    "rules_enforced": 37,
+    "rules_total": 54,
+    "rules_enforced": 54,
     "rules_implementable": 0,
     "rules_declared_only": 0,
     "execution_rate": 100.0
@@ -171,6 +171,174 @@
     },
     {
       "rule": {
+        "rule_id": "architecture.mind.no_database_access",
+        "statement": "Mind layer components (src/mind/**/*.py) MUST NOT import database session infrastructure (get_session)",
+        "severity": "blocking",
+        "policy": "rules/architecture/layer_separation",
+        "check_engine": "ast_gate",
+        "implementable": false
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "architecture.mind.no_filesystem_writes",
+        "statement": "Mind layer components (src/mind/**/*.py) MUST NOT write to filesystem",
+        "severity": "blocking",
+        "policy": "rules/architecture/layer_separation",
+        "check_engine": "ast_gate",
+        "implementable": false
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "architecture.mind.no_body_invocation",
+        "statement": "Mind layer components (src/mind/**/*.py) MUST NOT import or invoke Body layer (src/body)",
+        "severity": "blocking",
+        "policy": "rules/architecture/layer_separation",
+        "check_engine": "ast_gate",
+        "implementable": false
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "architecture.mind.no_will_invocation",
+        "statement": "Mind layer components (src/mind/**/*.py) MUST NOT import or invoke Will layer (src/will)",
+        "severity": "blocking",
+        "policy": "rules/architecture/layer_separation",
+        "check_engine": "ast_gate",
+        "implementable": false
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "architecture.body.no_rule_evaluation",
+        "statement": "Body layer components (src/body/**/*.py) MUST NOT evaluate constitutional rules directly",
+        "severity": "blocking",
+        "policy": "rules/architecture/layer_separation",
+        "check_engine": "ast_gate",
+        "implementable": false
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "architecture.will.no_direct_database_access",
+        "statement": "Will layer components (src/will/**/*.py) MUST NOT import get_session directly",
+        "severity": "blocking",
+        "policy": "rules/architecture/layer_separation",
+        "check_engine": "ast_gate",
+        "implementable": false
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "architecture.will.no_filesystem_operations",
+        "statement": "Will layer components (src/will/**/*.py) SHOULD delegate filesystem operations to Body",
+        "severity": "reporting",
+        "policy": "rules/architecture/layer_separation",
+        "check_engine": "ast_gate",
+        "implementable": false
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "architecture.will.must_delegate_to_body",
+        "statement": "Will layer orchestration components SHOULD import and delegate to Body services",
+        "severity": "advisory",
+        "policy": "rules/architecture/layer_separation",
+        "check_engine": "ast_gate",
+        "implementable": false
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "architecture.api.no_direct_database_access",
+        "statement": "API layer components (src/api/**/*.py) MUST NOT import get_session directly",
+        "severity": "blocking",
+        "policy": "rules/architecture/layer_separation",
+        "check_engine": "ast_gate",
+        "implementable": false
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "architecture.api.must_route_through_will",
+        "statement": "API route handlers SHOULD delegate all logic to Will layer",
+        "severity": "advisory",
+        "policy": "rules/architecture/layer_separation",
+        "check_engine": "ast_gate",
+        "implementable": false
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "architecture.api.no_body_bypass",
+        "statement": "API layer components SHOULD NOT directly import Body services",
+        "severity": "reporting",
+        "policy": "rules/architecture/layer_separation",
+        "check_engine": "ast_gate",
+        "implementable": false
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "architecture.layers.no_body_to_will",
+        "statement": "Body layer components (src/body/**/*.py) MUST NOT import or invoke Will layer (src/will)",
+        "severity": "blocking",
+        "policy": "rules/architecture/layer_separation",
+        "check_engine": "ast_gate",
+        "implementable": false
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "architecture.layers.no_mind_execution",
+        "statement": "Mind layer components (src/mind/**/*.py) MUST NOT perform I/O operations or invoke actions",
+        "severity": "reporting",
+        "policy": "rules/architecture/layer_separation",
+        "check_engine": "knowledge_gate",
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "architecture.shared.no_strategic_decisions",
+        "statement": "Shared infrastructure components (src/shared/**/*.py) MUST NOT make strategic decisions or orchestrate workflows",
+        "severity": "reporting",
+        "policy": "rules/architecture/layer_separation",
+        "check_engine": "knowledge_gate",
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
         "rule_id": "modernization.legacy_scars",
         "statement": "Source code SHOULD be free of obsolete structural shims, unused parameters from prior iterations, and internal logic wrappers that bypass the Universal Workflow Pattern.",
         "severity": "advisory",
@@ -236,6 +404,42 @@
         "severity": "advisory",
         "policy": "rules/architecture/modularity",
         "check_engine": "llm_gate",
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "quality.type_safety",
+        "statement": "Production code SHOULD be type-safe as verified by MyPy static analysis.",
+        "severity": "advisory",
+        "policy": "rules/architecture/quality_gates",
+        "check_engine": "workflow_gate",
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "quality.security_audit",
+        "statement": "The project dependency tree SHOULD be free of known vulnerabilities as verified by pip-audit.",
+        "severity": "advisory",
+        "policy": "rules/architecture/quality_gates",
+        "check_engine": "workflow_gate",
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "quality.test_integrity",
+        "statement": "The project test suite SHOULD be functional and passing without collection errors.",
+        "severity": "advisory",
+        "policy": "rules/architecture/quality_gates",
+        "check_engine": "workflow_gate",
         "implementable": true
       },
       "coverage_status": "enforced",
@@ -459,10 +663,24 @@
     }
   ],
   "executed_ids_list": [
+    "architecture.api.must_route_through_will",
+    "architecture.api.no_body_bypass",
+    "architecture.api.no_direct_database_access",
+    "architecture.body.no_rule_evaluation",
     "architecture.constitution_read_only",
+    "architecture.layers.no_body_to_will",
+    "architecture.layers.no_mind_execution",
     "architecture.max_file_size",
     "architecture.meta_read_only",
+    "architecture.mind.no_body_invocation",
+    "architecture.mind.no_database_access",
+    "architecture.mind.no_filesystem_writes",
+    "architecture.mind.no_will_invocation",
     "architecture.no_module_async_engine",
+    "architecture.shared.no_strategic_decisions",
+    "architecture.will.must_delegate_to_body",
+    "architecture.will.no_direct_database_access",
+    "architecture.will.no_filesystem_operations",
     "async.no_manual_loop_run",
     "autonomy.lanes.boundary_enforcement",
     "autonomy.reasoning.policy_alignment",
@@ -495,7 +713,10 @@
     "purity.no_dead_code",
     "purity.no_metadata_decorators",
     "purity.no_todo_placeholders",
-    "purity.stable_id_anchor"
+    "purity.stable_id_anchor",
+    "quality.security_audit",
+    "quality.test_integrity",
+    "quality.type_safety"
   ],
   "policy_metadata": {
     "rules/architecture/async_logic": {
@@ -513,12 +734,22 @@
       "id": "",
       "format": "flat"
     },
+    "rules/architecture/layer_separation": {
+      "title": "",
+      "id": "",
+      "format": "flat"
+    },
     "rules/architecture/modernization": {
       "title": "",
       "id": "",
       "format": "flat"
     },
     "rules/architecture/modularity": {
+      "title": "",
+      "id": "",
+      "format": "flat"
+    },
+    "rules/architecture/quality_gates": {
       "title": "",
       "id": "",
       "format": "flat"

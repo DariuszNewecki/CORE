@@ -1,10 +1,12 @@
 # src/will/orchestration/cognitive_service.py
-
 """
 CognitiveService (Facade)
-
 Orchestrates LLM interactions by delegating to the ClientOrchestrator.
 UPGRADED: Supports High-Reasoning Escalation Tier.
+Constitutional Compliance:
+- Will layer: Orchestrates cognitive operations and client selection
+- Mind/Body/Will separation: Creates MindStateService during initialize()
+- No direct database access: Uses service_registry.session() for initialization
 """
 
 from __future__ import annotations
@@ -19,6 +21,7 @@ from will.orchestration.client_orchestrator import ClientOrchestrator
 
 if TYPE_CHECKING:
     from shared.infrastructure.clients.qdrant_client import QdrantService
+
 logger = getLogger(__name__)
 
 
@@ -31,14 +34,26 @@ class CognitiveService:
     1. Delegate client acquisition to ClientOrchestrator (The Will).
     2. Provide high-level semantic search via Qdrant (The Mind's Index).
     3. Support tiered reasoning escalation.
+
+    Constitutional Note:
+    ClientOrchestrator is created during initialize() when session is available.
+    No direct instantiation in __init__ to avoid violating Mind/Body/Will separation.
     """
 
     def __init__(self, repo_path: Path, qdrant_service: QdrantService | None = None):
         """
         Initialize CognitiveService.
+
+        Args:
+            repo_path: Repository root path
+            qdrant_service: Optional QdrantService for semantic search
+
+        Constitutional Note:
+        ClientOrchestrator is NOT created here - it requires MindStateService
+        which needs a database session. Created during initialize() instead.
         """
         self._repo_path = Path(repo_path)
-        self.client_orchestrator = ClientOrchestrator(self._repo_path)
+        self.client_orchestrator: ClientOrchestrator | None = None
         self._qdrant_service = qdrant_service
 
     @property
@@ -51,8 +66,33 @@ class CognitiveService:
 
     # ID: 2cee004a-5a80-421d-a5cc-c2f3e07c99e0
     async def initialize(self) -> None:
-        """Initialize the orchestrator (load Mind state from DB)."""
-        await self.client_orchestrator.initialize()
+        """
+        Initialize the orchestrator (load Mind state from DB).
+
+        Constitutional Note:
+        This is where we create ClientOrchestrator with MindStateService.
+        We create a temporary session to bootstrap MindStateService,
+        then pass it to ClientOrchestrator which caches Mind state.
+        """
+        if self.client_orchestrator is not None:
+            # Already initialized
+            await self.client_orchestrator.initialize()
+            return
+
+        # Constitutional compliance: Create MindStateService with session
+        from body.services.mind_state_service import MindStateService
+        from body.services.service_registry import service_registry
+
+        async with service_registry.session() as session:
+            mind_state_service = MindStateService(session)
+
+            # Create ClientOrchestrator with MindStateService
+            self.client_orchestrator = ClientOrchestrator(
+                self._repo_path, mind_state_service
+            )
+
+            # Initialize to load Mind state while session is available
+            await self.client_orchestrator.initialize()
 
     # ID: 7a0c5b7d-a434-4897-910b-060560ba176e
     async def aget_client_for_role(
@@ -65,6 +105,9 @@ class CognitiveService:
             role_name: The target role (e.g., 'Coder')
             high_reasoning: If True, attempts to escalate to the 'Architect' role.
         """
+        if self.client_orchestrator is None:
+            await self.initialize()
+
         target_role = role_name
 
         if high_reasoning:
@@ -98,7 +141,7 @@ class CognitiveService:
         self, query: str, limit: int = 5
     ) -> list[dict[str, Any]]:
         """Semantic search via Qdrant."""
-        if not self.client_orchestrator._loaded:
+        if self.client_orchestrator is None or not self.client_orchestrator._loaded:
             await self.initialize()
         try:
             query_vector = await self.get_embedding_for_code(query)
@@ -108,3 +151,26 @@ class CognitiveService:
         except Exception as e:
             logger.error("Semantic search failed: %s", e, exc_info=True)
             return []
+
+    @staticmethod
+    def _create_provider_for_resource_static(resource):
+        """
+        Static factory for provider creation.
+        Used by ClientOrchestrator's provider_factory callback.
+
+        Constitutional Note:
+        This is a workaround for circular dependency between
+        CognitiveService and ClientOrchestrator. Should be refactored.
+        """
+        # This method is called by ClientOrchestrator internally
+        # Implementation moved there to avoid circular dependency
+        raise NotImplementedError(
+            "Provider creation moved to ClientOrchestrator._create_provider_for_resource"
+        )
+
+
+# Constitutional Note:
+# This refactoring delays ClientOrchestrator creation until initialize()
+# when we have a database session to create MindStateService.
+# The session is temporary - MindStateService loads data and caches it,
+# so ClientOrchestrator doesn't need the session after initialization.

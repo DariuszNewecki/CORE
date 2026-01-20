@@ -1,18 +1,25 @@
 # src/will/agents/cognitive_orchestrator.py
 
 """
-Will: Makes decisions about which LLM resources to use for which roles.
-Uses Body components but doesn't manage their lifecycle.
+CognitiveOrchestrator - Will layer orchestrator for LLM client selection.
+
+Constitutional Compliance:
+- Will layer: Makes decisions about which resource to use
+- Mind/Body/Will separation: Uses MindStateService (Body) for Mind state access
+- No direct database access: Receives services via dependency injection
+
+Part of Mind-Body-Will architecture:
+- Mind: Database contains LlmResource, CognitiveRole definitions
+- Body: MindStateService provides access, ClientRegistry manages clients
+- Will: This orchestrator decides which resource to use for which role
 """
 
 from __future__ import annotations
 
 from pathlib import Path
 
-from sqlalchemy import select
-
+from body.services.mind_state_service import MindStateService
 from shared.infrastructure.database.models import CognitiveRole, LlmResource
-from shared.infrastructure.database.session_manager import get_session
 from shared.infrastructure.llm.client import LLMClient
 from shared.infrastructure.llm.client_registry import LLMClientRegistry
 from shared.logger import getLogger
@@ -27,26 +34,48 @@ class CognitiveOrchestrator:
     """
     Will: Decides which resource to use for which role.
     Delegates client management to registry (Body).
+
+    Constitutional Note:
+    This class REQUIRES MindStateService via dependency injection.
+    No backward compatibility - this is the constitutional pattern.
     """
 
-    def __init__(self, repo_path: Path):
+    def __init__(self, repo_path: Path, mind_state_service: MindStateService):
+        """
+        Initialize orchestrator.
+
+        Args:
+            repo_path: Repository root path
+            mind_state_service: MindStateService instance for Mind state access
+
+        Constitutional Note:
+        mind_state_service is REQUIRED. No fallback, no exceptions.
+        """
         self._repo_path = Path(repo_path)
         self._resources: list[LlmResource] = []
         self._roles: list[CognitiveRole] = []
         self._client_registry = LLMClientRegistry()
         self._loaded = False
+        self._mind_state_service = mind_state_service
 
     # ID: 18a2986d-296b-4388-b2b1-8796d85b5ee2
     async def initialize(self) -> None:
-        """Load Mind (roles and resources from DB)."""
+        """
+        Load Mind (roles and resources).
+
+        Constitutional Note:
+        Uses MindStateService (Body) to access Mind state.
+        No direct database access - pure dependency injection.
+        """
         if self._loaded:
             return
+
         logger.info("CognitiveOrchestrator: Loading roles and resources from Mind...")
-        async with get_session() as session:
-            res_result = await session.execute(select(LlmResource))
-            role_result = await session.execute(select(CognitiveRole))
-            self._resources = list(res_result.scalars().all())
-            self._roles = list(role_result.scalars().all())
+
+        # Constitutional compliance: Use Body service instead of direct DB access
+        self._resources = await self._mind_state_service.get_llm_resources()
+        self._roles = await self._mind_state_service.get_cognitive_roles()
+
         self._loaded = True
         logger.info(
             "Loaded %s resources, %s roles", len(self._resources), len(self._roles)
@@ -73,3 +102,9 @@ class CognitiveOrchestrator:
         return await self._client_registry.get_or_create_client(
             resource, provider_factory
         )
+
+
+# Constitutional Note:
+# This is the constitutional pattern: Mind/Body/Will separation enforced via types.
+# MindStateService is required, not optional. Callers must provide it.
+# No get_session imports anywhere - pure dependency injection.

@@ -1,0 +1,126 @@
+{
+    "$schema": "META/rule_document.schema.json",
+    "kind": "rule_document",
+    "metadata": {
+        "id": "rules.architecture.layer_separation",
+        "title": "Mind/Body/Will Layer Separation",
+        "version": "0.1.0",
+        "authority": "constitution",
+        "phase": "audit",
+        "status": "active"
+    },
+    "rules": [
+        {
+            "id": "architecture.mind.no_database_access",
+            "statement": "Mind layer components (src/mind/**/*.py) MUST NOT import database session infrastructure (get_session)",
+            "enforcement": "blocking",
+            "authority": "constitution",
+            "phase": "audit",
+            "rationale": "Mind defines law but never executes. Database access is execution, not governance."
+        },
+        {
+            "id": "architecture.mind.no_filesystem_writes",
+            "statement": "Mind layer components (src/mind/**/*.py) MUST NOT write to filesystem",
+            "enforcement": "blocking",
+            "authority": "constitution",
+            "phase": "audit",
+            "rationale": "Mind may read .intent/ but never mutates. Law does not modify itself."
+        },
+        {
+            "id": "architecture.mind.no_body_invocation",
+            "statement": "Mind layer components (src/mind/**/*.py) MUST NOT import or invoke Body layer (src/body)",
+            "enforcement": "blocking",
+            "authority": "constitution",
+            "phase": "audit",
+            "rationale": "Mind defines rules. Body executes. Mind never invokes execution."
+        },
+        {
+            "id": "architecture.mind.no_will_invocation",
+            "statement": "Mind layer components (src/mind/**/*.py) MUST NOT import or invoke Will layer (src/will)",
+            "enforcement": "blocking",
+            "authority": "constitution",
+            "phase": "audit",
+            "rationale": "Mind defines rules. Will decides. Mind never makes decisions."
+        },
+        {
+            "id": "architecture.body.no_rule_evaluation",
+            "statement": "Body layer components (src/body/**/*.py) MUST NOT evaluate constitutional rules directly",
+            "enforcement": "blocking",
+            "authority": "constitution",
+            "phase": "audit",
+            "rationale": "Body executes actions. Mind evaluates rules. Body never decides legality."
+        },
+        {
+            "id": "architecture.will.no_direct_database_access",
+            "statement": "Will layer components (src/will/**/*.py) MUST NOT import get_session directly",
+            "enforcement": "blocking",
+            "authority": "constitution",
+            "phase": "audit",
+            "rationale": "Will decides and orchestrates. Body executes. Will delegates infrastructure access to Body."
+        },
+        {
+            "id": "architecture.will.no_filesystem_operations",
+            "statement": "Will layer components (src/will/**/*.py) SHOULD delegate filesystem operations to Body",
+            "enforcement": "reporting",
+            "authority": "constitution",
+            "phase": "audit",
+            "rationale": "Will may read for context but should not implement filesystem operations directly."
+        },
+        {
+            "id": "architecture.will.must_delegate_to_body",
+            "statement": "Will layer orchestration components SHOULD import and delegate to Body services",
+            "enforcement": "advisory",
+            "authority": "constitution",
+            "phase": "audit",
+            "rationale": "Will orchestrates by delegating to Body, not by implementing directly."
+        },
+        {
+            "id": "architecture.api.no_direct_database_access",
+            "statement": "API layer components (src/api/**/*.py) MUST NOT import get_session directly",
+            "enforcement": "blocking",
+            "authority": "constitution",
+            "phase": "audit",
+            "rationale": "API is entrypoint boundary. All work must route through Will, not directly to infrastructure."
+        },
+        {
+            "id": "architecture.api.must_route_through_will",
+            "statement": "API route handlers SHOULD delegate all logic to Will layer",
+            "enforcement": "advisory",
+            "authority": "constitution",
+            "phase": "audit",
+            "rationale": "API translates requests to Will. API never implements business logic."
+        },
+        {
+            "id": "architecture.api.no_body_bypass",
+            "statement": "API layer components SHOULD NOT directly import Body services",
+            "enforcement": "reporting",
+            "authority": "constitution",
+            "phase": "audit",
+            "rationale": "API should route through Will, not bypass to Body directly."
+        },
+        {
+            "id": "architecture.layers.no_body_to_will",
+            "statement": "Body layer components (src/body/**/*.py) MUST NOT import or invoke Will layer (src/will)",
+            "enforcement": "blocking",
+            "authority": "constitution",
+            "phase": "audit",
+            "rationale": "Body executes. Will decides. Execution never chooses strategy."
+        },
+        {
+            "id": "architecture.layers.no_mind_execution",
+            "statement": "Mind layer components (src/mind/**/*.py) MUST NOT perform I/O operations or invoke actions",
+            "enforcement": "reporting",
+            "authority": "constitution",
+            "phase": "audit",
+            "rationale": "Mind is law. Law never executes itself."
+        },
+        {
+            "id": "architecture.shared.no_strategic_decisions",
+            "statement": "Shared infrastructure components (src/shared/**/*.py) MUST NOT make strategic decisions or orchestrate workflows",
+            "enforcement": "reporting",
+            "authority": "constitution",
+            "phase": "audit",
+            "rationale": "Shared provides utilities. Utilities are tools, not decision-makers."
+        }
+    ]
+}

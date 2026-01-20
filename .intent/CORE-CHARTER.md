@@ -1,4 +1,4 @@
-<!-- path: .intent/REBIRTH/CORE-CHARTER.md -->
+<!-- path: .intent/CORE-CHARTER.md -->
 
 # CORE Charter
 
@@ -6,117 +6,153 @@
 
 **Scope:** Entire CORE system
 
-**Location of Authority:** `.intent/REBIRTH/`
+**Location of Authority:** `.intent/`
 
 ---
 
 ## 1. Purpose
 
-This Charter declares the founding intent of CORE in its reborn form.
+This Charter declares the founding intent of CORE and its governance structure.
 
 It exists to orient contributors, tools, and future maintainers by making explicit:
 
 * what CORE is,
 * what CORE is not,
 * where authority resides,
-* and how the system must be read during this phase.
+* and how governance is structured.
 
 This Charter is not a specification.
 It is a declaration of standing.
 
 ---
 
-## 2. Foundational Reset
+## 2. Constitutional Architecture
 
-CORE is undergoing a constitutional rebirth.
+CORE implements a two-tier governance model:
 
-This rebirth:
+**Tier 1: Constitutional Foundation**
+* `.intent/constitution/` - Foundational constitutional documents
+* `.intent/papers/` - Constitutional philosophy and principles
 
-* does **not** preserve backward compatibility,
-* does **not** assume continuity of prior governance models,
-* does **not** require legacy enforcement mechanisms to remain relevant.
+These documents establish **why** and **what** CORE must be.
+They are vectorized for semantic understanding but not directly enforced.
 
-Past artifacts are retained for reference only.
-They do not constrain the reborn Constitution.
+**Tier 2: Operational Law**
+* `.intent/META/` - Schema contracts defining authority/phase/enforcement
+* `.intent/rules/` - Enforced constitutional rules (indexed and executed)
+* `.intent/enforcement/mappings/` - Rule-to-engine bindings
+* `.intent/phases/` - Workflow phase definitions
+
+These documents define **how** CORE enforces its constitution.
+They are the operational law that Mind reads, Body enforces, and Will respects.
 
 ---
 
 ## 3. Authority Statement
 
-Effective immediately:
+Constitutional authority operates at two levels:
 
-* Constitutional authority resides exclusively in:
+**Foundation (Philosophy):**
+* `.intent/constitution/` and `.intent/papers/` establish principles
+* These documents inform all other governance
+* Changes require constitutional replacement, not amendment
 
-  * `.intent/REBIRTH/constitution/`
-  * `.intent/REBIRTH/papers/`
+**Operation (Enforcement):**
+* `.intent/META/` defines the contract for all intent artifacts
+* `.intent/rules/` contains executable constitutional law
+* `.intent/enforcement/` binds rules to enforcement engines
+* Changes follow governance workflows with audit trails
 
-* No other directory under `.intent/` is authoritative for constitutional law.
-
-Legacy policies, schemas, standards, and META documents are suspended as sources of authority.
-
-They may inform future work, but they do not bind it.
+The operational tier derives legitimacy from the foundational tier.
+No operational rule may contradict constitutional principles.
 
 ---
 
 ## 4. Reading Order
 
-To understand CORE in its reborn form, the following reading order applies:
+To understand CORE's governance:
 
-1. `REBIRTH/constitution/CORE-CONSTITUTION-v0.md`
-2. All documents in `REBIRTH/papers/`
-3. This Charter
+1. `.intent/constitution/` - Foundation documents
+2. `.intent/papers/` - Constitutional philosophy
+3. `.intent/META/` - Schema contracts
+4. `.intent/rules/` - Operational rules
+5. This Charter
 
-Any contradiction must be resolved in favor of the Constitution, then the papers, then this Charter.
+Any contradiction must be resolved in favor of: Constitution → Papers → META → Rules → Charter.
 
 ---
 
-## 5. Suspension of Legacy Semantics
+## 5. Governance Model
 
-During the rebirth phase:
+**Mind Layer (.intent/):**
+* Human-authored only
+* Immutable at runtime
+* Single source of truth for governance
 
-* Folder structure outside `REBIRTH/` has no legal meaning.
-* File naming conventions outside `REBIRTH/` imply no authority.
-* Existing auditors, checks, engines, and schemas are non-authoritative.
+**Body Layer (src/body/):**
+* Reads Mind via IntentRepository
+* Enforces rules through execution
+* Never modifies Mind
 
-Their continued existence does not imply endorsement.
+**Will Layer (src/will/):**
+* Reads Mind to understand constraints
+* Makes decisions within constitutional bounds
+* Delegates execution to Body
 
 ---
 
 ## 6. Intentional Incompleteness
 
-CORE is intentionally incomplete at this stage.
+CORE is intentionally incomplete.
 
 Missing elements are not defects.
 They are evidence that law precedes machinery.
 
 No schema, engine, or tool may be introduced to compensate for incomplete law.
+Law must be written first, then enforcement follows.
 
 ---
 
 ## 7. Change Discipline
 
-Changes to reborn CORE must follow this order:
+**Constitutional Changes (Tier 1):**
+1. Replace entire constitutional documents
+2. Update operational rules to align
+3. Verify enforcement reflects new principles
 
-1. Amend constitutional papers.
-2. Re-evaluate derived understanding.
-3. Only then derive implementation artifacts.
+**Operational Changes (Tier 2):**
+1. Propose rule changes through governance workflows
+2. Validate against constitutional principles
+3. Update enforcement mappings
+4. Audit compliance
 
 Skipping steps constitutes a governance violation.
 
 ---
 
-## 8. Duration
+## 8. Database as Single Source of Truth
 
-This Charter remains in force until explicitly retired or superseded by a formal constitutional amendment.
+All runtime state resides in PostgreSQL.
+`.intent/` contains only human-authored governance.
+
+The database is the operational memory.
+`.intent/` is the constitutional memory.
+
+These are separate by design and must remain so.
+
+---
+
+## 9. Duration
+
+This Charter remains in force until explicitly retired or superseded by constitutional amendment.
 
 Silence does not revoke it.
 
 ---
 
-## 9. Closing Statement
+## 10. Closing Statement
 
 CORE is not being refactored.
+CORE is being founded on constitutional principles.
 
-CORE is being re-founded.
-
-This Charter exists to make that fact unambiguous.
+This Charter exists to make that structure unambiguous.

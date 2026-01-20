@@ -1,5 +1,6 @@
 # src/features/self_healing/vulture_healer.py
-# ID: 7a8b9c0d-1e2f-3a4b-5c6d-7e8f9a0b1c2d
+
+"""Refactored logic for src/features/self_healing/vulture_healer.py."""
 
 from __future__ import annotations
 
@@ -15,6 +16,7 @@ from shared.utils.parsing import extract_python_code_from_response
 logger = getLogger(__name__)
 
 
+# ID: 515a5f31-deb3-41bc-9736-4e29e1989a0f
 async def heal_dead_code(context, write: bool = False):
     """Surgical cleanup of Vulture findings using local intelligence."""
     evidence_path = settings.REPO_PATH / "reports" / "audit_findings.json"

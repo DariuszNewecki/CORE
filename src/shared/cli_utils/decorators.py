@@ -117,6 +117,9 @@ def core_command(
                     return res
                 finally:
                     await dispose_engine()
+                    if ctx and ctx.obj and hasattr(ctx.obj, "registry"):
+                        if hasattr(ctx.obj.registry, "_instances"):
+                            ctx.obj.registry._instances.clear()
 
             try:
                 return cast(R, asyncio.run(_run_with_teardown()))

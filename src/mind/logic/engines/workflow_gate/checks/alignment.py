@@ -4,6 +4,10 @@
 """
 Alignment verification workflow check.
 Refactored to be circular-safe.
+
+CONSTITUTIONAL FIX:
+- Uses service_registry.session() instead of get_session()
+- Mind layer receives session factory from Body layer
 """
 
 from __future__ import annotations
@@ -14,7 +18,6 @@ from typing import Any
 from sqlalchemy import text
 
 from mind.logic.engines.workflow_gate.base_check import WorkflowCheck
-from shared.infrastructure.database.session_manager import get_session
 from shared.logger import getLogger
 
 
@@ -47,8 +50,10 @@ class AlignmentVerificationCheck(WorkflowCheck):
         if file_violations:
             violations.append(f"File has {len(file_violations)} outstanding violations")
 
-        # Check DB history
-        async with get_session() as session:
+        # CONSTITUTIONAL FIX: Use service_registry.session() instead of get_session()
+        from body.services.service_registry import service_registry
+
+        async with service_registry.session() as session:
             result = await session.execute(
                 text(
                     "SELECT ok FROM core.action_results WHERE action_type = 'alignment' AND file_path = :p ORDER BY created_at DESC LIMIT 1"

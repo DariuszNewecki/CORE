@@ -1,0 +1,217 @@
+# .intent/enforcement/mappings/architecture/layer_separation.yaml
+#
+# Enforces the constitutional Mind/Body/Will architectural separation.
+# Based on: .intent/papers/CORE-Mind-Body-Will-Separation.md
+
+mappings:
+  # ==========================================================================
+  # RULE 1: Mind Never Executes - Database Access
+  # ==========================================================================
+
+  architecture.mind.no_database_access:
+    engine: ast_gate
+    params:
+      check_type: import_boundary
+      forbidden:
+        - "shared.infrastructure.database.session_manager.get_session"
+        - "shared.infrastructure.database.get_session"
+    scope:
+      applies_to:
+        - "src/mind/**/*.py"
+
+  # ==========================================================================
+  # RULE 2: Mind Never Executes - Filesystem Writes
+  # ==========================================================================
+
+  architecture.mind.no_filesystem_writes:
+    engine: ast_gate
+    params:
+      check_type: no_direct_writes
+    scope:
+      applies_to:
+        - "src/mind/**/*.py"
+      excludes:
+        - "src/mind/**/*_test.py"
+
+  # ==========================================================================
+  # RULE 3: Mind Never Invokes Body
+  # ==========================================================================
+
+  architecture.mind.no_body_invocation:
+    engine: ast_gate
+    params:
+      check_type: import_boundary
+      forbidden:
+        - "src.body"
+        - "body"
+    scope:
+      applies_to:
+        - "src/mind/**/*.py"
+
+  # ==========================================================================
+  # RULE 4: Mind Never Invokes Will
+  # ==========================================================================
+
+  architecture.mind.no_will_invocation:
+    engine: ast_gate
+    params:
+      check_type: import_boundary
+      forbidden:
+        - "src.will"
+        - "will"
+    scope:
+      applies_to:
+        - "src/mind/**/*.py"
+
+  # ==========================================================================
+  # RULE 5: Body Never Evaluates Rules
+  # ==========================================================================
+
+  architecture.body.no_rule_evaluation:
+    engine: ast_gate
+    params:
+      check_type: import_boundary
+      forbidden:
+        - "src.mind.logic.engines"
+        - "mind.logic.engines"
+    scope:
+      applies_to:
+        - "src/body/**/*.py"
+      excludes:
+        # Body orchestration services may coordinate rule evaluation
+        - "src/body/orchestration/**/*.py"
+
+  # ==========================================================================
+  # RULE 6: Will Never Accesses Database Directly
+  # ==========================================================================
+
+  architecture.will.no_direct_database_access:
+    engine: ast_gate
+    params:
+      check_type: import_boundary
+      forbidden:
+        - "shared.infrastructure.database.session_manager.get_session"
+    scope:
+      applies_to:
+        - "src/will/**/*.py"
+
+  # ==========================================================================
+  # RULE 7: Will Delegates Filesystem Operations
+  # ==========================================================================
+
+  architecture.will.no_filesystem_operations:
+    engine: ast_gate
+    params:
+      check_type: no_direct_writes
+    scope:
+      applies_to:
+        - "src/will/**/*.py"
+      excludes:
+        - "src/will/**/*_test.py"
+
+  # ==========================================================================
+  # RULE 8: Will Delegates to Body (Advisory - uses knowledge_gate)
+  # ==========================================================================
+
+  architecture.will.must_delegate_to_body:
+    engine: knowledge_gate
+    params:
+      check_type: component_responsibility
+      expected_pattern: "Will orchestrates by delegating to Body services"
+    scope:
+      applies_to:
+        - "src/will/agents/**/*.py"
+        - "src/will/orchestration/**/*.py"
+
+  # ==========================================================================
+  # RULE 9: API Never Bypasses Layers - Database
+  # ==========================================================================
+
+  architecture.api.no_direct_database_access:
+    engine: ast_gate
+    params:
+      check_type: import_boundary
+      forbidden:
+        - "shared.infrastructure.database.session_manager.get_session"
+    scope:
+      applies_to:
+        - "src/api/**/*.py"
+      excludes:
+        # FastAPI dependency injection is acceptable
+        - "src/api/**/dependencies.py"
+
+  # ==========================================================================
+  # RULE 10: API Routes Through Will (Advisory - uses knowledge_gate)
+  # ==========================================================================
+
+  architecture.api.must_route_through_will:
+    engine: knowledge_gate
+    params:
+      check_type: component_responsibility
+      expected_pattern: "API routes requests to Will layer"
+    scope:
+      applies_to:
+        - "src/api/**/*_routes.py"
+
+  # ==========================================================================
+  # RULE 11: API Doesn't Bypass to Body
+  # ==========================================================================
+
+  architecture.api.no_body_bypass:
+    engine: ast_gate
+    params:
+      check_type: import_boundary
+      forbidden:
+        - "src.body.services"
+        - "body.services"
+    scope:
+      applies_to:
+        - "src/api/**/*.py"
+
+  # ==========================================================================
+  # RULE 12: Body Never Invokes Will
+  # ==========================================================================
+
+  architecture.layers.no_body_to_will:
+    engine: ast_gate
+    params:
+      check_type: import_boundary
+      forbidden:
+        - "src.will.agents"
+        - "will.agents"
+        - "src.will.orchestration"
+        - "will.orchestration"
+    scope:
+      applies_to:
+        - "src/body/**/*.py"
+
+  # ==========================================================================
+  # RULE 13: Mind Never Executes (Advisory - uses knowledge_gate)
+  # ==========================================================================
+
+  architecture.layers.no_mind_execution:
+    engine: knowledge_gate
+    params:
+      check_type: component_responsibility
+      expected_pattern: "Mind defines law but never executes"
+    scope:
+      applies_to:
+        - "src/mind/**/*.py"
+
+  # ==========================================================================
+  # RULE 14: Shared Infrastructure is Utility (Advisory - uses knowledge_gate)
+  # ==========================================================================
+
+  architecture.shared.no_strategic_decisions:
+    engine: knowledge_gate
+    params:
+      check_type: component_responsibility
+      expected_pattern: "Shared provides utilities without strategic decisions"
+    scope:
+      applies_to:
+        - "src/shared/**/*.py"
+      excludes:
+        - "src/shared/infrastructure/service_registry.py"
+# ==============================================================================
+# Meta: This mapping file restores CORE's founding architectural principle
+# ==============================================================================

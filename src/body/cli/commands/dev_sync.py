@@ -62,6 +62,8 @@ async def dev_sync_command(
     console.print(f"[bold]Repo:[/bold] {settings.REPO_PATH}")
     console.print()
 
+    # CONSTITUTIONAL NOTE: Manual dispose_engine removed.
+    # The @core_command decorator handles infrastructure teardown centrally.
     with activity_run("dev.sync") as run:
         # Execute workflow
         workflow = DevSyncWorkflow(core_context=core_context, write=write)

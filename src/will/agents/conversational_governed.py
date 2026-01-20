@@ -10,8 +10,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from body.services.constitutional_validator import ApprovalType, RiskTier
 from mind.governance.governance_mixin import GovernanceMixin
-from mind.governance.validator_service import ApprovalType, RiskTier
 from shared.logger import getLogger
 
 

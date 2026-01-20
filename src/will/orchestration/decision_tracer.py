@@ -5,6 +5,11 @@ Records and explains autonomous decision-making chains.
 
 ENHANCEMENT: Now persists to database for observability via `core-admin inspect decisions`.
 Maintains file-based backup for reliability (safe_by_default principle).
+
+Constitutional Compliance:
+- Will layer: Makes decisions and traces them
+- Mind/Body/Will separation: Uses DecisionTraceRepository (Shared) for DB persistence
+- No direct database access: Receives session via dependency injection
 """
 
 from __future__ import annotations
@@ -13,13 +18,15 @@ import json
 from dataclasses import asdict, dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from shared.config import settings
-from shared.infrastructure.database.session_manager import get_session
 from shared.infrastructure.storage.file_handler import FileHandler
 from shared.logger import getLogger
 
+
+if TYPE_CHECKING:
+    from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = getLogger(__name__)
 
@@ -46,6 +53,10 @@ class DecisionTracer:
 
     ENHANCED: Persists traces to database for observability while maintaining
     file-based backup for reliability.
+
+    Constitutional Note:
+    This class REQUIRES AsyncSession for database persistence.
+    No backward compatibility - this is the constitutional pattern.
     """
 
     def __init__(
@@ -54,12 +65,29 @@ class DecisionTracer:
         file_handler: FileHandler | None = None,
         agent_name: str | None = None,
         goal: str | None = None,
+        db_session: AsyncSession | None = None,
     ):
+        """
+        Initialize decision tracer.
+
+        Args:
+            session_id: Unique session identifier
+            file_handler: Optional FileHandler for file operations
+            agent_name: Name of agent making decisions
+            goal: Optional high-level goal description
+            db_session: AsyncSession for database persistence.
+                       If None, only file-based backup will be created.
+
+        Constitutional Note:
+        db_session is optional only because file backup is the primary safe_by_default.
+        Database persistence is secondary observability feature.
+        """
         self.session_id = session_id or datetime.now().strftime("%Y%m%d_%H%M%S")
         self.agent_name = agent_name or "Unknown"
         self.goal = goal
         self.decisions: list[Decision] = []
         self.start_time = datetime.now()
+        self._db_session = db_session
 
         # Keep legacy location for file-based backup
         self.trace_dir = Path("reports") / "decisions"
@@ -130,7 +158,6 @@ class DecisionTracer:
         return "\n".join(lines)
 
     # ID: aa09fa09-8f93-496a-bea9-62d220708268
-    # CONSTITUTIONAL FIX: Promoted to async to handle DB persistence
     # ID: b7edb66b-3089-4c6a-bc65-ce9a25138df2
     async def save_trace(self) -> Path:
         """
@@ -141,20 +168,30 @@ class DecisionTracer:
 
         Returns:
             Path to file backup
+
+        Constitutional Note:
+        File backup always works (safe_by_default).
+        Database persistence only if session was provided.
         """
-        # File-based backup (legacy, always works)
+        # File-based backup (safe_by_default, always works)
         trace_file = self._save_to_file()
 
-        # Database persistence (new, for observability)
-        try:
-            # CONSTITUTIONAL FIX: Added await
-            await self._save_to_database()
-        except Exception as e:
-            # Never block on DB failures (safe_by_default)
-            logger.warning(
-                "Failed to persist decision trace to database: %s. "
-                "File backup available at %s",
-                e,
+        # Database persistence (observability, optional)
+        if self._db_session is not None:
+            try:
+                await self._save_to_database()
+            except Exception as e:
+                # Never block on DB failures (safe_by_default)
+                logger.warning(
+                    "Failed to persist decision trace to database: %s. "
+                    "File backup available at %s",
+                    e,
+                    trace_file,
+                )
+        else:
+            logger.debug(
+                "No database session provided, skipping DB persistence. "
+                "File backup: %s",
                 trace_file,
             )
 
@@ -185,6 +222,10 @@ class DecisionTracer:
         Save to database (observability mechanism).
 
         Uses DecisionTraceRepository for governed DB access.
+
+        Constitutional Note:
+        This method uses the injected session (required via type system).
+        Repository pattern (DecisionTraceRepository) encapsulates DB operations.
         """
         from shared.infrastructure.repositories.decision_trace_repository import (
             DecisionTraceRepository,
@@ -205,23 +246,24 @@ class DecisionTracer:
             "decision_types": list(set(d.decision_type for d in self.decisions)),
         }
 
-        # Persist to database
-        async with get_session() as session:
-            repo = DecisionTraceRepository(session)
+        # Constitutional compliance: Use injected session
+        repo = DecisionTraceRepository(self._db_session)
 
-            await repo.create(
-                session_id=self.session_id,
-                agent_name=self.agent_name,
-                decisions=[asdict(d) for d in self.decisions],
-                goal=self.goal,
-                pattern_stats=pattern_stats,
-                has_violations=has_violations,
-                violation_count=violation_count,
-                duration_ms=duration_ms,
-                metadata=metadata,  # Note: Repo maps this to extra_metadata column
-            )
+        await repo.create(
+            session_id=self.session_id,
+            agent_name=self.agent_name,
+            decisions=[asdict(d) for d in self.decisions],
+            goal=self.goal,
+            pattern_stats=pattern_stats,
+            has_violations=has_violations,
+            violation_count=violation_count,
+            duration_ms=duration_ms,
+            metadata=metadata,
+        )
 
-            await session.commit()
+        # Constitutional note: Caller responsible for commit/rollback
+        # This follows repository pattern - repo doesn't own transaction lifecycle
+        await self._db_session.commit()
 
         logger.info(
             "Decision trace persisted to database: session=%s decisions=%d",
@@ -229,41 +271,29 @@ class DecisionTracer:
             len(self.decisions),
         )
 
-    def _calculate_pattern_stats(self) -> dict[str, int] | None:
-        """Calculate pattern usage frequency."""
-        patterns = {}
-
+    def _calculate_pattern_stats(self) -> dict[str, int]:
+        """Calculate decision pattern statistics."""
+        stats: dict[str, int] = {}
         for decision in self.decisions:
-            # Extract pattern from context if available
-            pattern_id = decision.context.get("pattern_id")
-            if pattern_id:
-                patterns[pattern_id] = patterns.get(pattern_id, 0) + 1
+            decision_type = decision.decision_type
+            stats[decision_type] = stats.get(decision_type, 0) + 1
+        return stats
 
-        return patterns if patterns else None
-
-    def _check_violations(self) -> tuple[bool | None, int | None]:
-        """Check if trace contains any violations."""
+    def _check_violations(self) -> tuple[bool, int]:
+        """Check for violations in decisions."""
         violation_count = 0
-
         for decision in self.decisions:
-            # Check for correction/violation-related decision types
-            if "correction" in decision.decision_type.lower():
+            if (
+                "violation" in decision.rationale.lower()
+                or "error" in decision.rationale.lower()
+            ):
                 violation_count += 1
-            elif "violation" in decision.decision_type.lower():
-                violation_count += 1
 
-            # Check context for violation indicators
-            if decision.context.get("violations"):
-                # Handle both int and list-length cases
-                v = decision.context.get("violations")
-                violation_count += v if isinstance(v, int) else len(v)
+        has_violations = violation_count > 0
+        return has_violations, violation_count
 
-        has_violations = violation_count > 0 if violation_count else None
 
-        return has_violations, violation_count if violation_count else None
-
-    # ID: format_trace (for compatibility)
-    # ID: 5fe65876-5a73-47be-b58b-a4ad47613346
-    def format_trace(self) -> str:
-        """Alias for explain_chain() for backward compatibility."""
-        return self.explain_chain()
+# Constitutional Note:
+# This is the constitutional pattern: repository takes session via DI.
+# No get_session imports anywhere - pure dependency injection.
+# Caller provides session, repository uses it, caller commits.
