@@ -12,9 +12,11 @@ import re
 from pathlib import Path
 from typing import Any
 
-from shared.config import settings
+import yaml
+
 from shared.infrastructure.knowledge.knowledge_service import KnowledgeService
 from shared.logger import getLogger
+from shared.path_resolver import PathResolver
 from shared.utils.parallel_processor import ThrottledParallelProcessor
 from will.orchestration.cognitive_service import CognitiveService
 from will.orchestration.decision_tracer import DecisionTracer
@@ -28,16 +30,20 @@ class CapabilityTaggerAgent:
     """An agent that finds unassigned capabilities and suggests names."""
 
     def __init__(
-        self, cognitive_service: CognitiveService, knowledge_service: KnowledgeService
+        self,
+        cognitive_service: CognitiveService,
+        knowledge_service: KnowledgeService,
+        path_resolver: PathResolver,
     ):
         """Initializes the agent with the tools it needs."""
         self.cognitive_service = cognitive_service
         self.knowledge_service = knowledge_service
+        self._paths = path_resolver
         self.tracer = DecisionTracer()
 
         # CONSTITUTIONAL FIX: Removed hardcoded path to .intent/ (settings.MIND).
         # Prompts are runtime instructions that reside in var/prompts/.
-        prompt_path = settings.paths.prompt("capability_definer")
+        prompt_path = self._paths.prompt("capability_definer")
 
         if not prompt_path.exists():
             msg = f"Constitutional prompt 'capability_definer.prompt' missing from {prompt_path}"
@@ -49,9 +55,24 @@ class CapabilityTaggerAgent:
 
         # Load entry point patterns (same as OrphanedLogicCheck)
         # Note: settings.load uses the PathResolver shim internally
-        self.entry_point_patterns = settings.load(
-            "mind.knowledge.project_structure"
-        ).get("entry_point_patterns", [])
+        project_structure_path = (
+            self._paths.intent_root
+            / "charter"
+            / "policies"
+            / "mind"
+            / "knowledge"
+            / "project_structure.yaml"
+        )
+        if project_structure_path.exists():
+            try:
+                project_structure = yaml.safe_load(
+                    project_structure_path.read_text(encoding="utf-8")
+                )
+            except Exception:
+                project_structure = {}
+        else:
+            project_structure = {}
+        self.entry_point_patterns = project_structure.get("entry_point_patterns", [])
 
     def _is_entry_point(self, symbol_data: dict[str, Any]) -> bool:
         """

@@ -30,9 +30,9 @@ from mind.governance.violation_report import (
     ConstitutionalViolationError,
     ViolationReport,
 )
-from shared.config import settings
 from shared.infrastructure.intent.intent_repository import get_intent_repository
 from shared.logger import getLogger
+from shared.path_resolver import PathResolver
 
 
 # Re-export for backward compatibility
@@ -63,15 +63,17 @@ class IntentGuard:
     _EMERGENCY_LOCK_REL = ".intent/mind/.emergency_override"
     _NO_WRITE_INTENT_RULE = "no_write_intent"
 
-    def __init__(self, repo_path: Path):
+    def __init__(self, repo_path: Path, path_resolver: PathResolver):
         """
         Initialize IntentGuard with constitutional rules.
 
         Args:
             repo_path: Absolute path to repository root
+            path_resolver: PathResolver for intent_root and path resolution
         """
         self.repo_path = Path(repo_path).resolve()
-        self.intent_root = settings.paths.intent_root
+        self._path_resolver = path_resolver
+        self.intent_root = self._path_resolver.intent_root
         self.emergency_lock_file = (self.repo_path / self._EMERGENCY_LOCK_REL).resolve()
 
         # Load governance from IntentRepository

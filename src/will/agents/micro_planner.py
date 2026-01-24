@@ -17,9 +17,9 @@ from typing import Any
 
 import yaml
 
-from shared.config import settings
 from shared.logger import getLogger
 from shared.models import PlanExecutionError
+from shared.path_resolver import PathResolver
 from will.agents.base_planner import parse_and_validate_plan
 from will.orchestration.cognitive_service import CognitiveService
 from will.orchestration.decision_tracer import DecisionTracer
@@ -32,15 +32,18 @@ logger = getLogger(__name__)
 class MicroPlannerAgent:
     """Decomposes goals into safe, auto-approvable plans."""
 
-    def __init__(self, cognitive_service: CognitiveService):
+    def __init__(
+        self, cognitive_service: CognitiveService, path_resolver: PathResolver
+    ):
         """Initializes the MicroPlannerAgent."""
         self.cognitive_service = cognitive_service
         self.tracer = DecisionTracer()
+        self._paths = path_resolver
 
         # MODERNIZATION: Resolve policy path via PathResolver (SSOT)
         try:
             # We explicitly load agent_governance to understand permitted autonomy lanes
-            policy_path = settings.paths.policy("agent_governance")
+            policy_path = self._paths.policy("agent_governance")
             self.policy = yaml.safe_load(policy_path.read_text(encoding="utf-8"))
         except Exception as e:
             logger.warning(
@@ -50,7 +53,7 @@ class MicroPlannerAgent:
 
         # ALIGNED: Using PathResolver to find prompt in var/prompts/
         try:
-            self.prompt_template = settings.paths.prompt("micro_planner").read_text(
+            self.prompt_template = self._paths.prompt("micro_planner").read_text(
                 encoding="utf-8"
             )
         except FileNotFoundError:

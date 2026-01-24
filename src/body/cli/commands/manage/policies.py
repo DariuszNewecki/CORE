@@ -18,7 +18,7 @@ from rich.console import Console
 from shared.action_types import ActionImpact, ActionResult
 from shared.atomic_action import atomic_action
 from shared.cli_utils import async_command
-from shared.config import settings
+from shared.context import CoreContext
 from shared.infrastructure.clients.qdrant_client import QdrantService
 from shared.logger import getLogger
 from will.orchestration.cognitive_service import CognitiveService
@@ -45,6 +45,7 @@ policies_sub_app = typer.Typer(
 async def vectorize_policies_internal(
     qdrant_service: QdrantService,
     cognitive_service: CognitiveService,
+    repo_root,
 ) -> ActionResult:
     """
     Vectorize all policies from .intent/charter/policies/ into core-policies collection.
@@ -53,7 +54,7 @@ async def vectorize_policies_internal(
 
     try:
         vectorizer = PolicyVectorizer(
-            repo_root=settings.REPO_PATH,
+            repo_root=repo_root,
             cognitive_service=cognitive_service,
             qdrant_service=qdrant_service,
         )
@@ -96,7 +97,7 @@ async def vectorize_policies_internal(
 @policies_sub_app.command("vectorize")
 @async_command
 # ID: 4c61c8ec-50c1-485c-89f0-0f9a39c54aeb
-async def vectorize_policies_cmd() -> None:
+async def vectorize_policies_cmd(ctx: typer.Context) -> None:
     """
     Vectorize constitutional policies into Qdrant.
 
@@ -108,8 +109,10 @@ async def vectorize_policies_cmd() -> None:
 
     # CLI instantiates services (allowed per DI policy exclusions)
     qdrant_service = QdrantService()
+    core_context: CoreContext = ctx.obj
+    repo_root = core_context.git_service.repo_path
     cognitive_service = CognitiveService(
-        repo_path=settings.REPO_PATH,
+        repo_path=repo_root,
         qdrant_service=qdrant_service,
     )
     # Ensure orchestrator/mind is loaded
@@ -118,6 +121,7 @@ async def vectorize_policies_cmd() -> None:
     result = await vectorize_policies_internal(
         qdrant_service=qdrant_service,
         cognitive_service=cognitive_service,
+        repo_root=repo_root,
     )
 
     if result.ok:
@@ -142,6 +146,7 @@ async def vectorize_policies_cmd() -> None:
 @async_command
 # ID: ff1af9c9-6bfe-452c-83a5-0d22d7c55dd7
 async def search_policies_cmd(
+    ctx: typer.Context,
     query: str = typer.Argument(..., help="Question about the constitution"),
     limit: int = typer.Option(5, "--limit", "-n", help="Max results"),
 ) -> None:
@@ -151,14 +156,16 @@ async def search_policies_cmd(
     console.print(f'[cyan]Searching constitution for: "{query}"[/cyan]\n')
 
     qdrant_service = QdrantService()
+    core_context: CoreContext = ctx.obj
+    repo_root = core_context.git_service.repo_path
     cognitive_service = CognitiveService(
-        repo_path=settings.REPO_PATH,
+        repo_path=repo_root,
         qdrant_service=qdrant_service,
     )
     await cognitive_service.initialize()
 
     vectorizer = PolicyVectorizer(
-        repo_root=settings.REPO_PATH,
+        repo_root=repo_root,
         cognitive_service=cognitive_service,
         qdrant_service=qdrant_service,
     )

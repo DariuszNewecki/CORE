@@ -19,8 +19,8 @@ import ast
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from shared.config import settings
 from shared.logger import getLogger
+from shared.path_resolver import PathResolver
 from shared.utils.parsing import extract_python_code_from_response
 
 
@@ -35,14 +35,16 @@ if TYPE_CHECKING:
 logger = getLogger(__name__)
 
 
-def _resolve_prompt_template_path(prompt_name: str) -> Path | None:
+def _resolve_prompt_template_path(
+    path_resolver: PathResolver, prompt_name: str
+) -> Path | None:
     """
     Resolve a prompt template path via the PathResolver (var/prompts).
     This replaces the legacy logical path lookup to prevent Mind/Body sync errors.
     """
     try:
         # ALIGNED: Using the PathResolver (SSOT for var/ layout)
-        path = settings.paths.prompt(prompt_name)
+        path = path_resolver.prompt(prompt_name)
         if path.exists():
             return path
         return None
@@ -58,6 +60,7 @@ class CodeGenerator:
     def __init__(
         self,
         cognitive_service: CognitiveService,
+        path_resolver: PathResolver,
         prompt_pipeline: PromptPipeline,
         tracer: DecisionTracer,
         context_builder: ArchitecturalContextBuilder | None = None,
@@ -74,6 +77,7 @@ class CodeGenerator:
             context_service: Context package builder (optional, for enriched standard mode)
         """
         self.cognitive_service = cognitive_service
+        self._paths = path_resolver
         self.prompt_pipeline = prompt_pipeline
         self.tracer = tracer
         self.context_builder = context_builder
@@ -106,6 +110,12 @@ class CodeGenerator:
         logger.info("Generating code for task: '%s'...", task.step)
 
         target_file = task.params.file_path or "unknown.py"
+        try:
+            target_path = Path(target_file)
+            if target_path.is_absolute():
+                target_file = str(target_path.relative_to(self._paths.repo_root))
+        except Exception:
+            pass
         symbol_name = task.params.symbol_name or ""
 
         # Priority 1: Semantic mode (full architectural context)

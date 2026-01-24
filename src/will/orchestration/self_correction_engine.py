@@ -11,8 +11,8 @@ import json
 import re
 from typing import TYPE_CHECKING, Any
 
-from shared.config import settings
 from shared.logger import getLogger
+from shared.path_resolver import PathResolver
 from shared.utils.parsing import parse_write_blocks
 from will.orchestration.cognitive_service import CognitiveService
 from will.orchestration.prompt_pipeline import PromptPipeline
@@ -23,8 +23,10 @@ from will.tools.symbol_finder import SymbolFinder
 if TYPE_CHECKING:
     from mind.governance.audit_context import AuditorContext
 logger = getLogger(__name__)
-REPO_PATH = settings.REPO_PATH
-pipeline = PromptPipeline(repo_path=REPO_PATH)
+
+
+def _build_pipeline(path_resolver: PathResolver) -> PromptPipeline:
+    return PromptPipeline(repo_path=path_resolver.repo_root)
 
 
 def _extract_imports_from_code(code: str) -> set[str]:
@@ -55,11 +57,13 @@ async def attempt_correction(
     failure_context: dict[str, Any],
     cognitive_service: CognitiveService,
     auditor_context: AuditorContext,
+    path_resolver: PathResolver,
 ) -> dict[str, Any]:
     """
     Attempts to fix a failed validation or test result using an enriched LLM prompt.
     Now includes deep symbol lookup for ImportErrors by analyzing the code.
     """
+    pipeline = _build_pipeline(path_resolver)
     generator = await cognitive_service.aget_client_for_role("Coder")
     file_path = failure_context.get("file_path")
     code = failure_context.get("code")

@@ -19,7 +19,7 @@ from pathlib import Path
 from typing import Any
 
 from body.services.llm_client import LLMClient
-from shared.config import settings
+from shared.path_resolver import PathResolver
 
 from .base import BaseEngine, EngineResult
 
@@ -33,17 +33,9 @@ class LLMGateEngine(BaseEngine):
 
     engine_id = "llm_gate"
 
-    def __init__(self, llm_client: LLMClient | None = None):
-        # FACT: If no client is provided, we build it from the settings evidence
-        if llm_client:
-            self.llm = llm_client
-        else:
-            # Using positional arguments as required by LLMClient.__init__
-            self.llm = LLMClient(
-                api_url=settings.LLM_API_URL,
-                api_key=settings.LLM_API_KEY,
-                model_name=settings.LLM_MODEL_NAME,
-            )
+    def __init__(self, path_resolver: PathResolver, llm_client: LLMClient):
+        self._paths = path_resolver
+        self.llm = llm_client
         self._cache: dict[str, EngineResult] = {}
 
     # ID: 66b7f4b7-72a8-43b9-af11-787c58e20524
@@ -68,7 +60,13 @@ class LLMGateEngine(BaseEngine):
             )
 
         # FACT: Deduplication. If the file and instruction haven't changed, skip LLM.
-        state_hash = hashlib.sha256(f"{instruction}{content}".encode()).hexdigest()
+        try:
+            rel_path = str(file_path.relative_to(self._paths.repo_root))
+        except ValueError:
+            rel_path = str(file_path)
+        state_hash = hashlib.sha256(
+            f"{rel_path}{instruction}{content}".encode()
+        ).hexdigest()
         if state_hash in self._cache:
             return self._cache[state_hash]
 

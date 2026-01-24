@@ -10,7 +10,6 @@ from collections.abc import Iterable
 from pathlib import Path
 
 from mind.governance.enforcement_loader import EnforcementMappingLoader
-from shared.config import settings
 from shared.logger import getLogger
 
 
@@ -18,13 +17,13 @@ logger = getLogger(__name__)
 
 
 # ID: 15dff2fb-d1d0-4d85-9fb8-7667e5b93b40
-def get_modularity_threshold() -> float:
+def get_modularity_threshold(repo_root: Path) -> float:
     """
     Retrieves the authoritative 'max_score' from the Constitution.
     Path: .intent/enforcement/mappings/architecture/modularity.yaml
     """
     try:
-        loader = EnforcementMappingLoader(settings.REPO_PATH / ".intent")
+        loader = EnforcementMappingLoader(repo_root / ".intent")
         strategy = loader.get_enforcement_strategy(
             "modularity.refactor_score_threshold"
         )
@@ -37,7 +36,7 @@ def get_modularity_threshold() -> float:
 
 
 # ID: f54112b9-6914-4af4-9f38-087b8837db95
-def get_source_files() -> Iterable[Path]:
+def get_source_files(repo_root: Path) -> Iterable[Path]:
     """
     Standardized file enumerator. Ensures we don't analyze junk/temp folders.
     """
@@ -53,7 +52,7 @@ def get_source_files() -> Iterable[Path]:
         "migrations",
         "reports",
     }
-    src_root = settings.REPO_PATH / "src"
+    src_root = repo_root / "src"
     if not src_root.exists():
         return []
 

@@ -18,9 +18,9 @@ from typing import Any
 
 import yaml
 
-from shared.config import settings
 from shared.logger import getLogger
 from shared.models.workflow_models import PhaseResult, PhaseWorkflowResult
+from shared.path_resolver import PathResolver
 from will.orchestration.decision_tracer import DecisionTracer
 from will.orchestration.phase_registry import PhaseRegistry
 
@@ -69,10 +69,11 @@ class WorkflowOrchestrator:
     Composes phases dynamically based on goal type.
     """
 
-    def __init__(self, phase_registry: PhaseRegistry):
+    def __init__(self, phase_registry: PhaseRegistry, path_resolver: PathResolver):
         self.phases = phase_registry
-        self.tracer = DecisionTracer()
-        self.workflow_dir = settings.REPO_PATH / ".intent" / "workflows"
+        self._paths = path_resolver
+        self.tracer = DecisionTracer(self._paths)
+        self.workflow_dir = self._paths.intent_root / "workflows"
 
     # ID: 9b8c7d6e-5f4g-3h2i-1j0k-9l8m7n6o5p4q
     def _load_workflow_definition(self, workflow_type: str) -> WorkflowDefinition:
@@ -202,7 +203,7 @@ class WorkflowOrchestrator:
 
     def _load_phase_definition(self, phase_name: str) -> dict:
         """Load phase definition from .intent/phases/"""
-        phase_path = settings.REPO_PATH / ".intent" / "phases" / f"{phase_name}.yaml"
+        phase_path = self._paths.intent_root / "phases" / f"{phase_name}.yaml"
         with open(phase_path) as f:
             return yaml.safe_load(f)
 

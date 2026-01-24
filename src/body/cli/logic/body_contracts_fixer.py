@@ -15,7 +15,6 @@ from typing import TYPE_CHECKING, Any
 from body.cli.logic.body_contracts_checker import check_body_contracts
 from shared.action_types import ActionImpact, ActionResult
 from shared.atomic_action import atomic_action
-from shared.config import settings
 from shared.logger import getLogger
 from shared.utils.parallel_processor import ThrottledParallelProcessor
 
@@ -98,7 +97,7 @@ async def _process_single_file(
     if write:
         try:
             # CONSTITUTIONAL FIX: Use governed mutation surface
-            rel_path = str(path.relative_to(settings.REPO_PATH))
+            rel_path = str(path.relative_to(file_handler.repo_path))
             file_handler.write_runtime_text(rel_path, new_source)
             logger.info("Body UI fixer: updated file %s", path)
         except Exception as e:
@@ -131,7 +130,7 @@ async def fix_body_ui_violations(
     """
     start_time = time.time()
     if repo_root is None:
-        repo_root = Path(settings.REPO_PATH)
+        repo_root = core_context.git_service.repo_path
 
     check_result = await check_body_contracts(repo_root=repo_root)
     violations_raw: list[dict[str, Any]] = check_result.data.get("violations", [])

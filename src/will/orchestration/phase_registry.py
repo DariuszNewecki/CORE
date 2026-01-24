@@ -18,8 +18,8 @@ from typing import TYPE_CHECKING, Protocol
 
 import yaml
 
-from shared.config import settings
 from shared.logger import getLogger
+from shared.path_resolver import PathResolver
 
 
 if TYPE_CHECKING:
@@ -65,8 +65,9 @@ class PhaseRegistry:
     loads corresponding implementations.
     """
 
-    def __init__(self, core_context: CoreContext):
+    def __init__(self, core_context: CoreContext, path_resolver: PathResolver):
         self.context = core_context
+        self._paths = path_resolver
         self._phases: dict[str, Phase] = {}
         self._phase_definitions: dict[str, dict] = {}
         self._initialize_phases()
@@ -82,7 +83,7 @@ class PhaseRegistry:
         4. Dynamically import and instantiate
         5. Warn if phase defined but not implemented
         """
-        phase_dir = settings.REPO_PATH / ".intent" / "phases"
+        phase_dir = self._paths.intent_root / "phases"
 
         if not phase_dir.exists():
             logger.warning("⚠️  Phase directory not found: %s", phase_dir)

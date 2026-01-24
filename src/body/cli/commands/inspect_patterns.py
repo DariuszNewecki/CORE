@@ -12,7 +12,7 @@ import typer
 from rich.console import Console
 from rich.table import Table
 
-from shared.config import settings
+from shared.context import CoreContext
 
 
 console = Console()
@@ -20,6 +20,7 @@ console = Console()
 
 # ID: b14188e7-a65e-4b40-b3e6-ac565dd08cfb
 def inspect_patterns(
+    ctx: typer.Context,
     last: int = typer.Option(
         10, "--last", "-l", help="Number of recent decision traces to analyze"
     ),
@@ -48,7 +49,8 @@ def inspect_patterns(
     console.print("\n[bold blue]🔍 Pattern Classification Analysis[/bold blue]\n")
 
     # Find all decision traces
-    decisions_dir = settings.REPO_PATH / "reports" / "decisions"
+    core_context: CoreContext = ctx.obj
+    decisions_dir = core_context.git_service.repo_path / "reports" / "decisions"
     if not decisions_dir.exists():
         console.print(
             "[yellow]No decision traces found. Run a development task first.[/yellow]"
@@ -141,7 +143,9 @@ def inspect_patterns(
             rate_color = (
                 "green"
                 if success_rate >= 80
-                else "yellow" if success_rate >= 50 else "red"
+                else "yellow"
+                if success_rate >= 50
+                else "red"
             )
 
             table.add_row(

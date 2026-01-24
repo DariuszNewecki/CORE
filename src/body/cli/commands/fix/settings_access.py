@@ -9,7 +9,7 @@ from rich.console import Console
 
 from features.maintenance.refactor_settings_access import refactor_settings_access
 from shared.cli_utils import core_command
-from shared.config import settings
+from shared.context import CoreContext
 
 from . import fix_app
 
@@ -27,10 +27,12 @@ async def fix_settings_di_cmd(
 ) -> None:
     """Refactor settings imports to dependency injection via CoreContext."""
 
+    core_context: CoreContext = ctx.obj
+    repo_root = core_context.git_service.repo_path
     layer_list = [layer.strip() for layer in layers.split(",")]
 
     results = await refactor_settings_access(
-        repo_path=settings.REPO_PATH,
+        repo_path=repo_root,
         layers=layer_list,
         dry_run=not write,
     )

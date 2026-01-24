@@ -11,7 +11,7 @@ from pathlib import Path
 from cryptography.hazmat.primitives import serialization
 
 from body.cli.logic.cli_utils import archive_rollback_plan
-from shared.config import settings
+from shared.context import CoreContext
 from shared.infrastructure.storage.file_handler import FileHandler
 from shared.processors.yaml_processor import YAMLProcessor
 from shared.utils.crypto import generate_approval_token
@@ -26,14 +26,23 @@ yaml_processor = YAMLProcessor()
 
 # ID: 99bcd929-7853-4e6f-bd14-e7e8c3e60252
 class ProposalService:
-    def __init__(self, repo_root: Path):
+    def __init__(self, repo_root: Path, core_context: CoreContext | None = None):
         self.repo_root = repo_root.resolve()
         self.fs = FileHandler(str(self.repo_root))
-        self.proposals_dir = settings.paths.proposals_dir
+        from shared.path_resolver import PathResolver
+
+        path_resolver = PathResolver.from_repo(
+            repo_root=self.repo_root,
+            intent_root=self.repo_root / ".intent",
+        )
+
+        self.proposals_dir = path_resolver.proposals_dir
         self.fs.ensure_dir(_to_repo_rel(self.repo_root, self.proposals_dir))
 
         app_cfg = (
-            yaml_processor.load(settings.paths.constitution_dir / "approvers.yaml")
+            yaml_processor.load(
+                path_resolver.intent_root / "constitution" / "approvers.yaml"
+            )
             or {}
         )
         self.approver_keys = {
@@ -41,7 +50,7 @@ class ProposalService:
         }
         self.quorum_config = app_cfg.get("quorum", {})
 
-        crit_path = settings.paths.intent_root / app_cfg.get(
+        crit_path = path_resolver.intent_root / app_cfg.get(
             "critical_paths_source", "charter/constitution/critical_paths.json"
         )
         self.critical_paths = (yaml_processor.load(crit_path) or {}).get("paths", [])
@@ -81,7 +90,7 @@ class ProposalService:
             raise FileNotFoundError(f"Proposal '{proposal_name}' not found.")
 
         proposal = yaml_processor.load(path) or {}
-        key_path = settings.KEY_STORAGE_DIR / "private.key"
+        key_path = self.repo_root / ".intent" / "keys" / "private.key"
         private_key = serialization.load_pem_private_key(
             key_path.read_bytes(), password=None
         )
@@ -138,7 +147,7 @@ class ProposalService:
         if not success:
             raise ChildProcessError("Canary audit failed.")
 
-        archive_rollback_plan(proposal_name, proposal)
+        archive_rollback_plan(proposal_name, proposal, self.fs)
         self.fs.write_runtime_text(
             str(target).lstrip("./"), proposal.get("content", "")
         )

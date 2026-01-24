@@ -11,7 +11,7 @@ from collections.abc import Callable
 
 import typer
 
-from shared.config import settings
+from shared.context import CoreContext
 from shared.logger import getLogger
 
 from .proposals.service import ProposalService
@@ -21,10 +21,11 @@ logger = getLogger(__name__)
 
 
 # ID: afb5a8de-836f-4788-8fe0-f3cd86b463c6
-def proposals_list_cmd() -> None:
+def proposals_list_cmd(ctx: typer.Context) -> None:
     """CLI command: list all pending proposals."""
     logger.info("Finding pending constitutional proposals...")
-    proposals = ProposalService(settings.REPO_PATH).list()
+    core_context: CoreContext = ctx.obj
+    proposals = ProposalService(core_context.git_service.repo_path).list()
     if not proposals:
         logger.info("No pending proposals found.")
         return
@@ -49,21 +50,20 @@ def _safe_proposal_action(action_desc: str, action_func: Callable[[], None]) -> 
 
 
 # ID: 344d451b-a0fb-41f7-bc6f-979881b289dc
-def proposals_sign_cmd(proposal_name: str) -> None:
+def proposals_sign_cmd(ctx: typer.Context, proposal_name: str) -> None:
     def _action():
         identity = typer.prompt("Enter your identity (e.g., name@domain.com)")
-        ProposalService(settings.REPO_PATH).sign(proposal_name, identity)
+        core_context: CoreContext = ctx.obj
+        ProposalService(core_context.git_service.repo_path).sign(
+            proposal_name, identity
+        )
 
     _safe_proposal_action(f"Signing proposal: {proposal_name}", _action)
 
 
 # ID: bfd5a9e0-ceea-4196-b447-f0df152d1b66
-async def proposals_approve_cmd(proposal_name: str, context=None) -> None:
-    repo_root = (
-        context.git_service.repo_path
-        if context and context.git_service
-        else settings.REPO_PATH
-    )
+async def proposals_approve_cmd(proposal_name: str, context: CoreContext) -> None:
+    repo_root = context.git_service.repo_path
     logger.info("Attempting to approve proposal: %s", proposal_name)
     try:
         await ProposalService(repo_root).approve(proposal_name)

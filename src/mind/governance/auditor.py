@@ -11,6 +11,7 @@ REFACTORED:
 CONSTITUTIONAL FIX:
 - Uses service_registry.session() instead of get_session()
 - Mind layer receives session factory from Body layer
+- Primes EngineRegistry with PathResolver
 """
 
 from __future__ import annotations
@@ -29,6 +30,7 @@ from mind.governance.constitutional_auditor_dynamic import (
     get_dynamic_execution_stats,
     run_dynamic_rules,
 )
+from mind.logic.engines.registry import EngineRegistry  # ADDED
 from shared.activity_logging import ActivityRun, activity_run, new_activity_run
 from shared.infrastructure.storage.file_handler import FileHandler
 from shared.logger import getLogger
@@ -103,6 +105,10 @@ class ConstitutionalAuditor:
                     self.context.qdrant_service = (
                         await service_registry.get_qdrant_service()
                     )  # type: ignore
+
+                # CRITICAL FIX: Prime the EngineRegistry with the PathResolver
+                # This ensures engines have access to path resolution logic
+                EngineRegistry.initialize(self.context.paths)
 
                 try:
                     findings = await run_dynamic_rules(

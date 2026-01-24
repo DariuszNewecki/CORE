@@ -16,6 +16,7 @@ from pydantic import ValidationError
 
 from shared.logger import getLogger
 from shared.models import ExecutionTask, PlanExecutionError
+from shared.path_resolver import PathResolver
 from shared.utils.parsing import extract_json_from_response
 from will.orchestration.prompt_pipeline import PromptPipeline
 
@@ -25,6 +26,7 @@ logger = getLogger(__name__)
 
 # ID: c2df9e04-5177-44a0-bbcc-abbe0e1f7dde
 def build_planning_prompt(
+    path_resolver: PathResolver,
     goal: str,
     action_descriptions_str: str,
     reconnaissance_report: str,
@@ -33,9 +35,10 @@ def build_planning_prompt(
     """
     Builds the final planning prompt with explicit Mutation-Only instructions.
     """
-    from shared.config import settings
+    if not isinstance(path_resolver, PathResolver):
+        raise TypeError("path_resolver must be a PathResolver instance")
 
-    prompt_pipeline = PromptPipeline(settings.REPO_PATH)
+    prompt_pipeline = PromptPipeline(path_resolver.repo_root)
 
     # Pillar III: Explicitly instruct the Planner to be action-oriented.
     directive = """

@@ -3,6 +3,11 @@
 """
 Provides commands for AI-powered review of the constitution, documentation, and source code files.
 Refactored to comply with Agent I/O policies and Async-Native architecture.
+
+CONSTITUTIONAL COMPLIANCE:
+- Uses CoreContext for dependency injection (no direct settings import)
+- Delegates file I/O to Body layer via FileHandler
+- Will layer orchestrates but doesn't execute
 """
 
 from __future__ import annotations
@@ -14,7 +19,7 @@ from rich.console import Console
 from rich.markdown import Markdown
 from rich.panel import Panel
 
-from shared.config import settings
+from shared.context import CoreContext
 from shared.infrastructure.storage.file_handler import FileHandler
 from shared.logger import getLogger
 from will.orchestration.cognitive_service import CognitiveService
@@ -51,90 +56,114 @@ def _get_constitutional_files() -> list[Path]:
 
     repo = get_intent_repository()
     # If the repo indexed it, it's a constitutional file.
-    return [ref.path for ref in repo.list_policies()]
+    return [Path(p.file_path) for p in repo.list_policies()]
 
 
-def _get_docs_files() -> list[Path]:
-    root_dir = settings.REPO_PATH
-    scan_files = [root_dir / "README.md", root_dir / "CONTRIBUTING.md"]
-    docs_dir = root_dir / "docs"
-    found_files: set[Path] = {f for f in scan_files if f.exists()}
-    if docs_dir.is_dir():
-        for md_file in docs_dir.rglob("*.md"):
-            if not any(ignored in md_file.parts for ignored in DOCS_IGNORE_DIRS):
-                found_files.add(md_file)
-    return list(found_files)
+def _get_docs_files(context: CoreContext) -> list[Path]:
+    """Gather documentation files (.md) from docs/ folder."""
+    docs_dir = context.repo_path / "docs"
+    if not docs_dir.exists():
+        logger.warning("Docs directory not found at %s", docs_dir)
+        return []
+
+    md_files = []
+    for md_file in docs_dir.rglob("*.md"):
+        if any(ignored in md_file.parts for ignored in DOCS_IGNORE_DIRS):
+            continue
+        md_files.append(md_file)
+    return md_files
 
 
 async def _orchestrate_review(
-    bundle_name: str,
+    context: CoreContext,
+    review_type: str,
     prompt_key: str,
-    file_gatherer_fn,
-    output_path: Path,
-    no_send: bool,
+    files_getter: callable,
+    output_path: Path | None = None,
+    no_send: bool = False,
 ) -> None:
-    logger.info("🤖 Orchestrating review for: %s...", bundle_name)
-    try:
-        prompt_path = settings.get_path(f"mind.prompts.{prompt_key}")
-        review_prompt_template = await FileHandler.read_content(prompt_path)
-    except Exception as e:
-        logger.error(
-            "❌ Review prompt '%s' not found or readable. Error: %s", prompt_key, e
-        )
+    """
+    Generic orchestration for AI-powered reviews.
+
+    Args:
+        context: CoreContext with injected dependencies
+        review_type: Type of review (for logging)
+        prompt_key: Key to retrieve prompt from mind prompts
+        files_getter: Function to get files to review
+        output_path: Optional path to write output
+        no_send: If True, don't send to AI, just bundle
+    """
+    logger.info("🤖 Preparing %s review...", review_type)
+
+    # Get files based on review type
+    if files_getter == _get_constitutional_files:
+        files_to_bundle = files_getter()
+    else:
+        files_to_bundle = files_getter(context)
+
+    if not files_to_bundle:
+        logger.warning("No files found for %s review", review_type)
         raise typer.Exit(code=1)
 
-    logger.info("   -> Loaded review prompt: %s", prompt_key)
-    logger.info("   -> Bundling files for review...")
+    logger.info("Found %d files to review", len(files_to_bundle))
 
-    files_to_bundle = file_gatherer_fn()
-    bundle_content = await _get_bundle_content(files_to_bundle, settings.REPO_PATH)
-
-    logger.info("   -> Bundled %s files.", len(files_to_bundle))
-
-    bundle_output_path = settings.REPO_PATH / "reports" / f"{bundle_name}_bundle.txt"
-    await FileHandler.ensure_parent_dir(bundle_output_path)
-    await FileHandler.write_content(bundle_output_path, bundle_content)
-
-    logger.info("   -> Saved review bundle to: %s", bundle_output_path)
-
-    final_prompt = f"{review_prompt_template}\n\n{bundle_content}"
+    # Bundle file contents
+    bundled_content = await _get_bundle_content(files_to_bundle, context.repo_path)
 
     if no_send:
+        logger.info("--no-send flag detected. Writing bundle to output file...")
+        if not output_path:
+            output_path = context.repo_path / "work" / f"{review_type}_bundle.txt"
+
         await FileHandler.ensure_parent_dir(output_path)
-        await FileHandler.write_content(output_path, final_prompt)
-        logger.info("✅ Full prompt bundle for manual review saved to: %s", output_path)
-        # We don't raise Exit here to keep it composable, just return
+        await FileHandler.write_content(output_path, bundled_content)
+        logger.info("Bundle written to: %s", output_path)
         return
 
-    logger.info("   -> Sending bundle to LLM for analysis. This may take a moment...")
+    # Load prompt template
+    prompt_path = context.path_resolver.get_prompt_path(prompt_key)
+    if not prompt_path.exists():
+        logger.error("Prompt template not found: %s", prompt_path)
+        raise typer.Exit(code=1)
 
-    cognitive_service = CognitiveService(settings.REPO_PATH)
-    reviewer = cognitive_service.get_client_for_role("SecurityAnalyst")
+    review_prompt_template = await FileHandler.read_content(prompt_path)
+    final_prompt = f"{review_prompt_template}\n\n{bundled_content}"
 
-    # ID: 3b45b426-4966-45d9-9500-5faa0c8a4192
-    review_feedback = await reviewer.make_request_async(
-        final_prompt, user_id=f"{bundle_name}_reviewer"
+    # Send to AI for review
+    with console.status(
+        f"[bold green]Requesting {review_type} review from AI...[/bold green]",
+        spinner="dots",
+    ):
+        cognitive_service = CognitiveService(context.repo_path)
+        reviewer_client = cognitive_service.get_client_for_role("Reviewer")
+        review_feedback = await reviewer_client.make_request_async(
+            final_prompt, user_id=f"{review_type}_operator"
+        )
+
+    # Present results
+    logger.info(
+        Panel(
+            f"{review_type.title()} Review Complete", style="bold green", expand=False
+        )
     )
-
-    await FileHandler.ensure_parent_dir(output_path)
-    await FileHandler.write_content(output_path, review_feedback)
-
-    logger.info("✅ Successfully received feedback and saved to: %s", output_path)
-    logger.info("\n--- %s Review Summary ---", bundle_name.replace("_", " ").title())
-
-    # We use console.print instead of logger for Markdown rendering
     console.print(Markdown(review_feedback))
 
+    # Optionally save output
+    if output_path:
+        await FileHandler.ensure_parent_dir(output_path)
+        await FileHandler.write_content(output_path, review_feedback)
+        logger.info("Review saved to: %s", output_path)
 
-# ID: b2729014-bda7-41fb-82b4-7093610495ee
-async def peer_review(
-    output: Path = typer.Option(
-        Path("reports/constitutional_review.md"), "--output", "-o"
-    ),
+
+# ID: c4b1e7f2-8a5d-4e9c-b3f1-7c8d9e0a1b2c
+async def constitutional_review(
+    context: CoreContext,
+    output: Path | None = typer.Option(None, "--output", "-o"),
     no_send: bool = typer.Option(False, "--no-send"),
 ) -> None:
-    """Audits the machine-readable constitution (.intent files) for clarity and consistency."""
+    """Reviews the entire constitutional structure (.intent/) for clarity and consistency."""
     await _orchestrate_review(
+        context,
         "constitutional",
         "constitutional_review",
         _get_constitutional_files,
@@ -143,21 +172,26 @@ async def peer_review(
     )
 
 
-# ID: 46cc1fc6-2617-4448-9840-ec9eb8cdf64a
-async def docs_clarity_audit(
-    output: Path = typer.Option(
-        Path("reports/docs_clarity_review.md"), "--output", "-o"
-    ),
+# ID: 5a7c8e3f-9b2d-4c1e-a6f7-8d9e0b1c2d3e
+async def docs_review(
+    context: CoreContext,
+    output: Path | None = typer.Option(None, "--output", "-o"),
     no_send: bool = typer.Option(False, "--no-send"),
 ) -> None:
-    """Audits the human-readable documentation (.md files) for conceptual clarity."""
+    """Reviews the project documentation for clarity, accuracy, and completeness."""
     await _orchestrate_review(
-        "docs_clarity", "docs_clarity_review", _get_docs_files, output, no_send
+        context,
+        "docs_clarity",
+        "docs_clarity_review",
+        _get_docs_files,
+        output,
+        no_send,
     )
 
 
 # ID: 30a6ecd2-6d50-41a8-8e57-f5c511aea291
 async def code_review(
+    context: CoreContext,
     file_path: Path = typer.Argument(
         ..., exists=True, dir_okay=False, resolve_path=True
     ),
@@ -165,11 +199,11 @@ async def code_review(
     """Submits a source file to an AI expert for a peer review and improvement suggestions."""
     logger.info(
         "🤖 Submitting '%s' for AI peer review...",
-        file_path.relative_to(settings.REPO_PATH),
+        file_path.relative_to(context.repo_path),
     )
     try:
         source_code = await FileHandler.read_content(file_path)
-        prompt_path = settings.get_path("mind.prompts.code_peer_review")
+        prompt_path = context.path_resolver.get_prompt_path("code_peer_review")
         review_prompt_template = await FileHandler.read_content(prompt_path)
 
         final_prompt = f"{review_prompt_template}\n\n```python\n{source_code}\n```"
@@ -178,7 +212,7 @@ async def code_review(
             "[bold green]Asking AI expert for review...[/bold green]",
             spinner="dots",
         ):
-            cognitive_service = CognitiveService(settings.REPO_PATH)
+            cognitive_service = CognitiveService(context.repo_path)
             reviewer_client = cognitive_service.get_client_for_role("CodeReviewer")
             review_feedback = await reviewer_client.make_request_async(
                 final_prompt, user_id="code_review_operator"

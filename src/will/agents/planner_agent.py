@@ -16,15 +16,18 @@ from __future__ import annotations
 
 import json
 import random
+from pathlib import Path
 
 import yaml
 
 from body.atomic.registry import action_registry  # FIXED: Use registry directly
 from body.services.service_registry import service_registry
 from features.self_healing import MemoryCleanupService
-from shared.config import settings
+
+# REMOVED: from shared.config import settings
 from shared.logger import getLogger
 from shared.models import ExecutionTask, PlanExecutionError
+from shared.path_resolver import PathResolver
 from will.agents.action_introspection import get_all_action_schemas
 from will.agents.base_planner import build_planning_prompt, parse_and_validate_plan
 from will.orchestration.cognitive_service import CognitiveService
@@ -38,19 +41,33 @@ logger = getLogger(__name__)
 class PlannerAgent:
     """Decomposes goals into executable plans."""
 
-    def __init__(self, cognitive_service: CognitiveService):
-        """Initializes the PlannerAgent."""
+    def __init__(
+        self, cognitive_service: CognitiveService, repo_path: Path, max_retries: int = 3
+    ):
+        """
+        Initializes the PlannerAgent.
+
+        Args:
+            cognitive_service: Service for LLM interaction.
+            repo_path: Root path of the repository (for loading prompts/policies).
+            max_retries: Number of retry attempts for planning.
+        """
         self.cognitive_service = cognitive_service
         self.tracer = DecisionTracer()
+        self.repo_path = repo_path
+        self._paths = PathResolver(repo_path)
+        self.max_retries = max_retries
 
-        # ALIGNED: Using PathResolver to find prompt in var/prompts/
+        # ALIGNED: Using PathResolver pattern relative to repo root
+        # var/prompts is the canonical location for runtime prompts
+        prompt_path = self._paths.prompt("planner_agent")
+
         try:
-            self.prompt_template = settings.paths.prompt("planner_agent").read_text(
-                encoding="utf-8"
-            )
+            self.prompt_template = prompt_path.read_text(encoding="utf-8")
         except FileNotFoundError:
             logger.error(
-                "Constitutional prompt 'planner_agent.prompt' missing from var/prompts/"
+                "Constitutional prompt 'planner_agent.prompt' missing from %s",
+                prompt_path,
             )
             raise
 
@@ -71,12 +88,21 @@ class PlannerAgent:
             except Exception as e:
                 logger.debug("Memory cleanup deferred: %s", e)
 
-        # MODERNIZATION: Explicitly load policies via PathResolver
+        # MODERNIZATION: Explicitly load policies via file path (No settings.paths dependency)
         qa_constraints = ""
+
+        # We look for policies in standard locations relative to repo_root
         # Try 'purity' (V2 name) then 'quality_assurance' (V1 name)
-        for policy_name in ["purity", "quality_assurance"]:
+        policy_root = self._paths.intent_root / "charter" / "policies"
+        policy_candidates = [
+            policy_root / "code" / "purity.json",
+            policy_root / "code" / "purity.yaml",
+            policy_root / "quality_assurance.json",
+            policy_root / "quality_assurance.yaml",
+        ]
+
+        for qa_path in policy_candidates:
             try:
-                qa_path = settings.paths.policy(policy_name)
                 if qa_path.exists():
                     content = qa_path.read_text(encoding="utf-8")
                     # Handle both JSON and YAML rules
@@ -105,20 +131,18 @@ class PlannerAgent:
         action_schemas = get_all_action_schemas(actions)
         action_descriptions = json.dumps(action_schemas, indent=2)
 
-        max_retries = settings.model_extra.get("CORE_MAX_RETRIES", 3)
-
         # FIXED: Pass all 4 required positional arguments in the correct order
         prompt = build_planning_prompt(
-            goal, action_descriptions, enriched_recon, self.prompt_template
+            self._paths, goal, action_descriptions, enriched_recon, self.prompt_template
         )
 
         client = await self.cognitive_service.aget_client_for_role("Planner")
 
-        for attempt in range(max_retries):
+        for attempt in range(self.max_retries):
             logger.info(
                 "🧠 Planning execution steps (Attempt %d/%d)...",
                 attempt + 1,
-                max_retries,
+                self.max_retries,
             )
 
             response_text = await client.make_request_async(prompt)
@@ -140,7 +164,7 @@ class PlannerAgent:
                     logger.warning(
                         "Plan validation failed on attempt %d: %s", attempt + 1, e
                     )
-                    if attempt == max_retries - 1:
+                    if attempt == self.max_retries - 1:
                         raise
 
         return []

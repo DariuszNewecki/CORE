@@ -30,10 +30,11 @@ from features.introspection.knowledge_graph_service import KnowledgeGraphBuilder
 from mind.governance.audit_context import AuditorContext
 from mind.governance.auditor import ConstitutionalAuditor
 from shared.action_logger import action_logger
-from shared.config import settings
+from shared.context import CoreContext
 from shared.infrastructure.storage.file_handler import FileHandler
 from shared.logger import getLogger
 from shared.models import AuditFinding, AuditSeverity
+from shared.path_resolver import PathResolver
 
 
 logger = getLogger(__name__)
@@ -54,16 +55,20 @@ class CrateProcessingService:
     Validates and processes Intent Crates via Canary sandboxing.
     """
 
-    def __init__(self):
+    def __init__(self, core_context: CoreContext):
         """Initializes service using PathResolver (SSOT)."""
-        self.repo_root = Path(settings.REPO_PATH).resolve()
-        self._fh = FileHandler(str(self.repo_root))
+        self.core_context = core_context
+        self.repo_root = core_context.git_service.repo_path.resolve()
+        self._fh = core_context.file_handler or FileHandler(str(self.repo_root))
+        self._paths = PathResolver.from_repo(
+            repo_root=self.repo_root, intent_root=self.repo_root / ".intent"
+        )
 
-        # Use canonical paths from Settings/Resolver
-        self.inbox_path = settings.paths.workflows_dir / "crates" / "inbox"
-        self.processing_path = settings.paths.workflows_dir / "crates" / "processing"
-        self.accepted_path = settings.paths.workflows_dir / "crates" / "accepted"
-        self.rejected_path = settings.paths.workflows_dir / "crates" / "rejected"
+        # Use canonical paths from PathResolver
+        self.inbox_path = self._paths.workflows_dir / "crates" / "inbox"
+        self.processing_path = self._paths.workflows_dir / "crates" / "processing"
+        self.accepted_path = self._paths.workflows_dir / "crates" / "accepted"
+        self.rejected_path = self._paths.workflows_dir / "crates" / "rejected"
 
         # Initialize Logic components
         try:
@@ -86,7 +91,7 @@ class CrateProcessingService:
 
             intent_repo = get_intent_repository()
             self.crate_schema = intent_repo.load_document(
-                settings.paths.intent_root
+                self._paths.intent_root
                 / "schemas"
                 / "constitutional"
                 / "intent_crate.schema.json"
@@ -145,7 +150,7 @@ class CrateProcessingService:
         """
         # Create canary sandbox in work/ directory (within REPO_PATH)
         canary_id = f"sandbox_{crate.manifest.get('crate_id')}"
-        canary_repo_path = settings.REPO_PATH / "work" / "canary" / canary_id
+        canary_repo_path = self.repo_root / "work" / "canary" / canary_id
 
         try:
             # Clean any previous sandbox with same ID
@@ -182,14 +187,13 @@ class CrateProcessingService:
                 dst.parent.mkdir(parents=True, exist_ok=True)
                 dst.write_text(src.read_text(encoding="utf-8"), encoding="utf-8")
 
-            # C) The Trial: NO NEED for separate Settings - use global!
-            # Canary is now under REPO_PATH, so global settings work
+            # C) The Trial: Canary is under repo_root, so path-relative tooling works
 
             # Build knowledge graph in sandbox
             kg_builder = KnowledgeGraphBuilder(canary_repo_path)
             kg_builder.build()
 
-            # Create auditor context - canary is within REPO_PATH, use global settings
+            # Create auditor context - canary is within repo_root
             auditor_ctx = AuditorContext(canary_repo_path)
             auditor = ConstitutionalAuditor(auditor_ctx)
 

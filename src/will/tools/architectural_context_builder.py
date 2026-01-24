@@ -9,8 +9,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from shared.config import settings
 from shared.logger import getLogger
+from shared.path_resolver import PathResolver
 
 from .context import standards
 from .context.models import ArchitecturalContext
@@ -30,13 +30,15 @@ class ArchitecturalContextBuilder:
         self,
         policy_vectorizer: PolicyVectorizer,
         anchor_generator: ModuleAnchorGenerator,
+        path_resolver: PathResolver,
         cognitive_service=None,
         qdrant_service=None,
     ):
         self.policies = policy_vectorizer
         self.anchors = anchor_generator
+        self._paths = path_resolver
         self.retriever = ContextRetriever(
-            settings.REPO_PATH, cognitive_service, qdrant_service
+            self._paths.repo_root, cognitive_service, qdrant_service
         )
 
     # ID: 256ec235-24e3-426a-aba1-9f37d06843bd

@@ -12,6 +12,7 @@ from body.cli.logic.body_contracts_checker import check_body_contracts
 from body.cli.workflows.dev_sync_reporter import DevSyncReporter
 from mind.enforcement.audit import lint
 from shared.action_types import ActionResult
+from shared.context import CoreContext
 
 
 # ID: eb2ce29a-50cd-44f2-ac8e-a07c0581278d
@@ -20,9 +21,11 @@ class QualityChecksPhase:
 
     def __init__(
         self,
+        core_context: CoreContext,
         reporter: DevSyncReporter,
         console: Console,
     ):
+        self.core_context = core_context
         self.reporter = reporter
         self.console = console
 
@@ -72,7 +75,9 @@ class QualityChecksPhase:
         try:
             start = time.time()
             self.console.print("[cyan]Checking Body contracts...[/cyan]")
-            await check_body_contracts()
+            await check_body_contracts(
+                repo_root=self.core_context.git_service.repo_path
+            )
 
             self.reporter.record_result(
                 ActionResult(

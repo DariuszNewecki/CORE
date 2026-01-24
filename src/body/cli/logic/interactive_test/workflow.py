@@ -28,7 +28,6 @@ from body.cli.logic.interactive_test.ui import (
     show_header,
     show_success_message,
 )
-from shared.config import settings
 from shared.context import CoreContext
 from shared.logger import getLogger
 from will.agents.coder_agent import CoderAgent
@@ -53,7 +52,7 @@ async def run_interactive_workflow(
     Returns:
         True if successful, False if user cancelled
     """
-    session = InteractiveSession(target_file, settings.REPO_PATH)
+    session = InteractiveSession(target_file, core_context.git_service.repo_path)
 
     try:
         # Header
@@ -190,6 +189,7 @@ async def _initialize_services(core_context: CoreContext) -> CoderAgent:
         cognitive_service=cognitive_service,
         prompt_pipeline=prompt_pipeline,
         auditor_context=auditor_context,
+        repo_root=core_context.git_service.repo_path,
         qdrant_service=qdrant_service,
         context_service=context_service,
     )

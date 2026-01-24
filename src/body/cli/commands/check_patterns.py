@@ -13,7 +13,6 @@ Refactored to use the Constitutional CLI Framework (@core_command).
 from __future__ import annotations
 
 import json
-from pathlib import Path
 
 import typer
 
@@ -23,6 +22,7 @@ from body.evaluators.pattern_evaluator import (
     load_patterns_dict,
 )
 from shared.cli_utils import core_command
+from shared.context import CoreContext
 from shared.logger import getLogger
 from shared.models.pattern_graph import PatternViolation
 
@@ -35,7 +35,7 @@ patterns_group = typer.Typer(
 
 
 @patterns_group.command("list")
-@core_command(dangerous=False, requires_context=False)
+@core_command(dangerous=False, requires_context=True)
 # ID: 81a81ff1-429a-48c1-9d96-53c2858be50d
 async def list_patterns(
     ctx: typer.Context,
@@ -49,7 +49,8 @@ async def list_patterns(
     List available design patterns.
     """
     # Load patterns directly using helper function
-    repo_root = Path.cwd()
+    core_context: CoreContext = ctx.obj
+    repo_root = core_context.git_service.repo_path
     patterns = load_patterns_dict(repo_root)
 
     typer.echo("📋 Available Design Patterns:\n")
@@ -70,7 +71,7 @@ async def list_patterns(
 
 
 @patterns_group.command("check")
-@core_command(dangerous=False, requires_context=False)
+@core_command(dangerous=False, requires_context=True)
 # ID: 93383a52-2beb-46ff-9ade-0b9da94ce51e
 async def check_patterns_cmd(
     ctx: typer.Context,
@@ -102,8 +103,11 @@ async def check_patterns_cmd(
         typer.echo(f"🔍 [V2] Checking {category} pattern compliance...")
 
     # EXECUTE EVALUATOR (Body Layer)
+    core_context: CoreContext = ctx.obj
     evaluator = PatternEvaluator()
-    result_wrapper = await evaluator.execute(category=category)
+    result_wrapper = await evaluator.execute(
+        category=category, repo_root=core_context.git_service.repo_path
+    )
     data = result_wrapper.data
 
     # Handle output

@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Any
 
 from mind.logic.engines.workflow_gate.base_check import WorkflowCheck
-from shared.config import settings
+from shared.path_resolver import PathResolver
 
 
 # ID: 6b4cf33a-4fe2-4c5d-9af5-9009d9a52ef8
@@ -19,6 +19,9 @@ class DeadCodeCheck(WorkflowCheck):
     """
 
     check_type = "dead_code_check"
+
+    def __init__(self, path_resolver: PathResolver) -> None:
+        self._paths = path_resolver
 
     # ID: 69ab4e1f-14af-467b-8fd1-4e4e14ca0e96
     async def verify(self, file_path: Path | None, params: dict[str, Any]) -> list[str]:
@@ -34,7 +37,7 @@ class DeadCodeCheck(WorkflowCheck):
                 *cmd,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
-                cwd=str(settings.REPO_PATH),
+                cwd=str(self._paths.repo_root),
             )
             stdout, _ = await process.communicate()
 

@@ -95,6 +95,7 @@ class CodeGenerationPhase:
             cognitive_service=self.context.cognitive_service,
             prompt_pipeline=PromptPipeline(self.context.git_service.repo_path),
             auditor_context=self.context.auditor_context,
+            repo_root=self.context.git_service.repo_path,
             workspace=workspace,
         )
 

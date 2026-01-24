@@ -20,6 +20,7 @@ from shared.action_logger import action_logger
 from shared.context import CoreContext
 from shared.logger import getLogger
 from shared.models import ExecutionTask
+from shared.path_resolver import PathResolver
 from will.agents.micro_planner import MicroPlannerAgent
 from will.agents.plan_executor import PlanExecutor
 
@@ -33,7 +34,7 @@ async def micro_propose(context: CoreContext, goal: str) -> Path | None:
     """Uses an agent to create a safe, auto-approvable plan for a goal."""
     logger.info("🤖 Generating micro-proposal for goal: '[cyan]%s[/cyan]'", goal)
     cognitive_service = context.cognitive_service
-    planner = MicroPlannerAgent(cognitive_service)
+    planner = MicroPlannerAgent(cognitive_service, context.path_resolver)
     plan = await planner.create_micro_plan(goal)
     if not plan:
         logger.info(
@@ -110,7 +111,11 @@ async def _micro_apply(context: CoreContext, proposal_path: Path):
         logger.info(
             "[bold]Step 1/3: Validating plan against constitutional policy...[/bold]"
         )
-        validator = MicroProposalValidator()
+        path_resolver = PathResolver.from_repo(
+            repo_root=context.git_service.repo_path,
+            intent_root=context.git_service.repo_path / ".intent",
+        )
+        validator = MicroProposalValidator(path_resolver)
         is_valid, validation_error = validator.validate(plan)
         if not is_valid:
             raise RuntimeError(f"Plan is constitutionally invalid: {validation_error}")

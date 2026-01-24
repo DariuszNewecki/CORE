@@ -13,7 +13,6 @@ import traceback
 import networkx as nx
 
 from mind.governance.audit_context import AuditorContext
-from shared.config import settings
 from shared.context import CoreContext
 from shared.infrastructure.clients.qdrant_client import QdrantService
 from shared.logger import getLogger
@@ -78,7 +77,7 @@ async def inspect_duplicates_async(context: CoreContext, threshold: float) -> No
 
     try:
         # 1. Initialize AuditorContext and load state
-        repo_root = settings.paths.repo_root
+        repo_root = context.git_service.repo_path
         auditor_context = context.auditor_context or AuditorContext(repo_root)
         await auditor_context.load_knowledge_graph()
 

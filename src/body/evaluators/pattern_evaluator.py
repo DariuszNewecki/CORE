@@ -18,7 +18,6 @@ from typing import Any
 import yaml
 
 from shared.component_primitive import Component, ComponentPhase, ComponentResult
-from shared.config import settings
 from shared.logger import getLogger
 from shared.models.pattern_graph import PatternViolation
 
@@ -53,7 +52,9 @@ class PatternEvaluator(Component):
         Execute the pattern audit.
         """
         start_time = time.time()
-        root = repo_root or settings.REPO_PATH
+        if repo_root is None:
+            raise ValueError("PatternEvaluator requires repo_root")
+        root = repo_root
 
         # Load patterns from .intent/charter/patterns/
         patterns = self._load_patterns(root)

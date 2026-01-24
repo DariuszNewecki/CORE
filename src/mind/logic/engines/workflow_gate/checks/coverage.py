@@ -13,8 +13,8 @@ from pathlib import Path
 from typing import Any
 
 from mind.logic.engines.workflow_gate.base_check import WorkflowCheck
-from shared.config import settings
 from shared.logger import getLogger
+from shared.path_resolver import PathResolver
 
 
 logger = getLogger(__name__)
@@ -27,6 +27,9 @@ class CoverageMinimumCheck(WorkflowCheck):
     """
 
     check_type = "coverage_minimum"
+
+    def __init__(self, path_resolver: PathResolver) -> None:
+        self._paths = path_resolver
 
     # ID: c360fe9a-1dc3-4f63-9c8a-30ebe3b4f4df
     async def verify(self, file_path: Path | None, params: dict[str, Any]) -> list[str]:
@@ -56,7 +59,7 @@ class CoverageMinimumCheck(WorkflowCheck):
         """Load threshold via PathResolver (SSOT)."""
         try:
             # We resolve the path but do not import the registry
-            ops_path = settings.paths.policy("operations")
+            ops_path = self._paths.policy("operations")
             if ops_path.exists():
                 data = json.loads(ops_path.read_text(encoding="utf-8"))
                 return float(

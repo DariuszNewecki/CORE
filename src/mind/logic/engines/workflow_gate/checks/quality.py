@@ -9,14 +9,15 @@ from pathlib import Path
 from typing import Any
 
 from mind.logic.engines.workflow_gate.base_check import WorkflowCheck
-from shared.config import settings
+from shared.path_resolver import PathResolver
 
 
 # ID: e56a1a25-9a1e-4938-b6fa-34f7263be922
 class QualityGateCheck(WorkflowCheck):
     """Universal wrapper for external industrial quality tools."""
 
-    def __init__(self, check_type: str, cmd: list[str]):
+    def __init__(self, path_resolver: PathResolver, check_type: str, cmd: list[str]):
+        self._paths = path_resolver
         self.check_type = check_type
         self.cmd = cmd
 
@@ -28,7 +29,7 @@ class QualityGateCheck(WorkflowCheck):
                 *self.cmd,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
-                cwd=str(settings.REPO_PATH),
+                cwd=str(self._paths.repo_root),
             )
             stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=60.0)
 

@@ -16,7 +16,7 @@ from features.introspection.capability_discovery_service import sync_capabilitie
 from features.introspection.export_vectors import VectorExportError, export_vectors
 from features.maintenance.migration_service import run_ssot_migration
 from shared.cli_utils import core_command
-from shared.config import settings
+from shared.context import CoreContext
 from shared.infrastructure.database.session_manager import get_session
 
 
@@ -37,12 +37,13 @@ def migrate_db_command(ctx: typer.Context):
 @db_sub_app.command("export")
 @core_command(dangerous=False)
 # ID: 4ab3a88a-94b3-4dbf-aaa4-def456a250a5
-def export_data_command(
+async def export_data_command(
     ctx: typer.Context,
     output_dir: str = typer.Option("backups", help="Output directory"),
 ):
     """Export database data."""
-    export_data(output_dir)
+    _ = output_dir
+    await export_data(ctx)
 
 
 @db_sub_app.command("sync-knowledge")
@@ -89,12 +90,13 @@ async def cleanup_memory_command(
     """Clean up old agent memory entries (episodes, decisions, reflections)."""
     from features.self_healing import MemoryCleanupService
 
-    db_service = settings.get("database")
-    result = await MemoryCleanupService(db_service=db_service).cleanup_old_memories(
-        days_to_keep_episodes=days_episodes,
-        days_to_keep_reflections=days_reflections,
-        dry_run=dry_run,
-    )
+    core_context: CoreContext = ctx.obj
+    async with core_context.registry.session() as session:
+        result = await MemoryCleanupService(session=session).cleanup_old_memories(
+            days_to_keep_episodes=days_episodes,
+            days_to_keep_reflections=days_reflections,
+            dry_run=dry_run,
+        )
     if result.ok:
         console.print(
             f"[green]Memory cleanup {'would delete' if dry_run else 'deleted'}:[/green]"
@@ -142,8 +144,10 @@ async def sync_capabilities_command(
     if not write:
         console.print("[yellow]Dry run not supported. Use --write to sync.[/yellow]")
         return
+    core_context: CoreContext = ctx.obj
+    repo_root = core_context.git_service.repo_path
     async with get_session() as session:
-        count, errors = await sync_capabilities_to_db(session, settings.MIND.parent)
+        count, errors = await sync_capabilities_to_db(session, repo_root)
         if errors:
             for err in errors:
                 console.print(f"[red]Error:[/red] {err}")

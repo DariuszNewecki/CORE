@@ -8,8 +8,8 @@ from __future__ import annotations
 
 import asyncio
 
-from shared.config import settings
 from shared.logger import getLogger
+from shared.path_resolver import PathResolver
 
 
 logger = getLogger(__name__)
@@ -19,7 +19,13 @@ logger = getLogger(__name__)
 class PytestRunner:
     """Executes pytest with collection verification and timeout handling."""
 
-    def __init__(self, collection_timeout: int = 30, execution_timeout: int = 300):
+    def __init__(
+        self,
+        path_resolver: PathResolver,
+        collection_timeout: int = 30,
+        execution_timeout: int = 300,
+    ):
+        self._paths = path_resolver
         self.collection_timeout = collection_timeout
         self.execution_timeout = execution_timeout
 
@@ -61,7 +67,7 @@ class PytestRunner:
         try:
             proc = await asyncio.create_subprocess_exec(
                 *cmd,
-                cwd=str(settings.REPO_PATH),
+                cwd=str(self._paths.repo_root),
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
             )
@@ -103,7 +109,7 @@ class PytestRunner:
         try:
             proc = await asyncio.create_subprocess_exec(
                 *cmd,
-                cwd=str(settings.REPO_PATH),
+                cwd=str(self._paths.repo_root),
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
             )

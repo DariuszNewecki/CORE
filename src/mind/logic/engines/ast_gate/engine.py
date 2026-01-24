@@ -25,6 +25,7 @@ from mind.logic.engines.ast_gate.checks import (
 )
 from mind.logic.engines.ast_gate.checks.modularity_checks import ModularityChecker
 from mind.logic.engines.base import BaseEngine, EngineResult
+from shared.path_resolver import PathResolver
 
 
 # ID: f5f18c87-adf8-4ba3-b3c6-e2d90d1f85a4
@@ -35,6 +36,9 @@ class ASTGateEngine(BaseEngine):
     """
 
     engine_id = "ast_gate"
+
+    def __init__(self, path_resolver: PathResolver):
+        self._capability_checks = CapabilityChecks(path_resolver)
 
     _SUPPORTED_CHECK_TYPES: ClassVar[frozenset[str]] = frozenset(
         {
@@ -208,7 +212,9 @@ class ASTGateEngine(BaseEngine):
             )
         elif check_type == "capability_assignment":
             violations.extend(
-                CapabilityChecks.check_capability_assignment(tree, file_path=file_path)
+                self._capability_checks.check_capability_assignment(
+                    tree, file_path=file_path
+                )
             )
 
         # 7. DECORATORS

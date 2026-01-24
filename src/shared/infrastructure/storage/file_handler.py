@@ -20,6 +20,7 @@ from typing import Any
 
 from mind.governance.intent_guard import IntentGuard
 from shared.logger import getLogger
+from shared.path_resolver import PathResolver
 
 
 logger = getLogger(__name__)
@@ -53,7 +54,10 @@ class FileHandler:
         self.log_dir = self.repo_path / "var" / "logs"
         self.pending_dir = self.repo_path / "var" / "workflows" / "pending_writes"
 
-        self._guard = IntentGuard(self.repo_path)
+        path_resolver = PathResolver.from_repo(
+            repo_root=self.repo_path, intent_root=self.repo_path / ".intent"
+        )
+        self._guard = IntentGuard(self.repo_path, path_resolver)
 
         # Ensure internal runtime dirs exist (mkdir counts => FileHandler owns it)
         self.log_dir.mkdir(parents=True, exist_ok=True)

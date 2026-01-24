@@ -9,9 +9,9 @@ from pathlib import Path
 
 import yaml
 
-from shared.config import settings
 from shared.infrastructure.database.models import CognitiveRole, LlmResource
 from shared.logger import getLogger
+from shared.path_resolver import PathResolver
 from will.orchestration.decision_tracer import DecisionTracer
 
 
@@ -26,7 +26,8 @@ class DeductionAgent:
     when those files aren't present.
     """
 
-    def __init__(self, repo_path: Path | str):
+    def __init__(self, path_resolver: PathResolver, repo_path: Path | str):
+        self._paths = path_resolver
         self.repo_path = Path(repo_path)
         self._policy: dict | None = None
         self.tracer = DecisionTracer()
@@ -38,7 +39,7 @@ class DeductionAgent:
         If not present (common in isolated test sandboxes), degrade gracefully.
         """
         policy_path = (
-            settings.MIND.parent / "charter" / "policies" / "agent_policy.yaml"
+            self._paths.intent_root / "charter" / "policies" / "agent_policy.yaml"
         )
         if policy_path.exists():
             try:

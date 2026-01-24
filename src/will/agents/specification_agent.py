@@ -28,10 +28,10 @@ from __future__ import annotations
 import time
 from typing import TYPE_CHECKING
 
-from shared.config import settings
 from shared.logger import getLogger
 from shared.models import ExecutionTask
 from shared.models.workflow_models import DetailedPlan, DetailedPlanStep
+from shared.path_resolver import PathResolver
 from will.orchestration.decision_tracer import DecisionTracer
 
 
@@ -50,6 +50,7 @@ class SpecificationAgent:
     def __init__(
         self,
         coder_agent: CoderAgent,
+        path_resolver: PathResolver,
         context_str: str = "",
     ):
         """
@@ -60,9 +61,10 @@ class SpecificationAgent:
             context_str: Initial context (e.g., from reconnaissance).
         """
         self.coder = coder_agent
+        self._paths = path_resolver
         self.context_str = context_str
         self.tracer = DecisionTracer()
-        self.repo_root = settings.REPO_PATH
+        self.repo_root = self._paths.repo_root
 
         logger.info("SpecificationAgent initialized (A3 Specialist Mode)")
 

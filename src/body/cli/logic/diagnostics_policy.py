@@ -11,11 +11,13 @@ from shared.logger import getLogger
 
 logger = getLogger(__name__)
 import logging
+from pathlib import Path
 from typing import Any
 
 import typer
 
 from mind.governance.policy_coverage_service import PolicyCoverageService
+from shared.path_resolver import PathResolver
 
 
 logger = logging.getLogger(__name__)
@@ -87,7 +89,10 @@ def policy_coverage():
     well-formed and covered by the governance model.
     """
     logger.info("Running Constitutional Policy Coverage Audit...")
-    service = PolicyCoverageService()
+    path_resolver = PathResolver.from_repo(
+        repo_root=Path.cwd(), intent_root=Path.cwd() / ".intent"
+    )
+    service = PolicyCoverageService(path_resolver)
     report = service.run()
     logger.info("Report ID: %s", report.report_id)
     _log_policy_coverage_summary(report.summary)

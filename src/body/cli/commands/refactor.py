@@ -24,7 +24,7 @@ from body.cli.commands.refactor_support.config import (
 from body.cli.commands.refactor_support.display import RefactorDisplay
 from body.cli.commands.refactor_support.recommendations import RecommendationEngine
 from shared.cli_utils import core_command
-from shared.config import settings
+from shared.context import CoreContext
 
 
 refactor_app = typer.Typer(
@@ -40,13 +40,15 @@ async def analyze_file(
     file_path: str = typer.Argument(..., help="File to analyze"),
 ) -> None:
     """Analyze a single file for refactoring opportunities."""
-    target_value = get_modularity_threshold()
+    core_context: CoreContext = ctx.obj
+    repo_root = core_context.git_service.repo_path
+    target_value = get_modularity_threshold(repo_root)
     analyzer = RefactorAnalyzer()
     display = RefactorDisplay()
     recommender = RecommendationEngine()
 
     # Locate the file
-    target_file = (settings.REPO_PATH / file_path).resolve()
+    target_file = (repo_root / file_path).resolve()
     if not target_file.exists() or not target_file.is_file():
         display.console.print(f"[red]Error: File not found: {file_path}[/red]")
         raise typer.Exit(1)
@@ -78,7 +80,9 @@ async def suggest_candidates(
     limit: int = typer.Option(10, "--limit", help="Number of files to show"),
 ) -> None:
     """Rank and suggest files that need refactoring based on current score."""
-    target_value = get_modularity_threshold()
+    core_context: CoreContext = ctx.obj
+    repo_root = core_context.git_service.repo_path
+    target_value = get_modularity_threshold(repo_root)
     filter_score = min_score if min_score is not None else target_value
 
     analyzer = RefactorAnalyzer()
@@ -89,7 +93,7 @@ async def suggest_candidates(
     )
 
     # Scan codebase
-    files = list(get_source_files())
+    files = list(get_source_files(repo_root))
     candidates = analyzer.scan_codebase(files, filter_score)
 
     if not candidates:
@@ -98,7 +102,7 @@ async def suggest_candidates(
 
     # Make paths relative for display
     for c in candidates:
-        c["file"] = c["file"].relative_to(settings.REPO_PATH)
+        c["file"] = c["file"].relative_to(repo_root)
 
     display.show_candidates_table(candidates, target_value, limit)
 
@@ -108,14 +112,16 @@ async def suggest_candidates(
 # ID: dac13339-709c-4be9-9f64-9bd5bfaf1db9
 async def show_stats(ctx: typer.Context) -> None:
     """Show aggregate codebase modularity health using Gaussian-derived risk tiers."""
-    target_value = get_modularity_threshold()
+    core_context: CoreContext = ctx.obj
+    repo_root = core_context.git_service.repo_path
+    target_value = get_modularity_threshold(repo_root)
     warning_level = target_value * 0.8
 
     analyzer = RefactorAnalyzer()
     display = RefactorDisplay()
 
     # Collect scores
-    files = list(get_source_files())
+    files = list(get_source_files(repo_root))
     scores = analyzer.collect_scores(files)
 
     if not scores:
@@ -154,10 +160,12 @@ async def check_file_score(
     """
     from rich.table import Table
 
-    target_value = get_modularity_threshold()
+    core_context: CoreContext = ctx.obj
+    repo_root = core_context.git_service.repo_path
+    target_value = get_modularity_threshold(repo_root)
     analyzer = RefactorAnalyzer()
 
-    file = settings.REPO_PATH / file_path
+    file = repo_root / file_path
     if not file.exists():
         RefactorDisplay.console.print(f"[red]File not found: {file_path}[/red]")
         raise typer.Exit(1)

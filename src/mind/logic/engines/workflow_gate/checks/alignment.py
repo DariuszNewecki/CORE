@@ -19,6 +19,7 @@ from sqlalchemy import text
 
 from mind.logic.engines.workflow_gate.base_check import WorkflowCheck
 from shared.logger import getLogger
+from shared.path_resolver import PathResolver
 
 
 logger = getLogger(__name__)
@@ -30,6 +31,9 @@ class AlignmentVerificationCheck(WorkflowCheck):
 
     check_type = "alignment_verification"
 
+    def __init__(self, path_resolver: PathResolver) -> None:
+        self._paths = path_resolver
+
     # ID: d54fca88-5c46-45a1-82ef-028993cd3af4
     async def verify(self, file_path: Path | None, params: dict[str, Any]) -> list[str]:
         if not file_path:
@@ -38,10 +42,9 @@ class AlignmentVerificationCheck(WorkflowCheck):
         # DEFERRED IMPORT: Break circular dependency on Registry
         from mind.governance.audit_context import AuditorContext
         from mind.governance.filtered_audit import run_filtered_audit
-        from shared.config import settings
 
         violations = []
-        auditor_ctx = AuditorContext(settings.REPO_PATH)
+        auditor_ctx = AuditorContext(self._paths.repo_root)
 
         # Check current compliance
         findings, _, _ = await run_filtered_audit(auditor_ctx, rule_patterns=[r".*"])

@@ -12,7 +12,7 @@ from __future__ import annotations
 
 from typing import Any, Protocol
 
-from shared.config import settings
+from shared.context import CoreContext
 from shared.infrastructure.intent.intent_repository import get_intent_repository
 from shared.infrastructure.knowledge.knowledge_service import KnowledgeService
 from shared.logger import getLogger
@@ -103,12 +103,14 @@ def build_cli_tree_data(app: TyperAppLike) -> list[dict[str, Any]]:
 
 
 # ID: e9d2a1f3-5c4b-8a7e-9f1d-2b3c4d5e6f7a
-async def get_unassigned_symbols_logic() -> list[dict[str, Any]]:
+async def get_unassigned_symbols_logic(
+    core_context: CoreContext,
+) -> list[dict[str, Any]]:
     """
     Get symbols that have not been assigned a capability ID.
     """
     try:
-        knowledge_service = KnowledgeService(settings.REPO_PATH)
+        knowledge_service = KnowledgeService(core_context.git_service.repo_path)
         graph = await knowledge_service.get_graph()
         symbols = graph.get("symbols", {})
 

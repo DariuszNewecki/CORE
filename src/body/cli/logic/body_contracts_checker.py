@@ -26,7 +26,6 @@ from typing import Any
 
 from shared.action_types import ActionImpact, ActionResult
 from shared.atomic_action import atomic_action
-from shared.config import settings
 from shared.logger import getLogger
 
 
@@ -273,7 +272,7 @@ def _check_os_environ(path: Path, tree: ast.AST) -> list[Violation]:
 )
 # ID: ad55c8fb-3c0d-4d32-9ea0-7b4b773360b3
 async def check_body_contracts(
-    repo_root: Path | None = None,
+    repo_root: Path,
 ) -> ActionResult:
     """
     Run Body Contracts checks over the repository.
@@ -288,9 +287,6 @@ async def check_body_contracts(
               - rules_triggered: Set of rule_ids
     """
     start_time = time.time()
-
-    if repo_root is None:
-        repo_root = Path(settings.REPO_PATH)
 
     logger.info("Running Body Contracts checks under %s", repo_root)
 

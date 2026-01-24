@@ -40,6 +40,8 @@ class CoreContext:
     file_handler: Any | None = None
     planner_config: Any | None = None
     qdrant_service: Any | None = None
+    debug: bool = False
+    verbose: bool = False
 
     # ALIGNED: Shared state for autonomous agents to pass file content between plan steps
     file_content_cache: dict[str, str] = field(default_factory=dict)

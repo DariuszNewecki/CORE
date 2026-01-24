@@ -22,7 +22,6 @@ from features.self_healing.header_service import _run_header_fix_cycle
 from shared.action_types import ActionImpact, ActionResult
 from shared.atomic_action import atomic_action
 from shared.cli_utils import core_command
-from shared.config import settings
 from shared.context import CoreContext
 
 # We only import the App and Console from the local hub
@@ -62,12 +61,13 @@ async def fix_headers_internal(
     """
     start_time = time.time()
 
+    # CONSTITUTIONAL FIX: Use context.git_service.repo_path instead of settings.REPO_PATH
+    repo_root = context.git_service.repo_path
+
     try:
         # Get all Python files in src/
-        src_dir = settings.REPO_PATH / "src"
-        all_py_files = [
-            str(p.relative_to(settings.REPO_PATH)) for p in src_dir.rglob("*.py")
-        ]
+        src_dir = repo_root / "src"
+        all_py_files = [str(p.relative_to(repo_root)) for p in src_dir.rglob("*.py")]
 
         # _run_header_fix_cycle is async and requires context
         await _run_header_fix_cycle(

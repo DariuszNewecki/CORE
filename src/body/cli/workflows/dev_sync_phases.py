@@ -53,6 +53,7 @@ class DevSyncPhases:
         )
 
         self.quality_checks = QualityChecksPhase(
+            core_context=core_context,
             reporter=reporter,
             console=console,
         )

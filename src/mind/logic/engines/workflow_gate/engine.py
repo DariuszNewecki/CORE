@@ -28,6 +28,7 @@ from mind.logic.engines.workflow_gate.checks import (
 from mind.logic.engines.workflow_gate.checks.quality import QualityGateCheck
 from shared.logger import getLogger
 from shared.models import AuditFinding, AuditSeverity
+from shared.path_resolver import PathResolver
 
 
 if TYPE_CHECKING:
@@ -47,22 +48,26 @@ class WorkflowGateEngine(BaseEngine):
 
     engine_id = "workflow_gate"
 
-    def __init__(self) -> None:
+    def __init__(self, path_resolver: PathResolver) -> None:
         """Initialize the engine and register its specialized check logic."""
         check_instances: list[WorkflowCheck] = [
             TestVerificationCheck(),
-            CoverageMinimumCheck(),
+            CoverageMinimumCheck(path_resolver),
             CanaryDeploymentCheck(),
-            AlignmentVerificationCheck(),
-            DeadCodeCheck(),
+            AlignmentVerificationCheck(path_resolver),
+            DeadCodeCheck(path_resolver),
             AuditHistoryCheck(),
             LinterComplianceCheck(),
             QualityGateCheck(
-                "mypy_check", ["mypy", "src/", "--ignore-missing-imports"]
+                path_resolver,
+                "mypy_check",
+                ["mypy", "src/", "--ignore-missing-imports"],
             ),
-            QualityGateCheck("security_check", ["pip-audit"]),
+            QualityGateCheck(path_resolver, "security_check", ["pip-audit"]),
             QualityGateCheck(
-                "pytest_check", ["pytest", "tests/", "-q", "--co"]
+                path_resolver,
+                "pytest_check",
+                ["pytest", "tests/", "-q", "--co"],
             ),  # Collection only for speed
         ]
 

@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import time
 import uuid
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -28,7 +29,8 @@ import yaml
 
 from shared.action_types import ActionImpact, ActionResult
 from shared.atomic_action import atomic_action
-from shared.config import settings
+
+# REMOVED: from shared.config import settings
 from shared.logger import getLogger
 
 
@@ -53,8 +55,14 @@ class CrateCreationService:
             core_context: The central container for system services.
         """
         self.context = core_context
-        # Use PathResolver (SSOT) to find the inbox
-        self.inbox_path = settings.paths.workflows_dir / "crates" / "inbox"
+
+        # REFACTOR: Access repo_path via context -> git_service
+        self.repo_path = core_context.git_service.repo_path
+
+        # REFACTOR: Construct canonical inbox path manually (var/workflows/crates/inbox)
+        # This avoids depending on 'settings.paths'
+        self.inbox_path = self.repo_path / "var" / "workflows" / "crates" / "inbox"
+
         self.fs = core_context.file_handler
 
     @atomic_action(
@@ -100,16 +108,15 @@ class CrateCreationService:
             self.fs.ensure_dir(crate_rel)
 
             # 3. Create Manifest
+            # REFACTOR: Use standard datetime formatting instead of settings helper
+            timestamp = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+
             manifest = {
                 "crate_id": crate_id,
                 "author": "CoderAgent",
                 "intent": intent,
                 "type": "CODE_MODIFICATION" if crate_type == "STANDARD" else crate_type,
-                "created_at": (
-                    settings.paths.now_iso()
-                    if hasattr(settings.paths, "now_iso")
-                    else time.strftime("%Y-%m-%dT%H:%M:%SZ")
-                ),
+                "created_at": timestamp,
                 "metadata": metadata or {},
                 "payload_files": list(payload_files.keys()),
             }
@@ -181,7 +188,7 @@ class CrateCreationService:
     def _to_repo_rel(self, p: Path) -> str:
         """Internal helper to ensure paths are compatible with FileHandler."""
         try:
-            return str(p.relative_to(settings.REPO_PATH))
+            return str(p.relative_to(self.repo_path))
         except ValueError:
             # If it's already relative, just return it
             return str(p)

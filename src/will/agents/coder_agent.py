@@ -10,11 +10,12 @@ Distinguishes between initial generation and reflexive repair.
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from shared.config import settings
 from shared.logger import getLogger
 from shared.models import ExecutionTask
+from shared.path_resolver import PathResolver
 from will.agents.code_generation import (
     CodeGenerator,
     CorrectionEngine,
@@ -49,6 +50,7 @@ class CoderAgent:
         cognitive_service: CognitiveService,
         prompt_pipeline: Any,
         auditor_context: AuditorContext,
+        repo_root: Path,
         context_service: ContextService | None = None,
         workspace: LimbWorkspace | None = None,
     ) -> None:
@@ -59,8 +61,11 @@ class CoderAgent:
         self.workspace = workspace
         self.tracer = DecisionTracer(agent_name="ReflexiveCoder")
 
-        self.repo_root = settings.REPO_PATH
-        intent_guard = IntentGuard(self.repo_root)
+        self.repo_root = Path(repo_root).resolve()
+        path_resolver = PathResolver.from_repo(
+            repo_root=self.repo_root, intent_root=self.repo_root / ".intent"
+        )
+        intent_guard = IntentGuard(self.repo_root, path_resolver)
         self.pattern_validator = PatternValidator(intent_guard)
         self.correction_engine = CorrectionEngine(
             cognitive_service, auditor_context, self.tracer
@@ -68,6 +73,7 @@ class CoderAgent:
 
         self.code_generator = CodeGenerator(
             cognitive_service=cognitive_service,
+            path_resolver=path_resolver,
             prompt_pipeline=prompt_pipeline,
             tracer=self.tracer,
             context_service=context_service,

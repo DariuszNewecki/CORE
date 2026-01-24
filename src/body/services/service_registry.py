@@ -20,7 +20,6 @@ from typing import TYPE_CHECKING, Any, ClassVar
 from sqlalchemy import text
 
 from mind.governance.audit_context import AuditorContext
-from shared.config import settings
 from shared.logger import getLogger
 
 
@@ -46,8 +45,30 @@ class ServiceRegistry:
     # Handled via prime() to avoid hard-coded imports.
     _session_factory: ClassVar[Callable | None] = None
 
-    def __init__(self, repo_path: Path | None = None):
-        self.repo_path = repo_path or settings.REPO_PATH
+    def __init__(
+        self,
+        repo_path: Path | None = None,
+        qdrant_url: str | None = None,
+        qdrant_collection_name: str | None = None,
+    ):
+        self.repo_path = repo_path
+        self.qdrant_url = qdrant_url
+        self.qdrant_collection_name = qdrant_collection_name
+
+    # ID: e089ea52-de6a-4c32-9235-9800da8d24c3
+    def configure(
+        self,
+        *,
+        repo_path: Path | None = None,
+        qdrant_url: str | None = None,
+        qdrant_collection_name: str | None = None,
+    ) -> None:
+        if repo_path is not None:
+            self.repo_path = repo_path
+        if qdrant_url is not None:
+            self.qdrant_url = qdrant_url
+        if qdrant_collection_name is not None:
+            self.qdrant_collection_name = qdrant_collection_name
 
     @classmethod
     # ID: 1efcada0-bc76-4cc0-8e8c-379e47d04101
@@ -119,8 +140,13 @@ class ServiceRegistry:
             logger.debug("Lazy-loading QdrantService...")
             from shared.infrastructure.clients.qdrant_client import QdrantService
 
+            if not self.qdrant_url or not self.qdrant_collection_name:
+                raise RuntimeError(
+                    "ServiceRegistry is missing qdrant configuration. "
+                    "Call configure() before requesting qdrant service."
+                )
             instance = QdrantService(
-                url=settings.QDRANT_URL, collection_name=settings.QDRANT_COLLECTION_NAME
+                url=self.qdrant_url, collection_name=self.qdrant_collection_name
             )
             self._instances["qdrant"] = instance
             self._init_flags["qdrant"] = False
@@ -145,6 +171,11 @@ class ServiceRegistry:
 
                     self._ensure_qdrant_instance()
                     qdrant = self._instances["qdrant"]
+                    if not self.repo_path:
+                        raise RuntimeError(
+                            "ServiceRegistry is missing repo_path. "
+                            "Call configure() before requesting cognitive service."
+                        )
                     instance = CognitiveService(
                         repo_path=self.repo_path, qdrant_service=qdrant
                     )

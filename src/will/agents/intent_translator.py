@@ -8,8 +8,8 @@ executable goals for the CORE system.
 
 from __future__ import annotations
 
-from shared.config import settings
 from shared.logger import getLogger
+from shared.path_resolver import PathResolver
 from will.orchestration.cognitive_service import CognitiveService
 from will.orchestration.prompt_pipeline import PromptPipeline
 
@@ -21,14 +21,17 @@ logger = getLogger(__name__)
 class IntentTranslator:
     """An agent that translates natural language into structured goals."""
 
-    def __init__(self, cognitive_service: CognitiveService):
+    def __init__(
+        self, cognitive_service: CognitiveService, path_resolver: PathResolver
+    ):
         """Initializes the translator with the CognitiveService."""
         self.cognitive_service = cognitive_service
-        self.prompt_pipeline = PromptPipeline(settings.REPO_PATH)
+        self._paths = path_resolver
+        self.prompt_pipeline = PromptPipeline(self._paths.repo_root)
 
         # ALIGNED: Using PathResolver (var/prompts) instead of .intent
         try:
-            self.prompt_template = settings.paths.prompt("intent_translator").read_text(
+            self.prompt_template = self._paths.prompt("intent_translator").read_text(
                 encoding="utf-8"
             )
         except FileNotFoundError:

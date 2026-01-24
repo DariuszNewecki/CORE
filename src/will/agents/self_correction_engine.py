@@ -8,7 +8,7 @@ from __future__ import annotations
 import json
 from typing import TYPE_CHECKING
 
-from shared.config import settings
+from shared.path_resolver import PathResolver
 from shared.utils.parsing import parse_write_blocks
 from will.orchestration.cognitive_service import CognitiveService
 from will.orchestration.prompt_pipeline import PromptPipeline
@@ -19,16 +19,18 @@ if TYPE_CHECKING:
     from mind.governance.audit_context import AuditorContext
 
 
-REPO_PATH = settings.REPO_PATH
-pipeline = PromptPipeline(repo_path=REPO_PATH)
+def _build_pipeline(path_resolver: PathResolver) -> PromptPipeline:
+    return PromptPipeline(repo_path=path_resolver.repo_root)
 
 
 async def _attempt_correction(
     failure_context: dict,
     cognitive_service: CognitiveService,
     auditor_context: AuditorContext,
+    path_resolver: PathResolver,
 ) -> dict:
     """Attempts to fix a failed validation or test result using an enriched LLM prompt."""
+    pipeline = _build_pipeline(path_resolver)
     generator = await cognitive_service.aget_client_for_role("Coder")
 
     file_path = failure_context.get("file_path")

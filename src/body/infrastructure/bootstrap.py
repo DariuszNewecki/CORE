@@ -37,6 +37,11 @@ def create_core_context(service_registry) -> CoreContext:
     Returns:
         Fully initialized CoreContext ready for command execution
     """
+    service_registry.configure(
+        repo_path=settings.REPO_PATH,
+        qdrant_url=settings.QDRANT_URL,
+        qdrant_collection_name=settings.QDRANT_COLLECTION_NAME,
+    )
     repo_path = settings.REPO_PATH
 
     context = CoreContext(

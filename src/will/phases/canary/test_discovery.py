@@ -8,8 +8,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from shared.config import settings
 from shared.logger import getLogger
+from shared.path_resolver import PathResolver
 
 
 logger = getLogger(__name__)
@@ -19,8 +19,9 @@ logger = getLogger(__name__)
 class TestDiscoveryService:
     """Discovers test files related to production code files."""
 
-    def __init__(self, tests_dir: Path | None = None):
-        self.tests_dir = tests_dir or settings.REPO_PATH / "tests"
+    def __init__(self, path_resolver: PathResolver, tests_dir: Path | None = None):
+        self._paths = path_resolver
+        self.tests_dir = tests_dir or self._paths.repo_root / "tests"
 
     # ID: 39aaa9a2-e018-474a-be53-fae82d954e3d
     def find_related_tests(self, affected_files: list[str]) -> list[str]:
@@ -74,7 +75,7 @@ class TestDiscoveryService:
         test_file = self.tests_dir / "/".join(parts[:-1]) / f"test_{parts[-1]}.py"
 
         if test_file.exists():
-            return [str(test_file.relative_to(settings.REPO_PATH))]
+            return [str(test_file.relative_to(self._paths.repo_root))]
 
         return []
 
@@ -86,7 +87,7 @@ class TestDiscoveryService:
             return []
 
         return [
-            str(test_file.relative_to(settings.REPO_PATH))
+            str(test_file.relative_to(self._paths.repo_root))
             for test_file in test_dir.glob("test_*.py")
         ]
 
@@ -98,6 +99,6 @@ class TestDiscoveryService:
             return []
 
         return [
-            str(test_file.relative_to(settings.REPO_PATH))
+            str(test_file.relative_to(self._paths.repo_root))
             for test_file in test_dir.glob("test_*.py")
         ]

@@ -9,7 +9,7 @@ import typer
 import yaml
 from sqlalchemy import text
 
-from shared.config import settings
+from shared.context import CoreContext
 from shared.infrastructure.database.session_manager import get_session
 from shared.logger import getLogger
 
@@ -17,11 +17,11 @@ from shared.logger import getLogger
 logger = getLogger(__name__)
 
 
-async def _sync_domains():
+async def _sync_domains(repo_root):
     """
     Reads the canonical domains.yaml file and upserts them into the core.domains table.
     """
-    domains_path = settings.MIND / "knowledge" / "domains.yaml"
+    domains_path = repo_root / "var" / "mind" / "knowledge" / "domains.yaml"
     if not domains_path.exists():
         logger.error("Constitutional domains file not found at %s", domains_path)
         raise typer.Exit(code=1)
@@ -66,6 +66,7 @@ async def _sync_domains():
 
 
 # ID: 5bee5341-7f72-430e-b310-f174af37de20
-async def sync_domains():
+async def sync_domains(ctx: typer.Context):
     """Synchronizes the canonical list of domains from .intent/knowledge/domains.yaml to the database."""
-    await _sync_domains()
+    core_context: CoreContext = ctx.obj
+    await _sync_domains(core_context.git_service.repo_path)

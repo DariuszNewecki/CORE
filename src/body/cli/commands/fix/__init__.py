@@ -16,7 +16,7 @@ from __future__ import annotations
 import typer
 from rich.console import Console
 
-from shared.config import settings
+from shared.context import CoreContext
 from shared.logger import getLogger
 
 
@@ -59,16 +59,16 @@ def fix_callback(
     debug: bool = typer.Option(False, "--debug", help="Enable debug output"),
 ):
     """Self-healing tools organized by category."""
+    core_context: CoreContext = ctx.obj
     if debug:
-        settings.DEBUG = True
+        core_context.debug = True
     if verbose:
-        settings.VERBOSE = True
+        core_context.verbose = True
 
 
 # LATE IMPORTS: These register themselves on fix_app when imported.
 # This must remain at the bottom to ensure fix_app is defined first.
 import body.cli.commands.fix.all_commands
-import body.cli.commands.fix.apply_providers
 import body.cli.commands.fix.atomic_actions
 import body.cli.commands.fix.body_ui
 import body.cli.commands.fix.clarity
@@ -81,5 +81,4 @@ import body.cli.commands.fix.imports
 import body.cli.commands.fix.list_commands
 import body.cli.commands.fix.metadata
 import body.cli.commands.fix.modularity
-import body.cli.commands.fix.provider_refactor
 import body.cli.commands.fix.settings_access

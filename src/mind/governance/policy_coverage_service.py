@@ -20,8 +20,8 @@ from typing import Any
 
 from pydantic import BaseModel
 
-from shared.config import settings
 from shared.logger import getLogger
+from shared.path_resolver import PathResolver
 
 
 logger = getLogger(__name__)
@@ -58,8 +58,9 @@ class PolicyCoverageService:
     3. Declared Only (exists but no engine defined)
     """
 
-    def __init__(self, repo_root: Path | None = None):
-        self.repo_root: Path = repo_root or settings.REPO_PATH
+    def __init__(self, path_resolver: PathResolver):
+        self._paths = path_resolver
+        self.repo_root: Path = self._paths.repo_root
         self.evidence_path = self.repo_root / "reports/audit/latest_audit.json"
 
         # Load evidence of what actually ran
@@ -86,7 +87,7 @@ class PolicyCoverageService:
         Replaces the legacy Python class introspection.
         """
         rules_found: list[_RuleRef] = []
-        intent_root = self.repo_root / ".intent"
+        intent_root = self._paths.intent_root
 
         # We look in both modular policies and the foundational standards
         search_roots = [intent_root / "policies", intent_root / "charter/standards"]

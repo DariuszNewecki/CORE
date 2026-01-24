@@ -11,18 +11,14 @@ CONSTITUTIONAL FIX:
 from __future__ import annotations
 
 from pathlib import Path
-from typing import TYPE_CHECKING
 
 import typer
 from rich.console import Console
 
 from body.cli.logic import governance_logic as logic
 from shared.cli_utils import core_command
-from shared.config import settings
+from shared.context import CoreContext
 
-
-if TYPE_CHECKING:
-    from shared.context import CoreContext
 
 console = Console()
 governance_app = typer.Typer(
@@ -53,7 +49,13 @@ def enforcement_coverage(
     """
     core_context: CoreContext = ctx.obj
     file_handler = core_context.file_handler
-    repo_root = settings.REPO_PATH
+    if not core_context.git_service or not file_handler:
+        console.print(
+            "[red]❌ Governance coverage requires CoreContext with git_service and file_handler.[/red]"
+        )
+        raise typer.Exit(code=1)
+
+    repo_root = core_context.git_service.repo_path
 
     # 1. Gather Data (delegated to logic engine)
     coverage_data = logic.get_coverage_data(repo_root, file_handler)

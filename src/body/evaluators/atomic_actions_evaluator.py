@@ -27,7 +27,6 @@ from pathlib import Path
 from typing import Any
 
 from shared.component_primitive import Component, ComponentPhase, ComponentResult
-from shared.config import settings
 from shared.logger import getLogger
 
 
@@ -69,21 +68,18 @@ class AtomicActionsEvaluator(Component):
         return ComponentPhase.AUDIT
 
     # ID: a9bd8873-8696-4f14-a055-a32ba0ecd956
-    async def execute(
-        self, repo_root: Path | None = None, **kwargs: Any
-    ) -> ComponentResult:
+    async def execute(self, repo_root: Path, **kwargs: Any) -> ComponentResult:
         """
         Execute the atomic actions compliance audit.
 
         Args:
-            repo_root: Optional override for repository root (defaults to settings.REPO_PATH)
+            repo_root: Repository root
 
         Returns:
             ComponentResult with compliance metrics and violation details
         """
         start_time = time.time()
-        root = repo_root or settings.REPO_PATH
-        src_dir = root / "src"
+        src_dir = repo_root / "src"
 
         violations: list[AtomicActionViolation] = []
         total_actions = 0

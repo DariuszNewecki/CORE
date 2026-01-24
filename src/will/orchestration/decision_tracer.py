@@ -20,9 +20,9 @@ from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from shared.config import settings
 from shared.infrastructure.storage.file_handler import FileHandler
 from shared.logger import getLogger
+from shared.path_resolver import PathResolver
 
 
 if TYPE_CHECKING:
@@ -61,6 +61,7 @@ class DecisionTracer:
 
     def __init__(
         self,
+        path_resolver: PathResolver,
         session_id: str | None = None,
         file_handler: FileHandler | None = None,
         agent_name: str | None = None,
@@ -83,6 +84,7 @@ class DecisionTracer:
         Database persistence is secondary observability feature.
         """
         self.session_id = session_id or datetime.now().strftime("%Y%m%d_%H%M%S")
+        self._paths = path_resolver
         self.agent_name = agent_name or "Unknown"
         self.goal = goal
         self.decisions: list[Decision] = []
@@ -93,7 +95,7 @@ class DecisionTracer:
         self.trace_dir = Path("reports") / "decisions"
 
         # Use injected FileHandler or create a default one
-        self.file_handler = file_handler or FileHandler(str(settings.REPO_PATH))
+        self.file_handler = file_handler or FileHandler(str(self._paths.repo_root))
 
         # Ensure directory exists
         self.file_handler.ensure_dir(str(self.trace_dir))

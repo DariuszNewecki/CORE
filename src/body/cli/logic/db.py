@@ -16,7 +16,7 @@ import typer
 import yaml
 from sqlalchemy import text
 
-from shared.config import settings
+from shared.context import CoreContext
 from shared.infrastructure.database.session_manager import get_session
 from shared.infrastructure.repositories.db.migration_service import (
     MigrationServiceError,
@@ -99,12 +99,13 @@ async def _export_vector_metadata(file_handler: FileHandler):
     "export", help="Export operational data from the database to read-only files."
 )
 # ID: 86554413-b670-4c62-80eb-31bab9a05edf
-async def export_data() -> None:
+async def export_data(ctx: typer.Context) -> None:
     """Exports DB tables to their canonical, read-only YAML file representations."""
+    core_context: CoreContext = ctx.obj
     logger.info("Exporting operational data from Database to files...")
 
     # Create the governed mutation surface
-    file_handler = FileHandler(str(settings.REPO_PATH))
+    file_handler = FileHandler(str(core_context.git_service.repo_path))
 
     await _export_domains(file_handler)
     await _export_vector_metadata(file_handler)

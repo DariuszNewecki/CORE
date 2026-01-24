@@ -16,9 +16,9 @@ import asyncio
 import tempfile
 from pathlib import Path
 
-from shared.config import settings
 from shared.infrastructure.storage.file_handler import FileHandler
 from shared.logger import getLogger
+from shared.path_resolver import PathResolver
 
 
 logger = getLogger(__name__)
@@ -28,9 +28,10 @@ logger = getLogger(__name__)
 class RuntimeValidatorService:
     """A service to test code changes in an isolated environment."""
 
-    def __init__(self, repo_root: Path):
-        self.repo_root = Path(repo_root).resolve()
-        self.test_timeout = settings.model_extra.get("TEST_RUNNER_TIMEOUT", 60)
+    def __init__(self, path_resolver: PathResolver, test_timeout: int = 60):
+        self._paths = path_resolver
+        self.repo_root = self._paths.repo_root
+        self.test_timeout = test_timeout
 
     # ID: 548eb332-6e28-4e75-a967-d499ad86fd2c
     async def run_tests_in_canary(
@@ -64,6 +65,7 @@ class RuntimeValidatorService:
                     file_handler=fh,  # CONSTITUTIONAL FIX: Pass FileHandler to helper
                     ignore_names={
                         ".git",
+                        self._paths.intent_root.name,
                         ".venv",
                         "venv",
                         "__pycache__",

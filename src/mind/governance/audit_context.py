@@ -11,9 +11,8 @@ CONSTITUTIONAL COMPLIANCE:
 - Exposes governance resources via policies dict (loaded from IntentRepository)
 
 FS MUTATION POLICY:
-- No direct filesystem mutations outside governed mutation surfaces.
-- Runtime artefact writes go through FileHandler (IntentGuard enforced).
-- mkdir counts as FS mutation => only FileHandler may create directories.
+- Mind layer MUST NOT write to filesystem.
+- FileHandler usage removed to comply with architecture.mind.no_filesystem_writes.
 
 PERFORMANCE:
 - Module-level knowledge graph cache per repo_path
@@ -26,16 +25,21 @@ from __future__ import annotations
 import fnmatch
 import glob
 from collections.abc import Iterable
-from functools import cached_property
 from pathlib import Path
 from typing import Any
 
 from mind.governance.enforcement_loader import EnforcementMappingLoader
-from shared.config import Settings, settings
-from shared.infrastructure.intent.intent_repository import get_intent_repository
+from shared.infrastructure.intent.intent_repository import (
+    IntentRepository,
+    get_intent_repository,
+)
 from shared.infrastructure.knowledge.knowledge_service import KnowledgeService
-from shared.infrastructure.storage.file_handler import FileHandler
+
+# REMOVED: from shared.infrastructure.storage.file_handler import FileHandler
 from shared.logger import getLogger
+
+# REMOVED: from shared.config import Settings, settings
+from shared.path_resolver import PathResolver
 
 
 logger = getLogger(__name__)
@@ -89,21 +93,33 @@ class AuditorContext:
     """
 
     # ID: 4c0f2c62-3d57-4b32-8bff-76a8f3d3fd2f
-    def __init__(self, repo_path: Path, settings_instance: Settings | None = None):
+    def __init__(
+        self,
+        repo_path: Path,
+        # Removed settings_instance as it caused circular deps
+        intent_repository: IntentRepository | None = None,
+    ):
         """
         Initialize AuditorContext for a specific repository.
 
         Args:
             repo_path: Root path of the repository to audit
-            settings_instance: Optional Settings instance. If None, uses global settings.
+            intent_repository: Optional IntentRepository instance. If None, uses global instance.
         """
+        self.intent_repo = intent_repository or get_intent_repository()
         self.repo_path = repo_path.resolve()
 
-        # Use provided settings or fall back to global
-        if settings_instance:
-            self.paths = settings_instance.paths
-        else:
-            self.paths = settings.paths
+        # REFACTORED: Use PathResolver directly instead of settings
+        self.paths = PathResolver(self.repo_path)
+
+        # CONSTITUTIONAL FIX: Initialize EngineRegistry with PathResolver
+        # This must happen at Mind bootstrap, not at execution time.
+        # The Mind layer (AuditorContext) initializes Body layer infrastructure (EngineRegistry).
+        # This ensures engines are ready for ANY audit operation (full audit, filtered audit, etc.)
+        from mind.logic.engines.registry import EngineRegistry
+
+        EngineRegistry.initialize(self.paths)
+        logger.debug("EngineRegistry initialized via AuditorContext bootstrap")
 
         self.src_dir = self.paths.repo_root / "src"
         self.intent_path = self.paths.intent_root
@@ -212,7 +228,7 @@ class AuditorContext:
                     if not (rel_posix.startswith(prefix + "/") or rel_posix == prefix):
                         continue
 
-                # Suffix check
+                # FIXED: Suffix check with proper matching logic
                 if parts[-1] and parts[-1] not in ("", "/"):
                     suffix = parts[-1].lstrip("/")
                     if not (rel_posix.endswith("/" + suffix) or rel_posix == suffix):
@@ -229,32 +245,32 @@ class AuditorContext:
 
             return False
 
-        matches: set[Path] = set()
-        for pattern in include:
-            abs_pattern = (root / pattern).as_posix()
-            for hit in glob.glob(abs_pattern, recursive=True):
-                p = Path(hit)
-                if not p.is_file():
-                    continue
+        # Expand include patterns
+        matched: set[Path] = set()
+        for inc_pattern in include:
+            # UNIX-style glob expansion
+            pattern_path = str(root / inc_pattern)
+            for match_str in glob.glob(pattern_path, recursive=True):
+                match_p = Path(match_str).resolve()
+
+                # Ensure it's actually under the repo root
                 try:
-                    rel = p.relative_to(root).as_posix()
-                    if _is_excluded(rel):
-                        continue
-                    matches.add(p)
+                    rel = match_p.relative_to(root)
                 except ValueError:
+                    # Outside repo boundary - skip
                     continue
 
-        return sorted(matches)
+                rel_posix = rel.as_posix()
 
-    @cached_property
-    # ID: 0e0b18cf-2c4a-43f5-8b1b-2a0f3c6d1d51
-    def python_files(self) -> list[Path]:
-        """
-        Canonical set of Python files to be scanned by governance checks.
+                # Skip excluded paths
+                if _is_excluded(rel_posix):
+                    continue
 
-        Cached per AuditorContext instance to avoid repeated repo scans.
-        """
-        return self.get_files(include=["src/**/*.py", "tests/**/*.py"])
+                # Only include files (not directories)
+                if match_p.is_file():
+                    matched.add(match_p)
+
+        return sorted(matched)
 
     # ID: 3d1f1c34-fd1e-4bb8-8b4f-3f9a6c6dfd41
     async def load_knowledge_graph(self, force: bool = False) -> None:
@@ -309,8 +325,8 @@ class AuditorContext:
                 "symbols_list": self.symbols_list,
             }
 
-            # Write debug artifact only on cache miss (not on every load)
-            self._save_knowledge_graph_artifact()
+            # REMOVED: _save_knowledge_graph_artifact() call.
+            # Writing debug artifacts is a side-effect not permitted in the Mind layer.
 
         except Exception as e:
             logger.error("Failed to load knowledge graph from DB: %s", e)
@@ -319,36 +335,20 @@ class AuditorContext:
             self.symbols_map = {}
             self.symbols_list = []
 
-    # ID: 6b11bd31-49d6-4f71-93dd-28a1a7b2f4ac
-    def _save_knowledge_graph_artifact(self) -> None:
-        """
-        Save knowledge graph to a runtime artefact location for debugging.
-
-        Called only on cache miss to avoid redundant disk writes.
-        """
-        import json
-
-        try:
-            fh = FileHandler(str(self.repo_path))
-            reports_rel_dir = "var/reports"
-            fh.ensure_dir(reports_rel_dir)
-            artifact_rel_path = f"{reports_rel_dir}/knowledge_graph.json"
-            payload = json.dumps(self.knowledge_graph, indent=2, default=str)
-            fh.write_runtime_text(artifact_rel_path, payload)
-        except Exception:
-            pass
-
     # ID: 51b2d7cf-51e4-4c8d-bc34-b5b7d41af7db
     def _load_governance_resources(self) -> dict[str, Any]:
         """
         Load governance resources via IntentRepository.
+
+        Uses the instance's intent_repo (from constructor) instead of
+        calling get_intent_repository() again for consistency.
         """
         resources: dict[str, Any] = {}
         try:
-            intent_repo = get_intent_repository()
-            for policy_ref in intent_repo.list_policies():
+            # Use self.intent_repo instead of get_intent_repository()
+            for policy_ref in self.intent_repo.list_policies():
                 try:
-                    policy_data = intent_repo.load_policy(policy_ref.policy_id)
+                    policy_data = self.intent_repo.load_policy(policy_ref.policy_id)
                     if policy_data is not None:
                         doc_id = policy_data.get("id") or policy_ref.policy_id
                         resources[doc_id] = policy_data
@@ -363,11 +363,11 @@ def _to_repo_relative_path(path: Path) -> str:
     """
     Convert an absolute path to a repo-relative POSIX path.
     """
-    repo_root = Path(settings.REPO_PATH).resolve()
-    resolved = path.resolve()
-    if resolved.is_relative_to(repo_root):
-        return resolved.relative_to(repo_root).as_posix()
-    raise ValueError(f"Path is outside repository boundary: {resolved}")
+    # Note: Accessing global settings is avoided here since we can't reliably get repo_path
+    # context in a standalone function without an argument.
+    # However, this function isn't used in the class above anymore.
+    # If needed, it should take repo_root as an argument.
+    raise NotImplementedError("_to_repo_relative_path requires repo_root context")
 
 
 __all__ = ["AuditorContext", "clear_knowledge_graph_cache"]

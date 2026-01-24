@@ -22,6 +22,7 @@ from body.evaluators.atomic_actions_evaluator import (
     format_atomic_action_violations,
 )
 from shared.cli_utils import core_command
+from shared.context import CoreContext
 from shared.logger import getLogger
 
 
@@ -33,7 +34,7 @@ atomic_actions_group = typer.Typer(
 
 
 @atomic_actions_group.command("check")
-@core_command(dangerous=False, requires_context=False)
+@core_command(dangerous=False, requires_context=True)
 # ID: 323b818b-d231-48d0-91f3-9589521c9dfb
 async def check_atomic_actions_cmd(
     ctx: typer.Context,
@@ -66,9 +67,12 @@ async def check_atomic_actions_cmd(
         typer.echo("🔍 [V2] Checking atomic actions pattern compliance...")
 
     # EXECUTE EVALUATOR (The Mind/Body Logic)
+    core_context: CoreContext = ctx.obj
     evaluator = AtomicActionsEvaluator()
     # Note: execute() returns a ComponentResult
-    result_wrapper = await evaluator.execute()
+    result_wrapper = await evaluator.execute(
+        repo_root=core_context.git_service.repo_path
+    )
     data = result_wrapper.data
 
     # Handle output
@@ -119,7 +123,7 @@ async def check_atomic_actions_cmd(
 
 
 @atomic_actions_group.command("list")
-@core_command(dangerous=False, requires_context=False)
+@core_command(dangerous=False, requires_context=True)
 # ID: 85bf0824-6d3a-47a4-a464-a67eedf4a52f
 async def list_atomic_actions_cmd(
     ctx: typer.Context,
@@ -137,8 +141,11 @@ async def list_atomic_actions_cmd(
     """
     typer.echo("🔍 Discovering atomic actions...\n")
 
+    core_context: CoreContext = ctx.obj
     evaluator = AtomicActionsEvaluator()
-    result_wrapper = await evaluator.execute()
+    result_wrapper = await evaluator.execute(
+        repo_root=core_context.git_service.repo_path
+    )
     data = result_wrapper.data
 
     # Map discovered actions

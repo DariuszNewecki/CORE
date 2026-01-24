@@ -10,7 +10,6 @@ import typer
 from rich.console import Console
 
 from shared.cli_utils import core_command
-from shared.config import settings
 from shared.context import CoreContext
 from shared.logger import getLogger
 
@@ -137,6 +136,7 @@ async def generate_adaptive_batch_command(
     from features.test_generation_v2 import AdaptiveTestGenerator
 
     core_context: CoreContext = ctx.obj
+    repo_root = core_context.git_service.repo_path
 
     console.print(
         "[bold cyan]🧪 Adaptive Test Generation - Batch Mode (V2)[/bold cyan]\n"
@@ -147,13 +147,13 @@ async def generate_adaptive_batch_command(
     coverage_map = analyzer.get_module_coverage()
 
     # Find matching files
-    all_files = list(settings.REPO_PATH.glob(pattern))
+    all_files = list(repo_root.glob(pattern))
 
     # Filter and sort by coverage
     # ID: fa722b9a-ede7-4419-9ba5-e5cdafdd8f3c
     def get_coverage_score(file_path: Path) -> float:
         try:
-            rel = str(file_path.relative_to(settings.REPO_PATH)).replace("\\", "/")
+            rel = str(file_path.relative_to(repo_root)).replace("\\", "/")
             return float(coverage_map.get(rel, 0.0))
         except (ValueError, KeyError):
             return 0.0
@@ -186,7 +186,7 @@ async def generate_adaptive_batch_command(
     generator = AdaptiveTestGenerator(context=core_context)
 
     for idx, file_path in enumerate(prioritized_files, 1):
-        rel_path = file_path.relative_to(settings.REPO_PATH)
+        rel_path = file_path.relative_to(repo_root)
         current_coverage = get_coverage_score(file_path)
 
         console.print(

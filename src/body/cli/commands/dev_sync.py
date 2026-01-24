@@ -21,7 +21,6 @@ from rich.table import Table
 from body.workflows.dev_sync_workflow import DevSyncWorkflow
 from shared.activity_logging import activity_run
 from shared.cli_utils import core_command
-from shared.config import settings
 from shared.context import CoreContext
 
 
@@ -55,11 +54,12 @@ async def dev_sync_command(
     By default runs in DRY-RUN mode. Use --write to apply changes.
     """
     core_context: CoreContext = ctx.obj
+    repo_root = core_context.git_service.repo_path
 
     console.print()
     console.rule("[bold cyan]CORE Dev Sync Workflow[/bold cyan]")
     console.print(f"[bold]Mode:[/bold] {'WRITE' if write else 'DRY RUN'}")
-    console.print(f"[bold]Repo:[/bold] {settings.REPO_PATH}")
+    console.print(f"[bold]Repo:[/bold] {repo_root}")
     console.print()
 
     # CONSTITUTIONAL NOTE: Manual dispose_engine removed.

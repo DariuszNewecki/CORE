@@ -39,10 +39,12 @@ async def check_body_ui_cmd(ctx: typer.Context) -> None:
 
     Body modules must be HEADLESS.
     """
-    _ = ctx
+    core_context = ctx.obj
     console.print("[bold cyan]🔍 Checking Body UI Contracts...[/bold cyan]")
 
-    result: ActionResult = await check_body_contracts()
+    result: ActionResult = await check_body_contracts(
+        repo_root=core_context.git_service.repo_path
+    )
 
     if not result.ok:
         violations = result.data.get("violations", [])

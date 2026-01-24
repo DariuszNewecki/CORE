@@ -126,11 +126,13 @@ def debug_meta_command(
 
 @app.command("unassigned-symbols")
 # ID: b39297a7-26db-47a6-a2d0-f2780cca9bb1
-def unassigned_symbols_command(
+async def unassigned_symbols_command(
+    ctx: typer.Context,
     format: str = typer.Option("table", "--format", help="Output format (table|json)"),
 ):
     """Finds symbols without # ID tags."""
-    unassigned = logic.get_unassigned_symbols_logic()
+    core_context: CoreContext = ctx.obj
+    unassigned = await logic.get_unassigned_symbols_logic(core_context)
 
     if format == "json":
         typer.echo(json.dumps(unassigned, indent=2))

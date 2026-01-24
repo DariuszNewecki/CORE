@@ -16,10 +16,10 @@ import yaml
 from mind.governance.audit_context import AuditorContext
 from mind.governance.rule_executor import execute_rule
 from mind.governance.rule_extractor import extract_executable_rules
-from shared.config import settings
 from shared.context import CoreContext
 from shared.logger import getLogger
 from shared.models import AuditSeverity
+from shared.path_resolver import PathResolver
 
 
 logger = getLogger(__name__)
@@ -35,7 +35,9 @@ async def manifest_hygiene(ctx: typer.Context) -> None:
     logger.info("🔍 Running manifest hygiene check (SSOT alignment)...")
 
     # 1. Initialize AuditorContext
-    auditor_context = core_context.auditor_context or AuditorContext(settings.REPO_PATH)
+    auditor_context = core_context.auditor_context or AuditorContext(
+        core_context.git_service.repo_path
+    )
     await auditor_context.load_knowledge_graph()
 
     # 2. Extract rules using the mandatory enforcement_loader
@@ -80,16 +82,22 @@ async def manifest_hygiene(ctx: typer.Context) -> None:
 
 
 # ID: 67db4c4d-4483-4d71-9044-a1464ae3a4b2
-def cli_registry() -> None:
+def cli_registry(ctx: typer.Context) -> None:
     """
     Validates the *legacy* CLI registry YAML (if still present) against its schema.
     """
     # Use PathResolver to find standard locations
-    registry_path = settings.paths.knowledge_dir / "cli_registry.yaml"
+    core_context: CoreContext = ctx.obj
+    path_resolver = PathResolver.from_repo(
+        repo_root=core_context.git_service.repo_path,
+        intent_root=core_context.git_service.repo_path / ".intent",
+    )
+
+    registry_path = path_resolver.knowledge_dir / "cli_registry.yaml"
 
     try:
         # Resolve schema via the unified policy/standard search
-        schema_path = settings.paths.policy("cli_registry_schema")
+        schema_path = path_resolver.policy("cli_registry_schema")
     except FileNotFoundError:
         logger.info(
             "CLI registry schema not found via PathResolver; skipping validation."
@@ -119,7 +127,9 @@ async def check_legacy_tags(ctx: typer.Context) -> None:
     logger.info("🔍 Running standalone legacy tag check...")
 
     # 1. Initialize AuditorContext
-    auditor_context = core_context.auditor_context or AuditorContext(settings.REPO_PATH)
+    auditor_context = core_context.auditor_context or AuditorContext(
+        core_context.git_service.repo_path
+    )
     await auditor_context.load_knowledge_graph()
 
     # 2. Extract rules using the mandatory enforcement_loader

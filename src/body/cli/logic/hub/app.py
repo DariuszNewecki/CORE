@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import typer
 
-from shared.config import settings
+from shared.context import CoreContext
 from shared.infrastructure.database.session_manager import get_session
 from shared.logger import getLogger
 
@@ -91,12 +91,13 @@ async def hub_whereis_cmd(command: str = typer.Argument(...)):
 
 @hub_app.command("doctor")
 # ID: dbac2d74-929e-47ca-a74a-32d192b274b9
-async def hub_doctor_cmd() -> dict[str, object]:
+async def hub_doctor_cmd(ctx: typer.Context) -> dict[str, object]:
     async with get_session() as session:
         cmds = await fetch_all_commands(session)
         count = len(cmds)
 
-    exports_dir = settings.MIND / "knowledge"
+    core_context: CoreContext = ctx.obj
+    exports_dir = core_context.git_service.repo_path / "var" / "mind" / "knowledge"
     yaml_count = len(list(exports_dir.glob("*.yaml"))) if exports_dir.exists() else 0
 
     return {

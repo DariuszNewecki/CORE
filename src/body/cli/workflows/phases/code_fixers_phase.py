@@ -16,7 +16,6 @@ from body.cli.workflows.dev_sync_reporter import DevSyncReporter
 from features.self_healing.code_style_service import format_code
 from features.self_healing.docstring_service import fix_docstrings
 from shared.action_types import ActionResult
-from shared.config import settings
 from shared.context import CoreContext
 
 
@@ -71,7 +70,9 @@ class CodeFixersPhase:
         try:
             start = time.time()
             self.console.print("[cyan]Checking logging standards...[/cyan]")
-            fixer = LoggingFixer(settings.REPO_PATH, dry_run=self.dry_run)
+            fixer = LoggingFixer(
+                self.core_context.git_service.repo_path, dry_run=self.dry_run
+            )
             fix_stats = fixer.fix_all()
 
             self.reporter.record_result(

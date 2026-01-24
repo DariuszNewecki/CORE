@@ -19,7 +19,7 @@ from features.introspection.pattern_vectorizer import PatternVectorizer
 from shared.action_types import ActionImpact, ActionResult
 from shared.atomic_action import atomic_action
 from shared.cli_utils import async_command
-from shared.config import settings
+from shared.context import CoreContext
 
 
 if TYPE_CHECKING:
@@ -112,7 +112,7 @@ async def vectorize_patterns_internal(
 )
 @async_command
 # ID: 599bf1ee-623c-4c94-b3c9-6c4a236ad67e
-async def vectorize_patterns_cmd() -> None:
+async def vectorize_patterns_cmd(ctx: typer.Context) -> None:
     """
     CLI wrapper for pattern vectorization.
 
@@ -130,8 +130,9 @@ async def vectorize_patterns_cmd() -> None:
     qdrant_service = QdrantService()
 
     # FIX: Changed 'repo_root' to 'repo_path' to match CognitiveService.__init__
+    core_context: CoreContext = ctx.obj
     cognitive_service = CognitiveService(
-        repo_path=settings.REPO_PATH,
+        repo_path=core_context.git_service.repo_path,
         qdrant_service=qdrant_service,
     )
 
@@ -237,6 +238,7 @@ async def query_pattern_internal(
 @async_command
 # ID: 763036b7-9591-4ef1-8156-af61553857c5
 async def query_pattern_cmd(
+    ctx: typer.Context,
     query: str = typer.Argument(..., help="Natural language query about patterns"),
     limit: int = typer.Option(5, "--limit", "-n", help="Maximum results to return"),
 ) -> None:
@@ -258,8 +260,9 @@ async def query_pattern_cmd(
     qdrant_service = QdrantService()
 
     # FIX: Changed 'repo_root' to 'repo_path' to match CognitiveService.__init__
+    core_context: CoreContext = ctx.obj
     cognitive_service = CognitiveService(
-        repo_path=settings.REPO_PATH,
+        repo_path=core_context.git_service.repo_path,
         qdrant_service=qdrant_service,
     )
 

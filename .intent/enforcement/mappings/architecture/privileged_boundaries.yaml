@@ -49,6 +49,9 @@ mappings:
         - "src/mind/**/*.py"
         - "src/will/**/*.py"
       excludes:
+        # The Bootstrap Sanctuary: Converts Config -> Context
+        - "src/body/infrastructure/bootstrap.py"
+        # General infrastructure patterns
         - "src/body/infrastructure/**/*.py"
         - "src/body/**/test_*.py"
         - "src/mind/**/test_*.py"

@@ -12,9 +12,9 @@ import ast
 from pathlib import Path
 
 from mind.logic.engines.ast_gate.base import ASTHelpers
-from shared.config import settings
 from shared.infrastructure.knowledge.knowledge_service import KnowledgeService
 from shared.logger import getLogger
+from shared.path_resolver import PathResolver
 
 
 logger = getLogger(__name__)
@@ -24,9 +24,12 @@ logger = getLogger(__name__)
 class CapabilityChecks:
     """Capability linkage and governance checks."""
 
-    @staticmethod
+    def __init__(self, path_resolver: PathResolver):
+        self._paths = path_resolver
+
     # ID: b2c3d4e5-f6a7-8b9c-0d1e-2f3a4b5c6d7e
     def check_capability_assignment(
+        self,
         tree: ast.AST,
         *,
         file_path: Path,
@@ -58,9 +61,16 @@ class CapabilityChecks:
 
         # Get relative path for exclusion checks
         try:
-            rel_path = str(file_path.relative_to(settings.REPO_PATH))
+            rel_path = str(file_path.relative_to(self._paths.repo_root))
         except ValueError:
             rel_path = str(file_path)
+
+        # Exclusion: Intent files
+        try:
+            file_path.relative_to(self._paths.intent_root)
+            return findings
+        except ValueError:
+            pass
 
         # Exclusion: Test files
         if "tests/" in rel_path or rel_path.startswith("tests/"):
@@ -78,7 +88,7 @@ class CapabilityChecks:
 
         # Query knowledge graph for capability assignments
         try:
-            kg_service = KnowledgeService(settings.REPO_PATH)
+            kg_service = KnowledgeService(self._paths.repo_root)
             graph = kg_service.get_graph_sync()  # Synchronous version for AST check
             symbols_data = graph.get("symbols", {})
 

@@ -14,15 +14,17 @@ from __future__ import annotations
 import os
 from datetime import datetime
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import typer
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ed25519
 
-from shared.config import settings
 from shared.logger import getLogger
 
+
+if TYPE_CHECKING:
+    from shared.infrastructure.storage.file_handler import FileHandler
 
 logger = getLogger(__name__)
 
@@ -132,18 +134,15 @@ def find_source_file(
 
 
 # ID: a3d61adf-6e42-4854-a028-89a73d47c667
-def save_yaml_file(path: Path, data: dict[str, Any]) -> None:
+def save_yaml_file(path: Path, data: dict[str, Any], file_handler: FileHandler) -> None:
     """Saves data to a YAML file via the governed FileHandler."""
     import yaml
 
-    from shared.infrastructure.storage.file_handler import FileHandler
-
     # CONSTITUTIONAL FIX: Use governed mutation surface
-    fh = FileHandler(str(settings.REPO_PATH))
     try:
-        rel_path = str(path.resolve().relative_to(settings.REPO_PATH.resolve()))
+        rel_path = str(path.resolve().relative_to(file_handler.repo_path.resolve()))
         content = yaml.dump(data, sort_keys=True)
-        fh.write_runtime_text(rel_path, content)
+        file_handler.write_runtime_text(rel_path, content)
     except ValueError:
         logger.error(
             "Attempted to save YAML file outside repository boundary: %s", path
@@ -152,31 +151,35 @@ def save_yaml_file(path: Path, data: dict[str, Any]) -> None:
 
 
 # ID: 4e814eab-bdc4-4d68-b13e-8c4c53269a68
-def load_private_key() -> ed25519.Ed25519PrivateKey:
-    """Loads the operator's private key."""
-    key_path = settings.KEY_STORAGE_DIR / "private.key"
+def load_private_key(repo_root: Path) -> ed25519.Ed25519PrivateKey:
+    """
+    Loads the operator's private key.
+    Requires repo_root to locate .intent/keys/private.key without global settings.
+    """
+    key_path = repo_root / ".intent" / "keys" / "private.key"
     if not key_path.exists():
         logger.error(
-            "Private key not found. Please run 'core-admin keygen' to create one."
+            "Private key not found at %s. Please run 'core-admin manage keys generate' to create one.",
+            key_path,
         )
         raise typer.Exit(code=1)
     return serialization.load_pem_private_key(key_path.read_bytes(), password=None)
 
 
 # ID: f803faac-7a8d-40b1-84cb-659379a4b512
-def archive_rollback_plan(proposal_name: str, proposal: dict[str, Any]) -> None:
+def archive_rollback_plan(
+    proposal_name: str,
+    proposal: dict[str, Any],
+    file_handler: FileHandler,
+) -> None:
     """Archives a proposal's rollback plan via the governed FileHandler."""
     rollback_plan = proposal.get("rollback_plan")
     if not rollback_plan:
         return
 
-    from shared.infrastructure.storage.file_handler import FileHandler
-
-    fh = FileHandler(str(settings.REPO_PATH))
-
     # CONSTITUTIONAL FIX: Use FileHandler for directory creation and writes
     rel_rollbacks_dir = "var/mind/rollbacks"
-    fh.ensure_dir(rel_rollbacks_dir)
+    file_handler.ensure_dir(rel_rollbacks_dir)
 
     timestamp = datetime.utcnow().strftime("%Y%m%d%H%M%S")
     archive_filename = f"{timestamp}-{proposal_name}.json"
@@ -189,7 +192,7 @@ def archive_rollback_plan(proposal_name: str, proposal: dict[str, Any]) -> None:
         "rollback_plan": rollback_plan,
     }
 
-    fh.write_runtime_json(rel_archive_path, payload)
+    file_handler.write_runtime_json(rel_archive_path, payload)
     logger.info("Rollback plan archived to %s", rel_archive_path)
 
 
