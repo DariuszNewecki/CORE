@@ -5,6 +5,9 @@ Atomic Fix Actions - Code Remediation
 
 Each action does ONE thing and returns ActionResult.
 Actions are composable, auditable, and constitutionally governed.
+
+Constitutional Alignment:
+- Boundary: Uses CoreContext for repo_path (no direct settings access)
 """
 
 from __future__ import annotations
@@ -26,7 +29,6 @@ from features.self_healing.docstring_service import fix_docstrings
 from features.self_healing.placeholder_fixer_service import fix_placeholders_in_content
 from shared.action_types import ActionImpact, ActionResult
 from shared.atomic_action import atomic_action
-from shared.config import settings
 from shared.logger import getLogger
 
 
@@ -163,11 +165,18 @@ async def action_fix_logging(
 ) -> ActionResult:
     """
     Fix logging violations.
+
+    Constitutional Compliance:
+    - Uses repo_path from CoreContext.git_service (no settings access)
     """
     start = time.time()
+
+    # Constitutional boundary: Get repo_path from context
+    repo_root = core_context.git_service.repo_path
+
     # LoggingFixer takes repo_root, file_handler, and dry_run
     fixer = LoggingFixer(
-        repo_root=settings.REPO_PATH,
+        repo_root=repo_root,
         file_handler=core_context.file_handler,
         dry_run=not write,
     )

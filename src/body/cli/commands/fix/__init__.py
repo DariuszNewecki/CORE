@@ -68,6 +68,7 @@ def fix_callback(
 # LATE IMPORTS: These register themselves on fix_app when imported.
 # This must remain at the bottom to ensure fix_app is defined first.
 import body.cli.commands.fix.all_commands
+import body.cli.commands.fix.apply_providers
 import body.cli.commands.fix.atomic_actions
 import body.cli.commands.fix.body_ui
 import body.cli.commands.fix.clarity
@@ -80,3 +81,5 @@ import body.cli.commands.fix.imports
 import body.cli.commands.fix.list_commands
 import body.cli.commands.fix.metadata
 import body.cli.commands.fix.modularity
+import body.cli.commands.fix.provider_refactor
+import body.cli.commands.fix.settings_access

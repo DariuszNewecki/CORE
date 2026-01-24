@@ -7,7 +7,7 @@ Constitutional Alignment:
 - Phase: PARSE (Structural analysis and classification)
 - Authority: CODE (Implementation of structural rules)
 - Tracing: Mandatory DecisionTracer integration for classification verdicts
-- Boundary: Respects repo_path via CoreContext
+- Boundary: Respects repo_path via CoreContext (dependency injection required)
 """
 
 from __future__ import annotations
@@ -17,7 +17,6 @@ import time
 from typing import Any
 
 from shared.component_primitive import Component, ComponentPhase, ComponentResult
-from shared.config import settings
 from shared.context import CoreContext
 from shared.logger import getLogger
 from will.orchestration.decision_tracer import DecisionTracer
@@ -35,11 +34,19 @@ class FileAnalyzer(Component):
     - sqlalchemy_model: Requires integration fixtures.
     - async_module: Requires pytest-asyncio.
     - function_module/class_module: Requires standard unit testing.
+
+    Constitutional Requirement:
+    - MUST be initialized with CoreContext containing valid git_service
+    - Body layer components do not access settings directly
     """
 
     def __init__(self, context: CoreContext | None = None):
         """
-        Initialize with optional context for governed path resolution.
+        Initialize with context for governed path resolution.
+
+        Args:
+            context: CoreContext with git_service for repo path resolution.
+                     Required for constitutional compliance - no fallback configuration.
         """
         self.context = context
         self.tracer = DecisionTracer()
@@ -53,15 +60,27 @@ class FileAnalyzer(Component):
     async def execute(self, file_path: str, **kwargs) -> ComponentResult:
         """
         Analyze file structure and classify for downstream strategy selection.
+
+        Constitutional Compliance:
+        - Requires valid CoreContext with git_service (no settings fallback)
+        - Returns error if context not provided (fail fast, dependency injection enforced)
         """
         start_time = time.time()
 
-        # Governed path resolution
-        if self.context and self.context.git_service:
-            repo_root = self.context.git_service.repo_path
-        else:
-            repo_root = settings.REPO_PATH  # Fallback to SSOT settings
+        # Constitutional boundary enforcement: Body requires proper context
+        if not self.context or not self.context.git_service:
+            return ComponentResult(
+                component_id=self.component_id,
+                ok=False,
+                data={
+                    "error": "FileAnalyzer requires CoreContext with git_service. "
+                    "Body layer components must not access settings directly."
+                },
+                phase=self.phase,
+                confidence=0.0,
+            )
 
+        repo_root = self.context.git_service.repo_path
         abs_path = (repo_root / file_path).resolve()
 
         if not abs_path.exists():

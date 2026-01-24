@@ -4,6 +4,11 @@
 """
 Knowledge Graph Analyzer - PARSE Phase Component.
 Standardized interface for system introspection.
+
+Constitutional Alignment:
+- Phase: PARSE (Structural analysis)
+- Authority: CODE (Implementation)
+- Boundary: Requires repo_root via dependency injection (no settings fallback)
 """
 
 from __future__ import annotations
@@ -14,7 +19,6 @@ from typing import Any
 
 from features.introspection.knowledge_graph_service import KnowledgeGraphBuilder
 from shared.component_primitive import Component, ComponentPhase, ComponentResult
-from shared.config import settings
 from shared.logger import getLogger
 
 
@@ -25,6 +29,10 @@ logger = getLogger(__name__)
 class KnowledgeGraphAnalyzer(Component):
     """
     Standardized component for building the Knowledge Graph.
+
+    Constitutional Requirement:
+    - MUST receive repo_root parameter (no settings fallback)
+    - Body layer components do not access settings directly
     """
 
     @property
@@ -38,12 +46,31 @@ class KnowledgeGraphAnalyzer(Component):
     ) -> ComponentResult:
         """
         Execute the codebase scan.
+
+        Args:
+            repo_root: Repository root path (required for constitutional compliance)
+
+        Constitutional Compliance:
+        - Requires repo_root parameter (no settings fallback)
+        - Returns error if repo_root not provided (fail fast, dependency injection enforced)
         """
         start_time = time.time()
-        root = repo_root or settings.REPO_PATH
+
+        # Constitutional boundary enforcement: Body requires proper parameters
+        if repo_root is None:
+            return ComponentResult(
+                component_id=self.component_id,
+                ok=False,
+                data={
+                    "error": "KnowledgeGraphAnalyzer requires repo_root parameter. "
+                    "Body layer components must not access settings directly."
+                },
+                phase=self.phase,
+                confidence=0.0,
+            )
 
         # Instantiate the pure logic builder
-        builder = KnowledgeGraphBuilder(root)
+        builder = KnowledgeGraphBuilder(repo_root)
 
         # Build the graph (pure in-memory operation)
         graph_data = builder.build()
@@ -58,7 +85,7 @@ class KnowledgeGraphAnalyzer(Component):
             confidence=1.0,
             metadata={
                 "symbol_count": graph_data["metadata"].get("symbol_count", 0),
-                "repo_root": str(root),
+                "repo_root": str(repo_root),
             },
             duration_sec=duration,
         )

@@ -1,0 +1,54 @@
+{
+    "$schema": "META/rule_document.schema.json",
+    "kind": "rule_document",
+    "metadata": {
+        "id": "rules.architecture.privileged_boundaries",
+        "title": "Infrastructure Primitive Access Boundaries",
+        "version": "1.0.0",
+        "authority": "constitution",
+        "phase": "audit",
+        "status": "active"
+    },
+    "rules": [
+        {
+            "id": "architecture.boundary.database_session_access",
+            "statement": "Only infrastructure, Body layer, and shared services MAY directly import database session primitives (get_session, AsyncSession). Mind and Will layers MUST use dependency injection.",
+            "enforcement": "blocking",
+            "authority": "constitution",
+            "phase": "audit",
+            "rationale": "Direct database access in Mind (law) or Will (decision) layers violates constitutional separation. Law must not execute; decisions must not implement."
+        },
+        {
+            "id": "architecture.boundary.settings_access",
+            "statement": "Only infrastructure layer and bootstrap modules MAY directly import Settings objects. All other components MUST receive configuration through dependency injection or environment abstraction.",
+            "enforcement": "blocking",
+            "authority": "constitution",
+            "phase": "audit",
+            "rationale": "Direct settings access couples components to environment configuration, preventing testability and governance transparency."
+        },
+        {
+            "id": "architecture.boundary.intent_loader_access",
+            "statement": "Only Mind layer components and governance infrastructure MAY directly import IntentLoader. All other components MUST access constitutional documents through Mind services.",
+            "enforcement": "blocking",
+            "authority": "constitution",
+            "phase": "audit",
+            "rationale": "Direct .intent/ access bypasses constitutional governance. Only Mind layer may read law; all others must query through Mind's interface."
+        },
+        {
+            "id": "architecture.boundary.file_handler_access",
+            "statement": "Only Body layer and infrastructure components MAY directly instantiate FileHandler. Will and Mind layers MUST delegate file operations to Body services.",
+            "enforcement": "blocking",
+            "authority": "constitution",
+            "phase": "audit",
+            "rationale": "File operations are execution. Will layer (decision) and Mind layer (law) must not perform I/O directly."
+        },
+        {
+            "id": "architecture.boundary.llm_client_access",
+            "statement": "Only Will layer agents and autonomous services MAY directly import LLM client infrastructure. Body layer MUST NOT make AI decisions; Mind layer MUST NOT invoke AI.",
+            "enforcement": "blocking",
+            "authority": "constitution",
+            "phase": "audit",
+            "rationale": "LLM access is decision-making capability. Only Will layer (judgment) may decide. Body (execution) and Mind (law) must not invoke AI."
+        }
+    ]
+}

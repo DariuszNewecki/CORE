@@ -119,7 +119,7 @@
   {
     "check_id": "governance.dangerous_execution_primitives",
     "severity": "info",
-    "message": "Forbidden primitive 'subprocess.run' used (line 108).",
+    "message": "Forbidden primitive 'subprocess.run' used (line 137).",
     "file_path": "src/body/cli/commands/check/quality_gates.py",
     "line_number": null,
     "context": {},
@@ -128,7 +128,7 @@
   {
     "check_id": "governance.dangerous_execution_primitives",
     "severity": "info",
-    "message": "Forbidden primitive 'subprocess.run' used (line 106).",
+    "message": "Forbidden primitive 'subprocess.run' used (line 135).",
     "file_path": "src/body/cli/commands/check/quality_gates.py",
     "line_number": null,
     "context": {},
@@ -643,6 +643,753 @@
     "severity": "warning",
     "message": "Modularity Debt: 49.6/100 (Limit: 60.0)",
     "file_path": "src/will/strategists/test_strategist.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.boundary.database_session_access",
+    "severity": "error",
+    "message": "Line 35: Forbidden import-from 'sqlalchemy.ext.asyncio.AsyncSession'",
+    "file_path": "src/will/autonomy/proposal_executor.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.boundary.database_session_access",
+    "severity": "error",
+    "message": "Line 22: Forbidden import-from 'sqlalchemy.ext.asyncio.AsyncSession'",
+    "file_path": "src/will/autonomy/proposal_repository.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.boundary.database_session_access",
+    "severity": "error",
+    "message": "Line 29: Forbidden import-from 'sqlalchemy.ext.asyncio.AsyncSession'",
+    "file_path": "src/will/orchestration/decision_tracer.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.boundary.database_session_access",
+    "severity": "error",
+    "message": "Line 27: Forbidden import-from 'sqlalchemy.ext.asyncio.AsyncSession'",
+    "file_path": "src/will/tools/context/retriever.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.boundary.settings_access",
+    "severity": "error",
+    "message": "Line 13: Forbidden import-from 'shared.config.settings'",
+    "file_path": "src/body/cli/commands/coverage/generation_commands.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.boundary.settings_access",
+    "severity": "error",
+    "message": "Line 24: Forbidden import-from 'shared.config.settings'",
+    "file_path": "src/body/cli/commands/dev_sync.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.boundary.settings_access",
+    "severity": "error",
+    "message": "Line 19: Forbidden import-from 'shared.config.settings'",
+    "file_path": "src/body/cli/commands/fix/__init__.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.boundary.settings_access",
+    "severity": "error",
+    "message": "Line 25: Forbidden import-from 'shared.config.settings'",
+    "file_path": "src/body/cli/commands/fix/code_style.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.boundary.settings_access",
+    "severity": "error",
+    "message": "Line 21: Forbidden import-from 'shared.config.settings'",
+    "file_path": "src/body/cli/commands/governance.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.boundary.settings_access",
+    "severity": "error",
+    "message": "Line 15: Forbidden import-from 'shared.config.settings'",
+    "file_path": "src/body/cli/commands/inspect_patterns.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.boundary.settings_access",
+    "severity": "error",
+    "message": "Line 19: Forbidden import-from 'shared.config.settings'",
+    "file_path": "src/body/cli/commands/manage/database.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.boundary.settings_access",
+    "severity": "error",
+    "message": "Line 11: Forbidden import-from 'shared.config.settings'",
+    "file_path": "src/body/cli/commands/manage/keys.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.boundary.settings_access",
+    "severity": "error",
+    "message": "Line 22: Forbidden import-from 'shared.config.settings'",
+    "file_path": "src/body/cli/commands/manage/patterns.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.boundary.settings_access",
+    "severity": "error",
+    "message": "Line 21: Forbidden import-from 'shared.config.settings'",
+    "file_path": "src/body/cli/commands/manage/policies.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.boundary.settings_access",
+    "severity": "error",
+    "message": "Line 27: Forbidden import-from 'shared.config.settings'",
+    "file_path": "src/body/cli/commands/refactor.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.boundary.settings_access",
+    "severity": "error",
+    "message": "Line 13: Forbidden import-from 'shared.config.settings'",
+    "file_path": "src/body/cli/commands/refactor_support/config.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.boundary.settings_access",
+    "severity": "error",
+    "message": "Line 29: Forbidden import-from 'shared.config.settings'",
+    "file_path": "src/body/cli/logic/body_contracts_checker.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.boundary.settings_access",
+    "severity": "error",
+    "message": "Line 18: Forbidden import-from 'shared.config.settings'",
+    "file_path": "src/body/cli/logic/body_contracts_fixer.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.boundary.settings_access",
+    "severity": "error",
+    "message": "Line 23: Forbidden import-from 'shared.config.settings'",
+    "file_path": "src/body/cli/logic/cli_utils.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.boundary.settings_access",
+    "severity": "error",
+    "message": "Line 19: Forbidden import-from 'shared.config.settings'",
+    "file_path": "src/body/cli/logic/db.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.boundary.settings_access",
+    "severity": "error",
+    "message": "Line 15: Forbidden import-from 'shared.config.settings'",
+    "file_path": "src/body/cli/logic/diagnostics.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.boundary.settings_access",
+    "severity": "error",
+    "message": "Line 19: Forbidden import-from 'shared.config.settings'",
+    "file_path": "src/body/cli/logic/diagnostics_registry.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.boundary.settings_access",
+    "severity": "error",
+    "message": "Line 16: Forbidden import-from 'shared.config.settings'",
+    "file_path": "src/body/cli/logic/duplicates.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.boundary.settings_access",
+    "severity": "error",
+    "message": "Line 9: Forbidden import-from 'shared.config.settings'",
+    "file_path": "src/body/cli/logic/hub/app.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.boundary.settings_access",
+    "severity": "error",
+    "message": "Line 31: Forbidden import-from 'shared.config.settings'",
+    "file_path": "src/body/cli/logic/interactive_test/workflow.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.boundary.settings_access",
+    "severity": "error",
+    "message": "Line 14: Forbidden import-from 'shared.config.settings'",
+    "file_path": "src/body/cli/logic/proposal_service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.boundary.settings_access",
+    "severity": "error",
+    "message": "Line 14: Forbidden import-from 'shared.config.settings'",
+    "file_path": "src/body/cli/logic/proposals/service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.boundary.settings_access",
+    "severity": "error",
+    "message": "Line 12: Forbidden import-from 'shared.config.settings'",
+    "file_path": "src/body/cli/logic/sync_domains.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.boundary.settings_access",
+    "severity": "error",
+    "message": "Line 19: Forbidden import-from 'shared.config.settings'",
+    "file_path": "src/body/cli/workflows/phases/code_fixers_phase.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.boundary.settings_access",
+    "severity": "error",
+    "message": "Line 30: Forbidden import-from 'shared.config.settings'",
+    "file_path": "src/body/evaluators/atomic_actions_evaluator.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.boundary.settings_access",
+    "severity": "error",
+    "message": "Line 32: Forbidden import-from 'shared.config.settings'",
+    "file_path": "src/body/evaluators/constitutional_evaluator.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.boundary.settings_access",
+    "severity": "error",
+    "message": "Line 21: Forbidden import-from 'shared.config.settings'",
+    "file_path": "src/body/evaluators/pattern_evaluator.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.boundary.settings_access",
+    "severity": "error",
+    "message": "Line 15: Forbidden import-from 'shared.config.settings'",
+    "file_path": "src/body/infrastructure/bootstrap.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.boundary.settings_access",
+    "severity": "error",
+    "message": "Line 31: Forbidden import-from 'shared.config.settings'",
+    "file_path": "src/body/services/crate_creation_service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.boundary.settings_access",
+    "severity": "error",
+    "message": "Line 33: Forbidden import-from 'shared.config.settings'",
+    "file_path": "src/body/services/crate_processing_service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.boundary.settings_access",
+    "severity": "error",
+    "message": "Line 23: Forbidden import-from 'shared.config.settings'",
+    "file_path": "src/body/services/service_registry.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.boundary.settings_access",
+    "severity": "error",
+    "message": "Line 34: Forbidden import-from 'shared.config.Settings'",
+    "file_path": "src/mind/governance/audit_context.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.boundary.settings_access",
+    "severity": "error",
+    "message": "Line 34: Forbidden import-from 'shared.config.settings'",
+    "file_path": "src/mind/governance/audit_context.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.boundary.settings_access",
+    "severity": "error",
+    "message": "Line 33: Forbidden import-from 'shared.config.settings'",
+    "file_path": "src/mind/governance/intent_guard.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.boundary.settings_access",
+    "severity": "error",
+    "message": "Line 22: Forbidden import-from 'shared.config.settings'",
+    "file_path": "src/mind/governance/key_management_service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.boundary.settings_access",
+    "severity": "error",
+    "message": "Line 10: Forbidden import-from 'shared.config.settings'",
+    "file_path": "src/mind/governance/micro_proposal_validator.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.boundary.settings_access",
+    "severity": "error",
+    "message": "Line 23: Forbidden import-from 'shared.config.settings'",
+    "file_path": "src/mind/governance/policy_coverage_service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.boundary.settings_access",
+    "severity": "error",
+    "message": "Line 14: Forbidden import-from 'shared.config.settings'",
+    "file_path": "src/mind/governance/policy_loader.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.boundary.settings_access",
+    "severity": "error",
+    "message": "Line 19: Forbidden import-from 'shared.config.settings'",
+    "file_path": "src/mind/governance/runtime_validator.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.boundary.settings_access",
+    "severity": "error",
+    "message": "Line 15: Forbidden import-from 'shared.config.settings'",
+    "file_path": "src/mind/logic/engines/ast_gate/checks/capability_checks.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.boundary.settings_access",
+    "severity": "error",
+    "message": "Line 22: Forbidden import-from 'shared.config.settings'",
+    "file_path": "src/mind/logic/engines/llm_gate.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.boundary.settings_access",
+    "severity": "error",
+    "message": "Line 13: Forbidden import-from 'shared.config.settings'",
+    "file_path": "src/mind/logic/engines/registry.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.boundary.settings_access",
+    "severity": "error",
+    "message": "Line 41: Forbidden import-from 'shared.config.settings'",
+    "file_path": "src/mind/logic/engines/workflow_gate/checks/alignment.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.boundary.settings_access",
+    "severity": "error",
+    "message": "Line 16: Forbidden import-from 'shared.config.settings'",
+    "file_path": "src/mind/logic/engines/workflow_gate/checks/coverage.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.boundary.settings_access",
+    "severity": "error",
+    "message": "Line 12: Forbidden import-from 'shared.config.settings'",
+    "file_path": "src/mind/logic/engines/workflow_gate/checks/dead_code.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.boundary.settings_access",
+    "severity": "error",
+    "message": "Line 12: Forbidden import-from 'shared.config.settings'",
+    "file_path": "src/mind/logic/engines/workflow_gate/checks/quality.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.boundary.settings_access",
+    "severity": "error",
+    "message": "Line 36: Forbidden import-from 'shared.config.settings'",
+    "file_path": "src/will/agents/base_planner.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.boundary.settings_access",
+    "severity": "error",
+    "message": "Line 22: Forbidden import-from 'shared.config.settings'",
+    "file_path": "src/will/agents/code_generation/code_generator.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.boundary.settings_access",
+    "severity": "error",
+    "message": "Line 15: Forbidden import-from 'shared.config.settings'",
+    "file_path": "src/will/agents/coder_agent.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.boundary.settings_access",
+    "severity": "error",
+    "message": "Line 12: Forbidden import-from 'shared.config.settings'",
+    "file_path": "src/will/agents/deduction_agent.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.boundary.settings_access",
+    "severity": "error",
+    "message": "Line 11: Forbidden import-from 'shared.config.settings'",
+    "file_path": "src/will/agents/intent_translator.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.boundary.settings_access",
+    "severity": "error",
+    "message": "Line 20: Forbidden import-from 'shared.config.settings'",
+    "file_path": "src/will/agents/micro_planner.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.boundary.settings_access",
+    "severity": "error",
+    "message": "Line 25: Forbidden import-from 'shared.config.settings'",
+    "file_path": "src/will/agents/planner_agent.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.boundary.settings_access",
+    "severity": "error",
+    "message": "Line 11: Forbidden import-from 'shared.config.settings'",
+    "file_path": "src/will/agents/self_correction_engine.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.boundary.settings_access",
+    "severity": "error",
+    "message": "Line 31: Forbidden import-from 'shared.config.settings'",
+    "file_path": "src/will/agents/specification_agent.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.boundary.settings_access",
+    "severity": "error",
+    "message": "Line 15: Forbidden import-from 'shared.config.settings'",
+    "file_path": "src/will/agents/tagger_agent.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.boundary.settings_access",
+    "severity": "error",
+    "message": "Line 18: Forbidden import-from 'shared.config.settings'",
+    "file_path": "src/will/cli_logic/chat.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.boundary.settings_access",
+    "severity": "error",
+    "message": "Line 17: Forbidden import-from 'shared.config.settings'",
+    "file_path": "src/will/cli_logic/reviewer.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.boundary.settings_access",
+    "severity": "error",
+    "message": "Line 23: Forbidden import-from 'shared.config.settings'",
+    "file_path": "src/will/orchestration/decision_tracer.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.boundary.settings_access",
+    "severity": "error",
+    "message": "Line 21: Forbidden import-from 'shared.config.settings'",
+    "file_path": "src/will/orchestration/phase_registry.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.boundary.settings_access",
+    "severity": "error",
+    "message": "Line 14: Forbidden import-from 'shared.config.settings'",
+    "file_path": "src/will/orchestration/self_correction_engine.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.boundary.settings_access",
+    "severity": "error",
+    "message": "Line 21: Forbidden import-from 'shared.config.settings'",
+    "file_path": "src/will/orchestration/workflow_orchestrator.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.boundary.settings_access",
+    "severity": "error",
+    "message": "Line 11: Forbidden import-from 'shared.config.settings'",
+    "file_path": "src/will/phases/canary/pytest_runner.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.boundary.settings_access",
+    "severity": "error",
+    "message": "Line 11: Forbidden import-from 'shared.config.settings'",
+    "file_path": "src/will/phases/canary/test_discovery.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.boundary.settings_access",
+    "severity": "error",
+    "message": "Line 12: Forbidden import-from 'shared.config.settings'",
+    "file_path": "src/will/tools/architectural_context_builder.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.boundary.file_handler_access",
+    "severity": "error",
+    "message": "Line 37: Forbidden import-from 'shared.infrastructure.storage.file_handler.FileHandler'",
+    "file_path": "src/mind/governance/audit_context.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.boundary.file_handler_access",
+    "severity": "error",
+    "message": "Line 23: Forbidden import-from 'shared.infrastructure.storage.file_handler.FileHandler'",
+    "file_path": "src/mind/governance/audit_postprocessor.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.boundary.file_handler_access",
+    "severity": "error",
+    "message": "Line 13: Forbidden import-from 'shared.infrastructure.storage.file_handler.FileHandler'",
+    "file_path": "src/mind/governance/audit_report_writer.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.boundary.file_handler_access",
+    "severity": "error",
+    "message": "Line 33: Forbidden import-from 'shared.infrastructure.storage.file_handler.FileHandler'",
+    "file_path": "src/mind/governance/auditor.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.boundary.file_handler_access",
+    "severity": "error",
+    "message": "Line 23: Forbidden import-from 'shared.infrastructure.storage.file_handler.FileHandler'",
+    "file_path": "src/mind/governance/constitutional_monitor.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.boundary.file_handler_access",
+    "severity": "error",
+    "message": "Line 23: Forbidden import-from 'shared.infrastructure.storage.file_handler.FileHandler'",
+    "file_path": "src/mind/governance/key_management_service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.boundary.file_handler_access",
+    "severity": "error",
+    "message": "Line 20: Forbidden import-from 'shared.infrastructure.storage.file_handler.FileHandler'",
+    "file_path": "src/mind/governance/runtime_validator.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.boundary.file_handler_access",
+    "severity": "error",
+    "message": "Line 20: Forbidden import-from 'shared.infrastructure.storage.file_handler.FileHandler'",
+    "file_path": "src/will/cli_logic/chat.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.boundary.file_handler_access",
+    "severity": "error",
+    "message": "Line 18: Forbidden import-from 'shared.infrastructure.storage.file_handler.FileHandler'",
+    "file_path": "src/will/cli_logic/reviewer.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.boundary.file_handler_access",
+    "severity": "error",
+    "message": "Line 24: Forbidden import-from 'shared.infrastructure.storage.file_handler.FileHandler'",
+    "file_path": "src/will/orchestration/decision_tracer.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.boundary.file_handler_access",
+    "severity": "error",
+    "message": "Line 13: Forbidden import-from 'shared.infrastructure.storage.file_handler.FileHandler'",
+    "file_path": "src/will/phases/code_generation/artifact_saver.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.boundary.file_handler_access",
+    "severity": "error",
+    "message": "Line 12: Forbidden import-from 'shared.infrastructure.storage.file_handler.FileHandler'",
+    "file_path": "src/will/phases/code_generation/work_directory_manager.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.boundary.file_handler_access",
+    "severity": "error",
+    "message": "Line 31: Forbidden import-from 'shared.infrastructure.storage.file_handler.FileHandler'",
+    "file_path": "src/will/phases/code_generation_phase.py",
     "line_number": null,
     "context": {},
     "details": {}

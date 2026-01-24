@@ -4,16 +4,21 @@
 """
 Prompt Analyzer - PARSE Phase Component.
 Analyzes templates and context to ensure generation tasks are "Ready to Build."
+
+Constitutional Alignment:
+- Phase: PARSE (Template validation and analysis)
+- Authority: CODE (Implementation)
+- Boundary: Requires prompt_root via dependency injection (no settings access)
 """
 
 from __future__ import annotations
 
 import re
 import time
+from pathlib import Path
 from typing import Any
 
 from shared.component_primitive import Component, ComponentPhase, ComponentResult
-from shared.config import settings
 from shared.logger import getLogger
 
 
@@ -26,10 +31,14 @@ class PromptAnalyzer(Component):
     Validates that a generation task has all required variables.
 
     Responsibilities:
-    - Load templates from var/prompts/ via PathResolver.
+    - Load templates from prompt directory via provided path.
     - Identify required placeholders in the template.
     - Verify that the provided context satisfies those placeholders.
     - Calculate a 'Readiness Score' for the generation task.
+
+    Constitutional Requirement:
+    - MUST receive prompt_root parameter (no settings access)
+    - Body layer components do not access settings directly
     """
 
     @property
@@ -39,7 +48,11 @@ class PromptAnalyzer(Component):
 
     # ID: 631eec7b-c23d-4d25-8f9f-a191e0239ce9
     async def execute(
-        self, template_name: str, context_data: dict[str, Any], **kwargs: Any
+        self,
+        template_name: str,
+        context_data: dict[str, Any],
+        prompt_root: Path | None = None,
+        **kwargs: Any,
     ) -> ComponentResult:
         """
         Analyze prompt readiness.
@@ -47,17 +60,37 @@ class PromptAnalyzer(Component):
         Args:
             template_name: Stem of the prompt file (e.g., 'fix_line_length')
             context_data: Dictionary of variables provided for the prompt.
+            prompt_root: Path to prompts directory (required for constitutional compliance)
+
+        Constitutional Compliance:
+        - Requires prompt_root parameter (no settings access)
+        - Returns error if prompt_root not provided (fail fast, dependency injection enforced)
         """
         start_time = time.time()
 
+        # Constitutional boundary enforcement: Body requires proper parameters
+        if prompt_root is None:
+            return ComponentResult(
+                component_id=self.component_id,
+                ok=False,
+                data={
+                    "error": "PromptAnalyzer requires prompt_root parameter. "
+                    "Body layer components must not access settings directly."
+                },
+                phase=self.phase,
+                confidence=0.0,
+            )
+
         try:
-            # 1. Load Template via PathResolver (Constitutional SSOT)
-            prompt_path = settings.paths.prompt(template_name)
+            # 1. Load Template via provided prompt_root
+            prompt_path = prompt_root / f"{template_name}.txt"
             if not prompt_path.exists():
                 return ComponentResult(
                     component_id=self.component_id,
                     ok=False,
-                    data={"error": f"Template not found: {template_name}"},
+                    data={
+                        "error": f"Template not found: {template_name} at {prompt_path}"
+                    },
                     phase=self.phase,
                     confidence=0.0,
                 )
@@ -76,7 +109,11 @@ class PromptAnalyzer(Component):
             confidence = (
                 1.0
                 if not missing_keys
-                else max(0.0, 1.0 - (len(missing_keys) / len(placeholders)))
+                else (
+                    max(0.0, 1.0 - (len(missing_keys) / len(placeholders)))
+                    if placeholders
+                    else 1.0
+                )
             )
 
             # 5. Assemble final prompt (if possible)

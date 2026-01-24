@@ -8,6 +8,7 @@ Constitutional Alignment:
 - Authority: CODE (Implementation of structural analysis)
 - SSOT: Aligns symbol keys with core.symbols DB schema (filepath::qualname)
 - Tracing: Mandatory DecisionTracer integration
+- Boundary: Requires CoreContext with git_service (no settings fallback)
 """
 
 from __future__ import annotations
@@ -17,7 +18,6 @@ import time
 from dataclasses import dataclass
 
 from shared.component_primitive import Component, ComponentPhase, ComponentResult
-from shared.config import settings
 from shared.context import CoreContext
 from shared.logger import getLogger
 from will.orchestration.decision_tracer import DecisionTracer
@@ -55,6 +55,10 @@ class SymbolExtractor(Component):
     - Skips private symbols (starting with _)
     - Skips explicit test files (test_*.py)
     - Skips dunder magic methods (except those requiring specific coverage)
+
+    Constitutional Requirement:
+    - MUST be initialized with CoreContext containing valid git_service
+    - Body layer components do not access settings directly
     """
 
     def __init__(self, context: CoreContext | None = None):
@@ -72,14 +76,27 @@ class SymbolExtractor(Component):
     ) -> ComponentResult:
         """
         Analyze a file and extract symbol metadata.
+
+        Constitutional Compliance:
+        - Requires valid CoreContext with git_service (no settings fallback)
+        - Returns error if context not provided (fail fast, dependency injection enforced)
         """
         start_time = time.time()
 
-        if self.context and self.context.git_service:
-            repo_root = self.context.git_service.repo_path
-        else:
-            repo_root = settings.REPO_PATH
+        # Constitutional boundary enforcement: Body requires proper context
+        if not self.context or not self.context.git_service:
+            return ComponentResult(
+                component_id=self.component_id,
+                ok=False,
+                data={
+                    "error": "SymbolExtractor requires CoreContext with git_service. "
+                    "Body layer components must not access settings directly."
+                },
+                phase=self.phase,
+                confidence=0.0,
+            )
 
+        repo_root = self.context.git_service.repo_path
         abs_path = (repo_root / file_path).resolve()
 
         if not abs_path.exists():

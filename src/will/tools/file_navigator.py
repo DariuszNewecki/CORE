@@ -8,6 +8,7 @@ Enforces constitutional boundaries (no access to .env, keys, or outside repo).
 Constitutional Alignment:
 - safe_by_default: Read-only access, path sanitation.
 - separation_of_concerns: Pure tool, no decision making.
+- boundary: Requires repo_root via dependency injection (no settings access)
 """
 
 from __future__ import annotations
@@ -15,7 +16,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
-from shared.config import settings
 from shared.logger import getLogger
 
 
@@ -47,10 +47,28 @@ class FileEntry:
 class FileNavigator:
     """
     Safe filesystem explorer for agents.
+
+    Constitutional Requirement:
+    - MUST be initialized with repo_root parameter (no settings fallback)
+    - Will layer components do not access settings directly
     """
 
-    def __init__(self, repo_root: Path | None = None):
-        self.root = (repo_root or settings.REPO_PATH).resolve()
+    def __init__(self, repo_root: Path):
+        """
+        Initialize FileNavigator with repository root.
+
+        Args:
+            repo_root: Repository root path (required for constitutional compliance)
+
+        Raises:
+            ValueError: If repo_root is None (no fallback allowed)
+        """
+        if repo_root is None:
+            raise ValueError(
+                "FileNavigator requires repo_root parameter. "
+                "Will layer components must not access settings directly."
+            )
+        self.root = repo_root.resolve()
 
     def _validate_path(self, rel_path: str) -> Path:
         """
@@ -149,5 +167,5 @@ class FileNavigator:
         except UnicodeDecodeError:
             return f"Error: File {path} appears to be binary or non-UTF-8."
         except Exception as e:
-            logger.error("Error reading {path}: %s", e)
+            logger.error("Error reading %s: %s", path, e)
             raise

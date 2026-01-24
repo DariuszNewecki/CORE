@@ -1,0 +1,136 @@
+# .intent/enforcement/mappings/architecture/privileged_boundaries.yaml
+#
+# Enforces constitutional infrastructure primitive access boundaries.
+# Implements hard gates that prevent architectural drift at import time.
+
+mappings:
+  # ==========================================================================
+  # DATABASE SESSION PRIMITIVE ACCESS
+  # Rule: architecture.boundary.database_session_access
+  # ==========================================================================
+  # Only infrastructure/Body/shared may import get_session directly
+  # Mind and Will layers MUST use dependency injection
+
+  architecture.boundary.database_session_access:
+    engine: ast_gate
+    params:
+      check_type: import_boundary
+      forbidden:
+        - "shared.infrastructure.database.session_manager.get_session"
+        - "core.infrastructure.db.get_session"
+        - "sqlalchemy.ext.asyncio.AsyncSession"
+    scope:
+      applies_to:
+        - "src/mind/**/*.py"
+        - "src/will/**/*.py"
+      excludes:
+        - "src/mind/**/test_*.py"
+        - "src/will/**/test_*.py"
+        - "tests/**"
+
+  # ==========================================================================
+  # SETTINGS PRIMITIVE ACCESS
+  # Rule: architecture.boundary.settings_access
+  # ==========================================================================
+  # Only infrastructure and bootstrap may import Settings directly
+  # All other components MUST receive configuration through abstraction
+
+  architecture.boundary.settings_access:
+    engine: ast_gate
+    params:
+      check_type: import_boundary
+      forbidden:
+        - "shared.config.Settings"
+        - "core.infrastructure.config.Settings"
+        - "shared.config.settings"
+    scope:
+      applies_to:
+        - "src/body/**/*.py"
+        - "src/mind/**/*.py"
+        - "src/will/**/*.py"
+      excludes:
+        - "src/body/infrastructure/**/*.py"
+        - "src/body/**/test_*.py"
+        - "src/mind/**/test_*.py"
+        - "src/will/**/test_*.py"
+        - "tests/**"
+
+  # ==========================================================================
+  # INTENT LOADER ACCESS
+  # Rule: architecture.boundary.intent_loader_access
+  # ==========================================================================
+  # Only Mind layer may directly access .intent/ through IntentLoader
+  # All other components MUST query through Mind services
+
+  architecture.boundary.intent_loader_access:
+    engine: ast_gate
+    params:
+      check_type: import_boundary
+      forbidden:
+        - "core.intent.loader.IntentLoader"
+        - "mind.intent.loader.IntentLoader"
+    scope:
+      applies_to:
+        - "src/body/**/*.py"
+        - "src/will/**/*.py"
+      excludes:
+        - "src/body/cli/commands/governance.py" # Governance tooling exception
+        - "src/body/**/test_*.py"
+        - "src/will/**/test_*.py"
+        - "tests/**"
+
+  # ==========================================================================
+  # FILE HANDLER ACCESS
+  # Rule: architecture.boundary.file_handler_access
+  # ==========================================================================
+  # Only Body and infrastructure may instantiate FileHandler
+  # Mind (law) and Will (decision) must delegate I/O to Body
+
+  architecture.boundary.file_handler_access:
+    engine: ast_gate
+    params:
+      check_type: import_boundary
+      forbidden:
+        - "core.body.services.file_handler.FileHandler"
+        - "body.services.file_handler.FileHandler"
+        - "shared.infrastructure.storage.file_handler.FileHandler"
+    scope:
+      applies_to:
+        - "src/mind/**/*.py"
+        - "src/will/**/*.py"
+      excludes:
+        - "src/will/agents/**/*.py" # Agents may coordinate Body file operations
+        - "src/mind/**/test_*.py"
+        - "src/will/**/test_*.py"
+        - "tests/**"
+
+  # ==========================================================================
+  # LLM CLIENT ACCESS
+  # Rule: architecture.boundary.llm_client_access
+  # ==========================================================================
+  # Only Will layer may invoke LLM infrastructure
+  # Body (execution) and Mind (law) must not make AI decisions
+
+  architecture.boundary.llm_client_access:
+    engine: ast_gate
+    params:
+      check_type: import_boundary
+      forbidden:
+        - "shared.infrastructure.llm.client"
+        - "core.infrastructure.llm"
+        - "will.agents"
+    scope:
+      applies_to:
+        - "src/body/**/*.py"
+        - "src/mind/**/*.py"
+      excludes:
+        - "src/body/cli/commands/autonomous.py" # CLI may invoke Will agents
+        - "src/mind/logic/engines/llm_gate/**/*.py" # LLM Gate uses LLM for eval
+        - "src/body/**/test_*.py"
+        - "src/mind/**/test_*.py"
+        - "tests/**"
+# ==============================================================================
+# Meta: This mapping enforces constitutional boundaries by preventing
+# direct infrastructure primitive imports. Violations indicate architectural
+# drift from Mind/Body/Will separation.
+# ==============================================================================

@@ -11,6 +11,9 @@ Executes the six mandatory quality gates:
 4. pip-audit - Security vulnerabilities
 5. radon - Complexity analysis
 6. vulture - Dead code detection
+
+Constitutional Alignment:
+- Uses CoreContext for repo_path (no direct settings access)
 """
 
 from __future__ import annotations
@@ -22,13 +25,12 @@ from rich.console import Console
 from rich.table import Table
 
 from shared.cli_utils import core_command
-from shared.config import settings
 
 
 console = Console()
 
 
-@core_command(dangerous=False, requires_context=False)
+@core_command(dangerous=False, requires_context=True)
 # ID: db25d01d-f735-4df1-ac36-f8402e09a722
 def quality_gates_cmd(
     ctx: typer.Context,
@@ -39,8 +41,15 @@ def quality_gates_cmd(
     Run all quality gates (ruff, mypy, coverage, security, complexity, dead code).
 
     This command executes all six industry-standard quality checks and reports results.
+
+    Constitutional Compliance:
+    - Receives repo_path from CoreContext (no settings access)
     """
     console.print("\n[bold blue]🔍 Running Quality Gates[/bold blue]\n")
+
+    # Constitutional: Get repo_path from context
+    core_context = ctx.obj
+    repo_path = core_context.git_service.repo_path
 
     results = []
 
@@ -49,13 +58,16 @@ def quality_gates_cmd(
     ruff_result = _run_check(
         "ruff check src/",
         "Ruff Linting",
+        repo_path,
         fix_cmd="ruff check src/ --fix" if fix else None,
     )
     results.append(ruff_result)
 
     # Gate 2: MyPy (Type Checking)
     console.print("[cyan]2/6 Running mypy...[/cyan]")
-    mypy_result = _run_check("mypy src/ --ignore-missing-imports", "MyPy Type Checking")
+    mypy_result = _run_check(
+        "mypy src/ --ignore-missing-imports", "MyPy Type Checking", repo_path
+    )
     results.append(mypy_result)
 
     # Gate 3: Pytest (Coverage)
@@ -63,25 +75,29 @@ def quality_gates_cmd(
     coverage_result = _run_check(
         "pytest --cov=src --cov-report=term-missing --cov-fail-under=75 -q",
         "Test Coverage",
+        repo_path,
     )
     results.append(coverage_result)
 
     # Gate 4: pip-audit (Security)
     console.print("[cyan]4/6 Running pip-audit...[/cyan]")
-    security_result = _run_check("pip-audit", "Security Audit")
+    security_result = _run_check("pip-audit", "Security Audit", repo_path)
     results.append(security_result)
 
     # Gate 5: Radon (Complexity)
     console.print("[cyan]5/6 Running radon complexity...[/cyan]")
     complexity_result = _run_check(
-        "radon cc src/ -nc -a", "Complexity Analysis", is_warning=True
+        "radon cc src/ -nc -a", "Complexity Analysis", repo_path, is_warning=True
     )
     results.append(complexity_result)
 
     # Gate 6: Vulture (Dead Code)
     console.print("[cyan]6/6 Running vulture...[/cyan]")
     deadcode_result = _run_check(
-        "vulture src/ --min-confidence 80", "Dead Code Detection", is_warning=True
+        "vulture src/ --min-confidence 80",
+        "Dead Code Detection",
+        repo_path,
+        is_warning=True,
     )
     results.append(deadcode_result)
 
@@ -97,16 +113,29 @@ def quality_gates_cmd(
 
 
 def _run_check(
-    command: str, name: str, fix_cmd: str | None = None, is_warning: bool = False
+    command: str,
+    name: str,
+    repo_path,
+    fix_cmd: str | None = None,
+    is_warning: bool = False,
 ) -> dict:
-    """Run a single quality check command."""
+    """
+    Run a single quality check command.
+
+    Args:
+        command: Shell command to execute
+        name: Display name for the check
+        repo_path: Repository root path from CoreContext
+        fix_cmd: Optional fix command to run first
+        is_warning: Whether failures are warnings vs errors
+    """
     try:
         # Try to fix first if fix_cmd provided
         if fix_cmd:
             subprocess.run(fix_cmd, shell=True, check=False, capture_output=True)
 
         result = subprocess.run(
-            command, shell=True, capture_output=True, text=True, cwd=settings.REPO_PATH
+            command, shell=True, capture_output=True, text=True, cwd=repo_path
         )
 
         passed = result.returncode == 0

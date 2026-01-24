@@ -1,5 +1,10 @@
 # src/body/cli/commands/coverage/check_commands.py
-"""Coverage checking and reporting commands."""
+"""
+Coverage checking and reporting commands.
+
+Constitutional Alignment:
+- Uses CoreContext for repo_path and policy access (no direct settings access)
+"""
 
 from __future__ import annotations
 
@@ -10,7 +15,6 @@ from rich.console import Console
 from rich.table import Table
 
 from shared.cli_utils import core_command
-from shared.config import settings
 from shared.context import CoreContext
 from shared.logger import getLogger
 
@@ -127,10 +131,25 @@ def coverage_report(
 def show_targets(ctx: typer.Context) -> None:
     """
     Shows constitutional coverage targets directly from the quality_assurance policy.
+
+    Constitutional Compliance:
+    - Accesses policy files through Intent system (not direct settings.paths)
     """
     console.print("[bold cyan]🎯 Constitutional Coverage Targets[/bold cyan]\n")
+
+    core_context: CoreContext = ctx.obj
+
     try:
-        policy_path = settings.paths.policy("quality_assurance")
+        # Constitutional: Construct policy path from repo root
+        repo_root = core_context.git_service.repo_path
+        policy_path = repo_root / ".intent" / "policies" / "quality_assurance.json"
+
+        if not policy_path.exists():
+            console.print(
+                "[yellow]Quality assurance policy not found in .intent/policies/[/yellow]"
+            )
+            return
+
         content = policy_path.read_text(encoding="utf-8")
         data = json.loads(content) if policy_path.suffix == ".json" else {}
 
@@ -145,7 +164,8 @@ def show_targets(ctx: typer.Context) -> None:
                 console.print(f"  • [bold]{rule_id}[/bold] ({status})")
                 console.print(f"    [dim]{rule.get('statement')}[/dim]\n")
 
-    except Exception:
+    except Exception as e:
+        logger.error("Error loading coverage policy: %s", e, exc_info=True)
         console.print("[yellow]Could not load coverage policy from the Mind.[/yellow]")
 
 

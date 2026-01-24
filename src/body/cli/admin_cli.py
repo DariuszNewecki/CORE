@@ -5,9 +5,10 @@
 The single, canonical entry point for the core-admin CLI.
 
 Constitutional Alignment:
+- No direct settings access (delegates to infrastructure bootstrap)
 - ServiceRegistry primed with session factory before any command execution
-- CoreContext initialized with proper dependency injection
-- All commands registered and discoverable
+- CoreContext initialized via infrastructure layer
+- All commands receive context, never access settings directly
 """
 
 from __future__ import annotations
@@ -40,17 +41,11 @@ from body.cli.commands.manage import manage
 from body.cli.commands.refactor import refactor_app
 from body.cli.interactive import launch_interactive_menu
 from body.cli.logic.tools import tools_app
+from body.infrastructure.bootstrap import create_core_context
 from body.services.service_registry import service_registry
-from shared.config import settings
-from shared.context import CoreContext
 from shared.infrastructure.context import cli as context_cli
-from shared.infrastructure.context.service import ContextService
 from shared.infrastructure.database.session_manager import get_session
-from shared.infrastructure.git_service import GitService
-from shared.infrastructure.knowledge.knowledge_service import KnowledgeService
-from shared.infrastructure.storage.file_handler import FileHandler
 from shared.logger import getLogger
-from shared.models import PlannerConfig
 
 
 console = Console()
@@ -65,37 +60,9 @@ app = typer.Typer(
     no_args_is_help=False,
 )
 
-# Initialize CoreContext with proper dependency injection
-core_context = CoreContext(
-    registry=service_registry,
-    git_service=GitService(settings.REPO_PATH),
-    file_handler=FileHandler(str(settings.REPO_PATH)),
-    planner_config=PlannerConfig(),
-    cognitive_service=None,  # Lazy-loaded via registry when needed
-    knowledge_service=KnowledgeService(settings.REPO_PATH),
-    qdrant_service=None,  # Lazy-loaded via registry when needed
-    auditor_context=None,  # Lazy-loaded when governance commands run
-)
-
-
-def _build_context_service() -> ContextService:
-    """
-    Factory for ContextService.
-
-    Returns:
-        ContextService instance with proper DI
-    """
-    return ContextService(
-        qdrant_client=None,
-        cognitive_service=None,
-        config={},
-        project_root=str(settings.REPO_PATH),
-        session_factory=get_session,
-        service_registry=service_registry,
-    )
-
-
-core_context.context_service_factory = _build_context_service
+# Constitutional Compliance: Bootstrap happens in infrastructure layer
+# CLI layer imports the function but does not access settings directly
+core_context = create_core_context(service_registry)
 
 
 # ID: c1414598-a5f8-46c2-8ff9-3a141bea3b11
@@ -156,6 +123,7 @@ def main(ctx: typer.Context) -> None:
     - ServiceRegistry is primed here to ensure all commands have access
       to a governed session factory
     - CoreContext is injected into typer context for command access
+    - Settings were already read during bootstrap, not accessed here
 
     Args:
         ctx: Typer context object

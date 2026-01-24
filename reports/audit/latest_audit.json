@@ -1,8 +1,8 @@
 {
-  "audit_id": "3a8f722d-fe99-414d-8dd4-c6177b1ff8ac",
-  "timestamp": "2026-01-20T22:10:22Z",
+  "audit_id": "b95e6700-82dc-4de2-b9c8-628508fcfed4",
+  "timestamp": "2026-01-24T12:16:09Z",
   "passed": false,
-  "findings_count": 93,
-  "error_count": 12,
+  "findings_count": 176,
+  "error_count": 95,
   "warning_count": 66
 }
