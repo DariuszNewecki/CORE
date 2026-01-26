@@ -49,7 +49,7 @@ PHASE_IMPLEMENTATIONS = {
     "code_generation": "will.phases.code_generation_phase.CodeGenerationPhase",
     "test_generation": "will.phases.test_generation_phase.TestGenerationPhase",
     "canary_validation": "will.phases.canary_validation_phase.CanaryValidationPhase",
-    "sandbox_validation": "will.phases.stub_phases.SandboxValidationPhase",  # Still stub
+    "sandbox_validation": "will.phases.sandbox_validation_phase.SandboxValidationPhase",
     "style_check": "will.phases.style_check_phase.StyleCheckPhase",
     "execution": "will.phases.execution_phase.ExecutionPhase",
 }
