@@ -19,7 +19,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from features.autonomy.autonomous_developer_v2 import develop_from_goal_v2
+from features.autonomy.autonomous_developer import develop_from_goal
 from mind.governance.enforcement_loader import EnforcementMappingLoader
 from mind.logic.engines.ast_gate.checks.modularity_checks import ModularityChecker
 from shared.config import settings
@@ -127,7 +127,7 @@ class ModularityRemediationServiceV2:
 
         # Execute using refactor_modularity workflow
         # This workflow does NOT generate tests
-        success, message = await develop_from_goal_v2(
+        success, message = await develop_from_goal(
             context=self.context,
             goal=goal,
             workflow_type="refactor_modularity",  # ← Explicit workflow
