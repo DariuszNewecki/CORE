@@ -28,7 +28,7 @@ import time
 from typing import TYPE_CHECKING
 
 from body.services.file_service import FileService
-from features.test_generation_v2.sandbox import PytestSandboxRunner
+from features.test_generation.sandbox import PytestSandboxRunner
 from shared.infrastructure.context.limb_workspace import LimbWorkspace
 from shared.logger import getLogger
 from shared.models.execution_models import DetailedPlan, DetailedPlanStep
