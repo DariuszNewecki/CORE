@@ -13,8 +13,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from body.services.service_registry import service_registry
-from features.autonomy.autonomous_developer_v2 import develop_from_goal
+from features.autonomy.autonomous_developer import develop_from_goal
 from mind.governance.enforcement_loader import EnforcementMappingLoader
 from mind.logic.engines.ast_gate.checks.modularity_checks import ModularityChecker
 from shared.config import settings
@@ -130,14 +129,12 @@ class ModularityRemediationService:
         )
 
         # 3. Trigger A3 Developer (Planning -> Specification -> Execution)
-        async with service_registry.session() as session:
-            success, action_res = await develop_from_goal(
-                session=session,
-                context=self.context,
-                goal=auto_goal,
-                output_mode="crate",
-                write=write,
-            )
+        success, action_res = await develop_from_goal(
+            context=self.context,
+            goal=auto_goal,
+            workflow_type="refactor_modularity",
+            write=write,
+        )
 
         message = "Autonomous process completed."
 
