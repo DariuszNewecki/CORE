@@ -8,11 +8,12 @@ This is the conductor - coordinates generation, repair, execution, and fixing.
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Any
 
 from features.self_healing.complexity_filter import ComplexityFilter
 from mind.governance.audit_context import AuditorContext
-from shared.config import settings
+from shared.infrastructure.storage.file_handler import FileHandler
 from shared.logger import getLogger
 from will.orchestration.cognitive_service import CognitiveService
 
@@ -41,36 +42,53 @@ class EnhancedTestGenerator:
     4. Execute tests and fix individual failures
     """
 
-    def __init__(
-        self,
-        cognitive_service: CognitiveService,
-        auditor_context: AuditorContext,
-        use_iterative_fixing: bool = True,
-        max_fix_attempts: int = 3,
-        max_complexity: str = "MODERATE",
-    ):
-        auto_repair = AutomaticRepairService()
-        complexity_filter = ComplexityFilter(max_complexity=max_complexity)
 
-        self.generation = GenerationWorkflow(
-            cognitive_service, complexity_filter, auto_repair, max_complexity
-        )
-        self.validator = TestValidator(auditor_context)
-        self.repair = RepairWorkflow(
-            auto_repair,
-            LLMCorrectionService(cognitive_service, auditor_context),
-            self.validator,
-            max_fix_attempts,
-        )
-        self.executor = TestExecutor()
-        self.test_fixer = SingleTestFixer(cognitive_service, max_attempts=3)
-        self.failure_parser = TestFailureParser()
-        self.scorer = TestScorer()
-        self.use_iterative_fixing = use_iterative_fixing
+def __init__(
+    self,
+    cognitive_service: CognitiveService,
+    auditor_context: AuditorContext,
+    file_handler: FileHandler,
+    repo_root: Path,
+    use_iterative_fixing: bool = True,
+    max_fix_attempts: int = 3,
+    max_complexity: str = "MODERATE",
+):
+    auto_repair = AutomaticRepairService()
+    complexity_filter = ComplexityFilter(max_complexity=max_complexity)
+
+    self.generation = GenerationWorkflow(
+        cognitive_service,
+        complexity_filter,
+        auto_repair,
+        file_handler,
+        repo_root,
+        max_complexity,
+    )
+    self.validator = TestValidator(auditor_context)
+    self.repair = RepairWorkflow(
+        auto_repair,
+        LLMCorrectionService(cognitive_service, auditor_context),
+        self.validator,
+        max_fix_attempts,
+    )
+    self.executor = TestExecutor()
+    self.test_fixer = SingleTestFixer(
+        cognitive_service, file_handler, repo_root, max_attempts=3
+    )
+    self.failure_parser = TestFailureParser()
+    self.scorer = TestScorer()
+    self.use_iterative_fixing = use_iterative_fixing
+    self.repo_root = repo_root
 
     # ID: 04ccde33-fbfa-481e-8b53-b6f9df07c80f
     async def generate_test(
-        self, module_path: str, test_file: str, goal: str, target_coverage: float
+        self,
+        module_path: str,
+        test_file: str,
+        goal: str,
+        target_coverage: float,
+        file_handler: FileHandler,
+        repo_root: Path,
     ) -> dict[str, Any]:
         """Main entry point for enhanced test generation with self-correction."""
         logger.info("Starting enhanced test generation for %s", module_path)
@@ -102,7 +120,10 @@ class EnhancedTestGenerator:
         # Execute tests
         current_code = repair_result["code"]
         execution_result = await self.executor.execute_test(
-            test_file=test_file, code=current_code
+            test_file=test_file,
+            code=current_code,
+            file_handler=file_handler,
+            repo_root=repo_root,
         )
 
         if execution_result.get("status") == "success":
@@ -111,13 +132,24 @@ class EnhancedTestGenerator:
 
         if execution_result.get("status") == "failed":
             return await self._handle_test_failures(
-                test_file, module_path, module_context, execution_result
+                test_file,
+                module_path,
+                module_context,
+                execution_result,
+                file_handler,
+                repo_root,
             )
 
         return execution_result
 
     async def _handle_test_failures(
-        self, test_file: str, module_path: str, module_context, execution_result: dict
+        self,
+        test_file: str,
+        module_path: str,
+        module_context,
+        execution_result: dict,
+        file_handler: FileHandler,
+        repo_root: Path,
     ) -> dict[str, Any]:
         """Handle and attempt to fix failing tests."""
         logger.warning("Tests generated but some failed when executed")
@@ -155,7 +187,13 @@ class EnhancedTestGenerator:
 
         # Re-run tests after fixes
         return await self._rerun_after_fixes(
-            test_file, fixed_count, initial_passed, initial_total, initial_score
+            test_file,
+            fixed_count,
+            initial_passed,
+            initial_total,
+            initial_score,
+            file_handler,
+            repo_root,
         )
 
     async def _fix_individual_tests(
@@ -167,12 +205,10 @@ class EnhancedTestGenerator:
         fixed_count = 0
         for failure in failures:
             fix_result = await self.test_fixer.fix_test(
-                test_file=settings.REPO_PATH / test_file,
+                test_file=self.repo_root / test_file,
                 test_name=failure["test_name"],
                 failure_info=failure,
-                source_file=(
-                    settings.REPO_PATH / module_path if module_context else None
-                ),
+                source_file=(self.repo_root / module_path if module_context else None),
             )
             if fix_result.get("status") == "fixed":
                 fixed_count += 1
@@ -189,11 +225,13 @@ class EnhancedTestGenerator:
         initial_passed: int,
         initial_total: int,
         initial_score: str,
+        file_handler: FileHandler,
+        repo_root: Path,
     ) -> dict[str, Any]:
         """Re-run tests after fixes and return results."""
         logger.info("Re-running tests after fixing %s tests...", fixed_count)
 
-        test_file_path = settings.REPO_PATH / test_file
+        test_file_path = self.repo_root / test_file
         try:
             modified_code = test_file_path.read_text()
             import ast
@@ -209,7 +247,10 @@ class EnhancedTestGenerator:
             }
 
         final_result = await self.executor.execute_test(
-            test_file=test_file, code=modified_code
+            test_file=test_file,
+            code=modified_code,
+            file_handler=file_handler,
+            repo_root=repo_root,
         )
         final_output = final_result.get("output", "")
         final_passed = self.scorer.count_passed(final_output)

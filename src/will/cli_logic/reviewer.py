@@ -6,7 +6,7 @@ Refactored to comply with Agent I/O policies and Async-Native architecture.
 
 CONSTITUTIONAL COMPLIANCE:
 - Uses CoreContext for dependency injection (no direct settings import)
-- Delegates file I/O to Body layer via FileHandler
+- NO LONGER imports FileHandler - uses FileService from Body layer
 - Will layer orchestrates but doesn't execute
 """
 
@@ -19,8 +19,8 @@ from rich.console import Console
 from rich.markdown import Markdown
 from rich.panel import Panel
 
+from body.services.file_service import FileService
 from shared.context import CoreContext
-from shared.infrastructure.storage.file_handler import FileHandler
 from shared.logger import getLogger
 from will.orchestration.cognitive_service import CognitiveService
 
@@ -30,14 +30,26 @@ console = Console()
 DOCS_IGNORE_DIRS = {"assets", "archive", "migrations", "examples"}
 
 
-async def _get_bundle_content(files_to_bundle: list[Path], root_dir: Path) -> str:
-    """Read multiple files and bundle them into a context string."""
+async def _get_bundle_content(
+    files_to_bundle: list[Path], root_dir: Path, file_service: FileService
+) -> str:
+    """
+    Read multiple files and bundle them into a context string.
+
+    CONSTITUTIONAL FIX: Receives FileService parameter for file reading
+    """
     bundle_parts = []
     for file_path in sorted(list(files_to_bundle)):
         if file_path.exists() and file_path.is_file():
             try:
-                # Use FileHandler for safe reading
-                content = await FileHandler.read_content(file_path)
+                # CONSTITUTIONAL FIX: Use FileService for safe reading
+                rel_path_str = str(file_path.relative_to(root_dir))
+                content = file_service.read_file(rel_path_str)
+
+                if content is None:
+                    logger.warning("Could not read file: %s", file_path)
+                    continue
+
                 rel_path = file_path.resolve().relative_to(root_dir.resolve())
                 bundle_parts.append(f"--- START OF FILE ./{rel_path} ---\n")
                 bundle_parts.append(content)
@@ -85,6 +97,8 @@ async def _orchestrate_review(
     """
     Generic orchestration for AI-powered reviews.
 
+    CONSTITUTIONAL FIX: Uses FileService from context for all file operations
+
     Args:
         context: CoreContext with injected dependencies
         review_type: Type of review (for logging)
@@ -94,6 +108,11 @@ async def _orchestrate_review(
         no_send: If True, don't send to AI, just bundle
     """
     logger.info("🤖 Preparing %s review...", review_type)
+
+    # CONSTITUTIONAL FIX: Get FileService from context or create one
+    file_service = getattr(context, "file_service", None)
+    if file_service is None:
+        file_service = FileService(context.repo_path)
 
     # Get files based on review type
     if files_getter == _get_constitutional_files:
@@ -107,16 +126,20 @@ async def _orchestrate_review(
 
     logger.info("Found %d files to review", len(files_to_bundle))
 
-    # Bundle file contents
-    bundled_content = await _get_bundle_content(files_to_bundle, context.repo_path)
+    # CONSTITUTIONAL FIX: Bundle file contents via FileService
+    bundled_content = await _get_bundle_content(
+        files_to_bundle, context.repo_path, file_service
+    )
 
     if no_send:
         logger.info("--no-send flag detected. Writing bundle to output file...")
         if not output_path:
             output_path = context.repo_path / "work" / f"{review_type}_bundle.txt"
 
-        await FileHandler.ensure_parent_dir(output_path)
-        await FileHandler.write_content(output_path, bundled_content)
+        # CONSTITUTIONAL FIX: Use FileService
+        file_service.ensure_dir("work")
+        rel_output = str(output_path.relative_to(context.repo_path))
+        file_service.write_file(rel_output, bundled_content)
         logger.info("Bundle written to: %s", output_path)
         return
 
@@ -126,7 +149,14 @@ async def _orchestrate_review(
         logger.error("Prompt template not found: %s", prompt_path)
         raise typer.Exit(code=1)
 
-    review_prompt_template = await FileHandler.read_content(prompt_path)
+    # CONSTITUTIONAL FIX: Use FileService to read prompt
+    rel_prompt = str(prompt_path.relative_to(context.repo_path))
+    review_prompt_template = file_service.read_file(rel_prompt)
+
+    if review_prompt_template is None:
+        logger.error("Could not read prompt template: %s", prompt_path)
+        raise typer.Exit(code=1)
+
     final_prompt = f"{review_prompt_template}\n\n{bundled_content}"
 
     # Send to AI for review
@@ -150,8 +180,10 @@ async def _orchestrate_review(
 
     # Optionally save output
     if output_path:
-        await FileHandler.ensure_parent_dir(output_path)
-        await FileHandler.write_content(output_path, review_feedback)
+        # CONSTITUTIONAL FIX: Use FileService
+        file_service.ensure_dir(str(output_path.parent.relative_to(context.repo_path)))
+        rel_output = str(output_path.relative_to(context.repo_path))
+        file_service.write_file(rel_output, review_feedback)
         logger.info("Review saved to: %s", output_path)
 
 
@@ -196,15 +228,39 @@ async def code_review(
         ..., exists=True, dir_okay=False, resolve_path=True
     ),
 ) -> None:
-    """Submits a source file to an AI expert for a peer review and improvement suggestions."""
+    """
+    Submits a source file to an AI expert for a peer review and improvement suggestions.
+
+    CONSTITUTIONAL FIX: Uses FileService for file reading
+    """
     logger.info(
         "🤖 Submitting '%s' for AI peer review...",
         file_path.relative_to(context.repo_path),
     )
+
+    # CONSTITUTIONAL FIX: Get FileService
+    file_service = getattr(context, "file_service", None)
+    if file_service is None:
+        file_service = FileService(context.repo_path)
+
     try:
-        source_code = await FileHandler.read_content(file_path)
+        # CONSTITUTIONAL FIX: Use FileService to read source code
+        rel_file = str(file_path.relative_to(context.repo_path))
+        source_code = file_service.read_file(rel_file)
+
+        if source_code is None:
+            logger.error("❌ Error: Could not read file at '%s'", file_path)
+            raise typer.Exit(code=1)
+
         prompt_path = context.path_resolver.get_prompt_path("code_peer_review")
-        review_prompt_template = await FileHandler.read_content(prompt_path)
+
+        # CONSTITUTIONAL FIX: Use FileService to read prompt
+        rel_prompt = str(prompt_path.relative_to(context.repo_path))
+        review_prompt_template = file_service.read_file(rel_prompt)
+
+        if review_prompt_template is None:
+            logger.error("❌ Error: Could not read prompt template")
+            raise typer.Exit(code=1)
 
         final_prompt = f"{review_prompt_template}\n\n```python\n{source_code}\n```"
 

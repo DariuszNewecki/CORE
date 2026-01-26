@@ -17,7 +17,6 @@ from shared.infrastructure.database.session_manager import get_session
 from . import (
     db_sub_app,
     dotenv_sub_app,
-    emergency_sub_app,
     keys_sub_app,
     patterns_sub_app,
     policies_sub_app,
@@ -42,7 +41,6 @@ manage_app.add_typer(keys_sub_app, name="keys")
 manage_app.add_typer(patterns_sub_app, name="patterns")
 manage_app.add_typer(policies_sub_app, name="policies")
 manage_app.add_typer(vectors_sub_app, name="vectors")
-manage_app.add_typer(emergency_sub_app, name="emergency")
 
 
 @manage_app.command("define-symbols")

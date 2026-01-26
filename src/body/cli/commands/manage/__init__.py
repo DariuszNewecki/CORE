@@ -8,7 +8,6 @@ from __future__ import annotations
 
 from .database import db_sub_app
 from .dotenv import dotenv_sub_app
-from .emergency import app as emergency_sub_app
 from .keys import keys_sub_app
 from .patterns import patterns_sub_app
 from .policies import policies_sub_app
@@ -20,7 +19,6 @@ from .vectors import app as vectors_sub_app
 __all__ = [
     "db_sub_app",
     "dotenv_sub_app",
-    "emergency_sub_app",
     "keys_sub_app",
     "patterns_sub_app",
     "policies_sub_app",

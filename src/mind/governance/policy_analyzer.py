@@ -16,6 +16,7 @@ from pathlib import Path
 import yaml
 
 from shared.logger import getLogger
+from shared.utils.path_utils import iter_files_by_extension
 
 
 logger = getLogger(__name__)
@@ -94,14 +95,19 @@ class PolicyAnalyzer:
 
     def _extract_rules(self):
         """Extract all atomic rules from constitutional documents."""
-        for yaml_file in self.constitution_path.glob("*.yaml"):
-            if "META" in yaml_file.name.upper():
-                continue
+        yaml_files = iter_files_by_extension(
+            self.constitution_path,
+            (".yaml",),
+            recursive=False,  # Only top-level
+        )
+        # Filter out META files
+        yaml_files = [f for f in yaml_files if "META" not in f.name.upper()]
 
+        for yaml_file in yaml_files:
             try:
                 content = yaml.safe_load(yaml_file.read_text())
             except Exception as e:
-                logger.warning("Failed to parse {yaml_file.name}: %s", e)
+                logger.warning("Failed to parse %s: %s", yaml_file.name, e)
                 continue
 
             if "principles" not in content:

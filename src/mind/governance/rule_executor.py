@@ -5,6 +5,10 @@ Rule Executor - Executes constitutional rules via their declared engines.
 CONSTITUTIONAL ALIGNMENT:
 - Aligned with 'async.no_manual_loop_run'.
 - Uses natively async engine dispatch to prevent loop hijacking.
+
+CONSTITUTIONAL FIX:
+- Context-level engines now respect rule enforcement levels (advisory/warning/blocking)
+- Previously all workflow_gate violations showed as ERROR regardless of enforcement setting
 """
 
 from __future__ import annotations
@@ -85,9 +89,20 @@ async def execute_rule(
             rule.engine,
         )
 
+        # CONSTITUTIONAL FIX: Map enforcement level to severity for context-level engines
+        # This was missing - file-level engines got this mapping but context-level didn't
+        severity = _map_enforcement_to_severity(rule.enforcement)
+
         try:
             if hasattr(engine, "verify_context"):
                 findings_from_engine = await engine.verify_context(context, rule.params)
+
+                # CONSTITUTIONAL FIX: Override engine-provided severity with rule's enforcement level
+                # Engines may return hardcoded ERROR severity, but the rule's enforcement setting
+                # takes precedence (advisory → INFO, reporting → WARNING, blocking → ERROR)
+                for finding in findings_from_engine:
+                    finding.severity = severity
+
                 findings.extend(findings_from_engine)
             else:
                 logger.error(

@@ -29,6 +29,12 @@ class LlmResource(Base):
         DateTime(timezone=True), server_default=func.now()
     )
 
+    @property
+    # ID: 33c48ee0-702a-4b4c-9a4d-fb23a450f432
+    def resource_name(self) -> str:
+        """Backwards-compatible alias (legacy code expects resource_name)."""
+        return self.name
+
 
 # ID: 27c701a5-a757-446e-8104-ccfd9b61f068
 class CognitiveRole(Base):
@@ -47,6 +53,12 @@ class CognitiveRole(Base):
     created_at: Mapped[Any] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
+
+    @property
+    # ID: 5210b0f9-7c47-48ed-bbd3-699c4957d19c
+    def role_name(self) -> str:
+        """Backwards-compatible alias (legacy code expects role_name)."""
+        return self.role
 
 
 # ID: d146d539-6a23-4850-a7e7-f38ba45e7ca6

@@ -1,16 +1,26 @@
 # src/mind/governance/constitutional_monitor.py
 
 """
-Constitutional Monitor - Mind-layer orchestrator for constitutional compliance auditing.
+Constitutional Monitor - BACKWARD COMPATIBILITY WRAPPER
 
-This module provides high-level constitutional governance operations by coordinating
-between AuditorContext and remediation handlers. It implements the Mind layer's
-responsibility for decision-making about constitutional violations.
+CONSTITUTIONAL FIX: This file is now a thin wrapper that delegates to the new architecture.
 
-CONSTITUTIONAL FIX:
-- Aligned with 'governance.artifact_mutation.traceable'.
-- Replaced direct Path writes with governed FileHandler mutations.
-- Enforces IntentGuard and audit logging for all header remediations.
+OLD (VIOLATION):
+- ConstitutionalMonitor in Mind layer did both orchestration AND execution
+- Mind layer executed remediation (constitutional violation)
+
+NEW (COMPLIANT):
+- RemediationOrchestrator (Will layer) - orchestration only
+- RemediationService (Body layer) - execution only
+- This file: Thin wrapper for backward compatibility
+
+DEPRECATION NOTICE:
+This wrapper maintains backward compatibility while codebase migrates.
+New code should use:
+- will.orchestration.remediation_orchestrator.RemediationOrchestrator
+- body.governance.remediation_service.RemediationService
+
+This file will be removed in a future version once all imports are updated.
 """
 
 from __future__ import annotations
@@ -19,47 +29,33 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Protocol
 
-from mind.governance.audit_context import AuditorContext
-from shared.infrastructure.storage.file_handler import FileHandler
 from shared.logger import getLogger
-from shared.utils.header_tools import _HeaderTools
+from will.orchestration.remediation_orchestrator import (
+    AuditReport,
+    RemediationOrchestrator,
+    Violation,
+)
 
 
 logger = getLogger(__name__)
 
 
+# Re-export types for backward compatibility
+__all__ = [
+    "AuditReport",
+    "ConstitutionalMonitor",
+    "KnowledgeGraphBuilderProtocol",
+    "RemediationResult",
+    "Violation",
+]
+
+
 # ID: e6f558e7-0ce7-41c8-9612-82a0c2c3f0ab
 class KnowledgeGraphBuilderProtocol(Protocol):
-    # ID: 28aecdd5-ffb5-4924-9828-55adfce438a2
+    """Protocol for knowledge graph builder dependency."""
+
+    # ID: 0d483f8e-d7cd-45b9-9f9e-3758f1c8721e
     async def build_and_sync(self) -> None: ...
-
-
-@dataclass
-# ID: 9da005f9-65db-4d26-acf3-2e8b79f5c39f
-class Violation:
-    """Represents a single constitutional violation."""
-
-    file_path: str
-    policy_id: str
-    description: str
-    severity: str
-    remediation_handler: str | None = None
-
-
-@dataclass
-# ID: 835e78b0-af57-4a86-a29a-5bfc4dc7fbbe
-class AuditReport:
-    """Results of a constitutional audit."""
-
-    policy_category: str
-    violations: list[Violation]
-    total_files_scanned: int
-    compliant_files: int
-
-    @property
-    # ID: dc6f0026-b443-4cb0-89a5-5fae9680241b
-    def has_violations(self) -> bool:
-        return len(self.violations) > 0
 
 
 @dataclass
@@ -76,10 +72,28 @@ class RemediationResult:
 # ID: 92f0a6fd-f647-4248-9776-26f2eefc9b1c
 class ConstitutionalMonitor:
     """
-    Mind-layer orchestrator for constitutional compliance and remediation.
+    BACKWARD COMPATIBILITY WRAPPER
 
-    This class coordinates between AuditorContext and autonomous remediation,
-    using the HeaderTools for actual header manipulation.
+    This class maintains the old API while delegating to the new
+    constitutionally-compliant architecture.
+
+    Constitutional Architecture:
+    - Will layer: RemediationOrchestrator (orchestration)
+    - Body layer: RemediationService (execution)
+    - This wrapper: Maintains old API during migration
+
+    DEPRECATED: Use RemediationOrchestrator directly from Will layer
+
+    Migration Path:
+        OLD:
+            from mind.enforcement.constitutional_monitor import ConstitutionalMonitor
+            monitor = ConstitutionalMonitor(repo_path)
+            result = await monitor.remediate_missing_headers_async()
+
+        NEW:
+            from will.orchestration.remediation_orchestrator import RemediationOrchestrator
+            orchestrator = RemediationOrchestrator(repo_path)
+            result = await orchestrator.remediate_missing_headers_async()
     """
 
     def __init__(
@@ -88,164 +102,119 @@ class ConstitutionalMonitor:
         knowledge_builder: KnowledgeGraphBuilderProtocol | None = None,
     ):
         """
-        Initialize the constitutional monitor.
+        Initialize constitutional monitor (compatibility wrapper).
 
         Args:
-            repo_path: Root path of the repository to monitor
-            knowledge_builder: Optional knowledge graph builder for post-remediation updates
+            repo_path: Root path of the repository
+            knowledge_builder: Optional knowledge graph builder
+
+        Note:
+            This wrapper delegates all operations to the new architecture.
         """
         self.repo_path = Path(repo_path)
-        self.auditor = AuditorContext(self.repo_path)
         self.knowledge_builder = knowledge_builder
 
-        # CONSTITUTIONAL FIX: Use FileHandler for all mutations
-        self.file_handler = FileHandler(str(self.repo_path))
+        # CONSTITUTIONAL FIX: Delegate to Will layer orchestrator
+        self._orchestrator = RemediationOrchestrator(repo_path, knowledge_builder)
 
-        logger.info("ConstitutionalMonitor initialized for %s", self.repo_path)
+        logger.warning(
+            "ConstitutionalMonitor is deprecated. "
+            "Use will.orchestration.remediation_orchestrator.RemediationOrchestrator instead."
+        )
 
     # ID: dae8dd95-0ac1-4a96-8ef8-92a4326499b1
     def audit_headers(self) -> AuditReport:
         """
         Audit all Python files for header compliance.
 
-        Returns:
-            AuditReport containing all header violations found
-        """
-        logger.info("Starting constitutional header audit...")
-        all_py_files = [
-            str(p.relative_to(self.repo_path))
-            for p in (self.repo_path / "src").rglob("*.py")
-        ]
-        logger.info("Scanning %s files for header compliance...", len(all_py_files))
-        violation_objects = []
-        for file_path_str in all_py_files:
-            file_path = self.repo_path / file_path_str
-            try:
-                original_content = file_path.read_text(encoding="utf-8")
-                header = _HeaderTools.parse(original_content)
-                correct_location_comment = f"# {file_path_str}"
-                is_compliant = (
-                    header.location == correct_location_comment
-                    and header.module_description is not None
-                    and header.has_future_import
-                )
-                if not is_compliant:
-                    violations = []
-                    if header.location != correct_location_comment:
-                        violations.append("incorrect file location comment")
-                    if not header.module_description:
-                        violations.append("missing module docstring")
-                    if not header.has_future_import:
-                        violations.append("missing __future__ import")
-                    violation_objects.append(
-                        Violation(
-                            file_path=file_path_str,
-                            policy_id="header_compliance",
-                            description=f"Header violations: {', '.join(violations)}",
-                            severity="medium",
-                            remediation_handler="fix_header",
-                        )
-                    )
-            except Exception as e:
-                logger.warning("Could not process %s: %s", file_path_str, e)
-        compliant = len(all_py_files) - len(violation_objects)
-        logger.info(
-            "Header audit complete: %s violations across %s files",
-            len(violation_objects),
-            len(all_py_files),
-        )
-        return AuditReport(
-            policy_category="header_compliance",
-            violations=violation_objects,
-            total_files_scanned=len(all_py_files),
-            compliant_files=compliant,
-        )
+        DEPRECATED: Use RemediationOrchestrator.audit_headers() directly
 
-    # ID: 9245ffe5-a981-4fd3-818c-7efd7171c189
-    async def remediate_violations(
-        self, audit_report: AuditReport
-    ) -> RemediationResult:
+        Returns:
+            AuditReport with violations found
         """
-        Trigger autonomous remediation for constitutional violations.
+        # Delegate to Will layer
+        return self._orchestrator.audit_headers()
+
+    # ID: c1f4ea23-8f5d-4c9a-b2d7-9e3a5c8f6d1b
+    async def remediate_missing_headers_async(self) -> RemediationResult:
+        """
+        Remediate all files with missing headers.
+
+        DEPRECATED: Use RemediationOrchestrator.remediate_missing_headers_async() directly
+
+        Returns:
+            RemediationResult with execution results
+        """
+        # Delegate to Will layer
+        return await self._orchestrator.remediate_missing_headers_async()
+
+    # ID: e7b2c4f9-3a1d-4e5b-8c9f-2a6d7e3b4c5f
+    async def remediate_single_file_async(self, file_path: str) -> bool:
+        """
+        Remediate a single file.
+
+        DEPRECATED: Use RemediationOrchestrator.remediate_single_file_async() directly
 
         Args:
-            audit_report: The audit report containing violations to fix
+            file_path: Path to file to remediate
 
         Returns:
-            RemediationResult with success status and counts
+            True if remediation succeeded, False otherwise
         """
-        if not audit_report.violations:
-            logger.info("No violations to remediate")
-            return RemediationResult(success=True, fixed_count=0, failed_count=0)
-        logger.info(
-            "Starting remediation for %s violations...", len(audit_report.violations)
-        )
-        fixed_count = 0
-        failed_count = 0
-        for violation in audit_report.violations:
-            try:
-                if violation.remediation_handler == "fix_header":
-                    success = self._remediate_header_violation(violation)
-                    if success:
-                        fixed_count += 1
-                    else:
-                        failed_count += 1
-                else:
-                    logger.warning(
-                        "No remediation handler for %s", violation.remediation_handler
-                    )
-                    failed_count += 1
-            except Exception as e:
-                logger.error("Failed to remediate %s: %s", violation.file_path, e)
-                failed_count += 1
-        if fixed_count > 0 and self.knowledge_builder:
-            logger.info("🧠 Rebuilding knowledge graph to reflect all changes...")
-            await self.knowledge_builder.build_and_sync()
-            logger.info("✅ Knowledge graph successfully updated.")
-        logger.info(
-            "Remediation complete: %s fixed, %s failed", fixed_count, failed_count
-        )
-        return RemediationResult(
-            success=failed_count == 0,
-            fixed_count=fixed_count,
-            failed_count=failed_count,
-            error=None if failed_count == 0 else f"{failed_count} violations failed",
-        )
+        # Delegate to Will layer
+        return await self._orchestrator.remediate_single_file_async(file_path)
 
-    def _remediate_header_violation(self, violation: Violation) -> bool:
+    # ID: a3d5e7f9-1b2c-4d6e-8a9f-3b5c7d9e1f2a
+    def validate_remediation(self, file_path: str) -> bool:
         """
-        Fix a single header violation using HeaderTools.
+        Validate that remediation was successful for a file.
+
+        DEPRECATED: Use RemediationOrchestrator.validate_remediation() directly
 
         Args:
-            violation: The violation to fix
+            file_path: Path to file to validate
 
         Returns:
-            True if successfully fixed, False otherwise
+            True if file is compliant, False otherwise
         """
-        try:
-            file_path = self.repo_path / violation.file_path
-            original_content = file_path.read_text(encoding="utf-8")
-            header = _HeaderTools.parse(original_content)
-            correct_location_comment = f"# {violation.file_path}"
-            header.location = correct_location_comment
-            if not header.module_description:
-                header.module_description = (
-                    f'"""Provides functionality for the {file_path.stem} module."""'
-                )
-            header.has_future_import = True
-            corrected_code = _HeaderTools.reconstruct(header)
+        # Delegate to Will layer
+        return self._orchestrator.validate_remediation(file_path)
 
-            if corrected_code != original_content:
-                # CONSTITUTIONAL FIX: Use governed mutation surface instead of Path.write_text
-                # Relativization and IntentGuard checks are performed by the FileHandler.
-                self.file_handler.write_runtime_text(
-                    violation.file_path, corrected_code
-                )
-                logger.info("Fixed header in %s", violation.file_path)
-                return True
-            else:
-                logger.debug("No changes needed for %s", violation.file_path)
-                return True
-        except Exception as e:
-            logger.error("Failed to fix header in %s: %s", violation.file_path, e)
-            return False
+
+# Factory function for backward compatibility
+# ID: get-constitutional-monitor
+# ID: b4c6d8e0-2a3b-4c5d-6e7f-8a9b0c1d2e3f
+def get_constitutional_monitor(
+    repo_path: Path | str | None = None,
+    knowledge_builder: KnowledgeGraphBuilderProtocol | None = None,
+) -> ConstitutionalMonitor:
+    """
+    Get ConstitutionalMonitor instance (compatibility wrapper).
+
+    DEPRECATED: Use get_remediation_orchestrator() from Will layer instead
+
+    Migration Path:
+        OLD:
+            from mind.enforcement.constitutional_monitor import get_constitutional_monitor
+            monitor = get_constitutional_monitor()
+
+        NEW:
+            from will.orchestration.remediation_orchestrator import get_remediation_orchestrator
+            orchestrator = get_remediation_orchestrator()
+
+    Args:
+        repo_path: Optional repository path
+        knowledge_builder: Optional knowledge graph builder
+
+    Returns:
+        ConstitutionalMonitor wrapper instance
+    """
+    if repo_path is None:
+        repo_path = Path.cwd()
+
+    logger.warning(
+        "get_constitutional_monitor() is deprecated. "
+        "Use will.orchestration.remediation_orchestrator.get_remediation_orchestrator() instead."
+    )
+
+    return ConstitutionalMonitor(repo_path, knowledge_builder)

@@ -1,3 +1,7 @@
+# .intent/enforcement/mappings/architecture/governance_basics.yaml
+#
+# Governance enforcement mappings for constitutional compliance
+
 mappings:
   # 1. Protection of the Constitution itself
   governance.constitution.read_only:
@@ -19,16 +23,19 @@ mappings:
       applies_to:
         - "src/**/*.py"
       excludes:
-        # --- THE SANCTUARY: Implementation Machinery ---
-        - "src/shared/infrastructure/storage/file_handler.py"
-        - "src/shared/path_utils.py"
-        - "src/body/services/crate_processing_service.py"
-        - "src/mind/governance/runtime_validator.py"
-        - "src/shared/infrastructure/validation/ruff_linter.py"
+        # --- THE BOOTSTRAP: Infrastructure that enables governance ---
+        # These components implement the governed surface itself and must
+        # operate before governance is active (Load Phase)
+        - "src/shared/infrastructure/storage/file_handler.py" # IS the governed surface
+        - "src/shared/path_utils.py" # Path resolution utilities
+        - "src/body/services/crate_processing_service.py" # Crate generation infrastructure
+        - "src/mind/governance/runtime_validator.py" # Validation infrastructure
+        - "src/shared/infrastructure/validation/ruff_linter.py" # Linting infrastructure
+
         # --- THE PROTECTED ZONE: Reporting & Metadata ---
-        # Excluded from Blocking so they don't fail the audit
+        # These components generate reports/artifacts and are governed by
+        # governance.artifact_mutation.traceable (reporting-level enforcement)
         - "src/body/cli/commands/governance.py"
-        - "src/body/cli/commands/manage/emergency.py"
         - "src/body/cli/logic/db.py"
         - "src/body/cli/logic/cli_utils.py"
         - "src/body/cli/logic/byor.py"
@@ -36,16 +43,13 @@ mappings:
         - "src/mind/governance/constitutional_monitor.py"
         - "src/mind/governance/key_management_service.py"
         - "src/features/maintenance/scripts/context_export.py"
-        # --- THE SANDBOX: Testing Infrastructure ---
-        - "src/features/self_healing/simple_test_generator.py"
-        - "src/features/self_healing/context_aware_test_generator.py"
-        - "src/features/self_healing/coverage_watcher.py"
-        - "src/features/self_healing/full_project_remediation.py"
-        - "src/features/self_healing/test_generation/**"
-        - "src/features/self_healing/iterative_test_fixer.py"
+
+        # --- AUTONOMOUS CODE: Now enforced (no exclusions) ---
+        # Self-healing modules MUST route writes through FileHandler
+        # Violations will be detected and must be fixed in P3
 
   # 3. THE REPORTING LAW: Artifacts should use FileHandler.
-  # This rule issues WARNINGS for the files we excluded above.
+  # This rule issues WARNINGS for the files in THE PROTECTED ZONE.
   governance.artifact_mutation.traceable:
     engine: ast_gate
     params:
@@ -82,6 +86,16 @@ mappings:
         - "subprocess.Popen"
         - "subprocess.call"
         - "subprocess.run"
+        - "os.getenv"
+        - "os.environ"
+  scope:
+    applies_to:
+      - "src/**/*.py"
+    excludes:
+      - "src/shared/logger.py"
+      - "src/shared/config.py"
+      - "tests/**"
+
   governance.intent_meta.required:
     engine: glob_gate
     params:

@@ -7,10 +7,11 @@ Coordinates initial test generation and validation.
 from __future__ import annotations
 
 import time
+from pathlib import Path
 
 from features.self_healing.complexity_filter import ComplexityFilter
 from features.self_healing.test_context_analyzer import ModuleContext
-from shared.config import settings
+from shared.infrastructure.storage.file_handler import FileHandler
 from shared.logger import getLogger
 from will.orchestration.cognitive_service import CognitiveService
 
@@ -31,9 +32,13 @@ class GenerationWorkflow:
         cognitive_service: CognitiveService,
         complexity_filter: ComplexityFilter,
         auto_repair: AutomaticRepairService,
+        file_handler: FileHandler,
+        repo_root: Path,
         max_complexity: str = "MODERATE",
     ):
         self.cognitive = cognitive_service
+        self.file_handler = file_handler
+        self.repo_root = repo_root
         self.context_builder = ContextPackageBuilder()
         self.code_extractor = CodeExtractor()
         self.complexity_filter = complexity_filter
@@ -43,7 +48,7 @@ class GenerationWorkflow:
     async def check_complexity(self, module_path: str) -> bool:
         """Check if module complexity is acceptable for test generation."""
         try:
-            full_path = settings.REPO_PATH / module_path
+            full_path = self.repo_root / module_path
             complexity_check = self.complexity_filter.should_attempt(full_path)
             if not complexity_check["should_attempt"]:
                 logger.warning("Skipping %s due to complexity filter", module_path)
@@ -105,13 +110,20 @@ Import Path: {module_context.import_path}
 Generate comprehensive test cases."""
 
     def _save_debug_artifact(self, name: str, content: str) -> None:
-        """Save failed generation artifacts for inspection."""
+        """Save failed generation artifacts for inspection via governed channel."""
         try:
-            debug_dir = settings.REPO_PATH / "work" / "testing" / "debug"
-            debug_dir.mkdir(parents=True, exist_ok=True)
+            # Ensure debug directory exists
+            self.file_handler.ensure_dir("work/testing/debug")
+
+            # Write debug artifact
             timestamp = int(time.time())
             filename = f"{name}_{timestamp}.txt"
-            (debug_dir / filename).write_text(content, encoding="utf-8")
-            logger.info("Saved debug artifact: %s", debug_dir / filename)
+            artifact_rel = f"work/testing/debug/{filename}"
+
+            result = self.file_handler.write_runtime_text(artifact_rel, content)
+            if result.status != "success":
+                logger.warning("Failed to save debug artifact: %s", result.message)
+            else:
+                logger.info("Saved debug artifact: %s", artifact_rel)
         except Exception as e:
             logger.warning("Failed to save debug artifact: %s", e)

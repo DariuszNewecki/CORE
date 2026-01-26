@@ -6,8 +6,9 @@ TestExecutor - runs pytest, returns structured results.
 from __future__ import annotations
 
 import asyncio
+from pathlib import Path
 
-from shared.config import settings
+from shared.infrastructure.storage.file_handler import FileHandler
 from shared.logger import getLogger
 
 
@@ -19,10 +20,22 @@ class TestExecutor:
     """Responsible for writing and executing tests."""
 
     # ID: 8bcc90c1-35c2-47f2-abeb-ea80d6243cf9
-    async def execute_test(self, test_file: str, code: str) -> dict:
-        path = settings.REPO_PATH / test_file
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(code, encoding="utf-8")
+    async def execute_test(
+        self,
+        test_file: str,
+        code: str,
+        file_handler: FileHandler,
+        repo_root: Path,
+    ) -> dict:
+        # Ensure parent directory exists via governed channel
+        path = repo_root / test_file
+        parent_rel = str(path.parent.relative_to(repo_root))
+        file_handler.ensure_dir(parent_rel)
+
+        # Write test file via governed channel
+        result = file_handler.write_runtime_text(test_file, code)
+        if result.status != "success":
+            raise RuntimeError(f"Governance rejected write: {result.message}")
 
         try:
             process = await asyncio.create_subprocess_exec(
@@ -32,7 +45,7 @@ class TestExecutor:
                 "--tb=short",
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
-                cwd=settings.REPO_PATH,
+                cwd=repo_root,
             )
             stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=60)
         except Exception as e:

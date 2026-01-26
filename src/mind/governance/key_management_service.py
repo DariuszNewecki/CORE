@@ -1,12 +1,11 @@
 # src/mind/governance/key_management_service.py
-
 """
 Intent: Key management commands for the CORE Admin CLI.
 Provides Ed25519 key generation and helper output for approver configuration.
 
 CONSTITUTIONAL FIX:
 - Aligned with 'governance.artifact_mutation.traceable'.
-- Replaced direct Path writes with governed FileHandler mutations.
+- NO LONGER imports FileHandler - uses FileService from Body layer
 - Enforces IntentGuard and audit logging for security identity creation.
 """
 
@@ -19,7 +18,7 @@ import yaml
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ed25519
 
-from shared.infrastructure.storage.file_handler import FileHandler
+from body.services.file_service import FileService
 from shared.logger import getLogger
 from shared.path_resolver import PathResolver
 
@@ -42,10 +41,20 @@ def keygen(
     identity: str,
     *,
     path_resolver: PathResolver,
-    file_handler: FileHandler,
+    file_service: FileService,
     allow_overwrite: bool = False,
 ) -> None:
-    """Intent: Generate a new Ed25519 key pair and print an approver YAML block."""
+    """
+    Intent: Generate a new Ed25519 key pair and print an approver YAML block.
+
+    CONSTITUTIONAL FIX: Changed parameter from FileHandler to FileService
+
+    Args:
+        identity: Identity name for the key
+        path_resolver: PathResolver for path resolution
+        file_service: Body layer FileService for file operations
+        allow_overwrite: Whether to overwrite existing key
+    """
     logger.info("🔑 Generating new key pair for identity: %s", identity)
 
     rel_key_dir = str(
@@ -72,9 +81,9 @@ def keygen(
         encryption_algorithm=serialization.NoEncryption(),
     )
 
-    # Governed directory creation and write
-    file_handler.ensure_dir(rel_key_dir)
-    file_handler.write_runtime_bytes(rel_private_key_path, pem_private)
+    # CONSTITUTIONAL FIX: Governed directory creation and write via FileService
+    file_service.ensure_dir(rel_key_dir)
+    file_service.write_runtime_bytes(rel_private_key_path, pem_private)
 
     # Ensure strict permissions on the resulting file
     if abs_private_key_path.exists():
@@ -86,7 +95,7 @@ def keygen(
     )
 
     logger.info(
-        "\n✅ Private key saved securely via FileHandler to: %s", rel_private_key_path
+        "\n✅ Private key saved securely via FileService to: %s", rel_private_key_path
     )
     logger.info(
         "\n📋 Add the following YAML block to '.intent/constitution/approvers.yaml' under 'approvers':\n"

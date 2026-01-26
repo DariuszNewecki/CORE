@@ -1,5 +1,4 @@
 # src/will/phases/code_generation_phase.py
-
 """
 Code Generation Phase - Intelligent Reflex Pipe.
 
@@ -13,12 +12,14 @@ This prevents false-negative "pain" signals that cause unnecessary rework.
 ENHANCED (V2.4): Artifact Documentation
 - Saves all generated code to work/ directory for review
 - Creates detailed reports even in dry-run mode
-- Uses FileHandler for constitutional governance compliance
+- Uses FileService for constitutional governance compliance
+
+CONSTITUTIONAL FIX: No longer imports FileHandler - uses FileService from Body layer
 
 Constitutional Alignment:
 - Pillar I (Octopus): Context-aware sensation.
 - Pillar III (Governance): Logic-first validation.
-- governance.artifact_mutation.traceable: All writes via FileHandler
+- governance.artifact_mutation.traceable: All writes via FileService
 """
 
 from __future__ import annotations
@@ -26,9 +27,9 @@ from __future__ import annotations
 import time
 from typing import TYPE_CHECKING
 
+from body.services.file_service import FileService
 from features.test_generation_v2.sandbox import PytestSandboxRunner
 from shared.infrastructure.context.limb_workspace import LimbWorkspace
-from shared.infrastructure.storage.file_handler import FileHandler
 from shared.logger import getLogger
 from shared.models.execution_models import DetailedPlan, DetailedPlanStep
 from shared.models.workflow_models import PhaseResult
@@ -54,21 +55,36 @@ class CodeGenerationPhase:
 
     ENHANCED: Now saves all generated code artifacts to work/ directory
     for review, debugging, and audit purposes.
+
+    CONSTITUTIONAL COMPLIANCE:
+    - Uses FileService from Body layer (no FileHandler import)
+    - Passes FileService to all components that need file operations
     """
 
     def __init__(self, core_context: CoreContext) -> None:
-        self.context = core_context
-        self.tracer = DecisionTracer(agent_name="CodeGenerationPhase")
+        """
+        Initialize code generation phase.
 
-        # Initialize components
-        self.file_handler = FileHandler(str(core_context.git_service.repo_path))
+        CONSTITUTIONAL FIX: Uses FileService instead of FileHandler
+        """
+        self.context = core_context
+        self.tracer = DecisionTracer(
+            path_resolver=core_context.path_resolver,
+            agent_name="CodeGenerationPhase",
+        )
+
+        # CONSTITUTIONAL FIX: Create FileService from Body layer
+        self.file_service = FileService(core_context.git_service.repo_path)
+
+        # Initialize sandbox runner (still needs file_handler attribute for now)
         self.execution_sensor = PytestSandboxRunner(
             core_context.file_handler,
             repo_root=str(core_context.git_service.repo_path),
         )
 
-        self.work_dir_manager = WorkDirectoryManager(self.file_handler)
-        self.artifact_saver = ArtifactSaver(self.file_handler)
+        # CONSTITUTIONAL FIX: Pass FileService to components
+        self.work_dir_manager = WorkDirectoryManager(self.file_service)
+        self.artifact_saver = ArtifactSaver(self.file_service)
         self.code_sensor = CodeSensor(self.execution_sensor)
         self.path_extractor = FilePathExtractor()
 

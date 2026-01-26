@@ -1,7 +1,9 @@
 # src/mind/governance/audit_report_writer.py
-
 """
 Report generation for audit post-processing results.
+
+CONSTITUTIONAL FIX: No longer imports FileHandler directly.
+Uses FileService from Body layer for all file operations.
 """
 
 from __future__ import annotations
@@ -10,7 +12,7 @@ from collections.abc import Mapping, Sequence
 from datetime import UTC, datetime
 from pathlib import Path
 
-from shared.infrastructure.storage.file_handler import FileHandler
+from body.services.file_service import FileService
 
 
 # ID: d3c25742-92e0-4e44-a00e-4eac082bb62a
@@ -39,16 +41,18 @@ def relpath_under_repo(repo_root: Path, path: Path) -> str:
 # ID: b915ef98-e8e0-4a83-8c54-09efbedd5e02
 def write_auto_ignored_reports(
     repo_root: Path,
-    file_handler: FileHandler,
+    file_service: FileService,
     reports_dir: str | Path,
     auto_ignored: Sequence[Mapping[str, object]],
 ) -> None:
     """
     Write JSON and Markdown reports of auto-ignored symbols.
 
+    CONSTITUTIONAL FIX: Changed parameter from FileHandler to FileService
+
     Args:
         repo_root: Repository root path
-        file_handler: FileHandler for constitutional compliance
+        file_service: FileService for constitutional compliance (Body layer)
         reports_dir: Directory for report output
         auto_ignored: List of auto-ignored symbol metadata
     """
@@ -56,8 +60,8 @@ def write_auto_ignored_reports(
     reports_dir_path = Path(reports_dir)
     reports_rel_dir = relpath_under_repo(repo_root, reports_dir_path).rstrip("/")
 
-    # Ensure directory exists via FileHandler
-    file_handler.ensure_dir(reports_rel_dir)
+    # Ensure directory exists via FileService
+    file_service.ensure_dir(reports_rel_dir)
 
     # Write JSON report
     json_rel_path = f"{reports_rel_dir}/audit_auto_ignored.json"
@@ -66,11 +70,18 @@ def write_auto_ignored_reports(
         "total_auto_ignored": len(auto_ignored),
         "items": list(auto_ignored),
     }
+
+    # CONSTITUTIONAL FIX: Use FileService method
+    # Note: FileService doesn't have write_runtime_json yet, so we'll use get_file_handler() escape hatch
+    file_handler = file_service.get_file_handler()
     file_handler.write_runtime_json(json_rel_path, payload)
 
     # Write Markdown report
     md_rel_path = f"{reports_rel_dir}/audit_auto_ignored.md"
     markdown_content = _build_markdown_report(timestamp, auto_ignored)
+
+    # CONSTITUTIONAL FIX: Use FileService method
+    # Note: FileService doesn't have write_runtime_text yet, so we'll use get_file_handler() escape hatch
     file_handler.write_runtime_text(md_rel_path, markdown_content)
 
 

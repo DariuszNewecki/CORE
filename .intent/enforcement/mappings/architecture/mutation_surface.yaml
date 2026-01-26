@@ -1,0 +1,25 @@
+# .intent/enforcement/mappings/architecture/governance.yaml
+# Add these entries to the existing file
+
+mappings:
+  # NEW: Governed Mutation Surface - FileHandler Required
+  governance.mutation_surface.filehandler_required:
+    engine: ast_gate
+    params:
+      check_type: no_direct_writes
+    scope:
+      applies_to:
+        - "src/**/*.py"
+        - "features/**/*.py"
+      excludes:
+        - "shared/infrastructure/storage/file_handler.py" # Load Phase infrastructure exemption
+        - "var/**"
+        - "**/__pycache__/**"
+        - "tests/**" # Tests may use direct writes for fixtures
+
+
+  # This mapping connects:
+  # - Rule: .intent/rules/architecture/mutation_surface.json (rule_id: governance.mutation_surface.filehandler_required)
+  # - Engine: ast_gate
+  # - Check: no_direct_writes (already exists in purity_checks.py)
+  # - Scope: All production code except FileHandler itself

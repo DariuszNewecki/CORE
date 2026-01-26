@@ -16,14 +16,27 @@ class ImportChecks:
     @staticmethod
     # ID: 86bdd1f7-c822-445c-9d91-dc40acb224b9
     def check_forbidden_imports(tree: ast.AST, forbidden: list[str]) -> list[str]:
-        """Enforce import_boundary rule."""
+        """
+        Enforce import_boundary rule.
+
+        BIG BOYS PATTERN:
+        Allows TYPE_CHECKING imports (runtime-erased, tooling only).
+        Only blocks actual runtime imports that create coupling.
+        """
         if not forbidden:
             return []
 
         findings: list[str] = []
         forbidden_set = set(forbidden)
 
+        # First pass: find all TYPE_CHECKING blocks
+        type_checking_nodes = ImportChecks._find_type_checking_blocks(tree)
+
         for node in ast.walk(tree):
+            # Skip imports inside TYPE_CHECKING blocks
+            if node in type_checking_nodes:
+                continue
+
             if isinstance(node, ast.ImportFrom):
                 mod = node.module or ""
                 for alias in node.names:
@@ -42,6 +55,44 @@ class ImportChecks:
                         )
 
         return findings
+
+    @staticmethod
+    def _find_type_checking_blocks(
+        tree: ast.Module,
+    ) -> set[ast.stmt]:  # ← Changed from set[ast.AST]
+        """Find all nodes inside TYPE_CHECKING blocks."""
+        type_checking_nodes: set[ast.stmt] = set()  # ← Added explicit type annotation
+
+        for node in ast.walk(tree):
+            if isinstance(node, ast.If):
+                if ImportChecks._is_type_checking_condition(node.test):
+                    for stmt in node.body:
+                        type_checking_nodes.add(stmt)
+                        for nested in ast.walk(stmt):
+                            if isinstance(nested, ast.stmt):  # ← Type guard
+                                type_checking_nodes.add(nested)
+
+        return type_checking_nodes
+
+    @staticmethod
+    def _is_type_checking_condition(test_node: ast.expr) -> bool:
+        """
+        Check if an If condition is checking TYPE_CHECKING.
+
+        Matches:
+        - TYPE_CHECKING
+        - typing.TYPE_CHECKING
+        """
+        if isinstance(test_node, ast.Name):
+            return test_node.id == "TYPE_CHECKING"
+
+        if isinstance(test_node, ast.Attribute):
+            # Handle typing.TYPE_CHECKING
+            if test_node.attr == "TYPE_CHECKING":
+                if isinstance(test_node.value, ast.Name):
+                    return test_node.value.id == "typing"
+
+        return False
 
     @staticmethod
     # ID: 99a2ce26-dc0d-4bf9-ae39-2eb8082fb4fa

@@ -12,6 +12,10 @@ Examples:
 - Body layer importing IntentLoader (execution reading law directly)
 
 This check enforces Mind/Body/Will separation at import time.
+
+BIG BOYS PATTERN:
+Allows TYPE_CHECKING imports for type hints (runtime-erased, tooling only).
+Only blocks actual runtime imports that create coupling.
 """
 
 from __future__ import annotations
@@ -45,6 +49,11 @@ class ImportBoundaryCheck:
     - Mind layer must not access database (law executing itself)
     - Will layer must not access database directly (decision implementing itself)
     - Non-Mind layers must not access IntentLoader (bypassing constitutional interface)
+
+    TYPE_CHECKING Exception:
+    - Imports inside `if TYPE_CHECKING:` blocks are allowed (type hints only)
+    - These are erased at runtime and don't create actual coupling
+    - Following Kubernetes/mypy/OPA pattern
     """
 
     @staticmethod
@@ -74,9 +83,16 @@ class ImportBoundaryCheck:
                 engine_id="ast_gate:import_boundary",
             )
 
+        # First pass: identify all TYPE_CHECKING blocks
+        type_checking_nodes = ImportBoundaryCheck._find_type_checking_blocks(tree)
+
         violations = []
 
         for node in ast.walk(tree):
+            # Skip imports inside TYPE_CHECKING blocks
+            if ImportBoundaryCheck._is_inside_type_checking(node, type_checking_nodes):
+                continue
+
             # Check: from X import Y
             if isinstance(node, ast.ImportFrom):
                 violation = ImportBoundaryCheck._check_import_from(
@@ -107,6 +123,62 @@ class ImportBoundaryCheck:
             violations=[],
             engine_id="ast_gate:import_boundary",
         )
+
+    @staticmethod
+    # ID: e5f9a2c7-d3b6-8e4f-c1a5-f7d2e9b4a6c8
+    def _find_type_checking_blocks(tree: ast.Module) -> set[ast.AST]:
+        """
+        Find all nodes inside TYPE_CHECKING conditional blocks.
+
+        Detects pattern:
+            if TYPE_CHECKING:
+                from x import Y
+
+        Returns set of all AST nodes within these blocks.
+        """
+        type_checking_nodes = set()
+
+        for node in ast.walk(tree):
+            if isinstance(node, ast.If):
+                # Check if condition is TYPE_CHECKING
+                if ImportBoundaryCheck._is_type_checking_condition(node.test):
+                    # Add all nodes in the if body
+                    for stmt in node.body:
+                        type_checking_nodes.add(stmt)
+                        # Also add all nested nodes
+                        for nested in ast.walk(stmt):
+                            type_checking_nodes.add(nested)
+
+        return type_checking_nodes
+
+    @staticmethod
+    # ID: f6a8b3d9-e4c7-9f5a-d2b6-a8e3f7c5d4b1
+    def _is_type_checking_condition(test_node: ast.expr) -> bool:
+        """
+        Check if an If condition is checking TYPE_CHECKING.
+
+        Matches:
+        - TYPE_CHECKING
+        - typing.TYPE_CHECKING
+        """
+        if isinstance(test_node, ast.Name):
+            return test_node.id == "TYPE_CHECKING"
+
+        if isinstance(test_node, ast.Attribute):
+            # Handle typing.TYPE_CHECKING
+            if test_node.attr == "TYPE_CHECKING":
+                if isinstance(test_node.value, ast.Name):
+                    return test_node.value.id == "typing"
+
+        return False
+
+    @staticmethod
+    # ID: a7d9c4e2-f5b8-a6e9-c3d7-b9f4e8a2c5d6
+    def _is_inside_type_checking(
+        node: ast.AST, type_checking_nodes: set[ast.AST]
+    ) -> bool:
+        """Check if node is inside a TYPE_CHECKING block."""
+        return node in type_checking_nodes
 
     @staticmethod
     # ID: b8e2f6d3-9c4a-5f1e-a7b9-c3d8e1f5a2b6

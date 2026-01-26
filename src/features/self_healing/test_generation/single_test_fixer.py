@@ -13,7 +13,7 @@ import re
 from pathlib import Path
 from typing import Any
 
-from shared.config import settings
+from shared.infrastructure.storage.file_handler import FileHandler
 from shared.logger import getLogger
 from will.orchestration.cognitive_service import CognitiveService
 from will.orchestration.prompt_pipeline import PromptPipeline
@@ -81,9 +81,12 @@ class TestFailureParser:
 class TestExtractor:
     """Extracts individual test functions from test files."""
 
-    @staticmethod
+    def __init__(self, file_handler: FileHandler, repo_root: Path):
+        self.file_handler = file_handler
+        self.repo_root = repo_root
+
     # ID: 7f3249d6-5e80-45ea-9e25-19e4e42030d0
-    def extract_test_function(file_path: Path, test_name: str) -> str | None:
+    def extract_test_function(self, file_path: Path, test_name: str) -> str | None:
         """
         Extract the source code of a specific test function.
 
@@ -105,13 +108,12 @@ class TestExtractor:
             logger.warning("Failed to extract test function {test_name}: %s", e)
             return None
 
-    @staticmethod
     # ID: b3943163-5281-4ec4-a75e-180ce9dee743
     def replace_test_function(
-        file_path: Path, test_name: str, new_function_code: str
+        self, file_path: Path, test_name: str, new_function_code: str
     ) -> bool:
         """
-        Replace a test function in the file with new code.
+        Replace a test function in the file with new code via governed channel.
 
         Returns True if successful.
         """
@@ -134,7 +136,18 @@ class TestExtractor:
                         except SyntaxError as e:
                             logger.error("Replacement would corrupt file: %s", e)
                             return False
-                        file_path.write_text(new_content, encoding="utf-8")
+
+                        # Write via governed channel
+                        rel_path = str(file_path.relative_to(self.repo_root))
+                        result = self.file_handler.write_runtime_text(
+                            rel_path, new_content
+                        )
+                        if result.status != "success":
+                            logger.error(
+                                "Governance rejected write: %s", result.message
+                            )
+                            return False
+
                         replaced = True
                         break
                 if isinstance(node, ast.ClassDef):
@@ -152,7 +165,18 @@ class TestExtractor:
                                         "Replacement would corrupt file: %s", e
                                     )
                                     return False
-                                file_path.write_text(new_content, encoding="utf-8")
+
+                                # Write via governed channel
+                                rel_path = str(file_path.relative_to(self.repo_root))
+                                result = self.file_handler.write_runtime_text(
+                                    rel_path, new_content
+                                )
+                                if result.status != "success":
+                                    logger.error(
+                                        "Governance rejected write: %s", result.message
+                                    )
+                                    return False
+
                                 replaced = True
                                 break
                     if replaced:
@@ -171,11 +195,19 @@ class SingleTestFixer:
     Strategy: One test, one error, one focused fix.
     """
 
-    def __init__(self, cognitive_service: CognitiveService, max_attempts: int = 3):
+    def __init__(
+        self,
+        cognitive_service: CognitiveService,
+        file_handler: FileHandler,
+        repo_root: Path,
+        max_attempts: int = 3,
+    ):
         self.cognitive = cognitive_service
+        self.file_handler = file_handler
+        self.repo_root = repo_root
         self.max_attempts = max_attempts
         self.parser = TestFailureParser()
-        self.extractor = TestExtractor()
+        self.extractor = TestExtractor(file_handler, repo_root)
 
     # ID: 8adb4bee-9216-47a3-9d96-ec9714bb5daf
     async def fix_test(
@@ -267,7 +299,7 @@ class SingleTestFixer:
         error_msg = failure_info.get("error_message", "Unknown error")
         traceback = failure_info.get("full_traceback", "")
         base_prompt = f"You are a test fixing specialist. Fix this ONE failing test.\n\nTEST FUNCTION: {test_name}\nFAILURE TYPE: {failure_info.get('failure_type', 'Unknown')}\n\nERROR MESSAGE:\n{error_msg}\n\nCURRENT TEST CODE:\n```python\n{test_code}\n```\n\nFAILURE DETAILS:\n{traceback[:500]}\n\nSOURCE CODE CONTEXT (if relevant):\n{(source_context[:500] if source_context else 'Not available')}\n\nYOUR TASK:\n1. Analyze why this specific test is failing\n2. Fix the test to be correct and meaningful\n3. Output ONLY the fixed test function (complete, ready to replace)\n\nCRITICAL RULES:\n- Output the COMPLETE test function, including decorator and docstring\n- The test must be valid Python\n- The test should test something meaningful\n- If the test has wrong expectations, fix the assertion\n- If the test data is problematic, fix the data\n- Keep the same function name: {test_name}\n\nRESPOND WITH:\n```python\ndef {test_name}(...):\n    # Fixed test here\n```\n\nDO NOT include explanations, just the fixed code.\n"
-        pipeline = PromptPipeline(repo_path=settings.REPO_PATH)
+        pipeline = PromptPipeline(repo_path=self.repo_root)
         return pipeline.process(base_prompt)
 
     def _extract_fixed_code(self, llm_response: str) -> str | None:

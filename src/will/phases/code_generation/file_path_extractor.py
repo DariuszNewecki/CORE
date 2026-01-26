@@ -38,9 +38,11 @@ class FilePathExtractor:
 
         # Try dict access if attribute failed
         if not file_path and isinstance(params, dict):
-            file_path = params.get("file_path")
+            # Type guard: specify return type to avoid Any
+            file_path = params.get("file_path", None)  # Still returns Any
 
-        if file_path and isinstance(file_path, str):
+        # MyPy fix: ensure we only return str
+        if isinstance(file_path, str):
             return file_path
 
         return FilePathExtractor._fallback_path(step_index)

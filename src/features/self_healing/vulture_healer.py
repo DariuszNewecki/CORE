@@ -8,7 +8,7 @@ import json
 import re
 from pathlib import Path
 
-from shared.config import settings
+from shared.infrastructure.storage.file_handler import FileHandler
 from shared.logger import getLogger
 from shared.utils.parsing import extract_python_code_from_response
 
@@ -17,9 +17,14 @@ logger = getLogger(__name__)
 
 
 # ID: 515a5f31-deb3-41bc-9736-4e29e1989a0f
-async def heal_dead_code(context, write: bool = False):
+async def heal_dead_code(
+    context,
+    file_handler: FileHandler,
+    repo_root: Path,
+    write: bool = False,
+):
     """Surgical cleanup of Vulture findings using local intelligence."""
-    evidence_path = settings.REPO_PATH / "reports" / "audit_findings.json"
+    evidence_path = repo_root / "reports" / "audit_findings.json"
     if not evidence_path.exists():
         logger.error("No audit evidence found. Run 'core-admin check audit' first.")
         return
@@ -33,9 +38,9 @@ async def heal_dead_code(context, write: bool = False):
         logger.info("✅ No dead code findings in the ledger.")
         return
 
-    # Ensure artifact directory exists for inspection
-    artifact_dir = settings.REPO_PATH / "work" / "artifacts" / "healer"
-    artifact_dir.mkdir(parents=True, exist_ok=True)
+    # Ensure artifact directory exists via governed channel
+    artifact_rel = "work/artifacts/healer"
+    file_handler.ensure_dir(artifact_rel)
 
     logger.info(
         "✂️  Starting Surgical Purge of %d dead code findings...", len(dead_code_targets)
@@ -50,7 +55,7 @@ async def heal_dead_code(context, write: bool = False):
             continue
 
         file_rel = path_match.group(1)
-        file_abs = settings.REPO_PATH / file_rel
+        file_abs = repo_root / file_rel
 
         if not file_abs.exists():
             continue
@@ -83,9 +88,17 @@ async def heal_dead_code(context, write: bool = False):
                     logger.info("   ✅ APPLIED: %s", file_rel)
                 else:
                     # PROPOSED CHANGE ARCHIVE (For your inspection)
-                    artifact_path = artifact_dir / f"proposed_{Path(file_rel).name}"
-                    artifact_path.write_text(fixed_code, encoding="utf-8")
-                    logger.info("   👀 INSPECT PROPOSAL: %s", artifact_path)
+                    artifact_file_rel = (
+                        f"work/artifacts/healer/proposed_{Path(file_rel).name}"
+                    )
+                    result = file_handler.write_runtime_text(
+                        artifact_file_rel, fixed_code
+                    )
+                    if result.status != "success":
+                        raise RuntimeError(
+                            f"Governance rejected write: {result.message}"
+                        )
+                    logger.info("   👀 INSPECT PROPOSAL: %s", artifact_file_rel)
             else:
                 logger.info("   → No changes suggested for %s", file_rel)
         except Exception as e:

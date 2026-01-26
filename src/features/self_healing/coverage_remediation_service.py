@@ -19,6 +19,7 @@ from features.self_healing.single_file_remediation import (
     EnhancedSingleFileRemediationService,
 )
 from mind.governance.audit_context import AuditorContext
+from shared.infrastructure.storage.file_handler import FileHandler
 from shared.logger import getLogger
 from will.orchestration.cognitive_service import CognitiveService
 
@@ -30,6 +31,8 @@ logger = getLogger(__name__)
 async def remediate_coverage_enhanced(
     cognitive_service: CognitiveService,
     auditor_context: AuditorContext,
+    file_handler: FileHandler,
+    repo_root: Path,
     target_coverage: int | None = None,
     file_path: Path | None = None,
     max_complexity: str = "MODERATE",
@@ -47,6 +50,8 @@ async def remediate_coverage_enhanced(
             cognitive_service=cognitive_service,
             auditor_context=auditor_context,
             file_path=file_path,
+            file_handler=file_handler,
+            repo_root=repo_root,
             max_complexity=max_complexity,
         )
         return await service.remediate()
@@ -66,6 +71,8 @@ async def remediate_coverage_enhanced(
 async def _remediate_coverage(
     cognitive_service: CognitiveService,
     auditor_context: AuditorContext,
+    file_handler: FileHandler,
+    repo_root: Path,
     target_coverage: int | None = None,
     file_path: Path | None = None,
     max_complexity: str = "MODERATE",
@@ -77,6 +84,8 @@ async def _remediate_coverage(
     return await remediate_coverage_enhanced(
         cognitive_service=cognitive_service,
         auditor_context=auditor_context,
+        file_handler=file_handler,
+        repo_root=repo_root,
         target_coverage=target_coverage,
         file_path=file_path,
         max_complexity=max_complexity,

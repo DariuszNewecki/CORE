@@ -14,12 +14,13 @@ This service implements the human debugging workflow:
 from __future__ import annotations
 
 import asyncio
+from pathlib import Path
 from typing import Any
 
 from features.self_healing.test_context_analyzer import ModuleContext
 from features.self_healing.test_failure_analyzer import TestFailureAnalyzer
 from mind.governance.audit_context import AuditorContext
-from shared.config import settings
+from shared.infrastructure.storage.file_handler import FileHandler
 from shared.logger import getLogger
 from will.orchestration.cognitive_service import CognitiveService
 from will.orchestration.prompt_pipeline import PromptPipeline
@@ -45,11 +46,15 @@ class IterativeTestFixer:
         self,
         cognitive_service: CognitiveService,
         auditor_context: AuditorContext,
+        file_handler: FileHandler,
+        repo_root: Path,
         max_attempts: int = 3,
     ):
         self.cognitive = cognitive_service
         self.auditor = auditor_context
-        self.pipeline = PromptPipeline(repo_path=settings.REPO_PATH)
+        self.file_handler = file_handler
+        self.repo_root = repo_root
+        self.pipeline = PromptPipeline(repo_path=repo_root)
         self.failure_analyzer = TestFailureAnalyzer()
         self.max_attempts = max_attempts
         self.initial_prompt_template = self._load_prompt("test_generator")
@@ -61,8 +66,8 @@ class IterativeTestFixer:
         CONSTITUTIONAL FIX: Uses PathResolver (SSOT) to avoid .intent/ boundary violations.
         """
         try:
-            # Resolved via settings.paths (var/prompts)
-            prompt_path = settings.paths.prompt(name)
+            # Resolved via repo_root/var/prompts
+            prompt_path = self.repo_root / "var" / "prompts" / f"{name}.txt"
             if prompt_path.exists():
                 return prompt_path.read_text(encoding="utf-8")
         except Exception as e:
@@ -187,9 +192,17 @@ class IterativeTestFixer:
                 "error": "Validation failed",
                 "violations": validation_result.get("violations", []),
             }
-        test_path = settings.REPO_PATH / test_file
-        test_path.parent.mkdir(parents=True, exist_ok=True)
-        test_path.write_text(test_code, encoding="utf-8")
+
+        # Ensure parent directory exists via governed channel
+        test_path = self.repo_root / test_file
+        parent_rel = str(test_path.parent.relative_to(self.repo_root))
+        self.file_handler.ensure_dir(parent_rel)
+
+        # Write test file via governed channel
+        result = self.file_handler.write_runtime_text(test_file, test_code)
+        if result.status != "success":
+            raise RuntimeError(f"Governance rejected write: {result.message}")
+
         test_result = await self._run_test_async(test_file)
         enhanced_result = self._enhance_test_result(test_result)
         return {
@@ -261,12 +274,12 @@ class IterativeTestFixer:
         try:
             process = await asyncio.create_subprocess_exec(
                 "pytest",
-                str(settings.REPO_PATH / test_file),
+                str(self.repo_root / test_file),
                 "-v",
                 "--tb=short",
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
-                cwd=settings.REPO_PATH,
+                cwd=self.repo_root,
             )
             stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=60.0)
             output = stdout.decode("utf-8")
@@ -289,9 +302,14 @@ class IterativeTestFixer:
             return {"passed": False, "returncode": -1, "output": "", "errors": str(e)}
 
     def _save_debug_artifact(self, filename: str, content: str):
-        """Save debugging artifact."""
-        debug_dir = settings.REPO_PATH / "work" / "testing" / "debug"
-        debug_dir.mkdir(parents=True, exist_ok=True)
-        artifact_path = debug_dir / filename
-        artifact_path.write_text(content, encoding="utf-8")
-        logger.debug("Saved debug artifact: %s", artifact_path)
+        """Save debugging artifact via governed channel."""
+        # Ensure debug directory exists
+        self.file_handler.ensure_dir("work/testing/debug")
+
+        # Write debug artifact
+        artifact_rel = f"work/testing/debug/{filename}"
+        result = self.file_handler.write_runtime_text(artifact_rel, content)
+        if result.status != "success":
+            logger.warning("Failed to save debug artifact: %s", result.message)
+        else:
+            logger.debug("Saved debug artifact: %s", artifact_rel)

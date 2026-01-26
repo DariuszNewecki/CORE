@@ -22,7 +22,7 @@ from pathlib import Path
 from typing import Any
 
 from body.services.service_registry import service_registry
-from shared.config import settings
+from shared.infrastructure.storage.file_handler import FileHandler
 from shared.logger import getLogger
 from shared.utils.parsing import extract_python_code_from_response
 from will.orchestration.cognitive_service import CognitiveService
@@ -35,9 +35,16 @@ logger = getLogger(__name__)
 class ContextAwareTestGenerator:
     """Generates tests using ContextPackage for richer context."""
 
-    def __init__(self, cognitive_service: CognitiveService) -> None:
-        """Initialize with LLM service."""
+    def __init__(
+        self,
+        cognitive_service: CognitiveService,
+        file_handler: FileHandler,
+        repo_root: Path,
+    ) -> None:
+        """Initialize with LLM service and governed file operations."""
         self.cognitive = cognitive_service
+        self.file_handler = file_handler
+        self.repo_root = repo_root
 
     # ID: 4a5a573a-9c74-4048-adfb-0affde2d6aaa
     async def generate_test_for_symbol(
@@ -52,7 +59,7 @@ class ContextAwareTestGenerator:
 
             context_service = ContextService(
                 cognitive_service=self.cognitive,
-                project_root=str(settings.REPO_PATH),
+                project_root=str(self.repo_root),
                 session_factory=service_registry.session,
             )
 
@@ -158,7 +165,7 @@ class ContextAwareTestGenerator:
     def _extract_symbol_code(self, file_path: str, symbol_name: str) -> str | None:
         """Extract source code for a specific symbol using AST."""
         try:
-            full_path = settings.REPO_PATH / file_path
+            full_path = self.repo_root / file_path
             source = full_path.read_text(encoding="utf-8")
             lines = source.splitlines()
 
@@ -187,11 +194,12 @@ class ContextAwareTestGenerator:
         self, test_code: str, symbol_name: str, source_file: str
     ) -> tuple[bool, str]:
         """Try to run the test without direct os.environ access."""
-        failures_dir = settings.REPO_PATH / "work" / "testing" / "failures"
-        temp_dir = settings.REPO_PATH / "work" / "testing" / "temp"
+        # Ensure directories exist via governed channel
+        self.file_handler.ensure_dir("work/testing/failures")
+        self.file_handler.ensure_dir("work/testing/temp")
 
-        await asyncio.to_thread(failures_dir.mkdir, parents=True, exist_ok=True)
-        await asyncio.to_thread(temp_dir.mkdir, parents=True, exist_ok=True)
+        failures_dir = self.repo_root / "work" / "testing" / "failures"
+        temp_dir = self.repo_root / "work" / "testing" / "temp"
 
         temp_path: str | None = None
         content = (
@@ -215,7 +223,7 @@ class ContextAwareTestGenerator:
                     return f.name
 
             temp_path = await asyncio.to_thread(_create_temp)
-            src_path = str((settings.REPO_PATH / "src").resolve())
+            src_path = str((self.repo_root / "src").resolve())
 
             proc = await asyncio.create_subprocess_exec(
                 "env",
@@ -228,7 +236,7 @@ class ContextAwareTestGenerator:
                 "--tb=short",
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
-                cwd=str(settings.REPO_PATH),
+                cwd=str(self.repo_root),
             )
 
             try:
@@ -239,7 +247,7 @@ class ContextAwareTestGenerator:
                 proc.kill()
                 msg = "Test timed out after 15 seconds"
                 await asyncio.to_thread(
-                    self._save_failed_test, symbol_name, content, msg, failures_dir
+                    self._save_failed_test, symbol_name, content, msg
                 )
                 return False, msg
 
@@ -252,7 +260,7 @@ class ContextAwareTestGenerator:
                 + stdout.decode("utf-8", errors="replace")
             )
             await asyncio.to_thread(
-                self._save_failed_test, symbol_name, content, full_error, failures_dir
+                self._save_failed_test, symbol_name, content, full_error
             )
             return False, full_error
 
@@ -268,7 +276,6 @@ class ContextAwareTestGenerator:
                         symbol_name,
                         file_content,
                         error_msg,
-                        failures_dir,
                     )
                 except Exception:
                     await asyncio.to_thread(
@@ -276,23 +283,25 @@ class ContextAwareTestGenerator:
                         symbol_name,
                         content,
                         error_msg,
-                        failures_dir,
                     )
             return False, error_msg
         finally:
             if temp_path:
                 await asyncio.to_thread(Path(temp_path).unlink, missing_ok=True)
 
-    def _save_failed_test(
-        self, symbol_name: str, test_code: str, error: str, failures_dir: Path
-    ) -> None:
-        """Sync helper for saving artifacts."""
+    def _save_failed_test(self, symbol_name: str, test_code: str, error: str) -> None:
+        """Sync helper for saving artifacts via governed channel."""
         ts = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-        test_file = failures_dir / f"test_{symbol_name}_{ts}.py"
-        error_file = failures_dir / f"test_{symbol_name}_{ts}.error.txt"
+        test_file_rel = f"work/testing/failures/test_{symbol_name}_{ts}.py"
+        error_file_rel = f"work/testing/failures/test_{symbol_name}_{ts}.error.txt"
 
         try:
-            test_file.write_text(test_code, encoding="utf-8")
-            error_file.write_text(error, encoding="utf-8")
+            result = self.file_handler.write_runtime_text(test_file_rel, test_code)
+            if result.status != "success":
+                raise RuntimeError(f"Governance rejected write: {result.message}")
+
+            result = self.file_handler.write_runtime_text(error_file_rel, error)
+            if result.status != "success":
+                raise RuntimeError(f"Governance rejected write: {result.message}")
         except Exception as exc:
             logger.warning("Failed to save artifacts: %s", exc)

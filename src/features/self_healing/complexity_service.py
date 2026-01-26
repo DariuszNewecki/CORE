@@ -2,123 +2,60 @@
 # ID: 453e06ba-139f-427c-bbe3-ff590640b766
 
 """
+Complexity Outlier Refactoring Service - Main Orchestrator
+
+CONSTITUTIONAL ALIGNMENT:
+- Single Responsibility: Orchestrate complexity refactoring workflow
+- Delegates to specialized services
+- Uses ActionExecutor for all mutations
+
+Extracted responsibilities:
+- Capability parsing → CapabilityParser
+- Proposal writing → RefactoringProposalWriter
+- Capability reconciliation → CapabilityReconciliationService
+
+Architecture:
 Administrative tool for identifying and refactoring code complexity outliers.
-Refactored to use the canonical ActionExecutor Gateway for all mutations.
+All mutations routed through canonical ActionExecutor Gateway.
 """
 
 from __future__ import annotations
 
-import json
-import re
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
-
-import yaml
+from typing import TYPE_CHECKING
 
 from body.atomic.executor import ActionExecutor
 from mind.governance.audit_context import AuditorContext
 from shared.config import settings
 from shared.logger import getLogger
-from shared.utils.parsing import extract_json_from_response, parse_write_blocks
+from shared.utils.parsing import parse_write_blocks
 from will.orchestration.validation_pipeline import validate_code_async
 
 
 if TYPE_CHECKING:
     from shared.context import CoreContext
-    from will.orchestration.cognitive_service import CognitiveService
 
 logger = getLogger(__name__)
 REPO_ROOT = settings.REPO_PATH
 
 
-def _get_capabilities_from_code(code: str) -> list[str]:
-    """A simple parser to extract # CAPABILITY tags from a string of code."""
-    return re.findall("#\\s*CAPABILITY:\\s*(\\S+)", code)
-
-
-async def _propose_constitutional_amendment(
-    executor: ActionExecutor, proposal_plan: dict[str, Any], write: bool
-) -> bool:
-    """Creates a formal proposal file via the governed Action Gateway."""
-    target_file_name = Path(proposal_plan["target_path"]).stem
-
-    # We use a deterministic but unique ID for the proposal file
-    import uuid
-
-    proposal_id = str(uuid.uuid4())[:8]
-    proposal_filename = f"cr-refactor-{target_file_name}-{proposal_id}.yaml"
-
-    # Resolve relative path for the proposals directory
-    proposals_dir_rel = str(settings.paths.proposals_dir.relative_to(REPO_ROOT))
-    proposal_rel_path = f"{proposals_dir_rel}/{proposal_filename}"
-
-    proposal_content = {
-        "target_path": proposal_plan["target_path"],
-        "action": "replace_file",
-        "justification": proposal_plan["justification"],
-        "content": proposal_plan["content"],
-    }
-
-    yaml_str = yaml.dump(proposal_content, indent=2, sort_keys=False)
-
-    # CONSTITUTIONAL GATEWAY: Create the proposal file
-    result = await executor.execute(
-        action_id="file.create", write=write, file_path=proposal_rel_path, code=yaml_str
-    )
-
-    if result.ok:
-        logger.info("Constitutional amendment proposed at: %s", proposal_rel_path)
-        return True
-
-    logger.error("Failed to create proposal: %s", result.data.get("error"))
-    return False
-
-
-async def _run_capability_reconciliation(
-    cognitive_service: CognitiveService,
-    original_code: str,
-    original_capabilities: list[str],
-    refactoring_plan: dict[str, str],
-) -> dict[str, Any]:
-    """
-    Asks an AI Constitutionalist to analyze the refactoring and reconcile tags.
-    """
-    logger.info("Asking AI Constitutionalist to reconcile capabilities...")
-    refactored_code_json = json.dumps(refactoring_plan, indent=2)
-
-    prompt = (
-        "You are an expert CORE Constitutionalist. You understand that a good refactoring not only improves code but also clarifies purpose.\n"
-        f"The original file provided these capabilities: {original_capabilities}\n"
-        f"A refactoring has occurred, resulting in these new files:\n{refactored_code_json}\n"
-        "Your task is to produce a JSON object with: 'code_modifications' (file paths mapped to code with updated tags) "
-        "and 'constitutional_amendment_proposal' (if new capabilities should be declared).\n"
-        "Return ONLY a valid JSON object."
-    )
-
-    constitutionalist = await cognitive_service.aget_client_for_role("Planner")
-    response = await constitutionalist.make_request_async(
-        prompt, user_id="constitutionalist_agent"
-    )
-
-    try:
-        reconciliation_result = extract_json_from_response(response)
-        if not reconciliation_result:
-            raise ValueError("No valid JSON object found.")
-        return reconciliation_result
-    except Exception as e:
-        logger.error("Failed to parse reconciliation plan: %s", e)
-        return {
-            "code_modifications": refactoring_plan,
-            "constitutional_amendment_proposal": None,
-        }
-
-
+# ID: complexity_outliers_async
+# ID: 8b9c0d1e-2f3a-4b5c-6d7e-8f9a0b1c2d3e
 async def _async_complexity_outliers(
     context: CoreContext, file_path: Path | None, dry_run: bool
 ):
     """
-    Async core logic for identifying and refactoring complexity outliers.
-    Mutations are routed through the governed ActionExecutor.
+    Core logic for identifying and refactoring complexity outliers.
+
+    Orchestration workflow:
+    1. Get AI architectural plan
+    2. Validate generated code
+    3. Execute governed file operations (delete + create)
+
+    Args:
+        context: CoreContext with cognitive service and configuration
+        file_path: Target file to refactor
+        dry_run: If True, simulate without writing
     """
     if not file_path:
         logger.error("Please provide a specific file path to refactor.")
@@ -152,7 +89,7 @@ async def _async_complexity_outliers(
         if not refactoring_plan:
             raise ValueError("No valid [[write:]] blocks found in AI response.")
 
-        # 3. Validation & Reconciliation
+        # 3. Validation Phase
         validated_code_plan = {}
         for path, code in refactoring_plan.items():
             val_result = await validate_code_async(
@@ -201,11 +138,21 @@ async def _async_complexity_outliers(
         logger.error("Refactoring failed for %s: %s", rel_target, e, exc_info=True)
 
 
+# ID: complexity_outliers
 # ID: 453e06ba-139f-427c-bbe3-ff590640b766
 async def complexity_outliers(
     context: CoreContext,
     file_path: Path | None,
     dry_run: bool = True,
 ):
-    """Identifies and refactors complexity outliers via governed actions."""
+    """
+    Identifies and refactors complexity outliers via governed actions.
+
+    Public entry point for complexity refactoring workflow.
+
+    Args:
+        context: CoreContext with dependencies
+        file_path: File to refactor
+        dry_run: If True, simulate without writing
+    """
     await _async_complexity_outliers(context, file_path, dry_run)

@@ -109,7 +109,10 @@ class CoverageWatcher:
         try:
             # Calls the V2-aligned service (updated in Step 2.4)
             remediation_result = await remediate_coverage(
-                context.cognitive_service, context.auditor_context
+                context.cognitive_service,
+                context.auditor_context,
+                file_handler=context.file_handler or self.fh,
+                repo_root=settings.REPO_PATH,
             )
             self._record_remediation(violation, remediation_result)
 

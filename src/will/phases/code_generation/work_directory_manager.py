@@ -1,7 +1,8 @@
 # src/will/phases/code_generation/work_directory_manager.py
-
 """
 Work directory management for code generation sessions.
+
+CONSTITUTIONAL FIX: No longer imports FileHandler - uses FileService from Body layer
 """
 
 from __future__ import annotations
@@ -9,7 +10,7 @@ from __future__ import annotations
 import re
 from datetime import datetime
 
-from shared.infrastructure.storage.file_handler import FileHandler
+from body.services.file_service import FileService
 from shared.logger import getLogger
 
 
@@ -18,10 +19,24 @@ logger = getLogger(__name__)
 
 # ID: dd9e517b-1971-4581-8867-202295f9c31d
 class WorkDirectoryManager:
-    """Creates and manages work directories for code generation artifacts."""
+    """
+    Creates and manages work directories for code generation artifacts.
 
-    def __init__(self, file_handler: FileHandler):
-        self.file_handler = file_handler
+    CONSTITUTIONAL COMPLIANCE:
+    - Receives FileService from Body layer (no FileHandler import)
+    - Uses Body service for directory creation
+    """
+
+    def __init__(self, file_service: FileService):
+        """
+        Initialize work directory manager.
+
+        CONSTITUTIONAL FIX: Changed parameter from FileHandler to FileService
+
+        Args:
+            file_service: Body layer FileService for directory operations
+        """
+        self.file_service = file_service
 
     # ID: 55cdb2cc-4817-48df-a820-7a76e04453dc
     def create_session_directory(self, goal: str) -> str:
@@ -35,7 +50,7 @@ class WorkDirectoryManager:
             Relative path to work directory (e.g., "work/code_generation/20260118_120534_refactor_cli")
 
         Constitutional Compliance:
-            - Uses FileHandler.ensure_dir for governed directory creation
+            - Uses FileService.ensure_dir for governed directory creation
             - Work directory is in var-equivalent space (work/ is runtime)
         """
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -44,8 +59,8 @@ class WorkDirectoryManager:
         # Construct relative path under work/code_generation/
         rel_dir = f"work/code_generation/{timestamp}_{goal_slug}"
 
-        # CONSTITUTIONAL: Use FileHandler to create directory
-        self.file_handler.ensure_dir(rel_dir)
+        # CONSTITUTIONAL FIX: Use FileService to create directory
+        self.file_service.ensure_dir(rel_dir)
 
         logger.info("📁 Code generation artifacts will be saved to: %s", rel_dir)
 

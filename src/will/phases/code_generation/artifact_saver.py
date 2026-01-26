@@ -1,7 +1,8 @@
 # src/will/phases/code_generation/artifact_saver.py
-
 """
 Saves generated code artifacts and reports.
+
+CONSTITUTIONAL FIX: No longer imports FileHandler - uses FileService from Body layer
 """
 
 from __future__ import annotations
@@ -10,7 +11,7 @@ import json
 from datetime import datetime
 from pathlib import Path
 
-from shared.infrastructure.storage.file_handler import FileHandler
+from body.services.file_service import FileService
 from shared.logger import getLogger
 from shared.models.execution_models import DetailedPlanStep
 
@@ -20,10 +21,24 @@ logger = getLogger(__name__)
 
 # ID: 065f8542-cdf1-466f-aa69-b0b2e5b1e4a6
 class ArtifactSaver:
-    """Saves generated code artifacts and metadata reports."""
+    """
+    Saves generated code artifacts and metadata reports.
 
-    def __init__(self, file_handler: FileHandler):
-        self.file_handler = file_handler
+    CONSTITUTIONAL COMPLIANCE:
+    - Receives FileService from Body layer (no FileHandler import)
+    - Uses Body service for all file operations
+    """
+
+    def __init__(self, file_service: FileService):
+        """
+        Initialize artifact saver.
+
+        CONSTITUTIONAL FIX: Changed parameter from FileHandler to FileService
+
+        Args:
+            file_service: Body layer FileService for file operations
+        """
+        self.file_service = file_service
 
     # ID: 60ccdf98-685d-4b9e-b3c1-f7364515255a
     def save_generation_artifacts(
@@ -38,7 +53,7 @@ class ArtifactSaver:
             goal: Original refactoring goal
 
         Constitutional Compliance:
-            - governance.artifact_mutation.traceable: Uses FileHandler for all writes
+            - governance.artifact_mutation.traceable: Uses FileService for all writes
             - Creates both code files and metadata report
         """
         report_data = self._build_report_data(steps, goal)
@@ -86,15 +101,19 @@ class ArtifactSaver:
         work_dir_rel: str,
         step_info: dict,
     ) -> None:
-        """Save a single code artifact."""
+        """
+        Save a single code artifact.
+
+        CONSTITUTIONAL FIX: Uses FileService instead of FileHandler
+        """
         code = step.params["code"]
 
         # Generate safe filename
         artifact_filename = self._generate_artifact_filename(step, step_number)
         artifact_rel_path = f"{work_dir_rel}/{artifact_filename}"
 
-        # CONSTITUTIONAL: Use FileHandler for write
-        self.file_handler.write_runtime_text(artifact_rel_path, code)
+        # CONSTITUTIONAL FIX: Use FileService for write
+        self.file_service.write_file(artifact_rel_path, code)
 
         # Update step info
         target_path = step.params.get("file_path", f"unknown_{step_number}")
@@ -119,12 +138,16 @@ class ArtifactSaver:
         return f"step_{step_number:02d}_{action_slug}_{target_filename}"
 
     def _save_report(self, report_data: dict, work_dir_rel: str) -> None:
-        """Save generation report JSON."""
+        """
+        Save generation report JSON.
+
+        CONSTITUTIONAL FIX: Uses FileService instead of FileHandler
+        """
         report_rel_path = f"{work_dir_rel}/generation_report.json"
         report_json = json.dumps(report_data, indent=2, ensure_ascii=False)
 
-        # CONSTITUTIONAL: Use FileHandler for report write
-        self.file_handler.write_runtime_text(report_rel_path, report_json)
+        # CONSTITUTIONAL FIX: Use FileService for report write
+        self.file_service.write_file(report_rel_path, report_json)
 
     @staticmethod
     def _log_summary(report_data: dict, work_dir_rel: str) -> None:

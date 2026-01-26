@@ -1,6 +1,5 @@
 # src/mind/governance/auditor.py
 # ID: 85bb69ce-b22a-490a-8a1d-92a5da7e2646
-
 """
 Constitutional Auditor - The Unified Enforcement Engine.
 
@@ -12,6 +11,7 @@ CONSTITUTIONAL FIX:
 - Uses service_registry.session() instead of get_session()
 - Mind layer receives session factory from Body layer
 - Primes EngineRegistry with PathResolver
+- NO LONGER imports FileHandler - uses FileService from Body layer
 """
 
 from __future__ import annotations
@@ -20,6 +20,7 @@ import json
 from datetime import UTC, datetime
 from pathlib import Path
 
+from body.services.file_service import FileService
 from body.services.service_registry import service_registry
 from mind.governance.audit_context import AuditorContext
 from mind.governance.audit_postprocessor import (
@@ -30,9 +31,8 @@ from mind.governance.constitutional_auditor_dynamic import (
     get_dynamic_execution_stats,
     run_dynamic_rules,
 )
-from mind.logic.engines.registry import EngineRegistry  # ADDED
+from mind.logic.engines.registry import EngineRegistry
 from shared.activity_logging import ActivityRun, activity_run, new_activity_run
-from shared.infrastructure.storage.file_handler import FileHandler
 from shared.logger import getLogger
 from shared.models import AuditFinding, AuditSeverity
 from shared.path_utils import get_repo_root
@@ -71,11 +71,33 @@ def _repo_rel(path: Path) -> str:
 class ConstitutionalAuditor:
     """
     Orchestrates the constitutional audit by executing dynamic rules via engines.
+
+    CONSTITUTIONAL COMPLIANCE:
+    - Receives FileService from Body layer (no FileHandler import)
+    - Uses Body service for all file operations
     """
 
-    def __init__(self, context: AuditorContext):
+    def __init__(
+        self, context: AuditorContext, file_service: FileService | None = None
+    ):
+        """
+        Initialize auditor.
+
+        CONSTITUTIONAL FIX: Receives FileService instead of creating FileHandler
+
+        Args:
+            context: AuditorContext with knowledge graph
+            file_service: Body layer FileService (optional, creates if needed)
+        """
         self.context = context
-        self.fs = FileHandler(str(get_repo_root().resolve()))
+
+        # CONSTITUTIONAL FIX: Use FileService from Body layer
+        if file_service is None:
+            file_service = FileService(get_repo_root().resolve())
+
+        self.fs = file_service
+
+        # Ensure directories exist via Body service
         self.fs.ensure_dir("reports")
         self.fs.ensure_dir("reports/audit")
 
@@ -125,7 +147,8 @@ class ConstitutionalAuditor:
             # 3. POST-PROCESSING
             symbol_index_path = REPORTS_DIR / SYMBOL_INDEX_FILENAME
             if not symbol_index_path.exists():
-                self.fs.write_runtime_text(
+                # CONSTITUTIONAL FIX: Use FileService instead of FileHandler
+                self.fs.write_file(
                     _repo_rel(symbol_index_path), json.dumps({}, indent=2)
                 )
 
@@ -150,24 +173,32 @@ class ConstitutionalAuditor:
             return findings
 
     def _write_findings(self, findings: list) -> Path:
-        """Persist raw findings to JSON."""
+        """
+        Persist raw findings to JSON.
+
+        CONSTITUTIONAL FIX: Uses FileService instead of FileHandler
+        """
         path = REPORTS_DIR / FINDINGS_FILENAME
         findings_dicts = [f.as_dict() if hasattr(f, "as_dict") else f for f in findings]
-        self.fs.write_runtime_text(
-            _repo_rel(path), json.dumps(findings_dicts, indent=2)
-        )
+
+        # CONSTITUTIONAL FIX: Use FileService
+        self.fs.write_file(_repo_rel(path), json.dumps(findings_dicts, indent=2))
         logger.info("Raw findings written to: %s", path)
         return path
 
     def _write_processed_findings(
         self, findings_path: Path, symbol_index_path: Path
     ) -> Path:
-        """Apply entrypoint downgrading and write processed findings."""
+        """
+        Apply entrypoint downgrading and write processed findings.
+
+        CONSTITUTIONAL FIX: Passes FileService to postprocessor
+        """
         # Load findings and symbol index
         findings_data = json.loads(findings_path.read_text())
         symbol_index_data = json.loads(symbol_index_path.read_text())
 
-        # Call with keyword arguments and correct signature
+        # CONSTITUTIONAL FIX: Pass FileService instead of FileHandler
         processed_findings = apply_entry_point_downgrade_and_report(
             findings=findings_data,
             symbol_index=symbol_index_data,
@@ -175,21 +206,25 @@ class ConstitutionalAuditor:
             allow_list=EntryPointAllowList.default(),
             downgrade_to=DOWNGRADE_SEVERITY_TO,
             write_reports=True,
-            file_handler=self.fs,
+            file_service=self.fs,
             repo_root=get_repo_root(),
         )
 
         path = REPORTS_DIR / PROCESSED_FINDINGS_FILENAME
-        self.fs.write_runtime_text(
-            _repo_rel(path), json.dumps(processed_findings, indent=2)
-        )
+
+        # CONSTITUTIONAL FIX: Use FileService
+        self.fs.write_file(_repo_rel(path), json.dumps(processed_findings, indent=2))
         logger.info("Processed findings written to: %s", path)
         return path
 
     def _write_audit_evidence(
         self, findings: list, run: ActivityRun, passed: bool
     ) -> None:
-        """Write audit evidence artifact."""
+        """
+        Write audit evidence artifact.
+
+        CONSTITUTIONAL FIX: Uses FileService instead of FileHandler
+        """
         self.fs.ensure_dir(str(AUDIT_EVIDENCE_DIR.relative_to(get_repo_root())))
 
         evidence = {
@@ -212,7 +247,7 @@ class ConstitutionalAuditor:
         }
 
         evidence_path = AUDIT_EVIDENCE_DIR / AUDIT_EVIDENCE_FILENAME
-        self.fs.write_runtime_text(
-            _repo_rel(evidence_path), json.dumps(evidence, indent=2)
-        )
+
+        # CONSTITUTIONAL FIX: Use FileService
+        self.fs.write_file(_repo_rel(evidence_path), json.dumps(evidence, indent=2))
         logger.info("Audit evidence written to: %s", evidence_path)

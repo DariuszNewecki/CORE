@@ -43,7 +43,13 @@ def _extract_module_docstring(module_dir: Path) -> str | None:
         tree = ast.parse(content)
         if tree.body and isinstance(tree.body[0], ast.Expr):
             if isinstance(tree.body[0].value, ast.Constant):
-                return tree.body[0].value.value
+                value = tree.body[0].value.value
+
+                # TYPE GUARD: Ensure it's actually a string
+                if isinstance(value, str):
+                    return value
+                # Otherwise, not a docstring (maybe a number constant?)
+
     except Exception:
         pass
     return None

@@ -1,136 +1,162 @@
 # src/will/orchestration/cognitive_service.py
+
 """
-CognitiveService (Facade)
-Orchestrates LLM interactions by delegating to the ClientOrchestrator.
-UPGRADED: Supports High-Reasoning Escalation Tier.
+CognitiveService - Will-facing facade for cognitive access.
+
+NO-LEGACY MODE:
+- Uses only the constitutional orchestrator: CognitiveOrchestrator + MindStateService.
+- Does not depend on (or import) ClientOrchestrator.
+
+Responsibilities:
+- Initialize: wires MindStateService (Body) and CognitiveOrchestrator (Will).
+- aget_client_for_role(): returns LLMClient for a cognitive role.
+- get_embedding_for_code(): embedding for introspection/vectorization (Vectorizer role).
+- Optional semantic search via injected QdrantService (not required for embeddings).
+
 Constitutional Compliance:
-- Will layer: Orchestrates cognitive operations and client selection
-- Mind/Body/Will separation: Creates MindStateService during initialize()
-- No direct database access: Uses service_registry.session() for initialization
+- Will does not open DB sessions directly.
+- Will does not import settings - receives config via DI.
+- Body owns session lifecycle via ServiceRegistry.
 """
 
 from __future__ import annotations
 
+import asyncio
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+from body.services.mind_state_service import MindStateService
+from shared.infrastructure.config_service import ConfigService
+from shared.infrastructure.database.models import LlmResource
 from shared.infrastructure.llm.client import LLMClient
+from shared.infrastructure.llm.providers.base import AIProvider
+from shared.infrastructure.llm.providers.ollama import OllamaProvider
+from shared.infrastructure.llm.providers.openai import OpenAIProvider
 from shared.logger import getLogger
-from will.orchestration.client_orchestrator import ClientOrchestrator
+from will.agents.cognitive_orchestrator import CognitiveOrchestrator
 
 
 if TYPE_CHECKING:
+    from sqlalchemy.ext.asyncio import AsyncSession
+
     from shared.infrastructure.clients.qdrant_client import QdrantService
 
 logger = getLogger(__name__)
 
 
-# ID: f5f23648-26a8-42ba-a489-b51194a87685
+# ID: 507c1d3a-e014-4695-a5c6-2e50f2d8dd4d
 class CognitiveService:
-    """
-    Facade for AI capabilities.
+    """Facade for cognitive operations (clients + embeddings)."""
 
-    Responsibilities:
-    1. Delegate client acquisition to ClientOrchestrator (The Will).
-    2. Provide high-level semantic search via Qdrant (The Mind's Index).
-    3. Support tiered reasoning escalation.
-
-    Constitutional Note:
-    ClientOrchestrator is created during initialize() when session is available.
-    No direct instantiation in __init__ to avoid violating Mind/Body/Will separation.
-    """
-
-    def __init__(self, repo_path: Path, qdrant_service: QdrantService | None = None):
+    def __init__(
+        self,
+        repo_path: Path,  # ← REQUIRED, no default
+        qdrant_service: QdrantService | None = None,
+    ) -> None:
         """
         Initialize CognitiveService.
 
-        Args:
-            repo_path: Repository root path
-            qdrant_service: Optional QdrantService for semantic search
+        CONSTITUTIONAL FIX: repo_path is required parameter.
+        Will layer must not access settings directly.
 
-        Constitutional Note:
-        ClientOrchestrator is NOT created here - it requires MindStateService
-        which needs a database session. Created during initialize() instead.
+        Args:
+            repo_path: Repository root path (injected by Body/ServiceRegistry)
+            qdrant_service: Optional Qdrant service for semantic search
         """
         self._repo_path = Path(repo_path)
-        self.client_orchestrator: ClientOrchestrator | None = None
         self._qdrant_service = qdrant_service
 
+        self._init_lock = asyncio.Lock()
+        self._loaded = False
+
+        self._config: ConfigService | None = None
+        self._mind_state: MindStateService | None = None
+        self._orch: CognitiveOrchestrator | None = None
+
     @property
-    # ID: 76839929-7e48-4592-b377-1401ad9b9d30
+    # ID: 72526c1d-ff38-4213-a8d1-0c25880dcdc7
     def qdrant_service(self) -> QdrantService:
-        """Access the injected QdrantService."""
         if self._qdrant_service is None:
             raise RuntimeError("QdrantService was not injected into CognitiveService.")
         return self._qdrant_service
 
-    # ID: 2cee004a-5a80-421d-a5cc-c2f3e07c99e0
-    async def initialize(self) -> None:
-        """
-        Initialize the orchestrator (load Mind state from DB).
+    # ID: 68895785-8f99-4c02-9167-7191e35a0a98
+    async def initialize(self, session: AsyncSession) -> None:
+        """Initialize using an explicit AsyncSession (owned by Body)."""
+        async with self._init_lock:
+            if self._loaded:
+                return
 
-        Constitutional Note:
-        This is where we create ClientOrchestrator with MindStateService.
-        We create a temporary session to bootstrap MindStateService,
-        then pass it to ClientOrchestrator which caches Mind state.
-        """
-        if self.client_orchestrator is not None:
-            # Already initialized
-            await self.client_orchestrator.initialize()
-            return
+            self._config = await ConfigService.create(session)
+            self._mind_state = MindStateService(session)
 
-        # Constitutional compliance: Create MindStateService with session
-        from body.services.mind_state_service import MindStateService
-        from body.services.service_registry import service_registry
-
-        async with service_registry.session() as session:
-            mind_state_service = MindStateService(session)
-
-            # Create ClientOrchestrator with MindStateService
-            self.client_orchestrator = ClientOrchestrator(
-                self._repo_path, mind_state_service
+            self._orch = CognitiveOrchestrator(
+                repo_path=self._repo_path,
+                mind_state_service=self._mind_state,
+                provider_factory=self._create_provider_for_resource,
             )
+            await self._orch.initialize()
 
-            # Initialize to load Mind state while session is available
-            await self.client_orchestrator.initialize()
-
-    # ID: 7a0c5b7d-a434-4897-910b-060560ba176e
-    async def aget_client_for_role(
-        self, role_name: str, high_reasoning: bool = False
-    ) -> LLMClient:
-        """
-        Get an LLM client for a specific role.
-
-        Args:
-            role_name: The target role (e.g., 'Coder')
-            high_reasoning: If True, attempts to escalate to the 'Architect' role.
-        """
-        if self.client_orchestrator is None:
-            await self.initialize()
-
-        target_role = role_name
-
-        if high_reasoning:
+            self._loaded = True
             logger.info(
-                "🚀 ECOLOGY: Escalating to High-Reasoning Tier for role '%s'", role_name
+                "CognitiveService initialized (constitutional orchestrator wired)."
             )
-            target_role = "Architect"  # Constitutionally mapped to high-tier models
 
-        try:
-            return await self.client_orchestrator.get_client_for_role(target_role)
-        except Exception as e:
-            if target_role == "Architect":
-                logger.warning(
-                    "⚠️ Escalation failed (Architect role unconfigured). Falling back to %s: %s",
-                    role_name,
-                    e,
-                )
-                return await self.client_orchestrator.get_client_for_role(role_name)
-            raise
+    def _require_ready(self) -> None:
+        if not self._loaded or not self._orch or not self._config:
+            raise RuntimeError(
+                "CognitiveService is not initialized. "
+                "ServiceRegistry must call await cognitive_service.initialize(session) during boot."
+            )
+
+    # Provider factory injected into orchestrator
+    # ID: aec81806-c12d-4f9c-9ca0-d159f3c124ff
+    async def _create_provider_for_resource(self, resource: LlmResource) -> AIProvider:
+        """
+        Create provider for a resource using DB-backed config.
+
+        Required keys (by resource.env_prefix):
+          - {PREFIX}_API_URL
+          - {PREFIX}_MODEL_NAME
+          - {PREFIX}_API_KEY (secret)
+        """
+        self._require_ready()
+        assert self._config is not None
+
+        prefix = (resource.env_prefix or "").strip().upper()
+        if not prefix:
+            raise ValueError(f"Resource '{resource.name}' is missing env_prefix.")
+
+        api_url = await self._config.get(f"{prefix}_API_URL")
+        model_name = await self._config.get(f"{prefix}_MODEL_NAME")
+        api_key = await self._config.get_secret(f"{prefix}_API_KEY")
+
+        if not api_url or not model_name:
+            raise ValueError(
+                f"Missing config for resource '{resource.name}'. "
+                f"Required: {prefix}_API_URL and {prefix}_MODEL_NAME."
+            )
+
+        # Local Ollama
+        if "ollama" in api_url.lower() or "11434" in api_url:
+            return OllamaProvider(api_url=api_url, model_name=model_name)
+
+        # Default: OpenAI-compatible (incl. LiteLLM gateways)
+        return OpenAIProvider(api_url=api_url, api_key=api_key, model_name=model_name)
+
+    # ID: 9962386f-4b31-5782-ba52-0b2b1655a43e
+    async def aget_client_for_role(self, role_name: str, **_: Any) -> LLMClient:
+        """Return an LLMClient for the requested cognitive role."""
+        self._require_ready()
+        assert self._orch is not None
+        return await self._orch.get_client_for_role(role_name)
 
     # ID: 64a09426-e74e-4547-a08f-3af887085bac
     async def get_embedding_for_code(self, source_code: str) -> list[float] | None:
-        """Generate an embedding using the Vectorizer role."""
+        """
+        Generate an embedding using the Vectorizer role.
+        Required by introspection/vectorization.
+        """
         if not source_code:
             return None
         client = await self.aget_client_for_role("Vectorizer")
@@ -140,37 +166,12 @@ class CognitiveService:
     async def search_capabilities(
         self, query: str, limit: int = 5
     ) -> list[dict[str, Any]]:
-        """Semantic search via Qdrant."""
-        if self.client_orchestrator is None or not self.client_orchestrator._loaded:
-            await self.initialize()
-        try:
-            query_vector = await self.get_embedding_for_code(query)
-            if not query_vector:
-                return []
-            return await self.qdrant_service.search_similar(query_vector, limit=limit)
-        except Exception as e:
-            logger.error("Semantic search failed: %s", e, exc_info=True)
+        """Optional semantic search via Qdrant (if injected)."""
+        if not query:
             return []
 
-    @staticmethod
-    def _create_provider_for_resource_static(resource):
-        """
-        Static factory for provider creation.
-        Used by ClientOrchestrator's provider_factory callback.
+        vec = await self.get_embedding_for_code(query)
+        if not vec:
+            return []
 
-        Constitutional Note:
-        This is a workaround for circular dependency between
-        CognitiveService and ClientOrchestrator. Should be refactored.
-        """
-        # This method is called by ClientOrchestrator internally
-        # Implementation moved there to avoid circular dependency
-        raise NotImplementedError(
-            "Provider creation moved to ClientOrchestrator._create_provider_for_resource"
-        )
-
-
-# Constitutional Note:
-# This refactoring delays ClientOrchestrator creation until initialize()
-# when we have a database session to create MindStateService.
-# The session is temporary - MindStateService loads data and caches it,
-# so ClientOrchestrator doesn't need the session after initialization.
+        return await self.qdrant_service.search_similar(vec, limit=limit)

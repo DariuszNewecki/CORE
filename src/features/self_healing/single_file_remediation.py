@@ -18,7 +18,7 @@ from typing import Any
 from features.self_healing.coverage_analyzer import CoverageAnalyzer
 from features.self_healing.test_generator import EnhancedTestGenerator
 from mind.governance.audit_context import AuditorContext
-from shared.config import settings
+from shared.infrastructure.storage.file_handler import FileHandler
 from shared.logger import getLogger
 from will.orchestration.cognitive_service import CognitiveService
 
@@ -37,17 +37,23 @@ class EnhancedSingleFileRemediationService:
         cognitive_service: CognitiveService,
         auditor_context: AuditorContext,
         file_path: Path,
+        file_handler: FileHandler,
+        repo_root: Path,
         max_complexity: str = "SIMPLE",
     ):
         self.cognitive = cognitive_service
         self.auditor = auditor_context
         self.target_file = file_path
+        self.file_handler = file_handler
+        self.repo_root = repo_root
         self.analyzer = CoverageAnalyzer()
 
         # This generator owns the V2 adaptive retry logic
         self.generator = EnhancedTestGenerator(
             cognitive_service,
             auditor_context,
+            file_handler,
+            repo_root,
             use_iterative_fixing=True,  # Enabled for V2 alignment
             max_complexity=max_complexity,
         )
@@ -60,8 +66,8 @@ class EnhancedSingleFileRemediationService:
         logger.info("V2 Single-File Remediation: %s", self.target_file)
 
         # Path normalization
-        if str(self.target_file).startswith(str(settings.REPO_PATH)):
-            relative_path = self.target_file.relative_to(settings.REPO_PATH)
+        if str(self.target_file).startswith(str(self.repo_root)):
+            relative_path = self.target_file.relative_to(self.repo_root)
         else:
             relative_path = self.target_file
 
@@ -96,6 +102,8 @@ class EnhancedSingleFileRemediationService:
                 test_file=str(test_file),
                 goal=goal,
                 target_coverage=75.0,
+                file_handler=self.file_handler,
+                repo_root=self.repo_root,
             )
 
             if result.get("status") == "success":

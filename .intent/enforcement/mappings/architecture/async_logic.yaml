@@ -1,5 +1,9 @@
 mappings:
   # LAW: Modules MUST NOT import 'get_session' globally
+  #
+  # CONSTITUTIONAL NOTE: Infrastructure and Body layer components that
+  # manage database access are ALLOWED to import get_session.
+  # Will and Mind layers (features) must use dependency injection.
   logic.di.no_global_session:
     engine: ast_gate
     params:
@@ -8,7 +12,11 @@ mappings:
         - "shared.infrastructure.database.session_manager.get_session"
         - "shared.infrastructure.database.session_manager.get_db_session"
     scope:
-      applies_to: ["src/features/**/*.py", "src/body/services/**/*.py"]
+      applies_to: ["src/**/*.py"]
+      excludes:
+        - "src/body/**"
+        - "src/shared/infrastructure/**"
+        - "tests/**"
 
   # LAW: Logic modules MUST NOT hijack the event loop
   #
