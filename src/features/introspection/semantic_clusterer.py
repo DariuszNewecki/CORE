@@ -12,6 +12,8 @@ from pathlib import Path
 import numpy as np
 from dotenv import load_dotenv
 
+from shared.config import settings
+from shared.infrastructure.storage.file_handler import FileHandler
 from shared.logger import getLogger
 
 
@@ -80,10 +82,11 @@ def run_clustering(input_path: Path | str, output: Path | str, n_clusters: int) 
         key: f"domain_{label}"
         for key, label in zip(capability_keys, labels, strict=False)
     }
-    with output_path.open("w", encoding="utf-8") as f:
-        json.dump(proposed_domains, f, indent=2, sort_keys=True)
+    file_handler = FileHandler()
+    rel_path = str(output_path.relative_to(settings.REPO_PATH))
+    file_handler.write_runtime_json(rel_path, proposed_domains)
     logger.info(
-        "✅ Successfully generated domain proposals for %s capabilities and saved to %s",
+        "Successfully generated domain proposals for %s capabilities and saved to %s",
         len(proposed_domains),
         output_path,
     )
