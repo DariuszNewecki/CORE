@@ -14,7 +14,7 @@ from pathlib import Path
 from typing import Any
 
 from body.services.service_registry import service_registry
-from features.autonomy.autonomous_developer import develop_from_goal
+from features.autonomy.autonomous_developer_v2 import develop_from_goal
 from mind.governance.enforcement_loader import EnforcementMappingLoader
 from mind.logic.engines.ast_gate.checks.modularity_checks import ModularityChecker
 from shared.config import settings

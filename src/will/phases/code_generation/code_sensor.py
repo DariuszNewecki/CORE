@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import ast
 
-from features.test_generation_v2.sandbox import PytestSandboxRunner
+from features.test_generation.sandbox import PytestSandboxRunner
 from shared.logger import getLogger
 
 

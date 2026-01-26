@@ -41,7 +41,7 @@ class ResourceSelector:
                 (r for r in resources if r.name == role.assigned_resource), None
             )
             if resource:
-                logger.info(
+                logger.debug(
                     "Using assigned resource '%s' for '%s'", resource.name, role_name
                 )
                 return resource

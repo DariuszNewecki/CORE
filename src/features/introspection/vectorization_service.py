@@ -127,7 +127,7 @@ async def run_vectorize(
 
     for i, t in enumerate(tasks, 1):
         if i % 10 == 0:
-            logger.info("Progress: %d/%d", i, len(tasks))
+            logger.info("Vectorizing '%s' (%d/%d)", t["path"], i, len(tasks))
 
         try:
             vec = await get_robust_embedding(cog, t["source"])
