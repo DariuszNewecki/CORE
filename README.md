@@ -455,7 +455,7 @@ core-admin knowledge sync               # Update knowledge graph
 - **Q4 2026**: A4 Self-Replication research milestone
 
 **For Transparency:**
-- Test coverage: 50% (target: 75%)
+- Test coverage: 14% (target: 75%)
 - Enforcement coverage: Varies by policy domain
 - Component gap: 9 critical components needed
 - Legacy code: Being incrementally migrated
