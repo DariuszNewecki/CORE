@@ -2,6 +2,38 @@
 
 """
 The single source of truth for creating and managing database sessions.
+
+CONSTITUTIONAL AUTHORITY: Infrastructure (coordination)
+
+AUTHORITY DEFINITION:
+SessionManager is infrastructure because it provides mechanical coordination
+for database connection lifecycle without making strategic decisions about
+what database operations should be performed or how data should be used.
+
+RESPONSIBILITIES:
+- Create and manage database engine per event loop
+- Provide database session factory
+- Coordinate session lifecycle (creation, yielding, cleanup)
+- Manage connection pooling and disposal
+
+AUTHORITY LIMITS:
+- Cannot decide which database operations should be performed (strategic)
+- Cannot interpret the semantic meaning of database queries
+- Cannot choose between alternative data access strategies
+- Cannot make business logic decisions about data
+
+EXEMPTIONS:
+- May create and manage database connections (infrastructure coordination)
+- May maintain per-event-loop state (performance and safety)
+- Exempt from Mind/Body/Will layer restrictions (infrastructure role)
+- Subject to infrastructure authority boundary rules
+
+IMPLEMENTATION NOTES:
+- Per-event-loop cache prevents "Future attached to different loop" issues
+- AsyncSession lifecycle managed via context manager
+- Engine disposal coordinated with event loop lifecycle
+
+See: .intent/papers/CORE-Infrastructure-Definition.md Section 5
 """
 
 from __future__ import annotations

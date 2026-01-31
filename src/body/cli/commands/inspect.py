@@ -1,14 +1,24 @@
 # src/body/cli/commands/inspect.py
+# ID: body.cli.commands.inspect
+
 """
 Registers the verb-based 'inspect' command group.
 Refactored to use the Constitutional CLI Framework (@core_command).
+
 Compliance:
 - body_contracts.yaml: UI allowed here (CLI Command Layer).
 - command_patterns.yaml: Inspect Pattern.
+
+Golden-path adjustments (Phase 1, non-breaking):
+- Canonicalized: `inspect clusters`
+- Deprecated alias: `inspect find-clusters` -> `inspect clusters`
+- Deprecated aliases (soft): `inspect symbol-drift` / `inspect vector-drift`
+  will forward to `status drift {symbol|vector}` when available.
 """
 
 from __future__ import annotations
 
+from collections.abc import Coroutine
 from pathlib import Path
 from typing import Any
 
@@ -17,8 +27,6 @@ from rich.console import Console
 from rich.tree import Tree
 
 import body.cli.logic.status as status_logic
-
-# NEW: Import the pure logic module
 from body.cli.logic import diagnostics as diagnostics_logic
 from body.cli.logic.duplicates import inspect_duplicates_async
 from body.cli.logic.knowledge import find_common_knowledge
@@ -32,39 +40,86 @@ from shared.infrastructure.repositories.decision_trace_repository import (
     DecisionTraceRepository,
 )
 from shared.logger import getLogger
+from shared.models.command_meta import CommandBehavior, CommandLayer, command_meta
 
 
 logger = getLogger(__name__)
 console = Console()
+
 inspect_app = typer.Typer(
     help="Read-only commands to inspect system state and configuration.",
     no_args_is_help=True,
 )
 
 
+def _deprecated(old: str, new: str) -> None:
+    typer.secho(
+        f"DEPRECATED: '{old}' -> use '{new}'",
+        fg=typer.colors.YELLOW,
+    )
+
+
+async def _maybe_await(result: Any) -> None:
+    """
+    Await coroutine results when wrappers call async implementations.
+    """
+    if isinstance(result, Coroutine):
+        await result
+
+
+def _try_forward_to_status_drift(scope: str, ctx: typer.Context) -> bool:
+    """
+    Best-effort forwarder to the new golden-path command:
+      core-admin status drift {guard|symbol|vector|all}
+
+    This is intentionally non-breaking:
+    - If status module isn't present or drift_cmd isn't wired yet, returns False.
+    """
+    try:
+        from body.cli.commands.status import (
+            drift_cmd as status_drift_cmd,
+        )
+    except Exception as exc:  # pragma: no cover
+        logger.debug("inspect: status drift forward unavailable: %s", exc)
+        return False
+
+    try:
+        maybe = status_drift_cmd(scope=scope)  # type: ignore[call-arg]
+        # status_drift_cmd is expected to be sync; tolerate async just in case.
+        if isinstance(maybe, Coroutine):
+            # We can't await in sync callers; only used from async commands.
+            return False
+        return True
+    except Exception as exc:  # pragma: no cover
+        logger.debug("inspect: status drift forward failed: %s", exc)
+        return False
+
+
 @inspect_app.command("status")
+@command_meta(
+    canonical_name="inspect.status",
+    behavior=CommandBehavior.READ,
+    layer=CommandLayer.BODY,
+    summary="Display database connection and migration status",
+)
 @core_command(dangerous=False, requires_context=False)
 # ID: fc253528-91bc-44bb-ae52-0ba3886d95d5
 async def status_command(ctx: typer.Context) -> None:
     """
     Display database connection and migration status.
     """
-    # Delegate to logic layer
     report = await status_logic._get_status_report()
 
-    # Connection line
     if report.is_connected:
         console.print("Database connection: OK")
     else:
         console.print("Database connection: FAILED")
 
-    # Version line
     if report.db_version:
         console.print(f"Database version: {report.db_version}")
     else:
         console.print("Database version: none")
 
-    # Migration status
     pending = list(report.pending_migrations)
     if not pending:
         console.print("Migrations are up to date.")
@@ -79,21 +134,25 @@ register_guard(inspect_app)
 
 
 @inspect_app.command("command-tree")
+@command_meta(
+    canonical_name="inspect.command-tree",
+    behavior=CommandBehavior.READ,
+    layer=CommandLayer.BODY,
+    summary="Displays a hierarchical tree view of all available CLI commands",
+)
 @core_command(dangerous=False, requires_context=False)
 # ID: db3b96cc-d4a8-4bb1-9002-5a9b81d96d51
 def command_tree_cmd(ctx: typer.Context) -> None:
     """Displays a hierarchical tree view of all available CLI commands."""
-    # 1. Get Data (Headless)
     from body.cli.admin_cli import app as main_app
 
     logger.info("Building CLI Command Tree...")
     tree_data = diagnostics_logic.build_cli_tree_data(main_app)
 
-    # 2. Render UI (Interface Layer)
     root = Tree("[bold blue]CORE CLI[/bold blue]")
 
     # ID: 33464692-0311-47b5-b972-a26923f152df
-    def add_nodes(nodes: list[dict[str, Any]], parent: Tree):
+    def add_nodes(nodes: list[dict[str, Any]], parent: Tree) -> None:
         for node in nodes:
             label = f"[bold]{node['name']}[/bold]"
             if node.get("help"):
@@ -107,23 +166,32 @@ def command_tree_cmd(ctx: typer.Context) -> None:
     console.print(root)
 
 
-@inspect_app.command("find-clusters")
+# ----------------------------
+# Golden canonical: clusters
+# ----------------------------
+
+
+@inspect_app.command("clusters")
+@command_meta(
+    canonical_name="inspect.clusters",
+    behavior=CommandBehavior.READ,
+    layer=CommandLayer.BODY,
+    summary="Finds and displays semantic capability clusters",
+)
 @core_command(dangerous=False)
-# ID: b3272cb8-f754-4a11-b18d-6ca5efecbd3d
-async def find_clusters_cmd(
+# ID: 3e5607f6-3bba-4aa2-9d5e-7c0dce9f6c2e
+async def clusters_cmd(
     ctx: typer.Context,
     n_clusters: int = typer.Option(
         25, "--n-clusters", "-n", help="The number of clusters to find."
     ),
 ) -> None:
     """
-    Finds and displays all semantic capability clusters.
+    Finds and displays semantic capability clusters.
     """
-    # 1. Get Data (Headless)
     core_context: CoreContext = ctx.obj
     clusters = await diagnostics_logic.find_clusters_logic(core_context, n_clusters)
 
-    # 2. Render UI (Interface Layer)
     if not clusters:
         console.print("[yellow]No clusters found.[/yellow]")
         return
@@ -135,30 +203,81 @@ async def find_clusters_cmd(
         )
 
 
+@inspect_app.command("find-clusters")
+@command_meta(
+    canonical_name="inspect.find-clusters",  # ← Different!
+    behavior=CommandBehavior.READ,
+    layer=CommandLayer.BODY,
+    summary="DEPRECATED alias for 'inspect clusters'",
+    aliases=["clusters"],  # Points to the canonical
+)
+@core_command(dangerous=False)
+# ID: b3272cb8-f754-4a11-b18d-6ca5efecbd3d
+async def find_clusters_cmd(
+    ctx: typer.Context,
+    n_clusters: int = typer.Option(
+        25, "--n-clusters", "-n", help="The number of clusters to find."
+    ),
+) -> None:
+    """
+    DEPRECATED alias for `inspect clusters`.
+    """
+    _deprecated("inspect find-clusters", "inspect clusters")
+    await clusters_cmd(ctx, n_clusters=n_clusters)
+
+
 @inspect_app.command("symbol-drift")
+@command_meta(
+    canonical_name="inspect.drift.symbol",
+    behavior=CommandBehavior.READ,
+    layer=CommandLayer.BODY,
+    summary="Detects drift between filesystem symbols and database symbols",
+    aliases=["symbol-drift"],
+)
 @core_command(dangerous=False)
 # ID: c08c957a-f5b3-480d-8232-8c8cafe060d5
 def symbol_drift_cmd(ctx: typer.Context) -> None:
     """
-    Detects drift between symbols on the filesystem and in the database.
+    DEPRECATED alias. Detects drift between filesystem symbols and database symbols.
     """
-    # inspect_symbol_drift handles its own sync/async logic internally
+    _deprecated("inspect symbol-drift", "status drift symbol")
+    if _try_forward_to_status_drift("symbol", ctx):
+        return
+
+    # Fallback to current implementation (non-breaking)
     inspect_symbol_drift()
 
 
 @inspect_app.command("vector-drift")
+@command_meta(
+    canonical_name="inspect.drift.vector",
+    behavior=CommandBehavior.READ,
+    layer=CommandLayer.BODY,
+    summary="Verifies synchronization between PostgreSQL and Qdrant",
+    aliases=["vector-drift"],
+)
 @core_command(dangerous=False)
 # ID: 79b5e56e-3aa5-4ce0-a693-e051e0fe1dad
 async def vector_drift_command(ctx: typer.Context) -> None:
     """
-    Verifies perfect synchronization between PostgreSQL and Qdrant.
+    DEPRECATED alias. Verifies synchronization between PostgreSQL and Qdrant.
     """
+    _deprecated("inspect vector-drift", "status drift vector")
+    # status drift currently expected to be sync; keep fallback safe.
+    if _try_forward_to_status_drift("vector", ctx):
+        return
+
     core_context: CoreContext = ctx.obj
-    # Framework ensures Qdrant is initialized via JIT
     await inspect_vector_drift(core_context)
 
 
 @inspect_app.command("common-knowledge")
+@command_meta(
+    canonical_name="inspect.common-knowledge",
+    behavior=CommandBehavior.READ,
+    layer=CommandLayer.BODY,
+    summary="Finds structurally identical helper functions that can be consolidated",
+)
 @core_command(dangerous=False)
 # ID: bf926e9a-3106-4697-8d96-ade3fb3cad22
 async def common_knowledge_cmd(ctx: typer.Context) -> None:
@@ -169,6 +288,12 @@ async def common_knowledge_cmd(ctx: typer.Context) -> None:
 
 
 @inspect_app.command("decisions")
+@command_meta(
+    canonical_name="inspect.decisions",
+    behavior=CommandBehavior.READ,
+    layer=CommandLayer.BODY,
+    summary="Inspect decision traces from autonomous operations",
+)
 @core_command(dangerous=False, requires_context=False)
 # ID: 8e9f0a1b-2c3d-4e5f-6a7b-8c9d0e1f2a3b
 async def decisions_cmd(
@@ -197,21 +322,12 @@ async def decisions_cmd(
 ) -> None:
     """
     Inspect decision traces from autonomous operations.
-
-    Examples:
-        core-admin inspect decisions                           # Recent traces
-        core-admin inspect decisions --session abc123          # Specific session
-        core-admin inspect decisions --failures-only           # Failures only
-        core-admin inspect decisions --agent CodeGenerator     # By agent
-        core-admin inspect decisions --pattern action_pattern --stats  # Pattern stats
     """
-    # requires_context=False: use DB session manager directly
     from shared.infrastructure.database.session_manager import get_session
 
     async with get_session() as session:
         repo = DecisionTraceRepository(session)
 
-        # Route to appropriate handler
         if session_id:
             await _show_session_trace(repo, session_id, details)
         elif stats:
@@ -223,6 +339,12 @@ async def decisions_cmd(
 
 
 @inspect_app.command("test-targets")
+@command_meta(
+    canonical_name="inspect.test-targets",
+    behavior=CommandBehavior.VALIDATE,
+    layer=CommandLayer.BODY,
+    summary="Identifies and classifies functions as SIMPLE or COMPLEX test targets",
+)
 @core_command(dangerous=False, requires_context=False)
 # ID: fc375cbc-c97f-40b5-a4a9-0fa4a4d7d359
 def inspect_test_targets(
@@ -267,6 +389,12 @@ def inspect_test_targets(
 
 
 @inspect_app.command("duplicates")
+@command_meta(
+    canonical_name="inspect.duplicates",
+    behavior=CommandBehavior.VALIDATE,
+    layer=CommandLayer.BODY,
+    summary="Runs semantic code duplication check",
+)
 @core_command(dangerous=False)
 # ID: 5a340604-58ea-46d2-8841-a308abad5dff
 async def duplicates_command(
@@ -410,7 +538,6 @@ async def _show_pattern_traces(
     """Show traces that used a specific pattern."""
     from rich.table import Table
 
-    # NOTE: repository method name is assumed from your pasted implementation.
     traces = await repo.get_pattern_stats(pattern, limit)
 
     if not traces:
@@ -433,7 +560,7 @@ async def _show_pattern_traces(
         table.add_column("Status")
         table.add_column("Created", style="dim")
 
-        for trace in traces[:20]:  # Show max 20 in table
+        for trace in traces[:20]:
             status = "❌" if _as_bool(getattr(trace, "has_violations", False)) else "✅"
             created_at = getattr(trace, "created_at", None)
             created_str = (
@@ -461,7 +588,6 @@ async def _show_statistics(
         f"\n[bold cyan]Decision Trace Statistics (Last {days} days)[/bold cyan]\n"
     )
 
-    # Get agent counts
     agent_counts = await repo.count_by_agent(days)
 
     if not agent_counts:
@@ -480,7 +606,6 @@ async def _show_statistics(
     console.print(table)
 
     if pattern:
-        # Show pattern-specific stats
         traces = await repo.get_pattern_stats(pattern, 1000)
 
         if traces:

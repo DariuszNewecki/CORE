@@ -1,0 +1,49 @@
+{
+    "$schema": "META/rule_document.schema.json",
+    "kind": "rule_document",
+    "metadata": {
+        "id": "rules.infrastructure.authority_boundaries",
+        "title": "Infrastructure Authority Boundaries",
+        "version": "0.2.0",
+        "authority": "constitution",
+        "phase": "audit",
+        "status": "active"
+    },
+    "rules": [
+        {
+            "id": "infrastructure.no_strategic_decisions",
+            "statement": "Infrastructure components MUST provide mechanical coordination without strategic decision-making.",
+            "authority": "constitution",
+            "phase": "audit",
+            "enforcement": "reporting"
+        },
+        {
+            "id": "infrastructure.constitutional_documentation",
+            "statement": "Infrastructure components MUST document their constitutional authority claims in module docstrings.",
+            "authority": "constitution",
+            "phase": "audit",
+            "enforcement": "reporting"
+        },
+        {
+            "id": "infrastructure.no_business_logic",
+            "statement": "Infrastructure MUST remain domain-agnostic and contain no business logic.",
+            "authority": "constitution",
+            "phase": "audit",
+            "enforcement": "reporting"
+        },
+        {
+            "id": "infrastructure.service_registry.no_conditional_loading",
+            "statement": "ServiceRegistry MUST NOT choose between service loading strategies based on semantic context.",
+            "authority": "constitution",
+            "phase": "audit",
+            "enforcement": "reporting"
+        },
+        {
+            "id": "infrastructure.no_bare_except",
+            "statement": "Infrastructure MUST use explicit error handling and not suppress errors with bare except clauses.",
+            "authority": "constitution",
+            "phase": "audit",
+            "enforcement": "reporting"
+        }
+    ]
+}

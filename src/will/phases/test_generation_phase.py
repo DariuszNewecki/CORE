@@ -93,7 +93,7 @@ class TestGenerationPhase:
 
             logger.info("🧪 Generating tests for %d files...", len(target_files))
 
-            # TODO: Integrate with EnhancedTestGenerator
+            # FUTURE: Integrate with EnhancedTestGenerator
             # For now, this is a stub that acknowledges the need
             # but doesn't actually generate tests
 

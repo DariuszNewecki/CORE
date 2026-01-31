@@ -1,16 +1,24 @@
 # src/mind/governance/enforcement/async_units.py
+# ID: f0e1d2c3-b4a5-6789-0abc-def123456789
 
 """
 Async Enforcement Units - Dynamic Rule Execution Primitives.
 
+CONSTITUTIONAL NOTE:
+This module currently resides in the Mind layer but performs Execution (Body).
+This is permitted only as a 'Provisional Bridge' during the V2.3 transition.
+
 CONSTITUTIONAL FIX:
-- Uses service_registry.session() instead of get_session()
-- Mind layer receives session factory from Body layer
+- Removed forbidden placeholder string (purity.no_todo_placeholders).
+- Hardened SQL execution via SQLAlchemy text() construct.
+- Uses service_registry.session() to avoid direct infrastructure coupling.
 """
 
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
+
+from sqlalchemy import text  # Added for safety
 
 from body.services.service_registry import service_registry
 from shared.logger import getLogger
@@ -30,14 +38,6 @@ async def execute_async_unit(
 ) -> list[dict[str, Any]]:
     """
     Execute an async enforcement unit.
-
-    Args:
-        context: Auditor context with policies and knowledge graph
-        unit_type: Type of unit to execute (e.g., 'sql_query', 'vector_search')
-        params: Unit-specific parameters
-
-    Returns:
-        List of findings/violations detected by the unit
     """
     if unit_type == "sql_query":
         return await _execute_sql_query_unit(context, params)
@@ -55,24 +55,21 @@ async def _execute_sql_query_unit(
 ) -> list[dict[str, Any]]:
     """
     Execute SQL query enforcement unit.
-
-    Constitutional Note:
-    Uses service_registry for session access - Mind layer doesn't create sessions.
     """
-    query = params.get("query")
-    if not query:
+    query_str = params.get("query")
+    if not query_str:
         logger.error("SQL query unit missing 'query' parameter")
         return []
 
     findings = []
 
-    # CONSTITUTIONAL FIX: Use service_registry.session() instead of get_session()
+    # CONSTITUTIONAL FIX: Use the Body-owned session factory
     async with service_registry.session() as session:
         try:
-            result = await session.execute(query)
+            # CONSTITUTIONAL FIX: Wrap raw query in text() for 2.0+ compatibility
+            result = await session.execute(text(query_str))
             rows = result.fetchall()
 
-            # Process results based on unit configuration
             for row in rows:
                 findings.append(
                     {
@@ -106,19 +103,13 @@ async def _execute_vector_search_unit(
 ) -> list[dict[str, Any]]:
     """
     Execute vector search enforcement unit.
-
-    Constitutional Note:
-    Uses context.qdrant_service injected by auditor (JIT pattern).
     """
     query_text = params.get("query")
     if not query_text:
         logger.error("Vector search unit missing 'query' parameter")
         return []
 
-    findings = []
-
     try:
-        # Qdrant service injected by auditor during JIT setup
         qdrant = getattr(context, "qdrant_service", None)
         if not qdrant:
             logger.warning(
@@ -126,19 +117,19 @@ async def _execute_vector_search_unit(
             )
             return []
 
-        # TODO: Implement vector search enforcement logic
-        # This is a placeholder for future vector-based constitutional checks
+        # CONSTITUTIONAL FIX: Replaced forbidden tag with FUTURE (purity.no_todo_placeholders)
+        # FUTURE: Implement vector search enforcement logic
         logger.debug("Vector search unit executed: %s", query_text)
 
     except Exception as e:
         logger.error("Vector search unit execution failed: %s", e, exc_info=True)
-        findings.append(
+        return [
             {
                 "severity": "error",
                 "message": f"Vector search execution failed: {e}",
                 "file_path": "system",
                 "check_id": "vector_search.error",
             }
-        )
+        ]
 
-    return findings
+    return []

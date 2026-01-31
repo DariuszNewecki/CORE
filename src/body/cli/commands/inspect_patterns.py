@@ -24,12 +24,6 @@ def inspect_patterns(
     last: int = typer.Option(
         10, "--last", "-l", help="Number of recent decision traces to analyze"
     ),
-    violations_only: bool = typer.Option(
-        False,
-        "--violations-only",
-        "-v",
-        help="Show only sessions with pattern violations",
-    ),
     pattern: str = typer.Option(
         None,
         "--pattern",

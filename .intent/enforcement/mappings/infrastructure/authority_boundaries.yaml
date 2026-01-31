@@ -1,0 +1,120 @@
+# .intent/enforcement/mappings/infrastructure/authority_boundaries.yaml
+#
+# Enforces authority boundaries for Infrastructure components.
+# Based on: .intent/papers/CORE-Infrastructure-Definition.md
+
+mappings:
+  # ==========================================================================
+  # RULE 1: Infrastructure May Not Make Strategic Decisions
+  # ==========================================================================
+
+  # LAW: Infrastructure components must provide mechanical coordination without strategic decision-making
+  #
+  # CONSTITUTIONAL NOTE: Infrastructure is exempt from Mind/Body/Will layer restrictions
+  # but must still respect authority boundaries. Strategic decisions are forbidden.
+  # See: .intent/papers/CORE-Infrastructure-Definition.md Section 4.2
+  infrastructure.no_strategic_decisions:
+    engine: knowledge_gate
+    params:
+      check_type: component_responsibility
+      expected_pattern: "Infrastructure provides coordination without strategic decisions"
+    scope:
+      applies_to:
+        - "src/shared/infrastructure/**/*.py"
+      excludes:
+        - "src/shared/infrastructure/**/*_test.py"
+
+  # ==========================================================================
+  # RULE 2: Infrastructure Must Document Constitutional Authority
+  # ==========================================================================
+
+  # LAW: Infrastructure components must document their constitutional authority claims
+  #
+  # CONSTITUTIONAL NOTE: Explicit authority claims enable governance validation.
+  # All infrastructure must declare: CONSTITUTIONAL AUTHORITY, AUTHORITY LIMITS, EXEMPTIONS
+  infrastructure.constitutional_documentation:
+    engine: regex_gate
+    params:
+      check_type: docstring_content
+      required_patterns:
+        - "CONSTITUTIONAL AUTHORITY"
+        - "AUTHORITY LIMITS"
+    scope:
+      applies_to:
+        - "src/shared/infrastructure/service_registry.py"
+        - "src/shared/infrastructure/database/session_manager.py"
+        - "src/shared/infrastructure/config_service.py"
+
+  # ==========================================================================
+  # RULE 3: Infrastructure May Not Contain Business Logic
+  # ==========================================================================
+
+  # LAW: Infrastructure must remain domain-agnostic and contain no business logic
+  #
+  # CONSTITUTIONAL NOTE: Business logic in infrastructure couples coordination to domain.
+  # Infrastructure should work with any domain - no semantic understanding of operations.
+  infrastructure.no_business_logic:
+    engine: knowledge_gate
+    params:
+      check_type: component_responsibility
+      expected_pattern: "Infrastructure is domain-agnostic coordination machinery"
+    scope:
+      applies_to:
+        - "src/shared/infrastructure/**/*.py"
+
+  # ==========================================================================
+  # RULE 4: ServiceRegistry Specific - No Conditional Service Loading
+  # ==========================================================================
+
+  # LAW: ServiceRegistry must not choose between service loading strategies based on semantic context
+  #
+  # CONSTITUTIONAL NOTE: Look for conditional logic patterns that suggest strategic decision-making.
+  # Keywords like "priority", "critical", "important" indicate semantic understanding.
+  infrastructure.service_registry.no_conditional_loading:
+    engine: regex_gate
+    params:
+      forbidden_patterns:
+        - "if.*priority"
+        - "if.*critical"
+        - "if.*important"
+        - "high_priority"
+        - "low_priority"
+    scope:
+      applies_to:
+        - "src/shared/infrastructure/service_registry.py"
+
+  # ==========================================================================
+  # RULE 5: Infrastructure Must Use Explicit Error Handling
+  # ==========================================================================
+
+  # LAW: Infrastructure must not use bare except clauses that suppress all errors
+  #
+  # CONSTITUTIONAL NOTE: Bare except: pass is selective suppression by omission.
+  # All errors must be handled explicitly or propagated.
+  infrastructure.no_bare_except:
+    engine: regex_gate
+    params:
+      forbidden_patterns:
+        - "except:\\s*pass"
+        - "except Exception:\\s*pass"
+    scope:
+      applies_to:
+        - "src/shared/infrastructure/**/*.py"
+      excludes:
+        - "tests/**"
+# ==============================================================================
+# Meta: This mapping enforces infrastructure authority boundaries
+# ==============================================================================
+
+# Infrastructure is coordination machinery, not decision-making.
+# These rules ensure infrastructure stays mechanical and deterministic.
+#
+# Enforcement Strategy:
+# - knowledge_gate rules: Advisory (report findings, don't block)
+# - regex_gate rules: Advisory initially, can be promoted to blocking
+#
+# Roadmap:
+# - Phase 1: Deploy with advisory enforcement
+# - Phase 2: Add constitutional docstrings to infrastructure components
+# - Phase 3: Promote documentation rules to blocking
+# - Phase 4: Add more sophisticated ast_gate checks if needed

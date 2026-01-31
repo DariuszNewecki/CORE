@@ -1,10 +1,14 @@
 # src/shared/infrastructure/context/builder.py
+
 """
 ContextBuilder - Sensory-aware context assembly.
 
-Responsible for building ContextPackage data and converting it into a context
-payload suitable for downstream modules. Supports LimbWorkspace for "Future
-Truth" context extraction.
+CONSTITUTIONAL AUTHORITY: Infrastructure (coordination)
+
+ALIGNS WITH PILLAR I (Octopus):
+Provides a unified sensation of "Shadow Truth" (in-flight changes) vs
+"Historical Truth" (database). This prevents the AI from being
+blind to its own proposed refactors.
 """
 
 from __future__ import annotations
@@ -12,10 +16,7 @@ from __future__ import annotations
 import ast
 import uuid
 from datetime import UTC, datetime
-from pathlib import Path
 from typing import TYPE_CHECKING, Any
-
-import yaml
 
 from features.introspection.knowledge_graph_service import KnowledgeGraphBuilder
 from shared.config import settings
@@ -28,407 +29,249 @@ from .serializers import ContextSerializer
 if TYPE_CHECKING:
     from shared.infrastructure.context.limb_workspace import LimbWorkspace
 
+    from .providers.ast import ASTProvider
+    from .providers.db import DBProvider
+    from .providers.vectors import VectorProvider
+
 logger = getLogger(__name__)
 
 
 # ID: 7ac392a5-996c-45e5-ad32-e31ce9911f14
 class ScopeTracker(ast.NodeVisitor):
-    """
-    AST visitor that collects symbol data for a source module.
-
-    Preserved from current implementation to maintain robustness.
-    """
+    """AST visitor that collects symbol metadata and signatures."""
 
     def __init__(self, source: str) -> None:
         self.source = source
         self.stack: list[str] = []
         self.symbols: list[dict[str, Any]] = []
 
-    # ID: 9f700523-8a3e-42d4-a2ce-980ae6371b5b
+    # ID: 59e58ef2-c98c-46ea-84c1-1a65a12bfd0c
     def visit_ClassDef(self, node: ast.ClassDef) -> None:
         self._add_symbol(node)
         self.stack.append(node.name)
         self.generic_visit(node)
         self.stack.pop()
 
-    # ID: 9135af2c-29d8-4c30-a087-a82d22b72cc5
+    # ID: ee0b943e-bf21-4d35-8af8-5068794b4cc2
     def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
         self._add_symbol(node)
         self.generic_visit(node)
 
-    # ID: 33a3b223-54d9-4a62-b12b-fda2f2239b6f
+    # ID: 262f717e-69a6-448f-b654-f23ccb9283e6
     def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef) -> None:
         self._add_symbol(node)
         self.generic_visit(node)
 
-    def _add_symbol(
-        self, node: ast.FunctionDef | ast.AsyncFunctionDef | ast.ClassDef
-    ) -> None:
-        if self.stack:
-            qualname = f"{'.'.join(self.stack)}.{node.name}"
-        else:
-            qualname = node.name
-
+    def _add_symbol(self, node: Any) -> None:
+        qualname = f"{'.'.join(self.stack)}.{node.name}" if self.stack else node.name
         try:
-            segment = ast.get_source_segment(self.source, node)
-            signature = segment.split("\n")[0] if segment else f"def {node.name}(...)"
             lines = self.source.splitlines()
-            end_lineno = getattr(node, "end_lineno", node.lineno) or node.lineno
-            code = "\n".join(lines[node.lineno - 1 : end_lineno])
-        except Exception as exc:
-            logger.debug(
-                "ScopeTracker: failed to extract code for %s: %s", node.name, exc
-            )
-            signature = f"def {node.name}(...)"
-            code = "# Code extraction failed"
+            end = getattr(node, "end_lineno", node.lineno) or node.lineno
+            code = "\n".join(lines[node.lineno - 1 : end])
+            sig = code.split("\n")[0]
+        except Exception as e:
+            logger.debug("Symbol extraction failed for %s: %s", node.name, e)
+            sig, code = f"def {node.name}(...)", "# Extraction failed"
 
-        docstring = ast.get_docstring(node) or ""
         self.symbols.append(
             {
                 "name": node.name,
                 "qualname": qualname,
-                "signature": signature,
+                "signature": sig,
                 "code": code,
-                "docstring": docstring,
+                "docstring": ast.get_docstring(node) or "",
             }
         )
+
+
+# ID: d4e5f6a7-b8c9-0d1e-2f3a-4b5c6d7e8f9a
+class _GraphExplorer:
+    """Specialist in traversing the Knowledge Graph to find related logic."""
+
+    @staticmethod
+    # ID: bb1685f8-4c28-4a91-8749-00f281a3fc55
+    def traverse(graph: dict, seeds: list[dict], depth: int, limit: int) -> set[str]:
+        all_symbols = graph.get("symbols", {})
+        related = set()
+
+        # Build queue from seed symbol paths
+        queue = set()
+        for s in seeds:
+            # Check both possible metadata locations
+            path = s.get("metadata", {}).get("symbol_path") or s.get("symbol_path")
+            if path:
+                queue.add(path)
+
+        for _ in range(depth):
+            if not queue or len(related) >= limit:
+                break
+            next_q = set()
+            for key in queue:
+                data = all_symbols.get(key, {})
+                for callee in data.get("calls", []):
+                    # In a Shadow Graph, we might have partial keys; try to resolve
+                    if callee not in related:
+                        related.add(callee)
+                        next_q.add(callee)
+            queue = next_q
+        return related
 
 
 # ID: e90e2005-1f52-47e2-a456-46bdd1532a44
 class ContextBuilder:
     """
-    Assembles governed context packets.
-
-    Uses LimbWorkspace when present to provide "Future Truth" sensation.
+    Assembles governed ContextPackages by merging historical and future truth.
     """
 
     def __init__(
         self,
-        db_provider: Any,
-        vector_provider: Any,
-        ast_provider: Any,
-        config: dict[str, Any] | None,
+        db_provider: DBProvider,
+        vector_provider: VectorProvider,
+        ast_provider: ASTProvider,
+        config: dict,
         workspace: LimbWorkspace | None = None,
-    ) -> None:
+    ):
         self.db = db_provider
         self.vectors = vector_provider
         self.ast = ast_provider
         self.config = config or {}
         self.workspace = workspace
-        self.version = "0.2.1"
-        self.policy = self._load_policy()
-        self._knowledge_graph: dict[str, Any] = {"symbols": {}}
-
-    def _load_policy(self) -> dict[str, Any]:
-        policy_path = settings.REPO_PATH / ".intent/context/policy.yaml"
-        fallback_path = Path(".intent/context/policy.yaml")
-        for candidate in (policy_path, fallback_path):
-            if candidate.exists():
-                try:
-                    with candidate.open(encoding="utf-8") as handle:
-                        return yaml.safe_load(handle) or {}
-                except Exception as exc:
-                    logger.error(
-                        "ContextBuilder: failed to load policy %s: %s", candidate, exc
-                    )
-                    break
-        return {}
-
-    # ID: load_current_truth
-    async def _load_knowledge_graph(self) -> dict[str, Any]:
-        """
-        Determine the current knowledge graph "truth".
-
-        Uses a shadow graph when a workspace is present; otherwise uses the
-        historical database source.
-        """
-        if self.workspace:
-            logger.info("ContextBuilder: sensing future truth via shadow graph")
-            builder = KnowledgeGraphBuilder(
-                settings.REPO_PATH, workspace=self.workspace
-            )
-            return builder.build()
-
-        try:
-            knowledge_service = KnowledgeService(settings.REPO_PATH)
-            return await knowledge_service.get_graph()
-        except Exception as exc:
-            logger.error("ContextBuilder: failed to sense historical truth: %s", exc)
-            return {"symbols": {}}
 
     # ID: be34f105-e983-4c0e-9e20-79603db377a3
     async def build_for_task(self, task_spec: dict[str, Any]) -> dict[str, Any]:
-        start_time = datetime.now(UTC)
+        """Main entry point for building a task-specific packet."""
+        start = datetime.now(UTC)
 
-        self._knowledge_graph = await self._load_knowledge_graph()
+        # 1. SENSATION: Load the graph (Shadow if workspace exists, else Historical)
+        graph = await self._load_truth()
 
-        packet_id = str(uuid.uuid4())
-        created_at = start_time.isoformat()
-        scope_spec = task_spec.get("scope", {})
+        packet = self._init_packet(task_spec)
 
-        target_file = task_spec.get("target_file", "")
-        target_module = ""
-        if target_file:
-            target_module = (
-                target_file.replace("src/", "", 1).replace(".py", "").replace("/", ".")
-            )
+        # 2. COLLECTION: Extract items using the most relevant 'Truth'
+        items = await self._collect_items(task_spec, graph, packet["constraints"])
 
-        packet = {
-            "header": {
-                "packet_id": packet_id,
-                "task_id": task_spec["task_id"],
-                "task_type": task_spec["task_type"],
-                "created_at": created_at,
-                "builder_version": self.version,
-                "privacy": task_spec.get("privacy", "local_only"),
-                "sensation_mode": "SHADOW" if self.workspace else "HISTORICAL",
-            },
-            "problem": {
-                "summary": task_spec.get("summary", ""),
-                "target_file": target_file,
-                "target_module": target_module,
-                "intent_ref": task_spec.get("intent_ref"),
-                "acceptance": task_spec.get("acceptance", []),
-            },
-            "scope": {
-                "include": scope_spec.get("include", []),
-                "exclude": scope_spec.get("exclude", []),
-                "globs": scope_spec.get("globs", []),
-                "roots": scope_spec.get("roots", []),
-                "traversal_depth": scope_spec.get("traversal_depth", 0),
-            },
-            "constraints": self._build_constraints(task_spec),
-            "context": [],
-            "invariants": self._default_invariants(),
-            "policy": {"redactions_applied": [], "remote_allowed": False, "notes": ""},
-            "provenance": {
-                "inputs": {},
-                "build_stats": {},
-                "cache_key": "",
-                "packet_hash": "",
-            },
-        }
-
-        context_items = await self._collect_context(packet, task_spec)
-        context_items = self._apply_constraints(context_items, packet["constraints"])
-
-        for item in context_items:
-            item["tokens_est"] = self._estimate_item_tokens(item)
-
-        packet["context"] = context_items
-        duration_ms = int((datetime.now(UTC) - start_time).total_seconds() * 1000)
+        # 3. FINALIZATION: Token counting and serialization
+        packet["context"] = self._finalize_items(items, packet["constraints"])
         packet["provenance"]["build_stats"] = {
-            "duration_ms": duration_ms,
-            "items_collected": len(context_items),
-            "tokens_total": sum(item.get("tokens_est", 0) for item in context_items),
+            "duration_ms": int((datetime.now(UTC) - start).total_seconds() * 1000),
+            "tokens_total": sum(i.get("tokens_est", 0) for i in packet["context"]),
         }
-        packet["provenance"]["cache_key"] = ContextSerializer.compute_cache_key(
-            task_spec
-        )
-
         return packet
 
-    async def _collect_context(
-        self, packet: dict[str, Any], task_spec: dict[str, Any]
-    ) -> list[dict[str, Any]]:
-        """Collect context items using deterministic scaling."""
-        items: list[dict[str, Any]] = []
-        scope = packet["scope"]
-        constraints = packet["constraints"]
+    async def _load_truth(self) -> dict:
+        """Sensation: Prefers Shadow Graph if limb is in motion."""
+        if self.workspace:
+            # Uses the step 2.1 KnowledgeGraphBuilder with workspace sensations
+            return KnowledgeGraphBuilder(
+                settings.REPO_PATH, workspace=self.workspace
+            ).build()
+        return await KnowledgeService(settings.REPO_PATH).get_graph()
 
-        target_symbol = task_spec.get("target_symbol")
-        is_surgical = bool(target_symbol)
+    async def _collect_items(self, spec: dict, graph: dict, limits: dict) -> list[dict]:
+        """Collects context items. Prioritizes Workspace over DB if active."""
+        items = []
 
-        if is_surgical:
-            adequate_db_limit = 5
-            adequate_vec_limit = 3
+        # Priority 1: Shadow Seeds (Directly from the workspace graph)
+        # If we have a workspace, the DB is likely out of sync. Use the graph instead.
+        if self.workspace:
+            logger.debug("Builder: Seeding context from Shadow Graph")
+            include_filters = spec.get("scope", {}).get("include", [])
+            for key, data in graph.get("symbols", {}).items():
+                if any(f in key for f in include_filters) or not include_filters:
+                    if len(items) < (limits["max_items"] // 2):
+                        items.append(self._format_item(data))
         else:
-            adequate_db_limit = constraints["max_items"] // 2
-            adequate_vec_limit = constraints["max_items"] // 3
-
-        if self.db:
-            seed_items = await self.db.get_symbols_for_scope(scope, adequate_db_limit)
-            items.extend(seed_items)
-
-        if self.vectors and task_spec.get("summary"):
-            vec_items = await self.vectors.search_similar(
-                task_spec["summary"], top_k=adequate_vec_limit
-            )
-            items.extend(vec_items)
-
-        traversal_depth = scope.get("traversal_depth", 0)
-        if traversal_depth > 0 and self._knowledge_graph.get("symbols") and items:
-            related_items = self._traverse_graph(
-                list(items),
-                traversal_depth,
-                constraints["max_items"] - len(items),
-            )
-            items.extend(related_items)
-
-        forced_items = await self._force_add_code_item(task_spec)
-        if forced_items:
-            items = forced_items + items
-
-        seen_keys: set[tuple[Any, Any, Any]] = set()
-        unique_items: list[dict[str, Any]] = []
-        for item in items:
-            key = (item.get("name"), item.get("path"), item.get("item_type"))
-            if key not in seen_keys:
-                seen_keys.add(key)
-                unique_items.append(item)
-
-        return unique_items
-
-    def _traverse_graph(
-        self, seed_items: list[dict[str, Any]], depth: int, limit: int
-    ) -> list[dict[str, Any]]:
-        if not self._knowledge_graph.get("symbols"):
-            return []
-        all_symbols = self._knowledge_graph["symbols"]
-        related_symbol_keys: set[str] = set()
-        queue = {
-            item.get("metadata", {}).get("symbol_path")
-            for item in seed_items
-            if item.get("metadata", {}).get("symbol_path")
-        }
-
-        for _ in range(depth):
-            if not queue or len(related_symbol_keys) >= limit:
-                break
-            next_queue: set[str] = set()
-            for symbol_key in queue:
-                symbol_data = all_symbols.get(symbol_key)
-                if symbol_data:
-                    for callee_name in symbol_data.get("calls", []):
-                        if callee_name not in related_symbol_keys:
-                            related_symbol_keys.add(callee_name)
-                            next_queue.add(callee_name)
-                for caller_key, caller_data in all_symbols.items():
-                    if symbol_key and symbol_key.split("::")[-1] in caller_data.get(
-                        "calls", []
-                    ):
-                        if caller_key not in related_symbol_keys:
-                            related_symbol_keys.add(caller_key)
-                            next_queue.add(caller_key)
-            queue = next_queue
-
-        related_items: list[dict[str, Any]] = []
-        for key in list(related_symbol_keys)[:limit]:
-            symbol_data = all_symbols.get(key)
-            if symbol_data:
-                related_items.append(self._format_symbol_as_context_item(symbol_data))
-        return related_items
-
-    # ID: format_symbol_with_sensation
-    def _format_symbol_as_context_item(
-        self, symbol_data: dict[str, Any]
-    ) -> dict[str, Any]:
-        symbol_path = symbol_data.get("symbol_path", "")
-        name = symbol_data.get("name", "")
-
-        file_path_raw = symbol_path.split("::")[0] if "::" in symbol_path else None
-        content = None
-        signature = str(symbol_data.get("parameters", []))
-
-        if file_path_raw and name:
-            try:
-                if self.workspace:
-                    source = self.workspace.read_text(file_path_raw)
-                else:
-                    source = (settings.REPO_PATH / file_path_raw).read_text(
-                        encoding="utf-8"
+            # Priority 2: Historical Seeds (PostgreSQL)
+            if self.db:
+                items.extend(
+                    await self.db.fetch_symbols_for_scope(
+                        spec.get("scope", {}), limits["max_items"] // 2
                     )
-
-                visitor = ScopeTracker(source)
-                visitor.visit(ast.parse(source))
-                for sym in visitor.symbols:
-                    if sym["name"] == name or sym.get("qualname") == name:
-                        content = sym["code"]
-                        signature = sym["signature"]
-                        break
-            except Exception as exc:
-                logger.warning(
-                    "ContextBuilder: sensation failure for %s: %s", file_path_raw, exc
                 )
+
+        # Priority 3: Semantic Seeds (Vector Search)
+        # Still useful in Shadow mode for finding similar concepts
+        if self.vectors and spec.get("summary"):
+            items.extend(await self.vectors.search_similar(spec["summary"], top_k=3))
+
+        # Priority 4: Relationship Expansion (Graph Traversal)
+        depth = spec.get("scope", {}).get("traversal_depth", 0)
+        if depth > 0:
+            related_keys = _GraphExplorer.traverse(
+                graph, items, depth, limits["max_items"]
+            )
+            for k in list(related_keys):
+                if sym := graph["symbols"].get(k):
+                    items.append(self._format_item(sym))
+
+        return items
+
+    def _format_item(self, symbol_data: dict) -> dict:
+        """Translates a Graph Symbol into a Context Item."""
+        path = symbol_data.get("file_path", "")
+        name = symbol_data.get("name", "")
+        content, sig = None, str(symbol_data.get("parameters", []))
+
+        try:
+            # CRITICAL FIX: Always try to get content from workspace first
+            if self.workspace and self.workspace.exists(path):
+                src = self.workspace.read_text(path)
+            else:
+                src = (settings.REPO_PATH / path).read_text(encoding="utf-8")
+
+            tracker = ScopeTracker(src)
+            tracker.visit(ast.parse(src))
+            for s in tracker.symbols:
+                if s["name"] == name:
+                    content, sig = s["code"], s["signature"]
+                    break
+        except Exception as e:
+            logger.debug("Content extraction failed for %s in %s: %s", name, path, e)
 
         return {
             "name": name,
-            "path": file_path_raw,
+            "path": path,
             "item_type": "code" if content else "symbol",
             "content": content,
-            "signature": signature,
-            "summary": symbol_data.get("intent") or symbol_data.get("docstring", ""),
-            "source": (
-                "shadow_graph_traversal" if self.workspace else "db_graph_traversal"
-            ),
+            "signature": sig,
+            "summary": symbol_data.get("intent", ""),
+            "source": "shadow_sensation" if self.workspace else "historical_record",
+            "symbol_path": symbol_data.get("symbol_path"),  # Pass the ID for tracing
         }
 
-    async def _force_add_code_item(
-        self, task_spec: dict[str, Any]
-    ) -> list[dict[str, Any]]:
-        target_file_str = task_spec.get("target_file")
-        target_symbol = task_spec.get("target_symbol")
-
-        if not target_file_str or not target_symbol:
-            return []
-
-        try:
-            if self.workspace:
-                source = self.workspace.read_text(target_file_str)
-            else:
-                source = (settings.REPO_PATH / target_file_str).read_text(
-                    encoding="utf-8"
-                )
-
-            visitor = ScopeTracker(source)
-            visitor.visit(ast.parse(source))
-
-            for sym in visitor.symbols:
-                if sym["name"] == target_symbol or sym.get("qualname") == target_symbol:
-                    return [
-                        {
-                            "name": sym["name"],
-                            "path": target_file_str,
-                            "item_type": "code",
-                            "content": sym["code"],
-                            "summary": (
-                                sym["docstring"][:200] if sym["docstring"] else ""
-                            ),
-                            "source": "shadow_ast" if self.workspace else "builtin_ast",
-                            "signature": sym.get("signature", ""),
-                        }
-                    ]
-        except Exception as exc:
-            logger.warning("ContextBuilder: failed to force add code item: %s", exc)
-        return []
-
-    def _apply_constraints(
-        self, items: list[dict[str, Any]], constraints: dict[str, Any]
-    ) -> list[dict[str, Any]]:
-        max_items = constraints.get("max_items", 50)
-        max_tokens = constraints.get("max_tokens", 100000)
-        if len(items) > max_items:
-            items = items[:max_items]
-        total = 0
-        filtered: list[dict[str, Any]] = []
-        for item in items:
-            tok = self._estimate_item_tokens(item)
-            if total + tok > max_tokens:
-                break
-            filtered.append(item)
-            total += tok
-        return filtered
-
-    def _estimate_item_tokens(self, item: dict[str, Any]) -> int:
-        text = " ".join([item.get("content", ""), item.get("summary", "")])
-        return ContextSerializer.estimate_tokens(text)
-
-    def _build_constraints(self, task_spec: dict[str, Any]) -> dict[str, Any]:
-        constraints = task_spec.get("constraints", {})
+    def _init_packet(self, spec: dict) -> dict:
         return {
-            "max_tokens": constraints.get("max_tokens", 100000),
-            "max_items": constraints.get("max_items", 50),
+            "header": {
+                "packet_id": str(uuid.uuid4()),
+                "task_id": spec["task_id"],
+                "created_at": datetime.now(UTC).isoformat(),
+                "builder_version": "0.2.2",
+                "mode": "SHADOW" if self.workspace else "HISTORICAL",
+            },
+            "constraints": {
+                "max_tokens": spec.get("constraints", {}).get("max_tokens", 50000),
+                "max_items": spec.get("constraints", {}).get("max_items", 30),
+            },
+            "provenance": {"cache_key": ContextSerializer.compute_cache_key(spec)},
+            "context": [],
         }
 
-    def _default_invariants(self) -> list[str]:
-        return ["All symbols must have signatures", "All paths must be relative"]
+    def _finalize_items(self, items: list[dict], limits: dict) -> list[dict]:
+        """Deduplicates and enforces token budgets."""
+        unique, seen, total_tokens = [], set(), 0
+        for it in items:
+            key = (it["name"], it["path"])
+            if key in seen or len(unique) >= limits["max_items"]:
+                continue
+
+            tokens = ContextSerializer.estimate_tokens(
+                (it.get("content") or "") + (it.get("summary") or "")
+            )
+            if total_tokens + tokens > limits["max_tokens"]:
+                break
+
+            it["tokens_est"] = tokens
+            unique.append(it)
+            seen.add(key)
+            total_tokens += tokens
+        return unique

@@ -13,8 +13,6 @@ from __future__ import annotations
 import asyncio
 from typing import TYPE_CHECKING, Protocol
 
-from qdrant_client.http import models as qm
-
 from shared.config import settings
 from shared.infrastructure.clients.qdrant_client import QdrantService
 from shared.logger import getLogger
@@ -170,62 +168,66 @@ class VectorIndexService:
         return results
 
     async def _process_batch(self, items: list[VectorizableItem]) -> list[IndexResult]:
-        """Process a single batch: generate embeddings and upsert."""
+        """Process a single batch: generate embeddings and upsert (validated contract)."""
         # Generate embeddings in parallel
         embedding_tasks = [self._embedder.get_embedding(item.text) for item in items]
         embeddings = await asyncio.gather(*embedding_tasks, return_exceptions=True)
 
         # Filter out failures
-        valid_pairs = []
+        valid_pairs: list[tuple[VectorizableItem, list[float]]] = []
         for item, emb in zip(items, embeddings):
             if isinstance(emb, Exception):
                 logger.warning("Failed to embed %s: %s", item.item_id, emb)
                 continue
-            if emb is not None:
-                valid_pairs.append((item, emb))
+            if emb is None:
+                logger.warning("Failed to embed %s: embedding=None", item.item_id)
+                continue
+
+            vector = emb.tolist() if hasattr(emb, "tolist") else list(emb)
+            valid_pairs.append((item, vector))
 
         if not valid_pairs:
             return []
 
-        # Build points for Qdrant
-        points = []
-        for item, embedding in valid_pairs:
-            point_id = get_deterministic_id(item.item_id)
+        # IMPORTANT: Enforce the validated payload contract centrally via QdrantService.
+        bulk_items: list[tuple[str, list[float], dict]] = []
+        for item, vector in valid_pairs:
+            point_id_str = str(get_deterministic_id(item.item_id))
+
+            # Build payload with required EmbeddingPayload fields
             payload = {
                 **item.payload,
                 "item_id": item.item_id,
-                "model": settings.LOCAL_EMBEDDING_MODEL_NAME,
-                "model_rev": settings.EMBED_MODEL_REVISION,
-                "dim": self.vector_dim,
+                "chunk_id": item.item_id,
             }
-            points.append(
-                qm.PointStruct(
-                    id=point_id,
-                    vector=(
-                        embedding.tolist()
-                        if hasattr(embedding, "tolist")
-                        else list(embedding)
-                    ),
-                    payload=payload,
+
+            # FIX: Ensure required EmbeddingPayload fields are present
+            if "source_path" not in payload:
+                # Use file_path if present, otherwise derive from item metadata
+                payload["source_path"] = payload.get(
+                    "file_path", f".intent/{item.item_id.split(':')[0]}.json"
                 )
-            )
 
-        # Upsert to Qdrant
-        if points:
-            await self.qdrant.upsert_points(
-                collection_name=self.collection_name, points=points, wait=True
-            )
+            if "source_type" not in payload:
+                # Determine type from payload metadata
+                payload["source_type"] = payload.get("doc_type", "intent")
 
-        # Return results
-        results = [
+            bulk_items.append((point_id_str, vector, payload))
+
+        await self.qdrant.upsert_symbol_vectors_bulk(
+            bulk_items,
+            collection_name=self.collection_name,
+            wait=True,
+        )
+
+        return [
             IndexResult(
                 item_id=item.item_id,
                 point_id=get_deterministic_id(item.item_id),
                 vector_dim=self.vector_dim,
             )
-            for item, _ in valid_pairs
+            for item, _vector in valid_pairs
         ]
-        return results
 
     # ID: 2544b299-de9a-4e8f-86d7-f21ff614f979
     async def query(

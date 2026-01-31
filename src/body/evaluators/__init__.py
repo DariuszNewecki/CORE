@@ -31,11 +31,6 @@ from .atomic_actions_evaluator import (
 from .clarity_evaluator import ClarityEvaluator
 from .constitutional_evaluator import ConstitutionalEvaluator
 from .failure_evaluator import FailureEvaluator
-from .pattern_evaluator import (
-    PatternEvaluator,
-    format_violations,
-    load_patterns_dict,
-)
 from .performance_evaluator import PerformanceEvaluator
 from .security_evaluator import SecurityEvaluator
 
@@ -46,10 +41,7 @@ __all__ = [
     "ClarityEvaluator",
     "ConstitutionalEvaluator",
     "FailureEvaluator",
-    "PatternEvaluator",
     "PerformanceEvaluator",
     "SecurityEvaluator",
     "format_atomic_action_violations",
-    "format_violations",
-    "load_patterns_dict",
 ]

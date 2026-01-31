@@ -266,6 +266,62 @@ class QdrantService:
         )
         return point_id_str
 
+    # ID: 2c51f9b6-1db4-4f74-9f6c-89f70d1a2f1f
+    async def upsert_symbol_vectors_bulk(
+        self,
+        items: list[tuple[str, list[float], dict[str, Any]]],
+        *,
+        collection_name: str | None = None,
+        wait: bool = True,
+    ) -> list[str]:
+        """
+        Bulk validated upsert.
+
+        This is the ONLY approved batch path for VectorIndexService.
+        It enforces EmbeddingPayload centrally (no schema drift, no mystery fields).
+        """
+        target_collection = collection_name or self.collection_name
+        if not items:
+            return []
+
+        points: list[qm.PointStruct] = []
+        point_ids: list[str] = []
+
+        for point_id_str, vector, payload_data in items:
+            if len(vector) != self.vector_size:
+                raise ValueError(
+                    f"Vector dim {len(vector)} != expected {self.vector_size}",
+                )
+
+            try:
+                payload_data["model"] = settings.LOCAL_EMBEDDING_MODEL_NAME
+                payload_data["model_rev"] = settings.EMBED_MODEL_REVISION
+                payload_data["dim"] = self.vector_size
+                payload_data["created_at"] = now_iso()
+                payload = EmbeddingPayload(**payload_data)
+            except Exception as e:
+                logger.error(
+                    "Invalid embedding payload for point %s: %s", point_id_str, e
+                )
+                raise InvalidPayloadError(
+                    f"Invalid embedding payload for point {point_id_str}: {e}"
+                ) from e
+
+            points.append(
+                qm.PointStruct(
+                    id=point_id_str,
+                    vector=vector,
+                    payload=payload.model_dump(mode="json"),
+                )
+            )
+            point_ids.append(point_id_str)
+
+        await self.upsert_points(target_collection, points, wait=wait)
+        logger.debug(
+            "Bulk upserted %d validated vectors into %s", len(points), target_collection
+        )
+        return point_ids
+
     # ID: 98614945-4d37-4cff-9977-bd59ae8c550d
     async def upsert_capability_vector(
         self,

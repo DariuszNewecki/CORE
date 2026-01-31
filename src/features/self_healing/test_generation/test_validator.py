@@ -1,7 +1,12 @@
 # src/features/self_healing/test_generation/test_validator.py
+# ID: 0bcff3b7-9492-4abb-a3b5-22fd4501c5af
 
 """
 Test code validation utilities.
+
+CONSTITUTIONAL FIX (V2.3):
+- Removed dead code: 'module_import_path' and 'module_path' (workflow.dead_code_check).
+- Maintains structural sanity and constitutional compliance checks.
 """
 
 from __future__ import annotations
@@ -32,9 +37,8 @@ class TestValidator:
         violations = []
 
         # Structural sanity check
-        if not self._looks_like_real_tests(
-            code, module_context.import_path, module_context.module_path
-        ):
+        # CONSTITUTIONAL FIX: Removed unused context parameters from call
+        if not self._looks_like_real_tests(code):
             violations.append(
                 {
                     "message": "Generated code does not look like a valid test file.",
@@ -54,10 +58,12 @@ class TestValidator:
         return violations
 
     @staticmethod
-    def _looks_like_real_tests(
-        code: str, module_import_path: str, module_path: str
-    ) -> bool:
-        """Quick heuristic check if code looks like valid tests."""
+    def _looks_like_real_tests(code: str) -> bool:
+        """
+        Quick heuristic check if code looks like valid tests.
+
+        CONSTITUTIONAL FIX: Removed unused 'module_import_path' and 'module_path'.
+        """
         if not code:
             return False
         lowered = code.lower()

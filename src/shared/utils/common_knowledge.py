@@ -9,7 +9,7 @@ used across CORE. These helpers feed the curated surface exposed through the
 
 from __future__ import annotations
 
-import hashlib
+import uuid
 
 
 # ID: 88db4d40-e91a-4d5e-b627-c215ea063f2e
@@ -69,18 +69,15 @@ def safe_truncate(text: str, max_chars: int) -> str:
     return cut + "…"
 
 
-# ID: 8a9b7c6d-5e4f-3a2b-1c0d-e9f8a7b6c5d4
-def get_deterministic_id(text: str) -> int:
+# ID: 7cbb0bb7-3ba8-4b35-9b9d-9422541d25de
+def get_deterministic_id(text: str) -> str:
     """
-    Generate a stable 64-bit unsigned integer ID from text using SHA-256.
+    Generate a stable UUID from text using SHA-256 and UUID5.
 
-    This REPLACES Python's built-in hash() function for persistent data,
-    as hash() is randomized per process. This function ensures that the
-    same text always results in the same Qdrant Point ID.
+    This is CORE's universal identity function - all deterministic IDs
+    must be UUIDs to maintain constitutional consistency.
 
     Returns:
-        int: A persistent ID in range [0, 2^63 - 1] (safe for Qdrant/Postgres).
+        str: UUID string (e.g., "550e8400-e29b-41d4-a716-446655440000")
     """
-    hex_hash = hashlib.sha256(text.encode("utf-8")).hexdigest()
-    # Take first 16 chars (64 bits) and mod to ensure positive signed 64-bit integer
-    return int(hex_hash[:16], 16) % (2**63)
+    return str(uuid.uuid5(uuid.NAMESPACE_URL, text))

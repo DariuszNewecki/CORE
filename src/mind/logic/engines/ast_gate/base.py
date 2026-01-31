@@ -1,14 +1,20 @@
 # src/mind/logic/engines/ast_gate/base.py
+# ID: 08acf631-aeea-4ad9-9107-c6100b89942f
+
 """
 Shared AST analysis utilities for constitutional enforcement.
 
 Provides common helpers for traversing and analyzing Python AST nodes.
+CONSTITUTIONAL FIX (V2.3.9):
+- Added 'extract_domain_from_path' to centralize architectural layout knowledge.
+- Added 'domain_matches' to support trust-zone based enforcement.
 """
 
 from __future__ import annotations
 
 import ast
 from collections.abc import Iterable
+from pathlib import Path
 
 
 # ID: 08acf631-aeea-4ad9-9107-c6100b89942f
@@ -71,14 +77,9 @@ class ASTHelpers:
                 return True
 
             # Strategy 2: Suffix match (handles nested imports)
-            # "foo.bar.asyncio.run" should match "asyncio.run"
-            # But "subprocess.run" should NOT match "asyncio.run"
             if "." in pattern:
                 # Only match if it's a proper suffix with a dot boundary
-                # This prevents "subprocess.run" matching "run"
                 if call_name.endswith(f".{pattern}") or call_name.endswith(pattern):
-                    # Additional check: ensure we're matching the full module path
-                    # Split both and compare from the right
                     call_parts = call_name.split(".")
                     pattern_parts = pattern.split(".")
 
@@ -117,3 +118,42 @@ class ASTHelpers:
                 yield from _walk(child)
 
         return _walk(stmt)
+
+    # -------------------------------------------------------------------------
+    # NEW ARCHITECTURAL HELPERS (Constitutional Mapping Logic)
+    # -------------------------------------------------------------------------
+
+    @staticmethod
+    # ID: e4d3c2b1-a0f9-8e7d-6c5b-4a3f2e1d0c9b
+    def extract_domain_from_path(file_path: Path | str) -> str:
+        """
+        Extract domain from file path following CORE's domain convention.
+
+        Example: 'src/mind/governance/auditor.py' -> 'mind.governance'
+        """
+        path_str = str(file_path).replace("\\", "/")
+
+        if "/src/" in path_str:
+            path_str = path_str.split("/src/", 1)[1]
+        elif path_str.startswith("src/"):
+            path_str = path_str[4:]
+
+        parts = path_str.split("/")
+        domain_parts = [p for p in parts[:-1] if p]
+
+        return ".".join(domain_parts) if domain_parts else ""
+
+    @staticmethod
+    # ID: f3e2d1c0-b9a8-7f6e-5d4c-3b2a1f0e9d8c
+    def domain_matches(file_domain: str, allowed_domains: list[str]) -> bool:
+        """
+        Check if file domain matches any allowed domain (exact or prefix).
+        """
+        if not file_domain or not allowed_domains:
+            return False
+
+        for allowed in allowed_domains:
+            if file_domain == allowed or file_domain.startswith(f"{allowed}."):
+                return True
+
+        return False

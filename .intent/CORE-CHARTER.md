@@ -72,8 +72,13 @@ No operational rule may contradict constitutional principles.
 
 To understand CORE's governance:
 
-1. `.intent/constitution/` - Foundation documents
-2. `.intent/papers/` - Constitutional philosophy
+1. `.intent/constitution/CORE-CONSTITUTION-v0.md` - Foundation document
+2. `.intent/papers/` - Constitutional philosophy:
+   * `CORE-Constitutional-Foundations.md`
+   * `CORE-Mind-Body-Will-Separation.md`
+   * `CORE-Infrastructure-Definition.md` **(← ADDED: Infrastructure boundaries)**
+   * `CORE-Common-Governance-Failure-Modes.md`
+   * Additional constitutional papers
 3. `.intent/META/` - Schema contracts
 4. `.intent/rules/` - Operational rules
 5. This Charter
@@ -98,6 +103,12 @@ Any contradiction must be resolved in favor of: Constitution → Papers → META
 * Reads Mind to understand constraints
 * Makes decisions within constitutional bounds
 * Delegates execution to Body
+
+**Infrastructure (src/shared/infrastructure/):** **(← ADDED: Infrastructure category)**
+* Provides mechanical coordination without strategic decisions
+* Bounded by explicit authority limits defined in constitutional papers
+* Subject to infrastructure-specific governance rules
+* See: `.intent/papers/CORE-Infrastructure-Definition.md`
 
 ---
 

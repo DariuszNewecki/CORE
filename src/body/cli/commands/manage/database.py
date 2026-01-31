@@ -1,6 +1,15 @@
 # src/body/cli/commands/manage/database.py
 
-"""Refactored logic for src/body/cli/commands/manage/database.py."""
+"""
+Database management commands.
+
+Golden-path adjustments (Phase 1, non-breaking):
+- Canonicalized: `manage database sync {capabilities|knowledge|manifest|all}`
+- Deprecated aliases:
+  - sync-capabilities -> sync capabilities
+  - sync-knowledge    -> sync knowledge
+  - sync-manifest     -> sync manifest
+"""
 
 from __future__ import annotations
 
@@ -26,11 +35,19 @@ db_sub_app = typer.Typer(
 )
 
 
+def _deprecated(old: str, new: str) -> None:
+    typer.secho(
+        f"DEPRECATED: '{old}' -> use '{new}'",
+        fg=typer.colors.YELLOW,
+    )
+
+
 @db_sub_app.command("migrate")
 @core_command(dangerous=True, confirmation=True)
 # ID: 04dd899c-209c-4590-a862-87e30065da2d
-def migrate_db_command(ctx: typer.Context):
+def migrate_db_command(ctx: typer.Context) -> None:
     """Run database migrations."""
+    _ = ctx
     migrate_db()
 
 
@@ -40,10 +57,97 @@ def migrate_db_command(ctx: typer.Context):
 async def export_data_command(
     ctx: typer.Context,
     output_dir: str = typer.Option("backups", help="Output directory"),
-):
+) -> None:
     """Export database data."""
     _ = output_dir
     await export_data(ctx)
+
+
+# -----------------------------------------------------------------------------
+# Canonical consolidated command: manage database sync {capabilities|knowledge|manifest|all}
+# -----------------------------------------------------------------------------
+
+
+@db_sub_app.command("sync")
+@core_command(dangerous=True, confirmation=True)
+# ID: 9e2a833a-9fbb-4fbb-9c78-7c47a2c8b0c4
+async def sync_command(
+    ctx: typer.Context,
+    target: str = typer.Argument(
+        ...,
+        help="Sync target: capabilities|knowledge|manifest|all",
+    ),
+    write: bool = typer.Option(
+        False, "--write", help="Commit changes to DB (required)"
+    ),
+) -> None:
+    """
+    Consolidated database sync command.
+
+    Targets:
+    - capabilities: sync capability tags into DB
+    - knowledge:    sync codebase structure to DB knowledge graph
+    - manifest:     sync project_manifest.yaml with DB public symbols
+    - all:          run all sync targets
+    """
+    target_norm = (target or "").strip().lower()
+    if target_norm not in {"capabilities", "knowledge", "manifest", "all"}:
+        typer.secho(
+            f"Invalid target '{target}'. Use: capabilities|knowledge|manifest|all",
+            fg=typer.colors.RED,
+        )
+        raise typer.Exit(code=2)
+
+    if not write:
+        console.print(
+            "[yellow]Dry run: sync requires --write to persist changes.[/yellow]"
+        )
+        return
+
+    # ID: d404413b-daba-4915-a48e-d19b1f774577
+    async def run_knowledge() -> None:
+        await sync_knowledge_base()
+
+    # ID: 68afcee3-344e-4002-81f5-7e4666fb8317
+    async def run_manifest() -> None:
+        await sync_manifest()
+
+    # ID: 9d79cef4-b2fb-4b67-bd69-2467e8114bde
+    async def run_capabilities() -> None:
+        core_context: CoreContext = ctx.obj
+        repo_root = core_context.git_service.repo_path
+        async with get_session() as session:
+            count, errors = await sync_capabilities_to_db(session, repo_root)
+            if errors:
+                for err in errors:
+                    console.print(f"[red]Error:[/red] {err}")
+            console.print(
+                f"[bold green]✅ Successfully synced {count} capabilities to DB.[/bold green]"
+                if count > 0
+                else "[yellow]No capabilities synced.[/yellow]"
+            )
+
+    if target_norm == "knowledge":
+        await run_knowledge()
+        return
+
+    if target_norm == "manifest":
+        await run_manifest()
+        return
+
+    if target_norm == "capabilities":
+        await run_capabilities()
+        return
+
+    # all
+    await run_knowledge()
+    await run_manifest()
+    await run_capabilities()
+
+
+# -----------------------------------------------------------------------------
+# Deprecated aliases (Phase 1)
+# -----------------------------------------------------------------------------
 
 
 @db_sub_app.command("sync-knowledge")
@@ -54,14 +158,36 @@ async def sync_knowledge_command(
     write: bool = typer.Option(
         False, "--write", help="Commit changes to DB (required)"
     ),
-):
-    """Synchronize codebase structure to the database knowledge graph."""
-    if not write:
-        console.print(
-            "[yellow]Dry run: Knowledge sync requires --write to persist changes.[/yellow]"
-        )
-        return
-    await sync_knowledge_base()
+) -> None:
+    """DEPRECATED alias for `manage database sync knowledge`."""
+    _deprecated("manage database sync-knowledge", "manage database sync knowledge")
+    await sync_command(ctx, target="knowledge", write=write)
+
+
+@db_sub_app.command("sync-manifest")
+@core_command(dangerous=True, confirmation=True)
+# ID: 7fcc16a8-9a13-4c52-8a3f-bbd59d459897
+async def sync_manifest_command(
+    ctx: typer.Context,
+    write: bool = typer.Option(False, "--write"),
+) -> None:
+    """DEPRECATED alias for `manage database sync manifest`."""
+    _deprecated("manage database sync-manifest", "manage database sync manifest")
+    await sync_command(ctx, target="manifest", write=write)
+
+
+@db_sub_app.command("sync-capabilities")
+@core_command(dangerous=True, confirmation=True)
+# ID: 40348824-c8ac-4e0d-873d-75d0fc05b42f
+async def sync_capabilities_command(
+    ctx: typer.Context,
+    write: bool = typer.Option(False, "--write"),
+) -> None:
+    """DEPRECATED alias for `manage database sync capabilities`."""
+    _deprecated(
+        "manage database sync-capabilities", "manage database sync capabilities"
+    )
+    await sync_command(ctx, target="capabilities", write=write)
 
 
 @db_sub_app.command("export-vectors")
@@ -70,7 +196,7 @@ async def sync_knowledge_command(
 async def export_vectors_command(
     ctx: typer.Context,
     output_path: str = typer.Option("vectors.json", help="Output file path"),
-):
+) -> None:
     """Export vector data."""
     try:
         await export_vectors(ctx.obj, Path(output_path))
@@ -86,7 +212,7 @@ async def cleanup_memory_command(
     dry_run: bool = typer.Option(True, "--dry-run/--write"),
     days_episodes: int = 30,
     days_reflections: int = 90,
-):
+) -> None:
     """Clean up old agent memory entries (episodes, decisions, reflections)."""
     from features.self_healing import MemoryCleanupService
 
@@ -97,62 +223,30 @@ async def cleanup_memory_command(
             days_to_keep_reflections=days_reflections,
             dry_run=dry_run,
         )
+
     if result.ok:
         console.print(
             f"[green]Memory cleanup {'would delete' if dry_run else 'deleted'}:[/green]"
         )
         console.print(
-            f"  Episodes: {result.data['episodes_deleted']}\n  Decisions: {result.data['decisions_deleted']}\n  Reflections: {result.data['reflections_deleted']}"
+            "  Episodes: {episodes}\n  Decisions: {decisions}\n  Reflections: {reflections}".format(
+                episodes=result.data["episodes_deleted"],
+                decisions=result.data["decisions_deleted"],
+                reflections=result.data["reflections_deleted"],
+            )
         )
     else:
         console.print(f"[red]Error: {result.data['error']}[/red]")
-
-
-@db_sub_app.command("sync-manifest")
-@core_command(dangerous=True, confirmation=True)
-# ID: 7fcc16a8-9a13-4c52-8a3f-bbd59d459897
-async def sync_manifest_command(
-    ctx: typer.Context, write: bool = typer.Option(False, "--write")
-):
-    """Synchronize project_manifest.yaml with public symbols in the DB."""
-    if not write:
-        console.print(
-            "[yellow]Dry run: Manifest sync requires --write to persist changes.[/yellow]"
-        )
-        return
-    await sync_manifest()
 
 
 @db_sub_app.command("migrate-ssot")
 @core_command(dangerous=True, confirmation=True)
 # ID: d8a1e134-1212-4c2d-aa44-7f29d17404f5
 async def migrate_ssot_command(
-    ctx: typer.Context, write: bool = typer.Option(False, "--write")
-):
+    ctx: typer.Context,
+    write: bool = typer.Option(False, "--write"),
+) -> None:
     """One-time data migration from legacy files to the SSOT database."""
+    _ = ctx
     async with get_session() as session:
         await run_ssot_migration(session, dry_run=not write)
-
-
-@db_sub_app.command("sync-capabilities")
-@core_command(dangerous=True, confirmation=True)
-# ID: 40348824-c8ac-4e0d-873d-75d0fc05b42f
-async def sync_capabilities_command(
-    ctx: typer.Context, write: bool = typer.Option(False, "--write")
-):
-    """Syncs capabilities from .intent/knowledge/capability_tags/ to the DB."""
-    if not write:
-        console.print("[yellow]Dry run not supported. Use --write to sync.[/yellow]")
-        return
-    core_context: CoreContext = ctx.obj
-    repo_root = core_context.git_service.repo_path
-    async with get_session() as session:
-        count, errors = await sync_capabilities_to_db(session, repo_root)
-        if errors:
-            for err in errors:
-                console.print(f"[red]Error:[/red] {err}")
-        console.print(
-            f"[bold green]✅ Successfully synced {count} capabilities to DB.[/bold green]"
-            if count > 0
-            else "[yellow]No capabilities synced.[/yellow]"
-        )

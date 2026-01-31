@@ -1,10 +1,12 @@
 # src/will/phases/sandbox_validation_phase.py
+# ID: d7fae2fd-a786-42f3-8969-21307c12fcbb
 
 """
 Sandbox Validation Phase - Validates generated tests in isolation.
 
-Runs generated tests using PytestSandboxRunner to verify they execute correctly
-before promoting them to the main test suite.
+CONSTITUTIONAL FIX:
+- Removed forbidden direct import of 'settings' (architecture.boundary.settings_access).
+- Uses FileHandler and repo_path provided by CoreContext.
 """
 
 from __future__ import annotations
@@ -13,13 +15,12 @@ import time
 from typing import TYPE_CHECKING
 
 from features.test_generation.sandbox import PytestSandboxRunner
-from shared.config import settings
-from shared.infrastructure.storage.file_handler import FileHandler
 from shared.logger import getLogger
 from shared.models.workflow_models import PhaseResult
 
 
 if TYPE_CHECKING:
+    from shared.context import CoreContext
     from will.orchestration.workflow_orchestrator import WorkflowContext
 
 logger = getLogger(__name__)
@@ -31,15 +32,22 @@ class SandboxValidationPhase:
     """
     Validates generated tests by running them in an isolated sandbox.
 
-    This phase ensures tests are syntactically correct and executable
-    before they're promoted to the main test suite.
+    CONSTITUTIONAL COMPLIANCE:
+    - Receives CoreContext via dependency injection.
+    - Resolves filesystem paths via context services, not global settings.
     """
 
-    def __init__(self, context):
+    def __init__(self, context: CoreContext):
         self.context = context
-        self.file_handler = FileHandler()
+
+        # CONSTITUTIONAL FIX: Use the governed FileHandler from context
+        self.file_handler = context.file_handler
+
+        # CONSTITUTIONAL FIX: Extract repo_root from context service
+        repo_root = str(context.git_service.repo_path)
+
         self.sandbox = PytestSandboxRunner(
-            file_handler=self.file_handler, repo_root=str(settings.REPO_PATH)
+            file_handler=self.file_handler, repo_root=repo_root
         )
 
     # ID: b2c3d4e5-f6g7-8h9i-0j1k-2l3m4n5o6p7q
@@ -56,8 +64,10 @@ class SandboxValidationPhase:
         """
         start_time = time.time()
 
-        # Get generated test code from context
-        generated_tests = ctx.data.get("generated_tests", [])
+        # Get generated test code from context results (populated by prior phases)
+        # Note: 'ctx' here is WorkflowContext, results are in context.results
+        test_gen_data = ctx.results.get("test_generation", {})
+        generated_tests = test_gen_data.get("generated_tests", [])
 
         if not generated_tests:
             logger.info("No tests to validate")
@@ -115,7 +125,7 @@ class SandboxValidationPhase:
 
         return PhaseResult(
             name="sandbox_validation",
-            ok=True,  # Phase succeeds even if some tests fail
+            ok=True,  # Phase succeeds even if some tests fail (failures are advisory)
             data={
                 "total_tests": len(generated_tests),
                 "passed": passed_count,

@@ -1,17 +1,11 @@
 # src/body/services/service_registry.py
 
 """
-Provides a centralized, lazily-initialized service registry for CORE.
-This acts as the authoritative Dependency Injection container.
+Service Registry - Centralized DI Container.
 
-CONSTITUTIONAL FIX:
-- Removed ALL imports of 'get_session' to satisfy 'logic.di.no_global_session'.
-- Implements Late-Binding Factory pattern for database access.
-
-NO-LEGACY MODE (2026-01):
-- CognitiveService is wired via the constitutional pattern only.
-- ServiceRegistry must NOT inject Qdrant into CognitiveService.
-- ServiceRegistry owns session lifecycle; Will never opens sessions.
+CONSTITUTIONAL FIX (V2.4.2):
+- Hardened Bootstrap wiring to prevent 'Root path not set' errors.
+- Syncs infrastructure coordinates with the BootstrapRegistry.
 """
 
 from __future__ import annotations
@@ -24,21 +18,51 @@ from typing import TYPE_CHECKING, Any, ClassVar
 
 from sqlalchemy import text
 
-from mind.governance.audit_context import AuditorContext
+from shared.infrastructure.bootstrap_registry import bootstrap_registry
 from shared.logger import getLogger
 
 
 if TYPE_CHECKING:
+    from mind.governance.audit_context import AuditorContext
     from shared.infrastructure.clients.qdrant_client import QdrantService
     from will.orchestration.cognitive_service import CognitiveService
 
 logger = getLogger(__name__)
 
 
+# ID: c3f0d5e1-890a-42bc-9d7b-1234567890ab
+class _ServiceLoader:
+    """Specialist for resolving and importing service classes."""
+
+    @staticmethod
+    # ID: db5b83fc-ede6-4b7b-b03c-f6d4c61baa0d
+    def import_class(class_path: str) -> type:
+        module_path, class_name = class_path.rsplit(".", 1)
+        module = importlib.import_module(module_path)
+        return getattr(module, class_name)
+
+    @staticmethod
+    # ID: c24ae362-604e-4fce-aa4b-7e90f85c1e4f
+    async def fetch_map_from_db() -> dict[str, str]:
+        """Loads the dynamic service map using the bootstrap session."""
+        service_map = {}
+        try:
+            async with bootstrap_registry.get_session() as session:
+                result = await session.execute(
+                    text("SELECT name, implementation FROM core.runtime_services")
+                )
+                for row in result:
+                    service_map[row.name] = row.implementation
+            return service_map
+        except Exception as e:
+            logger.error("ServiceRegistry: Failed to load map from DB: %s", e)
+            return {}
+
+
 # ID: fde25013-c11d-4c42-86e2-243ddd3ae10b
 class ServiceRegistry:
     """
-    A singleton service locator and DI container.
+    Body Layer DI Container.
     """
 
     _instances: ClassVar[dict[str, Any]] = {}
@@ -46,10 +70,6 @@ class ServiceRegistry:
     _initialized: ClassVar[bool] = False
     _init_flags: ClassVar[dict[str, bool]] = {}
     _lock: ClassVar[asyncio.Lock] = asyncio.Lock()
-
-    # CONSTITUTIONAL FIX: Placeholder for the session factory.
-    # Handled via prime() to avoid hard-coded imports.
-    _session_factory: ClassVar[Callable[[], Any] | None] = None
 
     def __init__(
         self,
@@ -61,167 +81,39 @@ class ServiceRegistry:
         self.qdrant_url = qdrant_url
         self.qdrant_collection_name = qdrant_collection_name
 
-    # ID: e089ea52-de6a-4c32-9235-9800da8d24c3
-    def configure(
-        self,
-        *,
-        repo_path: Path | None = None,
-        qdrant_url: str | None = None,
-        qdrant_collection_name: str | None = None,
-    ) -> None:
-        if repo_path is not None:
-            self.repo_path = repo_path
-        if qdrant_url is not None:
-            self.qdrant_url = qdrant_url
-        if qdrant_collection_name is not None:
-            self.qdrant_collection_name = qdrant_collection_name
+    # ------------------------------------------------------------------
+    # PILLAR I: CONFIGURATION & SESSION MGMT
+    # ------------------------------------------------------------------
+
+    # ID: 4463d328-1da1-458f-9407-102a943f194d
+    def configure(self, **kwargs: Any) -> None:
+        """Update infrastructure coordinates and sync with Bootstrap."""
+        if "repo_path" in kwargs:
+            self.repo_path = kwargs["repo_path"]
+            bootstrap_registry.set_repo_path(self.repo_path)
+        if "qdrant_url" in kwargs:
+            self.qdrant_url = kwargs["qdrant_url"]
+        if "qdrant_collection_name" in kwargs:
+            self.qdrant_collection_name = kwargs["qdrant_collection_name"]
 
     @classmethod
-    # ID: 1efcada0-bc76-4cc0-8e8c-379e47d04101
-    def session(cls):
-        """
-        Returns an async session context manager using the primed factory.
-
-        Usage:
-            async with service_registry.session() as session:
-                ...
-        """
-        if not cls._session_factory:
-            raise RuntimeError(
-                "ServiceRegistry error: session() called before prime(). "
-                "The application entry point must call service_registry.prime(session_factory)."
-            )
-        return cls._session_factory()
-
-    @classmethod
-    # ID: ae9d47fa-c850-4800-ba2d-5992aa744bce
+    # ID: 73d9101b-c330-44bf-8bb0-a7eb3415bbdb
     def prime(cls, session_factory: Callable) -> None:
-        """
-        Primes the registry with infrastructure factories.
-        MUST be called by the application entry point (Sanctuary).
-        """
-        cls._session_factory = session_factory
-        logger.debug("ServiceRegistry primed with session factory.")
+        """Prime the BootstrapRegistry with the database factory."""
+        bootstrap_registry.set_session_factory(session_factory)
 
-    async def _initialize_from_db(self) -> None:
-        """Loads the dynamic service map from the database on first access."""
-        async with self._lock:
-            if self._initialized:
-                return
+    @classmethod
+    # ID: 37811f6d-e495-4035-ba40-21a9f99e1e69
+    def session(cls):
+        """Approved access to DB sessions via Bootstrap."""
+        return bootstrap_registry.get_session()
 
-            if not self._session_factory:
-                logger.warning("ServiceRegistry accessed before being primed.")
-                return
+    # ------------------------------------------------------------------
+    # PILLAR II: ORCHESTRATION
+    # ------------------------------------------------------------------
 
-            logger.info("Initializing ServiceRegistry from database...")
-
-            try:
-                async with self._session_factory() as session:
-                    result = await session.execute(
-                        text("SELECT name, implementation FROM core.runtime_services")
-                    )
-                    for row in result:
-                        self._service_map[row.name] = row.implementation
-                self._initialized = True
-            except Exception as e:
-                logger.critical(
-                    "Failed to initialize ServiceRegistry from DB: %s", e, exc_info=True
-                )
-                self._initialized = False
-
-    def _import_class(self, class_path: str):
-        """Dynamically imports a class from a string path."""
-        module_path, class_name = class_path.rsplit(".", 1)
-        module = importlib.import_module(module_path)
-        return getattr(module, class_name)
-
-    def _ensure_qdrant_instance(self) -> None:
-        """Internal helper to create Qdrant instance if missing."""
-        if "qdrant" in self._instances:
-            return
-
-        logger.debug("Lazy-loading QdrantService...")
-        from shared.infrastructure.clients.qdrant_client import QdrantService
-
-        if not self.qdrant_url or not self.qdrant_collection_name:
-            raise RuntimeError(
-                "ServiceRegistry is missing qdrant configuration. "
-                "Call configure() before requesting qdrant service."
-            )
-
-        instance = QdrantService(
-            url=self.qdrant_url, collection_name=self.qdrant_collection_name
-        )
-        self._instances["qdrant"] = instance
-        self._init_flags["qdrant"] = False
-
-    # ID: 8e8fc0c0-11df-4bd8-b365-15c255075d04
-    async def get_qdrant_service(self) -> QdrantService:
-        """Authoritative, lazy, singleton access to Qdrant."""
-        if "qdrant" not in self._instances:
-            async with self._lock:
-                self._ensure_qdrant_instance()
-            self._init_flags["qdrant"] = True
-        return self._instances["qdrant"]
-
-    # ID: e87e3db8-9a2f-4bed-b41e-3ebea0f3b8ef
-    async def get_cognitive_service(self) -> CognitiveService:
-        """
-        Authoritative, lazy, singleton access to CognitiveService.
-
-        NO-LEGACY MODE:
-        - CognitiveService is constructed without Qdrant injection.
-        - ServiceRegistry owns DB session lifecycle and initializes the service.
-        """
-        if "cognitive_service" not in self._instances:
-            async with self._lock:
-                if "cognitive_service" not in self._instances:
-                    logger.debug("Lazy-loading CognitiveService...")
-                    from will.orchestration.cognitive_service import CognitiveService
-
-                    if not self.repo_path:
-                        raise RuntimeError(
-                            "ServiceRegistry is missing repo_path. "
-                            "Call configure() before requesting cognitive service."
-                        )
-
-                    instance = CognitiveService(repo_path=self.repo_path)
-                    self._instances["cognitive_service"] = instance
-                    self._init_flags["cognitive_service"] = False
-
-            if not self._init_flags.get("cognitive_service"):
-                if not self._session_factory:
-                    raise RuntimeError(
-                        "ServiceRegistry error: cognitive_service requested before prime(). "
-                        "The application entry point must call service_registry.prime(session_factory)."
-                    )
-
-                logger.debug("Initializing CognitiveService (Mind load + config)...")
-                async with self.session() as session:  # type: ignore[assignment]
-                    # CognitiveService MUST be initialized with a session in this architecture.
-                    await self._instances["cognitive_service"].initialize(session)  # type: ignore[arg-type]
-
-                self._init_flags["cognitive_service"] = True
-
-        return self._instances["cognitive_service"]
-
-    # ID: 8f882e11-9bff-4225-9208-12660aa7c3a3
-    async def get_auditor_context(self) -> AuditorContext:
-        """Singleton factory for AuditorContext."""
-        if "auditor_context" not in self._instances:
-            async with self._lock:
-                if "auditor_context" not in self._instances:
-                    logger.debug("Lazy-loading AuditorContext...")
-                    instance = AuditorContext(self.repo_path)
-                    self._instances["auditor_context"] = instance
-                    self._init_flags["auditor_context"] = False
-            if not self._init_flags.get("auditor_context"):
-                self._init_flags["auditor_context"] = True
-        return self._instances["auditor_context"]
-
-    # ID: 4df97396-6692-426f-a2cc-e6d29b8cefc2
+    # ID: 249e23e5-ed2a-4140-a3ca-985cd147996b
     async def get_service(self, name: str) -> Any:
-        """Lazily initializes and returns a singleton instance of a dynamic service."""
         if name == "qdrant":
             return await self.get_qdrant_service()
         if name == "cognitive_service":
@@ -229,24 +121,70 @@ class ServiceRegistry:
         if name == "auditor_context":
             return await self.get_auditor_context()
 
-        if not self._initialized:
-            await self._initialize_from_db()
+        async with self._lock:
+            if not self._initialized:
+                self._service_map = await _ServiceLoader.fetch_map_from_db()
+                self._initialized = True
 
         if name not in self._instances:
             if name not in self._service_map:
-                raise ValueError(f"Service '{name}' not found in registry.")
+                raise ValueError(f"Service '{name}' not found.")
 
-            class_path = self._service_map[name]
-            service_class = self._import_class(class_path)
+            impl_path = self._service_map[name]
+            cls_type = _ServiceLoader.import_class(impl_path)
+
+            repo_path = bootstrap_registry.get_repo_path()
 
             if name in ["knowledge_service", "auditor"]:
-                self._instances[name] = service_class(self.repo_path)
+                self._instances[name] = cls_type(repo_path)
             else:
-                self._instances[name] = service_class()
-
-            logger.debug("Lazily initialized dynamic service: %s", name)
+                self._instances[name] = cls_type()
 
         return self._instances[name]
 
+    # ------------------------------------------------------------------
+    # PILLAR III: INFRASTRUCTURE SPECIALISTS
+    # ------------------------------------------------------------------
 
+    # ID: a23b5769-c7b5-413d-92f4-cec92dceff74
+    async def get_qdrant_service(self) -> QdrantService:
+        async with self._lock:
+            if "qdrant" not in self._instances:
+                from shared.infrastructure.clients.qdrant_client import QdrantService
+
+                self._instances["qdrant"] = QdrantService(
+                    url=self.qdrant_url, collection_name=self.qdrant_collection_name
+                )
+        return self._instances["qdrant"]
+
+    # ID: f79fd19b-069b-47b1-a562-e97eb4c58794
+    async def get_cognitive_service(self) -> CognitiveService:
+        async with self._lock:
+            if "cognitive_service" not in self._instances:
+                from will.orchestration.cognitive_service import CognitiveService
+
+                repo_path = bootstrap_registry.get_repo_path()
+                instance = CognitiveService(repo_path=repo_path)
+                self._instances["cognitive_service"] = instance
+                self._init_flags["cognitive_service"] = False
+
+        if not self._init_flags.get("cognitive_service"):
+            async with self.session() as session:
+                await self._instances["cognitive_service"].initialize(session)
+            self._init_flags["cognitive_service"] = True
+
+        return self._instances["cognitive_service"]
+
+    # ID: 0da9077a-d49c-4efc-8e8d-d0b3a8a66061
+    async def get_auditor_context(self) -> AuditorContext:
+        async with self._lock:
+            if "auditor_context" not in self._instances:
+                from mind.governance.audit_context import AuditorContext
+
+                repo_path = bootstrap_registry.get_repo_path()
+                self._instances["auditor_context"] = AuditorContext(repo_path)
+        return self._instances["auditor_context"]
+
+
+# Global instance
 service_registry = ServiceRegistry()
