@@ -2,7 +2,16 @@
   {
     "check_id": "architecture.max_file_size",
     "severity": "warning",
-    "message": "Module has 499 lines, exceeds limit of 400",
+    "message": "Module has 434 lines, exceeds limit of 400",
+    "file_path": "src/body/atomic/executor.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.max_file_size",
+    "severity": "warning",
+    "message": "Module has 624 lines, exceeds limit of 400",
     "file_path": "src/body/cli/commands/inspect.py",
     "line_number": null,
     "context": {},
@@ -56,26 +65,8 @@
   {
     "check_id": "architecture.max_file_size",
     "severity": "warning",
-    "message": "Module has 531 lines, exceeds limit of 400",
-    "file_path": "src/mind/logic/engines/ast_gate/checks/purity_checks.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.max_file_size",
-    "severity": "warning",
-    "message": "Module has 434 lines, exceeds limit of 400",
-    "file_path": "src/shared/infrastructure/context/builder.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.max_file_size",
-    "severity": "warning",
-    "message": "Module has 504 lines, exceeds limit of 400",
-    "file_path": "src/shared/infrastructure/intent/intent_repository.py",
+    "message": "Module has 449 lines, exceeds limit of 400",
+    "file_path": "src/shared/infrastructure/clients/qdrant_client.py",
     "line_number": null,
     "context": {},
     "details": {}
@@ -119,7 +110,7 @@
   {
     "check_id": "governance.dangerous_execution_primitives",
     "severity": "info",
-    "message": "Forbidden primitive 'os.getenv' used (line 70).",
+    "message": "Forbidden primitive 'os.getenv' used (line 47).",
     "file_path": "src/api/main.py",
     "line_number": null,
     "context": {},
@@ -227,8 +218,8 @@
   {
     "check_id": "governance.dangerous_execution_primitives",
     "severity": "info",
-    "message": "Forbidden primitive 'os.environ' used (line 62).",
-    "file_path": "src/features/test_generation_v2/sandbox.py",
+    "message": "Forbidden primitive 'os.environ' used (line 63).",
+    "file_path": "src/features/test_generation/sandbox.py",
     "line_number": null,
     "context": {},
     "details": {}
@@ -263,7 +254,7 @@
   {
     "check_id": "governance.dangerous_execution_primitives",
     "severity": "info",
-    "message": "Forbidden primitive 'subprocess.run' used (line 95).",
+    "message": "Forbidden primitive 'subprocess.run' used (line 128).",
     "file_path": "src/shared/infrastructure/repositories/db/common.py",
     "line_number": null,
     "context": {},
@@ -317,97 +308,7 @@
   {
     "check_id": "modularity.single_responsibility",
     "severity": "warning",
-    "message": "Modularity Debt: 50.9/100 (Limit: 60.0)",
-    "file_path": "src/body/services/service_registry.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.single_responsibility",
-    "severity": "warning",
-    "message": "Modularity Debt: 51.2/100 (Limit: 60.0)",
-    "file_path": "src/features/self_healing/coverage_watcher.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.single_responsibility",
-    "severity": "warning",
-    "message": "Modularity Debt: 52.3/100 (Limit: 60.0)",
-    "file_path": "src/features/self_healing/iterative_test_fixer.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.single_responsibility",
-    "severity": "warning",
-    "message": "Modularity Debt: 49.1/100 (Limit: 60.0)",
-    "file_path": "src/features/self_healing/test_generation/single_test_fixer.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.single_responsibility",
-    "severity": "warning",
-    "message": "Modularity Debt: 49.9/100 (Limit: 60.0)",
-    "file_path": "src/mind/logic/engines/ast_gate/checks/purity_checks.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.single_responsibility",
-    "severity": "warning",
-    "message": "Modularity Debt: 48.1/100 (Limit: 60.0)",
-    "file_path": "src/shared/infrastructure/context/builder.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.single_responsibility",
-    "severity": "warning",
-    "message": "Modularity Debt: 50.5/100 (Limit: 60.0)",
-    "file_path": "src/shared/infrastructure/context/providers/db.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.single_responsibility",
-    "severity": "warning",
-    "message": "Modularity Debt: 49.7/100 (Limit: 60.0)",
-    "file_path": "src/shared/infrastructure/intent/intent_repository.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.single_responsibility",
-    "severity": "warning",
-    "message": "Modularity Debt: 51.3/100 (Limit: 60.0)",
-    "file_path": "src/will/autonomy/proposal_repository.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.single_responsibility",
-    "severity": "warning",
-    "message": "Modularity Debt: 49.6/100 (Limit: 60.0)",
-    "file_path": "src/will/strategists/test_strategist.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.semantic_cohesion",
-    "severity": "warning",
-    "message": "Modularity Debt: 50.9/100 (Limit: 60.0)",
+    "message": "Modularity Debt: 49.3/100 (Limit: 60.0)",
     "file_path": "src/body/services/service_registry.py",
     "line_number": null,
     "context": {},
@@ -416,88 +317,7 @@
   {
     "check_id": "modularity.semantic_cohesion",
     "severity": "warning",
-    "message": "Modularity Debt: 51.2/100 (Limit: 60.0)",
-    "file_path": "src/features/self_healing/coverage_watcher.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.semantic_cohesion",
-    "severity": "warning",
-    "message": "Modularity Debt: 52.3/100 (Limit: 60.0)",
-    "file_path": "src/features/self_healing/iterative_test_fixer.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.semantic_cohesion",
-    "severity": "warning",
-    "message": "Modularity Debt: 49.1/100 (Limit: 60.0)",
-    "file_path": "src/features/self_healing/test_generation/single_test_fixer.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.semantic_cohesion",
-    "severity": "warning",
-    "message": "Modularity Debt: 49.9/100 (Limit: 60.0)",
-    "file_path": "src/mind/logic/engines/ast_gate/checks/purity_checks.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.semantic_cohesion",
-    "severity": "warning",
-    "message": "Modularity Debt: 48.1/100 (Limit: 60.0)",
-    "file_path": "src/shared/infrastructure/context/builder.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.semantic_cohesion",
-    "severity": "warning",
-    "message": "Modularity Debt: 50.5/100 (Limit: 60.0)",
-    "file_path": "src/shared/infrastructure/context/providers/db.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.semantic_cohesion",
-    "severity": "warning",
-    "message": "Modularity Debt: 49.7/100 (Limit: 60.0)",
-    "file_path": "src/shared/infrastructure/intent/intent_repository.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.semantic_cohesion",
-    "severity": "warning",
-    "message": "Modularity Debt: 51.3/100 (Limit: 60.0)",
-    "file_path": "src/will/autonomy/proposal_repository.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.semantic_cohesion",
-    "severity": "warning",
-    "message": "Modularity Debt: 49.6/100 (Limit: 60.0)",
-    "file_path": "src/will/strategists/test_strategist.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.import_coupling",
-    "severity": "warning",
-    "message": "Modularity Debt: 50.9/100 (Limit: 60.0)",
+    "message": "Modularity Debt: 49.3/100 (Limit: 60.0)",
     "file_path": "src/body/services/service_registry.py",
     "line_number": null,
     "context": {},
@@ -506,88 +326,7 @@
   {
     "check_id": "modularity.import_coupling",
     "severity": "warning",
-    "message": "Modularity Debt: 51.2/100 (Limit: 60.0)",
-    "file_path": "src/features/self_healing/coverage_watcher.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.import_coupling",
-    "severity": "warning",
-    "message": "Modularity Debt: 52.3/100 (Limit: 60.0)",
-    "file_path": "src/features/self_healing/iterative_test_fixer.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.import_coupling",
-    "severity": "warning",
-    "message": "Modularity Debt: 49.1/100 (Limit: 60.0)",
-    "file_path": "src/features/self_healing/test_generation/single_test_fixer.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.import_coupling",
-    "severity": "warning",
-    "message": "Modularity Debt: 49.9/100 (Limit: 60.0)",
-    "file_path": "src/mind/logic/engines/ast_gate/checks/purity_checks.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.import_coupling",
-    "severity": "warning",
-    "message": "Modularity Debt: 48.1/100 (Limit: 60.0)",
-    "file_path": "src/shared/infrastructure/context/builder.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.import_coupling",
-    "severity": "warning",
-    "message": "Modularity Debt: 50.5/100 (Limit: 60.0)",
-    "file_path": "src/shared/infrastructure/context/providers/db.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.import_coupling",
-    "severity": "warning",
-    "message": "Modularity Debt: 49.7/100 (Limit: 60.0)",
-    "file_path": "src/shared/infrastructure/intent/intent_repository.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.import_coupling",
-    "severity": "warning",
-    "message": "Modularity Debt: 51.3/100 (Limit: 60.0)",
-    "file_path": "src/will/autonomy/proposal_repository.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.import_coupling",
-    "severity": "warning",
-    "message": "Modularity Debt: 49.6/100 (Limit: 60.0)",
-    "file_path": "src/will/strategists/test_strategist.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.refactor_score_threshold",
-    "severity": "warning",
-    "message": "Modularity Debt: 50.9/100 (Limit: 60.0)",
+    "message": "Modularity Debt: 49.3/100 (Limit: 60.0)",
     "file_path": "src/body/services/service_registry.py",
     "line_number": null,
     "context": {},
@@ -596,80 +335,8 @@
   {
     "check_id": "modularity.refactor_score_threshold",
     "severity": "warning",
-    "message": "Modularity Debt: 51.2/100 (Limit: 60.0)",
-    "file_path": "src/features/self_healing/coverage_watcher.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.refactor_score_threshold",
-    "severity": "warning",
-    "message": "Modularity Debt: 52.3/100 (Limit: 60.0)",
-    "file_path": "src/features/self_healing/iterative_test_fixer.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.refactor_score_threshold",
-    "severity": "warning",
-    "message": "Modularity Debt: 49.1/100 (Limit: 60.0)",
-    "file_path": "src/features/self_healing/test_generation/single_test_fixer.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.refactor_score_threshold",
-    "severity": "warning",
-    "message": "Modularity Debt: 49.9/100 (Limit: 60.0)",
-    "file_path": "src/mind/logic/engines/ast_gate/checks/purity_checks.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.refactor_score_threshold",
-    "severity": "warning",
-    "message": "Modularity Debt: 48.1/100 (Limit: 60.0)",
-    "file_path": "src/shared/infrastructure/context/builder.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.refactor_score_threshold",
-    "severity": "warning",
-    "message": "Modularity Debt: 50.5/100 (Limit: 60.0)",
-    "file_path": "src/shared/infrastructure/context/providers/db.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.refactor_score_threshold",
-    "severity": "warning",
-    "message": "Modularity Debt: 49.7/100 (Limit: 60.0)",
-    "file_path": "src/shared/infrastructure/intent/intent_repository.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.refactor_score_threshold",
-    "severity": "warning",
-    "message": "Modularity Debt: 51.3/100 (Limit: 60.0)",
-    "file_path": "src/will/autonomy/proposal_repository.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.refactor_score_threshold",
-    "severity": "warning",
-    "message": "Modularity Debt: 49.6/100 (Limit: 60.0)",
-    "file_path": "src/will/strategists/test_strategist.py",
+    "message": "Modularity Debt: 49.3/100 (Limit: 60.0)",
+    "file_path": "src/body/services/service_registry.py",
     "line_number": null,
     "context": {},
     "details": {}
@@ -677,7 +344,7 @@
   {
     "check_id": "workflow.mypy_check",
     "severity": "info",
-    "message": "Quality Gate mypy_check failed: src/features/test_generation_v2/test_extractor.py:59: error: Argument 1 to \"_is_fixture\" of \"TestCodeExtractor\" has incompatible type \"FunctionDef | AsyncFunctionDef\"; expected \"FunctionDef\"  [arg-type]",
+    "message": "Quality Gate mypy_check failed: src/shared/models/command_meta.py:149: error: \"Callable[..., Any]\" has no attribute \"__command_meta__\"  [attr-defined]",
     "file_path": "System",
     "line_number": null,
     "context": {},
@@ -702,162 +369,9 @@
     "details": {}
   },
   {
-    "check_id": "purity.no_todo_placeholders",
-    "severity": "warning",
-    "message": "Forbidden Content [Line 45]: Matched restricted regex '\\bTODO\\b'",
-    "file_path": "src/api/main.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_todo_placeholders",
-    "severity": "warning",
-    "message": "Forbidden Content [Line 55]: Matched restricted regex '\\bTODO\\b'",
-    "file_path": "src/api/main.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_todo_placeholders",
-    "severity": "warning",
-    "message": "Forbidden Content [Line 86]: Matched restricted regex '\\bTODO\\b'",
-    "file_path": "src/api/main.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_todo_placeholders",
-    "severity": "warning",
-    "message": "Forbidden Content [Line 74]: Matched restricted regex '\\bTODO\\b'",
-    "file_path": "src/features/self_healing/test_generation/generation_workflow.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_todo_placeholders",
-    "severity": "warning",
-    "message": "Forbidden Content [Line 100]: Matched restricted regex '\\bTODO\\b'",
-    "file_path": "src/features/self_healing/test_generation/generation_workflow.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_todo_placeholders",
-    "severity": "warning",
-    "message": "Forbidden Content [Line 129]: Matched restricted regex '\\bTODO\\b'",
-    "file_path": "src/mind/governance/enforcement/async_units.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_todo_placeholders",
-    "severity": "warning",
-    "message": "Forbidden Content [Line 74]: Matched restricted regex '\\bTODO\\b'",
-    "file_path": "src/will/phases/stub_phases.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_todo_placeholders",
-    "severity": "warning",
-    "message": "Forbidden Content [Line 108]: Matched restricted regex '\\bTODO\\b'",
-    "file_path": "src/will/phases/stub_phases.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_todo_placeholders",
-    "severity": "warning",
-    "message": "Forbidden Content [Line 136]: Matched restricted regex '\\bTODO\\b'",
-    "file_path": "src/will/phases/stub_phases.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_todo_placeholders",
-    "severity": "warning",
-    "message": "Forbidden Content [Line 96]: Matched restricted regex '\\bTODO\\b'",
-    "file_path": "src/will/phases/test_generation_phase.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
     "check_id": "workflow.dead_code_check",
     "severity": "warning",
-    "message": "Dead code detected: src/body/cli/commands/inspect_patterns.py:27: unused variable 'violations_only' (100% confidence)",
-    "file_path": "System",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "workflow.dead_code_check",
-    "severity": "warning",
-    "message": "Dead code detected: src/body/evaluators/constitutional_evaluator.py:61: unused variable 'target_content' (100% confidence)",
-    "file_path": "System",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "workflow.dead_code_check",
-    "severity": "warning",
-    "message": "Dead code detected: src/features/autonomy/autonomous_developer.py:29: unused variable 'output_mode' (100% confidence)",
-    "file_path": "System",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "workflow.dead_code_check",
-    "severity": "warning",
-    "message": "Dead code detected: src/features/autonomy/autonomous_developer_v2.py:138: unused variable 'output_mode' (100% confidence)",
-    "file_path": "System",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "workflow.dead_code_check",
-    "severity": "warning",
-    "message": "Dead code detected: src/features/introspection/discovery/from_manifest.py:22: unused variable 'explicit_path' (100% confidence)",
-    "file_path": "System",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "workflow.dead_code_check",
-    "severity": "warning",
-    "message": "Dead code detected: src/features/self_healing/test_generation/test_validator.py:58: unused variable 'module_import_path' (100% confidence)",
-    "file_path": "System",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "workflow.dead_code_check",
-    "severity": "warning",
-    "message": "Dead code detected: src/shared/infrastructure/context/providers/vectors.py:133: unused variable 'max_distance' (100% confidence)",
-    "file_path": "System",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "workflow.dead_code_check",
-    "severity": "warning",
-    "message": "Dead code detected: src/shared/infrastructure/validation/test_runner.py:34: unused variable 'silent' (100% confidence)",
+    "message": "Dead code detected: src/features/test_generation/phases/generation_phase.py:43: unused variable 'max_failures_per_pattern' (100% confidence)",
     "file_path": "System",
     "line_number": null,
     "context": {},

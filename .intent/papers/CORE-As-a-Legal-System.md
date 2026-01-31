@@ -13,6 +13,8 @@
 * `papers/CORE-Deliberate-Non-Goals.md`
 * `papers/CORE-Common-Governance-Failure-Modes.md`
 
+
+
 ---
 
 ## Abstract

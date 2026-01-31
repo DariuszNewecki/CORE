@@ -1,0 +1,56 @@
+{
+    "$schema": "META/rule_document.schema.json",
+    "kind": "rule_document",
+    "metadata": {
+        "id": "rules.infrastructure.cli_commands",
+        "title": "CLI Command Metadata Standards",
+        "version": "1.0.0",
+        "authority": "policy",
+        "phase": "load",
+        "status": "active"
+    },
+    "rules": [
+        {
+            "id": "cli.command.metadata_required",
+            "statement": "All CLI commands MUST declare explicit metadata using @command_meta decorator with canonical_name, behavior, layer, and summary.",
+            "authority": "policy",
+            "phase": "load",
+            "enforcement": "reporting"
+        },
+        {
+            "id": "cli.command.canonical_naming",
+            "statement": "Command canonical_name MUST follow hierarchical dot notation: 'group.subgroup.action' (e.g., 'inspect.drift.symbol').",
+            "authority": "policy",
+            "phase": "load",
+            "enforcement": "reporting"
+        },
+        {
+            "id": "cli.command.behavior_classification",
+            "statement": "Command behavior MUST be one of: 'read' (inspection), 'validate' (checks), 'mutate' (state changes), or 'transform' (data migrations).",
+            "authority": "policy",
+            "phase": "load",
+            "enforcement": "reporting"
+        },
+        {
+            "id": "cli.command.layer_assignment",
+            "statement": "Command layer MUST be one of: 'mind' (constitutional operations), 'body' (execution infrastructure), or 'will' (autonomous operations).",
+            "authority": "policy",
+            "phase": "load",
+            "enforcement": "reporting"
+        },
+        {
+            "id": "cli.command.dangerous_marking",
+            "statement": "Commands that mutate system state MUST mark dangerous=True to require explicit --write flag or confirmation.",
+            "authority": "policy",
+            "phase": "load",
+            "enforcement": "reporting"
+        },
+        {
+            "id": "cli.command.no_duplicates",
+            "statement": "Each canonical_name MUST be unique across the entire CLI registry. Duplicate names indicate misconfigured aliases.",
+            "authority": "policy",
+            "phase": "load",
+            "enforcement": "blocking"
+        }
+    ]
+}

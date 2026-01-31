@@ -22,6 +22,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+# CONSTITUTIONAL FIX: Delegate to Body service instead of infrastructure primitive
 from body.services.file_service import FileService
 from shared.logger import getLogger
 from shared.path_resolver import PathResolver
@@ -68,8 +69,6 @@ class DecisionTracer:
         """
         Initialize decision tracer.
 
-        CONSTITUTIONAL FIX: Changed parameter from FileHandler to FileService
-
         Args:
             path_resolver: PathResolver for path resolution
             session_id: Optional session identifier
@@ -90,7 +89,7 @@ class DecisionTracer:
         # CONSTITUTIONAL FIX: Use injected FileService or create a default one
         self.file_service = file_service or FileService(self._paths.repo_root)
 
-        # Ensure directory exists via Body service
+        # Ensure directory exists via Body service (Governed Mutation)
         self.file_service.ensure_dir(str(self.trace_dir))
 
     # ID: d259527d-5f1e-4778-8499-fa23fd49e7f5
@@ -180,8 +179,8 @@ class DecisionTracer:
 
         CONSTITUTIONAL FIX: Uses FileService instead of FileHandler
         """
-        trace_file = self.trace_dir / f"trace_{self.session_id}.json"
-        rel_path = str(trace_file)
+        filename = f"trace_{self.session_id}.json"
+        rel_path = f"{self.trace_dir!s}/{filename}"
 
         content = json.dumps(
             {
@@ -193,10 +192,10 @@ class DecisionTracer:
             indent=2,
         )
 
-        # CONSTITUTIONAL FIX: Use FileService
+        # CONSTITUTIONAL FIX: Use FileService.write_file
         self.file_service.write_file(rel_path, content)
         logger.debug("Decision trace file saved: %s", rel_path)
-        return trace_file
+        return self._paths.repo_root / rel_path
 
     async def _save_to_database(self, trace_file: Path) -> None:
         """

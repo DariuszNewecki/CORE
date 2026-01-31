@@ -1,0 +1,46 @@
+{
+    "$schema": "META/rule_document.schema.json",
+    "kind": "rule_document",
+    "metadata": {
+        "id": "rules.architecture.atomic_actions",
+        "title": "Atomic Actions Pattern Contract",
+        "version": "0.1.0",
+        "authority": "policy",
+        "phase": "load",
+        "status": "active"
+    },
+    "rules": [
+        {
+            "id": "atomic_actions.must_return_action_result",
+            "statement": "All functions decorated with @atomic_action MUST declare ActionResult as their return type annotation and actually return ActionResult instances.",
+            "enforcement": "blocking",
+            "authority": "policy",
+            "phase": "load",
+            "rationale": "ActionResult provides the uniform contract for all Body layer operations. Without it, error handling, audit trails, and autonomous agent chaining become impossible."
+        },
+        {
+            "id": "atomic_actions.must_have_decorator",
+            "statement": "All functions registered with @register_action MUST also have the @atomic_action decorator with required metadata (action_id, intent, impact, policies).",
+            "enforcement": "blocking",
+            "authority": "policy",
+            "phase": "load",
+            "rationale": "The @atomic_action decorator ensures constitutional traceability and provides metadata for governance audits."
+        },
+        {
+            "id": "atomic_actions.result_must_be_structured",
+            "statement": "ActionResult.data MUST be a dictionary with string keys. Nested structures are permitted but the top level must be a dict.",
+            "enforcement": "blocking",
+            "authority": "policy",
+            "phase": "runtime",
+            "rationale": "Structured data enables autonomous agents to extract specific fields and make decisions based on operation outcomes."
+        },
+        {
+            "id": "atomic_actions.no_governance_bypass",
+            "statement": "No atomic action MAY return types other than ActionResult to bypass governance validation. Tuple returns (bool, str) are explicitly forbidden.",
+            "enforcement": "blocking",
+            "authority": "constitution",
+            "phase": "load",
+            "rationale": "Allowing alternative return types creates an ungovernerable shadow surface that undermines the entire constitutional framework."
+        }
+    ]
+}

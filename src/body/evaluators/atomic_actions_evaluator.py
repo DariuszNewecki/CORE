@@ -10,7 +10,7 @@ Constitutional Alignment:
 - Purpose: Validate atomic action compliance across codebase
 - Self-contained: No external checker dependencies
 
-Validation rules (from .intent/charter/patterns/atomic_actions.json):
+Validation rules (from .intent/rules/architecture/atomic_actions.json):
 1. action_must_return_result: Every atomic action MUST return ActionResult
 2. result_must_be_structured: ActionResult.data MUST be a dictionary
 3. action_must_declare_metadata: Actions must have @atomic_action decorator

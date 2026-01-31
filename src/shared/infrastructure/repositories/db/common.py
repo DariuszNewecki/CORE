@@ -2,7 +2,36 @@
 # ID: infra.repo.db.common
 """
 Provides common utilities for database-related CLI commands.
+
+CONSTITUTIONAL AUTHORITY: Infrastructure (coordination)
+
+AUTHORITY DEFINITION:
+This module is infrastructure because it provides mechanical coordination
+for database operations without making strategic decisions about what
+migrations to run or how data should be structured.
+
+RESPONSIBILITIES:
+- Coordinate database migration operations
+- Load policy files from filesystem
+- Execute SQL statements via database connection
+- Track migration application state
+- Retrieve git commit information
+
+AUTHORITY LIMITS:
+- Cannot decide which migrations should be applied (strategic)
+- Cannot interpret the semantic meaning of migrations
+- Cannot choose between alternative migration strategies
+- Cannot make business logic decisions about schema design
+
+EXEMPTIONS:
+- May access database directly (infrastructure coordination)
+- May access filesystem for migration files
+- Exempt from Mind/Body/Will layer restrictions (infrastructure role)
+- Subject to infrastructure authority boundary rules
+
 Refactored to comply with operations.runtime.env_vars_defined (no os.getenv).
+
+See: .intent/papers/CORE-Infrastructure-Definition.md Section 5
 """
 
 from __future__ import annotations
@@ -16,7 +45,11 @@ from sqlalchemy import text
 
 from shared.config import settings
 from shared.infrastructure.database.session_manager import get_session
+from shared.logger import getLogger
 from shared.processors.yaml_processor import strict_yaml_processor
+
+
+logger = getLogger(__name__)
 
 
 # This robust function finds the project root without relying on the global settings object.
@@ -100,8 +133,10 @@ def git_commit_sha() -> str:
         )
         if res.returncode == 0:
             return res.stdout.strip()[:40]
-    except Exception:
-        pass
+    except Exception as e:
+        # CONSTITUTIONAL NOTE: Infrastructure must propagate error context
+        # Git command failed - fall back to settings
+        logger.debug("Git command failed, using settings fallback: %s", e)
 
     # CONSTITUTIONAL FIX: Use Settings instead of os.getenv
     return str(getattr(settings, "GIT_COMMIT", "") or "").strip()[:40]

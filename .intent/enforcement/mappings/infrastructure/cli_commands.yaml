@@ -1,0 +1,89 @@
+mappings:
+  # LAW: All CLI commands MUST declare explicit metadata
+  #
+  # ENFORCEMENT: Runtime tracking during registry sync
+  # - command_sync_service logs coverage statistics
+  # - Inference provides fallback for unmigrated commands
+  # - No blocking enforcement (migration in progress)
+  #
+  # METRICS: Track coverage via command_sync_service logging:
+  #   "Commands with @command_meta: X/Y (Z%)"
+  #
+  # TARGET: 100% explicit metadata (phased migration)
+  cli.command.metadata_required:
+    engine: runtime_metric
+    params:
+      enforced_by: "features.maintenance.command_sync_service._sync_commands_to_db"
+      metric: "Commands with @command_meta"
+      tracking: "Logged during 'core-admin fix db-registry'"
+      phase: "migration"
+    scope:
+      applies_to: ["src/body/cli/commands/**/*.py"]
+
+  # LAW: Command canonical_name MUST follow hierarchical dot notation
+  #
+  # ENFORCEMENT: Validated by Pydantic CommandMeta dataclass
+  # - Pattern enforced in __post_init__
+  # - Invalid names raise ValueError at decoration time
+  cli.command.canonical_naming:
+    engine: dataclass_validation
+    params:
+      enforced_by: "shared.models.command_meta.CommandMeta.__post_init__"
+      validation: "Regex pattern in dataclass"
+      failure_mode: "ValueError on invalid canonical_name"
+    scope:
+      applies_to: ["@command_meta decorators"]
+
+  # LAW: Command behavior MUST be valid enum value
+  #
+  # ENFORCEMENT: Type-checked by CommandBehavior enum
+  # - Python will reject invalid enum values at parse time
+  cli.command.behavior_classification:
+    engine: type_system
+    params:
+      enforced_by: "shared.models.command_meta.CommandBehavior enum"
+      validation: "Python enum type checking"
+      allowed_values: ["read", "validate", "mutate", "transform"]
+    scope:
+      applies_to: ["@command_meta(behavior=...)"]
+
+  # LAW: Command layer MUST be valid enum value
+  #
+  # ENFORCEMENT: Type-checked by CommandLayer enum
+  cli.command.layer_assignment:
+    engine: type_system
+    params:
+      enforced_by: "shared.models.command_meta.CommandLayer enum"
+      validation: "Python enum type checking"
+      allowed_values: ["mind", "body", "will"]
+    scope:
+      applies_to: ["@command_meta(layer=...)"]
+
+  # LAW: Mutating commands SHOULD be marked as dangerous
+  #
+  # ENFORCEMENT: Advisory only (no blocking)
+  # - Developers responsible for correct dangerous flag
+  # - Code review should verify consistency
+  cli.command.dangerous_marking:
+    engine: advisory
+    params:
+      guidance: "Commands with behavior='mutate' should set dangerous=True"
+      enforcement: "Code review"
+    scope:
+      applies_to: ["src/body/cli/commands/**/*.py"]
+
+  # LAW: No duplicate canonical names
+  #
+  # ENFORCEMENT: Runtime deduplication in command_sync_service
+  # - Duplicates logged as warnings
+  # - First occurrence wins, duplicates skipped
+  # - Prevents database constraint violations
+  cli.command.no_duplicates:
+    engine: runtime_check
+    params:
+      enforced_by: "features.maintenance.command_sync_service._sync_commands_to_db"
+      deduplication_logic: "seen_names set tracking"
+      action: "Log warning and skip duplicate"
+      logged_as: "WARNING:...Duplicate command name detected"
+    scope:
+      applies_to: ["Registry sync process"]

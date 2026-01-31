@@ -1,21 +1,12 @@
 # src/shared/infrastructure/vector/adapters/constitutional/doc_key_resolver.py
 
 """
-Document Key Resolver
+Document Key Resolver - Canonical Identity Engine.
 
-Computes canonical, stable keys for constitutional documents.
-Keys are used for vector storage and deduplication.
-
-Design:
-- Pure function: file_path + key_root + intent_root → canonical key
-- No filesystem I/O (only path manipulation)
-- Deterministic output for same inputs
-
-Key format: {key_root}/{relative_path_no_ext}
-Examples:
-- rules/architecture/style
-- policies/code/code_standards
-- constitution/authority
+CONSTITUTIONAL FIX (V2.3.5):
+- Fixed "Stem Fallback" warnings by recognizing META, phases, and workflows as valid roots.
+- Ensures unique, collision-resistant IDs in the Qdrant vector database.
+- Aligns with the 'Explicitness over Inference' principle.
 """
 
 from __future__ import annotations
@@ -33,51 +24,47 @@ logger = getLogger(__name__)
 def compute_doc_key(file_path: Path, *, key_root: str, intent_root: Path) -> str:
     """
     Compute canonical document key based on .intent/ structure.
-
-    The key uniquely identifies a document within its category
-    (policies, constitution, standards, rules) and preserves
-    hierarchical structure.
-
-    Args:
-        file_path: Absolute path to the document file
-        key_root: Root directory name (policies, constitution, standards, rules)
-        intent_root: Absolute path to .intent/ directory
-
-    Returns:
-        Canonical key string (e.g., "rules/architecture/style")
-
-    Examples:
-        >>> compute_doc_key(
-        ...     Path("/repo/.intent/rules/architecture/style.json"),
-        ...     key_root="rules",
-        ...     intent_root=Path("/repo/.intent")
-        ... )
-        'rules/architecture/style'
     """
-    # Try standard key_root first
-    root_dir = intent_root / key_root
-    try:
-        rel = file_path.resolve().relative_to(root_dir.resolve())
-        rel_no_ext = rel.with_suffix("")
-        return f"{key_root}/{rel_no_ext.as_posix()}"
-    except ValueError:
-        pass
+    # 1. Resolve absolute paths to ensure reliable comparison
+    abs_file = file_path.resolve()
+    abs_intent = intent_root.resolve()
 
-    # Fallback: try all known roots (handles mixed structures)
-    # This accommodates transitions between directory layouts
-    for alternative_root in ["rules", "policies", "standards", "constitution"]:
-        alt_dir = intent_root / alternative_root
+    # 2. THE SEARCH HIERARCHY
+    # We check if the file belongs to any of our known architectural categories.
+    # This list must match the folders shown in 'tree .intent/'
+    known_roots = [
+        "rules",
+        "constitution",
+        "phases",
+        "workflows",
+        "META",
+        "enforcement",
+    ]
+
+    for candidate_root in known_roots:
+        root_dir = abs_intent / candidate_root
         try:
-            rel = file_path.resolve().relative_to(alt_dir.resolve())
-            rel_no_ext = rel.with_suffix("")
-            return f"{alternative_root}/{rel_no_ext.as_posix()}"
+            # Check if the file is actually inside this folder
+            rel = abs_file.relative_to(root_dir)
+
+            # Format: category/path/to/file (minus extension)
+            # Example: rules/architecture/async_logic
+            # Example: metadata/enums
+            category_prefix = "metadata" if candidate_root == "META" else candidate_root
+            return f"{category_prefix}/{rel.with_suffix('').as_posix()}"
         except ValueError:
+            # Not in this root, keep looking
             continue
 
-    # Final fallback: use stem only (should not happen in healthy repo)
-    logger.warning(
-        "Could not compute canonical doc_key for %s (key_root=%s), using stem fallback",
-        file_path,
-        key_root,
-    )
-    return f"{key_root}/{file_path.stem}"
+    # 3. FINAL FALLBACK (Last Resort)
+    # If the file is in .intent/ but not in a known folder, use its path relative to .intent/
+    try:
+        rel_to_intent = abs_file.relative_to(abs_intent)
+        return rel_to_intent.with_suffix("").as_posix()
+    except ValueError:
+        # Emergency fallback: just the name
+        logger.warning(
+            "Identity Resolution Failure: %s is outside .intent/. Using stem fallback.",
+            file_path.name,
+        )
+        return file_path.stem

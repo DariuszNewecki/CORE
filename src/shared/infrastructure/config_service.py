@@ -3,6 +3,31 @@
 """
 Configuration service that reads from the database as the single source of truth.
 
+CONSTITUTIONAL AUTHORITY: Infrastructure (coordination)
+
+AUTHORITY DEFINITION:
+ConfigService is infrastructure because it provides mechanical coordination
+for configuration access without making strategic decisions about what
+configuration values mean or how they should be used.
+
+RESPONSIBILITIES:
+- Retrieve configuration values from database
+- Cache non-secret configuration for performance
+- Coordinate secret retrieval from secrets service
+- Provide read/write access to runtime settings
+
+AUTHORITY LIMITS:
+- Cannot interpret the semantic meaning of configuration values
+- Cannot decide which configurations are "correct" or "important"
+- Cannot choose between alternative configuration strategies
+- Cannot make business logic decisions based on configuration
+
+EXEMPTIONS:
+- May access database directly (infrastructure coordination)
+- May cache data in-memory (performance optimization)
+- Exempt from Mind/Body/Will layer restrictions (infrastructure role)
+- Subject to infrastructure authority boundary rules
+
 Constitutional Principle: Mind/Body/Will Separation
 - Mind (.intent/) defines WHAT should be configured
 - Database stores the CURRENT state
@@ -13,6 +38,8 @@ Design choices:
 - ✅ Async DI via AsyncSession (testable, no globals)
 - ✅ Non-secret values cached in-memory for performance
 - ✅ Secrets delegated to a dedicated secrets service (encryption/audit live there)
+
+See: .intent/papers/CORE-Infrastructure-Definition.md Section 5
 """
 
 from __future__ import annotations

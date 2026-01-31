@@ -1,15 +1,13 @@
 # src/shared/infrastructure/validation/test_runner.py
+# ID: c70526bd-08f2-4c9b-b014-f4c548e188c6
 
 """
 Executes pytest and captures results as Constitutional Evidence.
 
-Refactored to return ActionResult and persist outcomes to the database
-to support autonomous health verification and historical stability tracking.
-
-Policy:
-- Headless: Uses standard logging (LOG-001).
-- Async-Native: Uses non-blocking subprocesses (ASYNC-001).
-- Traceable: Persists results to core.action_results (SSOT).
+CONSTITUTIONAL FIX (V2.3.7):
+- Implemented 'silent' parameter to control logging verbosity (workflow.dead_code_check).
+- Maintains strict traceability by persisting to DB regardless of verbosity.
+- Aligns with the 'Headless' policy (LOG-001).
 """
 
 from __future__ import annotations
@@ -35,10 +33,14 @@ async def run_tests(silent: bool = True) -> ActionResult:
     """
     Executes pytest asynchronously and returns a canonical ActionResult.
 
-    This is the authoritative entry point for system health verification.
+    Args:
+        silent: If False, logs start/stop events to the system logger.
     """
     start_time = time.perf_counter()
-    logger.info("🧪 Initiating system test suite...")
+
+    # CONSTITUTIONAL FIX: Use the 'silent' variable to toggle operator feedback
+    if not silent:
+        logger.info("🧪 Initiating system test suite...")
 
     repo_root = settings.REPO_PATH
     tests_path = repo_root / "tests"
@@ -81,7 +83,6 @@ async def run_tests(silent: bool = True) -> ActionResult:
     )
 
     # 1. Construct the Result Payload
-    # FIXED: Added 'error' key for CLI visibility
     result_data = {
         "exit_code": exit_code,
         "stdout": stdout,
@@ -101,12 +102,15 @@ async def run_tests(silent: bool = True) -> ActionResult:
         suggestions=["Run 'pytest --lf' to retry failed tests."] if not ok else [],
     )
 
-    # 3. Persist Evidence
+    # 3. Persist Evidence (Always happens, even if silent)
     _log_test_result_to_file(result_data)
     _store_failure_artifact(result_data)
     await _persist_result_to_db(action_result)
 
-    logger.info("🏁 Test run complete: %s (%.2fs)", summary, duration)
+    # CONSTITUTIONAL FIX: Respect 'silent' for the completion signal
+    if not silent:
+        logger.info("🏁 Test run complete: %s (%.2fs)", summary, duration)
+
     return action_result
 
 

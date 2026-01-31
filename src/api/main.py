@@ -1,6 +1,14 @@
 # src/api/main.py
+# ID: d05a8460-e1bf-4fd6-8d81-38d9fc98dc5c
 
-"""Provides functionality for the main module."""
+"""
+API Main Entry Point
+
+CONSTITUTIONAL FIX:
+- Removed 7 forbidden imports (logic.di.no_global_session & architecture.boundary.settings_access).
+- Preserves all service warmup, logging, and test-mode logic.
+- Delegates bootstrap to the Body layer Sanctuary.
+"""
 
 from __future__ import annotations
 
@@ -13,37 +21,16 @@ from fastapi import FastAPI
 from api.v1 import development_routes, knowledge_routes
 
 # Architecture & Service Imports
+# We only import high-level abstractions now
+from body.infrastructure.bootstrap import create_core_context
 from body.services.service_registry import service_registry
-from shared.config import settings
 from shared.context import CoreContext
 from shared.errors import register_exception_handlers
-from shared.infrastructure.context.service import ContextService
-
-# CONSTITUTIONAL NOTE: API layer should not import get_session directly
-# This is a temporary violation until service_registry implements auto-priming
-# from shared.infrastructure.database.session_manager import get_session
-from shared.infrastructure.git_service import GitService
-from shared.infrastructure.knowledge.knowledge_service import KnowledgeService
-from shared.infrastructure.storage.file_handler import FileHandler
-from shared.logger import getLogger
-from shared.models import PlannerConfig
+from shared.infrastructure.config_service import ConfigService
+from shared.logger import getLogger, reconfigure_log_level
 
 
 logger = getLogger(__name__)
-
-
-def _build_context_service() -> ContextService:
-    """
-    Factory for ContextService, wired for the API context.
-    Ensures the API uses the same context logic as the CLI.
-
-    CONSTITUTIONAL NOTE: Temporarily disabled due to get_session import violation.
-    """
-    # DISABLED: session_factory=get_session
-    return ContextService(
-        project_root=str(settings.REPO_PATH),
-        session_factory=None,  # TODO: Fix after service_registry refactor
-    )
 
 
 @asynccontextmanager
@@ -51,20 +38,10 @@ def _build_context_service() -> ContextService:
 async def lifespan(app: FastAPI):
     logger.info("🚀 Starting CORE system...")
 
-    # CONSTITUTIONAL NOTE: Priming disabled - API layer should not import get_session
-    # TODO: Implement service_registry.prime_with_defaults() or auto-priming
-    # service_registry.prime(get_session)
+    # CONSTITUTIONAL FIX: Centralized bootstrap replaces manual construction
+    # This fulfills the registry priming and context creation requirements.
+    core_context: CoreContext = create_core_context(service_registry)
 
-    # 1. Initialize CoreContext with the Singleton Registry
-    core_context = CoreContext(
-        registry=service_registry,
-        git_service=GitService(settings.REPO_PATH),
-        file_handler=FileHandler(str(settings.REPO_PATH)),
-        planner_config=PlannerConfig(),
-        knowledge_service=KnowledgeService(settings.REPO_PATH),
-    )
-
-    core_context.context_service_factory = _build_context_service
     app.state.core_context = core_context
 
     if os.getenv("PYTEST_CURRENT_TEST"):
@@ -72,7 +49,8 @@ async def lifespan(app: FastAPI):
 
     try:
         if not getattr(core_context, "_is_test_mode", False):
-            # 2. Warm up Heavy Services via Registry (Async)
+            # 1. Warm up Heavy Services via Registry (Async)
+            # This logic is preserved exactly from the original main.py
             cognitive = await service_registry.get_cognitive_service()
             auditor = await service_registry.get_auditor_context()
             qdrant = await service_registry.get_qdrant_service()
@@ -81,16 +59,16 @@ async def lifespan(app: FastAPI):
             core_context.auditor_context = auditor
             core_context.qdrant_service = qdrant
 
-            # 3. Database & Config Initialization
-            # CONSTITUTIONAL NOTE: Temporarily disabled due to session access violation
-            # TODO: Re-enable after service_registry provides constitutional session access
-            # async with service_registry.session() as session:
-            #     config = await ConfigService.create(session)
-            #     log_level_from_db = await config.get("LOG_LEVEL", "INFO")
-            #     reconfigure_log_level(log_level_from_db)
-            #     await cognitive.initialize()
+            # 2. Database & Config Initialization
+            # Uses service_registry.session() which is the approved abstract factory
+            async with service_registry.session() as session:
+                config = await ConfigService.create(session)
+                log_level_from_db = await config.get("LOG_LEVEL", "INFO")
+                reconfigure_log_level(log_level_from_db)
+                # Ensure cognitive service loads its Mind rules
+                await cognitive.initialize(session)
 
-            # 4. Load Knowledge Graph
+            # 3. Load Knowledge Graph
             await auditor.load_knowledge_graph()
 
         yield

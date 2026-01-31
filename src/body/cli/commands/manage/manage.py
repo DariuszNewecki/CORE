@@ -1,8 +1,13 @@
 # src/body/cli/commands/manage/manage.py
+# ID: body.cli.commands.manage.manage
 
 """
 Core entry point for the 'manage' command group.
 Thin shell redirecting to modular management departments (V2.3).
+
+Golden-path adjustments (Phase 1, non-breaking):
+- Adds `manage db` as an alias for `manage database`.
+  This enables the golden tree without breaking existing scripts.
 """
 
 from __future__ import annotations
@@ -27,13 +32,19 @@ from . import (
 
 
 console = Console()
+
 manage_app = typer.Typer(
     help="State-changing administrative tasks for the system.",
     no_args_is_help=True,
 )
 
 # Mount all departmental sub-apps
+# Canonical (current) namespace:
 manage_app.add_typer(db_sub_app, name="database")
+
+# Golden-path alias (non-breaking):
+manage_app.add_typer(db_sub_app, name="db")
+
 manage_app.add_typer(dotenv_sub_app, name="dotenv")
 manage_app.add_typer(project_sub_app, name="project")
 manage_app.add_typer(proposals_sub_app, name="proposals")
@@ -52,14 +63,13 @@ async def define_symbols_command(
         False, "--write", help="Commit defined symbols to database."
     ),
 ) -> None:
-    """CLI entrypoint to run symbol definition across the codebase."""
+    """Run symbol definition across the codebase."""
     if not write:
         console.print(
             "[yellow]Dry run: Symbol definition requires --write to persist changes.[/yellow]"
         )
         return
 
-    # result is an ActionResult from define_symbols
     result = await define_symbols(ctx.obj.context_service, get_session)
 
     console.print(

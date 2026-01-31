@@ -8,7 +8,7 @@ import uuid
 from typing import Any, ClassVar
 
 from sqlalchemy import Boolean, DateTime, Integer, String, Text, func
-from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.dialects.postgresql import ARRAY, JSONB
 from sqlalchemy.dialects.postgresql import UUID as pgUUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -25,6 +25,27 @@ class CliCommand(Base):
     entrypoint: Mapped[str] = mapped_column(Text, nullable=False)
     summary: Mapped[str | None] = mapped_column(Text)
     category: Mapped[str | None] = mapped_column(Text)
+
+    # New CommandMeta fields
+    behavior: Mapped[str] = mapped_column(
+        String(20), nullable=False, server_default="'read'"
+    )
+    layer: Mapped[str] = mapped_column(
+        String(10), nullable=False, server_default="'body'"
+    )
+    aliases: Mapped[list[str]] = mapped_column(
+        ARRAY(Text), nullable=False, server_default="{}"
+    )
+    dangerous: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, server_default="false"
+    )
+    requires_approval: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, server_default="false"
+    )
+    constitutional_constraints: Mapped[list[str]] = mapped_column(
+        ARRAY(Text), nullable=False, server_default="{}"
+    )
+    help_text: Mapped[str | None] = mapped_column(Text)
 
 
 # ID: 40854a23-67ce-4cbd-80f4-800152ae98fe

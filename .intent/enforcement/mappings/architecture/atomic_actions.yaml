@@ -1,0 +1,50 @@
+mappings:
+  # Rule: atomic_actions.must_return_action_result
+  # Enforcement: Registration-time validation in registry.py
+  # This mapping tells the system that enforcement happens in Python code at module load time
+  atomic_actions.must_return_action_result:
+    engine: python_runtime
+    params:
+      check_type: registration_time_validation
+      enforcement_location: "body.atomic.registry.register_action"
+      validation_function: "_validate_action_signature"
+    scope:
+      applies_to:
+        - "src/body/atomic/**/*.py"
+
+  # Rule: atomic_actions.must_have_decorator
+  # Enforcement: Registration-time validation in registry.py
+  atomic_actions.must_have_decorator:
+    engine: python_runtime
+    params:
+      check_type: registration_time_validation
+      enforcement_location: "body.atomic.registry.register_action"
+      validation_function: "_validate_action_signature"
+    scope:
+      applies_to:
+        - "src/body/atomic/**/*.py"
+
+  # Rule: atomic_actions.result_must_be_structured
+  # Enforcement: Runtime validation in executor.py
+  atomic_actions.result_must_be_structured:
+    engine: python_runtime
+    params:
+      check_type: runtime_validation
+      enforcement_location: "body.atomic.executor.ActionExecutor.execute"
+      validation_function: "_validate_action_result"
+    scope:
+      applies_to:
+        - "src/body/atomic/**/*.py"
+
+  # Rule: atomic_actions.no_governance_bypass
+  # Enforcement: Both registration-time and runtime
+  atomic_actions.no_governance_bypass:
+    engine: python_runtime
+    params:
+      check_type: comprehensive_validation
+      enforcement_locations:
+        - "body.atomic.registry.register_action"
+        - "body.atomic.executor.ActionExecutor.execute"
+    scope:
+      applies_to:
+        - "src/body/atomic/**/*.py"
