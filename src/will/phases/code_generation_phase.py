@@ -1,25 +1,12 @@
 # src/will/phases/code_generation_phase.py
+# ID: f6ad5be7-dde6-467b-8edf-767dfe62bfa2
+
 """
 Code Generation Phase - Intelligent Reflex Pipe.
 
 UPGRADED (V2.3): Multi-Modal Sensation.
-The limb distinguishes between:
-- Structural Integrity (logic / syntax)
-- Functional Correctness (tests)
-
-This prevents false-negative "pain" signals that cause unnecessary rework.
-
-ENHANCED (V2.4): Artifact Documentation
-- Saves all generated code to work/ directory for review
-- Creates detailed reports even in dry-run mode
-- Uses FileService for constitutional governance compliance
-
-CONSTITUTIONAL FIX: No longer imports FileHandler - uses FileService from Body layer
-
-Constitutional Alignment:
-- Pillar I (Octopus): Context-aware sensation.
-- Pillar III (Governance): Logic-first validation.
-- governance.artifact_mutation.traceable: All writes via FileService
+ENHANCED (V2.4): Artifact Documentation.
+HEALED (V2.6): Wired via Shared Protocols to support decoupled Execution.
 """
 
 from __future__ import annotations
@@ -53,19 +40,13 @@ class CodeGenerationPhase:
     """
     Code Generation Phase Component.
 
-    ENHANCED: Now saves all generated code artifacts to work/ directory
-    for review, debugging, and audit purposes.
-
-    CONSTITUTIONAL COMPLIANCE:
-    - Uses FileService from Body layer (no FileHandler import)
-    - Passes FileService to all components that need file operations
+    Orchestrates the Intelligent Reflex Loop. Now injects the
+    ActionExecutor via CoreContext into the agent layer.
     """
 
     def __init__(self, core_context: CoreContext) -> None:
         """
         Initialize code generation phase.
-
-        CONSTITUTIONAL FIX: Uses FileService instead of FileHandler
         """
         self.context = core_context
         self.tracer = DecisionTracer(
@@ -73,16 +54,13 @@ class CodeGenerationPhase:
             agent_name="CodeGenerationPhase",
         )
 
-        # CONSTITUTIONAL FIX: Create FileService from Body layer
         self.file_service = FileService(core_context.git_service.repo_path)
 
-        # Initialize sandbox runner (still needs file_handler attribute for now)
         self.execution_sensor = PytestSandboxRunner(
-            core_context.file_handler,
+            file_handler=core_context.file_handler,
             repo_root=str(core_context.git_service.repo_path),
         )
 
-        # CONSTITUTIONAL FIX: Pass FileService to components
         self.work_dir_manager = WorkDirectoryManager(self.file_service)
         self.artifact_saver = ArtifactSaver(self.file_service)
         self.code_sensor = CodeSensor(self.execution_sensor)
@@ -107,8 +85,11 @@ class CodeGenerationPhase:
         from will.agents.coder_agent import CoderAgent
         from will.orchestration.prompt_pipeline import PromptPipeline
 
+        # HEALED WIRING: We pass self.context.action_executor (the Gateway)
+        # into the CoderAgent so it no longer needs Late Imports.
         coder = CoderAgent(
             cognitive_service=self.context.cognitive_service,
+            executor=self.context.action_executor,  # <--- THE CONTRACT IS SIGNED
             prompt_pipeline=PromptPipeline(self.context.git_service.repo_path),
             auditor_context=self.context.auditor_context,
             repo_root=self.context.git_service.repo_path,
@@ -160,7 +141,6 @@ class CodeGenerationPhase:
         max_twitches = 3
 
         for i, task in enumerate(plan, 1):
-            # Skip read-only tasks in code generation phase
             if self._is_read_only_task(task):
                 logger.info(
                     "Step %d/%d: Skipping read-only task in Code Generation phase.",
@@ -182,7 +162,7 @@ class CodeGenerationPhase:
 
     @staticmethod
     def _is_read_only_task(task: object) -> bool:
-        """Check if task is read-only (no code generation needed)."""
+        """Check if task is read-only."""
         task_action = getattr(task, "action", None)
         task_step = getattr(task, "step", "") or ""
 
@@ -201,7 +181,6 @@ class CodeGenerationPhase:
             if twitch > 0:
                 logger.info("Twitch %d: Self-correcting based on sensation...", twitch)
 
-            # A) GENERATE / REPAIR
             current_code = await coder.generate_or_repair(
                 task=task,
                 goal=goal,
@@ -209,7 +188,6 @@ class CodeGenerationPhase:
                 previous_code=current_code,
             )
 
-            # B) SENSE (Multi-modal)
             sensation_ok, pain_signal = await self.code_sensor.sense_artifact(
                 file_path, current_code or ""
             )
@@ -222,7 +200,6 @@ class CodeGenerationPhase:
 
             logger.warning("Sensation: PAIN. Error: %s", (pain_signal or "")[:200])
 
-        # Build step result
         step = DetailedPlanStep.from_execution_task(task, code=current_code)
         if not step_ok:
             step.metadata["generation_failed"] = True

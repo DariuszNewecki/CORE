@@ -4,29 +4,35 @@
 """
 Code generation specialist responsible for prompt construction and LLM interaction.
 
-ENHANCEMENT (Context Awareness):
-- Now accepts ContextService for rich context building
-- Falls back gracefully when ContextService unavailable
-- Uses ContextPackage in standard mode (not just semantic mode)
-- Expected improvement: 70% to 90%+ autonomous success rate
+CONSTITUTIONAL REFACTORING (Feb 2026):
+- Modularized from 700+ LOC monolith.
+- Main class delegates to focused modules.
 
-Aligned with PathResolver standards for var/prompts access.
+HEALED V2.6:
+- Removed direct settings import to comply with architecture.boundary.settings_access.
+- Now utilizes injected PathResolver for all constitutional artifact location.
 """
 
 from __future__ import annotations
 
-import ast
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from shared.logger import getLogger
-from shared.path_resolver import PathResolver
-from shared.utils.parsing import extract_python_code_from_response
+from shared.models.refusal_result import RefusalResult
+
+from .extraction import extract_code_constitutionally, repair_basic_syntax
+from .prompt_builders import (
+    build_enriched_prompt,
+    build_semantic_prompt,
+    build_standard_prompt,
+)
 
 
 if TYPE_CHECKING:
     from shared.infrastructure.context.service import ContextService
     from shared.models import ExecutionTask
+    from shared.path_resolver import PathResolver  # Added for type safety
     from will.orchestration.cognitive_service import CognitiveService
     from will.orchestration.decision_tracer import DecisionTracer
     from will.orchestration.prompt_pipeline import PromptPipeline
@@ -39,11 +45,10 @@ def _resolve_prompt_template_path(
     path_resolver: PathResolver, prompt_name: str
 ) -> Path | None:
     """
-    Resolve a prompt template path via the PathResolver (var/prompts).
-    This replaces the legacy logical path lookup to prevent Mind/Body sync errors.
+    Resolve a prompt template path via the provided PathResolver.
     """
     try:
-        # ALIGNED: Using the PathResolver (SSOT for var/ layout)
+        # CONSTITUTIONAL FIX: Use injected resolver instead of global settings
         path = path_resolver.prompt(prompt_name)
         if path.exists():
             return path
@@ -60,7 +65,7 @@ class CodeGenerator:
     def __init__(
         self,
         cognitive_service: CognitiveService,
-        path_resolver: PathResolver,
+        path_resolver: PathResolver,  # ADDED: Boundary alignment
         prompt_pipeline: PromptPipeline,
         tracer: DecisionTracer,
         context_builder: ArchitecturalContextBuilder | None = None,
@@ -68,16 +73,9 @@ class CodeGenerator:
     ):
         """
         Initialize code generator.
-
-        Args:
-            cognitive_service: LLM orchestration service
-            prompt_pipeline: Prompt enhancement pipeline
-            tracer: Decision tracing system
-            context_builder: Semantic context builder (optional, for semantic mode)
-            context_service: Context package builder (optional, for enriched standard mode)
         """
         self.cognitive_service = cognitive_service
-        self._paths = path_resolver
+        self.path_resolver = path_resolver  # CONSTITUTIONAL FIX: Local path resolver
         self.prompt_pipeline = prompt_pipeline
         self.tracer = tracer
         self.context_builder = context_builder
@@ -93,19 +91,9 @@ class CodeGenerator:
         context_str: str,
         pattern_id: str,
         pattern_requirements: str,
-    ) -> str:
+    ) -> str | RefusalResult:
         """
         Generate code for the given task.
-
-        Args:
-            task: Execution task with parameters
-            goal: High-level goal description
-            context_str: Manual context string
-            pattern_id: The pattern to follow
-            pattern_requirements: Pattern requirements text
-
-        Returns:
-            Generated Python code as string
         """
         logger.info("Generating code for task: '%s'...", task.step)
 
@@ -113,7 +101,8 @@ class CodeGenerator:
         try:
             target_path = Path(target_file)
             if target_path.is_absolute():
-                target_file = str(target_path.relative_to(self._paths.repo_root))
+                # CONSTITUTIONAL FIX: Use local resolver
+                target_file = str(target_path.relative_to(self.path_resolver.repo_root))
         except Exception:
             pass
         symbol_name = task.params.symbol_name or ""
@@ -137,7 +126,7 @@ class CodeGenerator:
                     confidence=getattr(arch_context, "confidence", 0.8),
                 )
 
-            prompt = self._build_semantic_prompt(
+            prompt = build_semantic_prompt(
                 arch_context=arch_context,
                 task=task,
                 manual_context=context_str,
@@ -152,7 +141,7 @@ class CodeGenerator:
                 task, goal, target_file, symbol_name
             )
 
-            prompt = self._build_enriched_prompt(
+            prompt = build_enriched_prompt(
                 task=task,
                 goal=goal,
                 context_package=context_package,
@@ -163,7 +152,7 @@ class CodeGenerator:
         # Priority 3: Basic mode (string context only)
         else:
             logger.info("  -> Using Standard Template (Basic Context)")
-            prompt = self._build_standard_prompt(
+            prompt = build_standard_prompt(
                 task=task,
                 goal=goal,
                 context_str=context_str,
@@ -206,16 +195,15 @@ class CodeGenerator:
             confidence=1.0,
         )
 
-        code = extract_python_code_from_response(raw_response)
-        if code is None:
-            code = self._fallback_extract_python(raw_response)
+        # CONSTITUTIONAL EXTRACTION: Traced, explicit, refusal-first
+        code_or_refusal = extract_code_constitutionally(
+            raw_response, task.step, self.tracer
+        )
 
-        if code is None:
-            raise ValueError(
-                "CodeGenerator: No valid Python code block in LLM response."
-            )
+        if isinstance(code_or_refusal, RefusalResult):
+            return code_or_refusal
 
-        return self._repair_basic_syntax(code)
+        return repair_basic_syntax(code_or_refusal)
 
     async def _build_context_package(
         self,
@@ -226,15 +214,6 @@ class CodeGenerator:
     ) -> dict[str, Any]:
         """
         Build rich context package for code generation.
-
-        Args:
-            task: Execution task
-            goal: High-level goal
-            target_file: Target file path
-            symbol_name: Symbol name to generate
-
-        Returns:
-            Context package with relevant code, dependencies, similar symbols
         """
         try:
             task_spec = {
@@ -265,243 +244,3 @@ class CodeGenerator:
         except Exception as e:
             logger.warning("ContextPackage build failed, using minimal context: %s", e)
             return {"context": [], "provenance": {}}
-
-    def _build_enriched_prompt(
-        self,
-        task: ExecutionTask,
-        goal: str,
-        context_package: dict[str, Any],
-        manual_context: str,
-        pattern_requirements: str,
-    ) -> str:
-        """
-        Build prompt using ContextPackage items.
-
-        Args:
-            task: Execution task
-            goal: High-level goal
-            context_package: Context package from ContextService
-            manual_context: Additional manual context
-            pattern_requirements: Pattern requirements
-
-        Returns:
-            Formatted prompt string
-        """
-        # Extract context items
-        items = context_package.get("context", [])
-
-        # Format dependencies
-        dependencies = self._format_dependencies(items)
-
-        # Format similar symbols
-        similar_symbols = self._format_similar_symbols(items)
-
-        # Format existing code context
-        existing_code = self._format_existing_code(items, task.params.file_path)
-
-        parts = [
-            "# Code Generation Task",
-            "",
-            f"**Goal:** {goal}",
-            f"**Step:** {task.step}",
-            "",
-            "## Pattern Requirements",
-            pattern_requirements,
-            "",
-        ]
-
-        if dependencies:
-            parts.extend(
-                [
-                    "## Available Dependencies",
-                    dependencies,
-                    "",
-                ]
-            )
-
-        if similar_symbols:
-            parts.extend(
-                [
-                    "## Similar Implementations (for reference)",
-                    similar_symbols,
-                    "",
-                ]
-            )
-
-        if existing_code:
-            parts.extend(
-                [
-                    "## Existing Code Context",
-                    existing_code,
-                    "",
-                ]
-            )
-
-        if manual_context:
-            parts.extend(
-                [
-                    "## Additional Context",
-                    manual_context,
-                    "",
-                ]
-            )
-
-        parts.extend(
-            [
-                "## Implementation Requirements",
-                "1. Return ONLY valid Python code",
-                "2. Include all necessary imports",
-                "3. Include docstrings and type hints",
-                "4. Follow the specified pattern requirements",
-                "5. Use similar implementations as reference (not verbatim)",
-                "",
-                "## Code to Generate",
-            ]
-        )
-
-        if task.params.symbol_name:
-            parts.append(f"Symbol: `{task.params.symbol_name}`")
-        if task.params.file_path:
-            parts.append(f"Target file: `{task.params.file_path}`")
-
-        return "\n".join(parts)
-
-    def _format_dependencies(self, items: list[dict]) -> str:
-        """Format dependency information from context items."""
-        deps = []
-        seen = set()
-
-        for item in items:
-            if item.get("item_type") in ("code", "symbol"):
-                name = item.get("name", "")
-                path = item.get("path", "")
-                sig = item.get("signature", "")
-
-                if name and name not in seen:
-                    seen.add(name)
-                    deps.append(f"- `{name}` from `{path}`")
-                    if sig:
-                        deps.append(f"  Signature: `{sig}`")
-
-        return "\n".join(deps) if deps else "No specific dependencies found"
-
-    def _format_similar_symbols(self, items: list[dict]) -> str:
-        """Format similar symbol implementations from context items."""
-        similar = []
-
-        for item in items:
-            if item.get("item_type") == "code" and item.get("content"):
-                name = item.get("name", "unknown")
-                summary = item.get("summary", "")
-                content = item.get("content", "")
-
-                # Only include if we have actual code
-                if content and len(content) > 50:
-                    similar.append(f"### {name}")
-                    if summary:
-                        similar.append(f"{summary}")
-                    similar.append("```python")
-                    similar.append(content[:500])  # Limit code length
-                    if len(content) > 500:
-                        similar.append("# ... (truncated)")
-                    similar.append("```")
-                    similar.append("")
-
-        return "\n".join(similar) if similar else "No similar implementations found"
-
-    def _format_existing_code(self, items: list[dict], target_path: str | None) -> str:
-        """Format existing code from the target file if available."""
-        if not target_path:
-            return ""
-
-        for item in items:
-            if item.get("path") == target_path and item.get("content"):
-                content = item.get("content", "")
-                if content:
-                    return f"```python\n{content}\n```"
-
-        return ""
-
-    def _build_semantic_prompt(
-        self,
-        arch_context: Any,
-        task: ExecutionTask,
-        manual_context: str,
-        pattern_requirements: str,
-    ) -> str:
-        """Build prompt using semantic architectural context."""
-        context_text = self.context_builder.format_for_prompt(arch_context)
-        parts = [
-            context_text,
-            "",
-            pattern_requirements,
-            "",
-            "## Implementation Task",
-            f"Step: {task.step}",
-            f"Symbol: {task.params.symbol_name}" if task.params.symbol_name else "",
-            "",
-            "## Additional Context",
-            manual_context,
-            "",
-            "## Output Requirements",
-            "1. Return ONLY valid Python code.",
-            "2. Include all necessary imports.",
-            "3. Include docstrings and type hints.",
-            "4. Follow constitutional patterns.",
-        ]
-        return "\n".join(parts)
-
-    def _build_standard_prompt(
-        self,
-        task: ExecutionTask,
-        goal: str,
-        context_str: str,
-        pattern_requirements: str,
-    ) -> str:
-        """Build basic prompt with minimal context."""
-        parts = [
-            f"# Task: {goal}",
-            f"Step: {task.step}",
-            "",
-            pattern_requirements,
-            "",
-            "## Context",
-            context_str,
-            "",
-            "## Requirements",
-            "1. Return ONLY valid Python code",
-            "2. Include all necessary imports",
-            "3. Include docstrings",
-        ]
-        return "\n".join(parts)
-
-    def _fallback_extract_python(self, text: str) -> str | None:
-        """Fallback extraction if standard method fails."""
-        lines = text.split("\n")
-        code_lines = []
-        in_code = False
-
-        for line in lines:
-            if line.strip().startswith("```"):
-                in_code = not in_code
-                continue
-            if in_code or (line and not line.startswith("#") and ":" in line):
-                code_lines.append(line)
-
-        return "\n".join(code_lines) if code_lines else None
-
-    def _repair_basic_syntax(self, code: str) -> str:
-        """Apply basic syntax repairs to generated code."""
-        try:
-            ast.parse(code)
-            return code
-        except SyntaxError:
-            # Basic repairs: ensure proper indentation
-            lines = code.split("\n")
-            repaired = []
-            for line in lines:
-                if line.strip() and not line[0].isspace() and ":" in line:
-                    repaired.append(line)
-                else:
-                    repaired.append(line)
-            return "\n".join(repaired)

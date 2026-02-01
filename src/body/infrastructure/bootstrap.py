@@ -13,6 +13,7 @@ are constitutionally permitted.
 
 from __future__ import annotations
 
+from body.atomic.executor import ActionExecutor  # ADDED: Concrete implementation
 from shared.config import settings
 from shared.context import CoreContext
 from shared.infrastructure.context.service import ContextService
@@ -65,7 +66,11 @@ def create_core_context(service_registry) -> CoreContext:
         knowledge_service=KnowledgeService(repo_path),
     )
 
-    # 4. Attach the factory (now internal to this module)
+    # 4. HEALED WIRING: Instantiate the universal mutation gateway
+    # This marries the Body (Executor) to the Context.
+    core_context.action_executor = ActionExecutor(core_context)
+
+    # 5. Attach the factory (now internal to this module)
     core_context.context_service_factory = _build_context_service
 
     return core_context
