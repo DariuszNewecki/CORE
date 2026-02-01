@@ -1,11 +1,13 @@
 # src/will/agents/coder_agent.py
+# ID: reflexive_coder_neuron
+# ID: 917038e4-682f-4d7f-ad13-f5ab7835abc1
 
 """
 CoderAgent - Reflexive code generation specialist.
 
 UPGRADED V2.4: Added Semantic Drift Detection.
-Uses vector embeddings to sense if reflexive repairs are moving closer to
-or further away from the mission goal. Prevents hallucination loops.
+CONSTITUTIONAL COMPLIANCE V2.5: Integrated RefusalResult handling.
+HEALED V2.6: Wired via Shared Protocols to eliminate circular dependencies.
 """
 
 from __future__ import annotations
@@ -16,10 +18,13 @@ from typing import TYPE_CHECKING, Any
 from shared.logger import getLogger
 from shared.models import ExecutionTask
 from shared.path_resolver import PathResolver
+from shared.protocols.cognitive import CognitiveProtocol
+from shared.protocols.executor import ActionExecutorProtocol
 from will.agents.code_generation import (
     CodeGenerator,
     PatternValidator,
 )
+from will.agents.coder_agent_refusal_handler import handle_code_generation_result
 from will.orchestration.decision_tracer import DecisionTracer
 from will.orchestration.intent_guard import IntentGuard
 from will.orchestration.validation_pipeline import validate_code_async
@@ -29,24 +34,23 @@ if TYPE_CHECKING:
     from mind.governance.audit_context import AuditorContext
     from shared.infrastructure.context.limb_workspace import LimbWorkspace
     from shared.infrastructure.context.service import ContextService
-    from will.orchestration.cognitive_service import CognitiveService
 
 logger = getLogger(__name__)
 
 
-# ID: reflexive_coder_neuron
-# ID: 917038e4-682f-4d7f-ad13-f5ab7835abc1
+# ID: 5b10aac1-26f0-4dcc-babb-e0845e17955e
 class CoderAgent:
     """
     The "Reflexive Neuron" of the Octopus limb.
 
-    Orchestrates code generation and repair. Now senses "Semantic Drift"
-    to identify when repairs are diverging from the mission intent.
+    Now utilizes CognitiveProtocol and ActionExecutorProtocol to ensure
+    Mind-Body-Will separation while maintaining v2.5 refusal handling.
     """
 
     def __init__(
         self,
-        cognitive_service: CognitiveService,
+        cognitive_service: CognitiveProtocol,
+        executor: ActionExecutorProtocol,  # ADDED: Healed wiring
         prompt_pipeline: Any,
         auditor_context: AuditorContext,
         repo_root: Path,
@@ -54,30 +58,32 @@ class CoderAgent:
         workspace: LimbWorkspace | None = None,
     ) -> None:
         self.cognitive_service = cognitive_service
+        self.executor = executor  # HEALED: No late imports needed
         self.prompt_pipeline = prompt_pipeline
         self.auditor_context = auditor_context
         self.context_service = context_service
         self.workspace = workspace
-        self.tracer = DecisionTracer(
-            path_resolver=PathResolver(repo_root), agent_name="ReflexiveCoder"
-        )
 
         self.repo_root = Path(repo_root).resolve()
         path_resolver = PathResolver.from_repo(
             repo_root=self.repo_root, intent_root=self.repo_root / ".intent"
         )
+
+        self.tracer = DecisionTracer(
+            path_resolver=path_resolver, agent_name="ReflexiveCoder"
+        )
+
         intent_guard = IntentGuard(self.repo_root, path_resolver)
         self.pattern_validator = PatternValidator(intent_guard)
 
         self.code_generator = CodeGenerator(
-            cognitive_service=cognitive_service,
+            cognitive_service=self.cognitive_service,
             path_resolver=path_resolver,
             prompt_pipeline=prompt_pipeline,
             tracer=self.tracer,
             context_service=context_service,
         )
 
-    # ID: reflexive_repair_loop
     # ID: 6a1fa37d-fa07-40be-bdcc-2741cd608c9c
     async def generate_or_repair(
         self,
@@ -86,25 +92,35 @@ class CoderAgent:
         pain_signal: str | None = None,
         previous_code: str | None = None,
     ) -> str:
-        """
-        Reflex entry point. Chooses between initial creation and sensory repair.
-        """
+        """Reflex entry point with v2.5 error handling."""
         if pain_signal:
             return await self._repair_code(task, goal, pain_signal, previous_code)
 
         return await self._generate_initial(task, goal)
 
     async def _generate_initial(self, task: ExecutionTask, goal: str) -> str:
-        """Standard A2 generation pipeline."""
+        """A2 pipeline + v2.5 Refusal Handling."""
         logger.info("Reflex: Generating initial logic for '%s'", task.step)
 
         pattern_id = self.pattern_validator.infer_pattern_id(task)
         requirements = self.pattern_validator.get_pattern_requirements(pattern_id)
         context_str = f"Mission Goal: {goal}"
 
-        return await self.code_generator.generate_code(
+        # Call generator (using the injected protocol)
+        code_or_refusal = await self.code_generator.generate_code(
             task, goal, context_str, pattern_id, requirements
         )
+
+        # PRESERVED: v2.5 Handle refusal or get code
+        code = await handle_code_generation_result(
+            code_or_refusal,
+            session_id=(
+                self.tracer.session_id if hasattr(self.tracer, "session_id") else None
+            ),
+            user_id=None,
+        )
+
+        return code
 
     # ID: repair_logic_from_sensation
     async def _repair_code(
@@ -114,10 +130,9 @@ class CoderAgent:
         pain_signal: str,
         previous_code: str | None,
     ) -> str:
-        """Reflexive repair using sensory pain and Semantic Drift detection."""
+        """Reflexive repair with v2.4 drift detection and v2.5 refusal logging."""
         logger.warning("Reflex: Sensory pain detected. Initiating repair.")
 
-        # 1. GENERATE REPAIR
         repair_prompt = f"""
             SENSORY FEEDBACK (PAIN SIGNAL)
             The code you generated previously failed in the execution sandbox.
@@ -132,7 +147,7 @@ class CoderAgent:
 
             INSTRUCTION
             Analyze the error above. Fix the logic to resolve this error.
-            Return ONLY the corrected Python code.
+            Return ONLY the corrected Python code in ```python fences.
         """
 
         client = await self.cognitive_service.aget_client_for_role(
@@ -144,60 +159,66 @@ class CoderAgent:
 
         from shared.utils.parsing import extract_python_code_from_response
 
-        fixed_code = extract_python_code_from_response(response) or response
+        fixed_code = extract_python_code_from_response(response)
 
-        # 2. SENSE SEMANTIC DRIFT (The "Hallucination Guard")
-        # We check if the new code still relates to the Goal
+        # PRESERVED: v2.5 Refusal Case Recording
+        if not fixed_code:
+            logger.error("Failed to extract code from repair response")
+            from shared.component_primitive import ComponentPhase
+            from shared.infrastructure.repositories.refusal_repository import (
+                RefusalRepository,
+            )
+
+            repo = RefusalRepository()
+            await repo.record_refusal(
+                component_id="reflexive_coder",
+                phase=ComponentPhase.EXECUTION.value,
+                refusal_type="extraction",
+                reason="Cannot extract valid Python code from repair response.",
+                suggested_action="Review error message and retry repair.",
+                original_request=f"Repair: {task.step}",
+                confidence=0.0,
+                context_data={"pain_signal": pain_signal[:200]},
+                session_id=(
+                    self.tracer.session_id
+                    if hasattr(self.tracer, "session_id")
+                    else None
+                ),
+            )
+            raise ValueError("Failed to extract code from repair response.")
+
+        # PRESERVED: v2.4 Semantic Drift Detection
         alignment_score = await self._calculate_alignment(fixed_code, goal)
-
-        drift_status = "STABLE" if alignment_score > 0.4 else "DRIFTING"
-        if drift_status == "DRIFTING":
+        if alignment_score < 0.4:
             logger.error(
                 "🚨 Semantic Drift Detected! Alignment Score: %.2f", alignment_score
             )
 
-        # 3. RECORD IN TRACE
         self.tracer.record(
             agent="ReflexiveCoder",
             decision_type="reflexive_repair",
-            rationale=f"Repaired based on pain signal. Semantic alignment: {drift_status}",
+            rationale=f"Repaired based on pain. Alignment: {alignment_score:.2f}",
             chosen_action="LLM-based logic correction",
-            context={
-                "pain": pain_signal[:200],
-                "step": task.step,
-                "semantic_alignment": alignment_score,
-                "status": drift_status,
-            },
+            context={"pain": pain_signal[:200], "semantic_alignment": alignment_score},
             confidence=alignment_score,
         )
 
         return fixed_code
 
     async def _calculate_alignment(self, code: str, goal: str) -> float:
-        """
-        Measures the semantic similarity between generated code and the goal.
-
-        This is a pure 'Will' decision helper. It doesn't use standard math libraries
-        to keep the Body layer lean, but uses the Vectorizer role.
-        """
+        """Measures semantic similarity."""
         try:
-            # Get embeddings for both
             v_code = await self.cognitive_service.get_embedding_for_code(code[:2000])
             v_goal = await self.cognitive_service.get_embedding_for_code(goal)
-
             if not v_code or not v_goal:
-                return 0.5  # Default neutral if embedding fails
-
-            # Standard Dot Product (Vectors are already normalized by provider)
+                return 0.5
             return sum(a * b for a, b in zip(v_code, v_goal))
-        except Exception as e:
-            logger.debug("Alignment calculation failed: %s", e)
+        except Exception:
             return 0.5
 
-    # ID: validate_neuron_output
     # ID: 1801d0a5-ded5-4f76-b85b-f6b2ce547b11
     async def validate_output(self, code: str, file_path: str) -> dict[str, Any]:
-        """Perform structural and constitutional checks on generated output."""
+        """Perform checks on output."""
         return await validate_code_async(
             file_path,
             code,

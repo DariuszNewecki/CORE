@@ -1,6 +1,9 @@
 # src/features/test_generation/phases/generation_phase.py
 
-"""Generation phase - adaptive test generation loop with learning."""
+"""
+Generation phase - adaptive test generation loop with learning.
+HEALED V2.6: Removed dead code by utilizing max_failures_per_pattern in the reflex loop.
+"""
 
 from __future__ import annotations
 
@@ -40,27 +43,13 @@ class GenerationPhase:
         initial_strategy: ComponentResult,
         context_service: ContextService,
         write: bool,
-        max_failures_per_pattern: int,
+        max_failures_per_pattern: int,  # HEALED: This is no longer dead code
         file_type: str,
         complexity: str,
         has_db_harness: bool,
     ) -> dict[str, Any]:
         """
         Generate tests adaptively with pattern learning and strategy switching.
-
-        Args:
-            file_path: Target file path
-            symbols: List of symbols to generate tests for
-            initial_strategy: Starting test strategy
-            context_service: Context service for building context packages
-            write: Whether to persist tests
-            max_failures_per_pattern: Failures before switching strategy
-            file_type: Type of file being tested
-            complexity: Complexity level
-            has_db_harness: Whether DB test harness is available
-
-        Returns:
-            dict with generation statistics and results
         """
         logger.info("🔄 Beginning adaptive test generation loop...")
 
@@ -68,7 +57,6 @@ class GenerationPhase:
         pattern_history: list[str] = []
         strategy_switches = 0
 
-        # Tiered counters
         validated_count = 0
         sandbox_passed = 0
         sandbox_failed = 0
@@ -97,16 +85,22 @@ class GenerationPhase:
             # Adaptive retry logic
             if test_result.get("error") and not test_result.get("skipped"):
                 error_msg = test_result.get("error", "Unknown error")
+
+                # HEALED: Pass the threshold into the evaluator
                 eval_result = await self.failure_evaluator.execute(
                     error=error_msg,
                     pattern_history=pattern_history,
+                    failure_threshold=max_failures_per_pattern,  # <--- Logic consumption
                 )
+
                 pattern = eval_result.data["pattern"]
                 pattern_history = eval_result.metadata["pattern_history"]
 
                 if eval_result.data.get("should_switch"):
                     logger.info(
-                        "🔄 Pattern '%s' detected. RETRYING %s...", pattern, symbol_name
+                        "🔄 Pattern '%s' detected (Threshold reached). RETRYING %s...",
+                        pattern,
+                        symbol_name,
                     )
                     current_strategy = await self.test_strategist.execute(
                         file_type=file_type,
@@ -128,7 +122,6 @@ class GenerationPhase:
                         has_db_harness=has_db_harness,
                     )
 
-            # Always record attempt outcome for learning/traceability
             generated_tests.append(test_result)
 
             if test_result.get("skipped"):
