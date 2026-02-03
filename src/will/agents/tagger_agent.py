@@ -3,6 +3,11 @@
 """
 Implements the CapabilityTaggerAgent, which finds unassigned capabilities
 and uses an LLM to suggest constitutionally-valid names for them.
+
+CONSTITUTIONAL COMPLIANCE:
+- Uses PathResolver for all path resolution
+- Searches .intent/ structure for project configuration
+- Read-only Mind layer access (no filesystem writes)
 """
 
 from __future__ import annotations
@@ -35,14 +40,20 @@ class CapabilityTaggerAgent:
         knowledge_service: KnowledgeService,
         path_resolver: PathResolver,
     ):
-        """Initializes the agent with the tools it needs."""
+        """
+        Initializes the agent with the tools it needs.
+
+        Args:
+            cognitive_service: Service for LLM interactions
+            knowledge_service: Service for knowledge graph access
+            path_resolver: PathResolver for constitutional path resolution
+        """
         self.cognitive_service = cognitive_service
         self.knowledge_service = knowledge_service
         self._paths = path_resolver
         self.tracer = DecisionTracer()
 
-        # CONSTITUTIONAL FIX: Removed hardcoded path to .intent/ (settings.MIND).
-        # Prompts are runtime instructions that reside in var/prompts/.
+        # Prompts are runtime instructions that reside in var/prompts/
         prompt_path = self._paths.prompt("capability_definer")
 
         if not prompt_path.exists():
@@ -53,31 +64,50 @@ class CapabilityTaggerAgent:
         self.prompt_template = prompt_path.read_text(encoding="utf-8")
         self.tagger_client = None
 
-        # Load entry point patterns (same as OrphanedLogicCheck)
-        # Note: settings.load uses the PathResolver shim internally
-        project_structure_path = (
-            self._paths.intent_root
-            / "charter"
-            / "policies"
-            / "mind"
-            / "knowledge"
-            / "project_structure.yaml"
-        )
-        if project_structure_path.exists():
-            try:
-                project_structure = yaml.safe_load(
-                    project_structure_path.read_text(encoding="utf-8")
-                )
-            except Exception:
-                project_structure = {}
-        else:
-            project_structure = {}
+        # FIXED: Search new .intent/ structure for project configuration
+        # Try multiple possible locations
+        project_structure_candidates = [
+            self._paths.intent_root / "META" / "project_structure.yaml",
+            self._paths.intent_root / "rules" / "data" / "project_structure.yaml",
+            self._paths.intent_root / "constitution" / "project_structure.yaml",
+        ]
+
+        project_structure = {}
+        for project_structure_path in project_structure_candidates:
+            if project_structure_path.exists():
+                try:
+                    project_structure = yaml.safe_load(
+                        project_structure_path.read_text(encoding="utf-8")
+                    )
+                    logger.debug(
+                        "Loaded project structure from: %s", project_structure_path
+                    )
+                    break
+                except Exception as e:
+                    logger.debug(
+                        "Could not load project structure from %s: %s",
+                        project_structure_path,
+                        e,
+                    )
+                    continue
+
+        if not project_structure:
+            logger.debug(
+                "No project_structure.yaml found, using empty entry point patterns"
+            )
+
         self.entry_point_patterns = project_structure.get("entry_point_patterns", [])
 
     def _is_entry_point(self, symbol_data: dict[str, Any]) -> bool:
         """
         Checks if a symbol matches any of the defined entry point patterns.
         Copied directly from OrphanedLogicCheck.
+
+        Args:
+            symbol_data: Symbol metadata dict
+
+        Returns:
+            True if symbol matches an entry point pattern
         """
         for pattern in self.entry_point_patterns:
             match_rules = pattern.get("match", {})
@@ -95,6 +125,14 @@ class CapabilityTaggerAgent:
         """
         Evaluates a single criterion for the entry point pattern matching.
         Copied directly from OrphanedLogicCheck.
+
+        Args:
+            key: Match rule key
+            value: Match rule value
+            data: Symbol data to evaluate
+
+        Returns:
+            True if rule matches
         """
         if key == "type":
             kind = data.get("type", "")
@@ -123,6 +161,12 @@ class CapabilityTaggerAgent:
         2. Has no capability assigned (capability is None)
         3. Is NOT an entry point
         4. Is NOT called by any other code
+
+        Args:
+            all_symbols: List of all symbol dicts
+
+        Returns:
+            List of orphaned symbol dicts
         """
         if not all_symbols:
             return []
@@ -162,7 +206,15 @@ class CapabilityTaggerAgent:
         return await self.knowledge_service.list_capabilities()
 
     def _extract_symbol_info(self, symbol: dict[str, Any]) -> dict[str, Any]:
-        """Extracts the relevant information for the prompt from a symbol entry."""
+        """
+        Extracts the relevant information for the prompt from a symbol entry.
+
+        Args:
+            symbol: Symbol metadata dict
+
+        Returns:
+            Extracted info dict for prompt
+        """
         return {
             "key": symbol.get("uuid"),
             "name": symbol.get("name"),
@@ -174,7 +226,16 @@ class CapabilityTaggerAgent:
     def _build_suggestion_prompt(
         self, symbol_info: dict[str, Any], existing_capabilities: list[str]
     ) -> str:
-        """Builds the final prompt for AI suggestion request."""
+        """
+        Builds the final prompt for AI suggestion request.
+
+        Args:
+            symbol_info: Extracted symbol information
+            existing_capabilities: List of existing capability names
+
+        Returns:
+            Formatted prompt string
+        """
         # Format existing capabilities as "similar capabilities" context
         similar_caps_text = "\n".join(
             [f"- {cap}" for cap in existing_capabilities[:20]]
@@ -195,7 +256,16 @@ class CapabilityTaggerAgent:
     async def _get_suggestion_for_symbol(
         self, symbol: dict[str, Any], existing_capabilities: list[str]
     ) -> dict[str, str] | None:
-        """Async worker to get a single tag suggestion from the LLM."""
+        """
+        Async worker to get a single tag suggestion from the LLM.
+
+        Args:
+            symbol: Symbol metadata dict
+            existing_capabilities: List of existing capability names
+
+        Returns:
+            Suggestion dict or None if no suggestion
+        """
         symbol_info = self._extract_symbol_info(symbol)
         final_prompt = self._build_suggestion_prompt(symbol_info, existing_capabilities)
         response = await self.tagger_client.make_request_async(
@@ -225,6 +295,12 @@ class CapabilityTaggerAgent:
         """
         Finds truly orphaned public symbols (using OrphanedLogicCheck logic),
         gets AI-powered suggestions, and returns them.
+
+        Args:
+            file_path: Optional path to filter symbols by file
+
+        Returns:
+            Dict mapping symbol keys to suggestion dicts, or None if no suggestions
         """
         if self.tagger_client is None:
             self.tagger_client = await self.cognitive_service.aget_client_for_role(

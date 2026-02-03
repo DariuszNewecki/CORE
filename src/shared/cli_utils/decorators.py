@@ -1,6 +1,17 @@
 # src/shared/cli_utils/decorators.py
+# ID: a1b2c3d4-e5f6-7890-abcd-ef1234567890
 
-"""Refactored logic for src/shared/cli_utils/decorators.py."""
+"""
+Constitutional CLI Decorators.
+
+Provides the @core_command and @async_command wrappers which manage
+the asyncio lifecycle, JIT service injection, and database teardown.
+
+HEALED (V2.6.2):
+- Hardened teardown to prevent SAWarning during garbage collection.
+- Explicitly nullifies Context references to drop DB session pointers.
+- Disposes the engine loop-locally and yields to the loop for cleanup.
+"""
 
 from __future__ import annotations
 
@@ -44,7 +55,11 @@ def core_command(
     confirmation: bool = False,
     requires_context: bool = True,
 ):
-    # ID: 4b978971-d490-4b6d-a09f-12f0e900641f
+    """
+    Primary constitutional wrapper for CORE CLI commands.
+    """
+
+    # ID: 41b496b7-333a-453e-8bd2-149c4ce382e2
     def decorator(func: Callable[P, R]) -> Callable[P, R]:
         COMMAND_REGISTRY[func.__name__] = CommandMetadata(
             dangerous, confirmation, requires_context
@@ -53,7 +68,7 @@ def core_command(
         @functools.wraps(func)
         # ID: 52793c73-6d19-4c28-96cd-e8af74666c9f
         def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
-            # 1. Context & Logic Check
+            # 1. Context & Security Logic
             ctx = next(
                 (a for a in args if isinstance(a, typer.Context)), kwargs.get("ctx")
             )
@@ -75,7 +90,7 @@ def core_command(
                 ):
                     raise typer.Exit(0)
 
-            # 2. Unified Event Loop management
+            # 2. Loop Management
             try:
                 loop = asyncio.get_running_loop()
             except RuntimeError:
@@ -87,7 +102,7 @@ def core_command(
 
             async def _run_with_teardown():
                 try:
-                    # JIT Service Injection logic (preserved from original)
+                    # JIT Service Injection
                     if ctx and ctx.obj and hasattr(ctx.obj, "registry"):
                         core_context = ctx.obj
                         if getattr(core_context, "qdrant_service", None) is None:
@@ -103,11 +118,14 @@ def core_command(
                                 await core_context.registry.get_auditor_context()
                             )
 
+                    # Execution
                     res = (
                         await cast(Any, func)(*args, **kwargs)
                         if asyncio.iscoroutinefunction(func)
                         else cast(Any, func)(*args, **kwargs)
                     )
+
+                    # Results
                     if isinstance(res, ActionResult):
                         _display_action_result(res)
                         if not res.ok:
@@ -116,10 +134,26 @@ def core_command(
                         console.print(res)
                     return res
                 finally:
+                    # HEALED V2.6.2: Aggressive cleanup
+                    if ctx and ctx.obj:
+                        # 1. Clear service references from the Context object
+                        for attr in [
+                            "qdrant_service",
+                            "cognitive_service",
+                            "auditor_context",
+                        ]:
+                            if hasattr(ctx.obj, attr):
+                                setattr(ctx.obj, attr, None)
+
+                        # 2. Clear the global Service Registry
+                        if hasattr(ctx.obj, "registry"):
+                            registry = ctx.obj.registry
+                            if hasattr(registry, "_instances"):
+                                registry._instances.clear()
+
+                    # 3. Final disposal
                     await dispose_engine()
-                    if ctx and ctx.obj and hasattr(ctx.obj, "registry"):
-                        if hasattr(ctx.obj.registry, "_instances"):
-                            ctx.obj.registry._instances.clear()
+                    await asyncio.sleep(0)  # Yield to loop for final GC
 
             try:
                 return cast(R, asyncio.run(_run_with_teardown()))

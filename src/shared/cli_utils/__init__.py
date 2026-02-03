@@ -1,6 +1,6 @@
 # src/shared/cli_utils/__init__.py
+
 """
-Constitutional CLI Framework.
 Modularized Package Entry Point (V2.3).
 """
 
@@ -14,6 +14,7 @@ from .display import (
     display_success,
     display_warning,
 )
+from .helpers import deprecated_command
 from .prompts import confirm_action
 
 
@@ -23,6 +24,7 @@ __all__ = [
     "confirm_action",
     "console",
     "core_command",
+    "deprecated_command",
     "display_error",
     "display_info",
     "display_success",

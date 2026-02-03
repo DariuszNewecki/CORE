@@ -17,6 +17,7 @@ from typing import TYPE_CHECKING
 from qdrant_client.http import models as qm
 
 from shared.config import settings
+from shared.exceptions import CoreError
 from shared.logger import getLogger
 
 
@@ -28,13 +29,9 @@ if TYPE_CHECKING:
 logger = getLogger(__name__)
 
 
-# ID: bca1db14-b3fa-4de0-bb76-86d9df09aed9
-class VectorExportError(RuntimeError):
+# ID: 3196d095-9e61-4dbe-952c-dc4b7ea7c8e2
+class VectorExportError(CoreError):
     """Raised when vector export cannot complete."""
-
-    def __init__(self, message: str, *, exit_code: int = 1):
-        super().__init__(message)
-        self.exit_code = exit_code
 
 
 def _normalize_output_path(output_path: Path, repo_root: Path) -> str:

@@ -7,8 +7,11 @@ CONSTITUTIONAL AUTHORITY: Infrastructure (coordination)
 
 ALIGNS WITH PILLAR I (Octopus):
 Provides a unified sensation of "Shadow Truth" (in-flight changes) vs
-"Historical Truth" (database). This prevents the AI from being
-blind to its own proposed refactors.
+"Historical Truth" (database).
+
+HEALED (V2.6.7):
+- Content Extraction: Always attempts to read from workspace first.
+- Context Consistency: Prevents the AI from being blind to its own proposed code.
 """
 
 from __future__ import annotations
@@ -45,19 +48,19 @@ class ScopeTracker(ast.NodeVisitor):
         self.stack: list[str] = []
         self.symbols: list[dict[str, Any]] = []
 
-    # ID: 59e58ef2-c98c-46ea-84c1-1a65a12bfd0c
+    # ID: 9145ae00-921d-4006-9032-039b5d7a6f38
     def visit_ClassDef(self, node: ast.ClassDef) -> None:
         self._add_symbol(node)
         self.stack.append(node.name)
         self.generic_visit(node)
         self.stack.pop()
 
-    # ID: ee0b943e-bf21-4d35-8af8-5068794b4cc2
+    # ID: a9f6d953-64b0-45c3-8437-8fcfca912688
     def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
         self._add_symbol(node)
         self.generic_visit(node)
 
-    # ID: 262f717e-69a6-448f-b654-f23ccb9283e6
+    # ID: aa0b2883-6101-440d-a4b4-f046d0c4a7aa
     def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef) -> None:
         self._add_symbol(node)
         self.generic_visit(node)
@@ -89,15 +92,12 @@ class _GraphExplorer:
     """Specialist in traversing the Knowledge Graph to find related logic."""
 
     @staticmethod
-    # ID: bb1685f8-4c28-4a91-8749-00f281a3fc55
+    # ID: 155cfe19-0d30-4cee-9148-fae389881086
     def traverse(graph: dict, seeds: list[dict], depth: int, limit: int) -> set[str]:
         all_symbols = graph.get("symbols", {})
         related = set()
-
-        # Build queue from seed symbol paths
         queue = set()
         for s in seeds:
-            # Check both possible metadata locations
             path = s.get("metadata", {}).get("symbol_path") or s.get("symbol_path")
             if path:
                 queue.add(path)
@@ -109,7 +109,6 @@ class _GraphExplorer:
             for key in queue:
                 data = all_symbols.get(key, {})
                 for callee in data.get("calls", []):
-                    # In a Shadow Graph, we might have partial keys; try to resolve
                     if callee not in related:
                         related.add(callee)
                         next_q.add(callee)
@@ -144,13 +143,12 @@ class ContextBuilder:
 
         # 1. SENSATION: Load the graph (Shadow if workspace exists, else Historical)
         graph = await self._load_truth()
-
         packet = self._init_packet(task_spec)
 
-        # 2. COLLECTION: Extract items using the most relevant 'Truth'
+        # 2. COLLECTION: Extract items
         items = await self._collect_items(task_spec, graph, packet["constraints"])
 
-        # 3. FINALIZATION: Token counting and serialization
+        # 3. FINALIZATION
         packet["context"] = self._finalize_items(items, packet["constraints"])
         packet["provenance"]["build_stats"] = {
             "duration_ms": int((datetime.now(UTC) - start).total_seconds() * 1000),
@@ -161,7 +159,6 @@ class ContextBuilder:
     async def _load_truth(self) -> dict:
         """Sensation: Prefers Shadow Graph if limb is in motion."""
         if self.workspace:
-            # Uses the step 2.1 KnowledgeGraphBuilder with workspace sensations
             return KnowledgeGraphBuilder(
                 settings.REPO_PATH, workspace=self.workspace
             ).build()
@@ -171,8 +168,6 @@ class ContextBuilder:
         """Collects context items. Prioritizes Workspace over DB if active."""
         items = []
 
-        # Priority 1: Shadow Seeds (Directly from the workspace graph)
-        # If we have a workspace, the DB is likely out of sync. Use the graph instead.
         if self.workspace:
             logger.debug("Builder: Seeding context from Shadow Graph")
             include_filters = spec.get("scope", {}).get("include", [])
@@ -181,7 +176,6 @@ class ContextBuilder:
                     if len(items) < (limits["max_items"] // 2):
                         items.append(self._format_item(data))
         else:
-            # Priority 2: Historical Seeds (PostgreSQL)
             if self.db:
                 items.extend(
                     await self.db.fetch_symbols_for_scope(
@@ -189,12 +183,9 @@ class ContextBuilder:
                     )
                 )
 
-        # Priority 3: Semantic Seeds (Vector Search)
-        # Still useful in Shadow mode for finding similar concepts
         if self.vectors and spec.get("summary"):
             items.extend(await self.vectors.search_similar(spec["summary"], top_k=3))
 
-        # Priority 4: Relationship Expansion (Graph Traversal)
         depth = spec.get("scope", {}).get("traversal_depth", 0)
         if depth > 0:
             related_keys = _GraphExplorer.traverse(
@@ -206,6 +197,7 @@ class ContextBuilder:
 
         return items
 
+    # ID: HEALED_format_item
     def _format_item(self, symbol_data: dict) -> dict:
         """Translates a Graph Symbol into a Context Item."""
         path = symbol_data.get("file_path", "")
@@ -213,7 +205,7 @@ class ContextBuilder:
         content, sig = None, str(symbol_data.get("parameters", []))
 
         try:
-            # CRITICAL FIX: Always try to get content from workspace first
+            # HEALED: Prioritize reading from virtual workspace sensation
             if self.workspace and self.workspace.exists(path):
                 src = self.workspace.read_text(path)
             else:
@@ -236,7 +228,7 @@ class ContextBuilder:
             "signature": sig,
             "summary": symbol_data.get("intent", ""),
             "source": "shadow_sensation" if self.workspace else "historical_record",
-            "symbol_path": symbol_data.get("symbol_path"),  # Pass the ID for tracing
+            "symbol_path": symbol_data.get("symbol_path"),
         }
 
     def _init_packet(self, spec: dict) -> dict:
@@ -257,19 +249,16 @@ class ContextBuilder:
         }
 
     def _finalize_items(self, items: list[dict], limits: dict) -> list[dict]:
-        """Deduplicates and enforces token budgets."""
         unique, seen, total_tokens = [], set(), 0
         for it in items:
             key = (it["name"], it["path"])
             if key in seen or len(unique) >= limits["max_items"]:
                 continue
-
             tokens = ContextSerializer.estimate_tokens(
                 (it.get("content") or "") + (it.get("summary") or "")
             )
             if total_tokens + tokens > limits["max_tokens"]:
                 break
-
             it["tokens_est"] = tokens
             unique.append(it)
             seen.add(key)

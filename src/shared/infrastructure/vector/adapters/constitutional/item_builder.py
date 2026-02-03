@@ -25,6 +25,7 @@ from shared.infrastructure.vector.adapters.constitutional.chunker import chunk_d
 from shared.infrastructure.vector.adapters.constitutional.doc_key_resolver import (
     compute_doc_key,
 )
+from shared.infrastructure.vector.adapters.constitutional.utils import safe_str
 from shared.logger import getLogger
 from shared.models.vector_models import VectorizableItem
 
@@ -62,9 +63,9 @@ def data_to_items(
         List of VectorizableItem objects ready for indexing
     """
     # Extract document metadata
-    doc_id = _safe_str(data.get("id")) or file_path.stem
-    doc_version = _safe_str(data.get("version")) or "unknown"
-    doc_title = _safe_str(data.get("title")) or doc_id
+    doc_id = safe_str(data.get("id")) or file_path.stem
+    doc_version = safe_str(data.get("version")) or "unknown"
+    doc_title = safe_str(data.get("title")) or doc_id
 
     # Compute canonical key
     doc_key = compute_doc_key(file_path, key_root=key_root, intent_root=intent_root)
@@ -120,12 +121,12 @@ def _chunk_to_item(
     Returns:
         VectorizableItem or None if chunk has no content
     """
-    content = _safe_str(chunk.get("content", "")).strip()
+    content = safe_str(chunk.get("content", "")).strip()
     if not content:
         return None
 
-    section_type = _safe_str(chunk.get("section_type")) or "section"
-    section_path = _safe_str(chunk.get("section_path")) or section_type
+    section_type = safe_str(chunk.get("section_type")) or "section"
+    section_path = safe_str(chunk.get("section_path")) or section_type
 
     # Make item_id stable and collision-resistant
     # Format: {doc_key}:{section_type}:{index}
@@ -152,27 +153,8 @@ def _chunk_to_item(
         "file_path": rel_path_str,
         "section_type": section_type,
         "section_path": section_path,
-        "severity": _safe_str(chunk.get("severity")) or "error",
+        "severity": safe_str(chunk.get("severity")) or "error",
         "content_sha256": content_hash,
     }
 
     return VectorizableItem(item_id=item_id, text=content, payload=payload)
-
-
-# ID: safe-str
-# ID: 8b9c0d1e-2f3a-4b5c-6d7e-8f9a0b1c2d3e
-def _safe_str(value: Any) -> str:
-    """
-    Safely convert value to string.
-
-    Args:
-        value: Any value
-
-    Returns:
-        String representation (empty for None)
-    """
-    if value is None:
-        return ""
-    if isinstance(value, str):
-        return value
-    return str(value)

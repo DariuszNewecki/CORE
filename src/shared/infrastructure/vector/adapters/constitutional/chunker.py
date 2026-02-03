@@ -17,6 +17,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from shared.infrastructure.vector.adapters.constitutional.utils import safe_str
 from shared.processors.yaml_processor import strict_yaml_processor
 
 
@@ -46,8 +47,8 @@ def chunk_document(data: dict[str, Any]) -> list[dict[str, Any]]:
     """
     chunks: list[dict[str, Any]] = []
 
-    title = _safe_str(data.get("title")).strip()
-    purpose = _safe_str(data.get("purpose")).strip()
+    title = safe_str(data.get("title")).strip()
+    purpose = safe_str(data.get("purpose")).strip()
     if title and purpose:
         chunks.append(
             {
@@ -57,7 +58,7 @@ def chunk_document(data: dict[str, Any]) -> list[dict[str, Any]]:
             }
         )
 
-    philosophy = _safe_str(data.get("philosophy")).strip()
+    philosophy = safe_str(data.get("philosophy")).strip()
     if philosophy:
         chunks.append(
             {
@@ -106,7 +107,7 @@ def _chunk_requirements(requirements: dict[str, Any]) -> list[dict[str, Any]]:
     for req_name, req_data in requirements.items():
         if not isinstance(req_name, str) or not isinstance(req_data, dict):
             continue
-        mandate = _safe_str(req_data.get("mandate")).strip()
+        mandate = safe_str(req_data.get("mandate")).strip()
         if not mandate:
             continue
 
@@ -115,11 +116,11 @@ def _chunk_requirements(requirements: dict[str, Any]) -> list[dict[str, Any]]:
         if impl is not None:
             content += "\nImplementation:\n"
             if isinstance(impl, list):
-                lines = [_safe_str(x).strip() for x in impl if x is not None]
+                lines = [safe_str(x).strip() for x in impl if x is not None]
                 lines = [x for x in lines if x]
                 content += "\n".join(f"- {x}" for x in lines)
             else:
-                content += _safe_str(impl).strip()
+                content += safe_str(impl).strip()
 
         chunks.append(
             {
@@ -153,12 +154,12 @@ def _chunk_rules(rules: list[Any]) -> list[dict[str, Any]]:
     for rule in rules:
         if not isinstance(rule, dict):
             continue
-        statement = _safe_str(rule.get("statement")).strip()
+        statement = safe_str(rule.get("statement")).strip()
         if not statement:
             continue
 
-        rule_id = _safe_str(rule.get("id")) or "unknown"
-        enforcement = _safe_str(rule.get("enforcement")) or "error"
+        rule_id = safe_str(rule.get("id")) or "unknown"
+        enforcement = safe_str(rule.get("enforcement")) or "error"
         content = f"Rule: {rule_id}\nStatement: {statement}\nEnforcement: {enforcement}"
         chunks.append(
             {
@@ -194,13 +195,13 @@ def _chunk_validation_rules(rules: list[Any]) -> list[dict[str, Any]]:
         if not isinstance(rule, dict):
             continue
 
-        rule_name = _safe_str(rule.get("rule")).strip()
+        rule_name = safe_str(rule.get("rule")).strip()
         if not rule_name:
             continue
 
-        description = _safe_str(rule.get("description")).strip()
-        severity = _safe_str(rule.get("severity")) or "error"
-        enforcement = _safe_str(rule.get("enforcement")) or "runtime"
+        description = safe_str(rule.get("description")).strip()
+        severity = safe_str(rule.get("severity")) or "error"
+        enforcement = safe_str(rule.get("enforcement")) or "runtime"
         content = (
             f"Rule: {rule_name}\n"
             f"Description: {description}\n"
@@ -248,24 +249,3 @@ def _chunk_examples(examples: dict[str, Any]) -> list[dict[str, Any]]:
             }
         )
     return chunks
-
-
-# ID: safe-str
-# ID: 4d5e6f7a-8b9c-0d1e-2f3a-4b5c6d7e8f9a
-def _safe_str(value: Any) -> str:
-    """
-    Safely convert value to string.
-
-    Handles None, str, and other types gracefully.
-
-    Args:
-        value: Any value to convert
-
-    Returns:
-        String representation (empty string for None)
-    """
-    if value is None:
-        return ""
-    if isinstance(value, str):
-        return value
-    return str(value)

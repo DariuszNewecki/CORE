@@ -4,6 +4,12 @@ Constitutional Policy Analyzer.
 
 Analyzes constitutional documents to extract atomic rules, detect duplicates,
 find conflicts, and identify orphaned rules.
+
+CONSTITUTIONAL COMPLIANCE:
+- Accesses .intent/constitution/ for rule extraction
+- Reads constitutional documents (not policies - those are deprecated)
+- Scans for principles and enforcement methods
+- No filesystem writes (read-only Mind layer operation)
 """
 
 from __future__ import annotations
@@ -55,14 +61,19 @@ class PolicyAnalyzer:
     - Duplicate rules (70%+ text similarity)
     - Conflicting rules (contradictory statements)
     - Orphaned rules (no code references)
+
+    CONSTITUTIONAL COMPLIANCE:
+    - Reads from .intent/constitution/ (current structure)
+    - No writes to filesystem (Mind layer read-only)
+    - Extracts principles for analysis
     """
 
-    def __init__(self, constitution_path: Path = Path(".intent/charter/constitution")):
+    def __init__(self, constitution_path: Path = Path(".intent/constitution")):
         """
         Initialize policy analyzer.
 
         Args:
-            constitution_path: Path to constitution directory
+            constitution_path: Path to constitution directory (default: .intent/constitution)
         """
         self.constitution_path = constitution_path
         self.rules: list[AtomicRule] = []

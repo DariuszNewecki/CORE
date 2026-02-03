@@ -14,7 +14,7 @@ from typing import Any
 @dataclass
 # ID: c9728355-9313-4ab3-9258-813393a0b195
 class PolicyResource:
-    """A constitutional policy loaded from .intent/charter/policies/."""
+    """A constitutional policy loaded from .intent/policies/."""
 
     policy_id: str
     version: str
@@ -29,7 +29,7 @@ class PolicyResource:
 @dataclass
 # ID: 45a15e98-cf61-4f87-b2b4-c023fb783654
 class PatternResource:
-    """An architectural pattern loaded from .intent/charter/patterns/."""
+    """An architectural pattern loaded from .intent/patterns/."""
 
     pattern_id: str
     version: str

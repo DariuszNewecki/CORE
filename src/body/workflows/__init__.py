@@ -14,7 +14,8 @@ Each workflow has:
 
 from __future__ import annotations
 
-from body.workflows.dev_sync_workflow import DevSyncWorkflow, WorkflowResult
+from body.workflows.dev_sync_workflow import DevSyncWorkflow
+from shared.models.workflow_models import WorkflowResult
 
 
 __all__ = [

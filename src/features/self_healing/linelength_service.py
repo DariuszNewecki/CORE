@@ -15,6 +15,7 @@ from typing import TYPE_CHECKING
 from body.atomic.executor import ActionExecutor
 from mind.governance.audit_context import AuditorContext
 from shared.config import settings
+from shared.exceptions import CoreError
 from shared.logger import getLogger
 from will.orchestration.validation_pipeline import validate_code_async
 
@@ -26,13 +27,9 @@ logger = getLogger(__name__)
 REPO_ROOT = settings.REPO_PATH
 
 
-# ID: c5efe959-a435-4034-be61-c6ac3503bc2f
-class LineLengthServiceError(RuntimeError):
-    """Raised when line-length fixing fails."""
-
-    def __init__(self, message: str, *, exit_code: int = 1):
-        super().__init__(message)
-        self.exit_code = exit_code
+# ID: 6515f0dd-bea7-474e-894c-74c077d12857
+class LineLengthServiceError(CoreError):
+    """Raised when line length service fails."""
 
 
 async def _async_fix_line_lengths(

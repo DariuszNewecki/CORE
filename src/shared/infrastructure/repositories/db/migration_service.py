@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import pathlib
 
+from shared.exceptions import CoreError
 from shared.logger import getLogger
 
 from .common import (
@@ -22,13 +23,9 @@ from .common import (
 logger = getLogger(__name__)
 
 
-# ID: 0bbf5ba4-81da-449b-9503-9d6fd76212e5
-class MigrationServiceError(RuntimeError):
-    """Raised when migrations fail."""
-
-    def __init__(self, message: str, *, exit_code: int = 1):
-        super().__init__(message)
-        self.exit_code = exit_code
+# ID: 6cfacdf2-219d-44cf-baf9-bb11c8ea6834
+class MigrationServiceError(CoreError):
+    """Raised when database migration fails."""
 
 
 async def _run_migrations(apply: bool):

@@ -1,13 +1,9 @@
 # src/body/cli/interactive.py
-"""
-Implements the interactive, menu-driven TUI for the CORE Admin CLI.
-This provides a user-friendly way to discover and run commands.
-"""
+# ID: a1b2c3d4-e5f6-7890-abcd-ef1234567890
 
 from __future__ import annotations
 
 import sys
-from collections.abc import Callable
 
 from rich.console import Console
 from rich.panel import Panel
@@ -18,119 +14,77 @@ from shared.utils.subprocess_utils import run_poetry_command
 console = Console()
 
 
-def _show_menu(title: str, options: dict[str, str], actions: dict[str, Callable]):
-    """Generic helper to display a menu, get input, and execute an action."""
+def _show_menu(title: str, options: dict[str, str], actions: dict):
     while True:
         console.clear()
         console.print(Panel(f"[bold cyan]{title}[/bold cyan]"))
         for key, text in options.items():
             console.print(f"  [{key}] {text}")
-
-        console.print("\n  [b] Back to main menu")
-        console.print("  [q] Quit")
-        choice = console.input("\nEnter your choice: ").lower()
-
+        console.print("\n  [b] Back | [q] Quit")
+        choice = console.input("\nEnter choice: ").lower()
         if choice == "b":
             return
         if choice == "q":
             sys.exit(0)
-
         action = actions.get(choice)
         if action:
             try:
                 action()
             except Exception as e:
-                console.print(f"[bold red]Command failed: {e}[/bold red]")
-            console.print(
-                "\n[bold green]Press Enter to return to the menu...[/bold green]"
-            )
-            input()
-        else:
-            console.print(
-                f"[bold red]Invalid choice '{choice}'. Please try again.[/bold red]"
-            )
-            input("Press Enter to continue...")
+                console.print(f"[red]Error: {e}[/red]")
+            console.input("\nPress Enter to return...")
 
 
-# ID: e4f81e87-71c1-41c1-bfed-fdba926db71f
+# ID: 49910bc4-e193-4c26-bf7f-7f24b8356480
 def show_development_menu():
-    """Displays the AI Development & Self-Healing submenu."""
     _show_menu(
-        title="AI Development & Self-Healing",
+        title="AI Development & Quality",
         options={
-            "1": "Chat with CORE (Translate idea to command)",
-            "2": "Develop (Execute a high-level goal)",
-            "3": "Fix Headers (Run AI-powered style fixer)",
+            "1": "Dev Sync (Fix & Sync Everything)",
+            "2": "Chat with CORE (Intent Translation)",
+            "3": "Run Project Tests",
+            "4": "Interactive Test Generation",
         },
         actions={
             "1": lambda: run_poetry_command(
-                "Translating goal...",
-                ["core-admin", "chat", console.input("Enter your goal: ")],
+                "Syncing...", ["core-admin", "dev", "sync", "--write"]
             ),
             "2": lambda: run_poetry_command(
-                "Executing goal...",
-                [
-                    "core-admin",
-                    "run",
-                    "develop",
-                    console.input("Enter the full development goal: "),
-                ],
+                "Thinking...", ["core-admin", "dev", "chat", console.input("Goal: ")]
             ),
             "3": lambda: run_poetry_command(
-                "Fixing headers...", ["core-admin", "fix", "headers", "--write"]
+                "Testing...", ["core-admin", "code", "test"]
+            ),
+            "4": lambda: run_poetry_command(
+                "Starting...", ["core-admin", "dev", "test", console.input("File: ")]
             ),
         },
     )
 
 
-# ID: 91af5862-021e-4c3b-ba18-51deb032382c
+# ID: 431d5b2f-8186-4e61-af93-766a54e40e39
 def show_governance_menu():
-    """Displays the Constitutional Governance submenu."""
     _show_menu(
         title="Constitutional Governance",
         options={
-            "1": "List Proposals",
-            "2": "Sign a Proposal",
-            "3": "Approve a Proposal",
-            "4": "Generate a new Operator Key",
-            "5": "Review Constitution (AI Peer Review)",
+            "1": "Validate Constitution (.intent)",
+            "2": "Check Rule Coverage",
+            "3": "List A3 Proposals",
+            "4": "Query the Mind (Semantic Search)",
         },
         actions={
             "1": lambda: run_poetry_command(
-                "Listing proposals...", ["core-admin", "manage", "proposals", "list"]
+                "Validating...", ["core-admin", "constitution", "validate"]
             ),
             "2": lambda: run_poetry_command(
-                "Signing proposal...",
-                [
-                    "core-admin",
-                    "manage",
-                    "proposals",
-                    "sign",
-                    console.input("Enter proposal filename to sign: "),
-                ],
+                "Checking...", ["core-admin", "constitution", "status"]
             ),
             "3": lambda: run_poetry_command(
-                "Approving proposal...",
-                [
-                    "core-admin",
-                    "manage",
-                    "proposals",
-                    "approve",
-                    console.input("Enter proposal filename to approve: "),
-                ],
+                "Listing...", ["core-admin", "proposals", "list"]
             ),
             "4": lambda: run_poetry_command(
-                "Generating key...",
-                [
-                    "core-admin",
-                    "manage",
-                    "keys",
-                    "generate",
-                    console.input("Enter identity for key (e.g., email): "),
-                ],
-            ),
-            "5": lambda: run_poetry_command(
-                "Reviewing constitution...", ["core-admin", "review", "constitution"]
+                "Searching...",
+                ["core-admin", "constitution", "query", console.input("Question: ")],
             ),
         },
     )

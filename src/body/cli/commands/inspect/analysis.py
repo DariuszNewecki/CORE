@@ -19,20 +19,12 @@ from rich.console import Console
 from body.cli.logic import diagnostics as diagnostics_logic
 from body.cli.logic.duplicates import inspect_duplicates_async
 from body.cli.logic.knowledge import find_common_knowledge
-from shared.cli_utils import core_command
+from shared.cli_utils import core_command, deprecated_command
 from shared.context import CoreContext
 from shared.models.command_meta import CommandBehavior, CommandLayer, command_meta
 
 
 console = Console()
-
-
-def _deprecated(old: str, new: str) -> None:
-    """Display deprecation warning."""
-    typer.secho(
-        f"DEPRECATED: '{old}' -> use '{new}'",
-        fg=typer.colors.YELLOW,
-    )
 
 
 @command_meta(
@@ -90,7 +82,7 @@ async def find_clusters_cmd(
 
     Use: core-admin inspect clusters
     """
-    _deprecated("inspect find-clusters", "inspect clusters")
+    deprecated_command("inspect find-clusters", "inspect clusters")
     await clusters_cmd(ctx, n_clusters=n_clusters)
 
 

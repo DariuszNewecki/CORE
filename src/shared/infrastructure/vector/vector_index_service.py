@@ -3,22 +3,23 @@
 """
 Unified Vector Indexing Service - Constitutional Infrastructure
 
-Phase 1: Uses QdrantService for upsert operations.
-Updated: Implements Smart Deduplication using content hashes.
-Enhanced: Supports injectable embedder for flexibility.
+- Uses QdrantService for upsert operations.
+- Implements Smart Deduplication using content hashes.
+- Embeddings are obtained via an injected Embeddable provider.
+  Default provider is the local-only embedder from shared.utils.embedding_utils.
 """
 
 from __future__ import annotations
 
 import asyncio
-from typing import TYPE_CHECKING, Protocol
+from typing import TYPE_CHECKING
 
 from shared.config import settings
 from shared.infrastructure.clients.qdrant_client import QdrantService
 from shared.logger import getLogger
 from shared.models.vector_models import IndexResult, VectorizableItem
 from shared.universal import get_deterministic_id
-from shared.utils.embedding_utils import build_embedder_from_env
+from shared.utils.embedding_utils import Embeddable, build_embedder_from_env
 
 
 if TYPE_CHECKING:
@@ -27,23 +28,15 @@ if TYPE_CHECKING:
 logger = getLogger(__name__)
 
 
-# ID: embeddable_protocol
-# ID: c754f237-05e1-4d8d-90a2-c688832185c6
-class Embeddable(Protocol):
-    """Protocol for any service that can generate embeddings."""
-
-    # ID: 5fd49aab-51aa-447b-9901-54579a9d97d6
-    async def get_embedding(self, text: str) -> list[float]:
-        """Generate embedding vector for text."""
-        ...
-
-
-# ID: 5964433e-d92a-4d2e-936b-4385d0e6c37c
+# ID: 2ffe6361-bae9-4b98-936c-95cfe52a1d8b
 class VectorIndexService:
     """
     Unified vector indexing service with smart deduplication.
 
-    Supports both local embeddings and CognitiveService via dependency injection.
+    Constitutional embedding rule:
+    - VectorIndexService does not implement embedding logic.
+    - It consumes an Embeddable provider (injected), or falls back to the
+      local-only embedder factory (settings-based, no env access).
     """
 
     def __init__(
@@ -52,83 +45,55 @@ class VectorIndexService:
         collection_name: str,
         vector_dim: int | None = None,
         embedder: Embeddable | None = None,
-    ):
-        """
-        Initialize VectorIndexService.
-
-        Args:
-            qdrant_service: Qdrant client service
-            collection_name: Target collection name
-            vector_dim: Vector dimension (defaults to LOCAL_EMBEDDING_DIM)
-            embedder: Optional custom embedder (defaults to build_embedder_from_env)
-                     Use this to inject CognitiveService or other embedding providers
-        """
+    ) -> None:
         self.qdrant = qdrant_service
         self.collection_name = collection_name
         self.vector_dim = vector_dim or int(settings.LOCAL_EMBEDDING_DIM)
 
-        # ENHANCED: Embedder is now injectable!
-        if embedder is not None:
-            self._embedder = embedder
-            logger.info(
-                "VectorIndexService initialized with custom embedder: collection=%s, dim=%s",
-                collection_name,
-                self.vector_dim,
-            )
-        else:
-            self._embedder = build_embedder_from_env()
-            logger.info(
-                "VectorIndexService initialized with default embedder: collection=%s, dim=%s",
-                collection_name,
-                self.vector_dim,
-            )
+        self._embedder: Embeddable = embedder or build_embedder_from_env()
 
-    # ID: c988ed56-fc8d-42d9-bb8d-22d4c8ff31ea
-    async def ensure_collection(self) -> None:
-        """Idempotently create the collection if it doesn't exist."""
-        await self.qdrant.ensure_collection(
-            collection_name=self.collection_name, vector_size=self.vector_dim
+        logger.info(
+            "VectorIndexService initialized: collection=%s dim=%s embedder=%s",
+            self.collection_name,
+            self.vector_dim,
+            type(self._embedder).__name__,
         )
 
-    # ID: 362c6f11-eda1-47ab-a3f6-8d8b48261519
+    # ID: 016343de-1f7d-4b55-bc00-ee7cc2565175
+    async def ensure_collection(self) -> None:
+        await self.qdrant.ensure_collection(
+            collection_name=self.collection_name,
+            vector_size=self.vector_dim,
+        )
+
+    # ID: 14aa6d5e-820b-4b0b-b77a-6da102e780ed
     async def index_items(
-        self, items: list[VectorizableItem], batch_size: int = 10
+        self,
+        items: list[VectorizableItem],
+        batch_size: int = 10,
     ) -> list[IndexResult]:
-        """
-        Index a batch of items: generate embeddings and upsert to Qdrant.
-        Skips items that are already indexed with the same content hash.
-
-        Args:
-            items: List of VectorizableItem objects to index
-            batch_size: Number of items to process in parallel
-
-        Returns:
-            List of IndexResult objects with point IDs
-        """
         if not items:
             raise ValueError("Cannot index empty list of items")
 
-        # SMART DEDUPLICATION: Check existing hashes
         stored_hashes = await self.qdrant.get_stored_hashes(self.collection_name)
-        items_to_index = []
+        items_to_index: list[VectorizableItem] = []
         skipped_count = 0
 
         for item in items:
             point_id = str(get_deterministic_id(item.item_id))
             new_hash = item.payload.get("content_sha256")
 
-            # Skip if hash matches (content unchanged)
             if (
                 point_id in stored_hashes
                 and new_hash
-                and (stored_hashes[point_id] == new_hash)
+                and stored_hashes[point_id] == new_hash
             ):
                 skipped_count += 1
                 continue
 
             items_to_index.append(item)
 
-        if skipped_count > 0:
+        if skipped_count:
             logger.info(
                 "Skipped %s unchanged items (smart deduplication).", skipped_count
             )
@@ -154,8 +119,7 @@ class VectorIndexService:
         results: list[IndexResult] = []
         for i in range(0, len(items_to_index), batch_size):
             batch = items_to_index[i : i + batch_size]
-            batch_results = await self._process_batch(batch)
-            results.extend(batch_results)
+            results.extend(await self._process_batch(batch))
             logger.debug(
                 "Processed batch %s/%s",
                 i // batch_size + 1,
@@ -168,48 +132,50 @@ class VectorIndexService:
         return results
 
     async def _process_batch(self, items: list[VectorizableItem]) -> list[IndexResult]:
-        """Process a single batch: generate embeddings and upsert (validated contract)."""
-        # Generate embeddings in parallel
-        embedding_tasks = [self._embedder.get_embedding(item.text) for item in items]
-        embeddings = await asyncio.gather(*embedding_tasks, return_exceptions=True)
+        tasks = [self._embedder.get_embedding(item.text) for item in items]
+        embeddings = await asyncio.gather(*tasks, return_exceptions=True)
 
-        # Filter out failures
         valid_pairs: list[tuple[VectorizableItem, list[float]]] = []
+
         for item, emb in zip(items, embeddings):
             if isinstance(emb, Exception):
                 logger.warning("Failed to embed %s: %s", item.item_id, emb)
                 continue
-            if emb is None:
-                logger.warning("Failed to embed %s: embedding=None", item.item_id)
+            if not emb:
+                logger.warning("Failed to embed %s: empty embedding", item.item_id)
                 continue
 
-            vector = emb.tolist() if hasattr(emb, "tolist") else list(emb)
+            vector = list(emb)
+
+            # Constitutional invariant: vector dim must match collection dim
+            if len(vector) != self.vector_dim:
+                logger.error(
+                    "Embedding dimension mismatch for %s: got=%s expected=%s",
+                    item.item_id,
+                    len(vector),
+                    self.vector_dim,
+                )
+                continue
+
             valid_pairs.append((item, vector))
 
         if not valid_pairs:
             return []
 
-        # IMPORTANT: Enforce the validated payload contract centrally via QdrantService.
         bulk_items: list[tuple[str, list[float], dict]] = []
         for item, vector in valid_pairs:
             point_id_str = str(get_deterministic_id(item.item_id))
-
-            # Build payload with required EmbeddingPayload fields
             payload = {
                 **item.payload,
                 "item_id": item.item_id,
                 "chunk_id": item.item_id,
             }
 
-            # FIX: Ensure required EmbeddingPayload fields are present
             if "source_path" not in payload:
-                # Use file_path if present, otherwise derive from item metadata
                 payload["source_path"] = payload.get(
                     "file_path", f".intent/{item.item_id.split(':')[0]}.json"
                 )
-
             if "source_type" not in payload:
-                # Determine type from payload metadata
                 payload["source_type"] = payload.get("doc_type", "intent")
 
             bulk_items.append((point_id_str, vector, payload))
@@ -229,18 +195,27 @@ class VectorIndexService:
             for item, _vector in valid_pairs
         ]
 
-    # ID: 2544b299-de9a-4e8f-86d7-f21ff614f979
+    # ID: a74ccda4-917d-4da6-b172-e807c7e8d16f
     async def query(
-        self, query_text: str, limit: int = 5, score_threshold: float | None = None
+        self,
+        query_text: str,
+        limit: int = 5,
+        score_threshold: float | None = None,
     ) -> list[dict]:
-        """Semantic search in the collection."""
-        query_vector = await self._embedder.get_embedding(query_text)
-        if query_vector is None:
+        vec = await self._embedder.get_embedding(query_text)
+        if not vec:
             logger.warning("Failed to generate query embedding")
             return []
 
-        if hasattr(query_vector, "tolist"):
-            query_vector = query_vector.tolist()
+        query_vector = list(vec)
+
+        if len(query_vector) != self.vector_dim:
+            logger.error(
+                "Query embedding dimension mismatch: got=%s expected=%s",
+                len(query_vector),
+                self.vector_dim,
+            )
+            return []
 
         results = await self.qdrant.search(
             collection_name=self.collection_name,

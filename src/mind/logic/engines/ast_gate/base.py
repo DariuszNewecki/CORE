@@ -157,3 +157,34 @@ class ASTHelpers:
                 return True
 
         return False
+
+    @staticmethod
+    # ID: 337aed3b-dc01-4b17-bbe3-e8498e1dee13
+    def is_type_checking_condition(test_node: ast.expr) -> bool:
+        """
+        Check if an If condition is checking TYPE_CHECKING.
+
+        Matches:
+        - TYPE_CHECKING
+        - typing.TYPE_CHECKING
+
+        Args:
+            test_node: The test expression from an ast.If node
+
+        Returns:
+            True if the condition checks TYPE_CHECKING
+
+        Examples:
+            >>> # Matches: if TYPE_CHECKING:
+            >>> # Matches: if typing.TYPE_CHECKING:
+        """
+        if isinstance(test_node, ast.Name):
+            return test_node.id == "TYPE_CHECKING"
+
+        if isinstance(test_node, ast.Attribute):
+            # Handle typing.TYPE_CHECKING
+            if test_node.attr == "TYPE_CHECKING":
+                if isinstance(test_node.value, ast.Name):
+                    return test_node.value.id == "typing"
+
+        return False

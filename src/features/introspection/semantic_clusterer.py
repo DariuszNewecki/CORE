@@ -13,6 +13,7 @@ import numpy as np
 from dotenv import load_dotenv
 
 from shared.config import settings
+from shared.exceptions import CoreError
 from shared.infrastructure.storage.file_handler import FileHandler
 from shared.logger import getLogger
 
@@ -24,13 +25,9 @@ except ImportError:
 logger = getLogger(__name__)
 
 
-# ID: 68884117-d8b0-4f04-ab01-61e0306c7e59
-class SemanticClusteringError(RuntimeError):
+# ID: 04978d4c-740f-48cf-98f3-a85e28885ee6
+class SemanticClusteringError(CoreError):
     """Raised when semantic clustering cannot complete."""
-
-    def __init__(self, message: str, *, exit_code: int = 1):
-        super().__init__(message)
-        self.exit_code = exit_code
 
 
 # ID: 41c7d272-0d0d-4d84-9d99-984e9a698bd2

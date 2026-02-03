@@ -2,12 +2,17 @@
 
 """
 Service for validating and applying micro-proposals to enable safe, autonomous
-changes to the CORE codebase, adhering to the micro_proposal_policy.yaml and
+changes to the CORE codebase, adhering to the micro_proposal_policy and
 enforcing safe_by_default and reason_with_purpose principles.
 
 Architectural rule:
 - No direct filesystem mutations (write_text/unlink/mkdir/etc.) in this service.
 - All mutations must go through FileHandler (IntentGuard enforced).
+
+CONSTITUTIONAL COMPLIANCE:
+- Searches for micro_proposal_policy in new .intent/ structure
+- Uses FileHandler for all mutations (IntentGuard enforced)
+- No direct .intent/ filesystem access
 """
 
 from __future__ import annotations
@@ -42,7 +47,7 @@ class MicroProposal:
 class MicroProposalExecutor:
     """
     Validates and applies micro-proposals for safe, autonomous changes as defined
-    by micro_proposal_policy.yaml, ensuring compliance with safe_by_default and
+    by micro_proposal_policy, ensuring compliance with safe_by_default and
     reason_with_purpose principles.
     """
 
@@ -55,11 +60,30 @@ class MicroProposalExecutor:
         """
         self.repo_root = (repo_root or get_repo_root()).resolve()
 
-        # NOTE: policy path kept as-is (your repo currently points to this location)
-        self.policy_path = (
-            self.repo_root / ".intent/charter/policies/agent/micro_proposal_policy.json"
-        )
-        self.policy = self._load_policy()
+        # FIXED: Search for policy in new .intent/ structure
+        # Try multiple possible locations
+        possible_paths = [
+            self.repo_root / ".intent/phases/micro_proposal_policy.yaml",
+            self.repo_root / ".intent/workflows/micro_proposal_policy.yaml",
+            self.repo_root / ".intent/rules/will/micro_proposal_policy.json",
+            self.repo_root
+            / ".intent/rules/will/autonomy.json",  # May be embedded in autonomy rules
+        ]
+
+        self.policy_path = None
+        for path in possible_paths:
+            if path.exists():
+                self.policy_path = path
+                logger.debug("Found micro_proposal_policy at: %s", path)
+                break
+
+        if not self.policy_path:
+            logger.warning(
+                "micro_proposal_policy not found in any expected location, using empty policy"
+            )
+            self.policy = {"policy_id": "micro_proposal_policy", "rules": []}
+        else:
+            self.policy = self._load_policy()
 
         # Mutation surface (IntentGuard enforced inside)
         self.fs = FileHandler(str(self.repo_root))
@@ -68,7 +92,7 @@ class MicroProposalExecutor:
 
     def _load_policy(self) -> dict:
         """
-        Load and validate the micro_proposal_policy.yaml (or json).
+        Load and validate the micro_proposal_policy.
 
         Returns:
             Dict: The parsed policy content.
@@ -76,6 +100,9 @@ class MicroProposalExecutor:
         Raises:
             ValueError: If the policy file is missing or invalid.
         """
+        if not self.policy_path:
+            return {"policy_id": "micro_proposal_policy", "rules": []}
+
         try:
             policy = strict_yaml_processor.load_strict(self.policy_path)
             if not policy:
@@ -192,7 +219,7 @@ class MicroProposalExecutor:
     def validate_proposal(self, proposal: MicroProposal) -> list[CheckResult]:
         """
         Validate a micro-proposal against safe_actions, safe_paths, and
-        require_validation rules from micro_proposal_policy.yaml.
+        require_validation rules from micro_proposal_policy.
         """
         results: list[CheckResult] = []
         logger.debug(

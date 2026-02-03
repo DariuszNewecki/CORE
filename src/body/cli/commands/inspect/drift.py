@@ -19,21 +19,13 @@ import typer
 from body.cli.logic.symbol_drift import inspect_symbol_drift
 from body.cli.logic.vector_drift import inspect_vector_drift
 from mind.enforcement.guard_cli import register_guard
-from shared.cli_utils import core_command
+from shared.cli_utils import core_command, deprecated_command
 from shared.context import CoreContext
 from shared.logger import getLogger
 from shared.models.command_meta import CommandBehavior, CommandLayer, command_meta
 
 
 logger = getLogger(__name__)
-
-
-def _deprecated(old: str, new: str) -> None:
-    """Display deprecation warning."""
-    typer.secho(
-        f"DEPRECATED: '{old}' -> use '{new}'",
-        fg=typer.colors.YELLOW,
-    )
 
 
 def _try_forward_to_status_drift(scope: str, ctx: typer.Context) -> bool:
@@ -74,7 +66,7 @@ def symbol_drift_cmd(ctx: typer.Context) -> None:
 
     Use: core-admin status drift symbol
     """
-    _deprecated("inspect symbol-drift", "status drift symbol")
+    deprecated_command("inspect symbol-drift", "status drift symbol")
     if _try_forward_to_status_drift("symbol", ctx):
         return
 
@@ -97,7 +89,7 @@ async def vector_drift_command(ctx: typer.Context) -> None:
 
     Use: core-admin status drift vector
     """
-    _deprecated("inspect vector-drift", "status drift vector")
+    deprecated_command("inspect vector-drift", "status drift vector")
     if _try_forward_to_status_drift("vector", ctx):
         return
 

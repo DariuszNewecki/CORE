@@ -4,10 +4,15 @@
 Canary Policy Enforcement.
 
 This module enforces the canary deployment rules defined in
-.intent/charter/policies/operations.json.
+.intent/phases/canary_validation.yaml or .intent/workflows/ configuration.
 
 It acts as a bridge between raw runtime signals (AuditFindings, Test Results)
-and the constitutional thresholds defined in the Mind.
+and the constitutional thresholds defined in the Mind layer.
+
+CONSTITUTIONAL COMPLIANCE:
+- Stateless validator pattern (no filesystem access)
+- Receives configuration via dependency injection
+- Pure enforcement logic (Mind/Body separation)
 """
 
 from __future__ import annotations
@@ -38,13 +43,18 @@ class CanaryExecutor:
     Enforces Canary Policy thresholds.
 
     Pattern: Stateless Transformer / Validator
-    Input: Configuration dict (from operations.yaml)
+    Input: Configuration dict (from phase configuration)
     Output: CanaryResult
+
+    CONSTITUTIONAL COMPLIANCE:
+    - Receives policy via dependency injection (no direct .intent/ access)
+    - Stateless execution (Body layer capability)
+    - No filesystem operations
     """
 
     def __init__(self, canary_config: dict[str, Any]):
         """
-        Initialize with the 'canary' section of operations.yaml.
+        Initialize with the 'canary' section of phase configuration.
 
         Args:
             canary_config: Dict containing 'enabled', 'metrics', 'abort_conditions'.
@@ -58,6 +68,12 @@ class CanaryExecutor:
     ) -> dict[str, float]:
         """
         Convert a list of AuditFindings into quantitative metrics for policy checking.
+
+        Args:
+            findings: List of audit findings to analyze
+
+        Returns:
+            Dictionary of metric names to values
         """
         error_count = sum(1 for f in findings if f.severity == AuditSeverity.ERROR)
         warning_count = sum(1 for f in findings if f.severity == AuditSeverity.WARNING)
@@ -82,18 +98,22 @@ class CanaryExecutor:
         if not self.enabled:
             logger.info("Canary checks disabled in policy.")
             return CanaryResult(True, [], runtime_metrics)
+
         violations = []
         policy_metrics = self.config.get("metrics", [])
+
         for rule in policy_metrics:
             metric_name = rule["name"]
             threshold = float(rule["threshold"])
             direction = rule.get("direction", "less")
             actual_value = runtime_metrics.get(metric_name)
+
             if actual_value is None:
                 logger.debug(
                     "Canary metric '%s' not present in runtime report.", metric_name
                 )
                 continue
+
             if direction == "less":
                 if actual_value > threshold:
                     violations.append(
@@ -104,6 +124,7 @@ class CanaryExecutor:
                     violations.append(
                         f"Metric '{metric_name}' failed: {actual_value} < {threshold}"
                     )
+
         abort_conditions = self.config.get("abort_conditions", [])
         for condition in abort_conditions:
             if condition == "audit:level=error":
@@ -112,9 +133,12 @@ class CanaryExecutor:
             elif condition == "tests:failed>0":
                 if runtime_metrics.get("tests.failed", 0) > 0:
                     violations.append("Abort condition triggered: tests:failed>0")
+
         passed = len(violations) == 0
+
         if not passed:
             logger.warning("Canary checks failed: %s", violations)
         else:
             logger.info("Canary checks passed.")
+
         return CanaryResult(passed, violations, runtime_metrics)

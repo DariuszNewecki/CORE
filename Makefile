@@ -27,7 +27,7 @@ OUTPUT_PATH := docs/10_CAPABILITY_REFERENCE.md
   help install lock run stop \
   audit check-constitution check-quality validate \
   lint format test test-coverage check \
-  dev-sync dev-sync-apply \
+  dev-sync \
   fix-all dupes cli-tree clean distclean nuke \
   docs check-docs vectorize integrate \
   migrate export-db sync-knowledge sync-manifest \
@@ -105,19 +105,26 @@ fix-all: ## Run all self-healing fixes in curated sequence
 	$(CORE_ADMIN) fix all
 
 # ==============================================================================
-#   DEV-SYNC: SAFE vs. APPLY
+#   DEV-SYNC: Atomic Operations Composed (UNIX Philosophy)
 # ==============================================================================
 
-dev-sync: ## Run the dev-sync workflow in DRY-RUN mode (safe, recommended)
-	@echo "🔄 Running CORE dev-sync workflow (dry-run, no writes)..."
-	$(CORE_ADMIN) dev sync --dry-run
-	@echo "✅ Dev-sync dry-run complete! No changes were written."
-
-dev-sync-apply: ## Run dev-sync WITH WRITES (dangerous!)
-	@echo "⚠️  Running CORE dev-sync workflow WITH WRITES ENABLED..."
-	@echo "⚠️  This will modify files, update vectors, and apply system changes."
-	$(CORE_ADMIN) dev sync --write
-	@echo "✅ Dev-sync with writes complete."
+dev-sync:
+	@echo "🔄 CORE Development Sync Pipeline"
+	@echo "=================================="
+	@echo ""
+	@echo "1️⃣  Fixing symbol IDs..."
+	@poetry run core-admin symbols fix-ids --write
+	@echo ""
+	@echo "2️⃣  Formatting code..."
+	@poetry run core-admin code format --write
+	@echo ""
+	@echo "3️⃣  Syncing database..."
+	@poetry run core-admin symbols sync --write
+	@echo ""
+	@echo "4️⃣  Updating vectors..."
+	@poetry run core-admin vectors sync --write
+	@echo ""
+	@echo "✅ Dev-sync complete: All systems synchronized"
 
 # ==============================================================================
 
@@ -145,13 +152,13 @@ state: ## Show current CORE system state snapshot
 
 # ---- Knowledge / DB helpers --------------------------------------------------
 migrate: ## Apply pending DB schema migrations
-	$(CORE_ADMIN) manage database migrate --apply
+	$(CORE_ADMIN) database migrate --apply
 
 export-db: ## Export DB tables to canonical YAML
-	$(CORE_ADMIN) manage database export
+	$(CORE_ADMIN) database export
 
 sync-knowledge: ## Scan codebase and sync symbols to DB (SSOT)
-	$(CORE_ADMIN) manage database sync-knowledge --write
+	$(CORE_ADMIN) database sync --write
 
 sync-manifest: ## Sync .intent manifest from DB
 	$(CORE_ADMIN) manage database sync-manifest

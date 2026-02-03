@@ -19,6 +19,7 @@ from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ed25519
 
 from body.services.file_service import FileService
+from shared.exceptions import CoreError
 from shared.logger import getLogger
 from shared.path_resolver import PathResolver
 
@@ -27,13 +28,9 @@ logger = getLogger(__name__)
 log = logger  # keep tests and tools happy
 
 
-# ID: 2631affb-7466-4ee6-8907-397e60a4f220
-class KeyManagementError(RuntimeError):
+# ID: 8a1d1403-b439-475e-a712-cc7c687f6cb9
+class KeyManagementError(CoreError):
     """Raised when key management operations fail."""
-
-    def __init__(self, message: str, *, exit_code: int = 1):
-        super().__init__(message)
-        self.exit_code = exit_code
 
 
 # ID: f8491062-091f-49e6-acbf-9b3ee994409e

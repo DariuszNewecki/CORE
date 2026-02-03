@@ -65,7 +65,7 @@ class ImportChecks:
 
         for node in ast.walk(tree):
             if isinstance(node, ast.If):
-                if ImportChecks._is_type_checking_condition(node.test):
+                if ASTHelpers.is_type_checking_condition(node.test):
                     for stmt in node.body:
                         type_checking_nodes.add(stmt)
                         for nested in ast.walk(stmt):
@@ -73,26 +73,6 @@ class ImportChecks:
                                 type_checking_nodes.add(nested)
 
         return type_checking_nodes
-
-    @staticmethod
-    def _is_type_checking_condition(test_node: ast.expr) -> bool:
-        """
-        Check if an If condition is checking TYPE_CHECKING.
-
-        Matches:
-        - TYPE_CHECKING
-        - typing.TYPE_CHECKING
-        """
-        if isinstance(test_node, ast.Name):
-            return test_node.id == "TYPE_CHECKING"
-
-        if isinstance(test_node, ast.Attribute):
-            # Handle typing.TYPE_CHECKING
-            if test_node.attr == "TYPE_CHECKING":
-                if isinstance(test_node.value, ast.Name):
-                    return test_node.value.id == "typing"
-
-        return False
 
     @staticmethod
     # ID: 99a2ce26-dc0d-4bf9-ae39-2eb8082fb4fa

@@ -176,7 +176,7 @@ async def purge_legacy_tags_command(
 
 @fix_app.command(
     "policy-ids",
-    help="Assigns missing IDs to policy files in .intent/charter/policies/.",
+    help="Assigns missing IDs to policy files in .intent/policies/.",
 )
 @core_command(dangerous=True, confirmation=True)
 # ID: 31c08316-abc6-49ba-babd-938dfc0cdb09
@@ -186,7 +186,7 @@ async def fix_policy_ids_command(
         False, "--write", help="Write the IDs to the policy files."
     ),
     policies_dir: Path = typer.Option(
-        Path(".intent/charter/policies"),
+        Path(".intent/policies"),
         help="Path to the policies directory.",
     ),
 ) -> None:

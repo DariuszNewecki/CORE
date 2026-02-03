@@ -30,7 +30,7 @@ from body.cli.logic.diagnostics_registry import (
     cli_registry,
     manifest_hygiene,
 )
-from shared.cli_utils import core_command
+from shared.cli_utils import core_command, deprecated_command
 from shared.context import CoreContext
 from shared.logger import getLogger
 
@@ -38,13 +38,6 @@ from shared.logger import getLogger
 logger = getLogger(__name__)
 app = typer.Typer(help="Deep diagnostic and integrity checks.")
 console = Console()
-
-
-def _deprecated(old: str, new: str) -> None:
-    typer.secho(
-        f"DEPRECATED: '{old}' -> use '{new}'",
-        fg=typer.colors.YELLOW,
-    )
 
 
 @app.command("find-clusters")
@@ -64,7 +57,7 @@ async def find_clusters_command(
     - `inspect clusters` is canonical in the golden tree.
     - We keep `--format json` here for backwards-compatible machine output.
     """
-    _deprecated("diagnostics find-clusters", "inspect clusters")
+    deprecated_command("diagnostics find-clusters", "inspect clusters")
 
     # If json requested, preserve legacy machine output exactly.
     if format == "json":
@@ -115,7 +108,7 @@ def cli_tree_command(
     - `inspect command-tree` currently does not support --format.
       Therefore json/yaml output remains implemented here until inspect is extended.
     """
-    _deprecated("diagnostics command-tree", "inspect command-tree")
+    deprecated_command("diagnostics command-tree", "inspect command-tree")
 
     # Import main app here to avoid circular imports at module level
     from body.cli.admin_cli import app as main_app

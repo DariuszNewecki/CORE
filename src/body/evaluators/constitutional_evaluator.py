@@ -3,6 +3,12 @@
 """
 ConstitutionalEvaluator - Assesses constitutional policy compliance.
 
+CONSTITUTIONAL COMPLIANCE:
+- Uses AuditorContext for all governance checks (Mind layer access)
+- Evaluates files against rules from .intent/ structure
+- No direct filesystem access to .intent/
+- Maintains Mind/Body separation
+
 CONSTITUTIONAL FIX (V2.3):
 - Removed unused variable 'target_content' (workflow.dead_code_check).
 - Maintains Mind/Body separation: Evaluates rules using the AuditorContext.
@@ -25,19 +31,34 @@ logger = getLogger(__name__)
 class ConstitutionalEvaluator(Component):
     """
     Evaluates constitutional compliance for files and operations.
+
+    Checks against:
+    - Constitutional rules from .intent/rules/
+    - Constitutional principles from .intent/constitution/
+    - Architectural patterns from .intent/enforcement/mappings/
+    - Governance boundaries (no .intent/ writes, etc.)
+
+    Returns:
+    - Binary compliance status (ok: True/False)
+    - List of violations with details
+    - Compliance score (confidence metric)
+    - Remediation context
     """
 
     def __init__(self):
+        """Initialize evaluator with lazy-loaded governance components."""
         self._validator_service = None
 
     @property
     # ID: e947509f-0965-4723-8997-0b0e55143a81
     def phase(self) -> ComponentPhase:
+        """ConstitutionalEvaluator operates in AUDIT phase."""
         return ComponentPhase.AUDIT
 
     @property
     # ID: a7173a43-ebca-4bba-9512-17b69d01ddce
     def validator_service(self):
+        """Lazy-load ConstitutionalValidator to avoid circular imports."""
         if self._validator_service is None:
             from body.services.constitutional_validator import get_validator
 
@@ -50,12 +71,21 @@ class ConstitutionalEvaluator(Component):
         repo_root: Path,
         file_path: str | None = None,
         operation_type: str | None = None,
-        # CONSTITUTIONAL FIX: Removed unused 'target_content' parameter
         validation_scope: list[str] | None = None,
         **kwargs: Any,
     ) -> ComponentResult:
         """
         Evaluate constitutional compliance for a file or operation.
+
+        Args:
+            repo_root: Repository root path
+            file_path: Optional path to file being evaluated
+            operation_type: Optional type of operation (refactor, create, etc.)
+            validation_scope: Optional list of validation types to perform
+            **kwargs: Additional evaluation parameters
+
+        Returns:
+            ComponentResult with compliance status and violations
         """
         start_time = time.time()
 
@@ -132,6 +162,16 @@ class ConstitutionalEvaluator(Component):
     async def _check_constitutional_compliance(
         self, auditor_context: Any, file_path: str | None
     ) -> list[dict[str, Any]]:
+        """
+        Check file against constitutional rules via AuditorContext.
+
+        Args:
+            auditor_context: AuditorContext for governance access
+            file_path: Path to file being checked
+
+        Returns:
+            List of violation dicts
+        """
         if not file_path:
             return []
         try:
@@ -158,6 +198,16 @@ class ConstitutionalEvaluator(Component):
     async def _check_pattern_compliance(
         self, repo_root: Path, file_path: str
     ) -> list[dict[str, Any]]:
+        """
+        Check file against architectural patterns.
+
+        Args:
+            repo_root: Repository root path
+            file_path: Path to file being checked
+
+        Returns:
+            List of pattern violation dicts
+        """
         violations = []
         if "src/body/atomic/" in file_path:
             from body.evaluators.atomic_actions_evaluator import AtomicActionsEvaluator

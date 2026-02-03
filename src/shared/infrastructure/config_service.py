@@ -1,4 +1,5 @@
 # src/shared/infrastructure/config_service.py
+# ID: 47832f5d-142a-4637-923a-f0f3d76d6b08
 
 """
 Configuration service that reads from the database as the single source of truth.
@@ -39,6 +40,9 @@ Design choices:
 - ✅ Non-secret values cached in-memory for performance
 - ✅ Secrets delegated to a dedicated secrets service (encryption/audit live there)
 
+HEALED (V2.6.2):
+- Added detach() method to release database sessions explicitly.
+
 See: .intent/papers/CORE-Infrastructure-Definition.md Section 5
 """
 
@@ -74,7 +78,7 @@ class ConfigService:
         api_key = await config.get_secret("anthropic.api_key")
     """
 
-    def __init__(self, db: AsyncSession, cache: dict[str, Any]):
+    def __init__(self, db: AsyncSession | None, cache: dict[str, Any]):
         self.db = db
         self._cache = cache
         self._secrets_service: Any | None = None
@@ -95,17 +99,21 @@ class ConfigService:
         logger.info("Loaded %s configuration values from database", len(cache))
         return cls(db, cache)
 
+    # ID: 8876c24d-5e6f-4a8b-9c0d-1e2f3a4b5c6d
+    def detach(self) -> None:
+        """
+        Releases the database session reference.
+        Crucial for preventing SAWarning during process shutdown.
+        """
+        self.db = None
+        self._secrets_service = None
+
     # ID: 59a5c363-943b-42aa-a048-b4c34a0e19cb
     async def get(
         self, key: str, default: str | None = None, required: bool = False
     ) -> str | None:
         """
         Get a non-secret configuration value.
-
-        Args:
-            key: Config key (e.g., "deepseek_chat.model_name")
-            default: Default value if not found
-            required: If True, raise error if not found
         """
         value = self._cache.get(key)
         if value is None:
@@ -118,8 +126,12 @@ class ConfigService:
     async def get_secret(self, key: str, audit_context: str | None = None) -> str:
         """
         Get a secret configuration value (decrypted).
-        Secrets are stored encrypted in DB and audited in the secrets service.
         """
+        if self.db is None:
+            raise RuntimeError(
+                "ConfigService error: Database session has been detached."
+            )
+
         if not self._secrets_service:
             self._secrets_service = await get_secrets_service(self.db)
         return await self._secrets_service.get_secret(
@@ -154,9 +166,12 @@ class ConfigService:
     async def set(self, key: str, value: str, description: str | None = None) -> None:
         """
         Set a non-secret configuration value.
-
-        Note: Production changes should go through governance!
         """
+        if self.db is None:
+            raise RuntimeError(
+                "ConfigService error: Database session has been detached."
+            )
+
         stmt = text(
             "\n            INSERT INTO core.runtime_settings (key, value, description, is_secret, last_updated)\n            VALUES (:key, :value, :description, false, NOW())\n            ON CONFLICT (key)\n            DO UPDATE SET\n                value = EXCLUDED.value,\n                description = COALESCE(EXCLUDED.description, core.runtime_settings.description),\n                last_updated = NOW()\n            "
         )
@@ -170,6 +185,11 @@ class ConfigService:
     # ID: c14f55cb-7f20-41ad-acfb-6830b6ed5387
     async def reload(self) -> None:
         """Reload non-secret config cache from database."""
+        if self.db is None:
+            raise RuntimeError(
+                "ConfigService error: Database session has been detached."
+            )
+
         stmt = text(
             "\n            SELECT key, value\n            FROM core.runtime_settings\n            WHERE is_secret = false\n            "
         )
@@ -182,9 +202,6 @@ class ConfigService:
 async def bootstrap_config_from_env() -> None:
     """
     Bootstrap database configuration from .env file.
-
-    Run ONCE when setting up a new environment.
-    After this, all config changes go through the database.
     """
     from dotenv import dotenv_values
 
@@ -231,12 +248,6 @@ async def bootstrap_config_from_env() -> None:
 class LLMResourceConfig:
     """
     Convenience wrapper for LLM resource configuration.
-
-    Usage:
-        config = await ConfigService.create(db)
-        anthropic = await LLMResourceConfig.for_resource(config, "anthropic")
-        api_key = await anthropic.get_api_key()
-        model = await anthropic.get_model_name()
     """
 
     def __init__(self, config: ConfigService, resource_name: str):

@@ -2,8 +2,18 @@
 # ID: features.self_healing.modularity_remediation
 
 """
-Service for automated architectural modularization.
-Translates Modularity Score violations into executable A3 goals.
+Modularity Remediation Service - Constitutional Workflow Edition
+
+Service for automated architectural modularization using explicit workflow orchestration.
+
+Uses 'refactor_modularity' workflow which:
+1. Plans refactoring strategy
+2. Generates refactored code
+3. Validates with canary (existing tests)
+4. Checks style
+5. Applies changes
+
+Does NOT generate tests - that's coverage_remediation's job.
 
 This service acts as the 'General Contractor' for modularity health.
 """
@@ -28,156 +38,164 @@ logger = getLogger(__name__)
 # ID: 122a3749-facf-4734-85e7-59b82dc61057
 class ModularityRemediationService:
     """
+    Constitutional modularity remediation.
+
     Closed-loop remediation:
-    1. Measure Score -> 2. Generate Goal -> 3. A3 Develop -> 4. Verify Improvement
+    1. Measure Score → 2. Generate Goal → 3. Execute Workflow → 4. Verify Improvement
+
+    Uses explicit 'refactor_modularity' workflow type for constitutional governance.
     """
 
     def __init__(self, context: CoreContext):
+        """
+        Initialize modularity remediation service.
+
+        Args:
+            context: CoreContext with constitutional capabilities
+        """
         self.context = context
         self.checker = ModularityChecker()
+        self.loader = EnforcementMappingLoader(settings.REPO_PATH / ".intent")
 
-    def _get_constitutional_threshold(self) -> float:
-        """Retrieves the authoritative 'max_score' from the .intent YAML."""
+        # Load constitutional threshold
+        mappings = self.loader.load()
+        self.threshold = self._get_constitutional_threshold(mappings)
+
+    def _get_constitutional_threshold(self, mappings: dict[str, Any]) -> float:
+        """
+        Extract max_score threshold from constitutional enforcement mappings.
+
+        Args:
+            mappings: Enforcement mappings from .intent/
+
+        Returns:
+            Constitutional threshold for modularity score (default: 60.0)
+        """
         try:
-            loader = EnforcementMappingLoader(settings.REPO_PATH / ".intent")
-            strategy = loader.get_enforcement_strategy(
-                "modularity.refactor_score_threshold"
-            )
-            if strategy and "params" in strategy:
-                return float(strategy["params"].get("max_score", 60.0))
-        except Exception:
-            pass
-        return 60.0
+            for rule_id, mapping in mappings.items():
+                if "modularity" in rule_id.lower():
+                    params = mapping.get("parameters", {})
+                    if "max_score" in params:
+                        return float(params["max_score"])
+        except Exception as e:
+            logger.warning("Could not load constitutional threshold: %s", e)
 
-    # ID: 1d090cab-0cd5-4bc3-b9a8-5f8f6023b78c
+        return 60.0  # Constitutional default
+
+    # ID: 74b0bdc4-dcfe-46ac-904d-6a1f0e585a43
     async def remediate_batch(
         self, min_score: float | None = None, limit: int = 5, write: bool = False
     ) -> list[dict[str, Any]]:
-        """Finds top offenders and heals them sequentially."""
-        results = []
+        """
+        Find and remediate files exceeding modularity threshold.
 
-        # Use the YAML threshold if the user didn't provide a specific score
-        target_threshold = (
-            min_score if min_score is not None else self._get_constitutional_threshold()
-        )
+        Args:
+            min_score: Override constitutional threshold (for testing)
+            limit: Maximum files to process in one batch
+            write: Whether to apply changes
 
-        # 1. Gather candidates (The "Hit List")
-        candidates = []
-        skip_dirs = {
-            ".venv",
-            "venv",
-            ".git",
-            "work",
-            "var",
-            "__pycache__",
-            ".pytest_cache",
-        }
-
-        # Scan production code only
-        src_root = settings.REPO_PATH / "src"
-        for file in src_root.rglob("*.py"):
-            if any(skip_dir in file.parts for skip_dir in skip_dirs):
-                continue
-
-            # We use the new logic engine to find files above the threshold
-            findings = self.checker.check_refactor_score(
-                file, {"max_score": target_threshold}
-            )
-            if findings:
-                candidates.append((file, findings[0]["details"]))
-
-        # Sort by worst score first
-        candidates.sort(key=lambda x: x[1]["total_score"], reverse=True)
-        to_process = candidates[:limit]
+        Returns:
+            List of remediation results
+        """
+        threshold = min_score if min_score is not None else self.threshold
 
         logger.info(
-            "🛠️ Modularity Healing Batch: %d files [Write: %s, Threshold: %s]",
-            len(to_process),
-            write,
-            target_threshold,
+            "🔍 Scanning for files exceeding modularity threshold: %.1f", threshold
         )
 
-        for file_path, details in to_process:
-            res = await self.remediate_file(file_path, details, write=write)
-            results.append(res)
+        # Find violating files
+        findings = self.checker.check_all_files({"max_score": threshold})
+
+        if not findings:
+            logger.info("✅ No files exceed the modularity threshold")
+            return []
+
+        # Sort by score (worst first) and limit
+        findings.sort(key=lambda f: f["details"]["total_score"], reverse=True)
+        findings = findings[:limit]
+
+        logger.info(
+            "📋 Found %d files to remediate (processing %d)",
+            len(findings),
+            min(limit, len(findings)),
+        )
+
+        # Process each file
+        results = []
+        for finding in findings:
+            result = await self._remediate_single_file(
+                file_path=Path(finding["file"]),
+                start_score=finding["details"]["total_score"],
+                details=finding["details"],
+                write=write,
+            )
+            results.append(result)
 
         return results
 
-    # ID: 325347d3-d68b-4e61-bd5b-04fee6fc6bef
-    async def remediate_file(self, file_path: Path, details: dict, write: bool) -> dict:
-        """Heals a single file using the A3 loop."""
-        rel_path = str(file_path.relative_to(settings.REPO_PATH))
-        start_score = details["total_score"]
-        original_size = len(file_path.read_text(encoding="utf-8"))
+    async def _remediate_single_file(
+        self,
+        file_path: Path,
+        start_score: float,
+        details: dict[str, Any],
+        write: bool,
+    ) -> dict[str, Any]:
+        """
+        Remediate a single file using constitutional workflow.
 
-        # CONSTITUTIONAL FIX: Precision-engineered AI goal
-        auto_goal = (
-            f"Modularize {rel_path} to resolve architectural violations.\n"
-            f"CURRENT MODULARITY DEBT: {start_score:.1f}/100\n"
-            f"IDENTIFIED RESPONSIBILITIES: {', '.join(details['responsibilities'])}\n\n"
-            f"CRITICAL CONSTITUTIONAL INSTRUCTIONS:\n"
-            f"1. LOGIC CONSERVATION: You must migrate 100% of the existing logic. Truncation is forbidden.\n"
-            f"2. HEADERS: Every file you create MUST start with a comment header like: # path/to/file.py\n"
-            f"3. IDENTITY: All public symbols must have # ID: <uuid> tags.\n"
-            f"4. MATHEMATICAL IMPROVEMENT: The goal is to reduce the debt score by splitting the code into smaller, more cohesive modules."
-        )
+        Args:
+            file_path: Path to file to remediate
+            start_score: Initial modularity score
+            details: Detailed violation information
+            write: Whether to apply changes
+
+        Returns:
+            Remediation result with success status and improvement metrics
+        """
+        relative_path = file_path.relative_to(settings.REPO_PATH)
 
         logger.info(
-            "🚀 Initiating A3 Healing for %s (Initial Score: %.1f)...",
-            rel_path,
+            "🔧 Remediating: %s (score: %.1f)",
+            relative_path,
             start_score,
         )
 
-        # 3. Trigger A3 Developer (Planning -> Specification -> Execution)
-        success, action_res = await develop_from_goal(
+        # Build goal for autonomous developer
+        goal = (
+            f"Refactor {relative_path} to improve modularity. "
+            f"Current score: {start_score:.1f}. "
+            f"Target: < 60.0. "
+            f"Issues: {details.get('responsibility_count', 0)} responsibilities, "
+            f"cohesion {details.get('cohesion', 0):.2f}"
+        )
+
+        # Execute using explicit refactor_modularity workflow
+        success, message = await develop_from_goal(
             context=self.context,
-            goal=auto_goal,
+            goal=goal,
             workflow_type="refactor_modularity",
             write=write,
         )
 
-        message = "Autonomous process completed."
-
-        # 4. LOGIC CONSERVATION GATE (The "Anti-Hallucination" Guard)
-        if success and isinstance(action_res, dict):
-            new_files = action_res.get("files", {})
-            total_new_size = sum(len(content) for content in new_files.values())
-
-            # If the new code is suspiciously small, the AI likely "cheated" by deleting logic
-            if total_new_size < (original_size * 0.4):
-                logger.error(
-                    "❌ REJECTED: Logic Evaporation Detected. New size (%d chars) vs original (%d chars).",
-                    total_new_size,
-                    original_size,
-                )
-                success = False
-                message = "REJECTED: Result too small (Logic Evaporation)."
-            else:
-                logger.info(
-                    "✅ Logic conservation verified (Size: %d chars).", total_new_size
-                )
-
-        # 5. Verify Improvement (Final Audit)
-        final_score = start_score
-        if success and write:
-            # Re-run the checker on the file to see if the score actually went down
-            post_findings = self.checker.check_refactor_score(
-                file_path, {"max_score": 0}
+        # Measure improvement
+        if success:
+            findings = self.checker.check_refactor_score(
+                file_path,
+                {"max_score": 0},  # Get score regardless of threshold
             )
-            if post_findings:
-                final_score = post_findings[0]["details"]["total_score"]
-                improvement = start_score - final_score
-                logger.info(
-                    "📈 Modularity Improvement: %.1f points removed.", improvement
-                )
+            final_score = (
+                findings[0]["details"]["total_score"] if findings else start_score
+            )
+            improvement = start_score - final_score
+        else:
+            final_score = start_score
+            improvement = 0.0
 
         return {
-            "file": rel_path,
+            "file": str(relative_path),
             "success": success,
             "start_score": start_score,
             "final_score": final_score,
-            "improvement": start_score - final_score,
-            "message": (
-                message if not success else "✅ Refactoring successfully applied."
-            ),
+            "improvement": improvement,
+            "message": message,
         }

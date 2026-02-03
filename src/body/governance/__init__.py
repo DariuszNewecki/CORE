@@ -13,15 +13,18 @@ Constitutional Architecture:
 - Will layer (src/will/) - Decision-making and orchestration
 
 Components:
-- risk_classification_service.py: Risk assessment and governance decisions
+- remediation_service.py: Fix constitutional violations
+
+Note: Governance decision logic moved to body/services/constitutional_validator.py
+      for proper singleton management and IntentRepository integration.
 """
 
 from __future__ import annotations
 
-from body.governance.risk_classification_service import (
+# Re-export from constitutional_validator for backward compatibility
+from body.services.constitutional_validator import (
     ApprovalType,
     GovernanceDecision,
-    RiskClassificationService,
     RiskTier,
 )
 
@@ -29,6 +32,5 @@ from body.governance.risk_classification_service import (
 __all__ = [
     "ApprovalType",
     "GovernanceDecision",
-    "RiskClassificationService",
     "RiskTier",
 ]

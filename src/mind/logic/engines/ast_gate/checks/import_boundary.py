@@ -141,7 +141,7 @@ class ImportBoundaryCheck:
         for node in ast.walk(tree):
             if isinstance(node, ast.If):
                 # Check if condition is TYPE_CHECKING
-                if ImportBoundaryCheck._is_type_checking_condition(node.test):
+                if ASTHelpers.is_type_checking_condition(node.test):
                     # Add all nodes in the if body
                     for stmt in node.body:
                         type_checking_nodes.add(stmt)
@@ -150,27 +150,6 @@ class ImportBoundaryCheck:
                             type_checking_nodes.add(nested)
 
         return type_checking_nodes
-
-    @staticmethod
-    # ID: f6a8b3d9-e4c7-9f5a-d2b6-a8e3f7c5d4b1
-    def _is_type_checking_condition(test_node: ast.expr) -> bool:
-        """
-        Check if an If condition is checking TYPE_CHECKING.
-
-        Matches:
-        - TYPE_CHECKING
-        - typing.TYPE_CHECKING
-        """
-        if isinstance(test_node, ast.Name):
-            return test_node.id == "TYPE_CHECKING"
-
-        if isinstance(test_node, ast.Attribute):
-            # Handle typing.TYPE_CHECKING
-            if test_node.attr == "TYPE_CHECKING":
-                if isinstance(test_node.value, ast.Name):
-                    return test_node.value.id == "typing"
-
-        return False
 
     @staticmethod
     # ID: a7d9c4e2-f5b8-a6e9-c3d7-b9f4e8a2c5d6
