@@ -28,7 +28,7 @@ REWIRE_MAP = {
     "system.tools.codegraph_builder": "features.introspection.knowledge_graph_service",
     "system.tools.scaffolder": "features.project_lifecycle.scaffolding_service",
     "shared.services.qdrant_service": "services.clients.qdrant_client",
-    "shared.services.embedding_service": "services.adapters.embedding_provider",
+    "shared.services.embedding_service": "shared.utils.embedding_utils",
     "shared.services.repositories.db.engine": "services.repositories.db.engine",
     "system.governance.models": "shared.models",
 }

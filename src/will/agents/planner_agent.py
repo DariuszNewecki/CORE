@@ -10,6 +10,7 @@ CONSTITUTIONAL ALIGNMENT:
 - MODERNIZATION: Uses PathResolver standard instead of settings.load().
 - FIXED: Correctly handles session acquisition for memory cleanup.
 - ENHANCED: Uses action introspection to provide LLM with parameter requirements.
+- UPDATED: Searches new .intent/ structure (no charter/ subdirectory).
 """
 
 from __future__ import annotations
@@ -23,8 +24,6 @@ import yaml
 from body.atomic.registry import action_registry  # FIXED: Use registry directly
 from body.services.service_registry import service_registry
 from features.self_healing import MemoryCleanupService
-
-# REMOVED: from shared.config import settings
 from shared.logger import getLogger
 from shared.models import ExecutionTask, PlanExecutionError
 from shared.path_resolver import PathResolver
@@ -77,6 +76,13 @@ class PlannerAgent:
     ) -> list[ExecutionTask]:
         """
         Creates an execution plan from a user goal and a reconnaissance report.
+
+        Args:
+            goal: High-level user goal to decompose
+            reconnaissance_report: Context from reconnaissance phase
+
+        Returns:
+            List of ExecutionTask objects representing the plan
         """
         # SAFE AUTO-CLEANUP: Triggered occasionally to manage system memory
         if random.random() < 0.1:
@@ -88,17 +94,15 @@ class PlannerAgent:
             except Exception as e:
                 logger.debug("Memory cleanup deferred: %s", e)
 
-        # MODERNIZATION: Explicitly load policies via file path (No settings.paths dependency)
+        # FIXED: Search new .intent/ structure for quality/purity rules
         qa_constraints = ""
 
-        # We look for policies in standard locations relative to repo_root
-        # Try 'purity' (V2 name) then 'quality_assurance' (V1 name)
-        policy_root = self._paths.intent_root / "charter" / "policies"
+        # Search in new structure: .intent/rules/code/
         policy_candidates = [
-            policy_root / "code" / "purity.json",
-            policy_root / "code" / "purity.yaml",
-            policy_root / "quality_assurance.json",
-            policy_root / "quality_assurance.yaml",
+            self._paths.intent_root / "rules" / "code" / "purity.json",
+            self._paths.intent_root / "rules" / "code" / "purity.yaml",
+            self._paths.intent_root / "rules" / "code" / "linkage.json",
+            self._paths.intent_root / "rules" / "code" / "linkage.yaml",
         ]
 
         for qa_path in policy_candidates:
@@ -113,14 +117,18 @@ class PlannerAgent:
                     )
                     rules = data.get("rules", [])
                     qa_constraints = f"\n### Quality Assurance Targets\n{json.dumps(rules, indent=2)}"
+                    logger.debug("Loaded QA constraints from: %s", qa_path)
                     break
-            except Exception:
+            except Exception as e:
+                logger.debug("Could not load QA policy from %s: %s", qa_path, e)
                 continue
 
         if not qa_constraints:
+            # Fallback to minimal default
             qa_constraints = (
                 "\n### Quality Assurance Targets\n- Ensure 75%+ test coverage."
             )
+            logger.debug("Using default QA constraints (no policy file found)")
 
         # Enrich the reconnaissance report with QA requirements
         enriched_recon = f"{reconnaissance_report}\n{qa_constraints}"
@@ -131,7 +139,7 @@ class PlannerAgent:
         action_schemas = get_all_action_schemas(actions)
         action_descriptions = json.dumps(action_schemas, indent=2)
 
-        # FIXED: Pass all 4 required positional arguments in the correct order
+        # Build planning prompt with all required context
         prompt = build_planning_prompt(
             self._paths, goal, action_descriptions, enriched_recon, self.prompt_template
         )

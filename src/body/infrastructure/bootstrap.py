@@ -13,7 +13,7 @@ are constitutionally permitted.
 
 from __future__ import annotations
 
-from body.atomic.executor import ActionExecutor  # ADDED: Concrete implementation
+from body.atomic.executor import ActionExecutor  # PRESERVED
 from shared.config import settings
 from shared.context import CoreContext
 from shared.infrastructure.context.service import ContextService
@@ -22,6 +22,7 @@ from shared.infrastructure.git_service import GitService
 from shared.infrastructure.knowledge.knowledge_service import KnowledgeService
 from shared.infrastructure.storage.file_handler import FileHandler
 from shared.models import PlannerConfig
+from shared.path_resolver import PathResolver  # ADDED: Fidelity Fix
 
 
 def _build_context_service() -> ContextService:
@@ -57,7 +58,12 @@ def create_core_context(service_registry) -> CoreContext:
 
     repo_path = settings.REPO_PATH
 
-    # 3. Build the Context object
+    # 3. Create PathResolver (The Map)
+    path_resolver = PathResolver.from_repo(
+        repo_root=repo_path, intent_root=settings.MIND
+    )
+
+    # 4. Build the Context object
     core_context = CoreContext(
         registry=service_registry,
         git_service=GitService(repo_path),
@@ -66,11 +72,12 @@ def create_core_context(service_registry) -> CoreContext:
         knowledge_service=KnowledgeService(repo_path),
     )
 
-    # 4. HEALED WIRING: Instantiate the universal mutation gateway
-    # This marries the Body (Executor) to the Context.
+    # 5. HEALED WIRING: Attach Resolver and Executor
+    # This allows orchestrators to use local paths without global settings.
+    core_context.path_resolver = path_resolver
     core_context.action_executor = ActionExecutor(core_context)
 
-    # 5. Attach the factory (now internal to this module)
+    # 6. Attach the factory
     core_context.context_service_factory = _build_context_service
 
     return core_context

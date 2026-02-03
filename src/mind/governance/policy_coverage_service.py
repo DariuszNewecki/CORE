@@ -83,14 +83,14 @@ class PolicyCoverageService:
 
     def _discover_rules_via_intent(self) -> list[_RuleRef]:
         """
-        Crawls .intent/ and .intent/charter/standards to find rule declarations.
+        Crawls .intent/ to find rule declarations.
         Replaces the legacy Python class introspection.
         """
         rules_found: list[_RuleRef] = []
         intent_root = self._paths.intent_root
 
         # We look in both modular policies and the foundational standards
-        search_roots = [intent_root / "policies", intent_root / "charter/standards"]
+        search_roots = [intent_root / "policies", intent_root / "standards"]
 
         for root in search_roots:
             if not root.exists():

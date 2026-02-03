@@ -19,6 +19,7 @@ from pathlib import Path
 import yaml
 
 from shared.config import settings
+from shared.exceptions import CoreError
 from shared.infrastructure.storage.file_handler import FileHandler
 from shared.logger import getLogger
 
@@ -26,13 +27,9 @@ from shared.logger import getLogger
 logger = getLogger(__name__)
 
 
-# ID: b43ac4db-6806-4db3-b9f3-0b755178401f
-class GenerateCorrectionMapError(RuntimeError):
-    """Raised when alias map generation fails."""
-
-    def __init__(self, message: str, *, exit_code: int = 1):
-        super().__init__(message)
-        self.exit_code = exit_code
+# ID: 2ae2b8e5-8e07-45d9-849e-d9fc2392bc16
+class GenerateCorrectionMapError(CoreError):
+    """Raised when correction map generation fails."""
 
 
 # ID: 58cc1c15-5bd9-401e-9bf2-8b64d1550631

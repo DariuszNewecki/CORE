@@ -10,19 +10,16 @@ from __future__ import annotations
 import shutil
 import subprocess
 
+from shared.exceptions import CoreError
 from shared.logger import getLogger
 
 
 logger = getLogger(__name__)
 
 
-# ID: 182c9266-f195-4a4e-930e-010b53405ccd
-class BootstrapError(RuntimeError):
-    """Raised when project bootstrap tasks fail."""
-
-    def __init__(self, message: str, *, exit_code: int = 1):
-        super().__init__(message)
-        self.exit_code = exit_code
+# ID: e8db5a13-a0a3-4581-afe2-354656ed8c4b
+class BootstrapError(CoreError):
+    """Raised when project bootstrap fails."""
 
 
 ISSUES_TO_CREATE = [

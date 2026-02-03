@@ -1,0 +1,70 @@
+{
+    "$schema": "META/rule_document.schema.json",
+    "kind": "rule_document",
+    "metadata": {
+        "id": "rules.cli.interface_design",
+        "title": "CLI Interface Design Enforcement",
+        "version": "2.0.0",
+        "authority": "constitution",
+        "phase": "load",
+        "status": "active"
+    },
+    "rules": [
+        {
+            "id": "cli.resource_first",
+            "statement": "CLI commands MUST follow 'resource action [flags]' pattern (depth=2), except admin namespace which may use depth=3.",
+            "enforcement": "blocking",
+            "authority": "constitution",
+            "phase": "load",
+            "rationale": "Resource-first design maps to user mental models and prevents architecture leakage into UX."
+        },
+        {
+            "id": "cli.no_layer_exposure",
+            "statement": "Resource names MUST NOT be 'mind', 'body', 'will', 'manage', 'check', or 'fix' as these expose internal architecture.",
+            "enforcement": "blocking",
+            "authority": "constitution",
+            "phase": "load",
+            "rationale": "Internal architecture layers should not be visible in user-facing commands."
+        },
+        {
+            "id": "cli.standard_verbs",
+            "statement": "Action names SHOULD use standard verbs: sync, query, validate, audit, list, create, show, approve, reject, execute, inspect, status, drift, rebuild, migrate, export, cleanup, format, lint, test, coverage, analyze, new, onboard, docs.",
+            "enforcement": "reporting",
+            "authority": "constitution",
+            "phase": "load",
+            "rationale": "Consistent vocabulary improves discoverability and reduces cognitive load."
+        },
+        {
+            "id": "cli.dangerous_explicit",
+            "statement": "Commands that mutate state MUST require --write flag or interactive confirmation.",
+            "enforcement": "blocking",
+            "authority": "constitution",
+            "phase": "runtime",
+            "rationale": "Prevents accidental data loss and provides audit trail for mutations."
+        },
+        {
+            "id": "cli.async_execution",
+            "statement": "All async commands MUST be wrapped with @core_command decorator to handle event loop execution.",
+            "enforcement": "blocking",
+            "authority": "code",
+            "phase": "execution",
+            "rationale": "Ensures proper async/await handling and prevents RuntimeWarning errors."
+        },
+        {
+            "id": "cli.discovery_strict",
+            "statement": "CLI resource discovery MUST fail-fast on module load errors unless CORE_DEV_MODE=1.",
+            "enforcement": "blocking",
+            "authority": "code",
+            "phase": "load",
+            "rationale": "Prevents silent failures and ensures all registered commands are functional."
+        },
+        {
+            "id": "cli.help_required",
+            "statement": "Every command MUST provide help text and usage examples.",
+            "enforcement": "reporting",
+            "authority": "policy",
+            "phase": "audit",
+            "rationale": "Self-documenting CLI improves usability and reduces support burden."
+        }
+    ]
+}

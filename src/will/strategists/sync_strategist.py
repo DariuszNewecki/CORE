@@ -40,8 +40,8 @@ class SyncStrategist(Component):
     Sync Types:
     - domains: Constitutional domain taxonomy (domains.yaml → DB)
     - symbols: Code symbol extraction (src/ → DB)
-    - vectors_policies: Policy document embeddings (.intent/charter/policies/ → Qdrant)
-    - vectors_patterns: Pattern document embeddings (.intent/charter/patterns/ → Qdrant)
+    - vectors_policies: Policy document embeddings (.intent/phases/, .intent/workflows/ → Qdrant)
+    - vectors_patterns: Pattern document embeddings (.intent/enforcement/mappings/ → Qdrant)
     - vectors_symbols: Symbol embeddings (DB → Qdrant)
 
     Dependency Rules:

@@ -1,13 +1,22 @@
 # src/shared/infrastructure/knowledge/knowledge_service.py
 
 """
-Centralized access to CORE's knowledge graph and declared capabilities from the database SSOT.
+Centralized access to CORE's knowledge graph and declared capabilities.
+
+CONSTITUTIONAL COMPLIANCE:
+- Treated as the read-only interface to the system state.
+- Sourced from the operational database view `core.knowledge_graph`.
+
+HEALED (V2.6.7):
+- Shadow Sensation: Now accepts an optional LimbWorkspace.
+- If a workspace is provided, it builds a "Shadow Graph" that includes
+  uncommitted changes, preventing "Semantic Blindness" during refactoring.
 """
 
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from sqlalchemy import text
 
@@ -15,26 +24,46 @@ from shared.infrastructure.database.session_manager import get_session
 from shared.logger import getLogger
 
 
+if TYPE_CHECKING:
+    from shared.infrastructure.context.limb_workspace import LimbWorkspace
+
 logger = getLogger(__name__)
 
 
 # ID: bfdee087-408b-4c07-ab43-d673dbb3eca0
 class KnowledgeService:
     """
-    A read-only interface to the knowledge graph, which is sourced exclusively
-    from the operational database view `core.knowledge_graph`.
+    A read-only interface to the knowledge graph.
     """
 
-    def __init__(self, repo_path: Path | str = ".", session=None):
+    def __init__(
+        self,
+        repo_path: Path | str = ".",
+        session=None,
+        workspace: LimbWorkspace | None = None,
+    ):
         self.repo_path = Path(repo_path)
         self._session = session
+        self.workspace = workspace
 
     # ID: f508b9a0-3ddd-4e36-9c72-f5a19820b769
     async def get_graph(self) -> dict[str, Any]:
         """
-        Loads the knowledge graph directly from the database, treating it as the
-        single source of truth on every call. Caching is removed to ensure freshness.
+        Loads the knowledge graph.
+
+        HEALED: If a workspace is present, it returns a 'Shadow Graph' representing
+        the future state of the code. Otherwise, it queries the database SSOT.
         """
+        # SENSATION: Check the virtual overlay first
+        if self.workspace:
+            logger.info("📡 Sensation: Building Shadow Graph from workspace overlay...")
+            from features.introspection.knowledge_graph_service import (
+                KnowledgeGraphBuilder,
+            )
+
+            builder = KnowledgeGraphBuilder(self.repo_path, workspace=self.workspace)
+            return builder.build()
+
         logger.info("Loading knowledge graph from database view...")
         symbols_map = {}
         try:
@@ -50,6 +79,7 @@ class KnowledgeService:
             else:
                 async with get_session() as session:
                     rows = await _fetch_data(session)
+
             for row in rows:
                 row_dict = dict(row)
                 symbol_path = row_dict.get("symbol_path")
@@ -60,6 +90,7 @@ class KnowledgeService:
                         row_dict["vector_id"] = str(row_dict["vector_id"])
                     row_dict["capabilities"] = row_dict.get("capabilities_array", [])
                     symbols_map[symbol_path] = row_dict
+
             knowledge_graph = {"symbols": symbols_map}
             logger.info(
                 "Successfully loaded %s symbols from the database.", len(symbols_map)
@@ -89,7 +120,7 @@ class KnowledgeService:
     # ID: 3f6515de-ffb2-4119-90c0-aecc89aae54a
     async def search_capabilities(self, query: str, limit: int = 5) -> list[str]:
         """
-        This is a placeholder. Real semantic search happens in CognitiveService.
+        Placeholder for semantic search (usually handled by CognitiveService).
         """
         all_caps = await self.list_capabilities()
         q_lower = query.lower()

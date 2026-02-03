@@ -118,7 +118,7 @@ async def _build_internal(task: str, out: Path | None) -> ActionResult:
             warnings=["ContextPackage build feature is under development"],
             suggestions=[
                 "Run 'poetry run pytest tests/services/context/' for implementation status",
-                "Check .intent/charter/patterns/ for ContextPackage architecture",
+                "Check .intent/patterns/ for ContextPackage architecture",
             ],
         )
 

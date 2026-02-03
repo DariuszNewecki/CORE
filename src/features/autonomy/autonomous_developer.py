@@ -8,6 +8,7 @@ Workflows are defined in .intent/workflows/ and composed from
 phases defined in .intent/phases/.
 
 BREAKING CHANGE: This is the new interface for autonomous operations.
+HEALED V2.6: Wired with PathResolver to support decoupled Mind access.
 """
 
 from __future__ import annotations
@@ -65,10 +66,18 @@ async def develop_from_goal(
     logger.info("Workflow: %s", workflow_type)
     logger.info("Write: %s", write)
 
+    # HEALED WIRING: Extract the resolver from context
+    path_resolver = getattr(context, "path_resolver", None)
+    if not path_resolver:
+        raise RuntimeError(
+            "PathResolver not found in CoreContext. "
+            "Ensure src/body/infrastructure/bootstrap.py has been updated to v2.6."
+        )
+
     try:
-        # Initialize orchestrator
-        phase_registry = PhaseRegistry(context)
-        orchestrator = WorkflowOrchestrator(phase_registry)
+        # Initialize orchestrator with PathResolver (FIXED)
+        phase_registry = PhaseRegistry(context, path_resolver)
+        orchestrator = WorkflowOrchestrator(phase_registry, path_resolver)
 
         # Execute workflow
         result: PhaseWorkflowResult = await orchestrator.execute_goal(

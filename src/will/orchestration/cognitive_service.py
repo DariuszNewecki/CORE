@@ -3,20 +3,14 @@
 """
 CognitiveService - Will-facing facade for cognitive access.
 
-NO-LEGACY MODE:
-- Uses only the constitutional orchestrator: CognitiveOrchestrator + MindStateService.
-- Does not depend on (or import) ClientOrchestrator.
-
 Responsibilities:
 - Initialize: wires MindStateService (Body) and CognitiveOrchestrator (Will).
 - aget_client_for_role(): returns LLMClient for a cognitive role.
-- get_embedding_for_code(): embedding for introspection/vectorization (Vectorizer role).
-- Optional semantic search via injected QdrantService (not required for embeddings).
+- get_embedding_for_code(): embedding for Vectorizer role.
+- Optional semantic search via injected QdrantService.
 
-Constitutional Compliance:
-- Will does not open DB sessions directly.
-- Will does not import settings - receives config via DI.
-- Body owns session lifecycle via ServiceRegistry.
+HEALED (V2.6.2):
+- Explicitly detaches sub-services from the DB session after initialization is complete.
 """
 
 from __future__ import annotations
@@ -50,19 +44,9 @@ class CognitiveService:
 
     def __init__(
         self,
-        repo_path: Path,  # ← REQUIRED, no default
+        repo_path: Path,
         qdrant_service: QdrantService | None = None,
     ) -> None:
-        """
-        Initialize CognitiveService.
-
-        CONSTITUTIONAL FIX: repo_path is required parameter.
-        Will layer must not access settings directly.
-
-        Args:
-            repo_path: Repository root path (injected by Body/ServiceRegistry)
-            qdrant_service: Optional Qdrant service for semantic search
-        """
         self._repo_path = Path(repo_path)
         self._qdrant_service = qdrant_service
 
@@ -97,29 +81,22 @@ class CognitiveService:
             )
             await self._orch.initialize()
 
+            # HEALED V2.6.2: Release the DB session back to the pool.
+            # This stops theAdaptedConnection leak warning.
+            if self._config:
+                self._config.detach()
+            if self._mind_state:
+                self._mind_state.detach()
+
             self._loaded = True
-            logger.info(
-                "CognitiveService initialized (constitutional orchestrator wired)."
-            )
+            logger.info("CognitiveService initialized (connections detached).")
 
     def _require_ready(self) -> None:
         if not self._loaded or not self._orch or not self._config:
-            raise RuntimeError(
-                "CognitiveService is not initialized. "
-                "ServiceRegistry must call await cognitive_service.initialize(session) during boot."
-            )
+            raise RuntimeError("CognitiveService is not initialized.")
 
-    # Provider factory injected into orchestrator
     # ID: aec81806-c12d-4f9c-9ca0-d159f3c124ff
     async def _create_provider_for_resource(self, resource: LlmResource) -> AIProvider:
-        """
-        Create provider for a resource using DB-backed config.
-
-        Required keys (by resource.env_prefix):
-          - {PREFIX}_API_URL
-          - {PREFIX}_MODEL_NAME
-          - {PREFIX}_API_KEY (secret)
-        """
         self._require_ready()
         assert self._config is not None
 
@@ -132,16 +109,13 @@ class CognitiveService:
         api_key = await self._config.get_secret(f"{prefix}_API_KEY")
 
         if not api_url or not model_name:
-            raise ValueError(
-                f"Missing config for resource '{resource.name}'. "
-                f"Required: {prefix}_API_URL and {prefix}_MODEL_NAME."
-            )
+            raise ValueError(f"Missing config for resource '{resource.name}'.")
 
         # Local Ollama
         if "ollama" in api_url.lower() or "11434" in api_url:
             return OllamaProvider(api_url=api_url, model_name=model_name)
 
-        # Default: OpenAI-compatible (incl. LiteLLM gateways)
+        # Default: OpenAI-compatible
         return OpenAIProvider(api_url=api_url, api_key=api_key, model_name=model_name)
 
     # ID: 9962386f-4b31-5782-ba52-0b2b1655a43e
@@ -153,10 +127,7 @@ class CognitiveService:
 
     # ID: 64a09426-e74e-4547-a08f-3af887085bac
     async def get_embedding_for_code(self, source_code: str) -> list[float] | None:
-        """
-        Generate an embedding using the Vectorizer role.
-        Required by introspection/vectorization.
-        """
+        """Generate an embedding using the Vectorizer role."""
         if not source_code:
             return None
         client = await self.aget_client_for_role("Vectorizer")
@@ -166,7 +137,7 @@ class CognitiveService:
     async def search_capabilities(
         self, query: str, limit: int = 5
     ) -> list[dict[str, Any]]:
-        """Optional semantic search via Qdrant (if injected)."""
+        """Optional semantic search via Qdrant."""
         if not query:
             return []
 

@@ -85,7 +85,7 @@ def _log_uncovered_policy_rules(records: list[dict[str, Any]]) -> None:
 # ID: 6eb5c3ca-cbbf-48d1-82a5-de01df839b6f
 def policy_coverage():
     """
-    Runs a meta-audit on all .intent/charter/policies/ to ensure they are
+    Runs a meta-audit on all .intent/policies/ to ensure they are
     well-formed and covered by the governance model.
     """
     logger.info("Running Constitutional Policy Coverage Audit...")

@@ -26,7 +26,7 @@ from shared.models import AuditFinding
 logger = getLogger(__name__)
 
 # The policy defines the "Spirit of the Law"
-GOVERNANCE_POLICY = Path(".intent/charter/standards/data/governance.json")
+GOVERNANCE_POLICY = Path(".intent/standards/data/governance.json")
 
 
 # ID: 81d6e8ed-a6f6-444c-acda-9064896c5111

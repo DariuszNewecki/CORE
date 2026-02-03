@@ -2,7 +2,7 @@
 """
 Body Contracts Checker
 
-Static validator for `.intent/charter/patterns/body_contracts.json`.
+Static validator for `.intent/patterns/body_contracts.json`.
 
 It enforces a subset of the Body Layer Execution Contract:
 

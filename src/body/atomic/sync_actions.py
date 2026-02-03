@@ -192,7 +192,7 @@ async def action_sync_constitutional_vectors(
 
     This syncs:
     - Policy documents from .intent/policies/
-    - Pattern documents from .intent/charter/patterns/
+    - Pattern documents from .intent/patterns/
 
     Uses VectorIndexService with CognitiveService embedder for:
     - Hash-based deduplication (only vectorize changed content)
