@@ -13,24 +13,17 @@ Constitutional Architecture:
 - Will layer (src/will/) - Decision-making and orchestration
 
 Components:
+- intent_guard.py: Constitutional enforcement orchestrator (MOVED from Mind)
+- engine_dispatcher.py: Engine coordination (MOVED from Mind)
+- intent_pattern_validators.py: Pattern validation (MOVED from Mind)
 - remediation_service.py: Fix constitutional violations
 
-Note: Governance decision logic moved to body/services/constitutional_validator.py
-      for proper singleton management and IntentRepository integration.
+Import directly from submodules:
+    from body.governance.intent_guard import IntentGuard
+    from body.governance.engine_dispatcher import EngineDispatcher
 """
 
 from __future__ import annotations
 
-# Re-export from constitutional_validator for backward compatibility
-from body.services.constitutional_validator import (
-    ApprovalType,
-    GovernanceDecision,
-    RiskTier,
-)
-
-
-__all__ = [
-    "ApprovalType",
-    "GovernanceDecision",
-    "RiskTier",
-]
+# NO re-exports to avoid circular imports
+# Import directly from submodules instead

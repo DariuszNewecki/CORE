@@ -342,9 +342,9 @@ async def create_pre_flight_validator(
     - RuleConflictDetector
     - AuthorityPackageBuilder
     """
+    from body.governance.rule_conflict_detector import RuleConflictDetector
     from mind.governance.assumption_extractor import AssumptionExtractor
     from mind.governance.authority_package_builder import AuthorityPackageBuilder
-    from mind.governance.rule_conflict_detector import RuleConflictDetector
     from will.interpreters.request_interpreter import NaturalLanguageInterpreter
 
     # Create components

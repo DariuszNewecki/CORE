@@ -15,7 +15,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from mind.governance.engine_dispatcher import EngineDispatcher
+from body.governance.engine_dispatcher import EngineDispatcher
 from mind.governance.policy_rule import PolicyRule
 from mind.governance.violation_report import ViolationReport
 from shared.logger import getLogger

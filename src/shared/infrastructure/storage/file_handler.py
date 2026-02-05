@@ -18,7 +18,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from mind.governance.intent_guard import IntentGuard
+from body.governance.intent_guard import IntentGuard
 from shared.logger import getLogger
 from shared.path_resolver import PathResolver
 

@@ -13,7 +13,7 @@ is migrated. New code MUST import from mind.governance.intent_guard.
 
 from __future__ import annotations
 
-from mind.governance.intent_guard import (  # noqa: F401
+from body.governance.intent_guard import (  # noqa: F401
     ConstitutionalViolationError,
     IntentGuard,
     PolicyRule,

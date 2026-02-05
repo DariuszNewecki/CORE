@@ -57,10 +57,10 @@ async def validate_request_async(request: str, verbose: bool = False) -> None:
         # Initialize components
         console.print("[dim]Initializing constitutional infrastructure...[/dim]")
 
+        from body.governance.rule_conflict_detector import RuleConflictDetector
         from body.services.service_registry import service_registry
         from mind.governance.assumption_extractor import AssumptionExtractor
         from mind.governance.authority_package_builder import AuthorityPackageBuilder
-        from mind.governance.rule_conflict_detector import RuleConflictDetector
         from shared.infrastructure.intent.intent_repository import (
             get_intent_repository,
         )

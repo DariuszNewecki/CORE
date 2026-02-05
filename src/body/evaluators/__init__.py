@@ -1,33 +1,14 @@
 # src/body/evaluators/__init__.py
 
 """
-Body Evaluators - AUDIT Phase Components
-
-Evaluators assess quality, identify patterns, and provide recommendations.
-They evaluate results and return structured assessments.
-
-Available Evaluators:
-- AtomicActionsEvaluator: Atomic action pattern compliance
-- ClarityEvaluator: Code complexity analysis
-- ConstitutionalEvaluator: Constitutional compliance checking
-- FailureEvaluator: Test failure pattern recognition
-- PatternEvaluator: Design pattern compliance
-- PerformanceEvaluator: Performance metrics assessment
-- SecurityEvaluator: Security vulnerability detection
-
-Constitutional Alignment:
-- Phase: AUDIT (evaluation, no execution)
-- Returns recommendations (not decisions)
-- Tracks patterns for learning
+Body Evaluators - AUDIT Phase Components.
+Organized for High-Fidelity precision.
 """
 
 from __future__ import annotations
 
-from .atomic_actions_evaluator import (
-    AtomicActionsEvaluator,
-    AtomicActionViolation,
-    format_atomic_action_violations,
-)
+from .atomic_actions_evaluator import AtomicActionsEvaluator
+from .base_evaluator import BaseEvaluator
 from .clarity_evaluator import ClarityEvaluator
 from .constitutional_evaluator import ConstitutionalEvaluator
 from .failure_evaluator import FailureEvaluator
@@ -36,12 +17,11 @@ from .security_evaluator import SecurityEvaluator
 
 
 __all__ = [
-    "AtomicActionViolation",
     "AtomicActionsEvaluator",
+    "BaseEvaluator",
     "ClarityEvaluator",
     "ConstitutionalEvaluator",
     "FailureEvaluator",
     "PerformanceEvaluator",
     "SecurityEvaluator",
-    "format_atomic_action_violations",
 ]

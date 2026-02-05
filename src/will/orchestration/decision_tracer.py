@@ -12,6 +12,11 @@ CONSTITUTIONAL FIX:
 - Callers do NOT pass sessions around.
 - DB persistence is performed via a repository opened through Body session factory.
 - File backup remains primary and must never fail due to DB issues.
+
+HEALED (V2.7.2):
+- Robust Path Resolution: Handles cases where PathResolver is None during
+  uninitialized bootstrap.
+- Standardized Sensation: Falls back to Path.cwd() if repo_root is unavailable.
 """
 
 from __future__ import annotations
@@ -60,7 +65,7 @@ class DecisionTracer:
 
     def __init__(
         self,
-        path_resolver: PathResolver,
+        path_resolver: PathResolver | None = None,
         session_id: str | None = None,
         file_service: FileService | None = None,
         agent_name: str | None = None,
@@ -70,7 +75,7 @@ class DecisionTracer:
         Initialize decision tracer.
 
         Args:
-            path_resolver: PathResolver for path resolution
+            path_resolver: PathResolver for path resolution (may be None)
             session_id: Optional session identifier
             file_service: Body layer FileService for file operations
             agent_name: Name of the agent making decisions
@@ -86,11 +91,22 @@ class DecisionTracer:
         # Keep legacy location for file-based backup
         self.trace_dir = Path("reports") / "decisions"
 
+        # HEALED: Safe path resolution to prevent 'NoneType' crashes
+        # We try to get the repo_root from the resolver; if missing, we use Current Working Directory.
+        resolved_root = Path.cwd()
+        if self._paths and hasattr(self._paths, "repo_root"):
+            resolved_root = self._paths.repo_root
+
         # CONSTITUTIONAL FIX: Use injected FileService or create a default one
-        self.file_service = file_service or FileService(self._paths.repo_root)
+        self.file_service = file_service or FileService(resolved_root)
 
         # Ensure directory exists via Body service (Governed Mutation)
-        self.file_service.ensure_dir(str(self.trace_dir))
+        try:
+            self.file_service.ensure_dir(str(self.trace_dir))
+        except Exception:
+            logger.debug(
+                "DecisionTracer: Could not ensure trace directory (read-only environment?)"
+            )
 
     # ID: d259527d-5f1e-4778-8499-fa23fd49e7f5
     def record(
@@ -153,25 +169,20 @@ class DecisionTracer:
 
     # ID: aa09fa09-8f93-496a-bea9-62d220708268
     # ID: b7edb66b-3089-4c6a-bc65-ce9a25138df2
-    async def save_trace(self) -> Path:
+    async def save_trace(self) -> Path | None:
         """
         Save decision trace to file (always) and DB (best-effort).
 
         Returns:
             Path to file backup
         """
-        trace_file = self._save_to_file()
-
         try:
+            trace_file = self._save_to_file()
             await self._save_to_database(trace_file)
+            return trace_file
         except Exception as e:
-            logger.warning(
-                "Failed to persist decision trace to database: %s. File backup available at %s",
-                e,
-                trace_file,
-            )
-
-        return trace_file
+            logger.warning("Failed to persist decision trace: %s", e)
+            return None
 
     def _save_to_file(self) -> Path:
         """
@@ -195,7 +206,11 @@ class DecisionTracer:
         # CONSTITUTIONAL FIX: Use FileService.write_file
         self.file_service.write_file(rel_path, content)
         logger.debug("Decision trace file saved: %s", rel_path)
-        return self._paths.repo_root / rel_path
+
+        # Determine the return path
+        if self._paths and hasattr(self._paths, "repo_root"):
+            return self._paths.repo_root / rel_path
+        return Path(rel_path)
 
     async def _save_to_database(self, trace_file: Path) -> None:
         """

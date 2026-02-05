@@ -145,6 +145,70 @@ class IntentRepository:
         return out
 
     # ID: 30ff6d03-ebae-4d92-ad1f-e05aa5f13256
+
+    # ID: 90501a55-63c5-4a83-8720-e2a237e859a5
+    def get_precedence_map(self) -> dict[str, int]:
+        """
+        Return policy precedence map from `.intent/constitution/precedence_rules.(yaml|yml|json)`.
+
+        Output:
+            dict[str, int] where key is policy name (stem, without suffix) and value is precedence level.
+        """
+
+        def _norm(name: str) -> str:
+            return (
+                name.replace(".json", "")
+                .replace(".yaml", "")
+                .replace(".yml", "")
+                .strip()
+            )
+
+        candidates = [
+            self.resolve_rel("constitution/precedence_rules.yaml"),
+            self.resolve_rel("constitution/precedence_rules.yml"),
+            self.resolve_rel("constitution/precedence_rules.json"),
+        ]
+
+        chosen = next((p for p in candidates if p.exists()), None)
+        if not chosen:
+            return {}
+
+        data = self.load_document(chosen)
+        hierarchy = data.get("policy_hierarchy", [])
+        if not isinstance(hierarchy, list):
+            if self._strict:
+                from shared.infrastructure.intent.errors import GovernanceError
+
+                raise GovernanceError(
+                    f"Invalid precedence_rules format (policy_hierarchy not a list): {chosen}"
+                )
+            logger.warning(
+                "Invalid precedence_rules format (policy_hierarchy not a list): %s",
+                chosen,
+            )
+            return {}
+
+        mapping: dict[str, int] = {}
+        for entry in hierarchy:
+            if not isinstance(entry, dict):
+                continue
+
+            level_raw = entry.get("level", 999)
+            try:
+                level = int(level_raw)
+            except Exception:
+                level = 999
+
+            if isinstance(entry.get("policy"), str):
+                mapping[_norm(entry["policy"])] = level
+
+            if isinstance(entry.get("policies"), list):
+                for p in entry["policies"]:
+                    if isinstance(p, str):
+                        mapping[_norm(p)] = level
+
+        return mapping
+
     def get_rule(self, rule_id: str) -> RuleRef:
         self._ensure_index()
         ref = self._rule_index.get(rule_id)
