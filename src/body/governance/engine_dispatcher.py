@@ -9,11 +9,10 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from mind.governance.policy_rule import PolicyRule
+from mind.governance.violation_report import ViolationReport
 from mind.logic.engines.registry import EngineRegistry
 from shared.logger import getLogger
-
-from .policy_rule import PolicyRule
-from .violation_report import ViolationReport
 
 
 logger = getLogger(__name__)

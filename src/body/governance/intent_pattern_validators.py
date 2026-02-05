@@ -16,9 +16,8 @@ Migration target: .intent/policies/ with ast_gate or regex_gate engines.
 
 from __future__ import annotations
 
+from mind.governance.violation_report import ViolationReport
 from shared.logger import getLogger
-
-from .violation_report import ViolationReport
 
 
 logger = getLogger(__name__)

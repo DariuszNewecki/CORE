@@ -9,6 +9,10 @@ Actions are composable, auditable, and constitutionally governed.
 Constitutional Alignment:
 - Boundary: Uses CoreContext for repo_path (no direct settings access)
 - Circularity Fix: Feature-level imports are performed inside functions.
+
+HEALED (V2.7.2):
+- Context Injection: Now correctly passes core_context to AtomicActionsEvaluator
+  to prevent 'NoneType' attribute errors during self-healing.
 """
 
 from __future__ import annotations
@@ -240,13 +244,18 @@ async def action_fix_atomic_actions(
 
     start_time = time.time()
     root_path = core_context.git_service.repo_path
-    evaluator = AtomicActionsEvaluator()
+
+    # HEALED: Pass the context to the Evaluator so it can initialize its tracer properly
+    evaluator = AtomicActionsEvaluator(context=core_context)
+
     result_wrapper = await evaluator.execute(repo_root=root_path)
     data = result_wrapper.data
+
     if not data["violations"]:
         return ActionResult(
             action_id="fix.atomic_actions", ok=True, data={"violations_fixed": 0}
         )
+
     violations = [
         AtomicActionViolation(
             file_path=root_path / v["file"],
@@ -255,15 +264,18 @@ async def action_fix_atomic_actions(
             message=v["message"],
             severity=v["severity"],
             line_number=v["line"],
-            suggested_fix=v["suggested_fix"],
+            suggested_fix=v.get("suggested_fix"),
         )
         for v in data["violations"]
     ]
+
     violations_by_file = {}
     for v in violations:
         violations_by_file.setdefault(v.file_path, []).append(v)
+
     fixes_applied = 0
     files_modified = 0
+
     for file_path, file_violations in violations_by_file.items():
         try:
             source = file_path.read_text(encoding="utf-8")
@@ -278,6 +290,7 @@ async def action_fix_atomic_actions(
                 fixes_applied += len(file_violations)
         except Exception as e:
             logger.error("Error fixing %s: %s", file_path, e)
+
     return ActionResult(
         action_id="fix.atomic_actions",
         ok=True,

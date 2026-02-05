@@ -15,7 +15,7 @@ from __future__ import annotations
 
 import ast
 
-from mind.governance.intent_pattern_validators import PatternValidators
+from body.governance.intent_pattern_validators import PatternValidators
 from mind.governance.violation_report import ViolationReport
 from shared.logger import getLogger
 from shared.models.constitutional_validation import ConstitutionalValidationResult
