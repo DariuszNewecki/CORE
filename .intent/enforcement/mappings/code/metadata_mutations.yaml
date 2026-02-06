@@ -1,0 +1,30 @@
+# .intent/enforcement/mappings/code/metadata_mutations.yaml
+#
+# Enforcement mappings for metadata mutation governance.
+# Based on: .intent/rules/code/metadata_mutations.json
+#
+# CONSTITUTIONAL NOTE: WRITE_METADATA actions bypass governance.logic_mutation.governed
+# because they are governed by a stricter, proof-based invariant:
+# the normalized AST must be identical before and after.
+#
+# Rules without mappings (declared_only by design):
+#   - metadata.operations.comment_insert    (action-layer constraint, not engine-checked)
+#   - metadata.operations.comment_replace   (action-layer constraint, not engine-checked)
+#   - metadata.operations.comment_delete    (action-layer constraint, not engine-checked)
+#   - metadata.operations.docstring_insert  (action-layer constraint, not engine-checked)
+#   - metadata.operations.docstring_replace (action-layer constraint, not engine-checked)
+#   - metadata.scope.universal              (constitutional declaration, not engine-checked)
+
+mappings:
+  # LAW: Executable semantics must be preserved across metadata mutations
+  # Check type: ast_gate (Normalized AST comparison before/after)
+  metadata.semantic_preservation:
+    engine: ast_gate
+    params:
+      check_type: metadata_only_diff
+    scope:
+      applies_to:
+        - "src/**/*.py"
+      excludes:
+        - "**/__init__.py"
+        - "tests/**/*.py"

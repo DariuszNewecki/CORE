@@ -9,6 +9,10 @@ from mind.logic.engines.ast_gate.checks.capability_checks import CapabilityCheck
 from mind.logic.engines.ast_gate.checks.generic_checks import GenericASTChecks
 from mind.logic.engines.ast_gate.checks.import_checks import ImportChecks
 from mind.logic.engines.ast_gate.checks.logging_checks import LoggingChecks
+from mind.logic.engines.ast_gate.checks.metadata_checks import (
+    normalize_ast,
+    verify_metadata_only_diff,
+)
 from mind.logic.engines.ast_gate.checks.naming_checks import NamingChecks
 from mind.logic.engines.ast_gate.checks.purity_checks import PurityChecks
 
@@ -21,4 +25,6 @@ __all__ = [
     "LoggingChecks",
     "NamingChecks",
     "PurityChecks",
+    "normalize_ast",
+    "verify_metadata_only_diff",
 ]

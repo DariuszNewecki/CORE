@@ -6,20 +6,16 @@ MOVED FROM MIND TO BODY (Constitutional Compliance):
 IntentGuard performs EXECUTION logic (validation, enforcement decisions).
 Mind layer defines law (.intent/), Body layer enforces it.
 
-IntentGuard is the runtime enforcement layer for CORE's constitutional governance.
-It validates all file operations against policies defined in .intent/
+UPDATED (V2.6.6):
+- Enforcement Strength Discipline: Distinguishes between 'blocking' and 'reporting'.
+- Non-Blocking Warnings: Allowed transactions to proceed if only warnings are found.
+- Python 3.12 Safety: Explicit check for empty patterns in Path.match().
 
-Architecture:
-- Loads rules from IntentRepository (Mind layer - human-authored)
-- Applies precedence-based rule ordering
-- Dispatches to engines (AST, regex, glob, workflow) for verification
-- Enforces hard invariants (e.g., no .intent writes)
-- Supports emergency override (bypass policy, never .intent)
-
-Wiring:
-- FileHandler calls IntentGuard before mutations
-- Engines are invoked via EngineDispatcher
-- Pattern validators provide backward compatibility during migration
+UPDATED (V2.7.0):
+- Impact-Tier Awareness: check_transaction accepts an optional impact parameter.
+- WRITE_METADATA operations skip engine-based audit rules (ast_gate, etc.)
+  because their safety is proven at action execution time via normalized AST comparison.
+- Hard invariants (.intent/ protection) always apply regardless of impact tier.
 """
 
 from __future__ import annotations
@@ -29,7 +25,9 @@ from pathlib import Path
 
 from body.governance.engine_dispatcher import EngineDispatcher
 from body.governance.intent_pattern_validators import PatternValidators
+from mind.governance.enforcement_loader import EnforcementMappingLoader
 from mind.governance.policy_rule import PolicyRule
+from mind.governance.rule_extractor import extract_executable_rules
 from mind.governance.violation_report import (
     ConstitutionalViolationError,
     ViolationReport,
@@ -51,6 +49,9 @@ __all__ = [
 
 logger = getLogger(__name__)
 
+# Engine types that perform code-analysis audits (not write-permission gates)
+_AUDIT_ENGINES = frozenset({"ast_gate", "knowledge_gate", "llm_gate", "regex_gate"})
+
 
 # ID: 4275c592-2725-4fd1-807f-f0d5d83ea78b
 class IntentGuard:
@@ -70,15 +71,10 @@ class IntentGuard:
 
     def __init__(self, repo_path: Path, path_resolver: PathResolver | None = None):
         """
-        Initialize IntentGuard with constitutional rules.
-
-        Args:
-            repo_path: Absolute path to repository root
-            path_resolver: Optional PathResolver (for backward compatibility)
+        Initialize IntentGuard with constitutional rules and enforcement mappings.
         """
         self.repo_path = Path(repo_path).resolve()
 
-        # Handle path_resolver parameter for backward compatibility
         if path_resolver is not None:
             self.intent_root = path_resolver.intent_root
         else:
@@ -86,31 +82,51 @@ class IntentGuard:
 
         self.emergency_lock_file = (self.repo_path / self._EMERGENCY_LOCK_REL).resolve()
 
-        # Load governance from IntentRepository
+        # 1. Initialize Mind Repository
         repo = get_intent_repository()
-        repo.initialize()  # CRITICAL: Initialize the repository to build indexes
+        repo.initialize()
 
-        # Get precedence map (may return empty dict if no precedence_rules file exists)
-        self.precedence_map = repo.get_precedence_map()
+        # 2. Initialize Enforcement Mappings (The Implementation Scopes)
+        mapping_loader = EnforcementMappingLoader(self.intent_root)
 
-        # Parse rules from policies
-        raw_rules = repo.list_policy_rules()
-        self.rules: list[PolicyRule] = []
-        for entry in raw_rules:
-            if not isinstance(entry, dict):
+        # 3. Extract All Policies from Mind
+        policies = {}
+        for pref in repo.list_policies():
+            try:
+                policies[pref.policy_id] = repo.load_policy(pref.policy_id)
+            except Exception:
                 continue
-            policy_name = entry.get("policy_name") or "unknown"
-            rule_dict = entry.get("rule")
-            if isinstance(rule_dict, dict):
+
+        # 4. Resolve Executable Rules (Combining Law + Implementation)
+        executable_rules = extract_executable_rules(policies, mapping_loader)
+
+        # 5. Transform to internal PolicyRule objects
+        self.rules: list[PolicyRule] = []
+        for er in executable_rules:
+            # Flatten ExecutableRule scope (list) into individual PolicyRules (string pattern)
+            for pattern in er.scope:
+                if not pattern or not str(pattern).strip():
+                    continue
+
                 self.rules.append(
-                    PolicyRule.from_dict(rule_dict, source=str(policy_name))
+                    PolicyRule(
+                        name=er.rule_id,
+                        pattern=str(pattern),
+                        action=er.engine or "deny",
+                        description=er.statement,
+                        severity=er.enforcement,
+                        source_policy=er.policy_id,
+                        engine=er.engine,
+                        params=er.params,
+                    )
                 )
 
-        # Apply precedence (lower number = higher priority)
+        # 6. Apply precedence (lower number = higher priority)
+        self.precedence_map = repo.get_precedence_map()
         self.rules.sort(key=lambda r: self.precedence_map.get(r.source_policy, 999))
 
         logger.info(
-            "IntentGuard initialized with %s policy rules for file operation governance.",
+            "IntentGuard initialized with %s enforcement rules for file operation governance.",
             len(self.rules),
         )
 
@@ -120,21 +136,21 @@ class IntentGuard:
 
     # ID: 9a9a8177-2d56-4d60-8e99-37d551288e14
     def check_transaction(
-        self, proposed_paths: list[str]
+        self, proposed_paths: list[str], impact: str | None = None
     ) -> tuple[bool, list[ViolationReport]]:
         """
         Validate a set of proposed file operations.
 
         Args:
-            proposed_paths: List of repo-relative paths (e.g., ["src/main.py"])
+            proposed_paths: List of repo-relative paths to validate.
+            impact: Optional impact tier of the operation. When set to
+                "write-metadata", engine-based audit rules (ast_gate, etc.)
+                are skipped because metadata mutations are proven safe at
+                action execution time via normalized AST comparison.
+                Hard invariants (.intent/ protection) always apply.
 
         Returns:
-            (allowed, violations) - allowed=False if any violations found
-
-        Enforcement order:
-        1. Hard invariant (.intent writes blocked ALWAYS)
-        2. Emergency mode check (bypass policy, never .intent)
-        3. Policy rules (precedence-ordered)
+            (allowed, violations) - allowed=False ONLY if 'error' severity found.
         """
         violations: list[ViolationReport] = []
 
@@ -155,17 +171,21 @@ class IntentGuard:
                 )
                 continue
 
-            # EMERGENCY BYPASS: Skip policy checks if emergency file exists
+            # EMERGENCY BYPASS
             if self._is_emergency_mode():
                 logger.warning(
                     "Emergency mode active - bypassing policy checks for: %s", path_str
                 )
                 continue
 
-            # POLICY EVALUATION: Check constitutional rules
-            violations.extend(self._check_against_rules(path_str, abs_path))
+            # POLICY EVALUATION
+            violations.extend(self._check_against_rules(path_str, abs_path, impact))
 
-        return (len(violations) == 0, violations)
+        # CONSTITUTIONAL FIX: Only 'error' severity (Blocking) should fail the transaction.
+        # 'warning' severity (Reporting/Advisory) should be reported but not block.
+        has_blocking_errors = any(v.severity == "error" for v in violations)
+
+        return (not has_blocking_errors, violations)
 
     # ID: 58d875bb-966e-4b82-ab83-66514b9455dc
     async def validate_generated_code(
@@ -173,19 +193,10 @@ class IntentGuard:
     ) -> tuple[bool, list[ViolationReport]]:
         """
         Validate generated code against pattern requirements.
-
-        Args:
-            code: Generated code content
-            pattern_id: Pattern type (e.g., "inspect_pattern", "action_pattern")
-            component_type: Component category (for compatibility)
-            target_path: Target file path (repo-relative)
-
-        Returns:
-            (valid, violations) - valid=False if any violations found
         """
         violations: list[ViolationReport] = []
 
-        # 1. Path-level validation (hard invariant + rules)
+        # 1. Path-level validation
         _allowed, path_violations = self.check_transaction([target_path])
         violations.extend(path_violations)
 
@@ -210,12 +221,14 @@ class IntentGuard:
         )
         violations.extend(pattern_violations)
 
-        # 4. Engine dispatch for deep checks (if configured)
+        # 4. Engine dispatch for deep checks
         engine_violations = await EngineDispatcher.validate_code(
             code, target_path, self.rules
         )
         violations.extend(engine_violations)
 
+        # For generated code, we are stricter: any violation (even warnings)
+        # usually suggests the AI should try again.
         return (len(violations) == 0, violations)
 
     # -------------------------------------------------------------------------
@@ -235,47 +248,58 @@ class IntentGuard:
         return self.emergency_lock_file.exists()
 
     def _check_against_rules(
-        self, path_str: str, abs_path: Path
+        self, path_str: str, abs_path: Path, impact: str | None = None
     ) -> list[ViolationReport]:
         """
         Evaluate path against constitutional rules.
 
-        Args:
-            path_str: Repo-relative path string
-            abs_path: Absolute resolved path
-
-        Returns:
-            List of violations
+        When impact is "write-metadata", engine-based audit rules are skipped.
+        These rules analyze source code content (imports, patterns, direct writes)
+        and are irrelevant to metadata-only mutations which are proven safe
+        by normalized AST comparison at action execution time.
         """
         violations: list[ViolationReport] = []
+        is_metadata = impact == "write-metadata"
 
         for rule in self.rules:
-            # Check if rule pattern matches path
-            if not rule.matches(path_str):
+            if not rule.pattern:
                 continue
 
-            # Evaluate rule action
-            if rule.action == "forbid":
-                violations.append(
-                    ViolationReport(
-                        rule_name=rule.name,
-                        path=path_str,
-                        message=f"Path matches forbidden pattern: {rule.pattern}",
-                        severity="error",
-                        suggested_fix=rule.rationale or "Avoid this pattern.",
-                        source_policy=rule.source_policy,
-                    )
+            try:
+                if not Path(path_str).match(rule.pattern):
+                    continue
+            except ValueError:
+                continue
+
+            # WRITE_METADATA TIER: Skip engine-based audit rules.
+            # These rules check code content (no_direct_writes, forbidden_primitives, etc.)
+            # They are not write-permission gates — they are code-analysis audits.
+            # Metadata mutations are proven safe by the semantic preservation invariant
+            # enforced in body.atomic.metadata_ops.action_tag_metadata.
+            if is_metadata and rule.engine in _AUDIT_ENGINES:
+                continue
+
+            # FIDELITY FIX: Map "blocking" to "error", others to "warning"
+            # This ensures dev-sync can complete for non-critical warnings.
+            is_blocking = rule.severity in ("blocking", "error")
+            severity = "error" if is_blocking else "warning"
+
+            # Determine the message
+            if is_blocking:
+                msg = f"Path matches forbidden pattern: {rule.pattern}"
+            else:
+                msg = f"Path requires human review: {rule.pattern}"
+
+            # FIDELITY FIX: Explicitly pass the Rule metadata to the report
+            violations.append(
+                ViolationReport(
+                    rule_name=rule.name,
+                    path=path_str,
+                    message=msg,
+                    severity=severity,
+                    suggested_fix=rule.description or "Review constitutional policy.",
+                    source_policy=rule.source_policy,
                 )
-            elif rule.action == "review_required":
-                violations.append(
-                    ViolationReport(
-                        rule_name=rule.name,
-                        path=path_str,
-                        message=f"Path requires human review: {rule.pattern}",
-                        severity="warning",
-                        suggested_fix=rule.rationale or "Human review required.",
-                        source_policy=rule.source_policy,
-                    )
-                )
+            )
 
         return violations

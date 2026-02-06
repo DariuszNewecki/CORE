@@ -79,6 +79,30 @@ mappings:
     params:
       check_type: duplicate_ids
 
+  # 7. LAW: Code MUST NOT contain exact AST duplicates
+  purity.no_ast_duplication:
+    engine: knowledge_gate
+    params:
+      check_type: ast_duplication
+      threshold: 1.0
+    scope:
+      applies_to:
+        - "src/**/*.py"
+      excludes:
+        - "tests/**/*.py"
+
+  # 8. LAW: Code SHOULD NOT contain semantic duplicates
+  purity.no_semantic_duplication:
+    engine: knowledge_gate
+    params:
+      check_type: semantic_duplication
+      threshold: 0.85
+    scope:
+      applies_to:
+        - "src/**/*.py"
+      excludes:
+        - "tests/**/*.py"
+
   purity.logic_conservation:
     engine: llm_gate
     params:

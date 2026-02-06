@@ -40,6 +40,22 @@
             "enforcement": "reporting"
         },
         {
+            "id": "purity.no_ast_duplication",
+            "statement": "Code MUST NOT contain exact AST duplicates (identical normalized syntax trees).",
+            "authority": "policy",
+            "phase": "audit",
+            "enforcement": "reporting",
+            "rationale": "Exact duplicates indicate DRY violations and increase maintenance burden."
+        },
+        {
+            "id": "purity.no_semantic_duplication",
+            "statement": "Code SHOULD NOT contain semantic duplicates (functionally similar implementations).",
+            "authority": "policy",
+            "phase": "audit",
+            "enforcement": "reporting",
+            "rationale": "Semantic duplicates suggest opportunities for consolidation and abstraction."
+        },
+        {
             "id": "purity.logic_conservation",
             "statement": "Refactored code MUST NOT result in a character count reduction of >50% compared to original source unless explicitly authorized.",
             "authority": "constitution",

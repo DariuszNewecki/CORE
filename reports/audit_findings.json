@@ -27,6 +27,105 @@
     "details": {}
   },
   {
+    "check_id": "purity.no_todo_placeholders",
+    "severity": "warning",
+    "message": "Forbidden Content [Line 2]: Matched restricted regex '\\bTBD\\b'",
+    "file_path": "src/body/atomic/metadata_ops.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_todo_placeholders",
+    "severity": "warning",
+    "message": "Forbidden Content [Line 48]: Matched restricted regex '\\bTBD\\b'",
+    "file_path": "src/body/atomic/metadata_ops.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_todo_placeholders",
+    "severity": "warning",
+    "message": "Forbidden Content [Line 36]: Matched restricted regex '\\bTBD\\b'",
+    "file_path": "src/body/cli/commands/fix/audit.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_todo_placeholders",
+    "severity": "warning",
+    "message": "Forbidden Content [Line 40]: Matched restricted regex '\\bTBD\\b'",
+    "file_path": "src/features/self_healing/audit_remediation_service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_todo_placeholders",
+    "severity": "warning",
+    "message": "Forbidden Content [Line 28]: Matched restricted regex '\\bTBD\\b'",
+    "file_path": "src/features/self_healing/handlers/import_sorting_handler.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_todo_placeholders",
+    "severity": "warning",
+    "message": "Forbidden Content [Line 2]: Matched restricted regex '\\bTBD\\b'",
+    "file_path": "src/mind/logic/engines/ast_gate/checks/metadata_checks.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_todo_placeholders",
+    "severity": "warning",
+    "message": "Forbidden Content [Line 27]: Matched restricted regex '\\bTBD\\b'",
+    "file_path": "src/mind/logic/engines/ast_gate/checks/metadata_checks.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_todo_placeholders",
+    "severity": "warning",
+    "message": "Forbidden Content [Line 48]: Matched restricted regex '\\bTBD\\b'",
+    "file_path": "src/mind/logic/engines/ast_gate/checks/metadata_checks.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_todo_placeholders",
+    "severity": "warning",
+    "message": "Forbidden Content [Line 125]: Matched restricted regex '\\bTBD\\b'",
+    "file_path": "src/mind/logic/engines/ast_gate/checks/metadata_checks.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_todo_placeholders",
+    "severity": "warning",
+    "message": "Forbidden Content [Line 151]: Matched restricted regex '\\bTBD\\b'",
+    "file_path": "src/mind/logic/engines/ast_gate/checks/metadata_checks.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_todo_placeholders",
+    "severity": "warning",
+    "message": "Forbidden Content [Line 213]: Matched restricted regex '\\bTBD\\b'",
+    "file_path": "src/mind/logic/engines/ast_gate/checks/metadata_checks.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
     "check_id": "workflow.dead_code_check",
     "severity": "warning",
     "message": "Dead code detected: src/body/cli/commands/fix/metadata.py:188: unused variable 'policies_dir' (100% confidence)",

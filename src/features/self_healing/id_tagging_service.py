@@ -104,18 +104,32 @@ async def assign_missing_ids(context: CoreContext, write: bool = False) -> int:
 
             final_code = "\n".join(lines) + "\n"
 
-            # CONSTITUTIONAL GATEWAY: Mutation is audited and guarded
+            # CONSTITUTIONAL GATEWAY: Metadata-only mutation with semantic proof
             result = await executor.execute(
-                action_id="file.edit", write=write, file_path=rel_path, code=final_code
+                action_id="file.tag_metadata",
+                write=write,
+                file_path=rel_path,
+                code=final_code,
+                allowed_operations=["comment.insert"],
             )
 
             if result.ok:
                 mode_str = "Fixed" if write else "Proposed"
                 logger.info("   -> [%s] %d IDs in %s", mode_str, len(fixes), rel_path)
             else:
+                # IMPROVED: Show full constitutional violation context
+                error_msg = result.data.get("error") or "unknown error"
+                violations = result.data.get("violations", [])
+
                 logger.error(
-                    "   -> [BLOCKED] %s: %s", rel_path, result.data.get("error")
+                    "   -> [BLOCKED] %s: %s",
+                    rel_path,
+                    error_msg,
                 )
+
+                # Log violation details in debug mode
+                for violation in violations[:3]:
+                    logger.debug("        - %s", violation)
 
         except Exception as e:
             logger.error("Failed to prepare fix for %s: %s", file_path.name, e)
