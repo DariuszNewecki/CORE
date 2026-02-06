@@ -66,6 +66,7 @@ def register_all_commands(app_instance: typer.Typer) -> None:
 
     # --- TIER 2: INSPECTION & UTILITIES ---
     app_instance.add_typer(inspect_app, name="inspect")  # Deep forensics
+    app_instance.add_typer(fix_app, name="fix")  # Self-healing & remediation (A2)
     app_instance.add_typer(submit_app, name="submit")  # Final integration
 
     # --- TIER 3: LEGACY BACKWARD COMPATIBILITY ---

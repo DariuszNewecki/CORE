@@ -101,6 +101,15 @@ async def inspect_duplicates_async(context: CoreContext, threshold: float) -> No
             auditor_context.policies, auditor_context.enforcement_loader
         )
 
+        # DEBUG: Log all loaded rule IDs
+        logger.info("DEBUG: Loaded %d executable rules", len(all_rules))
+        purity_rules = [r for r in all_rules if r.rule_id.startswith("purity.")]
+        logger.info(
+            "DEBUG: Found %d purity.* rules: %s",
+            len(purity_rules),
+            [r.rule_id for r in purity_rules],
+        )
+
         # 4. Find AST duplication rule
         ast_rule = next(
             (r for r in all_rules if r.rule_id == "purity.no_ast_duplication"),
@@ -112,6 +121,10 @@ async def inspect_duplicates_async(context: CoreContext, threshold: float) -> No
             (r for r in all_rules if r.rule_id == "purity.no_semantic_duplication"),
             None,
         )
+
+        # DEBUG: What did we find?
+        logger.info("DEBUG: ast_rule found: %s", ast_rule is not None)
+        logger.info("DEBUG: semantic_rule found: %s", semantic_rule is not None)
 
         all_findings: list[AuditFinding] = []
 

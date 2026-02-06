@@ -209,6 +209,7 @@ class IntentRepository:
 
         return mapping
 
+    # ID: e02747ba-8ea3-4ffd-a635-a5b9894e36d9
     def get_rule(self, rule_id: str) -> RuleRef:
         self._ensure_index()
         ref = self._rule_index.get(rule_id)

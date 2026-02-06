@@ -11,8 +11,9 @@ from body.atomic import (
     crate_ops,
     file_ops,
     fix_actions,
+    metadata_ops,
     sync_actions,
-)  # ADDED crate_ops
+)
 from body.atomic.crate_ops import action_create_crate
 from body.atomic.file_ops import (
     action_create_file,
@@ -30,6 +31,7 @@ from body.atomic.fix_actions import (
 from body.atomic.fix_actions import (
     action_format_code as action_fix_format,
 )
+from body.atomic.metadata_ops import action_tag_metadata
 from body.atomic.registry import action_registry, register_action
 from body.atomic.sync_actions import (
     action_sync_code_vectors,
@@ -52,5 +54,6 @@ __all__ = [
     "action_sync_code_vectors",
     "action_sync_constitutional_vectors",
     "action_sync_database",
+    "action_tag_metadata",
     "register_action",
 ]

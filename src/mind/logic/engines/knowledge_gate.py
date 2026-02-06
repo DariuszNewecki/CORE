@@ -216,6 +216,7 @@ class KnowledgeGateEngine(BaseEngine):
             context={
                 "symbol_a": a.get("name"),
                 "symbol_b": b.get("name"),
-                "score": score,
+                "similarity": score,
+                "type": dtype,
             },
         )

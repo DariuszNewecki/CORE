@@ -5,7 +5,10 @@ mappings:
     params:
       check_type: path_restriction
       # Only allow agents to modify non-core directories autonomously
-      patterns: ["src/body/cli/logic/**", "src/features/introspection/**"]
+      patterns:
+        - "src/body/cli/logic/**"
+        - "src/features/introspection/**"
+        - "src/features/self_healing/**"
       action: "warn"
     scope:
       applies_to: ["src/will/agents/**/*.py"]

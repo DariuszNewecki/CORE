@@ -1,0 +1,63 @@
+{
+    "$schema": "META/rule_document.schema.json",
+    "kind": "rule_document",
+    "metadata": {
+        "id": "rules.code.metadata_mutations",
+        "title": "Metadata Mutation Governance",
+        "version": "1.0.0",
+        "authority": "constitution",
+        "phase": "runtime",
+        "status": "active"
+    },
+    "rules": [
+        {
+            "id": "metadata.semantic_preservation",
+            "statement": "A WRITE_METADATA operation MUST NOT alter the executable semantics of the file. The normalized AST (excluding docstrings and line numbers) MUST be identical before and after the mutation.",
+            "enforcement": "blocking",
+            "authority": "constitution",
+            "phase": "runtime"
+        },
+        {
+            "id": "metadata.operations.comment_insert",
+            "statement": "WRITE_METADATA actions MAY insert comment lines into source files. Inserted comments MUST NOT exceed 120 characters per line.",
+            "enforcement": "blocking",
+            "authority": "policy",
+            "phase": "runtime"
+        },
+        {
+            "id": "metadata.operations.comment_replace",
+            "statement": "WRITE_METADATA actions MAY replace existing comment lines. Replacement comments MUST NOT exceed 120 characters per line.",
+            "enforcement": "blocking",
+            "authority": "policy",
+            "phase": "runtime"
+        },
+        {
+            "id": "metadata.operations.comment_delete",
+            "statement": "WRITE_METADATA actions MAY remove comment lines from source files.",
+            "enforcement": "blocking",
+            "authority": "policy",
+            "phase": "runtime"
+        },
+        {
+            "id": "metadata.operations.docstring_insert",
+            "statement": "WRITE_METADATA actions MAY insert docstrings into classes, functions, and modules. Docstrings are declarative metadata that do not alter executable semantics.",
+            "enforcement": "blocking",
+            "authority": "policy",
+            "phase": "runtime"
+        },
+        {
+            "id": "metadata.operations.docstring_replace",
+            "statement": "WRITE_METADATA actions MAY replace existing docstrings for correction and enrichment without altering executable code.",
+            "enforcement": "blocking",
+            "authority": "policy",
+            "phase": "runtime"
+        },
+        {
+            "id": "metadata.scope.universal",
+            "statement": "WRITE_METADATA operations are permitted on ALL src/**/*.py files without exclusion lists. The semantic preservation invariant is the sole gate. The .intent/ hard invariant remains inviolable.",
+            "enforcement": "blocking",
+            "authority": "constitution",
+            "phase": "runtime"
+        }
+    ]
+}

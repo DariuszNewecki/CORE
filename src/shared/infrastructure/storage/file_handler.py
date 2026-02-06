@@ -76,12 +76,12 @@ class FileHandler:
         return candidate
 
     # ID: storage.file_handler._guard_paths
-    def _guard_paths(self, rel_paths: list[str]) -> None:
+    def _guard_paths(self, rel_paths: list[str], impact: str | None = None) -> None:
         cleaned: list[str] = []
         for p in rel_paths:
             cleaned.append(str(p).lstrip("./"))
 
-        allowed, violations = self._guard.check_transaction(cleaned)
+        allowed, violations = self._guard.check_transaction(cleaned, impact=impact)
         if allowed:
             return
         msg = violations[0].message if violations else "Blocked by IntentGuard."
@@ -136,9 +136,11 @@ class FileHandler:
 
     # ID: storage.file_handler.write_runtime_text
     # ID: f0c8fd37-1d1a-4163-8a07-367df0aefbe5
-    def write_runtime_text(self, rel_path: str, content: str) -> FileOpResult:
+    def write_runtime_text(
+        self, rel_path: str, content: str, impact: str | None = None
+    ) -> FileOpResult:
         rel_path = rel_path.strip().lstrip("./")
-        self._guard_paths([rel_path])
+        self._guard_paths([rel_path], impact=impact)
         abs_path = self._resolve_repo_path(rel_path)
         self._atomic_write_text(abs_path, content)
         return FileOpResult("success", "Wrote runtime text", rel_path)

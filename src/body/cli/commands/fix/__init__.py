@@ -70,6 +70,7 @@ def fix_callback(
 # This must remain at the bottom to ensure fix_app is defined first.
 import body.cli.commands.fix.all_commands
 import body.cli.commands.fix.atomic_actions
+import body.cli.commands.fix.audit
 import body.cli.commands.fix.body_ui
 import body.cli.commands.fix.clarity
 import body.cli.commands.fix.code_style
