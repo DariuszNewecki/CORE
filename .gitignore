@@ -45,6 +45,7 @@ sandbox/
 knowledge_graph.json
 *.lock
 .archive/
+core-arxive/
 
 # Runtime state (CORE-owned; not versioned)
 var/*

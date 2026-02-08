@@ -1,0 +1,13 @@
+# CIM Policy Thresholds
+# Defines severity levels for census drift detection
+
+# Absolute deltas
+subprocess_delta: 2 # HIGH if subprocess calls increase by >2
+network_delta: 2 # HIGH if network calls increase by >2
+
+# Percentage deltas
+mind_lane_drift_percent: 20 # MEDIUM if Mind layer mutations increase >20%
+production_writes_delta_percent: 10 # MEDIUM if production writes increase >10%
+
+# Hotspot thresholds
+hotspot_mutation_count: 15 # LOW if new hotspot has >15 mutations

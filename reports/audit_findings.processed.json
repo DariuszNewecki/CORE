@@ -126,9 +126,750 @@
     "details": {}
   },
   {
+    "check_id": "purity.no_ast_duplication",
+    "severity": "warning",
+    "message": "AST duplication detected.",
+    "file_path": null,
+    "line_number": null,
+    "context": {
+      "symbol_a": "FileAnalyzer.phase",
+      "symbol_b": "KnowledgeGraphAnalyzer.phase",
+      "similarity": 1.0,
+      "type": "ast"
+    },
+    "details": {
+      "symbol_a": "FileAnalyzer.phase",
+      "symbol_b": "KnowledgeGraphAnalyzer.phase",
+      "similarity": 1.0,
+      "type": "ast"
+    }
+  },
+  {
+    "check_id": "purity.no_ast_duplication",
+    "severity": "warning",
+    "message": "AST duplication detected.",
+    "file_path": null,
+    "line_number": null,
+    "context": {
+      "symbol_a": "FileAnalyzer.phase",
+      "symbol_b": "PromptAnalyzer.phase",
+      "similarity": 1.0,
+      "type": "ast"
+    },
+    "details": {
+      "symbol_a": "FileAnalyzer.phase",
+      "symbol_b": "PromptAnalyzer.phase",
+      "similarity": 1.0,
+      "type": "ast"
+    }
+  },
+  {
+    "check_id": "purity.no_ast_duplication",
+    "severity": "warning",
+    "message": "AST duplication detected.",
+    "file_path": null,
+    "line_number": null,
+    "context": {
+      "symbol_a": "FileAnalyzer.phase",
+      "symbol_b": "SymbolExtractor.phase",
+      "similarity": 1.0,
+      "type": "ast"
+    },
+    "details": {
+      "symbol_a": "FileAnalyzer.phase",
+      "symbol_b": "SymbolExtractor.phase",
+      "similarity": 1.0,
+      "type": "ast"
+    }
+  },
+  {
+    "check_id": "purity.no_ast_duplication",
+    "severity": "warning",
+    "message": "AST duplication detected.",
+    "file_path": null,
+    "line_number": null,
+    "context": {
+      "symbol_a": "KnowledgeGraphAnalyzer.phase",
+      "symbol_b": "PromptAnalyzer.phase",
+      "similarity": 1.0,
+      "type": "ast"
+    },
+    "details": {
+      "symbol_a": "KnowledgeGraphAnalyzer.phase",
+      "symbol_b": "PromptAnalyzer.phase",
+      "similarity": 1.0,
+      "type": "ast"
+    }
+  },
+  {
+    "check_id": "purity.no_ast_duplication",
+    "severity": "warning",
+    "message": "AST duplication detected.",
+    "file_path": null,
+    "line_number": null,
+    "context": {
+      "symbol_a": "KnowledgeGraphAnalyzer.phase",
+      "symbol_b": "SymbolExtractor.phase",
+      "similarity": 1.0,
+      "type": "ast"
+    },
+    "details": {
+      "symbol_a": "KnowledgeGraphAnalyzer.phase",
+      "symbol_b": "SymbolExtractor.phase",
+      "similarity": 1.0,
+      "type": "ast"
+    }
+  },
+  {
+    "check_id": "purity.no_ast_duplication",
+    "severity": "warning",
+    "message": "AST duplication detected.",
+    "file_path": null,
+    "line_number": null,
+    "context": {
+      "symbol_a": "PromptAnalyzer.phase",
+      "symbol_b": "SymbolExtractor.phase",
+      "similarity": 1.0,
+      "type": "ast"
+    },
+    "details": {
+      "symbol_a": "PromptAnalyzer.phase",
+      "symbol_b": "SymbolExtractor.phase",
+      "similarity": 1.0,
+      "type": "ast"
+    }
+  },
+  {
+    "check_id": "purity.no_ast_duplication",
+    "severity": "warning",
+    "message": "AST duplication detected.",
+    "file_path": null,
+    "line_number": null,
+    "context": {
+      "symbol_a": "TyperAppLike",
+      "symbol_b": "TyperAppLike",
+      "similarity": 1.0,
+      "type": "ast"
+    },
+    "details": {
+      "symbol_a": "TyperAppLike",
+      "symbol_b": "TyperAppLike",
+      "similarity": 1.0,
+      "type": "ast"
+    }
+  },
+  {
+    "check_id": "purity.no_ast_duplication",
+    "severity": "warning",
+    "message": "AST duplication detected.",
+    "file_path": null,
+    "line_number": null,
+    "context": {
+      "symbol_a": "TyperGroupLike",
+      "symbol_b": "TyperGroupLike",
+      "similarity": 1.0,
+      "type": "ast"
+    },
+    "details": {
+      "symbol_a": "TyperGroupLike",
+      "symbol_b": "TyperGroupLike",
+      "similarity": 1.0,
+      "type": "ast"
+    }
+  },
+  {
+    "check_id": "purity.no_ast_duplication",
+    "severity": "warning",
+    "message": "AST duplication detected.",
+    "file_path": null,
+    "line_number": null,
+    "context": {
+      "symbol_a": "DevSyncPhase.ok",
+      "symbol_b": "WorkflowRun.ok",
+      "similarity": 1.0,
+      "type": "ast"
+    },
+    "details": {
+      "symbol_a": "DevSyncPhase.ok",
+      "symbol_b": "WorkflowRun.ok",
+      "similarity": 1.0,
+      "type": "ast"
+    }
+  },
+  {
+    "check_id": "purity.no_ast_duplication",
+    "severity": "warning",
+    "message": "AST duplication detected.",
+    "file_path": null,
+    "line_number": null,
+    "context": {
+      "symbol_a": "DevSyncPhase.total_duration",
+      "symbol_b": "WorkflowRun.total_duration",
+      "similarity": 1.0,
+      "type": "ast"
+    },
+    "details": {
+      "symbol_a": "DevSyncPhase.total_duration",
+      "symbol_b": "WorkflowRun.total_duration",
+      "similarity": 1.0,
+      "type": "ast"
+    }
+  },
+  {
+    "check_id": "purity.no_ast_duplication",
+    "severity": "warning",
+    "message": "AST duplication detected.",
+    "file_path": null,
+    "line_number": null,
+    "context": {
+      "symbol_a": "BaseEvaluator.phase",
+      "symbol_b": "ConstitutionalEvaluator.phase",
+      "similarity": 1.0,
+      "type": "ast"
+    },
+    "details": {
+      "symbol_a": "BaseEvaluator.phase",
+      "symbol_b": "ConstitutionalEvaluator.phase",
+      "similarity": 1.0,
+      "type": "ast"
+    }
+  },
+  {
+    "check_id": "purity.no_ast_duplication",
+    "severity": "warning",
+    "message": "AST duplication detected.",
+    "file_path": null,
+    "line_number": null,
+    "context": {
+      "symbol_a": "BaseEvaluator.phase",
+      "symbol_b": "FailureEvaluator.phase",
+      "similarity": 1.0,
+      "type": "ast"
+    },
+    "details": {
+      "symbol_a": "BaseEvaluator.phase",
+      "symbol_b": "FailureEvaluator.phase",
+      "similarity": 1.0,
+      "type": "ast"
+    }
+  },
+  {
+    "check_id": "purity.no_ast_duplication",
+    "severity": "warning",
+    "message": "AST duplication detected.",
+    "file_path": null,
+    "line_number": null,
+    "context": {
+      "symbol_a": "BaseEvaluator.phase",
+      "symbol_b": "PerformanceEvaluator.phase",
+      "similarity": 1.0,
+      "type": "ast"
+    },
+    "details": {
+      "symbol_a": "BaseEvaluator.phase",
+      "symbol_b": "PerformanceEvaluator.phase",
+      "similarity": 1.0,
+      "type": "ast"
+    }
+  },
+  {
+    "check_id": "purity.no_ast_duplication",
+    "severity": "warning",
+    "message": "AST duplication detected.",
+    "file_path": null,
+    "line_number": null,
+    "context": {
+      "symbol_a": "BaseEvaluator.phase",
+      "symbol_b": "SecurityEvaluator.phase",
+      "similarity": 1.0,
+      "type": "ast"
+    },
+    "details": {
+      "symbol_a": "BaseEvaluator.phase",
+      "symbol_b": "SecurityEvaluator.phase",
+      "similarity": 1.0,
+      "type": "ast"
+    }
+  },
+  {
+    "check_id": "purity.no_ast_duplication",
+    "severity": "warning",
+    "message": "AST duplication detected.",
+    "file_path": null,
+    "line_number": null,
+    "context": {
+      "symbol_a": "ConstitutionalEvaluator.phase",
+      "symbol_b": "FailureEvaluator.phase",
+      "similarity": 1.0,
+      "type": "ast"
+    },
+    "details": {
+      "symbol_a": "ConstitutionalEvaluator.phase",
+      "symbol_b": "FailureEvaluator.phase",
+      "similarity": 1.0,
+      "type": "ast"
+    }
+  },
+  {
+    "check_id": "purity.no_ast_duplication",
+    "severity": "warning",
+    "message": "AST duplication detected.",
+    "file_path": null,
+    "line_number": null,
+    "context": {
+      "symbol_a": "ConstitutionalEvaluator.phase",
+      "symbol_b": "PerformanceEvaluator.phase",
+      "similarity": 1.0,
+      "type": "ast"
+    },
+    "details": {
+      "symbol_a": "ConstitutionalEvaluator.phase",
+      "symbol_b": "PerformanceEvaluator.phase",
+      "similarity": 1.0,
+      "type": "ast"
+    }
+  },
+  {
+    "check_id": "purity.no_ast_duplication",
+    "severity": "warning",
+    "message": "AST duplication detected.",
+    "file_path": null,
+    "line_number": null,
+    "context": {
+      "symbol_a": "ConstitutionalEvaluator.phase",
+      "symbol_b": "SecurityEvaluator.phase",
+      "similarity": 1.0,
+      "type": "ast"
+    },
+    "details": {
+      "symbol_a": "ConstitutionalEvaluator.phase",
+      "symbol_b": "SecurityEvaluator.phase",
+      "similarity": 1.0,
+      "type": "ast"
+    }
+  },
+  {
+    "check_id": "purity.no_ast_duplication",
+    "severity": "warning",
+    "message": "AST duplication detected.",
+    "file_path": null,
+    "line_number": null,
+    "context": {
+      "symbol_a": "FailureEvaluator.phase",
+      "symbol_b": "PerformanceEvaluator.phase",
+      "similarity": 1.0,
+      "type": "ast"
+    },
+    "details": {
+      "symbol_a": "FailureEvaluator.phase",
+      "symbol_b": "PerformanceEvaluator.phase",
+      "similarity": 1.0,
+      "type": "ast"
+    }
+  },
+  {
+    "check_id": "purity.no_ast_duplication",
+    "severity": "warning",
+    "message": "AST duplication detected.",
+    "file_path": null,
+    "line_number": null,
+    "context": {
+      "symbol_a": "FailureEvaluator.phase",
+      "symbol_b": "SecurityEvaluator.phase",
+      "similarity": 1.0,
+      "type": "ast"
+    },
+    "details": {
+      "symbol_a": "FailureEvaluator.phase",
+      "symbol_b": "SecurityEvaluator.phase",
+      "similarity": 1.0,
+      "type": "ast"
+    }
+  },
+  {
+    "check_id": "purity.no_ast_duplication",
+    "severity": "warning",
+    "message": "AST duplication detected.",
+    "file_path": null,
+    "line_number": null,
+    "context": {
+      "symbol_a": "PerformanceEvaluator.phase",
+      "symbol_b": "SecurityEvaluator.phase",
+      "similarity": 1.0,
+      "type": "ast"
+    },
+    "details": {
+      "symbol_a": "PerformanceEvaluator.phase",
+      "symbol_b": "SecurityEvaluator.phase",
+      "similarity": 1.0,
+      "type": "ast"
+    }
+  },
+  {
+    "check_id": "purity.no_ast_duplication",
+    "severity": "warning",
+    "message": "AST duplication detected.",
+    "file_path": null,
+    "line_number": null,
+    "context": {
+      "symbol_a": "DetailedPlan",
+      "symbol_b": "DetailedPlan",
+      "similarity": 1.0,
+      "type": "ast"
+    },
+    "details": {
+      "symbol_a": "DetailedPlan",
+      "symbol_b": "DetailedPlan",
+      "similarity": 1.0,
+      "type": "ast"
+    }
+  },
+  {
+    "check_id": "purity.no_ast_duplication",
+    "severity": "warning",
+    "message": "AST duplication detected.",
+    "file_path": null,
+    "line_number": null,
+    "context": {
+      "symbol_a": "DetailedPlan.get_steps_requiring_code",
+      "symbol_b": "DetailedPlan.get_steps_requiring_code",
+      "similarity": 1.0,
+      "type": "ast"
+    },
+    "details": {
+      "symbol_a": "DetailedPlan.get_steps_requiring_code",
+      "symbol_b": "DetailedPlan.get_steps_requiring_code",
+      "similarity": 1.0,
+      "type": "ast"
+    }
+  },
+  {
+    "check_id": "purity.no_ast_duplication",
+    "severity": "warning",
+    "message": "AST duplication detected.",
+    "file_path": null,
+    "line_number": null,
+    "context": {
+      "symbol_a": "DetailedPlan.step_count",
+      "symbol_b": "DetailedPlan.step_count",
+      "similarity": 1.0,
+      "type": "ast"
+    },
+    "details": {
+      "symbol_a": "DetailedPlan.step_count",
+      "symbol_b": "DetailedPlan.step_count",
+      "similarity": 1.0,
+      "type": "ast"
+    }
+  },
+  {
+    "check_id": "purity.no_ast_duplication",
+    "severity": "warning",
+    "message": "AST duplication detected.",
+    "file_path": null,
+    "line_number": null,
+    "context": {
+      "symbol_a": "ExecutionAgent.get_decision_trace",
+      "symbol_b": "SpecificationAgent.get_decision_trace",
+      "similarity": 1.0,
+      "type": "ast"
+    },
+    "details": {
+      "symbol_a": "ExecutionAgent.get_decision_trace",
+      "symbol_b": "SpecificationAgent.get_decision_trace",
+      "similarity": 1.0,
+      "type": "ast"
+    }
+  },
+  {
+    "check_id": "purity.no_ast_duplication",
+    "severity": "warning",
+    "message": "AST duplication detected.",
+    "file_path": null,
+    "line_number": null,
+    "context": {
+      "symbol_a": "GovernanceDecider.phase",
+      "symbol_b": "ClarityStrategist.phase",
+      "similarity": 1.0,
+      "type": "ast"
+    },
+    "details": {
+      "symbol_a": "GovernanceDecider.phase",
+      "symbol_b": "ClarityStrategist.phase",
+      "similarity": 1.0,
+      "type": "ast"
+    }
+  },
+  {
+    "check_id": "purity.no_ast_duplication",
+    "severity": "warning",
+    "message": "AST duplication detected.",
+    "file_path": null,
+    "line_number": null,
+    "context": {
+      "symbol_a": "GovernanceDecider.phase",
+      "symbol_b": "ComplexityStrategist.phase",
+      "similarity": 1.0,
+      "type": "ast"
+    },
+    "details": {
+      "symbol_a": "GovernanceDecider.phase",
+      "symbol_b": "ComplexityStrategist.phase",
+      "similarity": 1.0,
+      "type": "ast"
+    }
+  },
+  {
+    "check_id": "purity.no_ast_duplication",
+    "severity": "warning",
+    "message": "AST duplication detected.",
+    "file_path": null,
+    "line_number": null,
+    "context": {
+      "symbol_a": "GovernanceDecider.phase",
+      "symbol_b": "FixStrategist.phase",
+      "similarity": 1.0,
+      "type": "ast"
+    },
+    "details": {
+      "symbol_a": "GovernanceDecider.phase",
+      "symbol_b": "FixStrategist.phase",
+      "similarity": 1.0,
+      "type": "ast"
+    }
+  },
+  {
+    "check_id": "purity.no_ast_duplication",
+    "severity": "warning",
+    "message": "AST duplication detected.",
+    "file_path": null,
+    "line_number": null,
+    "context": {
+      "symbol_a": "GovernanceDecider.phase",
+      "symbol_b": "SyncStrategist.phase",
+      "similarity": 1.0,
+      "type": "ast"
+    },
+    "details": {
+      "symbol_a": "GovernanceDecider.phase",
+      "symbol_b": "SyncStrategist.phase",
+      "similarity": 1.0,
+      "type": "ast"
+    }
+  },
+  {
+    "check_id": "purity.no_ast_duplication",
+    "severity": "warning",
+    "message": "AST duplication detected.",
+    "file_path": null,
+    "line_number": null,
+    "context": {
+      "symbol_a": "GovernanceDecider.phase",
+      "symbol_b": "ValidationStrategist.phase",
+      "similarity": 1.0,
+      "type": "ast"
+    },
+    "details": {
+      "symbol_a": "GovernanceDecider.phase",
+      "symbol_b": "ValidationStrategist.phase",
+      "similarity": 1.0,
+      "type": "ast"
+    }
+  },
+  {
+    "check_id": "purity.no_ast_duplication",
+    "severity": "warning",
+    "message": "AST duplication detected.",
+    "file_path": null,
+    "line_number": null,
+    "context": {
+      "symbol_a": "ClarityStrategist.phase",
+      "symbol_b": "ComplexityStrategist.phase",
+      "similarity": 1.0,
+      "type": "ast"
+    },
+    "details": {
+      "symbol_a": "ClarityStrategist.phase",
+      "symbol_b": "ComplexityStrategist.phase",
+      "similarity": 1.0,
+      "type": "ast"
+    }
+  },
+  {
+    "check_id": "purity.no_ast_duplication",
+    "severity": "warning",
+    "message": "AST duplication detected.",
+    "file_path": null,
+    "line_number": null,
+    "context": {
+      "symbol_a": "ClarityStrategist.phase",
+      "symbol_b": "FixStrategist.phase",
+      "similarity": 1.0,
+      "type": "ast"
+    },
+    "details": {
+      "symbol_a": "ClarityStrategist.phase",
+      "symbol_b": "FixStrategist.phase",
+      "similarity": 1.0,
+      "type": "ast"
+    }
+  },
+  {
+    "check_id": "purity.no_ast_duplication",
+    "severity": "warning",
+    "message": "AST duplication detected.",
+    "file_path": null,
+    "line_number": null,
+    "context": {
+      "symbol_a": "ClarityStrategist.phase",
+      "symbol_b": "SyncStrategist.phase",
+      "similarity": 1.0,
+      "type": "ast"
+    },
+    "details": {
+      "symbol_a": "ClarityStrategist.phase",
+      "symbol_b": "SyncStrategist.phase",
+      "similarity": 1.0,
+      "type": "ast"
+    }
+  },
+  {
+    "check_id": "purity.no_ast_duplication",
+    "severity": "warning",
+    "message": "AST duplication detected.",
+    "file_path": null,
+    "line_number": null,
+    "context": {
+      "symbol_a": "ClarityStrategist.phase",
+      "symbol_b": "ValidationStrategist.phase",
+      "similarity": 1.0,
+      "type": "ast"
+    },
+    "details": {
+      "symbol_a": "ClarityStrategist.phase",
+      "symbol_b": "ValidationStrategist.phase",
+      "similarity": 1.0,
+      "type": "ast"
+    }
+  },
+  {
+    "check_id": "purity.no_ast_duplication",
+    "severity": "warning",
+    "message": "AST duplication detected.",
+    "file_path": null,
+    "line_number": null,
+    "context": {
+      "symbol_a": "ComplexityStrategist.phase",
+      "symbol_b": "FixStrategist.phase",
+      "similarity": 1.0,
+      "type": "ast"
+    },
+    "details": {
+      "symbol_a": "ComplexityStrategist.phase",
+      "symbol_b": "FixStrategist.phase",
+      "similarity": 1.0,
+      "type": "ast"
+    }
+  },
+  {
+    "check_id": "purity.no_ast_duplication",
+    "severity": "warning",
+    "message": "AST duplication detected.",
+    "file_path": null,
+    "line_number": null,
+    "context": {
+      "symbol_a": "ComplexityStrategist.phase",
+      "symbol_b": "SyncStrategist.phase",
+      "similarity": 1.0,
+      "type": "ast"
+    },
+    "details": {
+      "symbol_a": "ComplexityStrategist.phase",
+      "symbol_b": "SyncStrategist.phase",
+      "similarity": 1.0,
+      "type": "ast"
+    }
+  },
+  {
+    "check_id": "purity.no_ast_duplication",
+    "severity": "warning",
+    "message": "AST duplication detected.",
+    "file_path": null,
+    "line_number": null,
+    "context": {
+      "symbol_a": "ComplexityStrategist.phase",
+      "symbol_b": "ValidationStrategist.phase",
+      "similarity": 1.0,
+      "type": "ast"
+    },
+    "details": {
+      "symbol_a": "ComplexityStrategist.phase",
+      "symbol_b": "ValidationStrategist.phase",
+      "similarity": 1.0,
+      "type": "ast"
+    }
+  },
+  {
+    "check_id": "purity.no_ast_duplication",
+    "severity": "warning",
+    "message": "AST duplication detected.",
+    "file_path": null,
+    "line_number": null,
+    "context": {
+      "symbol_a": "FixStrategist.phase",
+      "symbol_b": "SyncStrategist.phase",
+      "similarity": 1.0,
+      "type": "ast"
+    },
+    "details": {
+      "symbol_a": "FixStrategist.phase",
+      "symbol_b": "SyncStrategist.phase",
+      "similarity": 1.0,
+      "type": "ast"
+    }
+  },
+  {
+    "check_id": "purity.no_ast_duplication",
+    "severity": "warning",
+    "message": "AST duplication detected.",
+    "file_path": null,
+    "line_number": null,
+    "context": {
+      "symbol_a": "FixStrategist.phase",
+      "symbol_b": "ValidationStrategist.phase",
+      "similarity": 1.0,
+      "type": "ast"
+    },
+    "details": {
+      "symbol_a": "FixStrategist.phase",
+      "symbol_b": "ValidationStrategist.phase",
+      "similarity": 1.0,
+      "type": "ast"
+    }
+  },
+  {
+    "check_id": "purity.no_ast_duplication",
+    "severity": "warning",
+    "message": "AST duplication detected.",
+    "file_path": null,
+    "line_number": null,
+    "context": {
+      "symbol_a": "SyncStrategist.phase",
+      "symbol_b": "ValidationStrategist.phase",
+      "similarity": 1.0,
+      "type": "ast"
+    },
+    "details": {
+      "symbol_a": "SyncStrategist.phase",
+      "symbol_b": "ValidationStrategist.phase",
+      "similarity": 1.0,
+      "type": "ast"
+    }
+  },
+  {
     "check_id": "workflow.dead_code_check",
     "severity": "warning",
-    "message": "Dead code detected: src/body/cli/commands/fix/metadata.py:188: unused variable 'policies_dir' (100% confidence)",
+    "message": "Dead code detected: src/body/cli/commands/fix/metadata.py:163: unused variable 'policies_dir' (100% confidence)",
     "file_path": "System",
     "line_number": null,
     "context": {},

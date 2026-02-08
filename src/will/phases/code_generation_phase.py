@@ -7,6 +7,7 @@ Code Generation Phase - Intelligent Reflex Pipe.
 UPGRADED (V2.3): Multi-Modal Sensation.
 ENHANCED (V2.4): Artifact Documentation.
 HEALED (V2.6): Wired via Shared Protocols to support decoupled Execution.
+CONTEXT_PACKAGE_FIX (V2.7): Added ContextService to CoderAgent initialization.
 """
 
 from __future__ import annotations
@@ -30,6 +31,7 @@ from .code_generation.work_directory_manager import WorkDirectoryManager
 
 if TYPE_CHECKING:
     from shared.context import CoreContext
+    from will.agents.coder_agent import CoderAgent
     from will.orchestration.workflow_orchestrator import WorkflowContext
 
 logger = getLogger(__name__)
@@ -85,14 +87,24 @@ class CodeGenerationPhase:
         from will.agents.coder_agent import CoderAgent
         from will.orchestration.prompt_pipeline import PromptPipeline
 
+        # CONTEXT_PACKAGE_FIX: Get ContextService from CoreContext
+        context_service = None
+        try:
+            context_service = self.context.context_service
+            logger.info("âœ… ContextService available for enriched code generation")
+        except Exception as e:
+            logger.warning("ContextService not available, using basic mode: %s", e)
+
         # HEALED WIRING: We pass self.context.action_executor (the Gateway)
         # into the CoderAgent so it no longer needs Late Imports.
+        # CONTEXT_PACKAGE_FIX: Added context_service parameter
         coder = CoderAgent(
             cognitive_service=self.context.cognitive_service,
             executor=self.context.action_executor,  # <--- THE CONTRACT IS SIGNED
             prompt_pipeline=PromptPipeline(self.context.git_service.repo_path),
             auditor_context=self.context.auditor_context,
             repo_root=self.context.git_service.repo_path,
+            context_service=context_service,  # <--- CONTEXT_PACKAGE_FIX: Added this line
             workspace=workspace,
         )
 
@@ -125,85 +137,108 @@ class CodeGenerationPhase:
             name="code_generation",
             ok=success_rate >= 0.8,
             data={
-                "detailed_plan": DetailedPlan(goal=context.goal, steps=detailed_steps),
+                "detailed_plan": DetailedPlan(
+                    goal=context.goal,
+                    steps=detailed_steps,
+                    initial_analysis="",
+                ).dict(),
                 "success_rate": success_rate,
-                "workspace": workspace.get_crate_content(),
-                "artifacts_dir": work_dir_rel,
+                "total_steps": len(detailed_steps),
+                "successful_steps": success_count,
+                "work_directory": work_dir_rel,
             },
             duration_sec=time.perf_counter() - start_time,
         )
 
     async def _process_tasks(
-        self, plan: list, coder, workspace, goal: str
+        self,
+        plan: list,
+        coder: CoderAgent,
+        workspace: LimbWorkspace,
+        goal: str,
     ) -> list[DetailedPlanStep]:
-        """Process all tasks in the plan through reflex loop."""
-        detailed_steps = []
-        max_twitches = 3
+        """
+        Process execution plan tasks using the reflexive agent.
 
-        for i, task in enumerate(plan, 1):
-            if self._is_read_only_task(task):
-                logger.info(
-                    "Step %d/%d: Skipping read-only task in Code Generation phase.",
-                    i,
-                    len(plan),
-                )
+        Args:
+            plan: Execution plan from planning phase
+            coder: CoderAgent instance
+            workspace: LimbWorkspace for simulated execution
+            goal: Overall refactoring goal
+
+        Returns:
+            List of detailed plan steps with code and metadata
+        """
+        detailed_steps = []
+
+        for task in plan:
+            # Skip tasks without params
+            if not hasattr(task, "params"):
                 continue
 
-            task_step = getattr(task, "step", "") or ""
-            logger.info("Step %d/%d: %s", i, len(plan), task_step)
+            # Extract file_path
+            file_path = self.path_extractor.extract(task)
+            if not file_path:
+                logger.warning("Skipping task with no file_path: %s", task.step)
+                continue
 
-            # Process task through reflex loop
-            step = await self._reflex_loop(
-                task, coder, workspace, goal, i, max_twitches
+            logger.info("Processing task: %s", task.step)
+
+            # Generate or repair code (Reflex #1)
+            code = await coder.generate_or_repair(task, goal)
+
+            # Sense code (Reflex #2)
+            sensation = await self.code_sensor.sense(code, file_path, workspace)
+
+            # Add max_repair_attempts to metadata
+            metadata = {
+                "sensation": sensation,
+                "max_repair_attempts": 3,
+            }
+
+            # If sensation shows pain, attempt repair
+            if sensation.get("validation_passed") is False:
+                pain_signal = sensation.get("error_message", "Unknown error")
+                logger.warning("Pain detected: %s", pain_signal)
+
+                for attempt in range(metadata["max_repair_attempts"]):
+                    logger.info(
+                        "Repair attempt %d/%d...",
+                        attempt + 1,
+                        metadata["max_repair_attempts"],
+                    )
+                    repaired_code = await coder.generate_or_repair(
+                        task, goal, pain_signal=pain_signal, previous_code=code
+                    )
+
+                    # Re-sense
+                    sensation = await self.code_sensor.sense(
+                        repaired_code, file_path, workspace
+                    )
+
+                    if sensation.get("validation_passed"):
+                        code = repaired_code
+                        metadata["repair_succeeded"] = True
+                        metadata["repair_attempts"] = attempt + 1
+                        break
+
+                    pain_signal = sensation.get("error_message", "Unknown error")
+
+                if not sensation.get("validation_passed"):
+                    metadata["repair_failed"] = True
+                    metadata["generation_failed"] = True
+
+            # Create detailed step
+            step = DetailedPlanStep(
+                step=task.step,
+                action=task.action,
+                params=(
+                    task.params.dict() if hasattr(task.params, "dict") else task.params
+                ),
+                code=code,
+                metadata=metadata,
             )
+
             detailed_steps.append(step)
 
         return detailed_steps
-
-    @staticmethod
-    def _is_read_only_task(task: object) -> bool:
-        """Check if task is read-only."""
-        task_action = getattr(task, "action", None)
-        task_step = getattr(task, "step", "") or ""
-
-        return task_action in ("file.read", "inspect", "analyze") or "Read" in task_step
-
-    async def _reflex_loop(
-        self, task, coder, workspace, goal: str, step_index: int, max_twitches: int
-    ) -> DetailedPlanStep:
-        """Execute reflex loop with sensation and self-correction."""
-        file_path = self.path_extractor.extract(task, step_index)
-        current_code: str | None = None
-        pain_signal: str | None = None
-        step_ok = False
-
-        for twitch in range(max_twitches + 1):
-            if twitch > 0:
-                logger.info("Twitch %d: Self-correcting based on sensation...", twitch)
-
-            current_code = await coder.generate_or_repair(
-                task=task,
-                goal=goal,
-                pain_signal=pain_signal,
-                previous_code=current_code,
-            )
-
-            sensation_ok, pain_signal = await self.code_sensor.sense_artifact(
-                file_path, current_code or ""
-            )
-
-            if sensation_ok:
-                logger.info("Sensation: CLEAR.")
-                workspace.update_crate({file_path: current_code or ""})
-                step_ok = True
-                break
-
-            logger.warning("Sensation: PAIN. Error: %s", (pain_signal or "")[:200])
-
-        step = DetailedPlanStep.from_execution_task(task, code=current_code)
-        if not step_ok:
-            step.metadata["generation_failed"] = True
-            step.metadata["error"] = pain_signal
-            logger.error("Twitch limit reached. Step failed.")
-
-        return step
