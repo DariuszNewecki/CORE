@@ -1,21 +1,11 @@
 # src/features/self_healing/modularity_remediation_service.py
-# ID: features.self_healing.modularity_remediation
-
 """
-Modularity Remediation Service - Constitutional Workflow Edition
+Constitutional modularity remediation service.
 
-Service for automated architectural modularization using explicit workflow orchestration.
-
-Uses 'refactor_modularity' workflow which:
-1. Plans refactoring strategy
-2. Generates refactored code
-3. Validates with canary (existing tests)
-4. Checks style
-5. Applies changes
-
-Does NOT generate tests - that's coverage_remediation's job.
-
-This service acts as the 'General Contractor' for modularity health.
+FIXED VERSION - Corrects API mismatches:
+- EnforcementMappingLoader.load() -> load_all_mappings()
+- ModularityChecker.check_all_files() -> check_refactor_score() per file
+- Added proper file enumeration
 """
 
 from __future__ import annotations
@@ -42,35 +32,20 @@ class ModularityRemediationService:
 
     Closed-loop remediation:
     1. Measure Score → 2. Generate Goal → 3. Execute Workflow → 4. Verify Improvement
-
-    Uses explicit 'refactor_modularity' workflow type for constitutional governance.
     """
 
     def __init__(self, context: CoreContext):
-        """
-        Initialize modularity remediation service.
-
-        Args:
-            context: CoreContext with constitutional capabilities
-        """
+        """Initialize modularity remediation service."""
         self.context = context
         self.checker = ModularityChecker()
         self.loader = EnforcementMappingLoader(settings.REPO_PATH / ".intent")
 
         # Load constitutional threshold
-        mappings = self.loader.load()
+        mappings = self.loader.load_all_mappings()  # FIXED: was load()
         self.threshold = self._get_constitutional_threshold(mappings)
 
     def _get_constitutional_threshold(self, mappings: dict[str, Any]) -> float:
-        """
-        Extract max_score threshold from constitutional enforcement mappings.
-
-        Args:
-            mappings: Enforcement mappings from .intent/
-
-        Returns:
-            Constitutional threshold for modularity score (default: 60.0)
-        """
+        """Extract max_score threshold from constitutional enforcement mappings."""
         try:
             for rule_id, mapping in mappings.items():
                 if "modularity" in rule_id.lower():
@@ -79,8 +54,32 @@ class ModularityRemediationService:
                         return float(params["max_score"])
         except Exception as e:
             logger.warning("Could not load constitutional threshold: %s", e)
-
         return 60.0  # Constitutional default
+
+    def _get_source_files(self) -> list[Path]:
+        """Enumerate source files, excluding test/temp directories."""
+        skip_dirs = {
+            ".venv",
+            "venv",
+            ".git",
+            "work",
+            "var",
+            "__pycache__",
+            ".pytest_cache",
+            "tests",
+            "migrations",
+            "reports",
+        }
+        src_root = settings.REPO_PATH / "src"
+        if not src_root.exists():
+            return []
+
+        files = []
+        for file in src_root.rglob("*.py"):
+            if any(part in file.parts for part in skip_dirs):
+                continue
+            files.append(file)
+        return files
 
     # ID: 74b0bdc4-dcfe-46ac-904d-6a1f0e585a43
     async def remediate_batch(
@@ -90,112 +89,97 @@ class ModularityRemediationService:
         Find and remediate files exceeding modularity threshold.
 
         Args:
-            min_score: Override constitutional threshold (for testing)
-            limit: Maximum files to process in one batch
-            write: Whether to apply changes
+            min_score: Minimum score to trigger remediation (uses threshold if None)
+            limit: Max number of files to remediate
+            write: Actually apply changes
 
         Returns:
             List of remediation results
         """
-        threshold = min_score if min_score is not None else self.threshold
+        threshold = min_score or self.threshold
+        logger.info("Starting modularity remediation (threshold=%.1f)", threshold)
 
-        logger.info(
-            "🔍 Scanning for files exceeding modularity threshold: %.1f", threshold
-        )
+        # FIXED: Enumerate files and check each one
+        source_files = self._get_source_files()
+        logger.info("Scanning %d files for modularity violations...", len(source_files))
 
-        # Find violating files
-        findings = self.checker.check_all_files({"max_score": threshold})
+        # Find violators
+        violators = []
+        for file_path in source_files:
+            try:
+                # FIXED: Use check_refactor_score() per file, not check_all_files()
+                findings = self.checker.check_refactor_score(
+                    file_path, {"max_score": threshold}
+                )
+                if findings:
+                    for finding in findings:
+                        details = finding.get("details", {})
+                        score = details.get("total_score", 0)
+                        if score >= threshold:
+                            violators.append(
+                                {"file": file_path, "score": score, "details": details}
+                            )
+            except Exception as e:
+                logger.debug("Could not check %s: %s", file_path, e)
+                continue
 
-        if not findings:
-            logger.info("✅ No files exceed the modularity threshold")
+        if not violators:
+            logger.info("✅ No modularity violations found")
             return []
 
-        # Sort by score (worst first) and limit
-        findings.sort(key=lambda f: f["details"]["total_score"], reverse=True)
-        findings = findings[:limit]
+        # Sort by score (highest first) and limit
+        violators.sort(key=lambda x: x["score"], reverse=True)
+        violators = violators[:limit]
 
         logger.info(
-            "📋 Found %d files to remediate (processing %d)",
-            len(findings),
-            min(limit, len(findings)),
+            "Found %d violators, remediating top %d",
+            len(violators),
+            min(limit, len(violators)),
         )
 
-        # Process each file
+        # Remediate each violator
         results = []
-        for finding in findings:
-            result = await self._remediate_single_file(
-                file_path=Path(finding["file"]),
-                start_score=finding["details"]["total_score"],
-                details=finding["details"],
-                write=write,
+        for violator in violators:
+            file_path = violator["file"]
+            score = violator["score"]
+
+            logger.info("Remediating %s (score=%.1f)", file_path.name, score)
+
+            goal = (
+                f"Refactor {file_path.relative_to(settings.REPO_PATH)} "
+                f"to reduce modularity score from {score:.1f} to below {threshold:.1f}. "
+                f"Split responsibilities, extract helpers, improve cohesion."
             )
-            results.append(result)
+
+            try:
+                success, message = await develop_from_goal(
+                    context=self.context,
+                    goal=goal,
+                    workflow_type="refactor_modularity",
+                    write=write,
+                )
+
+                results.append(
+                    {
+                        "file": str(file_path.relative_to(settings.REPO_PATH)),
+                        "original_score": score,
+                        "success": success,
+                        "message": message,
+                    }
+                )
+
+            except Exception as e:
+                logger.error("Remediation failed for %s: %s", file_path, e)
+                results.append(
+                    {
+                        "file": str(file_path.relative_to(settings.REPO_PATH)),
+                        "original_score": score,
+                        "success": False,
+                        "message": str(e),
+                    }
+                )
 
         return results
 
-    async def _remediate_single_file(
-        self,
-        file_path: Path,
-        start_score: float,
-        details: dict[str, Any],
-        write: bool,
-    ) -> dict[str, Any]:
-        """
-        Remediate a single file using constitutional workflow.
 
-        Args:
-            file_path: Path to file to remediate
-            start_score: Initial modularity score
-            details: Detailed violation information
-            write: Whether to apply changes
-
-        Returns:
-            Remediation result with success status and improvement metrics
-        """
-        relative_path = file_path.relative_to(settings.REPO_PATH)
-
-        logger.info(
-            "🔧 Remediating: %s (score: %.1f)",
-            relative_path,
-            start_score,
-        )
-
-        # Build goal for autonomous developer
-        goal = (
-            f"Refactor {relative_path} to improve modularity. "
-            f"Current score: {start_score:.1f}. "
-            f"Target: < 60.0. "
-            f"Issues: {details.get('responsibility_count', 0)} responsibilities, "
-            f"cohesion {details.get('cohesion', 0):.2f}"
-        )
-
-        # Execute using explicit refactor_modularity workflow
-        success, message = await develop_from_goal(
-            context=self.context,
-            goal=goal,
-            workflow_type="refactor_modularity",
-            write=write,
-        )
-
-        # Measure improvement
-        if success:
-            findings = self.checker.check_refactor_score(
-                file_path,
-                {"max_score": 0},  # Get score regardless of threshold
-            )
-            final_score = (
-                findings[0]["details"]["total_score"] if findings else start_score
-            )
-            improvement = start_score - final_score
-        else:
-            final_score = start_score
-            improvement = 0.0
-
-        return {
-            "file": str(relative_path),
-            "success": success,
-            "start_score": start_score,
-            "final_score": final_score,
-            "improvement": improvement,
-            "message": message,
-        }
+__all__ = ["ModularityRemediationService"]

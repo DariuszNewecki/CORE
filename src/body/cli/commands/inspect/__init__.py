@@ -18,6 +18,7 @@ Structure:
 - drift.py           - Symbol/vector/guard drift detection
 - analysis.py        - Clusters, duplicates, common-knowledge
 - diagnostics.py     - Command-tree, test-targets
+- repo_census.py     - CIM-0 repository census
 - _helpers.py        - Shared helper functions
 """
 
@@ -31,6 +32,7 @@ from .diagnostics import diagnostics_commands
 from .drift import drift_commands, register_drift_commands
 from .patterns import patterns_commands
 from .refusals import refusals_commands
+from .repo_census import repo_census_cmd
 from .status import status_commands
 
 
@@ -69,6 +71,9 @@ for cmd in analysis_commands:
 # Diagnostics
 for cmd in diagnostics_commands:
     inspect_app.command(cmd["name"], **cmd.get("kwargs", {}))(cmd["func"])
+
+# Repo census (CIM-0)
+inspect_app.command("repo-census")(repo_census_cmd)
 
 
 # Export for backward compatibility

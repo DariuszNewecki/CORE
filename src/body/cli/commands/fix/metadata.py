@@ -131,31 +131,6 @@ async def fix_duplicate_ids_internal(
 
 
 @fix_app.command(
-    "ids", help="Assigns a stable '# ID: <uuid>' to all untagged public symbols."
-)
-@core_command(dangerous=True, confirmation=False)
-# ID: 444bd442-cc5b-4f7a-a3d4-392ccf86e7be
-@atomic_action(
-    action_id="assign.ids",
-    intent="Atomic action for assign_ids_command",
-    impact=ActionImpact.WRITE_CODE,
-    policies=["atomic_actions"],
-)
-# ID: e2d50b4f-e3cf-49d3-9f32-476970e8d31f
-async def assign_ids_command(
-    ctx: typer.Context,
-    write: bool = typer.Option(
-        False, "--write", help="Apply the changes to the files."
-    ),
-) -> ActionResult:
-    """
-    CLI wrapper for fix ids command.
-    """
-    with console.status("[cyan]Assigning missing IDs...[/cyan]"):
-        return await fix_ids_internal(ctx.obj, write=write)
-
-
-@fix_app.command(
     "purge-legacy-tags",
     help="Removes obsolete tag formats (e.g. old 'Tag:' or 'Metadata:' lines).",
 )

@@ -27,7 +27,6 @@ console = Console()
 COMMAND_CONFIG = {
     "code-style": {"category": "formatting", "dangerous": False},
     "headers": {"category": "compliance", "dangerous": True},
-    "docstrings": {"category": "documentation", "dangerous": True},
     "clarity": {"category": "refactoring", "dangerous": True},
     "complexity": {"category": "refactoring", "dangerous": True},
     "ids": {"category": "metadata", "dangerous": True},
@@ -75,7 +74,6 @@ import body.cli.commands.fix.body_ui
 import body.cli.commands.fix.clarity
 import body.cli.commands.fix.code_style
 import body.cli.commands.fix.db_tools
-import body.cli.commands.fix.docstrings
 import body.cli.commands.fix.fix_ir
 import body.cli.commands.fix.handler_discovery
 import body.cli.commands.fix.imports

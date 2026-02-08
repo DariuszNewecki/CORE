@@ -3,7 +3,6 @@
 Code style and formatting commands for the 'fix' CLI group.
 
 Provides:
-- fix code-style (Black + Ruff formatting)
 - fix headers (file header compliance)
 
 CONSTITUTIONAL ALIGNMENT:
@@ -17,7 +16,6 @@ import time
 
 import typer
 
-from features.self_healing.code_style_service import format_code
 from features.self_healing.header_service import _run_header_fix_cycle
 from shared.action_types import ActionImpact, ActionResult
 from shared.atomic_action import atomic_action
@@ -26,23 +24,6 @@ from shared.context import CoreContext
 
 # We only import the App and Console from the local hub
 from . import console, fix_app
-
-
-@fix_app.command(
-    "code-style", help="Auto-format all code to be constitutionally compliant."
-)
-@core_command(dangerous=False)
-# ID: 227222a1-811d-4fd8-bd32-65329f8414ca
-def format_code_cmd(ctx: typer.Context) -> None:
-    """
-    CLI entry point for `fix code-style`.
-    Delegates to Black & Ruff via subprocesses.
-    """
-    # UI logic is now self-contained to prevent circular imports
-    with console.status("[cyan]Formatting code with Black and Ruff...[/cyan]"):
-        format_code()
-
-    console.print("[green]✅ Code formatting completed[/green]")
 
 
 @atomic_action(
