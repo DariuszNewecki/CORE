@@ -22,6 +22,9 @@ from body.cli.commands.refactor import refactor_app
 # 2. Interactive UI
 from body.cli.interactive import launch_interactive_menu
 
+# 3. Operator tools (maintenance, rewiring)
+from body.cli.logic.tools import tools_app
+
 # 1. Resource-First Imports (The "Neurons")
 from body.cli.resources.admin import app as admin_app
 from body.cli.resources.code import app as code_app
@@ -34,7 +37,7 @@ from body.cli.resources.proposals import app as proposals_app
 from body.cli.resources.symbols import app as symbols_app
 from body.cli.resources.vectors import app as vectors_app
 
-# 3. Infrastructure
+# 4. Infrastructure
 from body.infrastructure.bootstrap import create_core_context
 from body.services.service_registry import service_registry
 from shared.infrastructure.database.session_manager import get_session
@@ -77,6 +80,9 @@ def register_all_commands(app_instance: typer.Typer) -> None:
     app_instance.add_typer(interactive_test_app, name="interactive-test")
     app_instance.add_typer(refactor_app, name="refactor")
 
+    # OPERATOR TOOLS (Wave 4: maintenance & rewiring)
+    app_instance.add_typer(tools_app, name="tools")
+
 
 # Register the resource tree
 register_all_commands(app)
@@ -91,7 +97,7 @@ def main(ctx: typer.Context) -> None:
 
     if ctx.invoked_subcommand is None:
         console.print(
-            "[bold green]🏛️  CORE Admin Active. Resource-First Architecture v2.0 engaged.[/bold green]"
+            "[bold green]🛏  CORE Admin Active. Resource-First Architecture v2.0 engaged.[/bold green]"
         )
         launch_interactive_menu()
 

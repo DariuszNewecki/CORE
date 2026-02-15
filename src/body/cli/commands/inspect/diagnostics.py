@@ -20,7 +20,7 @@ from rich.table import Table
 from rich.tree import Tree
 
 from body.cli.logic import diagnostics as diagnostics_logic
-from features.self_healing.test_target_analyzer import TestTargetAnalyzer
+from body.self_healing.test_target_analyzer import TestTargetAnalyzer
 from shared.cli_utils import core_command
 from shared.logger import getLogger
 from shared.models.command_meta import CommandBehavior, CommandLayer, command_meta

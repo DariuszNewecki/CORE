@@ -10,8 +10,8 @@ import typer
 from rich.console import Console
 
 from body.cli.workflows.dev_sync_reporter import DevSyncReporter
-from features.introspection.sync_service import run_sync_with_db
-from features.project_lifecycle.definition_service import define_symbols
+from body.introspection.sync_service import run_sync_with_db
+from body.project_lifecycle.definition_service import define_symbols
 from shared.action_types import ActionResult
 from shared.context import CoreContext
 

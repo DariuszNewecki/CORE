@@ -1,4 +1,38 @@
+# .intent/enforcement/mappings/architecture/core_safety.yaml
+#
+# Core architectural safety checks enforced via deterministic gates.
+# These are the structural perimeter rules — they verify the shape of
+# the codebase before any semantic analysis begins.
+
 mappings:
+  # =========================================================================
+  # PERIMETER: No shadow layers outside Mind/Body/Will/shared/api
+  # =========================================================================
+  # Constitutional rule: architecture.layer_exclusivity
+  #
+  # Uses the 'allowed_top_level_dirs' check_type in glob_gate.
+  # This is a whitelist — if a file doesn't match any allowed pattern,
+  # it's outside the constitutional boundary. This catches ALL shadow
+  # layers (current and future), not just known ones.
+  architecture.layer_exclusivity:
+    engine: glob_gate
+    params:
+      check_type: allowed_top_level_dirs
+      allowed:
+        - "src/mind/**"
+        - "src/body/**"
+        - "src/will/**"
+        - "src/shared/**"
+        - "src/api/**"
+    scope:
+      applies_to:
+        - "src/**/*.py"
+      excludes:
+        - "src/__init__.py"
+
+  # =========================================================================
+  # STRUCTURAL: Module-level async engine prohibition
+  # =========================================================================
   architecture.no_module_async_engine:
     engine: ast_gate
     params:
@@ -6,6 +40,10 @@ mappings:
     scope:
       applies_to:
         - "src/**/*.py"
+
+  # =========================================================================
+  # STRUCTURAL: Maximum file size (300 lines constitutional, 400 soft limit)
+  # =========================================================================
   architecture.max_file_size:
     engine: ast_gate
     params:
@@ -14,6 +52,10 @@ mappings:
     scope:
       applies_to:
         - "src/**/*.py"
+
+  # =========================================================================
+  # IMMUTABILITY: Constitution is read-only to code
+  # =========================================================================
   architecture.constitution_read_only:
     engine: glob_gate
     params:
@@ -22,6 +64,10 @@ mappings:
     scope:
       applies_to:
         - "src/**/*.py"
+
+  # =========================================================================
+  # IMMUTABILITY: META schema is read-only to code
+  # =========================================================================
   architecture.meta_read_only:
     engine: glob_gate
     params:

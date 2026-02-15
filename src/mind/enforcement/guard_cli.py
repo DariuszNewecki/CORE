@@ -13,8 +13,8 @@ from typing import Any
 import typer
 
 from body.cli.logic.cli_utils import should_fail
-from features.introspection.drift_detector import write_report
-from features.introspection.drift_service import run_drift_analysis_async
+from body.introspection.drift_detector import write_report
+from body.introspection.drift_service import run_drift_analysis_async
 from mind.enforcement.guard import _print_pretty, _ux_defaults
 from shared.cli_utils import core_command
 

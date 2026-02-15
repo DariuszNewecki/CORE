@@ -13,7 +13,7 @@ from __future__ import annotations
 import typer
 from dotenv import load_dotenv
 
-from features.introspection.vectorization_service import run_vectorize
+from body.introspection.vectorization_service import run_vectorize
 from shared.cli_utils import core_command
 from shared.context import CoreContext
 from shared.infrastructure.database.session_manager import get_session

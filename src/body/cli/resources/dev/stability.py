@@ -11,7 +11,7 @@ from __future__ import annotations
 import typer
 from rich.console import Console
 
-from features.maintenance.idempotency_harness import IdempotencyHarness
+from body.maintenance.idempotency_harness import IdempotencyHarness
 from shared.cli_utils import core_command
 from shared.models.command_meta import CommandBehavior, CommandLayer, command_meta
 

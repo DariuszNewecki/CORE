@@ -12,8 +12,8 @@ from __future__ import annotations
 
 import typer
 
-from features.maintenance.command_sync_service import _sync_commands_to_db
-from features.self_healing.sync_vectors import main_async as sync_vectors_async
+from body.maintenance.command_sync_service import _sync_commands_to_db
+from body.maintenance.sync_vectors import main_async as sync_vectors_async
 from shared.cli_utils import core_command
 from shared.infrastructure.database.session_manager import get_session
 

@@ -16,7 +16,7 @@ import time
 
 import typer
 
-from features.self_healing.header_service import _run_header_fix_cycle
+from body.self_healing.header_service import _run_header_fix_cycle
 from shared.action_types import ActionImpact, ActionResult
 from shared.atomic_action import atomic_action
 from shared.cli_utils import core_command

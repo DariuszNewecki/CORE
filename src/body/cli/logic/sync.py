@@ -7,7 +7,7 @@ Complies with body_contracts.json (no UI imports).
 
 from __future__ import annotations
 
-from features.introspection.sync_service import run_sync_with_db
+from body.introspection.sync_service import run_sync_with_db
 from shared.infrastructure.database.session_manager import get_session
 from shared.logger import getLogger
 

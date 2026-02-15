@@ -16,8 +16,8 @@ from __future__ import annotations
 import time
 
 from body.atomic.registry import ActionCategory, register_action
-from features.introspection.sync_service import run_sync_with_db
-from features.introspection.vectorization_service import run_vectorize
+from body.introspection.sync_service import run_sync_with_db
+from body.introspection.vectorization_service import run_vectorize
 from shared.action_types import ActionImpact, ActionResult
 from shared.atomic_action import atomic_action
 from shared.context import CoreContext

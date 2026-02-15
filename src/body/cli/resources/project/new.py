@@ -2,7 +2,8 @@
 import typer
 from rich.console import Console
 
-from features.project_lifecycle.scaffolding_service import create_new_project
+# UPDATED: Import from body instead of features
+from body.project_lifecycle.scaffolding_service import create_new_project
 from shared.cli_utils import core_command
 from shared.context import CoreContext
 

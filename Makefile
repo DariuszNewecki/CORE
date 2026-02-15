@@ -1,9 +1,7 @@
-# FILE: Makefile
 # Makefile for CORE — The Self-Improving System Architect
 #
-# This file maps concise 'make' commands to the authoritative 'core-admin' CLI.
-# It serves as the developer's control panel, composing atomic CLI "neurons"
-# into functional "limbs" (pipelines).
+# UPDATED: Layer-Aware paths (Mind/Body/Will).
+# Removed references to the legacy 'features' directory.
 
 # ---- Shell & defaults --------------------------------------------------------
 SHELL := /bin/bash
@@ -35,7 +33,7 @@ OUTPUT_PATH := docs/10_CAPABILITY_REFERENCE.md
 
 # ---- Help (auto-documented) --------------------------------------------------
 help: ## Show this help message
-	@echo "CORE Development Makefile (Resource-First Architecture v2.0)"
+	@echo "CORE Development Makefile (Layered Architecture v2.3)"
 	@echo "------------------------------------------------------------"
 	@echo "Usage: make [target]"
 	@echo ""

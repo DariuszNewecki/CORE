@@ -12,7 +12,7 @@ from typing import Any
 
 import typer
 
-from features.project_lifecycle.scaffolding_service import Scaffolder
+from body.project_lifecycle.scaffolding_service import Scaffolder
 from shared.context import CoreContext
 from shared.logger import getLogger
 

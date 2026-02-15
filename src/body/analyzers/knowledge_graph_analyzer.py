@@ -17,7 +17,7 @@ import time
 from pathlib import Path
 from typing import Any
 
-from features.introspection.knowledge_graph_service import KnowledgeGraphBuilder
+from body.introspection.knowledge_graph_service import KnowledgeGraphBuilder
 from shared.component_primitive import Component, ComponentPhase, ComponentResult
 from shared.logger import getLogger
 

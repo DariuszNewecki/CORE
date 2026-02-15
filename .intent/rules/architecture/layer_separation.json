@@ -4,12 +4,20 @@
     "metadata": {
         "id": "rules.architecture.layer_separation",
         "title": "Mind/Body/Will Layer Separation",
-        "version": "0.1.0",
+        "version": "0.2.0",
         "authority": "constitution",
         "phase": "audit",
         "status": "active"
     },
     "rules": [
+        {
+            "id": "architecture.layer_exclusivity",
+            "statement": "All Python source files under src/ MUST reside within a constitutional layer (mind/, body/, will/), a sanctioned infrastructure directory (shared/, api/), or be a root entry point. No other top-level directories are permitted under src/.",
+            "enforcement": "blocking",
+            "authority": "constitution",
+            "phase": "parse",
+            "rationale": "The constitution defines exactly three layers: Mind, Body, Will — plus shared infrastructure and API entrypoints. Code that exists outside these boundaries is ungoverned by definition. This rule closes the perimeter so that no shadow layers can accumulate undetected."
+        },
         {
             "id": "architecture.mind.no_database_access",
             "statement": "Mind layer components (src/mind/**/*.py) MUST NOT import database session infrastructure (get_session)",

@@ -13,8 +13,8 @@ from body.cli.commands.fix.code_style import fix_headers_internal
 from body.cli.commands.fix.metadata import fix_ids_internal
 from body.cli.commands.fix_logging import LoggingFixer
 from body.cli.workflows.dev_sync_reporter import DevSyncReporter
-from features.self_healing.code_style_service import format_code
-from features.self_healing.docstring_service import fix_docstrings
+from body.self_healing.code_style_service import format_code
+from body.self_healing.docstring_service import fix_docstrings
 from shared.action_types import ActionResult
 from shared.context import CoreContext
 
