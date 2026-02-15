@@ -34,7 +34,7 @@ dev_sync_app = typer.Typer(
 
 @dev_sync_app.command("sync")
 @core_command(dangerous=True, confirmation=True)
-# ID: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+# ID: 6f84e7f9-5b51-4d4d-b41a-8834cd7388b5
 async def dev_sync_command(
     ctx: typer.Context,
     write: bool = typer.Option(
@@ -80,7 +80,7 @@ async def dev_sync_command(
         console.print("\n[green]✓ Workflow completed successfully[/green]")
 
 
-# ID: b2c3d4e5-f678-90ab-cdef-1234567890ab
+# ID: b171ef17-12fc-4d63-be4a-38f9f91c45ae
 def _print_workflow_results(result: Any, write: bool) -> None:
     """Print workflow results in a clean table format."""
     console.print("\n[bold]Workflow Results[/bold]")

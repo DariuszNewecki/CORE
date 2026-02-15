@@ -56,8 +56,8 @@ class Violation:
     remediation_handler: str | None = None
 
 
-# ID: remediation-service-class
-# ID: a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d
+# ID: e1084e6b-d109-4859-ac96-1d2e936e505e
+# ID: 8bd6675e-f4e3-4581-90ac-74cdc2caf8a1
 class RemediationService:
     """
     Body layer service for constitutional remediation execution.
@@ -83,8 +83,8 @@ class RemediationService:
         self.file_handler = FileHandler(str(self.repo_path))
         logger.info("RemediationService initialized for %s", self.repo_path)
 
-    # ID: remediate-missing-headers
-    # ID: b2c3d4e5-f6a7-8b9c-0d1e-2f3a4b5c6d7e
+    # ID: 982e1d72-919d-4608-b633-0dcb0b13847a
+    # ID: f86104cc-4740-4d74-889f-6f622e1d24dc
     async def remediate_missing_headers(
         self, violations: list[Violation]
     ) -> RemediationResult:
@@ -163,8 +163,8 @@ class RemediationService:
             error=error,
         )
 
-    # ID: remediate-single-file
-    # ID: c3d4e5f6-a7b8-9c0d-1e2f-3a4b5c6d7e8f
+    # ID: 00c02bd3-4210-4e6c-9db2-907264dd3e2c
+    # ID: 7d18bb42-18a0-4834-8334-be92a27f36a8
     async def remediate_single_file(self, file_path: str) -> bool:
         """
         Execute remediation for a single file.
@@ -215,8 +215,8 @@ class RemediationService:
             logger.error("Error remediating %s: %s", file_path, e)
             return False
 
-    # ID: validate-remediation
-    # ID: d4e5f6a7-b8c9-0d1e-2f3a-4b5c6d7e8f9a
+    # ID: 036b6190-48e0-4d04-8497-4cb94ea818d1
+    # ID: 0a08a917-26cb-41ea-9711-3e1335e07ed3
     def validate_remediation(self, file_path: str) -> bool:
         """
         Validate that remediation was successful for a file.
@@ -245,8 +245,8 @@ class RemediationService:
             return False
 
 
-# ID: get-remediation-service
-# ID: e5f6a7b8-c9d0-1e2f-3a4b-5c6d7e8f9a0b
+# ID: 0d79c416-b67e-446a-8795-4c8df1ed3220
+# ID: aa015db1-8ed4-4017-86d9-19f1be437214
 def get_remediation_service(repo_path: Path | str | None = None) -> RemediationService:
     """
     Factory function for remediation service.

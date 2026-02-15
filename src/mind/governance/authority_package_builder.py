@@ -51,7 +51,7 @@ if TYPE_CHECKING:
 logger = getLogger(__name__)
 
 
-# ID: a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d
+# ID: 389ab748-8667-484e-8bab-72eb9d223547
 @dataclass
 # ID: d9b1775a-7f7f-443c-9570-41df4c3be408
 class PolicyMatch:
@@ -76,7 +76,7 @@ class PolicyMatch:
     """Semantic similarity to user intent (0.0-1.0)"""
 
 
-# ID: b2c3d4e5-f6a7-8b9c-0d1e-2f3a4b5c6d7e
+# ID: 5e63beb8-8b3f-4dae-a97f-98a7ddd650e7
 @dataclass
 # ID: f6f2803a-debd-4f41-b227-03dd7f122d4b
 class ConstitutionalContradiction:
@@ -94,7 +94,7 @@ class ConstitutionalContradiction:
     """What user must decide"""
 
 
-# ID: c3d4e5f6-a7b8-9c0d-1e2f-3a4b5c6d7e8f
+# ID: 73a10fe0-8c31-4fa3-9272-ac486449bbaf
 @dataclass
 # ID: 9e6b554b-598c-4fca-b638-325ee34c4391
 class AuthorityPackage:
@@ -167,7 +167,7 @@ class AuthorityPackage:
         }
 
 
-# ID: d4e5f6a7-b8c9-0d1e-2f3a-4b5c6d7e8f9a
+# ID: 8330bceb-2e78-47de-98bd-07fb61573ca3
 class AuthorityPackageBuilder:
     """
     Orchestrates pre-flight constitutional validation.
@@ -215,7 +215,7 @@ class AuthorityPackageBuilder:
         self.assumption_extractor = assumption_extractor
         self.conflict_detector = rule_conflict_detector
 
-    # ID: e5f6a7b8-c9d0-1e2f-3a4b-5c6d7e8f9a0b
+    # ID: 13a165f2-a7dd-41e1-b5f0-6197bd25f49c
     async def build_from_request(self, user_request: str) -> AuthorityPackage:
         """
         Build complete authority package from user request.
@@ -280,7 +280,7 @@ class AuthorityPackageBuilder:
         logger.info("✅ Authority package complete: %s", package.to_dict())
         return package
 
-    # ID: f6a7b8c9-d0e1-2f3a-4b5c-6d7e8f9a0b1c
+    # ID: 034eed3d-dfcf-40cc-9ca6-35cc26c6b674
     async def _parse_intent(self, user_request: str) -> TaskStructure:
         """
         Parse user request into structured intent.
@@ -303,7 +303,7 @@ class AuthorityPackageBuilder:
 
         return task
 
-    # ID: a7b8c9d0-e1f2-3a4b-5c6d-7e8f9a0b1c2d
+    # ID: 26fabda6-9dc4-448b-8f3d-78ee70ca1d1d
     async def _match_policies(self, task_structure: TaskStructure) -> list[PolicyMatch]:
         """
         Find constitutional policies relevant to this task.
@@ -351,7 +351,7 @@ class AuthorityPackageBuilder:
 
         return matches
 
-    # ID: b8c9d0e1-f2a3-4b5c-6d7e-8f9a0b1c2d3e
+    # ID: 3999993f-3320-41c7-a644-b4e0dce4ae74
     async def _detect_contradictions(
         self, matched_policies: list[PolicyMatch]
     ) -> list[ConstitutionalContradiction]:

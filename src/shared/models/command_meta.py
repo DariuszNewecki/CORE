@@ -64,6 +64,7 @@ class CommandMeta:
         - aliases: Alternative names for backwards compatibility
         - help_text: Extended help with examples
         - dangerous: Requires --write or confirmation
+        - experimental: Not yet production-ready, hidden from --help
         - requires_approval: Needs autonomy approval before execution
         - constitutional_constraints: Policy rules that must be satisfied
     """
@@ -93,6 +94,11 @@ class CommandMeta:
 
     dangerous: bool = False
     """Whether command mutates state (requires --write flag or confirmation)"""
+
+    experimental: bool = False
+    """Whether command is not yet production-ready. Experimental commands are
+    hidden from --help but remain callable if invoked directly.
+    Use core-admin admin self-check --verbose to see all commands including experimental."""
 
     requires_approval: bool = False
     """Whether execution needs Will layer approval (autonomous operations)"""

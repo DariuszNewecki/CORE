@@ -11,6 +11,10 @@ Constitutional Compliance:
 - Async-safe: Uses asyncio.subprocess, not blocking subprocess.run()
 - Proper imports: All dependencies explicitly imported
 - Single Responsibility: One command, one purpose
+
+HEALED (V2.7.3):
+- Switched to @core_command to enable JIT service injection.
+- This fixes the 'NoneType' object error by ensuring the Brain is awake.
 """
 
 from __future__ import annotations
@@ -18,7 +22,9 @@ from __future__ import annotations
 import typer
 
 from body.cli.logic.interactive_test_logic import run_interactive_test_generation
-from shared.cli_utils import async_command
+
+# CHANGE 1: Use core_command instead of async_command
+from shared.cli_utils import core_command
 from shared.context import CoreContext
 from shared.logger import getLogger
 
@@ -32,8 +38,9 @@ app = typer.Typer(
 
 
 @app.command("generate")
-@async_command
-# ID: 1a2b3c4d-5e6f-7a8b-9c0d-1e2f3a4b5c6d
+# CHANGE 2: Use core_command to ensure the Brain (CognitiveService) is injected
+@core_command(dangerous=True, requires_context=True)
+# ID: bf668e19-1bc9-48f7-aecb-683c019a1162
 async def generate_interactive(
     ctx: typer.Context,
     target: str = typer.Argument(
@@ -86,7 +93,7 @@ async def generate_interactive(
 
 
 @app.command("info")
-# ID: 2b3c4d5e-6f7a-8b9c-0d1e-2f3a4b5c6d7e
+# ID: a78675f8-65d4-446f-a07d-3921e2de0df6
 def info():
     """Show information about interactive test generation."""
     from rich.console import Console

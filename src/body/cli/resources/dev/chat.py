@@ -1,5 +1,5 @@
 # src/body/cli/resources/dev/chat.py
-# ID: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+# ID: 7a328b95-ba3f-484e-ac04-fc4b12f12f00
 
 """
 AI-assisted CLI command translation.
@@ -24,7 +24,7 @@ from shared.utils.subprocess_utils import run_command_async
 from will.agents.intent_translator import IntentTranslator
 from will.orchestration.cognitive_service import CognitiveService
 
-from . import app
+from .hub import app
 
 
 logger = getLogger(__name__)

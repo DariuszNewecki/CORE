@@ -18,13 +18,13 @@ from typing import Any
 from will.autonomy.proposal import Proposal
 
 
-# ID: proposal_mapper
+# ID: b83b49ff-eced-4c99-abc4-97c003cc25e6
 # ID: 8d7c9f1e-2a4b-5c6d-7e8f-9a0b1c2d3e4f
 class ProposalMapper:
     """Converts between Proposal domain model and AutonomousProposal database model."""
 
     @staticmethod
-    # ID: mapper_to_db
+    # ID: bc690d67-5a0a-4d43-aa74-edf2c4545d37
     # ID: f1e2d3c4-b5a6-7890-abcd-ef1234567890
     def to_db_model(proposal: Proposal, db_class: type) -> Any:
         """
@@ -76,8 +76,8 @@ class ProposalMapper:
         )
 
     @staticmethod
-    # ID: mapper_from_db
-    # ID: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+    # ID: 283d12bb-296c-4cca-9fe1-e84b942e2efc
+    # ID: e997a6e0-0a79-4cc9-aabf-04d39c8639b7
     def from_db_model(db_proposal: Any) -> Proposal:
         """
         Convert database AutonomousProposal to domain Proposal.
@@ -121,8 +121,8 @@ class ProposalMapper:
         return Proposal.from_dict(data)
 
     @staticmethod
-    # ID: mapper_update_db
-    # ID: b2c3d4e5-f6a7-8901-bcde-f12345678901
+    # ID: 00b6fd2b-bcf6-486f-bff8-a195d8191327
+    # ID: 12c03c5a-fc4a-42d7-a906-48c824c56189
     def update_db_model(db_proposal: Any, proposal: Proposal) -> None:
         """
         Update database model fields from domain model.

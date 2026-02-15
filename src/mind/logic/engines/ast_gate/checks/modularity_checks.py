@@ -22,7 +22,7 @@ from shared.logger import getLogger
 logger = getLogger(__name__)
 
 
-# ID: a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d
+# ID: 0a8f5bf2-e362-472c-a164-53c1b4f46625
 class ModularityChecker:
     """Enforces modularity and refactoring thresholds constitutionally."""
 

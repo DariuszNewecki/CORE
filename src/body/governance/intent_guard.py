@@ -1,21 +1,15 @@
 # src/body/governance/intent_guard.py
+# ID: 4275c592-2725-4fd1-807f-f0d5d83ea78b
+
 """
 Constitutional Enforcement Engine - Main Orchestrator.
 
-MOVED FROM MIND TO BODY (Constitutional Compliance):
+MOVED FROM MIND TO BODY:
 IntentGuard performs EXECUTION logic (validation, enforcement decisions).
-Mind layer defines law (.intent/), Body layer enforces it.
 
-UPDATED (V2.6.6):
-- Enforcement Strength Discipline: Distinguishes between 'blocking' and 'reporting'.
-- Non-Blocking Warnings: Allowed transactions to proceed if only warnings are found.
-- Python 3.12 Safety: Explicit check for empty patterns in Path.match().
-
-UPDATED (V2.7.0):
-- Impact-Tier Awareness: check_transaction accepts an optional impact parameter.
-- WRITE_METADATA operations skip engine-based audit rules (ast_gate, etc.)
-  because their safety is proven at action execution time via normalized AST comparison.
-- Hard invariants (.intent/ protection) always apply regardless of impact tier.
+UPDATED (V2.7.3):
+- Strict Mode Toggle: Respects settings.CORE_STRICT_MODE for transaction gating.
+- Hard Invariant Protection: .intent/ remains blocked regardless of mode.
 """
 
 from __future__ import annotations
@@ -53,7 +47,7 @@ logger = getLogger(__name__)
 _AUDIT_ENGINES = frozenset({"ast_gate", "knowledge_gate", "llm_gate", "regex_gate"})
 
 
-# ID: 4275c592-2725-4fd1-807f-f0d5d83ea78b
+# ID: 321feca2-70dd-4301-888f-b2db49795283
 class IntentGuard:
     """
     Constitutional enforcement orchestrator.
@@ -61,9 +55,8 @@ class IntentGuard:
     Responsibilities:
     - Load and prioritize constitutional rules
     - Validate file operations against policies
-    - Dispatch to engines for code-level verification
     - Enforce hard invariants (no .intent writes)
-    - Support emergency mode with safety guarantees
+    - Support switchable strict mode for commercial hardening
     """
 
     _EMERGENCY_LOCK_REL = ".intent/mind/.emergency_override"
@@ -86,7 +79,7 @@ class IntentGuard:
         repo = get_intent_repository()
         repo.initialize()
 
-        # 2. Initialize Enforcement Mappings (The Implementation Scopes)
+        # 2. Initialize Enforcement Mappings
         mapping_loader = EnforcementMappingLoader(self.intent_root)
 
         # 3. Extract All Policies from Mind
@@ -97,13 +90,12 @@ class IntentGuard:
             except Exception:
                 continue
 
-        # 4. Resolve Executable Rules (Combining Law + Implementation)
+        # 4. Resolve Executable Rules
         executable_rules = extract_executable_rules(policies, mapping_loader)
 
         # 5. Transform to internal PolicyRule objects
         self.rules: list[PolicyRule] = []
         for er in executable_rules:
-            # Flatten ExecutableRule scope (list) into individual PolicyRules (string pattern)
             for pattern in er.scope:
                 if not pattern or not str(pattern).strip():
                     continue
@@ -121,12 +113,12 @@ class IntentGuard:
                     )
                 )
 
-        # 6. Apply precedence (lower number = higher priority)
+        # 6. Apply precedence
         self.precedence_map = repo.get_precedence_map()
         self.rules.sort(key=lambda r: self.precedence_map.get(r.source_policy, 999))
 
         logger.info(
-            "IntentGuard initialized with %s enforcement rules for file operation governance.",
+            "IntentGuard initialized with %s enforcement rules.",
             len(self.rules),
         )
 
@@ -140,24 +132,14 @@ class IntentGuard:
     ) -> tuple[bool, list[ViolationReport]]:
         """
         Validate a set of proposed file operations.
-
-        Args:
-            proposed_paths: List of repo-relative paths to validate.
-            impact: Optional impact tier of the operation. When set to
-                "write-metadata", engine-based audit rules (ast_gate, etc.)
-                are skipped because metadata mutations are proven safe at
-                action execution time via normalized AST comparison.
-                Hard invariants (.intent/ protection) always apply.
-
-        Returns:
-            (allowed, violations) - allowed=False ONLY if 'error' severity found.
         """
         violations: list[ViolationReport] = []
+        has_hard_invariant_violation = False
 
         for path_str in proposed_paths:
             abs_path = (self.repo_path / path_str).resolve()
 
-            # HARD INVARIANT: Absolute block on .intent writes
+            # HARD INVARIANT: Absolute block on .intent writes (Always blocking)
             if self._is_under_intent(abs_path):
                 violations.append(
                     ViolationReport(
@@ -169,23 +151,34 @@ class IntentGuard:
                         source_policy="hard_invariant",
                     )
                 )
-                continue
-
-            # EMERGENCY BYPASS
-            if self._is_emergency_mode():
-                logger.warning(
-                    "Emergency mode active - bypassing policy checks for: %s", path_str
-                )
+                has_hard_invariant_violation = True
                 continue
 
             # POLICY EVALUATION
             violations.extend(self._check_against_rules(path_str, abs_path, impact))
 
-        # CONSTITUTIONAL FIX: Only 'error' severity (Blocking) should fail the transaction.
-        # 'warning' severity (Reporting/Advisory) should be reported but not block.
+        # Decision Logic:
+        # 1. Hard Invariants ALWAYS block.
+        if has_hard_invariant_violation:
+            return (False, violations)
+
+        # 2. Check for blocking policy errors
         has_blocking_errors = any(v.severity == "error" for v in violations)
 
-        return (not has_blocking_errors, violations)
+        if has_blocking_errors:
+            # THE TEETH TOGGLE:
+            if settings.CORE_STRICT_MODE:
+                logger.error(
+                    "STRICT MODE: Halting transaction due to constitutional violations."
+                )
+                return (False, violations)
+            else:
+                logger.warning(
+                    "ADVISORY MODE: Permitting transaction despite constitutional violations."
+                )
+                return (True, violations)
+
+        return (True, violations)
 
     # ID: 58d875bb-966e-4b82-ab83-66514b9455dc
     async def validate_generated_code(
@@ -252,11 +245,6 @@ class IntentGuard:
     ) -> list[ViolationReport]:
         """
         Evaluate path against constitutional rules.
-
-        When impact is "write-metadata", engine-based audit rules are skipped.
-        These rules analyze source code content (imports, patterns, direct writes)
-        and are irrelevant to metadata-only mutations which are proven safe
-        by normalized AST comparison at action execution time.
         """
         violations: list[ViolationReport] = []
         is_metadata = impact == "write-metadata"
@@ -271,26 +259,17 @@ class IntentGuard:
             except ValueError:
                 continue
 
-            # WRITE_METADATA TIER: Skip engine-based audit rules.
-            # These rules check code content (no_direct_writes, forbidden_primitives, etc.)
-            # They are not write-permission gates — they are code-analysis audits.
-            # Metadata mutations are proven safe by the semantic preservation invariant
-            # enforced in body.atomic.metadata_ops.action_tag_metadata.
             if is_metadata and rule.engine in _AUDIT_ENGINES:
                 continue
 
-            # FIDELITY FIX: Map "blocking" to "error", others to "warning"
-            # This ensures dev-sync can complete for non-critical warnings.
             is_blocking = rule.severity in ("blocking", "error")
             severity = "error" if is_blocking else "warning"
 
-            # Determine the message
             if is_blocking:
                 msg = f"Path matches forbidden pattern: {rule.pattern}"
             else:
                 msg = f"Path requires human review: {rule.pattern}"
 
-            # FIDELITY FIX: Explicitly pass the Rule metadata to the report
             violations.append(
                 ViolationReport(
                     rule_name=rule.name,

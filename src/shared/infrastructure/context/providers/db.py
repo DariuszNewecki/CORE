@@ -23,7 +23,7 @@ from shared.logger import getLogger
 logger = getLogger(__name__)
 
 
-# ID: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+# ID: cc3ee4dc-96ac-4568-be73-284148dde4e7
 class _SQLRegistry:
     """Specialist in building complex SQL queries for the provider."""
 

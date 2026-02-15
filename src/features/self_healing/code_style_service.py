@@ -13,7 +13,7 @@ from __future__ import annotations
 from shared.utils.subprocess_utils import run_poetry_command
 
 
-# ID: 5c5890b0-8c2f-4d9a-a4e2-0f7b6a5c4e3b
+# ID: 1655ba02-a26e-4f8b-847a-8e4d16acfea0
 def format_code(path: str | None = None, write: bool = True) -> None:
     """
     Format code using Black and Ruff.

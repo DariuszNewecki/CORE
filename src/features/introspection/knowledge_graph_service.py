@@ -1,5 +1,5 @@
 # src/features/introspection/knowledge_graph_service.py
-# ID: b64ba9c9-f55c-4a24-bc2d-d8c2fa04b43e
+# ID: 66489cb7-ecc7-4d3d-8e31-0e93d159458c
 
 """
 Knowledge Graph Builder - Sensory-Aware logic service.
@@ -39,7 +39,7 @@ if TYPE_CHECKING:
 logger = getLogger(__name__)
 
 
-# ID: b64ba9c9-f55c-4a24-bc2d-d8c2fa04b43e
+# ID: 322f2e00-3996-4c30-8bc6-ec9291be777c
 class KnowledgeGraphBuilder:
     """
     Scan source code to build a comprehensive in-memory knowledge graph.

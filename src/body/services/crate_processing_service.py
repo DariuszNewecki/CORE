@@ -49,7 +49,7 @@ class Crate:
     manifest: dict[str, Any]
 
 
-# ID: 28207c61-99ce-4a66-940e-cb46c069ef81
+# ID: 26ed379a-875e-4df0-9596-f053baadca66
 class CrateProcessingService:
     """
     Validates and processes Intent Crates via Canary sandboxing.

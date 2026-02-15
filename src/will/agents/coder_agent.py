@@ -1,5 +1,5 @@
 # src/will/agents/coder_agent.py
-# ID: reflexive_coder_neuron
+# ID: b51a4101-800d-4d61-a8af-78171bfd990c
 # ID: 917038e4-682f-4d7f-ad13-f5ab7835abc1
 
 """
@@ -122,7 +122,7 @@ class CoderAgent:
 
         return code
 
-    # ID: repair_logic_from_sensation
+    # ID: b5c1fb36-8266-4888-9840-9297ab7ffca3
     async def _repair_code(
         self,
         task: ExecutionTask,

@@ -28,8 +28,8 @@ logger = getLogger(__name__)
 REPO_ROOT = settings.REPO_PATH
 
 
-# ID: proposal_writer
-# ID: 4d5e6f7a-8b9c-0d1e-2f3a-4b5c6d7e8f9a
+# ID: b9ca7b0e-fa07-4bb9-9ac2-38da2aed969d
+# ID: 5b31b2d2-eda1-4cdc-8da7-5344eb9b86c8
 class RefactoringProposalWriter:
     """
     Creates formal refactoring proposals via governed Action Gateway.
@@ -46,8 +46,8 @@ class RefactoringProposalWriter:
         """
         self.executor = executor
 
-    # ID: writer_create_proposal
-    # ID: 5e6f7a8b-9c0d-1e2f-3a4b-5c6d7e8f9a0b
+    # ID: 68e13014-3773-42be-82bb-03ca83f21950
+    # ID: 4e9c6711-96ad-45e1-9be8-6b762764da67
     async def create_proposal(self, proposal_plan: dict[str, Any], write: bool) -> bool:
         """
         Create a formal constitutional amendment proposal.

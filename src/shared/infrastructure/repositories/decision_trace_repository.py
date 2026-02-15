@@ -40,7 +40,7 @@ class DecisionTraceRepository:
     def __init__(self, _session: Any):
         self._session = _session
 
-    # ID: repo_open
+    # ID: 8c82bd7b-7524-4272-8bf4-ccdab9f49374
     # ID: 2ab3f1e7-5e2d-4e8f-9f9d-7d3f0a3c9c51
     @classmethod
     @asynccontextmanager
@@ -49,7 +49,7 @@ class DecisionTraceRepository:
         async with service_registry.session() as session:
             yield cls(session)
 
-    # ID: 9e0f1a2b-3c4d-5e6f-7a8b-9c0d-1e2f3a4b5c6d
+    # ID: e55152b6-d768-41a0-997f-8f3210132878
     # ID: f1746e04-8e4f-4ea9-9678-948ff69793d1
     async def create(
         self,
@@ -112,7 +112,7 @@ class DecisionTraceRepository:
         result = await self._session.execute(stmt)
         return result.scalar_one_or_none()
 
-    # ID: 1a2b3c4d-5e6f-7a8b-9c0d-1e2f3a4b5c6d
+    # ID: 65b96a8a-de11-428c-9781-3f2455ee0636
     async def get_recent(
         self,
         limit: int = 10,
@@ -132,7 +132,7 @@ class DecisionTraceRepository:
         result = await self._session.execute(stmt)
         return list(result.scalars().all())
 
-    # ID: 2b3c4d5e-6f7a-8b9c-0d1e-2f3a4b5c6d7e
+    # ID: 3d680f10-ce36-4533-80bc-a589002c8e12
     async def get_by_date_range(
         self,
         start_date: datetime,
@@ -154,7 +154,7 @@ class DecisionTraceRepository:
         result = await self._session.execute(stmt)
         return list(result.scalars().all())
 
-    # ID: 3c4d5e6f-7a8b-9c0d-1e2f-3a4b5c6d7e8f
+    # ID: 06a534cf-e651-4166-9de4-e5ca2063e76f
     async def get_pattern_stats(
         self,
         pattern_name: str,
@@ -169,7 +169,7 @@ class DecisionTraceRepository:
         result = await self._session.execute(stmt)
         return list(result.scalars().all())
 
-    # ID: 4d5e6f7a-8b9c-0d1e-2f3a-4b5c6d7e8f9a
+    # ID: 1f913131-8382-4711-adf5-ec7d1fb39125
     async def count_by_agent(self, days: int = 7) -> dict[str, int]:
         from datetime import timedelta
 
@@ -188,7 +188,7 @@ class DecisionTraceRepository:
         result = await self._session.execute(stmt)
         return {row.agent_name: row.count for row in result}
 
-    # ID: 5e6f7a8b-9c0d-1e2f-3a4b-5c6d7e8f9a0b
+    # ID: 6e5f9fd8-5b7f-4632-8956-e5303c253088
     async def delete_old_traces(self, days: int = 30) -> int:
         from datetime import timedelta
 

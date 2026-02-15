@@ -42,7 +42,7 @@ class ProposalRepository:
         """
         self._session = session
 
-    # ID: repo_get
+    # ID: 578d1af0-7dc2-487a-b3f6-113983b6fc80
     # ID: f8b8727b-7e4d-4d32-a6cb-475cac9551f7
     async def get(self, proposal_id: str) -> Proposal | None:
         """Retrieves a domain Proposal by its public ID string."""
@@ -61,7 +61,7 @@ class ProposalRepository:
 
         return ProposalMapper.from_db_model(db_record)
 
-    # ID: repo_create
+    # ID: d4724aac-5650-46e7-8346-1efc149510aa
     # ID: 3848ee7d-8eac-4835-abeb-7ea378ae15a5
     async def create(self, proposal: Proposal) -> str:
         """Persists a new proposal record."""
@@ -77,7 +77,7 @@ class ProposalRepository:
         logger.debug("Persisted proposal record: %s", proposal.proposal_id)
         return proposal.proposal_id
 
-    # ID: repo_list_by_status
+    # ID: b0f556e8-b7bd-4f63-b7cc-c3dc97f30459
     # ID: 190fdc4c-77e9-4d99-986b-7c3a0d302560
     async def list_by_status(
         self, status: ProposalStatus, limit: int = 100
@@ -96,7 +96,7 @@ class ProposalRepository:
         result = await self._session.execute(stmt)
         return [ProposalMapper.from_db_model(p) for p in result.scalars().all()]
 
-    # ID: repo_update
+    # ID: 4c5042e0-faa0-4e0c-a9b2-be2d9f6abf13
     # ID: 23d0dc09-c889-41f3-8f11-284e0a894660
     async def update_fields(self, proposal_id: str, updates: dict[str, Any]) -> None:
         """

@@ -42,6 +42,11 @@ class Settings(BaseSettings):
     DEBUG: bool = False
     VERBOSE: bool = False
 
+    # NEW: The "Teeth" Toggle (Phase 3 Hardening)
+    # If False (default): Violations are reported but don't block execution.
+    # If True: Any 'error' level violation halts the transaction immediately.
+    CORE_STRICT_MODE: bool = Field(False, validation_alias="CORE_STRICT_MODE")
+
     CORE_ENV: str = Field("development", validation_alias="CORE_ENV")
 
     model_config = SettingsConfigDict(

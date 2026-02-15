@@ -44,7 +44,7 @@ if TYPE_CHECKING:
 logger = getLogger(__name__)
 
 
-# ID: 1a2b3c4d-5e6f-7a8b-9c0d-1e2f3a4b5c6d
+# ID: 3bc423ba-69f4-4a1a-859a-4db1c25f95d2
 @dataclass
 # ID: ef51123a-09c0-4555-883b-dd86db868ba7
 class ValidationResult:
@@ -68,7 +68,7 @@ class ValidationResult:
     """Message to present to user (assumptions, contradictions, etc.)"""
 
 
-# ID: 2b3c4d5e-6f7a-8b9c-0d1e-2f3a4b5c6d7e
+# ID: 71eeb549-0fa9-4192-8978-78c230e69009
 class PreFlightValidator:
     """
     Integration layer for constitutional pre-flight validation.
@@ -113,7 +113,7 @@ class PreFlightValidator:
                 "Code will be generated without constitutional checks."
             )
 
-    # ID: 3c4d5e6f-7a8b-9c0d-1e2f-3a4b5c6d7e8f
+    # ID: 91e1a6da-5dab-4bec-983b-2e185fbadfcf
     async def validate_request(
         self, user_request: str, interactive: bool = True
     ) -> ValidationResult:
@@ -171,7 +171,7 @@ class PreFlightValidator:
                 refusal_reason=f"Validation error: {e}",
             )
 
-    # ID: 4d5e6f7a-8b9c-0d1e-2f3a-4b5c6d7e8f9a
+    # ID: 1a0118a8-cd12-43b5-8557-cd5e15454325
     def _handle_contradictions(self, package) -> ValidationResult:
         """
         Handle contradictory requirements.
@@ -208,7 +208,7 @@ class PreFlightValidator:
             user_message=user_message,
         )
 
-    # ID: 5e6f7a8b-9c0d-1e2f-3a4b-5c6d7e8f9a0b
+    # ID: 9326137d-d732-4756-a4d6-01abc4551902
     def _handle_refusal(self, package) -> ValidationResult:
         """
         Handle explicit refusal.
@@ -227,7 +227,7 @@ class PreFlightValidator:
             user_message=f"Cannot proceed: {package.refusal_reason}",
         )
 
-    # ID: 6f7a8b9c-0d1e-2f3a-4b5c-6d7e8f9a0b1c
+    # ID: c3b2f147-4f3a-4ac1-994d-ff6a8102024c
     async def _handle_assumptions(self, package) -> ValidationResult:
         """
         Handle assumptions requiring user confirmation.
@@ -269,7 +269,7 @@ class PreFlightValidator:
             user_message=user_message,
         )
 
-    # ID: 7a8b9c0d-1e2f-3a4b-5c6d-7e8f9a0b1c2d
+    # ID: 4c2fdef3-770f-44c5-bc66-3532c26be694
     def format_authority_for_prompt(self, authority_package) -> str:
         """
         Format authority package for inclusion in LLM prompt.
@@ -317,7 +317,7 @@ class PreFlightValidator:
         return "\n".join(lines)
 
 
-# ID: 8b9c0d1e-2f3a-4b5c-6d7e-8f9a0b1c2d3e
+# ID: dbccb26b-2709-4746-abd1-2658032f2710
 async def create_pre_flight_validator(
     intent_repository: IntentRepository,
     policy_vectorizer: PolicyVectorizer,

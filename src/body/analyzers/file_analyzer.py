@@ -1,13 +1,15 @@
 # src/body/analyzers/file_analyzer.py
-
-"""
-File Analyzer - Analyzes Python file structure and classifies type.
+# ID: 76d6ef2c-d42f-46f8-a52a-ddf5402eaf36
+"""File Analyzer - Analyzes Python file structure and classifies type.
 
 Constitutional Alignment:
 - Phase: PARSE (Structural analysis and classification)
 - Authority: CODE (Implementation of structural rules)
-- Tracing: Mandatory DecisionTracer integration for classification verdicts
 - Boundary: Respects repo_path via CoreContext (dependency injection required)
+
+Purified (V2.7.4)
+- Removed Will-layer DecisionTracer to satisfy architecture.layers.no_body_to_will.
+  Rationale is now returned in metadata.
 """
 
 from __future__ import annotations
@@ -19,37 +21,28 @@ from typing import Any
 from shared.component_primitive import Component, ComponentPhase, ComponentResult
 from shared.context import CoreContext
 from shared.logger import getLogger
-from will.orchestration.decision_tracer import DecisionTracer
 
 
 logger = getLogger(__name__)
 
 
-# ID: 76d6ef2c-d42f-46f8-a52a-ddf5402eaf36
+# ID: c9251530-0236-41a9-9630-b305f283277a
 class FileAnalyzer(Component):
-    """
-    Analyzes Python files to detect type and complexity.
+    """Analyzes Python files to detect type and complexity.
 
     Determines if a file is a:
     - sqlalchemy_model: Requires integration fixtures.
     - async_module: Requires pytest-asyncio.
-    - function_module/class_module: Requires standard unit testing.
+    - function_module / class_module: Requires standard unit testing.
 
-    Constitutional Requirement:
-    - MUST be initialized with CoreContext containing valid git_service
-    - Body layer components do not access settings directly
+    Constitutional requirements:
+    - MUST be initialized with CoreContext containing valid git_service.
+    - Body layer components do not access settings directly.
     """
 
     def __init__(self, context: CoreContext | None = None):
-        """
-        Initialize with context for governed path resolution.
-
-        Args:
-            context: CoreContext with git_service for repo path resolution.
-                     Required for constitutional compliance - no fallback configuration.
-        """
+        """Initialize with context for governed path resolution."""
         self.context = context
-        self.tracer = DecisionTracer()
 
     @property
     # ID: f380c886-12d6-4630-a4ae-e100f2e931fe
@@ -58,23 +51,19 @@ class FileAnalyzer(Component):
 
     # ID: ddb4df7c-87db-40dd-91b1-1691cb0b8203
     async def execute(self, file_path: str, **kwargs) -> ComponentResult:
-        """
-        Analyze file structure and classify for downstream strategy selection.
-
-        Constitutional Compliance:
-        - Requires valid CoreContext with git_service (no settings fallback)
-        - Returns error if context not provided (fail fast, dependency injection enforced)
-        """
+        """Analyze file structure and classify for downstream strategy selection."""
         start_time = time.time()
 
         # Constitutional boundary enforcement: Body requires proper context
-        if not self.context or not self.context.git_service:
+        if not self.context or not getattr(self.context, "git_service", None):
             return ComponentResult(
                 component_id=self.component_id,
                 ok=False,
                 data={
-                    "error": "FileAnalyzer requires CoreContext with git_service. "
-                    "Body layer components must not access settings directly."
+                    "error": (
+                        "FileAnalyzer requires CoreContext with git_service. "
+                        "Body layer components must not access settings directly."
+                    )
                 },
                 phase=self.phase,
                 confidence=0.0,
@@ -96,25 +85,13 @@ class FileAnalyzer(Component):
             code = abs_path.read_text(encoding="utf-8")
             tree = ast.parse(code)
 
-            # Extract structural facts
             analysis = self._analyze_ast(tree)
             file_type, confidence = self._classify_file(analysis)
 
-            # Mandatory Decision Tracing (Constitutional Rule: autonomy.tracing.mandatory)
-            self.tracer.record(
-                agent="FileAnalyzer",
-                decision_type="file_classification",
-                rationale=f"Classified {file_path} based on structural markers",
-                chosen_action=file_type,
-                context={
-                    "has_sqlalchemy": analysis["has_sqlalchemy"],
-                    "has_async": analysis["has_async"],
-                    "definitions": analysis["total_definitions"],
-                },
-                confidence=confidence,
-            )
-
             duration = time.time() - start_time
+
+            # CONSTITUTIONAL FIX: Removed internal tracer call.
+            # Return rationale and classification facts in metadata for the Agent to log.
             return ComponentResult(
                 component_id=self.component_id,
                 ok=True,
@@ -134,8 +111,19 @@ class FileAnalyzer(Component):
                     "file_path": file_path,
                     "line_count": len(code.splitlines()),
                     "total_definitions": analysis["total_definitions"],
+                    "rationale": (
+                        f"Classified {file_path} as {file_type} based on structural markers"
+                    ),
+                    "decision_context": {
+                        "agent": "FileAnalyzer",
+                        "decision_type": "file_classification",
+                        "has_sqlalchemy": analysis["has_sqlalchemy"],
+                        "has_async": analysis["has_async"],
+                        "definitions": analysis["total_definitions"],
+                    },
                 },
             )
+
         except SyntaxError as e:
             return ComponentResult(
                 component_id=self.component_id,
@@ -156,7 +144,7 @@ class FileAnalyzer(Component):
 
     def _analyze_ast(self, tree: ast.AST) -> dict[str, Any]:
         """Extract structural facts from AST."""
-        facts = {
+        facts: dict[str, Any] = {
             "has_sqlalchemy": False,
             "has_base_class": False,
             "has_mapped": False,
@@ -167,25 +155,28 @@ class FileAnalyzer(Component):
         }
 
         for node in ast.walk(tree):
-            # Check Imports for Framework usage
+            # Check imports for framework usage
             if isinstance(node, ast.Import):
                 for alias in node.names:
                     if "sqlalchemy" in alias.name:
                         facts["has_sqlalchemy"] = True
+
             elif isinstance(node, ast.ImportFrom):
                 if node.module and "sqlalchemy" in node.module:
                     facts["has_sqlalchemy"] = True
                     if any("Mapped" in a.name for a in node.names):
                         facts["has_mapped"] = True
 
-            # Count Definitions
+            # Count definitions
             elif isinstance(node, ast.ClassDef):
                 facts["class_count"] += 1
                 for base in node.bases:
                     if isinstance(base, ast.Name) and base.id == "Base":
                         facts["has_base_class"] = True
+
             elif isinstance(node, ast.FunctionDef):
                 facts["function_count"] += 1
+
             elif isinstance(node, ast.AsyncFunctionDef):
                 facts["async_function_count"] += 1
                 facts["has_async"] = True
@@ -197,7 +188,7 @@ class FileAnalyzer(Component):
         )
         facts["total_definitions"] = total
 
-        # Categorize Complexity
+        # Categorize complexity
         if total > 15:
             facts["complexity"] = "high"
         elif total > 5:
@@ -208,11 +199,12 @@ class FileAnalyzer(Component):
         return facts
 
     def _classify_file(self, analysis: dict[str, Any]) -> tuple[str, float]:
+        """Classify file type based on collected facts.
+
+        Returns:
+            (file_type, confidence)
         """
-        Classify file type based on collected facts.
-        Returns (file_type, confidence).
-        """
-        # SQLAlchemy Model detection
+        # SQLAlchemy model detection
         if analysis["has_sqlalchemy"] and (
             analysis["has_base_class"] or analysis["has_mapped"]
         ):

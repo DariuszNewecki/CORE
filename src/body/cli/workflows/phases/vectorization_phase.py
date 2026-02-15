@@ -20,7 +20,7 @@ from shared.infrastructure.vector.adapters.constitutional_adapter import (
 from shared.infrastructure.vector.vector_index_service import VectorIndexService
 
 
-# ID: 9b697ab9-f6b1-484c-9569-3395dc7aad0f
+# ID: dfc4107b-e6e6-42f6-b037-d1f160eda92b
 class VectorizationPhase:
     """Executes vectorization operations."""
 

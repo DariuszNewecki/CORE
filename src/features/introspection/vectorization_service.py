@@ -1,7 +1,8 @@
 # src/features/introspection/vectorization_service.py
+
 """
 High-performance orchestrator for capability vectorization.
-MODULARIZED V2.4: Reduced Modularity Debt by delegating to specialized neurons.
+UPDATED: Now passes 'is_public' flag to Qdrant for richer search context.
 """
 
 from __future__ import annotations
@@ -28,7 +29,7 @@ async def run_vectorize(
     dry_run: bool = False,
     force: bool = False,
 ) -> None:
-    """Orchestrates the full vectorization workflow via Component Delegation."""
+    """Orchestrates the full vectorization workflow."""
     config = await ConfigService.create(session)
     if not await config.get_bool("LLM_ENABLED", default=False):
         logger.info("Vectorization skipped: LLM_ENABLED=false")
@@ -42,7 +43,7 @@ async def run_vectorize(
     cog = await context.registry.get_cognitive_service()
     await qdrant.ensure_collection()
 
-    # 2. ANALYSIS: Identify Deltas (Delegated to DeltaAnalyzer)
+    # 2. ANALYSIS: Identify Deltas (Includes private symbols now)
     all_symbols, existing_links = await fetch_initial_state(session)
     stored_hashes = await qdrant.get_stored_hashes()
 
@@ -63,8 +64,11 @@ async def run_vectorize(
         if i % 10 == 0:
             logger.info("Progress: %d/%d", i, len(tasks))
         try:
+            # Use robust strategy (split-retry for large files)
             vec = await get_robust_embedding(cog, t["source"])
             p_id = str(t["id"])
+
+            # CONSTITUTIONAL ENRICHMENT: Add visibility to payload
             payload = {
                 "source_path": t["file"],
                 "source_type": "code",
@@ -72,7 +76,9 @@ async def run_vectorize(
                 "content_sha256": t["hash"],
                 "language": "python",
                 "symbol": t["path"],
+                "is_public": t.get("is_public", True),  # ADDED
             }
+
             await qdrant.upsert_capability_vector(p_id, vec, payload)
             updates.append(
                 {
@@ -89,7 +95,7 @@ async def run_vectorize(
     # 4. FINALIZE: Persist to DB
     if updates:
         await finalize_vector_update(session, updates)
-        await session.commit()
+        # We don't commit here; the transaction is managed by the Action layer
 
     _report_final_status(len(updates), len(tasks), failures, strict)
 

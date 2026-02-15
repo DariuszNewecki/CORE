@@ -24,7 +24,7 @@ from shared.logger import getLogger
 logger = getLogger(__name__)
 
 
-# ID: b2c3d4e5-f6a7-8b9c-0d1e-2f3a4b5c6d7e
+# ID: 1480ffd7-6c3e-46a9-b331-de8c33790349
 class TestVerificationCheck(WorkflowCheck):
     """
     Checks if the most recent test workflow passed.

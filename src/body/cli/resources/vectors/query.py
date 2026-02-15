@@ -1,5 +1,5 @@
 # src/body/cli/resources/vectors/query.py
-# ID: cli.resources.vectors.query
+# ID: e1c3aa5b-ef6b-4d3d-989e-614e51724c82
 """
 Vector query command.
 
@@ -18,7 +18,7 @@ from shared.infrastructure.vector.cognitive_adapter import CognitiveEmbedderAdap
 from shared.infrastructure.vector.vector_index_service import VectorIndexService
 from shared.logger import getLogger
 
-from . import app
+from .hub import app
 
 
 logger = getLogger(__name__)

@@ -32,7 +32,7 @@ logger = getLogger(__name__)
 console = Console()
 
 
-# ID: 1a2b3c4d-5e6f-7a8b-9c0d-1e2f3a4b5c6d
+# ID: 31e26e65-9ca9-417b-ae6d-0c51677cb02b
 async def validate_request_async(request: str, verbose: bool = False) -> None:
     """
     Run pre-flight constitutional validation on a request.
@@ -319,7 +319,7 @@ async def validate_request_async(request: str, verbose: bool = False) -> None:
         console.print()
 
 
-# ID: 2b3c4d5e-6f7a-8b9c-0d1e-2f3a4b5c6d7e
+# ID: 18a24f5b-56b1-4b58-98af-125f64e45ff0
 def validate_request_command(
     request: str = typer.Argument(..., help="Request to validate"),
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Show detailed output"),
@@ -337,7 +337,7 @@ def validate_request_command(
     asyncio.run(validate_request_async(request, verbose))
 
 
-# ID: 3c4d5e6f-7a8b-9c0d-1e2f-3a4b5c6d7e8f
+# ID: e6cd046c-5646-4cee-9146-7fafc0f6760d
 def create_governance_app() -> typer.Typer:
     """Create the governance CLI app."""
     app = typer.Typer(

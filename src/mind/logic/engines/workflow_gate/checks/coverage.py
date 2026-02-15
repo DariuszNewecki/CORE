@@ -1,5 +1,5 @@
 # src/mind/logic/engines/workflow_gate/checks/coverage.py
-# ID: c3d4e5f6-a7b8-9c0d-1e2f-3a4b5c6d7e8f
+# ID: da762458-0ca4-4bbf-8991-8230291e8cfc
 
 """
 Coverage verification workflow check.
@@ -20,7 +20,7 @@ from shared.path_resolver import PathResolver
 logger = getLogger(__name__)
 
 
-# ID: c3d4e5f6-a7b8-9c0d-1e2f-3a4b5c6d7e8f
+# ID: adc559ef-a70e-405a-a93f-52c63ba07e2b
 class CoverageMinimumCheck(WorkflowCheck):
     """
     Checks if code coverage meets the constitutional threshold.

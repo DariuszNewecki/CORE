@@ -5,7 +5,7 @@ from rich.console import Console
 from shared.cli_utils import core_command
 from shared.context import CoreContext
 
-from . import app
+from .hub import app
 
 
 console = Console()

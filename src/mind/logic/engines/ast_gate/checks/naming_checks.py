@@ -81,7 +81,7 @@ class NamingChecks:
         return findings
 
     @staticmethod
-    # ID: a9b8c7d6-e5f4-3a2b-1c0d-9e8f7a6b5c4d
+    # ID: 2e96e106-58e4-4562-9d1a-21b22cd2f2ef
     def check_max_function_length(tree: ast.AST, limit: int = 50) -> list[str]:
         """
         Enforce: Functions must not exceed line limits.

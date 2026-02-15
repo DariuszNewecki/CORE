@@ -1,5 +1,5 @@
 # src/body/cli/resources/database/sync.py
-# ID: cli.resources.database.sync
+# ID: 0ed02faf-9db8-4a9a-8103-d52dc677245c
 """
 Database synchronization command.
 
@@ -15,7 +15,7 @@ from shared.cli_utils import core_command
 from shared.infrastructure.database.session_manager import get_session
 from shared.logger import getLogger
 
-from . import app
+from .hub import app
 
 
 logger = getLogger(__name__)

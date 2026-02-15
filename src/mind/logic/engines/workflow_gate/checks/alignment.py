@@ -1,5 +1,5 @@
 # src/mind/logic/engines/workflow_gate/checks/alignment.py
-# ID: d4e5f6a7-b8c9-0d1e-2f3a-4b5c6d7e8f9a
+# ID: 3ab94efd-091c-4072-b0e0-406dbe0505ae
 
 """
 Alignment verification workflow check.
@@ -25,7 +25,7 @@ from shared.path_resolver import PathResolver
 logger = getLogger(__name__)
 
 
-# ID: d4e5f6a7-b8c9-0d1e-2f3a-4b5c6d7e8f9a
+# ID: 973aa73f-3f20-402f-b382-06af2686b3ae
 class AlignmentVerificationCheck(WorkflowCheck):
     """Verifies that AlignmentOrchestrator successfully healed the file."""
 

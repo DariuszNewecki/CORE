@@ -24,8 +24,8 @@ from shared.logger import getLogger
 logger = getLogger(__name__)
 
 
-# ID: rule_conflict_detector
-# ID: 1a2b3c4d-5e6f-7890-abcd-ef1234567890
+# ID: 5de19f6c-26f7-4252-9f1a-7fa8fa41576c
+# ID: 27a0babb-934b-48ef-bf4b-7eed998c4f1d
 class RuleConflictDetector:
     """
     Detects conflicts between constitutional rules.
@@ -36,8 +36,8 @@ class RuleConflictDetector:
     - Enforces CORE-Rule-Conflict-Semantics.md
     """
 
-    # ID: detector_detect
-    # ID: 2b3c4d5e-6f7a-8901-bcde-f12345678901
+    # ID: e3df65ae-5a64-40c5-b102-2ddcc3059027
+    # ID: 225b2f42-fcd4-430f-8c73-760876d73c68
     @staticmethod
     # ID: 479c3822-cb01-4af4-86c6-2bd8743de061
     def detect_conflicts(rules: list[PolicyRule]) -> list[dict[str, str]]:
@@ -90,8 +90,8 @@ class RuleConflictDetector:
 
         return conflicts
 
-    # ID: detector_incompatible
-    # ID: 3c4d5e6f-7a8b-9012-cdef-123456789012
+    # ID: 55a39d52-f85d-4b08-927d-b0689b0c8479
+    # ID: c23b6a3a-65b9-4f97-925e-4130ac2078d0
     @staticmethod
     def _actions_are_incompatible(action1: str, action2: str) -> bool:
         """

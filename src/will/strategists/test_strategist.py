@@ -24,7 +24,7 @@ logger = getLogger(__name__)
 
 # --- ARCHITECTURAL KNOWLEDGE BASE (The "Truth Table") ---
 
-# ID: base_strategy_map
+# ID: 5daaed3b-601c-4a49-9fce-342b9e029bfc
 # Maps file_type -> (strategy_id, approach, constraints, requirements)
 STRATEGY_MAP: Final[dict[str, tuple[str, str, list[str], list[str]]]] = {
     "sqlalchemy_model": (
@@ -50,7 +50,7 @@ STRATEGY_MAP: Final[dict[str, tuple[str, str, list[str], list[str]]]] = {
     ),
 }
 
-# ID: failure_pivot_map
+# ID: ddff8ad0-cbe4-43ab-8f31-9cb2483bb1e3
 # Maps failure_pattern -> adjustment_logic
 PIVOT_RULES: Final[dict[str, dict[str, Any]]] = {
     "type_introspection": {

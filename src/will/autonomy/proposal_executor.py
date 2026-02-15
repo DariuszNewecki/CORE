@@ -1,5 +1,5 @@
 # src/will/autonomy/proposal_executor.py
-# ID: autonomy.proposal_executor
+# ID: 75d3c3ce-786b-4ebd-b6c7-4581511e1a42
 """
 Proposal Executor - Execute approved proposals through ActionExecutor
 
@@ -27,7 +27,7 @@ from will.autonomy.proposal_repository import ProposalRepository
 logger = getLogger(__name__)
 
 
-# ID: proposal_executor
+# ID: 344c0906-fed1-4176-bbd1-6787ae3125f2
 # ID: 69e9d2f1-3246-4a09-a5a8-fc0e1e882f47
 class ProposalExecutor:
     """
@@ -43,7 +43,7 @@ class ProposalExecutor:
         self.action_executor = ActionExecutor(core_context)
         logger.debug("ProposalExecutor initialized")
 
-    # ID: executor_execute
+    # ID: 49bbf403-de90-4f86-887c-56e0324effc5
     # ID: 5bb8175a-6a30-4548-8597-977a43fcb0b7
     async def execute(
         self,
@@ -202,7 +202,7 @@ class ProposalExecutor:
                 "duration_sec": total_duration,
             }
 
-    # ID: executor_execute_batch
+    # ID: 43927421-5304-4ff2-841f-4f95f99a6915
     # ID: 5e4800f3-ea82-483c-9ecb-1a27a43e516d
     async def execute_batch(
         self,

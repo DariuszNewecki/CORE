@@ -24,7 +24,7 @@ if TYPE_CHECKING:
 logger = getLogger(__name__)
 
 
-# ID: 6a7b8c9d-0e1f-2a3b-4c5d-6e7f8a9b0c1d
+# ID: e4e167fb-1091-4b94-aa88-e8fe74158b19
 class CorrectionEngine:
     """Handles self-correction for pattern and constitutional violations."""
 

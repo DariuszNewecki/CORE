@@ -1,11 +1,13 @@
 # src/body/cli/admin_cli.py
-# ID: body.cli.admin_cli
+# ID: b05ac309-b737-4171-8b03-42b3ea403ffa
 
 """
 CORE Admin CLI - The Constitutional Command Center.
 
 Enforces Resource-First Architecture (v2.0) as defined in
 .intent/rules/cli/interface_design.json.
+
+UNIX Philosophy: CLI provides atomic resource actions; Makefile composes them.
 """
 
 from __future__ import annotations
@@ -13,18 +15,18 @@ from __future__ import annotations
 import typer
 from rich.console import Console
 
-from body.cli.commands.check import check_app
-from body.cli.commands.fix import fix_app
+# NEW: Import the Interactive Test tool
+from body.cli.commands.interactive_test import app as interactive_test_app
+from body.cli.commands.refactor import refactor_app
 
-# 2. Remaining Category-Based Apps (Non-Purged)
-from body.cli.commands.inspect import inspect_app
-from body.cli.commands.status import status_app
-from body.cli.commands.submit import submit_app
+# 2. Interactive UI
 from body.cli.interactive import launch_interactive_menu
+
+# 1. Resource-First Imports (The "Neurons")
+from body.cli.resources.admin import app as admin_app
 from body.cli.resources.code import app as code_app
 from body.cli.resources.constitution import app as constitution_app
-
-# 1. Resource-First Imports (The New Brain)
+from body.cli.resources.context import app as context_app
 from body.cli.resources.database import app as database_app
 from body.cli.resources.dev import app as dev_app
 from body.cli.resources.project import app as project_app
@@ -52,31 +54,31 @@ core_context = create_core_context(service_registry)
 
 # ID: 5519f6ee-d27e-4116-94b4-d981ede63650
 def register_all_commands(app_instance: typer.Typer) -> None:
-    """Register CLI commands according to the Resource-First hierarchy."""
+    """
+    Register CLI commands according to the Resource-First hierarchy.
+    Legacy Verb-First groups (fix, check, inspect) have been purged.
+    """
 
-    # --- TIER 1: RESOURCE-FIRST (The Standard Interface) ---
-    app_instance.add_typer(code_app, name="code")  # Logic, tests, audit
-    app_instance.add_typer(database_app, name="database")  # Postgres state
-    app_instance.add_typer(symbols_app, name="symbols")  # Knowledge graph identity
-    app_instance.add_typer(vectors_app, name="vectors")  # Semantic memory
-    app_instance.add_typer(constitution_app, name="constitution")  # The Law (.intent)
+    # --- RESOURCE-FIRST INTERFACE ---
+    app_instance.add_typer(admin_app, name="admin")  # Forensics & Analytics
+    app_instance.add_typer(code_app, name="code")  # Logic, formatting, & quality
+    app_instance.add_typer(context_app, name="context")  # Context building for LLMs
+    app_instance.add_typer(database_app, name="database")  # Postgres state & migrations
+    app_instance.add_typer(symbols_app, name="symbols")  # Identity registry & UUIDs
+    app_instance.add_typer(vectors_app, name="vectors")  # Semantic memory & Qdrant
+    app_instance.add_typer(
+        constitution_app, name="constitution"
+    )  # Governance & Policies
     app_instance.add_typer(proposals_app, name="proposals")  # A3 Change management
-    app_instance.add_typer(project_app, name="project")  # Scaffolding & Onboarding
-    app_instance.add_typer(dev_app, name="dev")  # Human/AI workflows
+    app_instance.add_typer(project_app, name="project")  # Lifecycle & Documentation
+    app_instance.add_typer(dev_app, name="dev")  # Developer workbench
 
-    # --- TIER 2: INSPECTION & UTILITIES ---
-    app_instance.add_typer(inspect_app, name="inspect")  # Deep forensics
-    app_instance.add_typer(fix_app, name="fix")  # Self-healing & remediation (A2)
-    app_instance.add_typer(submit_app, name="submit")  # Final integration
-
-    # --- TIER 3: LEGACY BACKWARD COMPATIBILITY ---
-    # manage_app is removed here because the directory was deleted
-    app_instance.add_typer(fix_app, name="legacy-fix", hidden=True)
-    app_instance.add_typer(check_app, name="legacy-check", hidden=True)
-    app_instance.add_typer(status_app, name="legacy-status", hidden=True)
+    # REGISTER NEW INTERACTIVE TOOL
+    app_instance.add_typer(interactive_test_app, name="interactive-test")
+    app_instance.add_typer(refactor_app, name="refactor")
 
 
-# Register everything
+# Register the resource tree
 register_all_commands(app)
 
 

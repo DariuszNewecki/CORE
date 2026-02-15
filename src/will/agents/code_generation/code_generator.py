@@ -58,7 +58,7 @@ def _resolve_prompt_template_path(
         return None
 
 
-# ID: 4a272fc9-4ce5-40ae-afa3-fd6eadceea73
+# ID: ac97401b-a517-4bf2-ac0b-e86e57b799bb
 class CodeGenerator:
     """Handles prompt construction and code generation via LLM."""
 

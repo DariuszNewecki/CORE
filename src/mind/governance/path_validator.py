@@ -25,8 +25,8 @@ from shared.models.constitutional_validation import ConstitutionalValidationResu
 logger = getLogger(__name__)
 
 
-# ID: path_validator
-# ID: 4d5e6f7a-8b9c-0d1e-2f3a-4b5c6d7e8f9a
+# ID: 41eba414-1d91-417c-827b-d897cb9758e7
+# ID: fdd5f030-9cd6-4138-b11e-e88809a301aa
 class PathValidator:
     """
     Validates file paths against constitutional rules.
@@ -56,8 +56,8 @@ class PathValidator:
     # Public API
     # -------------------------------------------------------------------------
 
-    # ID: validator_check_paths
-    # ID: 5e6f7a8b-9c0d-1e2f-3a4b-5c6d7e8f9a0b
+    # ID: 449c0253-1cf7-4534-b8a6-deb5df20867f
+    # ID: 501cc08d-6965-47a8-a9e9-930e84083d3a
     def check_paths(self, proposed_paths: list[str]) -> ConstitutionalValidationResult:
         """
         Validate a set of proposed file operations.
@@ -78,8 +78,8 @@ class PathValidator:
             is_valid=len(violations) == 0, violations=violations, source="PathValidator"
         )
 
-    # ID: validator_check_single
-    # ID: 6f7a8b9c-0d1e-2f3a-4b5c-6d7e8f9a0b1c
+    # ID: d3929a5f-72a8-478f-be8d-27a20bc6c7fe
+    # ID: 03074b9a-c174-4ffb-9a2b-894e7a0b73f2
     def _check_single_path(self, path: Path, path_str: str) -> list[ViolationReport]:
         """
         Enforce constitutional rules against a single path.
@@ -108,8 +108,8 @@ class PathValidator:
     # Hard Invariant
     # -------------------------------------------------------------------------
 
-    # ID: validator_no_write_intent
-    # ID: 7a8b9c0d-1e2f-3a4b-5c6d-7e8f9a0b1c2d
+    # ID: 0d39906a-e7e5-4810-8158-e64867f347e4
+    # ID: 799fddd4-f50d-40a1-a659-e52f8e58f791
     def _check_no_write_intent(
         self, abs_path: Path, rel_path_str: str
     ) -> ViolationReport | None:
@@ -156,8 +156,8 @@ class PathValidator:
     # Policy Rule Enforcement
     # -------------------------------------------------------------------------
 
-    # ID: validator_check_policy
-    # ID: 8b9c0d1e-2f3a-4b5c-6d7e-8f9a0b1c2d3e
+    # ID: 8eecf9da-cd69-453e-aa1d-cb8004cfe46d
+    # ID: 72cab840-244f-4ba5-947e-aaf052de1f44
     def _check_policy_rules(self, path: Path, path_str: str) -> list[ViolationReport]:
         """
         Apply all matching constitutional rules to a path.
@@ -190,8 +190,8 @@ class PathValidator:
 
         return violations
 
-    # ID: validator_apply_rule
-    # ID: 9c0d1e2f-3a4b-5c6d-7e8f-9a0b1c2d3e4f
+    # ID: 3dd711af-9f19-4126-8925-507f9a15ff3d
+    # ID: 9854e4fa-7371-491c-8a68-bc166cc80382
     def _apply_rule_action(
         self, rule: PolicyRule, path: Path, path_str: str
     ) -> list[ViolationReport]:
@@ -230,8 +230,8 @@ class PathValidator:
 
         return []
 
-    # ID: validator_matches
-    # ID: 0d1e2f3a-4b5c-6d7e-8f9a-0b1c2d3e4f5a
+    # ID: ceda57fc-5f4b-4c44-9581-e5fd27e28880
+    # ID: f5a96cb9-475e-4f44-8c74-d2ae938ad289
     @staticmethod
     def _matches_pattern(path: str, pattern: str) -> bool:
         """

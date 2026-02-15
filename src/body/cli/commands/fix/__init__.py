@@ -71,7 +71,8 @@ import body.cli.commands.fix.all_commands
 import body.cli.commands.fix.atomic_actions
 import body.cli.commands.fix.audit
 import body.cli.commands.fix.body_ui
-import body.cli.commands.fix.clarity
+
+# import body.cli.commands.fix.clarity
 import body.cli.commands.fix.code_style
 import body.cli.commands.fix.db_tools
 import body.cli.commands.fix.fix_ir

@@ -1,5 +1,5 @@
 # src/shared/infrastructure/database/models/refusals.py
-# ID: model.shared.infrastructure.database.models.refusals
+# ID: 4add1e51-a3aa-4e21-b061-9802cd2a8331
 
 """
 Refusal Registry - Constitutional Refusal Tracking
@@ -28,8 +28,8 @@ from sqlalchemy.orm import Mapped, mapped_column
 from .knowledge import Base
 
 
-# ID: refusal-registry-model
-# ID: a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d
+# ID: d0b3895f-1057-488f-b231-623ebadeeda7
+# ID: 3f6944ce-7b89-4884-b4be-1d2e22ce33a2
 class RefusalRecord(Base):
     """
     Records constitutional refusals from autonomous operations.

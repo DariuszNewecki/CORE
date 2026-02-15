@@ -27,7 +27,7 @@ from will.orchestration.cognitive_service import CognitiveService
 logger = getLogger(__name__)
 
 
-# ID: 32606196-d12a-4480-9add-51b26f30ee22
+# ID: ce7c1db5-ef5b-4f70-9379-b5010b89e08d
 async def remediate_coverage_enhanced(
     cognitive_service: CognitiveService,
     auditor_context: AuditorContext,

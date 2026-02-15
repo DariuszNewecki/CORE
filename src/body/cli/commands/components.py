@@ -35,7 +35,7 @@ COMPONENT_PACKAGES = {
 
 @components_app.command("list")
 @core_command(dangerous=False, requires_context=False)
-# ID: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+# ID: 553adcbc-c7ec-4ef9-87e1-053820e7c631
 def list_components(
     ctx: typer.Context,
     filter_type: str = typer.Option(

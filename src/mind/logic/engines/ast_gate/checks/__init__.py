@@ -4,22 +4,21 @@
 
 from __future__ import annotations
 
-from mind.logic.engines.ast_gate.checks.async_checks import AsyncChecks
-from mind.logic.engines.ast_gate.checks.capability_checks import CapabilityChecks
-from mind.logic.engines.ast_gate.checks.generic_checks import GenericASTChecks
-from mind.logic.engines.ast_gate.checks.import_checks import ImportChecks
-from mind.logic.engines.ast_gate.checks.logging_checks import LoggingChecks
-from mind.logic.engines.ast_gate.checks.metadata_checks import (
-    normalize_ast,
-    verify_metadata_only_diff,
-)
-from mind.logic.engines.ast_gate.checks.naming_checks import NamingChecks
-from mind.logic.engines.ast_gate.checks.purity_checks import PurityChecks
+from .async_checks import AsyncChecks
+from .capability_checks import CapabilityChecks
+from .conservation_checks import ConservationChecks  # <--- ADDED
+from .generic_checks import GenericASTChecks
+from .import_checks import ImportChecks
+from .logging_checks import LoggingChecks
+from .metadata_checks import normalize_ast, verify_metadata_only_diff
+from .naming_checks import NamingChecks
+from .purity_checks import PurityChecks
 
 
 __all__ = [
     "AsyncChecks",
     "CapabilityChecks",
+    "ConservationChecks",  # <--- ADDED
     "GenericASTChecks",
     "ImportChecks",
     "LoggingChecks",

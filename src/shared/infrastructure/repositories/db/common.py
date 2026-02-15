@@ -1,5 +1,5 @@
 # src/shared/infrastructure/repositories/db/common.py
-# ID: infra.repo.db.common
+# ID: c4ca51cf-31be-4b70-91ec-65cdbbb3c23d
 """
 Provides common utilities for database-related CLI commands.
 

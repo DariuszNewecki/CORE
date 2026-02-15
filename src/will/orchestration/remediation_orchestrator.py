@@ -40,7 +40,7 @@ from shared.logger import getLogger
 logger = getLogger(__name__)
 
 
-# ID: knowledge-graph-protocol
+# ID: e5a475b7-8ba0-4165-924a-978932779f33
 # ID: e6f558e7-0ce7-41c8-9612-82a0c2c3f0ab
 class KnowledgeGraphBuilderProtocol(Protocol):
     """Protocol for knowledge graph builder dependency."""
@@ -50,7 +50,7 @@ class KnowledgeGraphBuilderProtocol(Protocol):
 
 
 @dataclass
-# ID: audit-report-class
+# ID: d71e2192-e8d9-46d9-8cf1-d7ac20fa6bce
 # ID: 835e78b0-af57-4a86-a29a-5bfc4dc7fbbe
 class AuditReport:
     """Results of a constitutional audit."""
@@ -66,7 +66,7 @@ class AuditReport:
         return len(self.violations) > 0
 
 
-# ID: remediation-orchestrator-class
+# ID: 81dec550-5f47-4d3c-8636-578b1188bff3
 # ID: f1a2b3c4-d5e6-7f8a-9b0c-1d2e3f4a5b6c
 class RemediationOrchestrator:
     """
@@ -106,8 +106,8 @@ class RemediationOrchestrator:
 
         logger.info("RemediationOrchestrator initialized for %s", self.repo_path)
 
-    # ID: orchestrate-audit
-    # ID: a2b3c4d5-e6f7-8a9b-0c1d-2e3f4a5b6c7d
+    # ID: f6c38535-eea4-4a83-87a4-257bf40b3d48
+    # ID: de325a31-c034-401f-94f9-fb3a11899511
     def audit_headers(self) -> AuditReport:
         """
         ORCHESTRATION: Decide to audit headers and collect results.
@@ -165,7 +165,7 @@ class RemediationOrchestrator:
             compliant_files=compliant,
         )
 
-    # ID: orchestrate-remediation
+    # ID: 6dd9b2bb-1810-46d9-9c1d-6dbb4d4b2aaf
     # ID: b3c4d5e6-f7a8-9b0c-1d2e-3f4a5b6c7d8e
     async def remediate_missing_headers_async(self) -> RemediationResult:
         """
@@ -217,7 +217,7 @@ class RemediationOrchestrator:
 
         return result
 
-    # ID: orchestrate-single-remediation
+    # ID: 69a3a3fc-4128-4f81-a1e2-3350e614a5f0
     # ID: c4d5e6f7-a8b9-0c1d-2e3f-4a5b6c7d8e9f
     async def remediate_single_file_async(self, file_path: str) -> bool:
         """
@@ -250,7 +250,7 @@ class RemediationOrchestrator:
 
         return success
 
-    # ID: orchestrate-validation
+    # ID: 97bbb28e-2153-45d2-b5f7-e84bc36d616a
     # ID: d5e6f7a8-b9c0-1d2e-3f4a-5b6c7d8e9f0a
     def validate_remediation(self, file_path: str) -> bool:
         """
@@ -273,7 +273,7 @@ class RemediationOrchestrator:
         return self.remediation_service.validate_remediation(file_path)
 
 
-# ID: get-remediation-orchestrator
+# ID: 869efd85-5202-441b-a92a-987386ada48c
 # ID: e6f7a8b9-c0d1-2e3f-4a5b-6c7d8e9f0a1b
 def get_remediation_orchestrator(
     repo_path: Path | str | None = None,

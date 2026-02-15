@@ -26,8 +26,8 @@ from typing import Any
 from mind.governance.violation_report import ViolationReport
 
 
-# ID: constitutional_validation_result
-# ID: 1a2b3c4d-5e6f-7890-abcd-ef1234567890
+# ID: d924c000-09ed-4f2e-af1d-aa9bb482455f
+# ID: 58d0cdab-1fb1-448c-a078-456553f29cc9
 @dataclass
 # ID: aef9205f-4ce7-4d8f-a8d2-03fc8dfed1d7
 class ConstitutionalValidationResult:
@@ -55,8 +55,8 @@ class ConstitutionalValidationResult:
         """Return number of violations (for list-like compatibility)."""
         return len(self.violations)
 
-    # ID: result_add_violation
-    # ID: 2b3c4d5e-6f7a-8901-bcde-f12345678901
+    # ID: f4939293-c27c-4326-b919-1bd68446497a
+    # ID: 6cff73e5-c95e-41fd-8bee-568684391987
     def add_violation(self, violation: ViolationReport) -> None:
         """
         Add a violation to this result.
@@ -67,8 +67,8 @@ class ConstitutionalValidationResult:
         self.violations.append(violation)
         self.is_valid = False
 
-    # ID: result_merge
-    # ID: 3c4d5e6f-7a8b-9012-cdef-123456789012
+    # ID: d9c88e2e-7726-40f2-a0ae-1577b96f2fb7
+    # ID: 12cc1d20-32d5-4823-9a2d-eef6d892bb2d
     def merge(self, other: ConstitutionalValidationResult) -> None:
         """
         Merge another validation result into this one.
@@ -81,8 +81,8 @@ class ConstitutionalValidationResult:
             self.is_valid = False
         self.metadata.update(other.metadata)
 
-    # ID: result_error_count
-    # ID: 4d5e6f7a-8b9c-0d1e-2f3a-4b5c6d7e8f9a
+    # ID: f7c42532-e3f8-4dc3-83d3-c63a878e98bc
+    # ID: cf0efeb9-f15c-4f40-8fcb-68c6bf003255
     def error_count(self) -> int:
         """
         Count violations with severity 'error'.
@@ -92,8 +92,8 @@ class ConstitutionalValidationResult:
         """
         return sum(1 for v in self.violations if v.severity == "error")
 
-    # ID: result_warning_count
-    # ID: 5e6f7a8b-9c0d-1e2f-3a4b-5c6d7e8f9a0b
+    # ID: 3bde3c7d-c18e-4a60-9b2e-2c7a19582907
+    # ID: f8947851-9a7e-4655-8aef-3ac1ea1c711e
     def warning_count(self) -> int:
         """
         Count violations with severity 'warning'.
@@ -103,8 +103,8 @@ class ConstitutionalValidationResult:
         """
         return sum(1 for v in self.violations if v.severity == "warning")
 
-    # ID: result_has_errors
-    # ID: 6f7a8b9c-0d1e-2f3a-4b5c-6d7e8f9a0b1c
+    # ID: 19676d0c-c56b-4412-be94-ec258e8895b3
+    # ID: 240d1988-694a-4ba3-a8c4-105407f3ebb4
     def has_errors(self) -> bool:
         """
         Check if result contains error-level violations.
@@ -115,8 +115,8 @@ class ConstitutionalValidationResult:
         return any(v.severity == "error" for v in self.violations)
 
 
-# ID: constitutional_file_validation_result
-# ID: 7a8b9c0d-1e2f-3a4b-5c6d-7e8f9a0b1c2d
+# ID: 7fa2c13c-269c-4892-92d0-7addc0570454
+# ID: 7712571e-67fa-4065-a79d-9f053f5a1d36
 @dataclass
 # ID: aa01fd5a-065c-4fcf-86aa-646dc1a04ba4
 class ConstitutionalFileValidationResult(ConstitutionalValidationResult):
@@ -134,8 +134,8 @@ class ConstitutionalFileValidationResult(ConstitutionalValidationResult):
     schema_path: str = ""
 
     @classmethod
-    # ID: file_result_from_schema
-    # ID: 8b9c0d1e-2f3a-4b5c-6d7e-8f9a0b1c2d3e
+    # ID: 09a94979-da28-41a9-a30a-9b86fdcc186a
+    # ID: 1118b562-e215-4bb8-82ef-d8746c3b230a
     def from_schema_validation(
         cls,
         file_path: str,
@@ -176,8 +176,8 @@ class ConstitutionalFileValidationResult(ConstitutionalValidationResult):
         )
 
 
-# ID: constitutional_batch_validation_result
-# ID: 9c0d1e2f-3a4b-5c6d-7e8f-9a0b1c2d3e4f
+# ID: 1ff12df8-2982-40a6-886a-9a97b3a93f28
+# ID: 209ee2a0-37b3-43ec-bfee-59163347ec81
 @dataclass
 # ID: df2617e5-2765-41f5-b73e-023428156c39
 class ConstitutionalBatchValidationResult:
@@ -237,8 +237,8 @@ class ConstitutionalBatchValidationResult:
         """Total warning-level violations across all results."""
         return sum(r.warning_count() for r in self.results)
 
-    # ID: batch_add_result
-    # ID: 0d1e2f3a-4b5c-6d7e-8f9a-0b1c2d3e4f5a
+    # ID: 498e3155-c693-422c-b51b-0b668608e407
+    # ID: 26184315-b398-49d8-acb7-378bb7db16d1
     def add_result(self, result: ConstitutionalValidationResult) -> None:
         """
         Add a validation result to the batch.
@@ -248,8 +248,8 @@ class ConstitutionalBatchValidationResult:
         """
         self.results.append(result)
 
-    # ID: batch_has_errors
-    # ID: 1e2f3a4b-5c6d-7e8f-9a0b-1c2d3e4f5a6b
+    # ID: 20a42412-9225-4c82-a6c5-78ffa7e953f5
+    # ID: 5949fa51-73a8-4627-8a64-6e487aae135f
     def has_errors(self) -> bool:
         """
         Check if any results contain error-level violations.

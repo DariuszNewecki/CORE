@@ -42,7 +42,7 @@ from shared.logger import getLogger
 logger = getLogger(__name__)
 
 
-# ID: 1a2b3c4d-5e6f-7a8b-9c0d-1e2f3a4b5c6d
+# ID: 5faaa14c-b0d8-4f43-b968-333ae4ccd2ff
 class PerformanceEvaluator(Component):
     """
     Evaluates performance metrics against operational thresholds.
@@ -97,12 +97,12 @@ class PerformanceEvaluator(Component):
     }
 
     @property
-    # ID: 2b3c4d5e-6f7a-8b9c-0d1e-2f3a4b5c6d7e
+    # ID: f646a4e2-6656-4e52-8896-2aff1aee8ed3
     def phase(self) -> ComponentPhase:
         """PerformanceEvaluator operates in AUDIT phase."""
         return ComponentPhase.AUDIT
 
-    # ID: 3c4d5e6f-7a8b-9c0d-1e2f-3a4b5c6d7e8f
+    # ID: 8789c64d-2e2c-465d-947b-cb2899bc80b6
     async def execute(
         self,
         operation_type: str = "default",
@@ -209,7 +209,7 @@ class PerformanceEvaluator(Component):
             duration_sec=time.time() - start_time,
         )
 
-    # ID: 4d5e6f7a-8b9c-0d1e-2f3a-4b5c6d7e8f9a
+    # ID: 2ff5f335-df35-4074-b404-bc3ee8d855dc
     def _check_duration(
         self, actual: float, threshold: float, operation_type: str
     ) -> dict[str, Any] | None:
@@ -226,7 +226,7 @@ class PerformanceEvaluator(Component):
             }
         return None
 
-    # ID: 5e6f7a8b-9c0d-1e2f-3a4b-5c6d7e8f9a0b
+    # ID: 60d599f5-1689-46c7-b6c3-edade0115b58
     def _check_memory(
         self, actual: float, threshold: float, operation_type: str
     ) -> dict[str, Any] | None:
@@ -243,7 +243,7 @@ class PerformanceEvaluator(Component):
             }
         return None
 
-    # ID: 6f7a8b9c-0d1e-2f3a-4b5c-6d7e8f9a0b1c
+    # ID: 91756d65-7e4f-4794-8542-a6b653646caa
     def _check_io(
         self, actual: int, threshold: int, operation_type: str
     ) -> dict[str, Any] | None:
@@ -260,7 +260,7 @@ class PerformanceEvaluator(Component):
             }
         return None
 
-    # ID: 7a8b9c0d-1e2f-3a4b-5c6d-7e8f9a0b1c2d
+    # ID: 7beb51dc-7e5d-4b04-9436-53932b83d42c
     def _calculate_score(
         self, metrics: dict[str, Any], thresholds: dict[str, Any]
     ) -> float:
@@ -310,7 +310,7 @@ class PerformanceEvaluator(Component):
         }
         return suggestions.get(operation_type, suggestions["default"])
 
-    # ID: 9c0d1e2f-3a4b-5c6d-7e8f-9a0b1c2d3e4f
+    # ID: f51da377-3ea7-47dd-a06b-4b8f8479c180
     def _suggest_memory_optimization(self, operation_type: str) -> str:
         """Suggest memory optimization strategies."""
         suggestions = {

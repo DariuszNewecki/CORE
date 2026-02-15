@@ -1,5 +1,5 @@
 # src/shared/infrastructure/repositories/refusal_repository.py
-# ID: repository.refusal
+# ID: 4f06b9cb-148e-4da3-9dbd-4e932f47071d
 
 """
 Refusal Repository - Governed database access for refusal records.
@@ -29,7 +29,7 @@ from shared.logger import getLogger
 logger = getLogger(__name__)
 
 
-# ID: a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d
+# ID: 1930d0d3-30a5-4902-b6c2-a5125c287ea5
 class RefusalRepository:
     """
     Repository for refusal record database operations.
@@ -46,7 +46,7 @@ class RefusalRepository:
         async with service_registry.session() as session:
             yield session
 
-    # ID: b2c3d4e5-f6a7-8b9c-0d1e-2f3a4b5c6d7e
+    # ID: 1f9de411-5616-4f18-84be-1c6bd99fd632
     async def record_refusal(
         self,
         component_id: str,
@@ -115,7 +115,7 @@ class RefusalRepository:
             )
             return None
 
-    # ID: c3d4e5f6-a7b8-9c0d-1e2f-3a4b5c6d7e8f
+    # ID: 22c5bf48-3b45-4817-9dbb-96bcdb3f345d
     async def get_recent(
         self,
         limit: int = 20,
@@ -154,7 +154,7 @@ class RefusalRepository:
             logger.error("Failed to query refusals: %s", e, exc_info=True)
             return []
 
-    # ID: d4e5f6a7-b8c9-0d1e-2f3a-4b5c6d7e8f9a
+    # ID: 8a1044fd-1f8a-4a1b-8e04-7aabc959cffb
     async def get_by_session(self, session_id: str) -> list[RefusalRecord]:
         """
         Get all refusals for a specific decision trace session.
@@ -185,7 +185,7 @@ class RefusalRepository:
             )
             return []
 
-    # ID: e5f6a7b8-c9d0-1e2f-3a4b-5c6d7e8f9a0b
+    # ID: ae6795f1-32b2-4128-9770-bb71881984d2
     async def get_by_type(
         self, refusal_type: str, limit: int = 50
     ) -> list[RefusalRecord]:
@@ -203,7 +203,7 @@ class RefusalRepository:
             limit=limit, refusal_type=refusal_type, component_id=None
         )
 
-    # ID: f6a7b8c9-d0e1-2f3a-4b5c-6d7e8f9a0b1c
+    # ID: d21057f9-7f64-4783-8bf7-dd1ec8d0ddca
     async def get_statistics(self, days: int = 7) -> dict[str, Any]:
         """
         Get refusal statistics for analysis.
@@ -277,7 +277,7 @@ class RefusalRepository:
                 "avg_confidence": 0.0,
             }
 
-    # ID: a7b8c9d0-e1f2-3a4b-5c6d-7e8f9a0b1c2d
+    # ID: e7c9af63-f216-414d-8a3f-9c0edf070842
     async def count_by_type(self, days: int = 7) -> dict[str, int]:
         """
         Count refusals by type for the last N days.

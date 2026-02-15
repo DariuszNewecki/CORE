@@ -19,7 +19,7 @@ console = Console()
 
 @fix_app.command("settings-di")
 @core_command(dangerous=True, confirmation=True)
-# ID: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+# ID: c67044f1-311d-4d9a-96a7-15b13f0bb5ce
 async def fix_settings_di_cmd(
     ctx: typer.Context,
     write: bool = typer.Option(False, "--write", help="Apply changes"),

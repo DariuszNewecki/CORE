@@ -26,7 +26,7 @@ logger = getLogger(__name__)
 CONTEXT_LEVEL_ENGINES = {"knowledge_gate", "workflow_gate", "action_gate"}
 
 
-# ID: 1a2b3c4d-5e6f-7a8b-9c0d-1e2f3a4b5c6d
+# ID: 18ce86c1-bc21-4290-9379-e3bedcbafc9a
 class ConstitutionalAuditor:
     """
     Engine-based constitutional auditor.

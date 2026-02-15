@@ -5,7 +5,7 @@ from rich.console import Console
 from mind.enforcement.audit import lint
 from shared.cli_utils import core_command
 
-from . import app
+from .hub import app
 
 
 console = Console()

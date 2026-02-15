@@ -1,5 +1,5 @@
 # src/body/cli/resources/code/docstrings.py
-# ID: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+# ID: 37479b29-9113-4e4f-85b4-3922d9d07fb3
 
 import typer
 from rich.console import Console
@@ -7,7 +7,7 @@ from rich.console import Console
 from shared.cli_utils import core_command
 from shared.context import CoreContext
 
-from . import app
+from .hub import app
 
 
 console = Console()

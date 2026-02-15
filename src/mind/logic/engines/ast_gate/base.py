@@ -17,7 +17,7 @@ from collections.abc import Iterable
 from pathlib import Path
 
 
-# ID: 08acf631-aeea-4ad9-9107-c6100b89942f
+# ID: f75299d7-84aa-4254-8a2d-0e17da174d45
 class ASTHelpers:
     """
     Reusable AST traversal and analysis utilities.

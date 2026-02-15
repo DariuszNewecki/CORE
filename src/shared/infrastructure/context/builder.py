@@ -9,9 +9,10 @@ ALIGNS WITH PILLAR I (Octopus):
 Provides a unified sensation of "Shadow Truth" (in-flight changes) vs
 "Historical Truth" (database).
 
-HEALED (V2.6.7):
-- Content Extraction: Always attempts to read from workspace first.
-- Context Consistency: Prevents the AI from being blind to its own proposed code.
+HEALED (V2.7.0):
+- Fixed Vector Result Blindness: Now extracts code for semantic search hits.
+- Hardened Sensation: Handles symbol_path keys (::) correctly during extraction.
+- Preserved GraphExplorer: Retains advanced relationship traversal logic.
 """
 
 from __future__ import annotations
@@ -48,19 +49,19 @@ class ScopeTracker(ast.NodeVisitor):
         self.stack: list[str] = []
         self.symbols: list[dict[str, Any]] = []
 
-    # ID: 9145ae00-921d-4006-9032-039b5d7a6f38
+    # ID: 74d2971d-9919-4fa2-98e3-0231ee5a5a7d
     def visit_ClassDef(self, node: ast.ClassDef) -> None:
         self._add_symbol(node)
         self.stack.append(node.name)
         self.generic_visit(node)
         self.stack.pop()
 
-    # ID: a9f6d953-64b0-45c3-8437-8fcfca912688
+    # ID: 00cca3c5-ecac-4fd2-b26e-724720994f7d
     def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
         self._add_symbol(node)
         self.generic_visit(node)
 
-    # ID: aa0b2883-6101-440d-a4b4-f046d0c4a7aa
+    # ID: 1f850daa-a3c6-4eea-a4e2-44282126ae71
     def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef) -> None:
         self._add_symbol(node)
         self.generic_visit(node)
@@ -87,18 +88,23 @@ class ScopeTracker(ast.NodeVisitor):
         )
 
 
-# ID: d4e5f6a7-b8c9-0d1e-2f3a-4b5c6d7e8f9a
+# ID: b0b96134-dd20-4c4d-92a6-2b34b033d9ae
 class _GraphExplorer:
     """Specialist in traversing the Knowledge Graph to find related logic."""
 
     @staticmethod
-    # ID: 155cfe19-0d30-4cee-9148-fae389881086
+    # ID: 54bc0352-afce-4d61-8d47-c35366f138e5
     def traverse(graph: dict, seeds: list[dict], depth: int, limit: int) -> set[str]:
         all_symbols = graph.get("symbols", {})
         related = set()
         queue = set()
         for s in seeds:
-            path = s.get("metadata", {}).get("symbol_path") or s.get("symbol_path")
+            # Check multiple possible key locations
+            path = (
+                s.get("metadata", {}).get("symbol_path")
+                or s.get("symbol_path")
+                or s.get("name")
+            )
             if path:
                 queue.add(path)
 
@@ -136,19 +142,16 @@ class ContextBuilder:
         self.config = config or {}
         self.workspace = workspace
 
-    # ID: be34f105-e983-4c0e-9e20-79603db377a3
+    # ID: b5b19f31-7c4c-4e1f-a71c-788fa02cb1f5
     async def build_for_task(self, task_spec: dict[str, Any]) -> dict[str, Any]:
         """Main entry point for building a task-specific packet."""
         start = datetime.now(UTC)
 
-        # 1. SENSATION: Load the graph (Shadow if workspace exists, else Historical)
         graph = await self._load_truth()
         packet = self._init_packet(task_spec)
 
-        # 2. COLLECTION: Extract items
         items = await self._collect_items(task_spec, graph, packet["constraints"])
 
-        # 3. FINALIZATION
         packet["context"] = self._finalize_items(items, packet["constraints"])
         packet["provenance"]["build_stats"] = {
             "duration_ms": int((datetime.now(UTC) - start).total_seconds() * 1000),
@@ -157,7 +160,6 @@ class ContextBuilder:
         return packet
 
     async def _load_truth(self) -> dict:
-        """Sensation: Prefers Shadow Graph if limb is in motion."""
         if self.workspace:
             return KnowledgeGraphBuilder(
                 settings.REPO_PATH, workspace=self.workspace
@@ -165,79 +167,103 @@ class ContextBuilder:
         return await KnowledgeService(settings.REPO_PATH).get_graph()
 
     async def _collect_items(self, spec: dict, graph: dict, limits: dict) -> list[dict]:
-        """Collects context items. Prioritizes Workspace over DB if active."""
         items = []
 
+        # 1. Handle Shadow Truth (Workspace)
         if self.workspace:
-            logger.debug("Builder: Seeding context from Shadow Graph")
             include_filters = spec.get("scope", {}).get("include", [])
             for key, data in graph.get("symbols", {}).items():
                 if any(f in key for f in include_filters) or not include_filters:
                     if len(items) < (limits["max_items"] // 2):
                         items.append(self._format_item(data))
-        else:
-            if self.db:
-                items.extend(
-                    await self.db.fetch_symbols_for_scope(
-                        spec.get("scope", {}), limits["max_items"] // 2
-                    )
-                )
 
+        # 2. Handle Semantic Search (HEALED: Now extracts code)
         if self.vectors and spec.get("summary"):
-            items.extend(await self.vectors.search_similar(spec["summary"], top_k=3))
+            vector_results = await self.vectors.search_similar(spec["summary"], top_k=5)
+            for v_item in vector_results:
+                items.append(self._extract_code_for_item(v_item))
 
+        # 3. Handle Historical Truth (Database)
+        if not self.workspace and self.db:
+            db_results = await self.db.fetch_symbols_for_scope(
+                spec.get("scope", {}), limits["max_items"] // 2
+            )
+            for db_item in db_results:
+                items.append(self._extract_code_for_item(db_item))
+
+        # 4. Handle Relationship Traversal (Graph)
         depth = spec.get("scope", {}).get("traversal_depth", 0)
         if depth > 0:
             related_keys = _GraphExplorer.traverse(
                 graph, items, depth, limits["max_items"]
             )
             for k in list(related_keys):
-                if sym := graph["symbols"].get(k):
+                if sym := graph.get("symbols", {}).get(k):
                     items.append(self._format_item(sym))
 
         return items
 
-    # ID: HEALED_format_item
     def _format_item(self, symbol_data: dict) -> dict:
         """Translates a Graph Symbol into a Context Item."""
         path = symbol_data.get("file_path", "")
         name = symbol_data.get("name", "")
-        content, sig = None, str(symbol_data.get("parameters", []))
 
-        try:
-            # HEALED: Prioritize reading from virtual workspace sensation
-            if self.workspace and self.workspace.exists(path):
-                src = self.workspace.read_text(path)
-            else:
-                src = (settings.REPO_PATH / path).read_text(encoding="utf-8")
-
-            tracker = ScopeTracker(src)
-            tracker.visit(ast.parse(src))
-            for s in tracker.symbols:
-                if s["name"] == name:
-                    content, sig = s["code"], s["signature"]
-                    break
-        except Exception as e:
-            logger.debug("Content extraction failed for %s in %s: %s", name, path, e)
-
-        return {
+        # Build the initial item shell
+        item = {
             "name": name,
             "path": path,
-            "item_type": "code" if content else "symbol",
-            "content": content,
-            "signature": sig,
+            "item_type": "symbol",
+            "content": None,
+            "signature": str(symbol_data.get("parameters", [])),
             "summary": symbol_data.get("intent", ""),
             "source": "shadow_sensation" if self.workspace else "historical_record",
             "symbol_path": symbol_data.get("symbol_path"),
         }
 
+        # Immediately try to upgrade to "code" item type
+        return self._extract_code_for_item(item)
+
+    def _extract_code_for_item(self, item: dict) -> dict:
+        """THE SENSATION STEP: Read actual code from the filesystem."""
+        path = item.get("path", "")
+        # Name might be 'Symbol' or 'file.py::Symbol'
+        name_raw = item.get("name", "")
+        target_name = name_raw.split("::")[-1] if "::" in name_raw else name_raw
+
+        if not path or not target_name:
+            return item
+
+        try:
+            if self.workspace and self.workspace.exists(path):
+                src = self.workspace.read_text(path)
+            else:
+                abs_path = settings.REPO_PATH / path
+                if not abs_path.exists():
+                    return item
+                src = abs_path.read_text(encoding="utf-8")
+
+            tracker = ScopeTracker(src)
+            tracker.visit(ast.parse(src))
+            for s in tracker.symbols:
+                if s["name"] == target_name or s["qualname"] == target_name:
+                    item["content"] = s["code"]
+                    item["signature"] = s["signature"]
+                    item["item_type"] = "code"
+                    break
+        except Exception as e:
+            logger.debug("Content extraction failed for %s: %s", target_name, e)
+
+        return item
+
     def _init_packet(self, spec: dict) -> dict:
         return {
             "header": {
                 "packet_id": str(uuid.uuid4()),
-                "task_id": spec["task_id"],
+                "task_id": spec.get("task_id", "manual"),
+                "task_type": spec.get("task_type", "unknown"),
                 "created_at": datetime.now(UTC).isoformat(),
                 "builder_version": "0.2.2",
+                "privacy": "local_only",
                 "mode": "SHADOW" if self.workspace else "HISTORICAL",
             },
             "constraints": {

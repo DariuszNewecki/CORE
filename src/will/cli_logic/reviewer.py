@@ -1,5 +1,5 @@
 # src/will/cli_logic/reviewer.py
-# ID: cli.logic.reviewer
+# ID: 50f03dc0-1305-4bac-bf89-0b3f85055173
 """
 Provides commands for AI-powered review of the constitution, documentation, and source code files.
 Refactored to comply with Agent I/O policies and Async-Native architecture.

@@ -1,5 +1,5 @@
 # src/body/cli/resources/database/status.py
-# ID: cli.resources.database.status
+# ID: 5c5a89a5-c91d-4c78-a48b-12fbeeb930e0
 """
 Database status command.
 
@@ -15,7 +15,7 @@ from rich.table import Table
 from shared.cli_utils import core_command
 from shared.logger import getLogger
 
-from . import app
+from .hub import app
 
 
 logger = getLogger(__name__)

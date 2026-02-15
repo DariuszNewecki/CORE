@@ -1,5 +1,5 @@
 # src/body/cli/commands/inspect/analysis.py
-# ID: body.cli.commands.inspect.analysis
+# ID: 8dbe6780-68ce-4e62-99f0-b3b2e8cc4c55
 
 """
 Code analysis commands.

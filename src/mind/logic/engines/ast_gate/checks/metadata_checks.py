@@ -1,5 +1,5 @@
 # src/mind/logic/engines/ast_gate/checks/metadata_checks.py
-# ID: TBD
+# ID: d91d9ba4-c276-4cb2-ad25-eaa4e1284d5c
 
 """
 Metadata Mutation Verification Engine.
@@ -24,7 +24,7 @@ import ast
 from typing import Any
 
 
-# ID: TBD
+# ID: 79c7e3a6-700a-44e8-b1cc-376f7d1d4736
 # ID: 30421199-33fe-48fc-961a-912cd8459ad9
 def normalize_ast(code: str) -> str:
     """
@@ -45,7 +45,7 @@ def normalize_ast(code: str) -> str:
     return ast.dump(tree, annotate_fields=True, include_attributes=False)
 
 
-# ID: TBD
+# ID: 3f49383d-5e9e-400a-b9b5-cc4883a7cb9a
 # ID: 7b7c431d-8341-4263-98bf-13cf15ad7ae1
 def verify_metadata_only_diff(
     original_code: str,
@@ -122,7 +122,7 @@ def verify_metadata_only_diff(
     return violations
 
 
-# ID: TBD
+# ID: e202d440-62a4-4918-acad-4674bbc2a85a
 def _strip_docstrings(tree: ast.AST) -> None:
     """
     Remove docstring nodes from an AST in-place.
@@ -148,7 +148,7 @@ def _strip_docstrings(tree: ast.AST) -> None:
                     node.body.append(ast.Pass())
 
 
-# ID: TBD
+# ID: 5e7a126e-3f40-4d05-8219-2a796178a83b
 def _detect_operations(original: str, modified: str) -> set[str]:
     """
     Detect which metadata operation types occurred between original and modified.
@@ -210,7 +210,7 @@ def _detect_operations(original: str, modified: str) -> set[str]:
     return ops
 
 
-# ID: TBD
+# ID: e5997fbc-bcf6-4b1c-9442-2d67e376d4fc
 def _extract_docstrings(code: str) -> dict[str, str]:
     """
     Extract all docstrings keyed by their owner's qualified name.

@@ -14,7 +14,7 @@ from shared.action_types import ActionResult
 from shared.context import CoreContext
 
 
-# ID: 4e6cbfc4-7ce7-4adc-980d-90c315da8123
+# ID: 19d2867c-472b-4971-9eda-1bc3ee0e6e89
 class CodeAnalysisPhase:
     """Executes code analysis operations."""
 

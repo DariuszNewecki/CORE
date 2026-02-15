@@ -1,5 +1,5 @@
 # src/will/orchestration/phase_registry.py
-# ID: will.orchestration.phase_registry
+# ID: 72fdbdd6-5697-4a26-8bc7-d946388b2ee7
 
 """
 Phase Registry - Dynamically discovers and maps phase types to implementations
@@ -42,7 +42,7 @@ class Phase(Protocol):
 
 # Phase implementation registration
 # Maps phase_type → fully qualified class path
-# ID: 2b3c4d5e-6f7g-8h9i-0j1k-2l3m4n5o6p7q
+# ID: 8132f134-4092-4a87-b9b5-73534025c0f9
 PHASE_IMPLEMENTATIONS = {
     "interpret": "will.phases.interpret_phase.InterpretPhase",
     "planning": "will.phases.planning_phase.PlanningPhase",
@@ -55,7 +55,7 @@ PHASE_IMPLEMENTATIONS = {
 }
 
 
-# ID: 1a2b3c4d-5e6f-7g8h-9i0j-1k2l3m4n5o6p
+# ID: a2e84b0e-f502-4823-9f35-c549ac77e315
 # ID: ad3208cb-4266-4153-a07c-1a566faae733
 class PhaseRegistry:
     """
@@ -162,7 +162,7 @@ class PhaseRegistry:
         """List all registered phase types"""
         return list(self._phases.keys())
 
-    # ID: 3c4d5e6f-7g8h-9i0j-1k2l-3m4n5o6p7q8r
+    # ID: d181996f-c5a5-49a2-8303-fe0f048d12a1
     # ID: e57374f5-4cac-4bb0-abb2-4c5b41736973
     def get_definition(self, phase_name: str) -> dict:
         """

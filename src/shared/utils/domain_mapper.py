@@ -7,7 +7,7 @@ This is the SINGLE SOURCE OF TRUTH for domain assignment.
 from __future__ import annotations
 
 
-# ID: constitutional-domain-mapper-2025-12-17
+# ID: dfc9da38-15bb-4723-b673-332eff7a7f43
 # ID: b8d370d7-aee8-4326-a313-92f59f6e002e
 def map_module_to_domain(module_path: str) -> str:
     """

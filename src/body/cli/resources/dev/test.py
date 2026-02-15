@@ -5,7 +5,7 @@ from rich.console import Console
 from body.cli.logic.interactive_test_logic import run_interactive_test_generation
 from shared.cli_utils import core_command
 
-from . import app
+from .hub import app
 
 
 console = Console()

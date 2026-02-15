@@ -1,39 +1,43 @@
 # src/body/cli/commands/check/audit.py
 # ID: d9e8be26-e5e2-4015-899b-8741adaa820c
+"""Core audit commands: audit.
 
-"""
-Core audit commands: audit.
-Refactored to use the canonical CoreContext provided by the framework.
+Updated (V2.7.4)
+- CLI owns the reporting/persistence pipeline, preserving artifact creation.
+- Mind layer (Auditor) remains headless.
 """
 
 from __future__ import annotations
 
+import json
+from datetime import UTC, datetime
 from pathlib import Path
 
 import typer
 from rich.console import Console
-from rich.panel import Panel
-from rich.table import Table
 
 from body.cli.commands.check.converters import parse_min_severity
-from body.cli.commands.check.formatters import (
-    print_summary_findings,
-    print_verbose_findings,
-)
+from body.cli.logic.audit_renderer import AuditStats, render_detail, render_overview
+from body.services.file_service import FileService
+from body.services.service_registry import service_registry
+from mind.governance.audit_postprocessor import apply_entry_point_downgrade_and_report
 from mind.governance.auditor import ConstitutionalAuditor
+from shared.activity_logging import activity_run
 from shared.cli_utils import core_command
 from shared.models import AuditFinding, AuditSeverity
 
 
 console = Console()
 
+REPORTS_DIR = "reports"
+FINDINGS_FILE = "reports/audit_findings.json"
+EVIDENCE_FILE = "reports/audit/latest_audit.json"
+
 
 def _to_audit_finding(raw: dict | AuditFinding) -> AuditFinding:
-    # If already an AuditFinding, return as-is
     if isinstance(raw, AuditFinding):
         return raw
 
-    # Otherwise convert from dict
     severity_map = {
         "info": AuditSeverity.INFO,
         "warning": AuditSeverity.WARNING,
@@ -41,6 +45,7 @@ def _to_audit_finding(raw: dict | AuditFinding) -> AuditFinding:
     }
     raw_severity = str(raw.get("severity", "info")).lower()
     severity = severity_map.get(raw_severity, AuditSeverity.INFO)
+
     return AuditFinding(
         check_id=raw.get("check_id", "unknown"),
         severity=severity,
@@ -51,9 +56,9 @@ def _to_audit_finding(raw: dict | AuditFinding) -> AuditFinding:
     )
 
 
-# ID: a1b2c3d4-e5f6-7a8b-9c0d-e1f2a3b4c5d6
+# ID: 2a6833cf-af2f-432e-8423-dad36e20d936
 @core_command(dangerous=False)
-# ID: 2a6833cf-af2f-432f-8423-dad36e20d936
+# ID: 6bd8138b-ced6-48fa-b5db-afe51ba9903d
 async def audit_cmd(
     ctx: typer.Context,
     target: Path = typer.Argument(Path("src"), help="File or directory to audit."),
@@ -68,42 +73,70 @@ async def audit_cmd(
         False, "--verbose", "-v", help="Show individual findings."
     ),
 ) -> None:
-    """
-    Run the full constitutional self-audit.
-    """
+    """Run the full constitutional self-audit and persist evidence artifacts."""
     min_severity = parse_min_severity(severity)
 
-    # CONSTITUTIONAL FIX: Use the context already wired by the framework
-    auditor_context = ctx.obj.auditor_context
-    auditor = ConstitutionalAuditor(auditor_context)
+    core_context = ctx.obj
+    file_service = FileService(core_context.git_service.repo_path)
 
-    # EXECUTE THE UNIFIED AUDIT
-    raw_findings = await auditor.run_full_audit_async()
-    all_findings = [_to_audit_finding(f) for f in raw_findings]
+    # Ensure directories exist
+    file_service.ensure_dir("reports/audit")
 
-    # PRESENTATION
+    # 1) Execute the headless audit
+    with activity_run("constitutional_audit") as run:
+        # JIT session injection for the Auditor
+        async with service_registry.session() as session:
+            core_context.auditor_context.db_session = session
+            auditor = ConstitutionalAuditor(core_context.auditor_context)
+
+            start_time = datetime.now(UTC)
+            results = await auditor.run_full_audit_async()
+            duration = (datetime.now(UTC) - start_time).total_seconds()
+
+            # Clean up session ref
+            core_context.auditor_context.db_session = None
+
+        # 2) Persistence (CLI owns this)
+        findings = results["findings"]
+        findings_dicts = [f.as_dict() if hasattr(f, "as_dict") else f for f in findings]
+
+        # Write reports/audit_findings.json
+        file_service.write_file(FINDINGS_FILE, json.dumps(findings_dicts, indent=2))
+
+        # Post-processing (downgrade entry points and write processed report)
+        apply_entry_point_downgrade_and_report(
+            findings=findings_dicts,
+            symbol_index={},  # Placeholder or load from reports/symbol_index.json
+            reports_dir=Path(core_context.git_service.repo_path) / REPORTS_DIR,
+            file_service=file_service,
+            repo_root=Path(core_context.git_service.repo_path),
+        )
+
+        # Write reports/audit/latest_audit.json (Evidence Ledger)
+        evidence = {
+            "audit_id": run.run_id,
+            "timestamp": datetime.now(UTC).isoformat(),
+            "passed": results["passed"],
+            "findings_count": len(findings),
+            "executed_rules": sorted(list(results["executed_rule_ids"])),
+        }
+        file_service.write_file(EVIDENCE_FILE, json.dumps(evidence, indent=2))
+
+    # 3) Presentation
+    all_findings = [_to_audit_finding(f) for f in findings]
     filtered_findings = [f for f in all_findings if f.severity >= min_severity]
-    errors = [f for f in all_findings if f.severity.is_blocking]
-    warnings = [f for f in all_findings if f.severity == AuditSeverity.WARNING]
-    infos = [f for f in all_findings if f.severity == AuditSeverity.INFO]
 
-    passed = len(errors) == 0
+    stats = results["stats"]
+    audit_stats = AuditStats(
+        total_rules=stats.get("total_executable_rules", 0),
+        executed_rules=stats.get("executed_dynamic_rules", 0),
+        coverage_percent=stats.get("coverage_percent", 0),
+    )
 
-    summary_table = Table.grid(expand=True, padding=(0, 1))
-    summary_table.add_row("Total Findings:", str(len(all_findings)))
-    summary_table.add_row("Errors:", f"[red]{len(errors)}[/red]")
-    summary_table.add_row("Warnings:", f"[yellow]{len(warnings)}[/yellow]")
-    summary_table.add_row("Info:", f"[cyan]{len(infos)}[/cyan]")
+    render_overview(console, all_findings, audit_stats, duration, results["passed"])
 
-    title = "✅ AUDIT PASSED" if passed else "❌ AUDIT FAILED"
-    style = "bold green" if passed else "bold red"
-    console.print(Panel(summary_table, title=title, style=style, expand=False))
+    if filtered_findings and verbose:
+        render_detail(console, filtered_findings)
 
-    if filtered_findings:
-        if verbose:
-            print_verbose_findings(filtered_findings)
-        else:
-            print_summary_findings(filtered_findings)
-
-    if not passed:
+    if not results["passed"]:
         raise typer.Exit(1)

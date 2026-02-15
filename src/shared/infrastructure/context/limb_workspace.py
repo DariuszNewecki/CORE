@@ -22,7 +22,7 @@ from shared.logger import getLogger
 logger = getLogger(__name__)
 
 
-# ID: 1a2b3c4d-limb-workspace-sensation
+# ID: ead2fd1e-84e8-4c37-9733-ce74481bdd84
 # ID: 478c6629-e220-48f8-847a-c543396075b0
 class LimbWorkspace:
     """
@@ -54,7 +54,7 @@ class LimbWorkspace:
     # CORE SENSATION (The "Taste" of the Code)
     # ------------------------------------------------------------------
 
-    # ID: 55a77b97-limb-read-text
+    # ID: 16547b09-8d4e-4f6e-a9c6-1398d9a20924
     # ID: 67ff5ddc-be15-4e11-a44d-bb0c50fb4054
     def read_text(self, rel_path: str) -> str:
         """
@@ -77,7 +77,7 @@ class LimbWorkspace:
             f"LimbWorkspace could not find sensation for: {rel_path}"
         )
 
-    # ID: bc1c3a49-limb-exists
+    # ID: f2343e42-2c22-4814-9c4f-e6932c9b4c4f
     # ID: 78b4aec9-f6fa-46ee-ae48-14c902acab43
     def exists(self, rel_path: str) -> bool:
         """Check if a file exists in the unified virtual/physical view."""
@@ -87,7 +87,7 @@ class LimbWorkspace:
 
         return (self.repo_root / normalized_path).exists()
 
-    # ID: 3d1f1c34-limb-list-files
+    # ID: 3b06db08-8845-49bb-9421-dd2579779800
     # ID: 0304d488-a475-4412-a33a-2cdf965e49fe
     def list_files(self, directory: str = "src", pattern: str = "*.py") -> list[str]:
         """
@@ -118,7 +118,7 @@ class LimbWorkspace:
     # WORK-IN-PROGRESS UPDATES
     # ------------------------------------------------------------------
 
-    # ID: 6b11bd31-limb-update-crate
+    # ID: 40a4bcd5-d21c-4029-a007-bc6b0f761890
     # ID: d697eadb-3d76-4ca0-88e0-468a8158675c
     def update_crate(self, new_files: dict[str, str]) -> None:
         """

@@ -13,7 +13,7 @@ Constitutional Alignment:
 from __future__ import annotations
 
 
-# ID: 7c8d9e0f-1a2b-3c4d-5e6f-7a8b9c0d1e2f
+# ID: 993434f0-20b9-423d-8204-a697627ff3f9
 class ModuleDescriptor:
     """Generates rich, semantic descriptions for modules."""
 

@@ -1,5 +1,5 @@
 # src/will/agents/coder_agent_refusal_handler.py
-# ID: coder_agent_refusal_handler
+# ID: e37553e8-a253-4bbd-a5b6-69a67416862b
 
 """
 RefusalResult handler for CoderAgent.
@@ -24,7 +24,7 @@ from shared.models.refusal_result import RefusalResult
 logger = getLogger(__name__)
 
 
-# ID: a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d
+# ID: dd35851e-f15b-4dce-85bd-60cfe08d2ed7
 class CoderAgentRefusalHandler:
     """
     Handles RefusalResult from CodeGenerator.
@@ -47,7 +47,7 @@ class CoderAgentRefusalHandler:
         self.user_id = user_id
         self.refusal_repo = RefusalRepository()
 
-    # ID: b2c3d4e5-f6a7-8b9c-0d1e-2f3a4b5c6d7e
+    # ID: ed1a701f-411c-4387-9166-a10a360f5f52
     async def handle_refusal(self, refusal: RefusalResult) -> None:
         """
         Handle a refusal from CodeGenerator.
@@ -73,7 +73,7 @@ class CoderAgentRefusalHandler:
         # This allows existing try/except blocks to continue working
         raise ValueError(refusal.to_user_message())
 
-    # ID: c3d4e5f6-a7b8-9c0d-1e2f-3a4b5c6d7e8f
+    # ID: 5a6cc499-dc17-42aa-8ec1-d2b0fbcb4954
     async def _record_refusal(self, refusal: RefusalResult) -> None:
         """
         Record refusal to database.
@@ -111,7 +111,7 @@ class CoderAgentRefusalHandler:
                 exc_info=True,
             )
 
-    # ID: d4e5f6a7-b8c9-0d1e-2f3a-4b5c6d7e8f9a
+    # ID: fc4950be-6a0a-460f-93ef-7e4e7b6e96be
     def _log_refusal(self, refusal: RefusalResult) -> None:
         """
         Log refusal for observability.
@@ -134,7 +134,7 @@ class CoderAgentRefusalHandler:
             logger.debug("   Original request: %s", refusal.original_request[:200])
 
 
-# ID: e5f6a7b8-c9d0-1e2f-3a4b-5c6d7e8f9a0b
+# ID: 83993372-47ff-4b56-8680-081be743b6e1
 async def handle_code_generation_result(
     result: str | RefusalResult,
     session_id: str | None = None,

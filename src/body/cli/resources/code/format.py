@@ -5,7 +5,7 @@ from rich.console import Console
 from features.self_healing.code_style_service import format_code
 from shared.cli_utils import core_command
 
-from . import app
+from .hub import app
 
 
 console = Console()
@@ -33,3 +33,19 @@ async def format_command(
 
     if not write:
         console.print("\n[yellow]💡 Run with --write to apply these changes.[/yellow]")
+
+
+@app.command("format-imports")
+@core_command(dangerous=True, requires_context=True)
+# ID: b892c98f-cc17-4bda-87b5-1323cdfc7b95
+async def format_imports_cmd(
+    ctx: typer.Context,
+    write: bool = typer.Option(False, "--write", help="Apply import sorting to disk."),
+) -> None:
+    """
+    Sort and group Python imports according to PEP 8 / Constitutional standards.
+    Uses Ruff's import sorter (I) rules.
+    """
+    core_context = ctx.obj
+    # Routes to the fix.imports atomic action
+    await core_context.action_executor.execute("fix.imports", write=write)

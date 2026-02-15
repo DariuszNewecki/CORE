@@ -5,7 +5,7 @@ from rich.console import Console
 from shared.cli_utils import core_command
 from shared.context import CoreContext
 
-from . import app
+from .hub import app
 
 
 console = Console()
@@ -28,7 +28,9 @@ async def sync_symbols(
     core_context: CoreContext = ctx.obj
 
     mode = "WRITE" if write else "DRY-RUN"
-    console.print(f"[bold cyan]🔄 Synchronizing Symbols to DB ({mode})...[/bold cyan]")
+    console.print(
+        f"[bold cyan]\U0001f504 Synchronizing Symbols to DB ({mode})...[/bold cyan]"
+    )
 
     # Execute via canonical ActionExecutor
     await core_context.action_executor.execute("sync.db", write=write)

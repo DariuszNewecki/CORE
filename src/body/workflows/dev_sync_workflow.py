@@ -1,5 +1,6 @@
 # src/body/workflows/dev_sync_workflow.py
-# ID: workflows.dev_sync
+# ID: ef65dfd2-cd77-48d0-beeb-332246e27eb4
+
 """
 Dev Sync Workflow - Constitutional Orchestration
 
@@ -7,8 +8,9 @@ Composes atomic actions into a governed workflow:
 1. Fix Phase: Make code constitutional
 2. Sync Phase: Propagate clean state to DB and vectors
 
-This orchestrator now routes all actions through the ActionExecutor gateway
-to ensure consistent governance, auditing, and automatic dependency injection.
+CONSTITUTIONAL FIX:
+- Aligned action names with the Atomic Registry (fix.ids, sync.db, etc).
+- Corrected method calls from 'execute_action' to 'execute' to match ActionExecutor.
 """
 
 from __future__ import annotations
@@ -26,47 +28,27 @@ if TYPE_CHECKING:
 logger = getLogger(__name__)
 
 
-# ID: class-dev-sync-workflow
+# ID: 834371ad-d69b-4c29-9f4d-7694a4a05179
 # ID: b1c2d3e4-5f6a-7b8c-9d0e-1f2a3b4c5d6e
 class DevSyncWorkflow:
     """
     Constitutional orchestration of the dev-sync workflow.
-
-    Phases:
-    1. Fix Phase: Make code constitutional (format, lint, headers)
-    2. Sync Phase: Propagate clean state (database sync, vectorization)
-
-    Constitutional Compliance:
-    - All actions routed through ActionExecutor
-    - Full audit trail via ActionResult
-    - Automatic dependency injection via CoreContext
-    - Governed file operations
     """
 
     def __init__(self, context: CoreContext):
-        """
-        Initialize workflow with constitutional context.
-
-        Args:
-            context: CoreContext providing governed capabilities
-        """
         self.context = context
+        # The ActionExecutor is the central gateway for all changes
         self.executor = ActionExecutor(context)
 
-    # ID: method-run
+    # ID: 4a082bd8-28f6-4821-a3a5-365e243c1df2
     # ID: c2d3e4f5-6a7b-8c9d-0e1f-2a3b4c5d6e7f
     async def run(self) -> WorkflowResult:
-        """
-        Execute the complete dev-sync workflow.
-
-        Returns:
-            WorkflowResult with all phase results and audit trail
-        """
+        """Execute the complete dev-sync workflow."""
         logger.info("🚀 Starting dev-sync workflow...")
 
         result = WorkflowResult(workflow_id="dev_sync")
 
-        # Phase 1: Fix
+        # Phase 1: Fix (Clean the Body)
         fix_phase = await self._run_fix_phase()
         result.phases.append(fix_phase)
 
@@ -74,7 +56,7 @@ class DevSyncWorkflow:
             logger.warning("❌ Fix phase failed, skipping sync phase")
             return result
 
-        # Phase 2: Sync
+        # Phase 2: Sync (Update the Mind/Memory)
         sync_phase = await self._run_sync_phase()
         result.phases.append(sync_phase)
 
@@ -85,103 +67,46 @@ class DevSyncWorkflow:
 
         return result
 
-    # ID: method-run-fix-phase
-    # ID: d3e4f5a6-7b8c-9d0e-1f2a-3b4c5d6e7f8a
+    # ID: 37d0c9f7-7402-49e5-98ff-0fe95b2ade37
     async def _run_fix_phase(self) -> WorkflowPhase:
-        """
-        Phase 1: Make code constitutional.
-
-        Actions:
-        - fix_ids: Ensure all symbols have constitutional IDs
-        - add_docstrings: Add missing docstrings
-        - format_code: Apply Black formatting
-        - lint_code: Apply Ruff fixes
-
-        Returns:
-            WorkflowPhase with all fix action results
-        """
+        """Phase 1: Make code constitutional."""
         phase = WorkflowPhase(name="fix")
+        logger.info("📝 Phase 1: Fix (Code Compliance)")
 
-        logger.info("📝 Phase 1: Fix")
+        # Action: Fix IDs (ID: fix.ids)
+        res = await self.executor.execute(action_id="fix.ids", write=True)
+        phase.actions.append(res)
 
-        # Action 1: Fix IDs
-        fix_ids_result = await self.executor.execute_action(
-            action_name="fix_ids",
-            action_params={},
-        )
-        phase.actions.append(fix_ids_result)
+        # Action: Add docstrings (ID: fix.docstrings)
+        res = await self.executor.execute(action_id="fix.docstrings", write=True)
+        phase.actions.append(res)
 
-        if not fix_ids_result.ok:
-            logger.warning("⚠️  fix_ids failed, continuing anyway")
-
-        # Action 2: Add docstrings
-        docstring_result = await self.executor.execute_action(
-            action_name="add_docstrings",
-            action_params={},
-        )
-        phase.actions.append(docstring_result)
-
-        if not docstring_result.ok:
-            logger.warning("⚠️  add_docstrings failed, continuing anyway")
-
-        # Action 3: Format code
-        format_result = await self.executor.execute_action(
-            action_name="format_code",
-            action_params={},
-        )
-        phase.actions.append(format_result)
-
-        if not format_result.ok:
-            logger.warning("⚠️  format_code failed, continuing anyway")
-
-        # Action 4: Lint code
-        lint_result = await self.executor.execute_action(
-            action_name="lint_code",
-            action_params={},
-        )
-        phase.actions.append(lint_result)
-
-        if not lint_result.ok:
-            logger.warning("⚠️  lint_code failed")
+        # Action: Format code (ID: fix.format)
+        res = await self.executor.execute(action_id="fix.format", write=True)
+        phase.actions.append(res)
 
         return phase
 
-    # ID: method-run-sync-phase
-    # ID: e4f5a6b7-8c9d-0e1f-2a3b-4c5d6e7f8a9b
+    # ID: 4cb4b930-eddf-4bd4-872b-f049ede7792a
     async def _run_sync_phase(self) -> WorkflowPhase:
-        """
-        Phase 2: Propagate clean state to database and vectors.
-
-        Actions:
-        - sync_database: Update symbol metadata in database
-        - vectorize: Generate and store embeddings
-
-        Returns:
-            WorkflowPhase with all sync action results
-        """
+        """Phase 2: Propagate state to DB and Vectors."""
         phase = WorkflowPhase(name="sync")
+        logger.info("🔄 Phase 2: Sync (State & Memory)")
 
-        logger.info("🔄 Phase 2: Sync")
+        # Action: Sync database (ID: sync.db)
+        # This uses the code from Step 1
+        db_sync_res = await self.executor.execute(action_id="sync.db", write=True)
+        phase.actions.append(db_sync_res)
 
-        # Action 1: Sync database
-        db_sync_result = await self.executor.execute_action(
-            action_name="sync_database",
-            action_params={},
-        )
-        phase.actions.append(db_sync_result)
-
-        if not db_sync_result.ok:
-            logger.error("❌ sync_database failed, skipping vectorization")
+        if not db_sync_res.ok:
+            logger.error("❌ sync.db failed, skipping vectorization")
             return phase
 
-        # Action 2: Vectorize
-        vectorize_result = await self.executor.execute_action(
-            action_name="vectorize",
-            action_params={},
+        # Action: Vectorize (ID: sync.vectors.code)
+        # This uses the code from Step 2
+        vectorize_res = await self.executor.execute(
+            action_id="sync.vectors.code", write=True
         )
-        phase.actions.append(vectorize_result)
-
-        if not vectorize_result.ok:
-            logger.error("❌ vectorize failed")
+        phase.actions.append(vectorize_res)
 
         return phase

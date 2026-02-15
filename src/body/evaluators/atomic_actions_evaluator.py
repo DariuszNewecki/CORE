@@ -1,7 +1,7 @@
 # src/body/evaluators/atomic_actions_evaluator.py
+# ID: 8c95de30-861b-4908-bb93-ab272d4039be
+"""Atomic Actions Evaluator - AUDIT Phase Component.
 
-"""
-Atomic Actions Evaluator - AUDIT Phase Component.
 Validates code compliance with the atomic actions pattern.
 
 Constitutional Alignment:
@@ -10,10 +10,10 @@ Constitutional Alignment:
 - Purpose: Validate atomic action compliance across codebase
 - Self-contained: No external checker dependencies
 
-HEALED (V2.7.0):
-- Inherits from BaseEvaluator for strict constitutional tracing.
-- Integrated self.tracer: Records every audit outcome to the DB Decision Trace.
+PURIFIED (V2.7.4)
+- Removed Will-layer 'DecisionTracer' to satisfy architecture.layers.no_body_to_will.
 - Preserves 100% of original AST analysis and validation logic.
+- Rationale is now returned in metadata for Will-layer consumption.
 """
 
 from __future__ import annotations
@@ -33,8 +33,9 @@ from .base_evaluator import BaseEvaluator
 logger = getLogger(__name__)
 
 
-@dataclass
 # ID: d06f140e-d783-4434-a1fe-555183d03d7d
+@dataclass
+# ID: d8aa3d3e-47bf-4cf6-82f0-4732f899dfc8
 class AtomicActionViolation:
     """Violation of atomic action pattern contract."""
 
@@ -47,26 +48,22 @@ class AtomicActionViolation:
     suggested_fix: str | None = None
 
 
-# ID: 8c95de30-861b-4908-bb93-ab272d4039be
+# ID: 54c63404-6a42-4ec3-9b88-8a039d52d7ec
 class AtomicActionsEvaluator(BaseEvaluator):
-    """
-    Evaluates codebase for atomic action pattern compliance.
+    """Evaluate codebase for atomic action pattern compliance.
 
-    This is a fully self-contained V2 Component with no external dependencies.
+    This is a fully self-contained V2 component with no external dependencies.
     All AST analysis and validation logic is internal to this component.
     """
 
     # ID: a9bd8873-8696-4f14-a055-a32ba0ecd956
     async def execute(self, repo_root: Path, **kwargs: Any) -> ComponentResult:
-        """
-        Execute the atomic actions compliance audit.
-        """
+        """Execute the atomic actions compliance audit."""
         start_time = time.time()
         src_dir = repo_root / "src"
 
         violations: list[AtomicActionViolation] = []
         total_actions = 0
-        compliant_actions = 0
 
         if not src_dir.exists():
             logger.warning("Source directory not found: %s", src_dir)
@@ -80,9 +77,10 @@ class AtomicActionsEvaluator(BaseEvaluator):
                 },
                 confidence=1.0,
                 duration=0.0,
+                rationale="Source directory missing; no actions audited.",
             )
 
-        # 1. SENSATION: Scan all Python files in src/
+        # 1) Sensation: scan all Python files in src/
         for py_file in src_dir.rglob("*.py"):
             # Skip private modules (except __init__.py) and test files
             if py_file.name.startswith("_") and py_file.name != "__init__.py":
@@ -94,8 +92,7 @@ class AtomicActionsEvaluator(BaseEvaluator):
             violations.extend(file_violations)
             total_actions += file_actions
 
-        # 2. ANALYSIS: Calculate metrics
-        error_count = len([v for v in file_violations if v.severity == "error"])
+        # 2) Analysis: calculate metrics
         compliant_actions = total_actions - len(
             [v for v in violations if v.severity == "error"]
         )
@@ -104,21 +101,11 @@ class AtomicActionsEvaluator(BaseEvaluator):
         )
         has_errors = any(v.severity == "error" for v in violations)
 
-        # 3. DECISION TRACING: Record the outcome in the permanent Decision Log
-        self.tracer.record(
-            agent="AtomicActionsEvaluator",
-            decision_type="pattern_compliance_audit",
-            rationale=f"Audited {total_actions} actions. Compliance: {compliance_rate:.1f}%",
-            chosen_action="PASS" if not has_errors else "REPORT_VIOLATIONS",
-            context={
-                "total_actions": total_actions,
-                "violation_count": len(violations),
-                "compliance_rate": compliance_rate,
-            },
-            confidence=1.0,
+        # 3) Decision tracing: preserved logic, moved to metadata
+        rationale = (
+            f"Audited {total_actions} actions. Compliance: {compliance_rate:.1f}%"
         )
 
-        # Convert violations to dicts for ComponentResult
         violation_dicts = [
             {
                 "file": str(
@@ -146,6 +133,7 @@ class AtomicActionsEvaluator(BaseEvaluator):
             },
             confidence=1.0,
             duration=time.time() - start_time,
+            rationale=rationale,
         )
 
     # =========================================================================
@@ -153,24 +141,22 @@ class AtomicActionsEvaluator(BaseEvaluator):
     # =========================================================================
 
     def _check_file(self, file_path: Path) -> tuple[list[AtomicActionViolation], int]:
-        """
-        Check a single file for atomic action pattern compliance.
-        """
-        violations = []
+        """Check a single file for atomic action pattern compliance."""
+        violations: list[AtomicActionViolation] = []
         action_count = 0
 
         try:
-            with open(file_path, encoding="utf-8") as f:
-                source = f.read()
-                tree = ast.parse(source)
+            source = file_path.read_text(encoding="utf-8")
+            tree = ast.parse(source)
 
             for node in ast.walk(tree):
-                if isinstance(node, ast.AsyncFunctionDef):
-                    if self._is_atomic_action_candidate(node):
-                        action_count += 1
-                        violations.extend(
-                            self._validate_atomic_action(file_path, node, source)
-                        )
+                if isinstance(
+                    node, ast.AsyncFunctionDef
+                ) and self._is_atomic_action_candidate(node):
+                    action_count += 1
+                    violations.extend(
+                        self._validate_atomic_action(file_path, node, source)
+                    )
 
         except SyntaxError as e:
             violations.append(
@@ -183,7 +169,7 @@ class AtomicActionsEvaluator(BaseEvaluator):
                 )
             )
         except Exception as e:
-            logger.error("Error checking %s: %s", file_path, e)
+            logger.error("Error checking %s: %s", file_path, e, exc_info=True)
 
         return (violations, action_count)
 
@@ -200,10 +186,9 @@ class AtomicActionsEvaluator(BaseEvaluator):
         for decorator in node.decorator_list:
             if isinstance(decorator, ast.Name) and decorator.id == "atomic_action":
                 return True
-            if isinstance(decorator, ast.Call):
-                if isinstance(decorator.func, ast.Name):
-                    if decorator.func.id == "atomic_action":
-                        return True
+            if isinstance(decorator, ast.Call) and isinstance(decorator.func, ast.Name):
+                if decorator.func.id == "atomic_action":
+                    return True
         return False
 
     def _returns_action_result(self, node: ast.AsyncFunctionDef) -> bool:
@@ -211,15 +196,19 @@ class AtomicActionsEvaluator(BaseEvaluator):
             return False
         if isinstance(node.returns, ast.Name):
             return node.returns.id == "ActionResult"
-        if isinstance(node.returns, ast.Subscript):
-            if isinstance(node.returns.value, ast.Name):
-                return node.returns.value.id == "ActionResult"
+        if isinstance(node.returns, ast.Subscript) and isinstance(
+            node.returns.value, ast.Name
+        ):
+            return node.returns.value.id == "ActionResult"
         return False
 
     def _validate_atomic_action(
-        self, file_path: Path, node: ast.AsyncFunctionDef, source: str
+        self,
+        file_path: Path,
+        node: ast.AsyncFunctionDef,
+        source: str,
     ) -> list[AtomicActionViolation]:
-        violations = []
+        violations: list[AtomicActionViolation] = []
 
         if not self._has_atomic_action_decorator(node):
             violations.append(
@@ -230,7 +219,9 @@ class AtomicActionsEvaluator(BaseEvaluator):
                     message=f"Atomic action '{node.name}' missing @atomic_action decorator",
                     line_number=node.lineno,
                     severity="error",
-                    suggested_fix="Add @atomic_action decorator with action_id, intent, impact, and policies",
+                    suggested_fix=(
+                        "Add @atomic_action decorator with action_id, intent, impact, and policies"
+                    ),
                 )
             )
 
@@ -248,37 +239,44 @@ class AtomicActionsEvaluator(BaseEvaluator):
             )
 
         if self._has_atomic_action_decorator(node):
-            decorator_violations = self._validate_decorator_metadata(
-                file_path, node, source
+            violations.extend(
+                self._validate_decorator_metadata(file_path, node, source)
             )
-            violations.extend(decorator_violations)
 
-        result_violations = self._validate_return_statements(file_path, node)
-        violations.extend(result_violations)
-
+        violations.extend(self._validate_return_statements(file_path, node))
         return violations
 
     def _validate_decorator_metadata(
-        self, file_path: Path, node: ast.AsyncFunctionDef, source: str
+        self,
+        file_path: Path,
+        node: ast.AsyncFunctionDef,
+        source: str,
     ) -> list[AtomicActionViolation]:
-        violations = []
-        decorator = None
+        violations: list[AtomicActionViolation] = []
+        decorator: ast.Call | None = None
+
         for dec in node.decorator_list:
-            if isinstance(dec, ast.Call):
-                if isinstance(dec.func, ast.Name) and dec.func.id == "atomic_action":
-                    decorator = dec
-                    break
+            if (
+                isinstance(dec, ast.Call)
+                and isinstance(dec.func, ast.Name)
+                and dec.func.id == "atomic_action"
+            ):
+                decorator = dec
+                break
+
         if not decorator:
             return violations
 
-        decorator_args = {}
+        decorator_args: dict[str, Any] = {}
+
         for keyword in decorator.keywords:
             if isinstance(keyword.value, ast.Constant):
                 decorator_args[keyword.arg] = keyword.value.value
             elif isinstance(keyword.value, ast.Attribute):
-                decorator_args[keyword.arg] = (
-                    f"{keyword.value.value.id}.{keyword.value.attr}"
-                )
+                # Example: ActionImpact.LOW
+                base = keyword.value.value
+                if isinstance(base, ast.Name):
+                    decorator_args[keyword.arg] = f"{base.id}.{keyword.value.attr}"
             elif isinstance(keyword.value, ast.List):
                 decorator_args[keyword.arg] = [
                     elt.value
@@ -300,7 +298,9 @@ class AtomicActionsEvaluator(BaseEvaluator):
                         file_path=file_path,
                         function_name=node.name,
                         rule_id="decorator_missing_required_field",
-                        message=f"@atomic_action missing required field '{field}': {description}",
+                        message=(
+                            f"@atomic_action missing required field '{field}': {description}"
+                        ),
                         line_number=node.lineno,
                         severity="error",
                         suggested_fix=f"Add {field}=... to @atomic_action decorator",
@@ -321,22 +321,33 @@ class AtomicActionsEvaluator(BaseEvaluator):
                         suggested_fix="Use category.name format for action_id",
                     )
                 )
+
         return violations
 
     def _validate_return_statements(
-        self, file_path: Path, node: ast.AsyncFunctionDef
+        self,
+        file_path: Path,
+        node: ast.AsyncFunctionDef,
     ) -> list[AtomicActionViolation]:
-        violations = []
+        violations: list[AtomicActionViolation] = []
+
         for child in ast.walk(node):
-            if isinstance(child, ast.Return) and child.value:
-                if isinstance(child.value, ast.Call):
-                    if isinstance(child.value.func, ast.Name):
-                        if child.value.func.id == "ActionResult":
-                            violations.extend(
-                                self._validate_action_result_call(
-                                    file_path, node.name, child, child.lineno
-                                )
-                            )
+            if (
+                isinstance(child, ast.Return)
+                and child.value
+                and isinstance(child.value, ast.Call)
+            ):
+                call = child.value
+                if isinstance(call.func, ast.Name) and call.func.id == "ActionResult":
+                    violations.extend(
+                        self._validate_action_result_call(
+                            file_path,
+                            node.name,
+                            child,
+                            child.lineno,
+                        )
+                    )
+
         return violations
 
     def _validate_action_result_call(
@@ -346,14 +357,15 @@ class AtomicActionsEvaluator(BaseEvaluator):
         return_node: ast.Return,
         line_number: int,
     ) -> list[AtomicActionViolation]:
-        violations = []
+        violations: list[AtomicActionViolation] = []
+
         call = return_node.value
         if not isinstance(call, ast.Call):
             return violations
 
-        result_args = {}
-        for keyword in call.keywords:
-            result_args[keyword.arg] = keyword.value
+        result_args: dict[str, ast.AST] = {
+            k.arg: k.value for k in call.keywords if k.arg
+        }
 
         required_fields = ["action_id", "ok", "data"]
         for field in required_fields:
@@ -384,26 +396,26 @@ class AtomicActionsEvaluator(BaseEvaluator):
                         suggested_fix="Use data={...} with explicit key-value pairs",
                     )
                 )
+
         return violations
 
 
 # ID: 88cd5c3d-aece-498a-935f-df133086a948
 def format_atomic_action_violations(
-    violations: list[AtomicActionViolation], verbose: bool = False
+    violations: list[AtomicActionViolation],
+    verbose: bool = False,
 ) -> str:
-    """
-    Format atomic action violations for display.
-    """
+    """Format atomic action violations for display."""
     if not violations:
         return "✅ All atomic actions follow constitutional pattern!"
 
-    output = []
-    output.append("\n❌ Found Atomic Action Violations:\n")
+    output: list[str] = ["\n❌ Found Atomic Action Violations:\n"]
+
     by_file: dict[Path, list[AtomicActionViolation]] = {}
     for v in violations:
         by_file.setdefault(v.file_path, []).append(v)
 
-    for file_path, file_violations in sorted(by_file.items()):
+    for file_path, file_violations in sorted(by_file.items(), key=lambda x: str(x[0])):
         output.append(f"\n📄 {file_path}")
         for v in file_violations:
             severity_marker = "🔴" if v.severity == "error" else "🟡"

@@ -27,7 +27,7 @@ logger = getLogger(__name__)
 _CHECK_REGISTRY: dict[str, type[BaseCheck]] | None = None
 
 
-# ID: check-discovery-function
+# ID: 3efc3f23-cda9-42d7-809a-eb76aea2c5d4
 # ID: 0666f4e0-cff1-4935-b8d0-80bea980c195
 def discover_all_checks() -> dict[str, type[BaseCheck]]:
     """
@@ -88,7 +88,7 @@ def discover_all_checks() -> dict[str, type[BaseCheck]]:
     return check_classes
 
 
-# ID: check-lookup-function
+# ID: 0fc94de1-ab0c-491d-aa8b-83615970a454
 # ID: 027002ee-171a-406a-93c6-0cb6d8d37889
 def get_check(check_name: str) -> type[BaseCheck]:
     """
@@ -112,7 +112,7 @@ def get_check(check_name: str) -> type[BaseCheck]:
     return registry[check_name]
 
 
-# ID: check-exists-function
+# ID: 41cf91a2-b12a-404d-945b-1ed01d2fe7a5
 # ID: c035b412-f556-4978-bc2a-2ce02707f67d
 def check_exists(check_name: str) -> bool:
     """
@@ -128,7 +128,7 @@ def check_exists(check_name: str) -> bool:
     return check_name in registry
 
 
-# ID: list-all-checks-function
+# ID: 1a00791f-5cec-491b-b0a2-cf1b34bca428
 # ID: 94db7c64-3b88-439d-8dae-4fc752d3ca3b
 def list_all_checks() -> list[str]:
     """
@@ -141,7 +141,7 @@ def list_all_checks() -> list[str]:
     return sorted(registry.keys())
 
 
-# ID: clear-cache-function
+# ID: ff7e01d1-623b-4ce2-8113-9bf9e96fa49d
 # ID: 376a93b2-24fe-4dbc-9b16-e3fa443d9d99
 def clear_cache() -> None:
     """

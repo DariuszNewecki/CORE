@@ -1,5 +1,5 @@
 # src/body/cli/resources/vectors/rebuild.py
-# ID: cli.resources.vectors.rebuild
+# ID: 00a65e2b-c9b7-49dc-b8f6-fdd9547e6e7c
 """
 Vector rebuild command.
 
@@ -15,7 +15,7 @@ from shared.cli_utils import core_command
 from shared.infrastructure.clients.qdrant_client import QdrantService
 from shared.logger import getLogger
 
-from . import app
+from .hub import app
 
 
 logger = getLogger(__name__)
@@ -24,7 +24,7 @@ console = Console()
 
 @app.command("rebuild")
 @core_command(dangerous=True, requires_context=False)
-# ID: 7a8b9c0d-1e2f-3a4b-5c6d-7e8f9a0b1c2d
+# ID: c7226ca7-09af-4b36-815f-304ee4230125
 async def rebuild_vectors(
     ctx: typer.Context,
     collection: str = typer.Option(

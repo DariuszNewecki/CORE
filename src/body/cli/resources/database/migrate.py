@@ -1,5 +1,5 @@
 # src/body/cli/resources/database/migrate.py
-# ID: cli.resources.database.migrate
+# ID: 578125b2-fce1-4b08-a9f5-ea21e50cc6ed
 """
 Database migration command.
 
@@ -14,7 +14,7 @@ from rich.console import Console
 from shared.cli_utils import core_command
 from shared.logger import getLogger
 
-from . import app
+from .hub import app
 
 
 logger = getLogger(__name__)

@@ -3,9 +3,10 @@
 """
 Service Registry - Centralized DI Container.
 
-CONSTITUTIONAL FIX (V2.4.2):
-- Hardened Bootstrap wiring to prevent 'Root path not set' errors.
-- Syncs infrastructure coordinates with the BootstrapRegistry.
+CONSTITUTIONAL FIX (V2.7.3):
+- JIT Secret Decoding: Now injects the session factory into CognitiveService.
+- This prevents "Detached Session" errors when accessing encrypted secrets
+  (API keys) during long-running tasks like vectorization.
 """
 
 from __future__ import annotations
@@ -164,7 +165,10 @@ class ServiceRegistry:
                 from will.orchestration.cognitive_service import CognitiveService
 
                 repo_path = bootstrap_registry.get_repo_path()
-                instance = CognitiveService(repo_path=repo_path)
+                # CONSTITUTIONAL FIX: Inject self.session factory to handle JIT secret retrieval
+                instance = CognitiveService(
+                    repo_path=repo_path, session_factory=self.session
+                )
                 self._instances["cognitive_service"] = instance
                 self._init_flags["cognitive_service"] = False
 

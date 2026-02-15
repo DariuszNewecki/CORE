@@ -1,5 +1,5 @@
 # src/will/phases/planning_phase.py
-# ID: will.phases.planning_phase
+# ID: 82e82bda-a9f2-40db-8e0c-83b0d2fa3339
 
 """
 Planning Phase Implementation
@@ -26,7 +26,7 @@ if TYPE_CHECKING:
 logger = getLogger(__name__)
 
 
-# ID: 2b3c4d5e-6f7g-8h9i-0j1k-2l3m4n5o6p7q
+# ID: 99d77f4e-6924-49aa-8d14-23c026346ce1
 # ID: 84eac1a4-e2c5-4861-a76f-8950fefab23a
 class PlanningPhase:
     """

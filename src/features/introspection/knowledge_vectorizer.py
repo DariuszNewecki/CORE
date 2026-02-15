@@ -3,11 +3,17 @@
 """
 Handles the vectorization of individual capabilities (per-chunk), including interaction with Qdrant.
 Idempotency is enforced at the chunk (symbol_key) level via `chunk_id` stored in the payload.
+
+ENHANCED (V2.7.0):
+- Added code metadata extraction (imports, calls, patterns)
+- Enriched Qdrant payloads for hybrid search (semantic + pattern matching)
+- Added code_preview for fast result display
 """
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+import ast
+from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -27,10 +33,17 @@ MAX_SCROLL_LIMIT = 10000
 
 
 @dataclass
-# ID: 37dbacf7-1c1a-4d1d-8e84-f337f1afb4c2
+# ID: 006d4455-595b-45f7-94ee-5e1b9a86d5a9
+# ID: ce415992-6d86-47ed-bbda-9aa7c9e5eb98
 class VectorizationPayload:
-    """A structured container for data to be upserted to the vector store."""
+    """
+    Enhanced payload for vector store with searchable metadata.
 
+    ENHANCED: Now includes imports, calls, patterns, and code preview
+    for hybrid semantic + pattern-based search.
+    """
+
+    # Original fields
     source_path: str
     chunk_id: str
     content_sha256: str
@@ -40,10 +53,25 @@ class VectorizationPayload:
     source_type: str = "code"
     language: str = "python"
 
-    # ID: 0a238825-41b9-4970-8cba-1c1014c9ffb7
+    # ENHANCED: Searchable metadata
+    imports: list[str] = field(default_factory=list)
+    """Imported modules: ['ast', 'Path', 'uuid']"""
+
+    calls: list[str] = field(default_factory=list)
+    """Function/method calls found: ['isinstance', 'Path.exists', 'logger.info']"""
+
+    patterns: list[str] = field(default_factory=list)
+    """Detected code patterns: ['isinstance_tuple', 'async_def', 'context_manager']"""
+
+    code_preview: str = ""
+    """First 500 chars of code for quick display"""
+
+    # ID: 51941928-032a-46c5-9929-97392de7c174
+    # ID: 05de316e-20e8-432a-aaaf-7c6853300e0c
     def to_dict(self) -> dict[str, Any]:
         """Converts the dataclass to a dictionary for Qdrant."""
         return {
+            # Original fields
             "source_path": self.source_path,
             "source_type": self.source_type,
             "chunk_id": self.chunk_id,
@@ -52,7 +80,113 @@ class VectorizationPayload:
             "symbol": self.symbol,
             "capability_tags": self.capability_tags,
             "model_rev": self.model_rev,
+            # ENHANCED: Searchable metadata
+            "imports": self.imports,
+            "calls": self.calls,
+            "patterns": self.patterns,
+            "code_preview": self.code_preview,
         }
+
+
+# ID: fa9f9456-cce6-4643-abbb-d49076dd3d5c
+# ID: 46063755-09c3-4160-8e7e-90857cbdee8d
+class CodeMetadataExtractor(ast.NodeVisitor):
+    """
+    Extracts searchable metadata from Python code via AST analysis.
+
+    Collects:
+    - imports: All imported modules
+    - calls: All function/method calls
+    - patterns: Detected code patterns
+    """
+
+    def __init__(self):
+        self.imports: set[str] = set()
+        self.calls: set[str] = set()
+        self.patterns: set[str] = set()
+
+    # ID: 89c71fe8-bc1f-4e0a-b948-c72d3d6c028f
+    def visit_Import(self, node: ast.Import) -> None:
+        """Track import statements."""
+        for alias in node.names:
+            self.imports.add(alias.name.split(".")[0])  # Base module
+        self.generic_visit(node)
+
+    # ID: b0eae9c5-fb6f-4eb2-aa00-14d85a2bf454
+    def visit_ImportFrom(self, node: ast.ImportFrom) -> None:
+        """Track from-import statements."""
+        if node.module:
+            self.imports.add(node.module.split(".")[0])  # Base module
+        self.generic_visit(node)
+
+    # ID: 19e8dcd7-046c-44c7-ad1a-484916475fa7
+    def visit_Call(self, node: ast.Call) -> None:
+        """Track function/method calls."""
+        call_name = self._extract_call_name(node.func)
+        if call_name:
+            self.calls.add(call_name)
+
+        # Pattern detection: isinstance with tuple
+        if call_name == "isinstance" and len(node.args) >= 2:
+            if isinstance(node.args[1], ast.Tuple):
+                self.patterns.add("isinstance_tuple")
+
+        self.generic_visit(node)
+
+    # ID: 62c4c6d6-5e82-4243-ac56-1e426e0f3c19
+    def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef) -> None:
+        """Detect async function pattern."""
+        self.patterns.add("async_def")
+        self.generic_visit(node)
+
+    # ID: d9915d4a-e85e-4531-90f8-c54ab5787202
+    def visit_With(self, node: ast.With) -> None:
+        """Detect context manager pattern."""
+        self.patterns.add("context_manager")
+        self.generic_visit(node)
+
+    # ID: 512a8b84-8982-4f1f-b692-c1c7b3f6c1f1
+    def visit_AsyncWith(self, node: ast.AsyncWith) -> None:
+        """Detect async context manager pattern."""
+        self.patterns.add("async_context_manager")
+        self.generic_visit(node)
+
+    def _extract_call_name(self, node: ast.AST) -> str | None:
+        """Extract name from a Call's func node."""
+        if isinstance(node, ast.Name):
+            return node.id
+        elif isinstance(node, ast.Attribute):
+            # For method calls like logger.info, return full name
+            if isinstance(node.value, ast.Name):
+                return f"{node.value.id}.{node.attr}"
+            return node.attr
+        return None
+
+
+# ID: 7eba9307-d919-4fef-be54-25d2a7818947
+def extract_code_metadata(source_code: str) -> tuple[list[str], list[str], list[str]]:
+    """
+    Extract searchable metadata from source code.
+
+    Args:
+        source_code: Python source code
+
+    Returns:
+        Tuple of (imports, calls, patterns)
+    """
+    try:
+        tree = ast.parse(source_code)
+        extractor = CodeMetadataExtractor()
+        extractor.visit(tree)
+
+        return (
+            sorted(extractor.imports),
+            sorted(extractor.calls),
+            sorted(extractor.patterns),
+        )
+    except Exception as e:
+        logger.debug("Metadata extraction failed: %s", e)
+        return ([], [], [])
 
 
 # ID: 53b6dbe6-aedd-4844-9704-0c6789135cb7
@@ -121,17 +255,32 @@ def _prepare_vectorization_payload(
 ) -> VectorizationPayload:
     """
     Prepares the structured payload for a symbol without performing any I/O.
+
+    ENHANCED: Now extracts metadata (imports, calls, patterns) and code preview.
     """
     normalized_code = normalize_text(source_code)
     content_hash = sha256_hex(normalized_code)
     symbol_key = symbol_data["key"]
+
+    # ENHANCED: Extract searchable metadata
+    imports, calls, patterns = extract_code_metadata(source_code)
+
+    # ENHANCED: Create code preview (first 500 chars)
+    code_preview = source_code[:500] if len(source_code) > 500 else source_code
+
     return VectorizationPayload(
+        # Original fields
         source_path=symbol_data.get("file", "unknown"),
         chunk_id=symbol_key,
         content_sha256=content_hash,
         symbol=symbol_key,
         capability_tags=[cap_key],
         model_rev=settings.EMBED_MODEL_REVISION,
+        # ENHANCED: Metadata fields
+        imports=imports,
+        calls=calls,
+        patterns=patterns,
+        code_preview=code_preview,
     )
 
 

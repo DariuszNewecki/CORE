@@ -19,8 +19,8 @@ from shared.logger import getLogger
 logger = getLogger(__name__)
 
 
-# ID: compute-doc-key
-# ID: 5e6f7a8b-9c0d-1e2f-3a4b-5c6d7e8f9a0b
+# ID: 267b491d-6bf3-448f-8992-4dfd7b913c24
+# ID: 0a4b7ca3-5dad-4aea-a3b2-c11e2dfbbb71
 def compute_doc_key(file_path: Path, *, key_root: str, intent_root: Path) -> str:
     """
     Compute canonical document key based on .intent/ structure.

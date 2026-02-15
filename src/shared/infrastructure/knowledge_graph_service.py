@@ -40,7 +40,7 @@ if TYPE_CHECKING:
 logger = getLogger(__name__)
 
 
-# ID: b64ba9c9-f55c-4a24-bc2d-d8c2fa04b43e
+# ID: 8052e09f-edbb-4de2-974e-efcfbb139b32
 class KnowledgeGraphBuilder:
     """
     Scans source code to build a comprehensive in-memory knowledge graph.
@@ -147,8 +147,8 @@ class KnowledgeGraphBuilder:
 
         return []
 
-    # ID: build_shadow_graph
-    # ID: 75c969e0-5c7c-4f58-9a46-62815947d77a
+    # ID: 4b979a4f-4eb6-4104-929b-c83b72b744e5
+    # ID: df77032e-a986-4846-8c38-9849daabe695
     def build(self) -> dict[str, Any]:
         """
         Executes the full scan and returns the in-memory graph.

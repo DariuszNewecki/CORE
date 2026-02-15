@@ -5,7 +5,7 @@ from rich.table import Table
 
 from shared.cli_utils import core_command
 
-from . import app
+from .hub import app
 
 
 console = Console()

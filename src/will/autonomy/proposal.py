@@ -1,5 +1,5 @@
 # src/will/autonomy/proposal.py
-# ID: autonomy.proposal
+# ID: 8e393139-98d8-494f-804a-3de749061da4
 """
 A3 Proposal System - Autonomous Action Planning
 
@@ -31,7 +31,7 @@ from shared.logger import getLogger
 logger = getLogger(__name__)
 
 
-# ID: proposal_status_enum
+# ID: 3c869c81-1d15-46ca-84aa-2a5cbcc1f9c8
 # ID: 86a456a9-13eb-415f-96e3-7a8622556dfe
 class ProposalStatus(str, Enum):
     """Proposal lifecycle states."""
@@ -45,7 +45,7 @@ class ProposalStatus(str, Enum):
     REJECTED = "rejected"  # Rejected during review
 
 
-# ID: proposal_scope
+# ID: 2e115697-f1a9-4377-9b11-d55315b659a1
 @dataclass
 # ID: 8cfd7a73-aecd-4f7e-bb0c-d65d888b7b7e
 class ProposalScope:
@@ -77,7 +77,7 @@ class ProposalScope:
         )
 
 
-# ID: risk_assessment
+# ID: 015b4bab-f52e-4eec-864e-c38c62a010ff
 @dataclass
 # ID: 4da11b16-da1c-4bbb-88f6-5db76b9e2a0a
 class RiskAssessment:
@@ -105,7 +105,7 @@ class RiskAssessment:
         return self.overall_risk in ["moderate", "dangerous"]
 
 
-# ID: proposal_action
+# ID: c72fcc99-889e-457f-b421-b0f72aa23f76
 @dataclass
 # ID: 8c3da43b-b6b2-4392-8720-56f77964076d
 class ProposalAction:
@@ -130,7 +130,7 @@ class ProposalAction:
         return action_registry.get(self.action_id) is not None
 
 
-# ID: proposal
+# ID: daa0be43-20ff-439f-92ea-c49735fe45d2
 @dataclass
 # ID: 7c009aef-daac-4c91-9b1f-0b40e700922b
 class Proposal:
@@ -203,7 +203,7 @@ class Proposal:
     failure_reason: str | None = None
     """Why execution failed (if applicable)"""
 
-    # ID: proposal_validate
+    # ID: b063e675-d4e3-44ac-b2ef-e9338dde673a
     # ID: a0c3985a-5529-4c26-8cab-abe82e734abd
     def validate(self) -> tuple[bool, list[str]]:
         """
@@ -238,7 +238,7 @@ class Proposal:
 
         return (len(errors) == 0, errors)
 
-    # ID: proposal_compute_risk
+    # ID: 8572f861-3643-4954-aeed-aaf784e46933
     # ID: bd436e51-c283-46cf-bbfe-4d9ae578296c
     def compute_risk(self) -> RiskAssessment:
         """
@@ -296,7 +296,7 @@ class Proposal:
 
         return self.risk
 
-    # ID: proposal_to_dict
+    # ID: 7421f7b5-7b48-4a08-a294-1f81c71f66e0
     # ID: e9fa7bda-3de4-43fa-ad27-50ddc4ad4aca
     def to_dict(self) -> dict[str, Any]:
         """
@@ -355,7 +355,7 @@ class Proposal:
             "failure_reason": self.failure_reason,
         }
 
-    # ID: proposal_from_dict
+    # ID: d81363e8-a994-49ab-8c02-7b56a992f495
     @classmethod
     # ID: 9be0e0a5-3aca-45ab-8caf-26b6d7a6c67b
     def from_dict(cls, data: dict[str, Any]) -> Proposal:

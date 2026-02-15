@@ -28,7 +28,7 @@ from will.autonomy.proposal_state_manager import ProposalStateManager
 logger = getLogger(__name__)
 
 
-# ID: proposal_service
+# ID: 63b12cf9-7f1b-4c06-883f-251818248bd2
 # ID: 1f2e3d4c-5b6a-7890-1234-567890abcdef
 class ProposalService:
     """

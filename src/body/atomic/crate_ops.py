@@ -1,5 +1,5 @@
 # src/body/atomic/crate_ops.py
-# ID: atomic.crate_ops
+# ID: ab85ee66-fda5-4445-926b-54f1945ac64a
 
 """
 Atomic Crate Operations - Packaging logic for autonomous transactions.
@@ -26,7 +26,7 @@ logger = getLogger(__name__)
     action_id="crate.create",
     description="Package generated code into an Intent Crate for canary validation",
     category=ActionCategory.BUILD,
-    policies=["body_contracts"],
+    policies=["rules/architecture/atomic_actions"],
     impact_level="safe",
 )
 @atomic_action(

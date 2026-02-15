@@ -74,7 +74,7 @@ class TaskStructure:
     confidence: float  # 0.0-1.0 - How confident is the interpretation?
 
 
-# ID: base_interpreter
+# ID: 7852ccb2-a8e5-4d04-8d0b-a0d4dd432be0
 # ID: ccfdfcd1-fa37-434e-b9fe-9b094ab215b9
 class RequestInterpreter(Component):
     """
@@ -127,7 +127,7 @@ class RequestInterpreter(Component):
         )
 
 
-# ID: natural_language_interpreter
+# ID: f1e36c35-0446-40eb-bff5-477ce45a7512
 # ID: a02b2fcf-dc54-4a50-b430-e9948d9bb359
 class NaturalLanguageInterpreter(RequestInterpreter):
     """
@@ -366,7 +366,7 @@ class NaturalLanguageInterpreter(RequestInterpreter):
         return matched
 
 
-# ID: cli_args_interpreter
+# ID: bc151a67-c556-44ee-9bca-26e1be3e6259
 # ID: 94271d67-67b4-4b39-8020-b944cd99f657
 class CLIArgsInterpreter(RequestInterpreter):
     """

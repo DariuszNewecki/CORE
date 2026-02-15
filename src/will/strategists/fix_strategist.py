@@ -33,7 +33,7 @@ from will.orchestration.decision_tracer import DecisionTracer
 logger = getLogger(__name__)
 
 
-# ID: 1a2b3c4d-5e6f-7a8b-9c0d-1e2f3a4b5c6d
+# ID: 26539a67-a4e8-4a7a-899e-b133bab02ac0
 class FixStrategist(Component):
     """
     Decides which fixes to apply and in what order.
@@ -146,12 +146,12 @@ class FixStrategist(Component):
         self.tracer = DecisionTracer()
 
     @property
-    # ID: 2b3c4d5e-6f7a-8b9c-0d1e-2f3a4b5c6d7e
+    # ID: c6dae3a7-dc32-4bb1-968b-824ea0d23601
     def phase(self) -> ComponentPhase:
         """FixStrategist operates in RUNTIME phase."""
         return ComponentPhase.RUNTIME
 
-    # ID: 3c4d5e6f-7a8b-9c0d-1e2f-3a4b5c6d7e8f
+    # ID: 68f07350-e79d-4b00-a5be-8df3a1f1ced5
     async def execute(
         self,
         fix_target: str = "all",
@@ -256,7 +256,7 @@ class FixStrategist(Component):
             duration_sec=time.time() - start_time,
         )
 
-    # ID: 4d5e6f7a-8b9c-0d1e-2f3a-4b5c6d7e8f9a
+    # ID: 3bbb326d-0e4b-4041-9263-0a5ac774c9e2
     def _select_strategy(
         self,
         target: str,
@@ -293,7 +293,7 @@ class FixStrategist(Component):
         # Default to constitutional (safe default)
         return "constitutional"
 
-    # ID: 5e6f7a8b-9c0d-1e2f-3a4b-5c6d7e8f9a0b
+    # ID: 1cf76ae1-7524-4ec2-b450-4e54e6475aad
     def _build_sequence(
         self,
         target: str,
@@ -353,7 +353,7 @@ class FixStrategist(Component):
 
         return sequence
 
-    # ID: 6f7a8b9c-0d1e-2f3a-4b5c-6d7e8f9a0b1c
+    # ID: 4f943f26-53dd-4784-b526-cb43ca6cadbf
     def _determine_execution_mode(
         self, fix_sequence: list[dict[str, Any]], file_path: str | None
     ) -> str:
@@ -379,7 +379,7 @@ class FixStrategist(Component):
         # Default to sequential for safety
         return "sequential"
 
-    # ID: 7a8b9c0d-1e2f-3a4b-5c6d-7e8f9a0b1c2d
+    # ID: fc71fb86-1d60-4d3b-ae4f-2fc21b6a95a4
     def _identify_safety_checks(
         self, fix_sequence: list[dict[str, Any]], strategy: str
     ) -> list[str]:
@@ -434,7 +434,7 @@ class FixStrategist(Component):
 
         return unique_checks
 
-    # ID: 8b9c0d1e-2f3a-4b5c-6d7e-8f9a0b1c2d3e
+    # ID: 7e82e2e7-7e8b-43a7-bb71-dd51b2f03537
     def _estimate_duration(
         self, fix_sequence: list[dict[str, Any]], file_path: str | None
     ) -> int:

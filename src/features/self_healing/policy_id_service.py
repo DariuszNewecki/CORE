@@ -37,7 +37,7 @@ if TYPE_CHECKING:
 logger = getLogger(__name__)
 
 
-# ID: c1a2b3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d
+# ID: bbeb523a-9777-48ae-b26e-0b37e90b0f70
 async def add_missing_policy_ids(context: CoreContext, dry_run: bool = True) -> int:
     """
     Scans all constitutional policy files and adds a `policy_id` UUID via the Action Gateway.

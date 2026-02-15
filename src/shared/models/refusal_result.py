@@ -1,5 +1,5 @@
 # src/shared/models/refusal_result.py
-# ID: refusal_result_first_class_outcome
+# ID: 563f5740-d13f-4c76-be9c-e615eb80f3af
 
 """
 First-class refusal outcome type.
@@ -95,7 +95,7 @@ class RefusalResult(ComponentResult):
             )
 
     @classmethod
-    # ID: a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d
+    # ID: c92d7acc-06ae-4c41-8a3b-f4a3d94d3802
     def boundary_violation(
         cls,
         component_id: str,
@@ -131,7 +131,7 @@ class RefusalResult(ComponentResult):
         )
 
     @classmethod
-    # ID: b2c3d4e5-f6a7-8b9c-0d1e-2f3a4b5c6d7e
+    # ID: a08d72d0-4065-48c7-9f8b-290d5de940c0
     def low_confidence(
         cls,
         component_id: str,
@@ -172,7 +172,7 @@ class RefusalResult(ComponentResult):
         )
 
     @classmethod
-    # ID: c3d4e5f6-a7b8-9c0d-1e2f-3a4b5c6d7e8f
+    # ID: f5de8dde-34b6-411b-8696-21fa958aafda
     def extraction_failed(
         cls,
         component_id: str,
@@ -215,7 +215,7 @@ class RefusalResult(ComponentResult):
         )
 
     @classmethod
-    # ID: d4e5f6a7-b8c9-0d1e-2f3a-4b5c6d7e8f9a
+    # ID: 10b72e4d-080b-45c2-ba10-cf5f675962d5
     def quality_threshold(
         cls,
         component_id: str,
@@ -250,7 +250,7 @@ class RefusalResult(ComponentResult):
             original_request=original_request,
         )
 
-    # ID: e5f6a7b8-c9d0-1e2f-3a4b-5c6d7e8f9a0b
+    # ID: 62ae8943-9098-40c1-932a-d070aeed647a
     def to_user_message(self) -> str:
         """
         Format refusal as user-facing message.
@@ -275,7 +275,7 @@ class RefusalResult(ComponentResult):
 
         return "\n".join(lines)
 
-    # ID: f6a7b8c9-d0e1-2f3a-4b5c-6d7e8f9a0b1c
+    # ID: 239d9dc0-f7bc-482f-937b-ee95ecaa29f7
     def to_trace_entry(self) -> dict[str, Any]:
         """
         Format refusal for decision trace.

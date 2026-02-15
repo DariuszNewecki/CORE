@@ -20,14 +20,14 @@ from shared.path_resolver import PathResolver
 logger = getLogger(__name__)
 
 
-# ID: a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d
+# ID: de2667dc-239d-408a-b9b0-fa59ea3a6a66
 class CapabilityChecks:
     """Capability linkage and governance checks."""
 
     def __init__(self, path_resolver: PathResolver):
         self._paths = path_resolver
 
-    # ID: b2c3d4e5-f6a7-8b9c-0d1e-2f3a4b5c6d7e
+    # ID: 2c6bf9cf-2b1b-4e45-a195-a15073f65e3e
     def check_capability_assignment(
         self,
         tree: ast.AST,

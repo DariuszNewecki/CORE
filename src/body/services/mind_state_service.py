@@ -28,7 +28,7 @@ logger = getLogger(__name__)
 __all__ = ["MindStateService"]
 
 
-# ID: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+# ID: 49fce217-d1fe-480e-8ede-cef3abf4680b
 class MindStateService:
     """
     Body service for accessing Mind state (LlmResources, CognitiveRoles, Config).
@@ -48,7 +48,7 @@ class MindStateService:
         """
         self.session = None
 
-    # ID: b2c3d4e5-f678-90ab-cdef-1234567890ab
+    # ID: 7d983b1d-83e8-4b07-86a5-f15b7f4ca981
     async def get_llm_resources(self) -> list[LlmResource]:
         """
         Retrieve all configured LLM resources from Mind.
@@ -63,7 +63,7 @@ class MindStateService:
         logger.debug("Retrieved %d LLM resources from Mind", len(resources))
         return resources
 
-    # ID: c3d4e5f6-7890-abcd-ef12-34567890abcd
+    # ID: be7cff39-76bc-4ba0-a556-5a336f4a9f0c
     async def get_cognitive_roles(self) -> list[CognitiveRole]:
         """
         Retrieve all configured cognitive roles from Mind.

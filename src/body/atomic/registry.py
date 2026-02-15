@@ -1,5 +1,5 @@
 # src/body/atomic/registry.py
-# ID: actions.registry
+# ID: f04360ba-957e-456e-99ab-8bf7bc05da54
 """
 Atomic Actions Registry - Constitutional Action Definitions
 

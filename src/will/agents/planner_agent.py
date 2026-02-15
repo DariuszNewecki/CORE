@@ -1,5 +1,5 @@
 # src/will/agents/planner_agent.py
-# ID: 31bb8dba-f4d2-426a-8783-d09614085258
+# ID: ad85dc18-646b-4bb9-95df-2d9a63873d26
 """
 The PlannerAgent is responsible for decomposing a high-level user goal
 into a concrete, step-by-step execution plan that can be carried out
@@ -36,7 +36,7 @@ from will.orchestration.decision_tracer import DecisionTracer
 logger = getLogger(__name__)
 
 
-# ID: 31bb8dba-f4d2-426a-8783-d09614085258
+# ID: 12a652ad-0b1b-4c04-9689-3a7f8675facd
 class PlannerAgent:
     """Decomposes goals into executable plans."""
 

@@ -18,7 +18,7 @@ from shared.logger import getLogger
 logger = getLogger(__name__)
 
 
-# ID: f6a7b8c9-d0e1-2f3a-4b5c-6d7e8f9a0b1c
+# ID: 7d8b1423-0a95-4c86-9bbe-0b4aee2b793f
 class CanaryDeploymentCheck(WorkflowCheck):
     """
     Ensures a canary deployment passed in a protected environment.

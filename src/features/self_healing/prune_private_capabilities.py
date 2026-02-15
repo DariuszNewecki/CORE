@@ -27,7 +27,7 @@ logger = getLogger(__name__)
 REPO_ROOT = settings.REPO_PATH
 
 
-# ID: a89bad59-de22-43f7-b70c-60446902e923
+# ID: bb384d72-6190-400b-9479-20f53e2e63da
 async def prune_private_capability_tags(
     context: CoreContext, write: bool = False
 ) -> int:

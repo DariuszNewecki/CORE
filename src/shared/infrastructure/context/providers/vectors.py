@@ -1,21 +1,23 @@
 # src/shared/infrastructure/context/providers/vectors.py
-# ID: cd6237eb-1ab0-4488-95df-31092411019c
 
 """
 VectorProvider - Semantic search via Qdrant.
 
-CONSTITUTIONAL FIX (V2.3.6):
-- Fully implemented 'get_neighbors' (Functional Fidelity).
-- Clears 'dead_code_check' by using all parameters in logic.
-- Aligns with Pillar I (Octopus): Providing semantic sensation to the Will.
+HEALED (V2.7.1):
+- Removed 'fail-silent' initialization checks that caused search skips.
+- Preserved all 'Smart Implementation' logic for neighbors and embeddings.
+- Aligned payload mapping to handle 'source_path' (the new V2.7 standard).
 """
 
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from shared.logger import getLogger
 
+
+if TYPE_CHECKING:
+    pass
 
 logger = getLogger(__name__)
 
@@ -30,18 +32,24 @@ class VectorProvider:
 
     # ID: 3ca68418-6be2-4068-b05d-56c4b1191b3d
     async def search_similar(
-        self, query: str, top_k: int = 10, collection: str = "code_symbols"
+        self, query: str, top_k: int = 10, collection: str = "core_capabilities"
     ) -> list[dict[str, Any]]:
         """Search for semantically similar items using text query."""
-        logger.info("Searching Qdrant for: '%s' (top %s)", query, top_k)
+        logger.info("🧠 Searching Qdrant for: '%s' (top %s)", query, top_k)
+
         if not self.qdrant or not self.cognitive_service:
             logger.warning("Vector infrastructure incomplete - returning empty")
             return []
 
+        # CONSTITUTIONAL FIX: Removed the '_loaded' check.
+        # The ContextService now ensures initialization before calling.
+
         try:
             query_vector = await self.cognitive_service.get_embedding_for_code(query)
             if not query_vector:
+                logger.warning("Failed to generate embedding for query: %s", query)
                 return []
+
             return await self.search_by_embedding(query_vector, top_k, collection)
         except Exception as e:
             logger.error("Qdrant search failed: %s", e)
@@ -49,7 +57,10 @@ class VectorProvider:
 
     # ID: 90847657-c290-48cf-9b3a-429f37b26786
     async def search_by_embedding(
-        self, embedding: list[float], top_k: int = 10, collection: str = "code_symbols"
+        self,
+        embedding: list[float],
+        top_k: int = 10,
+        collection: str = "core_capabilities",
     ) -> list[dict[str, Any]]:
         """Search using pre-computed embedding."""
         if not self.qdrant:
@@ -61,12 +72,17 @@ class VectorProvider:
             items = []
             for hit in results:
                 payload = hit.get("payload", {})
+
+                # HEALED: Map both old and new path formats so 'sensation' works
+                file_path = payload.get("source_path") or payload.get("file_path", "")
+                symbol_name = payload.get("symbol") or payload.get(
+                    "symbol_path", payload.get("chunk_id", "unknown")
+                )
+
                 items.append(
                     {
-                        "name": payload.get(
-                            "symbol_path", payload.get("chunk_id", "unknown")
-                        ),
-                        "path": payload.get("file_path", ""),
+                        "name": symbol_name,
+                        "path": file_path,
                         "item_type": "symbol",
                         "summary": payload.get("content", "")[:200],
                         "score": hit.get("score", 0.0),
@@ -94,11 +110,7 @@ class VectorProvider:
     ) -> list[dict[str, Any]]:
         """
         Get semantic neighbors of a symbol.
-
-        SMART IMPLEMENTATION:
-        1. Uses symbol_name as a semantic anchor.
-        2. Converts max_distance to min_similarity score (1.0 - distance).
-        3. Returns items within the defined semantic radius.
+        SMART IMPLEMENTATION: Preserved with threshold-aware search.
         """
         if not self.cognitive_service or not self.qdrant:
             return []
@@ -108,8 +120,14 @@ class VectorProvider:
         )
 
         # 1. Generate anchor embedding
-        anchor_vec = await self.cognitive_service.get_embedding_for_code(symbol_name)
-        if not anchor_vec:
+        try:
+            anchor_vec = await self.cognitive_service.get_embedding_for_code(
+                symbol_name
+            )
+            if not anchor_vec:
+                return []
+        except Exception as e:
+            logger.error("Failed to get anchor embedding: %s", e)
             return []
 
         # 2. Define similarity threshold (Distance 0.5 = Similarity 0.5)
@@ -117,17 +135,41 @@ class VectorProvider:
 
         # 3. Perform threshold-aware search
         try:
-            # We call the low-level search to use the threshold
             results = await self.qdrant.search_similar(
-                query_vector=anchor_vec, limit=top_k
+                query_vector=anchor_vec, limit=top_k, with_payload=True
             )
 
-            # Filter results by distance/score
-            neighbors = [r for r in results if r.get("score", 0.0) >= min_score]
+            # 4. Filter by similarity threshold
+            items = []
+            for hit in results:
+                score = hit.get("score", 0.0)
+                if score >= min_score:
+                    payload = hit.get("payload", {})
 
-            # Format and return
-            return await self.search_by_embedding(anchor_vec, top_k=top_k)
+                    file_path = payload.get("source_path") or payload.get(
+                        "file_path", ""
+                    )
+                    symbol_path = payload.get("symbol_path") or payload.get(
+                        "chunk_id", "unknown"
+                    )
+
+                    items.append(
+                        {
+                            "name": symbol_path,
+                            "path": file_path,
+                            "item_type": "symbol",
+                            "summary": payload.get("content", "")[:200],
+                            "score": score,
+                            "distance": 1.0 - score,
+                            "source": "qdrant",
+                        }
+                    )
+
+            logger.info(
+                "Found %d neighbors within distance %s", len(items), max_distance
+            )
+            return items
 
         except Exception as e:
-            logger.error("Neighborhood search failed: %s", e)
+            logger.error("Neighbor search failed: %s", e, exc_info=True)
             return []

@@ -60,7 +60,7 @@ class ValidationStrategist(Component):
         """ValidationStrategist operates in RUNTIME phase."""
         return ComponentPhase.RUNTIME
 
-    # ID: a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d
+    # ID: 925fc8b7-c94c-41d8-a73f-5c71c3ae1023
     async def execute(
         self,
         operation_type: str,
@@ -151,7 +151,7 @@ class ValidationStrategist(Component):
             duration_sec=time.time() - start_time,
         )
 
-    # ID: b2c3d4e5-f6a7-8b9c-0d1e-2f3a4b5c6d7e
+    # ID: 566e5551-81d0-48f6-90a1-9abd0a9a27b9
     def _classify_risk(
         self, file_path: str | None, operation_type: str, write_mode: bool
     ) -> str:
@@ -182,7 +182,7 @@ class ValidationStrategist(Component):
         # Routine for read-only operations
         return "ROUTINE"
 
-    # ID: c3d4e5f6-a7b8-9c0d-1e2f-3a4b5c6d7e8f
+    # ID: aec6d7af-c145-42ef-9b5e-1aa67e9fae2b
     def _select_strategy(
         self,
         risk_tier: str,
@@ -214,7 +214,7 @@ class ValidationStrategist(Component):
         # Routine/read-only operations can use minimal validation
         return "minimal"
 
-    # ID: d4e5f6a7-b8c9-0d1e-2f3a-4b5c6d7e8f9a
+    # ID: 047723b5-4dd9-4cb5-870e-92783a8599da
     def _map_checks(
         self, strategy: str, operation_type: str, file_path: str | None
     ) -> list[str]:
@@ -269,7 +269,7 @@ class ValidationStrategist(Component):
 
         return checks
 
-    # ID: e5f6a7b8-c9d0-1e2f-3a4b5c6d7e8f9a
+    # ID: 136ab84c-3246-4c9d-8f4e-c209893aee34
     def _determine_threshold(self, strategy: str, risk_tier: str) -> float:
         """
         Determine minimum quality threshold for validation to pass.
@@ -291,7 +291,7 @@ class ValidationStrategist(Component):
 
         return base_threshold
 
-    # ID: f6a7b8c9-d0e1-2f3a-4b5c6d7e8f9a0b
+    # ID: 5ac4bec3-86d8-4d3b-bf37-2dd80df2f89e
     def _determine_enforcement(
         self, strategy: str, risk_tier: str, write_mode: bool
     ) -> str:

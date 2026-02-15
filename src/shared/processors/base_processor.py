@@ -21,7 +21,7 @@ from shared.logger import getLogger
 logger = getLogger(__name__)
 
 
-# ID: a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d
+# ID: 9c7ebe88-944a-4caf-bef8-257b7d99aec3
 class BaseProcessor(ABC):
     """
     Abstract base for structured data processors.
@@ -95,7 +95,7 @@ class BaseProcessor(ABC):
         """
         pass
 
-    # ID: b2c3d4e5-f6a7-8b9c-0d1e-2f3a4b5c6d7e
+    # ID: cf129dd8-8420-44d7-8702-57e6952f772d
     def dump(self, data: dict[str, Any], file_path: Path) -> None:
         """
         Write data to file with constitutional formatting.
@@ -132,7 +132,7 @@ class BaseProcessor(ABC):
                 f"Failed to write constitutional {self._format_name()} {file_path}: {e}"
             ) from e
 
-    # ID: c3d4e5f6-a7b8-9c0d-1e2f-3a4b5c6d7e8f
+    # ID: d350d491-4ea7-4f1d-9891-eb6927921d08
     def load(self, file_path: Path) -> dict[str, Any] | None:
         """
         Load and parse a constitutional file with error context.
@@ -197,7 +197,7 @@ class BaseProcessor(ABC):
                 f"Failed to parse constitutional {self._format_name()} {file_path}: {e}"
             ) from e
 
-    # ID: d4e5f6a7-b8c9-0d1e-2f3a-4b5c6d7e8f9a
+    # ID: 1dd423e3-261a-4097-ac70-496ae5f1c3b9
     def load_strict(self, file_path: Path) -> dict[str, Any]:
         """
         Load data with strict constitutional validation.

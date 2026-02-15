@@ -19,7 +19,7 @@ from shared.infrastructure.knowledge.knowledge_service import KnowledgeService
 from shared.models import CapabilityMeta, DriftReport
 
 
-# ID: 58d789bd-6dc5-440d-ad53-efb8a204b43e
+# ID: 51f59218-c7f5-41ae-b2c9-87d4459e14d2
 async def run_drift_analysis_async(root: Path) -> DriftReport:
     """
     Performs drift analysis by comparing manifest rules (Mind)

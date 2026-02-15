@@ -1,5 +1,5 @@
 # src/body/cli/resources/code/logging.py
-# ID: b2c3d4e5-f6a7-8b9c-0d1e-2f3a4b5c6d7e
+# ID: 63c77e0f-e0cf-49f5-b9ac-925edc4854f8
 
 import typer
 from rich.console import Console
@@ -7,7 +7,7 @@ from rich.console import Console
 from shared.cli_utils import core_command
 from shared.context import CoreContext
 
-from . import app
+from .hub import app
 
 
 console = Console()

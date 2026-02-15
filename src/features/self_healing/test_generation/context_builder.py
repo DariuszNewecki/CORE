@@ -26,7 +26,7 @@ from shared.logger import getLogger
 logger = getLogger(__name__)
 
 
-# ID: 230dbdcb-b444-4078-8241-094f785b6e85
+# ID: d0be3520-2491-4505-ba40-8acd8ecac2db
 class ContextPackageBuilder:
     """Builds ContextPackage → ModuleContext."""
 

@@ -1,6 +1,9 @@
 # src/features/introspection/vectorization/db_queries.py
 
-"""Database interactions for symbol vectorization."""
+"""
+Database interactions for symbol vectorization.
+UPDATED: Removed is_public filter to ensure full context availability.
+"""
 
 from __future__ import annotations
 
@@ -17,11 +20,14 @@ logger = getLogger(__name__)
 async def fetch_initial_state(
     session: AsyncSession,
 ) -> tuple[list[dict], dict[str, str]]:
-    """Fetch symbols and existing links in parallel."""
+    """
+    Fetch all symbols and existing vector links.
+    CONSTITUTIONAL FIX: Removed 'is_public = TRUE' to prevent semantic blindness.
+    """
     stmt_syms = text(
         """
-        SELECT id, symbol_path, module, fingerprint AS structural_hash
-        FROM core.symbols WHERE is_public = TRUE
+        SELECT id, symbol_path, module, is_public, fingerprint AS structural_hash
+        FROM core.symbols
     """
     )
     stmt_links = text("SELECT symbol_id, vector_id FROM core.symbol_vector_links")
