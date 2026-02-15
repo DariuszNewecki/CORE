@@ -5,7 +5,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from features.self_healing.coverage_analyzer import CoverageAnalyzer
+from body.self_healing.coverage_analyzer import CoverageAnalyzer
 from shared.logger import getLogger
 
 

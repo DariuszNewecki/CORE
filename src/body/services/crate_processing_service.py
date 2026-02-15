@@ -25,8 +25,8 @@ from typing import Any
 import jsonschema
 import yaml
 
-from features.crate_processing.canary_executor import CanaryExecutor, CanaryResult
-from features.introspection.knowledge_graph_service import KnowledgeGraphBuilder
+from body.crate_processing.canary_executor import CanaryExecutor, CanaryResult
+from body.introspection.knowledge_graph_service import KnowledgeGraphBuilder
 from mind.governance.audit_context import AuditorContext
 from mind.governance.auditor import ConstitutionalAuditor
 from shared.action_logger import action_logger

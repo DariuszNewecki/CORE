@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import typer
 
-from features.introspection.generate_capability_docs import (
+from body.introspection.generate_capability_docs import (
     main as generate_capability_docs_impl,
 )
 from shared.infrastructure.database.session_manager import get_session

@@ -21,11 +21,11 @@ from pathlib import Path
 import typer
 from rich.table import Table
 
-from features.self_healing.audit_remediation_service import AuditRemediationService
-from features.self_healing.remediation_models import RemediationMode
+from body.self_healing.remediation_models import RemediationMode
 from shared.cli_utils import core_command
 from shared.config import settings
 from shared.context import CoreContext
+from will.self_healing.audit_remediation_service import AuditRemediationService
 
 # Import from local fix module hub
 from . import console, fix_app

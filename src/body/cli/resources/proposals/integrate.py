@@ -35,14 +35,9 @@ async def integrate_cmd(
 ) -> None:
     """
     Finalize and integrate staged changes into the repository.
-
-    This command performs a high-fidelity integration sequence:
-    1. Policy Checks (Governance)
-    2. System Tests (Body)
-    3. Constitutional Audit (Mind)
-    4. Git Commit (Execution)
     """
-    from features.project_lifecycle.integration_service import (
+    # UPDATED: Import from body instead of features
+    from body.project_lifecycle.integration_service import (
         IntegrationError,
         integrate_changes,
     )
@@ -58,5 +53,4 @@ async def integrate_cmd(
             "[bold green]✅ Changes successfully integrated and committed.[/bold green]"
         )
     except IntegrationError as exc:
-        # core_command handles standard error formatting, we just need to exit
         raise typer.Exit(exc.exit_code) from exc

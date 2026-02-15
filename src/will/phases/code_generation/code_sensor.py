@@ -8,8 +8,8 @@ from __future__ import annotations
 
 import ast
 
-from features.test_generation.sandbox import PytestSandboxRunner
 from shared.logger import getLogger
+from will.test_generation.sandbox import PytestSandboxRunner
 
 
 logger = getLogger(__name__)

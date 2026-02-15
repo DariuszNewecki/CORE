@@ -7,7 +7,7 @@ from __future__ import annotations
 import typer
 from rich.console import Console
 
-from features.maintenance.refactor_settings_access import refactor_settings_access
+from body.maintenance.refactor_settings_access import refactor_settings_access
 from shared.cli_utils import core_command
 from shared.context import CoreContext
 

@@ -14,9 +14,9 @@ from __future__ import annotations
 import time
 from typing import TYPE_CHECKING
 
-from features.test_generation.sandbox import PytestSandboxRunner
 from shared.logger import getLogger
 from shared.models.workflow_models import PhaseResult
+from will.test_generation.sandbox import PytestSandboxRunner
 
 
 if TYPE_CHECKING:

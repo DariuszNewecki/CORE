@@ -17,7 +17,7 @@ async def sync_registry_cmd():
     This makes the DB the Single Source of Truth for available system neurons.
     """
     from body.cli.admin_cli import app as main_app
-    from features.maintenance.command_sync_service import _sync_commands_to_db
+    from body.maintenance.command_sync_service import _sync_commands_to_db
 
     async with get_session() as session:
         await _sync_commands_to_db(session, main_app)

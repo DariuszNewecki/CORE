@@ -6,24 +6,19 @@ This is the new, governed home for logic from standalone scripts.
 
 from __future__ import annotations
 
-from shared.logger import getLogger
-
-
-logger = getLogger(__name__)
-
 import sys
 from pathlib import Path
 
 import typer
 
-import shared.logger
-from features.maintenance.maintenance_service import rewire_imports
+from body.maintenance.maintenance_service import rewire_imports
 
 # Import the moved script module
-from features.maintenance.scripts import context_export
+from body.maintenance.scripts import context_export
+from shared.logger import getLogger
 
 
-logger = shared.logger.getLogger(__name__)
+logger = getLogger(__name__)
 
 tools_app = typer.Typer(
     help="Governed, operator-focused maintenance and refactoring tools."
@@ -35,6 +30,13 @@ tools_app = typer.Typer(
     help="Run after major refactoring to fix all Python import statements across 'src/'.",
 )
 # ID: 4d6a0245-20c9-425e-a0cd-a390c8dd063c
+
+
+@tools_app.command(
+    "rewire-imports",
+    help="Run after major refactoring to fix all Python import statements across 'src/'.",
+)
+# ID: 152b544f-449d-4820-ab02-6f3fb341b974
 def rewire_imports_cli(
     write: bool = typer.Option(
         False, "--write", help="Apply the changes to the files."
@@ -50,7 +52,11 @@ def rewire_imports_cli(
     else:
         logger.info("WRITE MODE: Files will be modified.")
 
-    total_changes = rewire_imports(dry_run=dry_run)
+    from shared.config import settings
+    from shared.infrastructure.storage.file_handler import FileHandler
+
+    file_handler = FileHandler(str(settings.REPO_PATH))
+    total_changes = rewire_imports(file_handler, dry_run=dry_run)
 
     logger.info("--- Re-wiring Complete ---")
     if dry_run:
@@ -83,7 +89,7 @@ def export_context_cmd(
 ):
     """
     Export a complete operational snapshot (Mind/Body/State/Vectors).
-    Wraps features.maintenance.scripts.context_export.
+    Wraps body.maintenance.scripts.context_export.
     """
     # Prepare arguments to look like sys.argv for the existing script logic
     # This avoids rewriting the complex argparse logic inside the script for now.

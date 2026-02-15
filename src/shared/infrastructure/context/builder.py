@@ -22,7 +22,7 @@ import uuid
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
 
-from features.introspection.knowledge_graph_service import KnowledgeGraphBuilder
+from body.introspection.knowledge_graph_service import KnowledgeGraphBuilder
 from shared.config import settings
 from shared.infrastructure.knowledge.knowledge_service import KnowledgeService
 from shared.logger import getLogger

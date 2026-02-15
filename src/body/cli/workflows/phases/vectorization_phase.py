@@ -11,7 +11,7 @@ import typer
 from rich.console import Console
 
 from body.cli.workflows.dev_sync_reporter import DevSyncReporter
-from features.introspection.vectorization_service import run_vectorize
+from body.introspection.vectorization_service import run_vectorize
 from shared.action_types import ActionResult
 from shared.context import CoreContext
 from shared.infrastructure.vector.adapters.constitutional_adapter import (

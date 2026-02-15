@@ -1,8 +1,8 @@
 {
-  "audit_id": "03080670-be1d-4201-89b8-cd2dc10a4eef",
-  "timestamp": "2026-02-15T06:50:48.355714+00:00",
+  "audit_id": "9b9fc6a0-9fdb-41f9-8e66-cf175976aa4f",
+  "timestamp": "2026-02-15T13:27:46.308829+00:00",
   "passed": false,
-  "findings_count": 141,
+  "findings_count": 216,
   "executed_rules": [
     "architecture.api.must_route_through_will",
     "architecture.api.no_body_bypass",
@@ -14,6 +14,7 @@
     "architecture.boundary.llm_client_access",
     "architecture.boundary.settings_access",
     "architecture.constitution_read_only",
+    "architecture.layer_exclusivity",
     "architecture.layers.no_body_to_will",
     "architecture.layers.no_mind_execution",
     "architecture.max_file_size",

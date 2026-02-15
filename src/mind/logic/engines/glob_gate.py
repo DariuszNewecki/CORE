@@ -7,6 +7,11 @@ CONSTITUTIONAL ALIGNMENT:
 - Aligned with 'async.no_manual_loop_run'.
 - Promoted to natively async to satisfy the BaseEngine contract.
 - Complies with ASYNC230 by offloading blocking I/O to threads.
+
+CONSTITUTIONAL FIX (V2.8.0):
+- Added 'allowed_top_level_dirs' check_type to enforce layer exclusivity.
+- This closes the perimeter: code outside Mind/Body/Will/shared/api is
+  now detectable at audit time, preventing shadow layer accumulation.
 """
 
 from __future__ import annotations
@@ -19,6 +24,7 @@ from typing import Any
 from .base import BaseEngine, EngineResult
 
 
+# ID: 3af1be62-fd37-41f9-b842-8029e8fba49d
 def _count_lines_sync(path: Path) -> int:
     """Helper to perform blocking file read in a thread."""
     with open(path, encoding="utf-8") as f:
@@ -54,7 +60,13 @@ class GlobGateEngine(BaseEngine):
                 engine_id=self.engine_id,
             )
 
-        # NEW: Check for max_lines with optional path-based thresholds
+        # --- CHECK TYPE DISPATCH ---
+        check_type = params.get("check_type")
+
+        if check_type == "allowed_top_level_dirs":
+            return self._check_allowed_top_level_dirs(target_path, params)
+
+        # --- LEGACY: max_lines with optional path-based thresholds ---
         max_lines = params.get("max_lines")
         thresholds = params.get("thresholds")
 
@@ -140,6 +152,57 @@ class GlobGateEngine(BaseEngine):
             engine_id=self.engine_id,
         )
 
+    # ID: 9596f97f-c126-4644-8821-b7a1713cedb2
+    def _check_allowed_top_level_dirs(
+        self, target_path: str, params: dict[str, Any]
+    ) -> EngineResult:
+        """
+        Whitelist check: file must reside within one of the allowed directories.
+
+        This is the perimeter walk — it answers "does anything exist outside
+        the constitutional boundary?" rather than "does this file access
+        something forbidden?"
+
+        Params:
+            allowed: List of glob patterns for permitted locations.
+                     e.g. ["src/mind/**", "src/body/**", "src/will/**",
+                            "src/shared/**", "src/api/**"]
+        """
+        allowed = params.get("allowed", [])
+        if not allowed:
+            return EngineResult(
+                ok=False,
+                message="Configuration error: allowed_top_level_dirs requires 'allowed' list",
+                violations=["No allowed patterns specified"],
+                engine_id=self.engine_id,
+            )
+
+        posix_path = target_path.replace("\\", "/")
+        # Strip repo root to get relative path for matching against patterns
+        src_idx = posix_path.find("/src/")
+        if src_idx != -1:
+            posix_path = posix_path[src_idx + 1 :]  # "src/body/..."
+        is_allowed = any(self._match(posix_path, pat) for pat in allowed)
+
+        if is_allowed:
+            return EngineResult(
+                ok=True,
+                message="File resides within constitutional boundary.",
+                violations=[],
+                engine_id=self.engine_id,
+            )
+
+        return EngineResult(
+            ok=False,
+            message="Perimeter Violation: File exists outside constitutional layers.",
+            violations=[
+                f"File '{posix_path}' exists outside constitutional layers. "
+                f"Allowed: {', '.join(allowed)}"
+            ],
+            engine_id=self.engine_id,
+        )
+
+    # ID: 3f4a5b6c-7d8e-9f0a-1b2c-3d4e5f6a7b8c
     def _match(self, path: str, pattern: str) -> bool:
         """
         Implements robust glob matching including recursive (**) support.

@@ -6,8 +6,8 @@ Provides:
 - core-admin fix all
 
 CONSTITUTIONAL ALIGNMENT:
-- Removed legacy error decorators to prevent circular imports.
 - Orchestrates Atomic Actions via the Body layer services.
+- UPDATED: All imports point to new layered locations (Wave 3 Final).
 """
 
 from __future__ import annotations
@@ -17,14 +17,16 @@ from typing import Any
 
 import typer
 
-from features.introspection.sync_service import run_sync_with_db
-from features.maintenance.command_sync_service import _sync_commands_to_db
-from features.self_healing.code_style_service import format_code
-from features.self_healing.docstring_service import fix_docstrings
-from features.self_healing.id_tagging_service import assign_missing_ids
-from features.self_healing.policy_id_service import add_missing_policy_ids
-from features.self_healing.purge_legacy_tags_service import purge_legacy_tags
-from features.self_healing.sync_vectors import main_async as sync_vectors_async
+from body.introspection.sync_service import run_sync_with_db
+from body.maintenance.command_sync_service import _sync_commands_to_db
+
+# FIXED: Points to body.maintenance (Wave 3 moved it here)
+from body.maintenance.sync_vectors import main_async as sync_vectors_async
+from body.self_healing.code_style_service import format_code
+from body.self_healing.docstring_service import fix_docstrings
+from body.self_healing.id_tagging_service import assign_missing_ids
+from body.self_healing.policy_id_service import add_missing_policy_ids
+from body.self_healing.purge_legacy_tags_service import purge_legacy_tags
 from shared.cli_utils import core_command
 from shared.context import CoreContext
 from shared.infrastructure.database.session_manager import get_session
@@ -66,7 +68,6 @@ async def run_all_fixes(
             if is_async:
                 await func()
             else:
-                # Handle potential sync wrappers of async code
                 res = func()
                 if hasattr(res, "__await__"):
                     await res
@@ -75,11 +76,8 @@ async def run_all_fixes(
         cfg = COMMAND_CONFIG.get(name, {})
         is_dangerous = cfg.get("dangerous", False)
 
-        # Skip dangerous operations if requested
         if skip_dangerous and is_dangerous and write:
-            console.print(
-                f"[yellow]Skipping dangerous command 'fix {name}' (skip_dangerous=True).[/yellow]"
-            )
+            console.print(f"[yellow]Skipping dangerous command 'fix {name}'.[/yellow]")
             return
 
         mode_str = "write" if write else "dry-run"
@@ -123,7 +121,7 @@ async def run_all_fixes(
                 console.print("[yellow]Skipping DB sync in dry-run mode[/yellow]")
 
         elif name == "vector-sync":
-            # ID: cb5aab55-7778-4cdf-9f77-ffc8c221b005
+            # ID: a105f832-b33c-48d4-b37f-3b117982656b
             async def sync_vectors_with_session():
                 async with get_session() as session:
                     return await sync_vectors_async(
@@ -142,16 +140,12 @@ async def run_all_fixes(
         elif name == "db-registry":
             from body.cli.admin_cli import app as main_app
 
-            # ID: d405b51b-f22d-4fda-b8a2-7f5f60ed0e9a
+            # ID: a11cbd4b-ccc9-4f38-97fc-0e681170081a
             async def sync_with_session():
                 async with get_session() as session:
                     await _sync_commands_to_db(session, main_app)
 
-            await _step(
-                "Syncing CLI registry",
-                sync_with_session,
-                is_async=True,
-            )
+            await _step("Syncing CLI registry", sync_with_session, is_async=True)
 
         # --- Docstrings & Capability Tagging (AI-powered) ---
         elif name == "docstrings":
@@ -162,7 +156,8 @@ async def run_all_fixes(
             )
 
         elif name == "tags":
-            from features.self_healing.capability_tagging_service import main_async
+            # FIXED: Points to will.self_healing where the AI specialist moved
+            from will.self_healing.capability_tagging_service import main_async
 
             await _step(
                 "Tagging capabilities",
@@ -179,11 +174,10 @@ async def run_all_fixes(
         # --- Incident Response Bootstrap ---
         elif name == "ir-triage":
             fix_ir_triage(ctx, write=write)
-
         elif name == "ir-log":
             fix_ir_log(ctx, write=write)
 
-    # Curated execution plan (in logical order)
+    # Curated execution plan
     plan = [
         "code-style",
         "ids",

@@ -22,8 +22,8 @@ from pathlib import Path
 import yaml
 
 from body.atomic.registry import action_registry  # FIXED: Use registry directly
+from body.self_healing import MemoryCleanupService
 from body.services.service_registry import service_registry
-from features.self_healing import MemoryCleanupService
 from shared.logger import getLogger
 from shared.models import ExecutionTask, PlanExecutionError
 from shared.path_resolver import PathResolver

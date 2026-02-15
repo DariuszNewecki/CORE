@@ -23,13 +23,10 @@ from pathlib import Path
 import typer
 
 from body.atomic.executor import ActionExecutor
-from features.self_healing.capability_tagging_service import (
-    main_async as tag_capabilities_async,
-)
-from features.self_healing.duplicate_id_service import resolve_duplicate_ids
-from features.self_healing.id_tagging_service import assign_missing_ids
-from features.self_healing.policy_id_service import add_missing_policy_ids
-from features.self_healing.purge_legacy_tags_service import purge_legacy_tags
+from body.self_healing.duplicate_id_service import resolve_duplicate_ids
+from body.self_healing.id_tagging_service import assign_missing_ids
+from body.self_healing.policy_id_service import add_missing_policy_ids
+from body.self_healing.purge_legacy_tags_service import purge_legacy_tags
 from shared.action_types import (
     ActionImpact,
     ActionResult,
@@ -38,6 +35,9 @@ from shared.atomic_action import atomic_action
 from shared.cli_utils import core_command
 from shared.context import CoreContext
 from shared.infrastructure.database.session_manager import get_session
+from will.self_healing.capability_tagging_service import (
+    main_async as tag_capabilities_async,
+)
 
 # We only import the App and Console from the local hub
 from . import (
@@ -261,7 +261,7 @@ async def fix_dead_code_cmd(
     write: bool = typer.Option(False, "--write", help="Apply the deletions."),
 ):
     """CLI wrapper for the Vulture Healer."""
-    from features.self_healing.vulture_healer import heal_dead_code
+    from will.self_healing.vulture_healer import heal_dead_code
 
     with console.status("[bold cyan]Snipping dead code scars...[/bold cyan]"):
         await heal_dead_code(ctx.obj, write=write)

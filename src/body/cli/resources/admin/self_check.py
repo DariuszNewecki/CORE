@@ -69,7 +69,7 @@ def self_check_cmd(
         core-admin admin self-check --json
     """
     from body.cli.admin_cli import app as main_app
-    from features.maintenance.command_sync_service import audit_cli_registry
+    from body.maintenance.command_sync_service import audit_cli_registry
 
     report = audit_cli_registry(main_app)
 

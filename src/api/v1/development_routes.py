@@ -16,8 +16,8 @@ from fastapi import APIRouter, BackgroundTasks, Depends, Request
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from body.autonomy.autonomous_developer import develop_from_goal
 from body.services.service_registry import service_registry
-from features.autonomy.autonomous_developer import develop_from_goal
 from shared.context import CoreContext
 from shared.infrastructure.repositories.task_repository import TaskRepository
 

@@ -16,7 +16,7 @@ from pathlib import Path
 import typer
 import yaml
 
-from features.introspection.knowledge_graph_service import KnowledgeGraphBuilder
+from body.introspection.knowledge_graph_service import KnowledgeGraphBuilder
 from shared.infrastructure.storage.file_handler import FileHandler
 from shared.logger import getLogger
 

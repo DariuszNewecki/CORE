@@ -10,7 +10,7 @@ from __future__ import annotations
 import asyncio
 import logging
 
-from features.self_healing.knowledge_consolidation_service import (
+from body.self_healing.knowledge_consolidation_service import (
     find_structurally_similar_helpers,
 )
 from shared.logger import getLogger

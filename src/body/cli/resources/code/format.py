@@ -2,7 +2,7 @@
 import typer
 from rich.console import Console
 
-from features.self_healing.code_style_service import format_code
+from body.self_healing.code_style_service import format_code
 from shared.cli_utils import core_command
 
 from .hub import app

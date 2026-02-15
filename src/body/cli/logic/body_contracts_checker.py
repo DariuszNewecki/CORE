@@ -1,19 +1,10 @@
 # src/body/cli/logic/body_contracts_checker.py
 """
 Body Contracts Checker
-
 Static validator for `.intent/patterns/body_contracts.json`.
 
-It enforces a subset of the Body Layer Execution Contract:
-
-- Headless execution (no UI imports / print / input in Body modules)
-- Safe-by-default write semantics (write defaults must NOT be True)
-- No direct os.environ access in Body code (configuration must go via settings)
-
-This checker is intentionally conservative and file-path aware:
-- It applies UI rules to features/*, services/*, body/cli/logic/*, etc.
-- It SKIPS UI rules for `body/cli/commands/*`, which are treated as
-  workflow/CLI layer and allowed to own terminal UI.
+UPDATED: Removed 'src/features' from scan patterns (Wave 3 Rebirth).
+Now scans Mind, Body, and Will layers for UI leaks.
 """
 
 from __future__ import annotations
@@ -62,10 +53,6 @@ def _is_test_file(path: Path) -> bool:
 def _is_cli_command(path: Path, repo_root: Path) -> bool:
     """
     Treat `body/cli/commands/*` as CLI/Workflow layer.
-
-    These files are allowed to own UI (Rich, print) according to the
-    workflow UI contract. We still may want to inspect them later for
-    write semantics, but UI rules are skipped here.
     """
     try:
         rel = path.relative_to(repo_root)
@@ -79,22 +66,25 @@ def _is_cli_command(path: Path, repo_root: Path) -> bool:
         and parts[1] == "body"
         and parts[2] == "cli"
     ):
-        # src/body/cli/commands/...
         return len(parts) >= 4 and parts[3] == "commands"
     return False
 
 
 def _iter_python_files(repo_root: Path) -> list[Path]:
+    """
+    Finds all Python files in the new layered architecture.
+    """
     candidates: list[Path] = []
+    # UPDATED: We now check the new Mind, Body, and Will homes
     for pattern in [
-        "src/features/**/*.py",
-        "src/services/**/*.py",
-        "src/body/cli/logic/**/*.py",
-        "src/body/*/actions/**/*.py",
-        # Many services live directly under src/body or src/services anyway
+        "src/mind/**/*.py",
+        "src/body/**/*.py",
+        "src/will/**/*.py",
+        "src/shared/**/*.py",
+        "src/api/**/*.py",
     ]:
         candidates.extend(repo_root.glob(pattern))
-    # De-duplicate and filter tests
+
     unique = []
     seen = set()
     for p in candidates:
@@ -170,9 +160,7 @@ def _check_print_and_input(
 
 def _check_write_defaults(path: Path, tree: ast.AST) -> list[Violation]:
     """
-    Enforce `write_defaults_false`:
-
-    Any parameter named 'write' that has a default value MUST NOT default to True.
+    Enforce `write_defaults_false`.
     """
     violations: list[Violation] = []
 
@@ -180,7 +168,6 @@ def _check_write_defaults(path: Path, tree: ast.AST) -> list[Violation]:
         if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
             args = node.args
             defaults = list(args.defaults)
-            # Map last N defaults to last N positional args
             pos_args = args.args
             offset = len(pos_args) - len(defaults)
 
@@ -189,7 +176,6 @@ def _check_write_defaults(path: Path, tree: ast.AST) -> list[Violation]:
                 if arg.arg != "write":
                     continue
 
-                # We only care if default is literally True
                 if isinstance(default, ast.Constant) and default.value is True:
                     violations.append(
                         Violation(
@@ -200,7 +186,6 @@ def _check_write_defaults(path: Path, tree: ast.AST) -> list[Violation]:
                         )
                     )
 
-            # Also check keyword-only args
             for kwarg, default in zip(args.kwonlyargs, args.kw_defaults):
                 if kwarg.arg != "write":
                     continue
@@ -219,15 +204,11 @@ def _check_write_defaults(path: Path, tree: ast.AST) -> list[Violation]:
 
 def _check_os_environ(path: Path, tree: ast.AST) -> list[Violation]:
     """
-    Enforce `no_envvar_access_in_body` (warning-level rule in body_contracts).
-
-    We still surface it as a violation so workflows can report it. Whether
-    it fails the build depends on how the ActionResult is interpreted.
+    Enforce `no_envvar_access_in_body`.
     """
     violations: list[Violation] = []
 
     for node in ast.walk(tree):
-        # os.environ
         if isinstance(node, ast.Attribute):
             if (
                 isinstance(node.value, ast.Name)
@@ -242,7 +223,6 @@ def _check_os_environ(path: Path, tree: ast.AST) -> list[Violation]:
                         line=getattr(node, "lineno", None),
                     )
                 )
-        # os.environ["KEY"]
         if isinstance(node, ast.Subscript):
             val = node.value
             if isinstance(val, ast.Attribute):
@@ -276,15 +256,6 @@ async def check_body_contracts(
 ) -> ActionResult:
     """
     Run Body Contracts checks over the repository.
-
-    Returns:
-        ActionResult with:
-          - ok: False if any error-level violations found
-          - data:
-              - file_count
-              - violation_count
-              - violations: List[dict]
-              - rules_triggered: Set of rule_ids
     """
     start_time = time.time()
 
@@ -296,7 +267,7 @@ async def check_body_contracts(
     for path in files:
         try:
             source = path.read_text(encoding="utf-8")
-        except Exception as e:  # pragma: no cover - defensive
+        except Exception as e:
             logger.warning("Skipping file %s (read error: %s)", path, e)
             continue
 
@@ -321,9 +292,6 @@ async def check_body_contracts(
     violation_dicts = [v.to_dict() for v in violations]
     rules_triggered = sorted({v.rule_id for v in violations})
 
-    # Decide ok/failure:
-    # - Treat 'write_defaults_false' and 'no_ui_imports_in_body' and
-    #   'no_print_or_input_in_body' and 'syntax_error' as error-level.
     error_rules = {
         "write_defaults_false",
         "no_ui_imports_in_body",
