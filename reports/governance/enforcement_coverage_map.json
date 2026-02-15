@@ -1,16 +1,16 @@
 {
   "metadata": {
-    "generated_at_utc": "2026-01-20T09:08:07.438346+00:00",
-    "total_policy_rules": 54,
-    "total_executed_ids": 54,
-    "total_policy_files": 12
+    "generated_at_utc": "2026-02-11T21:32:40.173496+00:00",
+    "total_policy_rules": 91,
+    "total_executed_ids": 78,
+    "total_policy_files": 33
   },
   "summary": {
-    "rules_total": 54,
-    "rules_enforced": 54,
+    "rules_total": 91,
+    "rules_enforced": 78,
     "rules_implementable": 0,
-    "rules_declared_only": 0,
-    "execution_rate": 100.0
+    "rules_declared_only": 13,
+    "execution_rate": 85.7
   },
   "entries": [
     {
@@ -20,7 +20,7 @@
         "severity": "blocking",
         "policy": "rules/architecture/async_logic",
         "check_engine": "ast_gate",
-        "implementable": true
+        "implementable": false
       },
       "coverage_status": "enforced",
       "in_executed_ids": true
@@ -32,7 +32,7 @@
         "severity": "blocking",
         "policy": "rules/architecture/async_logic",
         "check_engine": "ast_gate",
-        "implementable": true
+        "implementable": false
       },
       "coverage_status": "enforced",
       "in_executed_ids": true
@@ -44,7 +44,55 @@
         "severity": "reporting",
         "policy": "rules/architecture/async_logic",
         "check_engine": "ast_gate",
-        "implementable": true
+        "implementable": false
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "atomic_actions.must_return_action_result",
+        "statement": "All functions decorated with @atomic_action MUST declare ActionResult as their return type annotation and actually return ActionResult instances.",
+        "severity": "blocking",
+        "policy": "rules/architecture/atomic_actions",
+        "check_engine": "python_runtime",
+        "implementable": false
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "atomic_actions.must_have_decorator",
+        "statement": "All functions registered with @register_action MUST also have the @atomic_action decorator with required metadata (action_id, intent, impact, policies).",
+        "severity": "blocking",
+        "policy": "rules/architecture/atomic_actions",
+        "check_engine": "python_runtime",
+        "implementable": false
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "atomic_actions.result_must_be_structured",
+        "statement": "ActionResult.data MUST be a dictionary with string keys. Nested structures are permitted but the top level must be a dict.",
+        "severity": "blocking",
+        "policy": "rules/architecture/atomic_actions",
+        "check_engine": "python_runtime",
+        "implementable": false
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "atomic_actions.no_governance_bypass",
+        "statement": "No atomic action MAY return types other than ActionResult to bypass governance validation. Tuple returns (bool, str) are explicitly forbidden.",
+        "severity": "blocking",
+        "policy": "rules/architecture/atomic_actions",
+        "check_engine": "python_runtime",
+        "implementable": false
       },
       "coverage_status": "enforced",
       "in_executed_ids": true
@@ -56,7 +104,7 @@
         "severity": "blocking",
         "policy": "rules/architecture/core_safety",
         "check_engine": "ast_gate",
-        "implementable": true
+        "implementable": false
       },
       "coverage_status": "enforced",
       "in_executed_ids": true
@@ -68,7 +116,7 @@
         "severity": "reporting",
         "policy": "rules/architecture/core_safety",
         "check_engine": "ast_gate",
-        "implementable": true
+        "implementable": false
       },
       "coverage_status": "enforced",
       "in_executed_ids": true
@@ -128,7 +176,7 @@
         "severity": "blocking",
         "policy": "rules/architecture/governance_basics",
         "check_engine": "ast_gate",
-        "implementable": true
+        "implementable": false
       },
       "coverage_status": "enforced",
       "in_executed_ids": true
@@ -140,7 +188,7 @@
         "severity": "reporting",
         "policy": "rules/architecture/governance_basics",
         "check_engine": "ast_gate",
-        "implementable": true
+        "implementable": false
       },
       "coverage_status": "enforced",
       "in_executed_ids": true
@@ -152,7 +200,7 @@
         "severity": "advisory",
         "policy": "rules/architecture/governance_basics",
         "check_engine": "ast_gate",
-        "implementable": true
+        "implementable": false
       },
       "coverage_status": "enforced",
       "in_executed_ids": true
@@ -164,7 +212,7 @@
         "severity": "advisory",
         "policy": "rules/architecture/governance_basics",
         "check_engine": "ast_gate",
-        "implementable": true
+        "implementable": false
       },
       "coverage_status": "enforced",
       "in_executed_ids": true
@@ -259,8 +307,8 @@
         "statement": "Will layer orchestration components SHOULD import and delegate to Body services",
         "severity": "advisory",
         "policy": "rules/architecture/layer_separation",
-        "check_engine": "ast_gate",
-        "implementable": false
+        "check_engine": "knowledge_gate",
+        "implementable": true
       },
       "coverage_status": "enforced",
       "in_executed_ids": true
@@ -283,8 +331,8 @@
         "statement": "API route handlers SHOULD delegate all logic to Will layer",
         "severity": "advisory",
         "policy": "rules/architecture/layer_separation",
-        "check_engine": "ast_gate",
-        "implementable": false
+        "check_engine": "knowledge_gate",
+        "implementable": true
       },
       "coverage_status": "enforced",
       "in_executed_ids": true
@@ -339,6 +387,18 @@
     },
     {
       "rule": {
+        "rule_id": "architecture.mind.no_execution_semantics",
+        "statement": "Mind layer components MUST NOT contain execution logic such as risk classification, decision-making, caching strategies, or validation enforcement. Mind components only load, parse, and provide query interfaces to .intent/ artifacts.",
+        "severity": "reporting",
+        "policy": "rules/architecture/mind_execution_semantic",
+        "check_engine": "llm_gate",
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
         "rule_id": "modernization.legacy_scars",
         "statement": "Source code SHOULD be free of obsolete structural shims, unused parameters from prior iterations, and internal logic wrappers that bypass the Universal Workflow Pattern.",
         "severity": "advisory",
@@ -356,7 +416,7 @@
         "severity": "reporting",
         "policy": "rules/architecture/modularity",
         "check_engine": "ast_gate",
-        "implementable": true
+        "implementable": false
       },
       "coverage_status": "enforced",
       "in_executed_ids": true
@@ -368,7 +428,7 @@
         "severity": "reporting",
         "policy": "rules/architecture/modularity",
         "check_engine": "ast_gate",
-        "implementable": true
+        "implementable": false
       },
       "coverage_status": "enforced",
       "in_executed_ids": true
@@ -380,7 +440,7 @@
         "severity": "reporting",
         "policy": "rules/architecture/modularity",
         "check_engine": "ast_gate",
-        "implementable": true
+        "implementable": false
       },
       "coverage_status": "enforced",
       "in_executed_ids": true
@@ -392,7 +452,7 @@
         "severity": "reporting",
         "policy": "rules/architecture/modularity",
         "check_engine": "ast_gate",
-        "implementable": true
+        "implementable": false
       },
       "coverage_status": "enforced",
       "in_executed_ids": true
@@ -405,6 +465,66 @@
         "policy": "rules/architecture/modularity",
         "check_engine": "llm_gate",
         "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "architecture.boundary.database_session_access",
+        "statement": "Only infrastructure, Body layer, and shared services MAY directly import database session primitives (get_session, AsyncSession). Mind and Will layers MUST use dependency injection.",
+        "severity": "blocking",
+        "policy": "rules/architecture/privileged_boundaries",
+        "check_engine": "ast_gate",
+        "implementable": false
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "architecture.boundary.settings_access",
+        "statement": "Only infrastructure layer and bootstrap modules MAY directly import Settings objects. All other components MUST receive configuration through dependency injection or environment abstraction.",
+        "severity": "blocking",
+        "policy": "rules/architecture/privileged_boundaries",
+        "check_engine": "ast_gate",
+        "implementable": false
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "architecture.boundary.intent_loader_access",
+        "statement": "Only Mind layer components and governance infrastructure MAY directly import IntentLoader. All other components MUST access constitutional documents through Mind services.",
+        "severity": "blocking",
+        "policy": "rules/architecture/privileged_boundaries",
+        "check_engine": "ast_gate",
+        "implementable": false
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "architecture.boundary.file_handler_access",
+        "statement": "Only Body layer and infrastructure components MAY directly instantiate FileHandler. Will and Mind layers MUST delegate file operations to Body services.",
+        "severity": "blocking",
+        "policy": "rules/architecture/privileged_boundaries",
+        "check_engine": "ast_gate",
+        "implementable": false
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "architecture.boundary.llm_client_access",
+        "statement": "Only Will layer agents and autonomous services MAY directly import LLM client infrastructure. Body layer MUST NOT make AI decisions; Mind layer MUST NOT invoke AI.",
+        "severity": "blocking",
+        "policy": "rules/architecture/privileged_boundaries",
+        "check_engine": "ast_gate",
+        "implementable": false
       },
       "coverage_status": "enforced",
       "in_executed_ids": true
@@ -447,6 +567,90 @@
     },
     {
       "rule": {
+        "rule_id": "cli.resource_first",
+        "statement": "CLI commands MUST follow 'resource action [flags]' pattern (depth=2), except admin namespace which may use depth=3.",
+        "severity": "blocking",
+        "policy": "rules/cli/interface_design",
+        "check_engine": null,
+        "implementable": false
+      },
+      "coverage_status": "declared_only",
+      "in_executed_ids": false
+    },
+    {
+      "rule": {
+        "rule_id": "cli.no_layer_exposure",
+        "statement": "Resource names MUST NOT be 'mind', 'body', 'will', 'manage', 'check', or 'fix' as these expose internal architecture.",
+        "severity": "blocking",
+        "policy": "rules/cli/interface_design",
+        "check_engine": null,
+        "implementable": false
+      },
+      "coverage_status": "declared_only",
+      "in_executed_ids": false
+    },
+    {
+      "rule": {
+        "rule_id": "cli.standard_verbs",
+        "statement": "Action names SHOULD use standard verbs: sync, query, validate, audit, list, create, show, approve, reject, execute, inspect, status, drift, rebuild, migrate, export, cleanup, format, lint, test, coverage, analyze, new, onboard, docs.",
+        "severity": "reporting",
+        "policy": "rules/cli/interface_design",
+        "check_engine": null,
+        "implementable": false
+      },
+      "coverage_status": "declared_only",
+      "in_executed_ids": false
+    },
+    {
+      "rule": {
+        "rule_id": "cli.dangerous_explicit",
+        "statement": "Commands that mutate state MUST require --write flag or interactive confirmation.",
+        "severity": "blocking",
+        "policy": "rules/cli/interface_design",
+        "check_engine": null,
+        "implementable": false
+      },
+      "coverage_status": "declared_only",
+      "in_executed_ids": false
+    },
+    {
+      "rule": {
+        "rule_id": "cli.async_execution",
+        "statement": "All async commands MUST be wrapped with @core_command decorator to handle event loop execution.",
+        "severity": "blocking",
+        "policy": "rules/cli/interface_design",
+        "check_engine": null,
+        "implementable": false
+      },
+      "coverage_status": "declared_only",
+      "in_executed_ids": false
+    },
+    {
+      "rule": {
+        "rule_id": "cli.discovery_strict",
+        "statement": "CLI resource discovery MUST fail-fast on module load errors unless CORE_DEV_MODE=1.",
+        "severity": "blocking",
+        "policy": "rules/cli/interface_design",
+        "check_engine": null,
+        "implementable": false
+      },
+      "coverage_status": "declared_only",
+      "in_executed_ids": false
+    },
+    {
+      "rule": {
+        "rule_id": "cli.help_required",
+        "statement": "Every command MUST provide help text and usage examples.",
+        "severity": "reporting",
+        "policy": "rules/cli/interface_design",
+        "check_engine": null,
+        "implementable": false
+      },
+      "coverage_status": "declared_only",
+      "in_executed_ids": false
+    },
+    {
+      "rule": {
         "rule_id": "linkage.assign_ids",
         "statement": "Public functions and methods MUST have unique UUID identifiers for Knowledge Graph synchronization.",
         "severity": "reporting",
@@ -471,12 +675,96 @@
     },
     {
       "rule": {
+        "rule_id": "metadata.semantic_preservation",
+        "statement": "A WRITE_METADATA operation MUST NOT alter the executable semantics of the file. The normalized AST (excluding docstrings and line numbers) MUST be identical before and after the mutation.",
+        "severity": "blocking",
+        "policy": "rules/code/metadata_mutations",
+        "check_engine": "ast_gate",
+        "implementable": false
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "metadata.operations.comment_insert",
+        "statement": "WRITE_METADATA actions MAY insert comment lines into source files. Inserted comments MUST NOT exceed 120 characters per line.",
+        "severity": "blocking",
+        "policy": "rules/code/metadata_mutations",
+        "check_engine": null,
+        "implementable": false
+      },
+      "coverage_status": "declared_only",
+      "in_executed_ids": false
+    },
+    {
+      "rule": {
+        "rule_id": "metadata.operations.comment_replace",
+        "statement": "WRITE_METADATA actions MAY replace existing comment lines. Replacement comments MUST NOT exceed 120 characters per line.",
+        "severity": "blocking",
+        "policy": "rules/code/metadata_mutations",
+        "check_engine": null,
+        "implementable": false
+      },
+      "coverage_status": "declared_only",
+      "in_executed_ids": false
+    },
+    {
+      "rule": {
+        "rule_id": "metadata.operations.comment_delete",
+        "statement": "WRITE_METADATA actions MAY remove comment lines from source files.",
+        "severity": "blocking",
+        "policy": "rules/code/metadata_mutations",
+        "check_engine": null,
+        "implementable": false
+      },
+      "coverage_status": "declared_only",
+      "in_executed_ids": false
+    },
+    {
+      "rule": {
+        "rule_id": "metadata.operations.docstring_insert",
+        "statement": "WRITE_METADATA actions MAY insert docstrings into classes, functions, and modules. Docstrings are declarative metadata that do not alter executable semantics.",
+        "severity": "blocking",
+        "policy": "rules/code/metadata_mutations",
+        "check_engine": null,
+        "implementable": false
+      },
+      "coverage_status": "declared_only",
+      "in_executed_ids": false
+    },
+    {
+      "rule": {
+        "rule_id": "metadata.operations.docstring_replace",
+        "statement": "WRITE_METADATA actions MAY replace existing docstrings for correction and enrichment without altering executable code.",
+        "severity": "blocking",
+        "policy": "rules/code/metadata_mutations",
+        "check_engine": null,
+        "implementable": false
+      },
+      "coverage_status": "declared_only",
+      "in_executed_ids": false
+    },
+    {
+      "rule": {
+        "rule_id": "metadata.scope.universal",
+        "statement": "WRITE_METADATA operations are permitted on ALL src/**/*.py files without exclusion lists. The semantic preservation invariant is the sole gate. The .intent/ hard invariant remains inviolable.",
+        "severity": "blocking",
+        "policy": "rules/code/metadata_mutations",
+        "check_engine": null,
+        "implementable": false
+      },
+      "coverage_status": "declared_only",
+      "in_executed_ids": false
+    },
+    {
+      "rule": {
         "rule_id": "purity.no_metadata_decorators",
         "statement": "Source code MUST NOT contain descriptive metadata decorators like @capability, @meta, or @owner.",
         "severity": "blocking",
         "policy": "rules/code/purity",
         "check_engine": "ast_gate",
-        "implementable": true
+        "implementable": false
       },
       "coverage_status": "enforced",
       "in_executed_ids": true
@@ -519,6 +807,30 @@
     },
     {
       "rule": {
+        "rule_id": "purity.no_ast_duplication",
+        "statement": "Code MUST NOT contain exact AST duplicates (identical normalized syntax trees).",
+        "severity": "reporting",
+        "policy": "rules/code/purity",
+        "check_engine": "knowledge_gate",
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "purity.no_semantic_duplication",
+        "statement": "Code SHOULD NOT contain semantic duplicates (functionally similar implementations).",
+        "severity": "reporting",
+        "policy": "rules/code/purity",
+        "check_engine": "knowledge_gate",
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
         "rule_id": "purity.logic_conservation",
         "statement": "Refactored code MUST NOT result in a character count reduction of >50% compared to original source unless explicitly authorized.",
         "severity": "blocking",
@@ -548,7 +860,7 @@
         "severity": "blocking",
         "policy": "rules/data/governance",
         "check_engine": "ast_gate",
-        "implementable": true
+        "implementable": false
       },
       "coverage_status": "enforced",
       "in_executed_ids": true
@@ -579,6 +891,138 @@
     },
     {
       "rule": {
+        "rule_id": "infrastructure.no_strategic_decisions",
+        "statement": "Infrastructure components MUST provide mechanical coordination without strategic decision-making.",
+        "severity": "reporting",
+        "policy": "rules/infrastructure/authority_boundaries",
+        "check_engine": "knowledge_gate",
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "infrastructure.constitutional_documentation",
+        "statement": "Infrastructure components MUST document their constitutional authority claims in module docstrings.",
+        "severity": "reporting",
+        "policy": "rules/infrastructure/authority_boundaries",
+        "check_engine": "regex_gate",
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "infrastructure.no_business_logic",
+        "statement": "Infrastructure MUST remain domain-agnostic and contain no business logic.",
+        "severity": "reporting",
+        "policy": "rules/infrastructure/authority_boundaries",
+        "check_engine": "knowledge_gate",
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "infrastructure.service_registry.no_conditional_loading",
+        "statement": "ServiceRegistry MUST NOT choose between service loading strategies based on semantic context.",
+        "severity": "reporting",
+        "policy": "rules/infrastructure/authority_boundaries",
+        "check_engine": "regex_gate",
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "infrastructure.no_bare_except",
+        "statement": "Infrastructure MUST use explicit error handling and not suppress errors with bare except clauses.",
+        "severity": "reporting",
+        "policy": "rules/infrastructure/authority_boundaries",
+        "check_engine": "regex_gate",
+        "implementable": true
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "cli.command.metadata_required",
+        "statement": "All CLI commands MUST declare explicit metadata using @command_meta decorator with canonical_name, behavior, layer, and summary.",
+        "severity": "reporting",
+        "policy": "rules/infrastructure/cli_commands",
+        "check_engine": "runtime_metric",
+        "implementable": false
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "cli.command.canonical_naming",
+        "statement": "Command canonical_name MUST follow hierarchical dot notation: 'group.subgroup.action' (e.g., 'inspect.drift.symbol').",
+        "severity": "reporting",
+        "policy": "rules/infrastructure/cli_commands",
+        "check_engine": "dataclass_validation",
+        "implementable": false
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "cli.command.behavior_classification",
+        "statement": "Command behavior MUST be one of: 'read' (inspection), 'validate' (checks), 'mutate' (state changes), or 'transform' (data migrations).",
+        "severity": "reporting",
+        "policy": "rules/infrastructure/cli_commands",
+        "check_engine": "type_system",
+        "implementable": false
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "cli.command.layer_assignment",
+        "statement": "Command layer MUST be one of: 'mind' (constitutional operations), 'body' (execution infrastructure), or 'will' (autonomous operations).",
+        "severity": "reporting",
+        "policy": "rules/infrastructure/cli_commands",
+        "check_engine": "type_system",
+        "implementable": false
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "cli.command.dangerous_marking",
+        "statement": "Commands that mutate system state MUST mark dangerous=True to require explicit --write flag or confirmation.",
+        "severity": "reporting",
+        "policy": "rules/infrastructure/cli_commands",
+        "check_engine": "advisory",
+        "implementable": false
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
+        "rule_id": "cli.command.no_duplicates",
+        "statement": "Each canonical_name MUST be unique across the entire CLI registry. Duplicate names indicate misconfigured aliases.",
+        "severity": "blocking",
+        "policy": "rules/infrastructure/cli_commands",
+        "check_engine": "runtime_check",
+        "implementable": false
+      },
+      "coverage_status": "enforced",
+      "in_executed_ids": true
+    },
+    {
+      "rule": {
         "rule_id": "autonomy.lanes.boundary_enforcement",
         "statement": "Autonomous agents MUST NOT modify files outside their assigned autonomy lane.",
         "severity": "blocking",
@@ -596,7 +1040,7 @@
         "severity": "reporting",
         "policy": "rules/will/autonomy",
         "check_engine": "ast_gate",
-        "implementable": true
+        "implementable": false
       },
       "coverage_status": "enforced",
       "in_executed_ids": true
@@ -667,6 +1111,11 @@
     "architecture.api.no_body_bypass",
     "architecture.api.no_direct_database_access",
     "architecture.body.no_rule_evaluation",
+    "architecture.boundary.database_session_access",
+    "architecture.boundary.file_handler_access",
+    "architecture.boundary.intent_loader_access",
+    "architecture.boundary.llm_client_access",
+    "architecture.boundary.settings_access",
     "architecture.constitution_read_only",
     "architecture.layers.no_body_to_will",
     "architecture.layers.no_mind_execution",
@@ -674,6 +1123,7 @@
     "architecture.meta_read_only",
     "architecture.mind.no_body_invocation",
     "architecture.mind.no_database_access",
+    "architecture.mind.no_execution_semantics",
     "architecture.mind.no_filesystem_writes",
     "architecture.mind.no_will_invocation",
     "architecture.no_module_async_engine",
@@ -682,9 +1132,19 @@
     "architecture.will.no_direct_database_access",
     "architecture.will.no_filesystem_operations",
     "async.no_manual_loop_run",
+    "atomic_actions.must_have_decorator",
+    "atomic_actions.must_return_action_result",
+    "atomic_actions.no_governance_bypass",
+    "atomic_actions.result_must_be_structured",
     "autonomy.lanes.boundary_enforcement",
     "autonomy.reasoning.policy_alignment",
     "autonomy.tracing.mandatory",
+    "cli.command.behavior_classification",
+    "cli.command.canonical_naming",
+    "cli.command.dangerous_marking",
+    "cli.command.layer_assignment",
+    "cli.command.metadata_required",
+    "cli.command.no_duplicates",
     "data.integrity.vector_sync",
     "data.security.no_raw_secrets",
     "data.ssot.database_primacy",
@@ -694,10 +1154,16 @@
     "governance.intent_meta.required",
     "governance.logic_mutation.governed",
     "governance.no_governance_bypass",
+    "infrastructure.constitutional_documentation",
+    "infrastructure.no_bare_except",
+    "infrastructure.no_business_logic",
+    "infrastructure.no_strategic_decisions",
+    "infrastructure.service_registry.no_conditional_loading",
     "linkage.assign_ids",
     "linkage.duplicate_ids",
     "logic.di.no_global_session",
     "logic.logging.standard_only",
+    "metadata.semantic_preservation",
     "modernization.legacy_scars",
     "modularity.import_coupling",
     "modularity.refactor_score_threshold",
@@ -710,8 +1176,10 @@
     "planning.trace_mandatory",
     "purity.docstrings.required",
     "purity.logic_conservation",
+    "purity.no_ast_duplication",
     "purity.no_dead_code",
     "purity.no_metadata_decorators",
+    "purity.no_semantic_duplication",
     "purity.no_todo_placeholders",
     "purity.stable_id_anchor",
     "quality.security_audit",
@@ -719,7 +1187,67 @@
     "quality.type_safety"
   ],
   "policy_metadata": {
+    "META/enums": {
+      "title": "CORE Intent Enumerations",
+      "id": "",
+      "format": "unknown"
+    },
+    "META/intent_tree.schema": {
+      "title": "CORE .intent/ Tree Contract (A2)",
+      "id": "",
+      "format": "unknown"
+    },
+    "META/rule_document.schema": {
+      "title": "CORE Rule Document (A2 Minimal)",
+      "id": "",
+      "format": "unknown"
+    },
+    "phases/canary_validation": {
+      "title": "",
+      "id": "",
+      "format": "unknown"
+    },
+    "phases/code_generation": {
+      "title": "",
+      "id": "",
+      "format": "unknown"
+    },
+    "phases/execution": {
+      "title": "",
+      "id": "",
+      "format": "unknown"
+    },
+    "phases/interpret": {
+      "title": "",
+      "id": "",
+      "format": "unknown"
+    },
+    "phases/planning": {
+      "title": "",
+      "id": "",
+      "format": "unknown"
+    },
+    "phases/sandbox_validation": {
+      "title": "",
+      "id": "",
+      "format": "unknown"
+    },
+    "phases/style_check": {
+      "title": "",
+      "id": "",
+      "format": "unknown"
+    },
+    "phases/test_generation": {
+      "title": "",
+      "id": "",
+      "format": "unknown"
+    },
     "rules/architecture/async_logic": {
+      "title": "",
+      "id": "",
+      "format": "flat"
+    },
+    "rules/architecture/atomic_actions": {
       "title": "",
       "id": "",
       "format": "flat"
@@ -739,6 +1267,11 @@
       "id": "",
       "format": "flat"
     },
+    "rules/architecture/mind_execution_semantic": {
+      "title": "",
+      "id": "",
+      "format": "flat"
+    },
     "rules/architecture/modernization": {
       "title": "",
       "id": "",
@@ -749,12 +1282,27 @@
       "id": "",
       "format": "flat"
     },
+    "rules/architecture/privileged_boundaries": {
+      "title": "",
+      "id": "",
+      "format": "flat"
+    },
     "rules/architecture/quality_gates": {
       "title": "",
       "id": "",
       "format": "flat"
     },
+    "rules/cli/interface_design": {
+      "title": "",
+      "id": "",
+      "format": "flat"
+    },
     "rules/code/linkage": {
+      "title": "",
+      "id": "",
+      "format": "flat"
+    },
+    "rules/code/metadata_mutations": {
       "title": "",
       "id": "",
       "format": "flat"
@@ -769,6 +1317,16 @@
       "id": "",
       "format": "flat"
     },
+    "rules/infrastructure/authority_boundaries": {
+      "title": "",
+      "id": "",
+      "format": "flat"
+    },
+    "rules/infrastructure/cli_commands": {
+      "title": "",
+      "id": "",
+      "format": "flat"
+    },
     "rules/will/autonomy": {
       "title": "",
       "id": "",
@@ -778,6 +1336,21 @@
       "title": "",
       "id": "",
       "format": "flat"
+    },
+    "workflows/coverage_remediation": {
+      "title": "",
+      "id": "",
+      "format": "unknown"
+    },
+    "workflows/full_feature_development": {
+      "title": "",
+      "id": "",
+      "format": "unknown"
+    },
+    "workflows/refactor_modularity": {
+      "title": "",
+      "id": "",
+      "format": "unknown"
     }
   }
 }

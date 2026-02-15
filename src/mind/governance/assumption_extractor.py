@@ -47,7 +47,7 @@ if TYPE_CHECKING:
 logger = getLogger(__name__)
 
 
-# ID: 1a2b3c4d-5e6f-7a8b-9c0d-1e2f3a4b5c6d
+# ID: a2801702-1aad-4943-8e78-8feafa9a8ed3
 @dataclass
 # ID: 8657b4ac-238c-40fc-b63e-1ad1fd07aac9
 class Assumption:
@@ -85,7 +85,7 @@ class Assumption:
         }
 
 
-# ID: 2b3c4d5e-6f7a-8b9c-0d1e-2f3a4b5c6d7e
+# ID: f11be474-0f99-495a-b776-693377f29d85
 @dataclass
 # ID: 3a26a683-f2b1-43c3-bc2d-f16d220c5534
 class GuidanceExtraction:
@@ -104,7 +104,7 @@ class GuidanceExtraction:
     """How clear/explicit the policy guidance was"""
 
 
-# ID: 3c4d5e6f-7a8b-9c0d-1e2f-3a4b5c6d7e8f
+# ID: b5206bc1-1962-45dc-892d-e4fe16a8c311
 class AssumptionExtractor:
     """
     Dynamically synthesizes operational defaults from constitutional policies.
@@ -156,7 +156,7 @@ class AssumptionExtractor:
         self.policy_vectorizer = policy_vectorizer
         self.llm = cognitive_service
 
-    # ID: 4d5e6f7a-8b9c-0d1e-2f3a-4b5c6d7e8f9a
+    # ID: fbfcffbb-1c8f-451f-9ab8-c2bd29f687c4
     async def extract_assumptions(
         self,
         task_structure: TaskStructure,
@@ -212,7 +212,7 @@ class AssumptionExtractor:
         logger.info("✅ Extracted %d assumptions", len(assumptions))
         return assumptions
 
-    # ID: 5e6f7a8b-9c0d-1e2f-3a4b-5c6d7e8f9a0b
+    # ID: a0e7033d-1ce0-446a-9714-95611c1d7c0b
     def _identify_incomplete_aspects(self, task_structure: TaskStructure) -> list[str]:
         """
         Identify which aspects of the task are unspecified.
@@ -254,7 +254,7 @@ class AssumptionExtractor:
 
         return missing
 
-    # ID: 6f7a8b9c-0d1e-2f3a-4b5c-6d7e8f9a0b1c
+    # ID: 0591a704-d0ea-4f44-87c0-60c7b8bd6b45
     async def _extract_assumption_for_aspect(
         self,
         aspect: str,
@@ -297,7 +297,7 @@ class AssumptionExtractor:
             confidence=guidance.confidence,
         )
 
-    # ID: 7a8b9c0d-1e2f-3a4b-5c6d-7e8f9a0b1c2d
+    # ID: 700dac32-7215-4e53-b743-e01c636958c3
     async def _find_relevant_policy_text(
         self, aspect: str, matched_policies: list[dict[str, Any]]
     ) -> str | None:
@@ -344,7 +344,7 @@ class AssumptionExtractor:
             logger.error("Failed to load policy %s: %s", policy_path, e)
             return None
 
-    # ID: 8b9c0d1e-2f3a-4b5c-6d7e-8f9a0b1c2d3e
+    # ID: fa357f7f-5fe0-422d-9ba6-51feed6433a2
     def _format_policy_for_llm(self, policy_doc: dict[str, Any], policy_path) -> str:
         """
         Format policy document for LLM consumption.
@@ -380,7 +380,7 @@ class AssumptionExtractor:
 
         return "\n".join(lines)
 
-    # ID: 9c0d1e2f-3a4b-5c6d-7e8f-9a0b1c2d3e4f
+    # ID: 9fbb2643-0e52-4f01-ba8b-43b6a1722bd5
     async def _extract_guidance_from_policy(
         self,
         aspect: str,

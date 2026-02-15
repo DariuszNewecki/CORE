@@ -1,5 +1,5 @@
 # src/body/atomic/executor.py
-# ID: atomic.executor
+# ID: c50206d4-1f2b-42c6-b665-e4018cbbd55c
 """
 Universal Action Executor - Constitutional Enforcement Gateway
 
@@ -21,13 +21,22 @@ CRITICAL: This enforces the "single execution contract" principle.
 CONSTITUTIONAL ENFORCEMENT:
 This module enforces .intent/rules/architecture/atomic_actions.json at runtime.
 Actions that return invalid results are wrapped with error ActionResults.
+
+HEALED (V2.7.4):
+- Layer Violation Fix: _validate_policies now queries IntentRepository
+  in-memory index instead of PathResolver filesystem access.
+  Body must never touch .intent/ directly — Mind indexes at startup,
+  Body queries the index.
 """
 
 from __future__ import annotations
 
 import inspect
+import json
 import time
 from typing import TYPE_CHECKING, Any
+
+from sqlalchemy import text
 
 from body.atomic.registry import ActionDefinition, action_registry
 from shared.action_types import ActionImpact, ActionResult
@@ -115,7 +124,7 @@ def _validate_action_result(action_id: str, result: Any) -> ActionResult:
     return result
 
 
-# ID: executor_main
+# ID: c84e1977-dfbd-47f1-83e0-01260da9420e
 # ID: e1b46328-53d2-4abe-93e4-3b875d50300f
 class ActionExecutor:
     """
@@ -126,7 +135,7 @@ class ActionExecutor:
 
     Architecture:
     - Loads action definitions from registry
-    - Validates policies exist in constitution
+    - Validates policies exist in constitution (via Mind's in-memory index)
     - Checks impact authorization
     - Executes pre/post hooks
     - Validates results at runtime
@@ -149,7 +158,7 @@ class ActionExecutor:
         self.registry = action_registry
         logger.debug("ActionExecutor initialized")
 
-    # ID: executor_execute
+    # ID: 535abb39-c8d9-4d38-9ab3-782e4e43e233
     # ID: d068c5cc-7e31-479e-a615-993e4570680c
     @atomic_action(
         action_id="action.execute",
@@ -177,10 +186,6 @@ class ActionExecutor:
         7. Runs post-execution hooks
         8. Records audit trail
 
-        CONSTITUTIONAL ENFORCEMENT:
-        After execution, validates that the action returned a proper ActionResult
-        with structured data. Non-compliant results are wrapped in error ActionResults.
-
         Args:
             action_id: Registered action ID (e.g., "fix.format")
             write: Whether to apply changes (False = dry-run)
@@ -188,16 +193,6 @@ class ActionExecutor:
 
         Returns:
             ActionResult with execution details, timing, and status
-
-        Examples:
-            # Format code (dry-run)
-            result = await executor.execute("fix.format")
-
-            # Format code (write)
-            result = await executor.execute("fix.format", write=True)
-
-            # Sync database
-            result = await executor.execute("sync.db", write=True)
         """
         start_time = time.time()
 
@@ -225,7 +220,7 @@ class ActionExecutor:
             definition.impact_level,
         )
 
-        # 2. Validate constitutional policies
+        # 2. Validate constitutional policies (via Mind's in-memory index)
         policy_validation = await self._validate_policies(definition)
         if not policy_validation["ok"]:
             logger.warning("Policy validation failed for %s", action_id)
@@ -295,41 +290,68 @@ class ActionExecutor:
 
         return result
 
-    # ID: executor_validate_policies
+    # ID: 7d302f78-f0c6-4fe5-8273-11f85d53b2fb
     async def _validate_policies(self, definition: ActionDefinition) -> dict[str, Any]:
         """
         Validate that all referenced policies exist in the constitution.
 
-        Args:
-            definition: Action definition to validate
+        CONSTITUTIONAL FIX (V2.7.4):
+        Queries Mind's in-memory IntentRepository index instead of
+        touching .intent/ filesystem via PathResolver. Body layer must
+        never access .intent/ directly — Mind indexes at startup, Body
+        queries the indexed knowledge.
 
-        Returns:
-            Validation result dict with ok/error fields
+        Policy IDs must match the canonical indexed format:
+            rules/architecture/atomic_actions
+            rules/code/purity
+            rules/data/governance
         """
-        # For now, accept all policies
-        # Future: Check against .intent/policies/ directory
-        return {"ok": True, "policies": definition.policies}
+        from shared.infrastructure.intent.intent_repository import (
+            get_intent_repository,
+        )
 
-    # ID: executor_check_auth
+        intent_repo = get_intent_repository()
+        indexed_policies = {p.policy_id for p in intent_repo.list_policies()}
+
+        missing = []
+        for policy_id in definition.policies:
+            if policy_id not in indexed_policies:
+                missing.append(policy_id)
+
+        if missing:
+            logger.warning(
+                "Action '%s' references unindexed policies: %s. "
+                "Available: %d indexed policies. "
+                "Policy IDs must use canonical format: rules/<domain>/<name>",
+                definition.action_id,
+                missing,
+                len(indexed_policies),
+            )
+
+        return {
+            "ok": len(missing) == 0,
+            "policies": definition.policies,
+            "missing": missing,
+        }
+
+    # ID: 238c67b1-eef2-436d-8013-091a6788368a
     def _check_authorization(
         self, definition: ActionDefinition, write: bool
     ) -> dict[str, Any]:
         """
         Check if action execution is authorized.
-
-        Args:
-            definition: Action definition
-            write: Whether write mode is requested
-
-        Returns:
-            Authorization result dict
         """
         # Basic impact-level check
         if definition.impact_level == "dangerous" and write:
-            # Future: Check with governance service
             logger.warning(
                 "Dangerous action %s requested in write mode", definition.action_id
             )
+            # In commercial mode, this is where we'd check a 'STRICT' flag
+            return {
+                "authorized": True,
+                "impact_level": definition.impact_level,
+                "write_mode": write,
+            }
 
         return {
             "authorized": True,
@@ -337,74 +359,69 @@ class ActionExecutor:
             "write_mode": write,
         }
 
-    # ID: executor_pre_hooks
+    # ID: 738ad11a-5848-49ce-a16d-2dfcbef8b763
     async def _pre_execute_hooks(
         self, definition: ActionDefinition, write: bool, params: dict[str, Any]
     ) -> None:
         """
         Execute pre-execution hooks.
-
-        Args:
-            definition: Action definition
-            write: Write mode flag
-            params: Execution parameters
         """
-        # Future: Add configurable pre-execution hooks
         logger.debug("Pre-execution hooks for %s", definition.action_id)
 
-    # ID: executor_post_hooks
+    # ID: 3de2d9e3-b074-485d-98ad-06ea51e009e2
     async def _post_execute_hooks(
         self, definition: ActionDefinition, result: ActionResult
     ) -> None:
         """
         Execute post-execution hooks.
-
-        Args:
-            definition: Action definition
-            result: Execution result
         """
-        # Future: Add configurable post-execution hooks
         logger.debug("Post-execution hooks for %s", definition.action_id)
 
-    # ID: executor_audit
+    # ID: 454c8ccb-ece8-4ef8-baf1-13c9c19f4300
     async def _audit_log(
         self, definition: ActionDefinition, result: ActionResult, write: bool
     ) -> None:
         """
-        Log action execution to audit trail.
-
-        Args:
-            definition: Action definition
-            result: Execution result
-            write: Write mode flag
+        Log action execution to database audit trail (SSOT).
         """
-        # Future: Store in database audit trail
-        logger.info(
-            "Audit: action=%s, ok=%s, write=%s, duration=%.2fs",
-            definition.action_id,
-            result.ok,
-            write,
-            result.duration_sec,
-        )
+        try:
+            async with self.core_context.registry.session() as session:
+                async with session.begin():
+                    # Record evidence for the Traceability Matrix
+                    stmt = text(
+                        """
+                        INSERT INTO core.action_results
+                        (action_type, ok, file_path, error_message, action_metadata, agent_id, duration_ms)
+                        VALUES (:atype, :ok, :path, :err, :meta, :agent, :dur)
+                    """
+                    )
+                    await session.execute(
+                        stmt,
+                        {
+                            "atype": definition.action_id,
+                            "ok": result.ok,
+                            "path": result.data.get("path")
+                            or result.data.get("file_path"),
+                            "err": result.data.get("error") if not result.ok else None,
+                            "meta": json.dumps(
+                                {
+                                    "write_mode": write,
+                                    "impact": definition.impact_level,
+                                }
+                            ),
+                            "agent": "ActionExecutor",
+                            "dur": int(result.duration_sec * 1000),
+                        },
+                    )
+        except Exception as e:
+            logger.warning("Non-blocking audit log failure: %s", e)
 
-    # ID: executor_prepare_params
+    # ID: eff3eded-b30d-49e0-b50c-3503a1b695af
     def _prepare_params(
         self, definition: ActionDefinition, write: bool, params: dict[str, Any]
     ) -> dict[str, Any]:
         """
         Prepare parameters for action execution with smart injection.
-
-        Only injects parameters that the action actually accepts.
-        This allows old actions to work without modification while
-        new actions can opt-in to dependencies.
-
-        Args:
-            definition: Action definition
-            write: Write mode flag
-            params: Raw parameters
-
-        Returns:
-            Prepared parameters dict with only accepted parameters
         """
         # Get the function signature
         sig = inspect.signature(definition.executor)

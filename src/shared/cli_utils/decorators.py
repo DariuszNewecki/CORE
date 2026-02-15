@@ -1,5 +1,5 @@
 # src/shared/cli_utils/decorators.py
-# ID: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+# ID: f51655ac-230e-478a-9019-f5c38401ce03
 
 """
 Constitutional CLI Decorators.
@@ -7,10 +7,10 @@ Constitutional CLI Decorators.
 Provides the @core_command and @async_command wrappers which manage
 the asyncio lifecycle, JIT service injection, and database teardown.
 
-HEALED (V2.6.2):
-- Hardened teardown to prevent SAWarning during garbage collection.
-- Explicitly nullifies Context references to drop DB session pointers.
-- Disposes the engine loop-locally and yields to the loop for cleanup.
+HEALED (V2.7.3):
+- Re-entrancy Support: Detects existing event loops to allow commands to call each other.
+- Context Robustness: Fallback to typer.get_current_context() to fix "System Error: Missing ctx".
+- Preserves V2.7.2 SAWarning hardening (explicit nullification and registry clearing).
 """
 
 from __future__ import annotations
@@ -59,7 +59,7 @@ def core_command(
     Primary constitutional wrapper for CORE CLI commands.
     """
 
-    # ID: 41b496b7-333a-453e-8bd2-149c4ce382e2
+    # ID: 372930b2-85c3-4def-bb88-36208e82dfc1
     def decorator(func: Callable[P, R]) -> Callable[P, R]:
         COMMAND_REGISTRY[func.__name__] = CommandMetadata(
             dangerous, confirmation, requires_context
@@ -68,16 +68,26 @@ def core_command(
         @functools.wraps(func)
         # ID: 52793c73-6d19-4c28-96cd-e8af74666c9f
         def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
-            # 1. Context & Security Logic
+            # 1. Resolve Context (FIX: Added fallback for nested/decorated calls)
             ctx = next(
                 (a for a in args if isinstance(a, typer.Context)), kwargs.get("ctx")
             )
+
+            # FALLBACK: If Typer didn't inject it (common in decorated wrappers),
+            # grab it from Typer's thread-local state.
+            if ctx is None:
+                try:
+                    ctx = typer.get_current_context()
+                except Exception:
+                    ctx = None
+
             if requires_context and not ctx:
                 console.print(
                     "[bold red]System Error: CLI command must accept 'ctx: typer.Context'[/bold red]"
                 )
                 raise typer.Exit(1)
 
+            # 2. Security & Mode Logic
             write = bool(cast(dict[str, Any], kwargs).get("write", False))
             if dangerous and not write:
                 console.print(
@@ -90,16 +100,20 @@ def core_command(
                 ):
                     raise typer.Exit(0)
 
-            # 2. Loop Management
+            # 3. Loop Management (FIX: Added Re-entrancy support)
             try:
                 loop = asyncio.get_running_loop()
             except RuntimeError:
                 loop = None
-            if loop and loop.is_running():
-                raise RuntimeError(
-                    "CORE CLI commands cannot run inside an already-running event loop."
-                )
 
+            # If a loop is already running (we are a command calling another command),
+            # do NOT call asyncio.run(). Just execute the function.
+            if loop and loop.is_running():
+                if asyncio.iscoroutinefunction(func):
+                    return cast(Any, func)(*args, **kwargs)
+                return cast(Any, func)(*args, **kwargs)
+
+            # 4. Root Entry Point Logic
             async def _run_with_teardown():
                 try:
                     # JIT Service Injection
@@ -134,7 +148,7 @@ def core_command(
                         console.print(res)
                     return res
                 finally:
-                    # HEALED V2.6.2: Aggressive cleanup
+                    # HEALED V2.7.2: Aggressive cleanup to prevent SAWarning
                     if ctx and ctx.obj:
                         # 1. Clear service references from the Context object
                         for attr in [
@@ -145,17 +159,18 @@ def core_command(
                             if hasattr(ctx.obj, attr):
                                 setattr(ctx.obj, attr, None)
 
-                        # 2. Clear the global Service Registry
+                        # 2. Clear the global Service Registry instances
                         if hasattr(ctx.obj, "registry"):
                             registry = ctx.obj.registry
                             if hasattr(registry, "_instances"):
                                 registry._instances.clear()
 
                     # 3. Final disposal
+                    await asyncio.sleep(0)  # Yield for GC
                     await dispose_engine()
-                    await asyncio.sleep(0)  # Yield to loop for final GC
 
             try:
+                # This only runs if we are the top-level command
                 return cast(R, asyncio.run(_run_with_teardown()))
             except typer.Exit:
                 raise
@@ -173,6 +188,10 @@ def core_command(
 
 # ID: 34db7c54-cd1f-42af-9690-05d8c97c4ea4
 def async_command(func: Callable[..., Any]) -> Callable[..., Any]:
+    """
+    Simpler async wrapper for non-core commands that still need loop management.
+    """
+
     @functools.wraps(func)
     # ID: ea2838f1-6fc0-410e-8119-edcc198a3097
     def wrapper(*args: Any, **kwargs: Any) -> Any:
@@ -180,10 +199,10 @@ def async_command(func: Callable[..., Any]) -> Callable[..., Any]:
             loop = asyncio.get_running_loop()
         except RuntimeError:
             loop = None
+
         if loop and loop.is_running():
-            raise RuntimeError(
-                "async_command cannot run inside an already-running event loop."
-            )
+            return func(*args, **kwargs)
+
         return asyncio.run(func(*args, **kwargs))
 
     return wrapper

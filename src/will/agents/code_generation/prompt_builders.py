@@ -1,5 +1,5 @@
 # src/will/agents/code_generation/prompt_builders.py
-# ID: will.agents.code_generation.prompt_builders
+# ID: f5d94444-5380-4579-95c9-c8a3e6c08ea9
 
 """
 Prompt building utilities for code generation.

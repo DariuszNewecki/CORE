@@ -1,5 +1,5 @@
 # src/body/cli/resources/database/export.py
-# ID: cli.resources.database.export
+# ID: fd5b5529-caa8-4411-a40a-1f04bead977c
 """
 Database export command.
 
@@ -14,7 +14,7 @@ from rich.console import Console
 from shared.cli_utils import core_command
 from shared.logger import getLogger
 
-from . import app
+from .hub import app
 
 
 logger = getLogger(__name__)

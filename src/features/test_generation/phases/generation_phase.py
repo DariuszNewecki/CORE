@@ -21,7 +21,7 @@ from will.strategists.test_strategist import TestStrategist
 logger = getLogger(__name__)
 
 
-# ID: c3d4e5f6-a7b8-9c0d-1e2f-3a4b5c6d7e8f
+# ID: 10cecfde-03c1-4a00-b5a5-802e48f072fd
 class GenerationPhase:
     """Executes adaptive test generation loop with pattern learning."""
 

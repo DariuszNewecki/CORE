@@ -15,7 +15,7 @@ if TYPE_CHECKING:
     from mind.governance.audit_context import AuditorContext
 
 
-# ID: rule-enforcement-check-base
+# ID: 2b81c04c-5214-4228-ac9c-c1a7c22abdf2
 # ID: 3e1f2a3b-4c5d-6e7f-8a9b-0c1d2e3f4a5b
 class RuleEnforcementCheck(ABC):
     """
@@ -33,7 +33,7 @@ class RuleEnforcementCheck(ABC):
         pass
 
 
-# ID: enforcement-method-base
+# ID: 39c7cbb0-d06e-4f83-a04e-636831a614a0
 # ID: 89954e85-77c2-46f2-943c-fb974126aa7e
 class EnforcementMethod(ABC):
     """Base class for SYNCHRONOUS enforcement verification strategies."""
@@ -62,7 +62,7 @@ class EnforcementMethod(ABC):
         )
 
 
-# ID: async-enforcement-method-base
+# ID: 58f327bd-6888-46d7-b1e4-206498424c01
 # ID: 7f3a2b91-8c4d-5e6f-9a0b-1c2d3e4f5a6b
 class AsyncEnforcementMethod(ABC):
     """Base class for ASYNCHRONOUS enforcement verification strategies."""

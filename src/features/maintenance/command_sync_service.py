@@ -5,6 +5,9 @@ Provides a service to introspect the live Typer CLI application and synchronize
 the discovered commands with the `core.cli_commands` database table.
 
 Enhanced to extract CommandMeta when available, with intelligent fallback.
+
+Phase 1 Addition: audit_cli_registry() for CLI Command Registry Audit
+(Roadmap Phase 1, Deliverable #1 — no DB dependency).
 """
 
 from __future__ import annotations
@@ -42,7 +45,11 @@ class TyperAppLike(Protocol):
     registered_groups: list[TyperGroupLike]
 
 
-def _introspect_typer_app(app: TyperAppLike, prefix: str = "") -> list[dict[str, Any]]:
+def _introspect_typer_app(
+    app: TyperAppLike,
+    prefix: str = "",
+    include_missing_handlers: bool = False,
+) -> list[dict[str, Any]]:
     """
     Recursively scans a Typer app to discover all commands and their metadata.
 
@@ -52,6 +59,11 @@ def _introspect_typer_app(app: TyperAppLike, prefix: str = "") -> list[dict[str,
     Args:
         app: Typer application to introspect
         prefix: Hierarchical prefix for nested command groups
+        include_missing_handlers: If True, include entries for commands with no
+            callback (marked with has_callback=False) and add audit-only keys
+            (has_callback, has_explicit_meta, experimental) to all entries.
+            Default False preserves existing behavior exactly — same dict shape,
+            same keys.
 
     Returns:
         List of command metadata dictionaries ready for database upsert
@@ -63,12 +75,33 @@ def _introspect_typer_app(app: TyperAppLike, prefix: str = "") -> list[dict[str,
             continue
 
         callback = cmd_info.callback
-        if not callback:
-            logger.warning("Command %s has no callback, skipping", cmd_info.name)
-            continue
 
         # Full hierarchical name
         full_name = f"{prefix}{cmd_info.name}"
+
+        if not callback:
+            logger.warning("Command %s has no callback, skipping", cmd_info.name)
+            if include_missing_handlers:
+                commands.append(
+                    {
+                        "name": full_name,
+                        "module": None,
+                        "entrypoint": None,
+                        "summary": None,
+                        "category": prefix.replace(".", " ").strip() or "general",
+                        "behavior": None,
+                        "layer": None,
+                        "aliases": [],
+                        "dangerous": False,
+                        "requires_approval": False,
+                        "constitutional_constraints": [],
+                        "help_text": None,
+                        "has_callback": False,
+                        "has_explicit_meta": False,
+                        "experimental": False,
+                    }
+                )
+            continue
 
         # Try to get explicit CommandMeta from @command_meta decorator
         meta = get_command_meta(callback)
@@ -92,6 +125,10 @@ def _introspect_typer_app(app: TyperAppLike, prefix: str = "") -> list[dict[str,
                 "constitutional_constraints": meta.constitutional_constraints or [],
                 "help_text": meta.help_text,
             }
+            if include_missing_handlers:
+                command_dict["has_callback"] = True
+                command_dict["has_explicit_meta"] = True
+                command_dict["experimental"] = meta.experimental
         else:
             # No explicit metadata - infer from function
             logger.debug("Inferring metadata for %s (no @command_meta)", full_name)
@@ -114,6 +151,10 @@ def _introspect_typer_app(app: TyperAppLike, prefix: str = "") -> list[dict[str,
                 "constitutional_constraints": inferred.constitutional_constraints or [],
                 "help_text": inferred.help_text,
             }
+            if include_missing_handlers:
+                command_dict["has_callback"] = True
+                command_dict["has_explicit_meta"] = False
+                command_dict["experimental"] = False
 
         commands.append(command_dict)
 
@@ -122,7 +163,11 @@ def _introspect_typer_app(app: TyperAppLike, prefix: str = "") -> list[dict[str,
         if group_info.name:
             new_prefix = f"{prefix}{group_info.name}."
             commands.extend(
-                _introspect_typer_app(group_info.typer_instance, new_prefix)
+                _introspect_typer_app(
+                    group_info.typer_instance,
+                    new_prefix,
+                    include_missing_handlers=include_missing_handlers,
+                )
             )
 
     return commands
@@ -195,3 +240,94 @@ async def _sync_commands_to_db(session: AsyncSession, main_app: TyperAppLike):
         "Successfully synchronized %s commands to the database.",
         len(deduplicated),
     )
+
+
+# =============================================================================
+# Phase 1 — CLI Registry Audit (no DB dependency)
+# Roadmap: Phase 1, Deliverable #1 (CLI Command Registry Audit)
+# =============================================================================
+
+
+def _detect_duplicate_canonicals(
+    commands: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """
+    Find commands sharing the same canonical name.
+
+    Uses the "name" field — the same key used by _sync_commands_to_db
+    for deduplication and as the database primary key.
+    """
+    canonical_map: dict[str, list[str]] = {}
+    for cmd in commands:
+        name = cmd.get("name")
+        if name:
+            # Track the entrypoint to distinguish where duplicates originate
+            location = cmd.get("entrypoint") or cmd.get("module") or "(unknown)"
+            canonical_map.setdefault(name, []).append(location)
+
+    return [
+        {"canonical_name": name, "locations": locations}
+        for name, locations in canonical_map.items()
+        if len(locations) > 1
+    ]
+
+
+# ID: c818737b-10ca-4e3a-b327-b5e0cd928548
+def audit_cli_registry(main_app: TyperAppLike) -> dict[str, Any]:
+    """
+    Audit the CLI command registry for integrity issues.
+
+    Reuses _introspect_typer_app (with include_missing_handlers=True) for
+    discovery, then computes a structured diagnostic report.
+    No database dependency — pure introspection.
+
+    Checks performed:
+    - Handler presence (callback is not None)
+    - @command_meta coverage (explicit vs inferred)
+    - Duplicate canonical names (using the "name" field,
+      same key _sync_commands_to_db uses as primary key)
+    - Experimental command count
+
+    Args:
+        main_app: The root Typer application
+
+    Returns:
+        JSON-serializable dict with audit findings
+
+    Roadmap: Phase 1, Deliverables #1 and #2
+    """
+    commands = _introspect_typer_app(main_app, include_missing_handlers=True)
+
+    total = len(commands)
+    with_explicit = sum(1 for c in commands if c.get("has_explicit_meta"))
+    with_inferred = sum(
+        1 for c in commands if c.get("has_callback") and not c.get("has_explicit_meta")
+    )
+    missing_handlers = [
+        {"name": c["name"], "category": c.get("category", "")}
+        for c in commands
+        if not c.get("has_callback")
+    ]
+    experimental = [
+        {"name": c["name"], "category": c.get("category", "")}
+        for c in commands
+        if c.get("experimental")
+    ]
+    duplicates = _detect_duplicate_canonicals(commands)
+
+    issue_count = len(missing_handlers) + len(duplicates)
+    meta_coverage_pct = (with_explicit / total * 100) if total > 0 else 0.0
+
+    return {
+        "total_commands": total,
+        "with_explicit_meta": with_explicit,
+        "with_inferred_meta": with_inferred,
+        "meta_coverage_pct": round(meta_coverage_pct, 1),
+        "missing_handlers": missing_handlers,
+        "duplicates": duplicates,
+        "experimental": experimental,
+        "experimental_count": len(experimental),
+        "commands": commands,
+        "issue_count": issue_count,
+        "is_healthy": issue_count == 0,
+    }

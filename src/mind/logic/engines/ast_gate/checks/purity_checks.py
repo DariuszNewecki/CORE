@@ -20,7 +20,7 @@ from typing import ClassVar
 from ..base import ASTHelpers
 
 
-# ID: 6b2a85b5-2b76-4db7-bfb4-4f3a8b7b5f11
+# ID: 318924b3-cfe8-4ae2-a856-88deacf02a9b
 class PurityChecks:
     """
     Stateless collection of purity and standard enforcement checks.
@@ -106,7 +106,7 @@ class PurityChecks:
         return violations
 
     @staticmethod
-    # ID: 3e2f4d95-02db-4f55-9fdb-9e55f9a9d918
+    # ID: 5425f58f-517d-4f2e-b0db-1c4638565b73
     def check_no_print_statements(tree: ast.AST) -> list[str]:
         """Enforces standard logging over print()."""
         return [
@@ -201,7 +201,7 @@ class PurityChecks:
         return violations
 
     @staticmethod
-    # ID: 7a8b9c0d-1e2f-3a4b-5c6d-7e8f9a0b1c2d
+    # ID: b7d320ba-ce8b-4274-8576-a254eeb58bd0
     def check_no_direct_writes(tree: ast.AST) -> list[str]:
         """Enforces the 'Governed Mutation Surface' by blocking raw filesystem writes."""
         violations = []

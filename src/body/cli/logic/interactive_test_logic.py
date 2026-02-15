@@ -20,7 +20,7 @@ from shared.context import CoreContext
 __all__ = ["run_interactive_test_generation"]
 
 
-# ID: 6f7a8b9c-0d1e-2f3a-4b5c-6d7e8f9a0b1c
+# ID: 388d39aa-a78f-4106-b7f5-b9a8a7fd8e73
 async def run_interactive_test_generation(
     target_file: str,
     core_context: CoreContext,

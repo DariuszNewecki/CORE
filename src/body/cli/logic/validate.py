@@ -1,5 +1,5 @@
 # src/body/cli/logic/validate.py
-# ID: cli.logic.validate
+# ID: b547fadc-2f40-4a02-b890-c93c511df2a8
 """
 CLI commands for validating constitutional and governance integrity.
 
@@ -37,7 +37,7 @@ validate_app = typer.Typer(help="Commands for validating constitutional integrit
 
 
 @validate_app.command("intent-schema")
-# ID: fd640765-e202-4790-a133-95d1a2d8983
+# ID: 7761912f-f79f-470f-9cf6-c819f3b57b28
 # ID: 3c97e5c8-ad67-4865-b636-0860ab74775b
 def validate_intent_schema(
     intent_path: Path = typer.Option(

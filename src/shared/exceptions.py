@@ -13,8 +13,8 @@ class CoreException(Exception):
         super().__init__(message)
 
 
-# ID: core-error-with-exit-code
-# ID: 1a2b3c4d-5e6f-7a8b-9c0d-1e2f3a4b5c6d
+# ID: 20a45b4a-8251-43fa-b2d1-d6386104cd7f
+# ID: 4559c2ae-7e47-4c6c-9774-594c3f398105
 class CoreError(CoreException):
     """
     Base exception for CORE operational errors with exit code support.

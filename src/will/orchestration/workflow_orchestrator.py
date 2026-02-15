@@ -1,5 +1,5 @@
 # src/will/orchestration/workflow_orchestrator.py
-# ID: will.orchestration.workflow_orchestrator
+# ID: 875fc9d9-1a3d-4b6d-9ae5-33aa0dd32429
 
 """
 Constitutional Workflow Orchestrator
@@ -59,7 +59,7 @@ class WorkflowContext:
         self.results = {}
 
 
-# ID: 8a7b6c5d-4e3f-2g1h-0i9j-8k7l6m5n4o3p
+# ID: 01b61b8c-6a18-42b1-9794-ef037cc0dcee
 # ID: 8d6f2fb6-98b9-4ddc-9fd6-c161ccbac956
 class WorkflowOrchestrator:
     """
@@ -75,7 +75,7 @@ class WorkflowOrchestrator:
         self.tracer = DecisionTracer(self._paths)
         self.workflow_dir = self._paths.intent_root / "workflows"
 
-    # ID: 9b8c7d6e-5f4g-3h2i-1j0k-9l8m7n6o5p4q
+    # ID: b86b70a4-9d28-4ec5-81cb-80bdc1578bc6
     def _load_workflow_definition(self, workflow_type: str) -> WorkflowDefinition:
         """Load workflow definition from Constitution."""
         workflow_path = self.workflow_dir / f"{workflow_type}.yaml"
@@ -99,7 +99,7 @@ class WorkflowOrchestrator:
             timeout_minutes=data.get("timeout_minutes", 30),
         )
 
-    # ID: 0c9d8e7f-6g5h-4i3j-2k1l-0m9n8o7p6q5r
+    # ID: 0ffaf1e2-09e2-4471-ad1b-f65c1e969593
     # ID: 754633b1-65fe-4cbb-b83b-c97a06cfac23
     async def execute_goal(
         self,

@@ -15,7 +15,7 @@ if TYPE_CHECKING:
     from mind.governance.audit_context import AuditorContext
 
 
-# ID: path-protection-enforcement
+# ID: cdde2605-2b96-4135-8096-759bfc14ac41
 # ID: db3c250e-b770-4e71-9f84-03b6df1da7c8
 class PathProtectionEnforcement(EnforcementMethod):
     def __init__(
@@ -53,7 +53,7 @@ class PathProtectionEnforcement(EnforcementMethod):
         return findings
 
 
-# ID: code-pattern-enforcement
+# ID: a4e18a5b-e598-4d1f-8a93-0f58900f6fdb
 # ID: 245f2998-1a13-4c14-8e0f-da543417a63d
 class CodePatternEnforcement(EnforcementMethod):
     def __init__(
@@ -106,7 +106,7 @@ class CodePatternEnforcement(EnforcementMethod):
         return findings
 
 
-# ID: single-instance-enforcement
+# ID: 1fec05a2-f2cb-4859-8b5a-a4a7f185a72c
 # ID: befdd49a-3cb9-4868-8480-9c7ba03ee61c
 class SingleInstanceEnforcement(EnforcementMethod):
     def __init__(

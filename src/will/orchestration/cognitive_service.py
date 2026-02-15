@@ -3,14 +3,10 @@
 """
 CognitiveService - Will-facing facade for cognitive access.
 
-Responsibilities:
-- Initialize: wires MindStateService (Body) and CognitiveOrchestrator (Will).
-- aget_client_for_role(): returns LLMClient for a cognitive role.
-- get_embedding_for_code(): embedding for Vectorizer role.
-- Optional semantic search via injected QdrantService.
-
-HEALED (V2.6.2):
-- Explicitly detaches sub-services from the DB session after initialization is complete.
+HEALED (V2.7.3):
+- JIT Secret Retrieval: Added session_factory to handle encrypted secret
+  decryption even after the main initialization session is detached.
+- Prevents "Database session has been detached" errors during vectorization.
 """
 
 from __future__ import annotations
@@ -46,9 +42,11 @@ class CognitiveService:
         self,
         repo_path: Path,
         qdrant_service: QdrantService | None = None,
+        session_factory: Any | None = None,  # ADDED: Support for JIT connections
     ) -> None:
         self._repo_path = Path(repo_path)
         self._qdrant_service = qdrant_service
+        self._session_factory = session_factory  # ADDED
 
         self._init_lock = asyncio.Lock()
         self._loaded = False
@@ -71,9 +69,11 @@ class CognitiveService:
             if self._loaded:
                 return
 
+            # 1. Load configuration and state using the provided session
             self._config = await ConfigService.create(session)
             self._mind_state = MindStateService(session)
 
+            # 2. Initialize orchestrator
             self._orch = CognitiveOrchestrator(
                 repo_path=self._repo_path,
                 mind_state_service=self._mind_state,
@@ -81,15 +81,14 @@ class CognitiveService:
             )
             await self._orch.initialize()
 
-            # HEALED V2.6.2: Release the DB session back to the pool.
-            # This stops theAdaptedConnection leak warning.
+            # 3. CONSTITUTIONAL CLEANUP: Release the session reference.
             if self._config:
                 self._config.detach()
             if self._mind_state:
                 self._mind_state.detach()
 
             self._loaded = True
-            logger.info("CognitiveService initialized (connections detached).")
+            logger.info("CognitiveService initialized and connections detached.")
 
     def _require_ready(self) -> None:
         if not self._loaded or not self._orch or not self._config:
@@ -104,18 +103,29 @@ class CognitiveService:
         if not prefix:
             raise ValueError(f"Resource '{resource.name}' is missing env_prefix.")
 
+        # Note: ConfigService.get works after detach because it uses an internal cache.
         api_url = await self._config.get(f"{prefix}_API_URL")
         model_name = await self._config.get(f"{prefix}_MODEL_NAME")
-        api_key = await self._config.get_secret(f"{prefix}_API_KEY")
+
+        # CONSTITUTIONAL FIX: Fetch secret using a JIT session if detached.
+        # This prevents the "Database session has been detached" crash.
+        if self._session_factory:
+            async with self._session_factory() as session:
+                # Create a temporary config service just for this decryption
+                jit_config = await ConfigService.create(session)
+                api_key = await jit_config.get_secret(
+                    f"{prefix}_API_KEY", audit_context=resource.name
+                )
+        else:
+            # Fallback for unconfigured factory (will fail if detached)
+            api_key = await self._config.get_secret(f"{prefix}_API_KEY")
 
         if not api_url or not model_name:
             raise ValueError(f"Missing config for resource '{resource.name}'.")
 
-        # Local Ollama
         if "ollama" in api_url.lower() or "11434" in api_url:
             return OllamaProvider(api_url=api_url, model_name=model_name)
 
-        # Default: OpenAI-compatible
         return OpenAIProvider(api_url=api_url, api_key=api_key, model_name=model_name)
 
     # ID: 9962386f-4b31-5782-ba52-0b2b1655a43e

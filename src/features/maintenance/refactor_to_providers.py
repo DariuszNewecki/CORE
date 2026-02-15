@@ -50,7 +50,7 @@ class RefactorStrategy:
     changes_needed: list[str]  # Human-readable change descriptions
 
 
-# ID: a1b2c3d4-e5f6-7890-1234-567890abcdef
+# ID: 515c2680-cdee-4c84-a7cd-d56ab59f1685
 class ProviderRefactoringAnalyzer:
     """Analyzes files to determine provider refactoring strategy."""
 
@@ -212,7 +212,7 @@ class ProviderRefactoringAnalyzer:
         )
 
 
-# ID: b2c3d4e5-f6a7-8901-2345-678901bcdefg
+# ID: 0f5a2d06-9733-46f0-8b64-ca6ddf60f558
 # ID: c9c08c1c-754e-4595-ad5c-932d150dc78e
 async def analyze_layer_for_refactoring(repo_path: Path, layer: str) -> dict[str, Any]:
     """
@@ -269,7 +269,7 @@ async def analyze_layer_for_refactoring(repo_path: Path, layer: str) -> dict[str
     return results
 
 
-# ID: c3d4e5f6-a7b8-9012-3456-789012cdefgh
+# ID: 19919e6c-aca2-4115-89c0-b7464e675270
 # ID: af2b6a8d-db1c-405a-b73b-8307bf382f8a
 def generate_refactoring_report(analysis_results: dict[str, Any]) -> str:
     """Generate human-readable refactoring report."""

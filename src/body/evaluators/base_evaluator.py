@@ -1,12 +1,11 @@
 # src/body/evaluators/base_evaluator.py
-# ID: evaluator.base_contract
+# ID: 4b61c8d8-717b-4276-a53b-0f5d23383092
+"""Base Evaluator Contract - The "Judge" Interface.
 
-"""
-Base Evaluator Contract - The "Judge" Interface.
-
-HEALED (V2.7.1):
-- Auto-Persistence: Now automatically saves the decision trace to the DB
-  at the end of every execution.
+PURIFIED (V2.7.4)
+- Removed Will-layer 'DecisionTracer' to satisfy architecture.layers.no_body_to_will.
+- Reasoning is now stored in ComponentResult metadata for Will-layer consumption.
+- Removed automatic save_trace; Body components must be stateless fact producers.
 """
 
 from __future__ import annotations
@@ -15,18 +14,14 @@ from typing import Any
 
 from shared.component_primitive import Component, ComponentPhase, ComponentResult
 from shared.context import CoreContext
-from will.orchestration.decision_tracer import DecisionTracer
 
 
-# ID: 4b61c8d8-717b-4276-a53b-0f5d23383092
+# ID: 078fdd48-815b-446e-936b-f0a12846a2ea
 class BaseEvaluator(Component):
-    def __init__(self, context: CoreContext | None = None):
+    """Base contract for all evaluators operating in the AUDIT phase."""
+
+    def __init__(self, context: CoreContext | None = None) -> None:
         self.context = context
-        # Standardized Tracing
-        self.tracer = DecisionTracer(
-            path_resolver=context.path_resolver if context else None,
-            agent_name=self.__class__.__name__,
-        )
 
     @property
     # ID: 0a179fdc-81a2-4cb5-bd3f-a1a23943180e
@@ -34,15 +29,18 @@ class BaseEvaluator(Component):
         return ComponentPhase.AUDIT
 
     async def _create_result(
-        self, ok: bool, data: dict[str, Any], confidence: float, duration: float
+        self,
+        ok: bool,
+        data: dict[str, Any],
+        confidence: float,
+        duration: float,
+        rationale: str | None = None,
     ) -> ComponentResult:
-        """Helper to structure results and PERMANENTLY save the trace."""
+        """Structure results and embed rationale into metadata."""
+        metadata = data.get("metadata", {})
 
-        # HEALED: Before returning the result, save the history to the Database
-        try:
-            await self.tracer.save_trace()
-        except Exception:
-            pass  # Fail-safe: don't crash if DB is busy
+        if rationale:
+            metadata["rationale"] = rationale
 
         return ComponentResult(
             component_id=self.component_id,
@@ -51,4 +49,5 @@ class BaseEvaluator(Component):
             phase=self.phase,
             confidence=confidence,
             duration_sec=duration,
+            metadata=metadata,
         )

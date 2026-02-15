@@ -1,5 +1,5 @@
 # src/body/cli/logic/refusal_inspect_logic.py
-# ID: cli.logic.refusal_inspect
+# ID: 9801d673-43d1-492f-9fcf-8044fc76d2db
 
 """
 Logic for inspecting constitutional refusals.
@@ -76,7 +76,7 @@ async def show_recent_refusals(
         _show_refusal_details(refusals[0])
 
 
-# ID: b2c3d4e5-f6a7-8b9c-0d1e-2f3a4b5c6d7e
+# ID: 6b291fc8-62b7-44c8-a349-59237d660768
 def _show_refusal_details(refusal) -> None:
     """Show detailed information about a single refusal."""
     details = []

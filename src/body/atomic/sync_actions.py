@@ -1,5 +1,5 @@
 # src/body/atomic/sync_actions.py
-# ID: atomic.sync
+# ID: e664ac9c-d51f-4dd8-864d-ed67d3c3c479
 """
 Atomic Sync Actions - State Synchronization
 
@@ -35,7 +35,7 @@ logger = getLogger(__name__)
     action_id="sync.db",
     description="Sync code symbols to PostgreSQL knowledge graph",
     category=ActionCategory.SYNC,
-    policies=["database_schema"],
+    policies=["rules/data/governance"],
     impact_level="moderate",
     requires_db=True,
 )
@@ -51,20 +51,12 @@ async def action_sync_database(
 ) -> ActionResult:
     """
     Synchronize code symbols to PostgreSQL knowledge graph.
-
-    Args:
-        core_context: CORE context with services
-        write: Apply changes (default: dry-run)
-
-    Returns:
-        ActionResult with symbols_synced count
     """
     start = time.time()
     try:
         logger.info("Syncing symbols to database")
 
         if not write:
-            # Dry-run mode - just report
             return ActionResult(
                 action_id="sync.db",
                 ok=True,
@@ -77,10 +69,10 @@ async def action_sync_database(
             )
 
         async with get_session() as session:
-            # run_sync_with_db now returns an ActionResult object
-            result_obj = await run_sync_with_db(session)
+            # FIXED: Wrapped in begin() to ensure the sync is committed to the Mind
+            async with session.begin():
+                result_obj = await run_sync_with_db(session)
 
-        # FIXED: Access statistics via the .data attribute of the ActionResult
         stats = result_obj.data
 
         return ActionResult(
@@ -109,7 +101,7 @@ async def action_sync_database(
     action_id="sync.vectors.code",
     description="Vectorize code symbols to Qdrant",
     category=ActionCategory.SYNC,
-    policies=["vector_storage_policy"],
+    policies=["rules/data/governance"],
     impact_level="moderate",
     requires_db=True,
     requires_vectors=True,
@@ -120,33 +112,29 @@ async def action_sync_database(
     impact=ActionImpact.WRITE_CODE,
     policies=["atomic_actions"],
 )
-# ID: 0123456789ab-cdef-0123-4567-89abcdef0123
+# ID: 9825c54f-d3a5-49cb-af17-8dde9f8366a8
 # ID: af6a56d0-b2d3-44fe-b6ea-55d6aed3768b
 async def action_sync_code_vectors(
     core_context: CoreContext, write: bool = False, force: bool = False
 ) -> ActionResult:
     """
     Vectorize code symbols and sync to Qdrant.
-
-    Args:
-        core_context: CORE context with services
-        write: Apply changes (default: dry-run)
-        force: Force re-vectorization of all symbols
-
-    Returns:
-        ActionResult with vectors_synced count
     """
     start = time.time()
     try:
         logger.info("Vectorizing code symbols")
 
         async with get_session() as session:
-            await run_vectorize(
-                context=core_context,
-                session=session,
-                dry_run=not write,
-                force=force,
-            )
+            # CRITICAL CONSTITUTIONAL FIX: Added session.begin()
+            # run_vectorize prepares the data, but session.begin() ensures the
+            # "Last Embedded" timestamps are actually SAVED in PostgreSQL.
+            async with session.begin():
+                await run_vectorize(
+                    context=core_context,
+                    session=session,
+                    dry_run=not write,
+                    force=force,
+                )
 
         return ActionResult(
             action_id="sync.vectors.code",
@@ -172,7 +160,7 @@ async def action_sync_code_vectors(
     action_id="sync.vectors.constitution",
     description="Vectorize constitutional documents (policies, patterns)",
     category=ActionCategory.SYNC,
-    policies=["vector_storage_policy"],
+    policies=["rules/data/governance"],
     impact_level="safe",
     requires_vectors=True,
 )
@@ -182,29 +170,13 @@ async def action_sync_code_vectors(
     impact=ActionImpact.WRITE_CODE,
     policies=["atomic_actions"],
 )
-# ID: 23456789abcd-ef01-2345-6789-abcdef012345
+# ID: 6995c29a-581a-499d-9b3d-6b9664b5963d
 # ID: b301871b-6205-4300-a76e-65d2ffa56c03
 async def action_sync_constitutional_vectors(
     core_context: CoreContext, write: bool = False
 ) -> ActionResult:
     """
     Vectorize constitutional documents to Qdrant with smart deduplication.
-
-    This syncs:
-    - Policy documents from .intent/policies/
-    - Pattern documents from .intent/patterns/
-
-    Uses VectorIndexService with CognitiveService embedder for:
-    - Hash-based deduplication (only vectorize changed content)
-    - Database-configured LLM providers (same as code vectorization)
-    - Batch processing with proper error handling
-
-    Args:
-        core_context: CORE context with services
-        write: Apply changes (default: dry-run)
-
-    Returns:
-        ActionResult with policies_indexed and patterns_indexed counts
     """
     start = time.time()
 
@@ -220,15 +192,11 @@ async def action_sync_constitutional_vectors(
                 duration_sec=time.time() - start,
             )
 
-        # Get cognitive service (same path as code vectorization)
         cognitive_service = core_context.cognitive_service
         if cognitive_service is None and hasattr(core_context, "registry"):
             cognitive_service = await core_context.registry.get_cognitive_service()
 
         if cognitive_service is None:
-            logger.info(
-                "Cognitive service not available, skipping constitutional vectorization"
-            )
             return ActionResult(
                 action_id="sync.vectors.constitution",
                 ok=True,
@@ -236,25 +204,20 @@ async def action_sync_constitutional_vectors(
                 duration_sec=time.time() - start,
             )
 
-        # Pre-flight check (same as code vectorization)
-        logger.info("Testing embedding service...")
+        # Pre-flight check
         try:
-            test_embedding = await cognitive_service.get_embedding_for_code("test")
-            if not test_embedding:
-                raise RuntimeError("Embedding service returned empty result")
+            await cognitive_service.get_embedding_for_code("test")
         except Exception as e:
-            logger.info(
-                "Embedding service unavailable, skipping constitutional vectorization: %s",
-                e,
-            )
             return ActionResult(
                 action_id="sync.vectors.constitution",
                 ok=True,
-                data={"status": "skipped", "reason": "embedding_service_unavailable"},
+                data={
+                    "status": "skipped",
+                    "reason": f"embedding_service_unavailable: {e}",
+                },
                 duration_sec=time.time() - start,
             )
 
-        # Create embedder adapter to wrap CognitiveService
         from shared.infrastructure.vector.cognitive_adapter import (
             CognitiveEmbedderAdapter,
         )
@@ -263,26 +226,22 @@ async def action_sync_constitutional_vectors(
         embedder = CognitiveEmbedderAdapter(cognitive_service)
         adapter = ConstitutionalAdapter()
 
-        # Vectorize policies with smart deduplication
+        # Policy Sync
         policy_items = adapter.policies_to_items()
-        logger.info("Found %d policy chunks to process", len(policy_items))
-
         policy_service = VectorIndexService(
             qdrant_service=core_context.qdrant_service,
             collection_name="core_policies",
-            embedder=embedder,  # Inject CognitiveService!
+            embedder=embedder,
         )
         await policy_service.ensure_collection()
         policy_results = await policy_service.index_items(policy_items, batch_size=10)
 
-        # Vectorize patterns with smart deduplication
+        # Pattern Sync
         pattern_items = adapter.patterns_to_items()
-        logger.info("Found %d pattern chunks to process", len(pattern_items))
-
         pattern_service = VectorIndexService(
             qdrant_service=core_context.qdrant_service,
             collection_name="core-patterns",
-            embedder=embedder,  # Inject CognitiveService!
+            embedder=embedder,
         )
         await pattern_service.ensure_collection()
         pattern_results = await pattern_service.index_items(

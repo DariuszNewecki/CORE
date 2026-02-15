@@ -34,7 +34,7 @@ class SubprocessResult:
     returncode: int
 
 
-# ID: missing-async-helper-fixed
+# ID: ed599e92-3a6e-4378-8b07-ccc093ef0ab8
 # ID: a83abb8d-b9c6-45f1-bf2c-e01b62420ebf
 async def run_command_async(
     args: list[str], cwd: Path | str | None = None

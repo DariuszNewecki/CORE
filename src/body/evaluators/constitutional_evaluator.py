@@ -27,7 +27,7 @@ from shared.logger import getLogger
 logger = getLogger(__name__)
 
 
-# ID: 1a2b3c4d-5e6f-7a8b-9c0d-1e2f3a4b5c6d
+# ID: c935569b-95cd-4ee1-8128-ffdbb8f490e2
 class ConstitutionalEvaluator(Component):
     """
     Evaluates constitutional compliance for files and operations.
@@ -65,7 +65,7 @@ class ConstitutionalEvaluator(Component):
             self._validator_service = get_validator()
         return self._validator_service
 
-    # ID: 5e6f7a8b-9c0d-1e2f-3a4b-5c6d7e8f9a0b
+    # ID: 4770d6fd-6014-4593-9d7c-ae978cedaedf
     async def execute(
         self,
         repo_root: Path,

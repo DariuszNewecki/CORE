@@ -23,7 +23,7 @@ from shared.logger import getLogger
 logger = getLogger(__name__)
 
 
-# ID: review_context
+# ID: 3f2e4640-086a-4644-beed-fd3b8b389aa3
 # ID: 38a08d04-04d2-4196-bb0b-b95d2a227ae3
 @dataclass
 # ID: 24950f8a-5412-483a-9af7-e02427769ee7
@@ -38,8 +38,8 @@ class ReviewContext:
     approver_quorum: bool = False
 
 
-# ID: policy_expression_evaluator
-# ID: 8b9c0d1e-2f3a-4b5c-6d7e-8f9a0b1c2d3e
+# ID: c775477d-2f00-46c3-a993-2e4b1286f180
+# ID: e09d9c07-2e67-4e7a-a58c-2c647dd354a1
 class PolicyExpressionEvaluator:
     """
     Safely evaluates boolean policy expressions.
@@ -73,8 +73,8 @@ class PolicyExpressionEvaluator:
         ast.NotEq,
     }
 
-    # ID: evaluator_evaluate
-    # ID: 9c0d1e2f-3a4b-5c6d-7e8f-9a0b1c2d3e4f
+    # ID: 8c01550c-8d95-4b53-b7b0-560539e12984
+    # ID: a1c30251-1e32-459c-bf1d-44b6f649c7b6
     def evaluate(self, expr: str, context: dict[str, Any]) -> bool:
         """
         Safely evaluate a boolean expression string against a context dictionary.
@@ -125,7 +125,7 @@ class PolicyExpressionEvaluator:
         except Exception as e:
             raise ValueError(f"Expression evaluation failed: {e}") from e
 
-    # ID: evaluator_validate_expression
+    # ID: e1089f35-3ac3-45cb-9b34-7cfc94f23b1b
     # ID: 0d1e2f3a-4b5c-6d7e-8f9a-0b1c2d3e4f5a
     def validate_expression(self, expr: str) -> tuple[bool, str | None]:
         """

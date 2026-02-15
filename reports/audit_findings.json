@@ -1,8 +1,800 @@
 [
   {
+    "check_id": "async.no_manual_loop_run",
+    "severity": "error",
+    "message": "Line 131: Forbidden asyncio.run() without defensive loop check",
+    "file_path": "src/body/cli/resources/context/build.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "async.no_manual_loop_run",
+    "severity": "error",
+    "message": "Line 79: Forbidden asyncio.run() without defensive loop check",
+    "file_path": "src/body/cli/resources/context/search.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "logic.logging.standard_only",
+    "severity": "warning",
+    "message": "Line 78: Replace print() with logger.",
+    "file_path": "src/body/cli/resources/database/status.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "logic.logging.standard_only",
+    "severity": "warning",
+    "message": "Line 250: Replace print() with logger.",
+    "file_path": "src/features/self_healing/handlers/import_sorting_handler.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.max_file_size",
+    "severity": "warning",
+    "message": "Module has 451 lines, exceeds limit of 400",
+    "file_path": "src/body/atomic/executor.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.max_file_size",
+    "severity": "warning",
+    "message": "Module has 401 lines, exceeds limit of 400",
+    "file_path": "src/body/cli/commands/governance.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.max_file_size",
+    "severity": "warning",
+    "message": "Module has 448 lines, exceeds limit of 400",
+    "file_path": "src/body/cli/commands/secrets.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.max_file_size",
+    "severity": "warning",
+    "message": "Module has 430 lines, exceeds limit of 400",
+    "file_path": "src/body/evaluators/atomic_actions_evaluator.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.max_file_size",
+    "severity": "warning",
+    "message": "Module has 588 lines, exceeds limit of 400",
+    "file_path": "src/body/services/cim/scanners.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.max_file_size",
+    "severity": "warning",
+    "message": "Module has 426 lines, exceeds limit of 400",
+    "file_path": "src/body/services/constitutional_validator.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.max_file_size",
+    "severity": "warning",
+    "message": "Module has 420 lines, exceeds limit of 400",
+    "file_path": "src/features/introspection/pattern_vectorizer.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.max_file_size",
+    "severity": "warning",
+    "message": "Module has 447 lines, exceeds limit of 400",
+    "file_path": "src/features/maintenance/apply_provider_refactoring.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.max_file_size",
+    "severity": "warning",
+    "message": "Module has 649 lines, exceeds limit of 400",
+    "file_path": "src/features/self_healing/audit_remediation_service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.max_file_size",
+    "severity": "warning",
+    "message": "Module has 471 lines, exceeds limit of 400",
+    "file_path": "src/mind/governance/assumption_extractor.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.max_file_size",
+    "severity": "warning",
+    "message": "Module has 502 lines, exceeds limit of 400",
+    "file_path": "src/mind/governance/authority_package_builder.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.max_file_size",
+    "severity": "warning",
+    "message": "Module has 449 lines, exceeds limit of 400",
+    "file_path": "src/shared/infrastructure/clients/qdrant_client.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.max_file_size",
+    "severity": "warning",
+    "message": "Module has 431 lines, exceeds limit of 400",
+    "file_path": "src/will/autonomy/proposal.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.max_file_size",
+    "severity": "warning",
+    "message": "Module has 444 lines, exceeds limit of 400",
+    "file_path": "src/will/interpreters/request_interpreter.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.max_file_size",
+    "severity": "warning",
+    "message": "Module has 472 lines, exceeds limit of 400",
+    "file_path": "src/will/strategists/fix_strategist.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "governance.dangerous_execution_primitives",
+    "severity": "info",
+    "message": "Forbidden primitive 'subprocess.run' used (line 137).",
+    "file_path": "src/body/cli/commands/check/quality_gates.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "governance.dangerous_execution_primitives",
+    "severity": "info",
+    "message": "Forbidden primitive 'subprocess.run' used (line 135).",
+    "file_path": "src/body/cli/commands/check/quality_gates.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "governance.dangerous_execution_primitives",
+    "severity": "info",
+    "message": "Forbidden primitive 'subprocess.run' used (line 46).",
+    "file_path": "src/body/cli/commands/coverage/services/coverage_reporter.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "governance.dangerous_execution_primitives",
+    "severity": "info",
+    "message": "Forbidden primitive 'subprocess.run' used (line 65).",
+    "file_path": "src/body/cli/commands/coverage/services/coverage_reporter.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "governance.dangerous_execution_primitives",
+    "severity": "info",
+    "message": "Forbidden primitive 'os.environ' used (line 20).",
+    "file_path": "src/body/cli/logic/interactive_test/steps/utils.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "governance.dangerous_execution_primitives",
+    "severity": "info",
+    "message": "Forbidden primitive 'compile' used (line 120).",
+    "file_path": "src/body/services/policy_expression_evaluator.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "governance.dangerous_execution_primitives",
+    "severity": "info",
+    "message": "Forbidden primitive 'eval' used (line 124).",
+    "file_path": "src/body/services/policy_expression_evaluator.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "governance.dangerous_execution_primitives",
+    "severity": "info",
+    "message": "Forbidden primitive 'subprocess.run' used (line 91).",
+    "file_path": "src/features/project_lifecycle/bootstrap_service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "governance.dangerous_execution_primitives",
+    "severity": "info",
+    "message": "Forbidden primitive 'subprocess.run' used (line 42).",
+    "file_path": "src/features/self_healing/coverage_analyzer.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "governance.dangerous_execution_primitives",
+    "severity": "info",
+    "message": "Forbidden primitive 'subprocess.run' used (line 116).",
+    "file_path": "src/features/self_healing/coverage_analyzer.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "governance.dangerous_execution_primitives",
+    "severity": "info",
+    "message": "Forbidden primitive 'subprocess.run' used (line 16).",
+    "file_path": "src/features/self_healing/test_context/metrics.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "governance.dangerous_execution_primitives",
+    "severity": "info",
+    "message": "Forbidden primitive 'os.environ' used (line 63).",
+    "file_path": "src/features/test_generation/sandbox.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "governance.dangerous_execution_primitives",
+    "severity": "info",
+    "message": "Forbidden primitive 'os.environ' used (line 98).",
+    "file_path": "src/shared/config.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "governance.dangerous_execution_primitives",
+    "severity": "info",
+    "message": "Forbidden primitive 'os.getenv' used (line 93).",
+    "file_path": "src/shared/config.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "governance.dangerous_execution_primitives",
+    "severity": "info",
+    "message": "Forbidden primitive 'subprocess.run' used (line 41).",
+    "file_path": "src/shared/infrastructure/git_service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "governance.dangerous_execution_primitives",
+    "severity": "info",
+    "message": "Forbidden primitive 'os.getenv' used (line 77).",
+    "file_path": "src/shared/infrastructure/lifespan.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "governance.dangerous_execution_primitives",
+    "severity": "info",
+    "message": "Forbidden primitive 'subprocess.run' used (line 128).",
+    "file_path": "src/shared/infrastructure/repositories/db/common.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "governance.dangerous_execution_primitives",
+    "severity": "info",
+    "message": "Forbidden primitive 'subprocess.run' used (line 49).",
+    "file_path": "src/shared/infrastructure/validation/ruff_linter.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "governance.dangerous_execution_primitives",
+    "severity": "info",
+    "message": "Forbidden primitive 'subprocess.run' used (line 59).",
+    "file_path": "src/shared/infrastructure/validation/ruff_linter.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "governance.dangerous_execution_primitives",
+    "severity": "info",
+    "message": "Forbidden primitive 'os.getenv' used (line 22).",
+    "file_path": "src/shared/logger.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "governance.dangerous_execution_primitives",
+    "severity": "info",
+    "message": "Forbidden primitive 'os.getenv' used (line 23).",
+    "file_path": "src/shared/logger.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "governance.dangerous_execution_primitives",
+    "severity": "info",
+    "message": "Forbidden primitive 'subprocess.run' used (line 75).",
+    "file_path": "src/shared/utils/subprocess_utils.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.mind.no_body_invocation",
+    "severity": "error",
+    "message": "/opt/dev/CORE/src/mind/enforcement/guard_cli.py:15 - Forbidden import: 'from body.cli.logic.cli_utils import should_fail' (matches constitutional boundary rule: body)",
+    "file_path": "src/mind/enforcement/guard_cli.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.mind.no_body_invocation",
+    "severity": "error",
+    "message": "/opt/dev/CORE/src/mind/governance/audit_postprocessor.py:19 - Forbidden import: 'from body.services.file_service import FileService' (matches constitutional boundary rule: body)",
+    "file_path": "src/mind/governance/audit_postprocessor.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.mind.no_body_invocation",
+    "severity": "error",
+    "message": "/opt/dev/CORE/src/mind/governance/audit_report_writer.py:15 - Forbidden import: 'from body.services.file_service import FileService' (matches constitutional boundary rule: body)",
+    "file_path": "src/mind/governance/audit_report_writer.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.mind.no_body_invocation",
+    "severity": "error",
+    "message": "/opt/dev/CORE/src/mind/governance/code_validator.py:18 - Forbidden import: 'from body.governance.intent_pattern_validators import PatternValidators' (matches constitutional boundary rule: body)",
+    "file_path": "src/mind/governance/code_validator.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.mind.no_body_invocation",
+    "severity": "error",
+    "message": "/opt/dev/CORE/src/mind/governance/enforcement/async_units.py:23 - Forbidden import: 'from body.services.service_registry import service_registry' (matches constitutional boundary rule: body)",
+    "file_path": "src/mind/governance/enforcement/async_units.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.mind.no_body_invocation",
+    "severity": "error",
+    "message": "/opt/dev/CORE/src/mind/governance/key_management_service.py:21 - Forbidden import: 'from body.services.file_service import FileService' (matches constitutional boundary rule: body)",
+    "file_path": "src/mind/governance/key_management_service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.mind.no_body_invocation",
+    "severity": "error",
+    "message": "/opt/dev/CORE/src/mind/governance/path_validator.py:18 - Forbidden import: 'from body.governance.engine_dispatcher import EngineDispatcher' (matches constitutional boundary rule: body)",
+    "file_path": "src/mind/governance/path_validator.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.mind.no_body_invocation",
+    "severity": "error",
+    "message": "/opt/dev/CORE/src/mind/governance/runtime_validator.py:20 - Forbidden import: 'from body.services.file_service import FileService' (matches constitutional boundary rule: body)",
+    "file_path": "src/mind/governance/runtime_validator.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.mind.no_body_invocation",
+    "severity": "error",
+    "message": "/opt/dev/CORE/src/mind/logic/engines/llm_gate.py:21 - Forbidden import: 'from body.services.llm_client import LLMClient' (matches constitutional boundary rule: body)",
+    "file_path": "src/mind/logic/engines/llm_gate.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.mind.no_body_invocation",
+    "severity": "error",
+    "message": "/opt/dev/CORE/src/mind/logic/engines/workflow_gate/checks/alignment.py:57 - Forbidden import: 'from body.services.service_registry import service_registry' (matches constitutional boundary rule: body)",
+    "file_path": "src/mind/logic/engines/workflow_gate/checks/alignment.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.mind.no_body_invocation",
+    "severity": "error",
+    "message": "/opt/dev/CORE/src/mind/logic/engines/workflow_gate/checks/audit.py:50 - Forbidden import: 'from body.services.service_registry import service_registry' (matches constitutional boundary rule: body)",
+    "file_path": "src/mind/logic/engines/workflow_gate/checks/audit.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.mind.no_body_invocation",
+    "severity": "error",
+    "message": "/opt/dev/CORE/src/mind/logic/engines/workflow_gate/checks/tests.py:50 - Forbidden import: 'from body.services.service_registry import service_registry' (matches constitutional boundary rule: body)",
+    "file_path": "src/mind/logic/engines/workflow_gate/checks/tests.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.body.no_rule_evaluation",
+    "severity": "error",
+    "message": "/opt/dev/CORE/src/body/atomic/metadata_ops.py:84 - Forbidden import: 'from mind.logic.engines.ast_gate.checks.metadata_checks import verify_metadata_only_diff' (matches constitutional boundary rule: mind.logic.engines)",
+    "file_path": "src/body/atomic/metadata_ops.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.body.no_rule_evaluation",
+    "severity": "error",
+    "message": "/opt/dev/CORE/src/body/cli/commands/refactor_support/analyzer.py:11 - Forbidden import: 'from mind.logic.engines.ast_gate.checks.modularity_checks import ModularityChecker' (matches constitutional boundary rule: mind.logic.engines)",
+    "file_path": "src/body/cli/commands/refactor_support/analyzer.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.body.no_rule_evaluation",
+    "severity": "error",
+    "message": "/opt/dev/CORE/src/body/cli/logic/governance/engine.py:18 - Forbidden import: 'from mind.logic.engines.ast_gate import ASTGateEngine' (matches constitutional boundary rule: mind.logic.engines)",
+    "file_path": "src/body/cli/logic/governance/engine.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.body.no_rule_evaluation",
+    "severity": "error",
+    "message": "/opt/dev/CORE/src/body/governance/engine_dispatcher.py:14 - Forbidden import: 'from mind.logic.engines.registry import EngineRegistry' (matches constitutional boundary rule: mind.logic.engines)",
+    "file_path": "src/body/governance/engine_dispatcher.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.api.no_body_bypass",
+    "severity": "warning",
+    "message": "/opt/dev/CORE/src/api/v1/development_routes.py:19 - Forbidden import: 'from body.services.service_registry import service_registry' (matches constitutional boundary rule: body.services)",
+    "file_path": "src/api/v1/development_routes.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.api.no_body_bypass",
+    "severity": "warning",
+    "message": "/opt/dev/CORE/src/api/v1/knowledge_routes.py:15 - Forbidden import: 'from body.services.service_registry import service_registry' (matches constitutional boundary rule: body.services)",
+    "file_path": "src/api/v1/knowledge_routes.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.layers.no_body_to_will",
+    "severity": "error",
+    "message": "/opt/dev/CORE/src/body/cli/logic/embeddings_cli.py:17 - Forbidden import: 'from will.orchestration.cognitive_service import CognitiveService' (matches constitutional boundary rule: will.orchestration)",
+    "file_path": "src/body/cli/logic/embeddings_cli.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.layers.no_body_to_will",
+    "severity": "error",
+    "message": "/opt/dev/CORE/src/body/cli/logic/interactive_test/workflow.py:33 - Forbidden import: 'from will.agents.coder_agent import CoderAgent' (matches constitutional boundary rule: will.agents)",
+    "file_path": "src/body/cli/logic/interactive_test/workflow.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.layers.no_body_to_will",
+    "severity": "error",
+    "message": "/opt/dev/CORE/src/body/cli/logic/interactive_test/workflow.py:34 - Forbidden import: 'from will.orchestration.prompt_pipeline import PromptPipeline' (matches constitutional boundary rule: will.orchestration)",
+    "file_path": "src/body/cli/logic/interactive_test/workflow.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.layers.no_body_to_will",
+    "severity": "error",
+    "message": "/opt/dev/CORE/src/body/cli/resources/dev/chat.py:24 - Forbidden import: 'from will.agents.intent_translator import IntentTranslator' (matches constitutional boundary rule: will.agents)",
+    "file_path": "src/body/cli/resources/dev/chat.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.layers.no_body_to_will",
+    "severity": "error",
+    "message": "/opt/dev/CORE/src/body/cli/resources/dev/chat.py:25 - Forbidden import: 'from will.orchestration.cognitive_service import CognitiveService' (matches constitutional boundary rule: will.orchestration)",
+    "file_path": "src/body/cli/resources/dev/chat.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.layers.no_body_to_will",
+    "severity": "error",
+    "message": "/opt/dev/CORE/src/body/services/service_registry.py:165 - Forbidden import: 'from will.orchestration.cognitive_service import CognitiveService' (matches constitutional boundary rule: will.orchestration)",
+    "file_path": "src/body/services/service_registry.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "modularity.single_responsibility",
+    "severity": "warning",
+    "message": "Modularity Debt: 57.2/100 (Limit: 60.0)",
+    "file_path": "src/body/cli/commands/governance.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "modularity.single_responsibility",
+    "severity": "warning",
+    "message": "Modularity Debt: 49.3/100 (Limit: 60.0)",
+    "file_path": "src/body/services/cim/scanners.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "modularity.single_responsibility",
+    "severity": "warning",
+    "message": "Modularity Debt: 49.5/100 (Limit: 60.0)",
+    "file_path": "src/body/services/service_registry.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "modularity.single_responsibility",
+    "severity": "warning",
+    "message": "Modularity Debt: 54.1/100 (Limit: 60.0)",
+    "file_path": "src/mind/governance/authority_package_builder.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "modularity.semantic_cohesion",
+    "severity": "warning",
+    "message": "Modularity Debt: 57.2/100 (Limit: 60.0)",
+    "file_path": "src/body/cli/commands/governance.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "modularity.semantic_cohesion",
+    "severity": "warning",
+    "message": "Modularity Debt: 49.3/100 (Limit: 60.0)",
+    "file_path": "src/body/services/cim/scanners.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "modularity.semantic_cohesion",
+    "severity": "warning",
+    "message": "Modularity Debt: 49.5/100 (Limit: 60.0)",
+    "file_path": "src/body/services/service_registry.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "modularity.semantic_cohesion",
+    "severity": "warning",
+    "message": "Modularity Debt: 54.1/100 (Limit: 60.0)",
+    "file_path": "src/mind/governance/authority_package_builder.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "modularity.import_coupling",
+    "severity": "warning",
+    "message": "Modularity Debt: 57.2/100 (Limit: 60.0)",
+    "file_path": "src/body/cli/commands/governance.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "modularity.import_coupling",
+    "severity": "warning",
+    "message": "Modularity Debt: 49.3/100 (Limit: 60.0)",
+    "file_path": "src/body/services/cim/scanners.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "modularity.import_coupling",
+    "severity": "warning",
+    "message": "Modularity Debt: 49.5/100 (Limit: 60.0)",
+    "file_path": "src/body/services/service_registry.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "modularity.import_coupling",
+    "severity": "warning",
+    "message": "Modularity Debt: 54.1/100 (Limit: 60.0)",
+    "file_path": "src/mind/governance/authority_package_builder.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "modularity.refactor_score_threshold",
+    "severity": "warning",
+    "message": "Modularity Debt: 57.2/100 (Limit: 60.0)",
+    "file_path": "src/body/cli/commands/governance.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "modularity.refactor_score_threshold",
+    "severity": "warning",
+    "message": "Modularity Debt: 49.3/100 (Limit: 60.0)",
+    "file_path": "src/body/services/cim/scanners.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "modularity.refactor_score_threshold",
+    "severity": "warning",
+    "message": "Modularity Debt: 49.5/100 (Limit: 60.0)",
+    "file_path": "src/body/services/service_registry.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "modularity.refactor_score_threshold",
+    "severity": "warning",
+    "message": "Modularity Debt: 54.1/100 (Limit: 60.0)",
+    "file_path": "src/mind/governance/authority_package_builder.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.boundary.settings_access",
+    "severity": "error",
+    "message": "/opt/dev/CORE/src/body/cli/commands/fix/audit.py:27 - Forbidden import: 'from shared.config import settings' (matches constitutional boundary rule: shared.config.settings)",
+    "file_path": "src/body/cli/commands/fix/audit.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.boundary.settings_access",
+    "severity": "error",
+    "message": "/opt/dev/CORE/src/body/cli/commands/inspect/repo_census.py:23 - Forbidden import: 'from shared.config import settings' (matches constitutional boundary rule: shared.config.settings)",
+    "file_path": "src/body/cli/commands/inspect/repo_census.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.boundary.settings_access",
+    "severity": "error",
+    "message": "/opt/dev/CORE/src/body/cli/commands/repo_census.py:18 - Forbidden import: 'from shared.config import settings' (matches constitutional boundary rule: shared.config.settings)",
+    "file_path": "src/body/cli/commands/repo_census.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.boundary.settings_access",
+    "severity": "error",
+    "message": "/opt/dev/CORE/src/body/cli/resources/context/build.py:18 - Forbidden import: 'from shared.config import settings' (matches constitutional boundary rule: shared.config.settings)",
+    "file_path": "src/body/cli/resources/context/build.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.boundary.settings_access",
+    "severity": "error",
+    "message": "/opt/dev/CORE/src/body/governance/intent_guard.py:29 - Forbidden import: 'from shared.config import settings' (matches constitutional boundary rule: shared.config.settings)",
+    "file_path": "src/body/governance/intent_guard.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.boundary.llm_client_access",
+    "severity": "error",
+    "message": "/opt/dev/CORE/src/body/cli/logic/interactive_test/workflow.py:33 - Forbidden import: 'from will.agents.coder_agent import CoderAgent' (matches constitutional boundary rule: will.agents)",
+    "file_path": "src/body/cli/logic/interactive_test/workflow.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.boundary.llm_client_access",
+    "severity": "error",
+    "message": "/opt/dev/CORE/src/body/cli/resources/dev/chat.py:24 - Forbidden import: 'from will.agents.intent_translator import IntentTranslator' (matches constitutional boundary rule: will.agents)",
+    "file_path": "src/body/cli/resources/dev/chat.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
     "check_id": "workflow.mypy_check",
     "severity": "info",
-    "message": "Quality Gate mypy_check failed: src/shared/models/command_meta.py:149: error: \"Callable[..., Any]\" has no attribute \"__command_meta__\"  [attr-defined]",
+    "message": "Quality Gate mypy_check failed: src/shared/models/command_meta.py:155: error: \"Callable[..., Any]\" has no attribute \"__command_meta__\"  [attr-defined]",
     "file_path": "System",
     "line_number": null,
     "context": {},
@@ -29,8 +821,8 @@
   {
     "check_id": "purity.no_todo_placeholders",
     "severity": "warning",
-    "message": "Forbidden Content [Line 2]: Matched restricted regex '\\bTBD\\b'",
-    "file_path": "src/body/atomic/metadata_ops.py",
+    "message": "Forbidden Content [Line 71]: Matched restricted regex '\\bTODO\\b'",
+    "file_path": "src/body/cli/resources/context/cache.py",
     "line_number": null,
     "context": {},
     "details": {}
@@ -38,8 +830,8 @@
   {
     "check_id": "purity.no_todo_placeholders",
     "severity": "warning",
-    "message": "Forbidden Content [Line 48]: Matched restricted regex '\\bTBD\\b'",
-    "file_path": "src/body/atomic/metadata_ops.py",
+    "message": "Forbidden Content [Line 95]: Matched restricted regex '\\bTODO\\b'",
+    "file_path": "src/body/cli/resources/context/cache.py",
     "line_number": null,
     "context": {},
     "details": {}
@@ -47,8 +839,8 @@
   {
     "check_id": "purity.no_todo_placeholders",
     "severity": "warning",
-    "message": "Forbidden Content [Line 36]: Matched restricted regex '\\bTBD\\b'",
-    "file_path": "src/body/cli/commands/fix/audit.py",
+    "message": "Forbidden Content [Line 108]: Matched restricted regex '\\bTODO\\b'",
+    "file_path": "src/body/cli/resources/context/cache.py",
     "line_number": null,
     "context": {},
     "details": {}
@@ -56,8 +848,8 @@
   {
     "check_id": "purity.no_todo_placeholders",
     "severity": "warning",
-    "message": "Forbidden Content [Line 40]: Matched restricted regex '\\bTBD\\b'",
-    "file_path": "src/features/self_healing/audit_remediation_service.py",
+    "message": "Forbidden Content [Line 40]: Matched restricted regex '\\bTODO\\b'",
+    "file_path": "src/body/cli/resources/context/search.py",
     "line_number": null,
     "context": {},
     "details": {}
@@ -65,8 +857,8 @@
   {
     "check_id": "purity.no_todo_placeholders",
     "severity": "warning",
-    "message": "Forbidden Content [Line 28]: Matched restricted regex '\\bTBD\\b'",
-    "file_path": "src/features/self_healing/handlers/import_sorting_handler.py",
+    "message": "Forbidden Content [Line 126]: Matched restricted regex '\\bTBD\\b'",
+    "file_path": "src/features/self_healing/duplicate_id_service.py",
     "line_number": null,
     "context": {},
     "details": {}
@@ -74,53 +866,8 @@
   {
     "check_id": "purity.no_todo_placeholders",
     "severity": "warning",
-    "message": "Forbidden Content [Line 2]: Matched restricted regex '\\bTBD\\b'",
-    "file_path": "src/mind/logic/engines/ast_gate/checks/metadata_checks.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_todo_placeholders",
-    "severity": "warning",
-    "message": "Forbidden Content [Line 27]: Matched restricted regex '\\bTBD\\b'",
-    "file_path": "src/mind/logic/engines/ast_gate/checks/metadata_checks.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_todo_placeholders",
-    "severity": "warning",
-    "message": "Forbidden Content [Line 48]: Matched restricted regex '\\bTBD\\b'",
-    "file_path": "src/mind/logic/engines/ast_gate/checks/metadata_checks.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_todo_placeholders",
-    "severity": "warning",
-    "message": "Forbidden Content [Line 125]: Matched restricted regex '\\bTBD\\b'",
-    "file_path": "src/mind/logic/engines/ast_gate/checks/metadata_checks.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_todo_placeholders",
-    "severity": "warning",
-    "message": "Forbidden Content [Line 151]: Matched restricted regex '\\bTBD\\b'",
-    "file_path": "src/mind/logic/engines/ast_gate/checks/metadata_checks.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_todo_placeholders",
-    "severity": "warning",
-    "message": "Forbidden Content [Line 213]: Matched restricted regex '\\bTBD\\b'",
-    "file_path": "src/mind/logic/engines/ast_gate/checks/metadata_checks.py",
+    "message": "Forbidden Content [Line 190]: Matched restricted regex '\\bTBD\\b'",
+    "file_path": "src/features/self_healing/duplicate_id_service.py",
     "line_number": null,
     "context": {},
     "details": {}
@@ -871,6 +1618,33 @@
     "severity": "warning",
     "message": "Dead code detected: src/body/cli/commands/fix/metadata.py:163: unused variable 'policies_dir' (100% confidence)",
     "file_path": "System",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "autonomy.tracing.mandatory",
+    "severity": "warning",
+    "message": "Line 9: missing mandatory call(s): ['self.tracer.record']",
+    "file_path": "src/will/agents/conversational/__init__.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "autonomy.tracing.mandatory",
+    "severity": "warning",
+    "message": "Line 16: missing mandatory call(s): ['self.tracer.record']",
+    "file_path": "src/will/agents/conversational/factory.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "autonomy.tracing.mandatory",
+    "severity": "warning",
+    "message": "Line 37: missing mandatory call(s): ['self.tracer.record']",
+    "file_path": "src/will/agents/conversational/factory.py",
     "line_number": null,
     "context": {},
     "details": {}

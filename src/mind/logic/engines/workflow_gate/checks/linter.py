@@ -19,7 +19,7 @@ from shared.logger import getLogger
 logger = getLogger(__name__)
 
 
-# ID: a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d
+# ID: 4d2b4ae8-afee-4354-add7-4db563f1d576
 class LinterComplianceCheck(WorkflowCheck):
     """
     Verifies that code passes linter (ruff) and formatter (black) checks.

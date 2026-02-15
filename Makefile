@@ -2,7 +2,8 @@
 # Makefile for CORE — The Self-Improving System Architect
 #
 # This file maps concise 'make' commands to the authoritative 'core-admin' CLI.
-# It serves as the developer's control panel.
+# It serves as the developer's control panel, composing atomic CLI "neurons"
+# into functional "limbs" (pipelines).
 
 # ---- Shell & defaults --------------------------------------------------------
 SHELL := /bin/bash
@@ -25,23 +26,22 @@ OUTPUT_PATH := docs/10_CAPABILITY_REFERENCE.md
 # ---- Phony targets -----------------------------------------------------------
 .PHONY: \
   help install lock run stop \
-  audit check-constitution check-quality validate \
-  lint format test test-coverage check \
-  dev-sync \
-  fix-all dupes cli-tree clean distclean nuke \
-  docs check-docs vectorize integrate \
-  migrate export-db sync-knowledge sync-manifest \
-  patterns check-patterns state
+  audit check-constitution check-ui validate \
+  lint format test coverage dev-sync \
+  dupes traces refusals cli-tree clean nuke \
+  docs vectorize integrate \
+  migrate export-db sync-knowledge \
+  patterns state
 
 # ---- Help (auto-documented) --------------------------------------------------
 help: ## Show this help message
-	@echo "CORE Development Makefile"
-	@echo "-------------------------"
+	@echo "CORE Development Makefile (Resource-First Architecture v2.0)"
+	@echo "------------------------------------------------------------"
 	@echo "Usage: make [target]"
 	@echo ""
 	@awk 'BEGIN {FS":.*##"} /^[a-zA-Z0-9_.-]+:.*##/ {printf "  \033[36m%-20s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 	@echo ""
-	@echo "Tip: run 'core-admin --help' to see all granular CLI commands."
+	@echo "Tip: run 'core-admin --help' to see the resource-based CLI hierarchy."
 
 # ---- Setup -------------------------------------------------------------------
 install: ## Install dependencies (poetry install)
@@ -62,95 +62,84 @@ stop: ## Kill any process listening on $(PORT)
 	@command -v lsof >/dev/null 2>&1 && lsof -t -i:$(PORT) | xargs kill -9 2>/dev/null || true
 
 # ==============================================================================
-#   QUALITY GATES & VALIDATION (UNIX Philosophy: Compose Simple Commands)
+#   QUALITY GATES & VALIDATION (Composing Atomic Resource Actions)
 # ==============================================================================
 
-check-constitution: ## Check constitutional compliance (policies, patterns)
-	@echo "📜 Checking constitutional compliance..."
-	$(CORE_ADMIN) check audit
+check-constitution: ## Check constitutional compliance (audit)
+	@echo "⚖️  Running constitutional audit..."
+	$(CORE_ADMIN) code audit
 
-check-quality: ## Check code quality gates (ruff, mypy, coverage, security, complexity, dead code)
-	@echo "🔍 Running quality gates..."
-	$(CORE_ADMIN) check quality-gates
+check-ui: ## Check for UI leaks in Body layer (Headless enforcement)
+	@echo "🔍 Checking Body-layer UI contracts..."
+	$(CORE_ADMIN) code check-ui
 
-audit: dev-sync check-constitution check-quality ## Full audit: sync → constitution → quality
-	@echo "✅ Full audit complete (sync + constitution + quality)"
+audit: dev-sync check-constitution check-ui ## Full audit: sync → constitution → ui
+	@echo "✅ Full system audit complete"
 
 validate: audit ## Alias for audit (pre-commit validation)
 	@echo "✅ Validation complete"
 
 # ==============================================================================
 
-# ---- Individual Checks (Granular) --------------------------------------------
+# ---- Individual Resource Actions (Neurons) -----------------------------------
 lint: ## Check code format and quality (read-only)
-	$(CORE_ADMIN) check lint
+	$(CORE_ADMIN) code lint
 
-format: ## Fix code style issues (Black/Ruff via CLI)
-	$(CORE_ADMIN) fix code-style
+format: ## Fix code style and import order
+	@echo "✨ Formatting code (Black/Ruff)..."
+	$(CORE_ADMIN) code format --write
+	@echo "🧹 Sorting imports..."
+	$(CORE_ADMIN) code format-imports --write
 
-test: ## Run tests
+test: ## Run test suite
 	@echo "🧪 Running tests with pytest..."
 	$(POETRY) run pytest --cov=src --cov-report=json
 
-test-coverage: ## Run tests with coverage report and validation
-	@echo "📊 Running tests with coverage report..."
-	$(POETRY) run pytest --cov --cov-report=term-missing
+coverage: ## Check coverage compliance
 	@echo "📈 Checking coverage meets constitutional requirement..."
-	$(CORE_ADMIN) coverage check
-
-check: lint test test-coverage check-docs ## Legacy: Run checks (prefer 'make validate')
-	@echo "✅ Legacy check complete (use 'make validate' for full audit)"
-
-fix-all: ## Run all self-healing fixes in curated sequence
-	$(CORE_ADMIN) fix all
+	$(CORE_ADMIN) code audit --verbose
 
 # ==============================================================================
-#   DEV-SYNC: Atomic Operations Composed (UNIX Philosophy)
+#   DEV-SYNC: Atomic Operations Composed (The "Limb" Pipeline)
 # ==============================================================================
 
-dev-sync:
+dev-sync: ## Synchronize local state (IDs -> Dedup -> Format -> DB -> Vectors)
 	@echo "🔄 CORE Development Sync Pipeline"
 	@echo "=================================="
-	@echo ""
 	@echo "1️⃣  Fixing symbol IDs..."
-	@poetry run core-admin symbols fix-ids --write
-	@echo ""
-	@echo "2️⃣  Formatting code..."
-	@poetry run core-admin code format --write
-	@echo ""
-	@echo "3️⃣  Syncing database..."
-	@poetry run core-admin symbols sync --write
-	@echo ""
-	@echo "4️⃣  Updating vectors..."
-	@poetry run core-admin vectors sync --write
-	@echo ""
-	@echo "✅ Dev-sync complete: All systems synchronized"
+	@$(CORE_ADMIN) symbols fix-ids --write
+	@echo "2️⃣  Resolving duplicate IDs..."
+	@$(CORE_ADMIN) symbols resolve-duplicates --write
+	@echo "3️⃣  Formatting code & imports..."
+	@$(MAKE) format
+	@echo "4️⃣  Syncing knowledge graph..."
+	@$(CORE_ADMIN) symbols sync --write
+	@echo "5️⃣  Updating memory (vectors)..."
+	@$(CORE_ADMIN) vectors sync-code --write
+	@echo "6️⃣  Generating operational summary..."
+	@$(CORE_ADMIN) admin summary
+	@echo "✅ Dev-sync complete"
 
 # ==============================================================================
 
-dupes: ## Check for duplicate code (semantic similarity analysis)
-	@echo "🔍 Running semantic duplication analysis..."
-	$(CORE_ADMIN) inspect duplicates --threshold 0.96
+# ---- Forensics & Analytics (Admin Resource) ----------------------------------
+dupes: ## Check for duplicate code (semantic analysis)
+	@echo "👯 Running semantic duplication analysis..."
+	$(CORE_ADMIN) code audit-duplicates --threshold 0.96
 
-cli-tree: ## Display CLI command tree
-	@echo "🌳 Generating CLI command tree..."
-	$(CORE_ADMIN) inspect command-tree
+traces: ## View recent autonomous decision traces
+	$(CORE_ADMIN) admin traces
 
-# ---- Pattern Management ------------------------------------------------------
-patterns: ## List available design patterns
-	@echo "📋 CORE Design Patterns"
-	@$(CORE_ADMIN) patterns list
+refusals: ## View constitutional refusal logs
+	$(CORE_ADMIN) admin refusals
 
-check-patterns: ## Check code compliance with design patterns
-	@echo "🔍 Checking pattern compliance..."
-	@$(CORE_ADMIN) patterns check
+patterns: ## Analyze architectural pattern usage
+	$(CORE_ADMIN) admin patterns
 
-# ---- System State ------------------------------------------------------------
-state: ## Show current CORE system state snapshot
-	@echo "📊 CORE System State"
-	@$(CORE_ADMIN) inspect state
+state: ## Show current database and migration status
+	$(CORE_ADMIN) database status
 
-# ---- Knowledge / DB helpers --------------------------------------------------
+# ---- Maintenance & Lifecycle -------------------------------------------------
 migrate: ## Apply pending DB schema migrations
 	$(CORE_ADMIN) database migrate --apply
 
@@ -160,52 +149,30 @@ export-db: ## Export DB tables to canonical YAML
 sync-knowledge: ## Scan codebase and sync symbols to DB (SSOT)
 	$(CORE_ADMIN) database sync --write
 
-sync-manifest: ## Sync .intent manifest from DB
-	$(CORE_ADMIN) manage database sync-manifest
+vectorize: ## Full vectorization (Constitution + Code)
+	@echo "🧠 Vectorizing constitution..."
+	$(CORE_ADMIN) vectors sync --write
+	@echo "🧠 Vectorizing code symbols..."
+	$(CORE_ADMIN) vectors sync-code --write
 
-vectorize: ## Vectorize knowledge graph, patterns, and policies
-	@echo "🧠 Vectorizing constitutional patterns..."
-	$(CORE_ADMIN) manage patterns vectorize
-	@echo "🧠 Vectorizing constitutional policies..."
-	$(CORE_ADMIN) manage policies vectorize
-	@echo "🧠 Vectorizing knowledge graph..."
-	$(CORE_ADMIN) run vectorize --write
-
-integrate: ## Canonical integration sequence (submits changes)
-	@echo "⚠️  WARNING: This will auto-commit and submit changes!"
-	$(CORE_ADMIN) submit changes --message "feat: Integrate changes via make"
-
-coverage-run: ## Run the nightly autonomous coverage remediation job
-	@echo "🤖 Starting autonomous coverage remediation job..."
-	$(POETRY) run python scripts/nightly_coverage_remediation.py
+integrate: ## Finalize changes and integrate into system
+	$(CORE_ADMIN) proposals integrate --message "feat: Integrate changes via make"
 
 # ---- Docs --------------------------------------------------------------------
 docs: ## Generate capability documentation
 	@echo "📚 Generating capability documentation..."
-	$(CORE_ADMIN) manage project docs
-
-check-docs: docs ## Verify documentation is in sync
-	@echo "🔎 Checking for documentation drift..."
-	@git diff --exit-code --quiet "$(OUTPUT_PATH)" || (echo "❌ ERROR: Documentation is out of sync. Please run 'make docs' and commit the changes." && exit 1)
-	@echo "✅ Documentation is up to date."
+	$(CORE_ADMIN) project docs
 
 # ---- Clean -------------------------------------------------------------------
 clean: ## Remove temporary files and caches
-	@echo "🧹 Cleaning up temporary files and caches..."
+	@echo "🧹 Cleaning temporary files..."
 	find . -type f -name '*.pyc' -delete
 	find . -type d -name '__pycache__' -prune -exec rm -rf {} +
 	rm -rf .pytest_cache .ruff_cache .mypy_cache .cache
-	rm -rf build dist *.egg-info
-	rm -rf pending_writes sandbox
+	rm -rf build dist *.egg-info var/workflows/pending_writes work/testing
 	@echo "✅ Clean complete."
 
-distclean: clean ## Clean + remove virtual env
-	@echo "🧨 Distclean: removing virtual environments and build leftovers..."
-	rm -rf .venv
-	@echo "✅ Distclean complete."
-
-nuke: ## Danger! Remove ALL untracked files (git clean -fdx)
-	@echo "☢️  Running 'git clean -fdx' in 3s (CTRL+C to cancel)..."
+nuke: ## Danger! Remove ALL untracked files
+	@echo "☢️  Running 'git clean -fdx' in 3s..."
 	@sleep 3
 	git clean -fdx
-	@echo "✅ Repo nuked (untracked files/dirs removed)."

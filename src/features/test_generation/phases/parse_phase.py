@@ -11,7 +11,7 @@ from shared.logger import getLogger
 logger = getLogger(__name__)
 
 
-# ID: a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d
+# ID: 44387934-945c-40ee-9d7d-e59a7cf92377
 class ParsePhase:
     """Validates file paths before test generation."""
 

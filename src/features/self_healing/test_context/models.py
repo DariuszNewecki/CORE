@@ -31,7 +31,7 @@ class ModuleContext:
     database_usage: bool
     network_usage: bool
 
-    # ID: 02560995-d66d-493d-8896-138a623a8304
+    # ID: 3f98af1c-2f9f-4057-8825-d4823445552d
     def to_prompt_context(self) -> str:
         """Convert to formatted context for LLM prompt."""
         lines = []

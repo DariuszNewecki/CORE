@@ -5,7 +5,7 @@
 from __future__ import annotations
 
 
-# ID: split-capability-key
+# ID: ad12da2d-dac6-4192-9729-9095c28db8c2
 def _split_capability_key(key: str) -> tuple[str, str | None]:
     """
     Split a capability key into (domain, namespace).

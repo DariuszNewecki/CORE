@@ -26,7 +26,7 @@ if TYPE_CHECKING:
 logger = getLogger(__name__)
 
 
-# ID: 59749c80-7e75-4609-8ecb-143e9200f503
+# ID: 4a0b41ed-d43e-4f28-bff3-1e807b24cfca
 class PatternValidator:
     """Infers and validates architectural patterns for generated code."""
 

@@ -179,13 +179,13 @@ class PathResolver:
     # Add after line 201 (after canary_dir property):
 
     @property
-    # ID: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+    # ID: a665cb45-3f2d-42d2-ac93-4156468d007f
     def morgue_dir(self) -> Path:
         """Directory for quarantined/failed artifacts."""
         return self.workflows_dir / "morgue"
 
     @property
-    # ID: b2c3d4e5-f6a7-8901-bcde-f12345678901
+    # ID: af8d468e-91b9-4732-ba76-a710719919fe
     def quarantine_dir(self) -> Path:
         """Directory for artifacts pending review."""
         return self.workflows_dir / "quarantine"

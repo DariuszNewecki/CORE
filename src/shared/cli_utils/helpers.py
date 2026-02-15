@@ -9,8 +9,8 @@ from __future__ import annotations
 import typer
 
 
-# ID: deprecated-command-helper
-# ID: 7a8b9c0d-1e2f-3a4b-5c6d-7e8f9a0b1c2d
+# ID: 2da61629-3ea0-4cb7-a708-2a6237f2a020
+# ID: 3c400acd-3d8c-4788-a63d-d96959985a94
 def deprecated_command(old: str, new: str) -> None:
     """
     Display deprecation warning for CLI commands.

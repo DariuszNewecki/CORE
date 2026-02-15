@@ -24,7 +24,7 @@ logger = getLogger(__name__)
 REPO_ROOT = settings.REPO_PATH
 
 
-# ID: 9f8e7d6c-5b4a-4932-1e0d-2f3c4b5a6978
+# ID: e1e63d42-0626-40d7-84bc-5d3469a00bc5
 class HeaderService:
     """Detects and fixes missing or incorrect file path headers in src/**/*.py files."""
 

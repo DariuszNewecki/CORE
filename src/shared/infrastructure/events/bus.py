@@ -1,5 +1,5 @@
 # src/shared/infrastructure/events/bus.py
-# ID: infra.events.bus
+# ID: 3cfbaa62-d5d4-40e9-bf57-ce37c95a4e3b
 """
 In-Memory Event Bus.
 Provides a singleton mechanism for decoupling components via events.

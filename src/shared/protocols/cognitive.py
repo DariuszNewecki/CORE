@@ -1,5 +1,5 @@
 # src/shared/protocols/cognitive.py
-# ID: shared.protocols.cognitive
+# ID: d9d1c3e5-9b3f-4290-89f6-9f406988f487
 
 """
 Cognitive Service Protocol - The Reasoning Contract.

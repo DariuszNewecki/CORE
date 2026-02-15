@@ -30,7 +30,7 @@ if TYPE_CHECKING:
 logger = getLogger(__name__)
 
 
-# ID: f0e1d2c3-b4a5-6789-0abc-def123456789
+# ID: 1ef9d7a4-238f-47a6-89c9-d92e734bc15d
 async def execute_async_unit(
     context: AuditorContext,
     unit_type: str,
@@ -48,7 +48,7 @@ async def execute_async_unit(
         return []
 
 
-# ID: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+# ID: 62596034-ff2b-4c96-98c8-2208542a235a
 async def _execute_sql_query_unit(
     context: AuditorContext,
     params: dict[str, Any],
@@ -96,7 +96,7 @@ async def _execute_sql_query_unit(
     return findings
 
 
-# ID: b2c3d4e5-f6a7-8b9c-0d1e-2f3a4b5c6d7e
+# ID: dda351f2-d2ae-4097-b6d3-0a0837841b72
 async def _execute_vector_search_unit(
     context: AuditorContext,
     params: dict[str, Any],

@@ -43,7 +43,7 @@ from shared.logger import getLogger
 logger = getLogger(__name__)
 
 
-# ID: 1a2b3c4d-5e6f-7a8b-9c0d-1e2f3a4b5c6d
+# ID: 38cbc2dd-3201-428c-bd8a-9001d5236768
 class SecurityEvaluator(Component):
     """
     Evaluates security posture and identifies vulnerabilities.
@@ -107,12 +107,12 @@ class SecurityEvaluator(Component):
     }
 
     @property
-    # ID: 2b3c4d5e-6f7a-8b9c-0d1e-2f3a4b5c6d7e
+    # ID: d5e82c82-62ff-41b5-abc2-d97a45e6e411
     def phase(self) -> ComponentPhase:
         """SecurityEvaluator operates in AUDIT phase."""
         return ComponentPhase.AUDIT
 
-    # ID: 3c4d5e6f-7a8b-9c0d-1e2f-3a4b5c6d7e8f
+    # ID: 486b01bb-c6e6-493f-a19a-bf0d7a0ed3d8
     async def execute(
         self,
         file_path: str | None = None,
@@ -212,7 +212,7 @@ class SecurityEvaluator(Component):
             duration_sec=time.time() - start_time,
         )
 
-    # ID: 4d5e6f7a-8b9c-0d1e-2f3a-4b5c6d7e8f9a
+    # ID: 33fc128d-2634-4561-8930-3459a8d757cc
     def _check_secrets(self, code: str, file_path: str | None) -> list[dict[str, Any]]:
         """Check for hardcoded secrets (API keys, passwords)."""
         vulnerabilities = []
@@ -250,7 +250,7 @@ class SecurityEvaluator(Component):
 
         return vulnerabilities
 
-    # ID: 5e6f7a8b-9c0d-1e2f-3a4b-5c6d7e8f9a0b
+    # ID: 6dcecf50-1498-4274-87c5-a804d273fe1b
     def _check_sql_injection(
         self, code: str, file_path: str | None
     ) -> list[dict[str, Any]]:
@@ -274,7 +274,7 @@ class SecurityEvaluator(Component):
 
         return vulnerabilities
 
-    # ID: 6f7a8b9c-0d1e-2f3a-4b5c-6d7e8f9a0b1c
+    # ID: 78cc9f10-458f-4b1b-935e-4d273b1ffbb5
     def _check_command_injection(
         self, code: str, file_path: str | None
     ) -> list[dict[str, Any]]:
@@ -299,7 +299,7 @@ class SecurityEvaluator(Component):
 
         return vulnerabilities
 
-    # ID: 7a8b9c0d-1e2f-3a4b-5c6d-7e8f9a0b1c2d
+    # ID: 5c43ccb9-1e8b-4c61-b74b-fb92395896f8
     def _check_insecure_deserialization(
         self, code: str, file_path: str | None
     ) -> list[dict[str, Any]]:
@@ -324,7 +324,7 @@ class SecurityEvaluator(Component):
 
         return vulnerabilities
 
-    # ID: 8b9c0d1e-2f3a-4b5c-6d7e-8f9a0b1c2d3e
+    # ID: 23ef335e-2536-46b4-9bdd-44b3bb300180
     def _check_weak_crypto(
         self, code: str, file_path: str | None
     ) -> list[dict[str, Any]]:
@@ -349,7 +349,7 @@ class SecurityEvaluator(Component):
 
         return vulnerabilities
 
-    # ID: 9c0d1e2f-3a4b-5c6d-7e8f-9a0b1c2d3e4f
+    # ID: ad6da84d-5870-4c55-ae35-5c18f895587d
     def _calculate_score(self, vulnerabilities: list[dict[str, Any]]) -> float:
         """
         Calculate security score (0.0-1.0).
@@ -375,7 +375,7 @@ class SecurityEvaluator(Component):
 
         return max(0.0, round(score, 2))
 
-    # ID: a0b1c2d3-e4f5-6a7b-8c9d-0e1f2a3b4c5d
+    # ID: e0a92afc-1159-479c-a204-6324a0197a91
     def _assess_risk(self, vulnerabilities: list[dict[str, Any]]) -> str:
         """
         Assess overall risk level.

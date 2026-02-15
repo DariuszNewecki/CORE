@@ -27,7 +27,7 @@ logger = getLogger(__name__)
 
 
 @dataclass
-# ID: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+# ID: dc64f3c1-b122-4032-ac7c-acf00f43f6d6
 class AutoFixablePattern:
     """Mapping between audit finding patterns and autonomous actions."""
 

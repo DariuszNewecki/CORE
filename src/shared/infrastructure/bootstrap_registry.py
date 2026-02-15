@@ -15,7 +15,7 @@ from pathlib import Path
 from typing import Any
 
 
-# ID: bootstrap_registry_core
+# ID: 5ee7da14-761a-4fab-b10d-9d0bead06a4c
 # ID: fd1ce789-4054-4d38-83f2-55237a8e9ae9
 class BootstrapRegistry:
     """

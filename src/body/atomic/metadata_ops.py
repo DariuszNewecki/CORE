@@ -1,8 +1,8 @@
 # src/body/atomic/metadata_ops.py
-# ID: TBD
+# ID: 4ed559fb-d076-498b-b3e6-187a364a2c60
 
 """
-Atomic Metadata Operations — governed file mutations that preserve executable semantics.
+Atomic Metadata Operations - governed file mutations that preserve executable semantics.
 
 This action provides a WRITE_METADATA pathway that:
 1. Proves the mutation is metadata-only (normalized AST comparison)
@@ -36,7 +36,7 @@ logger = getLogger(__name__)
     description="Modify a file with metadata-only changes (comments, docstrings, IDs). "
     "Proves semantic preservation via normalized AST comparison.",
     category=ActionCategory.FIX,
-    policies=["rules.code.metadata_mutations"],
+    policies=["rules/code/metadata_mutations"],
     impact_level="safe",
 )
 @atomic_action(
@@ -45,7 +45,7 @@ logger = getLogger(__name__)
     impact=ActionImpact.WRITE_METADATA,
     policies=["rules.code.metadata_mutations"],
 )
-# ID: TBD
+# ID: 13ce6f3b-6025-4546-9ea8-e2c68ce37c5f
 # ID: b89b0899-f654-4a76-b0db-f2c183c6caa7
 async def action_tag_metadata(
     file_path: str,

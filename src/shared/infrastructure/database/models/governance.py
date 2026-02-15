@@ -1,5 +1,5 @@
 # src/shared/infrastructure/database/models/governance.py
-# ID: model.shared.infrastructure.database.models.governance
+# ID: ca2cad77-dd13-4432-90ab-d88a00305856
 """
 Governance Layer models for CORE v2.2 Schema.
 Section 2: Proposals, Audits, Constitutional Violations - The Constitution.
@@ -59,7 +59,7 @@ class ProposalSignature(Base):
     is_valid = Column(Boolean, nullable=False, server_default="true")
 
 
-# ID: 894a73e1-audit-run-model
+# ID: f59bc333-fd5d-4ae5-89c5-57efd98a6336
 # ID: ea32fc95-90ef-4735-86c0-f09ebc280a5f
 class AuditRun(Base):
     __tablename__: ClassVar[str] = "audit_runs"
@@ -77,7 +77,7 @@ class AuditRun(Base):
     finished_at = Column(DateTime(timezone=True))
 
 
-# ID: 33b1-constitutional-violations
+# ID: 79b0de2f-04c9-468d-a64f-0ac03a5c1526
 # ID: c1c88088-6e9e-4400-907b-578e380c8113
 class ConstitutionalViolation(Base):
     __tablename__: ClassVar[str] = "constitutional_violations"

@@ -1,0 +1,344 @@
+{
+  "summary": {
+    "needs_conversion_total": 39,
+    "clusters_total": 3,
+    "clusters_by_size_desc": [
+      [
+        "fix",
+        22
+      ],
+      [
+        "inspect",
+        16
+      ],
+      [
+        "submit",
+        1
+      ]
+    ],
+    "targets": {
+      "proposals": 1,
+      "code": 38
+    }
+  },
+  "clusters": {
+    "submit": [
+      {
+        "command": "core-admin submit changes",
+        "module": "/mnt/dev/CORE/src/body/cli/commands/submit.py",
+        "handler": "body.cli.commands.submit:integrate_command",
+        "group": "submit",
+        "target_resource": "proposals",
+        "action": "changes"
+      }
+    ],
+    "fix": [
+      {
+        "command": "core-admin fix discover-actions",
+        "module": "/mnt/dev/CORE/src/body/cli/commands/fix/handler_discovery.py",
+        "handler": "body.cli.commands.fix.handler_discovery:discover_actions_command",
+        "group": "fix",
+        "target_resource": "code",
+        "action": "discover-actions"
+      },
+      {
+        "command": "core-admin fix clarity",
+        "module": "/mnt/dev/CORE/src/body/cli/commands/fix/clarity.py",
+        "handler": "body.cli.commands.fix.clarity:fix_clarity_command",
+        "group": "fix",
+        "target_resource": "code",
+        "action": "clarity"
+      },
+      {
+        "command": "core-admin fix complexity",
+        "module": "/mnt/dev/CORE/src/body/cli/commands/fix/clarity.py",
+        "handler": "body.cli.commands.fix.clarity:complexity_command",
+        "group": "fix",
+        "target_resource": "code",
+        "action": "complexity"
+      },
+      {
+        "command": "core-admin fix settings-di",
+        "module": "/mnt/dev/CORE/src/body/cli/commands/fix/settings_access.py",
+        "handler": "body.cli.commands.fix.settings_access:fix_settings_di_cmd",
+        "group": "fix",
+        "target_resource": "code",
+        "action": "settings-di"
+      },
+      {
+        "command": "core-admin fix imports",
+        "module": "/mnt/dev/CORE/src/body/cli/commands/fix/imports.py",
+        "handler": "body.cli.commands.fix.imports:fix_imports_command",
+        "group": "fix",
+        "target_resource": "code",
+        "action": "imports"
+      },
+      {
+        "command": "core-admin fix all",
+        "module": "/mnt/dev/CORE/src/body/cli/commands/fix/all_commands.py",
+        "handler": "body.cli.commands.fix.all_commands:run_all_fixes",
+        "group": "fix",
+        "target_resource": "code",
+        "action": "all"
+      },
+      {
+        "command": "core-admin fix db-registry",
+        "module": "/mnt/dev/CORE/src/body/cli/commands/fix/db_tools.py",
+        "handler": "body.cli.commands.fix.db_tools:sync_db_registry_command",
+        "group": "fix",
+        "target_resource": "code",
+        "action": "db-registry"
+      },
+      {
+        "command": "core-admin fix vector-sync",
+        "module": "/mnt/dev/CORE/src/body/cli/commands/fix/db_tools.py",
+        "handler": "body.cli.commands.fix.db_tools:fix_vector_sync_command",
+        "group": "fix",
+        "target_resource": "code",
+        "action": "vector-sync"
+      },
+      {
+        "command": "core-admin fix list",
+        "module": "/mnt/dev/CORE/src/body/cli/commands/fix/list_commands.py",
+        "handler": "body.cli.commands.fix.list_commands:list_commands",
+        "group": "fix",
+        "target_resource": "code",
+        "action": "list"
+      },
+      {
+        "command": "core-admin fix headers",
+        "module": "/mnt/dev/CORE/src/body/cli/commands/fix/code_style.py",
+        "handler": "body.cli.commands.fix.code_style:fix_headers_cmd",
+        "group": "fix",
+        "target_resource": "code",
+        "action": "headers"
+      },
+      {
+        "command": "core-admin fix modularity",
+        "module": "/mnt/dev/CORE/src/body/cli/commands/fix/modularity.py",
+        "handler": "body.cli.commands.fix.modularity:fix_modularity_cmd",
+        "group": "fix",
+        "target_resource": "code",
+        "action": "modularity"
+      },
+      {
+        "command": "core-admin fix atomic-actions",
+        "module": "/mnt/dev/CORE/src/body/cli/commands/fix/atomic_actions.py",
+        "handler": "body.cli.commands.fix.atomic_actions:fix_atomic_actions_cmd",
+        "group": "fix",
+        "target_resource": "code",
+        "action": "atomic-actions"
+      },
+      {
+        "command": "core-admin fix audit",
+        "module": "/mnt/dev/CORE/src/body/cli/commands/fix/audit.py",
+        "handler": "body.cli.commands.fix.audit:fix_audit_command",
+        "group": "fix",
+        "target_resource": "code",
+        "action": "audit"
+      },
+      {
+        "command": "core-admin fix ir-triage",
+        "module": "/mnt/dev/CORE/src/body/cli/commands/fix/fix_ir.py",
+        "handler": "body.cli.commands.fix.fix_ir:fix_ir_triage",
+        "group": "fix",
+        "target_resource": "code",
+        "action": "ir-triage"
+      },
+      {
+        "command": "core-admin fix ir-log",
+        "module": "/mnt/dev/CORE/src/body/cli/commands/fix/fix_ir.py",
+        "handler": "body.cli.commands.fix.fix_ir:fix_ir_log",
+        "group": "fix",
+        "target_resource": "code",
+        "action": "ir-log"
+      },
+      {
+        "command": "core-admin fix purge-legacy-tags",
+        "module": "/mnt/dev/CORE/src/body/cli/commands/fix/metadata.py",
+        "handler": "body.cli.commands.fix.metadata:purge_legacy_tags_command",
+        "group": "fix",
+        "target_resource": "code",
+        "action": "purge-legacy-tags"
+      },
+      {
+        "command": "core-admin fix policy-ids",
+        "module": "/mnt/dev/CORE/src/body/cli/commands/fix/metadata.py",
+        "handler": "body.cli.commands.fix.metadata:fix_policy_ids_command",
+        "group": "fix",
+        "target_resource": "code",
+        "action": "policy-ids"
+      },
+      {
+        "command": "core-admin fix tags",
+        "module": "/mnt/dev/CORE/src/body/cli/commands/fix/metadata.py",
+        "handler": "body.cli.commands.fix.metadata:fix_tags_command",
+        "group": "fix",
+        "target_resource": "code",
+        "action": "tags"
+      },
+      {
+        "command": "core-admin fix duplicate-ids",
+        "module": "/mnt/dev/CORE/src/body/cli/commands/fix/metadata.py",
+        "handler": "body.cli.commands.fix.metadata:fix_duplicate_ids_command",
+        "group": "fix",
+        "target_resource": "code",
+        "action": "duplicate-ids"
+      },
+      {
+        "command": "core-admin fix placeholders",
+        "module": "/mnt/dev/CORE/src/body/cli/commands/fix/metadata.py",
+        "handler": "body.cli.commands.fix.metadata:fix_placeholders_command",
+        "group": "fix",
+        "target_resource": "code",
+        "action": "placeholders"
+      },
+      {
+        "command": "core-admin fix dead-code",
+        "module": "/mnt/dev/CORE/src/body/cli/commands/fix/metadata.py",
+        "handler": "body.cli.commands.fix.metadata:fix_dead_code_cmd",
+        "group": "fix",
+        "target_resource": "code",
+        "action": "dead-code"
+      },
+      {
+        "command": "core-admin fix body-ui",
+        "module": "/mnt/dev/CORE/src/body/cli/commands/fix/body_ui.py",
+        "handler": "body.cli.commands.fix.body_ui:fix_body_ui_command",
+        "group": "fix",
+        "target_resource": "code",
+        "action": "body-ui"
+      }
+    ],
+    "inspect": [
+      {
+        "command": "core-admin inspect repo-census",
+        "module": "/mnt/dev/CORE/src/body/cli/commands/inspect/__init__.py",
+        "handler": "body.cli.commands.inspect.repo_census:repo_census_cmd",
+        "group": "inspect",
+        "target_resource": "code",
+        "action": "repo-census"
+      },
+      {
+        "command": "core-admin inspect clusters",
+        "module": "/mnt/dev/CORE/src/body/cli/commands/inspect/__init__.py",
+        "handler": "body.cli.commands.inspect:clusters_cmd",
+        "group": "inspect",
+        "target_resource": "code",
+        "action": "clusters"
+      },
+      {
+        "command": "core-admin inspect find-clusters",
+        "module": "/mnt/dev/CORE/src/body/cli/commands/inspect/__init__.py",
+        "handler": "body.cli.commands.inspect:find_clusters_cmd",
+        "group": "inspect",
+        "target_resource": "code",
+        "action": "find-clusters"
+      },
+      {
+        "command": "core-admin inspect duplicates",
+        "module": "/mnt/dev/CORE/src/body/cli/commands/inspect/__init__.py",
+        "handler": "body.cli.commands.inspect:duplicates_command",
+        "group": "inspect",
+        "target_resource": "code",
+        "action": "duplicates"
+      },
+      {
+        "command": "core-admin inspect common-knowledge",
+        "module": "/mnt/dev/CORE/src/body/cli/commands/inspect/__init__.py",
+        "handler": "body.cli.commands.inspect:common_knowledge_cmd",
+        "group": "inspect",
+        "target_resource": "code",
+        "action": "common-knowledge"
+      },
+      {
+        "command": "core-admin inspect decisions",
+        "module": "/mnt/dev/CORE/src/body/cli/commands/inspect/__init__.py",
+        "handler": "body.cli.commands.inspect:decisions_cmd",
+        "group": "inspect",
+        "target_resource": "code",
+        "action": "decisions"
+      },
+      {
+        "command": "core-admin inspect command-tree",
+        "module": "/mnt/dev/CORE/src/body/cli/commands/inspect/__init__.py",
+        "handler": "body.cli.commands.inspect:command_tree_cmd",
+        "group": "inspect",
+        "target_resource": "code",
+        "action": "command-tree"
+      },
+      {
+        "command": "core-admin inspect test-targets",
+        "module": "/mnt/dev/CORE/src/body/cli/commands/inspect/__init__.py",
+        "handler": "body.cli.commands.inspect:inspect_test_targets",
+        "group": "inspect",
+        "target_resource": "code",
+        "action": "test-targets"
+      },
+      {
+        "command": "core-admin inspect symbol-drift",
+        "module": "/mnt/dev/CORE/src/body/cli/commands/inspect/__init__.py",
+        "handler": "body.cli.commands.inspect:symbol_drift_cmd",
+        "group": "inspect",
+        "target_resource": "code",
+        "action": "symbol-drift"
+      },
+      {
+        "command": "core-admin inspect vector-drift",
+        "module": "/mnt/dev/CORE/src/body/cli/commands/inspect/__init__.py",
+        "handler": "body.cli.commands.inspect:vector_drift_command",
+        "group": "inspect",
+        "target_resource": "code",
+        "action": "vector-drift"
+      },
+      {
+        "command": "core-admin inspect patterns",
+        "module": "/mnt/dev/CORE/src/body/cli/commands/inspect/__init__.py",
+        "handler": "body.cli.commands.inspect:patterns_cmd",
+        "group": "inspect",
+        "target_resource": "code",
+        "action": "patterns"
+      },
+      {
+        "command": "core-admin inspect refusals",
+        "module": "/mnt/dev/CORE/src/body/cli/commands/inspect/__init__.py",
+        "handler": "body.cli.commands.inspect:refusals_list_cmd",
+        "group": "inspect",
+        "target_resource": "code",
+        "action": "refusals"
+      },
+      {
+        "command": "core-admin inspect refusal-stats",
+        "module": "/mnt/dev/CORE/src/body/cli/commands/inspect/__init__.py",
+        "handler": "body.cli.commands.inspect:refusals_stats_cmd",
+        "group": "inspect",
+        "target_resource": "code",
+        "action": "refusal-stats"
+      },
+      {
+        "command": "core-admin inspect refusals-by-type",
+        "module": "/mnt/dev/CORE/src/body/cli/commands/inspect/__init__.py",
+        "handler": "body.cli.commands.inspect:refusals_by_type_cmd",
+        "group": "inspect",
+        "target_resource": "code",
+        "action": "refusals-by-type"
+      },
+      {
+        "command": "core-admin inspect refusals-by-session",
+        "module": "/mnt/dev/CORE/src/body/cli/commands/inspect/__init__.py",
+        "handler": "body.cli.commands.inspect:refusals_by_session_cmd",
+        "group": "inspect",
+        "target_resource": "code",
+        "action": "refusals-by-session"
+      },
+      {
+        "command": "core-admin inspect status",
+        "module": "/mnt/dev/CORE/src/body/cli/commands/inspect/__init__.py",
+        "handler": "body.cli.commands.inspect:status_command",
+        "group": "inspect",
+        "target_resource": "code",
+        "action": "status"
+      }
+    ]
+  }
+}

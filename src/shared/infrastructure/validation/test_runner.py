@@ -28,7 +28,7 @@ from shared.logger import getLogger
 logger = getLogger(__name__)
 
 
-# ID: c70526bd-08f2-4c9b-b014-f4c548e188c6
+# ID: 0a702b47-f04b-4afe-8e35-20e9cad19aa3
 async def run_tests(silent: bool = True) -> ActionResult:
     """
     Executes pytest asynchronously and returns a canonical ActionResult.

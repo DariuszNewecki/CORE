@@ -24,8 +24,8 @@ from shared.models.constitutional_validation import ConstitutionalValidationResu
 logger = getLogger(__name__)
 
 
-# ID: code_validator
-# ID: 1e2f3a4b-5c6d-7e8f-9a0b-1c2d3e4f5a6b
+# ID: 3c35e6ee-f081-49b6-9bad-a74f0caf9936
+# ID: 18f27500-2fbd-42a7-9180-a71ac3da5626
 class CodeValidator:
     """
     Validates generated code against pattern requirements.
@@ -36,7 +36,7 @@ class CodeValidator:
     - Coordinates with PatternValidators for legacy patterns
     """
 
-    # ID: validator_validate_code
+    # ID: b4dff73f-c741-47ac-97d7-047359dcaa04
     # ID: 2f3a4b5c-6d7e-8f9a-0b1c-2d3e4f5a6b7c
     @staticmethod
     # ID: d2605a19-d9d7-49cb-8b0d-3ce2acb85964
@@ -89,7 +89,7 @@ class CodeValidator:
             source="CodeValidator",
         )
 
-    # ID: validator_validate_syntax
+    # ID: 19c287a3-2e86-421d-b4e7-400d089234bf
     # ID: 3a4b5c6d-7e8f-9a0b-1c2d-3e4f5a6b7c8d
     @staticmethod
     def _validate_syntax(

@@ -1,5 +1,5 @@
 # src/shared/models/validation_result.py
-# ID: 174a817b-2d3e-4f5c-8b2c-3d4e5f6a7b8c
+# ID: 2dc554c0-0352-4c50-8a43-4bc470af596e
 
 """Provides a canonical structure for validation results across the CORE system."""
 

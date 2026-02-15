@@ -12,7 +12,7 @@ from typing import Any
 
 
 @dataclass
-# ID: c9728355-9313-4ab3-9258-813393a0b195
+# ID: 8e4592be-d0a8-485a-aab4-0ac7cb6aad54
 class PolicyResource:
     """A constitutional policy loaded from .intent/policies/."""
 
@@ -27,7 +27,7 @@ class PolicyResource:
 
 
 @dataclass
-# ID: 45a15e98-cf61-4f87-b2b4-c023fb783654
+# ID: 9dd15c2c-5802-43a6-a3d8-6b9c733c84d7
 class PatternResource:
     """An architectural pattern loaded from .intent/patterns/."""
 

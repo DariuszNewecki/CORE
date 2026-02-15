@@ -1,5 +1,5 @@
 # src/shared/infrastructure/events/base.py
-# ID: infra.events.base
+# ID: 47aec83f-561a-4f9b-9e93-4c13dba8246a
 """
 CloudEvents-compliant Event Envelope.
 Defines the standard data structure for all system events.

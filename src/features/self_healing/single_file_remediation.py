@@ -58,7 +58,7 @@ class EnhancedSingleFileRemediationService:
             max_complexity=max_complexity,
         )
 
-    # ID: 840acb0f-7ec4-4f61-bc69-62c9b2fda26d
+    # ID: b4e19ec3-a8b4-40d8-ae9d-2c8972f5199c
     async def remediate(self) -> dict[str, Any]:
         """
         Generate comprehensive tests for the target file using V2 patterns.

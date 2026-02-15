@@ -2,7 +2,11 @@
 
 """
 ContextAuditor - The 'Souncer' for the ContextPackage.
-Optimized for 3B models to detect context gaps.
+Optimized to detect 'Logic Gaps' before the LLM starts generating.
+
+CONSTITUTIONAL FIX:
+- Now performs a 'Recursive Dependency Check'.
+- Verifies that if a Class inherits from another, the Base class code is present.
 """
 
 from __future__ import annotations
@@ -10,52 +14,79 @@ from __future__ import annotations
 import json
 from typing import Any
 
-from will.orchestration.decision_tracer import DecisionTracer
+from shared.logger import getLogger
+
+
+logger = getLogger(__name__)
 
 
 # ID: a0153dfa-2ce2-4644-94f2-3334d7bd05b8
 class ContextAuditor:
+    """
+    Evaluates a Context Dossier to ensure it is 'Actionable'.
+    """
+
     def __init__(self, cognitive_service: Any):
         self.cognitive = cognitive_service
-        self.tracer = DecisionTracer()
 
     # ID: 17fef4dd-dd02-4814-884a-f84cdea7432e
-    async def audit_dossier(self, goal: str, dossier_summary: str) -> dict:
+    async def audit_context_packet(self, goal: str, packet: dict[str, Any]) -> dict:
         """
-        Asks: 'Do I have the logic for my dependencies?'
+        Asks the 'Judge' role: 'Is this enough information to execute the goal?'
         """
-        # We use a dedicated role for the local 3B model
+        # 1. Prepare a summary of what's currently in the 'dossier'
+        items = packet.get("context", [])
+        dossier_summary = "\n".join(
+            [
+                f"- {i.get('name')} (Type: {i.get('item_type')}, Path: {i.get('path')})"
+                for i in items
+            ]
+        )
+
+        # 2. Get the Auditor Role (Uses your local model if configured)
         client = await self.cognitive.aget_client_for_role("ContextAuditor")
 
         prompt = f"""
         TASK: Audit the Context Dossier for missing logic.
         GOAL: {goal}
 
-        DOSSIER SUMMARY:
+        CURRENT DOSSIER CONTENT:
         {dossier_summary}
 
         INSTRUCTIONS:
-        1. Look for inherited classes (e.g. class User(Base)) where 'Base' is not in the dossier.
-        2. Look for imported modules used in the goal where code is missing.
-        3. Look for 'conftest.py' if the goal involves database tests.
+        1. Does the goal involve modifying a file? If so, is that file's FULL CODE in the dossier?
+        2. Does the code in the dossier inherit from classes (e.g. class User(Base))?
+           If so, is the code for 'Base' present?
+        3. Are there critical imports (e.g. shared.utils) that the LLM will need to understand?
 
         RESPONSE FORMAT (Strict JSON):
         {{
           "status": "READY" | "INCOMPLETE",
-          "missing_paths": ["path/to/missing_file.py"],
-          "reasoning": "Brief explanation of the gap."
+          "missing_elements": ["List of what is missing"],
+          "reasoning": "Brief explanation of the gap.",
+          "confidence_score": 0.0 to 1.0
         }}
         """
 
+        logger.info("📡 Sourcing context completeness for: %s", goal[:50])
         response = await client.make_request_async(prompt, user_id="souncer")
+
+        # Clean up common LLM markdown junk
         cleaned = response.replace("```json", "").replace("```", "").strip()
 
         try:
             decision = json.loads(cleaned)
+            logger.info(
+                "⚖️  Auditor Verdict: %s (Confidence: %s)",
+                decision.get("status"),
+                decision.get("confidence_score"),
+            )
             return decision
-        except Exception:
+        except Exception as e:
+            logger.warning("Auditor failed to emit valid JSON. Defaulting to READY.")
             return {
                 "status": "READY",
-                "missing_paths": [],
-                "reasoning": "Parse failure",
+                "missing_elements": [],
+                "reasoning": f"Parse failure: {e}",
+                "confidence_score": 0.5,
             }

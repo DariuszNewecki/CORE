@@ -49,7 +49,7 @@ class RefactorPlan:
     replacements: list[tuple[int, str, str]]  # (line, old, new)
 
 
-# ID: a1b2c3d4-e5f6-7890-1234-567890abcdef
+# ID: 161a5d9a-0b33-43f7-b4dc-d18c4ba8b6c8
 class SettingsRefactorer:
     """Refactors settings imports to DI pattern."""
 
@@ -253,7 +253,7 @@ class SettingsRefactorer:
         return results
 
 
-# ID: b2c3d4e5-f6a7-8901-2345-678901bcdefg
+# ID: cc7d3fce-9594-45fe-8c0d-8609f969ef42
 # ID: ecb86a95-d78b-4fa3-8031-bfc250372621
 async def refactor_settings_access(
     repo_path: Path, layers: list[str] | None = None, dry_run: bool = True

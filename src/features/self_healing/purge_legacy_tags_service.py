@@ -25,7 +25,7 @@ if TYPE_CHECKING:
 logger = getLogger(__name__)
 
 
-# ID: 0e5a08a4-7c8f-4b5d-86b7-539a77d4e829
+# ID: b67cd592-b257-4228-b55e-424245f64205
 async def purge_legacy_tags(context: CoreContext, dry_run: bool = True) -> int:
     """
     Finds legacy tags (like # owner: or # Tag:) using constitutional rules

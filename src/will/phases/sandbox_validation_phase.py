@@ -26,8 +26,8 @@ if TYPE_CHECKING:
 logger = getLogger(__name__)
 
 
-# ID: a1b2c3d4-e5f6-7g8h-9i0j-1k2l3m4n5o6p
-# ID: d7fae2fd-a786-42f3-8969-21307c12fcbb
+# ID: cd56a10c-1b05-4324-b730-639fa98fb8ee
+# ID: 0c2755e4-d5e3-43ba-bba6-53769de54d57
 class SandboxValidationPhase:
     """
     Validates generated tests by running them in an isolated sandbox.
@@ -50,7 +50,7 @@ class SandboxValidationPhase:
             file_handler=self.file_handler, repo_root=repo_root
         )
 
-    # ID: b2c3d4e5-f6g7-8h9i-0j1k-2l3m4n5o6p7q
+    # ID: ad8273b1-3f0d-40b3-a8ef-f68b1af515af
     # ID: 3902df50-3fc5-4b54-971c-3f3b7f36ce8c
     async def execute(self, ctx: WorkflowContext) -> PhaseResult:
         """

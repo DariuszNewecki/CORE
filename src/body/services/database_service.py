@@ -35,8 +35,8 @@ from shared.logger import getLogger
 logger = getLogger(__name__)
 
 
-# ID: database-service-class
-# ID: a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d
+# ID: fcd07157-1701-459c-ac91-902d251ee471
+# ID: 78cbd4a9-32a2-49cd-84dd-4f401daa8df3
 class DatabaseService:
     """
     Body layer service for database operations.
@@ -60,8 +60,8 @@ class DatabaseService:
         """
         logger.debug("DatabaseService initialized")
 
-    # ID: query-roles
-    # ID: b2c3d4e5-f6a7-8b9c-0d1e-2f3a4b5c6d7e
+    # ID: fe56d2c9-df6c-42c1-acef-0633db3a4392
+    # ID: 872b8a2c-50ff-493a-b6ba-be62215f4c63
     async def query_roles(self) -> list[CognitiveRole]:
         """
         Query all cognitive roles from database.
@@ -81,8 +81,8 @@ class DatabaseService:
             logger.debug("Queried %d cognitive roles", len(roles))
             return list(roles)
 
-    # ID: query-resources
-    # ID: c3d4e5f6-a7b8-9c0d-1e2f-3a4b5c6d7e8f
+    # ID: 8f054637-4af9-43a3-a483-cf641288ac65
+    # ID: 8b644d68-426f-4bfa-a866-5bdbbe8ee7fe
     async def query_resources(self) -> list[LlmResource]:
         """
         Query all LLM resources from database.
@@ -102,8 +102,8 @@ class DatabaseService:
             logger.debug("Queried %d LLM resources", len(resources))
             return list(resources)
 
-    # ID: query-role-by-id
-    # ID: d4e5f6a7-b8c9-0d1e-2f3a-4b5c6d7e8f9a
+    # ID: 2079a7bc-55d4-4c41-88b4-592ab1be14d5
+    # ID: 1e312dd0-ddf2-482f-95db-959654191557
     async def query_role_by_id(self, role_id: UUID) -> CognitiveRole | None:
         """
         Query a specific cognitive role by ID.
@@ -134,8 +134,8 @@ class DatabaseService:
 
             return role
 
-    # ID: query-resource-by-id
-    # ID: e5f6a7b8-c9d0-1e2f-3a4b-5c6d7e8f9a0b
+    # ID: 7696191e-fce8-43d1-a277-14209cbe61cb
+    # ID: 69abb440-9af8-4107-bcee-264cec877251
     async def query_resource_by_id(self, resource_id: UUID) -> LlmResource | None:
         """
         Query a specific LLM resource by ID.
@@ -166,7 +166,7 @@ class DatabaseService:
 
             return resource
 
-    # ID: execute-raw-query
+    # ID: e55db17c-b7d0-469a-a922-32d8e9ec9bf2
     # ID: f6a7b8c9-d0e1-2f3a-4b5c-6d7e8f9a0b1c
     async def execute_query(
         self, query: str, params: dict[str, Any] | None = None
@@ -199,7 +199,7 @@ class DatabaseService:
             logger.debug("Executed raw query, returned %d rows", len(rows))
             return rows
 
-    # ID: with-session-context
+    # ID: 40c35af6-f4d3-434f-beda-4f6fe663b805
     # ID: a7b8c9d0-e1f2-3a4b-5c6d-7e8f9a0b1c2d
     async def with_session(self, operation):
         """
@@ -230,8 +230,8 @@ class DatabaseService:
             return await operation(session)
 
 
-# ID: get-database-service
-# ID: b8c9d0e1-f2a3-4b5c-6d7e-8f9a0b1c2d3e
+# ID: 214fe663-56b8-49b1-9f8f-8811f76c2f90
+# ID: 0cf303d2-3131-4d15-9b42-83d3de3c3579
 def get_database_service() -> DatabaseService:
     """
     Factory function for database service.

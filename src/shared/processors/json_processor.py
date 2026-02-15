@@ -22,7 +22,7 @@ class JSONProcessor(BaseProcessor):
     Implements BaseProcessor template methods using json module.
     """
 
-    # ID: e5f6a7b8-c9d0-1e2f-3a4b-5c6d7e8f9a0b
+    # ID: f0b5ecc8-342b-4bc2-b071-cc72bd697bd0
     def _serialize(self, data: dict[str, Any], file_handle: Any) -> None:
         """Serialize using json.dump() with constitutional formatting."""
         json.dump(
@@ -32,12 +32,12 @@ class JSONProcessor(BaseProcessor):
             ensure_ascii=False,
         )
 
-    # ID: f6a7b8c9-d0e1-2f3a-4b5c-6d7e8f9a0b1c
+    # ID: 953f9ebf-6af1-4f92-9d13-a4e720a4b36a
     def _deserialize(self, file_handle: Any) -> dict[str, Any] | None:
         """Deserialize using json.load()."""
         return json.load(file_handle)
 
-    # ID: a7b8c9d0-e1f2-3a4b-5c6d-7e8f9a0b1c2d
+    # ID: bcdddb18-78d9-4ce2-931a-7dda1699699d
     def _validate_data(self, data: Any) -> bool:
         """
         Validate JSON-serializable data.
@@ -51,7 +51,7 @@ class JSONProcessor(BaseProcessor):
         except (TypeError, ValueError):
             return False
 
-    # ID: b8c9d0e1-f2a3-4b5c-6d7e-8f9a0b1c2d3e
+    # ID: f9e8984e-6908-4837-81dc-af136030b01e
     def _format_name(self) -> str:
         """Return format name for logging."""
         return "JSON"

@@ -1,5 +1,5 @@
 # src/body/atomic/__init__.py
-# ID: atomic.init
+# ID: 1bb527ea-58b3-492b-8d8a-77e18fb0c035
 """
 Atomic Actions - Constitutional Action System
 """

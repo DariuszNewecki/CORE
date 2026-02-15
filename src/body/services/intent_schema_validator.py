@@ -26,8 +26,8 @@ from shared.logger import getLogger
 logger = getLogger(__name__)
 
 
-# ID: schema_validation_result
-# ID: 1a2b3c4d-5e6f-7a8b-9c0d-1e2f3a4b5c6d
+# ID: 1613fe5a-7770-4dc8-ad69-aede3325eb35
+# ID: 4d233a8d-dfcc-4b90-acac-d65515d83159
 @dataclass
 # ID: a3d80ab0-1305-4aa5-ad7d-e33f55cad6fd
 class SchemaValidationResult:
@@ -39,8 +39,8 @@ class SchemaValidationResult:
     error_message: str | None = None
 
 
-# ID: schema_pair
-# ID: 2b3c4d5e-6f7a-8b9c-0d1e-2f3a4b5c6d7e
+# ID: 0cfd46f7-a6fc-447f-a941-313e1be66356
+# ID: 903dd29d-e370-4441-8489-668935704ab9
 @dataclass
 # ID: f90b4c8b-4698-4836-b1aa-056515fd6ca4
 class SchemaPair:
@@ -50,8 +50,8 @@ class SchemaPair:
     schema_path: Path
 
 
-# ID: intent_schema_validator
-# ID: 3c4d5e6f-7a8b-9c0d-1e2f-3a4b5c6d7e8f
+# ID: 79ef644b-8b3e-4ff0-967d-8619926424b3
+# ID: 8cbe3ca9-3b16-4d69-8608-8b55c422e500
 class IntentSchemaValidator:
     """
     Validates .intent YAML documents against their declared JSON schemas.
@@ -75,8 +75,8 @@ class IntentSchemaValidator:
     # Core Validation Logic
     # -------------------------
 
-    # ID: validator_validate_pair
-    # ID: 4d5e6f7a-8b9c-0d1e-2f3a-4b5c6d7e8f9a
+    # ID: f416b69b-54a9-4468-b37e-168e87a0a3a7
+    # ID: 5443f768-20c3-4d05-9a7d-9df34e1b61e0
     def validate_pair(self, pair: SchemaPair) -> SchemaValidationResult:
         """
         Validate a single YAML document against its schema.
@@ -129,8 +129,8 @@ class IntentSchemaValidator:
                 error_message=f"Unexpected validation error: {e!r}",
             )
 
-    # ID: validator_validate_all
-    # ID: 5e6f7a8b-9c0d-1e2f-3a4b-5c6d7e8f9a0b
+    # ID: 12009828-76ab-420f-ac19-b7e5c4a22dcc
+    # ID: 236186ba-1470-4cf7-8efb-ab9db910bb76
     def validate_all(self) -> tuple[list[SchemaValidationResult], list[str]]:
         """
         Validate all .intent documents that declare $schema.
@@ -146,8 +146,8 @@ class IntentSchemaValidator:
     # Discovery Logic
     # -------------------------
 
-    # ID: validator_discover_pairs
-    # ID: 6f7a8b9c-0d1e-2f3a-4b5c-6d7e8f9a0b1c
+    # ID: 962c3ea3-c187-457c-91e1-d7de2b594b60
+    # ID: 5e6a6d73-f710-48f4-91af-b37a0ca67bd5
     def _discover_schema_pairs(self) -> tuple[list[SchemaPair], list[str]]:
         """
         Discover YAML → JSON-schema pairs using the `$schema` field.
@@ -181,8 +181,8 @@ class IntentSchemaValidator:
 
         return pairs, skipped
 
-    # ID: validator_iter_yaml
-    # ID: 7a8b9c0d-1e2f-3a4b-5c6d-7e8f9a0b1c2d
+    # ID: 6bc9e6f4-dd2e-4bcd-b2f8-caf7df9bc1d0
+    # ID: 365ba3bf-4559-4300-8536-e88995c9a427
     def _iter_intent_yaml(self) -> list[Path]:
         """
         Return all YAML/YML files under .intent, excluding state folders.

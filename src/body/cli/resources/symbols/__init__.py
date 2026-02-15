@@ -3,17 +3,11 @@
 
 from __future__ import annotations
 
-import typer
+# 2. Register all symbol neurons
+from . import audit, fix_ids, resolve_duplicates, sync, tag
 
-
-app = typer.Typer(
-    name="symbols",
-    help="Operations for the symbol registry and Knowledge Graph identification.",
-    no_args_is_help=True,
-)
-
-# Actions following standard verbs
-from . import audit, fix_ids, sync
+# 1. Import the stable app from the hub
+from .hub import app
 
 
 __all__ = ["app"]

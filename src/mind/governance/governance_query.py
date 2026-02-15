@@ -33,8 +33,8 @@ from shared.logger import getLogger
 logger = getLogger(__name__)
 
 
-# ID: class-governance-query
-# ID: a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d
+# ID: 8d6983c3-b629-4ce5-bbc4-c1af97e132fd
+# ID: 83dd775c-4346-4ec6-9898-2e9b3802289b
 class GovernanceQuery:
     """
     Mind layer query interface for constitutional documents.
@@ -176,8 +176,8 @@ class GovernanceQuery:
         logger.info("Invalidated constitution cache")
 
 
-# ID: get-governance-query
-# ID: b2c3d4e5-f6a7-8b9c-0d1e-2f3a4b5c6d7e
+# ID: fd00d25d-d880-4926-b28d-6e9498e75d38
+# ID: f84dccc0-ec52-4728-b02a-780e13c0110d
 def get_governance_query(intent_path: Path | None = None) -> GovernanceQuery:
     """
     Factory function for governance query interface.

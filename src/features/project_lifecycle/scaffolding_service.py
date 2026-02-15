@@ -24,7 +24,7 @@ if TYPE_CHECKING:
 logger = getLogger(__name__)
 
 
-# ID: b2a71e87-f72f-4868-8e63-9538096af12e
+# ID: defb2539-73fe-43dd-9bb1-506a3f076570
 class Scaffolder:
     """
     Orchestrates the creation of a new CORE project via governed Atomic Actions.

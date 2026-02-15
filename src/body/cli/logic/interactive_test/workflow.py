@@ -1,16 +1,16 @@
 # src/body/cli/logic/interactive_test/workflow.py
+# ID: 6f7a8b9c-0d1e-2f3a-4b5c-6d7e8f9a0b1c
 
 """
 Interactive test generation workflow orchestration.
 
 Coordinates the 5-step workflow and handles state transitions.
 
-Constitutional Compliance:
-- Single Responsibility: Only workflow coordination
-- Clear flow: Delegates to step handlers, UI shows results
-- Error handling: Proper cleanup and logging
-- DI Pattern: Uses services from CoreContext (no direct instantiation)
-- Registry Pattern: Respects singleton services via registry
+HEALED (V2.7.3):
+- Signature Alignment: Matches CoderAgent V2.6+ constructor exactly.
+- Inversion of Control: Injects 'action_executor' as the mandatory 'executor'.
+- Service Robustness: Added JIT wake-up for Cognitive and Auditor services if None.
+- Safety: Added checks for empty decision lists to prevent IndexError.
 """
 
 from __future__ import annotations
@@ -37,7 +37,7 @@ from will.orchestration.prompt_pipeline import PromptPipeline
 logger = getLogger(__name__)
 
 
-# ID: 6f7a8b9c-0d1e-2f3a-4b5c-6d7e8f9a0b1c
+# ID: e0f08996-0583-4a13-b367-8bea5df6ab8b
 async def run_interactive_workflow(
     target_file: str,
     core_context: CoreContext,
@@ -79,8 +79,8 @@ async def run_interactive_workflow(
             show_cancellation()
             return False
 
-        # Check if user skipped ahead to execute
-        if session.decisions[-1]["choice"] == "s":
+        # Check if user skipped ahead to execute (with safety check)
+        if session.decisions and session.decisions[-1]["choice"] == "s":
             # Skip to step 5
             test_path = target_file.replace("src/", "tests/").replace(
                 ".py", "/test_generated.py"
@@ -101,8 +101,8 @@ async def run_interactive_workflow(
             show_cancellation()
             return False
 
-        # Check if user skipped ahead to execute
-        if session.decisions[-1]["choice"] == "s":
+        # Check if user skipped ahead to execute (with safety check)
+        if session.decisions and session.decisions[-1]["choice"] == "s":
             # Skip to step 5
             test_path = target_file.replace("src/", "tests/").replace(
                 ".py", "/test_generated.py"
@@ -149,48 +149,40 @@ async def _initialize_services(core_context: CoreContext) -> CoderAgent:
     Initialize required services for workflow.
 
     CONSTITUTIONAL COMPLIANCE:
-    - Uses existing services from CoreContext (DI principle)
-    - Uses registry for service resolution (no direct instantiation)
-    - Respects singleton pattern (no duplicate instances)
-    - Proper property access for lazy-loaded services
-
-    Args:
-        core_context: Core context with pre-initialized services
-
-    Returns:
-        Initialized CoderAgent
+    - Uses existing services from CoreContext (DI principle).
+    - JIT Service Activation: Automatically wakes up services from registry if missing.
     """
-    # Use existing services from CoreContext (already initialized by CLI/API)
+    # 1. Collect services from the Context
+    # SAFETY NET: If they are None (Service Blindness), pull them from the Registry JIT.
     cognitive_service = core_context.cognitive_service
-    auditor_context = core_context.auditor_context
+    if cognitive_service is None:
+        cognitive_service = await core_context.registry.get_cognitive_service()
 
-    # Create PromptPipeline (stateless utility, safe to create)
+    auditor_context = core_context.auditor_context
+    if auditor_context is None:
+        auditor_context = await core_context.registry.get_auditor_context()
+
+    # 2. Get the mandatory action_executor (The Body's Gateway)
+    executor = core_context.action_executor
+
+    # 3. Create PromptPipeline (stateless utility)
     prompt_pipeline = PromptPipeline(core_context.git_service.repo_path)
 
-    # Get Qdrant from registry if available (respects singleton pattern)
-    qdrant_service = None
-    try:
-        if core_context.registry:
-            qdrant_service = await core_context.registry.get_qdrant_service()
-            logger.info("Qdrant service available for semantic features")
-    except Exception as e:
-        logger.debug("Qdrant not available (optional): %s", e)
-
-    # Get ContextService via property (triggers factory if needed)
+    # 4. Get ContextService via property
     context_service = None
     try:
         context_service = core_context.context_service
-        logger.info("ContextService available for enriched code generation")
     except Exception as e:
         logger.debug("ContextService not available: %s", e)
 
-    # Create CoderAgent with all available services
+    # 5. Create CoderAgent with HIGH FIDELITY signature
+    # Arguments match src/will/agents/coder_agent.py exactly.
     coder_agent = CoderAgent(
         cognitive_service=cognitive_service,
+        executor=executor,
         prompt_pipeline=prompt_pipeline,
         auditor_context=auditor_context,
         repo_root=core_context.git_service.repo_path,
-        qdrant_service=qdrant_service,
         context_service=context_service,
     )
 

@@ -12,7 +12,7 @@ from shared.logger import getLogger
 logger = getLogger(__name__)
 
 
-# ID: b2c3d4e5-f6a7-8b9c-0d1e-2f3a4b5c6d7e
+# ID: e7fbc71d-80e0-4287-a6c1-29979dd25736
 class LoadPhase:
     """Initializes ContextService with cognitive and vector services."""
 

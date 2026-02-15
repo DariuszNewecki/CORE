@@ -31,7 +31,7 @@ def _is_public(node: ast.FunctionDef | ast.AsyncFunctionDef | ast.ClassDef) -> b
     return not node.name.startswith("_") and (not is_dunder)
 
 
-# ID: 7babae48-7877-48fb-b653-042c97161139
+# ID: 17328e3a-5e37-48ff-94d4-c3f4697825d5
 async def assign_missing_ids(context: CoreContext, write: bool = False) -> int:
     """
     Scans all Python files in the 'src/' directory, finds public symbols

@@ -1,5 +1,5 @@
 # src/shared/infrastructure/database/models/learning.py
-# ID: model.shared.infrastructure.database.models.learning
+# ID: 5ccae4c3-838c-46d0-8cd7-079244ace1e4
 """
 Learning & Feedback Layer models for CORE v2.2 Schema.
 Section 5: Agent decisions, memory, feedback - The Will.
@@ -27,7 +27,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 from .knowledge import Base
 
 
-# ID: 91b2d3e4-agent-decisions-aligned
+# ID: b120a7a2-36ce-4432-9bed-5a3d79ff6cb0
 # ID: 13cd8357-460b-464b-9c5e-94cfe8096249
 class AgentDecision(Base):
     """
@@ -52,7 +52,7 @@ class AgentDecision(Base):
     )
 
 
-# ID: a2c3d4e5-agent-memory-aligned
+# ID: 1c9fc3f2-d454-4ddd-a39e-1fca6058d39b
 # ID: ae0b3160-a30d-4ec7-bad9-fd42c6e940b9
 class AgentMemory(Base):
     """
@@ -80,7 +80,7 @@ class AgentMemory(Base):
     )
 
 
-# ID: feedback-model
+# ID: bb711660-9e33-4910-ab03-cb961dc0b7c9
 # ID: 9a090789-0e88-48e9-935e-09c25aeaa944
 class Feedback(Base):
     __tablename__: ClassVar[str] = "feedback"

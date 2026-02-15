@@ -24,8 +24,8 @@ from shared.logger import getLogger
 logger = getLogger(__name__)
 
 
-# ID: iter_files_by_extension
-# ID: 1a2b3c4d-5e6f-7890-abcd-ef1234567890
+# ID: b9dc098f-9473-4329-890b-d12b4cef2ba9
+# ID: 2e0fab8f-21a4-48a6-b553-5fdd0eb8f83a
 def iter_files_by_extension(
     root: Path,
     extensions: tuple[str, ...],
@@ -83,8 +83,8 @@ def iter_files_by_extension(
     return sorted(files)
 
 
-# ID: iter_python_files
-# ID: 2b3c4d5e-6f7a-8901-bcde-f12345678901
+# ID: 8337e50c-7288-479b-8bf1-f81aa4ec1648
+# ID: a27f169d-50b6-4047-bcc0-748bf6a1e0ca
 def iter_python_files(
     root: Path,
     exclude_prefixes: tuple[str, ...] = (),
@@ -123,8 +123,8 @@ def iter_python_files(
     )
 
 
-# ID: matches_glob_pattern
-# ID: 3c4d5e6f-7a8b-9012-cdef-123456789012
+# ID: 466742f0-cf59-4d91-8b62-93824c7a9335
+# ID: e6c4b600-3acd-47ed-828b-6e43fde88745
 def matches_glob_pattern(path: str | Path, pattern: str) -> bool:
     """
     Check if path matches glob pattern.
@@ -149,8 +149,8 @@ def matches_glob_pattern(path: str | Path, pattern: str) -> bool:
     return path.match(pattern)
 
 
-# ID: matches_any_pattern
-# ID: 4d5e6f7a-8b9c-0d1e-2f3a-4b5c6d7e8f9a
+# ID: 3ec19814-e92d-4619-91b2-3f6d8b59e762
+# ID: 175cbfee-3c49-4280-be81-457e2f17660b
 def matches_any_pattern(path: str | Path, patterns: list[str]) -> bool:
     """
     Check if path matches any of multiple patterns.
@@ -171,8 +171,8 @@ def matches_any_pattern(path: str | Path, patterns: list[str]) -> bool:
     return any(matches_glob_pattern(path, pattern) for pattern in patterns)
 
 
-# ID: safe_relative_to
-# ID: 5e6f7a8b-9c0d-1e2f-3a4b-5c6d7e8f9a0b
+# ID: b5d61ae6-7067-47ed-baaf-ea649c182dd1
+# ID: 4f468352-328a-499c-9062-bb6e38b2af7f
 def safe_relative_to(path: Path, root: Path) -> str | None:
     """
     Get relative path string, returning None if not relative.
@@ -197,8 +197,8 @@ def safe_relative_to(path: Path, root: Path) -> str | None:
         return None
 
 
-# ID: is_under_directory
-# ID: 6f7a8b9c-0d1e-2f3a-4b5c-6d7e8f9a0b1c
+# ID: f04261e4-2c19-4ace-9bab-aa7b3e2468f4
+# ID: 62f5898e-3e7e-4690-8ef4-34a8b944e3b1
 def is_under_directory(path: Path, directory: Path) -> bool:
     """
     Check if path is under directory (direct child or nested).
@@ -228,8 +228,8 @@ def is_under_directory(path: Path, directory: Path) -> bool:
         return False
 
 
-# ID: ensure_posix_path
-# ID: 7a8b9c0d-1e2f-3a4b-5c6d-7e8f9a0b1c2d
+# ID: 8f7ddbfa-f669-4513-a47c-3cb66531d244
+# ID: 823eb957-54db-4cef-ba08-0b790a427795
 def ensure_posix_path(path: str | Path) -> str:
     """
     Ensure path uses POSIX format (forward slashes).

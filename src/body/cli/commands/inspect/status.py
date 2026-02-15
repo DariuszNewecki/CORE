@@ -1,5 +1,5 @@
 # src/body/cli/commands/inspect/status.py
-# ID: body.cli.commands.inspect.status
+# ID: 6e2713f9-3ab6-48fb-825d-71aa034352aa
 
 """
 System and database status inspection commands.

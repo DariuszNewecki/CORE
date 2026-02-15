@@ -29,7 +29,7 @@ REPO_ROOT = settings.REPO_PATH
 DOMAINS_DIR = settings.paths.intent_root / "knowledge" / "domains"
 
 
-# ID: 186b49f2-f06a-49b6-95f7-0e7fd097c94e
+# ID: c10bfc33-9e21-44be-9216-5ed72eaafa05
 async def run_fix_manifest_hygiene(context: CoreContext, write: bool = False):
     """
     Scans for and corrects misplaced capability declarations in domain manifests.

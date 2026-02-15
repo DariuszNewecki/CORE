@@ -42,7 +42,7 @@ governance_app = typer.Typer(
 
 @governance_app.command("coverage")
 @core_command(dangerous=False, requires_context=True)
-# ID: 0753d0ea-9942-431f-b013-5ee5d09eb782
+# ID: 06d759aa-28b1-43ab-b887-5367fded6fd1
 def enforcement_coverage(
     ctx: typer.Context,
     format: str = typer.Option(
@@ -109,7 +109,7 @@ def _to_rel_str(path: Path, root: Path) -> str:
 
 
 @governance_app.command("validate-request")
-# ID: 1a2b3c4d-5e6f-7a8b-9c0d-1e2f3a4b5c6d
+# ID: b68cdf18-4105-4c7b-9d33-53d02ca45db8
 def validate_request_command(
     request: str = typer.Argument(..., help="Request to validate"),
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Show detailed output"),
@@ -120,7 +120,7 @@ def validate_request_command(
     asyncio.run(_validate_request_async(request, verbose))
 
 
-# ID: 2b3c4d5e-6f7a-8b9c-0d1e-2f3a4b5c6d7e
+# ID: 8fafa7a5-f821-413a-b9b8-83d496962d13
 async def _validate_request_async(request: str, verbose: bool = False) -> None:
     """
     Run pre-flight constitutional validation on a request.

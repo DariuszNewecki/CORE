@@ -1,5 +1,5 @@
 # src/body/cli/resources/vectors/cleanup.py
-# ID: cli.resources.vectors.cleanup
+# ID: 301e7978-840f-49c2-91a0-b2025b5dfb95
 """
 Vector cleanup command.
 
@@ -15,7 +15,7 @@ from shared.cli_utils import core_command
 from shared.infrastructure.database.session_manager import get_session
 from shared.logger import getLogger
 
-from . import app
+from .hub import app
 
 
 logger = getLogger(__name__)

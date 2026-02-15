@@ -6,7 +6,7 @@ from body.cli.logic.diagnostics import get_unassigned_symbols_logic
 from body.cli.logic.symbol_drift import inspect_symbol_drift
 from shared.cli_utils import core_command
 
-from . import app
+from .hub import app
 
 
 console = Console()
@@ -27,19 +27,21 @@ async def audit_symbols(ctx: typer.Context) -> None:
     core_context = ctx.obj
 
     console.print(
-        "[bold cyan]🔍 1. Checking for Symbol Drift (Disk vs DB)...[/bold cyan]"
+        "[bold cyan]\U0001f50d 1. Checking for Symbol Drift (Disk vs DB)...[/bold cyan]"
     )
     # Drift logic handles its own printing/logging
     await inspect_symbol_drift()
 
-    console.print("\n[bold cyan]🔍 2. Checking for Unassigned IDs...[/bold cyan]")
+    console.print(
+        "\n[bold cyan]\U0001f50d 2. Checking for Unassigned IDs...[/bold cyan]"
+    )
     unassigned = await get_unassigned_symbols_logic(core_context)
 
     if not unassigned:
-        console.print("[green]✅ All public symbols have assigned IDs.[/green]")
+        console.print("[green]\u2705 All public symbols have assigned IDs.[/green]")
     else:
         console.print(
-            f"[yellow]⚠️  Found {len(unassigned)} symbols with no ID tag.[/yellow]"
+            f"[yellow]\u26a0\ufe0f  Found {len(unassigned)} symbols with no ID tag.[/yellow]"
         )
         for item in unassigned[:10]:
             console.print(f"   - {item.get('name')} ({item.get('file_path')})")

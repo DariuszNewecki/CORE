@@ -1,14 +1,16 @@
 # src/body/analyzers/symbol_extractor.py
-
-"""
-Symbol Extractor - Extracts testable symbols from Python files.
+# ID: 45a15e98-cf61-4f87-b2b4-c023fb783654
+"""Symbol Extractor - Extracts testable symbols from Python files.
 
 Constitutional Alignment:
 - Phase: PARSE (Structural metadata extraction)
 - Authority: CODE (Implementation of structural analysis)
 - SSOT: Aligns symbol keys with core.symbols DB schema (filepath::qualname)
-- Tracing: Mandatory DecisionTracer integration
 - Boundary: Requires CoreContext with git_service (no settings fallback)
+
+Purified (V2.7.4)
+- Removed Will-layer DecisionTracer to satisfy architecture.layers.no_body_to_will.
+  Rationale is now returned in metadata.
 """
 
 from __future__ import annotations
@@ -20,17 +22,17 @@ from dataclasses import dataclass
 from shared.component_primitive import Component, ComponentPhase, ComponentResult
 from shared.context import CoreContext
 from shared.logger import getLogger
-from will.orchestration.decision_tracer import DecisionTracer
 
 
 logger = getLogger(__name__)
 
 
-@dataclass
 # ID: c9728355-9313-4ab3-9258-813393a0b195
+@dataclass
+# ID: 5d698d5b-f58e-4a4c-8ec4-5e6bf133888e
 class SymbolMetadata:
-    """
-    Structured metadata for a testable symbol.
+    """Structured metadata for a testable symbol.
+
     Aligned with the Knowledge Graph (SSOT) schema.
     """
 
@@ -46,24 +48,22 @@ class SymbolMetadata:
     decorators: list[str]
 
 
-# ID: 45a15e98-cf61-4f87-b2b4-c023fb783654
+# ID: 2bd8827b-1c5a-44c2-9fc8-78daa71b05b9
 class SymbolExtractor(Component):
-    """
-    Extracts testable symbols (functions and classes) from Python files.
+    """Extracts testable symbols (functions and classes) from Python files.
 
-    Constitutional Filters:
+    Constitutional filters:
     - Skips private symbols (starting with _)
-    - Skips explicit test files (test_*.py)
-    - Skips dunder magic methods (except those requiring specific coverage)
+    - Skips explicit test files (test_*.py, *_test.py)
 
-    Constitutional Requirement:
-    - MUST be initialized with CoreContext containing valid git_service
-    - Body layer components do not access settings directly
+    Constitutional requirements:
+    - MUST be initialized with CoreContext containing valid git_service.
+    - Body layer components do not access settings directly.
     """
 
     def __init__(self, context: CoreContext | None = None):
+        """Initialize with context for governed path resolution."""
         self.context = context
-        self.tracer = DecisionTracer()
 
     @property
     # ID: 88898be4-86f2-4bf4-ba81-06a34759d3f3
@@ -72,25 +72,29 @@ class SymbolExtractor(Component):
 
     # ID: a98b1814-002c-4deb-aeb9-dadc7039ac60
     async def execute(
-        self, file_path: str, include_private: bool = False, **kwargs
+        self,
+        file_path: str,
+        include_private: bool = False,
+        **kwargs,
     ) -> ComponentResult:
-        """
-        Analyze a file and extract symbol metadata.
+        """Analyze a file and extract symbol metadata.
 
-        Constitutional Compliance:
+        Constitutional compliance:
         - Requires valid CoreContext with git_service (no settings fallback)
-        - Returns error if context not provided (fail fast, dependency injection enforced)
+        - Returns error if context not provided (fail fast, DI enforced)
         """
         start_time = time.time()
 
         # Constitutional boundary enforcement: Body requires proper context
-        if not self.context or not self.context.git_service:
+        if not self.context or not getattr(self.context, "git_service", None):
             return ComponentResult(
                 component_id=self.component_id,
                 ok=False,
                 data={
-                    "error": "SymbolExtractor requires CoreContext with git_service. "
-                    "Body layer components must not access settings directly."
+                    "error": (
+                        "SymbolExtractor requires CoreContext with git_service. "
+                        "Body layer components must not access settings directly."
+                    )
                 },
                 phase=self.phase,
                 confidence=0.0,
@@ -122,27 +126,15 @@ class SymbolExtractor(Component):
             source_code = abs_path.read_text(encoding="utf-8")
             tree = ast.parse(source_code)
 
-            # Perform extraction
             extracted_symbols = self._extract_symbols(tree, file_path, include_private)
 
-            # Tally metrics
             public_count = sum(1 for s in extracted_symbols if s.is_public)
             class_count = sum(1 for s in extracted_symbols if s.type == "class")
 
-            # Mandatory Decision Tracing
-            self.tracer.record(
-                agent="SymbolExtractor",
-                decision_type="metadata_extraction",
-                rationale=f"Discovered structural symbols in {file_path}",
-                chosen_action="return_symbol_list",
-                context={
-                    "file": file_path,
-                    "total_found": len(extracted_symbols),
-                    "public_api_count": public_count,
-                },
-            )
-
             duration = time.time() - start_time
+
+            # CONSTITUTIONAL NOTE: Instead of calling tracer directly, we return
+            # the rationale in metadata for the Will layer to record.
             return ComponentResult(
                 component_id=self.component_id,
                 ok=True,
@@ -157,7 +149,17 @@ class SymbolExtractor(Component):
                 confidence=1.0,
                 next_suggested="test_strategist",
                 duration_sec=duration,
-                metadata={"file_path": file_path},
+                metadata={
+                    "file_path": file_path,
+                    "rationale": (
+                        f"Discovered {len(extracted_symbols)} structural symbols in {file_path}"
+                    ),
+                    "extraction_context": {
+                        "file": file_path,
+                        "total_found": len(extracted_symbols),
+                        "public_api_count": public_count,
+                    },
+                },
             )
 
         except SyntaxError as e:
@@ -179,29 +181,33 @@ class SymbolExtractor(Component):
             )
 
     def _extract_symbols(
-        self, tree: ast.AST, rel_path: str, include_private: bool
+        self,
+        tree: ast.AST,
+        rel_path: str,
+        include_private: bool,
     ) -> list[SymbolMetadata]:
-        symbols = []
+        symbols: list[SymbolMetadata] = []
+
         # Walk only top-level to avoid internal closures/nested funcs unless classes
         for node in tree.body:
             if isinstance(node, ast.ClassDef):
                 meta = self._build_class_meta(node, rel_path)
                 if include_private or meta.is_public:
                     symbols.append(meta)
+
             elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
                 meta = self._build_function_meta(node, rel_path)
                 if include_private or meta.is_public:
                     symbols.append(meta)
+
         return symbols
 
     def _build_class_meta(self, node: ast.ClassDef, rel_path: str) -> SymbolMetadata:
         is_public = not node.name.startswith("_")
         doc = ast.get_docstring(node)
 
-        # SSOT Mapping
         symbol_path = f"{rel_path}::{node.name}"
 
-        # Structural Complexity Assessment
         methods = [
             n
             for n in node.body
@@ -225,15 +231,15 @@ class SymbolExtractor(Component):
         )
 
     def _build_function_meta(
-        self, node: ast.FunctionDef | ast.AsyncFunctionDef, rel_path: str
+        self,
+        node: ast.FunctionDef | ast.AsyncFunctionDef,
+        rel_path: str,
     ) -> SymbolMetadata:
         is_public = not node.name.startswith("_")
         doc = ast.get_docstring(node)
 
-        # SSOT Mapping
         symbol_path = f"{rel_path}::{node.name}"
 
-        # Structural Complexity Assessment
         body_len = len(node.body)
         complexity = "high" if body_len > 25 else "medium" if body_len > 10 else "low"
 

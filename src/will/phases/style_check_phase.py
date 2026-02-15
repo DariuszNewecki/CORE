@@ -1,5 +1,5 @@
 # src/will/phases/style_check_phase.py
-# ID: will.phases.style_check_phase
+# ID: af60f378-c551-40fc-ba50-2cf9e2e90c91
 
 """
 Style Check Phase Implementation

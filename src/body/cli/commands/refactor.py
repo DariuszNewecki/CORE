@@ -22,6 +22,7 @@ from body.cli.commands.refactor_support.config import (
     get_source_files,
 )
 from body.cli.commands.refactor_support.display import RefactorDisplay
+from body.cli.commands.refactor_support.display import console as refactor_console
 from body.cli.commands.refactor_support.recommendations import RecommendationEngine
 from shared.cli_utils import core_command
 from shared.context import CoreContext
@@ -210,11 +211,11 @@ async def check_file_score(
     table.add_row("TOTAL", "", f"[bold]{score:.1f}/100[/bold]")
     table.add_row("Target", "", f"<{target_value}")
 
-    RefactorDisplay.console.print(table)
+    refactor_console.print(table)
 
     if score > target_value:
         RefactorDisplay.console.print(
             f"\n[red]❌ Exceeds threshold by {score - target_value:.1f} points[/red]"
         )
     else:
-        RefactorDisplay.console.print("\n[yellow]⚠️  Within warning range[/yellow]")
+        refactor_console.print("\n[yellow]⚠️  Within warning range[/yellow]")

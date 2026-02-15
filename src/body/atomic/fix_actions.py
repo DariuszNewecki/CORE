@@ -13,6 +13,11 @@ Constitutional Alignment:
 HEALED (V2.7.2):
 - Context Injection: Now correctly passes core_context to AtomicActionsEvaluator
   to prevent 'NoneType' attribute errors during self-healing.
+
+HEALED (V2.7.4):
+- Registry Gap: Added fix.duplicate_ids to the atomic registry.
+- Policy References: All policies now use canonical indexed IDs
+  (rules/<domain>/<name>) matching IntentRepository index.
 """
 
 from __future__ import annotations
@@ -36,7 +41,7 @@ logger = getLogger(__name__)
     action_id="fix.format",
     description="Format code with Black and Ruff",
     category=ActionCategory.FIX,
-    policies=["code_quality_standards"],
+    policies=["rules/code/purity"],
     impact_level="safe",
 )
 @atomic_action(
@@ -61,10 +66,54 @@ async def action_format_code(write: bool = False) -> ActionResult:
 
 
 @register_action(
+    action_id="fix.imports",
+    description="Sort and group imports according to PEP 8 / Constitutional standards",
+    category=ActionCategory.FIX,
+    policies=["rules/code/purity"],
+    impact_level="safe",
+)
+@atomic_action(
+    action_id="fix.imports",
+    intent="Standardize Python import blocks using Ruff",
+    impact=ActionImpact.WRITE_METADATA,
+    policies=["atomic_actions"],
+)
+# ID: d5879178-fdfe-4d8b-b6a6-f887f8e9500b
+async def action_fix_imports(write: bool = False) -> ActionResult:
+    """Sort and group Python imports according to constitutional style policy."""
+    start = time.time()
+    from shared.utils.subprocess_utils import run_poetry_command
+
+    target_path = "src/"
+    try:
+        cmd = ["ruff", "check", target_path, "--select", "I"]
+        if write:
+            cmd.append("--fix")
+        cmd.append("--exit-zero")
+
+        # Execute via sanctioned subprocess utility
+        run_poetry_command(f"Sorting imports in {target_path}", cmd)
+
+        return ActionResult(
+            action_id="fix.imports",
+            ok=True,
+            data={"status": "completed", "target": target_path, "write": write},
+            duration_sec=time.time() - start,
+        )
+    except Exception as e:
+        return ActionResult(
+            action_id="fix.imports",
+            ok=False,
+            data={"error": str(e)},
+            duration_sec=time.time() - start,
+        )
+
+
+@register_action(
     action_id="fix.docstrings",
     description="Fix missing or malformed docstrings",
     category=ActionCategory.FIX,
-    policies=["code_quality_standards"],
+    policies=["rules/code/purity"],
     impact_level="safe",
 )
 @atomic_action(
@@ -94,7 +143,7 @@ async def action_fix_docstrings(
     action_id="fix.headers",
     description="Fix file headers to match constitutional standards",
     category=ActionCategory.FIX,
-    policies=["header_compliance"],
+    policies=["rules/code/purity"],
     impact_level="safe",
 )
 @atomic_action(
@@ -117,7 +166,7 @@ async def action_fix_headers(
     action_id="fix.ids",
     description="Add missing ID tags to functions and classes",
     category=ActionCategory.FIX,
-    policies=["code_quality_standards"],
+    policies=["rules/code/purity"],
     impact_level="safe",
 )
 @atomic_action(
@@ -137,10 +186,33 @@ async def action_fix_ids(
 
 
 @register_action(
+    action_id="fix.duplicate_ids",
+    description="Resolve duplicate UUID collisions across source files",
+    category=ActionCategory.FIX,
+    policies=["rules/code/linkage"],
+    impact_level="moderate",
+)
+@atomic_action(
+    action_id="fix.duplicate_ids",
+    intent="Resolve duplicate ID conflicts by regenerating UUIDs",
+    impact=ActionImpact.WRITE_METADATA,
+    policies=["id_uniqueness_check"],
+)
+# ID: 2e7f8a1b-c3d4-4e5f-96a0-b1d2e3f4a5b6
+async def action_fix_duplicate_ids(
+    core_context: CoreContext, write: bool = False, **kwargs
+) -> ActionResult:
+    """Resolve duplicate UUID collisions in source files."""
+    from body.cli.commands.fix.metadata import fix_duplicate_ids_internal
+
+    return await fix_duplicate_ids_internal(core_context, write=write)
+
+
+@register_action(
     action_id="fix.logging",
     description="Replace print statements with proper logging",
     category=ActionCategory.FIX,
-    policies=["code_quality_standards"],
+    policies=["rules/code/purity"],
     impact_level="safe",
 )
 @atomic_action(
@@ -175,7 +247,7 @@ async def action_fix_logging(
     action_id="fix.placeholders",
     description="Replace FUTURE/PENDING placeholders",
     category=ActionCategory.FIX,
-    policies=["code_quality_standards"],
+    policies=["rules/code/purity"],
     impact_level="moderate",
 )
 @atomic_action(
@@ -222,7 +294,7 @@ async def action_fix_placeholders(
     action_id="fix.atomic_actions",
     description="Fix atomic actions pattern violations",
     category=ActionCategory.FIX,
-    policies=["atomic_actions"],
+    policies=["rules/architecture/atomic_actions"],
     impact_level="moderate",
 )
 @atomic_action(

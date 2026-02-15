@@ -1,5 +1,5 @@
 # src/body/cli/commands/inspect/refusals.py
-# ID: body.cli.commands.inspect.refusals
+# ID: dfd9d154-4779-449e-8847-24fff221ee57
 
 """
 Constitutional refusal inspection commands.

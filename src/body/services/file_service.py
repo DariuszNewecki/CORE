@@ -24,7 +24,7 @@ from shared.logger import getLogger
 logger = getLogger(__name__)
 
 
-# ID: a1b2c3d4-e5f6-7g8h-9i0j-k1l2m3n4o5p6
+# ID: 336629d4-5541-42a0-a147-d469a2d40aee
 # ID: 54b51df1-b3c5-4169-9c69-d76b08f77e2b
 class FileService:
     """
@@ -103,7 +103,7 @@ class FileService:
     # NEW METHODS (wrapping FileHandler correctly)
     # ========================================================================
 
-    # ID: write-file-method
+    # ID: 39f589ea-a508-4671-a923-cd41ce2f947d
     # ID: b1c2d3e4-f5a6-7b8c-9d0e-1f2a3b4c5d6e
     def write_file(self, rel_path: str, content: str) -> FileOpResult:
         """
@@ -129,7 +129,7 @@ class FileService:
 
         return result
 
-    # ID: write-runtime-bytes-method
+    # ID: 8c84d59f-9699-4521-8ae8-865c497d6da6
     # ID: c2d3e4f5-a6b7-8c9d-0e1f-2a3b4c5d6e7f
     def write_runtime_bytes(self, rel_path: str, content: bytes) -> FileOpResult:
         """
@@ -152,7 +152,7 @@ class FileService:
 
         return result
 
-    # ID: write-runtime-json-method
+    # ID: 616524ef-ad75-4be7-9032-10e2d551b4e2
     # ID: a2b3c4d5-e6f7-8a9b-0c1d-2e3f4a5b6c7d
     def write_runtime_json(self, rel_path: str, payload: dict) -> FileOpResult:
         """
@@ -175,7 +175,7 @@ class FileService:
 
         return result
 
-    # ID: ensure-dir-method
+    # ID: ab7e4e78-4a83-4380-8832-603af12d7ebc
     # ID: d3e4f5a6-b7c8-9d0e-1f2a-3b4c5d6e7f8a
     def ensure_dir(self, rel_dir: str) -> FileOpResult:
         """
@@ -197,7 +197,7 @@ class FileService:
 
         return result
 
-    # ID: add-pending-write-method
+    # ID: 744e7127-0b8c-4aff-a0b6-e0d45a6f29bb
     # ID: e4f5a6b7-c8d9-0e1f-2a3b-4c5d6e7f8a9b
     def add_pending_write(self, prompt: str, suggested_path: str, code: str) -> str:
         """
@@ -218,7 +218,7 @@ class FileService:
         logger.info("Created pending write: %s", pending_file)
         return pending_file
 
-    # ID: read-file-method
+    # ID: 477782e1-b512-4fef-ad78-63b5bc2b8bd0
     # ID: f5a6b7c8-d9e0-1f2a-3b4c-5d6e7f8a9b0c
     def read_file(self, rel_path: str) -> str | None:
         """
@@ -244,7 +244,7 @@ class FileService:
             logger.error("Failed to read %s: %s", rel_path, e)
             return None
 
-    # ID: file-exists-method
+    # ID: 99a4abbf-e93f-4707-a9cc-81c8597ce44e
     # ID: a6b7c8d9-e0f1-2a3b-4c5d-6e7f8a9b0c1d
     def file_exists(self, rel_path: str) -> bool:
         """
@@ -261,7 +261,7 @@ class FileService:
         logger.debug("File exists check: %s = %s", rel_path, exists)
         return exists
 
-    # ID: get-file-handler-method
+    # ID: 1541f97a-15fb-4737-b330-1703f5c2c561
     # ID: b7c8d9e0-f1a2-3b4c-5d6e-7f8a9b0c1d2e
     def get_file_handler(self) -> FileHandler:
         """

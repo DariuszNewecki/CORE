@@ -3,17 +3,11 @@
 
 from __future__ import annotations
 
-import typer
+# 2. Register all sub-modules (neurons)
+from . import chat, stability, sync, test
 
-
-app = typer.Typer(
-    name="dev",
-    help="High-level developer workflows: synchronization, AI chat, and interactive tools.",
-    no_args_is_help=True,
-)
-
-# Actions
-from . import chat, sync, test
+# 1. Import the centralized app from the hub (prevents circular errors)
+from .hub import app
 
 
 __all__ = ["app"]

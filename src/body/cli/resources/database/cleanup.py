@@ -1,5 +1,5 @@
 # src/body/cli/resources/database/cleanup.py
-# ID: cli.resources.database.cleanup
+# ID: b7c9c569-7d05-4520-ab2b-2f90cc06b1c5
 """
 Database cleanup command.
 
@@ -15,7 +15,7 @@ from shared.cli_utils import core_command
 from shared.infrastructure.database.session_manager import get_session
 from shared.logger import getLogger
 
-from . import app
+from .hub import app
 
 
 logger = getLogger(__name__)

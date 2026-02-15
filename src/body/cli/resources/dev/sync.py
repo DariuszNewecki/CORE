@@ -5,7 +5,7 @@ from rich.console import Console
 from body.workflows.dev_sync_workflow import DevSyncWorkflow
 from shared.cli_utils import core_command
 
-from . import app
+from .hub import app
 
 
 console = Console()

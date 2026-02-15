@@ -20,7 +20,7 @@ from shared.models import AuditFinding, AuditSeverity
 console = Console()
 
 
-# ID: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+# ID: 8802195d-91be-49bb-8739-f40873a702eb
 def print_verbose_findings(findings: list[AuditFinding]) -> None:
     """Prints every single finding in a detailed table for verbose output."""
     table = Table(

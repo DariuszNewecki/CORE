@@ -1,5 +1,5 @@
 # src/will/agents/specification_agent.py
-# ID: will.agents.specification
+# ID: 1c09906a-a016-487a-8756-0992a50c53d5
 
 """
 SpecificationAgent - The Engineer
@@ -41,7 +41,7 @@ if TYPE_CHECKING:
 logger = getLogger(__name__)
 
 
-# ID: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+# ID: 574b1fac-9676-4bc3-bff5-e2f4f0d8b049
 class SpecificationAgent:
     """
     The Engineer: Turns architectural plans into detailed code specifications.
@@ -68,7 +68,7 @@ class SpecificationAgent:
 
         logger.info("SpecificationAgent initialized (A3 Specialist Mode)")
 
-    # ID: b2c3d4e5-f678-90ab-cdef-0123456789ab
+    # ID: 64b66b30-1e3b-4285-b9b2-83cd60ad48e8
     async def elaborate_plan(
         self,
         goal: str,
@@ -142,7 +142,7 @@ class SpecificationAgent:
             },
         )
 
-    # ID: c3d4e5f6-789a-bcde-f012-3456789abcde
+    # ID: 775b77a8-d539-4d38-986f-d413fb0cdb5d
     async def _generate_specification(
         self,
         task: ExecutionTask,

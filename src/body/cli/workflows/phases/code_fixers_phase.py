@@ -19,7 +19,7 @@ from shared.action_types import ActionResult
 from shared.context import CoreContext
 
 
-# ID: 62bb1514-6702-40b0-bc18-1fce5d2852fd
+# ID: 1248d364-44a9-4eec-8954-2a3b2269e352
 class CodeFixersPhase:
     """Executes code fixing operations."""
 

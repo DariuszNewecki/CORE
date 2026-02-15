@@ -37,7 +37,7 @@ if TYPE_CHECKING:
 logger = getLogger(__name__)
 
 
-# ID: f6ad5be7-dde6-467b-8edf-767dfe62bfa2
+# ID: 1f1383bb-136d-4403-b359-73c7eae6b355
 class CodeGenerationPhase:
     """
     Code Generation Phase Component.

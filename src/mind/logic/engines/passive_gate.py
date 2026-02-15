@@ -1,5 +1,5 @@
 # src/mind/logic/engines/passive_gate.py
-# ID: mind.logic.engines.passive_gate
+# ID: c2bd0af2-60d8-414e-a6ca-f36ac1a0d5d2
 
 """
 Passive Gate Engine - Constitutional Metadata Handler.
@@ -16,7 +16,7 @@ from typing import Any
 from .base import BaseEngine, EngineResult
 
 
-# ID: 7c8d9e0f-1a2b-3c4d-5e6f-7a8b9c0d1e2f
+# ID: 8f3431f3-5ede-4088-a279-d0c1cab89f28
 class PassiveGateEngine(BaseEngine):
     """
     A "Silent" engine that always returns OK.

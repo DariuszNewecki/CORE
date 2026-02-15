@@ -206,7 +206,7 @@ class AuditorContext:
         self._pattern_cache[cache_key] = result  # Memoize for next rule
         return result
 
-    # ID: fast_tree_retrieval
+    # ID: 182db297-46ce-4b24-9b05-e496f932769c
     # ID: cd8487e5-7382-4242-a54e-dfa7b59d3070
     def get_tree(self, file_path: Path) -> ast.AST | None:
         """HEALED: Retrieve a parsed tree from cache or create it."""

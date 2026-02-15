@@ -1,5 +1,5 @@
 # src/features/introspection/capability_discovery_service.py
-# ID: features.introspection.capability_discovery_service
+# ID: 44ed58de-ba54-44ed-9392-3117fd5d446c
 """
 Capability Discovery Service - Refactored for High Fidelity (V2.3).
 """

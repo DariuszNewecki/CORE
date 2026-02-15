@@ -1,5 +1,5 @@
 # src/will/phases/interpret_phase.py
-# ID: will.phases.interpret_phase
+# ID: 54f0c3e0-1ec5-44cc-b86c-c5fc17e4f25c
 
 """
 INTERPRET Phase - Convert natural language intent into canonical task structure
@@ -40,8 +40,8 @@ if TYPE_CHECKING:
 logger = getLogger(__name__)
 
 
-# ID: 1a2b3c4d-5e6f-7a8b-9c0d-1e2f3a4b5c6d
-# ID: a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d
+# ID: 75ea4168-eca1-43ef-a4a0-3c24ef729b72
+# ID: 6b2d1d07-81f6-4a13-a6cf-abc933ee4d20
 class InterpretPhase:
     """
     INTERPRET Phase Implementation (v1 - Deterministic)
@@ -58,7 +58,7 @@ class InterpretPhase:
     def __init__(self, context: CoreContext):
         self.context = context
 
-    # ID: 2b3c4d5e-6f7a-8b9c-0d1e-2f3a4b5c6d7e
+    # ID: a3eaa33b-081e-4412-880a-e604a90d50ac
     async def execute(self, workflow_context: WorkflowContext) -> PhaseResult:
         """
         Execute INTERPRET phase.

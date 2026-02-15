@@ -24,7 +24,7 @@ if TYPE_CHECKING:
 logger = getLogger(__name__)
 
 
-# ID: 8bf2ad74-d73b-4b9d-b711-c0980f773afe
+# ID: b7ece8ed-0753-476f-be7d-d6e36048d582
 async def fix_clarity(context: CoreContext, file_path: Path, dry_run: bool):
     """
     Refactors the provided file for clarity via governed atomic actions.

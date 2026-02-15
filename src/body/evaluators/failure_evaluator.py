@@ -1,12 +1,10 @@
 # src/body/evaluators/failure_evaluator.py
+# ID: 68e33e74-f15f-4f97-b58a-7df6aa0fa7a7
+"""Failure Evaluator - Analyzes test failure patterns for strategy adaptation.
 
-"""
-Failure Evaluator - Analyzes test failure patterns for strategy adaptation.
-
-Constitutional Alignment:
-- Phase: AUDIT (Evaluates test execution evidence)
-- Authority: POLICY (Implements failure classification logic)
-- Tracing: Mandatory DecisionTracer integration
+PURIFIED (V2.7.4)
+- Removed Will-layer 'DecisionTracer' to satisfy layer separation.
+- Pivot recommendations and patterns returned in data/metadata for the Strategist.
 """
 
 from __future__ import annotations
@@ -16,28 +14,17 @@ from collections import Counter
 
 from shared.component_primitive import Component, ComponentPhase, ComponentResult
 from shared.logger import getLogger
-from will.orchestration.decision_tracer import DecisionTracer
 
 
 logger = getLogger(__name__)
 
 
-# ID: 68e33e74-f15f-4f97-b58a-7df6aa0fa7a7
+# ID: ef17c136-eb2b-4756-8eef-635c7ddc9546
 class FailureEvaluator(Component):
-    """
-    Analyzes test failure strings to identify recurring patterns.
-    Enables the 'Will' layer to adapt strategies based on observed 'Body' failures.
+    """Analyze test failure strings to identify recurring patterns.
 
-    Pattern Classification:
-    - type_introspection: Mapped/ClassVar/isinstance issues.
-    - invalid_import: ModuleNotFoundError or missing imports.
-    - logic_error_missing_name: NameError (often indicates missing mock or local).
-    - mock_failure: AttributeErrors related to MagicMock/patch.
-    - assertion_failure: Standard value mismatches.
+    Enables the Will layer to adapt strategies based on observed Body failures.
     """
-
-    def __init__(self):
-        self.tracer = DecisionTracer()
 
     @property
     # ID: e78245a6-eaa8-4d77-baf5-c68100cb84be
@@ -46,30 +33,23 @@ class FailureEvaluator(Component):
 
     # ID: 31ed733a-6ed4-429a-bb5d-f1612a589104
     async def execute(
-        self, error: str, pattern_history: list[str] | None = None, **kwargs
+        self,
+        error: str,
+        pattern_history: list[str] | None = None,
+        **kwargs,
     ) -> ComponentResult:
-        """
-        Evaluates a single failure and recommends an adaptive action.
-
-        Args:
-            error: The raw stderr/stdout from the test run.
-            pattern_history: List of previously identified patterns for this session.
-
-        Returns:
-            ComponentResult containing the identified pattern and a pivot recommendation.
-        """
+        """Evaluate a single failure and recommend an adaptive action."""
         start_time = time.time()
-        pattern_history = pattern_history or []
+        history = list(pattern_history or [])
 
-        # 1. Pattern Extraction (Audit logic)
+        # 1) Pattern extraction
         pattern = self._extract_pattern(error)
-        pattern_history.append(pattern)
+        history.append(pattern)
 
-        pattern_counts = Counter(pattern_history)
+        pattern_counts = Counter(history)
         occurrences = pattern_counts[pattern]
 
-        # 2. Strategy Mapping (Decision logic)
-        # Recommendation escalates based on frequency
+        # 2) Strategy mapping
         if occurrences >= 3:
             recommendation = "switch_strategy"
             should_switch = True
@@ -86,21 +66,9 @@ class FailureEvaluator(Component):
             confidence = 0.5
             next_suggested = "test_generator"
 
-        # 3. Mandatory Tracing (Constitutional Requirement)
-        self.tracer.record(
-            agent="FailureEvaluator",
-            decision_type="failure_analysis",
-            rationale=f"Observed pattern '{pattern}' (Count: {occurrences})",
-            chosen_action=recommendation,
-            context={
-                "pattern": pattern,
-                "occurrences": occurrences,
-                "raw_error_preview": error[:100],
-            },
-            confidence=confidence,
-        )
-
         duration = time.time() - start_time
+
+        # 3) Metadata carrier: replaces direct tracing
         return ComponentResult(
             component_id=self.component_id,
             ok=True,
@@ -115,80 +83,58 @@ class FailureEvaluator(Component):
             next_suggested=next_suggested,
             duration_sec=duration,
             metadata={
-                "pattern_history": pattern_history,
-                "summary": self.get_pattern_summary(pattern_history),
+                "pattern_history": history,
+                "rationale": (
+                    f"Observed pattern '{pattern}' (Count: {occurrences}). "
+                    f"Recommending: {recommendation}"
+                ),
+                "summary": self.get_pattern_summary(history),
             },
         )
 
     def _extract_pattern(self, error: str) -> str:
-        """
-        Extract failure pattern using order-insensitive keyword matching.
-        """
         err_lower = error.lower()
 
-        # 1. Environment / Setup Errors (High priority for Adaptive Loop)
         if "modulenotfounderror" in err_lower or "importerror" in err_lower:
             return "invalid_import"
-
         if "nameerror" in err_lower:
             return "logic_error_missing_name"
-
-        # 2. Type System / Introspection Errors (SQLAlchemy / Mapped)
         if "isinstance" in err_lower and (
-            "classvar" in err_lower or "mapped" in err_lower or "typing" in err_lower
+            "classvar" in err_lower or "mapped" in err_lower
         ):
             return "type_introspection"
-
-        # 3. Mocking and Attribute Failures
         if "attributeerror" in err_lower:
-            if "mock" in err_lower or "patch" in err_lower:
-                return "mock_placement"
-            if "datetime" in err_lower:
-                return "mock_datetime"
-            return "attribute_error_generic"
-
-        # 4. Data/Comparison Failures
+            return (
+                "mock_placement" if "mock" in err_lower else "attribute_error_generic"
+            )
         if "assertionerror" in err_lower:
-            if "==" in err_lower:
-                if "object at 0x" in err_lower:
-                    return "object_identity_comparison"
-                return "assertion_comparison"
-            return "assertion_error"
-
-        # 5. DB / Infrastructure Specifics
+            return (
+                "object_identity_comparison"
+                if "0x" in err_lower
+                else "assertion_comparison"
+            )
         if "sqlalchemy" in err_lower:
-            if "session" in err_lower:
-                return "sqlalchemy_session"
-            if "relationship" in err_lower:
-                return "sqlalchemy_relationship"
-            return "sqlalchemy_generic"
-
-        # 6. Runtime Constraints
-        if "timeout" in err_lower or "timed out" in err_lower:
+            return (
+                "sqlalchemy_session" if "session" in err_lower else "sqlalchemy_generic"
+            )
+        if "timeout" in err_lower:
             return "test_timeout"
-
-        if "fixture" in err_lower and (
-            "not found" in err_lower or "error" in err_lower
-        ):
+        if "fixture" in err_lower:
             return "fixture_error"
 
         return "unknown"
 
-    # ID: b2e43a2a-8c95-4963-a55b-8f75dbf7dbe6
+    # ID: beb602c2-ebd9-4f2a-bc53-8009101556eb
     def get_pattern_summary(self, pattern_history: list[str]) -> dict:
-        """
-        Generates aggregate statistics for the current generation session.
-        Used for the final 'Patterns Learned' CLI output.
-        """
         if not pattern_history:
-            return {"total": 0, "unique": 0, "most_common": None, "patterns": {}}
+            return {"total": 0, "unique": 0, "patterns": {}}
 
         counts = Counter(pattern_history)
-        most_common_data = counts.most_common(1)
+        most_common = counts.most_common(1)[0][0] if counts else None
 
         return {
             "total": len(pattern_history),
             "unique": len(counts),
-            "most_common": most_common_data[0][0] if most_common_data else None,
+            "most_common": most_common,
             "patterns": dict(counts),
         }

@@ -33,7 +33,7 @@ from . import console, fix_app
 
 @fix_app.command("audit")
 @core_command(dangerous=True, confirmation=True)
-# ID: TBD (will be assigned by dev-sync)
+# ID: dac5dfbd-9734-4fb4-bfc3-b6788e3dea96
 # ID: 5baef0d6-3323-4486-b95b-b9caf10d16f7
 async def fix_audit_command(
     ctx: typer.Context,

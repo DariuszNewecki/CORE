@@ -26,8 +26,8 @@ if TYPE_CHECKING:
 logger = getLogger(__name__)
 
 
-# ID: reconciliation_service
-# ID: 6f7a8b9c-0d1e-2f3a-4b5c-6d7e8f9a0b1c
+# ID: 307393e9-7deb-440e-81c5-a1b8b823aa12
+# ID: 2b423503-a4c6-4804-92b3-d6e85110200f
 class CapabilityReconciliationService:
     """
     Reconciles capability tags after refactoring using AI analysis.
@@ -45,8 +45,8 @@ class CapabilityReconciliationService:
         """
         self.cognitive_service = cognitive_service
 
-    # ID: reconcile_capabilities
-    # ID: 7a8b9c0d-1e2f-3a4b-5c6d-7e8f9a0b1c2d
+    # ID: 1c1e1911-0e80-4841-94b3-c701f4ab8751
+    # ID: f8e700ad-c95b-4147-853e-0cab4b86339a
     async def reconcile_capabilities(
         self,
         original_code: str,

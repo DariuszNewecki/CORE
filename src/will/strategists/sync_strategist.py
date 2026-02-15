@@ -32,7 +32,7 @@ from will.orchestration.decision_tracer import DecisionTracer
 logger = getLogger(__name__)
 
 
-# ID: 1a2b3c4d-5e6f-7a8b-9c0d-1e2f3a4b5c6d
+# ID: a0a7b1e5-e020-4c3d-9fc2-26411de58a10
 class SyncStrategist(Component):
     """
     Decides which sync operations to run and in what order.
@@ -73,12 +73,12 @@ class SyncStrategist(Component):
         self.tracer = DecisionTracer()
 
     @property
-    # ID: 2b3c4d5e-6f7a-8b9c-0d1e-2f3a4b5c6d7e
+    # ID: 0c052ee0-1ec1-4224-8a13-ba386f5b2097
     def phase(self) -> ComponentPhase:
         """SyncStrategist operates in RUNTIME phase."""
         return ComponentPhase.RUNTIME
 
-    # ID: 3c4d5e6f-7a8b-9c0d-1e2f-3a4b5c6d7e8f
+    # ID: 2861d183-4c7e-4482-a8a1-8af32d69d25d
     async def execute(
         self,
         sync_target: str,
@@ -195,7 +195,7 @@ class SyncStrategist(Component):
             duration_sec=time.time() - start_time,
         )
 
-    # ID: 4d5e6f7a-8b9c-0d1e-2f3a-4b5c6d7e8f9a
+    # ID: 25876086-7788-4fd5-a626-3d7639e9a0f6
     def _select_strategy(
         self,
         target: str,
@@ -223,7 +223,7 @@ class SyncStrategist(Component):
         # Minimal strategy (just what's requested)
         return "minimal"
 
-    # ID: 5e6f7a8b-9c0d-1e2f-3a4b-5c6d7e8f9a0b
+    # ID: 8e20fa8f-f75a-4682-9e80-074709537e47
     def _build_sequence(
         self, target: str, include_dependencies: bool, strategy: str
     ) -> list[str]:
@@ -273,7 +273,7 @@ class SyncStrategist(Component):
         # Fallback to minimal
         return self._resolve_target_to_operations(target)
 
-    # ID: 6f7a8b9c-0d1e-2f3a-4b5c-6d7e8f9a0b1c
+    # ID: bc459788-8b38-4993-9b6d-e8fcf07bc7f7
     def _resolve_target_to_operations(self, target: str) -> list[str]:
         """
         Map user-facing target to internal operation IDs.
@@ -297,7 +297,7 @@ class SyncStrategist(Component):
 
         return target_map.get(target, [target])
 
-    # ID: 7a8b9c0d-1e2f-3a4b-5c6d-7e8f9a0b1c2d
+    # ID: c6f4eef1-f0a2-4fc9-9bd2-420e3c886248
     def _determine_execution_mode(
         self, sync_sequence: list[str], **context: Any
     ) -> str:
@@ -325,7 +325,7 @@ class SyncStrategist(Component):
         # Default to sequential for safety
         return "sequential"
 
-    # ID: 8b9c0d1e-2f3a-4b5c-6d7e-8f9a0b1c2d3e
+    # ID: 0aa44fff-60cd-4e80-b65d-54e753c667d4
     def _configure_force_flags(
         self, sync_sequence: list[str], force_refresh: bool, strategy: str
     ) -> dict[str, bool]:
@@ -349,7 +349,7 @@ class SyncStrategist(Component):
 
         return force_flags
 
-    # ID: 9c0d1e2f-3a4b-5c6d-7e8f-9a0b1c2d3e4f
+    # ID: 6779c669-ec25-4d1a-9a25-f0468752777b
     def _estimate_duration(self, sync_sequence: list[str], force_refresh: bool) -> int:
         """
         Estimate sync duration in seconds.

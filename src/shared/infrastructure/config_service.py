@@ -67,7 +67,7 @@ __all__ = [
 ]
 
 
-# ID: 47832f5d-142a-4637-923a-f0f3d76d6b08
+# ID: 84230e10-80e5-448b-931c-602e7d84f5d8
 class ConfigService:
     """
     Provides configuration from database with caching.
@@ -99,7 +99,7 @@ class ConfigService:
         logger.info("Loaded %s configuration values from database", len(cache))
         return cls(db, cache)
 
-    # ID: 8876c24d-5e6f-4a8b-9c0d-1e2f3a4b5c6d
+    # ID: a9b6ddbb-5ac8-40f9-adaa-afd582d911b4
     def detach(self) -> None:
         """
         Releases the database session reference.

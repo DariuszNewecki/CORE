@@ -22,7 +22,7 @@ logger = getLogger(__name__)
 console = Console()
 
 
-# ID: 3c4d5e6f-7a8b-9c0d-1e2f-3a4b5c6d7e8f
+# ID: 81af2623-d91d-40b6-8aa4-04018d46edc7
 class InteractiveSession:
     """
     Manages an interactive test generation session.

@@ -20,8 +20,8 @@ from shared.infrastructure.context import ContextSerializer, ContextValidator
 
 
 app = typer.Typer(
-    name="context",
-    help="Manage ContextPackages for LLM consumption",
+    name="packet",
+    help="Internal ContextPackage operations (task-based)",
     no_args_is_help=True,
 )
 
