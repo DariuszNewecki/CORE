@@ -2,7 +2,7 @@
 # ID: 453e06ba-139f-427c-bbe3-ff590640b766
 """Complexity Outlier Refactoring Service - Main Orchestrator.
 
-PURIFIED (V2.7.4)
+PURIFIED (V2.3.0)
 - Removed direct 'settings' import to satisfy architecture.boundary.settings_access.
 - Uses repo_root derived from CoreContext for all path resolution.
 """

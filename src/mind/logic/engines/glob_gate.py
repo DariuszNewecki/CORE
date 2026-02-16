@@ -8,7 +8,7 @@ CONSTITUTIONAL ALIGNMENT:
 - Promoted to natively async to satisfy the BaseEngine contract.
 - Complies with ASYNC230 by offloading blocking I/O to threads.
 
-CONSTITUTIONAL FIX (V2.8.0):
+CONSTITUTIONAL FIX (V2.3.0):
 - Added 'allowed_top_level_dirs' check_type to enforce layer exclusivity.
 - This closes the perimeter: code outside Mind/Body/Will/shared/api is
   now detectable at audit time, preventing shadow layer accumulation.

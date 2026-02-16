@@ -8,7 +8,7 @@ Constitutional Alignment:
 - SSOT: Aligns symbol keys with core.symbols DB schema (filepath::qualname)
 - Boundary: Requires CoreContext with git_service (no settings fallback)
 
-Purified (V2.7.4)
+Purified (V2.3.0)
 - Removed Will-layer DecisionTracer to satisfy architecture.layers.no_body_to_will.
   Rationale is now returned in metadata.
 """

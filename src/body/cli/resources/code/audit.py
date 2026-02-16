@@ -4,7 +4,7 @@
 
 Runs the full constitutional self-audit and renders human-readable results.
 
-Updated (V2.7.4)
+Updated (V2.3.0)
 - Properly converts raw Auditor findings into renderer objects, fixing:
   AttributeError: 'str' object has no attribute 'severity'
 """

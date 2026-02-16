@@ -2,7 +2,7 @@
 # ID: 4b61c8d8-717b-4276-a53b-0f5d23383092
 """Base Evaluator Contract - The "Judge" Interface.
 
-PURIFIED (V2.7.4)
+PURIFIED (V2.3.0)
 - Removed Will-layer 'DecisionTracer' to satisfy architecture.layers.no_body_to_will.
 - Reasoning is now stored in ComponentResult metadata for Will-layer consumption.
 - Removed automatic save_trace; Body components must be stateless fact producers.

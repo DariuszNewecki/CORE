@@ -40,7 +40,7 @@ Design choices:
 - ✅ Non-secret values cached in-memory for performance
 - ✅ Secrets delegated to a dedicated secrets service (encryption/audit live there)
 
-HEALED (V2.6.2):
+HEALED (V2.3.0):
 - Added detach() method to release database sessions explicitly.
 
 See: .intent/papers/CORE-Infrastructure-Definition.md Section 5

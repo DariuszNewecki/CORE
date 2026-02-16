@@ -9,7 +9,7 @@ Constitutional Compliance:
 - No direct database access in Will: Will gets Mind state through this service
 - Dependency injection: Takes AsyncSession, no global imports
 
-HEALED (V2.6.2):
+HEALED (V2.3.0):
 - Added detach() to explicitly release DB session references.
 """
 

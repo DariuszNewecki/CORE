@@ -3,7 +3,7 @@
 """
 Document Key Resolver - Canonical Identity Engine.
 
-CONSTITUTIONAL FIX (V2.3.5):
+CONSTITUTIONAL FIX (V2.3.0):
 - Fixed "Stem Fallback" warnings by recognizing META, phases, and workflows as valid roots.
 - Ensures unique, collision-resistant IDs in the Qdrant vector database.
 - Aligns with the 'Explicitness over Inference' principle.

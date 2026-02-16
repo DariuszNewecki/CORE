@@ -5,10 +5,10 @@ ContextService - Main orchestrator for ContextPackage lifecycle.
 Supports sensory injection via LimbWorkspace for "future truth" context.
 Coordinates the transition between Historical State (DB) and Shadow State (Workspace).
 
-HEALED (V2.7.1):
+HEALED (V2.3.0):
 - JIT Service Resolution: Now resolves Cognitive and Qdrant services from the
   global registry at runtime if they were provided as None during bootstrap.
-- Prevents 'Two Brains' bug while preserving all V2.7.0 query-parsing features.
+- Prevents 'Two Brains' bug while preserving all V2.3.0 query-parsing features.
 """
 
 from __future__ import annotations
@@ -138,7 +138,7 @@ class ContextService:
     ) -> dict[str, Any]:
         """
         Build context package from natural language query.
-        PRESERVED: Full V2.7.0 classification logic.
+        PRESERVED: Full V2.3.0 classification logic.
         """
         logger.info("Building context from query: '%s'", natural_query)
 

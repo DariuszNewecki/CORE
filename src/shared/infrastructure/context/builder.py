@@ -9,7 +9,7 @@ ALIGNS WITH PILLAR I (Octopus):
 Provides a unified sensation of "Shadow Truth" (in-flight changes) vs
 "Historical Truth" (database).
 
-HEALED (V2.7.0):
+HEALED (V2.3.0):
 - Fixed Vector Result Blindness: Now extracts code for semantic search hits.
 - Hardened Sensation: Handles symbol_path keys (::) correctly during extraction.
 - Preserved GraphExplorer: Retains advanced relationship traversal logic.

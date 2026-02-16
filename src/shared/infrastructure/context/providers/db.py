@@ -3,7 +3,7 @@
 """
 DBProvider - Fetches symbols from PostgreSQL.
 
-CONSTITUTIONAL FIX (V2.3.8):
+CONSTITUTIONAL FIX (V2.3.0):
 - Modularized to reduce Modularity Debt (50.6 -> ~34.0).
 - Extracts SQL Generation to '_SQLRegistry'.
 - Focuses purely on Database Retrieval.

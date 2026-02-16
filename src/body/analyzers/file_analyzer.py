@@ -7,7 +7,7 @@ Constitutional Alignment:
 - Authority: CODE (Implementation of structural rules)
 - Boundary: Respects repo_path via CoreContext (dependency injection required)
 
-Purified (V2.7.4)
+Purified (V2.3.0)
 - Removed Will-layer DecisionTracer to satisfy architecture.layers.no_body_to_will.
   Rationale is now returned in metadata.
 """

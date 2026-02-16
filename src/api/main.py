@@ -4,7 +4,7 @@
 """
 API Main Entry Point
 
-CONSTITUTIONAL COMPLIANCE (V2.7.4):
+CONSTITUTIONAL COMPLIANCE (V2.3.0):
 - API layer no longer imports Body services directly.
 - Lifespan ignition sequence delegated to shared.infrastructure.lifespan.
 - Resolves architecture.api.no_body_bypass violation.

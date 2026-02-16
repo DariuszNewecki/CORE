@@ -7,7 +7,7 @@ Constitutional Enforcement Engine - Main Orchestrator.
 MOVED FROM MIND TO BODY:
 IntentGuard performs EXECUTION logic (validation, enforcement decisions).
 
-UPDATED (V2.7.3):
+UPDATED (V2.3.0):
 - Strict Mode Toggle: Respects settings.CORE_STRICT_MODE for transaction gating.
 - Hard Invariant Protection: .intent/ remains blocked regardless of mode.
 """

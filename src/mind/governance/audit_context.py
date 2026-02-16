@@ -19,7 +19,7 @@ PERFORMANCE:
 - Cache persists for process lifetime unless explicitly cleared
 - Thread-safe for async-only usage (no thread locking)
 
-HEALED (V2.6.6):
+HEALED (V2.3.0):
 - "Single-Pass Sensation": Caches the full filesystem scan in memory.
 - "Pattern Memoization": Remembers results of glob patterns to avoid 75,000 redundant checks.
 - "AST Caching": Shares logic trees across all 82 rules.

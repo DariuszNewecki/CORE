@@ -22,7 +22,7 @@ CONSTITUTIONAL ENFORCEMENT:
 This module enforces .intent/rules/architecture/atomic_actions.json at runtime.
 Actions that return invalid results are wrapped with error ActionResults.
 
-HEALED (V2.7.4):
+HEALED (V2.3.0):
 - Layer Violation Fix: _validate_policies now queries IntentRepository
   in-memory index instead of PathResolver filesystem access.
   Body must never touch .intent/ directly — Mind indexes at startup,
@@ -295,7 +295,7 @@ class ActionExecutor:
         """
         Validate that all referenced policies exist in the constitution.
 
-        CONSTITUTIONAL FIX (V2.7.4):
+        CONSTITUTIONAL FIX (V2.3.0):
         Queries Mind's in-memory IntentRepository index instead of
         touching .intent/ filesystem via PathResolver. Body layer must
         never access .intent/ directly — Mind indexes at startup, Body
