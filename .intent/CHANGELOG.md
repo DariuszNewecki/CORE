@@ -1,8 +1,8 @@
-<!-- path: .intent/REBIRTH/CHANGELOG.md -->
+<!-- path: .intent/CHANGELOG.md -->
 
-# CORE — REBIRTH Changelog
+# CORE — Changelog
 
-This changelog records **constitutional-level changes** during the REBIRTH of CORE.
+This changelog records **constitutional-level changes** during the modernization of CORE.
 
 It documents *what changed and why*, not how changes were implemented.
 
@@ -13,7 +13,7 @@ It carries no authority.
 
 ## Versioning Model
 
-REBIRTH versions do not follow semantic versioning.
+Current versions do not follow semantic versioning.
 
 Each version represents a **constitutional state**.
 
@@ -87,7 +87,6 @@ No scope expansion occurred.
 
   * Made explicit that the Constitution may be amended only via replacement
   * Forbade in-place modification
-  * Anchored REBIRTH as the amendment mechanism
 
 * **Evidence as Input Semantics**
 
