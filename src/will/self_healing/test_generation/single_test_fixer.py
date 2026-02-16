@@ -4,7 +4,7 @@
 """
 Single Test Fixer - Refined A3 Orchestrator.
 
-CONSTITUTIONAL FIX (V2.3.10):
+CONSTITUTIONAL FIX (V2.3.0):
 - Modularized to clear Modularity Debt (49.1 -> ~28.0).
 - Delegates parsing to 'TestFailureParser'.
 - Delegates file manipulation to 'TestExtractor'.

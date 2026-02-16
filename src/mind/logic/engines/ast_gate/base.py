@@ -5,7 +5,7 @@
 Shared AST analysis utilities for constitutional enforcement.
 
 Provides common helpers for traversing and analyzing Python AST nodes.
-CONSTITUTIONAL FIX (V2.3.9):
+CONSTITUTIONAL FIX (V2.3.0):
 - Added 'extract_domain_from_path' to centralize architectural layout knowledge.
 - Added 'domain_matches' to support trust-zone based enforcement.
 """

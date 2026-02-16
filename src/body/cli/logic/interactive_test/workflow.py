@@ -6,7 +6,7 @@ Interactive test generation workflow orchestration.
 
 Coordinates the 5-step workflow and handles state transitions.
 
-HEALED (V2.7.3):
+HEALED (V2.3.0):
 - Signature Alignment: Matches CoderAgent V2.6+ constructor exactly.
 - Inversion of Control: Injects 'action_executor' as the mandatory 'executor'.
 - Service Robustness: Added JIT wake-up for Cognitive and Auditor services if None.

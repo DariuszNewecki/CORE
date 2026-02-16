@@ -3,7 +3,7 @@
 """
 Service Registry - Centralized DI Container.
 
-CONSTITUTIONAL FIX (V2.7.3):
+CONSTITUTIONAL FIX (V2.3.0):
 - JIT Secret Decoding: Now injects the session factory into CognitiveService.
 - This prevents "Detached Session" errors when accessing encrypted secrets
   (API keys) during long-running tasks like vectorization.

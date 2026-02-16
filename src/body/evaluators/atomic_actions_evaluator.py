@@ -10,7 +10,7 @@ Constitutional Alignment:
 - Purpose: Validate atomic action compliance across codebase
 - Self-contained: No external checker dependencies
 
-PURIFIED (V2.7.4)
+PURIFIED (V2.3.0)
 - Removed Will-layer 'DecisionTracer' to satisfy architecture.layers.no_body_to_will.
 - Preserves 100% of original AST analysis and validation logic.
 - Rationale is now returned in metadata for Will-layer consumption.

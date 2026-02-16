@@ -2,7 +2,7 @@
 # ID: 9e64f98a-0740-4c5b-bc0e-f253b6a0af1e
 """Safe, auditable file operations with staged writes.
 
-REFACTORED (V2.7.4)
+REFACTORED (V2.3.0)
 - Removed redundant 'Global ID Gate' to resolve architectural overlap.
 - Focuses purely on Path Governance (IntentGuard) and Syntax Validation.
 - ID Uniqueness is delegated entirely to duplicate_id_service.py (Step 2).

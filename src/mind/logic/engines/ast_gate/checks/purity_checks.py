@@ -4,7 +4,7 @@
 """
 Purity Checks - Deterministic AST-based enforcement.
 
-CONSTITUTIONAL FIX (V2.3.9):
+CONSTITUTIONAL FIX (V2.3.0):
 - Modularized to reduce Modularity Debt (49.9 -> ~36.0).
 - Delegated Path/Domain resolution to 'ASTHelpers'.
 - Compressed 'Intelligence Layer' heuristics into data-driven patterns.

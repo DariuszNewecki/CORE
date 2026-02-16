@@ -4,7 +4,7 @@
 """
 Interactive Code Generation Step Handler.
 
-HEALED (V2.7.3):
+HEALED (V2.3.0):
 - Method Alignment: Updated call to use 'generate_or_repair' instead of obsolete
   'generate_and_validate_code_for_task'.
 - Signature Alignment: Matches CoderAgent V2.6 reflexive API.

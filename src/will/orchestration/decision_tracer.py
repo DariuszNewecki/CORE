@@ -13,7 +13,7 @@ CONSTITUTIONAL FIX:
 - DB persistence is performed via a repository opened through Body session factory.
 - File backup remains primary and must never fail due to DB issues.
 
-HEALED (V2.7.2):
+HEALED (V2.3.0):
 - Robust Path Resolution: Handles cases where PathResolver is None during
   uninitialized bootstrap.
 - Standardized Sensation: Falls back to Path.cwd() if repo_root is unavailable.

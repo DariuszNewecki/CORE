@@ -3,7 +3,7 @@
 """
 IntentRepository - Canonical read-only interface to CORE's Mind (.intent).
 
-CONSTITUTIONAL FIX (V2.3.3):
+CONSTITUTIONAL FIX (V2.3.0):
 - Corrected search paths to match actual tree: ['rules', 'constitution', 'phases', 'workflows'].
 - Removed hallucinated 'charter/' logic.
 - Maintains modularity by delegating to _IntentScanner and _RuleExtractor.

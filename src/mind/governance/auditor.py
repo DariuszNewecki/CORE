@@ -2,7 +2,7 @@
 # ID: 85bb69ce-b22a-490a-8a1d-92a5da7e2646
 """Constitutional Auditor - The Unified Enforcement Engine.
 
-PURIFIED (V2.7.4)
+PURIFIED (V2.3.0)
 - Removed FileService and service_registry to satisfy Mind/Body separation.
 - Returns data structures only; does not perform filesystem mutations.
 - Caller is responsible for artifact persistence.

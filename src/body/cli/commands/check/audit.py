@@ -2,7 +2,7 @@
 # ID: d9e8be26-e5e2-4015-899b-8741adaa820c
 """Core audit commands: audit.
 
-Updated (V2.7.4)
+Updated (V2.3.0)
 - CLI owns the reporting/persistence pipeline, preserving artifact creation.
 - Mind layer (Auditor) remains headless.
 """

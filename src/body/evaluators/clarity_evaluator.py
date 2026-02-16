@@ -2,7 +2,7 @@
 # ID: 7fcecf85-269a-419c-81a3-30b1fea807b8
 """Clarity Evaluator - Measures mathematical improvement in code structure.
 
-PURIFIED (V2.7.4)
+PURIFIED (V2.3.0)
 - Removed Will-layer 'DecisionTracer' dependency.
 - Rationale is returned in metadata for the CoderAgent to trace.
 """

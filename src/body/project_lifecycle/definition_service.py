@@ -3,7 +3,7 @@
 """
 Symbol definition service - assigns capability keys to public symbols.
 
-CONSTITUTIONAL FIX (V2.7.2):
+CONSTITUTIONAL FIX (V2.3.0):
 - Fixed broken Regex syntax in fallback parser (removed leading +).
 - Maintained 100% fidelity with the user's high-performance parallel logic.
 - Enforced transaction boundaries at the worker level for parallel safety.

@@ -2,7 +2,7 @@
 # ID: 122a3749-facf-4734-85e7-59b82dc61057
 """Constitutional modularity remediation service.
 
-PURIFIED (V2.7.4)
+PURIFIED (V2.3.0)
 - Removed direct 'settings' import to satisfy architecture.boundary.settings_access.
 - Uses repo_path from CoreContext for constitutional artifact loading.
 

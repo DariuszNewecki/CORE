@@ -7,7 +7,7 @@ CONSTITUTIONAL COMPLIANCE:
 - Treated as the read-only interface to the system state.
 - Sourced from the operational database view `core.knowledge_graph`.
 
-HEALED (V2.6.7):
+HEALED (V2.3.0):
 - Shadow Sensation: Now accepts an optional LimbWorkspace.
 - If a workspace is provided, it builds a "Shadow Graph" that includes
   uncommitted changes, preventing "Semantic Blindness" during refactoring.

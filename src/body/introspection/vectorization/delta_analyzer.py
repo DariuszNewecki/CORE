@@ -2,7 +2,7 @@
 # ID: d21e52f0-954a-46b3-aa1b-b199972bb718
 """Delta Analyzer - Identifies symbols requiring re-vectorization.
 
-PURIFIED (V2.7.4)
+PURIFIED (V2.3.0)
 - Removed direct 'settings' import to satisfy architecture.boundary.settings_access.
 - Uses injected repo_path for filesystem sensation.
 """

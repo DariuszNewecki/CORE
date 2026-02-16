@@ -12,7 +12,7 @@ Constitutional Compliance:
 - Proper imports: All dependencies explicitly imported
 - Single Responsibility: One command, one purpose
 
-HEALED (V2.7.3):
+HEALED (V2.3.0):
 - Switched to @core_command to enable JIT service injection.
 - This fixes the 'NoneType' object error by ensuring the Brain is awake.
 """

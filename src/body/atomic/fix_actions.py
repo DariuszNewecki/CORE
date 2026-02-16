@@ -10,11 +10,11 @@ Constitutional Alignment:
 - Boundary: Uses CoreContext for repo_path (no direct settings access)
 - Circularity Fix: Feature-level imports are performed inside functions.
 
-HEALED (V2.7.2):
+HEALED (V2.3.0):
 - Context Injection: Now correctly passes core_context to AtomicActionsEvaluator
   to prevent 'NoneType' attribute errors during self-healing.
 
-HEALED (V2.7.4):
+HEALED (V2.3.0):
 - Registry Gap: Added fix.duplicate_ids to the atomic registry.
 - Policy References: All policies now use canonical indexed IDs
   (rules/<domain>/<name>) matching IntentRepository index.

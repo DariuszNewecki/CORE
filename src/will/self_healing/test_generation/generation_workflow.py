@@ -4,7 +4,7 @@
 """
 Coordinates initial test generation and validation.
 
-CONSTITUTIONAL FIX (V2.3.4):
+CONSTITUTIONAL FIX (V2.3.0):
 - Removed forbidden placeholder strings (purity.no_todo_placeholders).
 - Fixed 'Nervous System' break: updated ContextBuilder call to 'build_for_task'.
 """

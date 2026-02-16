@@ -4,7 +4,7 @@
 """
 Executes pytest and captures results as Constitutional Evidence.
 
-CONSTITUTIONAL FIX (V2.3.7):
+CONSTITUTIONAL FIX (V2.3.0):
 - Implemented 'silent' parameter to control logging verbosity (workflow.dead_code_check).
 - Maintains strict traceability by persisting to DB regardless of verbosity.
 - Aligns with the 'Headless' policy (LOG-001).

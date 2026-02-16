@@ -4,7 +4,7 @@
 Handles the vectorization of individual capabilities (per-chunk), including interaction with Qdrant.
 Idempotency is enforced at the chunk (symbol_key) level via `chunk_id` stored in the payload.
 
-ENHANCED (V2.7.0):
+ENHANCED (V2.3.0):
 - Added code metadata extraction (imports, calls, patterns)
 - Enriched Qdrant payloads for hybrid search (semantic + pattern matching)
 - Added code_preview for fast result display

@@ -3,7 +3,7 @@
 """
 CognitiveService - Will-facing facade for cognitive access.
 
-HEALED (V2.7.3):
+HEALED (V2.3.0):
 - JIT Secret Retrieval: Added session_factory to handle encrypted secret
   decryption even after the main initialization session is detached.
 - Prevents "Database session has been detached" errors during vectorization.

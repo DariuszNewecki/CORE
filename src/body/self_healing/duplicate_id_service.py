@@ -4,7 +4,7 @@
 """
 Provides a service to find and resolve duplicate '# ID:' UUIDs in the codebase.
 
-CONSTITUTIONAL FIX (V2.8.0):
+CONSTITUTIONAL FIX (V2.3.0):
 - Duplicate detection now scans the FILESYSTEM, not the database.
 - The database flattens duplicates during sync (PK on id or symbol_path),
   making DB-based detection structurally impossible.

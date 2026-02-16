@@ -3,7 +3,7 @@
 """
 VectorProvider - Semantic search via Qdrant.
 
-HEALED (V2.7.1):
+HEALED (V2.3.0):
 - Removed 'fail-silent' initialization checks that caused search skips.
 - Preserved all 'Smart Implementation' logic for neighbors and embeddings.
 - Aligned payload mapping to handle 'source_path' (the new V2.7 standard).
