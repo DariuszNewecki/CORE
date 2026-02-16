@@ -38,7 +38,7 @@ python-dotenv = "^1.0.0"
 cryptography = "^42.0.0"
 
 # CLI & UI
-typer = { extras = ["rich"], version = "^0.16.1" }
+typer = { extras = ["rich"], version = "^0.21.1" }
 rich = "^13"
 
 # Data Processing
