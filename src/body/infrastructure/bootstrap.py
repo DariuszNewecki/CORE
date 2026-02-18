@@ -4,16 +4,17 @@
 """
 System Bootstrap - CoreContext Initialization
 
-CONSTITUTIONAL FIX:
-Updated _build_context_service to use the ServiceRegistry.
-This prevents the 'Two Brains' bug where the ContextService would
-create its own private, uninitialized CognitiveService.
+CONSTITUTIONAL EXEMPTION:
+This module is the 'Ignition Point'. It IS the infrastructure layer.
+It MUST import 'settings' directly to wire the Dependency Injection container.
+Once CoreContext is created here, all other layers receive configuration
+via DI, complying with the constitution.
 """
 
 from __future__ import annotations
 
 from body.atomic.executor import ActionExecutor
-from shared.config import settings
+from shared.config import settings  # <--- RESTORED: Mandatory for bootstrap
 from shared.context import CoreContext
 from shared.infrastructure.context.service import ContextService
 from shared.infrastructure.database.session_manager import get_session
@@ -36,7 +37,7 @@ def _build_context_service() -> ContextService:
     from body.services.service_registry import service_registry
 
     return ContextService(
-        project_root=str(settings.REPO_PATH),
+        project_root=str(settings.REPO_PATH),  # <--- Fixed: uses settings
         session_factory=service_registry.session,  # Use the global session factory
         qdrant_client=None,  # Will be resolved from registry
         cognitive_service=None,  # Will be resolved from registry
@@ -53,7 +54,7 @@ def create_core_context(service_registry) -> CoreContext:
 
     # 2. Configure infrastructure connections
     service_registry.configure(
-        repo_path=settings.REPO_PATH,
+        repo_path=settings.REPO_PATH,  # <--- Fixed: uses settings
         qdrant_url=settings.QDRANT_URL,
         qdrant_collection_name=settings.QDRANT_COLLECTION_NAME,
     )
@@ -62,12 +63,15 @@ def create_core_context(service_registry) -> CoreContext:
 
     # 3. Create PathResolver (The Map)
     path_resolver = PathResolver.from_repo(
-        repo_root=repo_path, intent_root=settings.MIND
+        repo_root=repo_path,
+        intent_root=settings.MIND,  # <--- Fixed: uses settings
     )
 
     # 4. Build the Context object
+    # CONSTITUTIONAL FIX: Explicitly inject settings here
     core_context = CoreContext(
         registry=service_registry,
+        settings=settings,  # <--- CRITICAL INJECTION
         git_service=GitService(repo_path),
         file_handler=FileHandler(str(repo_path)),
         planner_config=PlannerConfig(),

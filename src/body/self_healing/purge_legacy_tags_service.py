@@ -15,7 +15,8 @@ from body.atomic.executor import ActionExecutor
 from mind.governance.audit_context import AuditorContext
 from mind.governance.rule_executor import execute_rule
 from mind.governance.rule_extractor import extract_executable_rules
-from shared.config import settings
+
+# REFACTORED: Removed direct settings import
 from shared.logger import getLogger
 
 
@@ -40,7 +41,9 @@ async def purge_legacy_tags(context: CoreContext, dry_run: bool = True) -> int:
     """
     # 1. Initialize Context and Gateway
     executor = ActionExecutor(context)
-    auditor_context = context.auditor_context or AuditorContext(settings.REPO_PATH)
+    auditor_context = context.auditor_context or AuditorContext(
+        context.git_service.repo_path
+    )
     await auditor_context.load_knowledge_graph()
 
     # 2. Extract rules from the Constitution and find the "Purity" rule
@@ -98,7 +101,7 @@ async def purge_legacy_tags(context: CoreContext, dry_run: bool = True) -> int:
 
     # 6. Apply fixes via Governed Gateway
     for file_path_str, line_numbers_to_delete in files_to_fix.items():
-        file_path = settings.REPO_PATH / file_path_str
+        file_path = context.git_service.repo_path / file_path_str
 
         # Sort lines in reverse order to avoid index shifting while deleting
         sorted_line_numbers = sorted(line_numbers_to_delete, reverse=True)

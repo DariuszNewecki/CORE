@@ -16,7 +16,8 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from body.atomic.executor import ActionExecutor
-from shared.config import settings
+
+# REFACTORED: Removed direct settings import
 from shared.logger import getLogger
 
 
@@ -24,7 +25,6 @@ if TYPE_CHECKING:
     from shared.context import CoreContext
 
 logger = getLogger(__name__)
-REPO_ROOT = settings.REPO_PATH
 
 
 # ID: bb384d72-6190-400b-9479-20f53e2e63da
@@ -77,7 +77,7 @@ async def prune_private_capability_tags(
         if not file_path_str:
             continue
 
-        file_path = settings.REPO_PATH / file_path_str
+        file_path = context.git_service.repo_path / file_path_str
         line_num = symbol.get("line_number", 0)
 
         if file_path not in files_to_modify:
@@ -99,7 +99,7 @@ async def prune_private_capability_tags(
     # Execute mutations via Gateway
     for file_path, line_nums in files_to_modify.items():
         try:
-            rel_path = str(file_path.relative_to(REPO_ROOT))
+            rel_path = str(file_path.relative_to(context.git_service.repo_path))
             lines = file_path.read_text("utf-8").splitlines()
 
             modified = False

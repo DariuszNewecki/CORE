@@ -46,7 +46,7 @@ class EnhancedSingleFileRemediationService:
         self.target_file = file_path
         self.file_handler = file_handler
         self.repo_root = repo_root
-        self.analyzer = CoverageAnalyzer()
+        self.analyzer = CoverageAnalyzer(repo_path=self.repo_root)
 
         # This generator owns the V2 adaptive retry logic
         self.generator = EnhancedTestGenerator(

@@ -215,7 +215,7 @@ async def sort_imports_handler(
 
 # Convenience function for testing
 # ID: 4ef99bc7-2149-4aba-b25a-446d7caa1392
-async def test_handler():
+async def test_handler(repo_root: Path):
     """
     Quick test function to verify the handler works.
 
@@ -224,7 +224,7 @@ async def test_handler():
         import asyncio
         asyncio.run(test_handler())
     """
-    from shared.config import settings
+    # REFACTORED: Removed direct settings import
     from shared.models import AuditSeverity
 
     # Create a fake finding
@@ -237,13 +237,13 @@ async def test_handler():
     )
 
     # Create file handler
-    file_handler = FileHandler(str(settings.REPO_PATH))
+    file_handler = FileHandler(str(repo_root))
 
     # Test dry-run
     result = await sort_imports_handler(
         finding=test_finding,
         file_handler=file_handler,
-        repo_root=settings.REPO_PATH,
+        repo_root=repo_root,
         write=False,
     )
 

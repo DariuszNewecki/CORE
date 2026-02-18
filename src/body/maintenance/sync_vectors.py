@@ -23,7 +23,7 @@ from qdrant_client.http.models import PointIdsList
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from shared.config import settings
+# REFACTORED: Removed direct settings import
 from shared.infrastructure.clients.qdrant_client import QdrantService
 from shared.infrastructure.repositories.vector_link_repository import (
     VectorLinkRepository,
@@ -34,17 +34,23 @@ from shared.logger import getLogger
 logger = getLogger(__name__)
 
 
-async def _fetch_all_qdrant_ids(client: AsyncQdrantClient) -> set[str]:
+async def _fetch_all_qdrant_ids(
+    client: AsyncQdrantClient, collection_name: str
+) -> set[str]:
     """
     Fetch all point IDs from the configured Qdrant collection.
 
     Uses scroll with pagination to handle large collections robustly.
+
+    Args:
+        client: Qdrant async client.
+        collection_name: Name of the Qdrant collection to scroll.
     """
     all_ids: set[str] = set()
     offset: str | None = None
     while True:
         points, offset = await client.scroll(
-            collection_name=settings.QDRANT_COLLECTION_NAME,
+            collection_name=collection_name,
             limit=10000,
             with_payload=False,
             with_vectors=False,
@@ -101,6 +107,7 @@ async def _prune_orphaned_vectors(
     qdrant_ids: set[str],
     db_vector_ids: set[str],
     dry_run: bool,
+    collection_name: str,
 ) -> int:
     """
     Find and delete vectors in Qdrant that have no corresponding DB link.
@@ -121,7 +128,7 @@ async def _prune_orphaned_vectors(
         return len(orphaned_ids)
     logger.info("Deleting %s orphaned vector(s) from Qdrant...", len(orphaned_ids))
     await client.delete(
-        collection_name=settings.QDRANT_COLLECTION_NAME,
+        collection_name=collection_name,
         points_selector=PointIdsList(points=orphaned_ids),
     )
     logger.info("Deleted %s orphaned vector(s).", len(orphaned_ids))
@@ -197,7 +204,11 @@ async def _prune_dangling_links(
 
 
 async def _async_sync_vectors(
-    session: AsyncSession, dry_run: bool, qdrant_service: QdrantService | None = None
+    session: AsyncSession,
+    dry_run: bool,
+    qdrant_service: QdrantService | None = None,
+    qdrant_url: str | None = None,
+    collection_name: str | None = None,
 ) -> tuple[int, int]:
     """
     Core async logic for complete vector synchronization.
@@ -206,19 +217,28 @@ async def _async_sync_vectors(
         session: Injected database session
         dry_run: If True, only report what would be changed
         qdrant_service: Optional injected Qdrant service
+        qdrant_url: Qdrant server URL (required when qdrant_service is None)
+        collection_name: Qdrant collection name
 
     Returns (orphans_pruned, dangling_pruned) counts.
     """
+    if collection_name is None:
+        raise ValueError("collection_name is required for vector sync")
+
     logger.info("Starting vector synchronization...")
     if dry_run:
         logger.info("DRY RUN MODE: No changes will be made.")
     logger.info("Phase 0: Loading current state...")
     if qdrant_service is None:
-        client = AsyncQdrantClient(url=settings.QDRANT_URL)
+        if qdrant_url is None:
+            raise ValueError(
+                "qdrant_url is required when qdrant_service is not provided"
+            )
+        client = AsyncQdrantClient(url=qdrant_url)
     else:
         client = qdrant_service.client
     logger.info("Fetching vector IDs from Qdrant...")
-    qdrant_ids = await _fetch_all_qdrant_ids(client)
+    qdrant_ids = await _fetch_all_qdrant_ids(client, collection_name)
     logger.info("Found %s vectors in Qdrant.", len(qdrant_ids))
     logger.info("Fetching vector links from PostgreSQL...")
     db_vector_ids = await _fetch_db_vector_ids(session)
@@ -227,7 +247,7 @@ async def _async_sync_vectors(
     logger.info("Found %s total symbol-vector links.", len(db_links))
     logger.info("Phase 1: Pruning orphaned vectors from Qdrant...")
     orphans_pruned = await _prune_orphaned_vectors(
-        client, qdrant_ids, db_vector_ids, dry_run
+        client, qdrant_ids, db_vector_ids, dry_run, collection_name
     )
     logger.info("Phase 2: Pruning dangling links from PostgreSQL...")
     dangling_pruned = await _prune_dangling_links(
@@ -250,6 +270,8 @@ async def main_sync(
     session: AsyncSession,
     write: bool = False,
     dry_run: bool = False,
+    qdrant_url: str | None = None,
+    collection_name: str | None = None,
 ) -> None:
     """
     Synchronize vector database between PostgreSQL and Qdrant.
@@ -260,13 +282,22 @@ async def main_sync(
 
     Args:
         session: Injected database session
+        write: If True, apply changes (default: False)
+        dry_run: If True, only report what would change (default: False)
+        qdrant_url: Qdrant server URL
+        collection_name: Qdrant collection name
 
     Example:
         poetry run core-admin fix vector-sync --dry-run
         poetry run core-admin fix vector-sync --write
     """
     effective_dry_run = dry_run or not write
-    await _async_sync_vectors(session, dry_run=effective_dry_run)
+    await _async_sync_vectors(
+        session,
+        dry_run=effective_dry_run,
+        qdrant_url=qdrant_url,
+        collection_name=collection_name,
+    )
 
 
 # ID: 45b243cb-5331-464d-a50d-13a1310e672a
@@ -275,6 +306,8 @@ async def main_async(
     write: bool = False,
     dry_run: bool = False,
     qdrant_service: QdrantService | None = None,
+    qdrant_url: str | None = None,
+    collection_name: str | None = None,
 ) -> tuple[int, int]:
     """
     Async entry point for orchestrators that own the event loop.
@@ -285,10 +318,16 @@ async def main_async(
         write: If True, apply changes (default: False)
         dry_run: If True, only report what would change (default: False)
         qdrant_service: Optional injected Qdrant service
+        qdrant_url: Qdrant server URL (used when qdrant_service is None)
+        collection_name: Qdrant collection name
 
     Returns (orphans_pruned, dangling_pruned) counts.
     """
     effective_dry_run = dry_run or not write
     return await _async_sync_vectors(
-        session, dry_run=effective_dry_run, qdrant_service=qdrant_service
+        session,
+        dry_run=effective_dry_run,
+        qdrant_service=qdrant_service,
+        qdrant_url=qdrant_url,
+        collection_name=collection_name,
     )

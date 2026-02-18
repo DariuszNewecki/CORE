@@ -12,6 +12,7 @@ import asyncio
 from sqlalchemy import text
 
 from body.introspection.sync_service import SymbolScanner
+from shared.infrastructure.bootstrap_registry import bootstrap_registry
 from shared.infrastructure.database.session_manager import get_session
 from shared.logger import getLogger
 
@@ -25,7 +26,7 @@ async def _run_drift_analysis():
     """
     logger.info("Running Symbol Drift Analysis...")
     logger.info("Scanning 'src/' directory for all public symbols...")
-    scanner = SymbolScanner()
+    scanner = SymbolScanner(repo_root=bootstrap_registry.get_repo_path())
     code_symbols = await asyncio.to_thread(scanner.scan)
     code_symbol_paths = {s["symbol_path"] for s in code_symbols}
     logger.info("Found %s symbols in source code.", len(code_symbol_paths))

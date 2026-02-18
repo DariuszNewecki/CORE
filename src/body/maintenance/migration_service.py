@@ -12,22 +12,28 @@ from __future__ import annotations
 import asyncio
 import json
 import uuid
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import yaml
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from shared.config import settings
+# REFACTORED: Removed direct settings import
 from shared.logger import getLogger
+
+
+if TYPE_CHECKING:
+    from shared.context import CoreContext
 
 
 logger = getLogger(__name__)
 
 
-async def _migrate_capabilities_from_manifest() -> list[dict[str, Any]]:
+async def _migrate_capabilities_from_manifest(
+    context: CoreContext,
+) -> list[dict[str, Any]]:
     """Loads capabilities from the legacy project_manifest.yaml file."""
-    manifest_path = settings.get_path("mind.knowledge.project_manifest")
+    manifest_path = context.settings.get_path("mind.knowledge.project_manifest")
     if not manifest_path.exists():
         logger.info(
             "Warning: project_manifest.yaml not found. No capabilities to migrate."
@@ -60,12 +66,12 @@ async def _migrate_capabilities_from_manifest() -> list[dict[str, Any]]:
     return migrated_caps
 
 
-async def _migrate_symbols_from_ast() -> list[dict[str, Any]]:
+async def _migrate_symbols_from_ast(context: CoreContext) -> list[dict[str, Any]]:
     """Scans the codebase using SymbolScanner to populate the symbols table."""
     # NOTE: Introspection still lives in features/ for this sub-step
     from body.introspection.sync_service import SymbolScanner
 
-    scanner = SymbolScanner()
+    scanner = SymbolScanner(repo_root=context.git_service.repo_path)
     code_symbols = await asyncio.to_thread(scanner.scan)
     migrated_syms = []
     for symbol_data in code_symbols:
@@ -85,13 +91,15 @@ async def _migrate_symbols_from_ast() -> list[dict[str, Any]]:
 
 
 # ID: 7038f63f-b52c-48ea-a03d-5c18f4f38129
-async def run_ssot_migration(session: AsyncSession, dry_run: bool):
+async def run_ssot_migration(
+    context: CoreContext, session: AsyncSession, dry_run: bool
+):
     """
     Orchestrates the full one-time migration from files to the SSOT database.
     """
     logger.info("Starting one-time migration of knowledge from files to database...")
-    capabilities = await _migrate_capabilities_from_manifest()
-    symbols = await _migrate_symbols_from_ast()
+    capabilities = await _migrate_capabilities_from_manifest(context)
+    symbols = await _migrate_symbols_from_ast(context)
 
     if dry_run:
         logger.info("-- DRY RUN: The following actions would be taken --")

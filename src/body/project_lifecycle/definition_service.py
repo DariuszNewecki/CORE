@@ -15,13 +15,15 @@ import re
 import time
 from collections.abc import Callable
 from functools import partial
+from pathlib import Path
 from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.action_types import ActionImpact, ActionResult
 from shared.atomic_action import atomic_action
-from shared.config import settings
+
+# REFACTORED: Removed direct settings import
 from shared.infrastructure.context.service import ContextService
 from shared.infrastructure.repositories.symbol_definition_repository import (
     SymbolDefinitionRepository,
@@ -36,7 +38,7 @@ logger = getLogger(__name__)
 
 # ID: b967b43c-3a4d-4b36-855f-12a434c0db4f
 async def get_undefined_symbols(
-    session: AsyncSession, limit: int = 500
+    session: AsyncSession, repo_root: Path, limit: int = 500
 ) -> list[dict[str, Any]]:
     """
     Retrieves symbols requiring definition, filtering out stale entries.
@@ -50,7 +52,7 @@ async def get_undefined_symbols(
     for symbol in symbols:
         module_path = symbol.get("file_path") or symbol.get("module", "")
         if module_path:
-            file_path = settings.REPO_PATH / module_path
+            file_path = repo_root / module_path
             if file_path.exists():
                 valid_symbols.append(symbol)
             else:
@@ -155,7 +157,9 @@ async def define_single_symbol(
 
         # 2. Invoke AI Reasoning (Will)
         similar_context = _extract_similar_capabilities(packet, target_qualname)
-        template_path = settings.paths.prompt("capability_definer")
+        template_path = (
+            context_service.project_root / "var" / "prompts" / "capability_definer.txt"
+        )
         prompt = template_path.read_text(encoding="utf-8").format(
             code=source_code, similar_capabilities=similar_context
         )
@@ -224,7 +228,9 @@ async def define_symbols(
 
     # 1. Gather tasks
     async with session_factory() as session:
-        symbols = await get_undefined_symbols(session, limit=100)
+        symbols = await get_undefined_symbols(
+            session, repo_root=context_service.project_root, limit=100
+        )
 
     if not symbols:
         return ActionResult(

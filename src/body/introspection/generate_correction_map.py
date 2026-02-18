@@ -18,7 +18,7 @@ from pathlib import Path
 
 import yaml
 
-from shared.config import settings
+# REFACTORED: Removed direct settings import
 from shared.exceptions import CoreError
 from shared.infrastructure.storage.file_handler import FileHandler
 from shared.logger import getLogger
@@ -36,6 +36,7 @@ class GenerateCorrectionMapError(CoreError):
 def generate_maps(
     input_path: Path | str = Path("reports/proposed_domains.json"),
     output: Path | str = Path("reports/aliases.yaml"),
+    repo_root: Path | None = None,
 ) -> None:
     """
     Generates an alias map from clustering results to a YAML file via FileHandler.
@@ -57,12 +58,14 @@ def generate_maps(
     content_str = yaml.dump(alias_map, indent=2, sort_keys=True)
 
     # CONSTITUTIONAL FIX: Use the governed mutation surface
-    file_handler = FileHandler(str(settings.REPO_PATH))
+    if repo_root is None:
+        raise ValueError("repo_root is required")
+    file_handler = FileHandler(str(repo_root))
 
     try:
         # Resolve to a repo-relative string for FileHandler
         rel_output = str(
-            output_path.resolve().relative_to(settings.REPO_PATH.resolve())
+            output_path.resolve().relative_to(repo_root.resolve())
         ).replace("\\", "/")
 
         # Governed write: checks IntentGuard and logs the event

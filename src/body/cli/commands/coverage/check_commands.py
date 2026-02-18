@@ -180,7 +180,8 @@ async def show_coverage_gaps(ctx: typer.Context) -> None:
     console.print("[bold cyan]📉 Coverage Gaps Analysis[/bold cyan]\n")
 
     try:
-        analyzer = GapsAnalyzer()
+        core_context: CoreContext = ctx.obj
+        analyzer = GapsAnalyzer(repo_root=core_context.git_service.repo_path)
         gaps = analyzer.find_gaps(threshold=75.0)
 
         if not gaps["sorted_lowest"]:

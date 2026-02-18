@@ -14,7 +14,7 @@ from __future__ import annotations
 from dataclasses import asdict
 from pathlib import Path
 
-from shared.config import settings
+# REFACTORED: Removed direct settings import
 from shared.infrastructure.storage.file_handler import FileHandler
 from shared.logger import getLogger
 from shared.models import CapabilityMeta, DriftReport
@@ -57,19 +57,19 @@ def detect_capability_drift(
 
 
 # ID: db10bc9b-b4b3-41f2-8d81-b32731540d95
-def write_report(path: Path, report: DriftReport) -> None:
+def write_report(path: Path, report: DriftReport, repo_root: Path) -> None:
     """
     Writes the drift report to a JSON file via the governed FileHandler.
     """
     # CONSTITUTIONAL FIX: Use the governed mutation surface
     # FileHandler automatically handles directory creation (mkdir) and checks IntentGuard.
-    fh = FileHandler(str(settings.REPO_PATH))
+    fh = FileHandler(str(repo_root))
 
     try:
         # Resolve to a repo-relative string as required by the FileHandler API
-        rel_path = str(
-            path.resolve().relative_to(settings.REPO_PATH.resolve())
-        ).replace("\\", "/")
+        rel_path = str(path.resolve().relative_to(repo_root.resolve())).replace(
+            "\\", "/"
+        )
 
         # This logs the mutation to core.action_results and enforces safety policies
         fh.write_runtime_json(rel_path, report.to_dict())

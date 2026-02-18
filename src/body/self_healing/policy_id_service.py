@@ -27,7 +27,8 @@ from typing import TYPE_CHECKING
 import yaml
 
 from body.atomic.executor import ActionExecutor
-from shared.config import settings
+
+# REFACTORED: Removed direct settings import
 from shared.logger import getLogger
 
 
@@ -56,7 +57,7 @@ async def add_missing_policy_ids(context: CoreContext, dry_run: bool = True) -> 
 
     # FIXED: Search new .intent/ structure
     # Policy-like documents may be in multiple locations now
-    intent_root = settings.paths.intent_root
+    intent_root = context.settings.paths.intent_root
 
     search_dirs = [
         intent_root / "phases",
@@ -99,7 +100,7 @@ async def add_missing_policy_ids(context: CoreContext, dry_run: bool = True) -> 
             new_content = f"policy_id: {new_id}\n{content}"
 
             # Convert to repo-relative path for the Action Gateway
-            rel_path = str(file_path.relative_to(settings.REPO_PATH))
+            rel_path = str(file_path.relative_to(context.git_service.repo_path))
 
             # CONSTITUTIONAL GATEWAY:
             # This write is now governed by IntentGuard and logged in action_results.

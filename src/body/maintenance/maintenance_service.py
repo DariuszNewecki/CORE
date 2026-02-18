@@ -10,11 +10,12 @@ from __future__ import annotations
 import re
 from typing import TYPE_CHECKING
 
-from shared.config import settings
+# REFACTORED: Removed direct settings import
 from shared.logger import getLogger
 
 
 if TYPE_CHECKING:
+    from shared.context import CoreContext
     from shared.infrastructure.storage.file_handler import FileHandler
 
 logger = getLogger(__name__)
@@ -42,11 +43,13 @@ REWIRE_MAP = {
 
 
 # ID: 12fcea31-5e2a-46e6-8e8c-9fd529ffc667
-def rewire_imports(file_handler: FileHandler, dry_run: bool = True) -> int:
+def rewire_imports(
+    context: CoreContext, file_handler: FileHandler, dry_run: bool = True
+) -> int:
     """
     Scans and corrects Python imports across the entire src/ directory.
     """
-    src_dir = settings.REPO_PATH / "src"
+    src_dir = context.git_service.repo_path / "src"
     all_python_files = list(src_dir.rglob("*.py"))
     total_changes = 0
 
@@ -85,7 +88,7 @@ def rewire_imports(file_handler: FileHandler, dry_run: bool = True) -> int:
                     new_lines.append(line)
 
             if file_changed and not dry_run:
-                rel_path = str(file_path.relative_to(settings.REPO_PATH))
+                rel_path = str(file_path.relative_to(context.git_service.repo_path))
                 file_handler.write_runtime_text(rel_path, "\n".join(new_lines) + "\n")
 
         except Exception as e:

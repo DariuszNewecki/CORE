@@ -13,10 +13,12 @@ CONSTITUTIONAL FIX:
 
 from __future__ import annotations
 
+from pathlib import Path
+
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from shared.config import settings
+# REFACTORED: Removed direct settings import
 from shared.infrastructure.storage.file_handler import FileHandler
 from shared.logger import getLogger
 
@@ -73,7 +75,7 @@ def _group_by_domain(capabilities: list[dict]) -> dict[str, list[dict]]:
 
 
 # ID: 2ea63de3-081d-40b3-9386-0d372487aabd
-async def main(session: AsyncSession):
+async def main(session: AsyncSession, repo_root: Path):
     """
     The main entry point for the documentation generation script.
     """
@@ -119,7 +121,7 @@ async def main(session: AsyncSession):
 
     # CONSTITUTIONAL FIX: Use the governed mutation surface
     # FileHandler handles directory creation and path validation automatically.
-    file_handler = FileHandler(str(settings.REPO_PATH))
+    file_handler = FileHandler(str(repo_root))
 
     try:
         file_handler.write_runtime_text(REL_OUTPUT_PATH, final_text)

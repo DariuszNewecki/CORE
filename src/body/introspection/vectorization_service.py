@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from shared.config import settings
+# REFACTORED: Removed direct settings import
 from shared.context import CoreContext
 from shared.infrastructure.config_service import ConfigService
 from shared.logger import getLogger
@@ -47,7 +47,7 @@ async def run_vectorize(
     all_symbols, existing_links = await fetch_initial_state(session)
     stored_hashes = await qdrant.get_stored_hashes()
 
-    analyzer = DeltaAnalyzer(settings.REPO_PATH, stored_hashes)
+    analyzer = DeltaAnalyzer(context.git_service.repo_path, stored_hashes)
     tasks = analyzer.identify_changes(all_symbols, existing_links, force)
 
     if not tasks:
@@ -84,7 +84,7 @@ async def run_vectorize(
                 {
                     "symbol_id": t["id"],
                     "vector_id": p_id,
-                    "embedding_model": settings.LOCAL_EMBEDDING_MODEL_NAME,
+                    "embedding_model": context.settings.LOCAL_EMBEDDING_MODEL_NAME,
                     "embedding_version": 1,
                 }
             )

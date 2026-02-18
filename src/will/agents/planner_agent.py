@@ -1,29 +1,28 @@
 # src/will/agents/planner_agent.py
 # ID: ad85dc18-646b-4bb9-95df-2d9a63873d26
+
 """
 The PlannerAgent is responsible for decomposing a high-level user goal
-into a concrete, step-by-step execution plan that can be carried out
-by the ExecutionAgent.
+into a concrete, step-by-step execution plan.
 
-CONSTITUTIONAL ALIGNMENT:
-- Aligned with 'autonomy.reasoning.policy_alignment'.
-- MODERNIZATION: Uses PathResolver standard instead of settings.load().
-- FIXED: Correctly handles session acquisition for memory cleanup.
-- ENHANCED: Uses action introspection to provide LLM with parameter requirements.
-- UPDATED: Searches new .intent/ structure (no charter/ subdirectory).
+CONSTITUTIONAL ENHANCEMENT (V2.5.0):
+"Legal Counsel": Now performs RAG (Retrieval Augmented Generation) against
+the Constitution before planning.
+The Planner searches the 'core_policies' vector collection for rules relevant
+to the specific user goal and injects them into the prompt.
+Prevents "Trial by Fire" (proposing illegal plans that get blocked by the Body).
+
+HARDENING (V2.6):
+Removed non-deterministic random cleanup to satisfy P1.2.
+Cleaned imports to reduce layer leakage.
 """
 
 from __future__ import annotations
 
 import json
-import random
 from pathlib import Path
 
-import yaml
-
-from body.atomic.registry import action_registry  # FIXED: Use registry directly
-from body.self_healing import MemoryCleanupService
-from body.services.service_registry import service_registry
+from body.atomic.registry import action_registry
 from shared.logger import getLogger
 from shared.models import ExecutionTask, PlanExecutionError
 from shared.path_resolver import PathResolver
@@ -31,25 +30,24 @@ from will.agents.action_introspection import get_all_action_schemas
 from will.agents.base_planner import build_planning_prompt, parse_and_validate_plan
 from will.orchestration.cognitive_service import CognitiveService
 from will.orchestration.decision_tracer import DecisionTracer
+from will.tools.policy_vectorizer import PolicyVectorizer
 
 
 logger = getLogger(__name__)
 
 
-# ID: 12a652ad-0b1b-4c04-9689-3a7f8675facd
+# ID: c0bf833c-f3a2-4508-8cd0-1d6474eebb4d
 class PlannerAgent:
-    """Decomposes goals into executable plans."""
+    """Decomposes goals into constitutionally-aligned executable plans."""
 
     def __init__(
-        self, cognitive_service: CognitiveService, repo_path: Path, max_retries: int = 3
+        self,
+        cognitive_service: CognitiveService,
+        repo_path: Path,
+        max_retries: int = 3,
     ):
         """
-        Initializes the PlannerAgent.
-
-        Args:
-            cognitive_service: Service for LLM interaction.
-            repo_path: Root path of the repository (for loading prompts/policies).
-            max_retries: Number of retry attempts for planning.
+        Initializes the PlannerAgent with Legal Counsel capabilities.
         """
         self.cognitive_service = cognitive_service
         self.tracer = DecisionTracer()
@@ -57,10 +55,15 @@ class PlannerAgent:
         self._paths = PathResolver(repo_path)
         self.max_retries = max_retries
 
-        # ALIGNED: Using PathResolver pattern relative to repo root
-        # var/prompts is the canonical location for runtime prompts
-        prompt_path = self._paths.prompt("planner_agent")
+        # Initialize the Legal Counsel (Policy Vectorizer)
+        self.legal_counsel = PolicyVectorizer(
+            repo_root=repo_path,
+            cognitive_service=cognitive_service,
+            qdrant_service=cognitive_service.qdrant_service,
+        )
 
+        # Load Prompt Template
+        prompt_path = self._paths.prompt("planner_agent")
         try:
             self.prompt_template = prompt_path.read_text(encoding="utf-8")
         except FileNotFoundError:
@@ -70,80 +73,65 @@ class PlannerAgent:
             )
             raise
 
-    # ID: 1ea9ec86-10a3-4356-9c31-c14e53c8fed0
+    # ID: 2d8e41a4-423b-4381-8f35-fce3dc238ab2
     async def create_execution_plan(
-        self, goal: str, reconnaissance_report: str = ""
+        self,
+        goal: str,
+        reconnaissance_report: str = "",
     ) -> list[ExecutionTask]:
         """
-        Creates an execution plan from a user goal and a reconnaissance report.
-
-        Args:
-            goal: High-level user goal to decompose
-            reconnaissance_report: Context from reconnaissance phase
-
-        Returns:
-            List of ExecutionTask objects representing the plan
+        Creates an execution plan, informed by relevant constitutional laws.
         """
-        # SAFE AUTO-CLEANUP: Triggered occasionally to manage system memory
-        if random.random() < 0.1:
-            try:
-                # Use registry to acquire session without hardcoded imports
-                async with service_registry.session() as session:
-                    cleanup_service = MemoryCleanupService(session=session)
-                    await cleanup_service.cleanup_old_memories(dry_run=False)
-            except Exception as e:
-                logger.debug("Memory cleanup deferred: %s", e)
 
-        # FIXED: Search new .intent/ structure for quality/purity rules
-        qa_constraints = ""
+        # 1. LEGAL COUNSEL: Consult the Constitution (RAG)
+        logger.info("⚖️  Planner requesting legal counsel for goal: '%s'", goal)
+        relevant_policies = await self.legal_counsel.search_policies(
+            query=goal,
+            limit=5,
+        )
 
-        # Search in new structure: .intent/rules/code/
-        policy_candidates = [
-            self._paths.intent_root / "rules" / "code" / "purity.json",
-            self._paths.intent_root / "rules" / "code" / "purity.yaml",
-            self._paths.intent_root / "rules" / "code" / "linkage.json",
-            self._paths.intent_root / "rules" / "code" / "linkage.yaml",
-        ]
+        # Format legal advice for the LLM
+        legal_brief: list[str] = []
 
-        for qa_path in policy_candidates:
-            try:
-                if qa_path.exists():
-                    content = qa_path.read_text(encoding="utf-8")
-                    # Handle both JSON and YAML rules
-                    data = (
-                        json.loads(content)
-                        if qa_path.suffix == ".json"
-                        else yaml.safe_load(content)
-                    )
-                    rules = data.get("rules", [])
-                    qa_constraints = f"\n### Quality Assurance Targets\n{json.dumps(rules, indent=2)}"
-                    logger.debug("Loaded QA constraints from: %s", qa_path)
-                    break
-            except Exception as e:
-                logger.debug("Could not load QA policy from %s: %s", qa_path, e)
-                continue
-
-        if not qa_constraints:
-            # Fallback to minimal default
-            qa_constraints = (
-                "\n### Quality Assurance Targets\n- Ensure 75%+ test coverage."
+        if relevant_policies:
+            legal_brief.append("### RELEVANT CONSTITUTIONAL LAWS")
+            legal_brief.append(
+                "You MUST adhere to the following laws found in the Constitution:"
             )
-            logger.debug("Using default QA constraints (no policy file found)")
 
-        # Enrich the reconnaissance report with QA requirements
-        enriched_recon = f"{reconnaissance_report}\n{qa_constraints}"
+            for hit in relevant_policies:
+                payload = hit.get("payload", {})
+                rule_id = payload.get("section_path") or "unknown_rule"
+                content = payload.get("content", "").replace("\n", " ").strip()
+                severity = payload.get("severity", "error")
 
-        # ENHANCED: Build complete action schemas with parameter requirements
-        # This tells the LLM exactly what parameters each action needs
+                prefix = "⛔ CRITICAL" if severity == "error" else "⚠️  WARNING"
+                legal_brief.append(f"- {prefix} ({rule_id}): {content[:300]}")
+        else:
+            legal_brief.append("### CONSTITUTIONAL CHECK")
+            legal_brief.append(
+                "No specific specific policies found for this topic. "
+                "Proceed with standard caution."
+            )
+
+        constitutional_context = "\n".join(legal_brief)
+
+        # 2. Context Integration
+        enriched_recon = f"{reconnaissance_report}\n\n{constitutional_context}"
+
         actions = action_registry.list_all()
         action_schemas = get_all_action_schemas(actions)
         action_descriptions = json.dumps(action_schemas, indent=2)
 
-        # Build planning prompt with all required context
         prompt = build_planning_prompt(
-            self._paths, goal, action_descriptions, enriched_recon, self.prompt_template
+            self._paths,
+            goal,
+            action_descriptions,
+            enriched_recon,
+            self.prompt_template,
         )
 
+        # 3. Strategic Planning Loop
         client = await self.cognitive_service.aget_client_for_role("Planner")
 
         for attempt in range(self.max_retries):
@@ -154,23 +142,31 @@ class PlannerAgent:
             )
 
             response_text = await client.make_request_async(prompt)
+
             if response_text:
                 try:
                     plan = parse_and_validate_plan(response_text)
 
-                    # MANDATORY TRACING: Record the final plan decision
                     self.tracer.record(
-                        agent=self.__class__.__name__,
-                        decision_type="task_execution",
-                        rationale="Decomposed goal into actionable steps based on Constitution and QA standards",
+                        agent="PlannerAgent",
+                        decision_type="plan_creation",
+                        rationale="Decomposed goal into actionable steps",
                         chosen_action=f"Generated plan with {len(plan)} steps",
-                        context={"goal": goal, "steps": len(plan)},
+                        context={
+                            "goal": goal,
+                            "laws_consulted": len(relevant_policies),
+                            "steps": len(plan),
+                        },
                         confidence=0.9,
                     )
+
                     return plan
+
                 except PlanExecutionError as e:
                     logger.warning(
-                        "Plan validation failed on attempt %d: %s", attempt + 1, e
+                        "Plan validation failed on attempt %d: %s",
+                        attempt + 1,
+                        e,
                     )
                     if attempt == self.max_retries - 1:
                         raise

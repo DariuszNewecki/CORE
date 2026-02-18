@@ -135,7 +135,8 @@ class SpecialistDispatcher:
             from features.self_healing.header_service import HeaderService
 
             await asyncio.to_thread(
-                HeaderService()._fix, [str(settings.REPO_PATH / file_path)]
+                HeaderService(repo_root=settings.REPO_PATH)._fix,
+                [str(settings.REPO_PATH / file_path)],
             )
             return True
         if task == "ids":

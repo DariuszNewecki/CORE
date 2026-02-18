@@ -49,7 +49,7 @@ class BatchRemediationService:
         self.cognitive = cognitive_service
         self.auditor = auditor_context
         self.max_complexity = max_complexity
-        self.analyzer = CoverageAnalyzer()
+        self.analyzer = CoverageAnalyzer(repo_path=settings.REPO_PATH)
         self.complexity_filter = ComplexityFilter(max_complexity=max_complexity)
 
     # ID: 1b9a6db1-2cca-4410-b232-79edbd3d9809

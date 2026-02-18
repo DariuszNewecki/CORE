@@ -32,6 +32,10 @@ class CoreContext:
     # The authoritative registry
     registry: Any
 
+    # --- Configuration SSOT ---
+    # FIXED: Uses default_factory to avoid "mutable default" ValueError
+    settings: Any = field(default_factory=lambda: settings)
+
     # --- Active Service Instances ---
     git_service: Any | None = None
     cognitive_service: Any | None = None

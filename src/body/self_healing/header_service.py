@@ -12,7 +12,8 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from body.atomic.executor import ActionExecutor
-from shared.config import settings
+
+# REFACTORED: Removed direct settings import
 from shared.logger import getLogger
 from shared.utils.header_tools import _HeaderTools
 
@@ -21,15 +22,14 @@ if TYPE_CHECKING:
     from shared.context import CoreContext
 
 logger = getLogger(__name__)
-REPO_ROOT = settings.REPO_PATH
 
 
 # ID: e1e63d42-0626-40d7-84bc-5d3469a00bc5
 class HeaderService:
     """Detects and fixes missing or incorrect file path headers in src/**/*.py files."""
 
-    def __init__(self) -> None:
-        self.repo_root = settings.REPO_PATH
+    def __init__(self, repo_root: Path) -> None:
+        self.repo_root = repo_root
 
     def _get_expected_header(self, file_path: Path) -> str:
         rel_path = file_path.relative_to(self.repo_root).as_posix()
@@ -173,7 +173,7 @@ async def _run_header_fix_cycle(
         if i % 50 == 0:
             logger.debug("Header analysis progress: %d/%d", i, len(all_py_files))
 
-        file_path = settings.paths.repo_root / file_path_str
+        file_path = context.settings.paths.repo_root / file_path_str
         try:
             original_content = file_path.read_text(encoding="utf-8")
             header = _HeaderTools.parse(original_content)

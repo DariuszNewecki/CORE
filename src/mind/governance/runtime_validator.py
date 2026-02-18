@@ -1,19 +1,20 @@
 # src/mind/governance/runtime_validator.py
 """
+Runtime Validator - The Canary Sandbox.
+
 Provides a service to run the project's test suite against proposed code changes
-in a safe, isolated "canary" environment.
+in a safe, isolated environment.
 
-Policy:
-- No direct filesystem mutations outside governed mutation surfaces.
-- Writes/mkdir/copy operations must be routed through FileService (IntentGuard enforced).
-- Canary runs operate on a temporary directory and must never write to .intent/**.
-
-CONSTITUTIONAL FIX: No longer imports FileHandler - uses FileService from Body layer
+CONSTITUTIONAL FIX (V2.3.0):
+- "The Airlock": Subprocesses now run with a SANITIZED environment.
+- Blocks access to real DATABASE_URL, LLM_API_KEY, and CORE_MASTER_KEY.
+- Forces SQLite in-memory or mock-safe defaults to prevent 'Leaky Sandbox' corruption.
 """
 
 from __future__ import annotations
 
 import asyncio
+import os
 import tempfile
 from pathlib import Path
 
@@ -25,14 +26,15 @@ from shared.path_resolver import PathResolver
 logger = getLogger(__name__)
 
 
-# ID: 0cbf9038-fa70-4ea4-ae13-b478552f9d79
+# ID: 2b55693e-54fd-4e36-ab4c-29075a361014
 class RuntimeValidatorService:
     """
-    A service to test code changes in an isolated environment.
+    A service to test code changes in an isolated environment (Canary).
 
     CONSTITUTIONAL COMPLIANCE:
     - Receives FileService from Body layer
     - Uses Body service for all file operations
+    - Enforces Environment Isolation (The Airlock)
     """
 
     def __init__(self, path_resolver: PathResolver, test_timeout: int = 60):
@@ -40,57 +42,80 @@ class RuntimeValidatorService:
         self.repo_root = self._paths.repo_root
         self.test_timeout = test_timeout
 
-    # ID: 548eb332-6e28-4e75-a967-d499ad86fd2c
+    # ID: 3c79d15e-5e0c-44a0-8325-ce69a77419c0
     async def run_tests_in_canary(
         self, file_path_str: str, new_code_content: str
     ) -> tuple[bool, str]:
         """
         Creates a temporary copy of the project, applies the new code, and runs pytest.
+        Uses a SANITIZED environment to prevent side effects on the host system.
 
         Returns:
             A tuple of (passed: bool, details: str).
         """
-        # Use a tmpdir for isolation. Mutations here are allowed, but still routed
-        # through FileService to keep a single mutation surface and apply IntentGuard rules.
+        # Use a tmpdir for isolation.
         with tempfile.TemporaryDirectory(prefix="core_canary_") as tmpdir:
             canary_path = Path(tmpdir) / "canary_repo"
             logger.info("Creating canary test environment at %s...", canary_path)
 
             try:
-                # CONSTITUTIONAL FIX: Initialize a FileService rooted at the canary repo root.
-                # It will still enforce the .intent/** no-write invariant.
+                # 1. Initialize FileService rooted at the canary repo
                 fs = FileService(canary_path)
 
-                # Copy repo into canary using guarded copy (no direct shutil.copytree).
-                # We implement ignore by copying into an empty canary directory:
-                # - first create canary_path
-                # - then selective copy via file system walk (implemented below)
+                # 2. Replicate the Body (Code)
                 fs.ensure_dir(".")
                 _copy_repo_tree(
                     src_root=self.repo_root,
                     dst_root=canary_path,
-                    file_service=fs,  # CONSTITUTIONAL FIX: Pass FileService to helper
+                    file_service=fs,
                     ignore_names={
                         ".git",
-                        self._paths.intent_root.name,
+                        self._paths.intent_root.name,  # Don't copy .intent/
                         ".venv",
                         "venv",
                         "__pycache__",
                         ".pytest_cache",
                         ".ruff_cache",
                         "work",
+                        ".env",  # DANGER: Do not copy .env
+                        ".env.test",  # DANGER: Do not copy .env.test
                     },
                 )
 
-                # CONSTITUTIONAL FIX: Apply candidate change inside canary through FileService
+                # 3. Apply the Candidate Code
                 rel_target = Path(file_path_str).as_posix().lstrip("./")
-
-                # Use get_file_handler() escape hatch for write_runtime_text
-                # (FileService doesn't have this method in extended version)
+                # Use get_file_handler() escape hatch to write the proposed code
                 file_handler = fs.get_file_handler()
                 file_handler.write_runtime_text(rel_target, new_code_content)
 
-                logger.info("Running test suite in canary environment...")
+                # 4. Construct "The Airlock" (Sanitized Environment)
+                # We strip dangerous keys so the test CANNOT touch real infra.
+                safe_env = os.environ.copy()
+
+                # Nuke the keys to the Kingdom
+                for unsafe in [
+                    "DATABASE_URL",
+                    "LLM_API_KEY",
+                    "CORE_MASTER_KEY",
+                    "QDRANT_URL",
+                    "QDRANT_API_KEY",
+                ]:
+                    if unsafe in safe_env:
+                        del safe_env[unsafe]
+
+                # Inject Safe Defaults (Force Unit Test Mode)
+                safe_env["DATABASE_URL"] = (
+                    "sqlite+aiosqlite:///:memory:"  # Force In-Memory DB
+                )
+                safe_env["CORE_ENV"] = "TEST"
+                safe_env["LLM_ENABLED"] = "false"  # No API calls allowed in Sandbox
+                safe_env["PYTHONPATH"] = str(
+                    canary_path
+                )  # Ensure import resolution works
+
+                logger.info("Running test suite in AIRLOCKED canary environment...")
+
+                # 5. Execute
                 proc = await asyncio.create_subprocess_exec(
                     "poetry",
                     "run",
@@ -98,7 +123,9 @@ class RuntimeValidatorService:
                     cwd=canary_path,
                     stdout=asyncio.subprocess.PIPE,
                     stderr=asyncio.subprocess.PIPE,
+                    env=safe_env,  # <--- THE FIX
                 )
+
                 try:
                     stdout, stderr = await asyncio.wait_for(
                         proc.communicate(), timeout=self.test_timeout
@@ -108,7 +135,7 @@ class RuntimeValidatorService:
                     logger.error("Canary tests timed out.")
                     return (
                         False,
-                        f"Tests timed out after {self.test_timeout} seconds.",
+                        f"Tests timed out after {self.test_timeout} seconds. (Infinite loop or deadlock?)",
                     )
 
                 if proc.returncode == 0:
@@ -128,41 +155,29 @@ class RuntimeValidatorService:
                 return (False, f"An unexpected exception occurred: {e!s}")
 
 
-# ID: 3d6d9f9f-7874-4e77-9f5f-8b1c2c0a9d31
 def _copy_repo_tree(
     src_root: Path, dst_root: Path, file_service: FileService, ignore_names: set[str]
 ) -> None:
     """
-    Copy a repository tree without using shutil.copytree (direct mutation primitive),
-    applying a simple directory/file name ignore set.
-
-    CONSTITUTIONAL FIX: Uses FileService for all writes to comply with
-    architecture.mind.no_filesystem_writes rule.
-
-    Args:
-        src_root: Source repository root
-        dst_root: Destination repository root
-        file_service: Body layer FileService for file operations
-        ignore_names: Set of directory/file names to ignore
-
-    This is intentionally minimal and deterministic for canary use.
+    Copy a repository tree via governed writes.
     """
     src_root = Path(src_root).resolve()
     dst_root = Path(dst_root).resolve()
 
+    # Walk the tree
     for src_path in src_root.rglob("*"):
-        # Skip ignored names anywhere in the path.
-        if any(part in ignore_names for part in src_path.parts):
+        # Check ignores first (folders + files)
+        # We verify if ANY part of the path is in the ignore list
+        rel_parts = src_path.relative_to(src_root).parts
+        if any(part in ignore_names for part in rel_parts):
             continue
 
         rel = src_path.relative_to(src_root).as_posix()
-        dst_path = dst_root / rel
 
         if src_path.is_dir():
-            # CONSTITUTIONAL FIX: Use FileService instead of Path.mkdir()
             file_service.ensure_dir(rel)
             continue
 
         if src_path.is_file():
-            # CONSTITUTIONAL FIX: Use FileService instead of Path.write_bytes()
+            # Governed write
             file_service.write_runtime_bytes(rel, src_path.read_bytes())

@@ -15,7 +15,8 @@ from rich.console import Console
 
 from body.infrastructure.bootstrap import create_core_context
 from body.services.service_registry import service_registry
-from shared.config import settings
+
+# REFACTORED: Removed direct settings import
 from shared.infrastructure.storage.file_handler import FileHandler
 from shared.logger import getLogger
 
@@ -99,7 +100,7 @@ async def _build_async(
 
     if output:
         output_path = Path(output)
-        repo_root = Path(settings.REPO_PATH).resolve()
+        repo_root = Path(core_context.git_service.repo_path).resolve()
 
         resolved = (
             (repo_root / output_path).resolve()
@@ -111,7 +112,9 @@ async def _build_async(
             raise ValueError(f"Output path is outside repository boundary: {output}")
 
         rel_output = resolved.relative_to(repo_root).as_posix()
-        FileHandler(str(settings.REPO_PATH)).write_runtime_text(rel_output, formatted)
+        FileHandler(str(core_context.git_service.repo_path)).write_runtime_text(
+            rel_output, formatted
+        )
         console.print(f"[green]✅ Context written to {output}[/green]")
     else:
         console.print("")

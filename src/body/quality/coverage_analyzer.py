@@ -12,9 +12,10 @@ from __future__ import annotations
 import ast
 import json
 import subprocess
+from pathlib import Path
 from typing import Any
 
-from shared.config import settings
+# REFACTORED: Removed direct settings import
 from shared.logger import getLogger
 
 
@@ -27,8 +28,8 @@ class CoverageAnalyzer:
     Analyzes test coverage and module structure for prioritization.
     """
 
-    def __init__(self):
-        self.repo_path = settings.REPO_PATH
+    def __init__(self, repo_path: Path) -> None:
+        self.repo_path = repo_path
 
     # ID: 168e0d67-a382-48a5-9dd5-79eeb9656cfa
     def get_module_coverage(self) -> dict[str, float]:

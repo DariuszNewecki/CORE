@@ -13,7 +13,8 @@ from typing import TYPE_CHECKING
 import yaml
 
 from body.atomic.executor import ActionExecutor
-from shared.config import settings
+
+# REFACTORED: Removed direct settings import
 from shared.logger import getLogger
 from shared.path_utils import get_repo_root
 
@@ -39,7 +40,7 @@ class Scaffolder:
         self.profile = profile
 
         # Scaffolding target is typically a sibling to the current REPO_PATH
-        self.workspace = settings.REPO_PATH.parent
+        self.workspace = context.git_service.repo_path.parent
         self.project_root = self.workspace / project_name
 
         # Source of truth for templates

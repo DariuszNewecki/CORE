@@ -25,12 +25,16 @@ import urllib.error
 import urllib.parse
 import urllib.request
 from pathlib import Path
+from typing import TYPE_CHECKING
 
-from shared.config import settings
+# REFACTORED: Removed direct settings import
 from shared.infrastructure.git_service import GitService
 from shared.infrastructure.storage.file_handler import FileHandler
 from shared.logger import getLogger
 from shared.time import now_iso
+
+if TYPE_CHECKING:
+    from shared.context import CoreContext
 
 
 logger = getLogger(__name__)
@@ -86,8 +90,9 @@ def build_signature_from_ast(node: ast.AST) -> str:
 class ContextExporter:
     """Orchestrates the system snapshot using governed services."""
 
-    def __init__(self, output_base: Path | None = None):
-        self.repo_root = settings.REPO_PATH
+    def __init__(self, context: CoreContext, output_base: Path | None = None):
+        self.repo_root = context.git_service.repo_path
+        self._context = context
         self.output_base = output_base or (self.repo_root / "var" / "exports")
         self.timestamp = now_iso().replace(":", "-").split(".")[0]
         self.export_rel_dir = f"var/exports/core_export_{self.timestamp}"
@@ -194,7 +199,7 @@ class ContextExporter:
     async def _export_db_schema(self):
         """Capture DB schema using subprocess, persisted via FileHandler."""
         logger.info("🗄️ Capturing Database Schema...")
-        db_url = settings.DATABASE_URL
+        db_url = self._context.settings.DATABASE_URL
 
         try:
             # Note: requires pg_dump installed on host
@@ -217,8 +222,8 @@ class ContextExporter:
     async def _export_qdrant_metadata(self):
         """Fetch Qdrant collection info via HTTP."""
         logger.info("🧠 Capturing Qdrant Metadata...")
-        q_url = settings.QDRANT_URL.rstrip("/")
-        q_col = settings.QDRANT_COLLECTION_NAME
+        q_url = self._context.settings.QDRANT_URL.rstrip("/")
+        q_col = self._context.settings.QDRANT_COLLECTION_NAME
 
         try:
             # Use urllib for standard-lib compliance in scripts
@@ -246,7 +251,7 @@ class ContextExporter:
                 ),
                 "branch": "unknown",
             },
-            "environment": settings.CORE_ENV,
+            "environment": self._context.settings.CORE_ENV,
             "checksums": {},
         }
 
@@ -267,7 +272,11 @@ class ContextExporter:
 
 # ID: a13aecdf-8b7f-4649-bcd7-e42aab66b0bc
 async def main():
-    exporter = ContextExporter()
+    from body.infrastructure.bootstrap import create_core_context
+    from body.services.service_registry import service_registry
+
+    context = create_core_context(service_registry)
+    exporter = ContextExporter(context=context)
     await exporter.run()
 
 

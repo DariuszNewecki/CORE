@@ -16,7 +16,8 @@ from typing import TYPE_CHECKING, Any
 import yaml
 
 from body.atomic.executor import ActionExecutor
-from shared.config import settings
+
+# REFACTORED: Removed direct settings import
 from shared.logger import getLogger
 
 
@@ -24,9 +25,6 @@ if TYPE_CHECKING:
     from shared.context import CoreContext
 
 logger = getLogger(__name__)
-REPO_ROOT = settings.REPO_PATH
-# Use PathResolver (SSOT) to find the domains directory
-DOMAINS_DIR = settings.paths.intent_root / "knowledge" / "domains"
 
 
 # ID: c10bfc33-9e21-44be-9216-5ed72eaafa05
@@ -38,12 +36,15 @@ async def run_fix_manifest_hygiene(context: CoreContext, write: bool = False):
     logger.info("🔍 Starting Governed Manifest Hygiene Check...")
 
     executor = ActionExecutor(context)
+    repo_root = context.git_service.repo_path
+    # Use PathResolver (SSOT) to find the domains directory
+    domains_dir = context.settings.paths.intent_root / "knowledge" / "domains"
 
-    if not DOMAINS_DIR.is_dir():
-        logger.error("Domains directory not found at: %s", DOMAINS_DIR)
+    if not domains_dir.is_dir():
+        logger.error("Domains directory not found at: %s", domains_dir)
         return
 
-    all_domain_files = {p.stem: p for p in DOMAINS_DIR.glob("*.yaml")}
+    all_domain_files = {p.stem: p for p in domains_dir.glob("*.yaml")}
     changes_to_make: dict[str, dict[str, Any]] = {}
 
     # 1. ANALYSIS PHASE (Read-Only)
@@ -106,7 +107,7 @@ async def run_fix_manifest_hygiene(context: CoreContext, write: bool = False):
     for path_str, updated_content in changes_to_make.items():
         try:
             # Convert to repo-relative path for the Gateway
-            rel_path = str(Path(path_str).relative_to(REPO_ROOT))
+            rel_path = str(Path(path_str).relative_to(repo_root))
             yaml_str = yaml.dump(updated_content, indent=2, sort_keys=False)
 
             # CONSTITUTIONAL GATEWAY: Instead of raw write_text, use the executor.

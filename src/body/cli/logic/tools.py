@@ -52,11 +52,14 @@ def rewire_imports_cli(
     else:
         logger.info("WRITE MODE: Files will be modified.")
 
-    from shared.config import settings
+    # REFACTORED: Removed direct settings import
+    from body.infrastructure.bootstrap import create_core_context
+    from body.services.service_registry import service_registry
     from shared.infrastructure.storage.file_handler import FileHandler
 
-    file_handler = FileHandler(str(settings.REPO_PATH))
-    total_changes = rewire_imports(file_handler, dry_run=dry_run)
+    context = create_core_context(service_registry)
+    file_handler = FileHandler(str(context.git_service.repo_path))
+    total_changes = rewire_imports(context, file_handler, dry_run=dry_run)
 
     logger.info("--- Re-wiring Complete ---")
     if dry_run:

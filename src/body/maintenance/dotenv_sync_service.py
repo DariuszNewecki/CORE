@@ -4,22 +4,26 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from sqlalchemy import func
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from shared.config import settings
+# REFACTORED: Removed direct settings import
 from shared.infrastructure.database.models import RuntimeSetting
 from shared.logger import getLogger
+
+
+if TYPE_CHECKING:
+    from shared.context import CoreContext
 
 
 logger = getLogger(__name__)
 
 
 # ID: b4e0cca2-7956-4ee9-80bc-e36aca3bf0f5
-async def run_dotenv_sync(session: AsyncSession, dry_run: bool):
+async def run_dotenv_sync(context: CoreContext, session: AsyncSession, dry_run: bool):
     """
     Reads variables defined in runtime_requirements.yaml from the environment/.env
     and upserts them into the core.runtime_settings table.
@@ -31,7 +35,7 @@ async def run_dotenv_sync(session: AsyncSession, dry_run: bool):
     logger.info("Synchronizing .env configuration to database...")
 
     try:
-        runtime_reqs = settings.load("mind.config.runtime_requirements")
+        runtime_reqs = context.settings.load("mind.config.runtime_requirements")
         variables_to_sync = runtime_reqs.get("variables", {})
     except FileNotFoundError as e:
         logger.error("Cannot find runtime_requirements policy: %s", e)
@@ -39,7 +43,7 @@ async def run_dotenv_sync(session: AsyncSession, dry_run: bool):
 
     settings_to_upsert: list[dict[str, Any]] = []
     for key, config in variables_to_sync.items():
-        value = getattr(settings, key, None)
+        value = getattr(context.settings, key, None)
         if value is None:
             value_str = None
         elif isinstance(value, bool):

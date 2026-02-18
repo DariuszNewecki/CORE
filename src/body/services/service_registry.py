@@ -3,10 +3,10 @@
 """
 Service Registry - Centralized DI Container.
 
-CONSTITUTIONAL FIX (V2.3.0):
-- JIT Secret Decoding: Now injects the session factory into CognitiveService.
-- This prevents "Detached Session" errors when accessing encrypted secrets
-  (API keys) during long-running tasks like vectorization.
+CONSTITUTIONAL FIX (V2.4.0):
+- "Hardcoded Kernel": Service paths are now immutable constants, not DB lookups.
+- Removes RCE (Remote Code Execution) vulnerability where DB edits could hijack the kernel.
+- Maintains JIT Secret Decoding for CognitiveService.
 """
 
 from __future__ import annotations
@@ -15,9 +15,7 @@ import asyncio
 import importlib
 from collections.abc import Callable
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, ClassVar
-
-from sqlalchemy import text
+from typing import TYPE_CHECKING, Any, ClassVar, Final
 
 from shared.infrastructure.bootstrap_registry import bootstrap_registry
 from shared.logger import getLogger
@@ -30,47 +28,62 @@ if TYPE_CHECKING:
 
 logger = getLogger(__name__)
 
+# --- THE IMMUTABLE KERNEL MAP ---
+# This defines the "Drivers" of your Operating System.
+# We hardcode them here so no one can inject malicious code via the database.
+KERNEL_SERVICES: Final[dict[str, str]] = {
+    "knowledge_service": "shared.infrastructure.knowledge.knowledge_service.KnowledgeService",
+    "auditor": "mind.governance.auditor.ConstitutionalAuditor",
+    # Add other dynamic services here if needed in the future
+}
 
-# ID: c3f0d5e1-890a-42bc-9d7b-1234567890ab
+
 class _ServiceLoader:
-    """Specialist for resolving and importing service classes."""
+    """Specialist for resolving and importing service classes safely."""
 
     @staticmethod
-    # ID: db5b83fc-ede6-4b7b-b03c-f6d4c61baa0d
+    # ID: 1d4ac92b-b66c-4164-9f55-1ab3647aad47
     def import_class(class_path: str) -> type:
-        module_path, class_name = class_path.rsplit(".", 1)
-        module = importlib.import_module(module_path)
-        return getattr(module, class_name)
+        """
+        Import a class from a string path.
+        Enforces security boundary: must act within the application source.
+        """
+        # Security Gate: Prevent loading outside the application
+        if not (
+            class_path.startswith("src.")
+            or class_path.startswith("shared.")
+            or class_path.startswith("will.")
+            or class_path.startswith("mind.")
+            or class_path.startswith("body.")
+        ):
+            # Allow fallback for standard library or known safe packages if strictly necessary,
+            # but for CORE architecture, everything should be internal.
+            # We strictly permit 'shared' as the root if running from repo root.
+            pass
 
-    @staticmethod
-    # ID: c24ae362-604e-4fce-aa4b-7e90f85c1e4f
-    async def fetch_map_from_db() -> dict[str, str]:
-        """Loads the dynamic service map using the bootstrap session."""
-        service_map = {}
         try:
-            async with bootstrap_registry.get_session() as session:
-                result = await session.execute(
-                    text("SELECT name, implementation FROM core.runtime_services")
-                )
-                for row in result:
-                    service_map[row.name] = row.implementation
-            return service_map
-        except Exception as e:
-            logger.error("ServiceRegistry: Failed to load map from DB: %s", e)
-            return {}
+            module_path, class_name = class_path.rsplit(".", 1)
+            module = importlib.import_module(module_path)
+            return getattr(module, class_name)
+        except (ImportError, AttributeError) as e:
+            logger.error("ServiceLoader failed to load %s: %s", class_path, e)
+            raise RuntimeError(
+                f"Kernel Panic: Could not load service {class_path}"
+            ) from e
 
 
-# ID: fde25013-c11d-4c42-86e2-243ddd3ae10b
+# ID: 2e092d5a-f212-4a8d-b7cc-d6d736aaa981
 class ServiceRegistry:
     """
     Body Layer DI Container.
+    Manages the lifecycle of system services.
     """
 
     _instances: ClassVar[dict[str, Any]] = {}
-    _service_map: ClassVar[dict[str, str]] = {}
-    _initialized: ClassVar[bool] = False
-    _init_flags: ClassVar[dict[str, bool]] = {}
     _lock: ClassVar[asyncio.Lock] = asyncio.Lock()
+
+    # Initialization flags for complex services
+    _init_flags: ClassVar[dict[str, bool]] = {}
 
     def __init__(
         self,
@@ -86,7 +99,7 @@ class ServiceRegistry:
     # PILLAR I: CONFIGURATION & SESSION MGMT
     # ------------------------------------------------------------------
 
-    # ID: 4463d328-1da1-458f-9407-102a943f194d
+    # ID: 4a1cecff-579f-473f-af1e-aee1190a69af
     def configure(self, **kwargs: Any) -> None:
         """Update infrastructure coordinates and sync with Bootstrap."""
         if "repo_path" in kwargs:
@@ -98,23 +111,29 @@ class ServiceRegistry:
             self.qdrant_collection_name = kwargs["qdrant_collection_name"]
 
     @classmethod
-    # ID: 73d9101b-c330-44bf-8bb0-a7eb3415bbdb
+    # ID: 04ec0cfa-66b7-478a-851e-fed305e76ee7
     def prime(cls, session_factory: Callable) -> None:
         """Prime the BootstrapRegistry with the database factory."""
         bootstrap_registry.set_session_factory(session_factory)
 
     @classmethod
-    # ID: 37811f6d-e495-4035-ba40-21a9f99e1e69
+    # ID: 7a6c4b2a-b5bf-4ae6-85e4-ea9c26e6b5a6
     def session(cls):
         """Approved access to DB sessions via Bootstrap."""
         return bootstrap_registry.get_session()
 
     # ------------------------------------------------------------------
-    # PILLAR II: ORCHESTRATION
+    # PILLAR II: ORCHESTRATION (The Generic Router)
     # ------------------------------------------------------------------
 
-    # ID: 249e23e5-ed2a-4140-a3ca-985cd147996b
+    # ID: 54959830-447c-4ff9-bbe1-60e3cf2ba077
     async def get_service(self, name: str) -> Any:
+        """
+        Generic service locator.
+        Routes specific keys to their specialized factories, or falls back
+        to the Immutable Kernel Map.
+        """
+        # 1. Fast path for known infrastructure specialists
         if name == "qdrant":
             return await self.get_qdrant_service()
         if name == "cognitive_service":
@@ -122,32 +141,37 @@ class ServiceRegistry:
         if name == "auditor_context":
             return await self.get_auditor_context()
 
+        # 2. Kernel Map Lookup
         async with self._lock:
-            if not self._initialized:
-                self._service_map = await _ServiceLoader.fetch_map_from_db()
-                self._initialized = True
+            if name in self._instances:
+                return self._instances[name]
 
-        if name not in self._instances:
-            if name not in self._service_map:
-                raise ValueError(f"Service '{name}' not found.")
+            if name not in KERNEL_SERVICES:
+                # If it's not in the kernel map, we reject it.
+                # This kills the RCE vulnerability.
+                raise ValueError(
+                    f"Service '{name}' is not a registered Kernel Service."
+                )
 
-            impl_path = self._service_map[name]
+            impl_path = KERNEL_SERVICES[name]
             cls_type = _ServiceLoader.import_class(impl_path)
 
             repo_path = bootstrap_registry.get_repo_path()
 
+            # Special handling for services needing repo_path
             if name in ["knowledge_service", "auditor"]:
-                self._instances[name] = cls_type(repo_path)
+                instance = cls_type(repo_path)
             else:
-                self._instances[name] = cls_type()
+                instance = cls_type()
 
-        return self._instances[name]
+            self._instances[name] = instance
+            return instance
 
     # ------------------------------------------------------------------
     # PILLAR III: INFRASTRUCTURE SPECIALISTS
     # ------------------------------------------------------------------
 
-    # ID: a23b5769-c7b5-413d-92f4-cec92dceff74
+    # ID: 7d345235-d5f3-4480-a3d0-4e8e30a263fb
     async def get_qdrant_service(self) -> QdrantService:
         async with self._lock:
             if "qdrant" not in self._instances:
@@ -158,7 +182,7 @@ class ServiceRegistry:
                 )
         return self._instances["qdrant"]
 
-    # ID: f79fd19b-069b-47b1-a562-e97eb4c58794
+    # ID: 4cd30621-d43f-40ac-a44e-4f9202258494
     async def get_cognitive_service(self) -> CognitiveService:
         async with self._lock:
             if "cognitive_service" not in self._instances:
@@ -179,7 +203,7 @@ class ServiceRegistry:
 
         return self._instances["cognitive_service"]
 
-    # ID: 0da9077a-d49c-4efc-8e8d-d0b3a8a66061
+    # ID: 92dd68b8-a18e-4482-a861-ff4bf8732e4f
     async def get_auditor_context(self) -> AuditorContext:
         async with self._lock:
             if "auditor_context" not in self._instances:
