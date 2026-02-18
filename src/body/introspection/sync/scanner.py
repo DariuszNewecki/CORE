@@ -6,9 +6,10 @@ from __future__ import annotations
 
 import ast
 import logging
+from pathlib import Path
 from typing import Any
 
-from shared.config import settings
+# REFACTORED: Removed direct settings import
 from shared.utils.domain_mapper import map_module_to_domain
 
 from .visitor import SymbolVisitor
@@ -21,9 +22,12 @@ logger = logging.getLogger(__name__)
 class SymbolScanner:
     """Scans the codebase to extract symbol information."""
 
+    def __init__(self, repo_root: Path) -> None:
+        self.repo_root = repo_root
+
     # ID: 3659a617-162e-41e5-979d-af439c230b17
     def scan(self) -> list[dict[str, Any]]:
-        src_dir = settings.REPO_PATH / "src"
+        src_dir = self.repo_root / "src"
         all_symbols: list[dict[str, Any]] = []
 
         if not src_dir.exists():
@@ -34,7 +38,7 @@ class SymbolScanner:
             try:
                 content = file_path.read_text(encoding="utf-8")
                 tree = ast.parse(content, filename=str(file_path))
-                rel_path_str = str(file_path.relative_to(settings.REPO_PATH))
+                rel_path_str = str(file_path.relative_to(self.repo_root))
 
                 module_path = rel_path_str.replace(".py", "").replace("/", ".")
                 domain = map_module_to_domain(module_path)

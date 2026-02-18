@@ -9,21 +9,27 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import typer
 from rich.console import Console
 
 from body.services.cim import CensusService
 from shared.cli_utils import core_command
-from shared.config import settings
+
+# REFACTORED: Removed direct settings import
 from shared.logger import getLogger
+
+
+if TYPE_CHECKING:
+    from shared.context import CoreContext
 
 
 logger = getLogger(__name__)
 console = Console()
 
 
-@core_command(dangerous=False, requires_context=False)
+@core_command(dangerous=False, requires_context=True)
 # ID: 5c5f81a2-257d-4f70-8190-99c1c5c335a1
 def repo_census_cmd(
     ctx: typer.Context,
@@ -51,9 +57,11 @@ def repo_census_cmd(
 
     This is a READ-ONLY operation that never modifies the target.
     """
+    context: CoreContext = ctx.obj
+
     # Default to current CORE repo
     if path is None:
-        path = settings.REPO_PATH
+        path = context.git_service.repo_path
     else:
         path = path.resolve()
 
@@ -67,7 +75,7 @@ def repo_census_cmd(
 
     # Default output directory
     if out is None:
-        out = settings.REPO_PATH / "var" / "cim"
+        out = context.git_service.repo_path / "var" / "cim"
 
     out.mkdir(parents=True, exist_ok=True)
 

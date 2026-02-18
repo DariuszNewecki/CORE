@@ -2,7 +2,7 @@
   {
     "check_id": "async.no_manual_loop_run",
     "severity": "error",
-    "message": "Line 131: Forbidden asyncio.run() without defensive loop check",
+    "message": "Line 134: Forbidden asyncio.run() without defensive loop check",
     "file_path": "src/body/cli/resources/context/build.py",
     "line_number": null,
     "context": {},
@@ -20,7 +20,7 @@
   {
     "check_id": "async.no_manual_loop_run",
     "severity": "error",
-    "message": "Line 275: Forbidden asyncio.run() without defensive loop check",
+    "message": "Line 284: Forbidden asyncio.run() without defensive loop check",
     "file_path": "src/body/maintenance/scripts/context_export.py",
     "line_number": null,
     "context": {},
@@ -47,7 +47,7 @@
   {
     "check_id": "architecture.max_file_size",
     "severity": "warning",
-    "message": "Module has 451 lines, exceeds limit of 400",
+    "message": "Module has 457 lines, exceeds limit of 400",
     "file_path": "src/body/atomic/executor.py",
     "line_number": null,
     "context": {},
@@ -83,7 +83,7 @@
   {
     "check_id": "architecture.max_file_size",
     "severity": "warning",
-    "message": "Module has 420 lines, exceeds limit of 400",
+    "message": "Module has 429 lines, exceeds limit of 400",
     "file_path": "src/body/introspection/pattern_vectorizer.py",
     "line_number": null,
     "context": {},
@@ -92,7 +92,7 @@
   {
     "check_id": "architecture.max_file_size",
     "severity": "warning",
-    "message": "Module has 447 lines, exceeds limit of 400",
+    "message": "Module has 452 lines, exceeds limit of 400",
     "file_path": "src/body/maintenance/apply_provider_refactoring.py",
     "line_number": null,
     "context": {},
@@ -112,15 +112,6 @@
     "severity": "warning",
     "message": "Module has 426 lines, exceeds limit of 400",
     "file_path": "src/body/services/constitutional_validator.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.max_file_size",
-    "severity": "warning",
-    "message": "Module has 471 lines, exceeds limit of 400",
-    "file_path": "src/mind/governance/assumption_extractor.py",
     "line_number": null,
     "context": {},
     "details": {}
@@ -236,7 +227,7 @@
   {
     "check_id": "governance.dangerous_execution_primitives",
     "severity": "info",
-    "message": "Forbidden primitive 'subprocess.run' used (line 42).",
+    "message": "Forbidden primitive 'subprocess.run' used (line 43).",
     "file_path": "src/body/quality/coverage_analyzer.py",
     "line_number": null,
     "context": {},
@@ -245,7 +236,7 @@
   {
     "check_id": "governance.dangerous_execution_primitives",
     "severity": "info",
-    "message": "Forbidden primitive 'subprocess.run' used (line 116).",
+    "message": "Forbidden primitive 'subprocess.run' used (line 117).",
     "file_path": "src/body/quality/coverage_analyzer.py",
     "line_number": null,
     "context": {},
@@ -274,6 +265,15 @@
     "severity": "info",
     "message": "Forbidden primitive 'eval' used (line 124).",
     "file_path": "src/body/services/policy_expression_evaluator.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "governance.dangerous_execution_primitives",
+    "severity": "info",
+    "message": "Forbidden primitive 'os.environ' used (line 93).",
+    "file_path": "src/mind/governance/runtime_validator.py",
     "line_number": null,
     "context": {},
     "details": {}
@@ -371,7 +371,7 @@
   {
     "check_id": "governance.dangerous_execution_primitives",
     "severity": "info",
-    "message": "Forbidden primitive 'os.environ' used (line 63).",
+    "message": "Forbidden primitive 'os.environ' used (line 103).",
     "file_path": "src/will/test_generation/sandbox.py",
     "line_number": null,
     "context": {},
@@ -434,15 +434,6 @@
   {
     "check_id": "architecture.mind.no_body_invocation",
     "severity": "error",
-    "message": "/opt/dev/CORE/src/mind/governance/enforcement/async_units.py:23 - Forbidden import: 'from body.services.service_registry import service_registry' (matches constitutional boundary rule: body)",
-    "file_path": "src/mind/governance/enforcement/async_units.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.mind.no_body_invocation",
-    "severity": "error",
     "message": "/opt/dev/CORE/src/mind/governance/key_management_service.py:21 - Forbidden import: 'from body.services.file_service import FileService' (matches constitutional boundary rule: body)",
     "file_path": "src/mind/governance/key_management_service.py",
     "line_number": null,
@@ -461,17 +452,8 @@
   {
     "check_id": "architecture.mind.no_body_invocation",
     "severity": "error",
-    "message": "/opt/dev/CORE/src/mind/governance/runtime_validator.py:20 - Forbidden import: 'from body.services.file_service import FileService' (matches constitutional boundary rule: body)",
+    "message": "/opt/dev/CORE/src/mind/governance/runtime_validator.py:21 - Forbidden import: 'from body.services.file_service import FileService' (matches constitutional boundary rule: body)",
     "file_path": "src/mind/governance/runtime_validator.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.mind.no_body_invocation",
-    "severity": "error",
-    "message": "/opt/dev/CORE/src/mind/logic/engines/llm_gate.py:21 - Forbidden import: 'from body.services.llm_client import LLMClient' (matches constitutional boundary rule: body)",
-    "file_path": "src/mind/logic/engines/llm_gate.py",
     "line_number": null,
     "context": {},
     "details": {}
@@ -623,7 +605,7 @@
   {
     "check_id": "architecture.layers.no_body_to_will",
     "severity": "error",
-    "message": "/opt/dev/CORE/src/body/introspection/knowledge_vectorizer.py:25 - Forbidden import: 'from will.orchestration.cognitive_service import CognitiveService' (matches constitutional boundary rule: will.orchestration)",
+    "message": "/opt/dev/CORE/src/body/introspection/knowledge_vectorizer.py:24 - Forbidden import: 'from will.orchestration.cognitive_service import CognitiveService' (matches constitutional boundary rule: will.orchestration)",
     "file_path": "src/body/introspection/knowledge_vectorizer.py",
     "line_number": null,
     "context": {},
@@ -650,7 +632,7 @@
   {
     "check_id": "architecture.layers.no_body_to_will",
     "severity": "error",
-    "message": "/opt/dev/CORE/src/body/services/service_registry.py:165 - Forbidden import: 'from will.orchestration.cognitive_service import CognitiveService' (matches constitutional boundary rule: will.orchestration)",
+    "message": "/opt/dev/CORE/src/body/services/service_registry.py:189 - Forbidden import: 'from will.orchestration.cognitive_service import CognitiveService' (matches constitutional boundary rule: will.orchestration)",
     "file_path": "src/body/services/service_registry.py",
     "line_number": null,
     "context": {},
@@ -668,6 +650,15 @@
   {
     "check_id": "modularity.single_responsibility",
     "severity": "warning",
+    "message": "Modularity Debt: 54.2/100 (Limit: 60.0)",
+    "file_path": "src/body/maintenance/refactor_settings_access.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "modularity.single_responsibility",
+    "severity": "warning",
     "message": "Modularity Debt: 49.3/100 (Limit: 60.0)",
     "file_path": "src/body/services/cim/scanners.py",
     "line_number": null,
@@ -677,7 +668,7 @@
   {
     "check_id": "modularity.single_responsibility",
     "severity": "warning",
-    "message": "Modularity Debt: 49.5/100 (Limit: 60.0)",
+    "message": "Modularity Debt: 50.7/100 (Limit: 60.0)",
     "file_path": "src/body/services/service_registry.py",
     "line_number": null,
     "context": {},
@@ -702,10 +693,28 @@
     "details": {}
   },
   {
+    "check_id": "modularity.single_responsibility",
+    "severity": "warning",
+    "message": "Modularity Debt: 50.0/100 (Limit: 60.0)",
+    "file_path": "src/will/test_generation/sandbox.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
     "check_id": "modularity.semantic_cohesion",
     "severity": "warning",
     "message": "Modularity Debt: 57.2/100 (Limit: 60.0)",
     "file_path": "src/body/cli/commands/governance.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "modularity.semantic_cohesion",
+    "severity": "warning",
+    "message": "Modularity Debt: 54.2/100 (Limit: 60.0)",
+    "file_path": "src/body/maintenance/refactor_settings_access.py",
     "line_number": null,
     "context": {},
     "details": {}
@@ -722,7 +731,7 @@
   {
     "check_id": "modularity.semantic_cohesion",
     "severity": "warning",
-    "message": "Modularity Debt: 49.5/100 (Limit: 60.0)",
+    "message": "Modularity Debt: 50.7/100 (Limit: 60.0)",
     "file_path": "src/body/services/service_registry.py",
     "line_number": null,
     "context": {},
@@ -747,10 +756,28 @@
     "details": {}
   },
   {
+    "check_id": "modularity.semantic_cohesion",
+    "severity": "warning",
+    "message": "Modularity Debt: 50.0/100 (Limit: 60.0)",
+    "file_path": "src/will/test_generation/sandbox.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
     "check_id": "modularity.import_coupling",
     "severity": "warning",
     "message": "Modularity Debt: 57.2/100 (Limit: 60.0)",
     "file_path": "src/body/cli/commands/governance.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "modularity.import_coupling",
+    "severity": "warning",
+    "message": "Modularity Debt: 54.2/100 (Limit: 60.0)",
+    "file_path": "src/body/maintenance/refactor_settings_access.py",
     "line_number": null,
     "context": {},
     "details": {}
@@ -767,7 +794,7 @@
   {
     "check_id": "modularity.import_coupling",
     "severity": "warning",
-    "message": "Modularity Debt: 49.5/100 (Limit: 60.0)",
+    "message": "Modularity Debt: 50.7/100 (Limit: 60.0)",
     "file_path": "src/body/services/service_registry.py",
     "line_number": null,
     "context": {},
@@ -792,10 +819,28 @@
     "details": {}
   },
   {
+    "check_id": "modularity.import_coupling",
+    "severity": "warning",
+    "message": "Modularity Debt: 50.0/100 (Limit: 60.0)",
+    "file_path": "src/will/test_generation/sandbox.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
     "check_id": "modularity.refactor_score_threshold",
     "severity": "warning",
     "message": "Modularity Debt: 57.2/100 (Limit: 60.0)",
     "file_path": "src/body/cli/commands/governance.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "modularity.refactor_score_threshold",
+    "severity": "warning",
+    "message": "Modularity Debt: 54.2/100 (Limit: 60.0)",
+    "file_path": "src/body/maintenance/refactor_settings_access.py",
     "line_number": null,
     "context": {},
     "details": {}
@@ -812,7 +857,7 @@
   {
     "check_id": "modularity.refactor_score_threshold",
     "severity": "warning",
-    "message": "Modularity Debt: 49.5/100 (Limit: 60.0)",
+    "message": "Modularity Debt: 50.7/100 (Limit: 60.0)",
     "file_path": "src/body/services/service_registry.py",
     "line_number": null,
     "context": {},
@@ -832,6 +877,15 @@
     "severity": "warning",
     "message": "Modularity Debt: 49.5/100 (Limit: 60.0)",
     "file_path": "src/mind/logic/engines/glob_gate.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "modularity.refactor_score_threshold",
+    "severity": "warning",
+    "message": "Modularity Debt: 50.0/100 (Limit: 60.0)",
+    "file_path": "src/will/test_generation/sandbox.py",
     "line_number": null,
     "context": {},
     "details": {}
@@ -850,339 +904,6 @@
     "severity": "error",
     "message": "/opt/dev/CORE/src/will/self_healing/test_generation/context_builder.py:13 - Forbidden import: 'from sqlalchemy.ext.asyncio import AsyncSession' (matches constitutional boundary rule: sqlalchemy.ext.asyncio.AsyncSession)",
     "file_path": "src/will/self_healing/test_generation/context_builder.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.boundary.settings_access",
-    "severity": "error",
-    "message": "/opt/dev/CORE/src/body/autonomy/audit_analyzer.py:22 - Forbidden import: 'from shared.config import settings' (matches constitutional boundary rule: shared.config.settings)",
-    "file_path": "src/body/autonomy/audit_analyzer.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.boundary.settings_access",
-    "severity": "error",
-    "message": "/opt/dev/CORE/src/body/cli/commands/fix/audit.py:26 - Forbidden import: 'from shared.config import settings' (matches constitutional boundary rule: shared.config.settings)",
-    "file_path": "src/body/cli/commands/fix/audit.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.boundary.settings_access",
-    "severity": "error",
-    "message": "/opt/dev/CORE/src/body/cli/commands/inspect/repo_census.py:23 - Forbidden import: 'from shared.config import settings' (matches constitutional boundary rule: shared.config.settings)",
-    "file_path": "src/body/cli/commands/inspect/repo_census.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.boundary.settings_access",
-    "severity": "error",
-    "message": "/opt/dev/CORE/src/body/cli/commands/repo_census.py:18 - Forbidden import: 'from shared.config import settings' (matches constitutional boundary rule: shared.config.settings)",
-    "file_path": "src/body/cli/commands/repo_census.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.boundary.settings_access",
-    "severity": "error",
-    "message": "/opt/dev/CORE/src/body/cli/logic/tools.py:55 - Forbidden import: 'from shared.config import settings' (matches constitutional boundary rule: shared.config.settings)",
-    "file_path": "src/body/cli/logic/tools.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.boundary.settings_access",
-    "severity": "error",
-    "message": "/opt/dev/CORE/src/body/cli/resources/context/build.py:18 - Forbidden import: 'from shared.config import settings' (matches constitutional boundary rule: shared.config.settings)",
-    "file_path": "src/body/cli/resources/context/build.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.boundary.settings_access",
-    "severity": "error",
-    "message": "/opt/dev/CORE/src/body/governance/intent_guard.py:29 - Forbidden import: 'from shared.config import settings' (matches constitutional boundary rule: shared.config.settings)",
-    "file_path": "src/body/governance/intent_guard.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.boundary.settings_access",
-    "severity": "error",
-    "message": "/opt/dev/CORE/src/body/introspection/drift_detector.py:17 - Forbidden import: 'from shared.config import settings' (matches constitutional boundary rule: shared.config.settings)",
-    "file_path": "src/body/introspection/drift_detector.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.boundary.settings_access",
-    "severity": "error",
-    "message": "/opt/dev/CORE/src/body/introspection/export_vectors.py:19 - Forbidden import: 'from shared.config import settings' (matches constitutional boundary rule: shared.config.settings)",
-    "file_path": "src/body/introspection/export_vectors.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.boundary.settings_access",
-    "severity": "error",
-    "message": "/opt/dev/CORE/src/body/introspection/generate_capability_docs.py:19 - Forbidden import: 'from shared.config import settings' (matches constitutional boundary rule: shared.config.settings)",
-    "file_path": "src/body/introspection/generate_capability_docs.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.boundary.settings_access",
-    "severity": "error",
-    "message": "/opt/dev/CORE/src/body/introspection/generate_correction_map.py:21 - Forbidden import: 'from shared.config import settings' (matches constitutional boundary rule: shared.config.settings)",
-    "file_path": "src/body/introspection/generate_correction_map.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.boundary.settings_access",
-    "severity": "error",
-    "message": "/opt/dev/CORE/src/body/introspection/knowledge_vectorizer.py:21 - Forbidden import: 'from shared.config import settings' (matches constitutional boundary rule: shared.config.settings)",
-    "file_path": "src/body/introspection/knowledge_vectorizer.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.boundary.settings_access",
-    "severity": "error",
-    "message": "/opt/dev/CORE/src/body/introspection/pattern_vectorizer.py:29 - Forbidden import: 'from shared.config import settings' (matches constitutional boundary rule: shared.config.settings)",
-    "file_path": "src/body/introspection/pattern_vectorizer.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.boundary.settings_access",
-    "severity": "error",
-    "message": "/opt/dev/CORE/src/body/introspection/semantic_clusterer.py:15 - Forbidden import: 'from shared.config import settings' (matches constitutional boundary rule: shared.config.settings)",
-    "file_path": "src/body/introspection/semantic_clusterer.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.boundary.settings_access",
-    "severity": "error",
-    "message": "/opt/dev/CORE/src/body/introspection/symbol_index_builder.py:22 - Forbidden import: 'from shared.config import settings' (matches constitutional boundary rule: shared.config.settings)",
-    "file_path": "src/body/introspection/symbol_index_builder.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.boundary.settings_access",
-    "severity": "error",
-    "message": "/opt/dev/CORE/src/body/introspection/sync/scanner.py:11 - Forbidden import: 'from shared.config import settings' (matches constitutional boundary rule: shared.config.settings)",
-    "file_path": "src/body/introspection/sync/scanner.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.boundary.settings_access",
-    "severity": "error",
-    "message": "/opt/dev/CORE/src/body/introspection/vectorization_service.py:12 - Forbidden import: 'from shared.config import settings' (matches constitutional boundary rule: shared.config.settings)",
-    "file_path": "src/body/introspection/vectorization_service.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.boundary.settings_access",
-    "severity": "error",
-    "message": "/opt/dev/CORE/src/body/maintenance/dotenv_sync_service.py:13 - Forbidden import: 'from shared.config import settings' (matches constitutional boundary rule: shared.config.settings)",
-    "file_path": "src/body/maintenance/dotenv_sync_service.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.boundary.settings_access",
-    "severity": "error",
-    "message": "/opt/dev/CORE/src/body/maintenance/maintenance_service.py:13 - Forbidden import: 'from shared.config import settings' (matches constitutional boundary rule: shared.config.settings)",
-    "file_path": "src/body/maintenance/maintenance_service.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.boundary.settings_access",
-    "severity": "error",
-    "message": "/opt/dev/CORE/src/body/maintenance/migration_service.py:21 - Forbidden import: 'from shared.config import settings' (matches constitutional boundary rule: shared.config.settings)",
-    "file_path": "src/body/maintenance/migration_service.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.boundary.settings_access",
-    "severity": "error",
-    "message": "/opt/dev/CORE/src/body/maintenance/scripts/context_export.py:29 - Forbidden import: 'from shared.config import settings' (matches constitutional boundary rule: shared.config.settings)",
-    "file_path": "src/body/maintenance/scripts/context_export.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.boundary.settings_access",
-    "severity": "error",
-    "message": "/opt/dev/CORE/src/body/maintenance/sync_vectors.py:26 - Forbidden import: 'from shared.config import settings' (matches constitutional boundary rule: shared.config.settings)",
-    "file_path": "src/body/maintenance/sync_vectors.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.boundary.settings_access",
-    "severity": "error",
-    "message": "/opt/dev/CORE/src/body/project_lifecycle/definition_service.py:24 - Forbidden import: 'from shared.config import settings' (matches constitutional boundary rule: shared.config.settings)",
-    "file_path": "src/body/project_lifecycle/definition_service.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.boundary.settings_access",
-    "severity": "error",
-    "message": "/opt/dev/CORE/src/body/project_lifecycle/integration_service.py:12 - Forbidden import: 'from shared.config import settings' (matches constitutional boundary rule: shared.config.settings)",
-    "file_path": "src/body/project_lifecycle/integration_service.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.boundary.settings_access",
-    "severity": "error",
-    "message": "/opt/dev/CORE/src/body/project_lifecycle/scaffolding_service.py:16 - Forbidden import: 'from shared.config import settings' (matches constitutional boundary rule: shared.config.settings)",
-    "file_path": "src/body/project_lifecycle/scaffolding_service.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.boundary.settings_access",
-    "severity": "error",
-    "message": "/opt/dev/CORE/src/body/quality/coverage_analyzer.py:17 - Forbidden import: 'from shared.config import settings' (matches constitutional boundary rule: shared.config.settings)",
-    "file_path": "src/body/quality/coverage_analyzer.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.boundary.settings_access",
-    "severity": "error",
-    "message": "/opt/dev/CORE/src/body/self_healing/docstring_service.py:13 - Forbidden import: 'from shared.config import settings' (matches constitutional boundary rule: shared.config.settings)",
-    "file_path": "src/body/self_healing/docstring_service.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.boundary.settings_access",
-    "severity": "error",
-    "message": "/opt/dev/CORE/src/body/self_healing/duplicate_id_service.py:33 - Forbidden import: 'from shared.config import settings' (matches constitutional boundary rule: shared.config.settings)",
-    "file_path": "src/body/self_healing/duplicate_id_service.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.boundary.settings_access",
-    "severity": "error",
-    "message": "/opt/dev/CORE/src/body/self_healing/fix_manifest_hygiene.py:19 - Forbidden import: 'from shared.config import settings' (matches constitutional boundary rule: shared.config.settings)",
-    "file_path": "src/body/self_healing/fix_manifest_hygiene.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.boundary.settings_access",
-    "severity": "error",
-    "message": "/opt/dev/CORE/src/body/self_healing/handlers/import_sorting_handler.py:227 - Forbidden import: 'from shared.config import settings' (matches constitutional boundary rule: shared.config.settings)",
-    "file_path": "src/body/self_healing/handlers/import_sorting_handler.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.boundary.settings_access",
-    "severity": "error",
-    "message": "/opt/dev/CORE/src/body/self_healing/header_service.py:15 - Forbidden import: 'from shared.config import settings' (matches constitutional boundary rule: shared.config.settings)",
-    "file_path": "src/body/self_healing/header_service.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.boundary.settings_access",
-    "severity": "error",
-    "message": "/opt/dev/CORE/src/body/self_healing/id_tagging_service.py:18 - Forbidden import: 'from shared.config import settings' (matches constitutional boundary rule: shared.config.settings)",
-    "file_path": "src/body/self_healing/id_tagging_service.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.boundary.settings_access",
-    "severity": "error",
-    "message": "/opt/dev/CORE/src/body/self_healing/knowledge_consolidation_service.py:14 - Forbidden import: 'from shared.config import settings' (matches constitutional boundary rule: shared.config.settings)",
-    "file_path": "src/body/self_healing/knowledge_consolidation_service.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.boundary.settings_access",
-    "severity": "error",
-    "message": "/opt/dev/CORE/src/body/self_healing/policy_id_service.py:30 - Forbidden import: 'from shared.config import settings' (matches constitutional boundary rule: shared.config.settings)",
-    "file_path": "src/body/self_healing/policy_id_service.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.boundary.settings_access",
-    "severity": "error",
-    "message": "/opt/dev/CORE/src/body/self_healing/prune_private_capabilities.py:19 - Forbidden import: 'from shared.config import settings' (matches constitutional boundary rule: shared.config.settings)",
-    "file_path": "src/body/self_healing/prune_private_capabilities.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.boundary.settings_access",
-    "severity": "error",
-    "message": "/opt/dev/CORE/src/body/self_healing/purge_legacy_tags_service.py:18 - Forbidden import: 'from shared.config import settings' (matches constitutional boundary rule: shared.config.settings)",
-    "file_path": "src/body/self_healing/purge_legacy_tags_service.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.boundary.settings_access",
-    "severity": "error",
-    "message": "/opt/dev/CORE/src/body/self_healing/test_context_analyzer.py:12 - Forbidden import: 'from shared.config import settings' (matches constitutional boundary rule: shared.config.settings)",
-    "file_path": "src/body/self_healing/test_context_analyzer.py",
     "line_number": null,
     "context": {},
     "details": {}
@@ -1442,7 +1163,7 @@
   {
     "check_id": "architecture.boundary.file_handler_access",
     "severity": "error",
-    "message": "/opt/dev/CORE/src/will/test_generation/sandbox.py:25 - Forbidden import: 'from shared.infrastructure.storage.file_handler import FileHandler' (matches constitutional boundary rule: shared.infrastructure.storage.file_handler.FileHandler)",
+    "message": "/opt/dev/CORE/src/will/test_generation/sandbox.py:26 - Forbidden import: 'from shared.infrastructure.storage.file_handler import FileHandler' (matches constitutional boundary rule: shared.infrastructure.storage.file_handler.FileHandler)",
     "file_path": "src/will/test_generation/sandbox.py",
     "line_number": null,
     "context": {},

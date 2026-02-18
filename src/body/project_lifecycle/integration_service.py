@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import asyncio
 
-from shared.config import settings
+# REFACTORED: Removed direct settings import
 from shared.context import CoreContext
 from shared.exceptions import CoreError
 from shared.logger import getLogger
@@ -52,7 +52,7 @@ async def integrate_changes(context: CoreContext, commit_message: str) -> None:
 
         for path in possible_paths:
             try:
-                workflow_policy = settings.load(path)
+                workflow_policy = context.settings.load(path)
                 if workflow_policy and "integration_workflow" in workflow_policy:
                     break
             except Exception:
@@ -88,7 +88,7 @@ async def integrate_changes(context: CoreContext, commit_message: str) -> None:
                 *command_parts,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
-                cwd=settings.REPO_PATH,
+                cwd=context.git_service.repo_path,
             )
             stdout, stderr = await process.communicate()
 

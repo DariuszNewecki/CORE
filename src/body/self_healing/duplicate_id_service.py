@@ -30,7 +30,7 @@ from typing import TYPE_CHECKING
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from shared.config import settings
+# REFACTORED: Removed direct settings import
 from shared.logger import getLogger
 
 
@@ -282,7 +282,7 @@ async def resolve_duplicate_ids(
     Returns:
         The number of files that were (or would be) modified.
     """
-    src_root = settings.REPO_PATH / "src"
+    src_root = context.git_service.repo_path / "src"
     logger.info("🔍 Scanning filesystem for duplicate '# ID:' tags in %s...", src_root)
 
     # 1. Scan filesystem (source of truth for ID tags)
@@ -311,7 +311,7 @@ async def resolve_duplicate_ids(
     )
     for id_value, occurrences in sorted(duplicates.items(), key=lambda x: -len(x[1])):
         locations = [
-            f"{occ.file_path.relative_to(settings.REPO_PATH)}:{occ.line_number}"
+            f"{occ.file_path.relative_to(context.git_service.repo_path)}:{occ.line_number}"
             for occ in occurrences
         ]
         logger.warning(
@@ -339,7 +339,7 @@ async def resolve_duplicate_ids(
     # 5. Apply replacements
     modified_count = 0
     for file_path, edits in file_edits.items():
-        rel_path = file_path.relative_to(settings.REPO_PATH)
+        rel_path = file_path.relative_to(context.git_service.repo_path)
         if _apply_replacements(file_path, edits):
             modified_count += 1
             logger.info("  ✏️  Fixed %d IDs in %s", len(edits), rel_path)

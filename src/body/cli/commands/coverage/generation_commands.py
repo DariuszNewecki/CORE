@@ -143,7 +143,7 @@ async def generate_adaptive_batch_command(
     )
 
     # Get coverage data
-    analyzer = CoverageAnalyzer()
+    analyzer = CoverageAnalyzer(repo_path=repo_root)
     coverage_map = analyzer.get_module_coverage()
 
     # Find matching files

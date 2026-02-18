@@ -36,7 +36,9 @@ async def run_sync_with_db(session: AsyncSession) -> ActionResult:
     logger.info("🚀 Starting symbol sync with database (Mind/Body alignment)")
 
     # 1. Scan the Body
-    scanner = SymbolScanner()
+    from shared.infrastructure.bootstrap_registry import bootstrap_registry
+
+    scanner = SymbolScanner(repo_root=bootstrap_registry.get_repo_path())
     code_state = scanner.scan()
 
     # 2. Update the Mind

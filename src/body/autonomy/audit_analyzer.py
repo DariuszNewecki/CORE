@@ -19,7 +19,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, ClassVar
 
-from shared.config import settings
+# REFACTORED: Removed direct settings import
 from shared.logger import getLogger
 
 
@@ -116,14 +116,14 @@ class AuditAnalyzer:
         ),
     ]
 
-    def __init__(self, repo_root: Path | None = None):
+    def __init__(self, repo_root: Path):
         """
         Initialize analyzer.
 
         Args:
-            repo_root: Repository root path (defaults to settings.REPO_PATH)
+            repo_root: Repository root path (defaults to context.git_service.repo_path)
         """
-        self.repo_root = repo_root or settings.REPO_PATH
+        self.repo_root = repo_root
         self.findings_path = self.repo_root / "reports" / "audit_findings.json"
 
     # ID: c3d4e5f6-a7b8-9012-cdef-123456789012

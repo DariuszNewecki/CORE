@@ -96,6 +96,12 @@ async def audit_cmd(
             # Clean up session ref
             core_context.auditor_context.db_session = None
 
+        # Extract verdict early — needed by both persistence and presentation
+        verdict = results.get("verdict")
+        verdict_str = (
+            verdict.value if verdict else ("PASS" if results["passed"] else "FAIL")
+        )
+
         # 2) Persistence (CLI owns this)
         findings = results["findings"]
         findings_dicts = [f.as_dict() if hasattr(f, "as_dict") else f for f in findings]
@@ -119,6 +125,8 @@ async def audit_cmd(
             "passed": results["passed"],
             "findings_count": len(findings),
             "executed_rules": sorted(list(results["executed_rule_ids"])),
+            "crashed_rules": sorted(list(results.get("crashed_rule_ids", set()))),
+            "verdict": verdict_str,
         }
         file_service.write_file(EVIDENCE_FILE, json.dumps(evidence, indent=2))
 
@@ -131,9 +139,20 @@ async def audit_cmd(
         total_rules=stats.get("total_executable_rules", 0),
         executed_rules=stats.get("executed_dynamic_rules", 0),
         coverage_percent=stats.get("coverage_percent", 0),
+        total_declared_rules=stats.get("total_declared_rules", 0),
+        crashed_rules=stats.get("crashed_rules", 0),
+        unmapped_rules=stats.get("unmapped_rules", 0),
+        effective_coverage_percent=stats.get("effective_coverage_percent", 0),
     )
 
-    render_overview(console, all_findings, audit_stats, duration, results["passed"])
+    render_overview(
+        console,
+        all_findings,
+        audit_stats,
+        duration,
+        results["passed"],
+        verdict_str=verdict_str,
+    )
 
     if filtered_findings and verbose:
         render_detail(console, filtered_findings)

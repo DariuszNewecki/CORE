@@ -12,7 +12,7 @@ from pathlib import Path
 import numpy as np
 from dotenv import load_dotenv
 
-from shared.config import settings
+# REFACTORED: Removed direct settings import
 from shared.exceptions import CoreError
 from shared.infrastructure.storage.file_handler import FileHandler
 from shared.logger import getLogger
@@ -31,7 +31,12 @@ class SemanticClusteringError(CoreError):
 
 
 # ID: 41c7d272-0d0d-4d84-9d99-984e9a698bd2
-def run_clustering(input_path: Path | str, output: Path | str, n_clusters: int) -> None:
+def run_clustering(
+    input_path: Path | str,
+    output: Path | str,
+    n_clusters: int,
+    repo_root: Path | None = None,
+) -> None:
     """
     Loads exported vectors, runs K-Means clustering, and saves the proposed
     capability-to-domain mappings to a JSON file.
@@ -79,8 +84,10 @@ def run_clustering(input_path: Path | str, output: Path | str, n_clusters: int) 
         key: f"domain_{label}"
         for key, label in zip(capability_keys, labels, strict=False)
     }
-    file_handler = FileHandler()
-    rel_path = str(output_path.relative_to(settings.REPO_PATH))
+    if repo_root is None:
+        raise ValueError("repo_root is required")
+    file_handler = FileHandler(str(repo_root))
+    rel_path = str(output_path.relative_to(repo_root))
     file_handler.write_runtime_json(rel_path, proposed_domains)
     logger.info(
         "Successfully generated domain proposals for %s capabilities and saved to %s",

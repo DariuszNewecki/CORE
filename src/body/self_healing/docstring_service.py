@@ -10,7 +10,8 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 from body.introspection.knowledge_helpers import extract_source_code
-from shared.config import settings
+
+# REFACTORED: Removed direct settings import
 from shared.logger import getLogger
 
 
@@ -49,7 +50,7 @@ async def _async_fix_docstrings(context: CoreContext, dry_run: bool):
     file_modification_map: dict[str, list[dict[str, Any]]] = {}
 
     for symbol in symbols_to_fix:
-        source_code = extract_source_code(settings.REPO_PATH, symbol)
+        source_code = extract_source_code(context.git_service.repo_path, symbol)
         if not source_code:
             continue
 

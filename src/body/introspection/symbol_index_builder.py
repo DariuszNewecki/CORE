@@ -19,7 +19,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from shared.config import settings
+# REFACTORED: Removed direct settings import
 from shared.infrastructure.storage.file_handler import FileHandler
 from shared.logger import getLogger
 
@@ -221,12 +221,13 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv or sys.argv[1:])
 
     try:
+        project_root = Path(args.project_root).resolve()
         index = build_symbol_index(args.project_root)
-        fh = FileHandler(str(settings.REPO_PATH))
+        fh = FileHandler(str(project_root))
 
         # Resolve output path
         out_path = Path(args.out)
-        repo_abs = settings.REPO_PATH.resolve()
+        repo_abs = project_root
 
         if out_path.is_absolute():
             rel_output = str(out_path.relative_to(repo_abs))

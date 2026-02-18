@@ -23,7 +23,8 @@ from rich.table import Table
 
 from body.self_healing.remediation_models import RemediationMode
 from shared.cli_utils import core_command
-from shared.config import settings
+
+# REFACTORED: Removed direct settings import
 from shared.context import CoreContext
 from will.self_healing.audit_remediation_service import AuditRemediationService
 
@@ -114,7 +115,7 @@ async def fix_audit_command(
     service = AuditRemediationService(
         file_handler=core_context.file_handler,
         auditor_context=core_context.auditor_context,
-        repo_root=settings.REPO_PATH,
+        repo_root=core_context.git_service.repo_path,
     )
 
     # Run remediation

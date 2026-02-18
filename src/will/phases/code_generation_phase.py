@@ -3,11 +3,6 @@
 
 """
 Code Generation Phase - Intelligent Reflex Pipe.
-
-UPGRADED (V2.3): Multi-Modal Sensation.
-ENHANCED (V2.4): Artifact Documentation.
-HEALED (V2.6): Wired via Shared Protocols to support decoupled Execution.
-CONTEXT_PACKAGE_FIX (V2.7): Added ContextService to CoderAgent initialization.
 """
 
 from __future__ import annotations
@@ -17,6 +12,7 @@ from typing import TYPE_CHECKING
 
 from body.services.file_service import FileService
 from shared.infrastructure.context.limb_workspace import LimbWorkspace
+from shared.infrastructure.context.service import ContextService
 from shared.logger import getLogger
 from shared.models.execution_models import DetailedPlan, DetailedPlanStep
 from shared.models.workflow_models import PhaseResult
@@ -81,30 +77,42 @@ class CodeGenerationPhase:
 
         logger.info("Starting Intelligent Reflex Loop for %d steps...", len(plan))
 
+        # 1. Create the Shadow Truth (Limb Workspace)
         workspace = LimbWorkspace(self.context.git_service.repo_path)
+
+        # 2. CONSTITUTIONAL FIX (Split-Brain Resolution):
+        # We must create a *Localized* ContextService that sees the Workspace.
+        # The global self.context.context_service only sees the Disk.
+        # We clone the infrastructure (Cognitive/Qdrant) but attach the Workspace.
+
+        global_ctx_svc = self.context.context_service
+
+        # Fork the senses
+        localized_context_service = ContextService(
+            qdrant_client=global_ctx_svc._qdrant_client,
+            cognitive_service=global_ctx_svc._cognitive_service,
+            config=global_ctx_svc.config,
+            project_root=str(self.context.git_service.repo_path),
+            session_factory=self.context.registry.session,
+            workspace=workspace,
+        )
+
+        logger.info(
+            "✅ ContextService localized to LimbWorkspace (Shadow Truth enabled)"
+        )
 
         # Lazy imports reduce cross-layer coupling
         from will.agents.coder_agent import CoderAgent
         from will.orchestration.prompt_pipeline import PromptPipeline
 
-        # CONTEXT_PACKAGE_FIX: Get ContextService from CoreContext
-        context_service = None
-        try:
-            context_service = self.context.context_service
-            logger.info("âœ… ContextService available for enriched code generation")
-        except Exception as e:
-            logger.warning("ContextService not available, using basic mode: %s", e)
-
-        # HEALED WIRING: We pass self.context.action_executor (the Gateway)
-        # into the CoderAgent so it no longer needs Late Imports.
-        # CONTEXT_PACKAGE_FIX: Added context_service parameter
+        # 3. Initialize Agent with the Localized Senses
         coder = CoderAgent(
             cognitive_service=self.context.cognitive_service,
-            executor=self.context.action_executor,  # <--- THE CONTRACT IS SIGNED
+            executor=self.context.action_executor,
             prompt_pipeline=PromptPipeline(self.context.git_service.repo_path),
             auditor_context=self.context.auditor_context,
             repo_root=self.context.git_service.repo_path,
-            context_service=context_service,  # <--- CONTEXT_PACKAGE_FIX: Added this line
+            context_service=localized_context_service,  # <--- Passing the localized service
             workspace=workspace,
         )
 

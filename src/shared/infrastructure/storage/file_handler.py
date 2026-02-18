@@ -20,6 +20,7 @@ from pathlib import Path
 from typing import Any
 
 from body.governance.intent_guard import IntentGuard
+from shared.config import settings
 from shared.logger import getLogger
 from shared.path_resolver import PathResolver
 
@@ -38,10 +39,7 @@ class FileOpResult:
 
 # ID: 4684ec9b-095a-428b-95bc-60e5003dc7f7
 class FileHandler:
-    """Central class for safe, auditable file operations in CORE.
-
-    Enforces .intent/ rules and basic syntax integrity.
-    """
+    """Central class for safe, auditable file operations in CORE."""
 
     def __init__(self, repo_path: str):
         self.repo_path = Path(repo_path).resolve()
@@ -55,7 +53,12 @@ class FileHandler:
             repo_root=self.repo_path,
             intent_root=self.repo_path / ".intent",
         )
-        self._guard = IntentGuard(self.repo_path, path_resolver)
+
+        # CONSTITUTIONAL FIX: Pass strict mode from settings
+        # Shared layer is allowed to read settings; Body layer (IntentGuard) is not.
+        self._guard = IntentGuard(
+            self.repo_path, path_resolver, strict_mode=settings.CORE_STRICT_MODE
+        )
 
         self.log_dir.mkdir(parents=True, exist_ok=True)
         self.pending_dir.mkdir(parents=True, exist_ok=True)

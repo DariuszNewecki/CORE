@@ -48,16 +48,16 @@ class ProviderRefactoringApplicator:
     # ID: e8d3a04b-c235-460d-a04c-40648f5e441f
     def refactor_to_intent_repository(self, file_path: Path) -> RefactoringAction:
         """
-        Refactor file to use IntentRepository instead of settings.
+                Refactor file to use IntentRepository instead of settings.
 
-        Changes:
-        1. Remove: from shared.config import settings
-        2. Add: from shared.infrastructure.intent.intent_repository import IntentRepository, get_intent_repository
-        3. Add parameter: intent_repository: IntentRepository | None = None
-        4. Add assignment: self.intent_repo = intent_repository or get_intent_repository()
-        5. Replace: settings.MIND → self.intent_repo.root
-        6. Replace: settings.load(...) → self.intent_repo.load_policy(...)
-        7. Replace: settings.get_path(...) → self.intent_repo methods
+                Changes:
+        # REFACTORED: Removed direct settings import
+                2. Add: from shared.infrastructure.intent.intent_repository import IntentRepository, get_intent_repository
+                3. Add parameter: intent_repository: IntentRepository | None = None
+                4. Add assignment: self.intent_repo = intent_repository or get_intent_repository()
+                5. Replace: context.path_resolver.intent_root → self.intent_repo.root
+                6. Replace: context.context.settings.load(...) → self.intent_repo.load_policy(...)
+                7. Replace: context.context.context.context.settings.get_path(...) → self.intent_repo methods
         """
         original = file_path.read_text()
         lines = original.splitlines()
@@ -135,11 +135,13 @@ class ProviderRefactoringApplicator:
         for i, line in enumerate(lines):
             old_line = line
 
-            # Replace settings.MIND
-            if "settings.MIND" in line:
-                line = line.replace("settings.MIND", "self.intent_repo.root")
+            # Replace context.path_resolver.intent_root
+            if "context.path_resolver.intent_root" in line:
+                line = line.replace(
+                    "context.path_resolver.intent_root", "self.intent_repo.root"
+                )
 
-            # Replace settings.load("path") with intent_repo.load_policy("path")
+            # Replace context.context.settings.load("path") with intent_repo.load_policy("path")
             load_match = re.search(r'settings\.load\(["\']([^"\']+)["\']\)', line)
             if load_match:
                 old_call = load_match.group(0)
@@ -147,15 +149,18 @@ class ProviderRefactoringApplicator:
                 new_call = f'self.intent_repo.load_policy("{policy_path}")'
                 line = line.replace(old_call, new_call)
 
-            # Replace settings.get_path()
-            if "settings.get_path(" in line:
+            # Replace context.context.context.context.settings.get_path()
+            if "context.context.context.context.settings.get_path(" in line:
                 line = line.replace(
-                    "settings.get_path(", "self.intent_repo.resolve_rel("
+                    "context.context.context.context.settings.get_path(",
+                    "self.intent_repo.resolve_rel(",
                 )
 
-            # Replace settings.paths
-            if "settings.paths" in line:
-                line = line.replace("settings.paths", "self.intent_repo")
+            # Replace context.context.context.settings.paths
+            if "context.context.context.settings.paths" in line:
+                line = line.replace(
+                    "context.context.context.settings.paths", "self.intent_repo"
+                )
 
             if line != old_line:
                 lines[i] = line
@@ -181,7 +186,7 @@ class ProviderRefactoringApplicator:
         2. Add: from pathlib import Path (if not present)
         3. Add parameter: repo_path: Path
         4. Add assignment: self.repo_path = repo_path
-        5. Replace: settings.REPO_PATH → self.repo_path
+        5. Replace: context.git_service.repo_path → self.repo_path
         """
         original = file_path.read_text()
         lines = original.splitlines()
@@ -248,14 +253,14 @@ class ProviderRefactoringApplicator:
                     f"Line {insert_idx+1}: Added self.repo_path initialization"
                 )
 
-        # Step 5: Replace settings.REPO_PATH
+        # Step 5: Replace context.git_service.repo_path
         for i, line in enumerate(lines):
-            if "settings.REPO_PATH" in line:
+            if "context.git_service.repo_path" in line:
                 old_line = line
-                line = line.replace("settings.REPO_PATH", "self.repo_path")
+                line = line.replace("context.git_service.repo_path", "self.repo_path")
                 lines[i] = line
                 changes.append(
-                    f"Line {i+1}: Replaced settings.REPO_PATH with self.repo_path"
+                    f"Line {i+1}: Replaced context.git_service.repo_path with self.repo_path"
                 )
 
         refactored = "\n".join(lines) + "\n"

@@ -8,10 +8,13 @@ from __future__ import annotations
 
 import ast
 import hashlib
+from pathlib import Path
 
 # --- THIS IS THE FIX ---
 from shared.ast_utility import normalize_ast
-from shared.config import settings
+
+
+# REFACTORED: Removed direct settings import
 
 
 # --- END OF FIX ---
@@ -19,6 +22,7 @@ from shared.config import settings
 
 # ID: e9a1b8c3-d7f4-4b1e-a9d5-f8c3d7f4b1e9
 def find_structurally_similar_helpers(
+    repo_root: Path,
     min_occurrences: int = 3,
     max_lines: int = 10,
 ) -> dict[str, list[tuple[str, int]]]:
@@ -37,7 +41,7 @@ def find_structurally_similar_helpers(
         A dictionary where keys are the structural hash of duplicated functions
         and values are a list of tuples containing (file_path, line_number).
     """
-    src_root = settings.REPO_PATH / "src"
+    src_root = repo_root / "src"
     duplicates: dict[str, list[tuple[str, int]]] = {}
 
     for py_file in src_root.rglob("*.py"):
@@ -61,7 +65,7 @@ def find_structurally_similar_helpers(
                     # Normalize the AST to make the hash independent of var names and docstrings
                     norm_ast_str = normalize_ast(node)
                     h = hashlib.sha256(norm_ast_str.encode()).hexdigest()
-                    rel_path = str(py_file.relative_to(settings.REPO_PATH))
+                    rel_path = str(py_file.relative_to(repo_root))
                     duplicates.setdefault(h, []).append((rel_path, node.lineno))
                 except Exception:
                     continue  # Skip nodes that fail normalization

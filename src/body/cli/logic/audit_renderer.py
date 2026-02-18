@@ -8,6 +8,11 @@ Provides two detail levels:
 - Overview: Health card, severity breakdown, top offenders, suggested fixes
 - Detail:   Overview + every finding grouped by rule with file:line locations
 
+HARDENED (V2.5.0):
+- Three-state verdict display: PASS / FAIL / DEGRADED
+- Crashed and unmapped rule counts visible in health card
+- Effective coverage uses true denominator (all declared rules)
+
 ARCHITECTURAL NOTE:
 This is a CLI-layer rendering module. It takes data and produces Rich output.
 No business logic, no filesystem access, no database queries.
@@ -62,11 +67,19 @@ FIX_HINTS: dict[str, str] = {
 @dataclass
 # ID: d7a3e1f2-8b4c-5d6e-a0f1-c2d3e4f5a6b7
 class AuditStats:
-    """Execution statistics from the constitutional audit."""
+    """Execution statistics from the constitutional audit.
+
+    HARDENED (V2.5.0): Now includes true denominator, crashed, and unmapped counts.
+    """
 
     total_rules: int = 0
     executed_rules: int = 0
     coverage_percent: int = 0
+    # P0 additions
+    total_declared_rules: int = 0
+    crashed_rules: int = 0
+    unmapped_rules: int = 0
+    effective_coverage_percent: int = 0
 
 
 @dataclass
@@ -152,30 +165,65 @@ def render_overview(
     stats: AuditStats,
     duration_sec: float,
     passed: bool,
+    verdict_str: str | None = None,
 ) -> None:
     """
     Render the audit overview health card.
 
     Shows: execution stats, severity breakdown, rule-level summary table,
     and suggested fix commands.
+
+    HARDENED: Now accepts optional verdict_str for three-state display.
     """
     by_severity = _group_by_severity(findings)
     rule_groups = _group_by_rule(findings)
 
-    # ── Health Card ──
-    verdict_color = "green" if passed else "red"
-    verdict_text = (
-        "PASSED (no blocking violations)"
-        if passed
-        else "FAILED (blocking violations detected)"
-    )
+    # — Verdict —
+    if verdict_str is None:
+        # Backward compat: derive from bool
+        verdict_str = "PASS" if passed else "FAIL"
 
+    if verdict_str == "DEGRADED":
+        verdict_color = "yellow"
+        verdict_text = "DEGRADED (enforcement failures — compliance status UNKNOWN)"
+    elif verdict_str == "PASS":
+        verdict_color = "green"
+        verdict_text = "PASSED (no blocking violations)"
+    else:
+        verdict_color = "red"
+        verdict_text = "FAILED (blocking violations detected)"
+
+    # — Health Card —
     card_lines = [
         f"Rules Executed : {stats.executed_rules}/{stats.total_rules} ({stats.coverage_percent}%)",
-        f"Total Findings : {len(findings)}",
-        f"Duration       : {duration_sec:.1f}s",
-        f"Verdict        : [{verdict_color}]{verdict_text}[/{verdict_color}]",
     ]
+
+    # P0 additions: show truthful coverage when available
+    if stats.total_declared_rules > 0:
+        card_lines.append(
+            f"True Coverage  : {stats.executed_rules}/{stats.total_declared_rules} "
+            f"({stats.effective_coverage_percent}%)"
+        )
+
+    if stats.crashed_rules > 0:
+        card_lines.append(
+            f"Crashed Rules  : [bold red]{stats.crashed_rules}[/bold red] "
+            f"(enforcement failures — treat as non-compliant)"
+        )
+
+    if stats.unmapped_rules > 0:
+        card_lines.append(
+            f"Unmapped Rules : [yellow]{stats.unmapped_rules}[/yellow] "
+            f"(declared but not enforceable)"
+        )
+
+    card_lines.extend(
+        [
+            f"Total Findings : {len(findings)}",
+            f"Duration       : {duration_sec:.1f}s",
+            f"Verdict        : [{verdict_color}]{verdict_text}[/{verdict_color}]",
+        ]
+    )
 
     console.print()
     console.print(
@@ -187,7 +235,7 @@ def render_overview(
         )
     )
 
-    # ── Severity Breakdown ──
+    # — Severity Breakdown —
     for severity in (AuditSeverity.ERROR, AuditSeverity.WARNING, AuditSeverity.INFO):
         count = len(by_severity[severity])
         icon = SEVERITY_ICON[severity]
@@ -204,7 +252,7 @@ def render_overview(
 
     console.print()
 
-    # ── Rule Summary Table ──
+    # — Rule Summary Table —
     if rule_groups:
         table = Table(
             show_header=True,
@@ -240,7 +288,7 @@ def render_overview(
         console.print(table)
         console.print()
 
-    # ── Fix Suggestions ──
+    # — Fix Suggestions —
     hints = _collect_fix_hints(findings)
     if hints:
         console.print("[bold]\U0001f4a1 Suggested fixes:[/bold]")

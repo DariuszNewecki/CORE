@@ -1,4 +1,4 @@
-# src/features/introspection/pattern_vectorizer.py
+# src/body/introspection/pattern_vectorizer.py
 
 """
 Pattern Vectorization Service
@@ -26,7 +26,7 @@ from typing import Any
 
 from qdrant_client.models import PointStruct
 
-from shared.config import settings
+# REFACTORED: Removed direct settings import
 from shared.infrastructure.clients.qdrant_client import QdrantService
 from shared.logger import getLogger
 from shared.processors.yaml_processor import strict_yaml_processor
@@ -100,13 +100,14 @@ class PatternVectorizer:
     """
 
     COLLECTION_NAME = "core-patterns"
-    VECTOR_DIMENSION = int(settings.LOCAL_EMBEDDING_DIM)
 
     def __init__(
         self,
         qdrant_service: QdrantService,
         cognitive_service: CognitiveService,
         patterns_dir: Path | None = None,
+        repo_root: Path | None = None,
+        vector_dimension: int = 768,
     ):
         """
         Initialize pattern vectorizer.
@@ -114,16 +115,24 @@ class PatternVectorizer:
         Args:
             qdrant_service: QdrantService for vector operations
             cognitive_service: CognitiveService for embeddings
-            patterns_dir: Optional override for patterns directory (defaults to .intent/enforcement/mappings/)
+            patterns_dir: Optional override for patterns directory (defaults to repo_root/.intent/enforcement/mappings/)
+            repo_root: Repository root path, used to derive patterns_dir if not provided
+            vector_dimension: Embedding vector dimension (defaults to 768)
         """
         self.qdrant = qdrant_service
         self.cognitive = cognitive_service
+        self.vector_dimension = vector_dimension
 
         # FIXED: Updated to new .intent/ structure
         # Patterns are now in enforcement/mappings/ subdirectories
-        self.patterns_dir = (
-            patterns_dir or settings.REPO_PATH / ".intent" / "enforcement" / "mappings"
-        )
+        if patterns_dir is not None:
+            self.patterns_dir = patterns_dir
+        elif repo_root is not None:
+            self.patterns_dir = repo_root / ".intent" / "enforcement" / "mappings"
+        else:
+            raise ValueError(
+                "PatternVectorizer requires either patterns_dir or repo_root"
+            )
 
     # ID: 822d1ba3-c18a-4870-bcbc-b10eb831ef00
     async def ensure_collection(self) -> None:
@@ -132,7 +141,7 @@ class PatternVectorizer:
         Delegates to QdrantService for idempotency.
         """
         await self.qdrant.ensure_collection(
-            collection_name=self.COLLECTION_NAME, vector_size=self.VECTOR_DIMENSION
+            collection_name=self.COLLECTION_NAME, vector_size=self.vector_dimension
         )
 
     # ID: 8c051a57-4d3f-44df-bea6-547a611bb8c1

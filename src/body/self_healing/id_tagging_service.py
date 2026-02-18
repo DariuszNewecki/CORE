@@ -15,7 +15,8 @@ from typing import TYPE_CHECKING
 
 from body.atomic.executor import ActionExecutor
 from shared.ast_utility import find_symbol_id_and_def_line
-from shared.config import settings
+
+# REFACTORED: Removed direct settings import
 from shared.logger import getLogger
 
 
@@ -47,7 +48,7 @@ async def assign_missing_ids(context: CoreContext, write: bool = False) -> int:
     logger.info("🔍 Scanning for missing Constitutional IDs...")
 
     executor = ActionExecutor(context)
-    src_dir = settings.REPO_PATH / "src"
+    src_dir = context.git_service.repo_path / "src"
     total_ids_assigned = 0
     files_to_fix = defaultdict(list)
 
@@ -90,7 +91,7 @@ async def assign_missing_ids(context: CoreContext, write: bool = False) -> int:
         fixes.sort(key=lambda x: x["line_number"], reverse=True)
 
         try:
-            rel_path = str(file_path.relative_to(settings.REPO_PATH))
+            rel_path = str(file_path.relative_to(context.git_service.repo_path))
             lines = file_path.read_text("utf-8").splitlines()
 
             for fix in fixes:

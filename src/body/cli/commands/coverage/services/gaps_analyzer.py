@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Any
 
 from body.self_healing.coverage_analyzer import CoverageAnalyzer
@@ -16,8 +17,8 @@ logger = getLogger(__name__)
 class GapsAnalyzer:
     """Analyzes coverage data to identify gaps and priorities."""
 
-    def __init__(self):
-        self.analyzer = CoverageAnalyzer()
+    def __init__(self, repo_root: Path):
+        self.analyzer = CoverageAnalyzer(repo_path=repo_root)
 
     # ID: c902f595-d5bb-491e-94ea-cff937370d27
     def get_coverage_map(self) -> dict[str, float]:

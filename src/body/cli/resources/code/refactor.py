@@ -21,7 +21,7 @@ async def refactor_settings_cmd(
     Automated refactoring of settings imports to Dependency Injection.
     Moves layers toward using CoreContext instead of global settings.
     """
-    from features.maintenance.refactor_settings_access import refactor_settings_access
+    from body.maintenance.refactor_settings_access import refactor_settings_access
 
     core_context: CoreContext = ctx.obj
     layer_list = [layer.strip() for layer in layers.split(",")]

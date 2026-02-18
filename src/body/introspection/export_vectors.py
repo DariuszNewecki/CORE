@@ -16,7 +16,7 @@ from typing import TYPE_CHECKING
 
 from qdrant_client.http import models as qm
 
-from shared.config import settings
+# REFACTORED: Removed direct settings import
 from shared.exceptions import CoreError
 from shared.logger import getLogger
 
@@ -57,12 +57,12 @@ async def _async_export(
     qdrant_service: QdrantService,
     file_handler: FileHandler,
     output_path: Path,
+    repo_root: Path,
 ):
     """
     The core async logic for exporting vectors.
     Mutations are routed through the governed FileHandler.
     """
-    repo_root = Path(settings.REPO_PATH)
 
     # 1. Path Normalization
     # Convert absolute or relative path to a repo-relative string for the FileHandler
@@ -120,4 +120,9 @@ async def export_vectors(
             "CoreContext must provide qdrant_service and file_handler.", exit_code=1
         )
 
-    await _async_export(context.qdrant_service, context.file_handler, output_path)
+    await _async_export(
+        context.qdrant_service,
+        context.file_handler,
+        output_path,
+        context.git_service.repo_path,
+    )

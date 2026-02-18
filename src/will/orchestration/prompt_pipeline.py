@@ -9,7 +9,10 @@ Responsible for:
 - Adding analysis from introspection tools
 - Enriching with manifest data
 
-This is the central "pre-processor" for all LLM interactions.
+CONSTITUTIONAL FIX (V2.3.0):
+- Hardened Path Resolution: Prevents Path Traversal attacks (../../etc/passwd).
+- Secret Shield: Explicitly blocks inclusion of .env or hidden files.
+- Resource Limits: Enforces MAX_FILE_SIZE_BYTES.
 """
 
 from __future__ import annotations
@@ -19,17 +22,32 @@ from pathlib import Path
 
 import yaml
 
+from shared.logger import getLogger
 
-# --- FIX: Define a constant for a reasonable file size limit (1MB) ---
+
+logger = getLogger(__name__)
+
+# Constitutional Limit: 1MB per included file to prevent context overflow/DoS
 MAX_FILE_SIZE_BYTES = 1 * 1024 * 1024
 
+# Files that must NEVER be read into the Context Window, even if requested
+FORBIDDEN_PATTERNS = {
+    ".env",
+    ".env.test",
+    ".env.prod",
+    "id_rsa",
+    "id_ed25519",
+    ".pem",
+    ".key",
+    "private.key",
+}
 
-# ID: 55fc4bff-0f88-435c-b988-23861ee401e8
+
+# ID: eab94cfa-1a68-4af5-85a9-25608bb679c9
 class PromptPipeline:
     """
-    Processes and enriches user prompts by resolving directives like
-    [[include:...]] and [[analysis:...]]. Ensures the LLM receives full
-    context before generating code.
+    Processes and enriches user prompts by resolving directives.
+    Enforces strict security boundaries on file access.
     """
 
     def __init__(self, repo_path: Path):
@@ -47,79 +65,110 @@ class PromptPipeline:
         self.analysis_pattern = re.compile(r"\[\[analysis:(.+?)\]\]")
         self.manifest_pattern = re.compile(r"\[\[manifest:(.+?)\]\]")
 
-    def _replace_context_match(self, match: re.Match) -> str:
+    def _is_safe_path(self, raw_path: str) -> tuple[bool, Path | None, str]:
         """
-        Dynamically replaces a [[context:...]] regex match with file content
-        or an error message if the file is missing, unreadable, or exceeds
-        size limits.
+        Validates that a path is safe to read.
+
+        Checks:
+        1. Path traversal (must be inside repo_root).
+        2. Forbidden filenames (secrets).
+        3. Existence and type (must be a file).
+
+        Returns:
+            (is_safe, absolute_path, error_message)
         """
-        file_path = match.group(1).strip()
-        abs_path = self.repo_path / file_path
-        if abs_path.exists() and abs_path.is_file():
-            # --- FIX: Add file size check to prevent memory bloat ---
+        try:
+            # 1. Resolve absolute path
+            # Note: We must strip leading slashes to prevent root-relative overrides
+            clean_raw = raw_path.lstrip("/\\")
+            candidate = (self.repo_path / clean_raw).resolve()
+
+            # 2. Check Boundary (The Prison Wall)
+            # is_relative_to() throws ValueError if not relative, or returns False on older Pythons
+            if not candidate.is_relative_to(self.repo_path):
+                return False, None, "Path traversal detected (outside repository)"
+
+            # 3. Check Forbidden Patterns (The Secret Shield)
+            if any(forbidden in candidate.name for forbidden in FORBIDDEN_PATTERNS):
+                return False, None, "Access to sensitive file forbidden"
+
+            # 4. Check Existence
+            if not candidate.exists():
+                return False, None, "File not found"
+
+            if not candidate.is_file():
+                return False, None, "Not a file"
+
+            return True, candidate, ""
+
+        except Exception as e:
+            return False, None, f"Path validation error: {e}"
+
+    def _read_file_safe(self, file_path_str: str) -> tuple[str, bool]:
+        """
+        Reads a file safely. Returns (content, success).
+        If failure, content contains the error message.
+        """
+        is_safe, abs_path, error = self._is_safe_path(file_path_str)
+
+        if not is_safe:
+            return f"\n❌ Could not include {file_path_str}: {error}\n", False
+
+        if not abs_path:
+            return "\n❌ Logic Error: Path validation passed but path is None\n", False
+
+        # 5. Check Size (DoS Protection)
+        try:
             if abs_path.stat().st_size > MAX_FILE_SIZE_BYTES:
                 return (
-                    f"\n❌ Could not include {file_path}: "
+                    f"\n❌ Could not include {file_path_str}: "
                     f"File size exceeds 1MB limit.\n"
-                )
-            try:
-                content = abs_path.read_text(encoding="utf-8")
-                return (
-                    f"\n--- CONTEXT: {file_path} ---\n{content}\n--- END CONTEXT ---\n"
-                )
-            except Exception as e:
-                return f"\n❌ Could not read {file_path}: {e!s}\n"
-        return f"\n❌ File not found: {file_path}\n"
+                ), False
 
-    def _inject_context(self, prompt: str) -> str:
-        """Replaces [[context:file.py]] directives with actual file content."""
-        return self.context_pattern.sub(self._replace_context_match, prompt)
+            content = abs_path.read_text(encoding="utf-8")
+            return content, True
+
+        except UnicodeDecodeError:
+            return (
+                f"\n❌ Could not read {file_path_str}: Binary or non-UTF-8 content\n",
+                False,
+            )
+        except Exception as e:
+            return f"\n❌ Read error {file_path_str}: {e!s}\n", False
+
+    def _replace_context_match(self, match: re.Match) -> str:
+        """Handles [[context:...]]"""
+        file_path = match.group(1).strip()
+        content, success = self._read_file_safe(file_path)
+
+        if success:
+            return f"\n--- CONTEXT: {file_path} ---\n{content}\n--- END CONTEXT ---\n"
+        return content
 
     def _replace_include_match(self, match: re.Match) -> str:
-        """
-        Dynamically replaces an [[include:...]] regex match with file content
-        or an error message if the file is missing, unreadable, or exceeds
-        size limits.
-        """
+        """Handles [[include:...]]"""
         file_path = match.group(1).strip()
-        abs_path = self.repo_path / file_path
-        if abs_path.exists() and abs_path.is_file():
-            # --- FIX: Add file size check to prevent memory bloat ---
-            if abs_path.stat().st_size > MAX_FILE_SIZE_BYTES:
-                return (
-                    f"\n❌ Could not include {file_path}: "
-                    f"File size exceeds 1MB limit.\n"
-                )
-            try:
-                content = abs_path.read_text(encoding="utf-8")
-                return (
-                    f"\n--- INCLUDED: {file_path} ---\n{content}\n--- END INCLUDE ---\n"
-                )
-            except Exception as e:
-                return f"\n❌ Could not read {file_path}: {e!s}\n"
-        return f"\n❌ File not found: {file_path}\n"
+        content, success = self._read_file_safe(file_path)
 
-    def _inject_includes(self, prompt: str) -> str:
-        """Replaces [[include:file.py]] directives with file content."""
-        return self.include_pattern.sub(self._replace_include_match, prompt)
+        if success:
+            return f"\n--- INCLUDED: {file_path} ---\n{content}\n--- END INCLUDE ---\n"
+        return content
 
     def _replace_analysis_match(self, match: re.Match) -> str:
         """
-        Dynamically replaces an [[analysis:...]] regex match with a
-        placeholder analysis message for the given file path.
+        Dynamically replaces an [[analysis:...]] regex match.
         """
         file_path = match.group(1).strip()
-        # This functionality is a placeholder.
-        return f"\n--- ANALYSIS FOR {file_path} (DEFERRED) ---\n"
+        # Security check even for placeholders
+        is_safe, _, error = self._is_safe_path(file_path)
+        if not is_safe and "File not found" not in error:
+            return f"\n❌ Analysis Blocked: {error}\n"
 
-    def _inject_analysis(self, prompt: str) -> str:
-        """Replaces [[analysis:file.py]] directives with code analysis."""
-        return self.analysis_pattern.sub(self._replace_analysis_match, prompt)
+        return f"\n--- ANALYSIS FOR {file_path} (DEFERRED) ---\n"
 
     def _replace_manifest_match(self, match: re.Match) -> str:
         """
-        Dynamically replaces a [[manifest:...]] regex match with
-        manifest data or an error.
+        Dynamically replaces a [[manifest:...]] regex match with data.
         """
         manifest_path = self.repo_path / ".intent" / "project_manifest.yaml"
         if not manifest_path.exists():
@@ -149,21 +198,25 @@ class PromptPipeline:
 
         return f"\n--- MANIFEST: {field} ---\n{value_str}\n--- END MANIFEST ---\n"
 
-    def _inject_manifest(self, prompt: str) -> str:
-        """
-        Replaces [[manifest:field]] directives with data from
-        project_manifest.yaml.
-        """
-        return self.manifest_pattern.sub(self._replace_manifest_match, prompt)
-
-    # ID: 05c566aa-d219-49bd-8b74-daa023b81e46
+    # ID: 8d93f4b2-f4db-45b0-be3a-fca21dee931b
     def process(self, prompt: str) -> str:
         """
         Processes the full prompt by sequentially resolving all directives.
-        This is the main entry point for prompt enrichment.
         """
         prompt = self._inject_context(prompt)
         prompt = self._inject_includes(prompt)
         prompt = self._inject_analysis(prompt)
         prompt = self._inject_manifest(prompt)
         return prompt
+
+    def _inject_context(self, prompt: str) -> str:
+        return self.context_pattern.sub(self._replace_context_match, prompt)
+
+    def _inject_includes(self, prompt: str) -> str:
+        return self.include_pattern.sub(self._replace_include_match, prompt)
+
+    def _inject_analysis(self, prompt: str) -> str:
+        return self.analysis_pattern.sub(self._replace_analysis_match, prompt)
+
+    def _inject_manifest(self, prompt: str) -> str:
+        return self.manifest_pattern.sub(self._replace_manifest_match, prompt)

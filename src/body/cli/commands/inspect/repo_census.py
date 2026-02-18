@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import typer
 from rich.console import Console
@@ -20,15 +21,20 @@ from body.services.cim.diff import DiffEngine
 from body.services.cim.history import CensusHistory
 from body.services.cim.policy import PolicyEvaluator
 from shared.cli_utils import core_command
-from shared.config import settings
+
+# REFACTORED: Removed direct settings import
 from shared.logger import getLogger
+
+
+if TYPE_CHECKING:
+    from shared.context import CoreContext
 
 
 logger = getLogger(__name__)
 console = Console()
 
 
-@core_command(dangerous=False, requires_context=False)
+@core_command(dangerous=False, requires_context=True)
 # ID: 9a2cc7aa-6444-486d-8efd-ef97172b80c2
 def repo_census_cmd(
     ctx: typer.Context,
@@ -81,9 +87,11 @@ def repo_census_cmd(
     - --diff NAME: Compare against baseline
     - --diff-prev: Compare against previous snapshot
     """
+    context: CoreContext = ctx.obj
+
     # Default paths
     if path is None:
-        path = settings.REPO_PATH
+        path = context.git_service.repo_path
     else:
         path = path.resolve()
 
@@ -96,7 +104,7 @@ def repo_census_cmd(
         raise typer.Exit(1)
 
     if out is None:
-        out = settings.REPO_PATH / "var" / "cim"
+        out = context.git_service.repo_path / "var" / "cim"
 
     out.mkdir(parents=True, exist_ok=True)
 
@@ -105,7 +113,7 @@ def repo_census_cmd(
     baselines = BaselineManager(out / "baselines.json")
     diff_engine = DiffEngine()
     policy_eval = PolicyEvaluator(
-        settings.REPO_PATH / ".intent" / "cim" / "thresholds.yaml"
+        context.git_service.repo_path / ".intent" / "cim" / "thresholds.yaml"
     )
 
     # Handle --list-baselines

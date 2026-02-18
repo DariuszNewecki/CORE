@@ -8,8 +8,9 @@ Refactored for High Fidelity (V2.3).
 from __future__ import annotations
 
 import ast
+from pathlib import Path
 
-from shared.config import settings
+# REFACTORED: Removed direct settings import
 from shared.logger import getLogger
 
 from .test_context import detectors, examples, metrics, parsers
@@ -25,8 +26,8 @@ class TestContextAnalyzer:
 
     __test__ = False
 
-    def __init__(self):
-        self.repo_root = settings.REPO_PATH
+    def __init__(self, repo_root: Path) -> None:
+        self.repo_root = repo_root
 
     # ID: 195772da-8fff-4360-a6f8-362d5e1156e5
     async def analyze_module(self, module_path: str) -> ModuleContext:

@@ -41,6 +41,9 @@ from sqlalchemy import text
 from body.atomic.registry import ActionDefinition, action_registry
 from shared.action_types import ActionImpact, ActionResult
 from shared.atomic_action import atomic_action
+
+# NEW IMPORT: The Token Issuer
+from shared.governance_token import authorize_execution
 from shared.logger import getLogger
 
 
@@ -256,7 +259,10 @@ class ActionExecutor:
             # Prepare execution parameters with smart injection
             exec_params = self._prepare_params(definition, write, params)
 
-            raw_result = await definition.executor(**exec_params)
+            # --- CHANGE START: Issue Governance Token ---
+            with authorize_execution(action_id):
+                raw_result = await definition.executor(**exec_params)
+            # --- CHANGE END ---
 
             # CONSTITUTIONAL ENFORCEMENT: Validate result at runtime
             result = _validate_action_result(action_id, raw_result)
