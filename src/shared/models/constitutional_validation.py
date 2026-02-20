@@ -5,49 +5,41 @@ Constitutional Validation Results - Standardized Models for Constitutional Enfor
 
 CONSTITUTIONAL ALIGNMENT:
 - DRY-by-Design: Single source of truth for constitutional validation results
-- Used across: IntentSchemaValidator, PathValidator, CodeValidator
-- Distinct from generic ValidationResult (validation_result.py)
-
-This module provides constitutional-specific validation types to eliminate duplication
-across constitutional enforcement services.
-
-Naming Convention:
-- ConstitutionalValidationResult - Rich violation tracking for constitutional rules
-- ValidationResult (validation_result.py) - Generic validation with string errors
-
-Both models serve different purposes and coexist without conflict.
+- P2.3 Fix: Purged upward dependency to Mind layer (ViolationReport). Uses duck-typing.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any
-
-from mind.governance.violation_report import ViolationReport
+from typing import Any, Protocol
 
 
-# ID: d924c000-09ed-4f2e-af1d-aa9bb482455f
-# ID: 58d0cdab-1fb1-448c-a078-456553f29cc9
+# ID: 0e2d9e1a-b99e-468d-95a5-75778dc7f301
+class ViolationLike(Protocol):
+    """Duck-typing protocol for violation reports to avoid Mind-layer imports."""
+
+    severity: str
+    rule_name: str
+    message: str
+    path: str
+
+
+def _get_severity(v: Any) -> str:
+    """Safely extract severity from either a dict or a ViolationReport object."""
+    if isinstance(v, dict):
+        return v.get("severity", "error")
+    return getattr(v, "severity", "error")
+
+
 @dataclass
-# ID: aef9205f-4ce7-4d8f-a8d2-03fc8dfed1d7
+# ID: c8e3bcd9-66f6-4bec-bb7e-977122014c1f
 class ConstitutionalValidationResult:
     """
     Constitutional validation result with rich violation tracking.
-
-    Used by constitutional enforcement services:
-    - IntentSchemaValidator (schema validation)
-    - PathValidator (constitutional rule validation)
-    - CodeValidator (code pattern validation)
-
-    Attributes:
-        is_valid: Whether validation passed
-        violations: List of ViolationReport objects (empty if valid)
-        source: Which validator produced this result
-        metadata: Additional context (paths, counts, etc.)
     """
 
     is_valid: bool
-    violations: list[ViolationReport] = field(default_factory=list)
+    violations: list[Any] = field(default_factory=list)
     source: str = "unknown"
     metadata: dict[str, Any] = field(default_factory=dict)
 
@@ -55,87 +47,48 @@ class ConstitutionalValidationResult:
         """Return number of violations (for list-like compatibility)."""
         return len(self.violations)
 
-    # ID: f4939293-c27c-4326-b919-1bd68446497a
-    # ID: 6cff73e5-c95e-41fd-8bee-568684391987
-    def add_violation(self, violation: ViolationReport) -> None:
-        """
-        Add a violation to this result.
-
-        Args:
-            violation: ViolationReport to add
-        """
+    # ID: 1dd947b6-67c3-4b22-b969-044aa20ffce6
+    def add_violation(self, violation: Any) -> None:
+        """Add a violation to this result."""
         self.violations.append(violation)
         self.is_valid = False
 
-    # ID: d9c88e2e-7726-40f2-a0ae-1577b96f2fb7
-    # ID: 12cc1d20-32d5-4823-9a2d-eef6d892bb2d
+    # ID: 5b7c9136-59df-4528-860a-b02274d7bc2b
     def merge(self, other: ConstitutionalValidationResult) -> None:
-        """
-        Merge another validation result into this one.
-
-        Args:
-            other: Another ConstitutionalValidationResult to merge
-        """
+        """Merge another validation result into this one."""
         self.violations.extend(other.violations)
         if not other.is_valid:
             self.is_valid = False
         self.metadata.update(other.metadata)
 
-    # ID: f7c42532-e3f8-4dc3-83d3-c63a878e98bc
-    # ID: cf0efeb9-f15c-4f40-8fcb-68c6bf003255
+    # ID: 35c67f0d-d000-4f45-98f5-f34a45816a8c
     def error_count(self) -> int:
-        """
-        Count violations with severity 'error'.
+        """Count violations with severity 'error'."""
+        return sum(1 for v in self.violations if _get_severity(v) == "error")
 
-        Returns:
-            Number of error-level violations
-        """
-        return sum(1 for v in self.violations if v.severity == "error")
-
-    # ID: 3bde3c7d-c18e-4a60-9b2e-2c7a19582907
-    # ID: f8947851-9a7e-4655-8aef-3ac1ea1c711e
+    # ID: 25ed2c65-6407-42ab-8424-b9f0e243661f
     def warning_count(self) -> int:
-        """
-        Count violations with severity 'warning'.
+        """Count violations with severity 'warning'."""
+        return sum(1 for v in self.violations if _get_severity(v) == "warning")
 
-        Returns:
-            Number of warning-level violations
-        """
-        return sum(1 for v in self.violations if v.severity == "warning")
-
-    # ID: 19676d0c-c56b-4412-be94-ec258e8895b3
-    # ID: 240d1988-694a-4ba3-a8c4-105407f3ebb4
+    # ID: 2a74ba9a-e24a-495b-9781-ddbc20e5a876
     def has_errors(self) -> bool:
-        """
-        Check if result contains error-level violations.
-
-        Returns:
-            True if any violations are errors (not just warnings)
-        """
-        return any(v.severity == "error" for v in self.violations)
+        """Check if result contains error-level violations."""
+        return any(_get_severity(v) == "error" for v in self.violations)
 
 
-# ID: 7fa2c13c-269c-4892-92d0-7addc0570454
-# ID: 7712571e-67fa-4065-a79d-9f053f5a1d36
 @dataclass
-# ID: aa01fd5a-065c-4fcf-86aa-646dc1a04ba4
+# ID: a88c9658-f4e0-42ea-92a6-565cabfb9200
 class ConstitutionalFileValidationResult(ConstitutionalValidationResult):
     """
     Constitutional validation result for a specific file.
-
-    Extends ConstitutionalValidationResult with file-specific metadata.
-
-    Attributes:
-        file_path: Path to validated file (repo-relative)
-        schema_path: Path to schema used (if applicable)
     """
 
     file_path: str = ""
     schema_path: str = ""
 
     @classmethod
-    # ID: 09a94979-da28-41a9-a30a-9b86fdcc186a
-    # ID: 1118b562-e215-4bb8-82ef-d8746c3b230a
+    # ID: aea7bca0-d2ac-4105-a011-8abc59815674
     def from_schema_validation(
         cls,
         file_path: str,
@@ -143,28 +96,19 @@ class ConstitutionalFileValidationResult(ConstitutionalValidationResult):
         is_valid: bool,
         error_message: str | None = None,
     ) -> ConstitutionalFileValidationResult:
-        """
-        Create result from schema validation.
-
-        Args:
-            file_path: Path to validated file
-            schema_path: Path to schema
-            is_valid: Whether validation passed
-            error_message: Error message if validation failed
-
-        Returns:
-            ConstitutionalFileValidationResult instance
-        """
+        """Create result from schema validation."""
         violations = []
         if not is_valid and error_message:
+            # We use a simple dict here to avoid importing ViolationReport,
+            # ensuring the shared layer remains pure.
             violations.append(
-                ViolationReport(
-                    rule_name="schema_validation",
-                    path=file_path,
-                    message=error_message,
-                    severity="error",
-                    source_policy=schema_path,
-                )
+                {
+                    "rule_name": "schema_validation",
+                    "path": file_path,
+                    "message": error_message,
+                    "severity": "error",
+                    "source_policy": schema_path,
+                }
             )
 
         return cls(
@@ -176,49 +120,42 @@ class ConstitutionalFileValidationResult(ConstitutionalValidationResult):
         )
 
 
-# ID: 1ff12df8-2982-40a6-886a-9a97b3a93f28
-# ID: 209ee2a0-37b3-43ec-bfee-59163347ec81
 @dataclass
-# ID: df2617e5-2765-41f5-b73e-023428156c39
+# ID: e5b34796-abf5-4aa1-afc6-6d3323bc5966
 class ConstitutionalBatchValidationResult:
     """
     Result from validating multiple files/paths constitutionally.
-
-    Aggregates individual ConstitutionalValidationResults for reporting.
-
-    Attributes:
-        results: Individual validation results
     """
 
     results: list[ConstitutionalValidationResult] = field(default_factory=list)
 
     @property
-    # ID: a55072a5-8344-4722-ae57-2003aa2acf2c
+    # ID: 10e200df-d9f9-4ed4-8580-5d552d01280f
     def is_valid(self) -> bool:
         """All results must be valid for batch to be valid."""
         return all(r.is_valid for r in self.results)
 
     @property
-    # ID: 83772877-9105-49a5-bcf5-3197499b3c4b
+    # ID: 6a9b2f69-7ae7-47c9-8fa6-1ec5e50150a3
     def total_files(self) -> int:
         """Total number of files validated."""
         return len(self.results)
 
     @property
-    # ID: 7641b90c-c082-4f8a-8c6b-01fc1930c8ac
+    # ID: b6af6fc8-096b-4528-a223-0f71ebaf3e1f
     def valid_count(self) -> int:
         """Number of valid files."""
         return sum(1 for r in self.results if r.is_valid)
 
     @property
-    # ID: ebc08dc8-000d-4446-a7a5-7f1ff49066ae
+    # ID: 220ee2a3-8371-4f7f-828e-ff9e405638d9
     def invalid_count(self) -> int:
         """Number of invalid files."""
         return sum(1 for r in self.results if not r.is_valid)
 
     @property
-    # ID: edfa9919-35d3-4573-8295-4d992a8caced
-    def all_violations(self) -> list[ViolationReport]:
+    # ID: 6db1bbed-2956-4d73-9457-07f18f342a9b
+    def all_violations(self) -> list[Any]:
         """All violations across all results."""
         violations = []
         for result in self.results:
@@ -226,35 +163,23 @@ class ConstitutionalBatchValidationResult:
         return violations
 
     @property
-    # ID: a013eda5-15fd-496c-a535-7bb1b57917ae
+    # ID: e9324cd4-fece-450d-89fd-59878991e4fd
     def total_errors(self) -> int:
         """Total error-level violations across all results."""
         return sum(r.error_count() for r in self.results)
 
     @property
-    # ID: 34a1cd62-fc17-4831-83c5-dd0e60fc32c0
+    # ID: f45364fe-f812-450b-ab4e-d792b0c0a58e
     def total_warnings(self) -> int:
         """Total warning-level violations across all results."""
         return sum(r.warning_count() for r in self.results)
 
-    # ID: 498e3155-c693-422c-b51b-0b668608e407
-    # ID: 26184315-b398-49d8-acb7-378bb7db16d1
+    # ID: b009e19e-8c5e-4ae0-8d4f-17a5f0dcb85f
     def add_result(self, result: ConstitutionalValidationResult) -> None:
-        """
-        Add a validation result to the batch.
-
-        Args:
-            result: ConstitutionalValidationResult to add
-        """
+        """Add a validation result to the batch."""
         self.results.append(result)
 
-    # ID: 20a42412-9225-4c82-a6c5-78ffa7e953f5
-    # ID: 5949fa51-73a8-4627-8a64-6e487aae135f
+    # ID: 3f100fc5-c403-4f88-ae37-3b8b07d609ae
     def has_errors(self) -> bool:
-        """
-        Check if any results contain error-level violations.
-
-        Returns:
-            True if any result has errors
-        """
+        """Check if any results contain error-level violations."""
         return any(r.has_errors() for r in self.results)

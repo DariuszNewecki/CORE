@@ -3,7 +3,7 @@
 """
 Service Registry - Centralized DI Container.
 
-CONSTITUTIONAL FIX (V2.4.0):
+CONSTITUTIONAL FIX (V2.3.0):
 - "Hardcoded Kernel": Service paths are now immutable constants, not DB lookups.
 - Removes RCE (Remote Code Execution) vulnerability where DB edits could hijack the kernel.
 - Maintains JIT Secret Decoding for CognitiveService.
@@ -196,10 +196,10 @@ class ServiceRegistry:
                 self._instances["cognitive_service"] = instance
                 self._init_flags["cognitive_service"] = False
 
-        if not self._init_flags.get("cognitive_service"):
-            async with self.session() as session:
-                await self._instances["cognitive_service"].initialize(session)
-            self._init_flags["cognitive_service"] = True
+            if not self._init_flags.get("cognitive_service"):
+                async with self.session() as session:
+                    await self._instances["cognitive_service"].initialize(session)
+                self._init_flags["cognitive_service"] = True
 
         return self._instances["cognitive_service"]
 
