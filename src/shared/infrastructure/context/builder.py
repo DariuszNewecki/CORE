@@ -13,6 +13,7 @@ HEALED (V2.3.0):
 - Fixed Vector Result Blindness: Now extracts code for semantic search hits.
 - Hardened Sensation: Handles symbol_path keys (::) correctly during extraction.
 - Preserved GraphExplorer: Retains advanced relationship traversal logic.
+- P2.3 Fix: Purged upward dependency to Body layer (KnowledgeGraphBuilder).
 """
 
 from __future__ import annotations
@@ -22,7 +23,6 @@ import uuid
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
 
-from body.introspection.knowledge_graph_service import KnowledgeGraphBuilder
 from shared.config import settings
 from shared.infrastructure.knowledge.knowledge_service import KnowledgeService
 from shared.logger import getLogger
@@ -160,11 +160,12 @@ class ContextBuilder:
         return packet
 
     async def _load_truth(self) -> dict:
-        if self.workspace:
-            return KnowledgeGraphBuilder(
-                settings.REPO_PATH, workspace=self.workspace
-            ).build()
-        return await KnowledgeService(settings.REPO_PATH).get_graph()
+        """Loads Knowledge Graph without importing Body layer components."""
+        # P2.3 Fix: Delegate workspace handling fully to KnowledgeService
+        # This prevents the Shared layer from depending on the Body layer.
+        return await KnowledgeService(
+            settings.REPO_PATH, workspace=self.workspace
+        ).get_graph()
 
     async def _collect_items(self, spec: dict, graph: dict, limits: dict) -> list[dict]:
         items = []
