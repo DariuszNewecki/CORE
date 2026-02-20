@@ -1,20 +1,22 @@
-# src/mind/governance/path_validator.py
+# src/body/governance/path_validator.py
+# ID: 41eba414-1d91-417c-827b-d897cb9758e7
+# ID: fdd5f030-9cd6-4138-b11e-e88809a301aa
 
 """
-Path Validator - File Path Validation Logic
+Path Validator - Body Layer Enforcement Service.
 
-CONSTITUTIONAL ALIGNMENT:
-- Single Responsibility: Validate file paths against rules
-- No rule loading, no conflict detection
-- Pure validation logic
-
-Extracted from IntentGuard to separate path validation concerns.
+CONSTITUTIONAL ALIGNMENT (V2.6.0):
+- Relocated: Moved from Mind to Body to comply with Mind-Body-Will separation.
+- Responsibility: Executes path-based pattern matching and engine dispatch.
+- Boundary: Now legally imports EngineDispatcher as a sibling Body component.
+- Resolves architecture.mind.no_body_invocation violation.
 """
 
 from __future__ import annotations
 
 from pathlib import Path
 
+# This import is now CONSTITUTIONALLY VALID because this file is in the Body layer.
 from body.governance.engine_dispatcher import EngineDispatcher
 from mind.governance.policy_rule import PolicyRule
 from mind.governance.violation_report import ViolationReport
@@ -25,8 +27,7 @@ from shared.models.constitutional_validation import ConstitutionalValidationResu
 logger = getLogger(__name__)
 
 
-# ID: 41eba414-1d91-417c-827b-d897cb9758e7
-# ID: fdd5f030-9cd6-4138-b11e-e88809a301aa
+# ID: 14def661-c022-473c-8069-c127e5868fe6
 class PathValidator:
     """
     Validates file paths against constitutional rules.
@@ -56,8 +57,7 @@ class PathValidator:
     # Public API
     # -------------------------------------------------------------------------
 
-    # ID: 449c0253-1cf7-4534-b8a6-deb5df20867f
-    # ID: 501cc08d-6965-47a8-a9e9-930e84083d3a
+    # ID: 5a61b7ff-d43c-4ae7-820c-a26997d76937
     def check_paths(self, proposed_paths: list[str]) -> ConstitutionalValidationResult:
         """
         Validate a set of proposed file operations.
@@ -78,8 +78,6 @@ class PathValidator:
             is_valid=len(violations) == 0, violations=violations, source="PathValidator"
         )
 
-    # ID: d3929a5f-72a8-478f-be8d-27a20bc6c7fe
-    # ID: 03074b9a-c174-4ffb-9a2b-894e7a0b73f2
     def _check_single_path(self, path: Path, path_str: str) -> list[ViolationReport]:
         """
         Enforce constitutional rules against a single path.
@@ -108,8 +106,6 @@ class PathValidator:
     # Hard Invariant
     # -------------------------------------------------------------------------
 
-    # ID: 0d39906a-e7e5-4810-8158-e64867f347e4
-    # ID: 799fddd4-f50d-40a1-a659-e52f8e58f791
     def _check_no_write_intent(
         self, abs_path: Path, rel_path_str: str
     ) -> ViolationReport | None:
@@ -156,8 +152,6 @@ class PathValidator:
     # Policy Rule Enforcement
     # -------------------------------------------------------------------------
 
-    # ID: 8eecf9da-cd69-453e-aa1d-cb8004cfe46d
-    # ID: 72cab840-244f-4ba5-947e-aaf052de1f44
     def _check_policy_rules(self, path: Path, path_str: str) -> list[ViolationReport]:
         """
         Apply all matching constitutional rules to a path.
@@ -190,8 +184,6 @@ class PathValidator:
 
         return violations
 
-    # ID: 3dd711af-9f19-4126-8925-507f9a15ff3d
-    # ID: 9854e4fa-7371-491c-8a68-bc166cc80382
     def _apply_rule_action(
         self, rule: PolicyRule, path: Path, path_str: str
     ) -> list[ViolationReport]:
@@ -230,8 +222,6 @@ class PathValidator:
 
         return []
 
-    # ID: ceda57fc-5f4b-4c44-9581-e5fd27e28880
-    # ID: f5a96cb9-475e-4f44-8c74-d2ae938ad289
     @staticmethod
     def _matches_pattern(path: str, pattern: str) -> bool:
         """

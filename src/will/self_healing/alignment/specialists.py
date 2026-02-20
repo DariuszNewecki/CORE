@@ -5,29 +5,43 @@
 from __future__ import annotations
 
 import asyncio
+from pathlib import Path
+from typing import TYPE_CHECKING
 
-from shared.config import settings
 from shared.logger import getLogger
 from shared.utils.parsing import extract_python_code_from_response, parse_write_blocks
 
+
+if TYPE_CHECKING:
+    from shared.infrastructure.config_service import ConfigService
 
 logger = getLogger(__name__)
 
 
 # ID: db02b8db-97e9-4b1a-9f08-d49da0271b6d
 class SpecialistDispatcher:
-    def __init__(self, cognitive_service, symbol_finder):
+    def __init__(self, cognitive_service, symbol_finder, config_service: ConfigService):
         self.cognitive = cognitive_service
         self.symbol_finder = symbol_finder
+        self.config_service = config_service
+
+    async def _repo_root(self) -> Path:
+        return Path(await self.config_service.get("REPO_PATH", required=True))
+
+    async def _prompt_path(self, prompt_name: str) -> Path:
+        repo_root = await self._repo_root()
+        safe = prompt_name.strip().replace("\\", "/").split("/")[-1]
+        return repo_root / "var" / "prompts" / f"{safe}.prompt"
 
     # ID: 3415c10d-1be1-4113-88db-9c3c57443219
     async def trigger_modularizer(self, file_path: str, write: bool) -> bool:
         """Agentic healing for God Objects."""
         logger.info("📐 God Object detected. Triggering Modularizer Specialist...")
-        prompt_path = settings.paths.prompt("modularizer")
+        repo_root = await self._repo_root()
+        prompt_path = await self._prompt_path("modularizer")
         template = await asyncio.to_thread(prompt_path.read_text, encoding="utf-8")
         source_code = await asyncio.to_thread(
-            (settings.REPO_PATH / file_path).read_text, encoding="utf-8"
+            (repo_root / file_path).read_text, encoding="utf-8"
         )
 
         final_prompt = template.format(
@@ -48,7 +62,7 @@ class SpecialistDispatcher:
         if write:
             for path, content in blocks.items():
                 await asyncio.to_thread(
-                    (settings.REPO_PATH / path).write_text, content, encoding="utf-8"
+                    (repo_root / path).write_text, content, encoding="utf-8"
                 )
                 logger.info("📦 Modularizer: Created/Updated %s", path)
             return True
@@ -60,11 +74,12 @@ class SpecialistDispatcher:
     ) -> bool:
         """Agentic healing for broken imports/drift."""
         logger.info("🧠 Logic drift detected. Triggering Logic Specialist...")
+        repo_root = await self._repo_root()
         hints = await self.symbol_finder.get_context_for_import_error(error_msg)
-        prompt_path = settings.paths.prompt("logic_alignment")
+        prompt_path = await self._prompt_path("logic_alignment")
         template = await asyncio.to_thread(prompt_path.read_text, encoding="utf-8")
         source_code = await asyncio.to_thread(
-            (settings.REPO_PATH / file_path).read_text, encoding="utf-8"
+            (repo_root / file_path).read_text, encoding="utf-8"
         )
 
         final_prompt = template.format(
@@ -82,7 +97,7 @@ class SpecialistDispatcher:
 
         if fixed_code and write:
             await asyncio.to_thread(
-                (settings.REPO_PATH / file_path).write_text,
+                (repo_root / file_path).write_text,
                 fixed_code,
                 encoding="utf-8",
             )
@@ -95,10 +110,11 @@ class SpecialistDispatcher:
         self, file_path: str, violation: dict, write: bool
     ) -> bool:
         """Generic healing for violations not covered by specific handlers."""
+        repo_root = await self._repo_root()
         source_code = await asyncio.to_thread(
-            (settings.REPO_PATH / file_path).read_text, encoding="utf-8"
+            (repo_root / file_path).read_text, encoding="utf-8"
         )
-        prompt_path = settings.paths.prompt("logic_alignment")
+        prompt_path = await self._prompt_path("logic_alignment")
         template = await asyncio.to_thread(prompt_path.read_text, encoding="utf-8")
 
         violation_details = f"Rule: {violation.get('check_id')}\nSeverity: {violation.get('severity')}\nMessage: {violation.get('message')}\nLine: {violation.get('line_number', 'none')}"
@@ -117,7 +133,7 @@ class SpecialistDispatcher:
 
         if fixed_code and write:
             await asyncio.to_thread(
-                (settings.REPO_PATH / file_path).write_text,
+                (repo_root / file_path).write_text,
                 fixed_code,
                 encoding="utf-8",
             )
@@ -129,18 +145,19 @@ class SpecialistDispatcher:
         self, file_path: str, task: str, write: bool
     ) -> bool:
         """Deterministic healing for metadata."""
+        repo_root = await self._repo_root()
         if not write:
             return False
         if task == "header":
-            from features.self_healing.header_service import HeaderService
+            from body.self_healing.header_service import HeaderService
 
             await asyncio.to_thread(
-                HeaderService(repo_root=settings.REPO_PATH)._fix,
-                [str(settings.REPO_PATH / file_path)],
+                HeaderService(repo_root=repo_root)._fix,
+                [str(repo_root / file_path)],
             )
             return True
         if task == "ids":
-            from features.self_healing.id_tagging_service import assign_missing_ids
+            from body.self_healing.id_tagging_service import assign_missing_ids
 
             await assign_missing_ids(
                 context=None, write=False

@@ -20,7 +20,9 @@ from body.cli.commands.check.converters import parse_min_severity
 from body.cli.logic.audit_renderer import AuditStats, render_detail, render_overview
 from body.services.file_service import FileService
 from body.services.service_registry import service_registry
-from mind.governance.audit_postprocessor import apply_entry_point_downgrade_and_report
+from mind.governance.audit_postprocessor import apply_entry_point_downgrade
+
+# from mind.governance.audit_postprocessor import apply_entry_point_downgrasde_and_report
 from mind.governance.auditor import ConstitutionalAuditor
 from shared.activity_logging import activity_run
 from shared.cli_utils import core_command
@@ -110,7 +112,7 @@ async def audit_cmd(
         file_service.write_file(FINDINGS_FILE, json.dumps(findings_dicts, indent=2))
 
         # Post-processing (downgrade entry points and write processed report)
-        apply_entry_point_downgrade_and_report(
+        apply_entry_point_downgrade(
             findings=findings_dicts,
             symbol_index={},  # Placeholder or load from reports/symbol_index.json
             reports_dir=Path(core_context.git_service.repo_path) / REPORTS_DIR,

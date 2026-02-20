@@ -8,11 +8,12 @@ This is the "last resort" - only called when deterministic fixes don't work.
 from __future__ import annotations
 
 import json
+from pathlib import Path
 from typing import Any
 
 from body.self_healing.test_context_analyzer import ModuleContext
 from mind.governance.audit_context import AuditorContext
-from shared.config import settings
+from shared.infrastructure.config_service import ConfigService
 from shared.logger import getLogger
 from shared.utils.parsing import parse_write_blocks
 from will.orchestration.cognitive_service import CognitiveService
@@ -35,9 +36,11 @@ class LLMCorrectionService:
         self,
         cognitive_service: CognitiveService,
         auditor_context: AuditorContext,
+        config_service: ConfigService | None = None,
     ):
         self.cognitive = cognitive_service
         self.auditor = auditor_context
+        self.config_service = config_service
         self.code_extractor = CodeExtractor()
 
     # ID: 4c91c49a-11d4-4dad-acb6-e212ce922653
@@ -68,6 +71,11 @@ class LLMCorrectionService:
         )
 
         # Build appropriate prompt
+        if self.config_service is not None:
+            repo_root = Path(await self.config_service.get("REPO_PATH", required=True))
+        else:
+            repo_root = self.auditor.repo_path
+
         prompt = self._build_correction_prompt(
             file_path=file_path,
             code=code,
@@ -75,6 +83,7 @@ class LLMCorrectionService:
             module_context=module_context,
             goal=goal,
             syntax_only=syntax_only,
+            repo_root=repo_root,
         )
 
         # Get LLM response
@@ -125,6 +134,7 @@ class LLMCorrectionService:
         module_context: ModuleContext,
         goal: str,
         syntax_only: bool,
+        repo_root: Path,
     ) -> str:
         """
         Build appropriate correction prompt based on violation type.
@@ -172,7 +182,7 @@ class LLMCorrectionService:
             )
 
         # Process through prompt pipeline
-        pipeline = PromptPipeline(repo_path=settings.REPO_PATH)
+        pipeline = PromptPipeline(repo_path=repo_root)
         return pipeline.process(base_prompt)
 
     def _extract_corrected_code(self, llm_output: str) -> str | None:

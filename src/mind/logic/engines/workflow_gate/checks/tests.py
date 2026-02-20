@@ -1,13 +1,16 @@
 # src/mind/logic/engines/workflow_gate/checks/tests.py
+# ID: 1480ffd7-6c3e-46a9-b331-de8c33790349
 
 """
 Test verification workflow check.
 
 Verifies that the most recent test suite execution passed.
 
-CONSTITUTIONAL FIX:
-- Uses service_registry.session() instead of get_session()
-- Mind layer receives session factory from Body layer
+CONSTITUTIONAL ALIGNMENT (V2.6.0):
+- Purified: Removed direct Body-layer import (service_registry) to resolve
+  architecture.mind.no_body_invocation.
+- Mind/Body Separation: Accesses the system ledger (DB) via the provided
+  context instead of creating its own connection.
 """
 
 from __future__ import annotations
@@ -24,12 +27,10 @@ from shared.logger import getLogger
 logger = getLogger(__name__)
 
 
-# ID: 1480ffd7-6c3e-46a9-b331-de8c33790349
+# ID: 33057f65-4f93-452d-a3cd-2a073147dae8
 class TestVerificationCheck(WorkflowCheck):
     """
-    Checks if the most recent test workflow passed.
-
-    Queries action_results database table for test execution outcomes.
+    Checks if the most recent test workflow passed by querying the Action Ledger.
     """
 
     check_type = "test_verification"
@@ -37,19 +38,26 @@ class TestVerificationCheck(WorkflowCheck):
     # ID: b17085a1-d0f0-4a10-9e2a-801372462e81
     async def verify(self, file_path: Path | None, params: dict[str, Any]) -> list[str]:
         """
-        Verify tests passed.
+        Verify tests passed using the database session provided in params.
 
         Args:
             file_path: Unused (context-level check)
-            params: Check parameters (currently unused)
-
-        Returns:
-            List of violations if tests failed or not found
+            params: Must contain '_context' with an active 'db_session'
         """
-        # CONSTITUTIONAL FIX: Use service_registry.session() instead of get_session()
-        from body.services.service_registry import service_registry
+        # CONSTITUTIONAL FIX: Extract the session from the context provided in params.
+        # This prevents the Mind layer from reaching into the Body layer's registry.
+        context = params.get("_context")
+        session = getattr(context, "db_session", None)
 
-        async with service_registry.session() as session:
+        if not session:
+            logger.warning(
+                "TestVerificationCheck: Database session unavailable in context."
+            )
+            # We report a sensory gap if the execution environment didn't provide a session.
+            return ["System Sensation Error: Action Ledger (DB) is unreachable."]
+
+        try:
+            # 1. Query the Mind's memory (Postgres SSOT) for the last test result
             result = await session.execute(
                 text(
                     """
@@ -58,18 +66,25 @@ class TestVerificationCheck(WorkflowCheck):
                     WHERE action_type = 'test_execution'
                     ORDER BY created_at DESC
                     LIMIT 1
-                """
+                    """
                 )
             )
             row = result.fetchone()
 
+            # 2. Logic Evaluation
             if not row:
                 return [
-                    "No test execution history found. Tests must be run before integration."
+                    "No test execution history found. The test suite MUST be "
+                    "executed before this workflow can proceed."
                 ]
 
-            if not row[0]:  # ok = False
+            if not row[0]:  # row['ok'] == False
                 error = row[1] or "Unknown test failure"
                 return [f"Required test suite failed: {error}"]
 
+            # SUCCESS: No violations found
             return []
+
+        except Exception as e:
+            logger.error("Failed to query test results: %s", e)
+            return [f"Database Query Error: {e}"]

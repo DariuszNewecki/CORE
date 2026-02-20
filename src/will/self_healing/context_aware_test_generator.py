@@ -21,8 +21,8 @@ import tempfile
 from pathlib import Path
 from typing import Any
 
+from body.services.file_service import FileService
 from body.services.service_registry import service_registry
-from shared.infrastructure.storage.file_handler import FileHandler
 from shared.logger import getLogger
 from shared.utils.parsing import extract_python_code_from_response
 from will.orchestration.cognitive_service import CognitiveService
@@ -38,7 +38,7 @@ class ContextAwareTestGenerator:
     def __init__(
         self,
         cognitive_service: CognitiveService,
-        file_handler: FileHandler,
+        file_handler: FileService,
         repo_root: Path,
     ) -> None:
         """Initialize with LLM service and governed file operations."""

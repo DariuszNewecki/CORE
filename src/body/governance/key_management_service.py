@@ -1,12 +1,11 @@
-# src/mind/governance/key_management_service.py
+# src/body/governance/key_management_service.py
 """
-Intent: Key management commands for the CORE Admin CLI.
-Provides Ed25519 key generation and helper output for approver configuration.
+Key Management Service - Body Layer Implementation.
 
-CONSTITUTIONAL FIX:
-- Aligned with 'governance.artifact_mutation.traceable'.
-- NO LONGER imports FileHandler - uses FileService from Body layer
-- Enforces IntentGuard and audit logging for security identity creation.
+CONSTITUTIONAL ALIGNMENT (V2.3.0):
+- Relocated: Moved from Mind to Body to resolve architecture.mind.no_body_invocation.
+- Responsibility: Executes cryptographic key generation and governed persistence.
+- Governed: All writes route through FileService to maintain the audit trail.
 """
 
 from __future__ import annotations
@@ -25,7 +24,6 @@ from shared.path_resolver import PathResolver
 
 
 logger = getLogger(__name__)
-log = logger  # keep tests and tools happy
 
 
 # ID: 8a1d1403-b439-475e-a712-cc7c687f6cb9
@@ -42,18 +40,11 @@ def keygen(
     allow_overwrite: bool = False,
 ) -> None:
     """
-    Intent: Generate a new Ed25519 key pair and print an approver YAML block.
-
-    CONSTITUTIONAL FIX: Changed parameter from FileHandler to FileService
-
-    Args:
-        identity: Identity name for the key
-        path_resolver: PathResolver for path resolution
-        file_service: Body layer FileService for file operations
-        allow_overwrite: Whether to overwrite existing key
+    Generate a new Ed25519 key pair and persist it via the Body's FileService.
     """
     logger.info("🔑 Generating new key pair for identity: %s", identity)
 
+    # Resolve paths via the provided resolver
     rel_key_dir = str(
         path_resolver.intent_root.relative_to(path_resolver.repo_root) / "keys"
     )
@@ -61,14 +52,14 @@ def keygen(
     rel_private_key_path = f"{rel_key_dir}/private.key"
     abs_private_key_path = path_resolver.repo_root / rel_private_key_path
 
-    if abs_private_key_path.exists():
-        if not allow_overwrite:
-            raise KeyManagementError(
-                "A private key already exists. Use allow_overwrite to replace it.",
-                exit_code=1,
-            )
+    # Safety Gate
+    if abs_private_key_path.exists() and not allow_overwrite:
+        raise KeyManagementError(
+            "A private key already exists. Use allow_overwrite to replace it.",
+            exit_code=1,
+        )
 
-    # Generate the identity
+    # 1. Generate the Identity (Computational Work)
     private_key = ed25519.Ed25519PrivateKey.generate()
     public_key = private_key.public_key()
 
@@ -78,11 +69,11 @@ def keygen(
         encryption_algorithm=serialization.NoEncryption(),
     )
 
-    # CONSTITUTIONAL FIX: Governed directory creation and write via FileService
+    # 2. Persist via Governed Mutation Surface (Body Execution)
     file_service.ensure_dir(rel_key_dir)
     file_service.write_runtime_bytes(rel_private_key_path, pem_private)
 
-    # Ensure strict permissions on the resulting file
+    # Set strict Unix permissions
     if abs_private_key_path.exists():
         os.chmod(abs_private_key_path, 0o600)
 
@@ -91,6 +82,7 @@ def keygen(
         format=serialization.PublicFormat.SubjectPublicKeyInfo,
     )
 
+    # 3. Output for the Operator
     logger.info(
         "\n✅ Private key saved securely via FileService to: %s", rel_private_key_path
     )

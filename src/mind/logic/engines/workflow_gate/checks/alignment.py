@@ -3,11 +3,13 @@
 
 """
 Alignment verification workflow check.
-Refactored to be circular-safe.
+Refactored to be circular-safe and constitutionally compliant.
 
-CONSTITUTIONAL FIX:
-- Uses service_registry.session() instead of get_session()
-- Mind layer receives session factory from Body layer
+CONSTITUTIONAL ALIGNMENT (V2.6.0):
+- Decoupled: Removed direct Body-layer import (service_registry).
+- Mind/Body Separation: Uses the database session provided by the context
+  instead of managing the session lifecycle itself.
+- Resolves architecture.mind.no_body_invocation violation.
 """
 
 from __future__ import annotations
@@ -36,35 +38,65 @@ class AlignmentVerificationCheck(WorkflowCheck):
 
     # ID: d54fca88-5c46-45a1-82ef-028993cd3af4
     async def verify(self, file_path: Path | None, params: dict[str, Any]) -> list[str]:
+        """
+        Verify alignment status by checking current violations and DB audit history.
+        """
         if not file_path:
             return []
 
-        # DEFERRED IMPORT: Break circular dependency on Registry
+        # DEFERRED IMPORT: Required to break circular dependency with Mind layer discovery
         from mind.governance.audit_context import AuditorContext
         from mind.governance.filtered_audit import run_filtered_audit
 
         violations = []
+
+        # 1. Internal Sensation: Check current compliance state
+        # Uses the repository root from the path resolver
         auditor_ctx = AuditorContext(self._paths.repo_root)
 
-        # Check current compliance
+        # Run targeted audit logic
         findings, _, _ = await run_filtered_audit(auditor_ctx, rule_patterns=[r".*"])
         file_violations = [f for f in findings if f.get("file_path") == str(file_path)]
 
         if file_violations:
             violations.append(f"File has {len(file_violations)} outstanding violations")
 
-        # CONSTITUTIONAL FIX: Use service_registry.session() instead of get_session()
-        from body.services.service_registry import service_registry
+        # 2. External Sensation: Query the Body's Ledger (Database)
+        # CONSTITUTIONAL FIX: We extract the session from the context provided in params
+        # This prevents the Mind layer from importing Body-layer service registries.
+        context = params.get("_context")
+        session = getattr(context, "db_session", None)
 
-        async with service_registry.session() as session:
-            result = await session.execute(
-                text(
-                    "SELECT ok FROM core.action_results WHERE action_type = 'alignment' AND file_path = :p ORDER BY created_at DESC LIMIT 1"
-                ),
-                {"p": str(file_path)},
+        if not session:
+            logger.warning("AlignmentCheck: Database session unavailable in context.")
+            # We don't block if DB is missing, but we report the sensory gap
+            violations.append(
+                "System Sensation Error: Action Ledger (DB) is currently unreachable."
             )
+            return violations
+
+        try:
+            # Query the action_results table using the provided session
+            stmt = text(
+                """
+                SELECT ok
+                FROM core.action_results
+                WHERE action_type = 'alignment'
+                  AND file_path = :p
+                ORDER BY created_at DESC
+                LIMIT 1
+                """
+            )
+            result = await session.execute(stmt, {"p": str(file_path)})
             row = result.fetchone()
+
             if row and not row[0]:
-                violations.append("Last alignment attempt failed.")
+                violations.append(
+                    "The last automated alignment attempt for this file failed."
+                )
+
+        except Exception as e:
+            logger.error("Failed to query action ledger for %s: %s", file_path, e)
+            violations.append(f"Database Query Error: {e}")
 
         return violations

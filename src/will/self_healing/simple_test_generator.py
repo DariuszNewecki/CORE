@@ -18,7 +18,7 @@ import tempfile
 from pathlib import Path
 from typing import Any
 
-from shared.infrastructure.storage.file_handler import FileHandler
+from body.services.file_service import FileService
 from shared.logger import getLogger
 from shared.utils.parsing import extract_python_code_from_response
 from will.orchestration.cognitive_service import CognitiveService
@@ -34,7 +34,7 @@ class SimpleTestGenerator:
     def __init__(
         self,
         cognitive_service: CognitiveService,
-        file_handler: FileHandler,
+        file_handler: FileService,
         repo_root: Path,
     ) -> None:
         self.cognitive = cognitive_service

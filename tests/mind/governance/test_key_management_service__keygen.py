@@ -10,7 +10,7 @@ from pathlib import Path
 
 import pytest
 
-from mind.governance.key_management_service import keygen
+from body.governance.key_management_service import keygen
 
 
 def test_keygen_raises_error_on_existing_key_without_overwrite(tmp_path):
@@ -21,7 +21,7 @@ def test_keygen_raises_error_on_existing_key_without_overwrite(tmp_path):
     key_file = key_dir / "private.key"
     key_file.parent.mkdir(parents=True, exist_ok=True)
     key_file.touch()
-    import mind.governance.key_management_service as module
+    import body.governance.key_management_service as module
 
     original_repo_path = module.settings.REPO_PATH
     original_key_dir = module.settings.KEY_STORAGE_DIR

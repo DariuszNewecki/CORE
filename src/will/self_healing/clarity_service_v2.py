@@ -1,4 +1,4 @@
-# src/features/self_healing/clarity_service_v2.py
+# src/will/self_healing/clarity_service_v2.py
 
 """
 Adaptive Clarity Orchestrator (V2.3) - ROADMAP COMPLIANT.
@@ -14,7 +14,7 @@ from typing import TYPE_CHECKING
 
 from body.analyzers.file_analyzer import FileAnalyzer
 from body.evaluators.clarity_evaluator import ClarityEvaluator
-from shared.config import settings
+from shared.infrastructure.config_service import ConfigService
 from shared.logger import getLogger
 from shared.utils.parsing import extract_python_code_from_response
 from will.deciders.governance_decider import GovernanceDecider  # NEW
@@ -30,7 +30,10 @@ logger = getLogger(__name__)
 
 # ID: 1e2f3a4b-5c6d-7e8f-9a0b-1c2d3e4f5a6b
 async def remediate_clarity_v2(
-    context: CoreContext, file_path: Path, write: bool = False
+    context: CoreContext,
+    file_path: Path,
+    write: bool = False,
+    config_service: ConfigService | None = None,
 ):
     """
     V2.3 Orchestrator: Combines high-resilience adaptive loops with
@@ -76,7 +79,14 @@ async def remediate_clarity_v2(
     # =========================================================================
     # 4 & 5. THE ADAPTIVE LOOP (GENERATE + EVALUATE)
     # =========================================================================
-    original_code = (settings.REPO_PATH / rel_path_str).read_text(encoding="utf-8")
+    if config_service is not None:
+        repo_root = Path(await config_service.get("REPO_PATH", required=True))
+    else:
+        async with context.registry.session() as session:
+            runtime_config = await ConfigService.create(session)
+            repo_root = Path(await runtime_config.get("REPO_PATH", required=True))
+
+    original_code = (repo_root / rel_path_str).read_text(encoding="utf-8")
     current_prompt = (
         f"You are a Senior Architect. Task: Refactor the following code for {strategy.data['strategy']}.\n"
         f"Specific Instruction: {strategy.data['instruction']}\n\n"

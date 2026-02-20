@@ -1,4 +1,4 @@
-# src/features/self_healing/enrichment_service.py
+# src/will/self_healing/enrichment_service.py
 
 """
 Symbol Enrichment Service
@@ -26,8 +26,8 @@ from typing import Any
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from shared.config import settings
 from shared.infrastructure.clients.qdrant_client import QdrantService
+from shared.infrastructure.config_service import ConfigService
 from shared.logger import getLogger
 from shared.utils.parallel_processor import ThrottledParallelProcessor
 from shared.utils.parsing import extract_json_from_response
@@ -35,7 +35,6 @@ from will.orchestration.cognitive_service import CognitiveService
 
 
 logger = getLogger(__name__)
-REPO_ROOT = settings.REPO_PATH
 
 # Role used for "core-admin enrich symbols" (DB-driven role -> resource mapping)
 ENRICH_SYMBOLS_ROLE = "LocalCoder"
@@ -186,6 +185,7 @@ async def enrich_symbols(
     cognitive_service: CognitiveService,
     qdrant_service: QdrantService,
     dry_run: bool,
+    config_service: ConfigService | None = None,
 ) -> None:
     """Main orchestrator for autonomous symbol enrichment."""
 

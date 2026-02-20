@@ -8,7 +8,7 @@ from __future__ import annotations
 import asyncio
 from pathlib import Path
 
-from shared.infrastructure.storage.file_handler import FileHandler
+from body.services.file_service import FileService
 from shared.logger import getLogger
 
 
@@ -24,7 +24,7 @@ class TestExecutor:
         self,
         test_file: str,
         code: str,
-        file_handler: FileHandler,
+        file_handler: FileService,
         repo_root: Path,
     ) -> dict:
         # Ensure parent directory exists via governed channel

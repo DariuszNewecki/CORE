@@ -28,8 +28,8 @@ from body.self_healing.remediation_models import (
     RemediationResult,
     create_remediation_result,
 )
+from body.services.file_service import FileService
 from mind.governance.audit_context import AuditorContext
-from shared.infrastructure.storage.file_handler import FileHandler
 from shared.logger import getLogger
 from shared.models import AuditFinding, AuditSeverity
 
@@ -68,7 +68,7 @@ class AuditRemediationService:
 
     def __init__(
         self,
-        file_handler: FileHandler,
+        file_handler: FileService,
         auditor_context: AuditorContext,
         repo_root: Path,
     ):

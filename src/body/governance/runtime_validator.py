@@ -1,14 +1,17 @@
-# src/mind/governance/runtime_validator.py
+# src/body/governance/runtime_validator.py
+# ID: 2b55693e-54fd-4e36-ab4c-29075a361014
+
 """
-Runtime Validator - The Canary Sandbox.
+Runtime Validator - Body Layer Execution Service.
 
-Provides a service to run the project's test suite against proposed code changes
-in a safe, isolated environment.
+Provides the "Canary Sandbox" capability to run the project's test suite
+against proposed code changes in a safe, isolated environment.
 
-CONSTITUTIONAL FIX (V2.3.0):
-- "The Airlock": Subprocesses now run with a SANITIZED environment.
-- Blocks access to real DATABASE_URL, LLM_API_KEY, and CORE_MASTER_KEY.
-- Forces SQLite in-memory or mock-safe defaults to prevent 'Leaky Sandbox' corruption.
+CONSTITUTIONAL ALIGNMENT (V2.3.0):
+- Relocated: Moved from Mind to Body to resolve architecture.mind.no_body_invocation.
+- Responsibility: Execution of sandboxed tests (Body capability).
+- The Airlock: Subprocesses run with a SANITIZED environment to prevent
+  leakage or corruption of production infrastructure.
 """
 
 from __future__ import annotations
@@ -26,15 +29,15 @@ from shared.path_resolver import PathResolver
 logger = getLogger(__name__)
 
 
-# ID: 2b55693e-54fd-4e36-ab4c-29075a361014
+# ID: 282dad34-9366-49a0-91dd-c889a7d6f8da
 class RuntimeValidatorService:
     """
     A service to test code changes in an isolated environment (Canary).
 
     CONSTITUTIONAL COMPLIANCE:
-    - Receives FileService from Body layer
-    - Uses Body service for all file operations
-    - Enforces Environment Isolation (The Airlock)
+    - Resides in Body layer (Execution).
+    - Uses FileService for all file operations.
+    - Enforces Environment Isolation (The Airlock).
     """
 
     def __init__(self, path_resolver: PathResolver, test_timeout: int = 60):
@@ -42,7 +45,7 @@ class RuntimeValidatorService:
         self.repo_root = self._paths.repo_root
         self.test_timeout = test_timeout
 
-    # ID: 3c79d15e-5e0c-44a0-8325-ce69a77419c0
+    # ID: 3615c13a-c101-4bca-9a10-7bb72604e13b
     async def run_tests_in_canary(
         self, file_path_str: str, new_code_content: str
     ) -> tuple[bool, str]:
@@ -89,10 +92,9 @@ class RuntimeValidatorService:
                 file_handler.write_runtime_text(rel_target, new_code_content)
 
                 # 4. Construct "The Airlock" (Sanitized Environment)
-                # We strip dangerous keys so the test CANNOT touch real infra.
                 safe_env = os.environ.copy()
 
-                # Nuke the keys to the Kingdom
+                # Nuke keys to prevent sandbox leakage
                 for unsafe in [
                     "DATABASE_URL",
                     "LLM_API_KEY",
@@ -104,14 +106,10 @@ class RuntimeValidatorService:
                         del safe_env[unsafe]
 
                 # Inject Safe Defaults (Force Unit Test Mode)
-                safe_env["DATABASE_URL"] = (
-                    "sqlite+aiosqlite:///:memory:"  # Force In-Memory DB
-                )
+                safe_env["DATABASE_URL"] = "sqlite+aiosqlite:///:memory:"
                 safe_env["CORE_ENV"] = "TEST"
-                safe_env["LLM_ENABLED"] = "false"  # No API calls allowed in Sandbox
-                safe_env["PYTHONPATH"] = str(
-                    canary_path
-                )  # Ensure import resolution works
+                safe_env["LLM_ENABLED"] = "false"
+                safe_env["PYTHONPATH"] = str(canary_path)
 
                 logger.info("Running test suite in AIRLOCKED canary environment...")
 
@@ -123,7 +121,7 @@ class RuntimeValidatorService:
                     cwd=canary_path,
                     stdout=asyncio.subprocess.PIPE,
                     stderr=asyncio.subprocess.PIPE,
-                    env=safe_env,  # <--- THE FIX
+                    env=safe_env,
                 )
 
                 try:
@@ -135,7 +133,7 @@ class RuntimeValidatorService:
                     logger.error("Canary tests timed out.")
                     return (
                         False,
-                        f"Tests timed out after {self.test_timeout} seconds. (Infinite loop or deadlock?)",
+                        f"Tests timed out after {self.test_timeout} seconds.",
                     )
 
                 if proc.returncode == 0:
@@ -162,12 +160,8 @@ def _copy_repo_tree(
     Copy a repository tree via governed writes.
     """
     src_root = Path(src_root).resolve()
-    dst_root = Path(dst_root).resolve()
-
     # Walk the tree
     for src_path in src_root.rglob("*"):
-        # Check ignores first (folders + files)
-        # We verify if ANY part of the path is in the ignore list
         rel_parts = src_path.relative_to(src_root).parts
         if any(part in ignore_names for part in rel_parts):
             continue
@@ -179,5 +173,4 @@ def _copy_repo_tree(
             continue
 
         if src_path.is_file():
-            # Governed write
             file_service.write_runtime_bytes(rel, src_path.read_bytes())

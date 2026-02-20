@@ -14,8 +14,8 @@ from typing import Any
 from body.analyzers.file_analyzer import FileAnalyzer
 from body.analyzers.symbol_extractor import SymbolExtractor
 from body.evaluators.failure_evaluator import FailureEvaluator
+from body.services.file_service import FileService
 from shared.context import CoreContext
-from shared.infrastructure.storage.file_handler import FileHandler
 from shared.logger import getLogger
 from will.strategists.test_strategist import TestStrategist
 
@@ -61,7 +61,7 @@ class AdaptiveTestGenerator:
         repo_path = context.git_service.repo_path
 
         # Primitives
-        self.file_handler = FileHandler(str(repo_path))
+        self.file_handler = FileService(str(repo_path))
         self.artifacts = TestGenArtifactStore(self.file_handler)
         self.session_dir = self.artifacts.start_session().session_dir
 

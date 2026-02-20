@@ -12,8 +12,8 @@ from pathlib import Path
 from typing import Any
 
 from body.self_healing.complexity_filter import ComplexityFilter
+from body.services.file_service import FileService
 from mind.governance.audit_context import AuditorContext
-from shared.infrastructure.storage.file_handler import FileHandler
 from shared.logger import getLogger
 from will.orchestration.cognitive_service import CognitiveService
 
@@ -47,7 +47,7 @@ def __init__(
     self,
     cognitive_service: CognitiveService,
     auditor_context: AuditorContext,
-    file_handler: FileHandler,
+    file_handler: FileService,
     repo_root: Path,
     use_iterative_fixing: bool = True,
     max_fix_attempts: int = 3,
@@ -87,7 +87,7 @@ def __init__(
         test_file: str,
         goal: str,
         target_coverage: float,
-        file_handler: FileHandler,
+        file_handler: FileService,
         repo_root: Path,
     ) -> dict[str, Any]:
         """Main entry point for enhanced test generation with self-correction."""
@@ -148,7 +148,7 @@ def __init__(
         module_path: str,
         module_context,
         execution_result: dict,
-        file_handler: FileHandler,
+        file_handler: FileService,
         repo_root: Path,
     ) -> dict[str, Any]:
         """Handle and attempt to fix failing tests."""
@@ -225,7 +225,7 @@ def __init__(
         initial_passed: int,
         initial_total: int,
         initial_score: str,
-        file_handler: FileHandler,
+        file_handler: FileService,
         repo_root: Path,
     ) -> dict[str, Any]:
         """Re-run tests after fixes and return results."""

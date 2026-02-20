@@ -7,14 +7,14 @@ from __future__ import annotations
 import ast
 from pathlib import Path
 
-from shared.infrastructure.storage.file_handler import FileHandler
+from body.services.file_service import FileService
 
 
 # ID: cccc1d15-a41a-4c4c-8860-cc61a97e8b7e
 class TestExtractor:
     """Extracts and replaces individual test functions in test files."""
 
-    def __init__(self, file_handler: FileHandler, repo_root: Path):
+    def __init__(self, file_handler: FileService, repo_root: Path):
         self.file_handler = file_handler
         self.repo_root = repo_root
 

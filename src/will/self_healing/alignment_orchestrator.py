@@ -8,9 +8,10 @@ Enforces Constitutional Integrity at the file level. Refactored (V2.3).
 from __future__ import annotations
 
 import time
+from pathlib import Path
 from typing import Any
 
-from shared.config import settings
+from shared.infrastructure.config_service import ConfigService
 from shared.logger import getLogger
 from will.orchestration.cognitive_service import CognitiveService
 from will.tools.symbol_finder import SymbolFinder
@@ -25,10 +26,17 @@ logger = getLogger(__name__)
 
 # ID: e776b3ae-a7b1-4737-adcd-bf9714a35543
 class AlignmentOrchestrator:
-    def __init__(self, cognitive_service: CognitiveService):
+    def __init__(
+        self,
+        cognitive_service: CognitiveService,
+        config_service: ConfigService,
+    ):
         self.cognitive = cognitive_service
+        self.config_service = config_service
         self.symbol_finder = SymbolFinder()
-        self.dispatcher = SpecialistDispatcher(cognitive_service, self.symbol_finder)
+        self.dispatcher = SpecialistDispatcher(
+            cognitive_service, self.symbol_finder, config_service
+        )
 
     # ID: bd0aa07e-317d-4443-9c93-424254093cd5
     async def align_file(self, file_path: str, write: bool = False) -> dict[str, Any]:
@@ -39,7 +47,8 @@ class AlignmentOrchestrator:
         from mind.governance.filtered_audit import run_filtered_audit
 
         # 1. THE WARRANT
-        auditor_ctx = AuditorContext(settings.REPO_PATH)
+        repo_root = Path(await self.config_service.get("REPO_PATH", required=True))
+        auditor_ctx = AuditorContext(repo_root)
         findings, _, _ = await run_filtered_audit(auditor_ctx, rule_patterns=[r".*"])
         file_violations = [
             f
@@ -48,7 +57,9 @@ class AlignmentOrchestrator:
             and "engine_missing" not in str(f.get("check_id"))
         ]
 
-        is_importable, current_error = await verify_import_safety(file_path)
+        is_importable, current_error = await verify_import_safety(
+            file_path, self.config_service
+        )
 
         if not file_violations and is_importable:
             logger.info("✅ %s is 100%% Aligned.", file_path)

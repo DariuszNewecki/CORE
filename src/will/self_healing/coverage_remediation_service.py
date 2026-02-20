@@ -14,14 +14,16 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from body.self_healing.batch_remediation_service import BatchRemediationService
-from body.self_healing.single_file_remediation import (
-    EnhancedSingleFileRemediationService,
-)
+from body.services.file_service import FileService
 from mind.governance.audit_context import AuditorContext
-from shared.infrastructure.storage.file_handler import FileHandler
 from shared.logger import getLogger
 from will.orchestration.cognitive_service import CognitiveService
+from will.self_healing.batch_remediation_service import (
+    BatchRemediationService,
+)  # Changed from body to will
+from will.self_healing.single_file_remediation import (
+    EnhancedSingleFileRemediationService,
+)  # Changed from body to will
 
 
 logger = getLogger(__name__)
@@ -31,7 +33,7 @@ logger = getLogger(__name__)
 async def remediate_coverage_enhanced(
     cognitive_service: CognitiveService,
     auditor_context: AuditorContext,
-    file_handler: FileHandler,
+    file_handler: FileService,
     repo_root: Path,
     target_coverage: int | None = None,
     file_path: Path | None = None,
@@ -71,7 +73,7 @@ async def remediate_coverage_enhanced(
 async def _remediate_coverage(
     cognitive_service: CognitiveService,
     auditor_context: AuditorContext,
-    file_handler: FileHandler,
+    file_handler: FileService,
     repo_root: Path,
     target_coverage: int | None = None,
     file_path: Path | None = None,

@@ -20,8 +20,8 @@ from body.self_healing.test_context_analyzer import ModuleContext
 from body.self_healing.test_failure_analyzer import TestFailureAnalyzer
 from body.self_healing.test_generation.code_extractor import CodeExtractor
 from body.self_healing.test_generation.executor import TestExecutor
+from body.services.file_service import FileService
 from mind.governance.audit_context import AuditorContext
-from shared.infrastructure.storage.file_handler import FileHandler
 from shared.logger import getLogger
 from will.orchestration.cognitive_service import CognitiveService
 from will.orchestration.prompt_pipeline import PromptPipeline
@@ -44,7 +44,7 @@ class IterativeTestFixer:
         self,
         cognitive_service: CognitiveService,
         auditor_context: AuditorContext,
-        file_handler: FileHandler,
+        file_handler: FileService,
         repo_root: Path,
         max_attempts: int = 3,
     ):
