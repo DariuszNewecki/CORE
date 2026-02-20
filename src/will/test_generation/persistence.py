@@ -23,7 +23,7 @@ import time
 from dataclasses import dataclass
 from pathlib import Path
 
-from shared.infrastructure.storage.file_handler import FileHandler
+from body.services.file_service import FileService
 from shared.logger import getLogger
 
 
@@ -48,7 +48,7 @@ class TestPersistenceService:
     Ensures the /tests directory only contains sandbox-passing code.
     """
 
-    def __init__(self, file_handler: FileHandler):
+    def __init__(self, file_handler: FileService):
         self._fh = file_handler
 
     # ID: 55c23007-2524-4721-a88f-c35a9f660cfe

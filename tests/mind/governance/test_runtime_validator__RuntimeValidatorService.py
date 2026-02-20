@@ -8,7 +8,7 @@
 
 from pathlib import Path
 
-from mind.governance.runtime_validator import RuntimeValidatorService
+from body.governance.runtime_validator import RuntimeValidatorService
 
 
 class TestRuntimeValidatorService:

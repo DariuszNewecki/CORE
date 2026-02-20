@@ -1,94 +1,22 @@
 # src/mind/governance/audit_report_writer.py
 """
-Report generation for audit post-processing results.
+Report generation logic for audit post-processing results.
 
-CONSTITUTIONAL FIX: No longer imports FileHandler directly.
-Uses FileService from Body layer for all file operations.
+CONSTITUTIONAL ALIGNMENT (V2.6.0):
+- Pure Logic: This module only formats data. It has no side effects.
+- Resolves architecture.mind.no_filesystem_writes.
 """
 
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
-from datetime import UTC, datetime
-from pathlib import Path
-
-from body.services.file_service import FileService
 
 
-# ID: d3c25742-92e0-4e44-a00e-4eac082bb62a
-def now_iso() -> str:
-    """Generate ISO-formatted UTC timestamp."""
-    return datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
-
-
-# ID: 8e7e9c72-916f-451f-adfa-248186c400ce
-def relpath_under_repo(repo_root: Path, path: Path) -> str:
-    """
-    Convert path to repo-relative string.
-
-    Raises:
-        ValueError if path is outside repository boundary
-    """
-    abs_path = path if path.is_absolute() else (repo_root / path).resolve()
-    repo_root = repo_root.resolve()
-
-    if not abs_path.is_relative_to(repo_root):
-        raise ValueError(f"Path must be under repo root: {path}")
-
-    return str(abs_path.relative_to(repo_root))
-
-
-# ID: b915ef98-e8e0-4a83-8c54-09efbedd5e02
-def write_auto_ignored_reports(
-    repo_root: Path,
-    file_service: FileService,
-    reports_dir: str | Path,
-    auto_ignored: Sequence[Mapping[str, object]],
-) -> None:
-    """
-    Write JSON and Markdown reports of auto-ignored symbols.
-
-    CONSTITUTIONAL FIX: Changed parameter from FileHandler to FileService
-
-    Args:
-        repo_root: Repository root path
-        file_service: FileService for constitutional compliance (Body layer)
-        reports_dir: Directory for report output
-        auto_ignored: List of auto-ignored symbol metadata
-    """
-    timestamp = now_iso()
-    reports_dir_path = Path(reports_dir)
-    reports_rel_dir = relpath_under_repo(repo_root, reports_dir_path).rstrip("/")
-
-    # Ensure directory exists via FileService
-    file_service.ensure_dir(reports_rel_dir)
-
-    # Write JSON report
-    json_rel_path = f"{reports_rel_dir}/audit_auto_ignored.json"
-    payload = {
-        "generated_at": timestamp,
-        "total_auto_ignored": len(auto_ignored),
-        "items": list(auto_ignored),
-    }
-
-    # CONSTITUTIONAL FIX: Use FileService method
-    # Note: FileService doesn't have write_runtime_json yet, so we'll use get_file_handler() escape hatch
-    file_handler = file_service.get_file_handler()
-    file_handler.write_runtime_json(json_rel_path, payload)
-
-    # Write Markdown report
-    md_rel_path = f"{reports_rel_dir}/audit_auto_ignored.md"
-    markdown_content = _build_markdown_report(timestamp, auto_ignored)
-
-    # CONSTITUTIONAL FIX: Use FileService method
-    # Note: FileService doesn't have write_runtime_text yet, so we'll use get_file_handler() escape hatch
-    file_handler.write_runtime_text(md_rel_path, markdown_content)
-
-
-def _build_markdown_report(
+# ID: 6fba0c39-ebae-4a74-b2dd-f77b5fa6b4c6
+def build_auto_ignored_markdown(
     timestamp: str, auto_ignored: Sequence[Mapping[str, object]]
 ) -> str:
-    """Build markdown report grouped by entry_point_type and pattern_name."""
+    """Pure data transformation: formats data as Markdown. Returns a string."""
     grouped: dict[str, dict[str, list[str]]] = {}
 
     for item in auto_ignored:

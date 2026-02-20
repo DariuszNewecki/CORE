@@ -5,7 +5,7 @@
 - Generated: 2026-01-11 01:38:42
 """
 
-from mind.governance.key_management_service import KeyManagementError
+from body.governance.key_management_service import KeyManagementError
 
 
 # Detected return type: The class KeyManagementError is a subclass of RuntimeError.

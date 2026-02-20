@@ -12,14 +12,14 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from body.self_healing.coverage_analyzer import CoverageAnalyzer
-from body.self_healing.single_file_remediation import (
-    EnhancedSingleFileRemediationService,
-)
+from body.quality.coverage_analyzer import CoverageAnalyzer
 from mind.governance.audit_context import AuditorContext
-from shared.config import settings
+from shared.infrastructure.config_service import ConfigService
 from shared.logger import getLogger
 from will.orchestration.cognitive_service import CognitiveService
+from will.self_healing.single_file_remediation import (
+    EnhancedSingleFileRemediationService,
+)
 
 
 logger = getLogger(__name__)
@@ -42,14 +42,17 @@ class BatchRemediationService:
         self,
         cognitive_service: CognitiveService,
         auditor_context: AuditorContext,
+        config_service: ConfigService | None = None,
         max_complexity: str = "MODERATE",
     ):
-        from features.self_healing.complexity_filter import ComplexityFilter
+        from body.self_healing.complexity_filter import ComplexityFilter
 
         self.cognitive = cognitive_service
         self.auditor = auditor_context
+        self.config_service = config_service
         self.max_complexity = max_complexity
-        self.analyzer = CoverageAnalyzer(repo_path=settings.REPO_PATH)
+        self.analyzer: CoverageAnalyzer | None = None
+        self.repo_root: Path | None = None
         self.complexity_filter = ComplexityFilter(max_complexity=max_complexity)
 
     # ID: 1b9a6db1-2cca-4410-b232-79edbd3d9809
@@ -63,6 +66,7 @@ class BatchRemediationService:
         Returns:
             Batch results with summary
         """
+        await self._ensure_runtime_config()
         logger.info("Batch Remediation: Finding candidate files...")
         candidates = self._get_candidate_files()
 
@@ -108,16 +112,31 @@ class BatchRemediationService:
 
     def _get_candidate_files(self) -> list[tuple[Path, float]]:
         """Get files with coverage data, sorted by lowest coverage first."""
+        if self.analyzer is None or self.repo_root is None:
+            return []
         coverage_data = self.analyzer.get_module_coverage()
         if not coverage_data:
             return []
         candidates = [
-            (settings.REPO_PATH / path, percent)
+            (self.repo_root / path, percent)
             for path, percent in coverage_data.items()
             if path.startswith("src/") and percent < 75.0
         ]
         candidates.sort(key=lambda x: x[1])
         return candidates
+
+    async def _ensure_runtime_config(self) -> None:
+        """Initialize repo-root dependent services once."""
+        if self.repo_root is not None and self.analyzer is not None:
+            return
+
+        if self.config_service is not None:
+            repo_root_str = await self.config_service.get("REPO_PATH", required=True)
+            self.repo_root = Path(repo_root_str)
+        else:
+            self.repo_root = self.auditor.repo_path
+
+        self.analyzer = CoverageAnalyzer(repo_path=self.repo_root)
 
     def _filter_by_complexity(
         self, candidates: list[tuple[Path, float]]
@@ -240,6 +259,7 @@ class BatchRemediationService:
 async def _remediate_batch(
     cognitive_service: CognitiveService,
     auditor_context: AuditorContext,
+    config_service: ConfigService | None,
     count: int,
     max_complexity: str = "MODERATE",
 ) -> dict[str, Any]:
@@ -247,6 +267,9 @@ async def _remediate_batch(
     Entry point for batch remediation.
     """
     service = BatchRemediationService(
-        cognitive_service, auditor_context, max_complexity=max_complexity
+        cognitive_service,
+        auditor_context,
+        config_service=config_service,
+        max_complexity=max_complexity,
     )
     return await service.process_batch(count)

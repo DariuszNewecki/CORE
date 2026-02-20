@@ -17,7 +17,7 @@ import time
 from dataclasses import dataclass
 from typing import Any
 
-from shared.infrastructure.storage.file_handler import FileHandler
+from body.services.file_service import FileService
 
 
 @dataclass(frozen=True)
@@ -30,7 +30,7 @@ class ArtifactPaths:
 class TestGenArtifactStore:
     """Write session artifacts in a consistent, discoverable format."""
 
-    def __init__(self, file_handler: FileHandler):
+    def __init__(self, file_handler: FileService):
         self._fh = file_handler
 
     # ID: 5f574d0e-77ed-4315-9df5-be41652fcb15

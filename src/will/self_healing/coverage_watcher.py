@@ -1,4 +1,4 @@
-# src/features/self_healing/coverage_watcher.py
+# src/will/self_healing/coverage_watcher.py
 
 """
 Constitutional coverage watcher.
@@ -15,12 +15,14 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass
 from datetime import datetime, timedelta
+from pathlib import Path
 from typing import Any
 
-from body.self_healing.coverage_remediation_service import remediate_coverage
 from mind.logic.engines.workflow_gate.checks.coverage import CoverageMinimumCheck
-from shared.config import settings
+from shared.infrastructure.config_service import ConfigService
 from shared.logger import getLogger
+from shared.path_resolver import PathResolver
+from will.self_healing.coverage_remediation_service import remediate_coverage
 
 
 logger = getLogger(__name__)
@@ -58,9 +60,9 @@ class _WatcherState:
 
     # ID: 66ab3cb4-e3fe-424a-b908-e37273836d55
     def record_success(self, violation: CoverageViolation):
-        from shared.infrastructure.storage.file_handler import FileHandler
+        from body.services.file_service import FileService
 
-        fh = FileHandler(str(self.repo_root))
+        fh = FileService(str(self.repo_root))
         state = {
             "last_check": datetime.now().isoformat(),
             "last_remediation": datetime.now().isoformat(),
@@ -81,10 +83,35 @@ class CoverageWatcher:
     Refactored for V2.3 to use the Workflow Gate engine and delegate state.
     """
 
-    def __init__(self):
-        # Use the V2.3 PathResolver from settings
-        self._paths = settings.paths
-        # Initialize the V2.3 Logic Engine check
+    def __init__(self, config_service: ConfigService | None = None):
+        self.config_service = config_service
+        self._paths: PathResolver | None = None
+        self.gate_check: CoverageMinimumCheck | None = None
+        self.state: _WatcherState | None = None
+
+    async def _ensure_initialized(self, context: Any | None = None) -> None:
+        """Initialize path-dependent services once."""
+        if self._paths is not None and self.gate_check is not None and self.state:
+            return
+
+        if self.config_service is not None:
+            repo_root_str = await self.config_service.get("REPO_PATH", required=True)
+            repo_root = Path(repo_root_str)
+        elif (
+            context is not None
+            and getattr(context, "auditor_context", None) is not None
+        ):
+            repo_root = context.auditor_context.repo_path
+        elif context is not None and getattr(context, "registry", None) is not None:
+            async with context.registry.session() as session:
+                runtime_config = await ConfigService.create(session)
+                repo_root = Path(await runtime_config.get("REPO_PATH", required=True))
+        else:
+            raise RuntimeError(
+                "CoverageWatcher initialization failed: no repo root source."
+            )
+
+        self._paths = PathResolver(repo_root)
         self.gate_check = CoverageMinimumCheck(self._paths)
         self.state = _WatcherState(
             self._paths.repo_root, "work/testing/watcher_state.json"
@@ -95,6 +122,7 @@ class CoverageWatcher:
         self, context: Any, auto_remediate: bool = True
     ) -> dict:
         """Senses the current coverage state and reacts to violations."""
+        await self._ensure_initialized(context)
         logger.info("📡 Coverage Watch: Sensing system state via Workflow Gate...")
 
         # In V2.3, verify() returns a list of violation strings. Empty = Pass.
@@ -156,4 +184,6 @@ class CoverageWatcher:
 # ID: 55f5ea3e-a410-4595-97ec-6bd4d4f8641e
 async def watch_and_remediate(context: Any, auto_remediate: bool = True) -> dict:
     """Public wrapper for the sensor loop."""
-    return await CoverageWatcher().check_and_remediate(context, auto_remediate)
+    return await CoverageWatcher(
+        config_service=getattr(context, "config_service", None)
+    ).check_and_remediate(context, auto_remediate)

@@ -1,4 +1,4 @@
-# src/features/self_healing/refactoring_proposal_writer.py
+# src/will/self_healing/refactoring_proposal_writer.py
 
 """
 Refactoring Proposal Writer - Constitutional Amendment Creation
@@ -20,16 +20,14 @@ from typing import Any
 import yaml
 
 from body.atomic.executor import ActionExecutor
-from shared.config import settings
+from shared.infrastructure.config_service import ConfigService
 from shared.logger import getLogger
 
 
 logger = getLogger(__name__)
-REPO_ROOT = settings.REPO_PATH
 
 
-# ID: b9ca7b0e-fa07-4bb9-9ac2-38da2aed969d
-# ID: 5b31b2d2-eda1-4cdc-8da7-5344eb9b86c8
+# ID: 8051cdb0-4567-41fe-90f9-25edb6c6eb6f
 class RefactoringProposalWriter:
     """
     Creates formal refactoring proposals via governed Action Gateway.
@@ -37,7 +35,7 @@ class RefactoringProposalWriter:
     Proposals are stored in work/proposals/ directory as YAML files.
     """
 
-    def __init__(self, executor: ActionExecutor):
+    def __init__(self, executor: ActionExecutor, config_service: ConfigService):
         """
         Initialize proposal writer.
 
@@ -45,9 +43,9 @@ class RefactoringProposalWriter:
             executor: ActionExecutor for governed file operations
         """
         self.executor = executor
+        self.config_service = config_service
 
-    # ID: 68e13014-3773-42be-82bb-03ca83f21950
-    # ID: 4e9c6711-96ad-45e1-9be8-6b762764da67
+    # ID: 5f436bed-841d-4948-bdb6-d8b34792ebe4
     async def create_proposal(self, proposal_plan: dict[str, Any], write: bool) -> bool:
         """
         Create a formal constitutional amendment proposal.
@@ -64,7 +62,10 @@ class RefactoringProposalWriter:
         proposal_filename = f"cr-refactor-{target_file_name}-{proposal_id}.yaml"
 
         # Resolve relative path for proposals directory
-        proposals_dir_rel = str(settings.paths.proposals_dir.relative_to(REPO_ROOT))
+        repo_root = Path(await self.config_service.get("REPO_PATH", required=True))
+        proposals_dir_rel = str(
+            (repo_root / "work" / "proposals").relative_to(repo_root)
+        )
         proposal_rel_path = f"{proposals_dir_rel}/{proposal_filename}"
 
         # Build proposal content

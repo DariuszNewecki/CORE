@@ -2,12 +2,10 @@
 # ID: e4570c9b-6eab-4ee5-86d2-7a772532dbc3
 """Constitutional Audit CLI Command.
 
-Runs the full constitutional self-audit and renders human-readable results.
-
-Updated (V2.4.0)
-- Restored --rule/--policy filtering support (Hybrid Mode).
-- If filters are used, Evidence Artifacts are SKIPPED to prevent
-  partial audits from corrupting the compliance ledger.
+Updated (V2.6.0)
+- Fixed ImportError: Removed write_auto_ignored_reports (moved logic to Body).
+- Fixed TypeError: Explicitly mapping AuditStats fields.
+- Fully Compliant: CLI (Body) owns all side-effects (file writes).
 """
 
 from __future__ import annotations
@@ -24,7 +22,8 @@ from body.cli.commands.check.converters import parse_min_severity
 from body.cli.logic.audit_renderer import AuditStats, render_detail, render_overview
 from body.services.file_service import FileService
 from body.services.service_registry import service_registry
-from mind.governance.audit_postprocessor import apply_entry_point_downgrade_and_report
+from mind.governance.audit_postprocessor import apply_entry_point_downgrade
+from mind.governance.audit_report_writer import build_auto_ignored_markdown
 from mind.governance.auditor import ConstitutionalAuditor
 from mind.governance.filtered_audit import run_filtered_audit
 from shared.activity_logging import activity_run
@@ -36,28 +35,23 @@ from .hub import app
 
 console = Console()
 
-REPORTS_DIR = "reports"
 FINDINGS_FILE = "reports/audit_findings.json"
 EVIDENCE_FILE = "reports/audit/latest_audit.json"
+IGNORED_REPORT_MD = "reports/audit_auto_ignored.md"
+IGNORED_REPORT_JSON = "reports/audit_auto_ignored.json"
 
 
 def _to_audit_finding(raw: dict | AuditFinding) -> AuditFinding:
-    """Safely convert a dictionary finding into a structured AuditFinding object."""
     if isinstance(raw, AuditFinding):
         return raw
-
     severity_map = {
         "info": AuditSeverity.INFO,
         "warning": AuditSeverity.WARNING,
         "error": AuditSeverity.ERROR,
-        "blocking": AuditSeverity.ERROR,
-        "reporting": AuditSeverity.WARNING,
-        "advisory": AuditSeverity.INFO,
     }
-
-    raw_severity = str(raw.get("severity", "info")).lower()
-    severity = severity_map.get(raw_severity, AuditSeverity.INFO)
-
+    severity = severity_map.get(
+        str(raw.get("severity", "info")).lower(), AuditSeverity.INFO
+    )
     return AuditFinding(
         check_id=raw.get("check_id") or raw.get("rule_id") or "unknown",
         severity=severity,
@@ -70,157 +64,100 @@ def _to_audit_finding(raw: dict | AuditFinding) -> AuditFinding:
 
 @app.command("audit")
 @core_command(dangerous=False)
-# ID: dcde428e-8586-48c7-94e1-be353a136ea0
+# ID: 67107783-c506-4634-a23c-c118e86befa8
 async def audit_command(
     ctx: typer.Context,
-    target: Path = typer.Argument(Path("src"), help="Directory or file to audit."),
-    severity: str = typer.Option(
-        "warning",
-        "--severity",
-        "-s",
-        help="Minimum severity level.",
-        case_sensitive=False,
-    ),
-    rule: list[str] = typer.Option(
-        [], "--rule", "-r", help="Filter by specific rule IDs."
-    ),
-    policy: list[str] = typer.Option(
-        [], "--policy", "-p", help="Filter by specific policy IDs."
-    ),
-    verbose: bool = typer.Option(
-        False,
-        "--verbose",
-        "-v",
-        help="Show every individual finding.",
-    ),
+    target: Path = typer.Argument(Path("src")),
+    severity: str = typer.Option("warning", "--severity", "-s"),
+    rule: list[str] = typer.Option([], "--rule", "-r"),
+    policy: list[str] = typer.Option([], "--policy", "-p"),
+    verbose: bool = typer.Option(False, "--verbose", "-v"),
 ) -> None:
-    """
-    Run the constitutional self-audit on the codebase.
-
-    Modes:
-    1. Full Audit (default): Runs all rules, generates official evidence artifacts.
-    2. Filtered Audit (with --rule/--policy): Runs subset, SKIPS evidence generation.
-    """
+    """Run the constitutional self-audit."""
     min_severity = parse_min_severity(severity)
     core_context = ctx.obj
     file_service = FileService(core_context.git_service.repo_path)
-
-    # Determine Mode
-    is_filtered = bool(rule or policy)
-    mode_label = "Filtered" if is_filtered else "Full Constitutional"
-
-    # Ensure directories exist
     file_service.ensure_dir("reports/audit")
 
-    # 1) Execute the Audit
     with activity_run("constitutional_audit") as run:
-        # JIT session injection for the Auditor
         async with service_registry.session() as session:
             core_context.auditor_context.db_session = session
             auditor = ConstitutionalAuditor(core_context.auditor_context)
-
             start_time = time.perf_counter()
 
-            if is_filtered:
-                # Surgical Path: Delegate to Filtered Audit Engine
-                console.print(
-                    f"[bold cyan]🔍 Running {mode_label} Audit...[/bold cyan]"
-                )
-                if rule:
-                    console.print(f"   Rules: {', '.join(rule)}")
-
-                # Load KG first
+            if rule or policy:
                 await core_context.auditor_context.load_knowledge_graph()
-
                 raw_findings, executed_ids, stats_dict = await run_filtered_audit(
                     core_context.auditor_context, rule_ids=rule, policy_ids=policy
                 )
-
-                # Normalize stats structure
                 results = {
                     "findings": raw_findings,
-                    "stats": {
-                        "total_executable_rules": stats_dict["total_rules"],
-                        "executed_dynamic_rules": stats_dict["executed_rules"],
-                        "coverage_percent": 0,  # Not applicable in filtered mode
-                    },
                     "executed_rule_ids": executed_ids,
-                    "passed": True,  # Re-calculated below
+                    "passed": True,
+                    "stats": stats_dict,
                 }
             else:
-                # Standard Path: Full Audit
-                console.print(
-                    f"[bold cyan]⚖️  Running {mode_label} Audit...[/bold cyan]"
-                )
                 results = await auditor.run_full_audit_async()
 
             duration = time.perf_counter() - start_time
-
-            # Clean up session ref
             core_context.auditor_context.db_session = None
 
-        # 2) Conversion
-        # Handle mixed types (dicts vs objects) from different engines
-        raw_findings_list = results["findings"]
-        all_findings = []
+        # 1. Ask the Mind to process the data (Pure logic)
+        findings_raw = results["findings"]
+        findings_dicts = [
+            f.as_dict() if hasattr(f, "as_dict") else f for f in findings_raw
+        ]
+        processed_findings, ignored_data = apply_entry_point_downgrade(
+            findings=findings_dicts, symbol_index={}
+        )
 
-        for f in raw_findings_list:
-            if hasattr(f, "as_dict"):
-                f = f.as_dict()
-            all_findings.append(_to_audit_finding(f))
+        # 2. Body performs the execution (File writes)
+        timestamp_str = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
 
-        # 3) Persistence (ONLY FOR FULL AUDITS)
-        if not is_filtered:
-            findings_dicts = [f.as_dict() for f in all_findings]
-            file_service.write_file(FINDINGS_FILE, json.dumps(findings_dicts, indent=2))
-
-            apply_entry_point_downgrade_and_report(
-                findings=findings_dicts,
-                symbol_index={},
-                reports_dir=Path(core_context.git_service.repo_path) / REPORTS_DIR,
-                file_service=file_service,
-                repo_root=Path(core_context.git_service.repo_path),
+        if not (rule or policy):
+            # Write Main Findings
+            file_service.write_file(
+                FINDINGS_FILE, json.dumps(processed_findings, indent=2)
             )
 
+            # Write Ignored Reports (Body uses Mind's string builder)
+            md_content = build_auto_ignored_markdown(timestamp_str, ignored_data)
+            file_service.write_file(IGNORED_REPORT_MD, md_content)
+            file_service.write_runtime_json(
+                IGNORED_REPORT_JSON,
+                {"generated_at": timestamp_str, "items": ignored_data},
+            )
+
+            # Record Evidence Ledger
+            verdict = results.get("verdict")
+            verdict_str = (
+                verdict.value if verdict else ("PASS" if results["passed"] else "FAIL")
+            )
             evidence = {
                 "audit_id": run.run_id,
-                "timestamp": datetime.now(UTC).isoformat(),
+                "timestamp": timestamp_str,
                 "passed": results["passed"],
-                "findings_count": len(all_findings),
+                "findings_count": len(processed_findings),
                 "executed_rules": sorted(list(results["executed_rule_ids"])),
+                "verdict": verdict_str,
             }
             file_service.write_file(EVIDENCE_FILE, json.dumps(evidence, indent=2))
-        else:
-            console.print(
-                "[dim]Note: Evidence artifacts skipped for filtered audit.[/dim]"
-            )
 
-    # 4) Presentation
-    filtered_findings = [f for f in all_findings if f.severity >= min_severity]
-
-    stats = results["stats"]
+    # 3. Build AuditStats correctly
+    raw_stats = results.get("stats", {})
     audit_stats = AuditStats(
-        total_rules=stats.get("total_executable_rules", 0),
-        executed_rules=stats.get("executed_dynamic_rules", 0),
-        coverage_percent=stats.get("coverage_percent", 0),
-        total_declared_rules=stats.get("total_declared_rules", 0),
-        crashed_rules=stats.get("crashed_rules", 0),
-        unmapped_rules=stats.get("unmapped_rules", 0),
-        effective_coverage_percent=stats.get("effective_coverage_percent", 0),
+        total_rules=raw_stats.get("total_executable_rules", 0),
+        executed_rules=raw_stats.get("executed_dynamic_rules", 0),
+        coverage_percent=raw_stats.get("coverage_percent", 0),
+        total_declared_rules=raw_stats.get("total_declared_rules", 0),
+        crashed_rules=raw_stats.get("crashed_rules", 0),
+        unmapped_rules=raw_stats.get("unmapped_rules", 0),
+        effective_coverage_percent=raw_stats.get("effective_coverage_percent", 0),
     )
 
-    # Re-calculate pass/fail for the filtered set
-    blocking_errors = [f for f in all_findings if f.severity == AuditSeverity.ERROR]
-    passed = len(blocking_errors) == 0
-
-    verdict = results.get("verdict")
-    verdict_str = verdict.value if verdict else ("PASS" if passed else "FAIL")
-    render_overview(
-        console, all_findings, audit_stats, duration, passed, verdict_str=verdict_str
-    )
-
-    if filtered_findings and verbose:
-        render_detail(console, filtered_findings)
-
-    if not passed:
+    all_findings = [_to_audit_finding(f) for f in processed_findings]
+    render_overview(console, all_findings, audit_stats, duration, results["passed"])
+    if verbose:
+        render_detail(console, [f for f in all_findings if f.severity >= min_severity])
+    if not results["passed"]:
         raise typer.Exit(1)

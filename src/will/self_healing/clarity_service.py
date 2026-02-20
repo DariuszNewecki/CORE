@@ -1,4 +1,4 @@
-# src/features/self_healing/clarity_service.py
+# src/will/self_healing/clarity_service.py
 # ID: 8bf2ad74-d73b-4b9d-b711-c0980f773afe
 
 """
@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from body.atomic.executor import ActionExecutor
-from shared.config import settings
+from shared.infrastructure.config_service import ConfigService
 from shared.logger import getLogger
 from will.orchestration.validation_pipeline import validate_code_async
 
@@ -25,11 +25,23 @@ logger = getLogger(__name__)
 
 
 # ID: b7ece8ed-0753-476f-be7d-d6e36048d582
-async def fix_clarity(context: CoreContext, file_path: Path, dry_run: bool):
+async def fix_clarity(
+    context: CoreContext,
+    file_path: Path,
+    dry_run: bool,
+    config_service: ConfigService | None = None,
+):
     """
     Refactors the provided file for clarity via governed atomic actions.
     """
-    rel_path = str(file_path.relative_to(settings.REPO_PATH))
+    if config_service is not None:
+        repo_root = Path(await config_service.get("REPO_PATH", required=True))
+    else:
+        async with context.registry.session() as session:
+            runtime_config = await ConfigService.create(session)
+            repo_root = Path(await runtime_config.get("REPO_PATH", required=True))
+
+    rel_path = str(file_path.relative_to(repo_root))
     logger.info("🔍 Analyzing '%s' for clarity improvements...", rel_path)
 
     # 1. Initialize Services
@@ -39,7 +51,7 @@ async def fix_clarity(context: CoreContext, file_path: Path, dry_run: bool):
     # Resolve Prompt via PathResolver (SSOT)
     # CONSTITUTIONAL FIX: Removed fallback to settings.MIND (.intent is read-only).
     # Prompts must reside in var/prompts/ as managed by the PathResolver.
-    prompt_path = settings.paths.prompt("refactor_for_clarity")
+    prompt_path = repo_root / "var" / "prompts" / "refactor_for_clarity.prompt"
 
     if not prompt_path.exists():
         logger.error(
@@ -75,7 +87,7 @@ async def fix_clarity(context: CoreContext, file_path: Path, dry_run: bool):
     # Refactoring is high-risk; we must ensure the result is clean.
     from mind.governance.audit_context import AuditorContext
 
-    auditor_context = AuditorContext(settings.REPO_PATH)
+    auditor_context = AuditorContext(repo_root)
 
     validation_result = await validate_code_async(
         rel_path, refactored_code, quiet=True, auditor_context=auditor_context

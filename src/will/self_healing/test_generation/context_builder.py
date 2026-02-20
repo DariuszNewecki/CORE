@@ -13,7 +13,7 @@ from pathlib import Path
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from body.self_healing.test_context_analyzer import ModuleContext
-from shared.config import settings
+from shared.infrastructure.config_service import ConfigService
 from shared.infrastructure.context import ContextBuilder
 from shared.infrastructure.context.providers import (
     ASTProvider,
@@ -30,6 +30,9 @@ logger = getLogger(__name__)
 class ContextPackageBuilder:
     """Builds ContextPackage → ModuleContext."""
 
+    def __init__(self, config_service: ConfigService):
+        self.config_service = config_service
+
     # ID: d047b64c-e60b-4ed2-9a88-231107db4046
     async def build(self, session: AsyncSession, module_path: str) -> ModuleContext:
         """
@@ -39,7 +42,8 @@ class ContextPackageBuilder:
             session: Database session (injected dependency)
             module_path: Path to module to analyze
         """
-        full_path = settings.REPO_PATH / module_path
+        repo_root = Path(await self.config_service.get("REPO_PATH", required=True))
+        full_path = repo_root / module_path
         source = full_path.read_text(encoding="utf-8")
         tree = ast.parse(source)
 
@@ -73,7 +77,7 @@ class ContextPackageBuilder:
 
         # Build packet with injected session
         dbp = DBProvider(db_service=session)
-        astp = ASTProvider(project_root=str(settings.REPO_PATH))
+        astp = ASTProvider(project_root=str(repo_root))
         vecp = VectorProvider()
         builder = ContextBuilder(
             db_provider=dbp,

@@ -1,20 +1,19 @@
-# src/mind/governance/code_validator.py
-
+# src/body/governance/code_validator.py
 """
-Code Validator - Generated Code Validation
+Code Validator - Body Layer Enforcement Service.
 
-CONSTITUTIONAL ALIGNMENT:
-- Single Responsibility: Validate generated code
-- Pattern-specific checks
-- AST-based syntax validation
-
-Extracted from IntentGuard to separate code validation concerns.
+CONSTITUTIONAL ALIGNMENT (V2.6.0):
+- Relocated: Moved from Mind to Body to comply with Mind-Body-Will separation.
+- Responsibility: Provides the mechanical capability to validate generated code
+  against architectural patterns.
+- Resolves architecture.mind.no_body_invocation violation.
 """
 
 from __future__ import annotations
 
 import ast
 
+# This import is now valid because this file is in the Body layer.
 from body.governance.intent_pattern_validators import PatternValidators
 from mind.governance.violation_report import ViolationReport
 from shared.logger import getLogger
@@ -28,16 +27,13 @@ logger = getLogger(__name__)
 # ID: 18f27500-2fbd-42a7-9180-a71ac3da5626
 class CodeValidator:
     """
-    Validates generated code against pattern requirements.
+    Body service that validates code against architectural patterns.
 
     Responsibilities:
-    - Syntax validation
-    - Pattern-specific checks
-    - Coordinates with PatternValidators for legacy patterns
+    - Syntax validation (AST)
+    - Pattern-specific enforcement (via PatternValidators)
     """
 
-    # ID: b4dff73f-c741-47ac-97d7-047359dcaa04
-    # ID: 2f3a4b5c-6d7e-8f9a-0b1c-2d3e4f5a6b7c
     @staticmethod
     # ID: d2605a19-d9d7-49cb-8b0d-3ce2acb85964
     def validate_generated_code(
@@ -45,18 +41,10 @@ class CodeValidator:
     ) -> ConstitutionalValidationResult:
         """
         Validate generated code against pattern requirements.
-
-        Args:
-            code: Generated code content
-            pattern_id: Pattern type (e.g., "inspect_pattern", "action_pattern")
-            target_path: Target file path (repo-relative)
-
-        Returns:
-            ConstitutionalValidationResult with violations
         """
         violations: list[ViolationReport] = []
 
-        # V2 Utility patterns - pure logic, only need valid syntax
+        # 1. Structural Sensation: Syntax validation (Pure logic)
         if pattern_id in ("pure_function", "stateless_utility"):
             violations.extend(
                 CodeValidator._validate_syntax(code, target_path, "code_purity")
@@ -67,7 +55,7 @@ class CodeValidator:
                 source="CodeValidator",
             )
 
-        # Legacy pattern validators (for Commands and Actions)
+        # 2. Pattern Enforcement: Call legacy pattern logic
         if pattern_id == "inspect_pattern":
             violations.extend(
                 PatternValidators.validate_inspect_pattern(code, target_path)
@@ -89,22 +77,12 @@ class CodeValidator:
             source="CodeValidator",
         )
 
-    # ID: 19c287a3-2e86-421d-b4e7-400d089234bf
-    # ID: 3a4b5c6d-7e8f-9a0b-1c2d-3e4f5a6b7c8d
     @staticmethod
     def _validate_syntax(
         code: str, target_path: str, policy_source: str
     ) -> list[ViolationReport]:
         """
-        Validate Python syntax.
-
-        Args:
-            code: Code to validate
-            target_path: Target file path
-            policy_source: Source policy identifier
-
-        Returns:
-            List of violations (empty if valid)
+        Check if code parses correctly.
         """
         try:
             ast.parse(code)

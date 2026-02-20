@@ -8,7 +8,7 @@ Purpose:
 - Materialize the 'Shadow Truth' (LimbWorkspace) to disk so subprocesses can see it.
 - Return per-test results.
 
-Constitutional Fix (V2.5.0):
+Constitutional Fix (V2.3.0):
 - Ghost File Resolution: Materializes the entire LimbWorkspace into the temp dir.
 - Sets PYTHONPATH to the temp dir so imports resolve to the 'Future Truth'.
 """
@@ -23,11 +23,12 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from shared.infrastructure.storage.file_handler import FileHandler
+from body.services.file_service import FileService
 from shared.logger import getLogger
 
 
 if TYPE_CHECKING:
+    from shared.infrastructure.config_service import ConfigService
     from shared.infrastructure.context.limb_workspace import LimbWorkspace
 
 logger = getLogger(__name__)
@@ -54,9 +55,15 @@ class SandboxResult:
 class PytestSandboxRunner:
     """Run generated tests via pytest with isolation, timeout, and Workspace Materialization."""
 
-    def __init__(self, file_handler: FileHandler, repo_root: str):
+    def __init__(
+        self,
+        file_handler: FileService,
+        repo_root: str,
+        config_service: ConfigService | None = None,
+    ):
         self._fh = file_handler
         self._repo_root = Path(repo_root)
+        self.config_service = config_service
 
     # ID: 49f91d78-3218-411d-b5f4-9cb3207853b4
     async def run(

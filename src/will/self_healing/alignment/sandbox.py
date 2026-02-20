@@ -7,12 +7,17 @@ from __future__ import annotations
 import asyncio
 import tempfile
 from pathlib import Path
+from typing import TYPE_CHECKING
 
-from shared.config import settings
+
+if TYPE_CHECKING:
+    from shared.infrastructure.config_service import ConfigService
 
 
 # ID: 561ad23f-b5dd-4bf2-b1e1-c9c966de110e
-async def verify_import_safety(file_path: str) -> tuple[bool, str]:
+async def verify_import_safety(
+    file_path: str, config_service: ConfigService
+) -> tuple[bool, str]:
     """Sandbox test to ensure the file is 'compilable'."""
     module_path = file_path.replace("src/", "").replace(".py", "").replace("/", ".")
     check_code = f"import {module_path}\nprint('ALIVE')"
@@ -22,7 +27,8 @@ async def verify_import_safety(file_path: str) -> tuple[bool, str]:
         temp_path = f.name
 
     try:
-        src_path = str((settings.REPO_PATH / "src").resolve())
+        repo_root = Path(await config_service.get("REPO_PATH", required=True))
+        src_path = str((repo_root / "src").resolve())
         proc = await asyncio.create_subprocess_exec(
             "env",
             f"PYTHONPATH={src_path}",
@@ -30,7 +36,7 @@ async def verify_import_safety(file_path: str) -> tuple[bool, str]:
             temp_path,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
-            cwd=str(settings.REPO_PATH),
+            cwd=str(repo_root),
         )
         _, stderr = await proc.communicate()
         return (proc.returncode == 0, stderr.decode("utf-8"))

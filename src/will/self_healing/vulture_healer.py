@@ -8,7 +8,7 @@ import json
 import re
 from pathlib import Path
 
-from shared.infrastructure.storage.file_handler import FileHandler
+from body.services.file_service import FileService
 from shared.logger import getLogger
 from shared.utils.parsing import extract_python_code_from_response
 
@@ -19,7 +19,7 @@ logger = getLogger(__name__)
 # ID: 515a5f31-deb3-41bc-9736-4e29e1989a0f
 async def heal_dead_code(
     context,
-    file_handler: FileHandler,
+    file_handler: FileService,
     repo_root: Path,
     write: bool = False,
 ):

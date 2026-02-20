@@ -16,7 +16,7 @@ from pathlib import Path
 
 from body.self_healing.complexity_filter import ComplexityFilter
 from body.self_healing.test_context_analyzer import ModuleContext
-from shared.infrastructure.storage.file_handler import FileHandler
+from body.services.file_service import FileService
 from shared.logger import getLogger
 from will.orchestration.cognitive_service import CognitiveService
 
@@ -37,7 +37,7 @@ class GenerationWorkflow:
         cognitive_service: CognitiveService,
         complexity_filter: ComplexityFilter,
         auto_repair: AutomaticRepairService,
-        file_handler: FileHandler,
+        file_handler: FileService,
         repo_root: Path,
         max_complexity: str = "MODERATE",
     ):

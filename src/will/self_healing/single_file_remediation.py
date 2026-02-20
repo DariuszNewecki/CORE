@@ -17,8 +17,8 @@ from typing import Any
 
 from body.self_healing.coverage_analyzer import CoverageAnalyzer
 from body.self_healing.test_generator import EnhancedTestGenerator
+from body.services.file_service import FileService
 from mind.governance.audit_context import AuditorContext
-from shared.infrastructure.storage.file_handler import FileHandler
 from shared.logger import getLogger
 from will.orchestration.cognitive_service import CognitiveService
 
@@ -37,7 +37,7 @@ class EnhancedSingleFileRemediationService:
         cognitive_service: CognitiveService,
         auditor_context: AuditorContext,
         file_path: Path,
-        file_handler: FileHandler,
+        file_handler: FileService,
         repo_root: Path,
         max_complexity: str = "SIMPLE",
     ):
