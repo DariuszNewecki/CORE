@@ -1,8 +1,8 @@
 {
-  "audit_id": "394ce900-8121-48eb-be5a-2ac6064b2d69",
-  "timestamp": "2026-02-20T14:43:57Z",
-  "passed": false,
-  "findings_count": 145,
+  "audit_id": "a2604b30-eb1c-4ae3-a1af-d211a5464854",
+  "timestamp": "2026-02-21T15:10:37Z",
+  "passed": true,
+  "findings_count": 94,
   "executed_rules": [
     "architecture.api.must_route_through_will",
     "architecture.api.no_body_bypass",
@@ -11,7 +11,6 @@
     "architecture.boundary.database_session_access",
     "architecture.boundary.file_handler_access",
     "architecture.boundary.intent_loader_access",
-    "architecture.boundary.llm_client_access",
     "architecture.boundary.settings_access",
     "architecture.constitution_read_only",
     "architecture.layer_exclusivity",
@@ -84,5 +83,5 @@
     "quality.test_integrity",
     "quality.type_safety"
   ],
-  "verdict": "FAIL"
+  "verdict": "PASS"
 }

@@ -19,7 +19,8 @@ import ast
 import time
 from dataclasses import dataclass
 
-from shared.component_primitive import Component, ComponentPhase, ComponentResult
+from body.analyzers.base_analyzer import BaseAnalyzer
+from shared.component_primitive import ComponentResult  # Component, ComponentPhase,
 from shared.context import CoreContext
 from shared.logger import getLogger
 
@@ -49,7 +50,7 @@ class SymbolMetadata:
 
 
 # ID: 2bd8827b-1c5a-44c2-9fc8-78daa71b05b9
-class SymbolExtractor(Component):
+class SymbolExtractor(BaseAnalyzer):
     """Extracts testable symbols (functions and classes) from Python files.
 
     Constitutional filters:
@@ -64,11 +65,6 @@ class SymbolExtractor(Component):
     def __init__(self, context: CoreContext | None = None):
         """Initialize with context for governed path resolution."""
         self.context = context
-
-    @property
-    # ID: 88898be4-86f2-4bf4-ba81-06a34759d3f3
-    def phase(self) -> ComponentPhase:
-        return ComponentPhase.PARSE
 
     # ID: a98b1814-002c-4deb-aeb9-dadc7039ac60
     async def execute(

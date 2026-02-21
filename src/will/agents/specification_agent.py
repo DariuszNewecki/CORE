@@ -32,6 +32,7 @@ from shared.logger import getLogger
 from shared.models import ExecutionTask
 from shared.models.workflow_models import DetailedPlan, DetailedPlanStep
 from shared.path_resolver import PathResolver
+from will.agents.traced_agent_mixin import TracedAgentMixin
 from will.orchestration.decision_tracer import DecisionTracer
 
 
@@ -42,7 +43,7 @@ logger = getLogger(__name__)
 
 
 # ID: 574b1fac-9676-4bc3-bff5-e2f4f0d8b049
-class SpecificationAgent:
+class SpecificationAgent(TracedAgentMixin):
     """
     The Engineer: Turns architectural plans into detailed code specifications.
     """
@@ -217,11 +218,3 @@ class SpecificationAgent:
             )
             self.context_str += feedback_block
             logger.info("SpecificationAgent: Dossier enriched with trial feedback.")
-
-    # ID: 5fac0b78-4256-42a4-9208-01c3d5736a79
-    def get_decision_trace(self) -> str:
-        return self.tracer.format_trace()
-
-    # ID: d5dfd350-85da-4860-83db-09f148b976d3
-    def save_decision_trace(self) -> None:
-        self.tracer.save_trace()

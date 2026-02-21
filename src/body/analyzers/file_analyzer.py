@@ -18,7 +18,8 @@ import ast
 import time
 from typing import Any
 
-from shared.component_primitive import Component, ComponentPhase, ComponentResult
+from body.analyzers.base_analyzer import BaseAnalyzer
+from shared.component_primitive import ComponentResult  # Component, ComponentPhase,
 from shared.context import CoreContext
 from shared.logger import getLogger
 
@@ -27,7 +28,7 @@ logger = getLogger(__name__)
 
 
 # ID: c9251530-0236-41a9-9630-b305f283277a
-class FileAnalyzer(Component):
+class FileAnalyzer(BaseAnalyzer):
     """Analyzes Python files to detect type and complexity.
 
     Determines if a file is a:
@@ -43,11 +44,6 @@ class FileAnalyzer(Component):
     def __init__(self, context: CoreContext | None = None):
         """Initialize with context for governed path resolution."""
         self.context = context
-
-    @property
-    # ID: f380c886-12d6-4630-a4ae-e100f2e931fe
-    def phase(self) -> ComponentPhase:
-        return ComponentPhase.PARSE
 
     # ID: ddb4df7c-87db-40dd-91b1-1691cb0b8203
     async def execute(self, file_path: str, **kwargs) -> ComponentResult:

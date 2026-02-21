@@ -24,16 +24,17 @@ from __future__ import annotations
 import time
 from typing import Any
 
-from shared.component_primitive import Component, ComponentPhase, ComponentResult
+from shared.component_primitive import ComponentResult  # Component, ComponentPhase,
 from shared.logger import getLogger
 from will.orchestration.decision_tracer import DecisionTracer
+from will.strategists.base_strategist import BaseStrategist
 
 
 logger = getLogger(__name__)
 
 
 # ID: a0a7b1e5-e020-4c3d-9fc2-26411de58a10
-class SyncStrategist(Component):
+class SyncStrategist(BaseStrategist):
     """
     Decides which sync operations to run and in what order.
 
@@ -71,12 +72,6 @@ class SyncStrategist(Component):
     def __init__(self):
         """Initialize strategist with decision tracer."""
         self.tracer = DecisionTracer()
-
-    @property
-    # ID: 0c052ee0-1ec1-4224-8a13-ba386f5b2097
-    def phase(self) -> ComponentPhase:
-        """SyncStrategist operates in RUNTIME phase."""
-        return ComponentPhase.RUNTIME
 
     # ID: 2861d183-4c7e-4482-a8a1-8af32d69d25d
     async def execute(

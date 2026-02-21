@@ -25,16 +25,17 @@ from __future__ import annotations
 import time
 from typing import Any, ClassVar
 
-from shared.component_primitive import Component, ComponentPhase, ComponentResult
+from shared.component_primitive import ComponentResult  # Component, ComponentPhase,
 from shared.logger import getLogger
 from will.orchestration.decision_tracer import DecisionTracer
+from will.strategists.base_strategist import BaseStrategist
 
 
 logger = getLogger(__name__)
 
 
 # ID: 26539a67-a4e8-4a7a-899e-b133bab02ac0
-class FixStrategist(Component):
+class FixStrategist(BaseStrategist):
     """
     Decides which fixes to apply and in what order.
 
@@ -144,12 +145,6 @@ class FixStrategist(Component):
     def __init__(self):
         """Initialize strategist with decision tracer."""
         self.tracer = DecisionTracer()
-
-    @property
-    # ID: c6dae3a7-dc32-4bb1-968b-824ea0d23601
-    def phase(self) -> ComponentPhase:
-        """FixStrategist operates in RUNTIME phase."""
-        return ComponentPhase.RUNTIME
 
     # ID: 68f07350-e79d-4b00-a5be-8df3a1f1ced5
     async def execute(

@@ -16,7 +16,7 @@ from rich.text import Text
 
 from shared.action_types import ActionResult
 from shared.activity_logging import ActivityRun, log_activity
-from shared.cli_types import CommandResult
+from shared.cli_types import CommandResult, _WorkflowResultsMixin
 
 
 # FIXED: Disable timestamps in console output for cleaner display
@@ -47,7 +47,7 @@ def _get_result_name(result: ResultLike) -> str:
 
 @dataclass
 # ID: 08f90cdd-370c-4988-80e8-0ad64f73afe1
-class DevSyncPhase:
+class DevSyncPhase(_WorkflowResultsMixin):
     """Represents a logical phase in the dev-sync workflow."""
 
     name: str
@@ -55,18 +55,6 @@ class DevSyncPhase:
 
     results: list[ResultLike] = field(default_factory=list)
     """Commands executed in this phase"""
-
-    @property
-    # ID: 56b5b128-8286-48ef-942a-21b9da4a7a83
-    def ok(self) -> bool:
-        """Phase succeeds if all commands succeed."""
-        return all(r.ok for r in self.results)
-
-    @property
-    # ID: 1258d2aa-3dd9-434c-a495-4e59d33bcbca
-    def total_duration(self) -> float:
-        """Sum of all command durations in this phase."""
-        return sum(r.duration_sec for r in self.results)
 
 
 @dataclass

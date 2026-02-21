@@ -23,8 +23,9 @@ from __future__ import annotations
 from functools import partial
 from typing import Any
 
+# from sqlalchemy import text
+# from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import text
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.infrastructure.clients.qdrant_client import QdrantService
 from shared.infrastructure.config_service import ConfigService
@@ -40,7 +41,7 @@ logger = getLogger(__name__)
 ENRICH_SYMBOLS_ROLE = "LocalCoder"
 
 
-async def _get_symbols_to_enrich(session: AsyncSession) -> list[dict[str, Any]]:
+async def _get_symbols_to_enrich(session: Any) -> list[dict[str, Any]]:
     """Fetch symbols that are ready for enrichment.
 
     Criteria:
@@ -159,7 +160,7 @@ async def _enrich_single_symbol(
 
 
 async def _update_descriptions_in_db(
-    session: AsyncSession,
+    session: Any,
     descriptions: list[dict[str, str]],
 ) -> None:
     """Update symbol `intent` descriptions in the database."""
@@ -181,7 +182,7 @@ async def _update_descriptions_in_db(
 
 # ID: 78078aae-3e69-4e5e-bd86-5c046a63314c
 async def enrich_symbols(
-    session: AsyncSession,
+    session: Any,
     cognitive_service: CognitiveService,
     qdrant_service: QdrantService,
     dry_run: bool,

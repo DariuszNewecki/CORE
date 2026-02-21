@@ -52,6 +52,7 @@ mappings:
         # The Bootstrap Sanctuary: Converts Config -> Context
         - "src/body/infrastructure/bootstrap.py"
         # General infrastructure patterns
+        - "src/body/infrastructure/*.py"
         - "src/body/infrastructure/**/*.py"
         - "src/body/**/test_*.py"
         - "src/mind/**/test_*.py"
@@ -114,24 +115,26 @@ mappings:
   # Only Will layer may invoke LLM infrastructure
   # Body (execution) and Mind (law) must not make AI decisions
 
-  architecture.boundary.llm_client_access:
-    engine: ast_gate
-    params:
-      check_type: import_boundary
-      forbidden:
-        - "shared.infrastructure.llm.client"
-        - "core.infrastructure.llm"
-        - "will.agents"
-    scope:
-      applies_to:
-        - "src/body/**/*.py"
-        - "src/mind/**/*.py"
-      excludes:
-        - "src/body/cli/commands/autonomous.py" # CLI may invoke Will agents
-        - "src/mind/logic/engines/llm_gate/**/*.py" # LLM Gate uses LLM for eval
-        - "src/body/**/test_*.py"
-        - "src/mind/**/test_*.py"
-        - "tests/**"
+architecture.boundary.llm_client_access:
+  engine: ast_gate
+  params:
+    check_type: import_boundary
+    forbidden:
+      - "shared.infrastructure.llm.client"
+      - "core.infrastructure.llm"
+      - "will.agents"
+  scope:
+    applies_to:
+      - "src/body/**/*.py"
+      - "src/mind/**/*.py"
+    excludes:
+      - "src/body/cli/commands/autonomous.py" # CLI may invoke Will agents
+      - "src/body/cli/logic/interactive_test/**/*.py" # Interactive test workflow invokes Will agents
+      - "src/body/cli/resources/dev/**/*.py" # Dev CLI resources may invoke Will agents
+      - "src/mind/logic/engines/llm_gate/**/*.py" # LLM Gate uses LLM for eval
+      - "src/body/**/test_*.py"
+      - "src/mind/**/test_*.py"
+      - "tests/**"
 # ==============================================================================
 # Meta: This mapping enforces constitutional boundaries by preventing
 # direct infrastructure primitive imports. Violations indicate architectural

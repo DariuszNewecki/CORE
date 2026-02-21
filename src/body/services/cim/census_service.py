@@ -15,13 +15,13 @@ from shared.logger import getLogger
 
 from .models import CensusSummary, MutationHotspot, RepoCensus, RepoCensusMetadata
 from .scanners import (
-    _should_skip_path,
     extract_cli_entrypoints,
     scan_architectural_signals,
     scan_execution_surfaces,
     scan_git_metadata,
     scan_mutation_surfaces,
     scan_tree_stats,
+    should_skip_path,
 )
 
 
@@ -129,7 +129,7 @@ class CensusService:
 
         path_classes: dict[str, int] = defaultdict(int)
         for py_file in repo_path.rglob("*.py"):
-            if _should_skip_path(py_file, repo_path):
+            if should_skip_path(py_file, repo_path):
                 continue
             rel_path = py_file.relative_to(repo_path)
             if len(rel_path.parts) > 0:

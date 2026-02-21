@@ -1,7 +1,6 @@
 # src/shared/cli_types.py
-
 """
-Shared types for CLI command contracts.
+Constitutional CLI Framework - Shared types for CLI command contracts.
 
 All core-admin commands should return CommandResult to enable:
 1. Standardized orchestration (workflows can collect and report uniformly)
@@ -13,6 +12,29 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from typing import Any
+
+
+# ID: 9b1e2f3a-4c5d-6789-abcd-ef1234567890
+class _WorkflowResultsMixin:
+    """Shared computed properties for any workflow container that holds results.
+
+    Eliminates AST duplication between WorkflowRun and DevSyncPhase.
+    Both have a `results` field whose items expose `.ok` and `.duration_sec`.
+    """
+
+    results: list  # subclass dataclass field — accessed via self.results
+
+    @property
+    # ID: a2c3d4e5-5f6a-7890-bcde-f01234567891
+    def ok(self) -> bool:
+        """Succeeds only if ALL results succeed."""
+        return all(r.ok for r in self.results)
+
+    @property
+    # ID: b3d4e5f6-6a7b-8901-cdef-012345678912
+    def total_duration(self) -> float:
+        """Sum of all result durations."""
+        return sum(r.duration_sec for r in self.results)
 
 
 @dataclass
@@ -41,7 +63,7 @@ class CommandResult:
     """Debug/trace messages (not shown to user by default)"""
 
     def __post_init__(self):
-        """Validate the result structure"""
+        """Validate the result structure."""
         if not isinstance(self.name, str) or not self.name:
             raise ValueError("CommandResult.name must be non-empty string")
         if not isinstance(self.data, dict):
@@ -50,11 +72,12 @@ class CommandResult:
 
 @dataclass
 # ID: f458eb09-9ed9-427e-af11-04e891474e14
-class WorkflowRun:
+class WorkflowRun(_WorkflowResultsMixin):
     """
     Collection of CommandResults representing a multi-step workflow.
 
     Used by orchestrators (dev.sync, check.audit) to group related operations.
+    Inherits `ok` and `total_duration` from _WorkflowResultsMixin.
     """
 
     workflow_name: str
@@ -63,19 +86,7 @@ class WorkflowRun:
     results: list[CommandResult] = field(default_factory=list)
     """Individual command results in execution order"""
 
-    @property
-    # ID: f94b2822-4fda-4a3c-b528-ef9d33606c35
-    def ok(self) -> bool:
-        """Workflow succeeds only if ALL commands succeed"""
-        return all(r.ok for r in self.results)
-
-    @property
-    # ID: cecc4af0-5c6f-4daf-a819-8f83478d8dfd
-    def total_duration(self) -> float:
-        """Sum of all command durations"""
-        return sum(r.duration_sec for r in self.results)
-
     # ID: fc0ea1d9-57f0-469f-b8b6-ed87cfbd7758
-    def add(self, result: CommandResult):
-        """Add a command result to this workflow"""
+    def add(self, result: CommandResult) -> None:
+        """Add a command result to this workflow."""
         self.results.append(result)

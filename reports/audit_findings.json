@@ -1,32 +1,5 @@
 [
   {
-    "check_id": "async.no_manual_loop_run",
-    "severity": "error",
-    "message": "Line 134: Forbidden asyncio.run() without defensive loop check",
-    "file_path": "src/body/cli/resources/context/build.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "async.no_manual_loop_run",
-    "severity": "error",
-    "message": "Line 79: Forbidden asyncio.run() without defensive loop check",
-    "file_path": "src/body/cli/resources/context/search.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "async.no_manual_loop_run",
-    "severity": "error",
-    "message": "Line 284: Forbidden asyncio.run() without defensive loop check",
-    "file_path": "src/body/maintenance/scripts/context_export.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
     "check_id": "logic.logging.standard_only",
     "severity": "warning",
     "message": "Line 78: Replace print() with logger.",
@@ -101,15 +74,6 @@
   {
     "check_id": "architecture.max_file_size",
     "severity": "warning",
-    "message": "Module has 588 lines, exceeds limit of 400",
-    "file_path": "src/body/services/cim/scanners.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.max_file_size",
-    "severity": "warning",
     "message": "Module has 426 lines, exceeds limit of 400",
     "file_path": "src/body/services/constitutional_validator.py",
     "line_number": null,
@@ -155,16 +119,7 @@
   {
     "check_id": "architecture.max_file_size",
     "severity": "warning",
-    "message": "Module has 649 lines, exceeds limit of 400",
-    "file_path": "src/will/self_healing/audit_remediation_service.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.max_file_size",
-    "severity": "warning",
-    "message": "Module has 472 lines, exceeds limit of 400",
+    "message": "Module has 467 lines, exceeds limit of 400",
     "file_path": "src/will/strategists/fix_strategist.py",
     "line_number": null,
     "context": {},
@@ -220,6 +175,15 @@
     "severity": "info",
     "message": "Forbidden primitive 'os.environ' used (line 95).",
     "file_path": "src/body/governance/runtime_validator.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "governance.dangerous_execution_primitives",
+    "severity": "info",
+    "message": "Forbidden primitive 'os.getenv' used (line 43).",
+    "file_path": "src/body/infrastructure/lifespan.py",
     "line_number": null,
     "context": {},
     "details": {}
@@ -308,15 +272,6 @@
   {
     "check_id": "governance.dangerous_execution_primitives",
     "severity": "info",
-    "message": "Forbidden primitive 'os.getenv' used (line 77).",
-    "file_path": "src/shared/infrastructure/lifespan.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "governance.dangerous_execution_primitives",
-    "severity": "info",
     "message": "Forbidden primitive 'subprocess.run' used (line 128).",
     "file_path": "src/shared/infrastructure/repositories/db/common.py",
     "line_number": null,
@@ -379,7 +334,7 @@
   },
   {
     "check_id": "architecture.body.no_rule_evaluation",
-    "severity": "error",
+    "severity": "warning",
     "message": "/opt/dev/CORE/src/body/atomic/metadata_ops.py:84 - Forbidden import: 'from mind.logic.engines.ast_gate.checks.metadata_checks import verify_metadata_only_diff' (matches constitutional boundary rule: mind.logic.engines)",
     "file_path": "src/body/atomic/metadata_ops.py",
     "line_number": null,
@@ -388,7 +343,7 @@
   },
   {
     "check_id": "architecture.body.no_rule_evaluation",
-    "severity": "error",
+    "severity": "warning",
     "message": "/opt/dev/CORE/src/body/cli/commands/refactor_support/analyzer.py:11 - Forbidden import: 'from mind.logic.engines.ast_gate.checks.modularity_checks import ModularityChecker' (matches constitutional boundary rule: mind.logic.engines)",
     "file_path": "src/body/cli/commands/refactor_support/analyzer.py",
     "line_number": null,
@@ -397,7 +352,7 @@
   },
   {
     "check_id": "architecture.body.no_rule_evaluation",
-    "severity": "error",
+    "severity": "warning",
     "message": "/opt/dev/CORE/src/body/cli/logic/governance/engine.py:18 - Forbidden import: 'from mind.logic.engines.ast_gate import ASTGateEngine' (matches constitutional boundary rule: mind.logic.engines)",
     "file_path": "src/body/cli/logic/governance/engine.py",
     "line_number": null,
@@ -406,7 +361,7 @@
   },
   {
     "check_id": "architecture.body.no_rule_evaluation",
-    "severity": "error",
+    "severity": "warning",
     "message": "/opt/dev/CORE/src/body/governance/engine_dispatcher.py:14 - Forbidden import: 'from mind.logic.engines.registry import EngineRegistry' (matches constitutional boundary rule: mind.logic.engines)",
     "file_path": "src/body/governance/engine_dispatcher.py",
     "line_number": null,
@@ -433,7 +388,7 @@
   },
   {
     "check_id": "architecture.layers.no_body_to_will",
-    "severity": "error",
+    "severity": "warning",
     "message": "/opt/dev/CORE/src/body/autonomy/autonomous_developer.py:19 - Forbidden import: 'from will.orchestration.phase_registry import PhaseRegistry' (matches constitutional boundary rule: will.orchestration)",
     "file_path": "src/body/autonomy/autonomous_developer.py",
     "line_number": null,
@@ -442,7 +397,7 @@
   },
   {
     "check_id": "architecture.layers.no_body_to_will",
-    "severity": "error",
+    "severity": "warning",
     "message": "/opt/dev/CORE/src/body/autonomy/autonomous_developer.py:20 - Forbidden import: 'from will.orchestration.workflow_orchestrator import WorkflowOrchestrator' (matches constitutional boundary rule: will.orchestration)",
     "file_path": "src/body/autonomy/autonomous_developer.py",
     "line_number": null,
@@ -451,7 +406,7 @@
   },
   {
     "check_id": "architecture.layers.no_body_to_will",
-    "severity": "error",
+    "severity": "warning",
     "message": "/opt/dev/CORE/src/body/cli/logic/embeddings_cli.py:17 - Forbidden import: 'from will.orchestration.cognitive_service import CognitiveService' (matches constitutional boundary rule: will.orchestration)",
     "file_path": "src/body/cli/logic/embeddings_cli.py",
     "line_number": null,
@@ -460,7 +415,7 @@
   },
   {
     "check_id": "architecture.layers.no_body_to_will",
-    "severity": "error",
+    "severity": "warning",
     "message": "/opt/dev/CORE/src/body/cli/logic/interactive_test/workflow.py:33 - Forbidden import: 'from will.agents.coder_agent import CoderAgent' (matches constitutional boundary rule: will.agents)",
     "file_path": "src/body/cli/logic/interactive_test/workflow.py",
     "line_number": null,
@@ -469,7 +424,7 @@
   },
   {
     "check_id": "architecture.layers.no_body_to_will",
-    "severity": "error",
+    "severity": "warning",
     "message": "/opt/dev/CORE/src/body/cli/logic/interactive_test/workflow.py:34 - Forbidden import: 'from will.orchestration.prompt_pipeline import PromptPipeline' (matches constitutional boundary rule: will.orchestration)",
     "file_path": "src/body/cli/logic/interactive_test/workflow.py",
     "line_number": null,
@@ -478,7 +433,7 @@
   },
   {
     "check_id": "architecture.layers.no_body_to_will",
-    "severity": "error",
+    "severity": "warning",
     "message": "/opt/dev/CORE/src/body/cli/resources/dev/chat.py:24 - Forbidden import: 'from will.agents.intent_translator import IntentTranslator' (matches constitutional boundary rule: will.agents)",
     "file_path": "src/body/cli/resources/dev/chat.py",
     "line_number": null,
@@ -487,7 +442,7 @@
   },
   {
     "check_id": "architecture.layers.no_body_to_will",
-    "severity": "error",
+    "severity": "warning",
     "message": "/opt/dev/CORE/src/body/cli/resources/dev/chat.py:25 - Forbidden import: 'from will.orchestration.cognitive_service import CognitiveService' (matches constitutional boundary rule: will.orchestration)",
     "file_path": "src/body/cli/resources/dev/chat.py",
     "line_number": null,
@@ -496,7 +451,7 @@
   },
   {
     "check_id": "architecture.layers.no_body_to_will",
-    "severity": "error",
+    "severity": "warning",
     "message": "/opt/dev/CORE/src/body/introspection/knowledge_vectorizer.py:24 - Forbidden import: 'from will.orchestration.cognitive_service import CognitiveService' (matches constitutional boundary rule: will.orchestration)",
     "file_path": "src/body/introspection/knowledge_vectorizer.py",
     "line_number": null,
@@ -505,7 +460,7 @@
   },
   {
     "check_id": "architecture.layers.no_body_to_will",
-    "severity": "error",
+    "severity": "warning",
     "message": "/opt/dev/CORE/src/body/introspection/pattern_vectorizer.py:34 - Forbidden import: 'from will.orchestration.cognitive_service import CognitiveService' (matches constitutional boundary rule: will.orchestration)",
     "file_path": "src/body/introspection/pattern_vectorizer.py",
     "line_number": null,
@@ -514,7 +469,7 @@
   },
   {
     "check_id": "architecture.layers.no_body_to_will",
-    "severity": "error",
+    "severity": "warning",
     "message": "/opt/dev/CORE/src/body/introspection/vectorization/embedding_logic.py:10 - Forbidden import: 'from will.orchestration.cognitive_service import CognitiveService' (matches constitutional boundary rule: will.orchestration)",
     "file_path": "src/body/introspection/vectorization/embedding_logic.py",
     "line_number": null,
@@ -523,7 +478,7 @@
   },
   {
     "check_id": "architecture.layers.no_body_to_will",
-    "severity": "error",
+    "severity": "warning",
     "message": "/opt/dev/CORE/src/body/services/service_registry.py:189 - Forbidden import: 'from will.orchestration.cognitive_service import CognitiveService' (matches constitutional boundary rule: will.orchestration)",
     "file_path": "src/body/services/service_registry.py",
     "line_number": null,
@@ -551,15 +506,6 @@
   {
     "check_id": "modularity.single_responsibility",
     "severity": "warning",
-    "message": "Modularity Debt: 49.3/100 (Limit: 60.0)",
-    "file_path": "src/body/services/cim/scanners.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.single_responsibility",
-    "severity": "warning",
     "message": "Modularity Debt: 50.7/100 (Limit: 60.0)",
     "file_path": "src/body/services/service_registry.py",
     "line_number": null,
@@ -607,15 +553,6 @@
     "severity": "warning",
     "message": "Modularity Debt: 54.2/100 (Limit: 60.0)",
     "file_path": "src/body/maintenance/refactor_settings_access.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.semantic_cohesion",
-    "severity": "warning",
-    "message": "Modularity Debt: 49.3/100 (Limit: 60.0)",
-    "file_path": "src/body/services/cim/scanners.py",
     "line_number": null,
     "context": {},
     "details": {}
@@ -677,15 +614,6 @@
   {
     "check_id": "modularity.import_coupling",
     "severity": "warning",
-    "message": "Modularity Debt: 49.3/100 (Limit: 60.0)",
-    "file_path": "src/body/services/cim/scanners.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.import_coupling",
-    "severity": "warning",
     "message": "Modularity Debt: 50.7/100 (Limit: 60.0)",
     "file_path": "src/body/services/service_registry.py",
     "line_number": null,
@@ -740,15 +668,6 @@
   {
     "check_id": "modularity.refactor_score_threshold",
     "severity": "warning",
-    "message": "Modularity Debt: 49.3/100 (Limit: 60.0)",
-    "file_path": "src/body/services/cim/scanners.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.refactor_score_threshold",
-    "severity": "warning",
     "message": "Modularity Debt: 50.7/100 (Limit: 60.0)",
     "file_path": "src/body/services/service_registry.py",
     "line_number": null,
@@ -778,42 +697,6 @@
     "severity": "warning",
     "message": "Modularity Debt: 50.4/100 (Limit: 60.0)",
     "file_path": "src/will/test_generation/sandbox.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.boundary.database_session_access",
-    "severity": "error",
-    "message": "/opt/dev/CORE/src/will/self_healing/enrichment_service.py:27 - Forbidden import: 'from sqlalchemy.ext.asyncio import AsyncSession' (matches constitutional boundary rule: sqlalchemy.ext.asyncio.AsyncSession)",
-    "file_path": "src/will/self_healing/enrichment_service.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.boundary.database_session_access",
-    "severity": "error",
-    "message": "/opt/dev/CORE/src/will/self_healing/test_generation/context_builder.py:13 - Forbidden import: 'from sqlalchemy.ext.asyncio import AsyncSession' (matches constitutional boundary rule: sqlalchemy.ext.asyncio.AsyncSession)",
-    "file_path": "src/will/self_healing/test_generation/context_builder.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.boundary.llm_client_access",
-    "severity": "error",
-    "message": "/opt/dev/CORE/src/body/cli/logic/interactive_test/workflow.py:33 - Forbidden import: 'from will.agents.coder_agent import CoderAgent' (matches constitutional boundary rule: will.agents)",
-    "file_path": "src/body/cli/logic/interactive_test/workflow.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.boundary.llm_client_access",
-    "severity": "error",
-    "message": "/opt/dev/CORE/src/body/cli/resources/dev/chat.py:24 - Forbidden import: 'from will.agents.intent_translator import IntentTranslator' (matches constitutional boundary rule: will.agents)",
-    "file_path": "src/body/cli/resources/dev/chat.py",
     "line_number": null,
     "context": {},
     "details": {}
@@ -848,42 +731,6 @@
   {
     "check_id": "purity.no_todo_placeholders",
     "severity": "warning",
-    "message": "Forbidden Content [Line 71]: Matched restricted regex '\\bTODO\\b'",
-    "file_path": "src/body/cli/resources/context/cache.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_todo_placeholders",
-    "severity": "warning",
-    "message": "Forbidden Content [Line 95]: Matched restricted regex '\\bTODO\\b'",
-    "file_path": "src/body/cli/resources/context/cache.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_todo_placeholders",
-    "severity": "warning",
-    "message": "Forbidden Content [Line 108]: Matched restricted regex '\\bTODO\\b'",
-    "file_path": "src/body/cli/resources/context/cache.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_todo_placeholders",
-    "severity": "warning",
-    "message": "Forbidden Content [Line 40]: Matched restricted regex '\\bTODO\\b'",
-    "file_path": "src/body/cli/resources/context/search.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_todo_placeholders",
-    "severity": "warning",
     "message": "Forbidden Content [Line 126]: Matched restricted regex '\\bTBD\\b'",
     "file_path": "src/body/self_healing/duplicate_id_service.py",
     "line_number": null,
@@ -906,120 +753,6 @@
     "file_path": null,
     "line_number": null,
     "context": {
-      "symbol_a": "FileAnalyzer.phase",
-      "symbol_b": "KnowledgeGraphAnalyzer.phase",
-      "similarity": 1.0,
-      "type": "ast"
-    },
-    "details": {
-      "symbol_a": "FileAnalyzer.phase",
-      "symbol_b": "KnowledgeGraphAnalyzer.phase",
-      "similarity": 1.0,
-      "type": "ast"
-    }
-  },
-  {
-    "check_id": "purity.no_ast_duplication",
-    "severity": "warning",
-    "message": "AST duplication detected.",
-    "file_path": null,
-    "line_number": null,
-    "context": {
-      "symbol_a": "FileAnalyzer.phase",
-      "symbol_b": "PromptAnalyzer.phase",
-      "similarity": 1.0,
-      "type": "ast"
-    },
-    "details": {
-      "symbol_a": "FileAnalyzer.phase",
-      "symbol_b": "PromptAnalyzer.phase",
-      "similarity": 1.0,
-      "type": "ast"
-    }
-  },
-  {
-    "check_id": "purity.no_ast_duplication",
-    "severity": "warning",
-    "message": "AST duplication detected.",
-    "file_path": null,
-    "line_number": null,
-    "context": {
-      "symbol_a": "FileAnalyzer.phase",
-      "symbol_b": "SymbolExtractor.phase",
-      "similarity": 1.0,
-      "type": "ast"
-    },
-    "details": {
-      "symbol_a": "FileAnalyzer.phase",
-      "symbol_b": "SymbolExtractor.phase",
-      "similarity": 1.0,
-      "type": "ast"
-    }
-  },
-  {
-    "check_id": "purity.no_ast_duplication",
-    "severity": "warning",
-    "message": "AST duplication detected.",
-    "file_path": null,
-    "line_number": null,
-    "context": {
-      "symbol_a": "KnowledgeGraphAnalyzer.phase",
-      "symbol_b": "PromptAnalyzer.phase",
-      "similarity": 1.0,
-      "type": "ast"
-    },
-    "details": {
-      "symbol_a": "KnowledgeGraphAnalyzer.phase",
-      "symbol_b": "PromptAnalyzer.phase",
-      "similarity": 1.0,
-      "type": "ast"
-    }
-  },
-  {
-    "check_id": "purity.no_ast_duplication",
-    "severity": "warning",
-    "message": "AST duplication detected.",
-    "file_path": null,
-    "line_number": null,
-    "context": {
-      "symbol_a": "KnowledgeGraphAnalyzer.phase",
-      "symbol_b": "SymbolExtractor.phase",
-      "similarity": 1.0,
-      "type": "ast"
-    },
-    "details": {
-      "symbol_a": "KnowledgeGraphAnalyzer.phase",
-      "symbol_b": "SymbolExtractor.phase",
-      "similarity": 1.0,
-      "type": "ast"
-    }
-  },
-  {
-    "check_id": "purity.no_ast_duplication",
-    "severity": "warning",
-    "message": "AST duplication detected.",
-    "file_path": null,
-    "line_number": null,
-    "context": {
-      "symbol_a": "PromptAnalyzer.phase",
-      "symbol_b": "SymbolExtractor.phase",
-      "similarity": 1.0,
-      "type": "ast"
-    },
-    "details": {
-      "symbol_a": "PromptAnalyzer.phase",
-      "symbol_b": "SymbolExtractor.phase",
-      "similarity": 1.0,
-      "type": "ast"
-    }
-  },
-  {
-    "check_id": "purity.no_ast_duplication",
-    "severity": "warning",
-    "message": "AST duplication detected.",
-    "file_path": null,
-    "line_number": null,
-    "context": {
       "symbol_a": "TyperAppLike",
       "symbol_b": "TyperAppLike",
       "similarity": 1.0,
@@ -1047,234 +780,6 @@
     "details": {
       "symbol_a": "TyperGroupLike",
       "symbol_b": "TyperGroupLike",
-      "similarity": 1.0,
-      "type": "ast"
-    }
-  },
-  {
-    "check_id": "purity.no_ast_duplication",
-    "severity": "warning",
-    "message": "AST duplication detected.",
-    "file_path": null,
-    "line_number": null,
-    "context": {
-      "symbol_a": "DevSyncPhase.ok",
-      "symbol_b": "WorkflowRun.ok",
-      "similarity": 1.0,
-      "type": "ast"
-    },
-    "details": {
-      "symbol_a": "DevSyncPhase.ok",
-      "symbol_b": "WorkflowRun.ok",
-      "similarity": 1.0,
-      "type": "ast"
-    }
-  },
-  {
-    "check_id": "purity.no_ast_duplication",
-    "severity": "warning",
-    "message": "AST duplication detected.",
-    "file_path": null,
-    "line_number": null,
-    "context": {
-      "symbol_a": "DevSyncPhase.total_duration",
-      "symbol_b": "WorkflowRun.total_duration",
-      "similarity": 1.0,
-      "type": "ast"
-    },
-    "details": {
-      "symbol_a": "DevSyncPhase.total_duration",
-      "symbol_b": "WorkflowRun.total_duration",
-      "similarity": 1.0,
-      "type": "ast"
-    }
-  },
-  {
-    "check_id": "purity.no_ast_duplication",
-    "severity": "warning",
-    "message": "AST duplication detected.",
-    "file_path": null,
-    "line_number": null,
-    "context": {
-      "symbol_a": "BaseEvaluator.phase",
-      "symbol_b": "ConstitutionalEvaluator.phase",
-      "similarity": 1.0,
-      "type": "ast"
-    },
-    "details": {
-      "symbol_a": "BaseEvaluator.phase",
-      "symbol_b": "ConstitutionalEvaluator.phase",
-      "similarity": 1.0,
-      "type": "ast"
-    }
-  },
-  {
-    "check_id": "purity.no_ast_duplication",
-    "severity": "warning",
-    "message": "AST duplication detected.",
-    "file_path": null,
-    "line_number": null,
-    "context": {
-      "symbol_a": "BaseEvaluator.phase",
-      "symbol_b": "FailureEvaluator.phase",
-      "similarity": 1.0,
-      "type": "ast"
-    },
-    "details": {
-      "symbol_a": "BaseEvaluator.phase",
-      "symbol_b": "FailureEvaluator.phase",
-      "similarity": 1.0,
-      "type": "ast"
-    }
-  },
-  {
-    "check_id": "purity.no_ast_duplication",
-    "severity": "warning",
-    "message": "AST duplication detected.",
-    "file_path": null,
-    "line_number": null,
-    "context": {
-      "symbol_a": "BaseEvaluator.phase",
-      "symbol_b": "PerformanceEvaluator.phase",
-      "similarity": 1.0,
-      "type": "ast"
-    },
-    "details": {
-      "symbol_a": "BaseEvaluator.phase",
-      "symbol_b": "PerformanceEvaluator.phase",
-      "similarity": 1.0,
-      "type": "ast"
-    }
-  },
-  {
-    "check_id": "purity.no_ast_duplication",
-    "severity": "warning",
-    "message": "AST duplication detected.",
-    "file_path": null,
-    "line_number": null,
-    "context": {
-      "symbol_a": "BaseEvaluator.phase",
-      "symbol_b": "SecurityEvaluator.phase",
-      "similarity": 1.0,
-      "type": "ast"
-    },
-    "details": {
-      "symbol_a": "BaseEvaluator.phase",
-      "symbol_b": "SecurityEvaluator.phase",
-      "similarity": 1.0,
-      "type": "ast"
-    }
-  },
-  {
-    "check_id": "purity.no_ast_duplication",
-    "severity": "warning",
-    "message": "AST duplication detected.",
-    "file_path": null,
-    "line_number": null,
-    "context": {
-      "symbol_a": "ConstitutionalEvaluator.phase",
-      "symbol_b": "FailureEvaluator.phase",
-      "similarity": 1.0,
-      "type": "ast"
-    },
-    "details": {
-      "symbol_a": "ConstitutionalEvaluator.phase",
-      "symbol_b": "FailureEvaluator.phase",
-      "similarity": 1.0,
-      "type": "ast"
-    }
-  },
-  {
-    "check_id": "purity.no_ast_duplication",
-    "severity": "warning",
-    "message": "AST duplication detected.",
-    "file_path": null,
-    "line_number": null,
-    "context": {
-      "symbol_a": "ConstitutionalEvaluator.phase",
-      "symbol_b": "PerformanceEvaluator.phase",
-      "similarity": 1.0,
-      "type": "ast"
-    },
-    "details": {
-      "symbol_a": "ConstitutionalEvaluator.phase",
-      "symbol_b": "PerformanceEvaluator.phase",
-      "similarity": 1.0,
-      "type": "ast"
-    }
-  },
-  {
-    "check_id": "purity.no_ast_duplication",
-    "severity": "warning",
-    "message": "AST duplication detected.",
-    "file_path": null,
-    "line_number": null,
-    "context": {
-      "symbol_a": "ConstitutionalEvaluator.phase",
-      "symbol_b": "SecurityEvaluator.phase",
-      "similarity": 1.0,
-      "type": "ast"
-    },
-    "details": {
-      "symbol_a": "ConstitutionalEvaluator.phase",
-      "symbol_b": "SecurityEvaluator.phase",
-      "similarity": 1.0,
-      "type": "ast"
-    }
-  },
-  {
-    "check_id": "purity.no_ast_duplication",
-    "severity": "warning",
-    "message": "AST duplication detected.",
-    "file_path": null,
-    "line_number": null,
-    "context": {
-      "symbol_a": "FailureEvaluator.phase",
-      "symbol_b": "PerformanceEvaluator.phase",
-      "similarity": 1.0,
-      "type": "ast"
-    },
-    "details": {
-      "symbol_a": "FailureEvaluator.phase",
-      "symbol_b": "PerformanceEvaluator.phase",
-      "similarity": 1.0,
-      "type": "ast"
-    }
-  },
-  {
-    "check_id": "purity.no_ast_duplication",
-    "severity": "warning",
-    "message": "AST duplication detected.",
-    "file_path": null,
-    "line_number": null,
-    "context": {
-      "symbol_a": "FailureEvaluator.phase",
-      "symbol_b": "SecurityEvaluator.phase",
-      "similarity": 1.0,
-      "type": "ast"
-    },
-    "details": {
-      "symbol_a": "FailureEvaluator.phase",
-      "symbol_b": "SecurityEvaluator.phase",
-      "similarity": 1.0,
-      "type": "ast"
-    }
-  },
-  {
-    "check_id": "purity.no_ast_duplication",
-    "severity": "warning",
-    "message": "AST duplication detected.",
-    "file_path": null,
-    "line_number": null,
-    "context": {
-      "symbol_a": "PerformanceEvaluator.phase",
-      "symbol_b": "SecurityEvaluator.phase",
-      "similarity": 1.0,
-      "type": "ast"
-    },
-    "details": {
-      "symbol_a": "PerformanceEvaluator.phase",
-      "symbol_b": "SecurityEvaluator.phase",
       "similarity": 1.0,
       "type": "ast"
     }
@@ -1332,310 +837,6 @@
     "details": {
       "symbol_a": "DetailedPlan.step_count",
       "symbol_b": "DetailedPlan.step_count",
-      "similarity": 1.0,
-      "type": "ast"
-    }
-  },
-  {
-    "check_id": "purity.no_ast_duplication",
-    "severity": "warning",
-    "message": "AST duplication detected.",
-    "file_path": null,
-    "line_number": null,
-    "context": {
-      "symbol_a": "ExecutionAgent.get_decision_trace",
-      "symbol_b": "SpecificationAgent.get_decision_trace",
-      "similarity": 1.0,
-      "type": "ast"
-    },
-    "details": {
-      "symbol_a": "ExecutionAgent.get_decision_trace",
-      "symbol_b": "SpecificationAgent.get_decision_trace",
-      "similarity": 1.0,
-      "type": "ast"
-    }
-  },
-  {
-    "check_id": "purity.no_ast_duplication",
-    "severity": "warning",
-    "message": "AST duplication detected.",
-    "file_path": null,
-    "line_number": null,
-    "context": {
-      "symbol_a": "GovernanceDecider.phase",
-      "symbol_b": "ClarityStrategist.phase",
-      "similarity": 1.0,
-      "type": "ast"
-    },
-    "details": {
-      "symbol_a": "GovernanceDecider.phase",
-      "symbol_b": "ClarityStrategist.phase",
-      "similarity": 1.0,
-      "type": "ast"
-    }
-  },
-  {
-    "check_id": "purity.no_ast_duplication",
-    "severity": "warning",
-    "message": "AST duplication detected.",
-    "file_path": null,
-    "line_number": null,
-    "context": {
-      "symbol_a": "GovernanceDecider.phase",
-      "symbol_b": "ComplexityStrategist.phase",
-      "similarity": 1.0,
-      "type": "ast"
-    },
-    "details": {
-      "symbol_a": "GovernanceDecider.phase",
-      "symbol_b": "ComplexityStrategist.phase",
-      "similarity": 1.0,
-      "type": "ast"
-    }
-  },
-  {
-    "check_id": "purity.no_ast_duplication",
-    "severity": "warning",
-    "message": "AST duplication detected.",
-    "file_path": null,
-    "line_number": null,
-    "context": {
-      "symbol_a": "GovernanceDecider.phase",
-      "symbol_b": "FixStrategist.phase",
-      "similarity": 1.0,
-      "type": "ast"
-    },
-    "details": {
-      "symbol_a": "GovernanceDecider.phase",
-      "symbol_b": "FixStrategist.phase",
-      "similarity": 1.0,
-      "type": "ast"
-    }
-  },
-  {
-    "check_id": "purity.no_ast_duplication",
-    "severity": "warning",
-    "message": "AST duplication detected.",
-    "file_path": null,
-    "line_number": null,
-    "context": {
-      "symbol_a": "GovernanceDecider.phase",
-      "symbol_b": "SyncStrategist.phase",
-      "similarity": 1.0,
-      "type": "ast"
-    },
-    "details": {
-      "symbol_a": "GovernanceDecider.phase",
-      "symbol_b": "SyncStrategist.phase",
-      "similarity": 1.0,
-      "type": "ast"
-    }
-  },
-  {
-    "check_id": "purity.no_ast_duplication",
-    "severity": "warning",
-    "message": "AST duplication detected.",
-    "file_path": null,
-    "line_number": null,
-    "context": {
-      "symbol_a": "GovernanceDecider.phase",
-      "symbol_b": "ValidationStrategist.phase",
-      "similarity": 1.0,
-      "type": "ast"
-    },
-    "details": {
-      "symbol_a": "GovernanceDecider.phase",
-      "symbol_b": "ValidationStrategist.phase",
-      "similarity": 1.0,
-      "type": "ast"
-    }
-  },
-  {
-    "check_id": "purity.no_ast_duplication",
-    "severity": "warning",
-    "message": "AST duplication detected.",
-    "file_path": null,
-    "line_number": null,
-    "context": {
-      "symbol_a": "ClarityStrategist.phase",
-      "symbol_b": "ComplexityStrategist.phase",
-      "similarity": 1.0,
-      "type": "ast"
-    },
-    "details": {
-      "symbol_a": "ClarityStrategist.phase",
-      "symbol_b": "ComplexityStrategist.phase",
-      "similarity": 1.0,
-      "type": "ast"
-    }
-  },
-  {
-    "check_id": "purity.no_ast_duplication",
-    "severity": "warning",
-    "message": "AST duplication detected.",
-    "file_path": null,
-    "line_number": null,
-    "context": {
-      "symbol_a": "ClarityStrategist.phase",
-      "symbol_b": "FixStrategist.phase",
-      "similarity": 1.0,
-      "type": "ast"
-    },
-    "details": {
-      "symbol_a": "ClarityStrategist.phase",
-      "symbol_b": "FixStrategist.phase",
-      "similarity": 1.0,
-      "type": "ast"
-    }
-  },
-  {
-    "check_id": "purity.no_ast_duplication",
-    "severity": "warning",
-    "message": "AST duplication detected.",
-    "file_path": null,
-    "line_number": null,
-    "context": {
-      "symbol_a": "ClarityStrategist.phase",
-      "symbol_b": "SyncStrategist.phase",
-      "similarity": 1.0,
-      "type": "ast"
-    },
-    "details": {
-      "symbol_a": "ClarityStrategist.phase",
-      "symbol_b": "SyncStrategist.phase",
-      "similarity": 1.0,
-      "type": "ast"
-    }
-  },
-  {
-    "check_id": "purity.no_ast_duplication",
-    "severity": "warning",
-    "message": "AST duplication detected.",
-    "file_path": null,
-    "line_number": null,
-    "context": {
-      "symbol_a": "ClarityStrategist.phase",
-      "symbol_b": "ValidationStrategist.phase",
-      "similarity": 1.0,
-      "type": "ast"
-    },
-    "details": {
-      "symbol_a": "ClarityStrategist.phase",
-      "symbol_b": "ValidationStrategist.phase",
-      "similarity": 1.0,
-      "type": "ast"
-    }
-  },
-  {
-    "check_id": "purity.no_ast_duplication",
-    "severity": "warning",
-    "message": "AST duplication detected.",
-    "file_path": null,
-    "line_number": null,
-    "context": {
-      "symbol_a": "ComplexityStrategist.phase",
-      "symbol_b": "FixStrategist.phase",
-      "similarity": 1.0,
-      "type": "ast"
-    },
-    "details": {
-      "symbol_a": "ComplexityStrategist.phase",
-      "symbol_b": "FixStrategist.phase",
-      "similarity": 1.0,
-      "type": "ast"
-    }
-  },
-  {
-    "check_id": "purity.no_ast_duplication",
-    "severity": "warning",
-    "message": "AST duplication detected.",
-    "file_path": null,
-    "line_number": null,
-    "context": {
-      "symbol_a": "ComplexityStrategist.phase",
-      "symbol_b": "SyncStrategist.phase",
-      "similarity": 1.0,
-      "type": "ast"
-    },
-    "details": {
-      "symbol_a": "ComplexityStrategist.phase",
-      "symbol_b": "SyncStrategist.phase",
-      "similarity": 1.0,
-      "type": "ast"
-    }
-  },
-  {
-    "check_id": "purity.no_ast_duplication",
-    "severity": "warning",
-    "message": "AST duplication detected.",
-    "file_path": null,
-    "line_number": null,
-    "context": {
-      "symbol_a": "ComplexityStrategist.phase",
-      "symbol_b": "ValidationStrategist.phase",
-      "similarity": 1.0,
-      "type": "ast"
-    },
-    "details": {
-      "symbol_a": "ComplexityStrategist.phase",
-      "symbol_b": "ValidationStrategist.phase",
-      "similarity": 1.0,
-      "type": "ast"
-    }
-  },
-  {
-    "check_id": "purity.no_ast_duplication",
-    "severity": "warning",
-    "message": "AST duplication detected.",
-    "file_path": null,
-    "line_number": null,
-    "context": {
-      "symbol_a": "FixStrategist.phase",
-      "symbol_b": "SyncStrategist.phase",
-      "similarity": 1.0,
-      "type": "ast"
-    },
-    "details": {
-      "symbol_a": "FixStrategist.phase",
-      "symbol_b": "SyncStrategist.phase",
-      "similarity": 1.0,
-      "type": "ast"
-    }
-  },
-  {
-    "check_id": "purity.no_ast_duplication",
-    "severity": "warning",
-    "message": "AST duplication detected.",
-    "file_path": null,
-    "line_number": null,
-    "context": {
-      "symbol_a": "FixStrategist.phase",
-      "symbol_b": "ValidationStrategist.phase",
-      "similarity": 1.0,
-      "type": "ast"
-    },
-    "details": {
-      "symbol_a": "FixStrategist.phase",
-      "symbol_b": "ValidationStrategist.phase",
-      "similarity": 1.0,
-      "type": "ast"
-    }
-  },
-  {
-    "check_id": "purity.no_ast_duplication",
-    "severity": "warning",
-    "message": "AST duplication detected.",
-    "file_path": null,
-    "line_number": null,
-    "context": {
-      "symbol_a": "SyncStrategist.phase",
-      "symbol_b": "ValidationStrategist.phase",
-      "similarity": 1.0,
-      "type": "ast"
-    },
-    "details": {
-      "symbol_a": "SyncStrategist.phase",
-      "symbol_b": "ValidationStrategist.phase",
       "similarity": 1.0,
       "type": "ast"
     }
