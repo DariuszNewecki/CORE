@@ -12,7 +12,9 @@ from __future__ import annotations
 import time
 from collections import Counter
 
-from shared.component_primitive import Component, ComponentPhase, ComponentResult
+# from shared.component_primitive import Component, ComponentPhase, ComponentResult
+from body.evaluators.base_evaluator import BaseEvaluator
+from shared.component_primitive import ComponentResult
 from shared.logger import getLogger
 
 
@@ -20,16 +22,11 @@ logger = getLogger(__name__)
 
 
 # ID: ef17c136-eb2b-4756-8eef-635c7ddc9546
-class FailureEvaluator(Component):
+class FailureEvaluator(BaseEvaluator):
     """Analyze test failure strings to identify recurring patterns.
 
     Enables the Will layer to adapt strategies based on observed Body failures.
     """
-
-    @property
-    # ID: e78245a6-eaa8-4d77-baf5-c68100cb84be
-    def phase(self) -> ComponentPhase:
-        return ComponentPhase.AUDIT
 
     # ID: 31ed733a-6ed4-429a-bb5d-f1612a589104
     async def execute(

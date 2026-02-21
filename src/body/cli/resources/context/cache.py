@@ -10,6 +10,9 @@ Usage:
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
+from pathlib import Path
+
 import typer
 from rich.console import Console
 from rich.table import Table
@@ -19,6 +22,9 @@ from shared.logger import getLogger
 
 logger = getLogger(__name__)
 console = Console()
+
+# Relative to repo root (cwd when running core-admin)
+_CACHE_DIR = "work/context_cache"
 
 
 # ID: 57a38e68-f500-4219-8a53-d1cd0d8f7c28
@@ -63,61 +69,112 @@ def cache(
         raise typer.Exit(code=1)
 
 
+def _get_cache_dir() -> Path:
+    """Resolve the cache directory relative to cwd (repo root)."""
+    return Path(_CACHE_DIR)
+
+
 def _list_cache() -> None:
     """List all cached context queries."""
-    console.print("[bold]Cached Context Queries:[/bold]")
-    console.print("")
+    cache_dir = _get_cache_dir()
 
-    # TODO: Implement cache listing
-    # Read from work/context_cache directory
-    # Show: query, timestamp, size, hit count
+    if not cache_dir.exists():
+        console.print("[dim]Cache directory does not exist. No entries.[/dim]")
+        return
 
-    table = Table(title="Context Cache (Not Yet Implemented)")
-    table.add_column("Query", style="cyan")
-    table.add_column("Timestamp", style="green")
-    table.add_column("Size", style="yellow")
-    table.add_column("Hits", style="magenta")
+    files = sorted(
+        cache_dir.glob("*.yaml"), key=lambda f: f.stat().st_mtime, reverse=True
+    )
 
-    # Example data (placeholder)
-    # table.add_row("isinstance calls", "2024-02-09 12:30", "15KB", "3")
+    if not files:
+        console.print("[dim]Cache is empty.[/dim]")
+        return
+
+    table = Table(
+        title=f"Context Cache ({len(files)} entries)", header_style="bold cyan"
+    )
+    table.add_column("Key (short)", style="cyan", no_wrap=True)
+    table.add_column("Modified", style="green")
+    table.add_column("Size", style="yellow", justify="right")
+    table.add_column("Age (h)", style="magenta", justify="right")
+
+    now = datetime.now(UTC)
+    for f in files:
+        stat = f.stat()
+        mtime = datetime.fromtimestamp(stat.st_mtime, tz=UTC)
+        age_h = (now - mtime).total_seconds() / 3600
+        size_kb = stat.st_size / 1024
+        table.add_row(
+            f.stem[:16],
+            mtime.strftime("%Y-%m-%d %H:%M"),
+            f"{size_kb:.1f} KB",
+            f"{age_h:.1f}",
+        )
 
     console.print(table)
-    console.print("")
-    console.print("[dim]Cache management coming in Phase 2[/dim]")
 
 
 def _clear_cache() -> None:
     """Clear all cached contexts."""
-    console.print("[yellow]⚠️  Are you sure you want to clear the cache?[/yellow]")
-    console.print("[dim]This will remove all cached context packages.[/dim]")
-    console.print("")
+    cache_dir = _get_cache_dir()
 
-    # TODO: Implement cache clearing
-    # Delete files from work/context_cache
-    # Confirm before deletion
+    if not cache_dir.exists() or not list(cache_dir.glob("*.yaml")):
+        console.print("[dim]Cache is already empty.[/dim]")
+        return
 
-    console.print("[dim]Cache clearing not yet implemented[/dim]")
-    console.print("[dim]Manual: rm -rf work/context_cache/*[/dim]")
+    count = len(list(cache_dir.glob("*.yaml")))
+    console.print(
+        f"[yellow]⚠️  This will delete {count} cached context package(s).[/yellow]"
+    )
+
+    if not typer.confirm("Continue?"):
+        console.print("[dim]Aborted.[/dim]")
+        return
+
+    from shared.infrastructure.context.cache import ContextCache
+
+    removed = ContextCache(str(cache_dir)).clear_all()
+    console.print(f"[green]✅ Cleared {removed} cache entries.[/green]")
 
 
 def _show_stats() -> None:
     """Show cache statistics."""
-    console.print("[bold]Context Cache Statistics:[/bold]")
-    console.print("")
+    cache_dir = _get_cache_dir()
 
-    # TODO: Implement cache stats
-    # Total size, number of entries, hit rate, oldest entry
+    if not cache_dir.exists():
+        console.print("[dim]Cache directory does not exist.[/dim]")
+        return
 
-    stats_table = Table(title="Cache Stats (Not Yet Implemented)")
-    stats_table.add_column("Metric", style="cyan")
-    stats_table.add_column("Value", style="green")
+    files = list(cache_dir.glob("*.yaml"))
+    ttl_hours = 24
 
-    # Example stats (placeholder)
-    # stats_table.add_row("Total Entries", "12")
-    # stats_table.add_row("Total Size", "180 KB")
-    # stats_table.add_row("Hit Rate", "67%")
-    # stats_table.add_row("Oldest Entry", "2024-02-01")
+    now = datetime.now(UTC)
+    total_size = 0
+    expired = 0
+    oldest_dt = None
 
-    console.print(stats_table)
-    console.print("")
-    console.print("[dim]Cache statistics coming in Phase 2[/dim]")
+    for f in files:
+        stat = f.stat()
+        total_size += stat.st_size
+        mtime = datetime.fromtimestamp(stat.st_mtime, tz=UTC)
+        age_h = (now - mtime).total_seconds() / 3600
+        if age_h > ttl_hours:
+            expired += 1
+        if oldest_dt is None or mtime < oldest_dt:
+            oldest_dt = mtime
+
+    table = Table(title="Context Cache Statistics", header_style="bold cyan")
+    table.add_column("Metric", style="cyan")
+    table.add_column("Value", style="green")
+
+    table.add_row("Total entries", str(len(files)))
+    table.add_row("Total size", f"{total_size / 1024:.1f} KB")
+    table.add_row("Expired entries", f"{expired} (TTL={ttl_hours}h)")
+    table.add_row("Active entries", str(len(files) - expired))
+    table.add_row(
+        "Oldest entry",
+        oldest_dt.strftime("%Y-%m-%d %H:%M") if oldest_dt else "—",
+    )
+    table.add_row("Cache dir", str(cache_dir))
+
+    console.print(table)

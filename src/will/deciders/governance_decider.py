@@ -11,16 +11,17 @@ from __future__ import annotations
 import time
 from typing import Any
 
-from shared.component_primitive import Component, ComponentPhase, ComponentResult
+from shared.component_primitive import ComponentResult  # Component, ComponentPhase,
 from shared.logger import getLogger
 from will.orchestration.decision_tracer import DecisionTracer
+from will.strategists.base_strategist import BaseStrategist
 
 
 logger = getLogger(__name__)
 
 
 # ID: 79a654be-b451-4932-93fe-d90b4a8f7a77
-class GovernanceDecider(Component):
+class GovernanceDecider(BaseStrategist):
     """
     Evaluates cumulative evidence to authorize execution.
 
@@ -33,11 +34,6 @@ class GovernanceDecider(Component):
 
     def __init__(self):
         self.tracer = DecisionTracer()
-
-    @property
-    # ID: 49f7bb27-237b-4e40-aa91-03b5eea8a36f
-    def phase(self) -> ComponentPhase:
-        return ComponentPhase.RUNTIME  # DECIDE happens at the end of Runtime
 
     # ID: c2aeb827-6b0d-4036-8fca-a01fc2244524
     async def execute(

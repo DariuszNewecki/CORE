@@ -30,6 +30,7 @@ from shared.action_types import ActionImpact, ActionResult
 from shared.atomic_action import atomic_action
 from shared.logger import getLogger
 from shared.models.workflow_models import DetailedPlan, ExecutionResults
+from will.agents.traced_agent_mixin import TracedAgentMixin
 from will.orchestration.decision_tracer import DecisionTracer
 
 
@@ -40,7 +41,7 @@ logger = getLogger(__name__)
 
 
 # ID: a1b2c3d4-e5f6-7890-abcd-ef0123456789
-class ExecutionAgent:
+class ExecutionAgent(TracedAgentMixin):
     """
     The Contractor: Executes validated code blueprints.
 
@@ -254,13 +255,3 @@ class ExecutionAgent:
                 },
                 duration_sec=0.0,
             )
-
-    # ID: 55112e4c-696a-41a9-b32d-0a8cf16ff338
-    def get_decision_trace(self) -> str:
-        """Get the formatted decision trace."""
-        return self.tracer.format_trace()
-
-    # ID: af34975e-a553-471e-a7b1-7b739d7d6eb4
-    def save_decision_trace(self) -> None:
-        """Save the decision trace to storage."""
-        self.tracer.persist()

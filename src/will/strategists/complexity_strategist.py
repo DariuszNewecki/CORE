@@ -11,23 +11,19 @@ from __future__ import annotations
 import time
 from typing import Any
 
-from shared.component_primitive import Component, ComponentPhase, ComponentResult
+from shared.component_primitive import ComponentResult  # Component, ComponentPhase,
 from shared.logger import getLogger
+from will.strategists.base_strategist import BaseStrategist
 
 
 logger = getLogger(__name__)
 
 
 # ID: b8b66368-91ae-4600-aff4-252735448376
-class ComplexityStrategist(Component):
+class ComplexityStrategist(BaseStrategist):
     """
     Decides the refactoring strategy for high-complexity code.
     """
-
-    @property
-    # ID: 2b5e490a-558e-4e2d-85d3-4bba05c14199
-    def phase(self) -> ComponentPhase:
-        return ComponentPhase.RUNTIME
 
     # ID: cf03930a-ff10-4d20-949a-45a3064f57e6
     async def execute(self, complexity_score: int, **kwargs: Any) -> ComponentResult:

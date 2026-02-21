@@ -18,7 +18,8 @@ import time
 from pathlib import Path
 from typing import Any
 
-from shared.component_primitive import Component, ComponentPhase, ComponentResult
+from body.analyzers.base_analyzer import BaseAnalyzer
+from shared.component_primitive import ComponentResult  # Component, ComponentPhase,
 from shared.logger import getLogger
 
 
@@ -26,7 +27,7 @@ logger = getLogger(__name__)
 
 
 # ID: ebe63608-68fb-4f79-9151-c3e940d2d8f2
-class PromptAnalyzer(Component):
+class PromptAnalyzer(BaseAnalyzer):
     """
     Validates that a generation task has all required variables.
 
@@ -40,11 +41,6 @@ class PromptAnalyzer(Component):
     - MUST receive prompt_root parameter (no settings access)
     - Body layer components do not access settings directly
     """
-
-    @property
-    # ID: ec917bb7-e6b6-4d8f-b176-2365f16ed985
-    def phase(self) -> ComponentPhase:
-        return ComponentPhase.PARSE
 
     # ID: 631eec7b-c23d-4d25-8f9f-a191e0239ce9
     async def execute(

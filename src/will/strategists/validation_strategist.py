@@ -18,16 +18,17 @@ from __future__ import annotations
 import time
 from typing import Any
 
-from shared.component_primitive import Component, ComponentPhase, ComponentResult
+from shared.component_primitive import ComponentResult  # Component, ComponentPhase,
 from shared.logger import getLogger
 from will.orchestration.decision_tracer import DecisionTracer
+from will.strategists.base_strategist import BaseStrategist
 
 
 logger = getLogger(__name__)
 
 
 # ID: 8f3a2d1b-4c5e-6f7a-8b9c-0d1e2f3a4b5c
-class ValidationStrategist(Component):
+class ValidationStrategist(BaseStrategist):
     """
     Decides which validation checks to execute based on operation context.
 
@@ -53,12 +54,6 @@ class ValidationStrategist(Component):
     def __init__(self):
         """Initialize strategist with decision tracer."""
         self.tracer = DecisionTracer()
-
-    @property
-    # ID: 9c4d5e6f-7a8b-9c0d-1e2f-3a4b5c6d7e8f
-    def phase(self) -> ComponentPhase:
-        """ValidationStrategist operates in RUNTIME phase."""
-        return ComponentPhase.RUNTIME
 
     # ID: 925fc8b7-c94c-41d8-a73f-5c71c3ae1023
     async def execute(

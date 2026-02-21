@@ -12,21 +12,17 @@ from __future__ import annotations
 
 from typing import Any
 
-from shared.component_primitive import Component, ComponentPhase, ComponentResult
+from body.evaluators.base_evaluator import BaseEvaluator
+from shared.component_primitive import ComponentResult
 from shared.context import CoreContext
 
 
 # ID: 078fdd48-815b-446e-936b-f0a12846a2ea
-class BaseEvaluator(Component):
+class BaseEvaluator(BaseEvaluator):
     """Base contract for all evaluators operating in the AUDIT phase."""
 
     def __init__(self, context: CoreContext | None = None) -> None:
         self.context = context
-
-    @property
-    # ID: 0a179fdc-81a2-4cb5-bd3f-a1a23943180e
-    def phase(self) -> ComponentPhase:
-        return ComponentPhase.AUDIT
 
     async def _create_result(
         self,

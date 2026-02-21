@@ -35,7 +35,8 @@ from __future__ import annotations
 import time
 from typing import Any, ClassVar
 
-from shared.component_primitive import Component, ComponentPhase, ComponentResult
+from body.evaluators.base_evaluator import BaseEvaluator
+from shared.component_primitive import ComponentResult
 from shared.logger import getLogger
 
 
@@ -43,7 +44,7 @@ logger = getLogger(__name__)
 
 
 # ID: 5faaa14c-b0d8-4f43-b968-333ae4ccd2ff
-class PerformanceEvaluator(Component):
+class PerformanceEvaluator(BaseEvaluator):
     """
     Evaluates performance metrics against operational thresholds.
 
@@ -95,12 +96,6 @@ class PerformanceEvaluator(Component):
             "max_io_operations": 500,
         },
     }
-
-    @property
-    # ID: f646a4e2-6656-4e52-8896-2aff1aee8ed3
-    def phase(self) -> ComponentPhase:
-        """PerformanceEvaluator operates in AUDIT phase."""
-        return ComponentPhase.AUDIT
 
     # ID: 8789c64d-2e2c-465d-947b-cb2899bc80b6
     async def execute(

@@ -9,9 +9,9 @@ from __future__ import annotations
 
 import ast
 from pathlib import Path
+from typing import Any
 
-from sqlalchemy.ext.asyncio import AsyncSession
-
+# from sqlalchemy.ext.asyncio import AsyncSession
 from body.self_healing.test_context_analyzer import ModuleContext
 from shared.infrastructure.config_service import ConfigService
 from shared.infrastructure.context import ContextBuilder
@@ -34,7 +34,7 @@ class ContextPackageBuilder:
         self.config_service = config_service
 
     # ID: d047b64c-e60b-4ed2-9a88-231107db4046
-    async def build(self, session: AsyncSession, module_path: str) -> ModuleContext:
+    async def build(self, session: Any, module_path: str) -> ModuleContext:
         """
         Build Packet → Convert to ModuleContext
 

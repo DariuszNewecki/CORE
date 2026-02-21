@@ -15,9 +15,10 @@ from __future__ import annotations
 import time
 from typing import Any, Final
 
-from shared.component_primitive import Component, ComponentPhase, ComponentResult
+from shared.component_primitive import ComponentResult  # Component, ComponentPhase,
 from shared.logger import getLogger
 from will.orchestration.decision_tracer import DecisionTracer
+from will.strategists.base_strategist import BaseStrategist
 
 
 logger = getLogger(__name__)
@@ -67,7 +68,7 @@ PIVOT_RULES: Final[dict[str, dict[str, Any]]] = {
 
 
 # ID: 053f19cb-2b5b-494f-99d3-d83722d0cb26
-class TestStrategist(Component):
+class TestStrategist(BaseStrategist):
     """
     Decides test generation strategy using deterministic lookups.
 
@@ -77,11 +78,6 @@ class TestStrategist(Component):
 
     def __init__(self):
         self.tracer = DecisionTracer()
-
-    @property
-    # ID: 197c5739-e1dd-477b-9dd3-c6d6cdc82d13
-    def phase(self) -> ComponentPhase:
-        return ComponentPhase.RUNTIME
 
     # ID: 9478870b-9733-461d-be61-761ac43042a4
     async def execute(

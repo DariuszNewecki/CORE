@@ -36,7 +36,10 @@ import re
 import time
 from typing import Any, ClassVar
 
-from shared.component_primitive import Component, ComponentPhase, ComponentResult
+from body.evaluators.base_evaluator import BaseEvaluator
+
+# from shared.component_primitive import Component, ComponentPhase, ComponentResult
+from shared.component_primitive import ComponentResult
 from shared.logger import getLogger
 
 
@@ -44,7 +47,7 @@ logger = getLogger(__name__)
 
 
 # ID: 38cbc2dd-3201-428c-bd8a-9001d5236768
-class SecurityEvaluator(Component):
+class SecurityEvaluator(BaseEvaluator):
     """
     Evaluates security posture and identifies vulnerabilities.
 
@@ -105,12 +108,6 @@ class SecurityEvaluator(Component):
             r"random\.random\(",  # Weak random for security
         ],
     }
-
-    @property
-    # ID: d5e82c82-62ff-41b5-abc2-d97a45e6e411
-    def phase(self) -> ComponentPhase:
-        """SecurityEvaluator operates in AUDIT phase."""
-        return ComponentPhase.AUDIT
 
     # ID: 486b01bb-c6e6-493f-a19a-bf0d7a0ed3d8
     async def execute(

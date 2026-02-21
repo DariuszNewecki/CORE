@@ -17,8 +17,9 @@ import time
 from pathlib import Path
 from typing import Any
 
+from body.analyzers.base_analyzer import BaseAnalyzer
 from body.introspection.knowledge_graph_service import KnowledgeGraphBuilder
-from shared.component_primitive import Component, ComponentPhase, ComponentResult
+from shared.component_primitive import ComponentResult  # Component, ComponentPhase,
 from shared.logger import getLogger
 
 
@@ -26,7 +27,7 @@ logger = getLogger(__name__)
 
 
 # ID: e9b2c3d4-f5a6-7b8c-9d0e-1f2a3b4c5d6e
-class KnowledgeGraphAnalyzer(Component):
+class KnowledgeGraphAnalyzer(BaseAnalyzer):
     """
     Standardized component for building the Knowledge Graph.
 
@@ -34,11 +35,6 @@ class KnowledgeGraphAnalyzer(Component):
     - MUST receive repo_root parameter (no settings fallback)
     - Body layer components do not access settings directly
     """
-
-    @property
-    # ID: 6558f4df-41c6-4e34-9b24-713a12c1b549
-    def phase(self) -> ComponentPhase:
-        return ComponentPhase.PARSE
 
     # ID: 46b5ce81-b2fc-4822-88ba-53682cf1f431
     async def execute(
