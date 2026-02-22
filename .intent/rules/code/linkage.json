@@ -15,7 +15,7 @@
             "statement": "Public functions and methods MUST have unique UUID identifiers for Knowledge Graph synchronization.",
             "authority": "policy",
             "phase": "audit",
-            "enforcement": "reporting",
+            "enforcement": "blocking",
             "rationale": "Downgraded to support A3 loop throughput. Finalizer handles assignment."
         },
         {
