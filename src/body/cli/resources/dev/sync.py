@@ -19,6 +19,9 @@ async def sync_workflow(
     write: bool = typer.Option(
         False, "--write", help="Apply all fixes and sync state to DB/Vectors."
     ),
+    yes: bool = typer.Option(
+        False, "--yes", "-y", help="Skip confirmation prompt for dangerous operations."
+    ),
 ) -> None:
     """
     Run the complete developer synchronization workflow.
@@ -34,7 +37,7 @@ async def sync_workflow(
 
     # The workflow handles the composition of multiple atomic actions
     workflow = DevSyncWorkflow(core_context)
-    result = await workflow.run()
+    result = await workflow.run(write=write)
 
     if result.ok:
         console.print("\n[bold green]✅ System synchronized successfully.[/bold green]")

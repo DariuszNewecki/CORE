@@ -16,12 +16,15 @@ import ast
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from shared.infrastructure.clients.qdrant_client import QdrantService
 from shared.logger import getLogger
 from shared.utils.embedding_utils import normalize_text, sha256_hex
-from will.orchestration.cognitive_service import CognitiveService
+
+
+if TYPE_CHECKING:
+    from will.orchestration.cognitive_service import CognitiveService
 
 from .knowledge_helpers import extract_source_code, log_failure
 

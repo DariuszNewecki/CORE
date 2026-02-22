@@ -16,10 +16,10 @@ from fastapi import APIRouter, BackgroundTasks, Depends, Request
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from body.autonomy.autonomous_developer import develop_from_goal
 from body.services.service_registry import service_registry
 from shared.context import CoreContext
 from shared.infrastructure.repositories.task_repository import TaskRepository
+from will.autonomy.autonomous_developer import develop_from_goal
 
 
 router = APIRouter()

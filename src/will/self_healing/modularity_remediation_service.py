@@ -15,11 +15,11 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from body.autonomy.autonomous_developer import develop_from_goal
 from mind.governance.enforcement_loader import EnforcementMappingLoader
 from mind.logic.engines.ast_gate.checks.modularity_checks import ModularityChecker
 from shared.context import CoreContext
 from shared.logger import getLogger
+from will.autonomy.autonomous_developer import develop_from_goal
 
 
 logger = getLogger(__name__)

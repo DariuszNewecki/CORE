@@ -11,12 +11,10 @@ from pathlib import Path
 
 import typer
 
-from shared.infrastructure.clients.qdrant_client import QdrantService
-from shared.infrastructure.knowledge_service import KnowledgeService
+from body.introspection.vectorization_service import run_vectorize
+from body.services.service_registry import service_registry
+from shared.infrastructure.knowledge.knowledge_service import KnowledgeService
 from shared.logger import getLogger
-from will.orchestration.cognitive_service import CognitiveService
-
-from .knowledge_orchestrator import run_vectorize
 
 
 logger = getLogger(__name__)
@@ -51,8 +49,8 @@ async def vectorize_cmd(
     ks = KnowledgeService()
     knowledge = ks.load_graph()
     symbols_map: dict = knowledge.get("symbols", knowledge)
-    cognitive = CognitiveService()
-    qdrant = QdrantService()
+    cognitive = await service_registry.get_cognitive_service()
+    qdrant = await service_registry.get_qdrant_service()
     targets: set[str] | None = set(cap) if cap else None
     typer.echo("🚀 Starting capability vectorization process (per-chunk idempotent)…")
 

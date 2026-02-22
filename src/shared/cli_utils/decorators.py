@@ -94,11 +94,13 @@ def core_command(
                     "[bold yellow]⚠️  DRY RUN MODE[/bold yellow]\n   No changes will be made. Use [cyan]--write[/cyan] to apply.\n"
                 )
             if dangerous and confirmation and write:
-                if not confirm_action(
-                    "[bold red]🚨 CONFIRM DANGEROUS OPERATION[/bold red]\n   Continue?",
-                    abort_message="Cancelled.",
-                ):
-                    raise typer.Exit(0)
+                yes = bool(cast(dict[str, Any], kwargs).get("yes", False))
+                if not yes:
+                    if not confirm_action(
+                        "[bold red]🚨 CONFIRM DANGEROUS OPERATION[/bold red]\n   Continue?",
+                        abort_message="Cancelled.",
+                    ):
+                        raise typer.Exit(0)
 
             # 3. Loop Management (FIX: Added Re-entrancy support)
             try:
