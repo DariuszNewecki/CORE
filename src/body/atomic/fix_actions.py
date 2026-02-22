@@ -54,7 +54,7 @@ logger = getLogger(__name__)
 async def action_format_code(write: bool = False) -> ActionResult:
     """Format code using Black and Ruff."""
     start = time.time()
-    from features.self_healing.code_style_service import format_code
+    from body.self_healing.code_style_service import format_code
 
     format_code(write=write)
     return ActionResult(
@@ -128,7 +128,7 @@ async def action_fix_docstrings(
 ) -> ActionResult:
     """Fix docstrings across the repository."""
     start = time.time()
-    from features.self_healing.docstring_service import fix_docstrings
+    from body.self_healing.docstring_service import fix_docstrings
 
     await fix_docstrings(context=core_context, write=write)
     return ActionResult(
@@ -262,7 +262,7 @@ async def action_fix_placeholders(
 ) -> ActionResult:
     """Fix placeholder comments."""
     start = time.time()
-    from features.self_healing.placeholder_fixer_service import (
+    from body.self_healing.placeholder_fixer_service import (
         fix_placeholders_in_content,
     )
 

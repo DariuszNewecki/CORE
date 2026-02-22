@@ -15,6 +15,8 @@ HEALED (V2.3.0):
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from body.cli.logic.interactive_test.session import InteractiveSession
 from body.cli.logic.interactive_test.steps import (
     step_audit,
@@ -28,10 +30,13 @@ from body.cli.logic.interactive_test.ui import (
     show_header,
     show_success_message,
 )
+from body.services.service_registry import _ServiceLoader
 from shared.context import CoreContext
 from shared.logger import getLogger
-from will.agents.coder_agent import CoderAgent
-from will.orchestration.prompt_pipeline import PromptPipeline
+
+
+if TYPE_CHECKING:
+    from will.agents.coder_agent import CoderAgent
 
 
 logger = getLogger(__name__)
@@ -55,15 +60,9 @@ async def run_interactive_workflow(
     session = InteractiveSession(target_file, core_context.git_service.repo_path)
 
     try:
-        # Header
         show_header(target_file)
-
-        # Initialize services (uses CoreContext services, no direct instantiation)
         coder_agent = await _initialize_services(core_context)
 
-        # ====================================================================
-        # STEP 1: GENERATE CODE
-        # ====================================================================
         success, generated_code = await step_generate_code(
             session, target_file, coder_agent
         )
@@ -71,17 +70,12 @@ async def run_interactive_workflow(
             show_cancellation()
             return False
 
-        # ====================================================================
-        # STEP 2: AUTO-HEAL CODE
-        # ====================================================================
         success, healed_code = await step_auto_heal(session, generated_code)
         if not success:
             show_cancellation()
             return False
 
-        # Check if user skipped ahead to execute (with safety check)
         if session.decisions and session.decisions[-1]["choice"] == "s":
-            # Skip to step 5
             test_path = target_file.replace("src/", "tests/").replace(
                 ".py", "/test_generated.py"
             )
@@ -93,17 +87,12 @@ async def run_interactive_workflow(
                 show_cancellation()
                 return False
 
-        # ====================================================================
-        # STEP 3: CONSTITUTIONAL AUDIT
-        # ====================================================================
         success, _audit_report = await step_audit(session, healed_code)
         if not success:
             show_cancellation()
             return False
 
-        # Check if user skipped ahead to execute (with safety check)
         if session.decisions and session.decisions[-1]["choice"] == "s":
-            # Skip to step 5
             test_path = target_file.replace("src/", "tests/").replace(
                 ".py", "/test_generated.py"
             )
@@ -115,17 +104,11 @@ async def run_interactive_workflow(
                 show_cancellation()
                 return False
 
-        # ====================================================================
-        # STEP 4: CANARY TRIAL (Optional)
-        # ====================================================================
         success, _ran_canary = await step_canary(session)
         if not success:
             show_cancellation()
             return False
 
-        # ====================================================================
-        # STEP 5: EXECUTE
-        # ====================================================================
         final_code = healed_code
         test_path = target_file.replace("src/", "tests/").replace(
             ".py", "/test_generated.py"
@@ -152,8 +135,6 @@ async def _initialize_services(core_context: CoreContext) -> CoderAgent:
     - Uses existing services from CoreContext (DI principle).
     - JIT Service Activation: Automatically wakes up services from registry if missing.
     """
-    # 1. Collect services from the Context
-    # SAFETY NET: If they are None (Service Blindness), pull them from the Registry JIT.
     cognitive_service = core_context.cognitive_service
     if cognitive_service is None:
         cognitive_service = await core_context.registry.get_cognitive_service()
@@ -162,21 +143,20 @@ async def _initialize_services(core_context: CoreContext) -> CoderAgent:
     if auditor_context is None:
         auditor_context = await core_context.registry.get_auditor_context()
 
-    # 2. Get the mandatory action_executor (The Body's Gateway)
     executor = core_context.action_executor
 
-    # 3. Create PromptPipeline (stateless utility)
+    PromptPipeline = _ServiceLoader.import_class(
+        "will.orchestration.prompt_pipeline.PromptPipeline"
+    )
     prompt_pipeline = PromptPipeline(core_context.git_service.repo_path)
 
-    # 4. Get ContextService via property
     context_service = None
     try:
         context_service = core_context.context_service
     except Exception as e:
         logger.debug("ContextService not available: %s", e)
 
-    # 5. Create CoderAgent with HIGH FIDELITY signature
-    # Arguments match src/will/agents/coder_agent.py exactly.
+    CoderAgent = _ServiceLoader.import_class("will.agents.coder_agent.CoderAgent")
     coder_agent = CoderAgent(
         cognitive_service=cognitive_service,
         executor=executor,

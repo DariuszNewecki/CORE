@@ -22,17 +22,18 @@ from __future__ import annotations
 
 import hashlib
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from qdrant_client.models import PointStruct
 
-# REFACTORED: Removed direct settings import
 from shared.infrastructure.clients.qdrant_client import QdrantService
 from shared.logger import getLogger
 from shared.processors.yaml_processor import strict_yaml_processor
 from shared.universal import get_deterministic_id
-from will.orchestration.cognitive_service import CognitiveService
 
+
+if TYPE_CHECKING:
+    from will.orchestration.cognitive_service import CognitiveService
 
 logger = getLogger(__name__)
 

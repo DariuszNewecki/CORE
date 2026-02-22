@@ -1,13 +1,18 @@
-# src/features/introspection/vectorization/embedding_logic.py
+# src/body/introspection/vectorization/embedding_logic.py
 
 """Robust embedding strategies for the Will layer."""
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import numpy as np
 
 from shared.logger import getLogger
-from will.orchestration.cognitive_service import CognitiveService
+
+
+if TYPE_CHECKING:
+    from will.orchestration.cognitive_service import CognitiveService
 
 
 logger = getLogger(__name__)

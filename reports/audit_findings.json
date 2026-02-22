@@ -56,7 +56,7 @@
   {
     "check_id": "architecture.max_file_size",
     "severity": "warning",
-    "message": "Module has 429 lines, exceeds limit of 400",
+    "message": "Module has 430 lines, exceeds limit of 400",
     "file_path": "src/body/introspection/pattern_vectorizer.py",
     "line_number": null,
     "context": {},
@@ -371,7 +371,7 @@
   {
     "check_id": "architecture.api.no_body_bypass",
     "severity": "warning",
-    "message": "/opt/dev/CORE/src/api/v1/development_routes.py:20 - Forbidden import: 'from body.services.service_registry import service_registry' (matches constitutional boundary rule: body.services)",
+    "message": "/opt/dev/CORE/src/api/v1/development_routes.py:19 - Forbidden import: 'from body.services.service_registry import service_registry' (matches constitutional boundary rule: body.services)",
     "file_path": "src/api/v1/development_routes.py",
     "line_number": null,
     "context": {},
@@ -387,105 +387,6 @@
     "details": {}
   },
   {
-    "check_id": "architecture.layers.no_body_to_will",
-    "severity": "warning",
-    "message": "/opt/dev/CORE/src/body/autonomy/autonomous_developer.py:19 - Forbidden import: 'from will.orchestration.phase_registry import PhaseRegistry' (matches constitutional boundary rule: will.orchestration)",
-    "file_path": "src/body/autonomy/autonomous_developer.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.layers.no_body_to_will",
-    "severity": "warning",
-    "message": "/opt/dev/CORE/src/body/autonomy/autonomous_developer.py:20 - Forbidden import: 'from will.orchestration.workflow_orchestrator import WorkflowOrchestrator' (matches constitutional boundary rule: will.orchestration)",
-    "file_path": "src/body/autonomy/autonomous_developer.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.layers.no_body_to_will",
-    "severity": "warning",
-    "message": "/opt/dev/CORE/src/body/cli/logic/embeddings_cli.py:17 - Forbidden import: 'from will.orchestration.cognitive_service import CognitiveService' (matches constitutional boundary rule: will.orchestration)",
-    "file_path": "src/body/cli/logic/embeddings_cli.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.layers.no_body_to_will",
-    "severity": "warning",
-    "message": "/opt/dev/CORE/src/body/cli/logic/interactive_test/workflow.py:33 - Forbidden import: 'from will.agents.coder_agent import CoderAgent' (matches constitutional boundary rule: will.agents)",
-    "file_path": "src/body/cli/logic/interactive_test/workflow.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.layers.no_body_to_will",
-    "severity": "warning",
-    "message": "/opt/dev/CORE/src/body/cli/logic/interactive_test/workflow.py:34 - Forbidden import: 'from will.orchestration.prompt_pipeline import PromptPipeline' (matches constitutional boundary rule: will.orchestration)",
-    "file_path": "src/body/cli/logic/interactive_test/workflow.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.layers.no_body_to_will",
-    "severity": "warning",
-    "message": "/opt/dev/CORE/src/body/cli/resources/dev/chat.py:24 - Forbidden import: 'from will.agents.intent_translator import IntentTranslator' (matches constitutional boundary rule: will.agents)",
-    "file_path": "src/body/cli/resources/dev/chat.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.layers.no_body_to_will",
-    "severity": "warning",
-    "message": "/opt/dev/CORE/src/body/cli/resources/dev/chat.py:25 - Forbidden import: 'from will.orchestration.cognitive_service import CognitiveService' (matches constitutional boundary rule: will.orchestration)",
-    "file_path": "src/body/cli/resources/dev/chat.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.layers.no_body_to_will",
-    "severity": "warning",
-    "message": "/opt/dev/CORE/src/body/introspection/knowledge_vectorizer.py:24 - Forbidden import: 'from will.orchestration.cognitive_service import CognitiveService' (matches constitutional boundary rule: will.orchestration)",
-    "file_path": "src/body/introspection/knowledge_vectorizer.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.layers.no_body_to_will",
-    "severity": "warning",
-    "message": "/opt/dev/CORE/src/body/introspection/pattern_vectorizer.py:34 - Forbidden import: 'from will.orchestration.cognitive_service import CognitiveService' (matches constitutional boundary rule: will.orchestration)",
-    "file_path": "src/body/introspection/pattern_vectorizer.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.layers.no_body_to_will",
-    "severity": "warning",
-    "message": "/opt/dev/CORE/src/body/introspection/vectorization/embedding_logic.py:10 - Forbidden import: 'from will.orchestration.cognitive_service import CognitiveService' (matches constitutional boundary rule: will.orchestration)",
-    "file_path": "src/body/introspection/vectorization/embedding_logic.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.layers.no_body_to_will",
-    "severity": "warning",
-    "message": "/opt/dev/CORE/src/body/services/service_registry.py:189 - Forbidden import: 'from will.orchestration.cognitive_service import CognitiveService' (matches constitutional boundary rule: will.orchestration)",
-    "file_path": "src/body/services/service_registry.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
     "check_id": "modularity.single_responsibility",
     "severity": "warning",
     "message": "Modularity Debt: 57.2/100 (Limit: 60.0)",
@@ -506,7 +407,7 @@
   {
     "check_id": "modularity.single_responsibility",
     "severity": "warning",
-    "message": "Modularity Debt: 50.7/100 (Limit: 60.0)",
+    "message": "Modularity Debt: 50.6/100 (Limit: 60.0)",
     "file_path": "src/body/services/service_registry.py",
     "line_number": null,
     "context": {},
@@ -560,7 +461,7 @@
   {
     "check_id": "modularity.semantic_cohesion",
     "severity": "warning",
-    "message": "Modularity Debt: 50.7/100 (Limit: 60.0)",
+    "message": "Modularity Debt: 50.6/100 (Limit: 60.0)",
     "file_path": "src/body/services/service_registry.py",
     "line_number": null,
     "context": {},
@@ -614,7 +515,7 @@
   {
     "check_id": "modularity.import_coupling",
     "severity": "warning",
-    "message": "Modularity Debt: 50.7/100 (Limit: 60.0)",
+    "message": "Modularity Debt: 50.6/100 (Limit: 60.0)",
     "file_path": "src/body/services/service_registry.py",
     "line_number": null,
     "context": {},
@@ -668,7 +569,7 @@
   {
     "check_id": "modularity.refactor_score_threshold",
     "severity": "warning",
-    "message": "Modularity Debt: 50.7/100 (Limit: 60.0)",
+    "message": "Modularity Debt: 50.6/100 (Limit: 60.0)",
     "file_path": "src/body/services/service_registry.py",
     "line_number": null,
     "context": {},

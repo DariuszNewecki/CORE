@@ -11,6 +11,10 @@ Composes atomic actions into a governed workflow:
 CONSTITUTIONAL FIX:
 - Aligned action names with the Atomic Registry (fix.ids, sync.db, etc).
 - Corrected method calls from 'execute_action' to 'execute' to match ActionExecutor.
+
+DRY-RUN FIX (VITAL):
+- Do NOT hardcode write=True.
+- Propagate the workflow write flag to every atomic action.
 """
 
 from __future__ import annotations
@@ -42,14 +46,15 @@ class DevSyncWorkflow:
 
     # ID: 4a082bd8-28f6-4821-a3a5-365e243c1df2
     # ID: c2d3e4f5-6a7b-8c9d-0e1f-2a3b4c5d6e7f
-    async def run(self) -> WorkflowResult:
+    async def run(self, *, write: bool = False) -> WorkflowResult:
         """Execute the complete dev-sync workflow."""
-        logger.info("🚀 Starting dev-sync workflow...")
+        mode = "WRITE" if write else "DRY-RUN"
+        logger.info("🚀 Starting dev-sync workflow (%s)...", mode)
 
         result = WorkflowResult(workflow_id="dev_sync")
 
         # Phase 1: Fix (Clean the Body)
-        fix_phase = await self._run_fix_phase()
+        fix_phase = await self._run_fix_phase(write=write)
         result.phases.append(fix_phase)
 
         if not fix_phase.ok:
@@ -57,55 +62,54 @@ class DevSyncWorkflow:
             return result
 
         # Phase 2: Sync (Update the Mind/Memory)
-        sync_phase = await self._run_sync_phase()
+        sync_phase = await self._run_sync_phase(write=write)
         result.phases.append(sync_phase)
 
         if result.ok:
-            logger.info("✅ Dev-sync workflow completed successfully")
+            logger.info("✅ Dev-sync workflow completed successfully (%s)", mode)
         else:
-            logger.warning("⚠️  Dev-sync workflow completed with failures")
+            logger.warning("⚠️  Dev-sync workflow completed with failures (%s)", mode)
 
         return result
 
     # ID: 37d0c9f7-7402-49e5-98ff-0fe95b2ade37
-    async def _run_fix_phase(self) -> WorkflowPhase:
+    async def _run_fix_phase(self, *, write: bool) -> WorkflowPhase:
         """Phase 1: Make code constitutional."""
         phase = WorkflowPhase(name="fix")
-        logger.info("📝 Phase 1: Fix (Code Compliance)")
+        logger.info("📝 Phase 1: Fix (Code Compliance) [write=%s]", write)
 
         # Action: Fix IDs (ID: fix.ids)
-        res = await self.executor.execute(action_id="fix.ids", write=True)
+        res = await self.executor.execute(action_id="fix.ids", write=write)
         phase.actions.append(res)
 
         # Action: Add docstrings (ID: fix.docstrings)
-        res = await self.executor.execute(action_id="fix.docstrings", write=True)
+        res = await self.executor.execute(action_id="fix.docstrings", write=write)
         phase.actions.append(res)
 
         # Action: Format code (ID: fix.format)
-        res = await self.executor.execute(action_id="fix.format", write=True)
+        res = await self.executor.execute(action_id="fix.format", write=write)
         phase.actions.append(res)
 
         return phase
 
     # ID: 4cb4b930-eddf-4bd4-872b-f049ede7792a
-    async def _run_sync_phase(self) -> WorkflowPhase:
+    async def _run_sync_phase(self, *, write: bool) -> WorkflowPhase:
         """Phase 2: Propagate state to DB and Vectors."""
         phase = WorkflowPhase(name="sync")
-        logger.info("🔄 Phase 2: Sync (State & Memory)")
+        logger.info("🔄 Phase 2: Sync (State & Memory) [write=%s]", write)
 
-        # Action: Sync database (ID: sync.db)
-        # This uses the code from Step 1
-        db_sync_res = await self.executor.execute(action_id="sync.db", write=True)
+        # In DRY-RUN, do NOT write to DB/Vectors.
+        # We still execute actions with write=False so they can perform
+        # read-only checks / compute deltas if implemented that way.
+        db_sync_res = await self.executor.execute(action_id="sync.db", write=write)
         phase.actions.append(db_sync_res)
 
         if not db_sync_res.ok:
             logger.error("❌ sync.db failed, skipping vectorization")
             return phase
 
-        # Action: Vectorize (ID: sync.vectors.code)
-        # This uses the code from Step 2
         vectorize_res = await self.executor.execute(
-            action_id="sync.vectors.code", write=True
+            action_id="sync.vectors.code", write=write
         )
         phase.actions.append(vectorize_res)
 

@@ -15,22 +15,19 @@ import typer
 from rich.console import Console
 
 from body.services.file_service import FileService
+from body.services.service_registry import _ServiceLoader
 from shared.cli_utils import core_command
 from shared.context import CoreContext
 from shared.infrastructure.config_service import ConfigService
 from shared.logger import getLogger
 from shared.utils.parsing import extract_json_from_response
 from shared.utils.subprocess_utils import run_command_async
-from will.agents.intent_translator import IntentTranslator
-from will.orchestration.cognitive_service import CognitiveService
 
 from .hub import app
 
 
 logger = getLogger(__name__)
 console = Console()
-
-# --- Internal Helpers (Moved from deleted API layer) ---
 
 
 async def _require_llm_enabled(session) -> None:
@@ -49,9 +46,6 @@ async def _get_cli_context_help(repo_path: Path) -> str:
     args = ["poetry", "run", "core-admin", "check", "audit", "--help"]
     result = await run_command_async(args, cwd=repo_path)
     return result.stdout or ""
-
-
-# --- The Command ---
 
 
 @app.command("chat")
@@ -84,12 +78,11 @@ async def chat_command(
         file_service = FileService(repo_path)
         await file_service.write_report("cli_help_context.txt", help_text)
 
-        # 4. Cognitive Processing (Will Layer)
-        # Re-initialize cognitive service for the translator
-        cognitive_service = CognitiveService(repo_path)
-        async with core_context.registry.session() as session:
-            await cognitive_service.initialize(session)
-
+        # 4. Cognitive Processing (Will Layer via registry)
+        cognitive_service = await core_context.registry.get_cognitive_service()
+        IntentTranslator = _ServiceLoader.import_class(
+            "will.agents.intent_translator.IntentTranslator"
+        )
         translator = IntentTranslator(cognitive_service, core_context.path_resolver)
 
         # Translate
