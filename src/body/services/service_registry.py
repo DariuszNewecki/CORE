@@ -122,6 +122,26 @@ class ServiceRegistry:
         """Approved access to DB sessions via Bootstrap."""
         return bootstrap_registry.get_session()
 
+    @classmethod
+    # ID: a1b2c3d4-e5f6-7890-abcd-ef1234560001
+    def reset(cls) -> None:
+        """
+        Clear all cached service instances and init flags.
+
+        FOR TEST ISOLATION ONLY. Call this in test setUp/teardown to
+        ensure each test starts with a clean registry state.
+
+        Never call this in production code — it drops live service
+        instances and forces full re-initialization on the next request.
+
+        Example:
+            def setUp(self):
+                ServiceRegistry.reset()
+        """
+        cls._instances.clear()
+        cls._init_flags.clear()
+        logger.debug("ServiceRegistry.reset() called — all instances cleared.")
+
     # ------------------------------------------------------------------
     # PILLAR II: ORCHESTRATION (The Generic Router)
     # ------------------------------------------------------------------
