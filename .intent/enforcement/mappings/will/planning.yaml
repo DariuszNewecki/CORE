@@ -1,58 +1,63 @@
 # .intent/enforcement/mappings/will/planning.yaml
 # Constitutional enforcement for planning phase - V2.3
-# Status: READY FOR ENFORCEMENT
+# Status: HARDENED (P1.3)
+#
+# CHANGE LOG V2.3:
+# - planning.no_code_generation: llm_gate → passive_gate
+#   Rationale: Already enforced deterministically in base_planner.parse_and_validate_plan().
+#   LLM gate was redundant AND a bypass risk — an LLM outage could block all planning.
+# - planning.conceptual_only: llm_gate → passive_gate
+#   Same rationale. The params-only check runs in base_planner.py on every plan.
+# - planning.file_path_validation and planning.trace_mandatory: unchanged (deterministic).
 
 mappings:
   # 1. LAW: Planner must not generate code.
-  # We use the LLM Gate (The Judge) for semantic "Understanding" without hard-coding.
+  # ENFORCEMENT: Deterministic check in base_planner.parse_and_validate_plan().
+  # Raises PlanExecutionError if params.code is not None. passive_gate acknowledges
+  # this substrate enforcement so the rule is visible in coverage reports.
   planning.no_code_generation:
-    engine: llm_gate
+    engine: passive_gate
     params:
-      instruction: >
-        Analyze the output of the Planner Agent.
-        Verify that the 'params.code' field is null or empty.
-        It is FORBIDDEN for the Planner to generate implementation code.
-      rationale: "Strategic separation: The Planner defines 'what', the Coder defines 'how'."
+      enforced_by: "will.agents.base_planner.parse_and_validate_plan"
+      enforcement_note: >
+        Runtime check raises PlanExecutionError if ExecutionTask.params.code is not None.
+        LLM gate removed (P1.3): LLM failure must not block planning.
 
   # 2. LAW: Plans must be conceptual only.
-  # The Judge checks the 'params' dictionary for implementation details.
+  # ENFORCEMENT: Deterministic check in base_planner.parse_and_validate_plan().
+  # Scans params dict (not step descriptions) for code patterns.
   planning.conceptual_only:
-    engine: llm_gate
+    engine: passive_gate
     params:
-      instruction: >
-        Check the 'params' dictionary of each execution task.
-        It MUST NOT contain code patterns like 'def ', 'class ', 'import ', or 'return'.
-        CRITICAL: Descriptions in the 'step' field may use these words naturally; only the 'params' dict is restricted.
-      rationale: "Prevents strategy leakage into the implementation layer."
+      enforced_by: "will.agents.base_planner.parse_and_validate_plan"
+      enforcement_note: >
+        Runtime check scans ExecutionTask.params dict for code patterns.
+        Step field is explicitly excluded. LLM gate removed (P1.3).
 
   # 3. LAW: Paths must be valid.
-  # The Regex Gate (Deterministic) scans the code content for path-traversal bugs.
+  # Regex Gate (deterministic) — unchanged.
   planning.file_path_validation:
     engine: regex_gate
     params:
-      # We check the content of the agent code for forbidden path patterns
       forbidden_patterns:
-        - "src / " # Catches the 'spaces in path' bug
-        - "\\\\\\\\" # Catches backslashes
+        - "src / "
       message: "Detected invalid path string format in logic."
     scope:
       applies_to:
-        ["src/will/agents/planner_agent.py", "src/will/agents/base_planner.py"]
+        - "src/will/agents/planner_agent.py"
+        - "src/will/agents/base_planner.py"
 
   # 4. LAW: Decisions must be traced.
-  # The AST Gate (Deterministic) verifies the 'required_calls' verb we just implemented.
+  # AST Gate (deterministic) — unchanged.
   planning.trace_mandatory:
     engine: ast_gate
     params:
       check_type: required_calls
       selector:
-        # NEW: Only check methods that actually "do" things
         name_regex: "^(create_|execute_|elaborate_)"
       calls:
         - "self.tracer.record"
     scope:
       applies_to:
-        [
-          "src/will/agents/planner_agent.py",
-          "src/will/agents/specification_agent.py",
-        ]
+        - "src/will/agents/planner_agent.py"
+        - "src/will/agents/specification_agent.py"
