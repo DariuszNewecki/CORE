@@ -786,5 +786,86 @@
     "line_number": null,
     "context": {},
     "details": {}
+  },
+  {
+    "check_id": "planning.file_path_validation",
+    "severity": "error",
+    "message": "Forbidden Content [Line 91]: Matched restricted regex '\\\\'",
+    "file_path": "src/will/agents/planner_agent.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "planning.file_path_validation",
+    "severity": "error",
+    "message": "Forbidden Content [Line 91]: Matched restricted regex '\\\\'",
+    "file_path": "src/will/agents/planner_agent.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "planning.file_path_validation",
+    "severity": "error",
+    "message": "Forbidden Content [Line 182]: Matched restricted regex '\\\\'",
+    "file_path": "src/will/agents/planner_agent.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "planning.file_path_validation",
+    "severity": "error",
+    "message": "Forbidden Content [Line 182]: Matched restricted regex '\\\\'",
+    "file_path": "src/will/agents/planner_agent.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "planning.file_path_validation",
+    "severity": "error",
+    "message": "Forbidden Content [Line 188]: Matched restricted regex '\\\\'",
+    "file_path": "src/will/agents/planner_agent.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "planning.file_path_validation",
+    "severity": "error",
+    "message": "Forbidden Content [Line 225]: Matched restricted regex '\\\\'",
+    "file_path": "src/will/agents/planner_agent.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "planning.file_path_validation",
+    "severity": "error",
+    "message": "Forbidden Content [Line 225]: Matched restricted regex '\\\\'",
+    "file_path": "src/will/agents/planner_agent.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "planning.file_path_validation",
+    "severity": "error",
+    "message": "Forbidden Content [Line 231]: Matched restricted regex '\\\\'",
+    "file_path": "src/will/agents/planner_agent.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "planning.file_path_validation",
+    "severity": "error",
+    "message": "Forbidden Content [Line 231]: Matched restricted regex '\\\\'",
+    "file_path": "src/will/agents/planner_agent.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
   }
 ]
