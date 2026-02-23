@@ -630,6 +630,15 @@
     "details": {}
   },
   {
+    "check_id": "linkage.assign_ids",
+    "severity": "error",
+    "message": "Public symbol 'VectorizationPayload' missing stable ID anchor (line 38).",
+    "file_path": "src/body/introspection/knowledge_vectorizer.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
     "check_id": "purity.no_todo_placeholders",
     "severity": "warning",
     "message": "Forbidden Content [Line 126]: Matched restricted regex '\\bTBD\\b'",
@@ -643,6 +652,15 @@
     "severity": "warning",
     "message": "Forbidden Content [Line 190]: Matched restricted regex '\\bTBD\\b'",
     "file_path": "src/body/self_healing/duplicate_id_service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.stable_id_anchor",
+    "severity": "warning",
+    "message": "Public symbol 'VectorizationPayload' missing stable ID anchor (line 38).",
+    "file_path": "src/body/introspection/knowledge_vectorizer.py",
     "line_number": null,
     "context": {},
     "details": {}
