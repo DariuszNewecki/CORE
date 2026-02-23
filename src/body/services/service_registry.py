@@ -212,20 +212,36 @@ class ServiceRegistry:
 
     # ID: 4cd30621-d43f-40ac-a44e-4f9202258494
     async def get_cognitive_service(self) -> CognitiveService:
-        async with self._lock:
-            if "cognitive_service" not in self._instances:
-                cls = _ServiceLoader.import_class(
-                    "will.orchestration.cognitive_service.CognitiveService"
-                )
-                repo_path = bootstrap_registry.get_repo_path()
-                instance = cls(repo_path=repo_path, session_factory=self.session)
-                self._instances["cognitive_service"] = instance
-                self._init_flags["cognitive_service"] = False
+        """Creates and initializes CognitiveService as a singleton.
 
-            if not self._init_flags.get("cognitive_service"):
-                async with self.session() as session:
-                    await self._instances["cognitive_service"].initialize(session)
-                self._init_flags["cognitive_service"] = True
+        HARDENING (P1.4): initialize() now runs OUTSIDE the registry lock.
+        Previously, the slow DB + LLM initialization held _lock the entire
+        time, blocking get_qdrant_service(), get_auditor_context(), and
+        get_service() for all concurrent callers.
+
+        This is safe because CognitiveService.initialize() has its own
+        internal _init_lock and is idempotent — concurrent callers that
+        race past the outer check will each call initialize(), but only
+        the first will do real work; the rest return immediately.
+        """
+        # Step 1: Create the instance under the lock (fast — no I/O).
+        if "cognitive_service" not in self._instances:
+            async with self._lock:
+                if "cognitive_service" not in self._instances:
+                    cls = _ServiceLoader.import_class(
+                        "will.orchestration.cognitive_service.CognitiveService"
+                    )
+                    repo_path = bootstrap_registry.get_repo_path()
+                    instance = cls(repo_path=repo_path, session_factory=self.session)
+                    self._instances["cognitive_service"] = instance
+                    self._init_flags["cognitive_service"] = False
+
+        # Step 2: Initialize OUTSIDE the lock (slow — opens DB session,
+        # loads LLM config). CognitiveService._init_lock makes this idempotent.
+        if not self._init_flags.get("cognitive_service"):
+            async with self.session() as session:
+                await self._instances["cognitive_service"].initialize(session)
+            self._init_flags["cognitive_service"] = True
 
         return self._instances["cognitive_service"]
 
