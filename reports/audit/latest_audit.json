@@ -1,8 +1,8 @@
 {
-  "audit_id": "39752bf9-bb0e-4309-80fa-33b5af637601",
-  "timestamp": "2026-02-23T10:10:09Z",
+  "audit_id": "dc5d31f7-9641-4bf9-83b6-1e46591a1fc4",
+  "timestamp": "2026-02-23T10:15:42Z",
   "passed": true,
-  "findings_count": 82,
+  "findings_count": 79,
   "executed_rules": [
     "architecture.api.must_route_through_will",
     "architecture.api.no_body_bypass",
