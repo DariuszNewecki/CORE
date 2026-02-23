@@ -113,7 +113,7 @@ pip-audit = "^2.10.0"
 bandit = "^1.9.2"
 
 [tool.poetry.scripts]
-core-admin = "body.cli.admin_cli:app"
+core-admin = "cli.admin_cli:app"
 core = "api.cli_user:app"
 
 [tool.black]

@@ -2,8 +2,8 @@
   {
     "check_id": "logic.logging.standard_only",
     "severity": "warning",
-    "message": "Line 78: Replace print() with logger.",
-    "file_path": "src/body/cli/resources/database/status.py",
+    "message": "Line 250: Replace print() with logger.",
+    "file_path": "src/body/self_healing/handlers/import_sorting_handler.py",
     "line_number": null,
     "context": {},
     "details": {}
@@ -11,8 +11,8 @@
   {
     "check_id": "logic.logging.standard_only",
     "severity": "warning",
-    "message": "Line 250: Replace print() with logger.",
-    "file_path": "src/body/self_healing/handlers/import_sorting_handler.py",
+    "message": "Line 78: Replace print() with logger.",
+    "file_path": "src/cli/resources/database/status.py",
     "line_number": null,
     "context": {},
     "details": {}
@@ -22,24 +22,6 @@
     "severity": "warning",
     "message": "Module has 457 lines, exceeds limit of 400",
     "file_path": "src/body/atomic/executor.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.max_file_size",
-    "severity": "warning",
-    "message": "Module has 401 lines, exceeds limit of 400",
-    "file_path": "src/body/cli/commands/governance.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.max_file_size",
-    "severity": "warning",
-    "message": "Module has 448 lines, exceeds limit of 400",
-    "file_path": "src/body/cli/commands/secrets.py",
     "line_number": null,
     "context": {},
     "details": {}
@@ -76,6 +58,24 @@
     "severity": "warning",
     "message": "Module has 426 lines, exceeds limit of 400",
     "file_path": "src/body/services/constitutional_validator.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.max_file_size",
+    "severity": "warning",
+    "message": "Module has 402 lines, exceeds limit of 400",
+    "file_path": "src/cli/commands/governance.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.max_file_size",
+    "severity": "warning",
+    "message": "Module has 448 lines, exceeds limit of 400",
+    "file_path": "src/cli/commands/secrets.py",
     "line_number": null,
     "context": {},
     "details": {}
@@ -121,51 +121,6 @@
     "severity": "warning",
     "message": "Module has 467 lines, exceeds limit of 400",
     "file_path": "src/will/strategists/fix_strategist.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "governance.dangerous_execution_primitives",
-    "severity": "info",
-    "message": "Forbidden primitive 'subprocess.run' used (line 137).",
-    "file_path": "src/body/cli/commands/check/quality_gates.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "governance.dangerous_execution_primitives",
-    "severity": "info",
-    "message": "Forbidden primitive 'subprocess.run' used (line 135).",
-    "file_path": "src/body/cli/commands/check/quality_gates.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "governance.dangerous_execution_primitives",
-    "severity": "info",
-    "message": "Forbidden primitive 'subprocess.run' used (line 46).",
-    "file_path": "src/body/cli/commands/coverage/services/coverage_reporter.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "governance.dangerous_execution_primitives",
-    "severity": "info",
-    "message": "Forbidden primitive 'subprocess.run' used (line 65).",
-    "file_path": "src/body/cli/commands/coverage/services/coverage_reporter.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "governance.dangerous_execution_primitives",
-    "severity": "info",
-    "message": "Forbidden primitive 'os.environ' used (line 20).",
-    "file_path": "src/body/cli/logic/interactive_test/steps/utils.py",
     "line_number": null,
     "context": {},
     "details": {}
@@ -238,6 +193,51 @@
     "severity": "info",
     "message": "Forbidden primitive 'eval' used (line 124).",
     "file_path": "src/body/services/policy_expression_evaluator.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "governance.dangerous_execution_primitives",
+    "severity": "info",
+    "message": "Forbidden primitive 'subprocess.run' used (line 137).",
+    "file_path": "src/cli/commands/check/quality_gates.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "governance.dangerous_execution_primitives",
+    "severity": "info",
+    "message": "Forbidden primitive 'subprocess.run' used (line 135).",
+    "file_path": "src/cli/commands/check/quality_gates.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "governance.dangerous_execution_primitives",
+    "severity": "info",
+    "message": "Forbidden primitive 'subprocess.run' used (line 46).",
+    "file_path": "src/cli/commands/coverage/services/coverage_reporter.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "governance.dangerous_execution_primitives",
+    "severity": "info",
+    "message": "Forbidden primitive 'subprocess.run' used (line 65).",
+    "file_path": "src/cli/commands/coverage/services/coverage_reporter.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "governance.dangerous_execution_primitives",
+    "severity": "info",
+    "message": "Forbidden primitive 'os.environ' used (line 20).",
+    "file_path": "src/cli/logic/interactive_test/steps/utils.py",
     "line_number": null,
     "context": {},
     "details": {}
@@ -333,42 +333,6 @@
     "details": {}
   },
   {
-    "check_id": "architecture.body.no_rule_evaluation",
-    "severity": "warning",
-    "message": "/opt/dev/CORE/src/body/atomic/metadata_ops.py:84 - Forbidden import: 'from mind.logic.engines.ast_gate.checks.metadata_checks import verify_metadata_only_diff' (matches constitutional boundary rule: mind.logic.engines)",
-    "file_path": "src/body/atomic/metadata_ops.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.body.no_rule_evaluation",
-    "severity": "warning",
-    "message": "/opt/dev/CORE/src/body/cli/commands/refactor_support/analyzer.py:11 - Forbidden import: 'from mind.logic.engines.ast_gate.checks.modularity_checks import ModularityChecker' (matches constitutional boundary rule: mind.logic.engines)",
-    "file_path": "src/body/cli/commands/refactor_support/analyzer.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.body.no_rule_evaluation",
-    "severity": "warning",
-    "message": "/opt/dev/CORE/src/body/cli/logic/governance/engine.py:18 - Forbidden import: 'from mind.logic.engines.ast_gate import ASTGateEngine' (matches constitutional boundary rule: mind.logic.engines)",
-    "file_path": "src/body/cli/logic/governance/engine.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.body.no_rule_evaluation",
-    "severity": "warning",
-    "message": "/opt/dev/CORE/src/body/governance/engine_dispatcher.py:14 - Forbidden import: 'from mind.logic.engines.registry import EngineRegistry' (matches constitutional boundary rule: mind.logic.engines)",
-    "file_path": "src/body/governance/engine_dispatcher.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
     "check_id": "architecture.api.no_body_bypass",
     "severity": "warning",
     "message": "/opt/dev/CORE/src/api/v1/development_routes.py:19 - Forbidden import: 'from body.services.service_registry import service_registry' (matches constitutional boundary rule: body.services)",
@@ -389,15 +353,6 @@
   {
     "check_id": "modularity.single_responsibility",
     "severity": "warning",
-    "message": "Modularity Debt: 57.2/100 (Limit: 60.0)",
-    "file_path": "src/body/cli/commands/governance.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.single_responsibility",
-    "severity": "warning",
     "message": "Modularity Debt: 54.2/100 (Limit: 60.0)",
     "file_path": "src/body/maintenance/refactor_settings_access.py",
     "line_number": null,
@@ -409,6 +364,15 @@
     "severity": "warning",
     "message": "Modularity Debt: 51.8/100 (Limit: 60.0)",
     "file_path": "src/body/services/service_registry.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "modularity.single_responsibility",
+    "severity": "warning",
+    "message": "Modularity Debt: 57.2/100 (Limit: 60.0)",
+    "file_path": "src/cli/commands/governance.py",
     "line_number": null,
     "context": {},
     "details": {}
@@ -443,15 +407,6 @@
   {
     "check_id": "modularity.semantic_cohesion",
     "severity": "warning",
-    "message": "Modularity Debt: 57.2/100 (Limit: 60.0)",
-    "file_path": "src/body/cli/commands/governance.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.semantic_cohesion",
-    "severity": "warning",
     "message": "Modularity Debt: 54.2/100 (Limit: 60.0)",
     "file_path": "src/body/maintenance/refactor_settings_access.py",
     "line_number": null,
@@ -463,6 +418,15 @@
     "severity": "warning",
     "message": "Modularity Debt: 51.8/100 (Limit: 60.0)",
     "file_path": "src/body/services/service_registry.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "modularity.semantic_cohesion",
+    "severity": "warning",
+    "message": "Modularity Debt: 57.2/100 (Limit: 60.0)",
+    "file_path": "src/cli/commands/governance.py",
     "line_number": null,
     "context": {},
     "details": {}
@@ -497,15 +461,6 @@
   {
     "check_id": "modularity.import_coupling",
     "severity": "warning",
-    "message": "Modularity Debt: 57.2/100 (Limit: 60.0)",
-    "file_path": "src/body/cli/commands/governance.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.import_coupling",
-    "severity": "warning",
     "message": "Modularity Debt: 54.2/100 (Limit: 60.0)",
     "file_path": "src/body/maintenance/refactor_settings_access.py",
     "line_number": null,
@@ -517,6 +472,15 @@
     "severity": "warning",
     "message": "Modularity Debt: 51.8/100 (Limit: 60.0)",
     "file_path": "src/body/services/service_registry.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "modularity.import_coupling",
+    "severity": "warning",
+    "message": "Modularity Debt: 57.2/100 (Limit: 60.0)",
+    "file_path": "src/cli/commands/governance.py",
     "line_number": null,
     "context": {},
     "details": {}
@@ -551,15 +515,6 @@
   {
     "check_id": "modularity.refactor_score_threshold",
     "severity": "warning",
-    "message": "Modularity Debt: 57.2/100 (Limit: 60.0)",
-    "file_path": "src/body/cli/commands/governance.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.refactor_score_threshold",
-    "severity": "warning",
     "message": "Modularity Debt: 54.2/100 (Limit: 60.0)",
     "file_path": "src/body/maintenance/refactor_settings_access.py",
     "line_number": null,
@@ -571,6 +526,15 @@
     "severity": "warning",
     "message": "Modularity Debt: 51.8/100 (Limit: 60.0)",
     "file_path": "src/body/services/service_registry.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "modularity.refactor_score_threshold",
+    "severity": "warning",
+    "message": "Modularity Debt: 57.2/100 (Limit: 60.0)",
+    "file_path": "src/cli/commands/governance.py",
     "line_number": null,
     "context": {},
     "details": {}
@@ -745,7 +709,7 @@
   {
     "check_id": "workflow.dead_code_check",
     "severity": "warning",
-    "message": "Dead code detected: src/body/cli/commands/fix/metadata.py:163: unused variable 'policies_dir' (100% confidence)",
+    "message": "Dead code detected: src/body/governance/runtime_validator.py:157: unused variable 'dst_root' (100% confidence)",
     "file_path": "System",
     "line_number": null,
     "context": {},
@@ -754,7 +718,7 @@
   {
     "check_id": "workflow.dead_code_check",
     "severity": "warning",
-    "message": "Dead code detected: src/body/governance/runtime_validator.py:157: unused variable 'dst_root' (100% confidence)",
+    "message": "Dead code detected: src/cli/commands/fix/metadata.py:163: unused variable 'policies_dir' (100% confidence)",
     "file_path": "System",
     "line_number": null,
     "context": {},

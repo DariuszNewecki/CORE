@@ -4,12 +4,15 @@
 Provides a service to introspect the live Typer CLI application and synchronize
 the discovered commands with the `core.cli_commands` database table.
 
-MOVED: From features/maintenance to body/maintenance (Constitutional Rebirth Wave 1).
-FIXED: Restored missing report keys for the Admin Self-Check UI.
+CONSTITUTIONAL HARDENING (v2.3):
+- Decoupled from hardcoded design rules.
+- Receives constitutional parameters from the Will (CLI) layer.
+- Enforces cli.dangerous_explicit and cli.help_required.
 """
 
 from __future__ import annotations
 
+import inspect
 from typing import Any, Protocol
 
 from sqlalchemy import delete
@@ -50,8 +53,9 @@ def _introspect_typer_app(
 ) -> list[dict[str, Any]]:
     """
     Recursively scans a Typer app to discover all commands and their metadata.
+    Includes physical file paths for constitutional auditing.
     """
-    commands = []
+    commands: list[dict[str, Any]] = []
 
     for cmd_info in app.registered_commands:
         if not cmd_info.name:
@@ -67,29 +71,38 @@ def _introspect_typer_app(
                         "name": full_name,
                         "module": None,
                         "entrypoint": None,
+                        "file_path": None,
                         "summary": None,
                         "category": prefix.replace(".", " ").strip() or "general",
                         "behavior": None,
                         "layer": None,
                         "aliases": [],
                         "dangerous": False,
-                        "requires_approval": False,
-                        "constitutional_constraints": [],
-                        "help_text": None,
+                        "params_list": [],
                         "has_callback": False,
                         "has_explicit_meta": False,
-                        "experimental": False,
                     }
                 )
             continue
 
+        # Find the physical file where this command is defined
+        try:
+            file_path: str | None = inspect.getfile(callback)
+        except Exception:
+            file_path = "unknown"
+
+        # Extract function parameters to check for 'write' flag
+        sig = inspect.signature(callback)
+        params_list = list(sig.parameters.keys())
+
         meta = get_command_meta(callback)
 
         if meta:
-            command_dict = {
+            command_dict: dict[str, Any] = {
                 "name": meta.canonical_name,
                 "module": meta.module or callback.__module__,
                 "entrypoint": meta.entrypoint or callback.__name__,
+                "file_path": file_path,
                 "summary": meta.summary,
                 "category": meta.category
                 or prefix.replace(".", " ").strip()
@@ -98,14 +111,10 @@ def _introspect_typer_app(
                 "layer": meta.layer.value,
                 "aliases": meta.aliases or [],
                 "dangerous": meta.dangerous,
-                "requires_approval": meta.requires_approval,
-                "constitutional_constraints": meta.constitutional_constraints or [],
-                "help_text": meta.help_text,
+                "params_list": params_list,
+                "has_callback": True,
+                "has_explicit_meta": True,
             }
-            if include_missing_handlers:
-                command_dict["has_callback"] = True
-                command_dict["has_explicit_meta"] = True
-                command_dict["experimental"] = meta.experimental
         else:
             inferred = infer_metadata_from_function(
                 func=callback, command_name=cmd_info.name, group_prefix=prefix
@@ -114,6 +123,7 @@ def _introspect_typer_app(
                 "name": inferred.canonical_name,
                 "module": inferred.module or callback.__module__,
                 "entrypoint": inferred.entrypoint or callback.__name__,
+                "file_path": file_path,
                 "summary": inferred.summary or (cmd_info.help or "").split("\n")[0],
                 "category": inferred.category
                 or prefix.replace(".", " ").strip()
@@ -122,14 +132,10 @@ def _introspect_typer_app(
                 "layer": inferred.layer.value,
                 "aliases": inferred.aliases or [],
                 "dangerous": inferred.dangerous,
-                "requires_approval": inferred.requires_approval,
-                "constitutional_constraints": inferred.constitutional_constraints or [],
-                "help_text": inferred.help_text,
+                "params_list": params_list,
+                "has_callback": True,
+                "has_explicit_meta": False,
             }
-            if include_missing_handlers:
-                command_dict["has_callback"] = True
-                command_dict["has_explicit_meta"] = False
-                command_dict["experimental"] = False
 
         commands.append(command_dict)
 
@@ -156,14 +162,22 @@ async def _sync_commands_to_db(session: AsyncSession, main_app: TyperAppLike):
     if not discovered_commands:
         return
 
-    seen_names = set()
-    deduplicated = []
+    seen_names: set[str] = set()
+    deduplicated: list[dict[str, Any]] = []
 
     for cmd in discovered_commands:
-        name = cmd["name"]
+        # DB schema doesn't need audit-only fields, strip them before DB write
+        db_ready_cmd = {
+            k: v
+            for k, v in cmd.items()
+            if k
+            not in {"params_list", "has_callback", "has_explicit_meta", "file_path"}
+        }
+
+        name = db_ready_cmd["name"]
         if name not in seen_names:
             seen_names.add(name)
-            deduplicated.append(cmd)
+            deduplicated.append(db_ready_cmd)
 
     async with session.begin():
         await session.execute(delete(CliCommand))
@@ -177,31 +191,84 @@ async def _sync_commands_to_db(session: AsyncSession, main_app: TyperAppLike):
 
 
 # ID: c818737b-10ca-4e3a-b327-b5e0cd928548
-def audit_cli_registry(main_app: TyperAppLike) -> dict[str, Any]:
+def audit_cli_registry(
+    main_app: TyperAppLike,
+    allowed_verbs: set[str] | None = None,
+    forbidden_resources: set[str] | None = None,
+) -> dict[str, Any]:
     """
-    Audit the CLI command registry for integrity issues.
+    Audit the CLI command registry using provided parameters from the Constitution.
+    BODY LAYER: Pure execution, no decision-making.
     """
     commands = _introspect_typer_app(main_app, include_missing_handlers=True)
+    violations: list[dict[str, Any]] = []
 
+    # Use provided parameters (The "Law" passed as data)
+    verbs = allowed_verbs or set()
+    forbidden = forbidden_resources or set()
+
+    for c in commands:
+        name_parts = c["name"].split(".")
+        resource = name_parts[0]
+        action = name_parts[1] if len(name_parts) > 1 else None
+
+        # 1. Rule: cli.no_layer_exposure
+        if resource in forbidden:
+            violations.append(
+                {
+                    "rule": "cli.no_layer_exposure",
+                    "message": f"Resource '{resource}' exposes internal architecture.",
+                    "item": c["name"],
+                }
+            )
+
+        # 2. Rule: cli.standard_verbs
+        if action and verbs and action not in verbs:
+            violations.append(
+                {
+                    "rule": "cli.standard_verbs",
+                    "message": f"Action '{action}' is non-standard.",
+                    "item": c["name"],
+                }
+            )
+
+        # 3. Rule: cli.help_required
+        if not c.get("summary"):
+            violations.append(
+                {
+                    "rule": "cli.help_required",
+                    "message": "Command is missing a help summary (docstring).",
+                    "item": c["name"],
+                }
+            )
+
+        # 4. Rule: cli.dangerous_explicit
+        # If behavior is 'mutate', it MUST be marked 'dangerous' and have a 'write' param
+        if c.get("behavior") == "mutate":
+            if not c.get("dangerous"):
+                violations.append(
+                    {
+                        "rule": "cli.dangerous_explicit",
+                        "message": "Mutating command is not marked 'dangerous=True' in metadata.",
+                        "item": c["name"],
+                    }
+                )
+            if "write" not in c.get("params_list", []):
+                violations.append(
+                    {
+                        "rule": "cli.dangerous_explicit",
+                        "message": "Mutating command is missing mandatory 'write' parameter.",
+                        "item": c["name"],
+                    }
+                )
+
+    # Calculate statistics
     total = len(commands)
     with_explicit = sum(1 for c in commands if c.get("has_explicit_meta"))
-    with_inferred = sum(
-        1 for c in commands if c.get("has_callback") and not c.get("has_explicit_meta")
-    )
+    missing_handlers = [c for c in commands if not c.get("has_callback")]
 
-    missing_handlers = [
-        {"name": c["name"], "category": c.get("category", "")}
-        for c in commands
-        if not c.get("has_callback")
-    ]
-    experimental = [
-        {"name": c["name"], "category": c.get("category", "")}
-        for c in commands
-        if c.get("experimental")
-    ]
-
-    # Simple duplicate detection
-    canonical_map = {}
+    # Duplicate Detection (by canonical name)
+    canonical_map: dict[str, list[str]] = {}
     for cmd in commands:
         name = cmd.get("name")
         if name:
@@ -212,20 +279,16 @@ def audit_cli_registry(main_app: TyperAppLike) -> dict[str, Any]:
         for k, v in canonical_map.items()
         if len(v) > 1
     ]
-    issue_count = len(missing_handlers) + len(duplicates)
+
+    issue_count = len(missing_handlers) + len(duplicates) + len(violations)
 
     return {
+        "is_healthy": issue_count == 0,
+        "issue_count": issue_count,
+        "violations": violations,
         "total_commands": total,
         "with_explicit_meta": with_explicit,
-        "with_inferred_meta": with_inferred,
-        "meta_coverage_pct": (
-            round((with_explicit / total * 100), 1) if total > 0 else 0.0
-        ),
         "missing_handlers": missing_handlers,
         "duplicates": duplicates,
-        "experimental": experimental,
-        "experimental_count": len(experimental),
-        "issue_count": issue_count,
-        "is_healthy": issue_count == 0,
         "commands": commands,
     }
