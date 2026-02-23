@@ -193,13 +193,21 @@ class ServiceRegistry:
 
     # ID: 7d345235-d5f3-4480-a3d0-4e8e30a263fb
     async def get_qdrant_service(self) -> QdrantService:
-        async with self._lock:
-            if "qdrant" not in self._instances:
-                from shared.infrastructure.clients.qdrant_client import QdrantService
+        """Authoritative, lazy, singleton access to Qdrant."""
+        if "qdrant" not in self._instances:
+            async with self._lock:
+                # Double-checked: another coroutine may have initialized
+                # while we were waiting for the lock.
+                if "qdrant" not in self._instances:
+                    from shared.infrastructure.clients.qdrant_client import (
+                        QdrantService,
+                    )
 
-                self._instances["qdrant"] = QdrantService(
-                    url=self.qdrant_url, collection_name=self.qdrant_collection_name
-                )
+                    self._instances["qdrant"] = QdrantService(
+                        url=self.qdrant_url,
+                        collection_name=self.qdrant_collection_name,
+                    )
+                    self._init_flags["qdrant"] = True
         return self._instances["qdrant"]
 
     # ID: 4cd30621-d43f-40ac-a44e-4f9202258494
