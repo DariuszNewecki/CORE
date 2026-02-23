@@ -407,7 +407,7 @@
   {
     "check_id": "modularity.single_responsibility",
     "severity": "warning",
-    "message": "Modularity Debt: 51.4/100 (Limit: 60.0)",
+    "message": "Modularity Debt: 51.8/100 (Limit: 60.0)",
     "file_path": "src/body/services/service_registry.py",
     "line_number": null,
     "context": {},
@@ -461,7 +461,7 @@
   {
     "check_id": "modularity.semantic_cohesion",
     "severity": "warning",
-    "message": "Modularity Debt: 51.4/100 (Limit: 60.0)",
+    "message": "Modularity Debt: 51.8/100 (Limit: 60.0)",
     "file_path": "src/body/services/service_registry.py",
     "line_number": null,
     "context": {},
@@ -515,7 +515,7 @@
   {
     "check_id": "modularity.import_coupling",
     "severity": "warning",
-    "message": "Modularity Debt: 51.4/100 (Limit: 60.0)",
+    "message": "Modularity Debt: 51.8/100 (Limit: 60.0)",
     "file_path": "src/body/services/service_registry.py",
     "line_number": null,
     "context": {},
@@ -569,7 +569,7 @@
   {
     "check_id": "modularity.refactor_score_threshold",
     "severity": "warning",
-    "message": "Modularity Debt: 51.4/100 (Limit: 60.0)",
+    "message": "Modularity Debt: 51.8/100 (Limit: 60.0)",
     "file_path": "src/body/services/service_registry.py",
     "line_number": null,
     "context": {},
@@ -783,87 +783,6 @@
     "severity": "warning",
     "message": "Line 37: missing mandatory call(s): ['self.tracer.record']",
     "file_path": "src/will/agents/conversational/factory.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "planning.file_path_validation",
-    "severity": "error",
-    "message": "Forbidden Content [Line 91]: Matched restricted regex '\\\\'",
-    "file_path": "src/will/agents/planner_agent.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "planning.file_path_validation",
-    "severity": "error",
-    "message": "Forbidden Content [Line 91]: Matched restricted regex '\\\\'",
-    "file_path": "src/will/agents/planner_agent.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "planning.file_path_validation",
-    "severity": "error",
-    "message": "Forbidden Content [Line 182]: Matched restricted regex '\\\\'",
-    "file_path": "src/will/agents/planner_agent.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "planning.file_path_validation",
-    "severity": "error",
-    "message": "Forbidden Content [Line 182]: Matched restricted regex '\\\\'",
-    "file_path": "src/will/agents/planner_agent.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "planning.file_path_validation",
-    "severity": "error",
-    "message": "Forbidden Content [Line 188]: Matched restricted regex '\\\\'",
-    "file_path": "src/will/agents/planner_agent.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "planning.file_path_validation",
-    "severity": "error",
-    "message": "Forbidden Content [Line 225]: Matched restricted regex '\\\\'",
-    "file_path": "src/will/agents/planner_agent.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "planning.file_path_validation",
-    "severity": "error",
-    "message": "Forbidden Content [Line 225]: Matched restricted regex '\\\\'",
-    "file_path": "src/will/agents/planner_agent.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "planning.file_path_validation",
-    "severity": "error",
-    "message": "Forbidden Content [Line 231]: Matched restricted regex '\\\\'",
-    "file_path": "src/will/agents/planner_agent.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "planning.file_path_validation",
-    "severity": "error",
-    "message": "Forbidden Content [Line 231]: Matched restricted regex '\\\\'",
-    "file_path": "src/will/agents/planner_agent.py",
     "line_number": null,
     "context": {},
     "details": {}
