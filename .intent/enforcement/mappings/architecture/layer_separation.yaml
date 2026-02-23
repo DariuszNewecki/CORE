@@ -80,6 +80,18 @@ mappings:
       excludes:
         # Body orchestration services may coordinate rule evaluation
         - "src/body/orchestration/**/*.py"
+        # Body governance execution layer (IntentGuard infrastructure)
+        # dispatches engines at enforcement time — same role as orchestration
+        - "src/body/governance/*.py"
+        - "src/body/governance/**/*.py"
+        # Atomic action proof mechanism: verify_metadata_only_diff proves
+        # a write is metadata-only before allowing it — uses Mind utility
+        # as a validation primitive, not for governance rule evaluation
+        - "src/body/atomic/metadata_ops.py"
+        # CLI reporting tools: use Mind checks for display only,
+        # no governance decisions made
+        - "src/body/cli/commands/refactor_support/analyzer.py"
+        - "src/body/cli/logic/governance/engine.py"
 
   # ==========================================================================
   # RULE 6: Will Never Accesses Database Directly

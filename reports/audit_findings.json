@@ -759,32 +759,5 @@
     "line_number": null,
     "context": {},
     "details": {}
-  },
-  {
-    "check_id": "autonomy.tracing.mandatory",
-    "severity": "warning",
-    "message": "Line 9: missing mandatory call(s): ['self.tracer.record']",
-    "file_path": "src/will/agents/conversational/__init__.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "autonomy.tracing.mandatory",
-    "severity": "warning",
-    "message": "Line 16: missing mandatory call(s): ['self.tracer.record']",
-    "file_path": "src/will/agents/conversational/factory.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "autonomy.tracing.mandatory",
-    "severity": "warning",
-    "message": "Line 37: missing mandatory call(s): ['self.tracer.record']",
-    "file_path": "src/will/agents/conversational/factory.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
   }
 ]
