@@ -20,16 +20,15 @@ mappings:
     params:
       check_type: generic_primitive
       selector:
-        # Targets classes ending in 'Agent'
         name_regex: "Agent$"
       requirement:
-        # CONSTITUTIONAL FIX: Changed from 'forbidden_calls' to 'required_calls'.
-        # This aligns the enforcement logic with the 'mandatory' intent of the rule.
-        # It now verifies that agents ARE properly instrumented with tracing.
         check_type: required_calls
         calls: ["self.tracer.record"]
     scope:
       applies_to: ["src/will/agents/**/*.py"]
+      excludes:
+        - "src/will/agents/**/__init__.py" # re-export modules, no class definitions
+        - "src/will/agents/**/factory.py" # factory functions, not agent classes
 
   # LAW: Planning MUST include a check against Quality Assurance policy
   autonomy.reasoning.policy_alignment:
