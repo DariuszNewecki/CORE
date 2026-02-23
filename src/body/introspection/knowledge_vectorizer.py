@@ -35,6 +35,7 @@ MAX_SCROLL_LIMIT = 10000
 
 
 @dataclass
+# ID: 367117e2-837f-4673-a488-7fcf75ca91cc
 class VectorizationPayload:
     """
     Enhanced payload for vector store with searchable metadata.

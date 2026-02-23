@@ -1,8 +1,8 @@
 {
-  "audit_id": "f732fb12-8016-4c89-9470-9bdc574047d1",
-  "timestamp": "2026-02-22T14:59:58Z",
-  "passed": false,
-  "findings_count": 85,
+  "audit_id": "d76e9b2a-bca8-46a9-bf46-3c6bd6e5b5e3",
+  "timestamp": "2026-02-23T09:34:55Z",
+  "passed": true,
+  "findings_count": 82,
   "executed_rules": [
     "architecture.api.must_route_through_will",
     "architecture.api.no_body_bypass",
@@ -83,5 +83,5 @@
     "quality.test_integrity",
     "quality.type_safety"
   ],
-  "verdict": "FAIL"
+  "verdict": "PASS"
 }

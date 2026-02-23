@@ -61,6 +61,7 @@ class PlannerAgent:
         self.policy_vectorizer = PolicyVectorizer(cognitive_service)
 
     # ID: 1ea9ec86-10a3-4356-9c31-c14e53c8fd0
+    # ID: 52208224-fea7-4d79-baee-d3b07d634624
     async def create_execution_plan(
         self, goal: str, reconnaissance_report: str = ""
     ) -> list[ExecutionTask]:
@@ -200,16 +201,18 @@ class PlannerAgent:
         """
         Loads QA constraints from constitutional policy files.
 
-        Tries 'purity' (V2 name) then 'quality_assurance' (V1 name).
-        Returns formatted string of QA rules, or a sensible default.
+        Uses PathResolver (injected via repo_path) instead of importing
+        settings directly, to comply with architecture.boundary.settings_access.
         """
+        import json
+
         import yaml
 
-        from shared.config import settings
+        path_resolver = PathResolver(self.repo_path)
 
         for policy_name in ["purity", "quality_assurance"]:
             try:
-                qa_path = settings.paths.policy(policy_name)
+                qa_path = path_resolver.policy(policy_name)
                 if qa_path.exists():
                     content = qa_path.read_text(encoding="utf-8")
                     data = (
