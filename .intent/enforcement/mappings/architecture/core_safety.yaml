@@ -24,6 +24,7 @@ mappings:
         - "src/will/**"
         - "src/shared/**"
         - "src/api/**"
+        - "src/cli/**"
     scope:
       applies_to:
         - "src/**/*.py"

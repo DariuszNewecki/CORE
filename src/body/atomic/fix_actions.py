@@ -157,7 +157,7 @@ async def action_fix_headers(
     core_context: CoreContext, write: bool = False, **kwargs
 ) -> ActionResult:
     """Fix file headers."""
-    from body.cli.commands.fix.code_style import fix_headers_internal
+    from cli.commands.fix.code_style import fix_headers_internal
 
     return await fix_headers_internal(core_context, write=write)
 
@@ -180,7 +180,7 @@ async def action_fix_ids(
     core_context: CoreContext, write: bool = False, **kwargs
 ) -> ActionResult:
     """Fix missing ID tags."""
-    from body.cli.commands.fix.metadata import fix_ids_internal
+    from cli.commands.fix.metadata import fix_ids_internal
 
     return await fix_ids_internal(core_context, write=write)
 
@@ -203,7 +203,7 @@ async def action_fix_duplicate_ids(
     core_context: CoreContext, write: bool = False, **kwargs
 ) -> ActionResult:
     """Resolve duplicate UUID collisions in source files."""
-    from body.cli.commands.fix.metadata import fix_duplicate_ids_internal
+    from cli.commands.fix.metadata import fix_duplicate_ids_internal
 
     return await fix_duplicate_ids_internal(core_context, write=write)
 
@@ -227,7 +227,7 @@ async def action_fix_logging(
 ) -> ActionResult:
     """Fix logging violations."""
     start = time.time()
-    from body.cli.commands.fix_logging import LoggingFixer
+    from cli.commands.fix_logging import LoggingFixer
 
     fixer = LoggingFixer(
         repo_root=core_context.git_service.repo_path,
@@ -308,11 +308,11 @@ async def action_fix_atomic_actions(
     core_context: CoreContext, write: bool = False, **kwargs
 ) -> ActionResult:
     """Fix atomic action patterns."""
-    from body.cli.commands.fix.atomic_actions import _fix_file_violations
     from body.evaluators.atomic_actions_evaluator import (
         AtomicActionsEvaluator,
         AtomicActionViolation,
     )
+    from cli.commands.fix.atomic_actions import _fix_file_violations
 
     start_time = time.time()
     root_path = core_context.git_service.repo_path

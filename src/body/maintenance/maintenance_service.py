@@ -24,6 +24,7 @@ logger = getLogger(__name__)
 # This tells the tool: "If you see the old name on the left, change it to the name on the right."
 REWIRE_MAP = {
     # Old Feature paths -> New Will paths (The Brains)
+    "body.cli": "cli",
     "features.autonomy": "will.autonomy",
     "features.self_healing.audit_remediation_service": "will.self_healing.audit_remediation_service",
     "features.self_healing.clarity_service": "will.self_healing.clarity_service",

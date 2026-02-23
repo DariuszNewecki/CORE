@@ -123,6 +123,13 @@ class CognitiveService:
         if not api_url or not model_name:
             raise ValueError(f"Missing config for resource '{resource.name}'.")
 
+        if "anthropic" in api_url.lower():
+            from shared.infrastructure.llm.providers.anthropic import AnthropicProvider
+
+            return AnthropicProvider(
+                api_url=api_url, model_name=model_name, api_key=api_key
+            )
+
         if "ollama" in api_url.lower() or "11434" in api_url:
             return OllamaProvider(api_url=api_url, model_name=model_name)
 
