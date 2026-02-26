@@ -1,0 +1,132 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "id": "schema.rule",
+  "version": "2.4.0",
+  "title": "CORE Rule Schema",
+  "description": "Schema defining a single enforceable governance rule.",
+  "type": "object",
+  "schema_id": "schema.rule",
+  "owners": {
+    "accountable": "Governance Lead",
+    "responsible": [
+      "Core Maintainer"
+    ]
+  },
+  "review": {
+    "frequency": "12 months"
+  },
+  "required": [
+    "id",
+    "enforcement",
+    "statement",
+    "check"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]*(\\.[a-z0-9_]+)*$",
+      "description": "Rule identifier unique within its containing policy. Distinct from document-level header id."
+    },
+    "enforcement": {
+      "type": "string",
+      "enum": [
+        "error",
+        "warn",
+        "info"
+      ]
+    },
+    "statement": {
+      "type": "string",
+      "minLength": 10,
+      "maxLength": 500
+    },
+    "rationale": {
+      "type": "string",
+      "minLength": 10
+    },
+    "check": {
+      "type": "object",
+      "required": [],
+      "additionalProperties": true,
+      "properties": {
+        "engine": {
+          "type": "string",
+          "enum": [
+            "ast_gate",
+            "regex_gate",
+            "glob_gate",
+            "python_handler",
+            "llm_gate",
+            "knowledge_gate",
+            "workflow_gate",
+            "risk_gate"
+          ],
+          "description": "Execution engine identifier. New engines may be introduced without schema revision."
+        },
+        "params": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      }
+    },
+    "scope": {
+      "type": "object",
+      "description": "Normalized scope definition for rule applicability.",
+      "additionalProperties": true,
+      "properties": {
+        "paths": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "domains": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "conditions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "exceptions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "protected_paths": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "applies_when": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "remediation": {
+      "type": "string"
+    },
+    "notes": {
+      "type": "string"
+    },
+    "data": {
+      "type": "object",
+      "description": "Custom metadata and supplementary information for this rule",
+      "additionalProperties": true
+    },
+    "category": {
+      "type": "string",
+      "description": "Optional category for grouping related rules"
+    }
+  },
+  "additionalProperties": false
+}

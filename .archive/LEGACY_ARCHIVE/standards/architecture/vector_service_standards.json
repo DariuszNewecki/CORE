@@ -1,0 +1,526 @@
+{
+  "id": "standard_architecture_vector_service_standards",
+  "version": "1.0.0",
+  "title": "Architecture Standard – Vector Service Standards",
+  "type": "policy",
+  "status": "active",
+  "owners": {
+    "accountable": "Architecture Owner",
+    "responsible": [
+      "Core Maintainer"
+    ]
+  },
+  "review": {
+    "frequency": "12 months"
+  },
+  "schema_id": "schema.policy",
+  "policy_id": "vector_service_standards",
+  "category": "infrastructure",
+  "layer": "body",
+  "depends_on": [
+    "standard_architecture_dependency_injection",
+    "standard_data_governance"
+  ],
+  "purpose": "Standardizes all vector operations (Qdrant) across CORE to prevent redundant embeddings, reduce drift between DB and vectors, and enforce predictable hashing, service-method usage, payload schemas, pagination, and sync integrity.\n",
+  "notes": {
+    "optimization_review": "All 10 llm_gate rules require semantic code pattern validation (hash usage, service method patterns, payload structure). No deterministic conversions possible."
+  },
+  "rules": [
+    {
+      "id": "vector.deterministic_id_generation",
+      "data": {
+        "implementation": [
+          "Use shared.universal.get_deterministic_id(string) for integer IDs",
+          "Use uuid.uuid5 for UUIDs (if needed)",
+          "Input to ID generation must be a stable unique identifier (e.g., symbol path)"
+        ],
+        "prohibited": [
+          "hash(str) -> randomized per run",
+          "uuid.uuid4() -> random every time",
+          "random.randint() -> random"
+        ],
+        "validation": [
+          "Code review must reject hash() usage for persistent IDs",
+          "Vectors must remain accessible across server restarts"
+        ],
+        "examples": {
+          "compliant": "from shared.universal import get_deterministic_id\npoint_id = get_deterministic_id(item.item_id)\n",
+          "non_compliant": "point_id = hash(item.item_id)\n"
+        }
+      },
+      "rationale": "Strengthens system governance regarding vector.deterministic_id_generation.",
+      "enforcement": "error",
+      "statement": "Qdrant Point IDs MUST be deterministic and stable across process restarts. Use of Python's built-in `hash()` for persistent IDs is PROHIBITED.\n",
+      "check": {
+        "engine": "llm_gate",
+        "params": {
+          "instruction": "Verify adherence to: Qdrant Point IDs MUST be deterministic and stable across process restarts. Use of Python's built-in `hash()` for persistent IDs is PROHIBITED.\n"
+        }
+      }
+    },
+    {
+      "id": "vector.mandatory_hashing",
+      "data": {
+        "implementation": [
+          "Compute SHA-256 hash of normalized content before embedding",
+          "Store hash in payload as 'content_sha256'",
+          "Check existing hashes before generating new embeddings",
+          "Skip re-vectorization if hash matches"
+        ],
+        "validation": [
+          "Every vector payload MUST include content_sha256",
+          "Hash collisions trigger explicit handling",
+          "Missing hashes are audit violations"
+        ],
+        "examples": {
+          "compliant": "normalized = normalize_text(source_code)\ncontent_hash = hashlib.sha256(normalized.encode()).hexdigest()\nexisting_hash = await get_stored_hash(vector_id)\nif existing_hash == content_hash:\n    return\nvector = await embed(normalized)\nawait upsert(vector, {\"content_sha256\": content_hash, ...})\n",
+          "non_compliant": "vector = await embed(source_code)\nawait upsert(vector, payload)\n"
+        }
+      },
+      "rationale": "Strengthens system governance regarding vector.mandatory_hashing.",
+      "enforcement": "error",
+      "statement": "ALL vectorization operations MUST compute and store content hashes to enable deduplication and change detection.\n",
+      "check": {
+        "engine": "llm_gate",
+        "params": {
+          "instruction": "Verify adherence to: ALL vectorization operations MUST compute and store content hashes to enable deduplication and change detection.\n"
+        }
+      }
+    },
+    {
+      "id": "vector.service_method_usage",
+      "data": {
+        "implementation": [
+          "Use qdrant_service.upsert_symbol_vector() for upserting",
+          "Use qdrant_service.get_vector_by_id() for retrieval",
+          "Use qdrant_service.ensure_collection() for setup",
+          "Add new methods to QdrantService for new patterns"
+        ],
+        "validation": [
+          "Code review checks for .client. usage outside service",
+          "Linting rules flag direct client access",
+          "Audit reports non-service patterns"
+        ],
+        "rationale": "Service methods provide centralized error handling, consistent logging, payload validation, connection pooling, and retry logic. Direct client access bypasses these protections.\n",
+        "examples": {
+          "compliant": "await qdrant_service.upsert_symbol_vector(\n    point_id_str=symbol_id,\n    vector=embedding,\n    payload_data=payload\n)\n",
+          "non_compliant": "await qdrant_service.client.upsert(\n    collection_name=collection,\n    points=[PointStruct(...)]\n)\n"
+        }
+      },
+      "rationale": "Strengthens system governance regarding vector.service_method_usage.",
+      "enforcement": "error",
+      "statement": "ALL Qdrant operations MUST go through QdrantService methods. Direct client access (qdrant_service.client.*) is PROHIBITED except when implementing new QdrantService methods.\n",
+      "check": {
+        "engine": "llm_gate",
+        "params": {
+          "instruction": "Verify adherence to: ALL Qdrant operations MUST go through QdrantService methods. Direct client access (qdrant_service.client.*) is PROHIBITED except when implementing new QdrantService methods.\n"
+        }
+      }
+    },
+    {
+      "id": "vector.standardized_payloads",
+      "data": {
+        "implementation": [
+          "Use EmbeddingPayload for general embeddings",
+          "Create typed payload classes for domain-specific needs",
+          "Validate payloads before upserting",
+          "Document payload schema in docstrings"
+        ],
+        "validation": [
+          "Type checkers verify payload classes used",
+          "Runtime validation catches malformed payloads",
+          "Audit checks payload conformance"
+        ],
+        "required_fields": {
+          "all_payloads": [
+            "content_sha256: str",
+            "model: str",
+            "model_rev: str",
+            "dim: int",
+            "created_at: str (ISO timestamp)"
+          ],
+          "code_vectors": [
+            "source_path: str",
+            "chunk_id: str",
+            "symbol: str",
+            "language: str"
+          ],
+          "constitutional_vectors": [
+            "document_type: str (policy|pattern|schema)",
+            "document_id: str",
+            "section_type: str (philosophy|rule|example)",
+            "section_path: str"
+          ]
+        },
+        "examples": {
+          "compliant": "@dataclass\nclass CodePayload:\n    content_sha256: str\n    model: str\n    model_rev: str\n    dim: int\n    created_at: str\n    source_path: str\n    chunk_id: str\n    symbol: str\n    language: str\n",
+          "non_compliant": "payload = {\"symbol\": symbol_name, \"code\": source_code}\n"
+        }
+      },
+      "rationale": "Strengthens system governance regarding vector.standardized_payloads.",
+      "enforcement": "error",
+      "statement": "ALL vector payloads MUST conform to standardized schemas. Use EmbeddingPayload or typed domain payload classes. Raw dictionaries are PROHIBITED.\n",
+      "check": {
+        "engine": "llm_gate",
+        "params": {
+          "instruction": "Verify adherence to: ALL vector payloads MUST conform to standardized schemas. Use EmbeddingPayload or typed domain payload classes. Raw dictionaries are PROHIBITED.\n"
+        }
+      }
+    },
+    {
+      "id": "vector.scroll_pagination",
+      "data": {
+        "implementation": [
+          "Use scroll with offset tracking",
+          "Set reasonable page size (1000-10000)",
+          "Handle None offset as termination condition",
+          "Accumulate results across pages"
+        ],
+        "validation": [
+          "Large collection operations use scroll",
+          "Offset tracking is explicit",
+          "Loop termination is guaranteed"
+        ],
+        "examples": {
+          "compliant": "all_points = []\noffset = None\nwhile True:\n    points, offset = await client.scroll(\n        collection_name=collection,\n        limit=10_000,\n        offset=offset,\n        with_payload=True,\n        with_vectors=False\n    )\n    all_points.extend(points)\n    if offset is None:\n        break\n",
+          "non_compliant": "points = await client.scroll(collection_name=collection, limit=100_000)\n"
+        }
+      },
+      "rationale": "Strengthens system governance regarding vector.scroll_pagination.",
+      "enforcement": "error",
+      "statement": "ALL collection scanning MUST use proper pagination with scroll. Unbounded queries or limit-only queries are PROHIBITED for collections that may exceed 1000 points.\n",
+      "check": {
+        "engine": "llm_gate",
+        "params": {
+          "instruction": "Verify adherence to: ALL collection scanning MUST use proper pagination with scroll. Unbounded queries or limit-only queries are PROHIBITED for collections that may exceed 1000 points.\n"
+        }
+      }
+    },
+    {
+      "id": "vector.bidirectional_sync_integrity",
+      "data": {
+        "implementation": [
+          "symbol_vector_links table tracks vector_id <-> symbol_id",
+          "Sync operations clean orphaned vectors from Qdrant",
+          "Sync operations clean dangling links from PostgreSQL",
+          "Operations are atomic and ordered"
+        ],
+        "validation": [
+          "Orphaned vector count = 0",
+          "Dangling link count = 0",
+          "Sync operations are idempotent"
+        ],
+        "sync_order": {
+          "step_1": "Prune orphaned vectors from Qdrant (no DB link)",
+          "step_2": "Prune dangling links from PostgreSQL (no vector)",
+          "rationale": "Order prevents race conditions during cleanup"
+        }
+      },
+      "rationale": "Strengthens system governance regarding vector.bidirectional_sync_integrity.",
+      "enforcement": "error",
+      "statement": "Vector store and PostgreSQL MUST maintain referential integrity. Orphaned vectors or dangling links are constitutional violations.\n",
+      "check": {
+        "engine": "llm_gate",
+        "params": {
+          "instruction": "Verify adherence to: Vector store and PostgreSQL MUST maintain referential integrity. Orphaned vectors or dangling links are constitutional violations.\n"
+        }
+      }
+    },
+    {
+      "id": "vector.collection_naming_convention",
+      "data": {
+        "examples": [
+          "core-symbols",
+          "core-patterns",
+          "core-policies"
+        ],
+        "prohibited": [
+          "my-collection",
+          "core_symbols",
+          "CoreSymbols"
+        ]
+      },
+      "rationale": "Strengthens system governance regarding vector.collection_naming_convention.",
+      "enforcement": "error",
+      "statement": "Vector collection names MUST match '^core-[a-z-]+$'.",
+      "check": {
+        "engine": "llm_gate",
+        "params": {
+          "instruction": "Verify adherence to: Vector collection names MUST match '^core-[a-z-]+$'."
+        }
+      }
+    },
+    {
+      "id": "vector.collection_vector_configuration",
+      "data": {
+        "distance_metric": {
+          "value": "cosine",
+          "rationale": "Semantic similarity is directional"
+        },
+        "dimension_sources": {
+          "default": 768,
+          "openai_small": 1536,
+          "openai_large": 3072
+        },
+        "payload_storage": {
+          "value": "on_disk_payload: true",
+          "rationale": "Optimize memory; payloads accessed infrequently"
+        }
+      },
+      "rationale": "Strengthens system governance regarding vector.collection_vector_configuration.",
+      "enforcement": "warn",
+      "statement": "Vector collections MUST follow the standard configuration defaults unless explicitly justified.",
+      "check": {
+        "engine": "llm_gate",
+        "params": {
+          "instruction": "Verify adherence to: Vector collections MUST follow the standard configuration defaults unless explicitly justified."
+        }
+      }
+    },
+    {
+      "id": "vector.collection_lifecycle_management",
+      "data": {
+        "creation": "Use ensure_collection() for idempotent setup",
+        "deletion": "Requires explicit approval and backup",
+        "migration": "Create new collection, migrate, swap, verify"
+      },
+      "rationale": "Strengthens system governance regarding vector.collection_lifecycle_management.",
+      "enforcement": "warn",
+      "statement": "Collection lifecycle operations MUST be explicit and governed (create idempotently, delete with approval, migrate by swap).",
+      "check": {
+        "engine": "llm_gate",
+        "params": {
+          "instruction": "Verify adherence to: Collection lifecycle operations MUST be explicit and governed (create idempotently, delete with approval, migrate by swap)."
+        }
+      }
+    },
+    {
+      "id": "vector.vectorizer_standard_structure",
+      "data": {
+        "standard_structure": {
+          "class_name": "[Domain]Vectorizer",
+          "initialization": "def __init__(self, repo_root: Path, cognitive_service: CognitiveService, qdrant_service: QdrantService)\n"
+        },
+        "core_methods": [
+          "async def vectorize_all() -> dict[str, Any]",
+          "async def _vectorize_single(item) -> str | None",
+          "async def _get_stored_hashes() -> dict[str, str]",
+          "def _compute_hash(content: str) -> str"
+        ],
+        "initialization_pattern": {
+          "requirement": "Use ensure_collection() before vectorization"
+        },
+        "hash_checking_pattern": {
+          "requirement": "Check hash before embedding"
+        },
+        "error_handling_pattern": {
+          "requirement": "Graceful degradation with logging (do not abort entire batch)"
+        }
+      },
+      "rationale": "Strengthens system governance regarding vector.vectorizer_standard_structure.",
+      "enforcement": "warn",
+      "statement": "Vectorizers MUST follow the standard structure and hash-checking pattern.",
+      "check": {
+        "engine": "llm_gate",
+        "params": {
+          "instruction": "Verify adherence to: Vectorizers MUST follow the standard structure and hash-checking pattern."
+        }
+      }
+    }
+  ],
+  "data": {
+    "philosophy": "Vector databases are the semantic memory of CORE. Like PostgreSQL serves as\nthe single source of truth for structured data, Qdrant serves as the single\nsource of truth for semantic understanding.\n\nInconsistent interaction patterns create redundant embeddings, drift, and\ncompounding technical debt. This standard defines canonical practices.\n",
+    "migration": {
+      "current_violations": {
+        "pattern_vectorizer": [
+          "Missing hash-based deduplication",
+          "Direct client.scroll() usage"
+        ],
+        "policy_vectorizer": [
+          "Missing hash tracking",
+          "Raw dict payloads"
+        ],
+        "legacy_code": [
+          "Multiple scroll patterns without pagination limits"
+        ]
+      },
+      "migration_phases": {
+        "phase_1_service_methods": {
+          "duration": "1 week",
+          "tasks": [
+            "Add missing methods to QdrantService",
+            "Update symbol_vectorizer to use new methods",
+            "Update pattern_vectorizer to use new methods"
+          ],
+          "success_criteria": [
+            "Zero direct client access outside QdrantService",
+            "All vectorizers use service methods"
+          ]
+        },
+        "phase_2_hash_standards": {
+          "duration": "1 week",
+          "tasks": [
+            "Add hash computation to all vectorizers",
+            "Implement hash checking before embedding",
+            "Add content_sha256 to all payloads"
+          ],
+          "success_criteria": [
+            "100% of vectors have content_sha256",
+            "Hash checking prevents redundant embeddings"
+          ]
+        },
+        "phase_3_payload_schemas": {
+          "duration": "1 week",
+          "tasks": [
+            "Create typed payload classes",
+            "Replace raw dicts with typed payloads",
+            "Add runtime validation"
+          ],
+          "success_criteria": [
+            "Zero raw dict payloads",
+            "Type checking passes",
+            "Runtime validation active"
+          ]
+        }
+      }
+    },
+    "enforcement": {
+      "audit_checks": [
+        {
+          "id": "vector.hash_present",
+          "description": "All vectors must have content_sha256 in payload",
+          "severity": "error",
+          "check": "Query all points, verify hash field present"
+        },
+        {
+          "id": "vector.service_usage",
+          "description": "No direct client access outside QdrantService",
+          "severity": "error",
+          "check": "Grep for '.client.' usage outside service file"
+        },
+        {
+          "id": "vector.deterministic_ids",
+          "description": "No use of built-in hash() for IDs",
+          "severity": "error",
+          "check": "Scan for hash() calls in vectorizers"
+        },
+        {
+          "id": "vector.typed_payloads",
+          "description": "All payloads use typed classes",
+          "severity": "error",
+          "check": "Type checker verification"
+        },
+        {
+          "id": "vector.sync_integrity",
+          "description": "No orphaned vectors or dangling links",
+          "severity": "error",
+          "check": "Run bidirectional sync in dry-run mode"
+        }
+      ],
+      "blocking_conditions": [
+        "New vectorization code without hash checking",
+        "Direct client access in new code",
+        "Raw dict payloads in new code",
+        "Orphaned vectors > 0 in production",
+        "Use of non-deterministic hashing"
+      ]
+    },
+    "tooling": {
+      "cli_commands": [
+        {
+          "command": "core-admin manage vectors sync [target]",
+          "description": "Vectorize with hash-based deduplication",
+          "targets": [
+            "policies",
+            "patterns",
+            "symbols",
+            "all"
+          ]
+        },
+        {
+          "command": "core-admin manage vectors verify",
+          "description": "Check vector-DB sync integrity",
+          "checks": [
+            "Orphaned vectors count",
+            "Dangling links count",
+            "Hash coverage percentage"
+          ]
+        },
+        {
+          "command": "core-admin manage vectors prune",
+          "description": "Clean orphaned vectors and dangling links",
+          "safety": "Requires --confirm flag in production"
+        }
+      ],
+      "monitoring": {
+        "metrics": [
+          "vector_count_by_collection",
+          "orphaned_vector_count",
+          "dangling_link_count",
+          "hash_coverage_percentage",
+          "embedding_api_calls_saved"
+        ],
+        "alerts": [
+          {
+            "condition": "orphaned_vectors > 100",
+            "action": "Notify and trigger automatic cleanup"
+          },
+          {
+            "condition": "hash_coverage < 95%",
+            "action": "Flag for migration attention"
+          },
+          {
+            "condition": "embedding_cost_spike",
+            "action": "Check for missing hash deduplication"
+          }
+        ]
+      }
+    },
+    "success_criteria": {
+      "consistency": [
+        "All vectorizers use same service methods",
+        "All vectorizers implement hash checking",
+        "All vectorizers use typed payloads"
+      ],
+      "efficiency": [
+        "Redundant embeddings eliminated via hashing",
+        "Embedding API costs reduced by 60%+",
+        "Vectorization runs skip unchanged content"
+      ],
+      "integrity": [
+        "Zero orphaned vectors in Qdrant",
+        "Zero dangling links in PostgreSQL",
+        "Sync operations are idempotent"
+      ],
+      "maintainability": [
+        "New vectorizers follow standard pattern",
+        "Service layer provides all needed operations",
+        "Documentation is authoritative"
+      ]
+    },
+    "references": {
+      "related_policies": [
+        "dependency_injection_policy.yaml",
+        "knowledge_graph_integrity.yaml",
+        "pattern_vectorization.yaml"
+      ],
+      "related_code": [
+        "src/services/clients/qdrant_client.py",
+        "src/features/introspection/symbol_vectorizer.py",
+        "src/features/introspection/pattern_vectorizer.py",
+        "src/will/tools/policy_vectorizer.py"
+      ],
+      "discovery_context": {
+        "date": "2025-12-06",
+        "issue": "Inconsistent Qdrant interaction patterns",
+        "symptoms": [
+          "Only symbol_vectorizer used hash checking",
+          "Mixed direct client vs service method usage",
+          "Different payload structures across vectorizers"
+        ],
+        "resolution": "This policy standardizes all vector operations"
+      }
+    }
+  },
+  "additionalProperties": false
+}

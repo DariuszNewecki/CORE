@@ -1,72 +1,79 @@
+# =============================================================================
+# CORE — .gitignore
+# Philosophy: version code and intent; exclude everything generated at runtime.
+# =============================================================================
+
+# -----------------------------------------------------------------------------
 # Python
+# -----------------------------------------------------------------------------
 __pycache__/
 *.py[cod]
-*.pyo
-*.pyd
 *.so
 *.egg-info/
-__pypackages__/
-
-# Virtual environments
-.venv/
-.env
-
-# Typing / linting
 .mypy_cache/
 .ruff_cache/
 
+# -----------------------------------------------------------------------------
+# Environment & secrets
+# -----------------------------------------------------------------------------
+.env
+.env.*
+!.env.example
+
+# -----------------------------------------------------------------------------
 # Testing
+# -----------------------------------------------------------------------------
 .pytest_cache/
 .coverage
 coverage.json
-*.log
-*.jsonl
-src/test.py
-.env.canary
-.env.test
 
-# Editors
+# -----------------------------------------------------------------------------
+# Editors & OS
+# -----------------------------------------------------------------------------
 .vscode/
 .idea/
 *.swp
-
-# Reports (runtime artifacts)
-reports/
-
-# System/OS
 .DS_Store
 Thumbs.db
 
-# CORE-specific (sensitive / transient)
+# -----------------------------------------------------------------------------
+# External mounts — symlinked, never versioned
+# -----------------------------------------------------------------------------
 ITAM
-.intent/keys/
-pending_writes/
-sandbox/
-knowledge_graph.json
-*.lock
-.archive/
-core-arxive/
 
-# Runtime state (CORE-owned; not versioned)
+# -----------------------------------------------------------------------------
+# Runtime state — fully owned by CORE, never versioned
+# -----------------------------------------------------------------------------
 var/*
 !var/.gitkeep
 
-# Work directory (scratch)
+# -----------------------------------------------------------------------------
+# Autonomous workspace — ephemeral by definition
+# -----------------------------------------------------------------------------
 work/*
 !work/.gitkeep
 
-# Demo recordings (keep README.md and other docs)
-demos/*.cast
-demos/*.mp4
-demos/*.gif
+# -----------------------------------------------------------------------------
+# Infrastructure scripts that are local/dev-only
+# -----------------------------------------------------------------------------
+infra/scripts/dev/
+infra/scripts/archive/
 
-# Context files (local only)
+# -----------------------------------------------------------------------------
+# Demo recordings (keep docs, ignore binary recordings)
+# -----------------------------------------------------------------------------
+docs/demos/recordings/*.cast
+docs/demos/recordings/*.mp4
+docs/demos/recordings/*.gif
+
+# -----------------------------------------------------------------------------
+# Constitutional governance — keys are never versioned
+# -----------------------------------------------------------------------------
+.intent/keys/
+
+# -----------------------------------------------------------------------------
+# Temporary / legacy
+# -----------------------------------------------------------------------------
+*.log
+*.jsonl
 project_context.txt
-
-# Test files (temporary)
-test_placement.py
-
-# Developer helpers / local scripts (do not version)
-scripts/dev/
-scripts/archive/
-.env.bak

@@ -1,0 +1,321 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "schema_id": "standard.code.purity",
+  "version": "1.0.0",
+  "title": "Code Standard \u2013 Purity & Side Effects",
+  "description": "Validates purity.yaml",
+  "type": "object",
+  "required": [
+    "id",
+    "version",
+    "title",
+    "type",
+    "status",
+    "owners",
+    "review",
+    "schema_id",
+    "policy_id",
+    "purpose",
+    "core_principle",
+    "governance_contracts",
+    "structural_anchors",
+    "forbidden_pollution",
+    "metadata_strategy",
+    "enforcement",
+    "philosophy"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9_.-]+$"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+    },
+    "title": {
+      "type": "string",
+      "maxLength": 200
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "draft",
+        "deprecated",
+        "experimental"
+      ]
+    },
+    "owners": {
+      "type": "object",
+      "required": [
+        "accountable"
+      ],
+      "properties": {
+        "accountable": {
+          "type": "string"
+        },
+        "responsible": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "review": {
+      "type": "object",
+      "required": [
+        "frequency"
+      ],
+      "properties": {
+        "frequency": {
+          "type": "string"
+        },
+        "last_reviewed": {
+          "type": "string",
+          "format": "date"
+        },
+        "next_review_due": {
+          "type": "string",
+          "format": "date"
+        }
+      },
+      "additionalProperties": false
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "$schema": {
+      "type": "string",
+      "description": "Optional JSON Schema reference"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "standard_code"
+      ]
+    },
+    "schema_id": {
+      "type": "string",
+      "const": "standard.code.purity"
+    },
+    "policy_id": {
+      "type": "string"
+    },
+    "purpose": {
+      "type": "string",
+      "minLength": 10
+    },
+    "core_principle": {
+      "type": "string",
+      "minLength": 10
+    },
+    "governance_contracts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string"
+          },
+          "format": {
+            "type": "string"
+          },
+          "justification": {
+            "type": "string",
+            "minLength": 10
+          },
+          "enforcement": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "format",
+          "justification",
+          "enforcement"
+        ],
+        "additionalProperties": false
+      },
+      "minItems": 1
+    },
+    "structural_anchors": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string"
+          },
+          "format": {
+            "type": "string"
+          },
+          "location": {
+            "type": "string"
+          },
+          "justification": {
+            "type": "string",
+            "minLength": 10
+          },
+          "enforcement": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "format",
+          "location",
+          "justification",
+          "enforcement"
+        ],
+        "additionalProperties": false
+      },
+      "minItems": 1
+    },
+    "forbidden_pollution": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string"
+          },
+          "examples": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 10
+          },
+          "alternative": {
+            "type": "string"
+          },
+          "enforcement": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "examples",
+          "reason",
+          "alternative",
+          "enforcement"
+        ],
+        "additionalProperties": false
+      },
+      "minItems": 1
+    },
+    "metadata_strategy": {
+      "type": "object",
+      "properties": {
+        "source_code": {
+          "type": "object",
+          "properties": {
+            "contains": {
+              "type": "string"
+            },
+            "role": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "contains",
+            "role"
+          ],
+          "additionalProperties": false
+        },
+        "database": {
+          "type": "object",
+          "properties": {
+            "contains": {
+              "type": "string"
+            },
+            "schema_ref": {
+              "type": "string"
+            },
+            "role": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "contains",
+            "schema_ref",
+            "role"
+          ],
+          "additionalProperties": false
+        },
+        "docstrings": {
+          "type": "object",
+          "properties": {
+            "contains": {
+              "type": "string"
+            },
+            "role": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "contains",
+            "role"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "source_code",
+        "database",
+        "docstrings"
+      ],
+      "additionalProperties": false
+    },
+    "enforcement": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "check": {
+            "type": "string"
+          },
+          "violation": {
+            "type": "string"
+          },
+          "fix": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "check",
+          "violation",
+          "fix"
+        ],
+        "additionalProperties": false
+      },
+      "minItems": 1
+    },
+    "philosophy": {
+      "type": "string",
+      "minLength": 10
+    }
+  },
+  "additionalProperties": false,
+  "id": "purity.schema",
+  "owners": {
+    "accountable": "Governance Lead"
+  },
+  "review": {
+    "frequency": "12 months"
+  }
+}

@@ -1,0 +1,344 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "schema_id": "mind.project_manifest",
+  "version": "1.0.0",
+  "title": "CORE Project Manifest",
+  "description": "Validates project_manifest.yaml",
+  "type": "object",
+  "required": [
+    "id",
+    "version",
+    "title",
+    "type",
+    "status",
+    "owners",
+    "review",
+    "schema_id",
+    "name",
+    "description",
+    "northstar",
+    "knowledge",
+    "governance",
+    "runtime",
+    "vector_integration",
+    "context_packages",
+    "metadata",
+    "notes"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9_.-]+$"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+    },
+    "title": {
+      "type": "string",
+      "maxLength": 200
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "draft",
+        "deprecated",
+        "experimental"
+      ]
+    },
+    "owners": {
+      "type": "object",
+      "required": [
+        "accountable"
+      ],
+      "properties": {
+        "accountable": {
+          "type": "string"
+        },
+        "responsible": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "review": {
+      "type": "object",
+      "required": [
+        "frequency"
+      ],
+      "properties": {
+        "frequency": {
+          "type": "string"
+        },
+        "last_reviewed": {
+          "type": "string",
+          "format": "date"
+        },
+        "next_review_due": {
+          "type": "string",
+          "format": "date"
+        }
+      },
+      "additionalProperties": false
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "$schema": {
+      "type": "string",
+      "description": "Optional JSON Schema reference"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "mind_project_manifest"
+      ]
+    },
+    "schema_id": {
+      "type": "string",
+      "const": "mind.project_manifest"
+    },
+    "name": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string",
+      "minLength": 10
+    },
+    "northstar": {
+      "type": "object",
+      "properties": {
+        "source": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string",
+          "minLength": 10
+        }
+      },
+      "required": [
+        "source",
+        "description"
+      ],
+      "additionalProperties": false
+    },
+    "knowledge": {
+      "type": "object",
+      "properties": {
+        "symbols": {
+          "type": "object",
+          "properties": {
+            "source": {
+              "type": "string"
+            },
+            "views": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "minItems": 1
+            }
+          },
+          "required": [
+            "source",
+            "views"
+          ],
+          "additionalProperties": false
+        },
+        "capabilities": {
+          "type": "object",
+          "properties": {
+            "source": {
+              "type": "string"
+            },
+            "links": {
+              "type": "string"
+            },
+            "domains_table": {
+              "type": "string"
+            },
+            "description": {
+              "type": "string",
+              "minLength": 10
+            }
+          },
+          "required": [
+            "source",
+            "links",
+            "domains_table",
+            "description"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "symbols",
+        "capabilities"
+      ],
+      "additionalProperties": false
+    },
+    "governance": {
+      "type": "object",
+      "properties": {
+        "policies_dir": {
+          "type": "string"
+        },
+        "checks_dir": {
+          "type": "string"
+        },
+        "incident_log": {
+          "type": "string"
+        },
+        "proposal_system": {
+          "type": "object",
+          "properties": {
+            "proposals_table": {
+              "type": "string"
+            },
+            "signatures_table": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "proposals_table",
+            "signatures_table"
+          ],
+          "additionalProperties": false
+        },
+        "audit": {
+          "type": "object",
+          "properties": {
+            "runs_table": {
+              "type": "string"
+            },
+            "violations_table": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "runs_table",
+            "violations_table"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "policies_dir",
+        "checks_dir",
+        "incident_log",
+        "proposal_system",
+        "audit"
+      ],
+      "additionalProperties": false
+    },
+    "runtime": {
+      "type": "object",
+      "properties": {
+        "tasks": {
+          "type": "string"
+        },
+        "actions": {
+          "type": "string"
+        },
+        "agent_decisions": {
+          "type": "string"
+        },
+        "agent_memory": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "tasks",
+        "actions",
+        "agent_decisions",
+        "agent_memory"
+      ],
+      "additionalProperties": false
+    },
+    "vector_integration": {
+      "type": "object",
+      "properties": {
+        "qdrant": {
+          "type": "object",
+          "properties": {
+            "symbol_links": {
+              "type": "string"
+            },
+            "sync_log": {
+              "type": "string"
+            },
+            "retrieval_feedback": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "symbol_links",
+            "sync_log",
+            "retrieval_feedback"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "qdrant"
+      ],
+      "additionalProperties": false
+    },
+    "context_packages": {
+      "type": "object",
+      "properties": {
+        "packets_table": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string",
+          "minLength": 10
+        }
+      },
+      "required": [
+        "packets_table",
+        "description"
+      ],
+      "additionalProperties": false
+    },
+    "metadata": {
+      "type": "object",
+      "properties": {
+        "migrations_table": {
+          "type": "string"
+        },
+        "cli_commands_table": {
+          "type": "string"
+        },
+        "runtime_settings_table": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "migrations_table",
+        "cli_commands_table",
+        "runtime_settings_table"
+      ],
+      "additionalProperties": false
+    },
+    "notes": {
+      "type": "string",
+      "minLength": 10
+    }
+  },
+  "additionalProperties": false,
+  "id": "project_manifest.schema",
+  "owners": {
+    "accountable": "Governance Lead"
+  },
+  "review": {
+    "frequency": "12 months"
+  }
+}

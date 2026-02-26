@@ -1,0 +1,134 @@
+{
+    "$schema": "../../../META/rule_document.schema.json",
+    "document_type": "rule_collection",
+    "version": "1.0",
+    "metadata": {
+        "title": "Mind/Body/Will Architectural Separation Rules",
+        "description": "Constitutional rules enforcing the three-layer architecture",
+        "authority": "constitution",
+        "based_on": [
+            ".intent/papers/CORE-Mind-Body-Will-Separation.md",
+            ".intent/constitution/CORE-CONSTITUTION-v0.md"
+        ]
+    },
+    "rules": [
+        {
+            "id": "architecture.mind.no_database_access",
+            "title": "Mind Layer: No Database Access",
+            "statement": "Mind layer components MUST NOT access database infrastructure",
+            "phase": "audit",
+            "strength": "blocking",
+            "rationale": "Mind defines law but never executes. Database access is execution, not governance."
+        },
+        {
+            "id": "architecture.mind.no_filesystem_writes",
+            "title": "Mind Layer: No Filesystem Writes",
+            "statement": "Mind layer components MUST NOT write to filesystem",
+            "phase": "audit",
+            "strength": "blocking",
+            "rationale": "Mind may read .intent/ but never mutates. Law does not modify itself."
+        },
+        {
+            "id": "architecture.mind.no_body_invocation",
+            "title": "Mind Layer: No Body Invocation",
+            "statement": "Mind layer components MUST NOT import or invoke Body layer",
+            "phase": "audit",
+            "strength": "blocking",
+            "rationale": "Mind defines rules. Body executes. Mind never invokes execution."
+        },
+        {
+            "id": "architecture.mind.no_will_invocation",
+            "title": "Mind Layer: No Will Invocation",
+            "statement": "Mind layer components MUST NOT import or invoke Will layer",
+            "phase": "audit",
+            "strength": "blocking",
+            "rationale": "Mind defines rules. Will decides. Mind never makes decisions."
+        },
+        {
+            "id": "architecture.body.no_rule_evaluation",
+            "title": "Body Layer: No Rule Evaluation",
+            "statement": "Body layer components MUST NOT evaluate constitutional rules",
+            "phase": "audit",
+            "strength": "blocking",
+            "rationale": "Body executes actions. Mind evaluates rules. Body never decides legality."
+        },
+        {
+            "id": "architecture.will.no_direct_database_access",
+            "title": "Will Layer: No Direct Database Access",
+            "statement": "Will layer components MUST NOT import get_session directly",
+            "phase": "audit",
+            "strength": "blocking",
+            "rationale": "Will decides and orchestrates. Body executes. Will delegates infrastructure access to Body."
+        },
+        {
+            "id": "architecture.will.no_filesystem_operations",
+            "title": "Will Layer: No Direct Filesystem Operations",
+            "statement": "Will layer components SHOULD delegate filesystem operations to Body",
+            "phase": "audit",
+            "strength": "reporting",
+            "rationale": "Will may read for context but should not implement filesystem operations directly."
+        },
+        {
+            "id": "architecture.will.must_delegate_to_body",
+            "title": "Will Layer: Must Delegate to Body",
+            "statement": "Will layer orchestration components SHOULD import and delegate to Body services",
+            "phase": "audit",
+            "strength": "advisory",
+            "rationale": "Will orchestrates by delegating to Body, not by implementing directly."
+        },
+        {
+            "id": "architecture.api.no_direct_database_access",
+            "title": "API Layer: No Direct Database Access",
+            "statement": "API layer components MUST NOT import get_session directly",
+            "phase": "audit",
+            "strength": "blocking",
+            "rationale": "API is entrypoint boundary. All work must route through Will, not directly to infrastructure."
+        },
+        {
+            "id": "architecture.api.must_route_through_will",
+            "title": "API Layer: Must Route Through Will",
+            "statement": "API route handlers SHOULD delegate all logic to Will layer",
+            "phase": "audit",
+            "strength": "advisory",
+            "rationale": "API translates requests to Will. API never implements business logic."
+        },
+        {
+            "id": "architecture.api.no_body_bypass",
+            "title": "API Layer: No Body Bypass",
+            "statement": "API layer components SHOULD NOT directly import Body services",
+            "phase": "audit",
+            "strength": "reporting",
+            "rationale": "API should route through Will, not bypass to Body directly."
+        },
+        {
+            "id": "architecture.layers.no_body_to_will",
+            "title": "Cross-Layer: No Body to Will",
+            "statement": "Body layer components MUST NOT import or invoke Will layer",
+            "phase": "audit",
+            "strength": "blocking",
+            "rationale": "Body executes. Will decides. Execution never chooses strategy."
+        },
+        {
+            "id": "architecture.layers.no_mind_execution",
+            "title": "Cross-Layer: Mind Never Executes",
+            "statement": "Mind layer components MUST NOT perform I/O operations or invoke actions",
+            "phase": "audit",
+            "strength": "reporting",
+            "rationale": "Mind is law. Law never executes itself."
+        },
+        {
+            "id": "architecture.shared.no_strategic_decisions",
+            "title": "Shared Layer: No Strategic Decisions",
+            "statement": "Shared infrastructure components MUST NOT make strategic decisions or orchestrate workflows",
+            "phase": "audit",
+            "strength": "reporting",
+            "rationale": "Shared provides utilities. Utilities are tools, not decision-makers."
+        }
+    ],
+    "notes": [
+        "These rules restore CORE's founding architectural principle",
+        "Mind/Body/Will separation was diluted during development",
+        "This constitutional law makes it explicit and enforceable",
+        "All violations must be remediated, not justified"
+    ]
+}

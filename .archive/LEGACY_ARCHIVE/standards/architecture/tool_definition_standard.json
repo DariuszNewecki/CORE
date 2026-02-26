@@ -1,0 +1,95 @@
+{
+  "id": "standard_architecture_tool_definition",
+  "version": "1.0.0",
+  "title": "Architecture Standard \u2013 Tool Definitions",
+  "type": "policy",
+  "status": "active",
+  "owners": {
+    "accountable": "AI Architecture Lead",
+    "responsible": [
+      "Core Maintainer"
+    ]
+  },
+  "review": {
+    "frequency": "12 months"
+  },
+  "schema_id": "schema.policy",
+  "purpose": "Defines how Python CLI commands and Atomic Actions are transformed into JSON Schema definitions for LLM tool calling. Ensures Agents hallucinate arguments less often by providing strict type bounds.\n",
+  "rules": [
+    {
+      "id": "tools.explicit_return_contract",
+      "rationale": "LLMs need to know they will receive a JSON object with 'ok' and 'data' fields.",
+      "enforcement": "error",
+      "statement": "Tool definitions MUST describe the ActionResult schema, not just 'string'.",
+      "check": {
+        "engine": "llm_gate",
+        "params": {
+          "instruction": "Verify adherence to: Tool definitions MUST describe the ActionResult schema, not just 'string'."
+        }
+      }
+    },
+    {
+      "id": "tools.type_mapping_strictness",
+      "rationale": "Strengthens system governance regarding tools.type_mapping_strictness.",
+      "enforcement": "error",
+      "statement": "Python types MUST map to the most specific JSON Schema type possible.",
+      "check": {
+        "engine": "llm_gate",
+        "params": {
+          "instruction": "Verify adherence to: Python types MUST map to the most specific JSON Schema type possible."
+        }
+      }
+    }
+  ],
+  "type_mapping": {
+    "primitives": {
+      "int": "integer",
+      "float": "number",
+      "bool": "boolean",
+      "str": "string",
+      "Path": "string (format: file-path)",
+      "UUID": "string (format: uuid)"
+    },
+    "complex": {
+      "List[T]": {
+        "type": "array",
+        "items": "mapped type of T"
+      },
+      "Optional[T]": {
+        "type": [
+          "mapped type of T",
+          "null"
+        ]
+      },
+      "Enum": {
+        "type": "string",
+        "enum": [
+          "values..."
+        ]
+      }
+    }
+  },
+  "schema_transformation": {
+    "name": {
+      "source": "Function name",
+      "transform": "snake_case, prefixed with domain if ambiguous"
+    },
+    "description": {
+      "source": "Docstring",
+      "requirement": "Must include side-effect warnings if @atomic_action(impact!=read-only)"
+    },
+    "parameters": {
+      "source": "Type hints",
+      "handling": [
+        "Exclude 'self', 'cls'",
+        "Exclude 'context' if injected by runtime",
+        "Mark arguments with no default value as required"
+      ]
+    }
+  },
+  "action_result_schema": {
+    "description": "The universal return format for all Core tools.",
+    "structure": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"ok\": { \"type\": \"boolean\", \"description\": \"Did the operation succeed?\" },\n    \"data\": { \"type\": \"object\", \"description\": \"Structured return data\" },\n    \"error\": { \"type\": \"string\", \"description\": \"Error message if ok=false\" }\n  }\n}\n"
+  },
+  "additionalProperties": false
+}

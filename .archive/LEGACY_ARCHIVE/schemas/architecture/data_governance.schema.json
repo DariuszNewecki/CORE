@@ -1,0 +1,167 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "schema_id": "standard.data.governance",
+  "version": "1.0.0",
+  "title": "Data Governance Standard Schema",
+  "description": "Validates data/governance.yaml",
+  "type": "object",
+  "required": [
+    "id",
+    "version",
+    "title",
+    "type",
+    "status",
+    "owners",
+    "review",
+    "schema_id",
+    "policy_id",
+    "purpose",
+    "database_ssot",
+    "security_rules",
+    "knowledge_integrity",
+    "retention",
+    "backup_restore"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9_.-]+$"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+    },
+    "title": {
+      "type": "string",
+      "maxLength": 200
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "standard_data"
+      ]
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "draft",
+        "deprecated",
+        "experimental"
+      ]
+    },
+    "owners": {
+      "type": "object",
+      "required": [
+        "accountable"
+      ],
+      "properties": {
+        "accountable": {
+          "type": "string"
+        },
+        "responsible": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "review": {
+      "type": "object",
+      "required": [
+        "frequency"
+      ],
+      "properties": {
+        "frequency": {
+          "type": "string"
+        },
+        "last_reviewed": {
+          "type": "string",
+          "format": "date"
+        },
+        "next_review_due": {
+          "type": "string",
+          "format": "date"
+        }
+      },
+      "additionalProperties": false
+    },
+    "schema_id": {
+      "type": "string",
+      "const": "standard.data.governance"
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "$schema": {
+      "type": "string"
+    },
+    "policy_id": {
+      "type": "string"
+    },
+    "purpose": {
+      "type": "string"
+    },
+    "database_ssot": {
+      "type": "object",
+      "required": [
+        "engine",
+        "migrations",
+        "rules"
+      ],
+      "properties": {
+        "engine": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "migrations": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "rules": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "security_rules": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": true
+      }
+    },
+    "knowledge_integrity": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": true
+      }
+    },
+    "retention": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "backup_restore": {
+      "type": "object",
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": false,
+  "id": "data_governance.schema",
+  "owners": {
+    "accountable": "Governance Lead"
+  },
+  "review": {
+    "frequency": "12 months"
+  }
+}

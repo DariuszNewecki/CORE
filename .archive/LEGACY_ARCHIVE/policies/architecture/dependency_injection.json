@@ -1,0 +1,180 @@
+{
+  "id": "standard_architecture_dependency_injection",
+  "version": "1.1.0",
+  "title": "Architecture Standard – Dependency Injection",
+  "type": "policy",
+  "status": "active",
+  "owners": {
+    "accountable": "Architecture Owner",
+    "responsible": [
+      "Core Maintainer"
+    ]
+  },
+  "review": {
+    "frequency": "12 months"
+  },
+  "schema_id": "schema.policy",
+  "policy_id": "b9b2b1b8-4e62-4b20-8cb4-8b4f0c9d8e21",
+  "purpose": "Canonical rules for dependency injection in CORE. Ensures that major services are wired through explicit constructors or factories, avoiding hidden globals and hard-coded wiring inside feature modules.\n\nAdditionally, defines lifecycle and scoping rules for loop-bound async resources (DB pools, async clients) to prevent cross-event-loop failures in CLI and test runtimes.\n",
+  "scope": {
+    "paths": [
+      "src/**/*.py"
+    ]
+  },
+  "rules": [
+    {
+      "id": "di.no_direct_instantiation",
+      "scope": {
+        "paths": [
+          "src/features/**/*.py",
+          "src/services/**/*.py"
+        ]
+      },
+      "rationale": "Strengthens system governance regarding di.no_direct_instantiation.",
+      "enforcement": "error",
+      "statement": "Services and features MUST NOT directly instantiate other major services. Dependencies MUST be injected via constructors or well-defined factories.\n",
+      "check": {
+        "engine": "llm_gate",
+        "params": {
+          "instruction": "Verify adherence to: Services and features MUST NOT directly instantiate other major services. Dependencies MUST be injected via constructors or well-defined factories.\n"
+        }
+      },
+      "data": {
+        "exclusions": [
+          "src/body/cli/admin_cli.py",
+          "src/features/governance/runtime_validator.py",
+          "tests/**/*.py"
+        ],
+        "forbidden_instantiations": [
+          "CognitiveService",
+          "GitService",
+          "ConstitutionalAuditor",
+          "QdrantService",
+          "ActionRegistry",
+          "PlanExecutor",
+          "SelfHealingAdvisor",
+          "CapabilityInvoker",
+          "CoderAgent"
+        ]
+      }
+    },
+    {
+      "id": "di.no_global_session_import",
+      "scope": {
+        "paths": [
+          "src/features/**/*.py",
+          "src/services/repositories/**/*.py"
+        ]
+      },
+      "rationale": "Strengthens system governance regarding di.no_global_session_import.",
+      "enforcement": "error",
+      "statement": "Modules within 'features' and 'services' MUST NOT directly import a global `get_session` provider. Database sessions MUST be injected, not retrieved via global accessors.\n",
+      "check": {
+        "engine": "ast_gate",
+        "params": {
+          "check_type": "import_boundary"
+        }
+      },
+      "data": {
+        "forbidden_imports": [
+          "services.database.session_manager.get_session",
+          "services.repositories.db.engine.get_session",
+          "shared.infrastructure.database.session_manager.get_session",
+          "shared.infrastructure.database.session_manager.get_db_session"
+        ]
+      }
+    },
+    {
+      "id": "di.constructor_injection_preferred",
+      "scope": {
+        "paths": [
+          "src/features/**/*.py",
+          "src/services/**/*.py"
+        ]
+      },
+      "rationale": "Strengthens system governance regarding di.constructor_injection_preferred.",
+      "enforcement": "warn",
+      "statement": "Services SHOULD receive their dependencies through the `__init__` constructor with clear type hints, rather than via module-level singletons or hidden wiring.\n",
+      "check": {
+        "engine": "llm_gate",
+        "params": {
+          "instruction": "Verify adherence to: Services SHOULD receive their dependencies through the `__init__` constructor with clear type hints, rather than via module-level singletons or hidden wiring.\n"
+        }
+      }
+    },
+    {
+      "id": "di.no_import_time_async_singletons",
+      "scope": {
+        "paths": [
+          "src/**/*.py"
+        ]
+      },
+      "rationale": "Async clients/pools bind to an event loop and MUST NOT be created at import time. Import-time singletons cause cross-loop failures in CLI and test runtimes.",
+      "enforcement": "error",
+      "statement": "Modules MUST NOT create loop-bound async resources (e.g., SQLAlchemy async engines, async HTTP clients, async transports) at module import time. Such resources MUST be created inside an explicit runtime scope and disposed deterministically.",
+      "check": {
+        "engine": "ast_gate",
+        "params": {
+          "check_type": "no_import_time_async_singletons",
+          "disallowed_calls": [
+            "sqlalchemy.ext.asyncio.create_async_engine",
+            "httpx.AsyncClient",
+            "aiohttp.ClientSession"
+          ]
+        }
+      },
+      "data": {
+        "exclusions": [
+          "tests/**/*.py"
+        ]
+      }
+    },
+    {
+      "id": "async.runtime.no_nested_loop_creation",
+      "scope": {
+        "paths": [
+          "src/**/*.py"
+        ]
+      },
+      "rationale": "Event loop creation must be owned by a single runtime boundary. Nested or ad hoc loop management causes non-deterministic execution and cross-loop resource reuse.",
+      "enforcement": "error",
+      "statement": "Code MUST NOT call asyncio.run(), create a new event loop, or use run_until_complete() outside the approved runtime boundary. The CLI runtime boundary is the only allowed owner of event loop creation for commands.",
+      "check": {
+        "engine": "ast_gate",
+        "params": {
+          "check_type": "restrict_event_loop_creation",
+          "forbidden_calls": [
+            "asyncio.run",
+            "asyncio.new_event_loop",
+            "asyncio.set_event_loop",
+            "loop.run_until_complete"
+          ]
+        }
+      },
+      "data": {
+        "exclusions": [
+          "src/shared/cli_utils.py",
+          "tests/**/*.py"
+        ]
+      }
+    },
+    {
+      "id": "db.engine.scope.per_event_loop",
+      "scope": {
+        "paths": [
+          "src/shared/infrastructure/database/**/*.py"
+        ]
+      },
+      "rationale": "Database engines/pools are loop-bound and must not be shared across event loops. CLI invocations commonly create new loops, so the DB layer must be loop-scoped or runtime-scoped.",
+      "enforcement": "error",
+      "statement": "Database engines and connection pools MUST be created lazily within the active event loop or runtime scope. Global module-level engine singletons are forbidden.",
+      "check": {
+        "engine": "ast_gate",
+        "params": {
+          "check_type": "no_module_level_async_engine"
+        }
+      }
+    }
+  ],
+  "additionalProperties": false
+}
