@@ -43,7 +43,7 @@ async def _require_llm_enabled(session) -> None:
 
 async def _get_cli_context_help(repo_path: Path) -> str:
     """Retrieves help text for a standard command to give the AI context."""
-    args = ["poetry", "run", "core-admin", "check", "audit", "--help"]
+    args = ["poetry", "run", "core-admin", "--help"]
     result = await run_command_async(args, cwd=repo_path)
     return result.stdout or ""
 

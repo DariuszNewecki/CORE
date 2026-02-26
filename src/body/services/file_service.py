@@ -60,22 +60,11 @@ class FileService:
     async def write_report(self, filename: str, content: str) -> Path:
         """
         Write a report file to the reports directory.
-
-        Args:
-            filename: Name of the file to write
-            content: Content to write
-
-        Returns:
-            Path to the written file
         """
-        file_path = self.reports_dir / filename
-
-        # Ensure parent directory exists
-        await FileHandler.ensure_parent_dir(file_path)
-
-        # Write content
-        await FileHandler.write_content(file_path, content)
-
+        rel_path = f"reports/{filename}"
+        self._file_handler.ensure_dir("reports")
+        self._file_handler.write_runtime_text(rel_path, content)
+        file_path = self.repo_path / rel_path
         logger.debug("Wrote report file: %s", file_path)
         return file_path
 
