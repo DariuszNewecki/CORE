@@ -77,3 +77,5 @@ docs/demos/recordings/*.gif
 *.log
 *.jsonl
 project_context.txt
+.archive/
+core.zip
