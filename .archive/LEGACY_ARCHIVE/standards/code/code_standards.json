@@ -1,0 +1,44 @@
+{
+  "id": "code_standards",
+  "version": "2.2.0",
+  "title": "Code Standards Policy (Aggregated)",
+  "type": "policy",
+  "schema_id": "schema.policy",
+  "description": "Aggregates all code quality, layout, naming, and capability standards. This meta-policy references modular sub-policies organized by domain.",
+  "owners": {
+    "accountable": "Governance Lead",
+    "responsible": [
+      "Core Maintainer"
+    ]
+  },
+  "review": {
+    "frequency": "12 months"
+  },
+  "aggregates": [
+    "code.style",
+    "code.layout",
+    "code.refactor",
+    "code.capabilities",
+    "code.symbols",
+    "code.naming",
+    "code.async",
+    "code.logging"
+  ],
+  "notes": [
+    "This meta-policy maintains backward compatibility with the monolithic code_standards.json",
+    "Each sub-policy is independently versioned and can be updated without affecting others",
+    "IntentRepository should support loading aggregated policies via the 'aggregates' field"
+  ],
+  "rules": [
+    {
+      "id": "code_index.meta_aggregator",
+      "statement": "This meta-policy aggregates sub-policies listed in the 'aggregates' field.",
+      "enforcement": "info",
+      "rationale": "Meta-policy aggregation marker",
+      "check": {
+        "engine": "llm_gate",
+        "params": {}
+      }
+    }
+  ]
+}

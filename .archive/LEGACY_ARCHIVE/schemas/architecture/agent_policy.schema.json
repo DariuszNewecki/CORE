@@ -1,0 +1,87 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://core.local/schemas/agent_policy_schema.json",
+  "title": "Agent Policy",
+  "description": "Constitutional schema for the single, authoritative agent governance policy.",
+  "type": "object",
+  "required": [
+    "id",
+    "version",
+    "title",
+    "status",
+    "purpose",
+    "rules"
+  ],
+  "properties": {
+    "id": {
+      "const": "agent_policy"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+    },
+    "title": {
+      "type": "string"
+    },
+    "status": {
+      "enum": [
+        "active",
+        "draft",
+        "deprecated"
+      ]
+    },
+    "purpose": {
+      "type": "string"
+    },
+    "scope": {
+      "type": "object"
+    },
+    "owners": {
+      "type": "object"
+    },
+    "review": {
+      "type": "object"
+    },
+    "rules": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "statement",
+          "enforcement"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "statement": {
+            "type": "string"
+          },
+          "enforcement": {
+            "enum": [
+              "info",
+              "warn",
+              "error"
+            ]
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "resource_selection": {
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "id": "agent_policy.schema",
+  "version": "1.0.0",
+  "owners": {
+    "accountable": "Governance Lead"
+  },
+  "review": {
+    "frequency": "12 months"
+  },
+  "schema_id": "architecture.agent_policy"
+}

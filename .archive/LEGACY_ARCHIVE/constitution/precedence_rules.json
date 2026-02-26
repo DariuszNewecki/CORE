@@ -1,0 +1,43 @@
+{
+  "id": "constitutional_precedence",
+  "version": "1.0.0",
+  "title": "Constitutional Precedence Rules",
+  "owners": {
+    "accountable": "Governance Lead"
+  },
+  "review": {
+    "frequency": "12 months"
+  },
+  "schema_id": "schema.precedence",
+  "type": "precedence",
+  "policy_hierarchy": [
+    {
+      "level": 1,
+      "description": "Precedence level 1",
+      "policies": [
+        "tier_1"
+      ]
+    },
+    {
+      "level": 2,
+      "description": "Precedence level 2",
+      "policies": [
+        "tier_2"
+      ]
+    },
+    {
+      "level": 3,
+      "description": "Precedence level 3",
+      "policies": [
+        "tier_3"
+      ]
+    },
+    {
+      "level": 4,
+      "description": "Precedence level 4",
+      "policies": [
+        "tier_4"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,128 @@
+{
+  "id": "constitutional_risk_classification",
+  "version": "3.1.0",
+  "title": "Constitutional Risk Classification & Tiers",
+  "type": "constitutional_risk",
+  "owners": {
+    "accountable": "Governance Lead",
+    "responsible": [
+      "Core Maintainer"
+    ]
+  },
+  "review": {
+    "frequency": "12 months"
+  },
+  "schema_id": "constitution.risk",
+  "domain": "risk",
+  "principles": {
+    "routine_operations": {
+      "statement": "Low-risk operations safe for autonomous execution",
+      "rationale": "High-frequency, easily reversible operations with no side effects",
+      "scope": [
+        "format_code",
+        "fix_docstring",
+        "run_linter",
+        "generate_report",
+        "docs/**",
+        "scripts/dev/**"
+      ],
+      "enforcement": {
+        "method": "risk_calculation",
+        "parameters": {
+          "risk_score": 1,
+          "approval": "autonomous_with_audit"
+        }
+      }
+    },
+    "standard_operations": {
+      "statement": "Moderate risk operations requiring validation",
+      "rationale": "Pattern-based operations verifiable against standards",
+      "scope": [
+        "generate_crud",
+        "create_test",
+        "refactor_within_patterns",
+        "src/body/commands/**",
+        "tests/**"
+      ],
+      "enforcement": {
+        "method": "risk_calculation",
+        "parameters": {
+          "risk_score": 3,
+          "approval": "validation_then_autonomous"
+        }
+      }
+    },
+    "elevated_operations": {
+      "statement": "Significant risk operations requiring human confirmation",
+      "rationale": "Operations with potential for cascading failures",
+      "scope": [
+        "modify_service_interface",
+        "change_database_query",
+        "update_configuration",
+        "src/body/services/**",
+        "src/body/core/**",
+        "config/**"
+      ],
+      "enforcement": {
+        "method": "risk_calculation",
+        "parameters": {
+          "risk_score": 7,
+          "approval": "human_confirmation_required"
+        }
+      }
+    },
+    "critical_operations": {
+      "statement": "Maximum risk operations requiring comprehensive human review",
+      "rationale": "Operations affecting system architecture or governance",
+      "scope": [
+        "schema_migration",
+        "constitutional_amendment",
+        "governance_modification",
+        ".intent/**",
+        "src/mind/logic/**",
+        "alembic/versions/**",
+        "pyproject.toml"
+      ],
+      "enforcement": {
+        "method": "risk_calculation",
+        "parameters": {
+          "risk_score": 10,
+          "approval": "human_review_plus_audit"
+        }
+      }
+    },
+    "path_based_classification": {
+      "statement": "File paths determine base risk level",
+      "rationale": "Location indicates operational impact and blast radius",
+      "scope": [
+        "all_file_operations"
+      ],
+      "enforcement": {
+        "method": "path_match",
+        "parameters": {
+          "critical": ".intent/** src/mind/logic/** alembic/versions/**",
+          "elevated": "src/body/services/** src/body/core/** config/**",
+          "standard": "src/body/commands/** tests/**",
+          "routine": "docs/** scripts/dev/**"
+        }
+      }
+    },
+    "action_based_classification": {
+      "statement": "Action type determines base risk level",
+      "rationale": "Operation semantics indicate potential impact",
+      "scope": [
+        "all_actions"
+      ],
+      "enforcement": {
+        "method": "action_classification",
+        "parameters": {
+          "critical": "schema_migration constitutional_amendment governance_modification",
+          "elevated": "interface_modification config_change agent_capability_addition",
+          "standard": "code_generation refactoring test_generation",
+          "routine": "format_code fix_docstring run_linter"
+        }
+      }
+    }
+  },
+  "status": "active"
+}

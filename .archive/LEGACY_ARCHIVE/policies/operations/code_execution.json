@@ -1,0 +1,217 @@
+{
+  "id": "standard_operations_code_execution",
+  "version": "2.0.0",
+  "title": "Operations Standard – Code Execution Governance",
+  "type": "policy",
+  "status": "active",
+  "owners": {
+    "accountable": "Platform SRE",
+    "responsible": [
+      "Core Maintainer"
+    ]
+  },
+  "review": {
+    "frequency": "12 months"
+  },
+  "schema_id": "schema.policy",
+  "purpose": "Defines the constitutional conditions under which dangerous code execution primitives are permitted. This standard specifies WHAT is allowed, WHERE, and under WHICH defensive guarantees. It does not define exceptions; it defines safety.\n",
+  "rules": [
+    {
+      "id": "agent.execution.no_unverified_code",
+      "category": "code_execution",
+      "rationale": "Strengthens system governance regarding agent.execution.no_unverified_code.",
+      "enforcement": "error",
+      "statement": "Dangerous execution primitives MUST only be used when all required protection layers are present. Partial compliance is not allowed.\n",
+      "check": {
+        "engine": "ast_gate",
+        "params": {
+          "check_type": "forbidden_primitives",
+          "forbidden": [
+            "eval",
+            "exec",
+            "compile",
+            "__import__"
+          ],
+          "allowed_domains": [
+            "mind.governance",
+            "mind.policies",
+            "body.cli.logic",
+            "body.cli.commands",
+            "core"
+          ]
+        }
+      },
+      "data": {
+        "cross_reference": {
+          "role": "implementation_detail",
+          "related_file": ".intent/charter/standards/architecture/agent_governance.yaml",
+          "related_rule_id": "agent.execution.no_unverified_code",
+          "note": "Architecture standard defines governance intent; this file defines operational enforcement and trust zones."
+        }
+      }
+    },
+    {
+      "id": "agent.execution.require_runtime_validation",
+      "category": "code_execution",
+      "rationale": "Strengthens system governance regarding agent.execution.require_runtime_validation.",
+      "enforcement": "error",
+      "statement": "When dangerous execution primitives are used, validation MUST occur at runtime before execution, not only at parse or design time.\n",
+      "check": {
+        "engine": "ast_gate",
+        "params": {
+          "check_type": "forbidden_primitives",
+          "forbidden": [
+            "eval",
+            "exec",
+            "compile",
+            "__import__"
+          ],
+          "allowed_domains": [
+            "mind.governance",
+            "mind.policies",
+            "body.cli.logic",
+            "body.cli.commands",
+            "core"
+          ]
+        }
+      },
+      "data": {
+        "cross_reference": {
+          "role": "implementation_detail",
+          "related_file": ".intent/charter/standards/architecture/agent_governance.yaml",
+          "related_rule_id": "agent.execution.require_runtime_validation",
+          "note": "Architecture standard defines requirement; this file defines enforcement patterns."
+        }
+      }
+    }
+  ],
+  "trust_zones": {
+    "system": {
+      "description": "Constitutional governance layer – highest trust",
+      "domains": [
+        "mind.governance",
+        "mind.policies"
+      ],
+      "rationale": "Required for dynamic constitutional evaluation"
+    },
+    "privileged": {
+      "description": "CLI and orchestration – elevated trust",
+      "domains": [
+        "body.cli.logic",
+        "body.cli.commands",
+        "core"
+      ],
+      "rationale": "Meta-programming needed for introspection and self-healing"
+    },
+    "application": {
+      "description": "Features and services – standard trust",
+      "domains": [
+        "features",
+        "services",
+        "api"
+      ],
+      "rationale": "No legitimate need for dynamic execution"
+    }
+  },
+  "dangerous_primitives": [
+    "eval",
+    "exec",
+    "compile",
+    "__import__"
+  ],
+  "protection_layers": {
+    "layer_1_domain_restriction": {
+      "where": "Domain restriction",
+      "allowed_zones": [
+        "system",
+        "privileged"
+      ]
+    },
+    "layer_2_validation": {
+      "what": "Input validation",
+      "one_of": [
+        "AST validation present",
+        "Input is hardcoded constant",
+        "Whitelist validation present"
+      ]
+    },
+    "layer_3_sandboxing": {
+      "how": "Execution sandboxing",
+      "one_of": [
+        "Builtins disabled",
+        "Namespace restricted",
+        "Import path is constant"
+      ]
+    },
+    "layer_4_governance": {
+      "why": "Traceability",
+      "required": [
+        "Capability ID present (# ID: <uuid>)",
+        "SECURITY comment documenting rationale"
+      ]
+    }
+  },
+  "enforcement_model": {
+    "evaluation_steps": [
+      "Resolve symbol domain from knowledge graph",
+      "Verify domain belongs to allowed trust zone",
+      "Detect dangerous primitive usage via AST",
+      "Verify presence of validation layer",
+      "Verify sandboxing constraints",
+      "Verify capability ID exists",
+      "Verify SECURITY comment exists"
+    ],
+    "failure_behavior": "Block execution and report constitutional violation"
+  },
+  "required_validation_patterns": {
+    "one_of": [
+      "AST node inspection before execution",
+      "Explicit whitelist validation",
+      "Hardcoded constant input"
+    ]
+  },
+  "examples": {
+    "allowed": {
+      "location": "body.cli.logic.validate._safe_eval",
+      "justification": [
+        "Domain in privileged trust zone",
+        "AST whitelist validation present",
+        "Builtins disabled",
+        "Capability ID present",
+        "SECURITY comment documents rationale"
+      ]
+    },
+    "rejected": {
+      "location": "features.some_feature.process_user_input",
+      "code": "eval(user_input)",
+      "violations": [
+        "Application trust zone",
+        "No validation",
+        "No sandboxing",
+        "Untrusted user input"
+      ],
+      "result": "BLOCKED"
+    },
+    "compliant_code": "# SECURITY: Runtime AST validation before execution\nfor node in ast.walk(tree):\n    if type(node) not in ALLOWED_NODES:\n        raise ValueError(\"Forbidden AST node\")\nreturn eval(compiled_tree)\n",
+    "non_compliant_code": "# No runtime validation\nreturn eval(user_input)\n"
+  },
+  "rationale": "This standard applies defense-in-depth principles to dynamic execution.\nIt ensures that:\n- Trust is explicit and bounded\n- Validation is mandatory and verifiable\n- Sandboxing prevents escalation\n- Governance traceability is preserved\n\nThis is not an exception list. It is a formal definition of \"safe\".\n",
+  "migration": {
+    "required_actions_for_existing_code": [
+      "Relocate code to appropriate trust zone if needed",
+      "Add runtime validation (AST, whitelist, or constant input)",
+      "Add sandboxing constraints",
+      "Ensure capability ID exists (# ID: <uuid>)",
+      "Add SECURITY comment explaining safety rationale"
+    ],
+    "refactor_recommendation": [
+      "Code unable to meet all criteria MUST be refactored to avoid dynamic execution"
+    ]
+  },
+  "metadata": {
+    "status": "active",
+    "effective_date": "2025-12-18",
+    "migration_notes": "Converted from legacy nested format to flat rules structure v2.0.0. Enhanced with domain-aware enforcement via params interface."
+  },
+  "additionalProperties": false
+}

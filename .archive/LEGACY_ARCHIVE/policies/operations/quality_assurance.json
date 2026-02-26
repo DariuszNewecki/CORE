@@ -1,0 +1,291 @@
+{
+  "id": "standard_operations_quality_assurance",
+  "version": "1.0.0",
+  "title": "Operations Standard – Quality Assurance",
+  "type": "policy",
+  "status": "active",
+  "owners": {
+    "accountable": "Quality Owner",
+    "responsible": [
+      "Core Maintainer"
+    ]
+  },
+  "review": {
+    "frequency": "12 months"
+  },
+  "schema_id": "schema.policy",
+  "policy_id": "7d4f8c9a-2e1b-4f6d-9a8c-3b5e7f1d2c4a",
+  "purpose": "Define enforceable quality gates for CORE, including test coverage, autonomous remediation, audit exception handling, and change evaluation.\n",
+  "rules": [
+    {
+      "id": "qa.coverage.minimum_threshold",
+      "rationale": "Strengthens system governance regarding qa.coverage.minimum_threshold.",
+      "enforcement": "error",
+      "statement": "Production code MUST maintain a minimum of 55% test coverage.",
+      "check": {
+        "engine": "workflow_gate",
+        "params": {
+          "check_type": "test_verification"
+        }
+      }
+    },
+    {
+      "id": "qa.coverage.target_threshold",
+      "rationale": "Strengthens system governance regarding qa.coverage.target_threshold.",
+      "enforcement": "warn",
+      "statement": "The system SHOULD converge toward a target test coverage of 80% or higher.",
+      "check": {
+        "engine": "workflow_gate",
+        "params": {
+          "check_type": "test_verification"
+        }
+      }
+    },
+    {
+      "id": "qa.coverage.critical_paths",
+      "scope": {
+        "paths": [
+          "src/core/**/*.py >= 85%",
+          "src/features/governance/**/*.py >= 85%",
+          "src/features/self_healing/**/*.py >= 80%"
+        ]
+      },
+      "rationale": "Strengthens system governance regarding qa.coverage.critical_paths.",
+      "enforcement": "error",
+      "statement": "Critical code paths MUST meet elevated coverage thresholds as defined by policy.",
+      "check": {
+        "engine": "glob_gate",
+        "params": {
+          "check_type": "path_restriction"
+        }
+      }
+    },
+    {
+      "id": "qa.coverage.no_regression",
+      "rationale": "Strengthens system governance regarding qa.coverage.no_regression.",
+      "enforcement": "error",
+      "statement": "Code changes MUST NOT reduce overall coverage below the minimum threshold without an approved remediation plan.",
+      "check": {
+        "engine": "workflow_gate",
+        "params": {
+          "check_type": "test_verification"
+        }
+      }
+    },
+    {
+      "id": "qa.coverage.exclusions",
+      "scope": {
+        "paths": [
+          "src/**/__init__.py",
+          "src/**/models.py",
+          "tests/**/*.py",
+          "scripts/**/*.py"
+        ]
+      },
+      "rationale": "Strengthens system governance regarding qa.coverage.exclusions.",
+      "enforcement": "error",
+      "statement": "Coverage calculations MUST exclude non-executable or non-critical paths.",
+      "check": {
+        "engine": "glob_gate",
+        "params": {
+          "check_type": "path_restriction"
+        }
+      }
+    },
+    {
+      "id": "qa.remediation.auto_trigger",
+      "rationale": "Strengthens system governance regarding qa.remediation.auto_trigger.",
+      "enforcement": "error",
+      "statement": "If coverage drops below the minimum threshold, autonomous test remediation MUST be triggered.",
+      "check": {
+        "engine": "workflow_gate",
+        "params": {
+          "check_type": "test_verification"
+        }
+      }
+    },
+    {
+      "id": "qa.remediation.trigger_conditions",
+      "rationale": "Strengthens system governance regarding qa.remediation.trigger_conditions.",
+      "enforcement": "error",
+      "statement": "Autonomous remediation MUST trigger when predefined degradation signals are detected.",
+      "check": {
+        "engine": "llm_gate",
+        "params": {
+          "instruction": "Verify adherence to: Autonomous remediation MUST trigger when predefined degradation signals are detected."
+        }
+      },
+      "data": {
+        "conditions": [
+          "coverage < minimum_threshold",
+          "new_uncovered_modules > 3",
+          "coverage_delta < -5%"
+        ]
+      }
+    },
+    {
+      "id": "qa.remediation.phased_execution",
+      "rationale": "Strengthens system governance regarding qa.remediation.phased_execution.",
+      "enforcement": "error",
+      "statement": "Autonomous remediation MUST execute in defined phases: analysis followed by test generation.",
+      "check": {
+        "engine": "workflow_gate",
+        "params": {
+          "check_type": "test_verification"
+        }
+      }
+    },
+    {
+      "id": "qa.audit.exceptions_explicit",
+      "rationale": "Strengthens system governance regarding qa.audit.exceptions_explicit.",
+      "enforcement": "error",
+      "statement": "Any audit exception MUST be explicitly declared with scope and justification.",
+      "check": {
+        "engine": "llm_gate",
+        "params": {
+          "instruction": "Verify adherence to: Any audit exception MUST be explicitly declared with scope and justification."
+        }
+      }
+    },
+    {
+      "id": "qa.audit.exceptions_empty_default",
+      "rationale": "Strengthens system governance regarding qa.audit.exceptions_empty_default.",
+      "enforcement": "error",
+      "statement": "The default state for audit exceptions MUST be empty.",
+      "check": {
+        "engine": "llm_gate",
+        "params": {
+          "instruction": "Verify adherence to: The default state for audit exceptions MUST be empty."
+        }
+      }
+    },
+    {
+      "id": "qa.change.evaluation_required",
+      "rationale": "Strengthens system governance regarding qa.change.evaluation_required.",
+      "enforcement": "error",
+      "statement": "All changes MUST be evaluated using the weighted quality evaluation framework.",
+      "check": {
+        "engine": "llm_gate",
+        "params": {
+          "instruction": "Verify adherence to: All changes MUST be evaluated using the weighted quality evaluation framework."
+        }
+      }
+    },
+    {
+      "id": "qa.change.evaluation_threshold_pass",
+      "rationale": "Strengthens system governance regarding qa.change.evaluation_threshold_pass.",
+      "enforcement": "error",
+      "statement": "Changes MUST achieve a minimum evaluation score of 0.7 to be accepted.",
+      "check": {
+        "engine": "llm_gate",
+        "params": {
+          "instruction": "Verify adherence to: Changes MUST achieve a minimum evaluation score of 0.7 to be accepted."
+        }
+      }
+    },
+    {
+      "id": "qa.change.evaluation_warn",
+      "rationale": "Strengthens system governance regarding qa.change.evaluation_warn.",
+      "enforcement": "warn",
+      "statement": "Changes scoring between 0.5 and 0.7 SHOULD be flagged for human review.",
+      "check": {
+        "engine": "llm_gate",
+        "params": {
+          "instruction": "Verify adherence to: Changes scoring between 0.5 and 0.7 SHOULD be flagged for human review."
+        }
+      }
+    },
+    {
+      "id": "qa.risk.medium_gate",
+      "rationale": "Strengthens system governance regarding qa.risk.medium_gate.",
+      "enforcement": "error",
+      "statement": "Medium-risk changes MUST pass checkpoint and canary validation with a minimum score of 0.80.",
+      "check": {
+        "engine": "workflow_gate",
+        "params": {
+          "check_type": "test_verification"
+        }
+      }
+    },
+    {
+      "id": "qa.risk.high_gate",
+      "rationale": "Strengthens system governance regarding qa.risk.high_gate.",
+      "enforcement": "error",
+      "statement": "High-risk changes MUST pass checkpoint, canary validation, and approver quorum with a minimum score of 0.90.",
+      "check": {
+        "engine": "workflow_gate",
+        "params": {
+          "check_type": "test_verification"
+        }
+      }
+    },
+    {
+      "id": "qa.audit.intent_declared",
+      "rationale": "Strengthens system governance regarding qa.audit.intent_declared.",
+      "enforcement": "error",
+      "statement": "An explicit intent MUST be declared prior to applying a change.",
+      "check": {
+        "engine": "llm_gate",
+        "params": {
+          "instruction": "Verify adherence to: An explicit intent MUST be declared prior to applying a change."
+        }
+      }
+    },
+    {
+      "id": "qa.audit.explanation_required",
+      "rationale": "Strengthens system governance regarding qa.audit.explanation_required.",
+      "enforcement": "error",
+      "statement": "All changes MUST include an explanation or justification.",
+      "check": {
+        "engine": "llm_gate",
+        "params": {
+          "instruction": "Verify adherence to: All changes MUST include an explanation or justification."
+        }
+      }
+    },
+    {
+      "id": "qa.audit.quality_verified",
+      "rationale": "Strengthens system governance regarding qa.audit.quality_verified.",
+      "enforcement": "error",
+      "statement": "Post-change quality verification MUST be performed and recorded.",
+      "check": {
+        "engine": "llm_gate",
+        "params": {
+          "instruction": "Verify adherence to: Post-change quality verification MUST be performed and recorded."
+        }
+      }
+    },
+    {
+      "id": "qa.audit.quorum_evidence",
+      "applies_when": [
+        "risk_tier in ['medium', 'high']"
+      ],
+      "rationale": "Strengthens system governance regarding qa.audit.quorum_evidence.",
+      "enforcement": "error",
+      "statement": "Medium and high-risk changes MUST record quorum evidence.",
+      "check": {
+        "engine": "llm_gate",
+        "params": {
+          "instruction": "Verify adherence to: Medium and high-risk changes MUST record quorum evidence."
+        }
+      }
+    }
+  ],
+  "evaluation_framework": {
+    "strategy": "weighted_criteria",
+    "thresholds": {
+      "pass": 0.7,
+      "warn": 0.5
+    },
+    "criteria": {
+      "intent_alignment": 0.4,
+      "structural_compliance": 0.2,
+      "safety": 0.2,
+      "code_quality": 0.2
+    }
+  },
+  "audit_exceptions": {
+    "symbol_ignores": []
+  },
+  "additionalProperties": false
+}

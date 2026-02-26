@@ -1,0 +1,337 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "schema_id": "constitution.meta",
+  "version": "1.0.0",
+  "title": "Constitutional Meta-Schema Schema",
+  "description": "Validates the structure of META-SCHEMA.json - defines how constitutional documents should be structured.",
+  "type": "object",
+  "required": [
+    "id",
+    "version",
+    "title",
+    "type",
+    "status",
+    "owners",
+    "review",
+    "schema_id",
+    "description",
+    "canonical_document_structure",
+    "principle_schema",
+    "validation_rules",
+    "document_types"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9_.-]+$"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+    },
+    "title": {
+      "type": "string",
+      "maxLength": 200
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "meta_constitutional_schema"
+      ]
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "draft",
+        "deprecated",
+        "experimental"
+      ]
+    },
+    "owners": {
+      "type": "object",
+      "required": [
+        "accountable"
+      ],
+      "properties": {
+        "accountable": {
+          "type": "string"
+        },
+        "responsible": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "review": {
+      "type": "object",
+      "required": [
+        "frequency"
+      ],
+      "properties": {
+        "frequency": {
+          "type": "string"
+        },
+        "last_reviewed": {
+          "type": "string",
+          "format": "date"
+        },
+        "next_review_due": {
+          "type": "string",
+          "format": "date"
+        }
+      },
+      "additionalProperties": false
+    },
+    "schema_id": {
+      "type": "string",
+      "const": "constitution.meta"
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "$schema": {
+      "type": "string",
+      "description": "Optional JSON Schema reference"
+    },
+    "description": {
+      "type": "string",
+      "minLength": 10
+    },
+    "canonical_document_structure": {
+      "type": "object",
+      "required": [
+        "description",
+        "required_fields",
+        "optional_fields"
+      ],
+      "properties": {
+        "description": {
+          "type": "string"
+        },
+        "required_fields": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        },
+        "optional_fields": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "max_nesting_depth": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "template": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "principle_schema": {
+      "type": "object",
+      "required": [
+        "description",
+        "principle_id",
+        "statement",
+        "rationale",
+        "scope",
+        "enforcement"
+      ],
+      "properties": {
+        "description": {
+          "type": "string"
+        },
+        "principle_id": {
+          "type": "object",
+          "properties": {
+            "format": {
+              "type": "string"
+            },
+            "pattern": {
+              "type": "string"
+            },
+            "examples": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "statement": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string"
+            },
+            "description": {
+              "type": "string"
+            },
+            "max_length": {
+              "type": "integer"
+            },
+            "required": {
+              "type": "boolean"
+            },
+            "examples": {
+              "type": "array"
+            }
+          }
+        },
+        "rationale": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string"
+            },
+            "description": {
+              "type": "string"
+            },
+            "max_length": {
+              "type": "integer"
+            },
+            "required": {
+              "type": "boolean"
+            },
+            "examples": {
+              "type": "array"
+            }
+          }
+        },
+        "scope": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string"
+            },
+            "description": {
+              "type": "string"
+            },
+            "required": {
+              "type": "boolean"
+            },
+            "min_items": {
+              "type": "integer"
+            },
+            "examples": {
+              "type": "array"
+            }
+          }
+        },
+        "enforcement": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string"
+            },
+            "description": {
+              "type": "string"
+            },
+            "required": {
+              "type": "boolean"
+            },
+            "required_fields": {
+              "type": "array"
+            },
+            "method": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string"
+                },
+                "description": {
+                  "type": "string"
+                },
+                "allowed_values": {
+                  "type": "array"
+                }
+              }
+            }
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "validation_rules": {
+      "type": "object",
+      "required": [
+        "structural",
+        "semantic"
+      ],
+      "properties": {
+        "structural": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "semantic": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "cross_document": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "document_types": {
+      "type": "object",
+      "minProperties": 1,
+      "patternProperties": {
+        "^[a-z_]+$": {
+          "type": "object",
+          "required": [
+            "description",
+            "domain",
+            "type_prefix",
+            "principle_categories"
+          ],
+          "properties": {
+            "description": {
+              "type": "string"
+            },
+            "domain": {
+              "type": "string"
+            },
+            "type_prefix": {
+              "type": "string"
+            },
+            "principle_categories": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false,
+  "id": "meta.schema",
+  "owners": {
+    "accountable": "Governance Lead"
+  },
+  "review": {
+    "frequency": "12 months"
+  }
+}

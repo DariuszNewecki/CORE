@@ -1,0 +1,156 @@
+{
+  "id": "standard_architecture_agent_rules",
+  "version": "1.0.0",
+  "title": "Architecture Standard – Agent Patterns",
+  "type": "policy",
+  "status": "active",
+  "owners": {
+    "accountable": "Governance Lead",
+    "responsible": [
+      "Core Maintainer"
+    ]
+  },
+  "review": {
+    "frequency": "12 months"
+  },
+  "schema_id": "schema.policy",
+  "description": "Defines canonical patterns for autonomous agents in CORE's Will layer.\nAgents transform context into decisions through LLM-powered reasoning\nwhile respecting constitutional boundaries.\n",
+  "notes": {
+    "optimization_review": "All 4 llm_gate rules validate agent architectural patterns. These require semantic understanding of agent structure and cannot be reduced to deterministic checks."
+  },
+  "agent_communication": {
+    "context_package": {
+      "purpose": "Standard format for inter-agent communication",
+      "structure": [
+        "Problem description",
+        "Relevant code/files",
+        "Domain knowledge",
+        "Previous decisions",
+        "Success criteria"
+      ],
+      "usage": [
+        "All agents accept ContextPackage",
+        "Agents enrich context with results",
+        "Context flows through orchestration chain"
+      ]
+    },
+    "decision_format": {
+      "base_structure": "@dataclass\nclass AgentDecision:\n    decision: Any  # Agent-specific result\n    reasoning: str  # Why this decision\n    confidence: float  # 0.0 - 1.0\n    alternatives: List[Any]  # Other options considered\n    metadata: dict  # Agent-specific data\n",
+      "specializations": [
+        "CodeDecision(AgentDecision)",
+        "PlanDecision(AgentDecision)",
+        "ReviewDecision(AgentDecision)"
+      ]
+    }
+  },
+  "constitutional_constraints": {
+    "autonomy_lanes": {
+      "purpose": "Define what agents can do autonomously",
+      "levels": {
+        "micro_proposals": [
+          "Small, reversible changes",
+          "No human approval needed",
+          "Examples: fix typos, add docstrings"
+        ],
+        "major_changes": [
+          "Significant modifications",
+          "Human review required",
+          "Examples: refactor modules, change APIs"
+        ],
+        "critical_operations": [
+          "System-wide impact",
+          "Multiple human approvals",
+          "Examples: schema migrations, policy changes"
+        ]
+      }
+    },
+    "enforcement": [
+      "Agents declare required lane before execution",
+      "Guard validates agent has authority",
+      "Actions outside lane are blocked"
+    ]
+  },
+  "testing_agents": {
+    "unit_tests": [
+      "Mock LLM client with canned responses",
+      "Test prompt construction logic",
+      "Test response parsing logic",
+      "Test error handling paths"
+    ],
+    "integration_tests": [
+      "Use real LLM with test prompts",
+      "Verify constitutional compliance",
+      "Test agent composition in orchestrators"
+    ],
+    "evaluation": [
+      "Track success rate over time",
+      "Compare against baseline (manual approach)",
+      "A/B test prompt variations"
+    ]
+  },
+  "migration_checklist": {
+    "audit_existing_agents": [
+      "List all agent classes",
+      "Identify which pattern each follows",
+      "Document missing elements (context, validation, etc.)"
+    ],
+    "standardization": [
+      "Move prompts to .intent/mind/prompts/",
+      "Add ContextPackage support",
+      "Integrate constitutional guards",
+      "Implement structured decisions"
+    ],
+    "validation": [
+      "Each agent declares pattern in docstring",
+      "Pattern checker validates implementation",
+      "Add to CI checks"
+    ]
+  },
+  "additionalProperties": false,
+  "rules": [
+    {
+      "id": "standard_architecture_agent_rules.pattern.cognitive_agent",
+      "category": "architectural_pattern",
+      "statement": "Must follow the cognitive_agent pattern structure.",
+      "enforcement": "error",
+      "rationale": "Transform context into decisions via LLM reasoning",
+      "check": {
+        "engine": "llm_gate",
+        "params": {}
+      }
+    },
+    {
+      "id": "standard_architecture_agent_rules.pattern.orchestrator_agent",
+      "category": "architectural_pattern",
+      "statement": "Must follow the orchestrator_agent pattern structure.",
+      "enforcement": "error",
+      "rationale": "Coordinate multiple agents to achieve complex goals",
+      "check": {
+        "engine": "llm_gate",
+        "params": {}
+      }
+    },
+    {
+      "id": "standard_architecture_agent_rules.pattern.validator_agent",
+      "category": "architectural_pattern",
+      "statement": "Must follow the validator_agent pattern structure.",
+      "enforcement": "error",
+      "rationale": "Verify outputs meet quality and policy standards",
+      "check": {
+        "engine": "llm_gate",
+        "params": {}
+      }
+    },
+    {
+      "id": "standard_architecture_agent_rules.pattern.learning_agent",
+      "category": "architectural_pattern",
+      "statement": "Must follow the learning_agent pattern structure.",
+      "enforcement": "error",
+      "rationale": "Improve performance through experience",
+      "check": {
+        "engine": "llm_gate",
+        "params": {}
+      }
+    }
+  ]
+}

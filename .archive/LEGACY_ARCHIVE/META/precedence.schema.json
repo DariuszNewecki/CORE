@@ -1,0 +1,71 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "id": "schema.precedence",
+  "version": "1.1.0",
+  "title": "CORE Precedence Schema",
+  "description": "Schema defining conflict-resolution precedence between constitution, standards, and policies.",
+  "type": "object",
+  "schema_id": "schema.precedence",
+  "owners": {
+    "accountable": "Governance Lead",
+    "responsible": [
+      "Core Maintainer"
+    ]
+  },
+  "review": {
+    "frequency": "12 months"
+  },
+  "allOf": [
+    {
+      "$ref": "./header.schema.json"
+    },
+    {
+      "type": "object",
+      "required": [
+        "type",
+        "policy_hierarchy"
+      ],
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "precedence"
+        },
+        "policy_hierarchy": {
+          "type": "array",
+          "minItems": 1,
+          "description": "Ordered precedence levels. Lower level number means higher authority.",
+          "items": {
+            "type": "object",
+            "required": [
+              "level",
+              "description",
+              "policies"
+            ],
+            "properties": {
+              "level": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "description": {
+                "type": "string",
+                "minLength": 10
+              },
+              "policies": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9_.-]*$"
+                },
+                "description": "Policy IDs governed at this precedence level. A policy ID MUST appear in only one level."
+              }
+            }
+          }
+        },
+        "notes": {
+          "type": "string"
+        }
+      }
+    }
+  ]
+}

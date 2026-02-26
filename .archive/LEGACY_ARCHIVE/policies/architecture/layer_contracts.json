@@ -1,0 +1,315 @@
+{
+  "id": "standard_architecture_layer_contracts",
+  "version": "1.0.0",
+  "title": "Architecture Standard \u2014 Layer Contracts & Symbol Governance",
+  "type": "policy",
+  "status": "active",
+  "owners": {
+    "accountable": "Governance Lead",
+    "responsible": [
+      "Core Maintainer"
+    ]
+  },
+  "review": {
+    "frequency": "6 months"
+  },
+  "schema_id": "schema.policy",
+  "description": "Defines architectural layer boundaries and symbol governance rules for CORE's\nlayered architecture. Establishes which symbols require capability IDs based on\ntheir architectural role, not just their visibility.\n\nCORE's architecture has distinct layers:\n- Features (body/features/): Business capabilities - MUST have IDs\n- Infrastructure (shared/infrastructure/): Service APIs - EXEMPT from IDs\n- CLI Commands (body/cli/): Framework entry points - EXEMPT from IDs\n- API Routes (api/): HTTP endpoints - EXEMPT from IDs\n- Providers (*/providers/): Interface implementations - EXEMPT from IDs\n\nThis standard operationalizes the constitutional principle that capability tracking\napplies to business logic, not architectural infrastructure.\n",
+  "architectural_layers": [
+    {
+      "name": "infrastructure_layer",
+      "path": "shared/infrastructure/",
+      "purpose": "Cross-cutting services (DB, LLM, vectors, storage, context)",
+      "symbol_governance": "public_api",
+      "rationale": "The infrastructure layer provides foundational services to all features.\nPublic functions here are intentional service APIs, governed by provider\ninterfaces and architectural contracts, not individual capability tracking.\n"
+    },
+    {
+      "name": "provider_layer",
+      "path": "*/providers/",
+      "purpose": "External system integrations (LLM providers, DB adapters)",
+      "symbol_governance": "interface_implementation",
+      "rationale": "Providers implement external contracts (Anthropic, OpenAI, SQLAlchemy).\nThey're discovered and invoked polymorphically through interfaces,\nnot called directly. Interface compliance is the governance mechanism.\n"
+    },
+    {
+      "name": "cli_commands",
+      "path": "body/cli/",
+      "purpose": "Command-line interface entry points",
+      "symbol_governance": "framework_entrypoint",
+      "rationale": "CLI commands are registered with Typer framework and invoked by name.\nThe framework provides the governance (command registration, help text).\n"
+    },
+    {
+      "name": "http_routes",
+      "path": "api/",
+      "purpose": "HTTP API endpoints",
+      "symbol_governance": "framework_entrypoint",
+      "rationale": "FastAPI routes are registered via decorators and invoked by URL path.\nThe framework provides the governance (route registration, OpenAPI schema).\n"
+    },
+    {
+      "name": "governance_checks",
+      "path": "mind/governance/checks/",
+      "purpose": "Constitutional enforcement checks",
+      "symbol_governance": "registry_dispatched",
+      "rationale": "Governance checks inherit from BaseCheck and are discovered by the auditor.\nThe execute() method is the contract; discovery handles invocation.\n"
+    },
+    {
+      "name": "feature_capabilities",
+      "path": "features/",
+      "purpose": "Business domain capabilities",
+      "symbol_governance": "capability_required",
+      "rationale": "Features implement business logic and domain operations.\nThese MUST have capability IDs for traceability and governance.\n"
+    }
+  ],
+  "symbol_governance_rules": [
+    {
+      "id": "architecture.infrastructure_service_apis",
+      "statement": "Public functions in shared/infrastructure/** are architectural service APIs\nand are EXEMPT from capability ID requirements.\n",
+      "enforcement": "exemption",
+      "match_criteria": {
+        "module_path_contains": "shared.infrastructure",
+        "is_public_function": true,
+        "type": "function"
+      },
+      "rationale": "Infrastructure provides cross-cutting services (database, LLM, vectors, storage).\nThese are provider implementations and service contracts, not business capabilities.\nThey are governed by:\n- Provider interface contracts\n- Service pattern standards\n- Integration tests\n\nExamples:\n- shared/infrastructure/llm/providers/anthropic.py::chat_completion\n- shared/infrastructure/database/session_manager.py::get_db_session\n- shared/infrastructure/vector/vector_index_service.py::query\n",
+      "scope": [
+        "shared/infrastructure/**/*.py"
+      ],
+      "applies_to": [
+        "All public functions providing infrastructure services",
+        "Database session management",
+        "LLM provider implementations",
+        "Vector store operations",
+        "Context service APIs",
+        "Secret management",
+        "Git operations",
+        "Storage handlers"
+      ]
+    },
+    {
+      "id": "architecture.provider_implementations",
+      "statement": "Functions in */providers/** that implement external provider interfaces\nare EXEMPT from capability ID requirements.\n",
+      "enforcement": "exemption",
+      "match_criteria": {
+        "module_path_contains": "/providers/",
+        "is_public_function": true,
+        "type": "function"
+      },
+      "rationale": "Provider implementations satisfy external contracts (LLM APIs, DB drivers).\nThey are invoked polymorphically through base classes/protocols, not directly.\nInterface compliance is verified through type checking and integration tests.\n\nExamples:\n- infrastructure/llm/providers/anthropic.py::chat_completion\n- infrastructure/llm/providers/openai.py::chat_completion\n- infrastructure/llm/providers/ollama.py::chat_completion\n",
+      "scope": [
+        "**/providers/**/*.py"
+      ]
+    },
+    {
+      "id": "architecture.cli_framework_entrypoints",
+      "statement": "Public functions in body/cli/** that are registered with Typer framework\nare EXEMPT from capability ID requirements.\n",
+      "enforcement": "exemption",
+      "match_criteria": {
+        "module_path_contains": "body.cli",
+        "is_public_function": true,
+        "type": "function"
+      },
+      "rationale": "CLI commands are framework entry points, not capabilities.\nThey are:\n- Registered with @app.command() decorators\n- Invoked by command name via Typer\n- Governed by CLI standards (help text, argument validation)\n\nThe underlying business logic they call DOES require capability IDs.\n",
+      "scope": [
+        "body/cli/**/*.py"
+      ],
+      "note": "CLI commands typically delegate to feature capabilities.\nThe delegation target (e.g., features/introspection/analyze.py::analyze_code)\nMUST have a capability ID, even if the CLI wrapper does not.\n"
+    },
+    {
+      "id": "architecture.http_framework_entrypoints",
+      "statement": "Functions in api/** that are FastAPI route handlers\nare EXEMPT from capability ID requirements.\n",
+      "enforcement": "exemption",
+      "match_criteria": {
+        "module_path_contains": "api",
+        "is_public_function": true,
+        "type": "function"
+      },
+      "rationale": "HTTP endpoints are framework entry points, governed by:\n- FastAPI route registration (@router.get, @router.post)\n- OpenAPI schema generation\n- Request/response validation\n\nLike CLI commands, they delegate to capabilities that DO require IDs.\n",
+      "scope": [
+        "api/**/*.py"
+      ]
+    },
+    {
+      "id": "architecture.registry_dispatched_methods",
+      "statement": "Methods discovered and invoked by registries (governance checks, action handlers)\nare EXEMPT from capability ID requirements.\n",
+      "enforcement": "exemption",
+      "match_criteria": {
+        "module_path_contains": [
+          "mind.governance.checks",
+          "body.actions"
+        ],
+        "name_regex": "^execute$",
+        "type": "function"
+      },
+      "rationale": "Registry-dispatched methods follow framework contracts:\n- GovernanceCheck.execute() -> discovered by auditor registry\n- ActionHandler.execute() -> discovered by action registry\n\nThe class itself may have a capability ID, but the execute() method\nis part of the contract, not a standalone capability.\n",
+      "scope": [
+        "mind/governance/checks/**/*.py",
+        "body/actions/**/*.py"
+      ]
+    },
+    {
+      "id": "architecture.property_accessors",
+      "statement": "Functions that provide property-like access to configuration or paths\nare EXEMPT from capability ID requirements.\n",
+      "enforcement": "exemption",
+      "match_criteria": {
+        "module_path_contains": [
+          "shared.config",
+          "shared.path_resolver",
+          "mind.governance.audit_context"
+        ],
+        "type": "function"
+      },
+      "rationale": "These functions provide attribute-style access to configuration values\nor filesystem paths. They are accessors, not capabilities:\n- settings.paths() -> configuration accessor\n- path_resolver.pattern() -> path accessor\n- audit_context.mind_path -> property accessor\n\nThey have no business logic, just data access.\n",
+      "scope": [
+        "shared/config*.py",
+        "shared/path_*.py"
+      ]
+    },
+    {
+      "id": "architecture.python_magic_methods",
+      "statement": "Python __dunder__ methods are EXEMPT from capability ID requirements.\n",
+      "enforcement": "exemption",
+      "match_criteria": {
+        "name_regex": "^__.+__$",
+        "type": "function"
+      },
+      "rationale": "Magic methods are called by Python runtime, not by application code:\n- __init__, __str__, __repr__ -> object lifecycle\n- __enter__, __exit__ -> context managers\n- __call__, __iter__ -> protocol implementations\n\nThey are infrastructure for Python's object model, not capabilities.\n"
+    },
+    {
+      "id": "architecture.visitor_pattern_methods",
+      "statement": "Methods following the Visitor pattern (visit_*) are EXEMPT from capability IDs.\n",
+      "enforcement": "exemption",
+      "match_criteria": {
+        "name_regex": "^visit_",
+        "type": "function"
+      },
+      "rationale": "Visitor pattern methods are called by framework (ast.NodeVisitor):\n- visit_FunctionDef() -> called when AST walker encounters function\n- visit_ClassDef() -> called when AST walker encounters class\n\nThe visitor class itself may be a capability, but individual visit_* methods\nare dispatched by the walker, not standalone capabilities.\n"
+    },
+    {
+      "id": "architecture.mind_enforcement_commands",
+      "statement": "Public functions in mind/enforcement/** are CLI-like enforcement commands\nand are EXEMPT from capability ID requirements.\n",
+      "enforcement": "exemption",
+      "match_criteria": {
+        "module_path_contains": "mind.enforcement",
+        "type": "function",
+        "is_public_function": true
+      },
+      "rationale": "Mind enforcement modules contain CLI-style commands for governance operations:\n- register_guard, list_audits, log_audit\n\nThese are command-style functions, similar to CLI commands, invoked by name\nrather than as tracked capabilities.\n"
+    },
+    {
+      "id": "architecture.agent_helper_methods",
+      "statement": "Helper methods in will/agents/** that format or transform data\nare EXEMPT from capability ID requirements.\n",
+      "enforcement": "exemption",
+      "match_criteria": {
+        "module_path_contains": "will.agents",
+        "name_regex": "^format_",
+        "type": "function",
+        "is_public_function": true
+      },
+      "rationale": "Agent helper methods like format_governance_response() are pure transformations\ncalled by the agent, not standalone capabilities.\n"
+    },
+    {
+      "id": "architecture.check_helper_properties",
+      "statement": "Helper properties in governance checks (like exemption_rules property)\nare EXEMPT from capability ID requirements.\n",
+      "enforcement": "exemption",
+      "match_criteria": {
+        "module_path_contains": "mind.governance.checks",
+        "type": "function",
+        "is_public_function": true
+      },
+      "rationale": "Governance checks may expose helper properties for lazy loading or configuration.\nThese are infrastructure for the check itself, not standalone capabilities.\n"
+    },
+    {
+      "id": "architecture.feature_capabilities_required",
+      "statement": "Public functions in features/** that implement business logic\nMUST have capability IDs.\n",
+      "enforcement": "error",
+      "match_criteria": {
+        "module_path_contains": "features/",
+        "is_public_function": true,
+        "type": "function",
+        "has_capability_tag": false
+      },
+      "rationale": "Features implement business domain logic and operations.\nThese are the governed capabilities that require:\n- Unique capability ID (# ID: <uuid>)\n- Docstring explaining purpose\n- Assignment to a domain in manifests\n\nFeatures are what CORE exists to govern and evolve.\n",
+      "scope": [
+        "features/**/*.py"
+      ],
+      "note": "If a feature function is a pure helper, make it private (_prefix).\nOnly public feature APIs require capability IDs.\n"
+    }
+  ],
+  "enforcement": {
+    "description": "How the OrphanedLogicCheck should apply these rules.\n",
+    "algorithm": {
+      "step_1": "Load all symbol_governance_rules from this standard",
+      "step_2": "For each public symbol without a capability ID:",
+      "step_3": "  Check if symbol matches any EXEMPTION rule criteria",
+      "step_4": "  If exemption matches -> no finding (allowed)",
+      "step_5": "  If no exemption matches -> ERROR finding (orphaned logic)"
+    },
+    "implementation_notes": [
+      "OrphanedLogicCheck MUST read from this policy, not hardcode exemptions",
+      "Use MindService to load this standard at runtime",
+      "Match criteria should be evaluated using the same logic as entry_point_patterns",
+      "Exemption rules take precedence over error rules"
+    ]
+  },
+  "migration": {
+    "description": "How to evolve from hardcoded exemptions to policy-driven governance.\n",
+    "phases": {
+      "phase_1": {
+        "name": "Deploy Policy",
+        "tasks": [
+          "Add this standard to .intent/charter/standards/architecture/",
+          "Update meta.yaml to include this file",
+          "Validate schema compliance"
+        ]
+      },
+      "phase_2": {
+        "name": "Update OrphanedLogicCheck",
+        "tasks": [
+          "Remove hardcoded _is_infrastructure_symbol() logic",
+          "Replace with policy reader: context.mind.get_standard('layer_contracts')",
+          "Implement match_criteria evaluation using same logic as entry_point_patterns"
+        ]
+      },
+      "phase_3": {
+        "name": "Verify Coverage",
+        "tasks": [
+          "Run audit with verbose mode",
+          "Confirm 92 orphans \u2192 ~10 orphans",
+          "Review remaining orphans for proper categorization"
+        ]
+      },
+      "phase_4": {
+        "name": "Document Pattern",
+        "tasks": [
+          "Update ARCHITECTURE.md to explain layer contracts",
+          "Add this as example of policy-driven enforcement",
+          "Use as template for other architectural rules"
+        ]
+      }
+    }
+  },
+  "metrics": {
+    "baseline_orphans": 92,
+    "target_orphans": 10,
+    "exemption_rules": 10,
+    "coverage_target": "90% of infrastructure symbols covered by exemptions"
+  },
+  "success_criteria": [
+    "Audit runs without hardcoded exemptions in Python",
+    "All infrastructure APIs properly exempted via policy",
+    "Only genuine orphans (dead code, missing IDs) flagged as errors",
+    "Policy can be updated without code changes"
+  ],
+  "additionalProperties": false,
+  "rules": [
+    {
+      "id": "layers.placeholder",
+      "statement": "This policy document is currently being defined.",
+      "enforcement": "info",
+      "rationale": "Placeholder rule to satisfy schema requirement for non-empty rules array",
+      "check": {
+        "engine": "llm_gate",
+        "params": {}
+      }
+    }
+  ]
+}
