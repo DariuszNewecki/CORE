@@ -36,7 +36,7 @@ def _try_forward_to_status_drift(scope: str, ctx: typer.Context) -> bool:
     Returns False if forwarding unavailable (for fallback).
     """
     try:
-        from body.cli.commands.status import drift_cmd as status_drift_cmd
+        from cli.commands.status import drift_cmd as status_drift_cmd
     except Exception as exc:
         logger.debug("inspect: status drift forward unavailable: %s", exc)
         return False

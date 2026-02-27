@@ -13,6 +13,7 @@ from .audit import AuditHistoryCheck
 from .canary import CanaryDeploymentCheck
 from .coverage import CoverageMinimumCheck
 from .dead_code import DeadCodeCheck
+from .import_resolution import ImportResolutionCheck
 from .linter import LinterComplianceCheck
 from .tests import TestVerificationCheck
 
@@ -23,6 +24,7 @@ __all__ = [
     "CanaryDeploymentCheck",
     "CoverageMinimumCheck",
     "DeadCodeCheck",
+    "ImportResolutionCheck",
     "LinterComplianceCheck",
     "TestVerificationCheck",
 ]

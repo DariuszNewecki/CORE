@@ -1,13 +1,13 @@
 # src/api/v1/development_routes.py
 # ID: 7d485ce8-8356-40c7-8272-9a05f58cf89d
+
 """
-Provides API endpoints for initiating and managing autonomous development cycles.
+Development API endpoints.
 
-UPDATED (Phase 5): Removed _ExecutionAgent dependency.
-Now uses develop_from_goal which internally uses the new UNIX-compliant pattern.
-
-CONSTITUTIONAL FIX: Uses service_registry.session() instead of direct get_session
-to comply with architecture.api.no_direct_database_access rule.
+CONSTITUTIONAL FIX (architecture.api.no_direct_database_access):
+All session access now routes through api.dependencies — the single
+sanctioned provider. Zero direct imports from shared.infrastructure
+in this file.
 """
 
 from __future__ import annotations
@@ -16,7 +16,7 @@ from fastapi import APIRouter, BackgroundTasks, Depends, Request
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from body.services.service_registry import service_registry
+from api.dependencies import get_api_session, open_background_session
 from shared.context import CoreContext
 from shared.infrastructure.repositories.task_repository import TaskRepository
 from will.autonomy.autonomous_developer import develop_from_goal
@@ -36,40 +36,26 @@ async def start_development_cycle(
     request: Request,
     payload: DevelopmentGoal,
     background_tasks: BackgroundTasks,
-    session: AsyncSession = Depends(service_registry.session),
-):
+    session: AsyncSession = Depends(get_api_session),
+) -> dict:
     """
     Accepts a high-level goal, creates a task record, and starts the
     autonomous development cycle in the background.
 
-    UPDATED: No longer needs to build executor_agent - develop_from_goal
-    handles all agent orchestration internally using UNIX-compliant pattern.
-
-    CONSTITUTIONAL: Uses TaskRepository for DB writes and service_registry
-    for session access (Mind-Body-Will separation).
+    CONSTITUTIONAL: TaskRepository for DB writes, api.dependencies for
+    session access. No Body or shared.infrastructure imports.
     """
     core_context: CoreContext = request.app.state.core_context
 
-    # Use Repository layer instead of direct session writes
     task_repo = TaskRepository(session)
     new_task = await task_repo.create(
         intent=payload.goal, assigned_role="AutonomousDeveloper", status="planning"
     )
 
     # ID: 419febbe-ce48-49a1-a1a7-ae800ce5cb4a
-    async def run_development():
-        """
-        Background task that runs autonomous development.
-
-        UPDATED: Simplified! No need to build agents manually.
-        develop_from_goal now handles all orchestration internally.
-
-        CONSTITUTIONAL: Uses service_registry.session() for background task.
-        """
-        # Create new session for background task via service registry
-        async with service_registry.session() as dev_session:
-            # Just call develop_from_goal!
-            # It builds all agents internally using UNIX-compliant pattern
+    async def run_development() -> None:
+        """Background task — session acquired via sanctioned provider."""
+        async with open_background_session() as dev_session:
             await develop_from_goal(
                 session=dev_session,
                 context=core_context,
@@ -79,5 +65,4 @@ async def start_development_cycle(
             )
 
     background_tasks.add_task(run_development)
-
     return {"task_id": str(new_task.id), "status": "Task accepted and running."}

@@ -131,7 +131,7 @@ class TestPersistenceService:
         Extract passing tests and promote them, while routing failures to morgue.
         """
         try:
-            from features.test_generation.test_extractor import TestCodeExtractor
+            from will.test_generation.test_extractor import TestCodeExtractor
 
             extractor = TestCodeExtractor()
             passing_code = extractor.extract_passing_tests(

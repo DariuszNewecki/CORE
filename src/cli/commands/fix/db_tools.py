@@ -31,7 +31,7 @@ from . import (
 # ID: 9309bc1b-d580-4887-b07d-13eccd137ef7
 async def sync_db_registry_command(ctx: typer.Context) -> None:
     """CLI wrapper for the command sync service."""
-    from body.cli.admin_cli import app as main_app
+    from cli.admin_cli import app as main_app
 
     with console.status("[cyan]Syncing CLI commands to database...[/cyan]"):
         # Inject session for proper DI

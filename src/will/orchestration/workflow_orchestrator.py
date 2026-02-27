@@ -178,9 +178,11 @@ class WorkflowOrchestrator:
                 break
 
         # Evaluate success criteria
-        workflow_ok = self._evaluate_success_criteria(
+        criteria_ok = self._evaluate_success_criteria(
             workflow_def.success_criteria, context
         )
+        failed_phases = [p.name for p in phase_results if not p.ok]
+        workflow_ok = criteria_ok and not failed_phases
 
         workflow_duration = time.time() - workflow_start
 
@@ -194,6 +196,11 @@ class WorkflowOrchestrator:
         logger.info("=" * 80)
         if workflow_ok:
             logger.info("✅ WORKFLOW COMPLETED SUCCESSFULLY")
+        elif failed_phases:
+            logger.warning(
+                "⚠️  WORKFLOW COMPLETED IN DEGRADED MODE (failed phases: %s)",
+                ", ".join(failed_phases),
+            )
         else:
             logger.info("❌ WORKFLOW FAILED")
         logger.info("Total Duration: %.2fs", workflow_duration)

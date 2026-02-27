@@ -1,10 +1,10 @@
 # src/will/self_healing/clarity_service.py
-# ID: 8bf2ad74-d73b-4b9d-b711-c0980f773afe
 
 """
-Implements the 'fix clarity' command, using an AI agent to perform
-principled refactoring of Python code for improved readability and simplicity.
-Refactored to use the canonical ActionExecutor Gateway for all mutations.
+Adaptive Clarity Orchestrator (V2.3) - ROADMAP COMPLIANT.
+Follows: INTERPRET → ANALYZE → STRATEGIZE → GENERATE → EVALUATE → DECIDE → EXECUTE.
+
+Preserves V2.2 Recursive Self-Correction, Tiered Reasoning, and Resilience.
 """
 
 from __future__ import annotations
@@ -12,10 +12,14 @@ from __future__ import annotations
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from body.atomic.executor import ActionExecutor
+from body.analyzers.file_analyzer import FileAnalyzer
+from body.evaluators.clarity_evaluator import ClarityEvaluator
 from shared.infrastructure.config_service import ConfigService
 from shared.logger import getLogger
-from will.orchestration.validation_pipeline import validate_code_async
+from shared.utils.parsing import extract_python_code_from_response
+from will.deciders.governance_decider import GovernanceDecider  # NEW
+from will.interpreters.request_interpreter import CLIArgsInterpreter  # NEW
+from will.strategists.clarity_strategist import ClarityStrategist
 
 
 if TYPE_CHECKING:
@@ -24,16 +28,57 @@ if TYPE_CHECKING:
 logger = getLogger(__name__)
 
 
-# ID: b7ece8ed-0753-476f-be7d-d6e36048d582
-async def fix_clarity(
+# ID: 1e2f3a4b-5c6d-7e8f-9a0b-1c2d3e4f5a6b
+async def remediate_clarity_v2(
     context: CoreContext,
     file_path: Path,
-    dry_run: bool,
+    write: bool = False,
     config_service: ConfigService | None = None,
 ):
     """
-    Refactors the provided file for clarity via governed atomic actions.
+    V2.3 Orchestrator: Combines high-resilience adaptive loops with
+    formal constitutional gatekeeping.
     """
+
+    # =========================================================================
+    # 1. PHASE: INTERPRET
+    # =========================================================================
+    interpreter = CLIArgsInterpreter()
+    task_result = await interpreter.execute(
+        command="fix", subcommand="clarity", targets=[str(file_path)], write=write
+    )
+    task = task_result.data["task"]
+    # Ensure we use normalized path from interpreter
+    rel_path_str = task.targets[0] if task.targets else str(file_path)
+
+    logger.info("🧪 [V2.3] Starting Adaptive Clarity Workflow: %s", rel_path_str)
+
+    # =========================================================================
+    # 2. PHASE: ANALYZE
+    # =========================================================================
+    analyzer = FileAnalyzer(context)
+    analysis = await analyzer.execute(file_path=rel_path_str)
+
+    if not analysis.ok:
+        logger.error("❌ Analysis failed: %s", analysis.data.get("error"))
+        return
+
+    # =========================================================================
+    # 3. PHASE: STRATEGIZE
+    # =========================================================================
+    line_count = analysis.metadata.get("line_count", 0)
+    complexity_score = analysis.metadata.get("total_definitions", 0)
+
+    strategist = ClarityStrategist()
+    strategy = await strategist.execute(
+        complexity_score=complexity_score, line_count=line_count
+    )
+
+    logger.info("🎯 Selected Strategy: %s", strategy.data["strategy"])
+
+    # =========================================================================
+    # 4 & 5. THE ADAPTIVE LOOP (GENERATE + EVALUATE)
+    # =========================================================================
     if config_service is not None:
         repo_root = Path(await config_service.get("REPO_PATH", required=True))
     else:
@@ -41,79 +86,109 @@ async def fix_clarity(
             runtime_config = await ConfigService.create(session)
             repo_root = Path(await runtime_config.get("REPO_PATH", required=True))
 
-    rel_path = str(file_path.relative_to(repo_root))
-    logger.info("🔍 Analyzing '%s' for clarity improvements...", rel_path)
+    original_code = (repo_root / rel_path_str).read_text(encoding="utf-8")
+    current_prompt = (
+        f"You are a Senior Architect. Task: Refactor the following code for {strategy.data['strategy']}.\n"
+        f"Specific Instruction: {strategy.data['instruction']}\n\n"
+        f"SOURCE CODE:\n{original_code}\n\n"
+        "Return ONLY the updated Python code. Do not include markdown fences."
+    )
 
-    # 1. Initialize Services
-    executor = ActionExecutor(context)
-    cognitive_service = context.cognitive_service
+    max_attempts = 3
+    attempt = 0
+    final_code = None
+    last_verdict = None
 
-    # Resolve Prompt via PathResolver (SSOT)
-    # CONSTITUTIONAL FIX: Removed fallback to settings.MIND (.intent is read-only).
-    # Prompts must reside in var/prompts/ as managed by the PathResolver.
-    prompt_path = repo_root / "var" / "prompts" / "refactor_for_clarity.prompt"
+    while attempt < max_attempts:
+        attempt += 1
 
-    if not prompt_path.exists():
-        logger.error(
-            "Constitutional prompt 'refactor_for_clarity.prompt' missing from var/prompts/. Aborting."
+        use_expert = attempt == max_attempts
+        tier_label = "EXPERT (High-Reasoning)" if use_expert else "STANDARD (Economy)"
+        logger.info(
+            "🔄 Attempt %d/%d using %s tier...", attempt, max_attempts, tier_label
         )
-        return
 
-    try:
-        prompt_template = prompt_path.read_text(encoding="utf-8")
-    except Exception as e:
-        logger.error("Failed to read prompt template at %s: %s", prompt_path, e)
-        return
+        try:
+            # 4. PHASE: GENERATE (Will Layer)
+            coder = await context.cognitive_service.aget_client_for_role(
+                "Coder", high_reasoning=use_expert
+            )
+            response_raw = await coder.make_request_async(
+                current_prompt, user_id="clarity_v2"
+            )
+            new_code = extract_python_code_from_response(response_raw) or response_raw
 
-    # 2. Get AI Proposal (Will)
-    original_code = file_path.read_text("utf-8")
-    final_prompt = prompt_template.replace("{source_code}", original_code)
+            # 5. PHASE: EVALUATE (Body Layer)
+            evaluator = ClarityEvaluator()
+            last_verdict = await evaluator.execute(
+                original_code=original_code, new_code=new_code
+            )
 
-    refactor_client = await cognitive_service.aget_client_for_role(
-        "RefactoringArchitect"
+            if last_verdict.ok:
+                if last_verdict.data.get("is_better", False):
+                    # SUCCESS: Code is valid and mathematically improved
+                    reduction = last_verdict.data.get("improvement_ratio", 0) * 100
+                    logger.info(
+                        "✅ Refactor successful! Complexity Reduction: %.1f%%",
+                        reduction,
+                    )
+                    final_code = new_code
+                    break
+                else:
+                    # FEEDBACK: Complexity increased
+                    logger.warning(
+                        "⚠️ Refactor resulted in higher complexity (%s).",
+                        last_verdict.data.get("new_cc"),
+                    )
+                    current_prompt = (
+                        f"Your previous attempt actually increased code complexity (New CC: {last_verdict.data.get('new_cc')} vs Orig CC: {last_verdict.data.get('original_cc')}). "
+                        f"Try again, but focus on RADICAL SIMPLIFICATION of the logic:\n\n{original_code}"
+                    )
+            else:
+                # FEEDBACK: Syntax Error
+                error_msg = last_verdict.data.get("error", "Syntax Error")
+                logger.warning("❌ Syntax Error detected in AI output: %s", error_msg)
+                current_prompt = f"Your previous refactoring has a SYNTAX ERROR:\n{error_msg}\n\nPlease fix the syntax. SOURCE:\n{original_code}"
+
+        except Exception as e:
+            # RESILIENCE: Network/API Error
+            logger.error(
+                "🚨 API/Network Error on attempt %d: %s", attempt, type(e).__name__
+            )
+            if attempt >= max_attempts:
+                logger.error("❌ All attempts failed due to persistent network issues.")
+
+    # =========================================================================
+    # 6. PHASE: DECIDE (Authorization Gate)
+    # =========================================================================
+    decider = GovernanceDecider()
+    # We pass the last evaluation results to the decider.
+    # If the loop finished without break, last_verdict will reflect why.
+    authorization = await decider.execute(
+        evaluation_results=[last_verdict] if last_verdict else [],
+        risk_tier="ELEVATED" if write else "ROUTINE",
     )
 
-    logger.info("Asking AI Architect to refactor for clarity...")
-    refactored_code = await refactor_client.make_request_async(
-        final_prompt,
-        user_id="clarity_fixer_agent",
-    )
+    # =========================================================================
+    # 7. PHASE: EXECUTION (Final Application)
+    # =========================================================================
+    if authorization.data["can_proceed"] and final_code:
+        if write:
+            from body.atomic.executor import ActionExecutor
 
-    if not refactored_code.strip() or refactored_code.strip() == original_code.strip():
-        logger.info("✅ AI Architect found no clarity improvements to make.")
-        return
+            executor = ActionExecutor(context)
+            logger.info(
+                "⚖️  Authorization Granted. Applying refactor via ActionExecutor..."
+            )
 
-    # 3. Pre-flight Validation
-    # Refactoring is high-risk; we must ensure the result is clean.
-    from mind.governance.audit_context import AuditorContext
-
-    auditor_context = AuditorContext(repo_root)
-
-    validation_result = await validate_code_async(
-        rel_path, refactored_code, quiet=True, auditor_context=auditor_context
-    )
-
-    if validation_result["status"] == "dirty":
-        logger.warning(
-            "Skipping refactor for %s: AI proposal failed validation.", rel_path
-        )
-        return
-
-    # 4. Governed Execution (Body)
-    write_mode = not dry_run
-    result = await executor.execute(
-        action_id="file.edit",
-        write=write_mode,
-        file_path=rel_path,
-        code=validation_result["code"],
-    )
-
-    if result.ok:
-        status = "Refactored" if write_mode else "Proposed (Dry Run)"
-        logger.info("   -> [%s] %s", status, rel_path)
+            await executor.execute(
+                "file.edit", write=True, file_path=rel_path_str, code=final_code
+            )
+        else:
+            logger.info(
+                "💡 [DRY RUN] Validated refactor ready. Complexity reduction confirmed."
+            )
     else:
-        logger.error("   -> [BLOCKED] %s: %s", rel_path, result.data.get("error"))
-
-
-# Alias for backward compatibility with older CLI wrappers if necessary
-_async_fix_clarity = fix_clarity
+        # Explain why we stopped
+        blockers = authorization.data.get("blockers", ["No valid refactor produced"])
+        logger.error("❌ EXECUTION HALTED: %s", ", ".join(blockers))

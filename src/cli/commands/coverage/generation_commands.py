@@ -51,7 +51,10 @@ async def generate_adaptive_command(
     - Passing sandbox tests are promoted to mirrored paths under /tests (Verified Truth).
     - Failing sandbox tests are quarantined under var/artifacts/test_gen/failures/ (Morgue).
     """
-    from features.test_generation import AdaptiveTestGenerator, TestGenerationResult
+    from will.test_generation.adaptive_test_generator import (
+        AdaptiveTestGenerator,
+        TestGenerationResult,
+    )
 
     core_context: CoreContext = ctx.obj
 
@@ -132,8 +135,8 @@ async def generate_adaptive_batch_command(
 
     Prioritizes files with lowest coverage first.
     """
-    from features.self_healing.coverage_analyzer import CoverageAnalyzer
-    from features.test_generation import AdaptiveTestGenerator
+    from body.quality.coverage_analyzer import CoverageAnalyzer
+    from will.test_generation.adaptive_test_generator import AdaptiveTestGenerator
 
     core_context: CoreContext = ctx.obj
     repo_root = core_context.git_service.repo_path

@@ -1,0 +1,32 @@
+mappings:
+  # LAW: All import statements MUST resolve to existing modules
+  # Tool: ruff --select F821 (undefined names) + mypy import-not-found
+  # This is the Python equivalent of a compile-time linker check.
+  code.imports.must_resolve:
+    engine: workflow_gate
+    params:
+      check_type: import_resolution_check
+      tools:
+        - tool: ruff
+          args: ["check", "--select", "F821,F401"]
+        - tool: mypy
+          args: ["--no-error-summary", "--ignore-missing-imports=false"]
+          filter: "import-not-found"
+    scope:
+      applies_to: ["src/**/*.py"]
+      excludes: ["tests/**"]
+
+  # LAW: After any module rename or relocation, stale namespace references MUST be updated
+  # Same tooling as above — stale namespaces manifest as unresolvable imports.
+  # Separate rule ID to enable targeted reporting during refactoring workflows.
+  code.imports.no_stale_namespace:
+    engine: workflow_gate
+    params:
+      check_type: import_resolution_check
+      tools:
+        - tool: ruff
+          args: ["check", "--select", "F821"]
+          filter: "features." # Primary indicator: old 'features.*' namespace references
+    scope:
+      applies_to: ["src/**/*.py"]
+      excludes: ["tests/**"]

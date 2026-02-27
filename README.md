@@ -248,8 +248,7 @@ Active work: increasing test coverage autonomously (A2) and stabilising before a
 
 ## License
 
-MIT License
-
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 ---
 
 <div align="center">

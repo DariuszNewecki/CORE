@@ -14,6 +14,7 @@ outputs:
 
 constitutional_requirements:
   - code.style.consistency
+  - code.imports.must_resolve
 
 authority: standard
 failure_mode: block
@@ -25,10 +26,13 @@ tools:
   - ruff_format
   - black
   - mypy
+  - check.imports # Verifies all imports resolve to existing modules (F821, F401)
 
 auto_fix: true # Automatically apply formatting
 
 notes: >
   Style check is deterministic and fast.
   Most violations are auto-fixable.
+  Import resolution violations (check.imports) are not auto-fixable — they
+  require the developer to update stale references manually.
   Type errors may require LLM correction (not implemented yet).

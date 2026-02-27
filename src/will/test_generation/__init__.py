@@ -1,4 +1,4 @@
-# src/features/test_generation/__init__.py
+# src/will/test_generation/__init__.py
 
 """
 Test Generation V2 - Component-based adaptive test generation.
@@ -19,7 +19,7 @@ Architecture:
 - Composes into AdaptiveTestGenerator
 
 Usage:
-    from features.test_generation_v2 import AdaptiveTestGenerator
+    from will.test_generation import AdaptiveTestGenerator
     from will.orchestration.cognitive_service import CognitiveService
 
     cognitive_service = CognitiveService()
@@ -36,7 +36,8 @@ Usage:
 
 from __future__ import annotations
 
-from .adaptive_test_generator import AdaptiveTestGenerator, TestGenerationResult
+from .adaptive_test_generator import AdaptiveTestGenerator
+from .models import TestGenerationResult
 
 
 __all__ = [

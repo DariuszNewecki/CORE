@@ -7,11 +7,12 @@ from __future__ import annotations
 
 # ID: 2ff96be2-ccfb-4ae2-8529-d5a30e5a919d
 def analyze_dependencies(imports: list[str]) -> list[str]:
+    # PURGED: 'features' removed.
     return [
         i
         for i in imports
         if any(
-            i.startswith(p) for p in ["core", "features", "shared", "services", "cli"]
+            i.startswith(p) for p in ["core", "mind", "body", "will", "shared", "api"]
         )
     ]
 

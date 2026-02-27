@@ -1,0 +1,30 @@
+{
+    "$schema": "META/rule_document.schema.json",
+    "kind": "rule_document",
+    "metadata": {
+        "id": "rules.code.imports",
+        "title": "Import Integrity Rules",
+        "version": "1.0.0",
+        "authority": "policy",
+        "phase": "audit",
+        "status": "active"
+    },
+    "rules": [
+        {
+            "id": "code.imports.must_resolve",
+            "statement": "All import statements in src/ MUST resolve to existing modules. Imports referencing modules that do not exist on the Python path are forbidden.",
+            "enforcement": "blocking",
+            "authority": "policy",
+            "phase": "audit",
+            "rationale": "Python resolves imports at runtime (JIT), not at parse time. A file with a broken import will load silently until the import path is executed, at which point the system crashes. This rule mandates that static analysis (ruff F821, mypy import-not-found) is run as a constitutional gate, replicating the compile-time safety that compiled languages provide natively."
+        },
+        {
+            "id": "code.imports.no_stale_namespace",
+            "statement": "Following any module rename or relocation, all import statements referencing the old path MUST be updated before the change is committed. Stale namespace references from moved or deleted modules are a constitutional violation.",
+            "enforcement": "blocking",
+            "authority": "policy",
+            "phase": "audit",
+            "rationale": "Module restructuring creates stale import paths that are invisible to formatters and sorters. The dev-sync workflow MUST verify import resolution after any refactoring operation, not merely sort or format existing imports."
+        }
+    ]
+}

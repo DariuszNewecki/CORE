@@ -1,12 +1,13 @@
-# src/body/cli/resources/dev/__init__.py
+# src/cli/resources/dev/__init__.py
+
 """Developer workflow and interaction operations."""
 
 from __future__ import annotations
 
-# 2. Register all sub-modules (neurons)
-from . import chat, stability, sync, test
+# Register all sub-modules (neurons) — import order triggers @app.command decorators
+from . import chat, refactor, stability, sync, test
 
-# 1. Import the centralized app from the hub (prevents circular errors)
+# Import the centralized app from the hub
 from .hub import app
 
 

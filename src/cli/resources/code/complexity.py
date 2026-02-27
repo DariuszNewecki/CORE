@@ -44,12 +44,12 @@ async def complexity_cmd(
     Targets high cyclomatic complexity and 'God Methods' to improve modularity.
     """
     # CONSTITUTIONAL FIX: Swapped legacy service for V2.3 Roadmap-Compliant logic
-    from features.self_healing.complexity_service_v2 import remediate_complexity_v2
+    from will.self_healing.complexity_service import remediate_complexity
 
     core_context: CoreContext = ctx.obj
 
     # This uses the high-resilience loop similar to 'code clarity'
-    await remediate_complexity_v2(
+    await remediate_complexity(
         context=core_context,
         file_path=file_path,
         write=write,

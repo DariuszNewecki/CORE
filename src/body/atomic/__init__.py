@@ -8,12 +8,14 @@ from __future__ import annotations
 
 # Import modules to trigger registration
 from body.atomic import (
+    check_actions,
     crate_ops,
     file_ops,
     fix_actions,
     metadata_ops,
     sync_actions,
 )
+from body.atomic.check_actions import action_check_imports
 from body.atomic.crate_ops import action_create_crate
 from body.atomic.file_ops import (
     action_create_file,
@@ -41,6 +43,7 @@ from body.atomic.sync_actions import (
 
 
 __all__ = [
+    "action_check_imports",
     "action_create_crate",
     "action_create_file",
     "action_edit_file",

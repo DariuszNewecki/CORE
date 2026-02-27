@@ -41,6 +41,14 @@
             "authority": "constitution",
             "phase": "load",
             "rationale": "Allowing alternative return types creates an ungovernerable shadow surface that undermines the entire constitutional framework."
+        },
+        {
+            "id": "atomic_actions.fix_action_scope",
+            "statement": "The atomic action 'fix.imports' is exclusively scoped to import ordering and sorting. It MUST NOT be interpreted as validating import correctness or module existence. A separate 'check.imports' action is the designated authority for import resolution verification.",
+            "enforcement": "blocking",
+            "authority": "policy",
+            "phase": "load",
+            "rationale": "Naming ambiguity between 'fix imports (sort)' and 'fix imports (validate)' creates a false sense of safety. A dev-sync run that includes fix.imports and reports ok=True MUST NOT imply that all imports are valid — only that they are sorted. This rule eliminates that ambiguity constitutionally."
         }
     ]
 }

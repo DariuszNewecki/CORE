@@ -78,10 +78,10 @@ async def drift_cmd(
         guard_drift_cmd = None  # type: ignore[assignment]
 
     try:
-        from body.cli.commands import inspect as inspect_module
+        from cli.commands import inspect as inspect_module
     except Exception as exc:  # pragma: no cover
         logger.debug("status drift: cannot import inspect module: %s", exc)
-        _warn_not_wired("cannot import body.cli.commands.inspect")
+        _warn_not_wired("cannot import cli.commands.inspect")
         raise typer.Exit(code=0)
 
     # ID: b5dbb533-7fe8-465f-bc13-c74c885c145e

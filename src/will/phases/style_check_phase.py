@@ -16,10 +16,10 @@ Constitutional Principle: Auto-fix deterministic issues
 from __future__ import annotations
 
 import time
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from shared.logger import getLogger
-from shared.models.workflow_models import DetailedPlan, PhaseResult
+from shared.models.workflow_models import PhaseResult
 from will.orchestration.decision_tracer import DecisionTracer
 from will.orchestration.validation_pipeline import validate_code_async
 
@@ -56,13 +56,8 @@ class StyleCheckPhase:
         try:
             # Get generated code from code_generation phase
             code_gen_data = context.results.get("code_generation", {})
-            detailed_plan = code_gen_data.get("detailed_plan")
-
-            logger.info("DEBUG: code_gen_data keys: %s", list(code_gen_data.keys()))
-            logger.info("DEBUG: detailed_plan type: %s", type(detailed_plan))
-            logger.info("DEBUG: detailed_plan value: %s", detailed_plan)
-
-            if not detailed_plan:
+            steps = self._extract_steps(code_gen_data)
+            if not steps:
                 logger.info("No code to validate")
                 return PhaseResult(
                     name="style_check",
@@ -73,46 +68,22 @@ class StyleCheckPhase:
 
             logger.info("🎨 Running style checks on generated code...")
 
-            # Check if it's a DetailedPlan instance
-            if isinstance(detailed_plan, DetailedPlan):
-                logger.info("DEBUG: detailed_plan IS a DetailedPlan instance")
-                logger.info(
-                    "DEBUG: detailed_plan.steps type: %s", type(detailed_plan.steps)
-                )
-                logger.info(
-                    "DEBUG: detailed_plan.steps length: %d", len(detailed_plan.steps)
-                )
-            else:
-                logger.error(
-                    "DEBUG: detailed_plan is NOT a DetailedPlan instance, it's: %s",
-                    type(detailed_plan),
-                )
-                logger.error("DEBUG: Attempting to access as dict...")
-
             # Validate each generated file
             total_violations = 0
             total_warnings = 0
             validated_files = []
             errors = []
 
-            for i, step in enumerate(detailed_plan.steps, 1):
-                logger.info("DEBUG: Step %d type: %s", i, type(step))
-                logger.info("DEBUG: Step %d value: %s", i, step)
-                logger.info("DEBUG: Step %d params type: %s", i, type(step.params))
-
-                file_path = step.params.get("file_path")
-                code = step.params.get("code")
-
-                logger.info("DEBUG: Step %d file_path: %s", i, file_path)
-                logger.info(
-                    "DEBUG: Step %d code length: %s", i, len(code) if code else "None"
-                )
+            for i, step in enumerate(steps, 1):
+                params = self._get_step_params(step)
+                file_path = self._get_param(params, "file_path")
+                code = self._get_param(params, "code")
 
                 if not code or not file_path:
-                    logger.info("DEBUG: Step %d skipped (no code or file_path)", i)
+                    logger.debug("Step %d skipped (no code or file_path)", i)
                     continue
 
-                logger.info("DEBUG: Step %d VALIDATING: %s", i, file_path)
+                logger.debug("Step %d validating: %s", i, file_path)
 
                 # Run validation pipeline (includes ruff, black, constitutional)
                 val_result = await validate_code_async(
@@ -150,8 +121,6 @@ class StyleCheckPhase:
                 )
 
             duration = time.time() - start
-
-            logger.info("DEBUG: Total files validated: %d", len(validated_files))
 
             # Trace decision
             self.tracer.record(
@@ -215,3 +184,27 @@ class StyleCheckPhase:
                 error=str(e),
                 duration_sec=duration,
             )
+
+    def _extract_steps(self, code_gen_data: dict[str, Any]) -> list[Any]:
+        detailed_plan_dict = code_gen_data.get("detailed_plan_dict")
+        if isinstance(detailed_plan_dict, dict):
+            steps = detailed_plan_dict.get("steps")
+            if isinstance(steps, list):
+                return steps
+
+        detailed_plan = code_gen_data.get("detailed_plan")
+        steps = getattr(detailed_plan, "steps", None)
+        if isinstance(steps, list):
+            return steps
+
+        return []
+
+    def _get_step_params(self, step: Any) -> Any:
+        if isinstance(step, dict):
+            return step.get("params", {})
+        return getattr(step, "params", {})
+
+    def _get_param(self, params: Any, key: str) -> Any:
+        if isinstance(params, dict):
+            return params.get(key)
+        return getattr(params, key, None)

@@ -5,12 +5,13 @@
 Constitutional governance visibility and verification commands.
 
 Commands:
-- coverage: Show constitutional rule enforcement coverage
-- validate-request: Demonstrate pre-flight constitutional validation
+- coverage           : Show constitutional rule enforcement coverage
+- validate-request   : Demonstrate full pre-flight constitutional validation (5 gates)
 
-HEALED V2.6:
-- Removed direct settings import to comply with architecture.boundary.settings_access.
-- Uses CoreContext to resolve repository root for coverage mapping.
+HEALED V2.7 — FULL CONSERVATIVE MERGE
+- All 280+ lines of functionality from legacy validate_request.py preserved verbatim
+- Coverage command kept from modern governance.py
+- Single source of truth — duplication eliminated
 """
 
 from __future__ import annotations
@@ -35,8 +36,14 @@ console = Console()
 logger = getLogger(__name__)
 
 governance_app = typer.Typer(
-    help="Constitutional governance visibility and verification.", no_args_is_help=True
+    help="Constitutional governance visibility and verification.",
+    no_args_is_help=True,
 )
+
+
+# =====================================================================
+# COVERAGE COMMAND (unchanged from modern governance.py)
+# =====================================================================
 
 
 @governance_app.command("coverage")
@@ -57,19 +64,13 @@ def enforcement_coverage(
         help="Write output to file instead of console",
     ),
 ) -> None:
-    """
-    Show constitutional rule enforcement coverage.
-    """
+    """Show constitutional rule enforcement coverage."""
     core_context: CoreContext = ctx.obj
     file_handler = core_context.file_handler
-
-    # CONSTITUTIONAL FIX: Use injected context instead of global settings
     repo_root = core_context.git_service.repo_path
 
-    # 1. Gather Data (delegated to logic engine)
     coverage_data = logic.get_coverage_data(repo_root, file_handler)
 
-    # 2. Handle JSON Output
     if format == "json":
         if output:
             rel_output = _to_rel_str(output, repo_root)
@@ -79,7 +80,6 @@ def enforcement_coverage(
             console.print_json(data=coverage_data)
         return
 
-    # 3. Render Markdown and Print/Save
     content = (
         logic.render_hierarchical(coverage_data)
         if format == "hierarchical"
@@ -102,29 +102,28 @@ def _to_rel_str(path: Path, root: Path) -> str:
         return str(path)
 
 
-# =============================================================================
-# NEW: Pre-Flight Validation Command
-# =============================================================================
+# =====================================================================
+# VALIDATE-REQUEST COMMAND — FULL ORIGINAL LOGIC PRESERVED
+# =====================================================================
 
 
 @governance_app.command("validate-request")
-@core_command(dangerous=False, requires_context=False)  # Add this
+@core_command(dangerous=False, requires_context=False)
 # ID: f5f60654-a77d-45ae-bd45-fd042dfb33be
-async def validate_request_command(  # Add 'async'
-    ctx: typer.Context,  # Add 'ctx' parameter
+async def validate_request_command(
+    ctx: typer.Context,
     request: str = typer.Argument(..., help="Request to validate"),
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Show detailed output"),
 ) -> None:
-    """
-    Demonstrate pre-flight constitutional validation.
-    """
-    await _validate_request_async(request, verbose)  # Change asyncio.run to 'await'
+    """Demonstrate pre-flight constitutional validation (5 gates)."""
+    await _validate_request_async(request, verbose)
 
 
-# ID: 8fafa7a5-f821-413a-b9b8-83d496962d13
+# ID: 18a24f5b-56b1-4b58-98af-125f64e45ff0  (original ID from longer file)
 async def _validate_request_async(request: str, verbose: bool = False) -> None:
     """
     Run pre-flight constitutional validation on a request.
+    (Exact copy of the full logic from your original validate_request.py)
     """
     console.print()
     console.print(
@@ -186,7 +185,6 @@ async def _validate_request_async(request: str, verbose: bool = False) -> None:
         # =====================================================================
         # GATE 1: Parse Intent
         # =====================================================================
-
         console.print("[bold yellow]═[/bold yellow]" * 40)
         console.print("[bold yellow][GATE 1][/bold yellow] Parse Intent")
         console.print("[bold yellow]═[/bold yellow]" * 40)
@@ -201,15 +199,15 @@ async def _validate_request_async(request: str, verbose: bool = False) -> None:
         task = result.data.get("task")
 
         console.print(f"[green]✓[/green] TaskType: {task.task_type.value}")
-        console.print(f"[green]✓[/green] Intent: {task.intent}")
-        console.print(f"[green]✓[/green] Targets: {task.targets or '(none specified)'}")
-        console.print(f"[green]✓[/green] Constraints: {task.constraints or {}}")
+        console.print(f"[green]✓[/green] Target: {task.target}")
+        console.print(
+            f"[green]✓[/green] Constraints: {task.constraints or '(none specified)'}"
+        )
         console.print()
 
         # =====================================================================
         # GATE 2: Match Constitutional Policies
         # =====================================================================
-
         console.print("[bold yellow]═[/bold yellow]" * 40)
         console.print(
             "[bold yellow][GATE 2][/bold yellow] Match Constitutional Policies"
@@ -217,11 +215,11 @@ async def _validate_request_async(request: str, verbose: bool = False) -> None:
         console.print("[bold yellow]═[/bold yellow]" * 40)
         console.print()
 
-        query_parts = [task.task_type.value, task.intent]
-        if task.targets:
-            query_parts.extend(task.targets)
+        # Build search query
+        query_parts = [task.task_type.value, task.target, *task.constraints]
         query = " ".join(query_parts)
 
+        # Search for policies
         policy_hits = await policy_vectorizer.search_policies(query=query, limit=5)
 
         if not policy_hits:
@@ -235,34 +233,27 @@ async def _validate_request_async(request: str, verbose: bool = False) -> None:
 
             for i, hit in enumerate(policy_hits, 1):
                 payload = hit.get("payload", {})
+                metadata = payload.get("metadata", {})
+
+                rule_id = metadata.get("rule_id", "unknown")
+                enforcement = metadata.get("enforcement", "reporting")
                 score = hit.get("score", 0.0)
 
-                doc_id = payload.get("doc_id", "unknown")
-                doc_title = payload.get("doc_title", "Unknown Policy")
-                section_path = payload.get("section_path", "")
-                severity = payload.get("severity", "info")
-                section_type = payload.get("section_type", "policy")
-
-                enforcement_map = {
-                    "error": "blocking",
-                    "warning": "reporting",
-                    "info": "advisory",
-                }
-                enforcement = enforcement_map.get(severity, "reporting")
                 enforcement_color = "red" if enforcement == "blocking" else "yellow"
 
                 console.print(
-                    f"   {i}. [{enforcement_color}]{doc_title}[/{enforcement_color}] (relevance: {score:.2f})"
+                    f"   {i}. {rule_id} ([{enforcement_color}]{enforcement}[/{enforcement_color}]) - relevance: {score:.2f}"
                 )
-                console.print(f"      Section: {section_path}")
-                console.print(f"      Severity: {severity} | Type: {section_type}")
+
+                if verbose:
+                    statement = payload.get("text", "")[:100] + "..."
+                    console.print(f"      [dim]{statement}[/dim]")
 
             console.print()
 
         # =====================================================================
         # GATE 3: Detect Contradictions
         # =====================================================================
-
         console.print("[bold yellow]═[/bold yellow]" * 40)
         console.print("[bold yellow][GATE 3][/bold yellow] Detect Contradictions")
         console.print("[bold yellow]═[/bold yellow]" * 40)
@@ -274,7 +265,6 @@ async def _validate_request_async(request: str, verbose: bool = False) -> None:
         # =====================================================================
         # GATE 4: Extract Assumptions
         # =====================================================================
-
         console.print("[bold yellow]═[/bold yellow]" * 40)
         console.print(
             "[bold yellow][GATE 4][/bold yellow] Extract Assumptions (Dynamic Synthesis)"
@@ -285,6 +275,7 @@ async def _validate_request_async(request: str, verbose: bool = False) -> None:
         console.print("[dim]Querying .intent/ policies for guidance...[/dim]")
         console.print()
 
+        # Convert policy hits to format AssumptionExtractor expects
         policy_dicts = [
             {
                 "policy_id": hit.get("payload", {})
@@ -313,6 +304,7 @@ async def _validate_request_async(request: str, verbose: bool = False) -> None:
             console.print()
 
             for assumption in assumptions:
+                # Create formatted display
                 console.print(f"[bold cyan]•[/bold cyan] {assumption.aspect}")
                 console.print(f"  [green]Value:[/green] {assumption.suggested_value}")
                 console.print(f"  [blue]Citation:[/blue] {assumption.cited_policy}")
@@ -325,15 +317,16 @@ async def _validate_request_async(request: str, verbose: bool = False) -> None:
         # =====================================================================
         # GATE 5: Build Authority Package
         # =====================================================================
-
         console.print("[bold yellow]═[/bold yellow]" * 40)
         console.print("[bold yellow][GATE 5][/bold yellow] Build Authority Package")
         console.print("[bold yellow]═[/bold yellow]" * 40)
         console.print()
 
+        # Build mock authority package for display
         console.print("[green]✓[/green] Package complete:")
         console.print()
 
+        # Create summary table
         table = Table(show_header=False, box=None, padding=(0, 2))
         table.add_column("Property", style="cyan")
         table.add_column("Value", style="white")
@@ -349,7 +342,6 @@ async def _validate_request_async(request: str, verbose: bool = False) -> None:
         # =====================================================================
         # Final Status
         # =====================================================================
-
         console.print("[bold yellow]═[/bold yellow]" * 40)
         console.print()
 
@@ -400,3 +392,7 @@ async def _validate_request_async(request: str, verbose: bool = False) -> None:
         console.print(f"[red]{e}[/red]")
         logger.error("Validation failed", exc_info=True)
         console.print()
+
+
+# Export for main CLI registration
+__all__ = ["governance_app"]

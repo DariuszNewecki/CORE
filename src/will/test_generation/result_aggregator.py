@@ -1,4 +1,4 @@
-# src/features/test_generation/result_aggregator.py
+# src/will/test_generation/result_aggregator.py
 
 """
 TestResultAggregator - Formats and packages generation outcomes.
@@ -10,10 +10,9 @@ from __future__ import annotations
 import time
 from typing import Any
 
-from .adaptive_test_generator import TestGenerationResult
+from .models import TestGenerationResult
 
 
-# ID: e4415c4d-e82c-4712-9570-065896c4bc21
 # ID: 12bd31dc-af3b-4e6d-8063-768df4488dbf
 class TestResultAggregator:
     """Turns raw test lists into structured Constitutional Evidence."""

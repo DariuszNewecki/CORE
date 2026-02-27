@@ -54,7 +54,7 @@ async def refusals_list_cmd(
         core-admin inspect refusals --type extraction
         core-admin inspect refusals --component code_generator --details
     """
-    from body.cli.logic.refusal_inspect_logic import show_recent_refusals
+    from cli.logic.refusal_inspect_logic import show_recent_refusals
 
     await show_recent_refusals(
         limit=limit,
@@ -85,7 +85,7 @@ async def refusals_stats_cmd(
         core-admin inspect refusal-stats
         core-admin inspect refusal-stats --days 30
     """
-    from body.cli.logic.refusal_inspect_logic import show_refusal_statistics
+    from cli.logic.refusal_inspect_logic import show_refusal_statistics
 
     await show_refusal_statistics(days=days)
 
@@ -114,7 +114,7 @@ async def refusals_by_type_cmd(
         core-admin inspect refusals-by-type boundary --limit 50
         core-admin inspect refusals-by-type confidence
     """
-    from body.cli.logic.refusal_inspect_logic import show_refusals_by_type
+    from cli.logic.refusal_inspect_logic import show_refusals_by_type
 
     await show_refusals_by_type(refusal_type, limit=limit)
 
@@ -137,7 +137,7 @@ async def refusals_by_session_cmd(
     Examples:
         core-admin inspect refusals-by-session abc123def456
     """
-    from body.cli.logic.refusal_inspect_logic import show_refusals_by_session
+    from cli.logic.refusal_inspect_logic import show_refusals_by_session
 
     await show_refusals_by_session(session_id)
 

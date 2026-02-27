@@ -1,4 +1,4 @@
-# src/body/cli/commands/fix/code_style.py
+# src/cli/commands/fix/code_style.py
 """
 Code style and formatting commands for the 'fix' CLI group.
 
@@ -48,10 +48,12 @@ async def fix_headers_internal(
     try:
         # Get all Python files in src/
         src_dir = repo_root / "src"
-        all_py_files = [str(p.relative_to(repo_root)) for p in src_dir.rglob("*.py")]
+        all_py_files = [
+            p.relative_to(repo_root).as_posix() for p in src_dir.rglob("*.py")
+        ]
 
         # _run_header_fix_cycle is async and requires context
-        await _run_header_fix_cycle(
+        summary = await _run_header_fix_cycle(
             context, dry_run=not write, all_py_files=all_py_files
         )
 
@@ -59,7 +61,15 @@ async def fix_headers_internal(
             action_id="fix.headers",
             ok=True,
             data={
-                "files_scanned": len(all_py_files),
+                "total_files_scanned": summary["total_files_scanned"],
+                "files_changed": summary["files_changed"],
+                "files_unchanged": summary["files_unchanged"],
+                "files_created": summary["files_created"],
+                "changed_file_paths": summary["changed_file_paths"],
+                # Backward-compatible aliases for existing reporters.
+                "files_scanned": summary["total_files_scanned"],
+                "violations_found": summary["files_changed"],
+                "fixed_count": summary["files_changed"] if write else 0,
                 "dry_run": not write,
                 "mode": "write" if write else "dry-run",
             },

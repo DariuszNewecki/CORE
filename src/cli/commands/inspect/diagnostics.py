@@ -45,7 +45,7 @@ def command_tree_cmd(ctx: typer.Context) -> None:
     Examples:
         core-admin inspect command-tree
     """
-    from body.cli.admin_cli import app as main_app
+    from cli.admin_cli import app as main_app
 
     logger.info("Building CLI Command Tree...")
     tree_data = diagnostics_logic.build_cli_tree_data(main_app)

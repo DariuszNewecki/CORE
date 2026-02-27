@@ -22,6 +22,7 @@ from mind.logic.engines.workflow_gate.checks import (
     CanaryDeploymentCheck,
     CoverageMinimumCheck,
     DeadCodeCheck,
+    ImportResolutionCheck,
     LinterComplianceCheck,
     TestVerificationCheck,
 )
@@ -58,6 +59,7 @@ class WorkflowGateEngine(BaseEngine):
             DeadCodeCheck(path_resolver),
             AuditHistoryCheck(),
             LinterComplianceCheck(),
+            ImportResolutionCheck(),
             QualityGateCheck(
                 path_resolver,
                 "mypy_check",

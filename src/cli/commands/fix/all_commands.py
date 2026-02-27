@@ -138,7 +138,7 @@ async def run_all_fixes(
             )
 
         elif name == "db-registry":
-            from body.cli.admin_cli import app as main_app
+            from cli.admin_cli import app as main_app
 
             # ID: a11cbd4b-ccc9-4f38-97fc-0e681170081a
             async def sync_with_session():

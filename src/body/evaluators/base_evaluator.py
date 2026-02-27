@@ -10,19 +10,36 @@ PURIFIED (V2.3.0)
 
 from __future__ import annotations
 
+from abc import ABC, abstractmethod
 from typing import Any
 
-from body.evaluators.base_evaluator import BaseEvaluator
 from shared.component_primitive import ComponentResult
 from shared.context import CoreContext
 
 
 # ID: 078fdd48-815b-446e-936b-f0a12846a2ea
-class BaseEvaluator(BaseEvaluator):
+class BaseEvaluator(ABC):
     """Base contract for all evaluators operating in the AUDIT phase."""
 
     def __init__(self, context: CoreContext | None = None) -> None:
         self.context = context
+
+    @property
+    @abstractmethod
+    # ID: f6a5e1cf-96eb-436f-8c94-611e429db6f8
+    def component_id(self) -> str:
+        """Unique identifier for this evaluator."""
+
+    @property
+    @abstractmethod
+    # ID: 9062c5d4-f7db-44ff-ad27-f98758061cb9
+    def phase(self) -> str:
+        """Execution phase this evaluator belongs to."""
+
+    @abstractmethod
+    # ID: fd232b4d-4cc7-4c80-8e2a-dca89d96b16b
+    async def evaluate(self, *args: Any, **kwargs: Any) -> ComponentResult:
+        """Execute evaluation and return structured result."""
 
     async def _create_result(
         self,
