@@ -31,7 +31,7 @@ import ast
 import fnmatch
 from collections.abc import Iterable
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from mind.governance.enforcement_loader import EnforcementMappingLoader
 from shared.infrastructure.intent.intent_repository import (
@@ -41,6 +41,11 @@ from shared.infrastructure.intent.intent_repository import (
 from shared.infrastructure.knowledge.knowledge_service import KnowledgeService
 from shared.logger import getLogger
 from shared.path_resolver import PathResolver
+from shared.protocols.knowledge import SessionProviderProtocol
+
+
+if TYPE_CHECKING:
+    from shared.protocols.knowledge import SessionProviderProtocol
 
 
 logger = getLogger(__name__)
@@ -83,7 +88,9 @@ class AuditorContext:
         self,
         repo_path: Path,
         intent_repository: IntentRepository | None = None,
+        session_provider: SessionProviderProtocol | None = None,
     ):
+        self.session_provider = session_provider
         self.intent_repo = intent_repository or get_intent_repository()
         self.repo_path = repo_path.resolve()
 
