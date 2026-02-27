@@ -72,11 +72,18 @@ class KnowledgeSSOTEnforcement(AsyncEnforcementMethod):
 
         tables_to_check = self._tables_for_rule()
 
-        try:
-            # Local import keeps async unit import path lightweight.
-            from shared.infrastructure.database.session_manager import get_session
+        provider = context.session_provider
+        if provider is None:
+            findings.append(
+                self._create_finding(
+                    message="DB SSOT audit skipped: no session_provider on AuditorContext",
+                    file_path="DB",
+                )
+            )
+            return findings
 
-            async with get_session() as session:
+        try:
+            async with provider.session() as session:
                 for table_cfg in tables_to_check:
                     findings.extend(
                         await self._check_table(

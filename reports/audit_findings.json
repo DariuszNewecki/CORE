@@ -333,15 +333,6 @@
     "details": {}
   },
   {
-    "check_id": "architecture.mind.no_database_access",
-    "severity": "warning",
-    "message": "/opt/dev/CORE/src/mind/governance/enforcement/async_units.py:77 - Forbidden import: 'from shared.infrastructure.database.session_manager import get_session' (matches constitutional boundary rule: shared.infrastructure.database.session_manager.get_session)",
-    "file_path": "src/mind/governance/enforcement/async_units.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
     "check_id": "modularity.single_responsibility",
     "severity": "warning",
     "message": "Modularity Debt: 54.2/100 (Limit: 60.0)",
@@ -389,7 +380,7 @@
   {
     "check_id": "modularity.single_responsibility",
     "severity": "warning",
-    "message": "Modularity Debt: 49.9/100 (Limit: 60.0)",
+    "message": "Modularity Debt: 50.2/100 (Limit: 60.0)",
     "file_path": "src/mind/governance/enforcement/async_units.py",
     "line_number": null,
     "context": {},
@@ -470,7 +461,7 @@
   {
     "check_id": "modularity.semantic_cohesion",
     "severity": "warning",
-    "message": "Modularity Debt: 49.9/100 (Limit: 60.0)",
+    "message": "Modularity Debt: 50.2/100 (Limit: 60.0)",
     "file_path": "src/mind/governance/enforcement/async_units.py",
     "line_number": null,
     "context": {},
@@ -551,7 +542,7 @@
   {
     "check_id": "modularity.import_coupling",
     "severity": "warning",
-    "message": "Modularity Debt: 49.9/100 (Limit: 60.0)",
+    "message": "Modularity Debt: 50.2/100 (Limit: 60.0)",
     "file_path": "src/mind/governance/enforcement/async_units.py",
     "line_number": null,
     "context": {},
@@ -632,7 +623,7 @@
   {
     "check_id": "modularity.refactor_score_threshold",
     "severity": "warning",
-    "message": "Modularity Debt: 49.9/100 (Limit: 60.0)",
+    "message": "Modularity Debt: 50.2/100 (Limit: 60.0)",
     "file_path": "src/mind/governance/enforcement/async_units.py",
     "line_number": null,
     "context": {},
@@ -661,15 +652,6 @@
     "severity": "warning",
     "message": "Modularity Debt: 50.4/100 (Limit: 60.0)",
     "file_path": "src/will/test_generation/sandbox.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.boundary.database_session_access",
-    "severity": "error",
-    "message": "/opt/dev/CORE/src/mind/governance/enforcement/async_units.py:77 - Forbidden import: 'from shared.infrastructure.database.session_manager import get_session' (matches constitutional boundary rule: shared.infrastructure.database.session_manager.get_session)",
-    "file_path": "src/mind/governance/enforcement/async_units.py",
     "line_number": null,
     "context": {},
     "details": {}
