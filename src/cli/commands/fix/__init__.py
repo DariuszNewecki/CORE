@@ -72,7 +72,7 @@ import cli.commands.fix.atomic_actions
 import cli.commands.fix.audit
 import cli.commands.fix.body_ui
 
-# import body.cli.commands.fix.clarity
+# import cli.commands.fix.clarity
 import cli.commands.fix.code_style
 import cli.commands.fix.db_tools
 import cli.commands.fix.fix_ir

@@ -76,7 +76,7 @@ async def cleanup_database(
     console.print()
 
     try:
-        from features.self_healing import MemoryCleanupService
+        from body.self_healing import MemoryCleanupService
 
         async with get_session() as session:
             service = MemoryCleanupService(session=session)

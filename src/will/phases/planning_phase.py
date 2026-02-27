@@ -51,6 +51,8 @@ class PlanningPhase:
             # Initialize planner agent (only takes cognitive_service)
             planner = PlannerAgent(
                 cognitive_service=self.context.cognitive_service,
+                repo_path=self.context.git_service.repo_path,
+                qdrant_service=self.context.qdrant_service,
             )
 
             # Create execution plan

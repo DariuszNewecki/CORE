@@ -1,4 +1,4 @@
-# src/features/test_generation/validation.py
+# src/will/test_generation/validation.py
 
 """
 Generated Test Validation (Constitutional-lite)
@@ -11,6 +11,7 @@ Policy:
 1) Valid Python syntax
 2) Contains at least one pytest test function
 3) Imports pytest
+4) MUST NOT import from 'src.' (generated tests must use real package roots)
 """
 
 from __future__ import annotations
@@ -33,7 +34,38 @@ class GeneratedTestValidator:
     # ID: dd5adf4f-0500-4b21-a5bf-2ee7ea260ee4
     def validate(self, code: str) -> ValidationResult:
         try:
-            ast.parse(code)
+            tree = ast.parse(code)
+
+            # -----------------------------------------------------------------
+            # Constitutional-lite guard: forbid importing via "src." prefix.
+            # Generated tests must import real package roots (e.g., body.*, shared.*).
+            # This blocks hallucinations like: from src.body.cli... import PatternChecker
+            # -----------------------------------------------------------------
+            for node in ast.walk(tree):
+                if isinstance(node, ast.Import):
+                    for alias in node.names:
+                        if alias.name == "src" or alias.name.startswith("src."):
+                            return ValidationResult(
+                                ok=False,
+                                error=(
+                                    "Forbidden import root 'src'. "
+                                    "Do not import from 'src.*' in generated tests. "
+                                    "Import packages directly (e.g., 'body.*', 'shared.*', 'mind.*', 'will.*')."
+                                ),
+                            )
+
+                if isinstance(node, ast.ImportFrom):
+                    # node.module can be None for "from . import x"
+                    module = node.module or ""
+                    if module == "src" or module.startswith("src."):
+                        return ValidationResult(
+                            ok=False,
+                            error=(
+                                "Forbidden import root 'src'. "
+                                "Do not import from 'src.*' in generated tests. "
+                                "Import packages directly (e.g., 'body.*', 'shared.*', 'mind.*', 'will.*')."
+                            ),
+                        )
 
             has_test = any(
                 line.strip().startswith("def test_")

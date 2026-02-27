@@ -55,7 +55,7 @@ async def sync_database(
     console.print()
 
     try:
-        from features.introspection.sync_service import run_sync_with_db
+        from body.introspection.sync_service import run_sync_with_db
 
         if not write:
             console.print("[yellow]DRY-RUN: Use --write to persist changes[/yellow]")

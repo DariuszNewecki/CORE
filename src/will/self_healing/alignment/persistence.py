@@ -1,4 +1,4 @@
-# src/features/self_healing/alignment/persistence.py
+# src/will/self_healing/alignment/persistence.py
 
 """Refactored logic for src/features/self_healing/alignment/persistence.py."""
 
@@ -17,8 +17,8 @@ logger = getLogger(__name__)
 # ID: b1dd725e-af8c-43f4-b8f2-d91876672be6
 async def update_system_memory(file_path: str, write: bool):
     """Ensures the State (DB) and Mind (Vectors) match the Body (Code)."""
-    from features.introspection.sync_service import run_sync_with_db
-    from features.introspection.vectorization_service import run_vectorize
+    from body.introspection.sync_service import run_sync_with_db
+    from body.introspection.vectorization_service import run_vectorize
     from shared.context import CoreContext
 
     async with service_registry.session() as session:

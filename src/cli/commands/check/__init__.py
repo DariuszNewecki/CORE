@@ -89,11 +89,27 @@ def _register_quality_gates_commands():
             break
 
 
+def _register_imports_commands():
+    """Register import integrity check command."""
+    import cli.commands.check.imports as imports_module
+
+    for attr_name in dir(imports_module):
+        attr = getattr(imports_module, attr_name)
+        if (
+            callable(attr)
+            and hasattr(attr, "__name__")
+            and attr.__name__ == "imports_cmd"
+        ):
+            check_app.command("imports")(attr)
+            break
+
+
 # Trigger all registrations
 _register_audit_commands()
 _register_rule_commands()
 _register_quality_commands()
 _register_diagnostic_commands()
 _register_quality_gates_commands()
+_register_imports_commands()
 
 __all__ = ["check_app"]

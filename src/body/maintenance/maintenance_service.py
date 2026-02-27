@@ -2,7 +2,7 @@
 
 """
 Provides centralized services for repository maintenance tasks.
-UPDATED: Map adjusted for layered architecture (Wave 4 Re-wiring).
+UPDATED: Hardened for Indented and Prefix-aware re-wiring (Wave 4).
 """
 
 from __future__ import annotations
@@ -10,7 +10,6 @@ from __future__ import annotations
 import re
 from typing import TYPE_CHECKING
 
-# REFACTORED: Removed direct settings import
 from shared.logger import getLogger
 
 
@@ -21,25 +20,25 @@ if TYPE_CHECKING:
 logger = getLogger(__name__)
 
 # THE NEW WORLD MAP
-# This tells the tool: "If you see the old name on the left, change it to the name on the right."
 REWIRE_MAP = {
-    # Old Feature paths -> New Will paths (The Brains)
-    "body.cli": "cli",
+    # Brains (Will)
     "features.autonomy": "will.autonomy",
     "features.self_healing.audit_remediation_service": "will.self_healing.audit_remediation_service",
     "features.self_healing.clarity_service": "will.self_healing.clarity_service",
     "features.self_healing.complexity_service": "will.self_healing.complexity_service",
     "features.test_generation": "will.test_generation",
-    # Old Feature paths -> New Body paths (The Hands)
+    # Hands (Body)
     "features.introspection": "body.introspection",
     "features.maintenance": "body.maintenance",
     "features.project_lifecycle": "body.project_lifecycle",
     "features.quality": "body.quality",
     "features.crate_processing": "body.crate_processing",
     "features.operations": "body.operations",
-    "features.self_healing": "body.self_healing",  # Catch-all for deterministic services
-    # Old Feature paths -> New Mind paths (The Law)
+    "features.self_healing": "body.self_healing",
+    # Law (Mind)
     "features.governance": "mind.governance",
+    # Specific Layer Moves
+    "body.cli": "cli",
 }
 
 
@@ -49,16 +48,27 @@ def rewire_imports(
 ) -> int:
     """
     Scans and corrects Python imports across the entire src/ directory.
+
+    HARDENED:
+    1. Removed '^' anchor to catch indented/lazy imports.
+    2. Accounts for 'src.' prefix ghosts.
+    3. Prevents self-mutation of the REWIRE_MAP itself.
     """
     src_dir = context.git_service.repo_path / "src"
     all_python_files = list(src_dir.rglob("*.py"))
     total_changes = 0
 
-    # Matches 'from features.X' or 'import features.X'
-    import_re = re.compile("^(from\\s+([a-zA-Z0-9_.]+)|import\\s+([a-zA-Z0-9_.]+))")
+    # Pattern matches: [optional space] (from|import) [path]
+    # Removed ^ to catch lazy imports inside functions/TypeChecking blocks
+    import_re = re.compile(r"(\s*(?:from|import)\s+)([a-zA-Z0-9_.]+)")
+
     sorted_rewire_keys = sorted(REWIRE_MAP.keys(), key=len, reverse=True)
 
     for file_path in all_python_files:
+        # CONSTITUTIONAL GUARD: Don't let the script rewire its own map definition
+        if file_path.name == "maintenance_service.py":
+            continue
+
         try:
             content = file_path.read_text(encoding="utf-8")
             lines = content.splitlines()
@@ -66,23 +76,38 @@ def rewire_imports(
             file_changed = False
 
             for line in lines:
-                match = import_re.match(line)
+                match = import_re.search(line)
                 if not match:
                     new_lines.append(line)
                     continue
 
-                orig_path = match.group(2) or match.group(3)
-                modified_line = line
+                prefix = match.group(1)  # e.g. "    from "
+                orig_path = match.group(2)  # e.g. "features.introspection"
 
-                for old_prefix in sorted_rewire_keys:
-                    if orig_path.startswith(old_prefix):
-                        new_prefix = REWIRE_MAP[old_prefix]
-                        new_import = orig_path.replace(old_prefix, new_prefix, 1)
-                        modified_line = line.replace(orig_path, new_import)
+                modified_path = orig_path
+
+                # Check for each old path in our map
+                for old_key in sorted_rewire_keys:
+                    new_val = REWIRE_MAP[old_key]
+
+                    # Handle standard path
+                    if modified_path.startswith(old_key):
+                        modified_path = modified_path.replace(old_key, new_val, 1)
                         break
 
-                if modified_line != line:
-                    new_lines.append(modified_line)
+                    # Handle the 'src.' ghost prefix
+                    src_old_key = f"src.{old_key}"
+                    if modified_path.startswith(src_old_key):
+                        # We preserve the 'src.' prefix if the project uses absolute roots
+                        modified_path = modified_path.replace(
+                            src_old_key, f"src.{new_val}", 1
+                        )
+                        break
+
+                if modified_path != orig_path:
+                    # Construct the new line preserving original indentation and keywords
+                    new_line = line.replace(orig_path, modified_path, 1)
+                    new_lines.append(new_line)
                     file_changed = True
                     total_changes += 1
                 else:

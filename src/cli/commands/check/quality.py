@@ -61,7 +61,7 @@ async def system_cmd(ctx: typer.Context) -> None:
     Run all system health checks: Lint, Tests, and Constitutional Audit.
     """
     # Import here to avoid circular import
-    from body.cli.commands.check.audit import audit_cmd
+    from cli.commands.check.audit import audit_cmd
 
     console.rule("[bold cyan]1. Code Quality (Lint)[/bold cyan]")
     lint()

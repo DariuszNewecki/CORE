@@ -8,8 +8,6 @@ MOVED: From features/test_generation to will/test_generation (Wave 3 Final).
 from __future__ import annotations
 
 import time
-from dataclasses import dataclass
-from typing import Any
 
 from body.analyzers.file_analyzer import FileAnalyzer
 from body.analyzers.symbol_extractor import SymbolExtractor
@@ -24,6 +22,7 @@ from .artifacts import TestGenArtifactStore
 from .harness_detection import HarnessDetector
 from .helpers import TestExecutor
 from .llm_output import PythonOutputNormalizer
+from .models import TestGenerationResult
 from .persistence import TestPersistenceService
 from .phases import GenerationPhase, LoadPhase, ParsePhase
 from .prompt_engine import ConstitutionalTestPromptBuilder
@@ -33,23 +32,6 @@ from .validation import GeneratedTestValidator
 
 
 logger = getLogger(__name__)
-
-
-@dataclass
-# ID: e9c6a8a6-d6b2-4453-80fc-5c556a892d53
-class TestGenerationResult:
-    file_path: str
-    total_symbols: int
-    tests_generated: int
-    tests_failed: int
-    tests_skipped: int
-    success_rate: float
-    strategy_switches: int
-    patterns_learned: dict[str, int]
-    total_duration: float
-    generated_tests: list[dict[str, Any]]
-    validation_failures: int = 0
-    sandbox_passed: int = 0
 
 
 # ID: 8af61f0d-92bc-42fc-b5e7-07bf15834183

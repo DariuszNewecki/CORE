@@ -218,11 +218,6 @@ async def sort_imports_handler(
 async def test_handler(repo_root: Path):
     """
     Quick test function to verify the handler works.
-
-    You can run this from a Python shell:
-        from features.self_healing.handlers.import_sorting_handler import test_handler
-        import asyncio
-        asyncio.run(test_handler())
     """
     # REFACTORED: Removed direct settings import
     from shared.models import AuditSeverity

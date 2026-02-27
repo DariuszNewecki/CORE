@@ -39,10 +39,8 @@ mappings:
         - "src/body/cli/logic/db.py"
         - "src/body/cli/logic/cli_utils.py"
         - "src/body/cli/logic/byor.py"
-        - "src/features/introspection/**"
         - "src/mind/governance/constitutional_monitor.py"
         - "src/mind/governance/key_management_service.py"
-        - "src/features/maintenance/scripts/context_export.py"
 
         # --- AUTONOMOUS CODE: Now enforced (no exclusions) ---
         # Self-healing modules MUST route writes through FileHandler
@@ -58,12 +56,8 @@ mappings:
       applies_to:
         - "src/body/cli/commands/governance.py"
         - "src/body/cli/logic/**"
-        - "src/features/introspection/**"
         - "src/mind/governance/constitutional_monitor.py"
         - "src/mind/governance/key_management_service.py"
-        - "src/features/self_healing/coverage_watcher.py"
-        - "src/features/self_healing/full_project_remediation.py"
-        - "src/features/maintenance/scripts/context_export.py"
 
   governance.no_governance_bypass:
     engine: ast_gate

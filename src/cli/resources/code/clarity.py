@@ -45,9 +45,9 @@ async def clarity_cmd(
     It will only apply changes if the Evaluator proves the code is more readable.
     """
     # CONSTITUTIONAL FIX: Lazy-load orchestrator to prevent circular imports
-    from features.self_healing.clarity_service_v2 import remediate_clarity_v2
+    from will.self_healing.clarity_service import remediate_clarity
 
     core_context: CoreContext = ctx.obj
 
     # Execute the V2 Cognitive Workflow (Will Layer)
-    await remediate_clarity_v2(context=core_context, file_path=file_path, write=write)
+    await remediate_clarity(context=core_context, file_path=file_path, write=write)

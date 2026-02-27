@@ -1,0 +1,53 @@
+[08:29:02] INFO     INFO:body.atomic.registry:Action 'check.imports' registered successfully with constitutional compliance
+           INFO     INFO:body.atomic.registry:Action 'crate.create' registered successfully with constitutional compliance
+           INFO     INFO:body.atomic.registry:Action 'file.create' registered successfully with constitutional compliance
+           INFO     INFO:body.atomic.registry:Action 'file.edit' registered successfully with constitutional compliance
+           INFO     INFO:body.atomic.registry:Action 'file.read' registered successfully with constitutional compliance
+           INFO     INFO:body.atomic.registry:Action 'fix.format' registered successfully with constitutional compliance
+           INFO     INFO:body.atomic.registry:Action 'fix.imports' registered successfully with constitutional compliance
+           INFO     INFO:body.atomic.registry:Action 'fix.docstrings' registered successfully with constitutional compliance
+           INFO     INFO:body.atomic.registry:Action 'fix.headers' registered successfully with constitutional compliance
+           INFO     INFO:body.atomic.registry:Action 'fix.ids' registered successfully with constitutional compliance
+           INFO     INFO:body.atomic.registry:Action 'fix.duplicate_ids' registered successfully with constitutional compliance
+           INFO     INFO:body.atomic.registry:Action 'fix.logging' registered successfully with constitutional compliance
+           INFO     INFO:body.atomic.registry:Action 'fix.placeholders' registered successfully with constitutional compliance
+           INFO     INFO:body.atomic.registry:Action 'fix.atomic_actions' registered successfully with constitutional compliance
+           INFO     INFO:body.atomic.registry:Action 'file.tag_metadata' registered successfully with constitutional compliance
+[08:29:03] INFO     INFO:body.atomic.registry:Action 'sync.db' registered successfully with constitutional compliance
+           INFO     INFO:body.atomic.registry:Action 'sync.vectors.code' registered successfully with constitutional compliance
+           INFO     INFO:body.atomic.registry:Action 'sync.vectors.constitution' registered successfully with constitutional compliance
+           INFO     INFO:shared.infrastructure.git_service:GitService initialized for path /opt/dev/CORE
+           INFO     INFO:shared.infrastructure.intent.intent_validator:Intent validation completed: 20 documents validated
+           INFO     INFO:shared.infrastructure.intent.intent_repository:Indexing Mind at /opt/dev/CORE/.intent...
+           INFO     INFO:shared.infrastructure.intent.intent_repository:✅ Mind Indexed: 34 artifacts, 95 rules
+           INFO     INFO:mind.governance.enforcement_loader:Loaded 82 enforcement mappings from 20 files
+           INFO     INFO:mind.governance.rule_extractor:Extracted 80 executable rules from 34 policies
+           INFO     INFO:mind.governance.rule_extractor:Found 15 declared-only rules (no enforcement mappings): atomic_actions.fix_action_scope,
+                    architecture.boundary.llm_client_access, cli.resource_first, cli.no_layer_exposure, cli.standard_verbs...
+           INFO     INFO:body.governance.intent_guard:IntentGuard initialized with 97 enforcement rules (Strict: False).
+
+ Usage: core-admin [OPTIONS] COMMAND [ARGS]...
+
+ CORE: The Self-Improving System Architect's Toolkit.
+
+
+╭─ Options ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│ --install-completion          Install completion for the current shell.                                                                                                  │
+│ --show-completion             Show completion for the current shell, to copy it or customize the installation.                                                           │
+│ --help                        Show this message and exit.                                                                                                                │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+╭─ Commands ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│ admin              System forensics: decision traces, refusals, and pattern analytics.                                                                                   │
+│ code               Codebase quality, style, and verification operations.                                                                                                 │
+│ context            Build and manage context packages for LLM assistance.                                                                                                 │
+│ database           PostgreSQL state and operational data management.                                                                                                     │
+│ symbols            Operations for the symbol registry and Knowledge Graph identification.                                                                                │
+│ vectors            Vector store operations (Qdrant).                                                                                                                     │
+│ constitution       Operations for the system mind: policies, schemas, and rule coverage.                                                                                 │
+│ proposals          Operations for the A3 Autonomous Proposal system (propose, approve, execute).                                                                         │
+│ project            Operations for project lifecycle: scaffolding, onboarding, and documentation.                                                                         │
+│ dev                High-level developer workflows: synchronization, AI chat, and stability tools.                                                                        │
+│ interactive-test   Interactive test generation with step-by-step approval                                                                                                │
+│ refactor           Refactoring analysis and suggestions                                                                                                                  │
+│ tools              Governed, operator-focused maintenance and refactoring tools.                                                                                         │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯

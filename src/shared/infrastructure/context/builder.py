@@ -163,9 +163,15 @@ class ContextBuilder:
         """Loads Knowledge Graph without importing Body layer components."""
         # P2.3 Fix: Delegate workspace handling fully to KnowledgeService
         # This prevents the Shared layer from depending on the Body layer.
-        return await KnowledgeService(
-            settings.REPO_PATH, workspace=self.workspace
-        ).get_graph()
+        try:
+            return await KnowledgeService(
+                settings.REPO_PATH, workspace=self.workspace
+            ).get_graph()
+        except Exception as e:
+            logger.warning(
+                "Knowledge graph unavailable, continuing without graph: %s", e
+            )
+            return {"symbols": {}}
 
     async def _collect_items(self, spec: dict, graph: dict, limits: dict) -> list[dict]:
         items = []

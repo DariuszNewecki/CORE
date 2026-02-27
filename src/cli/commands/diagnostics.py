@@ -68,7 +68,7 @@ async def find_clusters_command(
 
     # Otherwise, forward to canonical inspect command (rich output).
     try:
-        from body.cli.commands.inspect import clusters_cmd
+        from cli.commands.inspect import clusters_cmd
     except Exception as exc:  # pragma: no cover
         logger.debug(
             "diagnostics find-clusters: cannot import inspect.clusters_cmd: %s", exc
@@ -111,7 +111,7 @@ def cli_tree_command(
     deprecated_command("diagnostics command-tree", "inspect command-tree")
 
     # Import main app here to avoid circular imports at module level
-    from body.cli.admin_cli import app as main_app
+    from cli.admin_cli import app as main_app
 
     logger.info("Building CLI Command Tree...")
     tree_data = logic.build_cli_tree_data(main_app)
@@ -127,7 +127,7 @@ def cli_tree_command(
 
     # Default 'tree': forward to canonical inspect command for golden-path UX.
     try:
-        from body.cli.commands.inspect import command_tree_cmd
+        from cli.commands.inspect import command_tree_cmd
     except Exception as exc:  # pragma: no cover
         logger.debug(
             "diagnostics command-tree: cannot import inspect.command_tree_cmd: %s", exc

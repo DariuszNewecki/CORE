@@ -24,6 +24,7 @@ import json
 from pathlib import Path
 
 from body.atomic.registry import action_registry
+from shared.infrastructure.clients.qdrant_client import QdrantService
 from shared.logger import getLogger
 from shared.models import ExecutionTask, PlanExecutionError
 from shared.path_resolver import PathResolver
@@ -44,21 +45,24 @@ class PlannerAgent:
         self,
         cognitive_service: CognitiveService,
         repo_path: Path,
+        qdrant_service: QdrantService | None = None,
         max_retries: int = 3,
     ):
-        """
-        Initializes the PlannerAgent with Legal Counsel capabilities.
-
-        Args:
-            cognitive_service: LLM orchestration service
-            repo_path: Repository root path for policy lookup
-            max_retries: Maximum planning attempts on validation failure
-        """
         self.cognitive_service = cognitive_service
         self.repo_path = repo_path
         self.max_retries = max_retries
         self.tracer = DecisionTracer()
-        self.policy_vectorizer = PolicyVectorizer(cognitive_service)
+
+        # PolicyVectorizer requires qdrant_service — degrade gracefully if absent
+        if qdrant_service is not None:
+            self.policy_vectorizer = PolicyVectorizer(
+                repo_root=repo_path,
+                cognitive_service=cognitive_service,
+                qdrant_service=qdrant_service,
+            )
+        else:
+            self.policy_vectorizer = None
+            logger.warning("PlannerAgent: Qdrant not available, policy RAG disabled.")
 
     # ID: 1ea9ec86-10a3-4356-9c31-c14e53c8fd0
     # ID: 52208224-fea7-4d79-baee-d3b07d634624
@@ -118,7 +122,11 @@ class PlannerAgent:
             raise
 
         prompt = build_planning_prompt(
-            goal, action_descriptions, enriched_recon, prompt_template
+            path_resolver=PathResolver(self.repo_path),
+            goal=goal,
+            action_descriptions_str=action_descriptions,
+            reconnaissance_report=enriched_recon,
+            prompt_template=prompt_template,
         )
 
         client = await self.cognitive_service.aget_client_for_role("Planner")

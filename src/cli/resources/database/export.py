@@ -55,7 +55,7 @@ async def export_database(
     console.print()
 
     try:
-        from body.cli.logic.db import export_data
+        from cli.logic.db import export_data
 
         # Use existing export_data function
         export_data(output_dir)

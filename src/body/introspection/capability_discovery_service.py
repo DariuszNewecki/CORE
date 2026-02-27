@@ -65,8 +65,8 @@ async def sync_capabilities_to_db(
 def collect_code_capabilities(
     root: Path, include_globs: list[str], exclude_globs: list[str], require_kgb: bool
 ) -> dict[str, CapabilityMeta]:
-    from features.introspection.discovery.from_kgb import _collect_from_kgb
-    from features.introspection.discovery.from_source_scan import (
+    from body.introspection.discovery.from_kgb import _collect_from_kgb
+    from body.introspection.discovery.from_source_scan import (
         collect_from_source_scan,
     )
 

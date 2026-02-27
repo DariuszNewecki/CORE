@@ -39,7 +39,7 @@ async def fix_modularity_cmd(
     """
     Finds high-complexity files and uses the A3 loop to modularize them.
     """
-    from features.self_healing.modularity_remediation_service import (
+    from will.self_healing.modularity_remediation_service import (
         ModularityRemediationService,
     )
 

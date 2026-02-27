@@ -30,6 +30,30 @@ if TYPE_CHECKING:
 logger = getLogger(__name__)
 
 
+# ID: c96a7d9f-1b00-4655-a111-3de39228a74f
+class KnowledgeGraphBuilder:
+    """
+    Compatibility wrapper that preserves the historical import path:
+    `shared.infrastructure.knowledge.knowledge_service.KnowledgeGraphBuilder`.
+    """
+
+    def __init__(
+        self, root_path: Path | str, workspace: LimbWorkspace | None = None
+    ) -> None:
+        # Lazy import prevents heavy graph dependencies at module import time.
+        from shared.infrastructure.knowledge_graph_service import (
+            KnowledgeGraphBuilder as _CanonicalKnowledgeGraphBuilder,
+        )
+
+        self._builder = _CanonicalKnowledgeGraphBuilder(
+            Path(root_path), workspace=workspace
+        )
+
+    # ID: 07b55eae-aa87-47a7-a04f-332e3f38769c
+    def build(self) -> dict[str, Any]:
+        return self._builder.build()
+
+
 # ID: bfdee087-408b-4c07-ab43-d673dbb3eca0
 class KnowledgeService:
     """
@@ -57,12 +81,16 @@ class KnowledgeService:
         # SENSATION: Check the virtual overlay first
         if self.workspace:
             logger.info("📡 Sensation: Building Shadow Graph from workspace overlay...")
-            from features.introspection.knowledge_graph_service import (
-                KnowledgeGraphBuilder,
-            )
-
-            builder = KnowledgeGraphBuilder(self.repo_path, workspace=self.workspace)
-            return builder.build()
+            try:
+                builder = KnowledgeGraphBuilder(
+                    self.repo_path, workspace=self.workspace
+                )
+                return builder.build()
+            except Exception as e:
+                logger.warning(
+                    "Shadow graph build failed, continuing with empty graph: %s", e
+                )
+                return {"metadata": {"mode": "SHADOW_FALLBACK"}, "symbols": {}}
 
         logger.info("Loading knowledge graph from database view...")
         symbols_map = {}

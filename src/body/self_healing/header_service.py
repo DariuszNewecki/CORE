@@ -1,4 +1,4 @@
-# src/features/self_healing/header_service.py
+# src/body/self_healing/header_service.py
 # ID: 9f8e7d6c-5b4a-4932-1e0d-2f3c4b5a6978
 
 """
@@ -15,7 +15,6 @@ from body.atomic.executor import ActionExecutor
 
 # REFACTORED: Removed direct settings import
 from shared.logger import getLogger
-from shared.utils.header_tools import _HeaderTools
 
 
 if TYPE_CHECKING:
@@ -158,67 +157,93 @@ class HeaderService:
 # ID: 4828affd-f7da-4995-9493-7037211b4144
 async def _run_header_fix_cycle(
     context: CoreContext, dry_run: bool, all_py_files: list[str]
-):
+) -> dict[str, Any]:
     """
-    The core logic for finding and fixing all header style violations.
-    Mutations are routed through the governed ActionExecutor.
+    Enforce the src/**/*.py path-header invariant.
+
+    Invariant: line 1 MUST be exactly '# <repo-relative-path>' for each src/**/*.py file.
+    This exists to keep file metadata deterministic and machine-verifiable.
     """
     logger.info("🔍 Scanning %d files for header compliance...", len(all_py_files))
 
     executor = ActionExecutor(context)
     write_mode = not dry_run
-    count = 0
+    files_changed = 0
+    files_created = 0
+    changed_paths: list[str] = []
+
+    def _enforce_line1_path_header(
+        content: str, expected_header: str
+    ) -> tuple[str, bool]:
+        """
+        Return (new_content, did_change) while preserving all existing content except
+        minimal line-1 edits required by the invariant.
+        """
+        if content == "":
+            return expected_header + "\n", True
+
+        lines = content.splitlines(keepends=True)
+        first_line = lines[0]
+        first_line_text = first_line.rstrip("\r\n")
+
+        if first_line_text == expected_header:
+            return content, False
+
+        if first_line_text.startswith("# "):
+            lines[0] = expected_header + "\n"
+            return "".join(lines), True
+
+        return expected_header + "\n" + content, True
 
     for i, file_path_str in enumerate(all_py_files, 1):
         if i % 50 == 0:
             logger.debug("Header analysis progress: %d/%d", i, len(all_py_files))
 
-        file_path = context.settings.paths.repo_root / file_path_str
+        file_path = context.git_service.repo_path / file_path_str
         try:
             original_content = file_path.read_text(encoding="utf-8")
-            header = _HeaderTools.parse(original_content)
-            correct_location_comment = f"# {file_path_str}"
-
-            is_compliant = (
-                header.location == correct_location_comment
-                and header.module_description is not None
-                and header.has_future_import
+            expected_header = f"# {Path(file_path_str).as_posix()}"
+            corrected_code, changed = _enforce_line1_path_header(
+                original_content, expected_header
             )
+            if not changed:
+                continue
 
-            if not is_compliant:
-                header.location = correct_location_comment
-                if not header.module_description:
-                    header.module_description = (
-                        f'"""Provides functionality for the {file_path.stem} module."""'
-                    )
-                header.has_future_import = True
-                corrected_code = _HeaderTools.reconstruct(header)
-
-                if corrected_code != original_content:
-                    # CONSTITUTIONAL GATEWAY
-                    result = await executor.execute(
-                        action_id="file.edit",
-                        write=write_mode,
-                        file_path=file_path_str,
-                        code=corrected_code,
-                    )
-
-                    if result.ok:
-                        count += 1
-                    else:
-                        logger.warning("   -> [BLOCKED] %s", file_path_str)
+            result = await executor.execute(
+                action_id="file.edit",
+                write=write_mode,
+                file_path=file_path_str,
+                code=corrected_code,
+            )
+            if result.ok:
+                files_changed += 1
+                changed_paths.append(file_path_str)
+                if original_content == "":
+                    files_created += 1
+            else:
+                logger.warning("   -> [BLOCKED] %s", file_path_str)
 
         except Exception as e:
             logger.warning("Could not process %s: %s", file_path_str, e)
 
-    if count == 0:
+    if files_changed == 0:
         logger.info("✅ All file headers are constitutionally compliant.")
     else:
         mode_label = "Fixed" if write_mode else "Proposed fixes for"
-        logger.info("🏁 Header fix cycle complete. %s %d file(s).", mode_label, count)
+        logger.info(
+            "🏁 Header fix cycle complete. %s %d file(s).", mode_label, files_changed
+        )
 
         if write_mode:
             logger.info("🔄 Rebuilding Knowledge Graph to reflect metadata changes...")
             # Sync DB Action (Unified Substrate)
             await executor.execute(action_id="sync.db", write=True)
             logger.info("✅ Knowledge Graph successfully updated.")
+
+    return {
+        "total_files_scanned": len(all_py_files),
+        "files_changed": files_changed,
+        "files_unchanged": len(all_py_files) - files_changed,
+        "files_created": files_created,
+        "changed_file_paths": changed_paths,
+    }

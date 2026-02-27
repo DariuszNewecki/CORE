@@ -56,8 +56,8 @@ mappings:
       instruction: "Verify that all public functions and classes have a docstring. Return a violation if a docstring is missing or is just a placeholder like 'TODO'."
     scope:
       applies_to:
-        - "src/features/**/*.py"
-        - "src/body/services/**/*.py"
+        - "src/will/**/*.py"
+        - "src/body/**/*.py"
 
   # 5. LAW: Public functions and methods MUST have unique UUID identifiers
   # (Duplicate of purity.stable_id_anchor to satisfy linkage.json requirements)

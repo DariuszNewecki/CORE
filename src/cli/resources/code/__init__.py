@@ -1,4 +1,4 @@
-# src/body/cli/resources/code/__init__.py
+# src/cli/resources/code/__init__.py
 """Codebase resource hub."""
 
 from __future__ import annotations
@@ -9,6 +9,7 @@ from . import (
     actions,
     audit,
     audit_duplicates,
+    check_imports,
     check_ui,
     clarity,
     complexity,

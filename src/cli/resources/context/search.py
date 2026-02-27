@@ -49,7 +49,7 @@ async def _search_async(pattern: str, path: str | None, limit: int) -> None:
             OR qualname     ILIKE :pat
             OR intent       ILIKE :pat
         )
-        AND (:module_filter IS NULL OR module ILIKE :module_pat)
+        AND (CAST(:module_filter AS TEXT) IS NULL OR module ILIKE :module_pat)
         ORDER BY qualname
         LIMIT :limit
         """

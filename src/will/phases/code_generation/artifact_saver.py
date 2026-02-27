@@ -40,6 +40,17 @@ class ArtifactSaver:
         """
         self.file_service = file_service
 
+    @staticmethod
+    def _get_params_dict(params) -> dict:
+        """Convert params to dict whether it's a plain dict or Pydantic model (post-refactor_modularity)."""
+        if hasattr(params, "model_dump"):  # Pydantic v2
+            return params.model_dump()
+        elif hasattr(params, "dict"):  # Pydantic v1 fallback
+            return params.dict()
+        elif isinstance(params, dict):
+            return params
+        return {}
+
     # ID: 60ccdf98-685d-4b9e-b3c1-f7364515255a
     def save_generation_artifacts(
         self, steps: list[DetailedPlanStep], work_dir_rel: str, goal: str
@@ -60,7 +71,10 @@ class ArtifactSaver:
 
         # Save individual code artifacts
         for i, step in enumerate(steps, 1):
-            if step.params.get("code"):
+            # COMPATIBILITY LAYER — modularity refactor (params is now Pydantic TaskParams)
+            # ID: 7c2a9f3e-4d5b-8e1f-9a2c-3b6d7e8f1a9b
+            params = self._get_params_dict(step.params)
+            if params.get("code"):
                 self._save_code_artifact(
                     step, i, work_dir_rel, report_data["steps"][i - 1]
                 )
@@ -106,7 +120,8 @@ class ArtifactSaver:
 
         CONSTITUTIONAL FIX: Uses FileService instead of FileHandler
         """
-        code = step.params["code"]
+        params = self._get_params_dict(step.params)
+        code = params["code"]
 
         # Generate safe filename
         artifact_filename = self._generate_artifact_filename(step, step_number)
@@ -116,7 +131,7 @@ class ArtifactSaver:
         self.file_service.write_file(artifact_rel_path, code)
 
         # Update step info
-        target_path = step.params.get("file_path", f"unknown_{step_number}")
+        target_path = params.get("file_path", f"unknown_{step_number}")
         step_info["target_file"] = target_path
         step_info["artifact_file"] = artifact_filename
         step_info["code_size_bytes"] = len(code)
@@ -128,11 +143,13 @@ class ArtifactSaver:
             step_info["error"] = step.metadata.get("error", "Unknown error")
             logger.warning("   → Saved (FAILED): %s", artifact_filename)
 
-    @staticmethod
-    def _generate_artifact_filename(step: DetailedPlanStep, step_number: int) -> str:
+    def _generate_artifact_filename(
+        self, step: DetailedPlanStep, step_number: int
+    ) -> str:
         """Generate safe filename for artifact."""
         action_slug = step.action.replace(".", "_")
-        target_path = step.params.get("file_path", f"unknown_{step_number}")
+        params = self._get_params_dict(step.params)
+        target_path = params.get("file_path", f"unknown_{step_number}")
         target_filename = Path(target_path).name
 
         return f"step_{step_number:02d}_{action_slug}_{target_filename}"

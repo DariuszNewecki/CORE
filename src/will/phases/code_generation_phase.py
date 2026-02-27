@@ -8,6 +8,7 @@ Code Generation Phase - Intelligent Reflex Pipe.
 from __future__ import annotations
 
 import time
+from dataclasses import asdict
 from typing import TYPE_CHECKING
 
 from body.services.file_service import FileService
@@ -31,6 +32,11 @@ if TYPE_CHECKING:
     from will.orchestration.workflow_orchestrator import WorkflowContext
 
 logger = getLogger(__name__)
+
+
+def _serialize_detailed_plan(detailed_plan: DetailedPlan) -> dict:
+    """Serialize DetailedPlan dataclass to JSON-safe dict."""
+    return asdict(detailed_plan)
 
 
 # ID: 1f1383bb-136d-4403-b359-73c7eae6b355
@@ -140,16 +146,18 @@ class CodeGenerationPhase:
             1 for s in detailed_steps if not s.metadata.get("generation_failed")
         )
         success_rate = success_count / len(detailed_steps)
+        detailed_plan = DetailedPlan(
+            goal=context.goal,
+            steps=detailed_steps,
+        )
+        detailed_plan_dict = _serialize_detailed_plan(detailed_plan)
 
         return PhaseResult(
             name="code_generation",
             ok=success_rate >= 0.8,
             data={
-                "detailed_plan": DetailedPlan(
-                    goal=context.goal,
-                    steps=detailed_steps,
-                    initial_analysis="",
-                ).dict(),
+                "detailed_plan": detailed_plan,
+                "detailed_plan_dict": detailed_plan_dict,
                 "success_rate": success_rate,
                 "total_steps": len(detailed_steps),
                 "successful_steps": success_count,
@@ -179,18 +187,21 @@ class CodeGenerationPhase:
         """
         detailed_steps = []
 
-        for task in plan:
+        for i, task in enumerate(plan, 1):
             # Skip tasks without params
             if not hasattr(task, "params"):
                 continue
 
-            # Extract file_path
-            file_path = self.path_extractor.extract(task)
+            # Extract file_path (fixed — no nested loop anymore)
+            file_path = self.path_extractor.extract(task, i)
             if not file_path:
-                logger.warning("Skipping task with no file_path: %s", task.step)
+                logger.warning(
+                    "Skipping task with no file_path: %s",
+                    getattr(task, "step", str(task)),
+                )
                 continue
 
-            logger.info("Processing task: %s", task.step)
+            logger.info("Processing task: %s", getattr(task, "step", str(task)))
 
             # Generate or repair code (Reflex #1)
             code = await coder.generate_or_repair(task, goal)
@@ -205,8 +216,8 @@ class CodeGenerationPhase:
             }
 
             # If sensation shows pain, attempt repair
-            if sensation.get("validation_passed") is False:
-                pain_signal = sensation.get("error_message", "Unknown error")
+            if not sensation.get("passed", True):
+                pain_signal = sensation.get("error", "Unknown error")
                 logger.warning("Pain detected: %s", pain_signal)
 
                 for attempt in range(metadata["max_repair_attempts"]):
@@ -224,29 +235,35 @@ class CodeGenerationPhase:
                         repaired_code, file_path, workspace
                     )
 
-                    if sensation.get("validation_passed"):
+                    if sensation.get("passed"):
                         code = repaired_code
                         metadata["repair_succeeded"] = True
                         metadata["repair_attempts"] = attempt + 1
                         break
 
-                    pain_signal = sensation.get("error_message", "Unknown error")
+                    pain_signal = sensation.get("error", "Unknown error")
 
-                if not sensation.get("validation_passed"):
+                if not sensation.get("passed"):
                     metadata["repair_failed"] = True
                     metadata["generation_failed"] = True
 
-            # Create detailed step
-            step = DetailedPlanStep(
-                step=task.step,
-                action=task.action,
-                params=(
-                    task.params.dict() if hasattr(task.params, "dict") else task.params
-                ),
-                code=code,
-                metadata=metadata,
-            )
+            # Create detailed step (compatibility shim — works with both old and new)
+            try:
+                step = DetailedPlanStep(
+                    description=getattr(task, "step", getattr(task, "description", "")),
+                    action=getattr(task, "action", ""),
+                    params=getattr(task, "params", None),
+                )
+            except TypeError:
+                # Fallback if signature is different
+                step = DetailedPlanStep(
+                    step=getattr(task, "step", ""),
+                    action=getattr(task, "action", ""),
+                    params=getattr(task, "params", None),
+                )
 
+            # Attach metadata
+            step.metadata = metadata
             detailed_steps.append(step)
 
         return detailed_steps
