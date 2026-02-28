@@ -6,6 +6,31 @@ This project follows **Keep a Changelog** and **Semantic Versioning**, but with 
 
 ---
 
+## [2.2.2] — 2026-02-28
+
+### 🎯 Self-Compliance & Hygiene Edition
+
+**Historic milestone**: CORE successfully governed its own major refactoring cycle with **zero constitutional violations** maintained throughout.
+
+#### Changed
+- Completed deep modularity refactoring (4 big files → 17 focused single-responsibility modules)
+- Hardened Mind/Will/Body separation (fixed layer leaks, tracing exclusions, race conditions)
+- Switched planning to deterministic `passive_gate` (no more unnecessary LLM calls)
+- Unified `IntentGuard.check_transaction` API for cleaner constitutional validation
+- Major repository hygiene cleanup (removed `.archive/`, binary/temp files, updated `.gitignore`)
+
+#### Removed
+- Legacy `.archive/` directory
+- Temporary refactor cast files (`core-refactor.cast`)
+- Any leftover sensitive or unnecessary files
+
+#### Notes
+- Real self-governance in action: the constitutional runtime actively flagged issues during development
+- Technical debt reduced further, codebase now even cleaner and more maintainable
+- Ready for next leap toward A3 strategic autonomy
+
+---
+
 ## [2.2.1] — 2026-01-26
 
 ### 🎯 Modularity Refactoring — Constitutional Debt Elimination
