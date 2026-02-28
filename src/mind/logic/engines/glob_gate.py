@@ -7,11 +7,6 @@ CONSTITUTIONAL ALIGNMENT:
 - Aligned with 'async.no_manual_loop_run'.
 - Promoted to natively async to satisfy the BaseEngine contract.
 - Complies with ASYNC230 by offloading blocking I/O to threads.
-
-CONSTITUTIONAL FIX (V2.3.0):
-- Added 'allowed_top_level_dirs' check_type to enforce layer exclusivity.
-- This closes the perimeter: code outside Mind/Body/Will/shared/api is
-  now detectable at audit time, preventing shadow layer accumulation.
 """
 
 from __future__ import annotations
@@ -72,7 +67,6 @@ class GlobGateEngine(BaseEngine):
 
         if max_lines or thresholds:
             try:
-                # CONSTITUTIONAL FIX (ASYNC230):
                 # Use to_thread to prevent blocking the event loop during file I/O.
                 line_count = await asyncio.to_thread(_count_lines_sync, file_path)
 

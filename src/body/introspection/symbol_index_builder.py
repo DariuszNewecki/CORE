@@ -19,7 +19,6 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-# REFACTORED: Removed direct settings import
 from shared.infrastructure.storage.file_handler import FileHandler
 from shared.logger import getLogger
 
@@ -237,7 +236,6 @@ def main(argv: list[str] | None = None) -> int:
         fh.write_runtime_json(rel_output, index)
         return 0
     except Exception as e:
-        # CONSTITUTIONAL FIX: Replace print with logger.error
         logger.error("Failed to build symbol index: %s", e, exc_info=True)
         return 1
 

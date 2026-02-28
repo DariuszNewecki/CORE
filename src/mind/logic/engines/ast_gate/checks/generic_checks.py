@@ -66,8 +66,7 @@ class GenericASTChecks:
                     if name in forbidden:
                         return f"contains forbidden call '{name}()' on line {sub_node.lineno}"
 
-        # 3. CONSTITUTIONAL FIX: required_calls (e.g. MUST call self.tracer.record())
-        # This replaces the backward 'forbidden_calls' logic used in tracing.
+        # 3. required_calls
         if check_type == "required_calls":
             required = set(requirement.get("calls", []))
             found_calls = set()

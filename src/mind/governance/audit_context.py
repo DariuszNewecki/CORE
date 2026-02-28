@@ -1,28 +1,22 @@
 # src/mind/governance/audit_context.py
+# ID: 55a77b97-fc08-4b0c-b818-97b1158343e9
 
 """
 AuditorContext: central view of constitutional artifacts and the knowledge graph
 for governance checks and audits.
 
-CONSTITUTIONAL COMPLIANCE:
+Constitutional Alignment:
 - Uses IntentRepository for ALL .intent/ access (Mind-Body-Will boundary enforcement)
 - Loads Knowledge Graph from Database (SSOT) via KnowledgeService
 - NO direct filesystem access to .intent/ subdirectories
 - Exposes governance resources via policies dict (loaded from IntentRepository)
+- Mind layer MUST NOT write to filesystem
 
-FS MUTATION POLICY:
-- Mind layer MUST NOT write to filesystem.
-- FileHandler usage removed to comply with architecture.mind.no_filesystem_writes.
-
-PERFORMANCE:
+Performance:
 - Module-level knowledge graph cache per repo_path
+- Single-pass filesystem scan with pattern memoization
+- AST cache shared across all rules within a single run
 - Cache persists for process lifetime unless explicitly cleared
-- Thread-safe for async-only usage (no thread locking)
-
-HEALED (V2.3.0):
-- "Single-Pass Sensation": Caches the full filesystem scan in memory.
-- "Pattern Memoization": Remembers results of glob patterns to avoid 75,000 redundant checks.
-- "AST Caching": Shares logic trees across all 82 rules.
 """
 
 from __future__ import annotations
@@ -56,16 +50,12 @@ logger = getLogger(__name__)
 # ============================================================================
 # Cache structure: {repo_path_str: {knowledge_graph, symbols_map, symbols_list}}
 _KNOWLEDGE_GRAPH_CACHE: dict[str, dict[str, Any]] = {}
-
-# HEALED: Global cache for ASTs to prevent re-parsing during a single run
 _AST_CACHE: dict[Path, ast.AST] = {}
 
 
 # ID: baa7d0a4-2b67-428c-ab64-1e3dbe009b19
 def clear_knowledge_graph_cache() -> None:
-    """
-    Clear the module-level knowledge graph cache.
-    """
+    """Clear the module-level knowledge graph and AST caches."""
     global _KNOWLEDGE_GRAPH_CACHE, _AST_CACHE
     _KNOWLEDGE_GRAPH_CACHE.clear()
     _AST_CACHE.clear()
@@ -79,9 +69,7 @@ def clear_knowledge_graph_cache() -> None:
 
 # ID: 55a77b97-fc08-4b0c-b818-97b1158343e9
 class AuditorContext:
-    """
-    Provides access to '.intent' artifacts and the in-memory knowledge graph.
-    """
+    """Provides access to .intent artifacts and the in-memory knowledge graph."""
 
     # ID: 4c0f2c62-3d57-4b32-8bff-76a8f3d3fd2f
     def __init__(
@@ -94,10 +82,8 @@ class AuditorContext:
         self.intent_repo = intent_repository or get_intent_repository()
         self.repo_path = repo_path.resolve()
 
-        # Use PathResolver directly (no settings dependency)
         self.paths = PathResolver(self.repo_path)
 
-        # CONSTITUTIONAL FIX: Initialize EngineRegistry with PathResolver
         from mind.logic.engines.registry import EngineRegistry
 
         EngineRegistry.initialize(self.paths)
@@ -110,12 +96,11 @@ class AuditorContext:
         self.policies: dict[str, Any] = self._load_governance_resources()
         self.enforcement_loader = EnforcementMappingLoader(self.paths.intent_root)
 
-        # Knowledge graph is SSOT from database; file artefact is optional debug output.
         self.knowledge_graph: dict[str, Any] = {"symbols": {}}
         self.symbols_list: list[Any] = []
         self.symbols_map: dict[str, Any] = {}
 
-        # HEALED: Sensory Caches for performance optimization
+        # Sensory caches for performance
         self._file_list_cache: list[Path] | None = None
         self._rel_path_map: dict[Path, str] = {}
         self._pattern_cache: dict[str, list[Path]] = {}
@@ -129,9 +114,7 @@ class AuditorContext:
     @property
     # ID: 9c7c2ef9-1b23-4c3a-9f4c-8b9d1d0b2e21
     def mind_path(self) -> Path:
-        """
-        Canonical Mind runtime root.
-        """
+        """Canonical Mind runtime root."""
         return self.paths.var_dir / "mind"
 
     # ID: 4a2f2b3d-1a8a-4a1f-9a8e-2b6a0e7d9b3c
@@ -142,27 +125,25 @@ class AuditorContext:
     ) -> list[Path]:
         """
         Deterministically expand repo-relative glob patterns into file Paths.
-        HEALED: Optimized via Single-Pass Sensation and Memoization.
+
+        Optimized via single-pass filesystem scan and pattern memoization —
+        the file list is built once per process and reused across all rules.
         """
-        # 1. GENERATE CACHE KEY
         include_list = sorted(list(include))
         exclude_list = sorted(list(exclude or []))
         cache_key = f"inc:{include_list}|exc:{exclude_list}"
 
-        # 2. RETURN MEMOIZED RESULT (INSTANT)
         if cache_key in self._pattern_cache:
             return self._pattern_cache[cache_key]
 
         root = self.repo_path
 
-        # 3. INITIALIZE FILE LIST (COLD START ONLY)
         if self._file_list_cache is None:
             logger.debug("⚡ Cold start: Scanning filesystem once...")
             self._file_list_cache = list(self.repo_path.rglob("*.py"))
             for p in self._file_list_cache:
                 self._rel_path_map[p] = str(p.relative_to(root)).replace("\\", "/")
 
-        # 4. PERFORM FILTERING (USING ORIGINAL ROBUST LOGIC)
         hard_excludes = [
             ".intent/**",
             ".git/**",
@@ -202,7 +183,6 @@ class AuditorContext:
 
         matched: set[Path] = set()
         for inc_pattern in include_list:
-            # Optimized lookup for the pre-scanned list
             for p in self._file_list_cache:
                 rel_posix = self._rel_path_map[p]
                 if fnmatch.fnmatch(rel_posix, inc_pattern):
@@ -210,13 +190,12 @@ class AuditorContext:
                         matched.add(p)
 
         result = sorted(matched)
-        self._pattern_cache[cache_key] = result  # Memoize for next rule
+        self._pattern_cache[cache_key] = result
         return result
 
     # ID: 182db297-46ce-4b24-9b05-e496f932769c
-    # ID: cd8487e5-7382-4242-a54e-dfa7b59d3070
     def get_tree(self, file_path: Path) -> ast.AST | None:
-        """HEALED: Retrieve a parsed tree from cache or create it."""
+        """Retrieve a parsed AST from cache, or parse and cache on first access."""
         if file_path in _AST_CACHE:
             return _AST_CACHE[file_path]
 
@@ -231,9 +210,7 @@ class AuditorContext:
 
     # ID: 3d1f1c34-fd1e-4bb8-8b4f-3f9a6c6dfd41
     async def load_knowledge_graph(self, force: bool = False) -> None:
-        """
-        Load knowledge graph from the database (SSOT).
-        """
+        """Load knowledge graph from the database (SSOT)."""
         cache_key = str(self.repo_path)
         if not force and cache_key in _KNOWLEDGE_GRAPH_CACHE:
             cached = _KNOWLEDGE_GRAPH_CACHE[cache_key]
@@ -261,9 +238,7 @@ class AuditorContext:
 
     # ID: 51b2d7cf-51e4-4c8d-bc34-b5b7d41af7db
     def _load_governance_resources(self) -> dict[str, Any]:
-        """
-        Load governance resources via IntentRepository.
-        """
+        """Load governance resources via IntentRepository."""
         resources: dict[str, Any] = {}
         try:
             for policy_ref in self.intent_repo.list_policies():

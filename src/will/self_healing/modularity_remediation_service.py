@@ -1,10 +1,6 @@
-# src/features/self_healing/modularity_remediation_service.py
+# src/will/self_healing/modularity_remediation_service.py
 # ID: 122a3749-facf-4734-85e7-59b82dc61057
 """Constitutional modularity remediation service.
-
-PURIFIED (V2.3.0)
-- Removed direct 'settings' import to satisfy architecture.boundary.settings_access.
-- Uses repo_path from CoreContext for constitutional artifact loading.
 
 Closed-loop remediation:
 1. Measure Score → 2. Generate Goal → 3. Execute Workflow → 4. Verify Improvement
@@ -36,8 +32,6 @@ class ModularityRemediationService:
         """Initialize modularity remediation service."""
         self.context = context
         self.checker = ModularityChecker()
-
-        # Constitutional fix: use repo_path from context instead of global settings
         repo_root = self.context.git_service.repo_path
         self.loader = EnforcementMappingLoader(repo_root / ".intent")
 

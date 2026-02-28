@@ -6,10 +6,6 @@ ContextSerializer - YAML I/O and token estimation.
 Policy:
 - No direct filesystem mutations outside governed surfaces.
 - Writes must go through FileHandler (runtime write) so IntentGuard is enforced.
-
-Constitutional Fix:
-- Include target_file and target_symbol in the cache key to prevent context leakage
-  across tasks that share the same scope/roots/include/exclude.
 """
 
 from __future__ import annotations
@@ -113,7 +109,6 @@ class ContextSerializer:
         """
         cache_fields = {
             "task_type": task_spec.get("task_type"),
-            # Constitutional Fix (do not remove):
             "target_file": task_spec.get("target_file"),
             "target_symbol": task_spec.get("target_symbol"),
             # Scope selectors:

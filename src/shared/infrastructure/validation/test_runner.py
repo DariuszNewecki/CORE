@@ -4,7 +4,6 @@
 """
 Executes pytest and captures results as Constitutional Evidence.
 
-CONSTITUTIONAL FIX (V2.3.0):
 - Implemented 'silent' parameter to control logging verbosity (workflow.dead_code_check).
 - Maintains strict traceability by persisting to DB regardless of verbosity.
 - Aligns with the 'Headless' policy (LOG-001).
@@ -38,7 +37,6 @@ async def run_tests(silent: bool = True) -> ActionResult:
     """
     start_time = time.perf_counter()
 
-    # CONSTITUTIONAL FIX: Use the 'silent' variable to toggle operator feedback
     if not silent:
         logger.info("🧪 Initiating system test suite...")
 
@@ -107,7 +105,6 @@ async def run_tests(silent: bool = True) -> ActionResult:
     _store_failure_artifact(result_data)
     await _persist_result_to_db(action_result)
 
-    # CONSTITUTIONAL FIX: Respect 'silent' for the completion signal
     if not silent:
         logger.info("🏁 Test run complete: %s (%.2fs)", summary, duration)
 

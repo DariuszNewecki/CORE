@@ -18,7 +18,6 @@ from pathlib import Path
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-# REFACTORED: Removed direct settings import
 from shared.infrastructure.storage.file_handler import FileHandler
 from shared.logger import getLogger
 
@@ -119,8 +118,6 @@ async def main(session: AsyncSession, repo_root: Path):
 
     final_text = "\n".join(md_content)
 
-    # CONSTITUTIONAL FIX: Use the governed mutation surface
-    # FileHandler handles directory creation and path validation automatically.
     file_handler = FileHandler(str(repo_root))
 
     try:

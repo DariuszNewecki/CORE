@@ -65,7 +65,6 @@ async def inspect_duplicates_async(context: CoreContext, threshold: float) -> No
     The core async logic for running duplication analysis.
     Uses the constitutional rule engine to identify duplicates.
     """
-    # CONSTITUTIONAL FIX: Local imports to break circular dependency
     from mind.governance.rule_executor import execute_rule
     from mind.governance.rule_extractor import extract_executable_rules
 
@@ -96,7 +95,6 @@ async def inspect_duplicates_async(context: CoreContext, threshold: float) -> No
             auditor_context.qdrant_service = qdrant_service
 
         # 3. Extract all executable rules
-        # FIX: Added enforcement_loader parameter
         all_rules = extract_executable_rules(
             auditor_context.policies, auditor_context.enforcement_loader
         )

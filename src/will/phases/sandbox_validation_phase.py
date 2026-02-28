@@ -3,10 +3,6 @@
 
 """
 Sandbox Validation Phase - Validates generated tests in isolation.
-
-CONSTITUTIONAL FIX:
-- Removed forbidden direct import of 'settings' (architecture.boundary.settings_access).
-- Uses FileHandler and repo_path provided by CoreContext.
 """
 
 from __future__ import annotations
@@ -26,7 +22,6 @@ if TYPE_CHECKING:
 logger = getLogger(__name__)
 
 
-# ID: cd56a10c-1b05-4324-b730-639fa98fb8ee
 # ID: 0c2755e4-d5e3-43ba-bba6-53769de54d57
 class SandboxValidationPhase:
     """
@@ -39,18 +34,12 @@ class SandboxValidationPhase:
 
     def __init__(self, context: CoreContext):
         self.context = context
-
-        # CONSTITUTIONAL FIX: Use the governed FileHandler from context
         self.file_handler = context.file_handler
-
-        # CONSTITUTIONAL FIX: Extract repo_root from context service
         repo_root = str(context.git_service.repo_path)
-
         self.sandbox = PytestSandboxRunner(
             file_handler=self.file_handler, repo_root=repo_root
         )
 
-    # ID: ad8273b1-3f0d-40b3-a8ef-f68b1af515af
     # ID: 3902df50-3fc5-4b54-971c-3f3b7f36ce8c
     async def execute(self, ctx: WorkflowContext) -> PhaseResult:
         """

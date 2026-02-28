@@ -299,7 +299,7 @@
   {
     "check_id": "governance.dangerous_execution_primitives",
     "severity": "info",
-    "message": "Forbidden primitive 'os.getenv' used (line 22).",
+    "message": "Forbidden primitive 'os.getenv' used (line 20).",
     "file_path": "src/shared/logger.py",
     "line_number": null,
     "context": {},
@@ -308,7 +308,7 @@
   {
     "check_id": "governance.dangerous_execution_primitives",
     "severity": "info",
-    "message": "Forbidden primitive 'os.getenv' used (line 23).",
+    "message": "Forbidden primitive 'os.getenv' used (line 21).",
     "file_path": "src/shared/logger.py",
     "line_number": null,
     "context": {},
@@ -389,7 +389,7 @@
   {
     "check_id": "modularity.single_responsibility",
     "severity": "warning",
-    "message": "Modularity Debt: 49.5/100 (Limit: 60.0)",
+    "message": "Modularity Debt: 49.2/100 (Limit: 60.0)",
     "file_path": "src/mind/logic/engines/glob_gate.py",
     "line_number": null,
     "context": {},
@@ -470,7 +470,7 @@
   {
     "check_id": "modularity.semantic_cohesion",
     "severity": "warning",
-    "message": "Modularity Debt: 49.5/100 (Limit: 60.0)",
+    "message": "Modularity Debt: 49.2/100 (Limit: 60.0)",
     "file_path": "src/mind/logic/engines/glob_gate.py",
     "line_number": null,
     "context": {},
@@ -551,7 +551,7 @@
   {
     "check_id": "modularity.import_coupling",
     "severity": "warning",
-    "message": "Modularity Debt: 49.5/100 (Limit: 60.0)",
+    "message": "Modularity Debt: 49.2/100 (Limit: 60.0)",
     "file_path": "src/mind/logic/engines/glob_gate.py",
     "line_number": null,
     "context": {},
@@ -632,7 +632,7 @@
   {
     "check_id": "modularity.refactor_score_threshold",
     "severity": "warning",
-    "message": "Modularity Debt: 49.5/100 (Limit: 60.0)",
+    "message": "Modularity Debt: 49.2/100 (Limit: 60.0)",
     "file_path": "src/mind/logic/engines/glob_gate.py",
     "line_number": null,
     "context": {},
@@ -697,6 +697,69 @@
     "severity": "warning",
     "message": "Forbidden Content [Line 190]: Matched restricted regex '\\bTBD\\b'",
     "file_path": "src/body/self_healing/duplicate_id_service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_todo_placeholders",
+    "severity": "warning",
+    "message": "Forbidden Content [Line 66]: Matched restricted regex '\\bTODO\\b'",
+    "file_path": "src/cli/logic/legacy_scan_logic.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_todo_placeholders",
+    "severity": "warning",
+    "message": "Forbidden Content [Line 67]: Matched restricted regex '\\bTODO\\b'",
+    "file_path": "src/cli/logic/legacy_scan_logic.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_todo_placeholders",
+    "severity": "warning",
+    "message": "Forbidden Content [Line 72]: Matched restricted regex '\\bFIXME\\b'",
+    "file_path": "src/cli/logic/legacy_scan_logic.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_todo_placeholders",
+    "severity": "warning",
+    "message": "Forbidden Content [Line 73]: Matched restricted regex '\\bFIXME\\b'",
+    "file_path": "src/cli/logic/legacy_scan_logic.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_todo_placeholders",
+    "severity": "warning",
+    "message": "Forbidden Content [Line 74]: Matched restricted regex '\\bTODO\\b'",
+    "file_path": "src/cli/resources/admin/legacy.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_todo_placeholders",
+    "severity": "warning",
+    "message": "Forbidden Content [Line 79]: Matched restricted regex '\\bTODO\\b'",
+    "file_path": "src/cli/resources/admin/legacy.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_todo_placeholders",
+    "severity": "warning",
+    "message": "Forbidden Content [Line 79]: Matched restricted regex '\\bFIXME\\b'",
+    "file_path": "src/cli/resources/admin/legacy.py",
     "line_number": null,
     "context": {},
     "details": {}

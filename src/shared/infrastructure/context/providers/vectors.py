@@ -2,11 +2,6 @@
 
 """
 VectorProvider - Semantic search via Qdrant.
-
-HEALED (V2.3.0):
-- Removed 'fail-silent' initialization checks that caused search skips.
-- Preserved all 'Smart Implementation' logic for neighbors and embeddings.
-- Aligned payload mapping to handle 'source_path' (the new V2.7 standard).
 """
 
 from __future__ import annotations
@@ -41,9 +36,6 @@ class VectorProvider:
             logger.warning("Vector infrastructure incomplete - returning empty")
             return []
 
-        # CONSTITUTIONAL FIX: Removed the '_loaded' check.
-        # The ContextService now ensures initialization before calling.
-
         try:
             query_vector = await self.cognitive_service.get_embedding_for_code(query)
             if not query_vector:
@@ -73,7 +65,6 @@ class VectorProvider:
             for hit in results:
                 payload = hit.get("payload", {})
 
-                # HEALED: Map both old and new path formats so 'sensation' works
                 file_path = payload.get("source_path") or payload.get("file_path", "")
                 symbol_name = payload.get("symbol") or payload.get(
                     "symbol_path", payload.get("chunk_id", "unknown")

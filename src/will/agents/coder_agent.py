@@ -8,6 +8,7 @@ CoderAgent - Reflexive code generation specialist.
 UPGRADED V2.4: Added Semantic Drift Detection.
 CONSTITUTIONAL COMPLIANCE V2.5: Integrated RefusalResult handling.
 HEALED V2.6: Wired via Shared Protocols to eliminate circular dependencies.
+HEALED V2.7: Uses get_intent_guard() singleton (no more redundant instantiation).
 """
 
 from __future__ import annotations
@@ -15,6 +16,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+from body.governance.intent_guard import get_intent_guard
 from shared.logger import getLogger
 from shared.models import ExecutionTask
 from shared.path_resolver import PathResolver
@@ -26,7 +28,6 @@ from will.agents.code_generation import (
 )
 from will.agents.coder_agent_refusal_handler import handle_code_generation_result
 from will.orchestration.decision_tracer import DecisionTracer
-from will.orchestration.intent_guard import IntentGuard
 from will.orchestration.validation_pipeline import validate_code_async
 
 
@@ -50,7 +51,7 @@ class CoderAgent:
     def __init__(
         self,
         cognitive_service: CognitiveProtocol,
-        executor: ActionExecutorProtocol,  # ADDED: Healed wiring
+        executor: ActionExecutorProtocol,
         prompt_pipeline: Any,
         auditor_context: AuditorContext,
         repo_root: Path,
@@ -58,7 +59,7 @@ class CoderAgent:
         workspace: LimbWorkspace | None = None,
     ) -> None:
         self.cognitive_service = cognitive_service
-        self.executor = executor  # HEALED: No late imports needed
+        self.executor = executor
         self.prompt_pipeline = prompt_pipeline
         self.auditor_context = auditor_context
         self.context_service = context_service
@@ -73,7 +74,10 @@ class CoderAgent:
             path_resolver=path_resolver, agent_name="ReflexiveCoder"
         )
 
-        intent_guard = IntentGuard(self.repo_root, path_resolver)
+        intent_guard = get_intent_guard(
+            repo_path=self.repo_root,
+            path_resolver=path_resolver,
+        )
         self.pattern_validator = PatternValidator(intent_guard)
 
         self.code_generator = CodeGenerator(

@@ -1,11 +1,6 @@
 # src/features/introspection/vectorization/delta_analyzer.py
 # ID: d21e52f0-954a-46b3-aa1b-b199972bb718
-"""Delta Analyzer - Identifies symbols requiring re-vectorization.
-
-PURIFIED (V2.3.0)
-- Removed direct 'settings' import to satisfy architecture.boundary.settings_access.
-- Uses injected repo_path for filesystem sensation.
-"""
+"""Delta Analyzer - Identifies symbols requiring re-vectorization."""
 
 from __future__ import annotations
 
@@ -23,7 +18,6 @@ class DeltaAnalyzer:
     """Compares current filesystem state against stored vector hashes."""
 
     def __init__(self, repo_path: Path, stored_hashes: dict[str, str]):
-        # Constitutional fix: store the injected path
         self.repo_path = repo_path
         self.stored_hashes = stored_hashes
 

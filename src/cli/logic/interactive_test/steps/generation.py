@@ -3,11 +3,6 @@
 
 """
 Interactive Code Generation Step Handler.
-
-HEALED (V2.3.0):
-- Method Alignment: Updated call to use 'generate_or_repair' instead of obsolete
-  'generate_and_validate_code_for_task'.
-- Signature Alignment: Matches CoderAgent V2.6 reflexive API.
 """
 
 from __future__ import annotations
@@ -49,7 +44,6 @@ async def step_generate_code(session, target_file, coder_agent):
     goal = f"Generate comprehensive tests for {target_file}"
 
     try:
-        # HEALED: Use the correct reflexive method name from CoderAgent V2.6+
         generated_code = await coder_agent.generate_or_repair(task=task, goal=goal)
 
         line_count = len(generated_code.splitlines())

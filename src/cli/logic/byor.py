@@ -128,10 +128,6 @@ def initialize_repository(
     else:
         logger.info("\n💾 **Write Mode:** Applying changes to disk.")
 
-        # CONSTITUTIONAL FIX: Initialize FileHandler for the target path.
-        # This ensures all writes are traceable and governed by IntentGuard.
-        # NOTE: BYOR is allowed to write to .intent in the NEW repo because
-        # the FileHandler is rooted at the external 'path'.
         fh = FileHandler(str(path))
 
         for rel_path, content in files_to_generate.items():

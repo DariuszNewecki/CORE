@@ -14,8 +14,6 @@ from rich.console import Console
 
 from body.infrastructure.bootstrap import create_core_context
 from body.services.service_registry import service_registry
-
-# REFACTORED: Removed direct settings import
 from shared.infrastructure.storage.file_handler import FileHandler
 from shared.logger import getLogger
 
@@ -77,8 +75,7 @@ async def _build_async(
     # 1. Setup Context
     core_context = create_core_context(service_registry)
 
-    # 2. WAKE UP THE BRAIN (CONSTITUTIONAL FIX)
-    # We must initialize the CognitiveService with a DB session to enable embeddings.
+    # 2. We must initialize the CognitiveService with a DB session to enable embeddings.
     async with service_registry.session() as session:
         cognitive = await service_registry.get_cognitive_service()
         await cognitive.initialize(session)

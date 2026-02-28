@@ -184,7 +184,7 @@ class ContextBuilder:
                     if len(items) < (limits["max_items"] // 2):
                         items.append(self._format_item(data))
 
-        # 2. Handle Semantic Search (HEALED: Now extracts code)
+        # 2. Handle Semantic Search (Vectors)
         if self.vectors and spec.get("summary"):
             vector_results = await self.vectors.search_similar(spec["summary"], top_k=5)
             for v_item in vector_results:

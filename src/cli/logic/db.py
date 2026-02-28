@@ -3,7 +3,6 @@
 """
 Registers the top-level 'db' command group for managing the CORE operational database.
 
-CONSTITUTIONAL FIX:
 - Aligned with 'governance.artifact_mutation.traceable'.
 - Replaced direct Path writes with governed FileHandler mutations.
 - Redirected Mind-layer exports to the 'var/' runtime directory to maintain
@@ -45,7 +44,6 @@ async def _export_domains(file_handler: FileHandler):
         )
         domains_data = [dict(row._mapping) for row in result]
 
-    # CONSTITUTIONAL FIX: Use var/ (runtime) instead of .intent/ (mind) for exports.
     # The Body layer must never write directly to the Constitution.
     yaml_content = {"version": 2, "domains": domains_data}
     content_str = yaml.dump(yaml_content, indent=2, sort_keys=False)
@@ -82,7 +80,6 @@ async def _export_vector_metadata(file_handler: FileHandler):
                 row_dict["vector_id"] = str(row_dict["vector_id"])
             vector_data.append(row_dict)
 
-    # CONSTITUTIONAL FIX: Use FileHandler for report generation
     content_str = yaml.dump(vector_data, indent=2, sort_keys=False)
     rel_path = "reports/vector_metadata_export.yaml"
 

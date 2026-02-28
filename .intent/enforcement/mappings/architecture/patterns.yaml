@@ -1,0 +1,8 @@
+mappings:
+  # This links the Rule ID to the actual Engine and Parameters
+  architecture.patterns.action_pattern:
+    engine: ast_gate
+    params:
+      check_type: action_pattern
+    scope:
+      applies_to: ["src/body/atomic/**/*.py", "src/cli/commands/**/*.py"]

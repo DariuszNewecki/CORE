@@ -53,7 +53,6 @@ async def execute_rule(
             findings.extend(engine_findings)
         return findings
 
-    # HEALED: Pass the context into the verify method so it can use the Sensation Caches
     files = context.get_files(include=rule.scope, exclude=rule.exclusions)
     severity = _map_enforcement_to_severity(rule.enforcement)
 

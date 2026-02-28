@@ -5,12 +5,6 @@
 Audit history workflow check.
 
 Verifies audit history shows consistent compliance (no recent violations).
-
-CONSTITUTIONAL ALIGNMENT (V2.6.0):
-- Purified: Removed direct Body-layer import (service_registry) to resolve
-  architecture.mind.no_body_invocation.
-- Inversion of Control: Uses the database session provided in the evaluation
-  context instead of managing its own connection.
 """
 
 from __future__ import annotations
@@ -46,8 +40,6 @@ class AuditHistoryCheck(WorkflowCheck):
             file_path: Unused (context-level check)
             params: Must contain '_context' with an active 'db_session'
         """
-        # CONSTITUTIONAL FIX: Extract the session from the context provided in params.
-        # This complies with the "Mind Never Invokes Body" law.
         context = params.get("_context")
         session = getattr(context, "db_session", None)
 

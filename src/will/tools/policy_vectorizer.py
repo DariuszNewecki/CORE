@@ -134,9 +134,6 @@ async def vectorize_policies_command(repo_root: Path) -> dict[str, Any]:
 def run_as_script():
     """
     Constitutional entry point for standalone execution.
-
-    CONSTITUTIONAL FIX: Implements the 'Defensive Loop Guard' pattern
-    to satisfy async.no_manual_loop_run.
     """
     import argparse
 
@@ -156,7 +153,6 @@ def run_as_script():
         """Internal main logic."""
         try:
             result = await vectorize_policies_command(args.repo_root)
-            # CONSTITUTIONAL FIX: Use logger.info instead of print for headless logic
             logger.info(
                 "Success! Vectorized %s policies.", result.get("policies_vectorized", 0)
             )

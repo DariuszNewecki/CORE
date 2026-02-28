@@ -8,8 +8,6 @@ Constitutional Principle: Safe by Default
 - All secrets encrypted at rest using Fernet (symmetric encryption)
 - Audit trail for all secret access
 - Master key never stored in database
-
-Refactored to comply with operations.runtime.env_vars_defined (no os.getenv).
 """
 
 from __future__ import annotations
@@ -280,7 +278,6 @@ async def get_secrets_service(db: AsyncSession) -> SecretsService:
     Raises:
         RuntimeError: If CORE_MASTER_KEY not set in settings configuration
     """
-    # CONSTITUTIONAL FIX: Use settings SSOT instead of raw os.getenv
     master_key = settings.CORE_MASTER_KEY
     if not master_key:
         raise RuntimeError(

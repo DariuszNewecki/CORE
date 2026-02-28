@@ -7,6 +7,7 @@ from __future__ import annotations
 from . import (
     coverage,
     forensics,
+    legacy,
     patterns,
     refusals,
     self_check,

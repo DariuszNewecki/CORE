@@ -76,15 +76,11 @@ class ASTGateEngine(BaseEngine):
             )
 
         # 2. SENSATION: Load source and tree
-        # HEALED: We always load 'source' because many checks (ID anchors, conservation)
-        # require the raw text, not just the AST.
         try:
             source = file_path.read_text(encoding="utf-8")
         except Exception as e:
             return EngineResult(False, f"Read Error: {e}", [], self.engine_id)
 
-        # HEALED: Use the pre-parsed tree if it exists in the Auditor's memory
-        # to prevent redundant parsing across 80+ rules.
         tree = None
         if context and hasattr(context, "get_tree"):
             tree = context.get_tree(file_path)

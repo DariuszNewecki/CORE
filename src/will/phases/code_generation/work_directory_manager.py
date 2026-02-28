@@ -1,8 +1,6 @@
 # src/will/phases/code_generation/work_directory_manager.py
 """
 Work directory management for code generation sessions.
-
-CONSTITUTIONAL FIX: No longer imports FileHandler - uses FileService from Body layer
 """
 
 from __future__ import annotations
@@ -31,8 +29,6 @@ class WorkDirectoryManager:
         """
         Initialize work directory manager.
 
-        CONSTITUTIONAL FIX: Changed parameter from FileHandler to FileService
-
         Args:
             file_service: Body layer FileService for directory operations
         """
@@ -59,7 +55,6 @@ class WorkDirectoryManager:
         # Construct relative path under work/code_generation/
         rel_dir = f"work/code_generation/{timestamp}_{goal_slug}"
 
-        # CONSTITUTIONAL FIX: Use FileService to create directory
         self.file_service.ensure_dir(rel_dir)
 
         logger.info("📁 Code generation artifacts will be saved to: %s", rel_dir)

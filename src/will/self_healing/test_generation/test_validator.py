@@ -3,10 +3,6 @@
 
 """
 Test code validation utilities.
-
-CONSTITUTIONAL FIX (V2.3):
-- Removed dead code: 'module_import_path' and 'module_path' (workflow.dead_code_check).
-- Maintains structural sanity and constitutional compliance checks.
 """
 
 from __future__ import annotations
@@ -37,7 +33,6 @@ class TestValidator:
         violations = []
 
         # Structural sanity check
-        # CONSTITUTIONAL FIX: Removed unused context parameters from call
         if not self._looks_like_real_tests(code):
             violations.append(
                 {
@@ -61,8 +56,6 @@ class TestValidator:
     def _looks_like_real_tests(code: str) -> bool:
         """
         Quick heuristic check if code looks like valid tests.
-
-        CONSTITUTIONAL FIX: Removed unused 'module_import_path' and 'module_path'.
         """
         if not code:
             return False

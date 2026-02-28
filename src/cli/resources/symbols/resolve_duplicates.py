@@ -33,7 +33,4 @@ async def resolve_symbol_duplicates(
         f"[bold cyan]\U0001f46f {mode} duplicate ID collisions...[/bold cyan]"
     )
 
-    # CONSTITUTIONAL FIX: Route through the ActionExecutor gateway
-    # This ensures the action is logged and governed.
-    # The action 'fix.duplicate_ids' is defined in src/body/atomic/fix_actions.py
     await core_context.action_executor.execute("fix.duplicate_ids", write=write)

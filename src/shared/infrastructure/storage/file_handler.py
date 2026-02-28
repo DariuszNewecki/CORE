@@ -1,11 +1,7 @@
 # src/shared/infrastructure/storage/file_handler.py
 # ID: 9e64f98a-0740-4c5b-bc0e-f253b6a0af1e
-"""Safe, auditable file operations with staged writes.
-
-REFACTORED (V2.3.0)
-- Removed redundant 'Global ID Gate' to resolve architectural overlap.
-- Focuses purely on Path Governance (IntentGuard) and Syntax Validation.
-- ID Uniqueness is delegated entirely to duplicate_id_service.py (Step 2).
+"""
+Safe, auditable file operations with staged writes.
 """
 
 from __future__ import annotations
@@ -19,7 +15,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from body.governance.intent_guard import IntentGuard
+from body.governance.intent_guard import get_intent_guard
 from shared.config import settings
 from shared.logger import getLogger
 from shared.path_resolver import PathResolver
@@ -54,10 +50,10 @@ class FileHandler:
             intent_root=self.repo_path / ".intent",
         )
 
-        # CONSTITUTIONAL FIX: Pass strict mode from settings
-        # Shared layer is allowed to read settings; Body layer (IntentGuard) is not.
-        self._guard = IntentGuard(
-            self.repo_path, path_resolver, strict_mode=settings.CORE_STRICT_MODE
+        self._guard = get_intent_guard(
+            repo_path=self.repo_path,
+            path_resolver=path_resolver,
+            strict_mode=settings.CORE_STRICT_MODE,
         )
 
         self.log_dir.mkdir(parents=True, exist_ok=True)
@@ -227,10 +223,14 @@ class FileHandler:
 
     def _guard_paths(self, rel_paths: list[str], impact: str | None = None) -> None:
         cleaned: list[str] = [str(p).lstrip("./") for p in rel_paths]
-        allowed, violations = self._guard.check_transaction(cleaned, impact=impact)
-        if allowed:
+        result = self._guard.check_transaction(cleaned, impact=impact)
+        if result.is_valid:
             return
-        msg = violations[0].message if violations else "Blocked by IntentGuard."
+        msg = (
+            result.violations[0].message
+            if result.violations
+            else "Blocked by IntentGuard."
+        )
         raise ValueError(f"Blocked by IntentGuard: {msg}")
 
     def _atomic_write_text(self, abs_path: Path, content: str) -> None:

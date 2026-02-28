@@ -65,10 +65,14 @@ class InterpretPhase:
 
         Takes user's natural language goal and produces canonical task structure.
 
+        CONSTITUTIONAL NOTE: If workflow_type is already set on workflow_context
+        (e.g. via explicit --workflow CLI flag), it is treated as authoritative
+        and inference is skipped entirely.
+
         Returns:
             PhaseResult with:
                 - task_structure: Canonical task definition
-                - workflow_type: Inferred workflow
+                - workflow_type: Explicit or inferred workflow
                 - clarification_needed: Boolean
         """
         goal = workflow_context.goal
@@ -76,8 +80,16 @@ class InterpretPhase:
         logger.info("🎯 INTERPRET Phase: Parsing goal: '%s'", goal)
 
         try:
-            # Infer workflow type from goal
-            workflow_type = self._infer_workflow_type(goal)
+            # Respect explicit workflow_type (e.g. from --workflow CLI flag)
+            # before falling back to inference.
+            if workflow_context.workflow_type:
+                workflow_type = workflow_context.workflow_type
+                logger.info(
+                    "✅ INTERPRET: Using explicit workflow '%s' (skipping inference)",
+                    workflow_type,
+                )
+            else:
+                workflow_type = self._infer_workflow_type(goal)
 
             # Extract target information
             target_info = self._extract_target_info(goal)
@@ -95,9 +107,14 @@ class InterpretPhase:
 
             # Add metadata to data dict (PhaseResult doesn't have separate metadata field)
             task_structure["_metadata"] = {
-                "interpretation_method": "deterministic_v1",
+                "interpretation_method": (
+                    "explicit" if workflow_context.workflow_type else "deterministic_v1"
+                ),
                 "confidence": (
-                    "high" if self._is_confident(goal, workflow_type) else "medium"
+                    "high"
+                    if workflow_context.workflow_type
+                    or self._is_confident(goal, workflow_type)
+                    else "medium"
                 ),
             }
 

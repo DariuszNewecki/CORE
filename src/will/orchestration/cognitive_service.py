@@ -2,11 +2,6 @@
 
 """
 CognitiveService - Will-facing facade for cognitive access.
-
-HEALED (V2.3.0):
-- JIT Secret Retrieval: Added session_factory to handle encrypted secret
-  decryption even after the main initialization session is detached.
-- Prevents "Database session has been detached" errors during vectorization.
 """
 
 from __future__ import annotations
@@ -107,8 +102,6 @@ class CognitiveService:
         api_url = await self._config.get(f"{prefix}_API_URL")
         model_name = await self._config.get(f"{prefix}_MODEL_NAME")
 
-        # CONSTITUTIONAL FIX: Fetch secret using a JIT session if detached.
-        # This prevents the "Database session has been detached" crash.
         if self._session_factory:
             async with self._session_factory() as session:
                 # Create a temporary config service just for this decryption

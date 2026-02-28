@@ -22,7 +22,6 @@ from shared.atomic_action import atomic_action
 from shared.cli_utils import core_command
 from shared.context import CoreContext
 
-# We only import the App and Console from the local hub
 from . import console, fix_app
 
 
@@ -42,7 +41,6 @@ async def fix_headers_internal(
     """
     start_time = time.time()
 
-    # CONSTITUTIONAL FIX: Use context.git_service.repo_path instead of settings.REPO_PATH
     repo_root = context.git_service.repo_path
 
     try:

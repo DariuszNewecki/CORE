@@ -5,7 +5,6 @@ AST-based automated remediation for logging standards violations.
 
 CONSTITUTIONAL EVOLUTION: This fixer uses AST parsing to match the context-aware
 checker, ensuring the fixer can handle exactly what the checker detects.
-CONSTITUTIONAL FIX: All mutations now route through FileHandler to ensure
 IntentGuard enforcement and auditability.
 
 Converts:
@@ -105,14 +104,12 @@ class LoggingFixer:
             # Write or report
             rel_path = str(file_path.relative_to(self.repo_root))
             if not self.dry_run:
-                # CONSTITUTIONAL FIX: Format in-memory via shared utility
                 try:
                     formatted_content = format_code_with_black(fixed_content)
                 except Exception as e:
                     logger.debug("Black formatting failed for %s: %s", rel_path, e)
                     formatted_content = fixed_content
 
-                # CONSTITUTIONAL FIX: Use governed mutation surface
                 self.file_handler.write_runtime_text(rel_path, formatted_content)
                 logger.info("Fixed %s via governed surface", rel_path)
             else:

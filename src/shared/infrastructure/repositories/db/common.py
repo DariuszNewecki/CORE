@@ -134,9 +134,6 @@ def git_commit_sha() -> str:
         if res.returncode == 0:
             return res.stdout.strip()[:40]
     except Exception as e:
-        # CONSTITUTIONAL NOTE: Infrastructure must propagate error context
-        # Git command failed - fall back to settings
         logger.debug("Git command failed, using settings fallback: %s", e)
 
-    # CONSTITUTIONAL FIX: Use Settings instead of os.getenv
     return str(getattr(settings, "GIT_COMMIT", "") or "").strip()[:40]

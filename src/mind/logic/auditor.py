@@ -20,9 +20,6 @@ from shared.logger import getLogger
 
 logger = getLogger(__name__)
 
-# CONSTITUTIONAL FIX: Engines that operate on the full system state (Mind)
-# or process results (Workflows) rather than individual file content.
-# These are skipped during single-file audits to prevent out-of-context errors.
 CONTEXT_LEVEL_ENGINES = {"knowledge_gate", "workflow_gate", "action_gate"}
 
 
@@ -74,7 +71,6 @@ class ConstitutionalAuditor:
             if not isinstance(params, dict):
                 params = {}
 
-            # CONSTITUTIONAL FIX: Skip context-level engines during file-level audits.
             # This prevents reporting "Requires context" as an audit failure for
             # specific files, as these rules are meant for project-wide audits.
             if engine_id in CONTEXT_LEVEL_ENGINES:

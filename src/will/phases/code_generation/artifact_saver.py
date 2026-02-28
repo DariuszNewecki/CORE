@@ -127,7 +127,6 @@ class ArtifactSaver:
         artifact_filename = self._generate_artifact_filename(step, step_number)
         artifact_rel_path = f"{work_dir_rel}/{artifact_filename}"
 
-        # CONSTITUTIONAL FIX: Use FileService for write
         self.file_service.write_file(artifact_rel_path, code)
 
         # Update step info
@@ -163,7 +162,6 @@ class ArtifactSaver:
         report_rel_path = f"{work_dir_rel}/generation_report.json"
         report_json = json.dumps(report_data, indent=2, ensure_ascii=False)
 
-        # CONSTITUTIONAL FIX: Use FileService for report write
         self.file_service.write_file(report_rel_path, report_json)
 
     @staticmethod
