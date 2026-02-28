@@ -31,6 +31,7 @@ class ExecutableRule:
     {
         "id": "rule.name",
         "enforcement": "error",
+        "authority": "policy",          # "constitution" | "policy"
         "check": {
             "engine": "ast_gate",
             "params": {"check_type": "...", ...}
@@ -74,6 +75,19 @@ class ExecutableRule:
     Set automatically by rule_extractor based on engine type.
     """
 
+    authority: str = "policy"
+    """
+    Who declared this rule and how binding it is.
+
+    - "constitution": Declared by the sovereign constitution. Always blocks,
+      regardless of strict_mode. These rules cannot be made advisory.
+    - "policy":       Declared by an operational policy. Advisory by default;
+      blocks only when IntentGuard is initialised with strict_mode=True.
+
+    Sourced directly from the rule's 'authority' field in the .intent/ document.
+    Defaults to "policy" (the safer, less disruptive tier) when absent.
+    """
+
     def __repr__(self) -> str:
         """Concise representation for logging."""
-        return f"ExecutableRule({self.rule_id}, engine={self.engine})"
+        return f"ExecutableRule({self.rule_id}, engine={self.engine}, authority={self.authority})"

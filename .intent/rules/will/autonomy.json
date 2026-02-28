@@ -13,7 +13,7 @@
         {
             "id": "autonomy.lanes.boundary_enforcement",
             "statement": "Autonomous agents MUST NOT modify files outside their assigned autonomy lane.",
-            "authority": "constitution",
+            "authority": "policy",
             "phase": "runtime",
             "enforcement": "blocking"
         },

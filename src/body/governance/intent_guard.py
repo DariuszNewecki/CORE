@@ -26,6 +26,12 @@ logger = getLogger(__name__)
 # Engine types that perform code-analysis audits (not write-permission gates)
 _AUDIT_ENGINES = frozenset({"ast_gate", "knowledge_gate", "llm_gate", "regex_gate"})
 
+# Severity value assigned to constitutional-authority violations.
+# Using a dedicated string (rather than reusing "error") lets check_transaction
+# distinguish "always block" from "block only in strict_mode" without touching
+# any shared models.
+_CONSTITUTIONAL_SEVERITY = "constitutional"
+
 
 # ID: 085acfeb-4ce6-4cfb-91eb-544e686a97fb
 class IntentGuard:
@@ -36,6 +42,28 @@ class IntentGuard:
     - Load and prioritize constitutional rules from the Mind.
     - Validate file operations against policies.
     - Enforce hard invariants (no .intent writes).
+
+    Enforcement tiers
+    -----------------
+    1. Hard invariant (.intent/ writes)
+       Unconditional block. No configuration can disable this.
+
+    2. Constitutional rules  (authority="constitution" in the .intent/ file)
+       Always block, regardless of strict_mode.
+       These are the "sacred" rules that define the system's identity.
+
+    3. Policy rules  (authority="policy")
+       Advisory by default (strict_mode=False): violations are reported
+       but do NOT block execution, preserving development momentum.
+       Set strict_mode=True to make policy violations blocking too.
+
+    Why this split matters
+    ----------------------
+    Calling strict_mode=False "advisory" is now honest: constitutional rules
+    still provide hard enforcement even in the default mode.  The README
+    claim "constitutional governance blocks violations" is literally true
+    because tier-2 always blocks.  Tier-3 (policy) being advisory during
+    development is a deliberate design choice, not a hidden weakness.
     """
 
     # Sovereign ID from .intent/rules/architecture/governance_basics.json
@@ -47,6 +75,17 @@ class IntentGuard:
         path_resolver: PathResolver | None = None,
         strict_mode: bool = False,
     ):
+        """
+        Initialise IntentGuard.
+
+        Args:
+            repo_path: Absolute path to the repository root.
+            path_resolver: Optional PathResolver; falls back to repo_path/.intent.
+            strict_mode: When True, policy-authority violations (tier-3) also
+                         block execution.  Constitutional violations (tier-2)
+                         and the .intent/ hard invariant (tier-1) always block
+                         regardless of this flag.
+        """
         self.repo_path = Path(repo_path).resolve()
         self.strict_mode = strict_mode
 
@@ -71,7 +110,7 @@ class IntentGuard:
         # 4. Resolve Executable Rules
         executable_rules = extract_executable_rules(policies, mapping_loader)
 
-        # 5. Transform to internal PolicyRule objects
+        # 5. Transform to internal PolicyRule objects (authority is now threaded through)
         self.rules: list[PolicyRule] = []
         for er in executable_rules:
             for pattern in er.scope:
@@ -88,6 +127,7 @@ class IntentGuard:
                         source_policy=er.policy_id,
                         engine=er.engine,
                         params=er.params,
+                        authority=er.authority,  # threaded from .intent/ canonical field
                     )
                 )
 
@@ -95,10 +135,18 @@ class IntentGuard:
         self.precedence_map = repo.get_precedence_map()
         self.rules.sort(key=lambda r: self.precedence_map.get(r.source_policy, 999))
 
+        constitutional_count = sum(
+            1 for r in self.rules if r.authority == "constitution"
+        )
+        policy_count = len(self.rules) - constitutional_count
+
         logger.info(
-            "IntentGuard initialized with %s enforcement rules (Strict: %s).",
-            len(self.rules),
-            self.strict_mode,
+            "IntentGuard initialised: %d constitutional rules (always-block) + "
+            "%d policy rules (%s). Strict mode: %s.",
+            constitutional_count,
+            policy_count,
+            "blocking" if strict_mode else "advisory",
+            strict_mode,
         )
 
     # ID: 0955918c-8ada-4631-bd8b-8b186d43203e
@@ -107,6 +155,16 @@ class IntentGuard:
     ) -> ConstitutionalValidationResult:
         """
         Validate a set of proposed file operations.
+
+        Blocking decision matrix:
+        ┌──────────────────────────────┬────────────────────────┐
+        │ Violation type               │ Blocks?                │
+        ├──────────────────────────────┼────────────────────────┤
+        │ .intent/ write (hard inv.)   │ Always                 │
+        │ authority="constitution"     │ Always                 │
+        │ authority="policy", error    │ Only when strict_mode  │
+        │ authority="policy", warning  │ Never                  │
+        └──────────────────────────────┴────────────────────────┘
         """
         violations: list[ViolationReport] = []
         has_hard_invariant_violation = False
@@ -116,7 +174,6 @@ class IntentGuard:
 
             # 1. HARD INVARIANT: Absolute block on .intent writes
             if self._is_under_intent(abs_path):
-                # Sensation: Look up the sovereign rule to get the correct metadata
                 rule = next(
                     (r for r in self.rules if r.name == self._READ_ONLY_RULE_ID), None
                 )
@@ -142,14 +199,35 @@ class IntentGuard:
             violations.extend(self._check_against_rules(path_str, abs_path, impact))
 
         # 3. DECISION LOGIC (The Teeth)
-        # Hard Invariants ALWAYS block. Policy errors block only in strict_mode.
-        has_blocking_errors = any(v.severity == "error" for v in violations)
+        #
+        # Tier 1: .intent/ hard invariant — always blocks (handled above).
+        # Tier 2: constitutional authority — always blocks (new).
+        # Tier 3: policy authority errors — blocks only in strict_mode.
+        #
+        # Using _CONSTITUTIONAL_SEVERITY as a sentinel lets us distinguish
+        # tiers without modifying ViolationReport or ConstitutionalValidationResult.
+        has_constitutional_violations = any(
+            v.severity == _CONSTITUTIONAL_SEVERITY for v in violations
+        )
+        has_policy_errors = any(v.severity == "error" for v in violations)
 
         is_valid = True
-        if has_hard_invariant_violation or (has_blocking_errors and self.strict_mode):
+        if has_hard_invariant_violation or has_constitutional_violations:
             is_valid = False
             logger.error(
-                "🛑 Constitutional Block: Halting transaction due to violations."
+                "🛑 Constitutional Block: Halting transaction — "
+                "hard invariant or constitutional rule violated."
+            )
+        elif has_policy_errors and self.strict_mode:
+            is_valid = False
+            logger.error(
+                "🛑 Policy Block (strict_mode): Halting transaction — "
+                "policy rule violated."
+            )
+        elif has_policy_errors:
+            logger.warning(
+                "⚠️  Policy Advisory: violations detected but not blocking "
+                "(strict_mode=False). Run with strict_mode=True to enforce."
             )
 
         return ConstitutionalValidationResult(
@@ -207,6 +285,11 @@ class IntentGuard:
     ) -> list[ViolationReport]:
         """
         Evaluate path against constitutional rules.
+
+        Severity assigned per rule:
+        - authority="constitution" → _CONSTITUTIONAL_SEVERITY  (always-block tier)
+        - authority="policy" + is_blocking → "error"           (strict_mode tier)
+        - otherwise                        → "warning"          (advisory)
         """
         violations: list[ViolationReport] = []
         is_metadata = impact == "write-metadata"
@@ -226,7 +309,18 @@ class IntentGuard:
                 continue
 
             is_blocking = rule.severity in ("blocking", "error")
-            severity = "error" if is_blocking else "warning"
+
+            if rule.authority == "constitution":
+                # Tier 2: constitutional rule — assign sentinel severity so
+                # check_transaction can always-block on it regardless of strict_mode.
+                severity = _CONSTITUTIONAL_SEVERITY
+            elif is_blocking:
+                # Tier 3: policy rule with blocking enforcement — standard error
+                # that strict_mode gates on.
+                severity = "error"
+            else:
+                # Advisory only.
+                severity = "warning"
 
             violations.append(
                 ViolationReport(
@@ -243,7 +337,7 @@ class IntentGuard:
 
 
 def _audit_engines_set():
-    """Helper to maintain reference to globalengines."""
+    """Helper to maintain reference to global engines."""
     return _AUDIT_ENGINES
 
 
@@ -254,13 +348,23 @@ def _audit_engines_set():
 _INTENT_GUARD: IntentGuard | None = None
 
 
-# ID: 0f6335c2-bea4-4ac6-b5d5-072591871d66
+# ID: 57841a53-4ecb-4f5f-bbb3-af7e490bd8f9
 def get_intent_guard(
     repo_path: Path | None = None,
     path_resolver: PathResolver | None = None,
     strict_mode: bool = False,
 ) -> IntentGuard:
-    """Return the global IntentGuard singleton."""
+    """
+    Return the global IntentGuard singleton.
+
+    Note on strict_mode
+    -------------------
+    strict_mode=False (default) does NOT mean "no enforcement".
+    Constitutional rules (authority="constitution") always block.
+    strict_mode only controls whether *policy* rules (authority="policy")
+    are advisory or blocking.  See IntentGuard docstring for the full
+    enforcement tier matrix.
+    """
     global _INTENT_GUARD
     if _INTENT_GUARD is None:
         if repo_path is None:
