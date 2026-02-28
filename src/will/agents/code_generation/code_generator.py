@@ -8,7 +8,6 @@ CONSTITUTIONAL REFACTORING (Feb 2026):
 - Modularized from 700+ LOC monolith.
 - Main class delegates to focused modules.
 
-HEALED V2.6:
 - Removed direct settings import to comply with architecture.boundary.settings_access.
 - Now utilizes injected PathResolver for all constitutional artifact location.
 """
@@ -48,7 +47,6 @@ def _resolve_prompt_template_path(
     Resolve a prompt template path via the provided PathResolver.
     """
     try:
-        # CONSTITUTIONAL FIX: Use injected resolver instead of global settings
         path = path_resolver.prompt(prompt_name)
         if path.exists():
             return path
@@ -75,7 +73,7 @@ class CodeGenerator:
         Initialize code generator.
         """
         self.cognitive_service = cognitive_service
-        self.path_resolver = path_resolver  # CONSTITUTIONAL FIX: Local path resolver
+        self.path_resolver = path_resolver
         self.prompt_pipeline = prompt_pipeline
         self.tracer = tracer
         self.context_builder = context_builder
@@ -101,7 +99,6 @@ class CodeGenerator:
         try:
             target_path = Path(target_file)
             if target_path.is_absolute():
-                # CONSTITUTIONAL FIX: Use local resolver
                 target_file = str(target_path.relative_to(self.path_resolver.repo_root))
         except Exception:
             pass

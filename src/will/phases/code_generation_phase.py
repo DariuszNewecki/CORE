@@ -86,11 +86,7 @@ class CodeGenerationPhase:
         # 1. Create the Shadow Truth (Limb Workspace)
         workspace = LimbWorkspace(self.context.git_service.repo_path)
 
-        # 2. CONSTITUTIONAL FIX (Split-Brain Resolution):
-        # We must create a *Localized* ContextService that sees the Workspace.
-        # The global self.context.context_service only sees the Disk.
-        # We clone the infrastructure (Cognitive/Qdrant) but attach the Workspace.
-
+        # 2. Split-Brain Resolution - Localize ContextService to the Workspace:
         global_ctx_svc = self.context.context_service
 
         # Fork the senses
@@ -220,6 +216,8 @@ class CodeGenerationPhase:
                 pain_signal = sensation.get("error", "Unknown error")
                 logger.warning("Pain detected: %s", pain_signal)
 
+                current_code = code
+
                 for attempt in range(metadata["max_repair_attempts"]):
                     logger.info(
                         "Repair attempt %d/%d...",
@@ -227,7 +225,7 @@ class CodeGenerationPhase:
                         metadata["max_repair_attempts"],
                     )
                     repaired_code = await coder.generate_or_repair(
-                        task, goal, pain_signal=pain_signal, previous_code=code
+                        task, goal, pain_signal=pain_signal, previous_code=current_code
                     )
 
                     # Re-sense
@@ -241,7 +239,9 @@ class CodeGenerationPhase:
                         metadata["repair_attempts"] = attempt + 1
                         break
 
+                    # Advance both signal and base code for next attempt
                     pain_signal = sensation.get("error", "Unknown error")
+                    current_code = repaired_code
 
                 if not sensation.get("passed"):
                     metadata["repair_failed"] = True

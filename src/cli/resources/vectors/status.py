@@ -16,7 +16,6 @@ console = Console()
 # ID: b67cc5bc-9f6b-47c5-94c4-8fead6faa4d1
 async def status_vectors(ctx: typer.Context) -> None:
     """Show vector store health and collection statistics."""
-    # CONSTITUTIONAL FIX: Get service from context, not settings
     qdrant = ctx.obj.qdrant_service
 
     try:

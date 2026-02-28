@@ -46,7 +46,6 @@ class RegexGateEngine(BaseEngine):
 
         # FACT 2: Check Content
         try:
-            # CONSTITUTIONAL FIX (ASYNC230):
             # Use to_thread to prevent blocking the event loop during file I/O.
             content = await asyncio.to_thread(file_path.read_text, encoding="utf-8")
         except Exception as e:

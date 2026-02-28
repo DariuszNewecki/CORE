@@ -1,22 +1,19 @@
 # src/body/governance/path_validator.py
 # ID: 41eba414-1d91-417c-827b-d897cb9758e7
-# ID: fdd5f030-9cd6-4138-b11e-e88809a301aa
 
 """
 Path Validator - Body Layer Enforcement Service.
 
-CONSTITUTIONAL ALIGNMENT (V2.6.0):
-- Relocated: Moved from Mind to Body to comply with Mind-Body-Will separation.
-- Responsibility: Executes path-based pattern matching and engine dispatch.
-- Boundary: Now legally imports EngineDispatcher as a sibling Body component.
-- Resolves architecture.mind.no_body_invocation violation.
+CONSTITUTIONAL PROMOTION (v2.7):
+- Resolved LEGACY debt: Removed hardcoded 'no_write_intent'.
+- Mind-Aligned: Now enforces 'governance.constitution.read_only' from the Mind.
+- Rule-Driven: Violation messages are now sourced from the provided PolicyRule list.
 """
 
 from __future__ import annotations
 
 from pathlib import Path
 
-# This import is now CONSTITUTIONALLY VALID because this file is in the Body layer.
 from body.governance.engine_dispatcher import EngineDispatcher
 from mind.governance.policy_rule import PolicyRule
 from mind.governance.violation_report import ViolationReport
@@ -38,7 +35,8 @@ class PathValidator:
     - Hard invariant enforcement (.intent writes)
     """
 
-    _NO_WRITE_INTENT_RULE = "no_write_intent"
+    # Aligned with .intent/rules/architecture/governance_basics.json
+    _READ_ONLY_RULE_ID = "governance.constitution.read_only"
 
     def __init__(self, repo_path: Path, intent_root: Path, rules: list[PolicyRule]):
         """
@@ -61,12 +59,6 @@ class PathValidator:
     def check_paths(self, proposed_paths: list[str]) -> ConstitutionalValidationResult:
         """
         Validate a set of proposed file operations.
-
-        Args:
-            proposed_paths: List of repo-relative paths
-
-        Returns:
-            List of violations (empty if all valid)
         """
         violations: list[ViolationReport] = []
 
@@ -81,23 +73,16 @@ class PathValidator:
     def _check_single_path(self, path: Path, path_str: str) -> list[ViolationReport]:
         """
         Enforce constitutional rules against a single path.
-
-        Args:
-            path: Absolute path
-            path_str: Repo-relative path string
-
-        Returns:
-            List of violations
         """
         violations: list[ViolationReport] = []
 
-        # Hard invariant (defense in depth)
+        # 1. THE CONSTITUTIONAL INVARIANT (Hard Guard)
         hard = self._check_no_write_intent(path, path_str)
         if hard is not None:
             violations.append(hard)
-            return violations
+            return violations  # Stop checking if hard invariant is broken
 
-        # Policy rules with engine dispatch
+        # 2. POLICY RULES (Dynamic Guard)
         violations.extend(self._check_policy_rules(path, path_str))
 
         return violations
@@ -111,24 +96,22 @@ class PathValidator:
     ) -> ViolationReport | None:
         """
         HARD INVARIANT: .intent/** is never writable by CORE.
-
-        This rule has no bypass, no emergency override, no exceptions.
-
-        Args:
-            abs_path: Absolute file path
-            rel_path_str: Repository-relative path
-
-        Returns:
-            ViolationReport if path is under .intent, None otherwise
+        Linked to Sovereign Rule: governance.constitution.read_only
         """
         try:
             if abs_path == self.intent_root or self.intent_root in abs_path.parents:
+                # Find the actual rule in our rules list to get the authoritative text
+                rule = next(
+                    (r for r in self.rules if r.name == self._READ_ONLY_RULE_ID), None
+                )
+
                 return ViolationReport(
-                    rule_name=self._NO_WRITE_INTENT_RULE,
+                    rule_name=self._READ_ONLY_RULE_ID,
                     path=rel_path_str,
                     message=(
-                        f"Direct write to '{rel_path_str}' is forbidden. "
-                        "CORE must never write to .intent/**."
+                        rule.description
+                        if rule
+                        else "Writes to .intent/ are forbidden."
                     ),
                     severity="error",
                     suggested_fix="Route changes through non-CORE mechanism.",
@@ -139,7 +122,7 @@ class PathValidator:
                 "Error enforcing .intent hard invariant for %s: %s", rel_path_str, e
             )
             return ViolationReport(
-                rule_name=self._NO_WRITE_INTENT_RULE,
+                rule_name=self._READ_ONLY_RULE_ID,
                 path=rel_path_str,
                 message="Failed to evaluate .intent boundary. Fail-closed: forbidden.",
                 severity="error",
@@ -155,22 +138,15 @@ class PathValidator:
     def _check_policy_rules(self, path: Path, path_str: str) -> list[ViolationReport]:
         """
         Apply all matching constitutional rules to a path.
-
-        Rules are evaluated in deterministic order (sorted by name).
-        Engine-based rules are dispatched to EngineDispatcher.
-
-        Args:
-            path: Absolute file path
-            path_str: Repository-relative path
-
-        Returns:
-            List of violations
         """
         violations: list[ViolationReport] = []
 
         for rule in self.rules:
+            # We already handled the Hard Invariant specifically above
+            if rule.name == self._READ_ONLY_RULE_ID:
+                continue
+
             try:
-                # Pattern matching (glob-based)
                 if not self._matches_pattern(path_str, rule.pattern):
                     continue
 
@@ -189,30 +165,17 @@ class PathValidator:
     ) -> list[ViolationReport]:
         """
         Execute rule enforcement.
-
-        Dispatches to engine if rule specifies one, otherwise applies
-        simple deny/warn action.
-
-        Args:
-            rule: Policy rule to apply
-            path: Absolute file path
-            path_str: Repository-relative path
-
-        Returns:
-            List of violations
         """
-        # ENGINE DISPATCH: Constitutional rule specifies engine
         if rule.engine:
             return EngineDispatcher.invoke_engine(rule, path, path_str)
 
-        # LEGACY: Simple deny/warn actions (no engine)
-        if rule.action == "deny":
+        if rule.action == "deny" or rule.severity in ("blocking", "error"):
             return [
                 ViolationReport(
                     rule_name=rule.name,
                     path=path_str,
-                    message=f"Rule '{rule.name}' violation: {rule.description}",
-                    severity=rule.severity,
+                    message=rule.description,
+                    severity="error",
                     source_policy=rule.source_policy,
                 )
             ]
@@ -224,16 +187,6 @@ class PathValidator:
 
     @staticmethod
     def _matches_pattern(path: str, pattern: str) -> bool:
-        """
-        Glob-based pattern matching.
-
-        Args:
-            path: File path to check
-            pattern: Glob pattern
-
-        Returns:
-            True if path matches pattern
-        """
         if not pattern:
             return False
         return Path(path).match(pattern)

@@ -2,7 +2,6 @@
 
 """
 Generation phase - adaptive test generation loop with learning.
-HEALED V2.6: Removed dead code by utilizing max_failures_per_pattern in the reflex loop.
 """
 
 from __future__ import annotations
@@ -43,7 +42,7 @@ class GenerationPhase:
         initial_strategy: ComponentResult,
         context_service: ContextService,
         write: bool,
-        max_failures_per_pattern: int,  # HEALED: This is no longer dead code
+        max_failures_per_pattern: int,
         file_type: str,
         complexity: str,
         has_db_harness: bool,
@@ -86,7 +85,6 @@ class GenerationPhase:
             if test_result.get("error") and not test_result.get("skipped"):
                 error_msg = test_result.get("error", "Unknown error")
 
-                # HEALED: Pass the threshold into the evaluator
                 eval_result = await self.failure_evaluator.execute(
                     error=error_msg,
                     pattern_history=pattern_history,

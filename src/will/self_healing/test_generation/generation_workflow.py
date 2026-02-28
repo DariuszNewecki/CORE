@@ -1,4 +1,4 @@
-# src/features/self_healing/test_generation/generation_workflow.py
+# src/will/self_healing/test_generation/generation_workflow.py
 # ID: 25fe8cfd-a3f2-458c-b02f-e004dacbd1ba
 
 """
@@ -66,8 +66,6 @@ class GenerationWorkflow:
     # ID: e246df81-5063-4518-b6ac-e13a716a8b48
     async def build_context(self, module_path: str) -> ModuleContext:
         """Build module context for test generation."""
-        # CONSTITUTIONAL FIX: Updated to match V2.3 ContextBuilder signature
-        # We wrap the module path into a minimal task spec
         task_spec = {
             "task_id": f"test-gen-{int(time.time())}",
             "task_type": "test_generation",

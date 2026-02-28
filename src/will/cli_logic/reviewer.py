@@ -4,10 +4,10 @@
 Provides commands for AI-powered review of the constitution, documentation, and source code files.
 Refactored to comply with Agent I/O policies and Async-Native architecture.
 
-CONSTITUTIONAL COMPLIANCE:
+Constitutional Alignment:
 - Uses CoreContext for dependency injection (no direct settings import)
-- NO LONGER imports FileHandler - uses FileService from Body layer
-- Will layer orchestrates but doesn't execute
+- Uses FileService from Body layer for all file operations
+- Will layer orchestrates but does not execute
 """
 
 from __future__ import annotations
@@ -30,19 +30,15 @@ console = Console()
 DOCS_IGNORE_DIRS = {"assets", "archive", "migrations", "examples"}
 
 
+# ID: a1b2c3d4-e5f6-7890-abcd-ef1234567801
 async def _get_bundle_content(
     files_to_bundle: list[Path], root_dir: Path, file_service: FileService
 ) -> str:
-    """
-    Read multiple files and bundle them into a context string.
-
-    CONSTITUTIONAL FIX: Receives FileService parameter for file reading
-    """
+    """Read multiple files and bundle them into a context string."""
     bundle_parts = []
     for file_path in sorted(list(files_to_bundle)):
         if file_path.exists() and file_path.is_file():
             try:
-                # CONSTITUTIONAL FIX: Use FileService for safe reading
                 rel_path_str = str(file_path.relative_to(root_dir))
                 content = file_service.read_file(rel_path_str)
 
@@ -63,14 +59,16 @@ async def _get_bundle_content(
     return "".join(bundle_parts)
 
 
+# ID: b2c3d4e5-f6a7-8901-bcde-f01234567802
 def _get_constitutional_files() -> list[Path]:
+    """Return all files indexed as constitutional policies."""
     from shared.infrastructure.intent.intent_repository import get_intent_repository
 
     repo = get_intent_repository()
-    # If the repo indexed it, it's a constitutional file.
     return [Path(p.file_path) for p in repo.list_policies()]
 
 
+# ID: c3d4e5f6-a7b8-9012-cdef-012345678803
 def _get_docs_files(context: CoreContext) -> list[Path]:
     """Gather documentation files (.md) from docs/ folder."""
     docs_dir = context.repo_path / "docs"
@@ -86,6 +84,7 @@ def _get_docs_files(context: CoreContext) -> list[Path]:
     return md_files
 
 
+# ID: d4e5f6a7-b8c9-0123-defa-012345678804
 async def _orchestrate_review(
     context: CoreContext,
     review_type: str,
@@ -97,8 +96,6 @@ async def _orchestrate_review(
     """
     Generic orchestration for AI-powered reviews.
 
-    CONSTITUTIONAL FIX: Uses FileService from context for all file operations
-
     Args:
         context: CoreContext with injected dependencies
         review_type: Type of review (for logging)
@@ -109,12 +106,10 @@ async def _orchestrate_review(
     """
     logger.info("🤖 Preparing %s review...", review_type)
 
-    # CONSTITUTIONAL FIX: Get FileService from context or create one
     file_service = getattr(context, "file_service", None)
     if file_service is None:
         file_service = FileService(context.repo_path)
 
-    # Get files based on review type
     if files_getter == _get_constitutional_files:
         files_to_bundle = files_getter()
     else:
@@ -126,7 +121,6 @@ async def _orchestrate_review(
 
     logger.info("Found %d files to review", len(files_to_bundle))
 
-    # CONSTITUTIONAL FIX: Bundle file contents via FileService
     bundled_content = await _get_bundle_content(
         files_to_bundle, context.repo_path, file_service
     )
@@ -136,20 +130,17 @@ async def _orchestrate_review(
         if not output_path:
             output_path = context.repo_path / "work" / f"{review_type}_bundle.txt"
 
-        # CONSTITUTIONAL FIX: Use FileService
         file_service.ensure_dir("work")
         rel_output = str(output_path.relative_to(context.repo_path))
         file_service.write_file(rel_output, bundled_content)
         logger.info("Bundle written to: %s", output_path)
         return
 
-    # Load prompt template
     prompt_path = context.path_resolver.get_prompt_path(prompt_key)
     if not prompt_path.exists():
         logger.error("Prompt template not found: %s", prompt_path)
         raise typer.Exit(code=1)
 
-    # CONSTITUTIONAL FIX: Use FileService to read prompt
     rel_prompt = str(prompt_path.relative_to(context.repo_path))
     review_prompt_template = file_service.read_file(rel_prompt)
 
@@ -159,7 +150,6 @@ async def _orchestrate_review(
 
     final_prompt = f"{review_prompt_template}\n\n{bundled_content}"
 
-    # Send to AI for review
     with console.status(
         f"[bold green]Requesting {review_type} review from AI...[/bold green]",
         spinner="dots",
@@ -170,7 +160,6 @@ async def _orchestrate_review(
             final_prompt, user_id=f"{review_type}_operator"
         )
 
-    # Present results
     logger.info(
         Panel(
             f"{review_type.title()} Review Complete", style="bold green", expand=False
@@ -178,9 +167,7 @@ async def _orchestrate_review(
     )
     console.print(Markdown(review_feedback))
 
-    # Optionally save output
     if output_path:
-        # CONSTITUTIONAL FIX: Use FileService
         file_service.ensure_dir(str(output_path.parent.relative_to(context.repo_path)))
         rel_output = str(output_path.relative_to(context.repo_path))
         file_service.write_file(rel_output, review_feedback)
@@ -228,23 +215,17 @@ async def code_review(
         ..., exists=True, dir_okay=False, resolve_path=True
     ),
 ) -> None:
-    """
-    Submits a source file to an AI expert for a peer review and improvement suggestions.
-
-    CONSTITUTIONAL FIX: Uses FileService for file reading
-    """
+    """Submits a source file to an AI expert for a peer review and improvement suggestions."""
     logger.info(
         "🤖 Submitting '%s' for AI peer review...",
         file_path.relative_to(context.repo_path),
     )
 
-    # CONSTITUTIONAL FIX: Get FileService
     file_service = getattr(context, "file_service", None)
     if file_service is None:
         file_service = FileService(context.repo_path)
 
     try:
-        # CONSTITUTIONAL FIX: Use FileService to read source code
         rel_file = str(file_path.relative_to(context.repo_path))
         source_code = file_service.read_file(rel_file)
 
@@ -254,7 +235,6 @@ async def code_review(
 
         prompt_path = context.path_resolver.get_prompt_path("code_peer_review")
 
-        # CONSTITUTIONAL FIX: Use FileService to read prompt
         rel_prompt = str(prompt_path.relative_to(context.repo_path))
         review_prompt_template = file_service.read_file(rel_prompt)
 

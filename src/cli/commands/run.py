@@ -32,7 +32,6 @@ run_app = typer.Typer(
 # ID: f8e9d0a1-b2c3-4d5e-6f7a-8b9c0d1e2f3a
 async def vectorize_command(
     ctx: typer.Context,
-    # CONSTITUTIONAL FIX: Added write option for consistency with @core_command
     write: bool = typer.Option(False, "--write", help="Commit vectors to Qdrant."),
     force: bool = typer.Option(
         False, help="Force re-vectorization of all capabilities."

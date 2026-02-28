@@ -44,7 +44,6 @@ async def clarity_cmd(
     This command uses a Cognitive Workflow (Analyze -> Strategize -> Refactor -> Evaluate).
     It will only apply changes if the Evaluator proves the code is more readable.
     """
-    # CONSTITUTIONAL FIX: Lazy-load orchestrator to prevent circular imports
     from will.self_healing.clarity_service import remediate_clarity
 
     core_context: CoreContext = ctx.obj

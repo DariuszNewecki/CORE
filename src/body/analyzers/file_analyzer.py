@@ -1,16 +1,6 @@
 # src/body/analyzers/file_analyzer.py
 # ID: 76d6ef2c-d42f-46f8-a52a-ddf5402eaf36
-"""File Analyzer - Analyzes Python file structure and classifies type.
-
-Constitutional Alignment:
-- Phase: PARSE (Structural analysis and classification)
-- Authority: CODE (Implementation of structural rules)
-- Boundary: Respects repo_path via CoreContext (dependency injection required)
-
-Purified (V2.3.0)
-- Removed Will-layer DecisionTracer to satisfy architecture.layers.no_body_to_will.
-  Rationale is now returned in metadata.
-"""
+"""File Analyzer - Analyzes Python file structure and classifies type."""
 
 from __future__ import annotations
 
@@ -86,8 +76,6 @@ class FileAnalyzer(BaseAnalyzer):
 
             duration = time.time() - start_time
 
-            # CONSTITUTIONAL FIX: Removed internal tracer call.
-            # Return rationale and classification facts in metadata for the Agent to log.
             return ComponentResult(
                 component_id=self.component_id,
                 ok=True,

@@ -8,8 +8,6 @@ from __future__ import annotations
 import textwrap
 import time
 from pathlib import Path
-
-# CONSTITUTIONAL FIX: Import TYPE_CHECKING and Any
 from typing import TYPE_CHECKING, Any
 
 from cli.logic.body_contracts_checker import check_body_contracts
@@ -96,7 +94,6 @@ async def _process_single_file(
 
     if write:
         try:
-            # CONSTITUTIONAL FIX: Use governed mutation surface
             rel_path = str(path.relative_to(file_handler.repo_path))
             file_handler.write_runtime_text(rel_path, new_source)
             logger.info("Body UI fixer: updated file %s", path)

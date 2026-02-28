@@ -2,11 +2,6 @@
 
 """
 Symbol definition service - assigns capability keys to public symbols.
-
-CONSTITUTIONAL FIX (V2.3.0):
-- Fixed broken Regex syntax in fallback parser (removed leading +).
-- Maintained 100% fidelity with the user's high-performance parallel logic.
-- Enforced transaction boundaries at the worker level for parallel safety.
 """
 
 from __future__ import annotations
@@ -22,8 +17,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.action_types import ActionImpact, ActionResult
 from shared.atomic_action import atomic_action
-
-# REFACTORED: Removed direct settings import
 from shared.infrastructure.context.service import ContextService
 from shared.infrastructure.repositories.symbol_definition_repository import (
     SymbolDefinitionRepository,
@@ -176,7 +169,6 @@ async def define_single_symbol(
             if isinstance(parsed, dict) and "suggested_capability" in parsed:
                 key = str(parsed["suggested_capability"]).strip()
         except Exception:
-            # HEALED REGEX: Corrected pattern to find 'domain.capability' safely
             match = re.search(r"([a-z0-9_]+\.[a-z0-9_.]+)", response.lower())
             key = match.group(1).strip() if match else None
 

@@ -4,12 +4,6 @@
 """
 Export a complete, compact operational snapshot of CORE.
 Refactored to use canonical services (FileHandler, GitService, Settings).
-
-CONSTITUTIONAL FIX:
-- Aligned with 'governance.artifact_mutation.traceable'.
-- Replaced direct tarfile writes with governed FileHandler mutations.
-- Uses io.BytesIO to buffer archives before persisting via the mutation surface.
-- Ensures all exported artifacts are recorded in the action ledger.
 """
 
 from __future__ import annotations
@@ -27,7 +21,6 @@ import urllib.request
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-# REFACTORED: Removed direct settings import
 from shared.infrastructure.git_service import GitService
 from shared.infrastructure.storage.file_handler import FileHandler
 from shared.logger import getLogger
@@ -135,10 +128,6 @@ class ContextExporter:
             out_name = f"{folder.replace('.', '')}.tar.gz"
             rel_out_path = f"{self.export_rel_dir}/{out_name}"
 
-            # CONSTITUTIONAL FIX:
-            # We create the archive in memory using io.BytesIO instead of opening
-            # the filesystem directly. This allows us to pass the final bytes
-            # to the FileHandler for a governed write.
             buffer = io.BytesIO()
             with tarfile.open(fileobj=buffer, mode="w:gz") as tar:
                 src_path = self.repo_root / folder

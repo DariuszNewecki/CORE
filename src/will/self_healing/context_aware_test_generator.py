@@ -1,15 +1,10 @@
-# src/features/self_healing/context_aware_test_generator.py
+# src/will/self_healing/context_aware_test_generator.py
 
 """Context-aware test generator using ContextPackage for better results.
 
 This improves on SimpleTestGenerator by providing the LLM with richer context.
 Enforces non-blocking I/O to satisfy the Async-Native architectural contract.
 Complies with Body Contracts by avoiding direct os.environ access.
-
-CONSTITUTIONAL FIX:
-- Removed ALL imports of 'get_session' to satisfy 'logic.di.no_global_session'.
-- Uses ServiceRegistry for Just-In-Time (JIT) context service initialization.
-- Promotes 'Inversion of Control' by delegating session acquisition to the registry.
 """
 
 from __future__ import annotations
@@ -52,9 +47,6 @@ class ContextAwareTestGenerator:
     ) -> dict[str, Any]:
         """Generate a test for ONE symbol with full context."""
         try:
-            # CONSTITUTIONAL FIX: Removed 'get_session' import.
-            # We now use the 'service_registry.session' factory which was
-            # primed at the application's entry point.
             from shared.infrastructure.context.service import ContextService
 
             context_service = ContextService(

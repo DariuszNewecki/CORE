@@ -26,8 +26,7 @@ from __future__ import annotations
 import time
 from typing import TYPE_CHECKING
 
-from shared.action_types import ActionImpact, ActionResult
-from shared.atomic_action import atomic_action
+from shared.action_types import ActionResult
 from shared.logger import getLogger
 from shared.models.workflow_models import DetailedPlan, ExecutionResults
 from will.agents.traced_agent_mixin import TracedAgentMixin
@@ -220,12 +219,6 @@ class ExecutionAgent(TracedAgentMixin):
         )
 
     # ID: c3d4e5f6-789a-bcde-f012-3456789abcde
-    @atomic_action(
-        action_id="will.execution._execute_step",
-        intent="Atomic action for _execute_step",
-        impact=ActionImpact.WRITE_CODE,
-        policies=["atomic_actions"],
-    )
     async def _execute_step(
         self,
         step,  # DetailedPlanStep
@@ -233,9 +226,14 @@ class ExecutionAgent(TracedAgentMixin):
     ) -> ActionResult:
         """
         Invokes the ActionExecutor for a single atomic action.
+
+        CONSTITUTIONAL NOTE: This is an internal orchestration method, NOT an
+        atomic action. Governance is enforced by ActionExecutor.execute() which
+        issues the governance token for each action it dispatches. Decorating
+        this method with @atomic_action would require a token that doesn't exist
+        at call time, causing GovernanceBypassError.
         """
         try:
-            # CONSTITUTIONAL FIX: Use self.write instead of hardcoded True
             result = await self.executor.execute(
                 action_id=step.action,
                 write=self.write,

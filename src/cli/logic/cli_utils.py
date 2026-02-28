@@ -3,7 +3,6 @@
 Provides centralized, reusable utilities for standardizing the console output
 and execution of all `core-admin` commands.
 
-CONSTITUTIONAL FIX:
 - Aligned with 'governance.artifact_mutation.traceable'.
 - Replaced direct Path writes with governed FileHandler mutations.
 - Enforces IntentGuard and audit logging for all CLI helper operations.
@@ -138,7 +137,6 @@ def save_yaml_file(path: Path, data: dict[str, Any], file_handler: FileHandler) 
     """Saves data to a YAML file via the governed FileHandler."""
     import yaml
 
-    # CONSTITUTIONAL FIX: Use governed mutation surface
     try:
         rel_path = str(path.resolve().relative_to(file_handler.repo_path.resolve()))
         content = yaml.dump(data, sort_keys=True)
@@ -177,7 +175,6 @@ def archive_rollback_plan(
     if not rollback_plan:
         return
 
-    # CONSTITUTIONAL FIX: Use FileHandler for directory creation and writes
     rel_rollbacks_dir = "var/mind/rollbacks"
     file_handler.ensure_dir(rel_rollbacks_dir)
 

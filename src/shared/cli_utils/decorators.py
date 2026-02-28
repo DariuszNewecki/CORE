@@ -6,11 +6,6 @@ Constitutional CLI Decorators.
 
 Provides the @core_command and @async_command wrappers which manage
 the asyncio lifecycle, JIT service injection, and database teardown.
-
-HEALED (V2.3.0):
-- Re-entrancy Support: Detects existing event loops to allow commands to call each other.
-- Context Robustness: Fallback to typer.get_current_context() to fix "System Error: Missing ctx".
-- Preserves V2.3.0 SAWarning hardening (explicit nullification and registry clearing).
 """
 
 from __future__ import annotations
@@ -150,7 +145,6 @@ def core_command(
                         console.print(res)
                     return res
                 finally:
-                    # HEALED V2.3.0: Aggressive cleanup to prevent SAWarning
                     if ctx and ctx.obj:
                         # 1. Clear service references from the Context object
                         for attr in [

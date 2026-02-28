@@ -69,7 +69,6 @@ async def action_sync_database(
             )
 
         async with get_session() as session:
-            # FIXED: Wrapped in begin() to ensure the sync is committed to the Mind
             async with session.begin():
                 result_obj = await run_sync_with_db(session)
 
@@ -112,7 +111,6 @@ async def action_sync_database(
     impact=ActionImpact.WRITE_CODE,
     policies=["atomic_actions"],
 )
-# ID: 9825c54f-d3a5-49cb-af17-8dde9f8366a8
 # ID: af6a56d0-b2d3-44fe-b6ea-55d6aed3768b
 async def action_sync_code_vectors(
     core_context: CoreContext, write: bool = False, force: bool = False
@@ -125,9 +123,6 @@ async def action_sync_code_vectors(
         logger.info("Vectorizing code symbols")
 
         async with get_session() as session:
-            # CRITICAL CONSTITUTIONAL FIX: Added session.begin()
-            # run_vectorize prepares the data, but session.begin() ensures the
-            # "Last Embedded" timestamps are actually SAVED in PostgreSQL.
             async with session.begin():
                 await run_vectorize(
                     context=core_context,
@@ -170,7 +165,6 @@ async def action_sync_code_vectors(
     impact=ActionImpact.WRITE_CODE,
     policies=["atomic_actions"],
 )
-# ID: 6995c29a-581a-499d-9b3d-6b9664b5963d
 # ID: b301871b-6205-4300-a76e-65d2ffa56c03
 async def action_sync_constitutional_vectors(
     core_context: CoreContext, write: bool = False

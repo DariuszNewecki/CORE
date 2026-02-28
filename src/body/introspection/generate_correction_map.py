@@ -18,7 +18,6 @@ from pathlib import Path
 
 import yaml
 
-# REFACTORED: Removed direct settings import
 from shared.exceptions import CoreError
 from shared.infrastructure.storage.file_handler import FileHandler
 from shared.logger import getLogger
@@ -57,7 +56,6 @@ def generate_maps(
     alias_map = {"aliases": proposed_domains}
     content_str = yaml.dump(alias_map, indent=2, sort_keys=True)
 
-    # CONSTITUTIONAL FIX: Use the governed mutation surface
     if repo_root is None:
         raise ValueError("repo_root is required")
     file_handler = FileHandler(str(repo_root))

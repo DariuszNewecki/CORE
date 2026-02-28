@@ -3,20 +3,15 @@
 """
 Records and explains autonomous decision-making chains.
 
-ENHANCEMENT: Persists to database for observability via `core-admin inspect decisions`.
+Persists to database for observability via `core-admin inspect decisions`.
 Maintains file-based backup for reliability (safe_by_default principle).
 
-CONSTITUTIONAL FIX:
-- Will does NOT import AsyncSession (or any DB primitives).
-- Will does NOT import FileHandler - uses FileService from Body layer
-- Callers do NOT pass sessions around.
-- DB persistence is performed via a repository opened through Body session factory.
-- File backup remains primary and must never fail due to DB issues.
-
-HEALED (V2.3.0):
-- Robust Path Resolution: Handles cases where PathResolver is None during
-  uninitialized bootstrap.
-- Standardized Sensation: Falls back to Path.cwd() if repo_root is unavailable.
+Constitutional Alignment:
+- Will does NOT import AsyncSession or any DB primitives
+- Will does NOT import FileHandler — uses FileService from Body layer
+- Callers do NOT pass sessions around
+- DB persistence is performed via a repository opened through Body session factory
+- File backup remains primary and must never fail due to DB issues
 """
 
 from __future__ import annotations
@@ -27,7 +22,6 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-# CONSTITUTIONAL FIX: Delegate to Body service instead of infrastructure primitive
 from body.services.file_service import FileService
 from shared.logger import getLogger
 from shared.path_resolver import PathResolver
@@ -56,9 +50,9 @@ class DecisionTracer:
     """
     Traces and explains autonomous decision chains.
 
-    CONSTITUTIONAL COMPLIANCE:
+    Constitutional Alignment:
     - Receives FileService from Body layer (no FileHandler import)
-    - No AsyncSession typing/import
+    - No AsyncSession typing or import
     - No session injection
     - DB persistence is optional and handled via repository/session context
     """
@@ -88,19 +82,16 @@ class DecisionTracer:
         self.decisions: list[Decision] = []
         self.start_time = datetime.now()
 
-        # Keep legacy location for file-based backup
         self.trace_dir = Path("reports") / "decisions"
 
-        # HEALED: Safe path resolution to prevent 'NoneType' crashes
-        # We try to get the repo_root from the resolver; if missing, we use Current Working Directory.
+        # Safe path resolution: use repo_root from resolver if available,
+        # fall back to cwd for uninitialized bootstrap contexts.
         resolved_root = Path.cwd()
         if self._paths and hasattr(self._paths, "repo_root"):
             resolved_root = self._paths.repo_root
 
-        # CONSTITUTIONAL FIX: Use injected FileService or create a default one
         self.file_service = file_service or FileService(resolved_root)
 
-        # Ensure directory exists via Body service (Governed Mutation)
         try:
             self.file_service.ensure_dir(str(self.trace_dir))
         except Exception:
@@ -168,7 +159,6 @@ class DecisionTracer:
         return "\n".join(lines)
 
     # ID: aa09fa09-8f93-496a-bea9-62d220708268
-    # ID: b7edb66b-3089-4c6a-bc65-ce9a25138df2
     async def save_trace(self) -> Path | None:
         """
         Save decision trace to file (always) and DB (best-effort).
@@ -184,12 +174,9 @@ class DecisionTracer:
             logger.warning("Failed to persist decision trace: %s", e)
             return None
 
+    # ID: b7edb66b-3089-4c6a-bc65-ce9a25138df2
     def _save_to_file(self) -> Path:
-        """
-        Save trace to file system.
-
-        CONSTITUTIONAL FIX: Uses FileService instead of FileHandler
-        """
+        """Save trace to filesystem via FileService."""
         filename = f"trace_{self.session_id}.json"
         rel_path = f"{self.trace_dir!s}/{filename}"
 
@@ -203,23 +190,21 @@ class DecisionTracer:
             indent=2,
         )
 
-        # CONSTITUTIONAL FIX: Use FileService.write_file
         self.file_service.write_file(rel_path, content)
         logger.debug("Decision trace file saved: %s", rel_path)
 
-        # Determine the return path
         if self._paths and hasattr(self._paths, "repo_root"):
             return self._paths.repo_root / rel_path
         return Path(rel_path)
 
+    # ID: c8f9a0b1-d2e3-4567-cdef-890123456789
     async def _save_to_database(self, trace_file: Path) -> None:
         """
-        Save to database (observability mechanism).
+        Save to database for observability.
 
         Constitutional Note:
-        - No session injection here.
-        - Repository opens its own session context (Body-owned).
-        - DB failures must never block execution (handled by caller).
+        - No session injection — repository opens its own session context (Body-owned)
+        - DB failures must never block execution (handled by caller)
         """
         from shared.infrastructure.repositories.decision_trace_repository import (
             DecisionTraceRepository,
@@ -253,6 +238,7 @@ class DecisionTracer:
             len(self.decisions),
         )
 
+    # ID: d9e0f1a2-b3c4-5678-defa-901234567890
     def _calculate_pattern_stats(self) -> dict[str, int]:
         """Calculate statistics about decision types."""
         stats: dict[str, int] = {}
@@ -261,6 +247,7 @@ class DecisionTracer:
             stats[t] = stats.get(t, 0) + 1
         return stats
 
+    # ID: e0f1a2b3-c4d5-6789-efab-012345678901
     def _check_violations(self) -> tuple[bool, int]:
         """Check if any decisions indicate violations."""
         violation_count = 0

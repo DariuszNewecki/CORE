@@ -63,7 +63,6 @@ class RuleFilter:
         return False
 
 
-# ID: 55e7e7ce-bce4-4c9e-aa65-62b4736cfde4
 # ID: 24e155df-a90f-4c36-825f-4446c4f3a142
 async def run_filtered_audit(
     context: AuditorContext,
@@ -86,7 +85,6 @@ async def run_filtered_audit(
     Returns:
         tuple(findings, executed_rules, stats)
     """
-    # CONSTITUTIONAL FIX: Local imports to break circular dependency
     from mind.governance.rule_executor import execute_rule
     from mind.governance.rule_extractor import extract_executable_rules
 

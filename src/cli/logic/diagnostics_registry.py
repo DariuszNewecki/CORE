@@ -41,7 +41,6 @@ async def manifest_hygiene(ctx: typer.Context) -> None:
     await auditor_context.load_knowledge_graph()
 
     # 2. Extract rules using the mandatory enforcement_loader
-    # CONSTITUTIONAL FIX: Passed enforcement_loader as the second argument
     all_rules = extract_executable_rules(
         auditor_context.policies, auditor_context.enforcement_loader
     )
@@ -133,7 +132,6 @@ async def check_legacy_tags(ctx: typer.Context) -> None:
     await auditor_context.load_knowledge_graph()
 
     # 2. Extract rules using the mandatory enforcement_loader
-    # CONSTITUTIONAL FIX: Passed enforcement_loader
     all_rules = extract_executable_rules(
         auditor_context.policies, auditor_context.enforcement_loader
     )

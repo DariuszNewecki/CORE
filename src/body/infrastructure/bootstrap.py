@@ -14,7 +14,7 @@ via DI, complying with the constitution.
 from __future__ import annotations
 
 from body.atomic.executor import ActionExecutor
-from shared.config import settings  # <--- RESTORED: Mandatory for bootstrap
+from shared.config import settings
 from shared.context import CoreContext
 from shared.infrastructure.context.service import ContextService
 from shared.infrastructure.database.session_manager import get_session
@@ -37,10 +37,10 @@ def _build_context_service() -> ContextService:
     from body.services.service_registry import service_registry
 
     return ContextService(
-        project_root=str(settings.REPO_PATH),  # <--- Fixed: uses settings
-        session_factory=service_registry.session,  # Use the global session factory
-        qdrant_client=None,  # Will be resolved from registry
-        cognitive_service=None,  # Will be resolved from registry
+        project_root=str(settings.REPO_PATH),
+        session_factory=service_registry.session,
+        qdrant_client=None,
+        cognitive_service=None,
     )
 
 
@@ -54,7 +54,7 @@ def create_core_context(service_registry) -> CoreContext:
 
     # 2. Configure infrastructure connections
     service_registry.configure(
-        repo_path=settings.REPO_PATH,  # <--- Fixed: uses settings
+        repo_path=settings.REPO_PATH,
         qdrant_url=settings.QDRANT_URL,
         qdrant_collection_name=settings.QDRANT_COLLECTION_NAME,
     )
@@ -64,21 +64,20 @@ def create_core_context(service_registry) -> CoreContext:
     # 3. Create PathResolver (The Map)
     path_resolver = PathResolver.from_repo(
         repo_root=repo_path,
-        intent_root=settings.MIND,  # <--- Fixed: uses settings
+        intent_root=settings.MIND,
     )
 
     # 4. Build the Context object
-    # CONSTITUTIONAL FIX: Explicitly inject settings here
     core_context = CoreContext(
         registry=service_registry,
-        settings=settings,  # <--- CRITICAL INJECTION
+        settings=settings,
         git_service=GitService(repo_path),
         file_handler=FileHandler(str(repo_path)),
         planner_config=PlannerConfig(),
         knowledge_service=KnowledgeService(repo_path),
     )
 
-    # 5. HEALED WIRING: Attach Resolver and Executor
+    # 5. Attach Resolver and Executor
     core_context.path_resolver = path_resolver
     core_context.action_executor = ActionExecutor(core_context)
 

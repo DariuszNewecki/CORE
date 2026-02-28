@@ -1,14 +1,8 @@
-# src/features/self_healing/test_generation/single_test_fixer.py
+# src/will/self_healing/test_generation/single_test_fixer.py
 # ID: bf2b0925-d12c-49f5-ae16-0dd3cb9d06f8
 
 """
 Single Test Fixer - Refined A3 Orchestrator.
-
-CONSTITUTIONAL FIX (V2.3.0):
-- Modularized to clear Modularity Debt (49.1 -> ~28.0).
-- Delegates parsing to 'TestFailureParser'.
-- Delegates file manipulation to 'TestExtractor'.
-- Focuses purely on AI fix orchestration.
 """
 
 from __future__ import annotations
@@ -18,7 +12,6 @@ from pathlib import Path
 from shared.logger import getLogger
 from will.orchestration.prompt_pipeline import PromptPipeline
 
-# CONSTITUTIONAL FIX: Relative imports of our new specialists
 from .failure_parser import TestFailureParser
 from .test_extractor import TestExtractor
 

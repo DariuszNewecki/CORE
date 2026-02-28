@@ -5,12 +5,6 @@
 Test verification workflow check.
 
 Verifies that the most recent test suite execution passed.
-
-CONSTITUTIONAL ALIGNMENT (V2.6.0):
-- Purified: Removed direct Body-layer import (service_registry) to resolve
-  architecture.mind.no_body_invocation.
-- Mind/Body Separation: Accesses the system ledger (DB) via the provided
-  context instead of creating its own connection.
 """
 
 from __future__ import annotations
@@ -44,8 +38,6 @@ class TestVerificationCheck(WorkflowCheck):
             file_path: Unused (context-level check)
             params: Must contain '_context' with an active 'db_session'
         """
-        # CONSTITUTIONAL FIX: Extract the session from the context provided in params.
-        # This prevents the Mind layer from reaching into the Body layer's registry.
         context = params.get("_context")
         session = getattr(context, "db_session", None)
 

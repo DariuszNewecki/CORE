@@ -1,0 +1,21 @@
+{
+    "$schema": "META/rule_document.schema.json",
+    "kind": "rule_document",
+    "metadata": {
+        "id": "rules.architecture.patterns",
+        "title": "Architectural Pattern Requirements",
+        "version": "1.0.0",
+        "authority": "constitution",
+        "phase": "audit",
+        "status": "active"
+    },
+    "rules": [
+        {
+            "id": "architecture.patterns.action_pattern",
+            "statement": "Action commands MUST use @atomic_action and have a 'write' parameter defaulting to False.",
+            "authority": "constitution",
+            "phase": "audit",
+            "enforcement": "blocking"
+        }
+    ]
+}

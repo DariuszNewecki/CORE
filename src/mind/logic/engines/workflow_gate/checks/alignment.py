@@ -4,12 +4,6 @@
 """
 Alignment verification workflow check.
 Refactored to be circular-safe and constitutionally compliant.
-
-CONSTITUTIONAL ALIGNMENT (V2.6.0):
-- Decoupled: Removed direct Body-layer import (service_registry).
-- Mind/Body Separation: Uses the database session provided by the context
-  instead of managing the session lifecycle itself.
-- Resolves architecture.mind.no_body_invocation violation.
 """
 
 from __future__ import annotations
@@ -62,8 +56,6 @@ class AlignmentVerificationCheck(WorkflowCheck):
             violations.append(f"File has {len(file_violations)} outstanding violations")
 
         # 2. External Sensation: Query the Body's Ledger (Database)
-        # CONSTITUTIONAL FIX: We extract the session from the context provided in params
-        # This prevents the Mind layer from importing Body-layer service registries.
         context = params.get("_context")
         session = getattr(context, "db_session", None)
 

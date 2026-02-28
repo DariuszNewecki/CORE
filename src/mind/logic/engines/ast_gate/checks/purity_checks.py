@@ -83,7 +83,6 @@ class PurityChecks:
         """Check for dangerous primitives (eval/exec) with trust-zone awareness."""
         violations, forbidden_set = [], {p.strip() for p in forbidden if p.strip()}
 
-        # CONSTITUTIONAL FIX: Delegate path sensation to substrate
         if file_path and allowed_domains:
             domain = ASTHelpers.extract_domain_from_path(file_path)
             if ASTHelpers.domain_matches(domain, allowed_domains):

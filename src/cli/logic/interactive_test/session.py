@@ -1,8 +1,9 @@
-# src/body/cli/logic/interactive_test/session.py
+# src/cli/logic/interactive_test/session.py
+# ID: 81af2623-d91d-40b6-8aa4-04018d46edc7
 
 """
 Interactive test generation session management.
-Constitutional Compliance: All mutations route through FileHandler.
+All mutations route through FileHandler (governed mutation surface).
 """
 
 from __future__ import annotations
@@ -30,24 +31,18 @@ class InteractiveSession:
     """
 
     def __init__(self, target_file: str, repo_root: Path):
-        """
-        Initialize interactive session.
-        """
+        """Initialize interactive session."""
         self.target_file = target_file
         self.repo_root = repo_root
 
-        # CONSTITUTIONAL FIX: Initialize the governed mutation surface
         self.file_handler = FileHandler(str(repo_root))
 
-        # Define session directory relative to repo root
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         self.rel_session_dir = f"work/interactive/{timestamp}"
         self.session_dir = repo_root / self.rel_session_dir
 
-        # CONSTITUTIONAL FIX: Use FileHandler to ensure directory existence
         self.file_handler.ensure_dir(self.rel_session_dir)
 
-        # Artifacts
         self.artifacts: dict[str, Path] = {}
         self.decisions: list[dict[str, Any]] = []
 
@@ -55,14 +50,9 @@ class InteractiveSession:
 
     # ID: 57038d43-1323-4e53-abe6-cc9a06c6ec46
     def save_artifact(self, name: str, content: str) -> Path:
-        """
-        Save an artifact using the governed FileHandler.
-        """
+        """Save an artifact using the governed FileHandler."""
         rel_path = f"{self.rel_session_dir}/{name}"
-
-        # CONSTITUTIONAL FIX: Use write_runtime_text instead of path.write_text
         self.file_handler.write_runtime_text(rel_path, content)
-
         path = self.repo_root / rel_path
         self.artifacts[name] = path
         logger.info("💾 Saved artifact: %s", name)
@@ -89,7 +79,6 @@ class InteractiveSession:
         if not old_path or not new_path:
             return "Diff not available (missing artifacts)"
 
-        # Reads are allowed by policy; only writes are restricted
         old_lines = old_path.read_text(encoding="utf-8").splitlines(keepends=True)
         new_lines = new_path.read_text(encoding="utf-8").splitlines(keepends=True)
 
@@ -102,8 +91,6 @@ class InteractiveSession:
 
         diff_content = "".join(diff)
         rel_diff_path = f"{self.rel_session_dir}/{old_name}_to_{new_name}.diff"
-
-        # CONSTITUTIONAL FIX: Governed write for the diff file
         self.file_handler.write_runtime_text(rel_diff_path, diff_content)
 
         return diff_content
@@ -111,11 +98,9 @@ class InteractiveSession:
     # ID: ed6926b4-a3a3-4e21-9bc2-4b399a70fb19
     def finalize(self) -> None:
         """Save final session metadata via FileHandler."""
-        # Save decisions log
         rel_decisions_path = f"{self.rel_session_dir}/decisions.json"
         self.file_handler.write_runtime_json(rel_decisions_path, self.decisions)
 
-        # Save session summary
         rel_summary_path = f"{self.rel_session_dir}/session.log"
         summary = [
             "Interactive Test Generation Session",

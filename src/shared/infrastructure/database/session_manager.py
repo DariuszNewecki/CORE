@@ -150,9 +150,6 @@ async def dispose_engine() -> None:
     if state is None:
         return
 
-    # CONSTITUTIONAL FIX: Muzzle the pool logger.
-    # This prevents SQLAlchemy from trying to log "connection closed"
-    # while Python is unloading the pathlib/logging modules.
     logging.getLogger("sqlalchemy.pool").setLevel(logging.CRITICAL)
 
     await state.engine.dispose()

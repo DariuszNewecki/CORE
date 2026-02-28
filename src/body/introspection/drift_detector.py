@@ -14,7 +14,6 @@ from __future__ import annotations
 from dataclasses import asdict
 from pathlib import Path
 
-# REFACTORED: Removed direct settings import
 from shared.infrastructure.storage.file_handler import FileHandler
 from shared.logger import getLogger
 from shared.models import CapabilityMeta, DriftReport
@@ -61,8 +60,6 @@ def write_report(path: Path, report: DriftReport, repo_root: Path) -> None:
     """
     Writes the drift report to a JSON file via the governed FileHandler.
     """
-    # CONSTITUTIONAL FIX: Use the governed mutation surface
-    # FileHandler automatically handles directory creation (mkdir) and checks IntentGuard.
     fh = FileHandler(str(repo_root))
 
     try:
