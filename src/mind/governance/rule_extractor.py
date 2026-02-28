@@ -136,7 +136,10 @@ def extract_executable_rules(
             # Determine if this is a context-level engine
             is_context_level = engine in CONTEXT_LEVEL_ENGINES
 
-            # Build executable rule from law + implementation
+            # Build executable rule from law + implementation.
+            # authority is threaded from the canonical rule so IntentGuard
+            # can distinguish "always-block" (constitution) from "advisory"
+            # (policy) without a global strict_mode override.
             executable_rule = ExecutableRule(
                 rule_id=rule_id,
                 engine=engine,
@@ -147,14 +150,16 @@ def extract_executable_rules(
                 exclusions=exclusions,
                 policy_id=policy_id,
                 is_context_level=is_context_level,
+                authority=canonical_rule["authority"],  # NEW: thread authority through
             )
 
             executable_rules.append(executable_rule)
 
             logger.debug(
-                "Extracted rule: %s (engine=%s, context_level=%s, scope=%d patterns)",
+                "Extracted rule: %s (engine=%s, authority=%s, context_level=%s, scope=%d patterns)",
                 rule_id,
                 engine,
+                canonical_rule["authority"],
                 is_context_level,
                 len(scope),
             )

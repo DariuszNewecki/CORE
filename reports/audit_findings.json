@@ -92,6 +92,24 @@
   {
     "check_id": "architecture.max_file_size",
     "severity": "warning",
+    "message": "Module has 459 lines, exceeds limit of 400",
+    "file_path": "src/will/agents/strategic_auditor/agent.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.max_file_size",
+    "severity": "warning",
+    "message": "Module has 603 lines, exceeds limit of 400",
+    "file_path": "src/will/agents/strategic_auditor/context_gatherer.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.max_file_size",
+    "severity": "warning",
     "message": "Module has 431 lines, exceeds limit of 400",
     "file_path": "src/will/autonomy/proposal.py",
     "line_number": null,
@@ -319,6 +337,33 @@
     "severity": "info",
     "message": "Forbidden primitive 'subprocess.run' used (line 75).",
     "file_path": "src/shared/utils/subprocess_utils.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "governance.dangerous_execution_primitives",
+    "severity": "info",
+    "message": "Forbidden primitive 'subprocess.run' used (line 541).",
+    "file_path": "src/will/agents/strategic_auditor/context_gatherer.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "governance.dangerous_execution_primitives",
+    "severity": "info",
+    "message": "Forbidden primitive 'subprocess.run' used (line 548).",
+    "file_path": "src/will/agents/strategic_auditor/context_gatherer.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "governance.dangerous_execution_primitives",
+    "severity": "info",
+    "message": "Forbidden primitive 'subprocess.run' used (line 555).",
+    "file_path": "src/will/agents/strategic_auditor/context_gatherer.py",
     "line_number": null,
     "context": {},
     "details": {}

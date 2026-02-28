@@ -26,6 +26,8 @@ class PolicyRule:
         source_policy: Policy file this rule came from
         engine: Optional engine ID for verification (e.g., "ast_gate")
         params: Optional parameters for engine execution
+        authority: Binding tier — "constitution" always blocks;
+                   "policy" blocks only when strict_mode=True
     """
 
     name: str
@@ -37,6 +39,8 @@ class PolicyRule:
     # Engine dispatch fields
     engine: str | None = None
     params: dict[str, Any] | None = None
+    # Binding tier — sourced from the rule's 'authority' field in .intent/
+    authority: str = "policy"
 
     @classmethod
     # ID: ef47b7d5-3232-4a9d-8edc-3532e70a92f2
@@ -48,6 +52,7 @@ class PolicyRule:
         {
           "id": "rule.name",
           "statement": "description",
+          "authority": "policy",
           "check": {
             "engine": "ast_gate",
             "params": {"check_type": "import_boundary", ...}
@@ -85,4 +90,5 @@ class PolicyRule:
             source_policy=source,
             engine=engine_id,
             params=params,
+            authority=str(data.get("authority", "policy")),
         )
