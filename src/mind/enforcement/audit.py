@@ -72,7 +72,6 @@ def lint() -> None:
     )
 
 
-# ID: 0a52d8ef-18a6-40c6-9ffe-95b9f9c295e4
 @atomic_action(
     action_id="test.system",
     intent="Atomic action for test_system",

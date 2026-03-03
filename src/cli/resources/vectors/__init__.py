@@ -1,4 +1,4 @@
-# src/body/cli/resources/vectors/__init__.py
+# src/cli/resources/vectors/__init__.py
 """Vector resource hub."""
 
 from __future__ import annotations

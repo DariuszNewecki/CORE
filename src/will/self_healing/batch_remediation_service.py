@@ -1,4 +1,4 @@
-# src/features/self_healing/batch_remediation_service.py
+# src/will/self_healing/batch_remediation_service.py
 
 """
 Batch test generation service for processing multiple files efficiently.

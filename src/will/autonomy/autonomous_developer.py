@@ -1,4 +1,4 @@
-# src/body/autonomy/autonomous_developer.py
+# src/will/autonomy/autonomous_developer.py
 
 """
 Autonomous Developer - Constitutional Workflow Edition

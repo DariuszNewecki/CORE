@@ -1,5 +1,4 @@
-# src/body/cli/commands/fix_logging.py
-# ID: ac59f003-160e-48e4-871e-85fbeb742aa9
+# src/cli/commands/fix_logging.py
 """
 AST-based automated remediation for logging standards violations.
 

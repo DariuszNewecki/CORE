@@ -1,4 +1,4 @@
-# src/features/quality/anchor.py
+# src/body/quality/anchor.py
 
 """
 Quality domain anchor.

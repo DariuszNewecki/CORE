@@ -1,5 +1,4 @@
-# src/body/cli/logic/audit_renderer.py
-# ID: 307b8ea7-8593-42cc-a259-0fbdc8580f9e
+# src/cli/logic/audit_renderer.py
 
 """
 Audit Renderer - Human-readable Rich output for constitutional audit results.

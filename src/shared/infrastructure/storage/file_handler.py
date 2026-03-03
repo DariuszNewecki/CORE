@@ -1,5 +1,4 @@
 # src/shared/infrastructure/storage/file_handler.py
-# ID: 9e64f98a-0740-4c5b-bc0e-f253b6a0af1e
 """
 Safe, auditable file operations with staged writes.
 """
@@ -24,7 +23,6 @@ from shared.path_resolver import PathResolver
 logger = getLogger(__name__)
 
 
-# ID: fe5be006-30f5-4d69-bfd6-c34a9708eb4d
 @dataclass(frozen=True)
 # ID: 0521c538-949d-4203-9ff3-5ba8934b297e
 class FileOpResult:

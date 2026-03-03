@@ -132,6 +132,34 @@ class LLMClient:
             self.provider.chat_completion, prompt, user_id
         )
 
+    # ID: fc56aaeb-0080-40a5-85b1-662ff3cab17e
+    async def make_request_with_system_async(
+        self,
+        prompt: str,
+        system_prompt: str,
+        user_id: str = "core_system",
+    ) -> str:
+        """
+        Makes a chat completion request with a constitutional system prompt.
+
+        This is the governed entry point used by PromptModel.invoke().
+        Direct callers should use PromptModel instead.
+
+        Args:
+            prompt: The user-turn content (filled template from user.txt).
+            system_prompt: The constitutional system prompt (from system.txt).
+            user_id: Identifier for audit tracing.
+
+        Returns:
+            Raw string response from the AI provider.
+        """
+        return await self._request_with_retry(
+            self.provider.chat_completion,
+            prompt,
+            user_id,
+            system_prompt,
+        )
+
     # ID: 7e13b689-e8ae-48ac-819b-44f8d3b97e22
     async def get_embedding(self, text: str) -> list[float]:
         """Gets an embedding using the configured provider with retries."""

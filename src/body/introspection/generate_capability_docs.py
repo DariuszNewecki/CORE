@@ -1,4 +1,4 @@
-# src/features/introspection/generate_capability_docs.py
+# src/body/introspection/generate_capability_docs.py
 """
 Generates the canonical capability reference documentation from the database.
 

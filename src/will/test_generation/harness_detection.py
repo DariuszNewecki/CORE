@@ -1,4 +1,4 @@
-# src/features/test_generation/harness_detection.py
+# src/will/test_generation/harness_detection.py
 
 """
 Harness Detection

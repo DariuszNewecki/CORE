@@ -1,4 +1,4 @@
-# src/body/cli/resources/context/search.py
+# src/cli/resources/context/search.py
 """
 Context search command - Direct pattern search.
 
@@ -91,7 +91,6 @@ async def _search_async(pattern: str, path: str | None, limit: int) -> None:
         )
 
 
-# ID: 48e206a5-a79f-4dfd-ada4-6e3154ec7040
 @app.command("search")
 # ID: 043f6c37-c919-447e-9a4b-eaca01e6d609
 def search(

@@ -1,5 +1,4 @@
-# src/body/cli/resources/database/cleanup.py
-# ID: b7c9c569-7d05-4520-ab2b-2f90cc06b1c5
+# src/cli/resources/database/cleanup.py
 """
 Database cleanup command.
 

@@ -1,4 +1,4 @@
-# src/features/self_healing/knowledge_consolidation_service.py
+# src/body/self_healing/knowledge_consolidation_service.py
 """
 Provides services for identifying and consolidating duplicated or common knowledge
 across the codebase, serving the 'dry_by_design' principle.

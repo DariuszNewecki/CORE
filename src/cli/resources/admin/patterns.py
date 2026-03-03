@@ -1,5 +1,4 @@
-# src/body/cli/resources/admin/patterns.py
-# ID: 8e945fc9-82ae-4ef7-a5fb-f296babaecd7
+# src/cli/resources/admin/patterns.py
 
 import typer
 

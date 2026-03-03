@@ -1,4 +1,4 @@
-# src/features/introspection/discovery/semantics.py
+# src/body/introspection/discovery/semantics.py
 
 """Provides functionality for the semantics module."""
 

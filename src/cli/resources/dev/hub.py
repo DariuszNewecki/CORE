@@ -1,5 +1,4 @@
-# src/body/cli/resources/dev/hub.py
-# ID: 93510675-6c6f-4b5a-8028-ba8f1b5a5b81
+# src/cli/resources/dev/hub.py
 
 import typer
 

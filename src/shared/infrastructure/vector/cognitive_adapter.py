@@ -1,5 +1,4 @@
 # src/shared/infrastructure/vector/cognitive_adapter.py
-# ID: b2601572-9c8a-44e6-9a68-836d7535cb16
 """
 CognitiveService Adapter for VectorIndexService
 
@@ -25,7 +24,6 @@ if TYPE_CHECKING:
 logger = getLogger(__name__)
 
 
-# ID: 879b1a9a-23db-40f3-ae35-86853dff835a
 # ID: b4c348a3-9d0e-4079-a6bd-eb93be95686f
 class CognitiveEmbedderAdapter:
     """

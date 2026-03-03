@@ -1,5 +1,4 @@
 # src/body/evaluators/base_evaluator.py
-# ID: 4b61c8d8-717b-4276-a53b-0f5d23383092
 """Base Evaluator Contract - The "Judge" Interface.
 
 PURIFIED (V2.3.0)

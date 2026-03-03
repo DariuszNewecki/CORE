@@ -1,4 +1,4 @@
-# src/body/cli/resources/constitution/__init__.py
+# src/cli/resources/constitution/__init__.py
 """Constitutional governance and policy operations."""
 
 from __future__ import annotations

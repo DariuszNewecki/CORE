@@ -147,7 +147,6 @@ class KnowledgeGraphBuilder:
 
         return []
 
-    # ID: 4b979a4f-4eb6-4104-929b-c83b72b744e5
     # ID: df77032e-a986-4846-8c38-9849daabe695
     def build(self) -> dict[str, Any]:
         """

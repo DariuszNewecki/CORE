@@ -1,5 +1,4 @@
 # src/will/self_healing/complexity_service.py
-# ID: f1d2e3b4-a5b6-7890-c1d2-e3f4a5b6c7d8
 
 """
 Complexity Remediation Service - V2.3 Adaptive Orchestrator.

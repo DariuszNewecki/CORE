@@ -1,4 +1,4 @@
-# src/body/cli/commands/status.py
+# src/cli/commands/status.py
 
 """
 Status command group.
@@ -40,7 +40,6 @@ async def _maybe_await(result: Any) -> None:
         await result  # type: ignore[misc]
 
 
-# ID: 7b2e5ad1-d6f6-4b84-9a5c-2b43d7a1fd9a
 @status_app.command("drift")
 @core_command(dangerous=False)
 # ID: a115dadd-b7a5-431e-97d1-82d2a92ffad2

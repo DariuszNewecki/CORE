@@ -1,10 +1,11 @@
-# src/body/cli/resources/vectors/sync.py
+# src/cli/resources/vectors/sync.py
 
 import typer
 from rich.console import Console
 
 from shared.cli_utils import core_command
 from shared.context import CoreContext
+from shared.models.command_meta import CommandBehavior, CommandLayer, command_meta
 
 from .hub import app  # ← CHANGE: Import from .hub
 
@@ -13,6 +14,13 @@ console = Console()
 
 
 @app.command("sync")
+@command_meta(
+    canonical_name="vectors.sync",
+    behavior=CommandBehavior.MUTATE,
+    layer=CommandLayer.BODY,
+    summary="Synchronize constitutional documents to vector collections.",
+    dangerous=True,
+)
 @core_command(requires_context=True, dangerous=True)
 # ID: 0cbd298d-6653-4519-8642-8a82b754b238
 async def sync_vectors(

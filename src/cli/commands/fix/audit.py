@@ -1,4 +1,4 @@
-# src/body/cli/commands/fix/audit.py
+# src/cli/commands/fix/audit.py
 """
 Audit remediation command for the 'fix' CLI group.
 
@@ -34,7 +34,6 @@ from . import console, fix_app
 
 @fix_app.command("audit")
 @core_command(dangerous=True, confirmation=True)
-# ID: dac5dfbd-9734-4fb4-bfc3-b6788e3dea96
 # ID: 5baef0d6-3323-4486-b95b-b9caf10d16f7
 async def fix_audit_command(
     ctx: typer.Context,

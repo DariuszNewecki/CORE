@@ -1,4 +1,4 @@
-# src/features/introspection/vectorization_service.py
+# src/body/introspection/vectorization_service.py
 
 """
 High-performance orchestrator for capability vectorization.

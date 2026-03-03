@@ -1,5 +1,4 @@
 # src/body/services/cim/models.py
-# ID: c08db93e-459d-4912-ac48-710948f97404
 
 """
 RepoCensus v1.0.0 Schema - CIM-0 artifact contract.

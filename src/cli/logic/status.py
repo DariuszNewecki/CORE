@@ -1,4 +1,4 @@
-# src/body/cli/logic/status.py
+# src/cli/logic/status.py
 """
 Diagnostic logic for 'core-admin inspect status'.
 

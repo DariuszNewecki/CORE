@@ -1,4 +1,4 @@
-# src/features/maintenance/refactor_to_providers.py
+# src/body/maintenance/refactor_to_providers.py
 
 """
 Constitutional Provider Refactoring Service
@@ -212,7 +212,6 @@ class ProviderRefactoringAnalyzer:
         )
 
 
-# ID: 0f5a2d06-9733-46f0-8b64-ca6ddf60f558
 # ID: c9c08c1c-754e-4595-ad5c-932d150dc78e
 async def analyze_layer_for_refactoring(repo_path: Path, layer: str) -> dict[str, Any]:
     """
@@ -269,7 +268,6 @@ async def analyze_layer_for_refactoring(repo_path: Path, layer: str) -> dict[str
     return results
 
 
-# ID: 19919e6c-aca2-4115-89c0-b7464e675270
 # ID: af2b6a8d-db1c-405a-b73b-8307bf382f8a
 def generate_refactoring_report(analysis_results: dict[str, Any]) -> str:
     """Generate human-readable refactoring report."""

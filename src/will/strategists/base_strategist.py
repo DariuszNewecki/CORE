@@ -1,5 +1,4 @@
 # src/will/strategists/base_strategist.py
-# ID: d6e4b5c7-e8f9-0123-defa-123456789013
 """Base Strategist - RUNTIME phase base class.
 
 All Will strategists make rule-based decisions without LLMs.

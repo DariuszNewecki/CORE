@@ -1,4 +1,4 @@
-# src/features/self_healing/coverage_analyzer.py
+# src/body/quality/coverage_analyzer.py
 
 """
 Analyzes codebase coverage and module structure.

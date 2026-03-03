@@ -1,4 +1,4 @@
-# src/body/cli/logic/interactive_test_logic.py
+# src/cli/logic/interactive_test_logic.py
 
 """
 Interactive test generation logic entry point.

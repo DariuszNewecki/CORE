@@ -1,4 +1,4 @@
-# src/features/introspection/discovery/from_source_scan.py
+# src/body/introspection/discovery/from_source_scan.py
 """
 Discovers implemented capabilities by performing a direct source code scan.
 This is a fallback for when the knowledge graph is not available.

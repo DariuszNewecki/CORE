@@ -1,5 +1,4 @@
-# src/body/cli/resources/database/migrate.py
-# ID: 578125b2-fce1-4b08-a9f5-ea21e50cc6ed
+# src/cli/resources/database/migrate.py
 """
 Database migration command.
 

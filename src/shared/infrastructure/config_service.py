@@ -1,5 +1,4 @@
 # src/shared/infrastructure/config_service.py
-# ID: 47832f5d-142a-4637-923a-f0f3d76d6b08
 
 """
 Configuration service that reads from the database as the single source of truth.

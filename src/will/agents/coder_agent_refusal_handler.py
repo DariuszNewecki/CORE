@@ -1,5 +1,4 @@
 # src/will/agents/coder_agent_refusal_handler.py
-# ID: e37553e8-a253-4bbd-a5b6-69a67416862b
 
 """
 RefusalResult handler for CoderAgent.

@@ -1,4 +1,4 @@
-# src/features/test_generation/phases/__init__.py
+# src/will/test_generation/phases/__init__.py
 
 """Test generation phases - modular workflow components."""
 

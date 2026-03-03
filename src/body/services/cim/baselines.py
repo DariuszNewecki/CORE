@@ -1,5 +1,4 @@
 # src/body/services/cim/baselines.py
-# ID: ed67426d-db81-4aa5-946a-edd4657bd457
 
 """
 CIM Baselines - Named anchors for comparison.

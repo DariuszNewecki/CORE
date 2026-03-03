@@ -1,4 +1,4 @@
-# src/features/operations/anchor.py
+# src/body/operations/anchor.py
 
 """
 Operations domain anchor.

@@ -1,5 +1,4 @@
-# src/features/self_healing/linelength_service.py
-# ID: 38f408b5-3490-4fb8-8bf4-c09b33ed5af8
+# src/will/self_healing/linelength_service.py
 
 """
 Implements the 'fix line-lengths' command, an AI-powered tool to

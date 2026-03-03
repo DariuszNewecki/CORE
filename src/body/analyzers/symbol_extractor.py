@@ -1,5 +1,4 @@
 # src/body/analyzers/symbol_extractor.py
-# ID: 45a15e98-cf61-4f87-b2b4-c023fb783654
 """Symbol Extractor - Extracts testable symbols from Python files.
 
 Constitutional Alignment:
@@ -28,7 +27,6 @@ from shared.logger import getLogger
 logger = getLogger(__name__)
 
 
-# ID: c9728355-9313-4ab3-9258-813393a0b195
 @dataclass
 # ID: 5d698d5b-f58e-4a4c-8ec4-5e6bf133888e
 class SymbolMetadata:

@@ -1,5 +1,4 @@
-# src/body/workflows/__init__.py
-# ID: a2cc3cee-595c-4632-b2e3-aeee71920b9d
+# src/will/workflows/__init__.py
 """
 Workflow Orchestrators - Constitutional Composition
 
@@ -14,8 +13,8 @@ Each workflow has:
 
 from __future__ import annotations
 
-from body.workflows.dev_sync_workflow import DevSyncWorkflow
 from shared.models.workflow_models import WorkflowResult
+from will.workflows.dev_sync_workflow import DevSyncWorkflow
 
 
 __all__ = [

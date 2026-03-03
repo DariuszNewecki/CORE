@@ -1,4 +1,4 @@
-# src/features/self_healing/vulture_healer.py
+# src/will/self_healing/vulture_healer.py
 
 """Refactored logic for src/features/self_healing/vulture_healer.py."""
 

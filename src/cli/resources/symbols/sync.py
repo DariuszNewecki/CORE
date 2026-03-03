@@ -1,9 +1,10 @@
-# src/body/cli/resources/symbols/sync.py
+# src/cli/resources/symbols/sync.py
 import typer
 from rich.console import Console
 
 from shared.cli_utils import core_command
 from shared.context import CoreContext
+from shared.models.command_meta import CommandBehavior, CommandLayer, command_meta
 
 from .hub import app
 
@@ -12,6 +13,13 @@ console = Console()
 
 
 @app.command("sync")
+@command_meta(
+    canonical_name="database.sync",
+    behavior=CommandBehavior.MUTATE,
+    layer=CommandLayer.BODY,
+    summary="Synchronize database with codebase symbols.",
+    dangerous=True,
+)
 @core_command(dangerous=True, requires_context=True)
 # ID: 1dfb133f-582d-4817-9450-c0c79e184c50
 async def sync_symbols(

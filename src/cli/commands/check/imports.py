@@ -1,4 +1,4 @@
-# src/body/cli/commands/check/imports.py
+# src/cli/commands/check/imports.py
 # ID: __REPLACE_WITH_UUID__
 
 """

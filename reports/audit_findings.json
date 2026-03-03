@@ -1,8 +1,359 @@
 [
   {
+    "check_id": "ai.prompt.model_required",
+    "severity": "error",
+    "message": "Line 163: direct call to 'make_request_async()' detected. Use PromptModel.invoke() instead. [ai.prompt.model_required]",
+    "file_path": "src/body/project_lifecycle/definition_service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "ai.prompt.model_required",
+    "severity": "error",
+    "message": "Line 50: direct call to 'make_request_async()' detected. Use PromptModel.invoke() instead. [ai.prompt.model_required]",
+    "file_path": "src/cli/logic/agent.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "ai.prompt.model_required",
+    "severity": "error",
+    "message": "Line 67: direct call to 'make_request_async()' detected. Use PromptModel.invoke() instead. [ai.prompt.model_required]",
+    "file_path": "src/cli/logic/body_contracts_fixer.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "ai.prompt.model_required",
+    "severity": "error",
+    "message": "Line 315: direct call to 'make_request()' detected. Use PromptModel.invoke() instead. [ai.prompt.model_required]",
+    "file_path": "src/mind/governance/assumption_extractor.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "ai.prompt.model_required",
+    "severity": "error",
+    "message": "Line 113: direct call to 'make_request()' detected. Use PromptModel.invoke() instead. [ai.prompt.model_required]",
+    "file_path": "src/mind/logic/engines/llm_gate.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "ai.prompt.model_required",
+    "severity": "error",
+    "message": "Line 162: direct call to 'make_request_async()' detected. Use PromptModel.invoke() instead. [ai.prompt.model_required]",
+    "file_path": "src/shared/infrastructure/clients/llm_api_client.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "ai.prompt.model_required",
+    "severity": "error",
+    "message": "Line 172: direct call to 'make_request_async()' detected. Use PromptModel.invoke() instead. [ai.prompt.model_required]",
+    "file_path": "src/will/agents/code_generation/code_generator.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "ai.prompt.model_required",
+    "severity": "error",
+    "message": "Line 104: direct call to 'make_request_async()' detected. Use PromptModel.invoke() instead. [ai.prompt.model_required]",
+    "file_path": "src/will/agents/code_generation/correction_engine.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "ai.prompt.model_required",
+    "severity": "error",
+    "message": "Line 158: direct call to 'make_request_async()' detected. Use PromptModel.invoke() instead. [ai.prompt.model_required]",
+    "file_path": "src/will/agents/coder_agent.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "ai.prompt.model_required",
+    "severity": "error",
+    "message": "Line 72: direct call to 'make_request_async()' detected. Use PromptModel.invoke() instead. [ai.prompt.model_required]",
+    "file_path": "src/will/agents/context_auditor.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "ai.prompt.model_required",
+    "severity": "error",
+    "message": "Line 145: direct call to 'make_request_async()' detected. Use PromptModel.invoke() instead. [ai.prompt.model_required]",
+    "file_path": "src/will/agents/conversational/agent.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "ai.prompt.model_required",
+    "severity": "error",
+    "message": "Line 56: direct call to 'make_request_async()' detected. Use PromptModel.invoke() instead. [ai.prompt.model_required]",
+    "file_path": "src/will/agents/intent_translator.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "ai.prompt.model_required",
+    "severity": "error",
+    "message": "Line 79: direct call to 'make_request_async()' detected. Use PromptModel.invoke() instead. [ai.prompt.model_required]",
+    "file_path": "src/will/agents/micro_planner.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "ai.prompt.model_required",
+    "severity": "error",
+    "message": "Line 139: direct call to 'make_request_async()' detected. Use PromptModel.invoke() instead. [ai.prompt.model_required]",
+    "file_path": "src/will/agents/planner_agent.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "ai.prompt.model_required",
+    "severity": "error",
+    "message": "Line 33: direct call to 'make_request_async()' detected. Use PromptModel.invoke() instead. [ai.prompt.model_required]",
+    "file_path": "src/will/agents/researcher_agent.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "ai.prompt.model_required",
+    "severity": "error",
+    "message": "Line 65: direct call to 'make_request_async()' detected. Use PromptModel.invoke() instead. [ai.prompt.model_required]",
+    "file_path": "src/will/agents/self_correction_engine.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "ai.prompt.model_required",
+    "severity": "error",
+    "message": "Line 239: direct call to 'make_request_async()' detected. Use PromptModel.invoke() instead. [ai.prompt.model_required]",
+    "file_path": "src/will/agents/strategic_auditor/agent.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "ai.prompt.model_required",
+    "severity": "error",
+    "message": "Line 271: direct call to 'make_request_async()' detected. Use PromptModel.invoke() instead. [ai.prompt.model_required]",
+    "file_path": "src/will/agents/tagger_agent.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "ai.prompt.model_required",
+    "severity": "error",
+    "message": "Line 158: direct call to 'make_request_async()' detected. Use PromptModel.invoke() instead. [ai.prompt.model_required]",
+    "file_path": "src/will/cli_logic/reviewer.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "ai.prompt.model_required",
+    "severity": "error",
+    "message": "Line 252: direct call to 'make_request_async()' detected. Use PromptModel.invoke() instead. [ai.prompt.model_required]",
+    "file_path": "src/will/cli_logic/reviewer.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "ai.prompt.model_required",
+    "severity": "error",
+    "message": "Line 80: direct call to 'make_request_async()' detected. Use PromptModel.invoke() instead. [ai.prompt.model_required]",
+    "file_path": "src/will/maintenance/metadata_scribe_service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "ai.prompt.model_required",
+    "severity": "error",
+    "message": "Line 119: direct call to 'make_request_async()' detected. Use PromptModel.invoke() instead. [ai.prompt.model_required]",
+    "file_path": "src/will/orchestration/self_correction_engine.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "ai.prompt.model_required",
+    "severity": "error",
+    "message": "Line 55: direct call to 'make_request_async()' detected. Use PromptModel.invoke() instead. [ai.prompt.model_required]",
+    "file_path": "src/will/self_healing/alignment/specialists.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "ai.prompt.model_required",
+    "severity": "error",
+    "message": "Line 93: direct call to 'make_request_async()' detected. Use PromptModel.invoke() instead. [ai.prompt.model_required]",
+    "file_path": "src/will/self_healing/alignment/specialists.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "ai.prompt.model_required",
+    "severity": "error",
+    "message": "Line 129: direct call to 'make_request_async()' detected. Use PromptModel.invoke() instead. [ai.prompt.model_required]",
+    "file_path": "src/will/self_healing/alignment/specialists.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "ai.prompt.model_required",
+    "severity": "error",
+    "message": "Line 81: direct call to 'make_request_async()' detected. Use PromptModel.invoke() instead. [ai.prompt.model_required]",
+    "file_path": "src/will/self_healing/capability_reconciliation_service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "ai.prompt.model_required",
+    "severity": "error",
+    "message": "Line 116: direct call to 'make_request_async()' detected. Use PromptModel.invoke() instead. [ai.prompt.model_required]",
+    "file_path": "src/will/self_healing/clarity_service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "ai.prompt.model_required",
+    "severity": "error",
+    "message": "Line 121: direct call to 'make_request_async()' detected. Use PromptModel.invoke() instead. [ai.prompt.model_required]",
+    "file_path": "src/will/self_healing/complexity_service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "ai.prompt.model_required",
+    "severity": "error",
+    "message": "Line 151: direct call to 'make_request_async()' detected. Use PromptModel.invoke() instead. [ai.prompt.model_required]",
+    "file_path": "src/will/self_healing/context_aware_test_generator.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "ai.prompt.model_required",
+    "severity": "error",
+    "message": "Line 134: direct call to 'make_request_async()' detected. Use PromptModel.invoke() instead. [ai.prompt.model_required]",
+    "file_path": "src/will/self_healing/enrichment_service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "ai.prompt.model_required",
+    "severity": "error",
+    "message": "Line 167: direct call to 'make_request_async()' detected. Use PromptModel.invoke() instead. [ai.prompt.model_required]",
+    "file_path": "src/will/self_healing/iterative_test_fixer.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "ai.prompt.model_required",
+    "severity": "error",
+    "message": "Line 107: direct call to 'make_request_async()' detected. Use PromptModel.invoke() instead. [ai.prompt.model_required]",
+    "file_path": "src/will/self_healing/linelength_service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "ai.prompt.model_required",
+    "severity": "error",
+    "message": "Line 151: direct call to 'make_request_async()' detected. Use PromptModel.invoke() instead. [ai.prompt.model_required]",
+    "file_path": "src/will/self_healing/simple_test_generator.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "ai.prompt.model_required",
+    "severity": "error",
+    "message": "Line 88: direct call to 'make_request_async()' detected. Use PromptModel.invoke() instead. [ai.prompt.model_required]",
+    "file_path": "src/will/self_healing/test_generation/generation_workflow.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "ai.prompt.model_required",
+    "severity": "error",
+    "message": "Line 92: direct call to 'make_request_async()' detected. Use PromptModel.invoke() instead. [ai.prompt.model_required]",
+    "file_path": "src/will/self_healing/test_generation/llm_correction.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "ai.prompt.model_required",
+    "severity": "error",
+    "message": "Line 55: direct call to 'make_request_async()' detected. Use PromptModel.invoke() instead. [ai.prompt.model_required]",
+    "file_path": "src/will/self_healing/test_generation/single_test_fixer.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "ai.prompt.model_required",
+    "severity": "error",
+    "message": "Line 77: direct call to 'make_request_async()' detected. Use PromptModel.invoke() instead. [ai.prompt.model_required]",
+    "file_path": "src/will/self_healing/vulture_healer.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "ai.prompt.model_required",
+    "severity": "error",
+    "message": "Line 134: direct call to 'make_request_async()' detected. Use PromptModel.invoke() instead. [ai.prompt.model_required]",
+    "file_path": "src/will/test_generation/helpers/test_executor.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "ai.prompt.output_validation_required",
+    "severity": "error",
+    "message": "Line 199: missing mandatory call(s): ['_validate_output']",
+    "file_path": "src/shared/ai/prompt_model.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
     "check_id": "logic.logging.standard_only",
     "severity": "warning",
-    "message": "Line 245: Replace print() with logger.",
+    "message": "Line 244: Replace print() with logger.",
     "file_path": "src/body/self_healing/handlers/import_sorting_handler.py",
     "line_number": null,
     "context": {},
@@ -11,7 +362,7 @@
   {
     "check_id": "logic.logging.standard_only",
     "severity": "warning",
-    "message": "Line 78: Replace print() with logger.",
+    "message": "Line 77: Replace print() with logger.",
     "file_path": "src/cli/resources/database/status.py",
     "line_number": null,
     "context": {},
@@ -20,7 +371,7 @@
   {
     "check_id": "architecture.max_file_size",
     "severity": "warning",
-    "message": "Module has 417 lines, exceeds limit of 400",
+    "message": "Module has 416 lines, exceeds limit of 400",
     "file_path": "src/body/atomic/executor.py",
     "line_number": null,
     "context": {},
@@ -29,7 +380,7 @@
   {
     "check_id": "architecture.max_file_size",
     "severity": "warning",
-    "message": "Module has 430 lines, exceeds limit of 400",
+    "message": "Module has 428 lines, exceeds limit of 400",
     "file_path": "src/body/evaluators/atomic_actions_evaluator.py",
     "line_number": null,
     "context": {},
@@ -47,7 +398,7 @@
   {
     "check_id": "architecture.max_file_size",
     "severity": "warning",
-    "message": "Module has 452 lines, exceeds limit of 400",
+    "message": "Module has 451 lines, exceeds limit of 400",
     "file_path": "src/body/maintenance/apply_provider_refactoring.py",
     "line_number": null,
     "context": {},
@@ -74,7 +425,7 @@
   {
     "check_id": "architecture.max_file_size",
     "severity": "warning",
-    "message": "Module has 502 lines, exceeds limit of 400",
+    "message": "Module has 499 lines, exceeds limit of 400",
     "file_path": "src/mind/governance/authority_package_builder.py",
     "line_number": null,
     "context": {},
@@ -110,7 +461,7 @@
   {
     "check_id": "architecture.max_file_size",
     "severity": "warning",
-    "message": "Module has 431 lines, exceeds limit of 400",
+    "message": "Module has 421 lines, exceeds limit of 400",
     "file_path": "src/will/autonomy/proposal.py",
     "line_number": null,
     "context": {},
@@ -119,7 +470,7 @@
   {
     "check_id": "architecture.max_file_size",
     "severity": "warning",
-    "message": "Module has 444 lines, exceeds limit of 400",
+    "message": "Module has 441 lines, exceeds limit of 400",
     "file_path": "src/will/interpreters/request_interpreter.py",
     "line_number": null,
     "context": {},
@@ -146,7 +497,7 @@
   {
     "check_id": "governance.dangerous_execution_primitives",
     "severity": "info",
-    "message": "Forbidden primitive 'os.environ' used (line 95).",
+    "message": "Forbidden primitive 'os.environ' used (line 94).",
     "file_path": "src/body/governance/runtime_validator.py",
     "line_number": null,
     "context": {},
@@ -200,7 +551,7 @@
   {
     "check_id": "governance.dangerous_execution_primitives",
     "severity": "info",
-    "message": "Forbidden primitive 'compile' used (line 120).",
+    "message": "Forbidden primitive 'compile' used (line 116).",
     "file_path": "src/body/services/policy_expression_evaluator.py",
     "line_number": null,
     "context": {},
@@ -209,7 +560,7 @@
   {
     "check_id": "governance.dangerous_execution_primitives",
     "severity": "info",
-    "message": "Forbidden primitive 'eval' used (line 124).",
+    "message": "Forbidden primitive 'eval' used (line 120).",
     "file_path": "src/body/services/policy_expression_evaluator.py",
     "line_number": null,
     "context": {},
@@ -218,7 +569,7 @@
   {
     "check_id": "governance.dangerous_execution_primitives",
     "severity": "info",
-    "message": "Forbidden primitive 'subprocess.run' used (line 137).",
+    "message": "Forbidden primitive 'subprocess.run' used (line 136).",
     "file_path": "src/cli/commands/check/quality_gates.py",
     "line_number": null,
     "context": {},
@@ -227,7 +578,7 @@
   {
     "check_id": "governance.dangerous_execution_primitives",
     "severity": "info",
-    "message": "Forbidden primitive 'subprocess.run' used (line 135).",
+    "message": "Forbidden primitive 'subprocess.run' used (line 134).",
     "file_path": "src/cli/commands/check/quality_gates.py",
     "line_number": null,
     "context": {},
@@ -290,7 +641,7 @@
   {
     "check_id": "governance.dangerous_execution_primitives",
     "severity": "info",
-    "message": "Forbidden primitive 'subprocess.run' used (line 128).",
+    "message": "Forbidden primitive 'subprocess.run' used (line 127).",
     "file_path": "src/shared/infrastructure/repositories/db/common.py",
     "line_number": null,
     "context": {},
@@ -335,7 +686,7 @@
   {
     "check_id": "governance.dangerous_execution_primitives",
     "severity": "info",
-    "message": "Forbidden primitive 'subprocess.run' used (line 75).",
+    "message": "Forbidden primitive 'subprocess.run' used (line 74).",
     "file_path": "src/shared/utils/subprocess_utils.py",
     "line_number": null,
     "context": {},
@@ -407,6 +758,15 @@
   {
     "check_id": "modularity.single_responsibility",
     "severity": "warning",
+    "message": "Modularity Debt: 55.7/100 (Limit: 60.0)",
+    "file_path": "src/cli/commands/check/formatters.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "modularity.single_responsibility",
+    "severity": "warning",
     "message": "Modularity Debt: 61.1/100 (Limit: 60.0)",
     "file_path": "src/cli/commands/governance.py",
     "line_number": null,
@@ -416,7 +776,16 @@
   {
     "check_id": "modularity.single_responsibility",
     "severity": "warning",
-    "message": "Modularity Debt: 54.1/100 (Limit: 60.0)",
+    "message": "Modularity Debt: 55.9/100 (Limit: 60.0)",
+    "file_path": "src/cli/resources/context/build.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "modularity.single_responsibility",
+    "severity": "warning",
+    "message": "Modularity Debt: 54.0/100 (Limit: 60.0)",
     "file_path": "src/mind/governance/authority_package_builder.py",
     "line_number": null,
     "context": {},
@@ -443,7 +812,16 @@
   {
     "check_id": "modularity.single_responsibility",
     "severity": "warning",
-    "message": "Modularity Debt: 49.3/100 (Limit: 60.0)",
+    "message": "Modularity Debt: 54.8/100 (Limit: 60.0)",
+    "file_path": "src/shared/ai/prompt_model.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "modularity.single_responsibility",
+    "severity": "warning",
+    "message": "Modularity Debt: 49.2/100 (Limit: 60.0)",
     "file_path": "src/will/orchestration/workflow_orchestrator.py",
     "line_number": null,
     "context": {},
@@ -488,6 +866,15 @@
   {
     "check_id": "modularity.semantic_cohesion",
     "severity": "warning",
+    "message": "Modularity Debt: 55.7/100 (Limit: 60.0)",
+    "file_path": "src/cli/commands/check/formatters.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "modularity.semantic_cohesion",
+    "severity": "warning",
     "message": "Modularity Debt: 61.1/100 (Limit: 60.0)",
     "file_path": "src/cli/commands/governance.py",
     "line_number": null,
@@ -497,7 +884,16 @@
   {
     "check_id": "modularity.semantic_cohesion",
     "severity": "warning",
-    "message": "Modularity Debt: 54.1/100 (Limit: 60.0)",
+    "message": "Modularity Debt: 55.9/100 (Limit: 60.0)",
+    "file_path": "src/cli/resources/context/build.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "modularity.semantic_cohesion",
+    "severity": "warning",
+    "message": "Modularity Debt: 54.0/100 (Limit: 60.0)",
     "file_path": "src/mind/governance/authority_package_builder.py",
     "line_number": null,
     "context": {},
@@ -524,7 +920,16 @@
   {
     "check_id": "modularity.semantic_cohesion",
     "severity": "warning",
-    "message": "Modularity Debt: 49.3/100 (Limit: 60.0)",
+    "message": "Modularity Debt: 54.8/100 (Limit: 60.0)",
+    "file_path": "src/shared/ai/prompt_model.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "modularity.semantic_cohesion",
+    "severity": "warning",
+    "message": "Modularity Debt: 49.2/100 (Limit: 60.0)",
     "file_path": "src/will/orchestration/workflow_orchestrator.py",
     "line_number": null,
     "context": {},
@@ -569,6 +974,15 @@
   {
     "check_id": "modularity.import_coupling",
     "severity": "warning",
+    "message": "Modularity Debt: 55.7/100 (Limit: 60.0)",
+    "file_path": "src/cli/commands/check/formatters.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "modularity.import_coupling",
+    "severity": "warning",
     "message": "Modularity Debt: 61.1/100 (Limit: 60.0)",
     "file_path": "src/cli/commands/governance.py",
     "line_number": null,
@@ -578,7 +992,16 @@
   {
     "check_id": "modularity.import_coupling",
     "severity": "warning",
-    "message": "Modularity Debt: 54.1/100 (Limit: 60.0)",
+    "message": "Modularity Debt: 55.9/100 (Limit: 60.0)",
+    "file_path": "src/cli/resources/context/build.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "modularity.import_coupling",
+    "severity": "warning",
+    "message": "Modularity Debt: 54.0/100 (Limit: 60.0)",
     "file_path": "src/mind/governance/authority_package_builder.py",
     "line_number": null,
     "context": {},
@@ -605,7 +1028,16 @@
   {
     "check_id": "modularity.import_coupling",
     "severity": "warning",
-    "message": "Modularity Debt: 49.3/100 (Limit: 60.0)",
+    "message": "Modularity Debt: 54.8/100 (Limit: 60.0)",
+    "file_path": "src/shared/ai/prompt_model.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "modularity.import_coupling",
+    "severity": "warning",
+    "message": "Modularity Debt: 49.2/100 (Limit: 60.0)",
     "file_path": "src/will/orchestration/workflow_orchestrator.py",
     "line_number": null,
     "context": {},
@@ -650,6 +1082,15 @@
   {
     "check_id": "modularity.refactor_score_threshold",
     "severity": "warning",
+    "message": "Modularity Debt: 55.7/100 (Limit: 60.0)",
+    "file_path": "src/cli/commands/check/formatters.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "modularity.refactor_score_threshold",
+    "severity": "warning",
     "message": "Modularity Debt: 61.1/100 (Limit: 60.0)",
     "file_path": "src/cli/commands/governance.py",
     "line_number": null,
@@ -659,7 +1100,16 @@
   {
     "check_id": "modularity.refactor_score_threshold",
     "severity": "warning",
-    "message": "Modularity Debt: 54.1/100 (Limit: 60.0)",
+    "message": "Modularity Debt: 55.9/100 (Limit: 60.0)",
+    "file_path": "src/cli/resources/context/build.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "modularity.refactor_score_threshold",
+    "severity": "warning",
+    "message": "Modularity Debt: 54.0/100 (Limit: 60.0)",
     "file_path": "src/mind/governance/authority_package_builder.py",
     "line_number": null,
     "context": {},
@@ -686,7 +1136,16 @@
   {
     "check_id": "modularity.refactor_score_threshold",
     "severity": "warning",
-    "message": "Modularity Debt: 49.3/100 (Limit: 60.0)",
+    "message": "Modularity Debt: 54.8/100 (Limit: 60.0)",
+    "file_path": "src/shared/ai/prompt_model.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "modularity.refactor_score_threshold",
+    "severity": "warning",
+    "message": "Modularity Debt: 49.2/100 (Limit: 60.0)",
     "file_path": "src/will/orchestration/workflow_orchestrator.py",
     "line_number": null,
     "context": {},
@@ -697,6 +1156,15 @@
     "severity": "warning",
     "message": "Modularity Debt: 50.4/100 (Limit: 60.0)",
     "file_path": "src/will/test_generation/sandbox.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.boundary.settings_access",
+    "severity": "error",
+    "message": "/opt/dev/CORE/src/will/self_healing/docstring_service.py:19 - Forbidden import: 'from shared.config import settings' (matches constitutional boundary rule: shared.config.settings)",
+    "file_path": "src/will/self_healing/docstring_service.py",
     "line_number": null,
     "context": {},
     "details": {}
@@ -731,7 +1199,7 @@
   {
     "check_id": "purity.no_todo_placeholders",
     "severity": "warning",
-    "message": "Forbidden Content [Line 126]: Matched restricted regex '\\bTBD\\b'",
+    "message": "Forbidden Content [Line 125]: Matched restricted regex '\\bTBD\\b'",
     "file_path": "src/body/self_healing/duplicate_id_service.py",
     "line_number": null,
     "context": {},
@@ -740,8 +1208,17 @@
   {
     "check_id": "purity.no_todo_placeholders",
     "severity": "warning",
-    "message": "Forbidden Content [Line 190]: Matched restricted regex '\\bTBD\\b'",
+    "message": "Forbidden Content [Line 189]: Matched restricted regex '\\bTBD\\b'",
     "file_path": "src/body/self_healing/duplicate_id_service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_todo_placeholders",
+    "severity": "warning",
+    "message": "Forbidden Content [Line 65]: Matched restricted regex '\\bTODO\\b'",
+    "file_path": "src/cli/logic/legacy_scan_logic.py",
     "line_number": null,
     "context": {},
     "details": {}
@@ -758,7 +1235,7 @@
   {
     "check_id": "purity.no_todo_placeholders",
     "severity": "warning",
-    "message": "Forbidden Content [Line 67]: Matched restricted regex '\\bTODO\\b'",
+    "message": "Forbidden Content [Line 71]: Matched restricted regex '\\bFIXME\\b'",
     "file_path": "src/cli/logic/legacy_scan_logic.py",
     "line_number": null,
     "context": {},
@@ -776,16 +1253,7 @@
   {
     "check_id": "purity.no_todo_placeholders",
     "severity": "warning",
-    "message": "Forbidden Content [Line 73]: Matched restricted regex '\\bFIXME\\b'",
-    "file_path": "src/cli/logic/legacy_scan_logic.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_todo_placeholders",
-    "severity": "warning",
-    "message": "Forbidden Content [Line 74]: Matched restricted regex '\\bTODO\\b'",
+    "message": "Forbidden Content [Line 73]: Matched restricted regex '\\bTODO\\b'",
     "file_path": "src/cli/resources/admin/legacy.py",
     "line_number": null,
     "context": {},
@@ -794,7 +1262,7 @@
   {
     "check_id": "purity.no_todo_placeholders",
     "severity": "warning",
-    "message": "Forbidden Content [Line 79]: Matched restricted regex '\\bTODO\\b'",
+    "message": "Forbidden Content [Line 78]: Matched restricted regex '\\bTODO\\b'",
     "file_path": "src/cli/resources/admin/legacy.py",
     "line_number": null,
     "context": {},
@@ -803,7 +1271,7 @@
   {
     "check_id": "purity.no_todo_placeholders",
     "severity": "warning",
-    "message": "Forbidden Content [Line 79]: Matched restricted regex '\\bFIXME\\b'",
+    "message": "Forbidden Content [Line 78]: Matched restricted regex '\\bFIXME\\b'",
     "file_path": "src/cli/resources/admin/legacy.py",
     "line_number": null,
     "context": {},
@@ -907,7 +1375,7 @@
   {
     "check_id": "workflow.dead_code_check",
     "severity": "warning",
-    "message": "Dead code detected: src/body/governance/runtime_validator.py:157: unused variable 'dst_root' (100% confidence)",
+    "message": "Dead code detected: src/body/governance/runtime_validator.py:156: unused variable 'dst_root' (100% confidence)",
     "file_path": "System",
     "line_number": null,
     "context": {},

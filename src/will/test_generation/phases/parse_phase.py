@@ -1,4 +1,4 @@
-# src/features/test_generation/phases/parse_phase.py
+# src/will/test_generation/phases/parse_phase.py
 
 """Parse phase - validates file paths and permissions."""
 

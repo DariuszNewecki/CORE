@@ -1,4 +1,4 @@
-# src/body/cli/commands/search.py
+# src/cli/commands/search.py
 """
 Registers the 'search' command group.
 Refactored to use the Constitutional CLI Framework (@core_command).

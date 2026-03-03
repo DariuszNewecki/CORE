@@ -1,5 +1,4 @@
 # src/body/introspection/knowledge_graph_service.py
-# ID: 66489cb7-ecc7-4d3d-8e31-0e93d159458c
 
 """
 Knowledge Graph Builder - Sensory-Aware logic service.

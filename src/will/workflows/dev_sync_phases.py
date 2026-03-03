@@ -1,4 +1,4 @@
-# src/body/cli/workflows/dev_sync_phases.py
+# src/will/workflows/dev_sync_phases.py
 """
 Dev sync workflow phase execution.
 
@@ -12,15 +12,15 @@ from typing import Any
 
 from rich.console import Console
 
-from cli.workflows.dev_sync_reporter import DevSyncReporter
-from cli.workflows.phases import (
+from shared.context import CoreContext
+from will.workflows.dev_sync_reporter import DevSyncReporter
+from will.workflows.phases import (
     CodeAnalysisPhase,
     CodeFixersPhase,
     DatabaseSyncPhase,
     QualityChecksPhase,
     VectorizationPhase,
 )
-from shared.context import CoreContext
 
 
 # ID: 1d7f96e0-3fc3-4453-ae6b-e42aa17504b9

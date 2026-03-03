@@ -1,4 +1,4 @@
-# src/body/cli/logic/proposals/crypto.py
+# src/cli/logic/proposals/crypto.py
 
 """Refactored logic for src/body/cli/logic/proposals/crypto.py."""
 

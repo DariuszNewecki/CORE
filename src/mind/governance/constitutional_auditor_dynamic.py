@@ -1,5 +1,4 @@
 # src/mind/governance/constitutional_auditor_dynamic.py
-# ID: b8f3e9d7-6c2a-5e4f-9d8c-7b6a3e5f2c1d
 
 """
 Dynamic Rule Execution Integration.

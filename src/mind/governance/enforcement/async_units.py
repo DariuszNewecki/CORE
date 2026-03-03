@@ -1,5 +1,4 @@
 # src/mind/governance/enforcement/async_units.py
-# ID: f0e1d2c3-b4a5-6789-0abc-def123456789
 
 """
 Async Enforcement Units - Dynamic Rule Execution Primitives.

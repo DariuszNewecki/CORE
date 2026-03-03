@@ -1,4 +1,4 @@
-# src/body/cli/resources/project/__init__.py
+# src/cli/resources/project/__init__.py
 """Project lifecycle and onboarding operations."""
 
 from __future__ import annotations

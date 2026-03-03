@@ -1,4 +1,4 @@
-# src/body/cli/logic/duplicates.py
+# src/cli/logic/duplicates.py
 
 """
 Logic for the 'inspect duplicates' command.

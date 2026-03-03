@@ -1,4 +1,4 @@
-# src/body/cli/resources/__init__.py
+# src/cli/resources/__init__.py
 """
 Resource-first CLI command modules.
 

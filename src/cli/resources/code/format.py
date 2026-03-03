@@ -1,4 +1,4 @@
-# src/body/cli/resources/code/format.py
+# src/cli/resources/code/format.py
 import typer
 from rich.console import Console
 

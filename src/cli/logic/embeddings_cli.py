@@ -1,4 +1,4 @@
-# src/body/cli/logic/embeddings_cli.py
+# src/cli/logic/embeddings_cli.py
 
 """
 CLI wiring for embeddings & vectorization commands.

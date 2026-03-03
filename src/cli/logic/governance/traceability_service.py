@@ -1,5 +1,4 @@
-# src/body/cli/logic/governance/traceability_service.py
-# ID: 7f8a9b0c-1d2e-3f4a-5b6c-7d8e9f0a1b2c
+# src/cli/logic/governance/traceability_service.py
 
 """
 Governance Traceability Service - Phase 3 Hardening.

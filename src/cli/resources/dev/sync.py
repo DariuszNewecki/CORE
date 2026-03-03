@@ -1,9 +1,10 @@
-# src/body/cli/resources/dev/sync.py
+# src/cli/resources/dev/sync.py
 import typer
 from rich.console import Console
 
-from body.workflows.dev_sync_workflow import DevSyncWorkflow
 from shared.cli_utils import core_command
+from shared.models.command_meta import CommandBehavior, CommandLayer, command_meta
+from will.workflows.dev_sync_workflow import DevSyncWorkflow
 
 from .hub import app
 
@@ -12,6 +13,13 @@ console = Console()
 
 
 @app.command("sync")
+@command_meta(
+    canonical_name="dev.sync",
+    behavior=CommandBehavior.MUTATE,
+    layer=CommandLayer.WILL,
+    summary="Run complete developer synchronization workflow.",
+    dangerous=True,
+)
 @core_command(dangerous=True, requires_context=True, confirmation=True)
 # ID: 05c5113b-3613-4b56-be33-c680c6b7e74f
 async def sync_workflow(

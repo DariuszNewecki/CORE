@@ -1,5 +1,4 @@
 # src/body/atomic/registry.py
-# ID: f04360ba-957e-456e-99ab-8bf7bc05da54
 """
 Atomic Actions Registry - Constitutional Action Definitions
 
@@ -229,6 +228,7 @@ def register_action(
             impact=ActionImpact.WRITE_CODE,
             policies=["atomic_actions"],
         )
+        # ID: 1d250faf-e28d-4a6c-b1de-aeccf68891a8
         async def format_code(write: bool = False) -> ActionResult:
             ...
     """

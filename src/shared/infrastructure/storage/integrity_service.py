@@ -1,5 +1,4 @@
 # src/shared/infrastructure/storage/integrity_service.py
-# ID: 174a817b-2d3e-4f5c-8b2c-3d4e5f6a7b8c
 
 """
 Integrity Service - Phase 2 Hardening.

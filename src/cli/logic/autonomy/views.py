@@ -1,4 +1,4 @@
-# src/body/cli/logic/autonomy/views.py
+# src/cli/logic/autonomy/views.py
 
 """Refactored logic for src/body/cli/logic/autonomy/views.py."""
 

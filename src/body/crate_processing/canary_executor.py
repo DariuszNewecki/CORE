@@ -1,4 +1,4 @@
-# src/features/crate_processing/canary_executor.py
+# src/body/crate_processing/canary_executor.py
 
 """
 Canary Policy Enforcement.

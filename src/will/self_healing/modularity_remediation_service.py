@@ -1,5 +1,4 @@
 # src/will/self_healing/modularity_remediation_service.py
-# ID: 122a3749-facf-4734-85e7-59b82dc61057
 """Constitutional modularity remediation service.
 
 Closed-loop remediation:

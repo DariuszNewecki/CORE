@@ -1,4 +1,4 @@
-# src/features/self_healing/complexity_filter.py
+# src/body/self_healing/complexity_filter.py
 
 """
 Provides a simple, stateless filter to determine if a file's complexity

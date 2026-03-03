@@ -1,5 +1,4 @@
-# src/body/cli/resources/code/check_ui.py
-# ID: c1b2a3d4-e5f6-7890-abcd-ef1234567892
+# src/cli/resources/code/check_ui.py
 
 """
 Code UI Compliance Action.

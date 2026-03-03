@@ -1,5 +1,4 @@
 # src/body/atomic/__init__.py
-# ID: 1bb527ea-58b3-492b-8d8a-77e18fb0c035
 """
 Atomic Actions - Constitutional Action System
 """
@@ -23,7 +22,6 @@ from body.atomic.file_ops import (
     action_read_file,
 )
 from body.atomic.fix_actions import (
-    action_fix_docstrings,
     action_fix_headers,
     action_fix_ids,
     action_fix_logging,
@@ -47,7 +45,6 @@ __all__ = [
     "action_create_crate",
     "action_create_file",
     "action_edit_file",
-    "action_fix_docstrings",
     "action_fix_format",
     "action_fix_headers",
     "action_fix_ids",

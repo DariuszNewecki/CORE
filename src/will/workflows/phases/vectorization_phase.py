@@ -1,4 +1,4 @@
-# src/body/cli/workflows/phases/vectorization_phase.py
+# src/will/workflows/phases/vectorization_phase.py
 """Vectorization phase - constitutional vectors and knowledge graph."""
 
 from __future__ import annotations
@@ -11,13 +11,13 @@ import typer
 from rich.console import Console
 
 from body.introspection.vectorization_service import run_vectorize
-from cli.workflows.dev_sync_reporter import DevSyncReporter
 from shared.action_types import ActionResult
 from shared.context import CoreContext
 from shared.infrastructure.vector.adapters.constitutional_adapter import (
     ConstitutionalAdapter,
 )
 from shared.infrastructure.vector.vector_index_service import VectorIndexService
+from will.workflows.dev_sync_reporter import DevSyncReporter
 
 
 # ID: dfc4107b-e6e6-42f6-b037-d1f160eda92b

@@ -1,4 +1,4 @@
-# src/features/introspection/knowledge_helpers.py
+# src/body/introspection/knowledge_helpers.py
 
 """
 Helper utilities for knowledge graph vectorization:

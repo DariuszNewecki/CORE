@@ -1,5 +1,4 @@
 # src/will/orchestration/workflow_orchestrator.py
-# ID: 875fc9d9-1a3d-4b6d-9ae5-33aa0dd32429
 
 """
 Constitutional Workflow Orchestrator
@@ -59,7 +58,6 @@ class WorkflowContext:
         self.results = {}
 
 
-# ID: 01b61b8c-6a18-42b1-9794-ef037cc0dcee
 # ID: 8d6f2fb6-98b9-4ddc-9fd6-c161ccbac956
 class WorkflowOrchestrator:
     """
@@ -99,7 +97,6 @@ class WorkflowOrchestrator:
             timeout_minutes=data.get("timeout_minutes", 30),
         )
 
-    # ID: 0ffaf1e2-09e2-4471-ad1b-f65c1e969593
     # ID: 754633b1-65fe-4cbb-b83b-c97a06cfac23
     async def execute_goal(
         self,

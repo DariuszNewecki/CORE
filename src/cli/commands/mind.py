@@ -1,4 +1,4 @@
-# src/body/cli/commands/mind.py
+# src/cli/commands/mind.py
 
 """
 Registers the 'mind' command group for managing the Working Mind's SSOT.

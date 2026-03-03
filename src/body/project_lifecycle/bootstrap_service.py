@@ -1,4 +1,4 @@
-# src/features/project_lifecycle/bootstrap_service.py
+# src/body/project_lifecycle/bootstrap_service.py
 
 """
 Provides CLI commands for bootstrapping the project with initial setup tasks,

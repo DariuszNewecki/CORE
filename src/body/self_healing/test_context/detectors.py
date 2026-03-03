@@ -1,4 +1,4 @@
-# src/features/self_healing/test_context/detectors.py
+# src/body/self_healing/test_context/detectors.py
 
 """Refactored logic for src/features/self_healing/test_context/detectors.py."""
 

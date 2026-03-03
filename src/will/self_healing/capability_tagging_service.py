@@ -1,4 +1,4 @@
-# src/features/self_healing/capability_tagging_service.py
+# src/will/self_healing/capability_tagging_service.py
 
 """
 Service logic for applying capability tags to untagged public symbols

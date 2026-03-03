@@ -1,5 +1,4 @@
-# src/features/self_healing/memory_cleanup_service.py
-# ID: cdd06098-1089-41d7-a5e9-8f06570fd189
+# src/body/maintenance/memory_cleanup_service.py
 
 """
 Memory cleanup service - business logic for retention policies.

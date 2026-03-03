@@ -72,7 +72,6 @@ class ArtifactSaver:
         # Save individual code artifacts
         for i, step in enumerate(steps, 1):
             # COMPATIBILITY LAYER — modularity refactor (params is now Pydantic TaskParams)
-            # ID: 7c2a9f3e-4d5b-8e1f-9a2c-3b6d7e8f1a9b
             params = self._get_params_dict(step.params)
             if params.get("code"):
                 self._save_code_artifact(

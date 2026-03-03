@@ -1,4 +1,4 @@
-# src/body/cli/commands/fix_governed.py
+# src/cli/commands/fix_governed.py
 
 """
 Fix Commands with Constitutional Governance Integration.

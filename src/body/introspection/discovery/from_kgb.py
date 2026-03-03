@@ -1,4 +1,4 @@
-# src/features/introspection/discovery/from_kgb.py
+# src/body/introspection/discovery/from_kgb.py
 """
 Discovers implemented capabilities by leveraging the KnowledgeGraphBuilder.
 """

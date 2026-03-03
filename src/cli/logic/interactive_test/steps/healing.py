@@ -1,4 +1,4 @@
-# src/body/cli/logic/interactive_test/steps/healing.py
+# src/cli/logic/interactive_test/steps/healing.py
 
 """Refactored logic for src/body/cli/logic/interactive_test/steps/healing.py."""
 

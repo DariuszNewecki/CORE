@@ -1,5 +1,4 @@
-# src/features/self_healing/duplicate_id_service.py
-# ID: 5891cbbe-ae62-4743-92fa-2e204ca5fa13
+# src/body/self_healing/duplicate_id_service.py
 
 """
 Provides a service to find and resolve duplicate '# ID:' UUIDs in the codebase.

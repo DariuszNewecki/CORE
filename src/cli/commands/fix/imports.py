@@ -1,4 +1,4 @@
-# src/body/cli/commands/fix/imports.py
+# src/cli/commands/fix/imports.py
 
 """
 Import organization commands for the 'fix' CLI group.

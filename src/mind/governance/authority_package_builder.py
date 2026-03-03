@@ -51,7 +51,6 @@ if TYPE_CHECKING:
 logger = getLogger(__name__)
 
 
-# ID: 389ab748-8667-484e-8bab-72eb9d223547
 @dataclass
 # ID: d9b1775a-7f7f-443c-9570-41df4c3be408
 class PolicyMatch:
@@ -76,7 +75,6 @@ class PolicyMatch:
     """Semantic similarity to user intent (0.0-1.0)"""
 
 
-# ID: 5e63beb8-8b3f-4dae-a97f-98a7ddd650e7
 @dataclass
 # ID: f6f2803a-debd-4f41-b227-03dd7f122d4b
 class ConstitutionalContradiction:
@@ -94,7 +92,6 @@ class ConstitutionalContradiction:
     """What user must decide"""
 
 
-# ID: 73a10fe0-8c31-4fa3-9272-ac486449bbaf
 @dataclass
 # ID: 9e6b554b-598c-4fca-b638-325ee34c4391
 class AuthorityPackage:

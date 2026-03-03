@@ -1,5 +1,4 @@
 # src/will/phases/code_generation_phase.py
-# ID: f6ad5be7-dde6-467b-8edf-767dfe62bfa2
 
 """
 Code Generation Phase - Intelligent Reflex Pipe.

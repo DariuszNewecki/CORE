@@ -18,7 +18,6 @@ from shared.logger import getLogger
 logger = getLogger(__name__)
 
 
-# ID: 8cb3ef3c-7fc4-4cc4-8549-cede1ab10f42
 # ID: 2c2de8fa-dddf-43db-ae01-37cb457b674d
 class TaskRepository:
     """Repository pattern for Task entity - constitutional DB access layer."""

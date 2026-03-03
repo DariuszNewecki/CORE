@@ -1,5 +1,4 @@
-# src/body/cli/resources/code/audit.py
-# ID: e4570c9b-6eab-4ee5-86d2-7a772532dbc3
+# src/cli/resources/code/audit.py
 """Constitutional Audit CLI Command.
 
 Updated (V2.6.0)
@@ -21,6 +20,7 @@ from rich.console import Console
 from body.services.file_service import FileService
 from body.services.service_registry import service_registry
 from cli.commands.check.converters import parse_min_severity
+from cli.commands.check.formatters import print_context_build_hints
 from cli.logic.audit_renderer import AuditStats, render_detail, render_overview
 from mind.governance.audit_postprocessor import apply_entry_point_downgrade
 from mind.governance.audit_report_writer import build_auto_ignored_markdown
@@ -160,4 +160,5 @@ async def audit_command(
     if verbose:
         render_detail(console, [f for f in all_findings if f.severity >= min_severity])
     if not results["passed"]:
+        print_context_build_hints(all_findings)
         raise typer.Exit(1)

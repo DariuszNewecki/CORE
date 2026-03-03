@@ -1,4 +1,4 @@
-# src/features/test_generation/helpers/test_executor.py
+# src/will/test_generation/helpers/test_executor.py
 
 """Test executor - generates, validates, and sandboxes single tests."""
 

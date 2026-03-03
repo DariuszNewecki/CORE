@@ -1,4 +1,4 @@
-# src/body/cli/commands/fix/modularity.py
+# src/cli/commands/fix/modularity.py
 
 """
 Automated Modularity Healing.

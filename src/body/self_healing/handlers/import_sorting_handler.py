@@ -1,4 +1,4 @@
-# src/features/self_healing/handlers/import_sorting_handler.py
+# src/body/self_healing/handlers/import_sorting_handler.py
 """
 Import sorting handler for audit remediation.
 
@@ -25,7 +25,6 @@ from shared.models import AuditFinding
 logger = getLogger(__name__)
 
 
-# ID: 5b8dfa55-7c11-492a-b691-37089a031a35
 # ID: fb0168b4-bf66-496f-a739-0fed60bc6f5a
 async def sort_imports_handler(
     finding: AuditFinding,

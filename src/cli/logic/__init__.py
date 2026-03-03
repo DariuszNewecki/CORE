@@ -1,4 +1,4 @@
-# src/body/cli/logic/__init__.py
+# src/cli/logic/__init__.py
 """
 This file marks the 'commands' directory as a Python package,
 allowing command modules to be imported from here.

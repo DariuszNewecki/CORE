@@ -15,6 +15,8 @@ from .base import AIProvider
 
 logger = getLogger(__name__)
 
+_DEFAULT_SYSTEM = "You are a helpful assistant."
+
 
 # ID: b170ee96-52c0-4ee4-86fb-19912fe2ab0b
 class AnthropicProvider(AIProvider):
@@ -31,24 +33,38 @@ class AnthropicProvider(AIProvider):
         }
 
     # ID: 9365b99e-d511-4bd1-8ed7-427083922c63
-    async def chat_completion(self, prompt: str, user_id: str) -> str:
-        """Generates a chat completion using the Anthropic Messages API."""
+    async def chat_completion(
+        self,
+        prompt: str,
+        user_id: str,
+        system_prompt: str = "",
+    ) -> str:
+        """
+        Generates a chat completion using the Anthropic Messages API.
+
+        Args:
+            prompt: User-turn content.
+            user_id: Audit identifier.
+            system_prompt: Constitutional system prompt. Anthropic uses a top-level
+                           'system' field — NOT a system role in messages.
+        """
         base = self.api_url.rstrip("/")
         endpoint = f"{base}/v1/messages"
-        payload = {
+        payload: dict = {
             "model": self.model_name,
             "max_tokens": 4096,
+            "system": (
+                system_prompt.strip() if system_prompt.strip() else _DEFAULT_SYSTEM
+            ),
             "messages": [{"role": "user", "content": prompt}],
         }
 
-        # Do not log secrets or partial secrets (API key) under any circumstances.
         logger.debug("Anthropic Req: %s | Model: %s", endpoint, self.model_name)
 
         async with httpx.AsyncClient(timeout=self.timeout) as client:
             response = await client.post(endpoint, headers=self.headers, json=payload)
 
             if response.status_code == 401:
-                # Explicitly avoid logging x-api-key (even partially).
                 logger.error(
                     "Anthropic request unauthorized (401). Verify API key configuration. "
                     "Endpoint=%s Model=%s",
@@ -62,6 +78,7 @@ class AnthropicProvider(AIProvider):
 
     # ID: e167c2ab-f8dc-4d67-9177-1ae28ddb3a9a
     async def get_embedding(self, text: str) -> list[float]:
+        """Not supported by Anthropic."""
         raise NotImplementedError(
             "Anthropic does not provide a native embedding endpoint."
         )

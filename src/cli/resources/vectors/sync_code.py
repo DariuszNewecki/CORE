@@ -1,10 +1,11 @@
-# src/body/cli/resources/vectors/sync_code.py
+# src/cli/resources/vectors/sync_code.py
 
 import typer
 from rich.console import Console
 
 from shared.cli_utils import core_command
 from shared.context import CoreContext
+from shared.models.command_meta import CommandBehavior, CommandLayer, command_meta
 
 from .hub import app
 
@@ -13,6 +14,13 @@ console = Console()
 
 
 @app.command("sync-code")
+@command_meta(
+    canonical_name="vectors.sync-code",
+    behavior=CommandBehavior.MUTATE,
+    layer=CommandLayer.BODY,
+    summary="Synchronize codebase symbol embeddings.",
+    dangerous=True,
+)
 @core_command(dangerous=True, requires_context=True)
 # ID: a9f31fb5-2395-4a71-98c1-6817239c24cb
 async def sync_code_cmd(

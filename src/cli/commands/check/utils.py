@@ -1,4 +1,4 @@
-# src/body/cli/commands/check/utils.py
+# src/cli/commands/check/utils.py
 """
 Utility functions for check commands.
 

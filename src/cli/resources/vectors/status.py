@@ -1,4 +1,4 @@
-# src/body/cli/resources/vectors/status.py
+# src/cli/resources/vectors/status.py
 import typer
 from rich.console import Console
 from rich.table import Table

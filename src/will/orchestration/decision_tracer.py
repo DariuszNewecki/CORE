@@ -1,5 +1,4 @@
 # src/will/orchestration/decision_tracer.py
-# ID: 30f57718-590d-4f76-9181-e10fc42120a9
 """
 Records and explains autonomous decision-making chains.
 

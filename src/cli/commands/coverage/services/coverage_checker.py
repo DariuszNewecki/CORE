@@ -1,4 +1,4 @@
-# src/body/cli/commands/coverage/services/coverage_checker.py
+# src/cli/commands/coverage/services/coverage_checker.py
 """Service for checking coverage against constitutional requirements."""
 
 from __future__ import annotations

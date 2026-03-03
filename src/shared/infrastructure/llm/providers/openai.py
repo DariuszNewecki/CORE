@@ -11,6 +11,9 @@ import httpx
 from .base import AIProvider
 
 
+_DEFAULT_SYSTEM = "You are a helpful assistant."
+
+
 # ID: d73fe343-cad0-459e-9850-a9365a2be942
 class OpenAIProvider(AIProvider):
     """Provider for OpenAI-compatible chat and embedding APIs."""
@@ -22,12 +25,31 @@ class OpenAIProvider(AIProvider):
         return headers
 
     # ID: 14948fa2-8ab2-4e16-addf-de5c1d24a807
-    async def chat_completion(self, prompt: str, user_id: str) -> str:
-        """Generates a chat completion using the OpenAI format."""
+    async def chat_completion(
+        self,
+        prompt: str,
+        user_id: str,
+        system_prompt: str = "",
+    ) -> str:
+        """
+        Generates a chat completion using the OpenAI format.
+
+        Args:
+            prompt: User-turn content.
+            user_id: Audit identifier.
+            system_prompt: Constitutional system prompt sent as the first
+                           system-role message in the conversation.
+        """
         endpoint = f"{self.api_url}/chat/completions"
+        effective_system = (
+            system_prompt.strip() if system_prompt.strip() else _DEFAULT_SYSTEM
+        )
         payload = {
             "model": self.model_name,
-            "messages": [{"role": "user", "content": prompt}],
+            "messages": [
+                {"role": "system", "content": effective_system},
+                {"role": "user", "content": prompt},
+            ],
             "user": user_id,
         }
         async with httpx.AsyncClient(timeout=self.timeout) as client:

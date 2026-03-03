@@ -1,4 +1,4 @@
-# src/body/cli/commands/fix/handler_discovery.py
+# src/cli/commands/fix/handler_discovery.py
 """
 Action discovery command - Scans for Atomic Actions in the registry.
 """

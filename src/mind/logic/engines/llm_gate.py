@@ -1,5 +1,4 @@
 # src/mind/logic/engines/llm_gate.py
-# ID: cfbb2c03-0bed-4a50-a8fa-83cfda4533d4
 
 """
 Semantic Reasoning Auditor.

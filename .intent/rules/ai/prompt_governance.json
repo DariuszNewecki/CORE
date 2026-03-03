@@ -1,0 +1,46 @@
+{
+    "$schema": "META/rule_document.schema.json",
+    "kind": "rule_document",
+    "metadata": {
+        "id": "rules.ai.prompt_governance",
+        "title": "AI Prompt Governance",
+        "version": "1.0.0",
+        "authority": "policy",
+        "phase": "audit",
+        "status": "active"
+    },
+    "rules": [
+        {
+            "id": "ai.prompt.model_required",
+            "statement": "All AI invocations MUST be mediated by a PromptModel artifact. Direct calls to make_request_async() or make_request() with inline string prompts are PROHIBITED outside of the PromptModel implementation itself.",
+            "enforcement": "blocking",
+            "authority": "policy",
+            "phase": "audit",
+            "rationale": "Inline prompts are ungoverned, untestable, and bypass constitutional standards. PromptModels ensure every AI call carries validated context, a system prompt grounded in .intent/ policy, reference examples, and an output contract. This is the AI equivalent of 'no direct writes' — all mutations route through governed surfaces."
+        },
+        {
+            "id": "ai.prompt.model_artifact_required",
+            "statement": "Every PromptModel MUST have a model.yaml manifest declaring: id, version, role, input.required fields, output.format, and success_criteria.",
+            "enforcement": "blocking",
+            "authority": "policy",
+            "phase": "audit",
+            "rationale": "An incomplete PromptModel artifact is as dangerous as an inline prompt. The manifest is the contract — without it, there is no governance."
+        },
+        {
+            "id": "ai.prompt.system_prompt_required",
+            "statement": "Every PromptModel MUST include a system.txt file. An empty or missing system prompt defaults to 'You are a helpful assistant.' which provides zero constitutional grounding.",
+            "enforcement": "blocking",
+            "authority": "policy",
+            "phase": "audit",
+            "rationale": "The system prompt is where constitutional law is communicated to the AI. It is the equivalent of a role's .intent/ policy document. Omitting it removes all governance from the invocation."
+        },
+        {
+            "id": "ai.prompt.output_validation_required",
+            "statement": "PromptModel invocations MUST validate the AI response against the output contract defined in model.yaml before returning to the caller.",
+            "enforcement": "blocking",
+            "authority": "policy",
+            "phase": "runtime",
+            "rationale": "An unvalidated AI response can contain violations of constitutional standards. Output validation at the PromptModel layer is the last line of defense before unvetted content enters the system."
+        }
+    ]
+}

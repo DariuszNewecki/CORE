@@ -1,4 +1,4 @@
-# src/body/cli/commands/check/formatters.py
+# src/cli/commands/check/formatters.py
 
 """
 Output formatters for audit results.
@@ -9,6 +9,7 @@ All formatting logic lives here - keeps command code clean.
 
 from __future__ import annotations
 
+import re
 from collections import defaultdict
 
 from rich.console import Console
@@ -81,7 +82,6 @@ def print_summary_findings(findings: list[AuditFinding]) -> None:
         AuditSeverity.INFO: "[dim]INFO[/dim]",
     }
 
-    # Sort by severity (highest first), then by check_id
     sorted_items = sorted(
         grouped_findings.items(),
         key=lambda item: (item[0][1], item[0][0]),
@@ -189,7 +189,6 @@ def print_migration_delta(*, legacy_executed: set[str], v2_rule_ids: set[str]) -
 
     console.print(table)
 
-    # Show a small sample for actionability (avoid spam)
     def _sample(values: list[str], n: int = 15) -> str:
         if not values:
             return "-"
@@ -210,3 +209,152 @@ def print_migration_delta(*, legacy_executed: set[str], v2_rule_ids: set[str]) -
     details.add_row("V2-only (new coverage not in legacy evidence)", _sample(v2_only))
 
     console.print(details)
+
+
+# -- Context Build Hints -------------------------------------------------------
+
+_CHECK_TO_TASK: dict[str, str] = {
+    "test": "test_generation",
+    "coverage": "test_generation",
+    "docstring": "code_modification",
+    "linkage": "code_modification",
+    "architecture": "code_modification",
+    "agent": "code_modification",
+    "safety": "code_modification",
+    "ai": "code_modification",
+    "purity": "code_modification",
+    "modularity": "code_modification",
+    "logic": "code_modification",
+    "workflow": "code_modification",
+}
+
+# file_path values that are not real filesystem paths
+_SKIP_FILE_PREFIXES = ("DB", "none", "None", "System", "/")
+
+# Identifiers that look like symbols but are actually call patterns, not targets
+_CALL_PATTERNS = {"make_request_async", "make_request", "invoke", "print", "logger"}
+
+
+# file_path must look like a real src/ path
+def _is_real_file_path(file_path: str) -> bool:
+    """Return True only for real source file paths."""
+    if not file_path:
+        return False
+    if any(file_path.startswith(p) for p in _SKIP_FILE_PREFIXES):
+        return False
+    if not file_path.endswith(".py"):
+        return False
+    return True
+
+
+# ID: context-build-hints-infer-task
+def _infer_task_type(check_id: str) -> str:
+    """Map check_id prefix to the most appropriate context build task type."""
+    check_lower = check_id.lower()
+    for prefix, task in _CHECK_TO_TASK.items():
+        if check_lower.startswith(prefix):
+            return task
+    return "code_modification"
+
+
+# ID: context-build-hints-extract-symbol
+def _extract_symbol(finding: AuditFinding) -> str | None:
+    """
+    Try to extract a symbol name from a finding.
+
+    Priority:
+    1. context["symbol_key"] / context["symbol_path"]
+    2. context["name"] / context["symbol_name"]
+    3. Parse message — only class/function names, not call patterns
+    """
+    ctx = finding.context or {}
+
+    symbol_key = ctx.get("symbol_key") or ctx.get("symbol_path")
+    if symbol_key:
+        name = str(symbol_key).split("::")[-1].strip()
+        if name and name not in _CALL_PATTERNS:
+            return name
+
+    name = ctx.get("name") or ctx.get("symbol_name")
+    if name and str(name).strip() not in _CALL_PATTERNS:
+        return str(name).strip()
+
+    # Parse single-quoted identifier from message — but skip call patterns
+    match = re.search(r"'([A-Za-z_][A-Za-z0-9_]*)'", finding.message or "")
+    if match:
+        candidate = match.group(1)
+        if candidate not in _CALL_PATTERNS:
+            return candidate
+
+    return None
+
+
+# ID: context-build-hints-print
+def print_context_build_hints(findings: list[AuditFinding]) -> None:
+    """
+    Print exact context build commands for actionable findings.
+
+    Bridges audit output directly to the AI workflow with zero manual translation.
+    Only emits hints for ERROR/WARNING findings with real .py file paths,
+    deduplicated by (file, symbol) pair.
+    """
+    actionable = [
+        f
+        for f in findings
+        if _is_real_file_path(str(f.file_path or ""))
+        and f.severity >= AuditSeverity.WARNING
+    ]
+
+    if not actionable:
+        return
+
+    seen: set[tuple[str, str | None]] = set()
+    hints: list[tuple[AuditFinding, str | None]] = []
+    for f in actionable:
+        symbol = _extract_symbol(f)
+        key = (str(f.file_path), symbol)
+        if key not in seen:
+            seen.add(key)
+            hints.append((f, symbol))
+
+    console.print()
+    console.print(
+        Panel(
+            f"[dim]{len(hints)} actionable location(s). "
+            "Run the command below for each, then paste the output to Claude.[/dim]",
+            title="[bold cyan]AI Workflow — Next Steps[/bold cyan]",
+            expand=False,
+        )
+    )
+
+    severity_icon = {
+        AuditSeverity.ERROR: "[bold red]ERROR[/bold red]",
+        AuditSeverity.WARNING: "[bold yellow]WARN [/bold yellow]",
+    }
+
+    for finding, symbol in hints:
+        file_path = str(finding.file_path)
+        task = _infer_task_type(finding.check_id)
+        icon = severity_icon.get(finding.severity, "")
+
+        console.print(f"\n  {icon} [magenta]{finding.check_id}[/magenta]")
+        console.print(f"  [dim]{finding.message[:100]}[/dim]")
+
+        if symbol:
+            console.print(
+                f"\n  [green]core-admin context build \\\n"
+                f"      --file {file_path} \\\n"
+                f"      --symbol {symbol} \\\n"
+                f"      --task {task} \\\n"
+                f"      --output var/context_for_claude.md[/green]"
+            )
+        else:
+            # Have file but no symbol — build without --symbol
+            console.print(
+                f"\n  [green]core-admin context build \\\n"
+                f"      --file {file_path} \\\n"
+                f"      --task {task} \\\n"
+                f"      --output var/context_for_claude.md[/green]"
+            )
+
+    console.print()

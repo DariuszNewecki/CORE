@@ -1,5 +1,4 @@
 # src/mind/logic/engines/workflow_gate/checks/coverage.py
-# ID: da762458-0ca4-4bbf-8991-8230291e8cfc
 
 """
 Coverage verification workflow check.

@@ -1,5 +1,4 @@
-# src/body/workflows/dev_sync_workflow.py
-# ID: ef65dfd2-cd77-48d0-beeb-332246e27eb4
+# src/will/workflows/dev_sync_workflow.py
 
 """
 Dev Sync Workflow - Constitutional Orchestration
@@ -32,7 +31,6 @@ if TYPE_CHECKING:
 logger = getLogger(__name__)
 
 
-# ID: 834371ad-d69b-4c29-9f4d-7694a4a05179
 # ID: b1c2d3e4-5f6a-7b8c-9d0e-1f2a3b4c5d6e
 class DevSyncWorkflow:
     """
@@ -44,7 +42,6 @@ class DevSyncWorkflow:
         # The ActionExecutor is the central gateway for all changes
         self.executor = ActionExecutor(context)
 
-    # ID: 4a082bd8-28f6-4821-a3a5-365e243c1df2
     # ID: c2d3e4f5-6a7b-8c9d-0e1f-2a3b4c5d6e7f
     async def run(self, *, write: bool = False) -> WorkflowResult:
         """Execute the complete dev-sync workflow."""
@@ -78,15 +75,20 @@ class DevSyncWorkflow:
         phase = WorkflowPhase(name="fix")
         logger.info("📝 Phase 1: Fix (Code Compliance) [write=%s]", write)
 
-        # Action: Fix IDs (ID: fix.ids)
+        # Action: Fix file headers (must run before IDs to avoid prepend conflicts)
+        res = await self.executor.execute(action_id="fix.headers", write=write)
+        phase.actions.append(res)
+
+        # Action: Fix IDs
         res = await self.executor.execute(action_id="fix.ids", write=write)
         phase.actions.append(res)
 
-        # Action: Add docstrings (ID: fix.docstrings)
-        res = await self.executor.execute(action_id="fix.docstrings", write=write)
-        phase.actions.append(res)
+        # TEMPORARILY DISABLED: Run fix.docstrings separately (bulk initial pass)
+        #        # Action: Add docstrings
+        #        res = await self.executor.execute(action_id="fix.docstrings", write=write)
+        #        phase.actions.append(res)
 
-        # Action: Format code (ID: fix.format)
+        # Action: Format code (always last — cleans up after all other fixers)
         res = await self.executor.execute(action_id="fix.format", write=write)
         phase.actions.append(res)
 

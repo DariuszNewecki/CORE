@@ -1,5 +1,4 @@
 # src/mind/logic/engines/ast_gate/checks/purity_checks.py
-# ID: 6b2a85b5-2b76-4db7-bfb4-4f3a8b7b5f11
 
 """
 Purity Checks - Deterministic AST-based enforcement.

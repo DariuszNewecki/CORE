@@ -1,5 +1,4 @@
-# src/body/cli/admin_cli.py
-# ID: b05ac309-b737-4171-8b03-42b3ea403ffa
+# src/cli/admin_cli.py
 
 """
 CORE Admin CLI - The Constitutional Command Center.

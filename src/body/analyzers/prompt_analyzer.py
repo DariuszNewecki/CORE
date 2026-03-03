@@ -1,5 +1,4 @@
 # src/body/analyzers/prompt_analyzer.py
-# ID: 230dbdcb-b444-4078-8241-094f785b6e85
 
 """
 Prompt Analyzer - PARSE Phase Component.

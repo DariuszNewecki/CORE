@@ -1,4 +1,4 @@
-# src/features/self_healing/simple_test_generator.py
+# src/will/self_healing/simple_test_generator.py
 
 """
 Ultra-simple test generator: one symbol at a time, keep what works.

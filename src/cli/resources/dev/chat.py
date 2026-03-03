@@ -1,5 +1,4 @@
-# src/body/cli/resources/dev/chat.py
-# ID: 7a328b95-ba3f-484e-ac04-fc4b12f12f00
+# src/cli/resources/dev/chat.py
 
 """
 AI-assisted CLI command translation.

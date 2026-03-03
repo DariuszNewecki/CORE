@@ -1,5 +1,4 @@
-# src/features/self_healing/fix_manifest_hygiene.py
-# ID: 186b49f2-f06a-49b6-95f7-0e7fd097c94e
+# src/body/self_healing/fix_manifest_hygiene.py
 
 """
 Self-healing tool that scans domain manifests for misplaced capability

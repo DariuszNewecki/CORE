@@ -1,4 +1,4 @@
-# src/body/cli/resources/project/onboard.py
+# src/cli/resources/project/onboard.py
 from pathlib import Path
 
 import typer

@@ -1,5 +1,4 @@
-# src/body/cli/commands/check/audit.py
-# ID: d9e8be26-e5e2-4015-899b-8741adaa820c
+# src/cli/commands/check/audit.py
 """Core audit commands: audit.
 
 Updated (V2.3.0)
@@ -19,10 +18,9 @@ from rich.console import Console
 from body.services.file_service import FileService
 from body.services.service_registry import service_registry
 from cli.commands.check.converters import parse_min_severity
+from cli.commands.check.formatters import print_context_build_hints
 from cli.logic.audit_renderer import AuditStats, render_detail, render_overview
 from mind.governance.audit_postprocessor import apply_entry_point_downgrade
-
-# from mind.governance.audit_postprocessor import apply_entry_point_downgrasde_and_report
 from mind.governance.auditor import ConstitutionalAuditor
 from shared.activity_logging import activity_run
 from shared.cli_utils import core_command
@@ -58,7 +56,6 @@ def _to_audit_finding(raw: dict | AuditFinding) -> AuditFinding:
     )
 
 
-# ID: 2a6833cf-af2f-432e-8423-dad36e20d936
 @core_command(dangerous=False)
 # ID: 6bd8138b-ced6-48fa-b5db-afe51ba9903d
 async def audit_cmd(
@@ -160,4 +157,5 @@ async def audit_cmd(
         render_detail(console, filtered_findings)
 
     if not results["passed"]:
+        print_context_build_hints(all_findings)
         raise typer.Exit(1)

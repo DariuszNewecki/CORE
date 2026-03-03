@@ -1,4 +1,4 @@
-# src/body/cli/workflows/phases/database_sync_phase.py
+# src/will/workflows/phases/database_sync_phase.py
 """Database sync phase - knowledge sync and symbol definition."""
 
 from __future__ import annotations
@@ -11,9 +11,9 @@ from rich.console import Console
 
 from body.introspection.sync_service import run_sync_with_db
 from body.project_lifecycle.definition_service import define_symbols
-from cli.workflows.dev_sync_reporter import DevSyncReporter
 from shared.action_types import ActionResult
 from shared.context import CoreContext
+from will.workflows.dev_sync_reporter import DevSyncReporter
 
 
 # ID: a7f3e8c9-4d5b-4c6a-8e9f-1a2b3c4d5e6f

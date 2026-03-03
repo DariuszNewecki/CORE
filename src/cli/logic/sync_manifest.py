@@ -1,5 +1,4 @@
-# src/body/cli/logic/sync_manifest.py
-# ID: 7d59507f-ddd3-4eb6-ba8d-22598dc9bbfd
+# src/cli/logic/sync_manifest.py
 """
 LEGACY / DEPRECATED — DO NOT USE.
 

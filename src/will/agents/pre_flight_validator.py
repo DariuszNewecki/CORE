@@ -44,7 +44,6 @@ if TYPE_CHECKING:
 logger = getLogger(__name__)
 
 
-# ID: 3bc423ba-69f4-4a1a-859a-4db1c25f95d2
 @dataclass
 # ID: ef51123a-09c0-4555-883b-dd86db868ba7
 class ValidationResult:

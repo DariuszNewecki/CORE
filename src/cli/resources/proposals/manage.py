@@ -1,4 +1,4 @@
-# src/body/cli/resources/proposals/manage.py
+# src/cli/resources/proposals/manage.py
 import typer
 from rich.console import Console
 

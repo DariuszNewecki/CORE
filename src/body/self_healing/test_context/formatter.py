@@ -1,4 +1,4 @@
-# src/features/self_healing/test_context/formatter.py
+# src/body/self_healing/test_context/formatter.py
 
 """Provides functionality for the formatter module."""
 

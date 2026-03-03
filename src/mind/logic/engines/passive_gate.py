@@ -1,5 +1,4 @@
 # src/mind/logic/engines/passive_gate.py
-# ID: c2bd0af2-60d8-414e-a6ca-f36ac1a0d5d2
 
 """
 Passive Gate Engine - Constitutional Metadata Handler.

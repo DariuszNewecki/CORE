@@ -1,5 +1,4 @@
 # src/cli/resources/admin/self_check.py
-# ID: f7a1b2c3-d4e5-6789-abcd-ef0123456789
 
 from pathlib import Path
 

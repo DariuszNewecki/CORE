@@ -1,4 +1,4 @@
-# src/body/cli/resources/code/lint.py
+# src/cli/resources/code/lint.py
 import typer
 from rich.console import Console
 

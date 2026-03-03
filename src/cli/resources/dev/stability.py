@@ -1,5 +1,4 @@
-# src/body/cli/resources/dev/stability.py
-# ID: d4e5f6a7-b8c9-0d1e-2f3a-4b5c6d7e8f92
+# src/cli/resources/dev/stability.py
 
 """
 Stability CLI Commands - Phase 2 Hardening.

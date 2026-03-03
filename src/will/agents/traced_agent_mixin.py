@@ -1,5 +1,4 @@
 # src/will/agents/traced_agent_mixin.py
-# ID: c1d2e3f4-a5b6-7890-cdef-012345678901
 """TracedAgentMixin - Shared decision trace interface.
 
 Eliminates AST duplication between ExecutionAgent and SpecificationAgent.
@@ -7,6 +6,7 @@ Both hold self.tracer = DecisionTracer() and expose identical get_decision_trace
 and save_decision_trace methods.
 
 Usage:
+    # ID: c9a742bb-eb84-4a3a-86a2-a5f1faeeaa38
     class MyAgent(TracedAgentMixin):
         def __init__(self):
             self.tracer = DecisionTracer()

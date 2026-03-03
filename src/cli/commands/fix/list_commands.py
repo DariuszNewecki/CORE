@@ -1,4 +1,4 @@
-# src/body/cli/commands/fix/list_commands.py
+# src/cli/commands/fix/list_commands.py
 """
 Listing and discovery commands for the 'fix' CLI group.
 

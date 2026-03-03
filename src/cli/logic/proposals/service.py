@@ -1,4 +1,4 @@
-# src/body/cli/logic/proposals/service.py
+# src/cli/logic/proposals/service.py
 
 """
 Refactored logic for proposal lifecycle management.

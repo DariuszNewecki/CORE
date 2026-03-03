@@ -1,5 +1,4 @@
-# src/features/self_healing/placeholder_fixer_service.py
-# ID: 5f2e8d9c-1b3a-4e5f-8d9c-7a6b4e3f1c2d
+# src/body/self_healing/placeholder_fixer_service.py
 """Headless service to deterministically fix forbidden placeholders."""
 
 from __future__ import annotations

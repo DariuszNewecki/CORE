@@ -1,5 +1,4 @@
 # src/shared/infrastructure/database/models/autonomous_proposals.py
-# ID: 89881efe-0306-4117-a65d-fb3c62737ab1
 """
 A3 Autonomous Proposal System models.
 
@@ -19,7 +18,6 @@ from sqlalchemy.dialects.postgresql import UUID as pgUUID
 from .knowledge import Base
 
 
-# ID: 29152732-50a0-4e76-b963-51db21071dc3
 # ID: c35e1baa-f0a4-479a-ab4f-d0745bb30d59
 class AutonomousProposal(Base):
     """

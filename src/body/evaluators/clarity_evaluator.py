@@ -1,5 +1,4 @@
 # src/body/evaluators/clarity_evaluator.py
-# ID: 7fcecf85-269a-419c-81a3-30b1fea807b8
 
 """
 Clarity Evaluator - Measures mathematical improvement in code structure.

@@ -1,5 +1,4 @@
 # src/cli/resources/admin/legacy.py
-# ID: d6e7f8a9-b0c1-2345-defa-234567890123
 
 """
 Admin Legacy Command - Technical Debt Map.

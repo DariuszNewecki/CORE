@@ -1,5 +1,4 @@
 # src/body/services/cim/cim_path_utils.py
-# ID: c84f6a0e-ee82-4f9b-ba09-271b69057c16
 """CIM-0 Path Classification Utilities.
 
 Pure, deterministic functions for path and AST node classification.
@@ -23,7 +22,6 @@ from .cim_constants import (
 )
 
 
-# ID: cfac5ee3-c626-40fa-bd97-a027daba80b2
 # ID: 19e21116-67e8-43fc-9f19-cd4691ee37b0
 def should_skip_path(path: Path, repo_root: Path) -> bool:
     """Determine if a path should be skipped during scanning.
@@ -46,7 +44,6 @@ def should_skip_path(path: Path, repo_root: Path) -> bool:
     return False
 
 
-# ID: 1e39f3fa-7672-4b8f-94da-0b1b4adb1f4a
 # ID: 662ece26-5c53-4cef-9ab2-6fcd392061e5
 def classify_write_zone(path: str) -> str:
     """Classify write operation by target zone.
@@ -73,7 +70,6 @@ def classify_write_zone(path: str) -> str:
     return "unknown"
 
 
-# ID: 98cb9966-7b48-456a-a19c-3c9838aed469
 # ID: c796fef3-36eb-4e39-a38e-b0758d97e4be
 def classify_lane(path: str) -> str:
     """Map file path to architectural lane.
@@ -94,14 +90,12 @@ def classify_lane(path: str) -> str:
     return "other"
 
 
-# ID: 4624907e-767b-4f0d-bd4d-56d45958ea1a
 # ID: 7e904c77-2189-4e75-bb9a-f472a13d77ee
 def is_allowlisted(path: str) -> bool:
     """Check if mutation surface is in the known-safe allowlist."""
     return any(pattern in path for pattern in ALLOWLISTED_PATTERNS)
 
 
-# ID: 322f4829-5fec-43aa-bea2-9c417165a81e
 # ID: a582546d-384a-41ff-92f8-3355212695f4
 def is_temp_write_operation(node: ast.Call, file_content: str) -> bool:
     """Detect if a write operation targets a temporary location.

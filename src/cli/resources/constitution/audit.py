@@ -1,4 +1,4 @@
-# src/body/cli/resources/constitution/audit.py
+# src/cli/resources/constitution/audit.py
 import typer
 from rich.console import Console
 

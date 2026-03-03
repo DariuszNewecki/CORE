@@ -1,4 +1,4 @@
-# src/body/cli/commands/check/diagnostics_commands.py
+# src/cli/commands/check/diagnostics_commands.py
 """
 Diagnostic and contract verification commands.
 
@@ -19,7 +19,6 @@ from shared.cli_utils import core_command
 console = Console()
 
 
-# ID: 9f9ebe73-c1b6-478f-aa52-21adcb64f1e0
 @core_command(dangerous=False)
 # ID: 83063c77-0e79-4f7a-83ed-0aa19211506a
 def diagnostics_cmd(ctx: typer.Context) -> None:
@@ -30,7 +29,6 @@ def diagnostics_cmd(ctx: typer.Context) -> None:
     policy_coverage()
 
 
-# ID: 3a985f2b-4d76-4c28-9f1e-8e3d2a7b6c9d
 @core_command(dangerous=False)
 # ID: d57f0bd7-080d-4514-b4a5-76c8efd68ac4
 async def check_body_ui_cmd(ctx: typer.Context) -> None:

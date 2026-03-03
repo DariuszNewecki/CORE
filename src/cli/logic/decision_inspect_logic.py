@@ -1,4 +1,4 @@
-# src/body/cli/logic/decision_inspect_logic.py
+# src/cli/logic/decision_inspect_logic.py
 
 """
 Logic specialist for inspecting autonomous decision traces.

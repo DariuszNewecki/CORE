@@ -1,5 +1,4 @@
 # src/body/services/crate_processing_service.py
-# ID: 28207c61-99ce-4a66-940e-cb46c069ef81
 
 """
 CrateProcessingService - The Constitutional Judge

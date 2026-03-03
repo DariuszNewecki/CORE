@@ -1,4 +1,4 @@
-# src/features/introspection/sync_service.py
+# src/body/introspection/sync_service.py
 
 """
 Symbol Synchronization Service

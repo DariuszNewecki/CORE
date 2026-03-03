@@ -1,4 +1,4 @@
-# src/body/cli/logic/hub/introspection.py
+# src/cli/logic/hub/introspection.py
 
 """Refactored logic for src/body/cli/logic/hub/introspection.py."""
 

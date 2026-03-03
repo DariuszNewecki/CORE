@@ -1,4 +1,4 @@
-# src/body/cli/logic/interactive_test/steps/__init__.py
+# src/cli/logic/interactive_test/steps/__init__.py
 """
 Interactive test generation step handlers.
 Modularized Package (V2.3).

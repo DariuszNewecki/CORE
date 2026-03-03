@@ -1,37 +1,28 @@
-# src/body/cli/resources/code/docstrings.py
-# ID: 37479b29-9113-4e4f-85b4-3922d9d07fb3
-
+# src/cli/resources/code/docstrings.py
 import typer
-from rich.console import Console
 
 from shared.cli_utils import core_command
-from shared.context import CoreContext
+from shared.models.command_meta import CommandBehavior, CommandLayer, command_meta
+from will.self_healing.docstring_service import fix_docstrings
 
 from .hub import app
 
 
-console = Console()
-
-
 @app.command("docstrings")
-@core_command(dangerous=True, requires_context=True, confirmation=True)
-# ID: df2829b7-82c5-4350-80bb-8931530eec92
+@command_meta(
+    canonical_name="code.docstrings",
+    behavior=CommandBehavior.MUTATE,
+    layer=CommandLayer.WILL,
+    summary="Heal missing docstrings using constitutional reasoning.",
+    dangerous=True,
+)
+@core_command(dangerous=True, requires_context=True)
+# ID: 9f0d0239-d29d-4dff-8c32-3fdecaa809e9
 async def fix_docstrings_command(
     ctx: typer.Context,
-    write: bool = typer.Option(
-        False, "--write", help="Apply AI-generated docstrings to files."
-    ),
+    write: bool = typer.Option(False, "--write", help="Apply changes."),
+    limit: int = typer.Option(3, "--limit", help="Symbols to process."),
+    verbose: bool = typer.Option(False, "--verbose", help="Show detail."),
 ) -> None:
-    """
-    Autonomously generate and inject missing docstrings using AI.
-
-    Scans the codebase for public functions lacking documentation and
-    proposes/applies fixes based on implementation analysis.
-    """
-    core_context: CoreContext = ctx.obj
-
-    mode = "WRITE" if write else "DRY-RUN"
-    console.print(f"[bold cyan]✍️  Repairing Docstrings ({mode})...[/bold cyan]")
-
-    # Routes to the fix.docstrings atomic action
-    await core_context.action_executor.execute("fix.docstrings", write=write)
+    """Autonomously generate and inject missing docstrings using AI."""
+    await fix_docstrings(context=ctx.obj, write=write, limit=limit)

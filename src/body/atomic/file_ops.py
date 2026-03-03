@@ -1,5 +1,4 @@
 # src/body/atomic/file_ops.py
-# ID: 5aa0b8f1-596b-4bdf-9db6-937af0608cb7
 
 """
 Atomic File Operations - Canonical implementation of filesystem mutations.

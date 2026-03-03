@@ -1,5 +1,4 @@
 # src/will/agents/base_planner.py
-# ID: ff952d2d-5ea1-400b-8799-a92c0879752b
 """
 Base planning utilities - Strategic Action Filter.
 

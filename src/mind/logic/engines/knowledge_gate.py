@@ -1,5 +1,4 @@
 # src/mind/logic/engines/knowledge_gate.py
-# ID: 5632d031-2f4e-4d60-8a0b-fcc15ff92efa
 
 """
 Knowledge Graph Governance Engine.

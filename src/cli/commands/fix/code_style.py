@@ -92,7 +92,6 @@ async def fix_headers_internal(
     "headers", help="Ensures all files have constitutionally compliant headers."
 )
 @core_command(dangerous=True, confirmation=True)
-# ID: 967c7322-5732-466f-a639-cacbaae425ba
 @atomic_action(
     action_id="fix.headers",
     intent="Atomic action for fix_headers_cmd",

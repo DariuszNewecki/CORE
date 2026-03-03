@@ -1,5 +1,4 @@
 # src/body/evaluators/failure_evaluator.py
-# ID: 68e33e74-f15f-4f97-b58a-7df6aa0fa7a7
 """Failure Evaluator - Analyzes test failure patterns for strategy adaptation.
 
 PURIFIED (V2.3.0)

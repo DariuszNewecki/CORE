@@ -1,4 +1,4 @@
-# src/body/cli/logic/interactive_test/steps/verification.py
+# src/cli/logic/interactive_test/steps/verification.py
 
 """Refactored logic for src/body/cli/logic/interactive_test/steps/verification.py."""
 

@@ -1,4 +1,4 @@
-# src/body/cli/logic/project_docs.py
+# src/cli/logic/project_docs.py
 """
 CLI wrapper for generating capability documentation.
 It reuses the existing Python module entrypoint to keep one source of truth.

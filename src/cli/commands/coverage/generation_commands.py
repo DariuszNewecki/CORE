@@ -1,4 +1,4 @@
-# src/body/cli/commands/coverage/generation_commands.py
+# src/cli/commands/coverage/generation_commands.py
 """Test generation commands - Pure V2 Adaptive Architecture."""
 
 from __future__ import annotations

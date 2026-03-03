@@ -1,5 +1,4 @@
-# src/body/cli/logic/interactive_test/steps/generation.py
-# ID: 7527c3dc-8012-4da6-828b-ff9b3900de41
+# src/cli/logic/interactive_test/steps/generation.py
 
 """
 Interactive Code Generation Step Handler.

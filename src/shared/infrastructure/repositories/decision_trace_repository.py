@@ -40,8 +40,6 @@ class DecisionTraceRepository:
     def __init__(self, _session: Any):
         self._session = _session
 
-    # ID: 8c82bd7b-7524-4272-8bf4-ccdab9f49374
-    # ID: 2ab3f1e7-5e2d-4e8f-9f9d-7d3f0a3c9c51
     @classmethod
     @asynccontextmanager
     # ID: 64cc1aa7-0aa2-4de0-881a-60aa58dd1d22
@@ -49,7 +47,6 @@ class DecisionTraceRepository:
         async with service_registry.session() as session:
             yield cls(session)
 
-    # ID: e55152b6-d768-41a0-997f-8f3210132878
     # ID: f1746e04-8e4f-4ea9-9678-948ff69793d1
     async def create(
         self,

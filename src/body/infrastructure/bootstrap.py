@@ -1,5 +1,4 @@
 # src/body/infrastructure/bootstrap.py
-# ID: 9a8b7c6d-5e4f-3d2e-1c0b-9a8f7e6d5c4b
 
 """
 System Bootstrap - CoreContext Initialization

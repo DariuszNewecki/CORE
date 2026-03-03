@@ -1,5 +1,4 @@
-# src/features/self_healing/code_style_service.py
-# ID: 5c5890b0-8c2f-4d9a-a4e2-0f7b6a5c4e3b
+# src/body/self_healing/code_style_service.py
 
 """
 Provides the service logic for formatting code according to constitutional style rules.

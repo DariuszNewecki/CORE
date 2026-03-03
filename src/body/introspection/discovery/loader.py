@@ -1,4 +1,4 @@
-# src/features/introspection/discovery/loader.py
+# src/body/introspection/discovery/loader.py
 
 """Refactored logic for src/features/introspection/discovery/loader.py."""
 

@@ -1,4 +1,4 @@
-# src/body/cli/logic/sync_domains.py
+# src/cli/logic/sync_domains.py
 """
 CLI command to synchronize the canonical list of domains to the database.
 """

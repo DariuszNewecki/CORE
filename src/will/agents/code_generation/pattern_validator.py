@@ -1,5 +1,4 @@
 # src/will/agents/code_generation/pattern_validator.py
-# ID: 59749c80-7e75-4609-8ecb-143e9200f503
 
 """
 Pattern validation and inference for code generation.

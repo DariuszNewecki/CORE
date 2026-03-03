@@ -1,4 +1,4 @@
-# src/body/cli/commands/refactor_support/config.py
+# src/cli/commands/refactor_support/config.py
 
 """
 Configuration and file enumeration for refactoring analysis.

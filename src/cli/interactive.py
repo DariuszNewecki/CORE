@@ -1,5 +1,4 @@
-# src/body/cli/interactive.py
-# ID: 66e15326-323e-4861-97e6-2d7ecddbbac9
+# src/cli/interactive.py
 
 from __future__ import annotations
 

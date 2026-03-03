@@ -1,5 +1,4 @@
-# src/body/cli/resources/admin/validate_env.py
-# ID: a1b2c3d4-e5f6-7890-abcd-ef1234567897
+# src/cli/resources/admin/validate_env.py
 
 """
 Admin Validate-Env Command - Configuration Hardening.

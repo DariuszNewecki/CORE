@@ -1,5 +1,4 @@
 # src/body/governance/code_validator.py
-# ID: 18f27500-2fbd-42a7-9180-a71ac3da5626
 
 """
 Code Validator - Body Layer Enforcement Service.

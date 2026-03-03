@@ -1,4 +1,4 @@
-# src/body/cli/logic/diagnostics_policy.py
+# src/cli/logic/diagnostics_policy.py
 
 """
 Logic for constitutional policy coverage auditing.

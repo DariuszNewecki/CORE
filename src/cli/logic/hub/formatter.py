@@ -1,4 +1,4 @@
-# src/body/cli/logic/hub/formatter.py
+# src/cli/logic/hub/formatter.py
 
 """Refactored logic for src/body/cli/logic/hub/formatter.py."""
 

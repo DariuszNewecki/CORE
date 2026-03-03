@@ -1,5 +1,4 @@
 # src/body/services/cim/diff.py
-# ID: c36677be-3972-44fa-a3da-f1b96f50cf7c
 
 """
 CIM Diff Engine - Compare census runs.

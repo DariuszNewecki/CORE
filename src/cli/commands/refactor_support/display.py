@@ -1,4 +1,4 @@
-# src/body/cli/commands/refactor_support/display.py
+# src/cli/commands/refactor_support/display.py
 
 """
 Display formatting for refactoring analysis output.

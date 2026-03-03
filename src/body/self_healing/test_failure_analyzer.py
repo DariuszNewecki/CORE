@@ -1,4 +1,4 @@
-# src/features/self_healing/test_failure_analyzer.py
+# src/body/self_healing/test_failure_analyzer.py
 
 """Analyzes pytest test failures to provide actionable context for fixing tests.
 

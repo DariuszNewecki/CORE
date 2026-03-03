@@ -1,4 +1,4 @@
-# src/body/cli/logic/interactive_test/ui.py
+# src/cli/logic/interactive_test/ui.py
 
 """
 Interactive test generation UI utilities.

@@ -1,4 +1,4 @@
-# src/body/cli/logic/diagnostics_registry.py
+# src/cli/logic/diagnostics_registry.py
 
 """
 Logic for auditing domain manifests and legacy artifacts.

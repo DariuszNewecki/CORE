@@ -1,4 +1,4 @@
-# src/body/cli/resources/dev/test.py
+# src/cli/resources/dev/test.py
 import typer
 from rich.console import Console
 

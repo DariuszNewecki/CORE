@@ -15,6 +15,7 @@ from .base import AIProvider
 
 logger = getLogger(__name__)
 GHOST_VECTOR_START = [0.63719, 0.45393, -4.16063]
+_DEFAULT_SYSTEM = "You are a helpful assistant."
 
 
 # ID: 3f78f7ca-33b1-4ac3-a701-30885722e7b1
@@ -25,12 +26,31 @@ class OllamaProvider(AIProvider):
         return {"Content-Type": "application/json"}
 
     # ID: b4ddef76-9da6-4b19-ad12-8f92eac28f86
-    async def chat_completion(self, prompt: str, user_id: str) -> str:
-        """Generates a chat completion using the Ollama format."""
+    async def chat_completion(
+        self,
+        prompt: str,
+        user_id: str,
+        system_prompt: str = "",
+    ) -> str:
+        """
+        Generates a chat completion using the Ollama format.
+
+        Args:
+            prompt: User-turn content.
+            user_id: Audit identifier.
+            system_prompt: Constitutional system prompt sent as the first
+                           system-role message in the conversation.
+        """
         endpoint = f"{self.api_url}/api/chat"
+        effective_system = (
+            system_prompt.strip() if system_prompt.strip() else _DEFAULT_SYSTEM
+        )
         payload = {
             "model": self.model_name,
-            "messages": [{"role": "user", "content": prompt}],
+            "messages": [
+                {"role": "system", "content": effective_system},
+                {"role": "user", "content": prompt},
+            ],
             "stream": False,
         }
         async with httpx.AsyncClient(timeout=self.timeout) as client:
@@ -51,7 +71,7 @@ class OllamaProvider(AIProvider):
             vec = data["embedding"]
             if len(vec) > 3:
                 is_ghost = all(
-                    (abs(a - b) < 0.001 for a, b in zip(vec[:3], GHOST_VECTOR_START))
+                    abs(a - b) < 0.001 for a, b in zip(vec[:3], GHOST_VECTOR_START)
                 )
                 if is_ghost:
                     logger.error(

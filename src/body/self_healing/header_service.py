@@ -1,5 +1,4 @@
 # src/body/self_healing/header_service.py
-# ID: 9f8e7d6c-5b4a-4932-1e0d-2f3c4b5a6978
 
 """
 HeaderService — enforces the constitutional file header law.
@@ -176,23 +175,28 @@ async def _run_header_fix_cycle(
         content: str, expected_header: str
     ) -> tuple[str, bool]:
         """
-        Return (new_content, did_change) while preserving all existing content except
-        minimal line-1 edits required by the invariant.
+        Return (new_content, did_change) enforcing the path-header invariant:
+        - Empty file            -> insert header
+        - Line 1 == correct     -> no change
+        - Line 1 is a # src/.. -> wrong path, replace line 1
+        - Anything else         -> prepend header, leave file content intact
         """
         if content == "":
             return expected_header + "\n", True
 
         lines = content.splitlines(keepends=True)
-        first_line = lines[0]
-        first_line_text = first_line.rstrip("\r\n")
+        first_line_text = lines[0].rstrip("\r\n")
 
         if first_line_text == expected_header:
             return content, False
 
-        if first_line_text.startswith("# "):
+        if first_line_text.startswith("# src/"):
+            # Wrong path header — replace only line 1
             lines[0] = expected_header + "\n"
             return "".join(lines), True
 
+        # Not a path header (could be # ID:, docstring, code, anything)
+        # Prepend and leave everything else intact
         return expected_header + "\n" + content, True
 
     for i, file_path_str in enumerate(all_py_files, 1):
@@ -236,7 +240,6 @@ async def _run_header_fix_cycle(
 
         if write_mode:
             logger.info("🔄 Rebuilding Knowledge Graph to reflect metadata changes...")
-            # Sync DB Action (Unified Substrate)
             await executor.execute(action_id="sync.db", write=True)
             logger.info("✅ Knowledge Graph successfully updated.")
 

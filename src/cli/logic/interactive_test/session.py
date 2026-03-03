@@ -1,5 +1,4 @@
 # src/cli/logic/interactive_test/session.py
-# ID: 81af2623-d91d-40b6-8aa4-04018d46edc7
 
 """
 Interactive test generation session management.

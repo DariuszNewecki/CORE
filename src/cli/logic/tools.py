@@ -1,4 +1,4 @@
-# src/body/cli/logic/tools.py
+# src/cli/logic/tools.py
 """
 Registers a 'tools' command group for powerful, operator-focused maintenance tasks.
 This is the new, governed home for logic from standalone scripts.
@@ -34,7 +34,6 @@ tools_app = typer.Typer(
     "rewire-imports",
     help="Run after major refactoring to fix all Python import statements across 'src/'.",
 )
-# ID: 152b544f-449d-4820-ab02-6f3fb341b974
 @command_meta(
     canonical_name="imports.rewire",
     behavior=CommandBehavior.MUTATE,
@@ -83,7 +82,6 @@ def rewire_imports_cli(
 
 
 @tools_app.command("export-context")
-# ID: af5abbe5-0304-4f54-9eb0-596d71791b41
 @command_meta(
     canonical_name="context.export",
     behavior=CommandBehavior.TRANSFORM,

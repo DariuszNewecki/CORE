@@ -1,5 +1,4 @@
-# src/features/self_healing/coverage_remediation_service.py
-# ID: 32606196-d12a-4480-9add-51b26f30ee22
+# src/will/self_healing/coverage_remediation_service.py
 
 """
 Enhanced coverage remediation service - V2 Adaptive Implementation.

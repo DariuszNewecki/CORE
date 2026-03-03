@@ -1,11 +1,11 @@
-# src/body/cli/resources/code/logging.py
-# ID: 63c77e0f-e0cf-49f5-b9ac-925edc4854f8
+# src/cli/resources/code/logging.py
 
 import typer
 from rich.console import Console
 
 from shared.cli_utils import core_command
 from shared.context import CoreContext
+from shared.models.command_meta import CommandBehavior, CommandLayer, command_meta
 
 from .hub import app
 
@@ -14,6 +14,13 @@ console = Console()
 
 
 @app.command("logging")
+@command_meta(
+    canonical_name="code.logging",
+    behavior=CommandBehavior.MUTATE,
+    layer=CommandLayer.BODY,
+    summary="Standardize logging across the codebase.",
+    dangerous=True,
+)
 @core_command(dangerous=True, requires_context=True)
 # ID: c149a7d3-60b5-4810-abd3-ab87aaf4f9af
 async def fix_logging_command(

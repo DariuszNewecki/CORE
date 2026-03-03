@@ -1,4 +1,4 @@
-# src/body/cli/commands/coverage/check_commands.py
+# src/cli/commands/coverage/check_commands.py
 """
 Coverage checking and reporting commands.
 

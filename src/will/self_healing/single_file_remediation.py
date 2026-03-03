@@ -1,5 +1,4 @@
-# src/features/self_healing/single_file_remediation.py
-# ID: 0c2cfe25-2da0-4aaa-8927-f1312c7a3825
+# src/will/self_healing/single_file_remediation.py
 
 """
 Enhanced single-file test generation with comprehensive context analysis.

@@ -1,5 +1,4 @@
 # src/mind/governance/auditor.py
-# ID: 85bb69ce-b22a-490a-8a1d-92a5da7e2646
 """Constitutional Auditor - The Unified Enforcement Engine.
 
 PURIFIED (V2.3.0)

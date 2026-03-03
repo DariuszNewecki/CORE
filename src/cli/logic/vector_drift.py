@@ -1,4 +1,4 @@
-# src/body/cli/logic/vector_drift.py
+# src/cli/logic/vector_drift.py
 
 """Provides functionality for the vector_drift module."""
 

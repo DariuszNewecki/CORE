@@ -1,5 +1,4 @@
-# src/features/self_healing/prune_private_capabilities.py
-# ID: a89bad59-de22-43f7-b70c-60446902e923
+# src/body/self_healing/prune_private_capabilities.py
 
 """
 A self-healing tool that scans the codebase and removes # CAPABILITY tags

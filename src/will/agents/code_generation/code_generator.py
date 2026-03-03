@@ -1,5 +1,4 @@
 # src/will/agents/code_generation/code_generator.py
-# ID: 4a272fc9-4ce5-40ae-afa3-fd6eadceea73
 
 """
 Code generation specialist responsible for prompt construction and LLM interaction.

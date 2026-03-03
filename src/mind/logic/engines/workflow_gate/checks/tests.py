@@ -1,5 +1,4 @@
 # src/mind/logic/engines/workflow_gate/checks/tests.py
-# ID: 1480ffd7-6c3e-46a9-b331-de8c33790349
 
 """
 Test verification workflow check.

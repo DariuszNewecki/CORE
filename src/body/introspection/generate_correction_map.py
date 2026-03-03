@@ -1,4 +1,4 @@
-# src/features/introspection/generate_correction_map.py
+# src/body/introspection/generate_correction_map.py
 
 """
 A utility to generate alias maps from semantic clustering results.

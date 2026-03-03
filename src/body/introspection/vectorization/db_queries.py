@@ -1,4 +1,4 @@
-# src/features/introspection/vectorization/db_queries.py
+# src/body/introspection/vectorization/db_queries.py
 
 """
 Database interactions for symbol vectorization.

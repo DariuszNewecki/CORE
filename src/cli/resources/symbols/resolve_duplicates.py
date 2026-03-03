@@ -1,5 +1,4 @@
-# src/body/cli/resources/symbols/resolve_duplicates.py
-# ID: e17b25b1-d5f5-4d1d-b253-55cec673bb41
+# src/cli/resources/symbols/resolve_duplicates.py
 
 import typer
 from rich.console import Console

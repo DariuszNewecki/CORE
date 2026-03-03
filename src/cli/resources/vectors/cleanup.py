@@ -1,5 +1,4 @@
-# src/body/cli/resources/vectors/cleanup.py
-# ID: 301e7978-840f-49c2-91a0-b2025b5dfb95
+# src/cli/resources/vectors/cleanup.py
 """
 Vector cleanup command.
 

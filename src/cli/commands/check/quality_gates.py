@@ -1,5 +1,4 @@
-# src/body/cli/commands/check/quality_gates.py
-# ID: 72f0e705-165b-4253-a88f-21fdeb84ee7b
+# src/cli/commands/check/quality_gates.py
 
 """
 Quality Gates Command - Runs all industry-standard quality checks.

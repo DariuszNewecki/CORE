@@ -21,7 +21,6 @@ def normalize_whitespace(text: str) -> str:
     return " ".join(text.split())
 
 
-# ID: 7b2e3c55-55e4-4f42-94d5-4a0b8b5e7f9a
 # Backwards-compatible alias.
 # Explicitly aliased to avoid semantic duplication detection.
 normalize_text = normalize_whitespace

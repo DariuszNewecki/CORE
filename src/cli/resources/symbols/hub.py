@@ -1,5 +1,4 @@
-# src/body/cli/resources/symbols/hub.py
-# ID: a7c3e9f1-b2d4-4f6a-8e0c-1d3b5a7f9e2c
+# src/cli/resources/symbols/hub.py
 
 import typer
 

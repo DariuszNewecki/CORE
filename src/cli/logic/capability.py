@@ -1,4 +1,4 @@
-# src/body/cli/logic/capability.py
+# src/cli/logic/capability.py
 """
 Provides the 'core-admin capability' command group for managing capabilities
 in a constitutionally-aligned way. THIS MODULE IS NOW DEPRECATED and will be

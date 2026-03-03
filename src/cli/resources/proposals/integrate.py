@@ -1,5 +1,4 @@
-# src/body/cli/resources/proposals/integrate.py
-# ID: 7c2a1a8b-3e5f-49fc-b83c-d922541d25d0
+# src/cli/resources/proposals/integrate.py
 
 """
 Proposals Integration Action.

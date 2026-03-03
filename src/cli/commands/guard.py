@@ -1,4 +1,4 @@
-# src/mind/enforcement/guard_cli.py
+# src/cli/commands/guard.py
 
 """
 CLI-facing guard registration helpers.
@@ -22,7 +22,6 @@ from shared.cli_utils import core_command
 __all__ = ["guard_drift_cmd", "register_guard"]
 
 
-# ID: 9c69d559-0c4a-4431-918b-14b3d588da91
 @core_command(dangerous=False, requires_context=False)
 # ID: b639850a-7321-4176-9891-dd24678bedb1
 async def guard_drift_cmd(

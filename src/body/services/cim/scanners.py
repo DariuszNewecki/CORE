@@ -1,5 +1,4 @@
 # src/body/services/cim/scanners.py
-# ID: 4b3016bd-d443-46e8-8d2b-03cda003a2e6
 """Read-only scanners for CIM-0 census.
 
 All functions are pure, deterministic, and safe.

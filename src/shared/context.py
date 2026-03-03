@@ -1,5 +1,4 @@
 # src/shared/context.py
-# ID: 9f1dd7c7-1cb2-435d-bd07-b7d436c9459f
 
 """
 Defines the CoreContext, a dataclass that holds singleton instances of all major

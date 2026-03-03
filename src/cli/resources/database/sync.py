@@ -1,5 +1,4 @@
-# src/body/cli/resources/database/sync.py
-# ID: 0ed02faf-9db8-4a9a-8103-d52dc677245c
+# src/cli/resources/database/sync.py
 """
 Database synchronization command.
 
@@ -14,6 +13,7 @@ from rich.console import Console
 from shared.cli_utils import core_command
 from shared.infrastructure.database.session_manager import get_session
 from shared.logger import getLogger
+from shared.models.command_meta import CommandBehavior, CommandLayer, command_meta
 
 from .hub import app
 
@@ -23,6 +23,13 @@ console = Console()
 
 
 @app.command("sync")
+@command_meta(
+    canonical_name="database.sync",
+    behavior=CommandBehavior.MUTATE,
+    layer=CommandLayer.BODY,
+    summary="Synchronize database with codebase symbols.",
+    dangerous=True,
+)
 @core_command(dangerous=True, requires_context=True)
 # ID: 8f4e2a9c-1d3b-4f7e-9a2c-5e6b8d9f1a3c
 async def sync_database(

@@ -1,4 +1,4 @@
-# src/body/cli/commands/check/__init__.py
+# src/cli/commands/check/__init__.py
 """
 Check command group - Constitutional compliance verification.
 

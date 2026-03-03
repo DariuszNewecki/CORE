@@ -1,5 +1,4 @@
 # src/mind/logic/engines/ast_gate/checks/metadata_checks.py
-# ID: d91d9ba4-c276-4cb2-ad25-eaa4e1284d5c
 
 """
 Metadata Mutation Verification Engine.
@@ -24,7 +23,6 @@ import ast
 from typing import Any
 
 
-# ID: 79c7e3a6-700a-44e8-b1cc-376f7d1d4736
 # ID: 30421199-33fe-48fc-961a-912cd8459ad9
 def normalize_ast(code: str) -> str:
     """
@@ -45,7 +43,6 @@ def normalize_ast(code: str) -> str:
     return ast.dump(tree, annotate_fields=True, include_attributes=False)
 
 
-# ID: 3f49383d-5e9e-400a-b9b5-cc4883a7cb9a
 # ID: 7b7c431d-8341-4263-98bf-13cf15ad7ae1
 def verify_metadata_only_diff(
     original_code: str,

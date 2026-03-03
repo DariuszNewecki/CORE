@@ -1,4 +1,4 @@
-# src/features/self_healing/alignment/sandbox.py
+# src/will/self_healing/alignment/sandbox.py
 
 """Refactored logic for src/features/self_healing/alignment/sandbox.py."""
 

@@ -1,4 +1,4 @@
-# src/features/introspection/discovery/registry.py
+# src/body/introspection/discovery/registry.py
 
 """Provides functionality for the registry module."""
 

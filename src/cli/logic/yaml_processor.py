@@ -1,4 +1,4 @@
-# src/body/cli/logic/yaml_processor.py
+# src/cli/logic/yaml_processor.py
 
 """Provides functionality for the yaml_processor module."""
 

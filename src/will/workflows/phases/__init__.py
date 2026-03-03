@@ -1,4 +1,4 @@
-# src/body/cli/workflows/phases/__init__.py
+# src/will/workflows/phases/__init__.py
 """Dev-sync workflow phase executors."""
 
 from __future__ import annotations

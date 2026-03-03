@@ -1,4 +1,4 @@
-# src/features/introspection/symbol_index_builder.py
+# src/body/introspection/symbol_index_builder.py
 """
 Builds symbol_index.json from AST + patterns.
 

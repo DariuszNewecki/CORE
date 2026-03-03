@@ -154,7 +154,6 @@ from shared.action_types import ActionImpact, ActionResult
 from shared.atomic_action import atomic_action
 
 
-# ID: aa302f01-6997-4e14-b170-2a7e7d3928ea
 @atomic_action(
     action_id="logging.reconfigure",
     intent="Dynamically update the system log level",

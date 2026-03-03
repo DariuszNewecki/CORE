@@ -1,9 +1,10 @@
-# src/body/cli/resources/symbols/fix_ids.py
+# src/cli/resources/symbols/fix_ids.py
 import typer
 from rich.console import Console
 
 from shared.cli_utils import core_command
 from shared.context import CoreContext
+from shared.models.command_meta import CommandBehavior, CommandLayer, command_meta
 
 from .hub import app
 
@@ -12,6 +13,13 @@ console = Console()
 
 
 @app.command("fix-ids")
+@command_meta(
+    canonical_name="symbols.fix-ids",
+    behavior=CommandBehavior.MUTATE,
+    layer=CommandLayer.BODY,
+    summary="Assign stable # ID: anchors to untagged symbols.",
+    dangerous=True,
+)
 @core_command(dangerous=True, requires_context=True, confirmation=True)
 # ID: 888a9a3e-30b1-438d-ac9f-0bcc682d9f09
 async def fix_ids_command(

@@ -1,4 +1,4 @@
-# src/mind/governance/intent_pattern_validators.py
+# src/body/governance/intent_pattern_validators.py
 """
 Legacy CLI pattern validators for IntentGuard.
 

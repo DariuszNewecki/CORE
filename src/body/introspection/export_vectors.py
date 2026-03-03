@@ -1,5 +1,4 @@
-# src/features/introspection/export_vectors.py
-# ID: c94d2b2e-fde1-4ee8-bfe7-608e5d9bd18a
+# src/body/introspection/export_vectors.py
 
 """
 A utility to export all vectors and their payloads from the Qdrant database

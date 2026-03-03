@@ -1,0 +1,99 @@
+# .intent/enforcement/mappings/ai/prompt_governance.yaml
+# Constitutional enforcement for AI Prompt Governance
+# Version: 1.0.0
+# Authority: policy
+#
+# WHAT THIS ENFORCES:
+#   Rules from .intent/rules/ai/prompt_governance.json
+#
+# THE LAW: All AI invocations MUST route through PromptModel.
+# Direct calls to make_request_async() or make_request() are PROHIBITED
+# outside of the PromptModel implementation and LLMClient itself.
+
+mappings:
+  # RULE: ai.prompt.model_required
+  # Detects direct calls to make_request_async/make_request outside allowed files.
+  # Allowed files are excluded via scope.excludes below.
+  ai.prompt.model_required:
+    engine: ast_gate
+    params:
+      check_type: prompt_model_required
+      # These are the forbidden direct-call method names
+      forbidden_calls:
+        - make_request_async
+        - make_request
+      # The only class allowed to call these is PromptModel itself
+      # (enforced via scope exclusion of the implementation file)
+    scope:
+      applies_to:
+        - "src/**/*.py"
+      excludes:
+        # The LLMClient defines and wraps these methods — allowed
+        - "src/shared/ai/llm_client.py"
+        # The PromptModel calls them internally — this IS the governed surface
+        - "src/shared/ai/prompt_model.py"
+        # Provider implementations call make_request at the transport layer
+        - "src/shared/ai/providers/**/*.py"
+    severity: error
+    message: >
+      Direct call to make_request_async() or make_request() detected.
+      All AI invocations MUST use PromptModel.invoke() instead.
+      See: .intent/rules/ai/prompt_governance.json [ai.prompt.model_required]
+
+  # RULE: ai.prompt.model_artifact_required
+  # Verifies that every var/prompts/ subdirectory has a model.yaml manifest.
+  # Uses glob_gate to check directory structure.
+  ai.prompt.model_artifact_required:
+    engine: glob_gate
+    params:
+      check_type: directory_has_required_files
+      root: "var/prompts"
+      required_files:
+        - "model.yaml"
+        - "system.txt"
+        - "user.txt"
+    scope:
+      applies_to:
+        - "var/prompts/**"
+    severity: error
+    message: >
+      PromptModel directory is missing required artifact(s).
+      Each var/prompts/<name>/ directory MUST contain: model.yaml, system.txt, user.txt.
+      See: .intent/rules/ai/prompt_governance.json [ai.prompt.model_artifact_required]
+
+  # RULE: ai.prompt.system_prompt_required
+  # Verifies that no system.txt file is empty (zero-byte or whitespace only).
+  ai.prompt.system_prompt_required:
+    engine: glob_gate
+    params:
+      check_type: files_not_empty
+      pattern: "var/prompts/**/system.txt"
+    scope:
+      applies_to:
+        - "var/prompts/**"
+    severity: error
+    message: >
+      Empty system.txt detected in PromptModel artifact.
+      A system prompt is mandatory — it is the constitutional grounding for the AI role.
+      See: .intent/rules/ai/prompt_governance.json [ai.prompt.system_prompt_required]
+
+  # RULE: ai.prompt.output_validation_required
+  # Verifies PromptModel.invoke() calls output validation before returning.
+  ai.prompt.output_validation_required:
+    engine: ast_gate
+    params:
+      check_type: generic_primitive
+      selector:
+        name_regex: "^invoke$"
+      requirement:
+        check_type: required_calls
+        calls:
+          - "_validate_output"
+    scope:
+      applies_to:
+        - "src/shared/ai/prompt_model.py"
+    severity: error
+    message: >
+      PromptModel.invoke() MUST call _validate_output() before returning.
+      Output validation is the last constitutional gate before unvetted AI content enters CORE.
+      See: .intent/rules/ai/prompt_governance.json [ai.prompt.output_validation_required]

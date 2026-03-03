@@ -1,4 +1,4 @@
-# src/features/maintenance/scripts/__init__.py
+# src/body/maintenance/scripts/__init__.py
 
 """Provides functionality for the __init__ module."""
 

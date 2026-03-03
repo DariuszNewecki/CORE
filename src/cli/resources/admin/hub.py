@@ -1,4 +1,4 @@
-# src/body/cli/resources/admin/hub.py
+# src/cli/resources/admin/hub.py
 import typer
 
 

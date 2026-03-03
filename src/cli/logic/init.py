@@ -1,4 +1,4 @@
-# src/body/cli/logic/init.py
+# src/cli/logic/init.py
 """Provides functionality for the init module."""
 
 from __future__ import annotations

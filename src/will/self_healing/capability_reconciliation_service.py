@@ -1,4 +1,4 @@
-# src/features/self_healing/capability_reconciliation_service.py
+# src/will/self_healing/capability_reconciliation_service.py
 
 """
 Capability Reconciliation Service - AI-Powered Capability Analysis
@@ -26,7 +26,6 @@ if TYPE_CHECKING:
 logger = getLogger(__name__)
 
 
-# ID: 307393e9-7deb-440e-81c5-a1b8b823aa12
 # ID: 2b423503-a4c6-4804-92b3-d6e85110200f
 class CapabilityReconciliationService:
     """
@@ -45,7 +44,6 @@ class CapabilityReconciliationService:
         """
         self.cognitive_service = cognitive_service
 
-    # ID: 1c1e1911-0e80-4841-94b3-c701f4ab8751
     # ID: f8e700ad-c95b-4147-853e-0cab4b86339a
     async def reconcile_capabilities(
         self,

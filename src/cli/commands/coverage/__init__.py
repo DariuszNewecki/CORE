@@ -1,4 +1,4 @@
-# src/body/cli/commands/coverage/__init__.py
+# src/cli/commands/coverage/__init__.py
 """Coverage management commands - modular architecture."""
 
 from __future__ import annotations

@@ -1,4 +1,4 @@
-# src/body/cli/resources/database/__init__.py
+# src/cli/resources/database/__init__.py
 """Database resource hub."""
 
 from __future__ import annotations

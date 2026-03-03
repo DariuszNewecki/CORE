@@ -1,4 +1,4 @@
-# src/body/cli/commands/refactor_support/analyzer.py
+# src/cli/commands/refactor_support/analyzer.py
 
 """
 Analysis logic for refactoring candidates.

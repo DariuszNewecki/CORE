@@ -1,4 +1,4 @@
-# src/features/introspection/sync/engine.py
+# src/body/introspection/sync/engine.py
 
 """Refactored logic for src/features/introspection/sync/engine.py."""
 

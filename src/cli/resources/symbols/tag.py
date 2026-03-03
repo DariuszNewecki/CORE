@@ -1,5 +1,4 @@
-# src/body/cli/resources/symbols/tag.py
-# ID: b1c2d3e4-f5a6-7890-abcd-ef1234567891
+# src/cli/resources/symbols/tag.py
 
 from __future__ import annotations
 

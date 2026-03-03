@@ -20,7 +20,6 @@ from dataclasses import dataclass, field
 from typing import Any
 
 
-# ID: e7f9d2c8-4a3b-5e1f-9d6c-8b7a2e4f1c3d
 @dataclass
 # ID: ff4bed96-5d93-4e3f-84dc-5f980af199fb
 class ExecutableRule:
