@@ -1,5 +1,4 @@
 # src/will/agents/execution_agent.py
-# ID: da4cee27-06bd-451e-9d2c-9423af5a4624
 
 """
 ExecutionAgent - The Contractor: Executes validated code blueprints.

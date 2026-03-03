@@ -1,4 +1,4 @@
-# src/body/cli/logic/diagnostics.py
+# src/cli/logic/diagnostics.py
 """
 Logic layer for CLI diagnostics commands.
 

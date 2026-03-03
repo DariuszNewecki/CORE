@@ -1,5 +1,4 @@
-# src/features/maintenance/idempotency_harness.py
-# ID: 89bd5782-1ffd-4883-8fe0-e9719f554e29
+# src/body/maintenance/idempotency_harness.py
 
 """
 Idempotency Test Harness - Phase 2 Hardening.

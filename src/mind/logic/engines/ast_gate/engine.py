@@ -1,5 +1,4 @@
 # src/mind/logic/engines/ast_gate/engine.py
-# ID: 4803b5d0-4f64-4b7e-9b2e-d5d59f2137d8
 
 from __future__ import annotations
 
@@ -13,6 +12,7 @@ from mind.logic.engines.ast_gate.checks import (
     ConservationChecks,
     GenericASTChecks,
     NamingChecks,
+    PromptModelChecks,
     PurityChecks,
 )
 from mind.logic.engines.ast_gate.checks.import_boundary import ImportBoundaryCheck
@@ -50,6 +50,7 @@ class ASTGateEngine(BaseEngine):
             "forbidden_primitives",
             "forbidden_assignments",
             "write_defaults_false",
+            "prompt_model_required",
             "required_decorator",
             "decorator_args",
             "capability_assignment",
@@ -123,6 +124,12 @@ class ASTGateEngine(BaseEngine):
 
         elif check_type == "no_direct_writes":
             violations.extend(PurityChecks.check_no_direct_writes(tree))
+
+        # --- AI Governance ---
+        elif check_type == "prompt_model_required":
+            violations.extend(
+                PromptModelChecks.check_prompt_model_required(tree, params)
+            )
 
         # --- Boundaries & Architecture ---
         elif check_type == "import_boundary":

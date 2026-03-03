@@ -1,6 +1,4 @@
 # src/will/agents/coder_agent.py
-# ID: b51a4101-800d-4d61-a8af-78171bfd990c
-# ID: 917038e4-682f-4d7f-ad13-f5ab7835abc1
 
 """
 CoderAgent - Reflexive code generation specialist.

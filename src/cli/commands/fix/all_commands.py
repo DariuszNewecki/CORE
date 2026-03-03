@@ -1,4 +1,4 @@
-# src/body/cli/commands/fix/all_commands.py
+# src/cli/commands/fix/all_commands.py
 """
 Batch execution command(s) for the 'fix' CLI group.
 
@@ -23,13 +23,13 @@ from body.maintenance.command_sync_service import _sync_commands_to_db
 # FIXED: Points to body.maintenance (Wave 3 moved it here)
 from body.maintenance.sync_vectors import main_async as sync_vectors_async
 from body.self_healing.code_style_service import format_code
-from body.self_healing.docstring_service import fix_docstrings
 from body.self_healing.id_tagging_service import assign_missing_ids
 from body.self_healing.policy_id_service import add_missing_policy_ids
 from body.self_healing.purge_legacy_tags_service import purge_legacy_tags
 from shared.cli_utils import core_command
 from shared.context import CoreContext
 from shared.infrastructure.database.session_manager import get_session
+from will.self_healing.docstring_service import fix_docstrings
 
 from . import (
     COMMAND_CONFIG,

@@ -1,5 +1,4 @@
-# src/body/cli/commands/inspect/diagnostics.py
-# ID: 01a8bde7-f057-47f4-96f7-a99f3085c47d
+# src/cli/commands/inspect/diagnostics.py
 
 """
 System diagnostics commands.

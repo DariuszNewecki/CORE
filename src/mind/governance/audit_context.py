@@ -1,5 +1,4 @@
 # src/mind/governance/audit_context.py
-# ID: 55a77b97-fc08-4b0c-b818-97b1158343e9
 
 """
 AuditorContext: central view of constitutional artifacts and the knowledge graph

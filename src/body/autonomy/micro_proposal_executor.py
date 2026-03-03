@@ -1,4 +1,4 @@
-# src/features/autonomy/micro_proposal_executor.py
+# src/body/autonomy/micro_proposal_executor.py
 
 """
 Service for validating and applying micro-proposals to enable safe, autonomous

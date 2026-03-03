@@ -1,4 +1,4 @@
-# src/body/cli/logic/body_contracts_checker.py
+# src/cli/logic/body_contracts_checker.py
 """
 Body Contracts Checker
 Static validator for `.intent/patterns/body_contracts.json`.
@@ -242,7 +242,6 @@ def _check_os_environ(path: Path, tree: ast.AST) -> list[Violation]:
     return violations
 
 
-# ID: 0c64e50f-f972-4027-893f-5702662871b5
 @atomic_action(
     action_id="check.body-contracts",
     intent="Validate Body layer headless contract compliance",

@@ -1,5 +1,4 @@
 # src/will/deciders/governance_decider.py
-# ID: f0d1929e-0e51-4d47-9941-9616c2d21a2c
 
 """
 Governance Decider - DECIDE Phase Component.

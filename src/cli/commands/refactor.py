@@ -1,4 +1,4 @@
-# src/body/cli/commands/refactor.py
+# src/cli/commands/refactor.py
 
 """
 Refactoring analysis commands - identify modularization opportunities.

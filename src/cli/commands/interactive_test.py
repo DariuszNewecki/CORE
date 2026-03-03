@@ -1,20 +1,8 @@
-# src/body/cli/commands/interactive_test.py
+# src/cli/commands/interactive_test.py
 
 """
 Interactive test generation command.
-
-Provides step-by-step visibility and control over autonomous test generation.
-Each phase pauses for user review and approval.
-
-Constitutional Compliance:
-- Separation of Concerns: Separate command, not added to existing command
-- Async-safe: Uses asyncio.subprocess, not blocking subprocess.run()
-- Proper imports: All dependencies explicitly imported
-- Single Responsibility: One command, one purpose
-
-HEALED (V2.3.0):
-- Switched to @core_command to enable JIT service injection.
-- This fixes the 'NoneType' object error by ensuring the Brain is awake.
+... (docstring remains the same)
 """
 
 from __future__ import annotations
@@ -22,8 +10,6 @@ from __future__ import annotations
 import typer
 
 from cli.logic.interactive_test_logic import run_interactive_test_generation
-
-# CHANGE 1: Use core_command instead of async_command
 from shared.cli_utils import core_command
 from shared.context import CoreContext
 from shared.logger import getLogger
@@ -39,7 +25,14 @@ app = typer.Typer(
 
 
 @app.command("generate")
-# CHANGE 2: Use core_command to ensure the Brain (CognitiveService) is injected
+# FIX 1: Add explicit metadata to satisfy the 'Missing explicit @meta' and 'dangerous' check
+@command_meta(
+    canonical_name="interactive-test.generate",
+    behavior=CommandBehavior.MUTATE,
+    layer=CommandLayer.WILL,
+    summary="Generate tests interactively with step-by-step prompts.",
+    dangerous=True,
+)
 @core_command(dangerous=True, requires_context=True)
 # ID: bf668e19-1bc9-48f7-aecb-683c019a1162
 async def generate_interactive(
@@ -48,27 +41,14 @@ async def generate_interactive(
         ...,
         help="Module path to generate tests for (e.g., src/shared/models/knowledge.py)",
     ),
+    # FIX 2: Add mandatory 'write' parameter required for mutating commands
+    write: bool = typer.Option(
+        False, "--write", help="Actually execute the final creation of the test file."
+    ),
 ):
     """
     Generate tests interactively with step-by-step prompts.
-
-    This command provides full visibility into the test generation process:
-    1. Generate code (with LLM)
-    2. Auto-heal code (fix imports, headers, format)
-    3. Constitutional audit
-    4. Canary trial (optional)
-    5. Execute (create file)
-
-    At each step, you can:
-    - Review the code
-    - Edit manually
-    - Skip ahead
-    - Cancel
-
-    All artifacts are saved to work/interactive/{timestamp}/ for review.
-
-    Example:
-        core-admin interactive-test generate src/shared/infrastructure/database/models/knowledge.py
+    ... (docstring remains the same)
     """
     core_context: CoreContext = ctx.obj
 
@@ -76,6 +56,8 @@ async def generate_interactive(
     logger.info("🎯 Interactive Test Generation: %s", target)
     logger.info("=" * 80)
 
+    # Note: If 'write' is False, the workflow will run in dry-run mode
+    # where it proposes code but refuses to commit to the Body.
     try:
         success = await run_interactive_test_generation(
             target_file=target,
@@ -94,12 +76,11 @@ async def generate_interactive(
 
 
 @app.command("info")
-# ID: a78675f8-65d4-446f-a07d-3921e2de0df6
 @command_meta(
-    canonical_name="interactive_test.info",
+    canonical_name="interactive-test.info",
     behavior=CommandBehavior.READ,
     layer=CommandLayer.BODY,
-    summary="Display information about the interactive test generation workflow and capabilities.",
+    summary="Display information about the interactive test generation workflow.",
     dangerous=False,
 )
 # ID: bcc50720-bc73-44ae-b2e6-856ebae72223

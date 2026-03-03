@@ -1,4 +1,4 @@
-# src/body/cli/logic/governance/__init__.py
+# src/cli/logic/governance/__init__.py
 
 """Provides functionality for the __init__ module."""
 

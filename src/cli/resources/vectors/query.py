@@ -1,5 +1,4 @@
-# src/body/cli/resources/vectors/query.py
-# ID: e1c3aa5b-ef6b-4d3d-989e-614e51724c82
+# src/cli/resources/vectors/query.py
 """
 Vector query command.
 

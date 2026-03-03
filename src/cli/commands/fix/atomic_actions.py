@@ -1,4 +1,4 @@
-# src/body/cli/commands/fix/atomic_actions.py
+# src/cli/commands/fix/atomic_actions.py
 
 """
 Fix atomic actions pattern violations.

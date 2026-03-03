@@ -1,4 +1,4 @@
-# src/body/cli/resources/admin/__init__.py
+# src/cli/resources/admin/__init__.py
 """Admin forensic resource hub."""
 
 from __future__ import annotations

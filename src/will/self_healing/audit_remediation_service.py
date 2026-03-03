@@ -1,5 +1,4 @@
 # src/will/self_healing/audit_remediation_service.py
-# ID: afa7c5cd-02f7-4f73-a169-6f9aabbffa0c
 """Audit Remediation Service - The A2 Autonomy Bridge.
 
 Orchestrates the full remediation cycle:

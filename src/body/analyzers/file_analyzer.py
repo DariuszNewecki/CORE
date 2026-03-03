@@ -1,5 +1,4 @@
 # src/body/analyzers/file_analyzer.py
-# ID: 76d6ef2c-d42f-46f8-a52a-ddf5402eaf36
 """File Analyzer - Analyzes Python file structure and classifies type."""
 
 from __future__ import annotations
@@ -19,6 +18,42 @@ logger = getLogger(__name__)
 
 # ID: c9251530-0236-41a9-9630-b305f283277a
 class FileAnalyzer(BaseAnalyzer):
+    """
+        Analyzes a Python file's structure to classify its type and complexity for downstream testing strategy selection.
+    Args:
+        file_path: Path to the Python file to analyze, relative to the repository root.
+        **kwargs: Additional keyword arguments (unused).
+    Returns:
+        A ComponentResult object containing the analysis data, classification, and metadata.
+    """
+
+    """
+        Analyzes a Python file's structure to classify its type and complexity for downstream testing strategy selection.
+    Args:
+        file_path: Path to the Python file to analyze, relative to the repository root.
+        **kwargs: Additional keyword arguments (unused).
+    Returns:
+        A ComponentResult object containing the analysis data, classification, and metadata.
+    """
+
+    """
+        Analyzes a Python file's structure to classify its type and complexity for downstream testing strategy selection.
+    Args:
+        file_path: Path to the Python file to analyze, relative to the repository root.
+        **kwargs: Additional keyword arguments (unused).
+    Returns:
+        A ComponentResult object containing the analysis data, classification, and metadata.
+    """
+
+    """
+        Analyzes a Python file's structure to classify its type and complexity for downstream testing strategy selection.
+    Args:
+        file_path: Path to the Python file to analyze, relative to the repository root.
+        **kwargs: Additional keyword arguments (unused).
+    Returns:
+        A ComponentResult object containing the analysis data, classification, and metadata.
+    """
+
     """Analyzes Python files to detect type and complexity.
 
     Determines if a file is a:

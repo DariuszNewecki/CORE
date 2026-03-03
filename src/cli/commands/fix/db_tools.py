@@ -1,4 +1,4 @@
-# src/body/cli/commands/fix/db_tools.py
+# src/cli/commands/fix/db_tools.py
 """
 Database and vector-related commands for the 'fix' CLI group.
 

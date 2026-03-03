@@ -11,7 +11,6 @@ from __future__ import annotations
 from typing import Any
 
 
-# ID: 980e2532-9ff1-4205-ab20-d55e27364e5e
 # ID: 1f60cc93-ae61-4f3c-ab15-d4021b3617a7
 def safe_str(value: Any) -> str:
     """

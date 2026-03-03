@@ -1,4 +1,4 @@
-# src/body/cli/logic/agent.py
+# src/cli/logic/agent.py
 
 """
 Provides a CLI interface for human operators to directly invoke autonomous agent capabilities like application scaffolding.

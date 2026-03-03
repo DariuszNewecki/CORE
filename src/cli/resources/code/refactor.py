@@ -1,5 +1,4 @@
-# src/body/cli/resources/code/refactor.py
-# ID: 871d6b9f-4607-401b-ab97-816cda975205
+# src/cli/resources/code/refactor.py
 
 import typer
 

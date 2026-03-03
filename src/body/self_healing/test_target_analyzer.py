@@ -1,4 +1,4 @@
-# src/features/self_healing/test_target_analyzer.py
+# src/body/self_healing/test_target_analyzer.py
 """
 Analyzes Python source files to identify and classify functions as test targets.
 """

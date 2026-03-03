@@ -1,5 +1,4 @@
 # src/will/phases/interpret_phase.py
-# ID: 54f0c3e0-1ec5-44cc-b86c-c5fc17e4f25c
 
 """
 INTERPRET Phase - Convert natural language intent into canonical task structure
@@ -40,7 +39,6 @@ if TYPE_CHECKING:
 logger = getLogger(__name__)
 
 
-# ID: 75ea4168-eca1-43ef-a4a0-3c24ef729b72
 # ID: 6b2d1d07-81f6-4a13-a6cf-abc933ee4d20
 class InterpretPhase:
     """

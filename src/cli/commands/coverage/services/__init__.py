@@ -1,4 +1,4 @@
-# src/body/cli/commands/coverage/services/__init__.py
+# src/cli/commands/coverage/services/__init__.py
 """Coverage service layer for reusable logic."""
 
 from __future__ import annotations

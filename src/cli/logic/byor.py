@@ -1,4 +1,4 @@
-# src/body/cli/logic/byor.py
+# src/cli/logic/byor.py
 
 """
 Implements the 'byor-init' command to analyze external repositories and scaffold minimal CORE governance structures.

@@ -1,13 +1,7 @@
 # src/body/governance/path_validator.py
-# ID: 41eba414-1d91-417c-827b-d897cb9758e7
 
 """
 Path Validator - Body Layer Enforcement Service.
-
-CONSTITUTIONAL PROMOTION (v2.7):
-- Resolved LEGACY debt: Removed hardcoded 'no_write_intent'.
-- Mind-Aligned: Now enforces 'governance.constitution.read_only' from the Mind.
-- Rule-Driven: Violation messages are now sourced from the provided PolicyRule list.
 """
 
 from __future__ import annotations

@@ -1,5 +1,4 @@
-# src/features/maintenance/scripts/context_export.py
-# ID: 608359ae-58ac-4e39-a1df-f0fb698b2bc0
+# src/body/maintenance/scripts/context_export.py
 
 """
 Export a complete, compact operational snapshot of CORE.

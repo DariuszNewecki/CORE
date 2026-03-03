@@ -1,4 +1,4 @@
-# src/body/cli/commands/check_atomic_actions.py
+# src/cli/commands/check_atomic_actions.py
 
 """
 Constitutional checker for atomic actions pattern compliance.

@@ -1,5 +1,4 @@
 # src/body/project_lifecycle/scaffolding_service.py
-# ID: b2a71e87-f72f-4868-8e63-9538096af12e
 
 """
 Service to scaffold a new CORE-governed project with templates and structure.

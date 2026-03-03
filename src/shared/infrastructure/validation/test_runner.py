@@ -1,5 +1,4 @@
 # src/shared/infrastructure/validation/test_runner.py
-# ID: c70526bd-08f2-4c9b-b014-f4c548e188c6
 
 """
 Executes pytest and captures results as Constitutional Evidence.

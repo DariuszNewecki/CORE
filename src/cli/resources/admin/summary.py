@@ -1,5 +1,4 @@
-# src/body/cli/resources/admin/summary.py
-# ID: a1b2c3d4-e5f6-7890-abcd-ef1234567811
+# src/cli/resources/admin/summary.py
 
 """
 Admin Summary Command - Operational Health Visualization.

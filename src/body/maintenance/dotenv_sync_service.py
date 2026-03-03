@@ -1,4 +1,4 @@
-# src/features/maintenance/dotenv_sync_service.py
+# src/body/maintenance/dotenv_sync_service.py
 
 """Provides functionality for the dotenv_sync_service module."""
 

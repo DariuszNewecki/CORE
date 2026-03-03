@@ -1,4 +1,4 @@
-# src/features/test_generation/helpers/context_extractor.py
+# src/will/test_generation/helpers/context_extractor.py
 
 """Context extraction utilities for parsing context packages."""
 

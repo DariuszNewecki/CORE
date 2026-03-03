@@ -1,4 +1,4 @@
-# src/body/cli/logic/knowledge.py
+# src/cli/logic/knowledge.py
 
 """
 Implements the logic for knowledge-related CLI commands, such as finding

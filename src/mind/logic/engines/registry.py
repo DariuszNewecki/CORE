@@ -1,5 +1,4 @@
 # src/mind/logic/engines/registry.py
-# ID: b084f16d-e878-465b-84af-72fe10a2ceb1
 
 """
 Dynamic Registry of Governance Engines.

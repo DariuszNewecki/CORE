@@ -1,5 +1,4 @@
 # src/cli/resources/admin/meta.py
-# ID: c1b2a3d4-e5f6-7890-abcd-ef1234567813
 
 import typer
 from rich.console import Console

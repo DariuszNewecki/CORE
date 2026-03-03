@@ -1,5 +1,4 @@
-# src/features/introspection/vectorization/delta_analyzer.py
-# ID: d21e52f0-954a-46b3-aa1b-b199972bb718
+# src/body/introspection/vectorization/delta_analyzer.py
 """Delta Analyzer - Identifies symbols requiring re-vectorization."""
 
 from __future__ import annotations

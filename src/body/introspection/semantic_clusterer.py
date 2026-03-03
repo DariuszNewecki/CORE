@@ -1,4 +1,4 @@
-# src/features/introspection/semantic_clusterer.py
+# src/body/introspection/semantic_clusterer.py
 
 """
 Performs semantic clustering on exported capability vectors to discover data-driven domains.

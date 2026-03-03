@@ -1,4 +1,4 @@
-# src/body/cli/commands/fix/body_ui.py
+# src/cli/commands/fix/body_ui.py
 """
 CLI command: `core-admin fix body-ui`
 

@@ -1,4 +1,4 @@
-# src/body/cli/commands/check/converters.py
+# src/cli/commands/check/converters.py
 """
 Data converters for audit results.
 

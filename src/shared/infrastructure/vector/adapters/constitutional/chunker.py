@@ -21,7 +21,6 @@ from shared.infrastructure.vector.adapters.constitutional.utils import safe_str
 from shared.processors.yaml_processor import strict_yaml_processor
 
 
-# ID: 73e72340-4428-4517-a7b6-55f63d7b6d72
 # ID: 8a7b6c5d-4e3f-2a1b-9c8d-7e6f5a4b3c2d
 def chunk_document(data: dict[str, Any]) -> list[dict[str, Any]]:
     """
@@ -87,7 +86,6 @@ def chunk_document(data: dict[str, Any]) -> list[dict[str, Any]]:
     return chunks
 
 
-# ID: 0da3a670-5ce7-4978-a9c6-ee450783859c
 # ID: 9b8a7c6d-5e4f-3a2b-1c0d-9e8f7a6b5c4d
 def _chunk_requirements(requirements: dict[str, Any]) -> list[dict[str, Any]]:
     """
@@ -133,7 +131,6 @@ def _chunk_requirements(requirements: dict[str, Any]) -> list[dict[str, Any]]:
     return chunks
 
 
-# ID: 0fb9ba81-1703-4c18-a888-ffd4d19f8a63
 # ID: 0ace5097-e5fd-4cbe-922f-2d44965b4682
 def _chunk_rules(rules: list[Any]) -> list[dict[str, Any]]:
     """
@@ -172,7 +169,6 @@ def _chunk_rules(rules: list[Any]) -> list[dict[str, Any]]:
     return chunks
 
 
-# ID: 65e6ea48-d23d-4895-9833-f996d0482023
 # ID: 0ac38395-9bfd-4b29-abb0-7fae7f020c6d
 def _chunk_validation_rules(rules: list[Any]) -> list[dict[str, Any]]:
     """
@@ -219,7 +215,6 @@ def _chunk_validation_rules(rules: list[Any]) -> list[dict[str, Any]]:
     return chunks
 
 
-# ID: b54c962f-0e5f-436a-8f18-f5d9d4fee351
 # ID: b8f311e1-d339-414b-b3aa-d5f98927b976
 def _chunk_examples(examples: dict[str, Any]) -> list[dict[str, Any]]:
     """

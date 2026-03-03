@@ -37,8 +37,22 @@ class AIProvider(ABC):
 
     @abstractmethod
     # ID: af87b72f-3b74-419d-b6c1-635c4185c033
-    async def chat_completion(self, prompt: str, user_id: str) -> str:
-        """Generate a text completion for a given prompt."""
+    async def chat_completion(
+        self,
+        prompt: str,
+        user_id: str,
+        system_prompt: str = "",
+    ) -> str:
+        """
+        Generate a text completion for a given prompt.
+
+        Args:
+            prompt: The user-turn content.
+            user_id: Identifier for audit tracing.
+            system_prompt: Optional constitutional system prompt.
+                           When provided, governs the AI's role and constraints.
+                           Defaults to empty string (provider uses own default).
+        """
         pass
 
     @abstractmethod

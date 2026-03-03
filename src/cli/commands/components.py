@@ -1,4 +1,4 @@
-# src/body/cli/commands/components.py
+# src/cli/commands/components.py
 
 """
 Component Discovery Commands.

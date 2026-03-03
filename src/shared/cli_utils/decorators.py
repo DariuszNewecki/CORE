@@ -1,5 +1,4 @@
 # src/shared/cli_utils/decorators.py
-# ID: f51655ac-230e-478a-9019-f5c38401ce03
 
 """
 Constitutional CLI Decorators.

@@ -1,4 +1,4 @@
-# src/features/test_generation/helpers/__init__.py
+# src/will/test_generation/helpers/__init__.py
 
 """Test generation helpers - reusable utility components."""
 

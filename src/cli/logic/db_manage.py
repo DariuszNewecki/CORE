@@ -1,4 +1,4 @@
-# src/body/cli/logic/db_manage.py
+# src/cli/logic/db_manage.py
 """Provides functionality for the db_manage module."""
 
 from __future__ import annotations

@@ -1,4 +1,4 @@
-# src/body/cli/logic/audit_capability_domains.py
+# src/cli/logic/audit_capability_domains.py
 """
 Provides functionality for the audit_capability_domains module.
 """

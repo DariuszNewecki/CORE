@@ -1,4 +1,4 @@
-# src/features/self_healing/test_context_analyzer.py
+# src/body/self_healing/test_context_analyzer.py
 
 """
 Analyzes target modules to build rich context for test generation.

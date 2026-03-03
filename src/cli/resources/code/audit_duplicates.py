@@ -1,4 +1,4 @@
-# src/body/cli/resources/code/audit_duplicates.py
+# src/cli/resources/code/audit_duplicates.py
 import typer
 
 from shared.cli_utils import core_command

@@ -1,4 +1,4 @@
-# src/features/governance/anchor.py
+# src/mind/governance/anchor.py
 
 """
 Governance domain anchor.

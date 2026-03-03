@@ -1,5 +1,4 @@
-# src/body/cli/commands/inspect/drift.py
-# ID: a70de674-c673-424d-8578-d5bd83417b28
+# src/cli/commands/inspect/drift.py
 
 """
 Drift detection commands.

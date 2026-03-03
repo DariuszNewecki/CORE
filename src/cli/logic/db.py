@@ -1,4 +1,4 @@
-# src/body/cli/logic/db.py
+# src/cli/logic/db.py
 
 """
 Registers the top-level 'db' command group for managing the CORE operational database.

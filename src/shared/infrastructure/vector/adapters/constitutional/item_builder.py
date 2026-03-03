@@ -33,7 +33,6 @@ from shared.models.vector_models import VectorizableItem
 logger = getLogger(__name__)
 
 
-# ID: b823af44-6040-41c4-ae12-a1c1b04ffd84
 # ID: 7bb0d113-1e20-4135-9ecd-087deca09cdb
 def data_to_items(
     data: dict[str, Any],
@@ -92,7 +91,6 @@ def data_to_items(
     return items
 
 
-# ID: 52520b4f-d36d-487c-93fd-609dad5e5f7c
 # ID: 4f2e8f59-1964-4cdc-894a-e88cfb69790d
 def _chunk_to_item(
     *,

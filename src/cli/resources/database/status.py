@@ -1,5 +1,4 @@
-# src/body/cli/resources/database/status.py
-# ID: 5c5a89a5-c91d-4c78-a48b-12fbeeb930e0
+# src/cli/resources/database/status.py
 """
 Database status command.
 

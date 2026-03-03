@@ -1,5 +1,4 @@
 # src/will/agents/specification_agent.py
-# ID: 1c09906a-a016-487a-8756-0992a50c53d5
 
 """
 SpecificationAgent - The Engineer

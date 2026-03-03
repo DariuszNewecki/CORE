@@ -9,7 +9,6 @@ from __future__ import annotations
 import typer
 
 
-# ID: 2da61629-3ea0-4cb7-a708-2a6237f2a020
 # ID: 3c400acd-3d8c-4788-a63d-d96959985a94
 def deprecated_command(old: str, new: str) -> None:
     """

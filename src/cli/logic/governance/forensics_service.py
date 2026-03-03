@@ -1,5 +1,4 @@
-# src/body/cli/logic/governance/forensics_service.py
-# ID: a1b2c3d4-e5f6-7890-abcd-ef1234567898
+# src/cli/logic/governance/forensics_service.py
 
 """
 Forensics Service - Phase 3 Hardening.

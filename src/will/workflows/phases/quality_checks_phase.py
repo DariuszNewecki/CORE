@@ -1,4 +1,4 @@
-# src/body/cli/workflows/phases/quality_checks_phase.py
+# src/will/workflows/phases/quality_checks_phase.py
 """Quality checks phase - linting and contract verification."""
 
 from __future__ import annotations
@@ -9,10 +9,10 @@ from typing import Any
 from rich.console import Console
 
 from cli.logic.body_contracts_checker import check_body_contracts
-from cli.workflows.dev_sync_reporter import DevSyncReporter
 from mind.enforcement.audit import lint
 from shared.action_types import ActionResult
 from shared.context import CoreContext
+from will.workflows.dev_sync_reporter import DevSyncReporter
 
 
 # ID: 17dff4dd-8f46-437d-847d-9b4ccce07495

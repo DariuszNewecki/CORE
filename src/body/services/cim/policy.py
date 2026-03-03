@@ -1,5 +1,4 @@
 # src/body/services/cim/policy.py
-# ID: 33964413-eae3-490c-b4cb-4d3d54fc23fe
 
 """
 CIM Policy Evaluator - Turn diffs into actionable findings.

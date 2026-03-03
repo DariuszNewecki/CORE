@@ -1,4 +1,4 @@
-# src/body/cli/logic/proposals/models.py
+# src/cli/logic/proposals/models.py
 
 """Provides functionality for the models module."""
 

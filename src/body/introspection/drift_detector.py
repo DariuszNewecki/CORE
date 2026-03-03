@@ -1,4 +1,4 @@
-# src/features/introspection/drift_detector.py
+# src/body/introspection/drift_detector.py
 """
 Detects drift between declared capabilities in manifests and implemented
 capabilities in the source code.

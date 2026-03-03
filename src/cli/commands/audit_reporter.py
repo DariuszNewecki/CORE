@@ -1,4 +1,4 @@
-# src/body/cli/commands/audit_reporter.py
+# src/cli/commands/audit_reporter.py
 
 """
 AuditRunReporter: structured reporting for `core-admin check audit`.

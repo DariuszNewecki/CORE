@@ -1,4 +1,4 @@
-# src/body/cli/logic/governance/renderer.py
+# src/cli/logic/governance/renderer.py
 
 """Refactored logic for src/body/cli/logic/governance/renderer.py."""
 

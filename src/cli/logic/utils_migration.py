@@ -1,4 +1,4 @@
-# src/body/cli/logic/utils_migration.py
+# src/cli/logic/utils_migration.py
 """
 Shared utilities for constitutional migration and domain rationalization.
 This is the canonical location for logic used by migration-related tools.

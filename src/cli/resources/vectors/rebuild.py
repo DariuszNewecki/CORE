@@ -1,5 +1,4 @@
-# src/body/cli/resources/vectors/rebuild.py
-# ID: 00a65e2b-c9b7-49dc-b8f6-fdd9547e6e7c
+# src/cli/resources/vectors/rebuild.py
 """
 Vector rebuild command.
 

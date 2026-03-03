@@ -1,5 +1,4 @@
-# src/body/cli/commands/inspect/patterns.py
-# ID: 626eee84-cd44-4ed8-af8e-441ba9b7f720
+# src/cli/commands/inspect/patterns.py
 
 """
 Pattern classification analysis commands.

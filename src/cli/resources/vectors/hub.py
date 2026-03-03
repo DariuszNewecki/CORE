@@ -1,4 +1,4 @@
-# src/body/cli/resources/vectors/hub.py
+# src/cli/resources/vectors/hub.py
 import typer
 
 

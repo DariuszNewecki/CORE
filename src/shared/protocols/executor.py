@@ -1,5 +1,4 @@
 # src/shared/protocols/executor.py
-# ID: 0808bda4-c3bd-450a-ad06-0b2324339baa
 
 """
 Action Executor Protocol - The Universal Mutation Contract.

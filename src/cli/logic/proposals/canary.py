@@ -1,4 +1,4 @@
-# src/body/cli/logic/proposals/canary.py
+# src/cli/logic/proposals/canary.py
 
 """Refactored logic for src/body/cli/logic/proposals/canary.py."""
 

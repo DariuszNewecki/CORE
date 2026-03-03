@@ -1,4 +1,4 @@
-# src/body/cli/commands/dev_sync.py
+# src/cli/commands/dev_sync.py
 
 """
 Dev Sync Command - Atomic Action Architecture

@@ -1,4 +1,4 @@
-# src/body/cli/logic/interactive_test/__init__.py
+# src/cli/logic/interactive_test/__init__.py
 
 """
 Interactive test generation package.

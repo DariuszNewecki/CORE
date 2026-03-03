@@ -1,5 +1,4 @@
 # src/body/atomic/crate_ops.py
-# ID: ab85ee66-fda5-4445-926b-54f1945ac64a
 
 """
 Atomic Crate Operations - Packaging logic for autonomous transactions.

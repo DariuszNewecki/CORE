@@ -1,5 +1,4 @@
-# src/body/cli/resources/code/clarity.py
-# ID: 3e8a4921-728b-49fc-b83c-d922541d25d0
+# src/cli/resources/code/clarity.py
 
 """
 Code Clarity Resource Action.

@@ -1,4 +1,4 @@
-# src/body/cli/resources/context/cache.py
+# src/cli/resources/context/cache.py
 """
 Context cache command - Manage context cache.
 

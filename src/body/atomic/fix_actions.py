@@ -82,7 +82,6 @@ async def action_fix_imports(write: bool = False) -> ActionResult:
             cmd.append("--fix")
         cmd.append("--exit-zero")
 
-        # Execute via sanctioned subprocess utility
         run_poetry_command(f"Sorting imports in {target_path}", cmd)
 
         return ActionResult(
@@ -98,36 +97,6 @@ async def action_fix_imports(write: bool = False) -> ActionResult:
             data={"error": str(e)},
             duration_sec=time.time() - start,
         )
-
-
-@register_action(
-    action_id="fix.docstrings",
-    description="Fix missing or malformed docstrings",
-    category=ActionCategory.FIX,
-    policies=["rules/code/purity"],
-    impact_level="safe",
-)
-@atomic_action(
-    action_id="fix.docstrings",
-    intent="Atomic action for action_fix_docstrings",
-    impact=ActionImpact.WRITE_CODE,
-    policies=["atomic_actions"],
-)
-# ID: 3024996b-c84e-4b81-b542-205e7b370102
-async def action_fix_docstrings(
-    core_context: CoreContext, write: bool = False, **kwargs
-) -> ActionResult:
-    """Fix docstrings across the repository."""
-    start = time.time()
-    from body.self_healing.docstring_service import fix_docstrings
-
-    await fix_docstrings(context=core_context, write=write)
-    return ActionResult(
-        action_id="fix.docstrings",
-        ok=True,
-        data={"status": "completed", "write": write},
-        duration_sec=time.time() - start,
-    )
 
 
 @register_action(
@@ -358,4 +327,34 @@ async def action_fix_atomic_actions(
         ok=True,
         data={"files_modified": files_modified, "violations_fixed": fixes_applied},
         duration_sec=time.time() - start_time,
+    )
+
+
+@register_action(
+    action_id="fix.docstrings",
+    description="Generate and inject missing docstrings using AI",
+    category=ActionCategory.FIX,
+    policies=["rules/code/purity"],
+    impact_level="moderate",
+)
+@atomic_action(
+    action_id="fix.docstrings",
+    intent="Autonomously generate missing docstrings via Coder LLM role",
+    impact=ActionImpact.WRITE_CODE,
+    policies=["atomic_actions"],
+)
+# ID: a3f91c7d-5e2b-4d8a-b6f0-c1e2d3f4a5b7
+async def action_fix_docstrings(
+    core_context: CoreContext, write: bool = False, **kwargs
+) -> ActionResult:
+    """Generate and inject missing docstrings using the Coder LLM role."""
+    start = time.time()
+    from will.self_healing.docstring_service import fix_docstrings
+
+    await fix_docstrings(context=core_context, write=write)
+    return ActionResult(
+        action_id="fix.docstrings",
+        ok=True,
+        data={"write": write},
+        duration_sec=time.time() - start,
     )

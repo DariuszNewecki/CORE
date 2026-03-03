@@ -1,5 +1,4 @@
-# src/body/cli/commands/submit.py
-# ID: 2bd6fcc9-9752-420a-a48e-35963a672ef0
+# src/cli/commands/submit.py
 
 """DEPRECATED: Use 'core-admin proposals integrate' instead."""
 

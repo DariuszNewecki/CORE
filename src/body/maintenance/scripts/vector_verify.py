@@ -1,4 +1,4 @@
-# src/features/maintenance/scripts/vector_verify.py
+# src/body/maintenance/scripts/vector_verify.py
 """
 Vector verification maintenance script.
 

@@ -1,5 +1,4 @@
-# src/body/cli/resources/admin/coverage.py
-# ID: a1b2c3d4-e5f6-7890-abcd-ef1234567892
+# src/cli/resources/admin/coverage.py
 
 """
 Admin Coverage Command - Constitutional Binding Audit.

@@ -35,7 +35,6 @@ from shared.logger import getLogger
 logger = getLogger(__name__)
 
 
-# ID: fcd07157-1701-459c-ac91-902d251ee471
 # ID: 78cbd4a9-32a2-49cd-84dd-4f401daa8df3
 class DatabaseService:
     """
@@ -60,7 +59,6 @@ class DatabaseService:
         """
         logger.debug("DatabaseService initialized")
 
-    # ID: fe56d2c9-df6c-42c1-acef-0633db3a4392
     # ID: 872b8a2c-50ff-493a-b6ba-be62215f4c63
     async def query_roles(self) -> list[CognitiveRole]:
         """
@@ -81,7 +79,6 @@ class DatabaseService:
             logger.debug("Queried %d cognitive roles", len(roles))
             return list(roles)
 
-    # ID: 8f054637-4af9-43a3-a483-cf641288ac65
     # ID: 8b644d68-426f-4bfa-a866-5bdbbe8ee7fe
     async def query_resources(self) -> list[LlmResource]:
         """
@@ -102,7 +99,6 @@ class DatabaseService:
             logger.debug("Queried %d LLM resources", len(resources))
             return list(resources)
 
-    # ID: 2079a7bc-55d4-4c41-88b4-592ab1be14d5
     # ID: 1e312dd0-ddf2-482f-95db-959654191557
     async def query_role_by_id(self, role_id: UUID) -> CognitiveRole | None:
         """
@@ -134,7 +130,6 @@ class DatabaseService:
 
             return role
 
-    # ID: 7696191e-fce8-43d1-a277-14209cbe61cb
     # ID: 69abb440-9af8-4107-bcee-264cec877251
     async def query_resource_by_id(self, resource_id: UUID) -> LlmResource | None:
         """
@@ -166,7 +161,6 @@ class DatabaseService:
 
             return resource
 
-    # ID: e55db17c-b7d0-469a-a922-32d8e9ec9bf2
     # ID: f6a7b8c9-d0e1-2f3a-4b5c-6d7e8f9a0b1c
     async def execute_query(
         self, query: str, params: dict[str, Any] | None = None
@@ -199,7 +193,6 @@ class DatabaseService:
             logger.debug("Executed raw query, returned %d rows", len(rows))
             return rows
 
-    # ID: 40c35af6-f4d3-434f-beda-4f6fe663b805
     # ID: a7b8c9d0-e1f2-3a4b-5c6d-7e8f9a0b1c2d
     async def with_session(self, operation):
         """
@@ -220,6 +213,7 @@ class DatabaseService:
             Result from operation
 
         Example:
+            # ID: 61799ec8-5cf5-442e-825b-c65e57220137
             async def complex_query(session):
                 # Do complex multi-step operation
                 return result
@@ -230,7 +224,6 @@ class DatabaseService:
             return await operation(session)
 
 
-# ID: 214fe663-56b8-49b1-9f8f-8811f76c2f90
 # ID: 0cf303d2-3131-4d15-9b42-83d3de3c3579
 def get_database_service() -> DatabaseService:
     """

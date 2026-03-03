@@ -1,4 +1,4 @@
-# src/body/cli/workflows/phases/code_fixers_phase.py
+# src/will/workflows/phases/code_fixers_phase.py
 """Code fixing phase - IDs, headers, logging, docstrings, formatting."""
 
 from __future__ import annotations
@@ -10,13 +10,13 @@ import typer
 from rich.console import Console
 
 from body.self_healing.code_style_service import format_code
-from body.self_healing.docstring_service import fix_docstrings
 from cli.commands.fix.code_style import fix_headers_internal
 from cli.commands.fix.metadata import fix_ids_internal
 from cli.commands.fix_logging import LoggingFixer
-from cli.workflows.dev_sync_reporter import DevSyncReporter
 from shared.action_types import ActionResult
 from shared.context import CoreContext
+from will.self_healing.docstring_service import fix_docstrings
+from will.workflows.dev_sync_reporter import DevSyncReporter
 
 
 # ID: 1248d364-44a9-4eec-8954-2a3b2269e352

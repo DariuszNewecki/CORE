@@ -1,5 +1,4 @@
-# src/body/cli/resources/code/complexity.py
-# ID: f1289e90-c235-46fd-a8c6-52418e912bc3
+# src/cli/resources/code/complexity.py
 
 """
 Code Complexity Resource Action.

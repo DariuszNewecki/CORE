@@ -1,4 +1,4 @@
-# src/features/autonomy/audit_analyzer.py
+# src/body/autonomy/audit_analyzer.py
 """
 Audit Analyzer - Identifies auto-fixable violations from audit findings.
 

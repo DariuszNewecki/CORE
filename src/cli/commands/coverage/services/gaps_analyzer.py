@@ -1,4 +1,4 @@
-# src/body/cli/commands/coverage/services/gaps_analyzer.py
+# src/cli/commands/coverage/services/gaps_analyzer.py
 """Service for analyzing coverage gaps and identifying low-coverage modules."""
 
 from __future__ import annotations

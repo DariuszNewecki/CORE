@@ -1,5 +1,4 @@
-# src/body/cli/commands/governance.py
-# ID: 0753d0ea-9942-431f-b013-5ee5d09eb782
+# src/cli/commands/governance.py
 
 """
 Constitutional governance visibility and verification commands.

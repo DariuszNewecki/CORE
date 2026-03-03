@@ -1,4 +1,4 @@
-# src/body/cli/workflows/phases/code_analysis_phase.py
+# src/will/workflows/phases/code_analysis_phase.py
 """Code analysis phase - duplicate detection and code quality metrics."""
 
 from __future__ import annotations
@@ -9,9 +9,9 @@ from typing import Any
 from rich.console import Console
 
 from cli.logic.duplicates import inspect_duplicates_async
-from cli.workflows.dev_sync_reporter import DevSyncReporter
 from shared.action_types import ActionResult
 from shared.context import CoreContext
+from will.workflows.dev_sync_reporter import DevSyncReporter
 
 
 # ID: 19d2867c-472b-4971-9eda-1bc3ee0e6e89

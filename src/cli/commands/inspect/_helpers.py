@@ -1,5 +1,4 @@
-# src/body/cli/commands/inspect/_helpers.py
-# ID: edbfe1ba-5b19-4bae-bc62-b6678206eb27
+# src/cli/commands/inspect/_helpers.py
 
 """
 Shared helper functions for inspect commands.

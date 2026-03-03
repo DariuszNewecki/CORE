@@ -1,5 +1,4 @@
-# src/features/self_healing/purge_legacy_tags_service.py
-# ID: 0e5a08a4-7c8f-4b5d-86b7-539a77d4e829
+# src/body/self_healing/purge_legacy_tags_service.py
 
 """
 Service logic for purging legacy tags and descriptive pollution from source code.

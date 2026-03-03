@@ -1,5 +1,4 @@
 # src/shared/infrastructure/repositories/refusal_repository.py
-# ID: 4f06b9cb-148e-4da3-9dbd-4e932f47071d
 
 """
 Refusal Repository - Governed database access for refusal records.

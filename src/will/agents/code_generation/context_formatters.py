@@ -1,5 +1,4 @@
 # src/will/agents/code_generation/context_formatters.py
-# ID: b47a6286-ce4c-41be-ab54-b18b41f1f589
 
 """
 Context formatting utilities for code generation prompts.

@@ -1,5 +1,4 @@
 # src/body/services/cim/cim_constants.py
-# ID: 81edd88e-1bf7-4ab0-81c7-d1d0bc2d6e52
 """CIM-0 Census Constants.
 
 All classification sets and maps used across CIM scanners and path utilities.

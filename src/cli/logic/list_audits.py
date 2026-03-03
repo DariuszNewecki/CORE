@@ -1,4 +1,4 @@
-# src/body/cli/logic/list_audits.py
+# src/cli/logic/list_audits.py
 
 """
 Provides functionality for the list_audits module.
@@ -13,7 +13,6 @@ from shared.cli_utils import core_command
 from shared.infrastructure.database.session_manager import get_session
 
 
-# ID: 09c55085-1d89-46c2-a663-b4e1f2c2c0b5
 @core_command(dangerous=False, requires_context=False)
 # ID: 23254df2-9a4f-4195-b174-53ad4ee00af4
 async def list_audits(

@@ -1,4 +1,3 @@
-# ID: a2b3c4d5-e6f7-8901-abcd-ef1234567812
 # src/body/analyzers/constitutional_path_analyzer.py
 
 from __future__ import annotations
@@ -13,6 +12,38 @@ from shared.infrastructure.intent.intent_repository import get_intent_repository
 
 # ID: 9666577f-5e1f-4dea-a104-59c72bfffe82
 class ConstitutionalPathAnalyzer(BaseAnalyzer):
+    """
+        ConstitutionalPathAnalyzer authoritatively discovers all indexed artifacts (policies and META contracts) from the Mind's IntentRepository during the PARSE phase.
+    Args:
+        **kwargs: Arbitrary keyword arguments (typically runtime context).
+    Returns:
+        ComponentResult: Contains a list of discovered artifact paths and a count.
+    """
+
+    """
+        ConstitutionalPathAnalyzer authoritatively discovers all indexed artifacts (policies and META contracts) from the Mind's IntentRepository during the PARSE phase.
+    Args:
+        **kwargs: Arbitrary keyword arguments (typically runtime context).
+    Returns:
+        ComponentResult: Contains a list of discovered artifact paths and a count.
+    """
+
+    """
+        ConstitutionalPathAnalyzer authoritatively discovers all indexed artifacts (policies and META contracts) from the Mind's IntentRepository during the PARSE phase.
+    Args:
+        **kwargs: Arbitrary keyword arguments (typically runtime context).
+    Returns:
+        ComponentResult: Contains a list of discovered artifact paths and a count.
+    """
+
+    """
+        ConstitutionalPathAnalyzer authoritatively discovers all indexed artifacts (policies and META contracts) from the Mind's IntentRepository during the PARSE phase.
+    Args:
+        **kwargs: Arbitrary keyword arguments (typically runtime context).
+    Returns:
+        ComponentResult: Contains a list of discovered artifact paths and a count.
+    """
+
     """
     PARSE Phase Component.
     Authoritatively discovers all artifacts indexed in the Mind (.intent/).

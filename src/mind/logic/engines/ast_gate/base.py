@@ -1,5 +1,4 @@
 # src/mind/logic/engines/ast_gate/base.py
-# ID: 08acf631-aeea-4ad9-9107-c6100b89942f
 
 """
 Shared AST analysis utilities for constitutional enforcement.

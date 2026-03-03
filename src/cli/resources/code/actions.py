@@ -1,4 +1,4 @@
-# src/body/cli/resources/code/actions.py
+# src/cli/resources/code/actions.py
 from rich.console import Console
 from rich.table import Table
 
@@ -12,7 +12,6 @@ console = Console()
 
 
 @app.command("actions")
-# ID: c006ad04-157c-4ed5-8301-95e656a982c8
 @command_meta(
     canonical_name="code.actions",
     behavior=CommandBehavior.READ,

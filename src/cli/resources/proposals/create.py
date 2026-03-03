@@ -1,17 +1,28 @@
-# src/body/cli/resources/proposals/create.py
+# src/cli/resources/proposals/create.py
 import typer
 from rich.console import Console
 
 from body.services.service_registry import service_registry
 from cli.logic.autonomy.actions import parse_action_options
 from shared.cli_utils import core_command
+from shared.models.command_meta import CommandBehavior, CommandLayer, command_meta
 from will.autonomy.proposal import Proposal, ProposalScope
 from will.autonomy.proposal_repository import ProposalRepository
+
+from . import app
 
 
 console = Console()
 
 
+@app.command("create")
+@command_meta(
+    canonical_name="proposals.create",
+    behavior=CommandBehavior.MUTATE,
+    layer=CommandLayer.WILL,
+    summary="Create a new autonomous proposal.",
+    dangerous=True,
+)
 @core_command(dangerous=True, requires_context=True)
 # ID: 50d1f9eb-cb56-4f81-ad07-3e25cd28dd34
 async def create_proposal(
@@ -22,6 +33,9 @@ async def create_proposal(
     ),
     files: list[str] = typer.Option(
         [], "--file", "-f", help="Specific files affected."
+    ),
+    write: bool = typer.Option(
+        False, "--write", help="Persist the proposal. Dry-run by default."
     ),
 ) -> None:
     """
@@ -47,6 +61,13 @@ async def create_proposal(
     # Risk Assessment (Logic lives in domain model)
     risk = proposal.compute_risk()
     console.print(f"Risk Tier: [bold]{risk.overall_risk.upper()}[/bold]")
+
+    if not write:
+        console.print(
+            "[yellow]⚠️  DRY RUN MODE — No changes made. Use --write to persist.[/yellow]"
+        )
+        console.print(f"[dim]Proposal goal: {proposal.goal}[/dim]")
+        return
 
     async with service_registry.session() as session:
         await ProposalRepository(session).create(proposal)

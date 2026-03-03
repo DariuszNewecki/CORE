@@ -1,5 +1,4 @@
 # src/mind/logic/engines/workflow_gate/checks/audit.py
-# ID: 7ecd19f0-ba00-4786-a641-4d5949bdefc1
 
 """
 Audit history workflow check.

@@ -1,4 +1,4 @@
-# src/features/introspection/sync/scanner.py
+# src/body/introspection/sync/scanner.py
 
 """Refactored logic for src/features/introspection/sync/scanner.py."""
 

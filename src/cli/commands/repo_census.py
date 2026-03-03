@@ -1,5 +1,4 @@
-# src/body/cli/commands/inspect/repo_census.py
-# ID: 58e27c7c-8e76-4a9b-a231-969800922c47
+# src/cli/commands/repo_census.py
 
 """
 CIM-0: Repository Structural Census command.

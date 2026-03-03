@@ -1,5 +1,4 @@
 # src/shared/infrastructure/database/models/decision_traces.py
-# ID: 2d9f9691-458f-47a2-89e3-293d2ddd7aad
 """
 Decision Trace Storage - Observability for Autonomous Operations
 
@@ -26,7 +25,6 @@ from sqlalchemy.orm import Mapped, mapped_column
 from .knowledge import Base
 
 
-# ID: 3f7bb115-2a52-40bf-8d83-cbc594eac6f6
 # ID: 69886549-e3ff-48f0-81ac-0ac88c105bb9
 class DecisionTrace(Base):
     """

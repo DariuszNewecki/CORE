@@ -1,5 +1,4 @@
 # src/shared/infrastructure/diagnostic_service.py
-# ID: 56e00499-1e65-4a9f-a960-5cbc0f31f39f
 
 """
 Diagnostic Service - Infrastructure Health Sensor.

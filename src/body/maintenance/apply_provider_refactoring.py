@@ -1,4 +1,4 @@
-# src/features/maintenance/apply_provider_refactoring.py
+# src/body/maintenance/apply_provider_refactoring.py
 
 """
 Automated Provider Refactoring - Apply Changes
@@ -304,7 +304,6 @@ class ProviderRefactoringApplicator:
             return None
 
 
-# ID: d149dd73-5aa9-4a7b-8bdf-b00e304d3678
 # List of files to refactor (from analysis report)
 INTENT_REPOSITORY_FILES = [
     # Mind layer

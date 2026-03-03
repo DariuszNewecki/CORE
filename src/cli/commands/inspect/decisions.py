@@ -1,5 +1,4 @@
-# src/body/cli/commands/inspect/decisions.py
-# ID: 74ed9719-6e6a-4f9f-8ef1-072fb66d1483
+# src/cli/commands/inspect/decisions.py
 
 """
 Decision trace inspection commands.

@@ -1,5 +1,4 @@
-# src/features/self_healing/id_tagging_service.py
-# ID: 7babae48-7877-48fb-b653-042c97161139
+# src/body/self_healing/id_tagging_service.py
 
 """
 Provides a service to find and assign missing constitutional ID anchors to public symbols.
@@ -9,14 +8,13 @@ Refactored to use the canonical ActionExecutor Gateway for all mutations.
 from __future__ import annotations
 
 import ast
+import re
 import uuid
 from collections import defaultdict
 from typing import TYPE_CHECKING
 
 from body.atomic.executor import ActionExecutor
 from shared.ast_utility import find_symbol_id_and_def_line
-
-# REFACTORED: Removed direct settings import
 from shared.logger import getLogger
 
 
@@ -32,11 +30,45 @@ def _is_public(node: ast.FunctionDef | ast.AsyncFunctionDef | ast.ClassDef) -> b
     return not node.name.startswith("_") and (not is_dunder)
 
 
+def _is_id_tag(line: str) -> bool:
+    """Returns True if the line is a # ID: <uuid> comment."""
+    return bool(re.match(r"^\s*# ID:\s*[0-9a-fA-F\-]+\s*$", line))
+
+
+def _strip_orphan_ids(content: str) -> tuple[str, int]:
+    """
+    Remove # ID: lines that are NOT immediately before a def/class line.
+    These are file-level or orphaned IDs with no functional purpose.
+
+    Returns (new_content, removed_count).
+    """
+    lines = content.splitlines(keepends=True)
+    symbol_keywords = ("def ", "async def ", "class ")
+
+    # Build set of line indices that are valid anchors (immediately before def/class)
+    valid_anchor_indices: set[int] = set()
+    for i, line in enumerate(lines):
+        stripped = line.lstrip()
+        if any(stripped.startswith(kw) for kw in symbol_keywords):
+            if i > 0 and _is_id_tag(lines[i - 1]):
+                valid_anchor_indices.add(i - 1)
+
+    new_lines = []
+    removed = 0
+    for i, line in enumerate(lines):
+        if _is_id_tag(line) and i not in valid_anchor_indices:
+            removed += 1
+            continue
+        new_lines.append(line)
+
+    return "".join(new_lines), removed
+
+
 # ID: 17328e3a-5e37-48ff-94d4-c3f4697825d5
 async def assign_missing_ids(context: CoreContext, write: bool = False) -> int:
     """
-    Scans all Python files in the 'src/' directory, finds public symbols
-    missing an '# ID:' tag, and adds a new UUID tag via the ActionExecutor.
+    Scans all Python files in src/, strips orphan file-level # ID: tags,
+    then assigns missing # ID: anchors to public symbols via ActionExecutor.
 
     Args:
         context: CoreContext (Required for ActionExecutor)
@@ -55,6 +87,28 @@ async def assign_missing_ids(context: CoreContext, write: bool = False) -> int:
     if not src_dir.exists():
         logger.warning("Source directory not found: %s", src_dir)
         return 0
+
+    # 0. Cleanup Phase — strip orphan file-level # ID: tags first
+    for file_path in src_dir.rglob("*.py"):
+        try:
+            content = file_path.read_text("utf-8")
+            cleaned, removed = _strip_orphan_ids(content)
+            if removed > 0:
+                rel_path = str(file_path.relative_to(context.git_service.repo_path))
+                result = await executor.execute(
+                    action_id="file.tag_metadata",
+                    write=write,
+                    file_path=rel_path,
+                    code=cleaned,
+                    allowed_operations=["comment.delete"],
+                )
+                if result.ok:
+                    mode_str = "Removed" if write else "Would remove"
+                    logger.info(
+                        "   -> [%s] %d orphan ID(s) in %s", mode_str, removed, rel_path
+                    )
+        except Exception as e:
+            logger.error("Error stripping orphan IDs in %s: %s", file_path.name, e)
 
     # 1. Discovery Phase (AST Scan)
     for file_path in src_dir.rglob("*.py"):
@@ -105,7 +159,6 @@ async def assign_missing_ids(context: CoreContext, write: bool = False) -> int:
 
             final_code = "\n".join(lines) + "\n"
 
-            # CONSTITUTIONAL GATEWAY: Metadata-only mutation with semantic proof
             result = await executor.execute(
                 action_id="file.tag_metadata",
                 write=write,
@@ -118,17 +171,9 @@ async def assign_missing_ids(context: CoreContext, write: bool = False) -> int:
                 mode_str = "Fixed" if write else "Proposed"
                 logger.info("   -> [%s] %d IDs in %s", mode_str, len(fixes), rel_path)
             else:
-                # IMPROVED: Show full constitutional violation context
                 error_msg = result.data.get("error") or "unknown error"
                 violations = result.data.get("violations", [])
-
-                logger.error(
-                    "   -> [BLOCKED] %s: %s",
-                    rel_path,
-                    error_msg,
-                )
-
-                # Log violation details in debug mode
+                logger.error("   -> [BLOCKED] %s: %s", rel_path, error_msg)
                 for violation in violations[:3]:
                     logger.debug("        - %s", violation)
 

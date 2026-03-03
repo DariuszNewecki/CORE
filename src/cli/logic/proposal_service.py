@@ -1,4 +1,4 @@
-# src/body/cli/logic/proposal_service.py
+# src/cli/logic/proposal_service.py
 
 """
 Proposal lifecycle management logic.

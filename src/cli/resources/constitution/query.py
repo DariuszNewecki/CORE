@@ -1,4 +1,4 @@
-# src/body/cli/resources/constitution/query.py
+# src/cli/resources/constitution/query.py
 import typer
 from rich.console import Console
 

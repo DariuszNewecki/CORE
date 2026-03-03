@@ -1,5 +1,4 @@
-# src/body/cli/commands/inspect/__init__.py
-# ID: 8b42d417-efda-40f8-8b63-e808f15b79d5
+# src/cli/commands/inspect/__init__.py
 
 """
 Modular inspect command group.

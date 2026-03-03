@@ -1,5 +1,4 @@
 # src/will/agents/code_generation/extraction.py
-# ID: 526ed411-2149-457d-a4de-f2e136ddfa6f
 
 """
 Code extraction and repair utilities.

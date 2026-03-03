@@ -1,4 +1,4 @@
-# src/body/cli/commands/secrets.py
+# src/cli/commands/secrets.py
 """
 CLI commands for encrypted secrets management.
 Constitutional compliance: agent_governance, data_governance, operations.

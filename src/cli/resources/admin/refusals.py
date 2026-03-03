@@ -1,5 +1,4 @@
-# src/body/cli/resources/admin/refusals.py
-# ID: f5b4c672-cd94-48f7-b393-da9cfba8fd9a
+# src/cli/resources/admin/refusals.py
 
 import typer
 

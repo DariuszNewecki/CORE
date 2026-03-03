@@ -1,5 +1,4 @@
-# src/body/cli/resources/database/export.py
-# ID: fd5b5529-caa8-4411-a40a-1f04bead977c
+# src/cli/resources/database/export.py
 """
 Database export command.
 

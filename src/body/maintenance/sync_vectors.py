@@ -1,4 +1,4 @@
-# src/features/self_healing/sync_vectors.py
+# src/body/maintenance/sync_vectors.py
 
 """
 Atomic vector synchronization between PostgreSQL and Qdrant.

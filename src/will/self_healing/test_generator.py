@@ -1,4 +1,4 @@
-# src/features/self_healing/test_generator.py
+# src/will/self_healing/test_generator.py
 
 """
 Thin wrapper that exposes the new modular test generation pipeline.

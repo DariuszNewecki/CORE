@@ -1,5 +1,4 @@
 # src/mind/governance/assumption_extractor.py
-# ID: b5206bc1-1962-45dc-892d-e4fe16a8c311
 
 """
 Dynamic Assumption Extraction - Synthesizes operational defaults from constitutional policies.
@@ -26,7 +25,6 @@ if TYPE_CHECKING:
     from shared.protocols import CognitiveProtocol, TaskStructureProtocol
 
 
-# ID: 8657b4ac-238c-40fc-b63e-1ad1fd07aac9
 @dataclass
 # ID: d54d180e-d661-44fc-9332-29b1adbcb5e3
 class Assumption:
@@ -55,7 +53,6 @@ class Assumption:
         }
 
 
-# ID: 3a26a683-f2b1-43c3-bc2d-f16d220c5534
 @dataclass
 # ID: 22b98dd0-0e85-462a-a3cb-467f1ae5eb9d
 class GuidanceExtraction:

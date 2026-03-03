@@ -1,5 +1,4 @@
-# src/body/cli/logic/body_contracts_fixer.py
-# ID: bea4d40b-5ab4-4925-ad4d-bc3cb448bd95
+# src/cli/logic/body_contracts_fixer.py
 
 """Headless fixer for Body-layer contract violations."""
 

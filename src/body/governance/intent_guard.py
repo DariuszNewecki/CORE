@@ -1,5 +1,4 @@
 # src/body/governance/intent_guard.py
-# ID: 4275c592-2725-4fd1-807f-f0d5d83ea78b
 
 """
 Constitutional Intent Guard - Main Orchestrator.
@@ -24,7 +23,11 @@ from shared.path_resolver import PathResolver
 logger = getLogger(__name__)
 
 # Engine types that perform code-analysis audits (not write-permission gates)
-_AUDIT_ENGINES = frozenset({"ast_gate", "knowledge_gate", "llm_gate", "regex_gate"})
+# Engine types that perform content analysis — these require file content and
+# belong in the audit phase, not the write gate (which only has a path).
+_AUDIT_ENGINES = frozenset(
+    {"ast_gate", "glob_gate", "knowledge_gate", "llm_gate", "regex_gate"}
+)
 
 # Severity value assigned to constitutional-authority violations.
 # Using a dedicated string (rather than reusing "error") lets check_transaction
@@ -304,8 +307,9 @@ class IntentGuard:
             except ValueError:
                 continue
 
-            # Skip audit-only engines if this is just a metadata tag
-            if is_metadata and rule.engine in _audit_engines_set():
+            # Skip content-analysis engines — they require file content, which
+            # check_transaction does not have. These rules run during audit phase only.
+            if rule.engine in _audit_engines_set():
                 continue
 
             is_blocking = rule.severity in ("blocking", "error")

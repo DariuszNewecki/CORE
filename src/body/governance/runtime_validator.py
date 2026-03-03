@@ -1,5 +1,4 @@
 # src/body/governance/runtime_validator.py
-# ID: 2b55693e-54fd-4e36-ab4c-29075a361014
 
 """
 Runtime Validator - Body Layer Execution Service.

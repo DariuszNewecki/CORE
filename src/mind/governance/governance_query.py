@@ -33,7 +33,6 @@ from shared.logger import getLogger
 logger = getLogger(__name__)
 
 
-# ID: 8d6983c3-b629-4ce5-bbc4-c1af97e132fd
 # ID: 83dd775c-4346-4ec6-9898-2e9b3802289b
 class GovernanceQuery:
     """
@@ -176,7 +175,6 @@ class GovernanceQuery:
         logger.info("Invalidated constitution cache")
 
 
-# ID: fd00d25d-d880-4926-b28d-6e9498e75d38
 # ID: f84dccc0-ec52-4728-b02a-780e13c0110d
 def get_governance_query(intent_path: Path | None = None) -> GovernanceQuery:
     """

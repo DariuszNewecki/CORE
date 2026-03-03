@@ -1,4 +1,4 @@
-# src/features/self_healing/alignment_orchestrator.py
+# src/will/self_healing/alignment_orchestrator.py
 
 """
 AlignmentOrchestrator (The Police Agent)
@@ -26,11 +26,14 @@ logger = getLogger(__name__)
 
 # ID: e776b3ae-a7b1-4737-adcd-bf9714a35543
 class AlignmentOrchestrator:
+    """This class orchestrates the alignment process for documents using a cognitive service and configuration service. It initializes with a CognitiveService instance, a ConfigService instance, a SymbolFinder instance, and a SpecialistDispatcher instance. The align_file method takes a file path and an optional write flag to perform document alignment and optionally write results to a file."""
+
     def __init__(
         self,
         cognitive_service: CognitiveService,
         config_service: ConfigService,
     ):
+        """Initializes a governance agent with cognitive and configuration services. It sets up symbol finding and dispatcher components. The `align_file` method inspects a file and returns audit results."""
         self.cognitive = cognitive_service
         self.config_service = config_service
         self.symbol_finder = SymbolFinder()
@@ -40,6 +43,7 @@ class AlignmentOrchestrator:
 
     # ID: bd0aa07e-317d-4443-9c93-424254093cd5
     async def align_file(self, file_path: str, write: bool = False) -> dict[str, Any]:
+        """Aligns a file by checking for violations and ensuring import safety. If `write` is True, it also writes the aligned content to disk. Returns a dictionary with findings and audit results."""
         start_time = time.time()
         logger.info("👮 Police Agent: Inspecting %s (write_mode=%s)", file_path, write)
 

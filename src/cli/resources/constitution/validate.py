@@ -1,4 +1,4 @@
-# src/body/cli/resources/constitution/validate.py
+# src/cli/resources/constitution/validate.py
 import typer
 from rich.console import Console
 

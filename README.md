@@ -246,6 +246,12 @@ Active work: increasing test coverage autonomously (A2) and stabilising before a
 
 ---
 
+## Acknowledgments
+
+- [Ruben Hassid](https://substack.com/@ruben) — PromptModel artifact pattern
+  inspired by his prompt engineering work
+---
+
 ## License
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)

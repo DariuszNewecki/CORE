@@ -1,4 +1,4 @@
-# src/body/cli/resources/proposals/__init__.py
+# src/cli/resources/proposals/__init__.py
 """A3 Autonomous Proposal management."""
 
 from __future__ import annotations

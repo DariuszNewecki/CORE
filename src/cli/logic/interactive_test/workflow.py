@@ -1,5 +1,4 @@
-# src/body/cli/logic/interactive_test/workflow.py
-# ID: 6f7a8b9c-0d1e-2f3a-4b5c-6d7e8f9a0b1c
+# src/cli/logic/interactive_test/workflow.py
 
 """
 Interactive test generation workflow orchestration.

@@ -1,4 +1,4 @@
-# src/body/cli/resources/symbols/__init__.py
+# src/cli/resources/symbols/__init__.py
 """Symbol registry and Knowledge Graph operations."""
 
 from __future__ import annotations

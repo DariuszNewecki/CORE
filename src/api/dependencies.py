@@ -23,6 +23,47 @@ from shared.infrastructure.database.session_manager import get_db_session, get_s
 # ID: 5b9f734c-5a1c-4278-9853-b0b841b08510
 async def get_api_session() -> AsyncGenerator[AsyncSession, None]:
     """
+        This async generator yields a single AsyncSession for database use in FastAPI routes.
+    Args:
+    Returns: An AsyncGenerator yielding one AsyncSession.
+    """
+    """
+    This async generator function get_api_session creates and yields an AsyncSession object for database interaction in FastAPI route handlers, returning the session once.
+    """
+    """
+    Async generator function get_api_session creates and yields an AsyncSession object for database interaction in FastAPI route handlers, returning the session once.
+    """
+    """
+    This Python function is an async generator that creates and yields an AsyncSession object for database interaction in FastAPI route handlers, which returns the session once.
+    """
+    """
+    This Python function is an async generator that creates and yields an AsyncSession object, which can be used to interact with a database in FastAPI route handlers. It returns the session once and then stops yielding further sessions.
+    """
+    """
+    The function get_api_session is a FastAPI dependency that asynchronously generates an AsyncSession object, which can be used to interact with the database in route handlers. It yields the session once and returns it as an asynchronous generator.
+    """
+    """
+        FastAPI dependency that yields an async database session for route handlers.
+    Args:
+    Returns:
+        AsyncGenerator[AsyncSession, None]: An asynchronous generator yielding a single AsyncSession object.
+    """
+    """
+        FastAPI dependency that yields an async database session for route handlers.
+    Args:
+    Returns:
+        AsyncGenerator[AsyncSession, None]: An asynchronous generator yielding a single AsyncSession object.
+    """
+    """
+        FastAPI dependency that yields an async database session for route handlers.
+    Args:
+    Returns:
+        AsyncGenerator[AsyncSession, None]: An asynchronous generator yielding a single AsyncSession object.
+    """
+    """
+    FastAPI dependency that yields an async database session for route handlers.
+    """
+    """
     FastAPI dependency: yields a database session for route handlers.
 
     Usage in routes:
@@ -36,6 +77,54 @@ async def get_api_session() -> AsyncGenerator[AsyncSession, None]:
 # ID: api-deps-background-session
 # ID: 4b37e11c-2859-4e76-9d1b-e68c3050eed1
 async def open_background_session() -> AsyncGenerator[AsyncSession, None]:
+    """
+        Opens and yields an asynchronous database session for background tasks.
+    Args:
+    Returns: An asynchronous generator yielding a single AsyncSession.
+    """
+    """
+    Open and yield an asynchronous database session for background usage, not tied to a specific request lifecycle.
+    """
+    """
+    Open and yield an asynchronous database session for background usage, not tied to a specific request lifecycle.
+    """
+    """
+        Open and yield an asynchronous database session for background usage, not tied to a specific request lifecycle.
+
+    Args:
+
+    Returns: AsyncGenerator[AsyncSession, None]: An asynchronous generator yielding a single AsyncSession.
+    """
+    """
+    Open and yield an asynchronous database session for background usage, not tied to a specific request lifecycle. Args: Returns: AsyncGenerator[AsyncSession, None]: An asynchronous generator yielding a single AsyncSession.
+    """
+    """
+    Open and yield an asynchronous database session for background usage, not tied to a specific request lifecycle.
+    """
+    """
+        Open a background database session for use outside the request lifecycle.
+    Args:
+    Returns:
+        AsyncGenerator[AsyncSession, None]: An asynchronous generator yielding a single AsyncSession.
+    """
+    """
+        Open a background database session for use outside the request lifecycle.
+    Args:
+    Returns:
+        AsyncGenerator[AsyncSession, None]: An asynchronous generator yielding a single AsyncSession.
+    """
+    """
+        Context manager that yields an async database session for use in background tasks, independent of the request lifecycle.
+    Args:
+    Returns:
+        AsyncGenerator[AsyncSession, None]: An asynchronous generator yielding a single AsyncSession.
+    """
+    """
+        Context manager that yields an async database session for use in background tasks, independent of request lifecycle.
+    Args:
+    Returns:
+        AsyncGenerator[AsyncSession, None]: An asynchronous generator yielding a single AsyncSession.
+    """
     """
     Context manager: yields a session for background tasks.
 

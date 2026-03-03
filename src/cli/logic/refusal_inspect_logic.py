@@ -1,5 +1,4 @@
-# src/body/cli/logic/refusal_inspect_logic.py
-# ID: 9801d673-43d1-492f-9fcf-8044fc76d2db
+# src/cli/logic/refusal_inspect_logic.py
 
 """
 Logic for inspecting constitutional refusals.

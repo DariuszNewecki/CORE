@@ -13,7 +13,6 @@ class CoreException(Exception):
         super().__init__(message)
 
 
-# ID: 20a45b4a-8251-43fa-b2d1-d6386104cd7f
 # ID: 4559c2ae-7e47-4c6c-9774-594c3f398105
 class CoreError(CoreException):
     """

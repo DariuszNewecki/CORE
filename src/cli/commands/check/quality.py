@@ -1,4 +1,4 @@
-# src/body/cli/commands/check/quality.py
+# src/cli/commands/check/quality.py
 """
 Code quality and system health commands.
 
@@ -20,7 +20,6 @@ from shared.cli_utils import core_command
 console = Console()
 
 
-# ID: 8428c471-1a01-4327-9640-52987ef7130d
 @core_command(dangerous=False)
 # ID: 23a0948a-570d-442d-b19a-ebd3af4f1c2d
 def lint_cmd(ctx: typer.Context) -> None:
@@ -31,9 +30,7 @@ def lint_cmd(ctx: typer.Context) -> None:
     lint()
 
 
-# ID: 1e60b497-4db8-4d00-96f2-945ac2d096da
 @core_command(dangerous=False)
-# ID: 6da85006-b53d-4834-a17b-512c8aeb2cec
 @atomic_action(
     action_id="tests.cmd",
     intent="Atomic action for tests_cmd",
@@ -53,7 +50,6 @@ async def tests_cmd(ctx: typer.Context) -> ActionResult:
     return await test_system()
 
 
-# ID: 461df3d1-5724-44be-a11e-691b9d88d5e0
 @core_command(dangerous=False)
 # ID: fdb8e693-c147-469a-a17a-1ee59227985b
 async def system_cmd(ctx: typer.Context) -> None:

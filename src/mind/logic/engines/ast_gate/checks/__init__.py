@@ -12,6 +12,7 @@ from .import_checks import ImportChecks
 from .logging_checks import LoggingChecks
 from .metadata_checks import normalize_ast, verify_metadata_only_diff
 from .naming_checks import NamingChecks
+from .prompt_model_checks import PromptModelChecks
 from .purity_checks import PurityChecks
 
 
@@ -23,6 +24,7 @@ __all__ = [
     "ImportChecks",
     "LoggingChecks",
     "NamingChecks",
+    "PromptModelChecks",
     "PurityChecks",
     "normalize_ast",
     "verify_metadata_only_diff",

@@ -1,4 +1,4 @@
-# src/body/cli/logic/build.py
+# src/cli/logic/build.py
 """
 Registers and implements the 'build' command group for generating
 artifacts from the database or constitution.

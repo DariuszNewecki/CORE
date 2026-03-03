@@ -1,4 +1,4 @@
-# src/body/cli/logic/hub/__init__.py
+# src/cli/logic/hub/__init__.py
 """
 Central Hub Package.
 Traffic controller for CORE tool discovery.

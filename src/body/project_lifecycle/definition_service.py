@@ -1,4 +1,4 @@
-# src/features/project_lifecycle/definition_service.py
+# src/body/project_lifecycle/definition_service.py
 
 """
 Symbol definition service - assigns capability keys to public symbols.

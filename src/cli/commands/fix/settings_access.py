@@ -1,4 +1,4 @@
-# src/body/cli/commands/fix/settings_access.py
+# src/cli/commands/fix/settings_access.py
 
 """Provides functionality for the settings_access module."""
 

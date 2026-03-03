@@ -1,4 +1,4 @@
-# src/body/cli/commands/fix/__init__.py
+# src/cli/commands/fix/__init__.py
 """
 Registers the 'fix' command group and its associated self-healing capabilities.
 

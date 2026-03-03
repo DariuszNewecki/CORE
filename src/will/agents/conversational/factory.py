@@ -19,7 +19,6 @@ logger = getLogger(__name__)
 
 
 # Factory function for CLI to create agent instance
-# ID: 5a27c5ff-4155-4257-8bfa-9971c3db9395
 # ID: eb02dca7-4d71-4a04-a65e-a1ce77122bbf
 async def create_conversational_agent() -> ConversationalAgent:
     """

@@ -1,5 +1,4 @@
-# src/body/cli/resources/admin/status.py
-# ID: f7192182-da33-49a4-aed1-70775a0e740b
+# src/cli/resources/admin/status.py
 
 """
 Admin Status Command - Infrastructure Health Sensation.

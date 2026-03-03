@@ -1,4 +1,4 @@
-# src/body/cli/commands/refactor_support/recommendations.py
+# src/cli/commands/refactor_support/recommendations.py
 
 """
 Generates smart recommendations based on analysis results.

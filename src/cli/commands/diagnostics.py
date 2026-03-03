@@ -1,5 +1,4 @@
-# src/body/cli/commands/diagnostics.py
-# ID: a1b2c3d4-e5f6-7890-abcd-ef1234567814
+# src/cli/commands/diagnostics.py
 
 """
 Diagnostic Command Group (Cleaned).

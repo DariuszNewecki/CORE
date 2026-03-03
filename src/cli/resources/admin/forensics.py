@@ -1,5 +1,4 @@
-# src/body/cli/resources/admin/forensics.py
-# ID: a1b2c3d4-e5f6-7890-abcd-ef1234567899
+# src/cli/resources/admin/forensics.py
 
 """
 Admin Forensics Command - A2 Chain of Legality Evidence.

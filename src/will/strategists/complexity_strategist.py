@@ -1,5 +1,4 @@
 # src/will/strategists/complexity_strategist.py
-# ID: f876296e-4f59-4729-871e-b9f14298a4b6
 
 """
 Complexity Strategist - RUNTIME Phase Component.

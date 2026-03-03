@@ -1,5 +1,4 @@
-# src/body/cli/commands/develop.py
-# ID: f3c4245f-5088-495e-bff3-9c92fce43ef2
+# src/cli/commands/develop.py
 """
 Unified interface for AI-native development.
 UPDATED: Import now points to will.autonomy (Wave 1).

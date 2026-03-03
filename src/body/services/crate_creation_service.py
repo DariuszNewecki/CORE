@@ -1,5 +1,4 @@
 # src/body/services/crate_creation_service.py
-# ID: b9ee3781-7db1-4445-a5f6-19eb7d658315
 
 """
 Service for creating Intent Crates from generated code.
@@ -194,7 +193,6 @@ class CrateCreationService:
             return str(p)
 
 
-# ID: a858d9e4-1fbe-4fcb-8af7-92d74a852024
 @atomic_action(
     action_id="create.crate",
     intent="Atomic action for create_crate_from_spec",

@@ -1,4 +1,4 @@
-# src/features/introspection/sync/visitor.py
+# src/body/introspection/sync/visitor.py
 
 """Refactored logic for src/features/introspection/sync/visitor.py."""
 

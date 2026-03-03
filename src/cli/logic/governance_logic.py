@@ -1,4 +1,4 @@
-# src/body/cli/logic/governance_logic.py
+# src/cli/logic/governance_logic.py
 
 """
 Engine logic for constitutional governance reporting.

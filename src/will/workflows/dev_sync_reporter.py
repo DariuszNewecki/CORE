@@ -1,4 +1,4 @@
-# src/body/cli/workflows/dev_sync_reporter.py
+# src/will/workflows/dev_sync_reporter.py
 """
 DevSyncReporter - User-facing reporting for dev-sync workflow.
 

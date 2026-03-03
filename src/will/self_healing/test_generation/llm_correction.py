@@ -1,4 +1,4 @@
-# src/features/self_healing/test_generation/llm_correction.py
+# src/will/self_healing/test_generation/llm_correction.py
 """
 LLM-based code correction when automatic repairs are insufficient.
 

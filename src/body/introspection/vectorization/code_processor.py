@@ -1,4 +1,4 @@
-# src/features/introspection/vectorization/code_processor.py
+# src/body/introspection/vectorization/code_processor.py
 
 """AST logic for extracting source segments."""
 

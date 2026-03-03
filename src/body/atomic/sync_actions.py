@@ -1,5 +1,4 @@
 # src/body/atomic/sync_actions.py
-# ID: e664ac9c-d51f-4dd8-864d-ed67d3c3c479
 """
 Atomic Sync Actions - State Synchronization
 

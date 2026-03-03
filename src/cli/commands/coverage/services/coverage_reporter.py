@@ -1,4 +1,4 @@
-# src/body/cli/commands/coverage/services/coverage_reporter.py
+# src/cli/commands/coverage/services/coverage_reporter.py
 """Service for generating coverage reports."""
 
 from __future__ import annotations

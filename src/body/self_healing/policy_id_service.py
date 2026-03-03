@@ -1,5 +1,4 @@
 # src/body/self_healing/policy_id_service.py
-# ID: c1a2b3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d
 
 """
 Provides the service logic for the one-time constitutional migration to add

@@ -1,4 +1,4 @@
-# src/features/self_healing/test_generation/test_extractor.py
+# src/will/self_healing/test_generation/test_extractor.py
 
 """Specialist for surgical AST-based code extraction and replacement."""
 

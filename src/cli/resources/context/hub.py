@@ -1,10 +1,11 @@
-# src/body/cli/resources/context/hub.py
+# src/cli/resources/context/hub.py
 import typer
 
 
-# This is the "Stable Hub" that everyone can import without circular risk
+# Stable hub for context resource commands.
+# All context commands import from here to avoid circular imports.
 app = typer.Typer(
-    name="code",
-    help="Codebase quality, style, and verification operations.",
+    name="context",
+    help="Build and explore context packages for LLM assistance.",
     no_args_is_help=True,
 )

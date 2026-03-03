@@ -1,4 +1,4 @@
-# src/body/cli/resources/symbols/audit.py
+# src/cli/resources/symbols/audit.py
 import typer
 from rich.console import Console
 

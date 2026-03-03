@@ -1,4 +1,4 @@
-# src/body/cli/commands/refactor_support/__init__.py
+# src/cli/commands/refactor_support/__init__.py
 
 """
 Refactoring analysis support modules.

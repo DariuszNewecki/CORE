@@ -1,5 +1,4 @@
 # src/will/phases/sandbox_validation_phase.py
-# ID: d7fae2fd-a786-42f3-8969-21307c12fcbb
 
 """
 Sandbox Validation Phase - Validates generated tests in isolation.

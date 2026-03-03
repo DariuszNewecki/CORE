@@ -1,9 +1,13 @@
 {
-  "audit_id": "80ddaad6-5e70-43b2-a987-fa0e7bd9acfc",
-  "timestamp": "2026-02-28T19:29:58Z",
-  "passed": true,
-  "findings_count": 97,
+  "audit_id": "4618f758-1928-4f08-8738-bfbd47790b94",
+  "timestamp": "2026-03-03T21:20:08Z",
+  "passed": false,
+  "findings_count": 149,
   "executed_rules": [
+    "ai.prompt.model_artifact_required",
+    "ai.prompt.model_required",
+    "ai.prompt.output_validation_required",
+    "ai.prompt.system_prompt_required",
     "architecture.api.must_route_through_will",
     "architecture.api.no_body_bypass",
     "architecture.api.no_direct_database_access",
@@ -86,5 +90,5 @@
     "quality.test_integrity",
     "quality.type_safety"
   ],
-  "verdict": "PASS"
+  "verdict": "FAIL"
 }

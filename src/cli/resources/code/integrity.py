@@ -1,5 +1,4 @@
-# src/body/cli/resources/code/integrity.py
-# ID: b17e7b0a-aeb2-4c32-a39f-b9d293fa5236
+# src/cli/resources/code/integrity.py
 
 """
 Integrity CLI Commands - Phase 2 Hardening.

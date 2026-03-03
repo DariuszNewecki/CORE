@@ -1,5 +1,4 @@
 # src/cli/logic/legacy_scan_logic.py
-# ID: a1f2e3d4-b5c6-7890-abcd-ef1234567abc
 
 """
 Legacy Scanner Logic - Pure read-only analysis.

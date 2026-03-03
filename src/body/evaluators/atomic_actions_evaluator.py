@@ -1,5 +1,4 @@
 # src/body/evaluators/atomic_actions_evaluator.py
-# ID: 8c95de30-861b-4908-bb93-ab272d4039be
 """Atomic Actions Evaluator - AUDIT Phase Component.
 
 Validates code compliance with the atomic actions pattern.
@@ -33,7 +32,6 @@ from .base_evaluator import BaseEvaluator
 logger = getLogger(__name__)
 
 
-# ID: d06f140e-d783-4434-a1fe-555183d03d7d
 @dataclass
 # ID: d8aa3d3e-47bf-4cf6-82f0-4732f899dfc8
 class AtomicActionViolation:

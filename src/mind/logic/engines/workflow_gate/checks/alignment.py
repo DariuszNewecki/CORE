@@ -1,5 +1,4 @@
 # src/mind/logic/engines/workflow_gate/checks/alignment.py
-# ID: 3ab94efd-091c-4072-b0e0-406dbe0505ae
 
 """
 Alignment verification workflow check.

@@ -1,5 +1,4 @@
-# src/body/cli/resources/admin/traces.py
-# ID: a1b2c3d4-e5f6-7890-abcd-ef1234567893
+# src/cli/resources/admin/traces.py
 
 import typer
 

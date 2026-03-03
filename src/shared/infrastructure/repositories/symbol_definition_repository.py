@@ -17,7 +17,6 @@ from shared.logger import getLogger
 logger = getLogger(__name__)
 
 
-# ID: 94428728-0eff-440d-b517-2f2ec9857d22
 # ID: 016d84c9-26b9-466d-b071-84c160f64629
 class SymbolDefinitionRepository:
     """

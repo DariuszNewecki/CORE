@@ -1,5 +1,4 @@
 # src/will/agents/planner_agent.py
-# ID: ad85dc18-646b-4bb9-95df-2d9a63873d26
 
 """
 The PlannerAgent is responsible for decomposing a high-level user goal
@@ -64,7 +63,6 @@ class PlannerAgent:
             self.policy_vectorizer = None
             logger.warning("PlannerAgent: Qdrant not available, policy RAG disabled.")
 
-    # ID: 1ea9ec86-10a3-4356-9c31-c14e53c8fd0
     # ID: 52208224-fea7-4d79-baee-d3b07d634624
     async def create_execution_plan(
         self, goal: str, reconnaissance_report: str = ""

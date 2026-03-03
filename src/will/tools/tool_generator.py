@@ -1,5 +1,4 @@
 # src/will/tools/tool_generator.py
-# ID: 0b465fc3-b02d-4c58-9684-c4a8ba658479
 """
 Transforms Python functions into LLM Tool Definitions per Standard.
 """

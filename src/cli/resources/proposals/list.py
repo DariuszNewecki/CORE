@@ -1,4 +1,4 @@
-# src/body/cli/resources/proposals/list.py
+# src/cli/resources/proposals/list.py
 import typer
 from rich.console import Console
 

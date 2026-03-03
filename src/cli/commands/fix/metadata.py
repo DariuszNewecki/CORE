@@ -1,4 +1,4 @@
-# src/body/cli/commands/fix/metadata.py
+# src/cli/commands/fix/metadata.py
 """
 Metadata-related self-healing commands for the 'fix' CLI group.
 
@@ -203,7 +203,6 @@ async def fix_tags_command(
     help="Resolves duplicate IDs by regenerating fresh UUIDs for conflicts.",
 )
 @core_command(dangerous=True, confirmation=True)
-# ID: 57c9e35a-4813-421f-89e5-7e0ef736efc2
 @atomic_action(
     action_id="fix.duplicate",
     intent="Atomic action for fix_duplicate_ids_command",
@@ -228,7 +227,6 @@ async def fix_duplicate_ids_command(
     help="Automated replacement of forbidden placeholders (FUTURE, pending, none).",
 )
 @core_command(dangerous=True, confirmation=True)
-# ID: b1c2d3e4-f5a6-7890-abcd-ef1234567890
 @atomic_action(
     action_id="fix.placeholders",
     intent="Atomic action for fix_placeholders_command",

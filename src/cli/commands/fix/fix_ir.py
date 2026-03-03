@@ -1,5 +1,4 @@
-# src/body/cli/commands/fix/fix_ir.py
-# ID: 6cfe3b4a-f3bf-4fa9-8639-1676fb212e39
+# src/cli/commands/fix/fix_ir.py
 """
 IR (Incident Response) self-healing commands.
 

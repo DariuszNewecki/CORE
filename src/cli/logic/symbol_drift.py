@@ -1,4 +1,4 @@
-# src/body/cli/logic/symbol_drift.py
+# src/cli/logic/symbol_drift.py
 
 """
 Implements the `inspect symbol-drift` command, a diagnostic tool to detect

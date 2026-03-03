@@ -144,8 +144,6 @@ class IntentRepository:
                 continue
         return out
 
-    # ID: 30ff6d03-ebae-4d92-ad1f-e05aa5f13256
-
     # ID: 90501a55-63c5-4a83-8720-e2a237e859a5
     def get_precedence_map(self) -> dict[str, int]:
         """

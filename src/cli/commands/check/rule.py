@@ -1,4 +1,4 @@
-# src/body/cli/commands/check/rule.py
+# src/cli/commands/check/rule.py
 """
 Filtered/focused audit command.
 
@@ -30,7 +30,6 @@ from shared.models import AuditSeverity
 console = Console()
 
 
-# ID: d5e6f7a8-9b0c-1d2e-3f4a-5b6c7d8e9f0a
 @core_command(dangerous=False)
 # ID: 2abc4cf1-e9ba-48ea-a6f7-f26842563bc4
 async def rule_cmd(

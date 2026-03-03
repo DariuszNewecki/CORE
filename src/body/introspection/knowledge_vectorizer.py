@@ -67,7 +67,6 @@ class VectorizationPayload:
     code_preview: str = ""
     """First N chars of source for quick display"""
 
-    # ID: 76a6fb80-80b3-4e96-b02a-cedf03468315
     # ID: 39b38009-cbac-45b0-9b4a-5136fb2ca389
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for Qdrant payload."""
@@ -87,7 +86,6 @@ class VectorizationPayload:
         }
 
 
-# ID: a8879b62-02f8-4ece-9053-518df8ad7f50
 # ID: 68431df1-40ac-42db-8cfd-f4805777f766
 def extract_code_metadata(
     source_code: str,
@@ -114,7 +112,6 @@ def extract_code_metadata(
     return imports, calls, patterns
 
 
-# ID: 7ede79ea-3cf6-4457-ba75-6a888361dfd0
 # ID: 6dffbca8-2ab3-4128-baa6-e42782efe646
 async def get_stored_chunks(qdrant_service: QdrantService) -> dict[str, Any]:
     """Get all stored chunk data from Qdrant for deduplication."""

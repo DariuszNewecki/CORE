@@ -1,4 +1,4 @@
-# src/body/cli/commands/coverage/analysis_commands.py
+# src/cli/commands/coverage/analysis_commands.py
 """Coverage analysis commands - history and method comparison."""
 
 from __future__ import annotations

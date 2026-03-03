@@ -1,4 +1,4 @@
-# src/features/introspection/graph_analysis_service.py
+# src/body/introspection/graph_analysis_service.py
 
 """
 Provides a service for finding semantic clusters of symbols in the codebase

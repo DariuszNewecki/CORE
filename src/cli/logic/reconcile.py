@@ -1,4 +1,4 @@
-# src/body/cli/logic/reconcile.py
+# src/cli/logic/reconcile.py
 
 """
 Implements the 'knowledge reconcile-from-cli' command to link declared

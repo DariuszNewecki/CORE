@@ -1,5 +1,4 @@
 # src/shared/models/refusal_result.py
-# ID: 563f5740-d13f-4c76-be9c-e615eb80f3af
 
 """
 First-class refusal outcome type.

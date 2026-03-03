@@ -1,4 +1,4 @@
-# src/features/self_healing/test_generation/failure_parser.py
+# src/will/self_healing/test_generation/failure_parser.py
 
 """Specialist for parsing pytest output into structured failure data."""
 

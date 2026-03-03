@@ -1,4 +1,4 @@
-# src/mind/governance/engine_dispatcher.py
+# src/body/governance/engine_dispatcher.py
 """
 Engine dispatch logic for constitutional rule enforcement.
 

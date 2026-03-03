@@ -1,5 +1,4 @@
-# src/body/cli/logic/sync.py
-# ID: 3234fb7f-f5d6-4111-b926-455657955794
+# src/cli/logic/sync.py
 """
 Headless logic for synchronizing the codebase state with the database.
 Complies with body_contracts.json (no UI imports).
