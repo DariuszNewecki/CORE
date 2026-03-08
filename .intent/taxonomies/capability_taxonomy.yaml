@@ -1,0 +1,55 @@
+version: "1.0.0"
+status: active
+title: CORE Capability Taxonomy
+description: Canonical capability vocabulary for CORE cognitive routing and resource governance.
+
+families:
+  reasoning:
+    description: Capabilities used for planning, analysis, and general cognitive evaluation.
+    capabilities:
+      reasoning:
+        description: General multi-step reasoning ability.
+      planning:
+        description: Ability to decompose goals into ordered actions or strategies.
+      analysis:
+        description: Ability to inspect, interpret, and assess artifacts or situations.
+
+  code:
+    description: Capabilities used for software engineering and source code work.
+    capabilities:
+      code_generation:
+        description: Ability to produce new source code or code modifications.
+      code_understanding:
+        description: Ability to interpret existing source code structure and behavior.
+      code_review:
+        description: Ability to evaluate source code for correctness, quality, or compliance.
+      refactoring:
+        description: Ability to restructure code without changing intended behavior.
+
+  structured_output:
+    description: Capabilities used to produce deterministic machine-readable outputs.
+    capabilities:
+      json_output:
+        description: Ability to produce valid JSON output.
+      schema_compliance:
+        description: Ability to conform output to a required schema or contract.
+      structured_response:
+        description: Ability to return predictable structured responses.
+
+  retrieval:
+    description: Capabilities used for semantic indexing and retrieval.
+    capabilities:
+      embedding:
+        description: Ability to generate embeddings for semantic representation.
+      semantic_search:
+        description: Ability to retrieve content by semantic similarity.
+      vectorization:
+        description: Ability to convert artifacts into vector-search-compatible representations.
+
+  perception:
+    description: Capabilities used for multimodal interpretation.
+    capabilities:
+      vision_understanding:
+        description: Ability to interpret visual artifacts such as screenshots or diagrams.
+      document_parsing:
+        description: Ability to extract or interpret structured meaning from documents.
