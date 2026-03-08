@@ -7,11 +7,17 @@ CONSTITUTIONAL FIX (V2.3.0):
 - Corrected search paths to match actual tree: ['rules', 'constitution', 'phases', 'workflows'].
 - Removed hallucinated 'charter/' logic.
 - Maintains modularity by delegating to _IntentScanner and _RuleExtractor.
+
+CONSTITUTIONAL FIX (V2.4.0):
+- Removed hardcoded search_roots list in _build_policy_index.
+- IntentRepository now reads active directories from META/intent_tree.yaml.
+- Adding a new .intent/ directory is now a constitutional act, not a Python change.
 """
 
 from __future__ import annotations
 
 import json
+from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
 from threading import Lock
@@ -28,14 +34,14 @@ logger = getLogger(__name__)
 
 
 @dataclass(frozen=True)
-# ID: f2a2b4e3-5947-4826-ba59-3f2e4a87e7f6
+# ID: c2e64164-72b7-437f-a686-7aa856278bde
 class PolicyRef:
     policy_id: str
     path: Path
 
 
 @dataclass(frozen=True)
-# ID: bacab865-70bc-469c-bd2b-60703de3f5ee
+# ID: 810c5fce-55e8-4390-a397-b5d25ff07522
 class RuleRef:
     rule_id: str
     policy_id: str
@@ -43,106 +49,120 @@ class RuleRef:
     content: dict[str, Any]
 
 
-class _IntentScanner:
-    """Specialist in finding constitutional artifacts in known directories."""
-
-    @staticmethod
-    # ID: 03ba71f4-3fb8-4b17-9431-840d060ae753
-    def iter_files(root: Path, folders: list[str]) -> list[Path]:
-        collected = []
-        for folder in folders:
-            folder_path = root / folder
-            if folder_path.exists():
-                for ext in ("*.yaml", "*.yml", "*.json"):
-                    collected.extend(folder_path.rglob(ext))
-        return sorted(collected)
-
-    @staticmethod
-    # ID: 28710b84-2ea4-4295-b491-4f8e0d797e32
-    def derive_id(root: Path, file_path: Path) -> str:
-        """Creates an ID based on path relative to .intent/"""
-        try:
-            rel = file_path.relative_to(root)
-            return str(rel.with_suffix("")).replace("\\", "/")
-        except ValueError:
-            return file_path.stem
-
-
-class _RuleExtractor:
-    """Specialist in extracting rules from all CORE-recognized sections."""
-
-    @staticmethod
-    # ID: 6d92b0c9-02ae-4336-b596-2af26be1194a
-    def extract(doc: dict[str, Any]) -> list[tuple[str, str, dict]]:
-        results = []
-        # Support sections used in your JSON and YAML files
-        sections = ("rules", "principles", "safety_rules", "agent_rules")
-
-        for section in sections:
-            block = doc.get(section)
-            if isinstance(block, list):
-                for item in block:
-                    if isinstance(item, dict):
-                        rid = item.get("id") or item.get("rule_id")
-                        if rid:
-                            results.append((str(rid), section, item))
-            elif isinstance(block, dict):
-                for rid, content in block.items():
-                    if isinstance(content, dict):
-                        results.append((str(rid), section, content))
-        return results
-
-
-# ID: 04aa55aa-f275-4cce-bc73-2e5a5c50795e
+# ID: 564573dd-10db-46f3-a454-5141a4e50749
 class IntentRepository:
     """
-    Authoritative read-only interface to the Mind.
+    The canonical read-only repository for .intent.
+
+    Contract:
+    - Root is derived from settings only.
+    - All parsing is deterministic.
+    - No write operations are exposed.
+    - Active directory list is read from META/intent_tree.yaml — never hardcoded.
     """
 
     _INDEX_LOCK = Lock()
 
-    def __init__(self, *, strict: bool = True):
+    def __init__(
+        self,
+        *,
+        strict: bool = True,
+        allow_writable_root: bool = True,
+    ) -> None:
+        # Use settings as the entry point for the Mind's location
         self._root: Path = settings.MIND.resolve()
         self._strict = strict
+        self._allow_writable_root = allow_writable_root
+
+        # Lazy-built indexes
         self._policy_index: dict[str, PolicyRef] | None = None
         self._rule_index: dict[str, RuleRef] | None = None
+        self._hierarchy: dict[str, list[str]] | None = None
 
+        self._check_root_safety()
+        # Enforce Bootstrap Contract v0 in strict mode; best-effort report in non-strict mode.
         validate_intent_tree(self._root, strict=self._strict)
 
-    # ID: 596beba2-ec12-4176-9d8b-f8d7f84ed00b
+    # -------------------------------------------------------------------------
+    # Compatibility (IntentConnector expects initialize())
+    # -------------------------------------------------------------------------
+
+    # ID: 9a3fa3d6-6f48-4cc9-a7c7-ff6b3a9d2e5e
     def initialize(self) -> None:
+        """Compatibility: explicitly triggers indexing."""
         self._ensure_index()
 
+    # -------------------------------------------------------------------------
+    # Root / path resolution
+    # -------------------------------------------------------------------------
+
     @property
-    # ID: 961652bc-7eb8-492a-8948-04f5a9d5e282
+    # ID: c4c35413-0bfa-4ca7-9dd1-90bafc67ea7b
     def root(self) -> Path:
         return self._root
 
-    # ID: 66653078-c59b-41bc-9254-975773755824
-    def list_policies(self) -> list[PolicyRef]:
-        self._ensure_index()
-        return sorted(self._policy_index.values(), key=lambda r: r.policy_id)
+    # ID: cf82fd15-7df2-45f7-9c53-37a23bf2376a
+    def resolve_rel(self, rel: str | Path) -> Path:
+        """
+        Resolve a path relative to .intent safely (prevents path traversal).
+        """
+        rel_path = Path(rel)
+        if rel_path.is_absolute():
+            raise GovernanceError(f"Absolute paths are not allowed: {rel_path}")
 
-    # ID: 708a2004-6ce3-4775-8d76-06d03f4c77d5
-    def list_policy_rules(self) -> list[dict[str, Any]]:
-        """Used by IntentGuard and Auditor to collect all executable law."""
-        self._ensure_index()
-        out = []
-        for pid, pref in self._policy_index.items():
+        resolved = (self._root / rel_path).resolve()
+        if self._root not in resolved.parents and resolved != self._root:
+            raise GovernanceError(f"Path traversal detected: {rel_path}")
+
+        return resolved
+
+    # -------------------------------------------------------------------------
+    # Loaders
+    # -------------------------------------------------------------------------
+
+    # ID: 47ce7eb7-ba4b-4f47-bf78-4b0bf3c77509
+    def load_document(self, path: Path) -> dict[str, Any]:
+        """
+        Load YAML strictly (.yaml/.yml) or JSON (.json).
+        """
+        if not path.exists():
+            raise GovernanceError(f"Intent artifact not found: {path}")
+
+        if path.suffix in (".yaml", ".yml"):
+            return strict_yaml_processor.load_strict(path)
+
+        if path.suffix == ".json":
             try:
-                doc = self.load_document(pref.path)
-                policy_name = Path(pid).name
-                for rid, section, content in _RuleExtractor.extract(doc):
-                    out.append(
-                        {
-                            "policy_name": policy_name,
-                            "section": section,
-                            "rule": {**content, "id": rid},
-                        }
-                    )
-            except Exception:
-                continue
-        return out
+                return json.loads(path.read_text("utf-8")) or {}
+            except (OSError, ValueError) as e:
+                raise GovernanceError(f"Failed to parse JSON: {path}: {e}") from e
+
+        raise GovernanceError(
+            f"Unsupported intent artifact type: {path.suffix} ({path})"
+        )
+
+    # ID: b26242f2-8e09-4693-ba41-a993447564d4
+    def load_policy(self, logical_path_or_id: str) -> dict[str, Any]:
+        """
+        Deprecated legacy support
+        """
+        # 1) Legacy: logical path
+        if "." in logical_path_or_id and "/" not in logical_path_or_id:
+            path = settings.get_path(logical_path_or_id)
+            return self.load_document(path)
+
+        # 2) Canonical: policy_id (relative path without suffix)
+        policy_id = logical_path_or_id.strip().lstrip("/")
+        candidates = self._candidate_paths_for_id(policy_id)
+        for p in candidates:
+            if p.exists():
+                return self.load_document(p)
+
+        raise GovernanceError(f"Policy not found for id: {policy_id}")
+
+    # -------------------------------------------------------------------------
+    # Query APIs (IntentGuard must call these; it must not load/crawl itself)
+    # -------------------------------------------------------------------------
 
     # ID: 90501a55-63c5-4a83-8720-e2a237e859a5
     def get_precedence_map(self) -> dict[str, int]:
@@ -175,8 +195,6 @@ class IntentRepository:
         hierarchy = data.get("policy_hierarchy", [])
         if not isinstance(hierarchy, list):
             if self._strict:
-                from shared.infrastructure.intent.errors import GovernanceError
-
                 raise GovernanceError(
                     f"Invalid precedence_rules format (policy_hierarchy not a list): {chosen}"
                 )
@@ -207,76 +225,320 @@ class IntentRepository:
 
         return mapping
 
-    # ID: e02747ba-8ea3-4ffd-a635-a5b9894e36d9
+    # ID: 8dc3100f-cb41-473a-bc86-b9ce58ca2ccb
+    def list_policy_rules(self) -> list[dict[str, Any]]:
+        """
+        Return all policy rule blocks (raw dicts), across all policies and standards.
+
+        Shape:
+            [
+              {
+                "policy_name": "<stem used for precedence>",
+                "section": "rules" | "safety_rules" | "agent_rules",
+                "rule": { ... raw rule dict ... }
+              },
+              ...
+            ]
+        """
+        out: list[dict[str, Any]] = []
+        for pref in self.list_policies():
+            doc = self.load_document(pref.path)
+            policy_name = Path(pref.policy_id).name  # stable, precedence-friendly
+
+            # Support both rules array and constitutional principles
+            for section in ("rules", "safety_rules", "agent_rules", "principles"):
+                block = doc.get(section)
+                if isinstance(block, list):
+                    for item in block:
+                        if isinstance(item, dict):
+                            out.append(
+                                {
+                                    "policy_name": policy_name,
+                                    "section": section,
+                                    "rule": item,
+                                }
+                            )
+                elif isinstance(block, dict):
+                    # For principles in constitutional documents (e.g. authority.json)
+                    for rid, item in block.items():
+                        if isinstance(item, dict):
+                            # Ensure the ID is part of the rule for executor use
+                            rule_copy = {**item, "id": rid}
+                            out.append(
+                                {
+                                    "policy_name": policy_name,
+                                    "section": section,
+                                    "rule": rule_copy,
+                                }
+                            )
+        return out
+
+    # -------------------------------------------------------------------------
+    # Index-backed lookups
+    # -------------------------------------------------------------------------
+
+    # ID: f9538805-00a0-49ce-9a97-16702573f24e
     def get_rule(self, rule_id: str) -> RuleRef:
+        """
+        Global rule lookup by ID (requires index).
+        """
         self._ensure_index()
+        assert self._rule_index is not None
+
         ref = self._rule_index.get(rule_id)
         if not ref:
             raise GovernanceError(f"Rule ID not found: {rule_id}")
         return ref
 
-    # ID: c7ed2edc-a53d-482c-aff4-2b982baf933a
-    def load_policy(self, policy_id: str) -> dict[str, Any]:
+    # ID: 34da4756-1be7-409e-8d92-5b01f8b82176
+    def list_policies(self) -> list[PolicyRef]:
+        """
+        List all policies and standards discovered in the Mind.
+        """
         self._ensure_index()
-        ref = self._policy_index.get(policy_id)
-        if not ref:
-            raise GovernanceError(f"Policy ID not found: {policy_id}")
-        return self.load_document(ref.path)
+        assert self._policy_index is not None
+        return sorted(self._policy_index.values(), key=lambda r: r.policy_id)
+
+    # ID: 8aac0a74-e995-4daa-95dc-1f931b07bfd4
+    def list_governance_map(self) -> dict[str, list[str]]:
+        """
+        Returns a stable hierarchy of category -> policy_ids.
+        Category is the first directory under governance roots.
+        """
+        self._ensure_index()
+        assert self._hierarchy is not None
+        # Return a copy to preserve read-only outward semantics
+        return {k: list(v) for k, v in self._hierarchy.items()}
+
+    # -------------------------------------------------------------------------
+    # Indexing
+    # -------------------------------------------------------------------------
 
     def _ensure_index(self) -> None:
-        if self._policy_index is not None:
+        if (
+            self._policy_index is not None
+            and self._rule_index is not None
+            and self._hierarchy is not None
+        ):
             return
 
         with self._INDEX_LOCK:
-            if self._policy_index is not None:
+            if (
+                self._policy_index is not None
+                and self._rule_index is not None
+                and self._hierarchy is not None
+            ):
                 return
 
-            logger.info("Indexing Mind at %s...", self._root)
-            p_index, r_index = {}, {}
+            policy_index, hierarchy = self._build_policy_index()
+            rule_index = self._build_rule_index(policy_index)
 
-            # 1. SCAN THE ACTUAL DIRECTORIES SHOWN IN TREE
-            active_folders = ["rules", "constitution", "phases", "workflows", "META"]
-            for path in _IntentScanner.iter_files(self._root, active_folders):
-                pid = _IntentScanner.derive_id(self._root, path)
-                p_index[pid] = PolicyRef(policy_id=pid, path=path)
+            self._policy_index = policy_index
+            self._rule_index = rule_index
+            self._hierarchy = hierarchy
 
-            # 2. EXTRACT RULES (Building Cross-Policy Index)
-            for pid, pref in p_index.items():
-                try:
-                    doc = self.load_document(pref.path)
-                    for rid, _, content in _RuleExtractor.extract(doc):
-                        r_index[rid] = RuleRef(rid, pid, pref.path, content)
-                except Exception:
-                    continue
-
-            self._policy_index, self._rule_index = p_index, r_index
             logger.info(
-                "✅ Mind Indexed: %d artifacts, %d rules", len(p_index), len(r_index)
+                "IntentRepository indexed %s policies and %s rules.",
+                len(self._policy_index),
+                len(self._rule_index),
             )
 
-    # ID: 86c75c4d-8686-42fb-86c3-26bb0d2d45b3
-    def load_document(self, path: Path) -> dict[str, Any]:
-        if not path.exists():
-            raise GovernanceError(f"Artifact missing: {path}")
-        if path.suffix in (".yaml", ".yml"):
-            return strict_yaml_processor.load_strict(path)
-        return json.loads(path.read_text("utf-8")) if path.suffix == ".json" else {}
+    def _build_policy_index(self) -> tuple[dict[str, PolicyRef], dict[str, list[str]]]:
+        """
+        Reads active directories from META/intent_tree.yaml and indexes all
+        constitutional artifacts within them.
 
-    # ID: d51bd39e-82b0-4786-8bbc-c4cf1ec57f96
-    def resolve_rel(self, rel: str | Path) -> Path:
-        resolved = (self._root / Path(rel)).resolve()
-        if not str(resolved).startswith(str(self._root)):
-            raise GovernanceError(f"Security: Blocked path traversal for {rel}")
-        return resolved
+        CONSTITUTIONAL FIX (V2.4.0): Directory list is no longer hardcoded.
+        Adding a .intent/ subdirectory is a constitutional act (edit intent_tree.yaml),
+        not a Python code change.
+        """
+        search_roots = self._load_active_folders()
+
+        index: dict[str, PolicyRef] = {}
+        hierarchy: dict[str, list[str]] = {}
+
+        for root_name in search_roots:
+            root_dir = self._root / root_name
+            if not root_dir.exists():
+                continue
+
+            for path in self._iter_policy_files(root_dir):
+                policy_id = self._policy_id_from_path(path)
+                if policy_id in index:
+                    msg = (
+                        f"Duplicate policy_id detected: {policy_id} "
+                        f"({index[policy_id].path} vs {path})"
+                    )
+                    if self._strict:
+                        raise GovernanceError(msg)
+                    logger.warning(msg)
+                    continue
+
+                index[policy_id] = PolicyRef(policy_id=policy_id, path=path)
+
+                category = self._category_from_policy_id(policy_id)
+                hierarchy.setdefault(category, []).append(policy_id)
+
+        for cat in hierarchy:
+            hierarchy[cat].sort()
+
+        return index, hierarchy
+
+    def _build_rule_index(
+        self, policy_index: dict[str, PolicyRef]
+    ) -> dict[str, RuleRef]:
+        rule_index: dict[str, RuleRef] = {}
+
+        for policy_id, ref in policy_index.items():
+            try:
+                data = self.load_document(ref.path)
+            except GovernanceError as e:
+                if self._strict:
+                    raise
+                logger.warning("Skipping unreadable policy %s: %s", policy_id, e)
+                continue
+
+            # Support both flat rules (rules) and constitutional sections (principles, safety_rules, etc)
+            sections = ["rules", "safety_rules", "agent_rules", "principles"]
+            for section in sections:
+                rules = data.get(section, [])
+                for rid, content in self._extract_rules(rules):
+                    if rid in rule_index:
+                        msg = (
+                            f"Duplicate rule_id detected: {rid} "
+                            f"({rule_index[rid].source_path} vs {ref.path})"
+                        )
+                        if self._strict:
+                            raise GovernanceError(msg)
+                        logger.warning(msg)
+                        continue
+
+                    rule_index[rid] = RuleRef(
+                        rule_id=rid,
+                        policy_id=policy_id,
+                        source_path=ref.path,
+                        content={**content},
+                    )
+
+        return rule_index
+
+    # -------------------------------------------------------------------------
+    # Helpers
+    # -------------------------------------------------------------------------
+
+    def _check_root_safety(self) -> None:
+        if self._allow_writable_root:
+            return
+
+        try:
+            writable = self._root.exists() and self._root.is_dir()
+        except OSError:
+            writable = False
+
+        if writable:
+            raise GovernanceError(
+                f".intent root is writable but allow_writable_root=False: {self._root}"
+            )
+
+    # ID: a1f2e3d4-b5c6-7890-abcd-ef1234567890
+    def _load_active_folders(self) -> list[str]:
+        """
+        Read the authoritative .intent/ directory list from META/intent_tree.yaml.
+
+        Replaces the previously hardcoded search_roots list. Adding a new .intent/
+        directory is now a constitutional act (editing intent_tree.yaml), not a
+        Python code change.
+
+        Falls back to a minimal required set if intent_tree.yaml is missing, and
+        logs a warning — absence of the file is itself a governance gap.
+        """
+        tree_path = self._root / "META" / "intent_tree.yaml"
+
+        if not tree_path.exists():
+            logger.warning(
+                "META/intent_tree.yaml not found at %s — falling back to minimal required set. "
+                "This is a governance gap: intent_tree.yaml must declare the Mind structure.",
+                tree_path,
+            )
+            return ["META", "constitution", "rules"]
+
+        try:
+            data = strict_yaml_processor.load_strict(tree_path)
+            required = data.get("required_directories", [])
+            optional = data.get("optional_directories", [])
+            # Required first, then optional — deduplicated, order preserved
+            active = list(dict.fromkeys(required + optional))
+            logger.debug(
+                "Loaded %d active folders from META/intent_tree.yaml", len(active)
+            )
+            return active
+        except Exception as e:
+            logger.error(
+                "Failed to load META/intent_tree.yaml: %s — falling back to minimal required set.",
+                e,
+            )
+            return ["META", "constitution", "rules"]
+
+    def _iter_policy_files(self, policies_dir: Path) -> Iterable[Path]:
+        for suffix in ("*.yaml", "*.yml", "*.json"):
+            yield from policies_dir.rglob(suffix)
+
+    def _policy_id_from_path(self, path: Path) -> str:
+        # Create id relative to .intent root (e.g. 'policies/code/style')
+        try:
+            rel = path.relative_to(self._root)
+            return str(rel.with_suffix("")).replace("\\", "/")
+        except ValueError:
+            return path.stem
+
+    def _category_from_policy_id(self, policy_id: str) -> str:
+        # policy_id is like "policies/<category>/..." or "standards/<category>/..."
+        parts = policy_id.split("/")
+        if len(parts) >= 2 and parts[0] in ("policies", "standards"):
+            return parts[1]
+        return "uncategorized"
+
+    def _candidate_paths_for_id(self, policy_id: str) -> list[Path]:
+        # policy_id points to a path under .intent, like 'policies/code/style'
+        base = self.resolve_rel(policy_id)
+        return [
+            Path(str(base) + ".yaml"),
+            Path(str(base) + ".yml"),
+            Path(str(base) + ".json"),
+        ]
+
+    def _extract_rules(self, rules: Any) -> Iterable[tuple[str, dict[str, Any]]]:
+        """
+        Supports:
+        - list of dicts with 'id' or 'rule_id'
+        - dict mapping id -> dict (common in constitutional principles)
+        """
+        if isinstance(rules, list):
+            for rule in rules:
+                if not isinstance(rule, dict):
+                    continue
+                rid = rule.get("id") or rule.get("rule_id")
+                if isinstance(rid, str) and rid.strip():
+                    yield rid, rule
+            return
+
+        if isinstance(rules, dict):
+            for rid, content in rules.items():
+                if isinstance(rid, str) and isinstance(content, dict):
+                    yield rid, content
+            return
 
 
-# Global Singleton
+# Singleton-style factory
 _INTENT_REPO: IntentRepository | None = None
+_INTENT_REPO_LOCK = Lock()
 
 
-# ID: d9f1e5c3-86ab-4d40-829d-9030b5594944
+# ID: 7823ea26-947d-4cb2-97db-47f99d09df5d
 def get_intent_repository() -> IntentRepository:
+    """Return the process-wide singleton IntentRepository."""
     global _INTENT_REPO
-    if _INTENT_REPO is None:
-        _INTENT_REPO = IntentRepository()
-    return _INTENT_REPO
+    with _INTENT_REPO_LOCK:
+        if _INTENT_REPO is None:
+            _INTENT_REPO = IntentRepository(strict=True)
+        return _INTENT_REPO

@@ -1,4 +1,4 @@
 # src/body/__init__.py
-"""Provides functionality for the __init__ module."""
+"""Body-layer acting workers — execution of blackboard proposals."""
 
 from __future__ import annotations

@@ -3,11 +3,6 @@
 """
 Implements the CapabilityTaggerAgent, which finds unassigned capabilities
 and uses an LLM to suggest constitutionally-valid names for them.
-
-CONSTITUTIONAL COMPLIANCE:
-- Uses PathResolver for all path resolution
-- Searches .intent/ structure for project configuration
-- Read-only Mind layer access (no filesystem writes)
 """
 
 from __future__ import annotations
@@ -17,11 +12,9 @@ import re
 from pathlib import Path
 from typing import Any
 
-import yaml
-
+from shared.ai.prompt_model import PromptModel
 from shared.infrastructure.knowledge.knowledge_service import KnowledgeService
 from shared.logger import getLogger
-from shared.path_resolver import PathResolver
 from shared.utils.parallel_processor import ThrottledParallelProcessor
 from will.orchestration.cognitive_service import CognitiveService
 from will.orchestration.decision_tracer import DecisionTracer
@@ -38,76 +31,20 @@ class CapabilityTaggerAgent:
         self,
         cognitive_service: CognitiveService,
         knowledge_service: KnowledgeService,
-        path_resolver: PathResolver,
+        entry_point_patterns: list | None = None,
     ):
-        """
-        Initializes the agent with the tools it needs.
-
-        Args:
-            cognitive_service: Service for LLM interactions
-            knowledge_service: Service for knowledge graph access
-            path_resolver: PathResolver for constitutional path resolution
-        """
+        """Initializes the agent with the tools it needs."""
         self.cognitive_service = cognitive_service
         self.knowledge_service = knowledge_service
-        self._paths = path_resolver
         self.tracer = DecisionTracer()
-
-        # Prompts are runtime instructions that reside in var/prompts/
-        prompt_path = self._paths.prompt("capability_definer")
-
-        if not prompt_path.exists():
-            msg = f"Constitutional prompt 'capability_definer.prompt' missing from {prompt_path}"
-            logger.error(msg)
-            raise FileNotFoundError(msg)
-
-        self.prompt_template = prompt_path.read_text(encoding="utf-8")
+        self.prompt_model = PromptModel.load("capability_definer")
         self.tagger_client = None
-
-        # FIXED: Search new .intent/ structure for project configuration
-        # Try multiple possible locations
-        project_structure_candidates = [
-            self._paths.intent_root / "META" / "project_structure.yaml",
-            self._paths.intent_root / "rules" / "data" / "project_structure.yaml",
-            self._paths.intent_root / "constitution" / "project_structure.yaml",
-        ]
-
-        project_structure = {}
-        for project_structure_path in project_structure_candidates:
-            if project_structure_path.exists():
-                try:
-                    project_structure = yaml.safe_load(
-                        project_structure_path.read_text(encoding="utf-8")
-                    )
-                    logger.debug(
-                        "Loaded project structure from: %s", project_structure_path
-                    )
-                    break
-                except Exception as e:
-                    logger.debug(
-                        "Could not load project structure from %s: %s",
-                        project_structure_path,
-                        e,
-                    )
-                    continue
-
-        if not project_structure:
-            logger.debug(
-                "No project_structure.yaml found, using empty entry point patterns"
-            )
-
-        self.entry_point_patterns = project_structure.get("entry_point_patterns", [])
+        self.entry_point_patterns = entry_point_patterns or []
 
     def _is_entry_point(self, symbol_data: dict[str, Any]) -> bool:
         """
         Checks if a symbol matches any of the defined entry point patterns.
         Copied directly from OrphanedLogicCheck.
-
-        Args:
-            symbol_data: Symbol metadata dict
-
-        Returns:
-            True if symbol matches an entry point pattern
         """
         for pattern in self.entry_point_patterns:
             match_rules = pattern.get("match", {})
@@ -125,14 +62,6 @@ class CapabilityTaggerAgent:
         """
         Evaluates a single criterion for the entry point pattern matching.
         Copied directly from OrphanedLogicCheck.
-
-        Args:
-            key: Match rule key
-            value: Match rule value
-            data: Symbol data to evaluate
-
-        Returns:
-            True if rule matches
         """
         if key == "type":
             kind = data.get("type", "")
@@ -161,12 +90,6 @@ class CapabilityTaggerAgent:
         2. Has no capability assigned (capability is None)
         3. Is NOT an entry point
         4. Is NOT called by any other code
-
-        Args:
-            all_symbols: List of all symbol dicts
-
-        Returns:
-            List of orphaned symbol dicts
         """
         if not all_symbols:
             return []
@@ -178,7 +101,6 @@ class CapabilityTaggerAgent:
             for called_qualname in called_list:
                 all_called_symbols.add(called_qualname)
 
-        # Find orphaned symbols (same logic as OrphanedLogicCheck)
         orphaned_symbols = []
         for symbol_data in all_symbols:
             is_public = symbol_data.get("is_public", False)
@@ -206,15 +128,7 @@ class CapabilityTaggerAgent:
         return await self.knowledge_service.list_capabilities()
 
     def _extract_symbol_info(self, symbol: dict[str, Any]) -> dict[str, Any]:
-        """
-        Extracts the relevant information for the prompt from a symbol entry.
-
-        Args:
-            symbol: Symbol metadata dict
-
-        Returns:
-            Extracted info dict for prompt
-        """
+        """Extracts the relevant information for the prompt from a symbol entry."""
         return {
             "key": symbol.get("uuid"),
             "name": symbol.get("name"),
@@ -223,88 +137,88 @@ class CapabilityTaggerAgent:
             "docstring": symbol.get("docstring"),
         }
 
-    def _build_suggestion_prompt(
+    def _build_prompt_context(
         self, symbol_info: dict[str, Any], existing_capabilities: list[str]
-    ) -> str:
+    ) -> dict[str, str]:
         """
-        Builds the final prompt for AI suggestion request.
+        Builds the PromptModel context dict for a single symbol invocation.
 
-        Args:
-            symbol_info: Extracted symbol information
-            existing_capabilities: List of existing capability names
-
-        Returns:
-            Formatted prompt string
+        Returns a dict matching the input contract declared in model.yaml.
         """
-        # Format existing capabilities as "similar capabilities" context
         similar_caps_text = "\n".join(
             [f"- {cap}" for cap in existing_capabilities[:20]]
         )
 
-        # Build code snippet from symbol info
         code_snippet = f"# {symbol_info.get('name', 'unknown')}\n"
         if symbol_info.get("docstring"):
             code_snippet += f'"""{symbol_info["docstring"]}"""\n'
         code_snippet += f"# Domain: {symbol_info.get('domain', 'unknown')}\n"
         code_snippet += f"# File: {symbol_info.get('file', 'unknown')}"
 
-        return self.prompt_template.format(
-            similar_capabilities=similar_caps_text,
-            code=code_snippet,
-        )
+        return {
+            "similar_capabilities": similar_caps_text,
+            "code": code_snippet,
+        }
+
+    @staticmethod
+    def _strip_markdown(response: str) -> str:
+        """Strips markdown code fences from LLM response if present."""
+        clean = response.strip()
+        if clean.startswith("```"):
+            clean = re.sub(r"^```[a-z]*\n?", "", clean)
+            clean = re.sub(r"\n?```$", "", clean.strip())
+        return clean.strip()
 
     async def _get_suggestion_for_symbol(
         self, symbol: dict[str, Any], existing_capabilities: list[str]
     ) -> dict[str, str] | None:
         """
-        Async worker to get a single tag suggestion from the LLM.
-
-        Args:
-            symbol: Symbol metadata dict
-            existing_capabilities: List of existing capability names
-
-        Returns:
-            Suggestion dict or None if no suggestion
+        Async worker to get a single tag suggestion from the LLM via PromptModel.
         """
         symbol_info = self._extract_symbol_info(symbol)
-        final_prompt = self._build_suggestion_prompt(symbol_info, existing_capabilities)
-        response = await self.tagger_client.make_request_async(
-            final_prompt, user_id="tagger_agent"
-        )
+        context = self._build_prompt_context(symbol_info, existing_capabilities)
+
         try:
-            parsed = json.loads(response)
+            response = await self.prompt_model.invoke(
+                context,
+                client=self.tagger_client,
+                user_id="tagger_agent",
+            )
+            parsed = json.loads(self._strip_markdown(response))
             suggestion = parsed.get("suggested_capability")
-            if suggestion is None:
+            if not suggestion:
                 return None
-            if suggestion:
-                return {
-                    "key": symbol["uuid"],
-                    "name": symbol["name"],
-                    "file": symbol["file_path"],
-                    "line_number": symbol.get("line_number", 1),
-                    "suggestion": suggestion,
-                }
-        except (json.JSONDecodeError, AttributeError):
-            logger.warning("Could not parse suggestion for %s.", symbol["name"])
+            return {
+                "key": symbol.get("uuid"),
+                "name": symbol.get("name"),
+                "file": symbol_info.get("file"),
+                "line_number": symbol.get("line_number", 1),
+                "suggestion": suggestion,
+            }
+        except (json.JSONDecodeError, AttributeError, ValueError):
+            logger.warning("Could not parse suggestion for %s.", symbol.get("name"))
         return None
 
-    # ID: 31b9d32d-7a97-44cb-8472-1e46f4c1ee99
+    # ID: 02466161-a46e-4fc2-8011-ddd05ada4d1c
     async def suggest_and_apply_tags(
-        self, file_path: Path | None = None
+        self,
+        file_path: Path | None = None,
+        limit: int = 0,
     ) -> dict[str, dict] | None:
         """
         Finds truly orphaned public symbols (using OrphanedLogicCheck logic),
-        gets AI-powered suggestions, and returns them.
+        gets AI-powered suggestions via PromptModel, and returns them.
 
         Args:
-            file_path: Optional path to filter symbols by file
+            file_path: Optional path to filter symbols by file.
+            limit: Max number of symbols to process (0 = all).
 
         Returns:
-            Dict mapping symbol keys to suggestion dicts, or None if no suggestions
+            Dict mapping symbol keys to suggestion dicts, or None if no suggestions.
         """
         if self.tagger_client is None:
             self.tagger_client = await self.cognitive_service.aget_client_for_role(
-                "CodeReviewer"
+                "CapabilityTagger"
             )
 
         logger.info("Searching for orphaned capabilities (using audit logic)...")
@@ -313,65 +227,41 @@ class CapabilityTaggerAgent:
         graph = await self.knowledge_service.get_graph()
         all_symbols = list(graph.get("symbols", {}).values())
 
-        # Use the same orphan detection logic as OrphanedLogicCheck
         orphaned_symbols = self._find_orphaned_symbols(all_symbols)
+
+        if file_path:
+            orphaned_symbols = [
+                s
+                for s in orphaned_symbols
+                if s.get("file_path", "").endswith(str(file_path))
+            ]
+
+        if limit > 0:
+            orphaned_symbols = orphaned_symbols[:limit]
 
         logger.info(
             "Found %d truly orphaned symbols (same as audit).", len(orphaned_symbols)
         )
 
-        # Filter by file_path if specified
-        target_symbols = [
-            s
-            for s in orphaned_symbols
-            if not file_path or s.get("file_path") == str(file_path)
-        ]
-
-        if not target_symbols:
-            self.tracer.record(
-                agent=self.__class__.__name__,
-                decision_type="task_execution",
-                rationale="Executing goal based on input context",
-                chosen_action="No orphaned symbols found for capability tagging",
-                confidence=0.9,
-            )
+        if not orphaned_symbols:
             return None
 
         logger.info(
             "Analyzing %d orphaned symbols for capability suggestions...",
-            len(target_symbols),
+            len(orphaned_symbols),
         )
 
-        processor = ThrottledParallelProcessor(description="Analyzing symbols...")
+        processor = ThrottledParallelProcessor(description="Tagging capabilities...")
+
+        # ID: 00304bca-a84a-499c-b6ce-124cf6c24ad9
+        async def worker_fn(symbol: dict) -> dict | None:
+            return await self._get_suggestion_for_symbol(symbol, existing_capabilities)
+
         results = await processor.run_async(
-            target_symbols,
-            lambda symbol: self._get_suggestion_for_symbol(
-                symbol, existing_capabilities
-            ),
+            items=orphaned_symbols,
+            worker_fn=worker_fn,
         )
 
-        suggestions_to_return = {}
-        valid_results = list(filter(None, results))
+        suggestions = {r["key"]: r for r in results if r is not None}
 
-        for res in valid_results:
-            logger.info("Suggestion: %s -> %s", res["name"], res["suggestion"])
-            suggestions_to_return[res["key"]] = res
-
-        if not suggestions_to_return:
-            self.tracer.record(
-                agent=self.__class__.__name__,
-                decision_type="task_execution",
-                rationale="Executing goal based on input context",
-                chosen_action="No capability tag suggestions generated",
-                confidence=0.9,
-            )
-            return None
-
-        self.tracer.record(
-            agent=self.__class__.__name__,
-            decision_type="task_execution",
-            rationale="Executing goal based on input context",
-            chosen_action=f"Generated {len(suggestions_to_return)} capability tag suggestions",
-            confidence=0.9,
-        )
-        return suggestions_to_return
+        return suggestions or None

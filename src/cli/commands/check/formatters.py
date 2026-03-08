@@ -290,6 +290,7 @@ def _extract_symbol(finding: AuditFinding) -> str | None:
 
 
 # ID: context-build-hints-print
+# ID: 486a2ea4-4c12-4197-b7da-128be47986dd
 def print_context_build_hints(findings: list[AuditFinding]) -> None:
     """
     Print exact context build commands for actionable findings.

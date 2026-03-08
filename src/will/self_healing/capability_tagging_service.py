@@ -34,7 +34,7 @@ SessionFactory = Callable[[], Any]
 
 # Constitutional holding domain for non-SSOT capability registrations.
 # Anything created here is explicitly "Proposed" and must be governed later.
-HOLDING_DOMAIN = "general"
+HOLDING_DOMAIN = "shared"
 
 # Links created by LLM are proposals until explicitly verified by a governed flow.
 LLM_LINK_SOURCE = "llm-proposed"
@@ -80,6 +80,7 @@ async def _async_tag_capabilities(
     session_factory: SessionFactory,
     file_path: Path | None,
     dry_run: bool,
+    limit: int = 0,
 ) -> None:
     """
     Core async logic for capability tagging.
@@ -89,7 +90,8 @@ async def _async_tag_capabilities(
     # 1. Consult the Will (Agent) to get suggestions
     agent = CapabilityTaggerAgent(cognitive_service, knowledge_service)
     suggestions = await agent.suggest_and_apply_tags(
-        file_path=file_path.as_posix() if file_path else None
+        file_path=file_path.as_posix() if file_path else None,
+        limit=limit,
     )
 
     if not suggestions:
@@ -110,19 +112,14 @@ async def _async_tag_capabilities(
 
     # 2. Execute the Body operation (Database Persistence)
     async with session_factory() as session:
-        # Use an explicit transaction boundary
         async with session.begin():
             for _, new_info in suggestions.items():
                 suggested_name = str(new_info["suggestion"]).strip()
                 symbol_uuid = new_info["key"]
 
-                # DOMAIN PROTECTION: Force all LLM suggestions into the holding domain.
                 domain = HOLDING_DOMAIN
+                _, _namespace = _split_capability_key(suggested_name)
 
-                # Extract advisory namespace (informational only)
-                _, namespace = _split_capability_key(suggested_name)
-
-                # Build metadata tags
                 tags: list[str] = []
                 proposed_domain = _proposed_domain_tag(suggested_name)
                 if proposed_domain:
@@ -133,21 +130,19 @@ async def _async_tag_capabilities(
 
                 confidence = float(new_info.get("confidence", DEFAULT_LLM_CONFIDENCE))
 
-                # Upsert the capability as a 'Proposed' entity
                 cap_upsert_sql = text(
                     """
                     INSERT INTO core.capabilities
-                        (name, domain, subdomain, title, owner, status, tags, created_at, updated_at)
+                        (name, domain, title, owner, status, tags, created_at, updated_at)
                     VALUES
-                        (:name, :domain, :subdomain, :title, 'system', 'Proposed', :tags::jsonb, now(), now())
+                        (:name, :domain, :title, 'system', 'Draft', cast(:tags as jsonb), now(), now())
                     ON CONFLICT (domain, name)
                     DO UPDATE SET
                         updated_at = now(),
-                        status = 'Proposed',
-                        subdomain = COALESCE(EXCLUDED.subdomain, core.capabilities.subdomain),
+                        status = 'Draft',
                         tags = CASE
-                            WHEN core.capabilities.tags IS NULL THEN :tags::jsonb
-                            ELSE core.capabilities.tags || :tags::jsonb
+                            WHEN core.capabilities.tags IS NULL THEN cast(:tags as jsonb)
+                            ELSE core.capabilities.tags || cast(:tags as jsonb)
                         END
                     RETURNING id;
                     """
@@ -158,14 +153,12 @@ async def _async_tag_capabilities(
                     {
                         "name": suggested_name,
                         "domain": domain,
-                        "subdomain": namespace,
                         "title": suggested_name,
                         "tags": json.dumps(tags),
                     },
                 )
                 capability_id = result.scalar_one()
 
-                # Link the symbol to the proposed capability
                 link_sql = text(
                     """
                     INSERT INTO core.symbol_capability_links
@@ -200,6 +193,7 @@ async def main_async(
     knowledge_service: KnowledgeService,
     write: bool = False,
     dry_run: bool = False,
+    limit: int = 0,
 ) -> None:
     """
     Entry point for the capability tagging service.
@@ -210,8 +204,8 @@ async def main_async(
         knowledge_service: Initialized knowledge service.
         write: True if changes should be persisted.
         dry_run: True if changes should only be simulated.
+        limit: Max number of symbols to process (0 = all).
     """
-    # Calculate effective dry run status
     effective_dry_run = dry_run or not write
 
     await _async_tag_capabilities(
@@ -220,4 +214,5 @@ async def main_async(
         session_factory=session_factory,
         file_path=None,
         dry_run=effective_dry_run,
+        limit=limit,
     )

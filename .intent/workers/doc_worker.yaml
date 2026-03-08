@@ -1,0 +1,27 @@
+$schema: "META/worker.schema.json"
+kind: worker
+
+metadata:
+  id: workers.doc_worker
+  title: Documentation Worker
+  version: "0.1.0"
+  authority: policy
+  status: active
+
+identity:
+  uuid: "8d1e536d-846f-4635-8955-2fdef4b72e6a"
+  class: acting
+
+mandate:
+  responsibility: >
+    Detect symbols with missing or degraded documentation and produce proposals
+    to generate accurate docstrings grounded in code and constitutional intent.
+  phase: runtime
+  permitted_tools:
+    - llm.local
+  scope:
+    paths:
+      - "src/**/*.py"
+    domains:
+      - documentation
+  approval_required: false
