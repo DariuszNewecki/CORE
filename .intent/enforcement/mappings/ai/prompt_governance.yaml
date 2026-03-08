@@ -88,7 +88,7 @@ mappings:
       requirement:
         check_type: required_calls
         calls:
-          - "_validate_output"
+          - "self._validate_output"
     scope:
       applies_to:
         - "src/shared/ai/prompt_model.py"

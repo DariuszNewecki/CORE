@@ -55,6 +55,7 @@ class ConstitutionalPathAnalyzer(BaseAnalyzer):
 
     # ID: ba8e4735-0988-479a-92ad-5aeeba2ba4c6
     async def execute(self, **kwargs: Any) -> ComponentResult:
+        """Executes the Constitutional Path Analyzer to retrieve and validate indexed policy paths and core system contracts from the IntentRepository, returning a ComponentResult with the unique artifacts and metadata."""
         start_time = time.time()
 
         # 1. Access the Mind through the sanctioned gateway

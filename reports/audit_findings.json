@@ -155,15 +155,6 @@
   {
     "check_id": "ai.prompt.model_required",
     "severity": "error",
-    "message": "Line 271: direct call to 'make_request_async()' detected. Use PromptModel.invoke() instead. [ai.prompt.model_required]",
-    "file_path": "src/will/agents/tagger_agent.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "ai.prompt.model_required",
-    "severity": "error",
     "message": "Line 158: direct call to 'make_request_async()' detected. Use PromptModel.invoke() instead. [ai.prompt.model_required]",
     "file_path": "src/will/cli_logic/reviewer.py",
     "line_number": null,
@@ -342,10 +333,10 @@
     "details": {}
   },
   {
-    "check_id": "ai.prompt.output_validation_required",
+    "check_id": "ai.prompt.model_required",
     "severity": "error",
-    "message": "Line 199: missing mandatory call(s): ['_validate_output']",
-    "file_path": "src/shared/ai/prompt_model.py",
+    "message": "Line 129: direct call to 'make_request_async()' detected. Use PromptModel.invoke() instead. [ai.prompt.model_required]",
+    "file_path": "src/will/workers/doc_worker.py",
     "line_number": null,
     "context": {},
     "details": {}
@@ -436,6 +427,15 @@
     "severity": "warning",
     "message": "Module has 449 lines, exceeds limit of 400",
     "file_path": "src/shared/infrastructure/clients/qdrant_client.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.max_file_size",
+    "severity": "warning",
+    "message": "Module has 544 lines, exceeds limit of 400",
+    "file_path": "src/shared/infrastructure/intent/intent_repository.py",
     "line_number": null,
     "context": {},
     "details": {}
@@ -729,6 +729,15 @@
     "details": {}
   },
   {
+    "check_id": "architecture.will.no_direct_database_access",
+    "severity": "warning",
+    "message": "/opt/dev/CORE/src/will/workers/doc_worker.py:29 - Forbidden import: 'from shared.infrastructure.database.session_manager import get_session' (matches constitutional boundary rule: shared.infrastructure.database.session_manager.get_session)",
+    "file_path": "src/will/workers/doc_worker.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
     "check_id": "modularity.single_responsibility",
     "severity": "warning",
     "message": "Modularity Debt: 54.2/100 (Limit: 60.0)",
@@ -758,7 +767,16 @@
   {
     "check_id": "modularity.single_responsibility",
     "severity": "warning",
-    "message": "Modularity Debt: 55.7/100 (Limit: 60.0)",
+    "message": "Modularity Debt: 52.8/100 (Limit: 60.0)",
+    "file_path": "src/body/workers/doc_writer.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "modularity.single_responsibility",
+    "severity": "warning",
+    "message": "Modularity Debt: 55.9/100 (Limit: 60.0)",
     "file_path": "src/cli/commands/check/formatters.py",
     "line_number": null,
     "context": {},
@@ -821,6 +839,24 @@
   {
     "check_id": "modularity.single_responsibility",
     "severity": "warning",
+    "message": "Modularity Debt: 50.2/100 (Limit: 60.0)",
+    "file_path": "src/shared/infrastructure/intent/intent_repository.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "modularity.single_responsibility",
+    "severity": "warning",
+    "message": "Modularity Debt: 58.2/100 (Limit: 60.0)",
+    "file_path": "src/shared/workers/base.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "modularity.single_responsibility",
+    "severity": "warning",
     "message": "Modularity Debt: 49.2/100 (Limit: 60.0)",
     "file_path": "src/will/orchestration/workflow_orchestrator.py",
     "line_number": null,
@@ -866,7 +902,16 @@
   {
     "check_id": "modularity.semantic_cohesion",
     "severity": "warning",
-    "message": "Modularity Debt: 55.7/100 (Limit: 60.0)",
+    "message": "Modularity Debt: 52.8/100 (Limit: 60.0)",
+    "file_path": "src/body/workers/doc_writer.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "modularity.semantic_cohesion",
+    "severity": "warning",
+    "message": "Modularity Debt: 55.9/100 (Limit: 60.0)",
     "file_path": "src/cli/commands/check/formatters.py",
     "line_number": null,
     "context": {},
@@ -922,6 +967,24 @@
     "severity": "warning",
     "message": "Modularity Debt: 54.8/100 (Limit: 60.0)",
     "file_path": "src/shared/ai/prompt_model.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "modularity.semantic_cohesion",
+    "severity": "warning",
+    "message": "Modularity Debt: 50.2/100 (Limit: 60.0)",
+    "file_path": "src/shared/infrastructure/intent/intent_repository.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "modularity.semantic_cohesion",
+    "severity": "warning",
+    "message": "Modularity Debt: 58.2/100 (Limit: 60.0)",
+    "file_path": "src/shared/workers/base.py",
     "line_number": null,
     "context": {},
     "details": {}
@@ -974,7 +1037,16 @@
   {
     "check_id": "modularity.import_coupling",
     "severity": "warning",
-    "message": "Modularity Debt: 55.7/100 (Limit: 60.0)",
+    "message": "Modularity Debt: 52.8/100 (Limit: 60.0)",
+    "file_path": "src/body/workers/doc_writer.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "modularity.import_coupling",
+    "severity": "warning",
+    "message": "Modularity Debt: 55.9/100 (Limit: 60.0)",
     "file_path": "src/cli/commands/check/formatters.py",
     "line_number": null,
     "context": {},
@@ -1030,6 +1102,24 @@
     "severity": "warning",
     "message": "Modularity Debt: 54.8/100 (Limit: 60.0)",
     "file_path": "src/shared/ai/prompt_model.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "modularity.import_coupling",
+    "severity": "warning",
+    "message": "Modularity Debt: 50.2/100 (Limit: 60.0)",
+    "file_path": "src/shared/infrastructure/intent/intent_repository.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "modularity.import_coupling",
+    "severity": "warning",
+    "message": "Modularity Debt: 58.2/100 (Limit: 60.0)",
+    "file_path": "src/shared/workers/base.py",
     "line_number": null,
     "context": {},
     "details": {}
@@ -1082,7 +1172,16 @@
   {
     "check_id": "modularity.refactor_score_threshold",
     "severity": "warning",
-    "message": "Modularity Debt: 55.7/100 (Limit: 60.0)",
+    "message": "Modularity Debt: 52.8/100 (Limit: 60.0)",
+    "file_path": "src/body/workers/doc_writer.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "modularity.refactor_score_threshold",
+    "severity": "warning",
+    "message": "Modularity Debt: 55.9/100 (Limit: 60.0)",
     "file_path": "src/cli/commands/check/formatters.py",
     "line_number": null,
     "context": {},
@@ -1145,6 +1244,24 @@
   {
     "check_id": "modularity.refactor_score_threshold",
     "severity": "warning",
+    "message": "Modularity Debt: 50.2/100 (Limit: 60.0)",
+    "file_path": "src/shared/infrastructure/intent/intent_repository.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "modularity.refactor_score_threshold",
+    "severity": "warning",
+    "message": "Modularity Debt: 58.2/100 (Limit: 60.0)",
+    "file_path": "src/shared/workers/base.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "modularity.refactor_score_threshold",
+    "severity": "warning",
     "message": "Modularity Debt: 49.2/100 (Limit: 60.0)",
     "file_path": "src/will/orchestration/workflow_orchestrator.py",
     "line_number": null,
@@ -1156,15 +1273,6 @@
     "severity": "warning",
     "message": "Modularity Debt: 50.4/100 (Limit: 60.0)",
     "file_path": "src/will/test_generation/sandbox.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.boundary.settings_access",
-    "severity": "error",
-    "message": "/opt/dev/CORE/src/will/self_healing/docstring_service.py:19 - Forbidden import: 'from shared.config import settings' (matches constitutional boundary rule: shared.config.settings)",
-    "file_path": "src/will/self_healing/docstring_service.py",
     "line_number": null,
     "context": {},
     "details": {}
@@ -1376,15 +1484,6 @@
     "check_id": "workflow.dead_code_check",
     "severity": "warning",
     "message": "Dead code detected: src/body/governance/runtime_validator.py:156: unused variable 'dst_root' (100% confidence)",
-    "file_path": "System",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "workflow.dead_code_check",
-    "severity": "warning",
-    "message": "Dead code detected: src/cli/commands/fix/metadata.py:163: unused variable 'policies_dir' (100% confidence)",
     "file_path": "System",
     "line_number": null,
     "context": {},

@@ -27,6 +27,7 @@ mappings:
         - "src/mind/**/test_*.py"
         - "src/will/**/test_*.py"
         - "tests/**"
+        - "src/will/workers/*.py"
 
   # ==========================================================================
   # SETTINGS PRIMITIVE ACCESS

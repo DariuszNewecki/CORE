@@ -1,0 +1,33 @@
+# .intent/workers/doc_writer.yaml
+# Constitutional declaration for the DocWriter acting worker.
+# This file is the sole source of standing for the DocWriter entity.
+
+kind: worker
+
+metadata:
+  id: workers.doc_writer
+  title: Documentation Writer
+  version: "1.0.0"
+  authority: policy
+  status: active
+
+identity:
+  uuid: b3c4d5e6-f7a8-9b0c-1d2e-3f4a5b6c7d8e
+  class: acting
+
+mandate:
+  responsibility: >
+    Claim open write.docstring findings from the blackboard and write the
+    proposed docstring into the target source file via the governed
+    file.tag_metadata action.
+  phase: execution
+  approval_required: false
+  tools:
+    - file.tag_metadata
+  scope:
+    paths:
+      - src/**/*.py
+    notes: >
+      DocWriter may only mutate docstrings. It may not alter executable
+      code. All writes must pass the WRITE_METADATA semantic preservation
+      proof enforced by file.tag_metadata.

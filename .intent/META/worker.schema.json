@@ -1,0 +1,161 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "core.intent.worker.schema.json",
+    "title": "CORE Worker Declaration",
+    "description": "Constitutional declaration of a Worker or ShopManager entity. Existence in .intent/workers/ is the sole source of constitutional standing.",
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+        "kind",
+        "metadata",
+        "identity",
+        "mandate"
+    ],
+    "properties": {
+        "$schema": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512
+        },
+        "kind": {
+            "type": "string",
+            "enum": [
+                "worker",
+                "shop_manager"
+            ]
+        },
+        "metadata": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+                "id",
+                "title",
+                "version",
+                "authority",
+                "status"
+            ],
+            "properties": {
+                "id": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 128,
+                    "description": "Unique identifier for this worker declaration. e.g. workers.doc_worker"
+                },
+                "title": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 256
+                },
+                "version": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 32
+                },
+                "authority": {
+                    "type": "string",
+                    "enum": [
+                        "policy",
+                        "code"
+                    ],
+                    "description": "Workers operate at policy or code authority. Never meta or constitution."
+                },
+                "status": {
+                    "type": "string",
+                    "enum": [
+                        "draft",
+                        "active",
+                        "deprecated"
+                    ]
+                }
+            }
+        },
+        "identity": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+                "uuid",
+                "class"
+            ],
+            "properties": {
+                "uuid": {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+                    "description": "Permanent constitutional UUID. All proposals and blackboard entries must carry this UUID."
+                },
+                "class": {
+                    "type": "string",
+                    "enum": [
+                        "sensing",
+                        "acting",
+                        "governance",
+                        "supervision"
+                    ],
+                    "description": "Worker class determines its relationship to the Blackboard. supervision is reserved for ShopManagers."
+                }
+            }
+        },
+        "mandate": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+                "responsibility",
+                "phase"
+            ],
+            "properties": {
+                "responsibility": {
+                    "type": "string",
+                    "minLength": 10,
+                    "maxLength": 512,
+                    "description": "Single sentence declaring the one thing this worker is responsible for. No conjunctions."
+                },
+                "phase": {
+                    "type": "string",
+                    "enum": [
+                        "audit",
+                        "runtime",
+                        "execution"
+                    ],
+                    "description": "The CORE phase in which this worker is permitted to act."
+                },
+                "permitted_tools": {
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "enum": [
+                            "llm.local",
+                            "llm.remote",
+                            "agent"
+                        ]
+                    },
+                    "uniqueItems": true,
+                    "description": "Tools this worker is constitutionally permitted to call. Empty means no AI tools."
+                },
+                "scope": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                        "paths": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            },
+                            "description": "Glob patterns defining filesystem scope. Empty means no filesystem access."
+                        },
+                        "domains": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            },
+                            "description": "Logical domains this worker may touch."
+                        }
+                    }
+                },
+                "approval_required": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Whether proposals from this worker require human approval before execution."
+                }
+            }
+        }
+    }
+}

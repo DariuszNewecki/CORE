@@ -23,6 +23,9 @@ async def tag_symbols_command(
     write: bool = typer.Option(
         False, "--write", help="Write suggested tags to the database."
     ),
+    limit: int = typer.Option(
+        0, "--limit", help="Limit number of symbols to process (0 = all)."
+    ),
 ) -> None:
     """
     Automatically tag untagged capabilities using AI reasoning.
@@ -43,4 +46,5 @@ async def tag_symbols_command(
         knowledge_service=core_context.knowledge_service,
         write=write,
         dry_run=not write,
+        limit=limit,
     )

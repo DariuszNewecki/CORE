@@ -1,7 +1,7 @@
 # src/shared/infrastructure/database/models/__init__.py
 
 """
-CORE v2.2 Schema - Modular SQLAlchemy models.
+Database models package.
 Organized by Mind-Body-Will architecture.
 """
 
@@ -22,6 +22,7 @@ from .system import (
     RuntimeSetting,
 )
 from .vectors import RetrievalFeedback, SemanticCache, SymbolVectorLink, VectorSyncLog
+from .workers import BlackboardEntry, WorkerRegistry
 
 
 __all__ = [
@@ -31,6 +32,8 @@ __all__ = [
     "AuditRun",
     # Base for migrations and metadata
     "Base",
+    # Workers (Blackboard)
+    "BlackboardEntry",
     "Capability",
     # System Metadata & Artifacts
     "CliCommand",
@@ -58,4 +61,6 @@ __all__ = [
     # Operations Layer (Body)
     "Task",
     "VectorSyncLog",
+    # Workers (Constitutional Autonomous Entities)
+    "WorkerRegistry",
 ]

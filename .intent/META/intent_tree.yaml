@@ -1,0 +1,19 @@
+$schema: "META/intent_tree.schema.json"
+
+required_directories:
+  - META
+  - constitution
+  - rules
+
+optional_directories:
+  - papers
+  - phases
+  - workflows
+  - enforcement
+  - workers
+
+notes: >
+  Authoritative declaration of the .intent/ directory structure.
+  IntentRepository reads this file to determine which directories to scan.
+  Adding a directory here is the constitutional act of making it part of the Mind.
+  No directory outside this list is authoritative for governance purposes.

@@ -16,7 +16,6 @@ from typing import TYPE_CHECKING, Any
 from body.atomic.executor import ActionExecutor
 from body.introspection.knowledge_helpers import extract_source_code
 from shared.ai.prompt_model import PromptModel
-from shared.config import settings
 from shared.logger import getLogger
 
 
@@ -76,7 +75,7 @@ async def _async_fix_docstrings(
             logger.debug("Docstring progress: %d/%d", i, len(symbols_to_fix))
 
         try:
-            source_code = extract_source_code(settings.REPO_PATH, symbol)
+            source_code = extract_source_code(context.git_service.repo_path, symbol)
             if not source_code:
                 continue
 

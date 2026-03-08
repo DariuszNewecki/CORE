@@ -39,6 +39,7 @@ from cli.resources.project import app as project_app
 from cli.resources.proposals import app as proposals_app
 from cli.resources.symbols import app as symbols_app
 from cli.resources.vectors import app as vectors_app
+from cli.resources.workers import app as workers_app
 from shared.infrastructure.database.session_manager import get_session
 
 
@@ -68,6 +69,7 @@ def register_all_commands(app_instance: typer.Typer) -> None:
     app_instance.add_typer(database_app, name="database")  # Postgres state & migrations
     app_instance.add_typer(symbols_app, name="symbols")  # Identity registry & UUIDs
     app_instance.add_typer(vectors_app, name="vectors")  # Semantic memory & Qdrant
+    app_instance.add_typer(workers_app, name="workers")
     app_instance.add_typer(
         constitution_app, name="constitution"
     )  # Governance & Policies
