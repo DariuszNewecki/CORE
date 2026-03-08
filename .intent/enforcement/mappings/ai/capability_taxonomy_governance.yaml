@@ -1,0 +1,69 @@
+mappings:
+  capability.taxonomy.canonical_only:
+    engine: knowledge_gate
+    params:
+      check_type: capability_taxonomy_whitelist
+      taxonomy_path: ".intent/taxonomies/capability_taxonomy.yaml"
+      taxonomy_root: "families"
+      database_sources:
+        - "core.cognitive_roles.required_capabilities"
+        - "core.llm_resources.provided_capabilities"
+      artifact_sources:
+        - ".intent/workers/**/*"
+        - ".intent/workflows/**/*"
+    scope:
+      applies_to:
+        - ".intent/taxonomies/capability_taxonomy.yaml"
+        - ".intent/workers/**/*"
+        - ".intent/workflows/**/*"
+
+  capability.taxonomy.no_ad_hoc_capabilities:
+    engine: knowledge_gate
+    params:
+      check_type: capability_taxonomy_whitelist
+      taxonomy_path: ".intent/taxonomies/capability_taxonomy.yaml"
+      taxonomy_root: "families"
+      database_sources:
+        - "core.cognitive_roles.required_capabilities"
+        - "core.llm_resources.provided_capabilities"
+      artifact_sources:
+        - ".intent/workers/**/*"
+        - ".intent/workflows/**/*"
+      reject_unknown: true
+    scope:
+      applies_to:
+        - ".intent/workers/**/*"
+        - ".intent/workflows/**/*"
+
+  capability.taxonomy.no_model_specific_names:
+    engine: regex_gate
+    params:
+      forbidden_patterns:
+        - "\\bgpt\\b"
+        - "\\bclaude\\b"
+        - "\\bgemini\\b"
+        - "\\bqwen\\b"
+        - "\\bdeepseek\\b"
+        - "\\bllama\\b"
+        - "\\bollama\\b"
+    scope:
+      applies_to:
+        - ".intent/taxonomies/capability_taxonomy.yaml"
+
+  capability.taxonomy.roles_require_canonical_capabilities:
+    engine: knowledge_gate
+    params:
+      check_type: capability_taxonomy_whitelist
+      taxonomy_path: ".intent/taxonomies/capability_taxonomy.yaml"
+      taxonomy_root: "families"
+      database_sources:
+        - "core.cognitive_roles.required_capabilities"
+
+  capability.taxonomy.resources_provide_canonical_capabilities:
+    engine: knowledge_gate
+    params:
+      check_type: capability_taxonomy_whitelist
+      taxonomy_path: ".intent/taxonomies/capability_taxonomy.yaml"
+      taxonomy_root: "families"
+      database_sources:
+        - "core.llm_resources.provided_capabilities"

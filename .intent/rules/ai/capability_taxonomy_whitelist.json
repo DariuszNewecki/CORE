@@ -1,0 +1,49 @@
+{
+    "$schema": "META/rule_document.schema.json",
+    "kind": "rule_document",
+    "metadata": {
+        "id": "rules.ai.capability_taxonomy",
+        "title": "Capability Taxonomy Governance",
+        "version": "1.0.0",
+        "authority": "constitution",
+        "phase": "audit",
+        "status": "active"
+    },
+    "rules": [
+        {
+            "id": "capability.taxonomy.canonical_only",
+            "statement": "Any capability referenced by CORE cognitive roles, LLM resources, workers, workflows, or related AI governance artifacts MUST exist in the canonical capability taxonomy.",
+            "enforcement": "blocking",
+            "authority": "constitution",
+            "phase": "audit"
+        },
+        {
+            "id": "capability.taxonomy.no_ad_hoc_capabilities",
+            "statement": "Ad hoc, undeclared, or locally invented capability names MUST NOT be introduced into routing, role assignment, resource definition, or governance logic.",
+            "enforcement": "blocking",
+            "authority": "constitution",
+            "phase": "audit"
+        },
+        {
+            "id": "capability.taxonomy.no_model_specific_names",
+            "statement": "Capability names MUST remain model-neutral and provider-neutral. Capabilities MUST describe technical ability, not vendor, model, or implementation identity.",
+            "enforcement": "blocking",
+            "authority": "constitution",
+            "phase": "audit"
+        },
+        {
+            "id": "capability.taxonomy.roles_require_canonical_capabilities",
+            "statement": "Cognitive roles MAY require one or more capabilities, but every required capability MUST be canonical.",
+            "enforcement": "blocking",
+            "authority": "constitution",
+            "phase": "audit"
+        },
+        {
+            "id": "capability.taxonomy.resources_provide_canonical_capabilities",
+            "statement": "LLM resources and other cognitive execution resources MAY declare one or more provided capabilities, but every provided capability MUST be canonical.",
+            "enforcement": "blocking",
+            "authority": "constitution",
+            "phase": "audit"
+        }
+    ]
+}
