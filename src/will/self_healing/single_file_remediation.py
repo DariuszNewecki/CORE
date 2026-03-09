@@ -14,12 +14,12 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from body.self_healing.coverage_analyzer import CoverageAnalyzer
-from body.self_healing.test_generator import EnhancedTestGenerator
+from body.quality.coverage_analyzer import CoverageAnalyzer
 from body.services.file_service import FileService
 from mind.governance.audit_context import AuditorContext
 from shared.logger import getLogger
 from will.orchestration.cognitive_service import CognitiveService
+from will.self_healing.test_generator import EnhancedTestGenerator
 
 
 logger = getLogger(__name__)

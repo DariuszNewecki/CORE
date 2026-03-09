@@ -25,3 +25,8 @@ mandate:
     domains:
       - documentation
   approval_required: false
+
+implementation:
+  module: will.workers.doc_worker
+  class: DocWorker
+  requires_core_context: false

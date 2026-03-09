@@ -1,0 +1,33 @@
+$schema: "META/worker.schema.json"
+kind: worker
+
+metadata:
+  id: workers.prompt_extractor_worker
+  title: Prompt Extractor Worker
+  version: "0.1.0"
+  authority: policy
+  status: active
+
+identity:
+  uuid: "b2c3d4e5-f6a7-8901-bcde-f12345678901"
+  class: sensing
+
+mandate:
+  responsibility: >
+    For each unprocessed ai.prompt.model_required violation on the blackboard,
+    read the violating source file and extract the inline prompt string passed
+    to make_request_async().
+  phase: runtime
+  permitted_tools:
+    - llm.local
+  scope:
+    paths:
+      - "src/**/*.py"
+    domains:
+      - compliance
+  approval_required: false
+
+implementation:
+  module: will.workers.prompt_extractor_worker
+  class: PromptExtractorWorker
+  requires_core_context: true

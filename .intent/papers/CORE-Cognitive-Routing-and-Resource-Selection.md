@@ -68,6 +68,66 @@ Routing must never rely on hidden heuristics.
 
 ---
 
+# 3a. Tier-Based Selection Guidance
+
+Model parameter count is not a routing criterion. Models will change constantly. The following routing logic should stay stable.
+
+Each role is evaluated against four properties:
+
+```
+1. task nature        — generation, review, reasoning, classification, or embedding
+2. call frequency     — how often the role is invoked per workflow
+3. cost of error      — consequence of a wrong or degraded output
+4. acceptable latency — whether the caller can tolerate a slower response
+```
+
+The governing principle:
+
+> Frequent roles optimize for speed-adjusted competence.
+> Rare, high-impact roles optimize for maximum intelligence.
+
+This produces four natural tiers:
+
+**Tier 1 — Strategic Reasoning**
+Low frequency. High consequence. Slow or expensive is acceptable; bad decisions are not.
+External premium models are justified here.
+
+```
+Architect           → external premium model
+RefactoringArchitect → external premium model
+```
+
+**Tier 2 — High-Throughput Code Work**
+High frequency. Medium consequence. Speed and specialization outweigh raw model size.
+Latency compounds at this tier — do not replace with larger slower models on benchmark scores alone.
+
+```
+Coder      → specialized fast local model
+LocalCoder → smallest competent local model
+```
+
+**Tier 3 — Judgment Roles**
+Moderate frequency. Quality-sensitive. Stronger models are justified even at higher latency.
+Review requires understanding intent, not just syntax.
+
+```
+CodeReviewer → strongest available local coder model
+```
+
+**Tier 4 — Structured and Deterministic Tasks**
+High frequency. Low consequence. Small fast models are optimal.
+Intelligence beyond a threshold adds no value here.
+
+```
+CapabilityTagger  → small fast model
+IntentTranslator  → small fast model
+Vectorizer        → embedding-specialized model
+```
+
+When assigning or reassigning roles, consult this tier classification before selecting a resource.
+
+---
+
 # 4. Preference Hierarchies
 
 CORE may define preference hierarchies when multiple resources are available.
@@ -172,6 +232,16 @@ Example violation:
 ```
 if role == "Coder":
     use claude
+```
+
+## Size-Based Routing
+
+Selecting resources purely by parameter count without regard to task nature, frequency, or latency profile.
+
+Example violation:
+
+```
+larger model → always better → assign to all roles
 ```
 
 ---

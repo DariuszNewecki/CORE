@@ -1,8 +1,8 @@
 {
-  "audit_id": "af566d37-235d-4a6d-b77c-ad7c51208429",
-  "timestamp": "2026-03-08T17:51:47Z",
+  "audit_id": "00f2eb9e-8cc3-4baf-b257-609d341cf56d",
+  "timestamp": "2026-03-09T12:45:25Z",
   "passed": false,
-  "findings_count": 160,
+  "findings_count": 157,
   "executed_rules": [
     "ai.prompt.model_artifact_required",
     "ai.prompt.model_required",
@@ -41,6 +41,11 @@
     "autonomy.lanes.boundary_enforcement",
     "autonomy.reasoning.policy_alignment",
     "autonomy.tracing.mandatory",
+    "capability.taxonomy.canonical_only",
+    "capability.taxonomy.no_ad_hoc_capabilities",
+    "capability.taxonomy.no_model_specific_names",
+    "capability.taxonomy.resources_provide_canonical_capabilities",
+    "capability.taxonomy.roles_require_canonical_capabilities",
     "cli.command.behavior_classification",
     "cli.command.canonical_naming",
     "cli.command.dangerous_marking",
