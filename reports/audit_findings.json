@@ -263,15 +263,6 @@
   {
     "check_id": "ai.prompt.model_required",
     "severity": "error",
-    "message": "Line 167: direct call to 'make_request_async()' detected. Use PromptModel.invoke() instead. [ai.prompt.model_required]",
-    "file_path": "src/will/self_healing/iterative_test_fixer.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "ai.prompt.model_required",
-    "severity": "error",
     "message": "Line 107: direct call to 'make_request_async()' detected. Use PromptModel.invoke() instead. [ai.prompt.model_required]",
     "file_path": "src/will/self_healing/linelength_service.py",
     "line_number": null,
@@ -333,15 +324,6 @@
     "details": {}
   },
   {
-    "check_id": "ai.prompt.model_required",
-    "severity": "error",
-    "message": "Line 129: direct call to 'make_request_async()' detected. Use PromptModel.invoke() instead. [ai.prompt.model_required]",
-    "file_path": "src/will/workers/doc_worker.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
     "check_id": "logic.logging.standard_only",
     "severity": "warning",
     "message": "Line 244: Replace print() with logger.",
@@ -382,15 +364,6 @@
     "severity": "warning",
     "message": "Module has 430 lines, exceeds limit of 400",
     "file_path": "src/body/introspection/pattern_vectorizer.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.max_file_size",
-    "severity": "warning",
-    "message": "Module has 451 lines, exceeds limit of 400",
-    "file_path": "src/body/maintenance/apply_provider_refactoring.py",
     "line_number": null,
     "context": {},
     "details": {}
@@ -731,7 +704,7 @@
   {
     "check_id": "architecture.will.no_direct_database_access",
     "severity": "warning",
-    "message": "/opt/dev/CORE/src/will/workers/doc_worker.py:29 - Forbidden import: 'from shared.infrastructure.database.session_manager import get_session' (matches constitutional boundary rule: shared.infrastructure.database.session_manager.get_session)",
+    "message": "/opt/dev/CORE/src/will/workers/doc_worker.py:30 - Forbidden import: 'from shared.infrastructure.database.session_manager import get_session' (matches constitutional boundary rule: shared.infrastructure.database.session_manager.get_session)",
     "file_path": "src/will/workers/doc_worker.py",
     "line_number": null,
     "context": {},

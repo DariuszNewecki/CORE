@@ -26,6 +26,7 @@ from typing import Any
 
 from sqlalchemy import text
 
+from shared.ai.prompt_model import PromptModel
 from shared.infrastructure.database.session_manager import get_session
 from shared.logger import getLogger
 from shared.workers.base import Worker
@@ -42,21 +43,6 @@ _EXCLUDED_MODULE_PREFIXES = (
     "migrations.",
     "alembic.",
 )
-
-_PROMPT_TEMPLATE = """\
-You are a Python documentation expert. Write a concise, accurate docstring for the symbol below.
-
-Rules:
-- One paragraph maximum
-- No padding phrases ("This function...", "This method...")
-- Describe what it does and why, not how
-- Return ONLY the docstring text — no quotes, no code fences
-
-Symbol: {symbol_path}
-
-Source code:
-{source_code}
-"""
 
 
 # ID: e5f6a7b8-c9d0-1e2f-3a4b-5c6d7e8f9012
@@ -103,6 +89,10 @@ class DocWorker(Worker):
 
         logger.info("DocWorker: %d symbols need intent.", len(symbols))
 
+        # Constitutional AI invocation surface — PromptModel governs system prompt,
+        # input validation, and output contract.
+        # Ref: .intent/rules/ai/prompt_governance.json [ai.prompt.model_required]
+        prompt_model = PromptModel.load("docstring_writer")
         client = await self._cognitive.aget_client_for_role("LocalCoder")
 
         proposed = 0
@@ -122,12 +112,10 @@ class DocWorker(Worker):
                 continue
 
             try:
-                prompt = _PROMPT_TEMPLATE.format(
-                    symbol_path=symbol["symbol_path"],
-                    source_code=source_code,
-                )
-                docstring = await client.make_request_async(
-                    prompt, user_id="doc_worker"
+                docstring = await prompt_model.invoke(
+                    context={"source_code": source_code},
+                    client=client,
+                    user_id="doc_worker",
                 )
                 docstring = (docstring or "").strip()
                 docstring = docstring.encode("ascii", errors="replace").decode("ascii")
@@ -149,6 +137,14 @@ class DocWorker(Worker):
                 )
                 proposed += 1
 
+            except ValueError as e:
+                # PromptModel output contract violation — skip, don't crash the run
+                logger.warning(
+                    "DocWorker: PromptModel validation failed for %s: %s",
+                    symbol["symbol_path"],
+                    e,
+                )
+                skipped += 1
             except Exception as e:
                 logger.error("DocWorker: failed for %s: %s", symbol["symbol_path"], e)
                 skipped += 1

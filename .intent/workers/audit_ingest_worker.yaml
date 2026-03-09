@@ -1,0 +1,31 @@
+$schema: "META/worker.schema.json"
+kind: worker
+
+metadata:
+  id: workers.audit_ingest_worker
+  title: Audit Ingest Worker
+  version: "0.1.0"
+  authority: policy
+  status: active
+
+identity:
+  uuid: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+  class: sensing
+
+mandate:
+  responsibility: >
+    Read the most recent audit run findings for rule ai.prompt.model_required
+    and post each unprocessed violation as a blackboard finding.
+  phase: audit
+  permitted_tools: []
+  scope:
+    paths: []
+    domains:
+      - audit
+      - compliance
+  approval_required: false
+
+implementation:
+  module: will.workers.audit_ingest_worker
+  class: AuditIngestWorker
+  requires_core_context: true

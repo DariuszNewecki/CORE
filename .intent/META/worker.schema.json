@@ -9,7 +9,8 @@
         "kind",
         "metadata",
         "identity",
-        "mandate"
+        "mandate",
+        "implementation"
     ],
     "properties": {
         "$schema": {
@@ -147,6 +148,10 @@
                                 "type": "string"
                             },
                             "description": "Logical domains this worker may touch."
+                        },
+                        "notes": {
+                            "type": "string",
+                            "description": "Human-readable scope notes."
                         }
                     }
                 },
@@ -154,6 +159,41 @@
                     "type": "boolean",
                     "default": true,
                     "description": "Whether proposals from this worker require human approval before execution."
+                },
+                "tools": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "description": "Named atomic actions this worker is permitted to invoke."
+                }
+            }
+        },
+        "implementation": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+                "module",
+                "class"
+            ],
+            "description": "Python implementation reference. The sole source of truth for how to instantiate this worker.",
+            "properties": {
+                "module": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 256,
+                    "description": "Python module path relative to src/. e.g. will.workers.doc_worker"
+                },
+                "class": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128,
+                    "description": "Python class name within the module. e.g. DocWorker"
+                },
+                "requires_core_context": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "When true, worker is instantiated with core_context=. When false, with cognitive_service=."
                 }
             }
         }

@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from body.services.mind_state_service import MindStateService
+from shared.exceptions import SecretNotFoundError
 from shared.infrastructure.config_service import ConfigService
 from shared.infrastructure.database.models import LlmResource
 from shared.infrastructure.llm.client import LLMClient
@@ -37,11 +38,11 @@ class CognitiveService:
         self,
         repo_path: Path,
         qdrant_service: QdrantService | None = None,
-        session_factory: Any | None = None,  # ADDED: Support for JIT connections
+        session_factory: Any | None = None,
     ) -> None:
         self._repo_path = Path(repo_path)
         self._qdrant_service = qdrant_service
-        self._session_factory = session_factory  # ADDED
+        self._session_factory = session_factory
 
         self._init_lock = asyncio.Lock()
         self._loaded = False
@@ -98,23 +99,29 @@ class CognitiveService:
         if not prefix:
             raise ValueError(f"Resource '{resource.name}' is missing env_prefix.")
 
-        # Note: ConfigService.get works after detach because it uses an internal cache.
         api_url = await self._config.get(f"{prefix}_API_URL")
         model_name = await self._config.get(f"{prefix}_MODEL_NAME")
 
-        if self._session_factory:
-            async with self._session_factory() as session:
-                # Create a temporary config service just for this decryption
-                jit_config = await ConfigService.create(session)
-                api_key = await jit_config.get_secret(
-                    f"{prefix}_API_KEY", audit_context=resource.name
-                )
-        else:
-            # Fallback for unconfigured factory (will fail if detached)
-            api_key = await self._config.get_secret(f"{prefix}_API_KEY")
-
         if not api_url or not model_name:
             raise ValueError(f"Missing config for resource '{resource.name}'.")
+
+        # API key is optional — Ollama and similar local providers don't require one.
+        # Matches the pattern used in ClientOrchestrator._create_provider_for_resource.
+        api_key: str | None = None
+        try:
+            if self._session_factory:
+                async with self._session_factory() as session:
+                    jit_config = await ConfigService.create(session)
+                    api_key = await jit_config.get_secret(
+                        f"{prefix}_API_KEY", audit_context=resource.name
+                    )
+            else:
+                api_key = await self._config.get_secret(f"{prefix}_API_KEY")
+        except (KeyError, SecretNotFoundError):
+            logger.debug(
+                "No API key configured for resource '%s' — proceeding without one.",
+                resource.name,
+            )
 
         if "anthropic" in api_url.lower():
             from shared.infrastructure.llm.providers.anthropic import AnthropicProvider

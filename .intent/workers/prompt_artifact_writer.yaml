@@ -1,0 +1,33 @@
+$schema: "META/worker.schema.json"
+kind: worker
+
+metadata:
+  id: workers.prompt_artifact_writer
+  title: Prompt Artifact Writer
+  version: "0.1.0"
+  authority: policy
+  status: active
+
+identity:
+  uuid: "c3d4e5f6-a7b8-9012-cdef-123456789012"
+  class: acting
+
+mandate:
+  responsibility: >
+    For each approved prompt extraction on the blackboard, generate and write
+    the three PromptModel artifact files to var/prompts/.
+  phase: execution
+  permitted_tools:
+    - llm.architect
+    - file.write
+  scope:
+    paths:
+      - "var/prompts/**"
+    domains:
+      - compliance
+  approval_required: true
+
+implementation:
+  module: body.workers.prompt_artifact_writer
+  class: PromptArtifactWriter
+  requires_core_context: true

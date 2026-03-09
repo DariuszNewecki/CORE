@@ -35,7 +35,7 @@ async def cleanup_database(
         "all",
         "--target",
         "-t",
-        help="Cleanup target: all, memory, sessions, orphans",
+        help="Cleanup target: all, memory, action_results",
     ),
     days: int = typer.Option(
         30,
@@ -48,15 +48,13 @@ async def cleanup_database(
     Remove orphaned and stale database records.
 
     Cleanup targets:
-    - memory: Old conversation memory entries
-    - sessions: Expired session data
-    - orphans: Records without valid foreign keys
+    - memory: Old agent episode and reflection entries
+    - action_results: Old records from core.action_results ledger
     - all: Run all cleanup operations
 
     Constitutional Compliance:
     - Requires --write flag for safety
     - Generates audit trail for deletions
-    - Rollback plan created for recovery
 
     Examples:
         # Dry-run: show what would be deleted
@@ -68,6 +66,8 @@ async def cleanup_database(
         # Full cleanup with custom age threshold
         core-admin database cleanup --target all --days 60 --write
     """
+    from body.maintenance.memory_cleanup_service import MemoryCleanupService
+
     console.print("[bold cyan]🧹 Database Cleanup[/bold cyan]")
     console.print(f"Target: {target}")
     console.print(f"Age threshold: {days} days")
@@ -75,32 +75,46 @@ async def cleanup_database(
     console.print()
 
     try:
-        from body.self_healing import MemoryCleanupService
-
         async with get_session() as session:
             service = MemoryCleanupService(session=session)
-            result = await service.cleanup_old_memories(
-                days_to_keep_episodes=days,
-                days_to_keep_reflections=days,
-                dry_run=not write,
-            )
 
-        if result.ok:
-            stats = result.data
-            console.print("[green]✅ Cleanup completed[/green]")
+            if target in ("all", "memory"):
+                result = await service.cleanup_old_memories(
+                    days_to_keep_episodes=days,
+                    days_to_keep_reflections=days * 3,
+                    dry_run=not write,
+                )
+                if result.ok:
+                    stats = result.data
+                    console.print("[green]✅ Memory cleanup completed[/green]")
+                    console.print(f"  Episodes: {stats.get('episodes_deleted', 0)}")
+                    console.print(
+                        f"  Reflections: {stats.get('reflections_deleted', 0)}"
+                    )
+                else:
+                    console.print(
+                        f"[red]❌ Memory cleanup failed: {result.data.get('error')}[/red]",
+                        err=True,
+                    )
+
+            if target in ("all", "action_results"):
+                result = await service.cleanup_action_results(
+                    days_to_keep=days,
+                    dry_run=not write,
+                )
+                if result.ok:
+                    stats = result.data
+                    console.print("[green]✅ Action results cleanup completed[/green]")
+                    console.print(f"  Records: {stats.get('records_processed', 0)}")
+                else:
+                    console.print(
+                        f"[red]❌ Action results cleanup failed: {result.data.get('error')}[/red]",
+                        err=True,
+                    )
+
+        if not write:
             console.print()
-            console.print(f"  Episodes deleted: {stats.get('episodes_deleted', 0)}")
-            console.print(f"  Decisions deleted: {stats.get('decisions_deleted', 0)}")
-            console.print(
-                f"  Reflections deleted: {stats.get('reflections_deleted', 0)}"
-            )
-
-            if not write:
-                console.print()
-                console.print("[yellow]💡 Run with --write to apply cleanup[/yellow]")
-        else:
-            console.print(f"[red]❌ Cleanup failed: {result.error}[/red]", err=True)
-            raise typer.Exit(1)
+            console.print("[yellow]💡 Run with --write to apply cleanup[/yellow]")
 
     except Exception as e:
         logger.error("Database cleanup failed", exc_info=True)
