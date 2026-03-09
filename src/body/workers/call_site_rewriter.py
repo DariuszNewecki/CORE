@@ -368,14 +368,16 @@ class CallSiteRewriter(Worker):
 
         async with get_session() as session:
             result = await session.execute(
-                text("""
+                text(
+                    """
                     SELECT id, subject, payload
                     FROM core.blackboard_entries
                     WHERE entry_type = 'finding'
                       AND subject LIKE :prefix
                       AND status = 'open'
                     ORDER BY created_at ASC
-                """),
+                """
+                ),
                 {"prefix": f"{_SOURCE_SUBJECT}::%"},
             )
             rows = result.fetchall()
@@ -402,11 +404,13 @@ class CallSiteRewriter(Worker):
         ids = [f["id"] for f in findings]
         async with get_session() as session:
             await session.execute(
-                text("""
+                text(
+                    """
                     UPDATE core.blackboard_entries
                     SET status = :status
                     WHERE id = ANY(:ids)
-                """),
+                """
+                ),
                 {"status": status, "ids": ids},
             )
             await session.commit()
