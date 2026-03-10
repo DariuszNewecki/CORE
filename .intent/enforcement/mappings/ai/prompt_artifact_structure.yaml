@@ -1,0 +1,59 @@
+# .intent/enforcement/mappings/ai/prompt_artifact_structure.yaml
+# Constitutional enforcement for PromptModel Artifact Structure Governance
+# Version: 1.0.0
+# Authority: policy
+#
+# WHAT THIS ENFORCES:
+#   Rules from .intent/rules/ai/prompt_artifact_structure.json
+#
+# THE LAW: Every model.yaml must be structurally complete, must not leak
+# infrastructure provider names, and must reference a declared cognitive role.
+
+mappings:
+
+  # RULE: ai.prompt.artifact.required_fields
+  # Verifies all mandatory fields are present and non-empty in model.yaml.
+  ai.prompt.artifact.required_fields:
+    engine: artifact_gate
+    params:
+      check_type: required_fields
+    scope:
+      applies_to:
+        - "var/prompts/**/model.yaml"
+    severity: error
+    message: >
+      model.yaml is missing one or more required fields.
+      Every PromptModel manifest MUST declare: id, version, role,
+      input.required, output.format, and success_criteria.
+      See: .intent/rules/ai/prompt_artifact_structure.json
+
+  # RULE: ai.prompt.artifact.no_provider_leak
+  # Ensures model.preference does not name an infrastructure provider.
+  ai.prompt.artifact.no_provider_leak:
+    engine: artifact_gate
+    params:
+      check_type: no_provider_leak
+    scope:
+      applies_to:
+        - "var/prompts/**/model.yaml"
+    severity: error
+    message: >
+      model.yaml references an infrastructure provider in model.preference.
+      Use a capability class ('local', 'fast') or omit the field.
+      Provider routing belongs in CognitiveService role configuration.
+      See: .intent/rules/ai/prompt_artifact_structure.json
+
+  # RULE: ai.prompt.artifact.role_abstraction
+  # Verifies role field is a declared cognitive role.
+  ai.prompt.artifact.role_abstraction:
+    engine: artifact_gate
+    params:
+      check_type: role_abstraction
+    scope:
+      applies_to:
+        - "var/prompts/**/model.yaml"
+    severity: error
+    message: >
+      model.yaml 'role' field references an undeclared cognitive role.
+      All roles must be declared in .intent/ before use in artifacts.
+      See: .intent/rules/ai/prompt_artifact_structure.json

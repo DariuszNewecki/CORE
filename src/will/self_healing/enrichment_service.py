@@ -1,5 +1,4 @@
 # src/will/self_healing/enrichment_service.py
-
 """
 Symbol Enrichment Service
 
@@ -23,10 +22,9 @@ from __future__ import annotations
 from functools import partial
 from typing import Any
 
-# from sqlalchemy import text
-# from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import text
 
+from shared.ai.prompt_model import PromptModel
 from shared.infrastructure.clients.qdrant_client import QdrantService
 from shared.infrastructure.config_service import ConfigService
 from shared.logger import getLogger
@@ -51,7 +49,6 @@ async def _get_symbols_to_enrich(session: Any) -> list[dict[str, Any]]:
       - This is intentionally conservative: it avoids overwriting real intent.
       - Tune patterns or LIMIT if you want broader enrichment runs.
     """
-
     stmt = text(
         """
         SELECT id::text AS uuid, symbol_path
@@ -71,40 +68,21 @@ async def _get_symbols_to_enrich(session: Any) -> list[dict[str, Any]]:
     return [dict(r) for r in rows]
 
 
-def _build_prompt(symbol_path: str, source_code: str) -> str:
-    """Build the enrichment prompt."""
-    return f"""Analyze this Python code and provide a concise one-sentence description of its purpose.
-Symbol: {symbol_path}
-Code:
-```python
-{source_code}
-```
-Response Requirement:
-Return a JSON object: {{"description": "Your one-sentence description here"}}
-"""
-
-
 async def _fetch_code_for_symbol(
     qdrant_service: QdrantService, symbol_path: str
 ) -> str:
     """Fetch code context for a symbol (best-effort).
 
-    This should return a relevant code snippet for the given symbol_path.
-
-    If Qdrant doesn't have it (or the lookup fails), returns an empty string.
+    Returns a relevant code snippet for the given symbol_path.
+    Returns empty string if Qdrant doesn't have it or the lookup fails.
     """
-
     try:
-        # IMPORTANT:
-        # Replace with your project's actual Qdrant lookup method if different.
         result = await qdrant_service.search_code(symbol_path, limit=1)
         if not result:
             return ""
 
         top = result[0]
         payload = getattr(top, "payload", None) or {}
-
-        # Try common payload keys used in code vectorization pipelines.
         code = payload.get("code") or payload.get("source") or payload.get("text") or ""
         return str(code)
 
@@ -118,7 +96,6 @@ async def _enrich_single_symbol(
     qdrant_service: QdrantService,
 ) -> dict[str, str]:
     """Enrich a single symbol with a description."""
-
     symbol_id = str(symbol.get("uuid", "")).strip()
     symbol_path = str(symbol.get("symbol_path", "")).strip()
 
@@ -127,15 +104,21 @@ async def _enrich_single_symbol(
 
     try:
         code = await _fetch_code_for_symbol(qdrant_service, symbol_path)
-        prompt = _build_prompt(symbol_path, code)
 
-        # DB-mapped role: LocalCoder -> your local Ollama model resource
         agent = await cognitive_service.aget_client_for_role(ENRICH_SYMBOLS_ROLE)
-        response = await agent.make_request_async(prompt, user_id="enrichment")
+        model = PromptModel.load("enrich_symbol_description")
+
+        response = await model.invoke(
+            context={
+                "symbol_path": symbol_path,
+                "source_code": code,
+            },
+            client=agent,
+            user_id="enrichment",
+        )
 
         description = ""
 
-        # Prefer structured JSON response.
         try:
             parsed = extract_json_from_response(response)
             if isinstance(parsed, dict):
@@ -143,7 +126,7 @@ async def _enrich_single_symbol(
         except Exception:
             description = ""
 
-        # Fallback: first line of text.
+        # Fallback: first line of text
         if not description:
             description = (response or "").strip().split("\n")[0]
 
@@ -151,7 +134,7 @@ async def _enrich_single_symbol(
         if len(description) > 500:
             description = description[:497] + "..."
 
-        logger.info("✓ Enriched %s", symbol_path)
+        logger.info("Enriched %s", symbol_path)
         return {"uuid": symbol_id, "description": description}
 
     except Exception as exc:
@@ -164,14 +147,11 @@ async def _update_descriptions_in_db(
     descriptions: list[dict[str, str]],
 ) -> None:
     """Update symbol `intent` descriptions in the database."""
-
     if not descriptions:
         return
 
     logger.info("Applying %s enriched descriptions to DB...", len(descriptions))
 
-    # NOTE: Avoid PostgreSQL '::uuid' cast with named parameters; asyncpg will not parse
-    # ':uuid::uuid' as a bind parameter. Use CAST(:uuid AS uuid) instead.
     stmt = text(
         "UPDATE core.symbols SET intent = :description WHERE id = CAST(:uuid AS uuid)"
     )
@@ -189,15 +169,14 @@ async def enrich_symbols(
     config_service: ConfigService | None = None,
 ) -> None:
     """Main orchestrator for autonomous symbol enrichment."""
-
     symbols_to_enrich = await _get_symbols_to_enrich(session)
 
     if not symbols_to_enrich:
-        logger.info("✅ No symbols needing enrichment found.")
+        logger.info("No symbols needing enrichment found.")
         return
 
     logger.info(
-        "🔍 Found %s symbols with placeholder descriptions.", len(symbols_to_enrich)
+        "Found %s symbols with placeholder descriptions.", len(symbols_to_enrich)
     )
 
     processor = ThrottledParallelProcessor(description="Enriching symbols...")
@@ -224,4 +203,4 @@ async def enrich_symbols(
 
     if valid_results:
         await _update_descriptions_in_db(session, valid_results)
-        logger.info("✅ Successfully updated %s symbols.", len(valid_results))
+        logger.info("Successfully updated %s symbols.", len(valid_results))

@@ -197,8 +197,15 @@ class CrateProcessingService:
             auditor = ConstitutionalAuditor(auditor_ctx)
 
             # Run audit
-            raw_findings = await auditor.run_full_audit_async()
-            all_findings = [AuditFinding(**f) for f in raw_findings]
+            audit_result = await auditor.run_full_audit_async()
+            raw_findings = (
+                audit_result.get("findings", [])
+                if isinstance(audit_result, dict)
+                else audit_result
+            )
+            all_findings = [
+                AuditFinding(**f) if isinstance(f, dict) else f for f in raw_findings
+            ]
 
             # D) The Verdict
             metrics = self.canary_executor.derive_metrics_from_audit(all_findings)
@@ -248,7 +255,8 @@ class CrateProcessingService:
 
         # Move to accepted
         final_path = self.accepted_path / crate_id
-        self._fh.move_tree(self._to_repo_rel(crate_path), self._to_repo_rel(final_path))
+        self._fh.copy_tree(self._to_repo_rel(crate_path), self._to_repo_rel(final_path))
+        self._fh.remove_tree(self._to_repo_rel(crate_path))
 
         self._write_result_manifest(final_path, "accepted", "Canary trial passed.")
         action_logger.log_event("crate.accepted", {"crate_id": crate_id})

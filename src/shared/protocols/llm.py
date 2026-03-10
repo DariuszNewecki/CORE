@@ -17,7 +17,7 @@ class LLMClientProtocol(Protocol):
     """The formal blueprint for an LLM requester."""
 
     # ID: e5c09d35-665a-4b15-922d-5486579a4d09
-    async def make_request(
+    async def invoke_semantic_check(
         self,
         prompt: str,
         system_prompt: str = "You are a helpful assistant.",

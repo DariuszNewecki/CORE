@@ -9,9 +9,10 @@ CONSTITUTIONAL ALIGNMENT:
 - Prevents thread-blocking during long-running LLM API calls.
 - Complies with ASYNC230 by offloading blocking file reads to threads.
 
-HARDENING (V2.6):
+HARDENING (V2.7):
 - Uses Protocols to avoid Mind -> Body leakage (P2.2).
 - Handles AI failures as 'UNAVAILABLE' for audit truthfulness (P1.3).
+- Prompts governed via var/prompts/llm_gate/ PromptModel artifact.
 """
 
 from __future__ import annotations
@@ -21,6 +22,8 @@ import hashlib
 import json
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
+
+from shared.ai.prompt_model import PromptModel
 
 from .base import BaseEngine, EngineResult
 
@@ -36,7 +39,8 @@ class LLMGateEngine(BaseEngine):
     Semantic Reasoning Auditor.
 
     Uses LLM reasoning to verify abstract rules (Spirit of the Law).
-    This engine is decoupled from the Body layer via LLMClientProtocol.
+    Decoupled from the Body layer via LLMClientProtocol.
+    Prompts governed via var/prompts/llm_gate/ PromptModel artifact.
     """
 
     engine_id = "llm_gate"
@@ -49,6 +53,7 @@ class LLMGateEngine(BaseEngine):
         self._paths = path_resolver
         self.llm = llm_client
         self._cache: dict[str, EngineResult] = {}
+        self._prompt_model = PromptModel.load("llm_gate")
 
     # ID: 66b7f4b7-72a8-43b9-af11-787c58e20524
     async def verify(
@@ -92,25 +97,19 @@ class LLMGateEngine(BaseEngine):
         if state_hash in self._cache:
             return self._cache[state_hash]
 
-        # 3. Construct Auditor Prompt
-        system_prompt = (
-            "You are the CORE Constitutional Auditor. Your role is to enforce "
-            "system governance. You will be given a RULE, a RATIONALE, and a "
-            "PIECE OF CODE. Determine if the code violates the rule. "
-            "Be strict but fair."
+        # 3. Format prompts from governed artifact
+        artifact = self._prompt_model.artifact
+        system_prompt = artifact.system_prompt
+
+        user_prompt = artifact.user_template.format(
+            instruction=instruction,
+            rationale=rationale,
+            code_content=content,
         )
 
-        user_prompt = (
-            f"RULE TO ENFORCE: {instruction}\n"
-            f"RATIONALE: {rationale}\n\n"
-            f"CODE CONTENT:\n---\n{content}\n---\n\n"
-            "Return your finding in STRICT JSON format:\n"
-            '{ "violation": boolean, "reasoning": "string", "finding": "string or null" }'
-        )
-
-        # 4. Invoke LLM Reasoning (async, via Protocol)
+        # 4. Invoke via Protocol (no direct make_request call)
         try:
-            response_text = await self.llm.make_request(
+            response_text = await self.llm.invoke_semantic_check(
                 prompt=user_prompt,
                 system_prompt=system_prompt,
             )

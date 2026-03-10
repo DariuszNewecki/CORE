@@ -1,0 +1,38 @@
+{
+    "$schema": "META/rule_document.schema.json",
+    "kind": "rule_document",
+    "metadata": {
+        "id": "rules.ai.prompt_artifact_structure",
+        "title": "PromptModel Artifact Structure Governance",
+        "version": "1.0.0",
+        "authority": "policy",
+        "phase": "audit",
+        "status": "active"
+    },
+    "rules": [
+        {
+            "id": "ai.prompt.artifact.required_fields",
+            "statement": "Every model.yaml MUST declare: id, version, role, input.required, output.format, and success_criteria. An incomplete manifest is an ungoverned artifact.",
+            "enforcement": "blocking",
+            "authority": "policy",
+            "phase": "audit",
+            "rationale": "The manifest is the contract. Missing fields mean missing governance. A PromptModel without a complete manifest cannot be audited, tested, or reasoned about by CORE."
+        },
+        {
+            "id": "ai.prompt.artifact.no_provider_leak",
+            "statement": "model.yaml MUST NOT reference infrastructure providers (e.g. 'anthropic', 'openai', 'ollama') in any field. Provider routing belongs in CognitiveService role configuration, not in prompt artifacts.",
+            "enforcement": "blocking",
+            "authority": "policy",
+            "phase": "audit",
+            "rationale": "Naming a provider in an artifact breaks the role abstraction layer. Artifacts know roles, not products. CognitiveService maps roles to providers. Leaking provider names into artifacts couples policy to infrastructure and makes the artifact non-portable."
+        },
+        {
+            "id": "ai.prompt.artifact.role_abstraction",
+            "statement": "The 'role' field in model.yaml MUST reference a declared cognitive role from .intent/. Undeclared or invented role names have no constitutional standing.",
+            "enforcement": "blocking",
+            "authority": "policy",
+            "phase": "audit",
+            "rationale": "A role that is not declared in .intent/ cannot be governed, routed, or reasoned about. Using an undeclared role name is the equivalent of calling a function that does not exist — it silently removes governance from the invocation."
+        }
+    ]
+}

@@ -1,9 +1,12 @@
 {
-  "audit_id": "00f2eb9e-8cc3-4baf-b257-609d341cf56d",
-  "timestamp": "2026-03-09T12:45:25Z",
+  "audit_id": "c1a570d6-c6b4-491e-9fdd-e40834555433",
+  "timestamp": "2026-03-10T10:56:26Z",
   "passed": false,
-  "findings_count": 157,
+  "findings_count": 171,
   "executed_rules": [
+    "ai.prompt.artifact.no_provider_leak",
+    "ai.prompt.artifact.required_fields",
+    "ai.prompt.artifact.role_abstraction",
     "ai.prompt.model_artifact_required",
     "ai.prompt.model_required",
     "ai.prompt.output_validation_required",

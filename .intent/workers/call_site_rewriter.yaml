@@ -1,42 +1,38 @@
-id: call_site_rewriter
-name: Call Site Rewriter
-version: "1.0.0"
-description: >
-  Acting worker. For each file with open prompt.artifact findings on the
-  blackboard, rewrites the source file to replace direct make_request_async()
-  calls with governed PromptModel.invoke() calls.
+$schema: "META/worker.schema.json"
+kind: worker
 
-  Full ceremony: git checkpoint → LLM rewrite → Crate → Canary validation
-  → apply_and_finalize → git commit. No ProposalService — scope is bounded
-  and human-triggered.
+metadata:
+  id: workers.call_site_rewriter
+  title: Call Site Rewriter
+  version: "0.1.0"
+  authority: policy
+  status: active
 
-class: acting
-phase: execution
+identity:
+  uuid: "d4e5f6a7-b8c9-0123-defa-234567890123"
+  class: acting
 
-approval_required: true
-
-permitted_tools:
-  - llm.architect
-  - file.read
-  - crate.create
-  - canary.validate
-  - crate.apply
-  - git.commit
-
-blackboard:
-  consumes:
-    - subject_prefix: "prompt.artifact::"
-      status: open
-  produces:
-    - subject_prefix: "prompt.rewrite.complete::"
-    - subject_prefix: "prompt.rewrite.failed::"
-
-constraints:
-  - Never write directly to src/ via FileHandler — only via Crate -> Canary -> apply
-  - One Crate per source file (group all violations in a file into one rewrite)
-  - Canary must pass before apply_and_finalize_crate is called
-  - Git checkpoint must be recorded before any rewrite attempt
-  - Rollback plan must be archived before Crate is created
+mandate:
+  responsibility: >
+    For each file with open prompt.artifact findings on the blackboard,
+    rewrites the source file to replace direct make_request_async() calls
+    with governed PromptModel.invoke() calls. Full ceremony: git checkpoint,
+    rollback archive, LLM rewrite, Crate, Canary validation, apply, git commit.
+  phase: execution
+  permitted_tools:
+    - llm.architect
+    - file.read
+    - crate.create
+    - canary.validate
+    - crate.apply
+    - git.commit
+  scope:
+    paths:
+      - "src/**"
+      - "var/mind/rollbacks/**"
+    domains:
+      - compliance
+  approval_required: true
 
 implementation:
   module: body.workers.call_site_rewriter
