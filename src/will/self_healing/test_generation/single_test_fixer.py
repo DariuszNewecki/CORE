@@ -2,14 +2,15 @@
 
 """
 Single Test Fixer - Refined A3 Orchestrator.
+HEALED: fix_test uses PromptModel.invoke() — ai.prompt.model_required compliant.
 """
 
 from __future__ import annotations
 
 from pathlib import Path
 
+from shared.ai.prompt_model import PromptModel
 from shared.logger import getLogger
-from will.orchestration.prompt_pipeline import PromptPipeline
 
 from .failure_parser import TestFailureParser
 from .test_extractor import TestExtractor
@@ -27,10 +28,8 @@ class SingleTestFixer:
         self.max_attempts = max_attempts
         self.repo_root = repo_root
 
-        # Specialists
         self.parser = TestFailureParser()
         self.extractor = TestExtractor(file_handler, repo_root)
-        self.pipeline = PromptPipeline(repo_path=repo_root)
 
     # ID: 8adb4bee-9216-47a3-9d96-ec9714bb5daf
     async def fix_test(
@@ -45,15 +44,22 @@ class SingleTestFixer:
         if not test_code:
             return {"status": "error", "error": "Source extraction failed"}
 
+        model = PromptModel.load("single_test_fixer")
+        client = await self.cognitive.aget_client_for_role("Coder")
+
         for attempt in range(self.max_attempts):
             logger.info(
                 "🤖 Fix Attempt %d/%d for %s", attempt + 1, self.max_attempts, test_name
             )
 
-            prompt = self._build_prompt(test_name, test_code, failure_info)
-            client = await self.cognitive.aget_client_for_role("Coder")
-            response = await client.make_request_async(
-                self.pipeline.process(prompt), user_id="test_fixer"
+            response = await model.invoke(
+                context={
+                    "test_name": test_name,
+                    "failure_type": failure_info.get("failure_type", ""),
+                    "test_code": test_code,
+                },
+                client=client,
+                user_id="test_fixer",
             )
 
             fixed_code = self._extract_code(response)
@@ -63,9 +69,6 @@ class SingleTestFixer:
                 return {"status": "fixed", "attempt": attempt + 1}
 
         return {"status": "failed"}
-
-    def _build_prompt(self, name: str, code: str, info: dict) -> str:
-        return f"Fix this failing test: {name}\nError: {info.get('failure_type')}\nCode:\n{code}"
 
     def _extract_code(self, response: str) -> str | None:
         """Simple extraction logic helper."""

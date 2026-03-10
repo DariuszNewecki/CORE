@@ -4,13 +4,13 @@
 
 from __future__ import annotations
 
-import textwrap
 import time
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from cli.logic.body_contracts_checker import check_body_contracts
 from shared.action_types import ActionImpact, ActionResult
+from shared.ai.prompt_model import PromptModel
 from shared.atomic_action import atomic_action
 from shared.logger import getLogger
 from shared.utils.parallel_processor import ThrottledParallelProcessor
@@ -21,10 +21,6 @@ if TYPE_CHECKING:
     from shared.infrastructure.storage.file_handler import FileHandler
 
 logger = getLogger(__name__)
-
-_BODY_UI_FIX_PROMPT = textwrap.dedent(
-    "\n    You are refactoring Python code for a constitutional system called CORE.\n\n    GOAL\n    ----\n    - Remove ALL terminal UI from the given module:\n      - No Rich imports or usage\n      - No console.print() or input()\n      - No direct os.environ / os.environ[...] access\n    - Preserve the module's behavior as a HEADLESS Body-layer service/logic.\n\n    CONTEXT\n    -------\n    CORE governance rules for Body code:\n    - Body modules MUST be headless:\n      - No Rich UI (Console, Progress, status, etc.)\n      - No console.print() / input() calls\n    - Configuration must come from shared.config.settings, not os.environ.\n    - Logging MUST use shared.logger.getLogger(__name__).\n\n    REQUIREMENTS\n    ------------\n    1. Remove or refactor any Rich / console imports and usage.\n       - If the module needs observability, use logger.debug/info/warning/error.\n    2. Remove or refactor console.print() / input() calls.\n       - Replace with logger.info/debug where appropriate, or return values.\n    3. Replace os.environ[...] or os.environ.get(...) with settings access\n       (e.g., shared.config.settings or an injected config object) when possible.\n       If you cannot infer an exact mapping, keep a FUTURE comment but do NOT\n       keep direct os.environ in the Body module.\n    4. DO NOT change public function signatures unless absolutely necessary.\n    5. DO NOT introduce any new UI dependencies.\n\n    OUTPUT FORMAT\n    -------------\n    Return ONLY the full corrected Python module.\n    DO NOT wrap it in backticks, comments, or explanation.\n    "
-)
 
 
 async def _process_single_file(
@@ -53,18 +49,18 @@ async def _process_single_file(
         {f"- {v['rule_id']} @ line {v.get('line')}: {v['message']}" for v in vlist}
     )
     violation_summary = "\n".join(summary_lines)
-    prompt = (
-        _BODY_UI_FIX_PROMPT
-        + "\n\nFILE PATH:\n"
-        + str(path)
-        + "\n\nVIOLATIONS DETECTED:\n"
-        + violation_summary
-        + "\n\nCURRENT FILE CONTENT:\n\n"
-        + original_source
-    )
 
     try:
-        raw_response = await agent.make_request_async(prompt, user_id="fix_body_ui")
+        model = PromptModel.load("body_contracts_fixer")
+        raw_response = await model.invoke(
+            context={
+                "file_path": str(path),
+                "violation_summary": violation_summary,
+                "original_source": original_source,
+            },
+            client=agent,
+            user_id="fix_body_ui",
+        )
     except Exception as e:
         logger.warning("Body UI fixer: LLM request failed for %s: %s", path, e)
         return {
@@ -154,7 +150,6 @@ async def fix_body_ui_violations(
 
     # ID: dbf3bacb-1562-48e3-acfa-9127c985737b
     async def worker(item):
-        # Pass the file_handler from context
         return await _process_single_file(item, agent, write, core_context.file_handler)
 
     per_file_results = await processor.run_async(items, worker)
