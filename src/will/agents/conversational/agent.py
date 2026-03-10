@@ -7,7 +7,7 @@ This agent provides a natural language interface for users to interact with
 CORE without needing to understand internal commands or architecture.
 
 V2 (v2.2.0): Now uses Universal Workflow Pattern
-  - INTERPRET: RequestInterpreter parses user message → TaskStructure
+  - INTERPRET: RequestInterpreter parses user message ? TaskStructure
   - ANALYZE: ContextBuilder extracts relevant context
   - GENERATE: LLM generates response
   - (Future phases: STRATEGIZE, EVALUATE, DECIDE for execution)
@@ -36,6 +36,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from shared.ai.prompt_model import PromptModel
 from shared.infrastructure.context.builder import ContextBuilder
 from shared.logger import getLogger
 from shared.universal import get_deterministic_id
@@ -76,6 +77,7 @@ class ConversationalAgent:
         self.cognitive_service = cognitive_service
         self.interpreter = NaturalLanguageInterpreter()
         self.tracer = DecisionTracer()
+        self.response_model = PromptModel.load("conversational_agent_response_prompt")
         logger.info("ConversationalAgent initialized (V2 - Universal Workflow Pattern)")
 
     # ID: f5917f41-6465-4e8e-9a4e-0eb4005e7f5f
@@ -84,7 +86,7 @@ class ConversationalAgent:
         Process a user message and return a natural language response.
 
         V2 Flow:
-        1. INTERPRET: Parse user message → TaskStructure
+        1. INTERPRET: Parse user message ? TaskStructure
         2. ANALYZE: Extract context based on task
         3. GENERATE: LLM generates response
         4. Return natural language response
@@ -106,20 +108,20 @@ class ConversationalAgent:
             # ============================================================
             # INTERPRET PHASE (NEW in v2.2.0)
             # ============================================================
-            logger.info("🔍 INTERPRET: Parsing user intent...")
+            logger.info("? INTERPRET: Parsing user intent...")
             interpret_result = await self.interpreter.execute(user_message=user_message)
 
             if not interpret_result.ok:
-                return "❌ Sorry, I couldn't understand your request. Can you rephrase?"
+                return "? Sorry, I couldn't understand your request. Can you rephrase?"
 
             task = interpret_result.data["task"]
             logger.info(
-                "   → Task Type: %s (confidence: %.2f)",
+                "   ? Task Type: %s (confidence: %.2f)",
                 task.task_type.value,
                 task.confidence,
             )
 
-            # Low confidence → ask for clarification
+            # Low confidence ? ask for clarification
             if task.confidence < 0.4:
                 return (
                     "I'm not sure I understood that correctly. "
@@ -129,20 +131,24 @@ class ConversationalAgent:
             # ============================================================
             # ANALYZE PHASE
             # ============================================================
-            logger.info("📊 ANALYZE: Extracting context...")
+            logger.info("? ANALYZE: Extracting context...")
             task_spec = self._build_task_spec_from_task(task)
             context_package = await self.context_builder.build_for_task(task_spec)
             logger.info(
-                "   → Found %d context items", len(context_package.get("context", []))
+                "   ? Found %d context items", len(context_package.get("context", []))
             )
 
             # ============================================================
             # GENERATE PHASE
             # ============================================================
-            logger.info("💬 GENERATE: Creating response...")
+            logger.info("? GENERATE: Creating response...")
             prompt = self._build_llm_prompt(user_message, context_package, task)
             client = await self.cognitive_service.aget_client_for_role("Planner")
-            llm_response = await client.make_request_async(prompt)
+            llm_response = await self.response_model.invoke(
+                context={"prompt": prompt},
+                client=client,
+                user_id="conversational_agent",
+            )
             response_text = llm_response.strip()
 
             # Trace the decision
@@ -170,13 +176,13 @@ class ConversationalAgent:
                 chosen_action=f"Error: {e!s}",
                 confidence=0.0,
             )
-            return f"❌ Error processing your message: {e!s}"
+            return f"? Error processing your message: {e!s}"
 
     def _build_task_spec_from_task(self, task) -> dict[str, Any]:
         """
-        Convert TaskStructure → ContextBuilder task spec.
+        Convert TaskStructure ? ContextBuilder task spec.
 
-        This bridges INTERPRET output → ANALYZE input.
+        This bridges INTERPRET output ? ANALYZE input.
         Maintains the sophisticated structure from the original implementation.
 
         Args:
@@ -188,7 +194,7 @@ class ConversationalAgent:
         # Generate deterministic task ID for caching
         task_hash = get_deterministic_id(task.intent)
 
-        # Map TaskType → ContextBuilder task type
+        # Map TaskType ? ContextBuilder task type
         task_type_map = {
             TaskType.QUERY: "conversational",
             TaskType.ANALYZE: "conversational",

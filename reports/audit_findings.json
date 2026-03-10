@@ -2,24 +2,6 @@
   {
     "check_id": "ai.prompt.model_required",
     "severity": "error",
-    "message": "Line 163: direct call to 'make_request_async()' detected. Use PromptModel.invoke() instead. [ai.prompt.model_required]",
-    "file_path": "src/body/project_lifecycle/definition_service.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "ai.prompt.model_required",
-    "severity": "error",
-    "message": "Line 50: direct call to 'make_request_async()' detected. Use PromptModel.invoke() instead. [ai.prompt.model_required]",
-    "file_path": "src/cli/logic/agent.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "ai.prompt.model_required",
-    "severity": "error",
     "message": "Line 67: direct call to 'make_request_async()' detected. Use PromptModel.invoke() instead. [ai.prompt.model_required]",
     "file_path": "src/cli/logic/body_contracts_fixer.py",
     "line_number": null,
@@ -31,15 +13,6 @@
     "severity": "error",
     "message": "Line 315: direct call to 'make_request()' detected. Use PromptModel.invoke() instead. [ai.prompt.model_required]",
     "file_path": "src/mind/governance/assumption_extractor.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "ai.prompt.model_required",
-    "severity": "error",
-    "message": "Line 172: direct call to 'make_request_async()' detected. Use PromptModel.invoke() instead. [ai.prompt.model_required]",
-    "file_path": "src/will/agents/code_generation/code_generator.py",
     "line_number": null,
     "context": {},
     "details": {}
@@ -74,42 +47,6 @@
   {
     "check_id": "ai.prompt.model_required",
     "severity": "error",
-    "message": "Line 145: direct call to 'make_request_async()' detected. Use PromptModel.invoke() instead. [ai.prompt.model_required]",
-    "file_path": "src/will/agents/conversational/agent.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "ai.prompt.model_required",
-    "severity": "error",
-    "message": "Line 56: direct call to 'make_request_async()' detected. Use PromptModel.invoke() instead. [ai.prompt.model_required]",
-    "file_path": "src/will/agents/intent_translator.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "ai.prompt.model_required",
-    "severity": "error",
-    "message": "Line 79: direct call to 'make_request_async()' detected. Use PromptModel.invoke() instead. [ai.prompt.model_required]",
-    "file_path": "src/will/agents/micro_planner.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "ai.prompt.model_required",
-    "severity": "error",
-    "message": "Line 139: direct call to 'make_request_async()' detected. Use PromptModel.invoke() instead. [ai.prompt.model_required]",
-    "file_path": "src/will/agents/planner_agent.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "ai.prompt.model_required",
-    "severity": "error",
     "message": "Line 33: direct call to 'make_request_async()' detected. Use PromptModel.invoke() instead. [ai.prompt.model_required]",
     "file_path": "src/will/agents/researcher_agent.py",
     "line_number": null,
@@ -119,107 +56,8 @@
   {
     "check_id": "ai.prompt.model_required",
     "severity": "error",
-    "message": "Line 65: direct call to 'make_request_async()' detected. Use PromptModel.invoke() instead. [ai.prompt.model_required]",
-    "file_path": "src/will/agents/self_correction_engine.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "ai.prompt.model_required",
-    "severity": "error",
-    "message": "Line 239: direct call to 'make_request_async()' detected. Use PromptModel.invoke() instead. [ai.prompt.model_required]",
-    "file_path": "src/will/agents/strategic_auditor/agent.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "ai.prompt.model_required",
-    "severity": "error",
-    "message": "Line 158: direct call to 'make_request_async()' detected. Use PromptModel.invoke() instead. [ai.prompt.model_required]",
+    "message": "Line 256: direct call to 'make_request_async()' detected. Use PromptModel.invoke() instead. [ai.prompt.model_required]",
     "file_path": "src/will/cli_logic/reviewer.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "ai.prompt.model_required",
-    "severity": "error",
-    "message": "Line 252: direct call to 'make_request_async()' detected. Use PromptModel.invoke() instead. [ai.prompt.model_required]",
-    "file_path": "src/will/cli_logic/reviewer.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "ai.prompt.model_required",
-    "severity": "error",
-    "message": "Line 80: direct call to 'make_request_async()' detected. Use PromptModel.invoke() instead. [ai.prompt.model_required]",
-    "file_path": "src/will/maintenance/metadata_scribe_service.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "ai.prompt.model_required",
-    "severity": "error",
-    "message": "Line 119: direct call to 'make_request_async()' detected. Use PromptModel.invoke() instead. [ai.prompt.model_required]",
-    "file_path": "src/will/orchestration/self_correction_engine.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "ai.prompt.model_required",
-    "severity": "error",
-    "message": "Line 55: direct call to 'make_request_async()' detected. Use PromptModel.invoke() instead. [ai.prompt.model_required]",
-    "file_path": "src/will/self_healing/alignment/specialists.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "ai.prompt.model_required",
-    "severity": "error",
-    "message": "Line 93: direct call to 'make_request_async()' detected. Use PromptModel.invoke() instead. [ai.prompt.model_required]",
-    "file_path": "src/will/self_healing/alignment/specialists.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "ai.prompt.model_required",
-    "severity": "error",
-    "message": "Line 129: direct call to 'make_request_async()' detected. Use PromptModel.invoke() instead. [ai.prompt.model_required]",
-    "file_path": "src/will/self_healing/alignment/specialists.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "ai.prompt.model_required",
-    "severity": "error",
-    "message": "Line 81: direct call to 'make_request_async()' detected. Use PromptModel.invoke() instead. [ai.prompt.model_required]",
-    "file_path": "src/will/self_healing/capability_reconciliation_service.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "ai.prompt.model_required",
-    "severity": "error",
-    "message": "Line 116: direct call to 'make_request_async()' detected. Use PromptModel.invoke() instead. [ai.prompt.model_required]",
-    "file_path": "src/will/self_healing/clarity_service.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "ai.prompt.model_required",
-    "severity": "error",
-    "message": "Line 121: direct call to 'make_request_async()' detected. Use PromptModel.invoke() instead. [ai.prompt.model_required]",
-    "file_path": "src/will/self_healing/complexity_service.py",
     "line_number": null,
     "context": {},
     "details": {}
@@ -229,33 +67,6 @@
     "severity": "error",
     "message": "Line 151: direct call to 'make_request_async()' detected. Use PromptModel.invoke() instead. [ai.prompt.model_required]",
     "file_path": "src/will/self_healing/context_aware_test_generator.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "ai.prompt.model_required",
-    "severity": "error",
-    "message": "Line 107: direct call to 'make_request_async()' detected. Use PromptModel.invoke() instead. [ai.prompt.model_required]",
-    "file_path": "src/will/self_healing/linelength_service.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "ai.prompt.model_required",
-    "severity": "error",
-    "message": "Line 151: direct call to 'make_request_async()' detected. Use PromptModel.invoke() instead. [ai.prompt.model_required]",
-    "file_path": "src/will/self_healing/simple_test_generator.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "ai.prompt.model_required",
-    "severity": "error",
-    "message": "Line 88: direct call to 'make_request_async()' detected. Use PromptModel.invoke() instead. [ai.prompt.model_required]",
-    "file_path": "src/will/self_healing/test_generation/generation_workflow.py",
     "line_number": null,
     "context": {},
     "details": {}
@@ -274,24 +85,6 @@
     "severity": "error",
     "message": "Line 55: direct call to 'make_request_async()' detected. Use PromptModel.invoke() instead. [ai.prompt.model_required]",
     "file_path": "src/will/self_healing/test_generation/single_test_fixer.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "ai.prompt.model_required",
-    "severity": "error",
-    "message": "Line 77: direct call to 'make_request_async()' detected. Use PromptModel.invoke() instead. [ai.prompt.model_required]",
-    "file_path": "src/will/self_healing/vulture_healer.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "ai.prompt.model_required",
-    "severity": "error",
-    "message": "Line 134: direct call to 'make_request_async()' detected. Use PromptModel.invoke() instead. [ai.prompt.model_required]",
-    "file_path": "src/will/test_generation/helpers/test_executor.py",
     "line_number": null,
     "context": {},
     "details": {}
@@ -391,15 +184,6 @@
     "severity": "warning",
     "message": "Module has 544 lines, exceeds limit of 400",
     "file_path": "src/shared/infrastructure/intent/intent_repository.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.max_file_size",
-    "severity": "warning",
-    "message": "Module has 459 lines, exceeds limit of 400",
-    "file_path": "src/will/agents/strategic_auditor/agent.py",
     "line_number": null,
     "context": {},
     "details": {}

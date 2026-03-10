@@ -8,6 +8,7 @@ import asyncio
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from shared.ai.prompt_model import PromptModel
 from shared.logger import getLogger
 from shared.utils.parsing import extract_python_code_from_response, parse_write_blocks
 
@@ -36,24 +37,23 @@ class SpecialistDispatcher:
     # ID: 3415c10d-1be1-4113-88db-9c3c57443219
     async def trigger_modularizer(self, file_path: str, write: bool) -> bool:
         """Agentic healing for God Objects."""
-        logger.info("📐 God Object detected. Triggering Modularizer Specialist...")
+        logger.info("? God Object detected. Triggering Modularizer Specialist...")
         repo_root = await self._repo_root()
-        prompt_path = await self._prompt_path("modularizer")
-        template = await asyncio.to_thread(prompt_path.read_text, encoding="utf-8")
         source_code = await asyncio.to_thread(
             (repo_root / file_path).read_text, encoding="utf-8"
         )
 
-        final_prompt = template.format(
-            file_path=file_path,
-            current_lines=len(source_code.splitlines()),
-            max_lines=400,
-            source_code=source_code,
-        )
-
+        model = PromptModel.load("godd_object_modularizer")
         agent = await self.cognitive.aget_client_for_role("RefactoringArchitect")
-        response = await agent.make_request_async(
-            final_prompt, user_id="police_agent_modularizer"
+        response = await model.invoke(
+            context={
+                "file_path": file_path,
+                "current_lines": len(source_code.splitlines()),
+                "max_lines": 400,
+                "source_code": source_code,
+            },
+            client=agent,
+            user_id="police_agent_modularizer",
         )
 
         blocks = parse_write_blocks(response)
@@ -64,7 +64,7 @@ class SpecialistDispatcher:
                 await asyncio.to_thread(
                     (repo_root / path).write_text, content, encoding="utf-8"
                 )
-                logger.info("📦 Modularizer: Created/Updated %s", path)
+                logger.info("? Modularizer: Created/Updated %s", path)
             return True
         return False
 
@@ -73,25 +73,24 @@ class SpecialistDispatcher:
         self, file_path: str, error_msg: str, write: bool
     ) -> bool:
         """Agentic healing for broken imports/drift."""
-        logger.info("🧠 Logic drift detected. Triggering Logic Specialist...")
+        logger.info("? Logic drift detected. Triggering Logic Specialist...")
         repo_root = await self._repo_root()
         hints = await self.symbol_finder.get_context_for_import_error(error_msg)
-        prompt_path = await self._prompt_path("logic_alignment")
-        template = await asyncio.to_thread(prompt_path.read_text, encoding="utf-8")
         source_code = await asyncio.to_thread(
             (repo_root / file_path).read_text, encoding="utf-8"
         )
 
-        final_prompt = template.format(
-            file_path=file_path,
-            error_message=error_msg,
-            symbol_hints=hints or "Use architectural standards.",
-            source_code=source_code,
-        )
-
+        model = PromptModel.load("logic_alignment_generic_repair")
         agent = await self.cognitive.aget_client_for_role("Coder")
-        response = await agent.make_request_async(
-            final_prompt, user_id="police_agent_logic"
+        response = await model.invoke(
+            context={
+                "file_path": file_path,
+                "error_message": error_msg,
+                "symbol_hints": hints or "Use architectural standards.",
+                "source_code": source_code,
+            },
+            client=agent,
+            user_id="police_agent_logic",
         )
         fixed_code = extract_python_code_from_response(response)
 
@@ -101,7 +100,7 @@ class SpecialistDispatcher:
                 fixed_code,
                 encoding="utf-8",
             )
-            logger.info("🔧 Logic Specialist: Repaired imports in %s", file_path)
+            logger.info("? Logic Specialist: Repaired imports in %s", file_path)
             return True
         return False
 
@@ -114,20 +113,20 @@ class SpecialistDispatcher:
         source_code = await asyncio.to_thread(
             (repo_root / file_path).read_text, encoding="utf-8"
         )
-        prompt_path = await self._prompt_path("logic_alignment")
-        template = await asyncio.to_thread(prompt_path.read_text, encoding="utf-8")
 
         violation_details = f"Rule: {violation.get('check_id')}\nSeverity: {violation.get('severity')}\nMessage: {violation.get('message')}\nLine: {violation.get('line_number', 'none')}"
-        final_prompt = template.format(
-            file_path=file_path,
-            error_message=violation_details,
-            symbol_hints="Search codebase for similar implementations.",
-            source_code=source_code,
-        )
 
+        model = PromptModel.load("logic_alignment_generic_repair")
         agent = await self.cognitive.aget_client_for_role("Coder")
-        response = await agent.make_request_async(
-            final_prompt, user_id="police_agent_generic"
+        response = await model.invoke(
+            context={
+                "file_path": file_path,
+                "error_message": violation_details,
+                "symbol_hints": "Search codebase for similar implementations.",
+                "source_code": source_code,
+            },
+            client=agent,
+            user_id="police_agent_generic",
         )
         fixed_code = extract_python_code_from_response(response)
 

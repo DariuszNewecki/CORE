@@ -9,6 +9,7 @@ import re
 from pathlib import Path
 
 from body.services.file_service import FileService
+from shared.ai.prompt_model import PromptModel
 from shared.logger import getLogger
 from shared.utils.parsing import extract_python_code_from_response
 
@@ -35,7 +36,7 @@ async def heal_dead_code(
     ]
 
     if not dead_code_targets:
-        logger.info("✅ No dead code findings in the ledger.")
+        logger.info("? No dead code findings in the ledger.")
         return
 
     # Ensure artifact directory exists via governed channel
@@ -43,9 +44,13 @@ async def heal_dead_code(
     file_handler.ensure_dir(artifact_rel)
 
     logger.info(
-        "✂️  Starting Surgical Purge of %d dead code findings...", len(dead_code_targets)
+        "??  Starting Surgical Purge of %d dead code findings...",
+        len(dead_code_targets),
     )
     coder = await context.cognitive_service.aget_client_for_role("LocalCoder")
+
+    # Load the prompt model once
+    model = PromptModel.load("healer_remove_dead_code")
 
     for finding in dead_code_targets:
         msg = finding["message"]
@@ -62,19 +67,12 @@ async def heal_dead_code(
 
         source = file_abs.read_text(encoding="utf-8")
 
-        prompt = f"""
-        TASK: Remove dead code from {file_rel}.
-        VULTURE FINDING: {msg}
-        SOURCE CODE:
-        {source}
-        INSTRUCTION:
-        Delete the unused variable or function mentioned in the finding.
-        Preserve all other logic and formatting perfectly.
-        Return ONLY the corrected Python code.
-        """
-
         try:
-            response = await coder.make_request_async(prompt, user_id="vulture_healer")
+            response = await model.invoke(
+                context={"file_rel": file_rel, "msg": msg, "source": source},
+                client=coder,
+                user_id="vulture_healer",
+            )
             fixed_code = extract_python_code_from_response(response) or response
 
             if fixed_code and fixed_code.strip() != source.strip():
@@ -85,7 +83,7 @@ async def heal_dead_code(
                     await executor.execute(
                         "file.edit", write=True, file_path=file_rel, code=fixed_code
                     )
-                    logger.info("   ✅ APPLIED: %s", file_rel)
+                    logger.info("   ? APPLIED: %s", file_rel)
                 else:
                     # PROPOSED CHANGE ARCHIVE (For your inspection)
                     artifact_file_rel = (
@@ -98,8 +96,8 @@ async def heal_dead_code(
                         raise RuntimeError(
                             f"Governance rejected write: {result.message}"
                         )
-                    logger.info("   👀 INSPECT PROPOSAL: %s", artifact_file_rel)
+                    logger.info("   ? INSPECT PROPOSAL: %s", artifact_file_rel)
             else:
-                logger.info("   → No changes suggested for %s", file_rel)
+                logger.info("   ? No changes suggested for %s", file_rel)
         except Exception as e:
-            logger.error("   ❌ Failed to heal %s: %s", file_rel, e)
+            logger.error("   ? Failed to heal %s: %s", file_rel, e)

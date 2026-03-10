@@ -16,6 +16,7 @@ from __future__ import annotations
 import json
 from typing import TYPE_CHECKING, Any
 
+from shared.ai.prompt_model import PromptModel
 from shared.logger import getLogger
 from shared.utils.parsing import extract_json_from_response
 
@@ -43,6 +44,9 @@ class CapabilityReconciliationService:
             cognitive_service: CognitiveService for AI operations
         """
         self.cognitive_service = cognitive_service
+        self.capability_reconciliation_model = PromptModel.load(
+            "capability_reconciliation_prompt"
+        )
 
     # ID: f8e700ad-c95b-4147-853e-0cab4b86339a
     async def reconcile_capabilities(
@@ -66,20 +70,14 @@ class CapabilityReconciliationService:
 
         refactored_code_json = json.dumps(refactoring_plan, indent=2)
 
-        prompt = (
-            "You are an expert CORE Constitutionalist. You understand that a good refactoring "
-            "not only improves code but also clarifies purpose.\n"
-            f"The original file provided these capabilities: {original_capabilities}\n"
-            f"A refactoring has occurred, resulting in these new files:\n{refactored_code_json}\n"
-            "Your task is to produce a JSON object with: 'code_modifications' "
-            "(file paths mapped to code with updated tags) "
-            "and 'constitutional_amendment_proposal' (if new capabilities should be declared).\n"
-            "Return ONLY a valid JSON object."
-        )
-
         constitutionalist = await self.cognitive_service.aget_client_for_role("Planner")
-        response = await constitutionalist.make_request_async(
-            prompt, user_id="constitutionalist_agent"
+        response = await self.capability_reconciliation_model.invoke(
+            context={
+                "original_capabilities": original_capabilities,
+                "refactored_code_json": refactored_code_json,
+            },
+            client=constitutionalist,
+            user_id="constitutionalist_agent",
         )
 
         try:

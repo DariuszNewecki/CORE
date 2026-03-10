@@ -16,6 +16,7 @@ from pathlib import Path
 from body.self_healing.complexity_filter import ComplexityFilter
 from body.self_healing.test_context_analyzer import ModuleContext
 from body.services.file_service import FileService
+from shared.ai.prompt_model import PromptModel
 from shared.logger import getLogger
 from will.orchestration.cognitive_service import CognitiveService
 
@@ -47,6 +48,7 @@ class GenerationWorkflow:
         self.code_extractor = CodeExtractor()
         self.complexity_filter = complexity_filter
         self.auto_repair = auto_repair
+        self.test_gen_model = PromptModel.load("test_gen_prompt")
 
     # ID: da4981a0-403c-42d6-84e5-9478ca4fd980
     async def check_complexity(self, module_path: str) -> bool:
@@ -82,10 +84,18 @@ class GenerationWorkflow:
         Note: Prompt building is currently handled inline.
         FUTURE: Extract to PromptBuilder when implemented.
         """
-        prompt = self._build_prompt(module_context, goal, target_coverage)
-
         llm_client = await self.cognitive.aget_client_for_role("Coder")
-        raw_response = await llm_client.make_request_async(prompt, user_id="test_gen")
+
+        raw_response = await self.test_gen_model.invoke(
+            context={
+                "goal": goal,
+                "target_coverage": target_coverage,
+                "module_path": module_context.module_path,
+                "import_path": module_context.import_path,
+            },
+            client=llm_client,
+            user_id="test_gen",
+        )
 
         code = self.code_extractor.extract(raw_response)
         if not code:

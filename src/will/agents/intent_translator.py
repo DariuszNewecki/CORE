@@ -8,6 +8,7 @@ executable goals for the CORE system.
 
 from __future__ import annotations
 
+from shared.ai.prompt_model import PromptModel
 from shared.logger import getLogger
 from shared.path_resolver import PathResolver
 from will.orchestration.cognitive_service import CognitiveService
@@ -28,6 +29,7 @@ class IntentTranslator:
         self.cognitive_service = cognitive_service
         self._paths = path_resolver
         self.prompt_pipeline = PromptPipeline(self._paths.repo_root)
+        self.model = PromptModel.load("intent_translator_intent_translator")
 
         # ALIGNED: Using PathResolver (var/prompts) instead of .intent
         try:
@@ -53,8 +55,10 @@ class IntentTranslator:
             self.prompt_template.format(user_input=user_input)
         )
 
-        structured_goal = await client.make_request_async(
-            final_prompt, user_id="intent_translator"
+        structured_goal = await self.model.invoke(
+            context={"final_prompt": final_prompt},
+            client=client,
+            user_id="intent_translator",
         )
         logger.info("Translated goal: '%s'", structured_goal)
         return structured_goal

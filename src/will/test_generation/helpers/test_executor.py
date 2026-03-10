@@ -7,6 +7,7 @@ from __future__ import annotations
 import time
 from typing import Any
 
+from shared.ai.prompt_model import PromptModel
 from shared.component_primitive import ComponentResult
 from shared.context import CoreContext
 from shared.infrastructure.context.service import ContextService
@@ -47,6 +48,7 @@ class TestExecutor:
         self.persistence = persistence
         self.prompt_engine = prompt_engine
         self.extractor = ContextExtractor()
+        self.model = PromptModel.load("test_generation_test_executor")
 
     # ID: f1f9b492-aff5-428d-8100-2e5a21cf57cb
     async def execute(
@@ -131,8 +133,10 @@ class TestExecutor:
             cognitive_svc = await self.context.registry.get_cognitive_service()
             coder_client = await cognitive_svc.aget_client_for_role("Coder")
 
-            raw = await coder_client.make_request_async(
-                prompt, user_id="adaptive_test_gen"
+            raw = await self.model.invoke(
+                context={"prompt": prompt},
+                client=coder_client,
+                user_id="adaptive_test_gen",
             )
             self.artifacts.write_response(self.session_dir, symbol_name, raw)
 

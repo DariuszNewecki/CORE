@@ -18,6 +18,7 @@ from typing import TYPE_CHECKING
 
 from body.analyzers.file_analyzer import FileAnalyzer
 from body.evaluators.clarity_evaluator import ClarityEvaluator
+from shared.ai.prompt_model import PromptModel
 from shared.infrastructure.context.limb_workspace import LimbWorkspace
 from shared.logger import getLogger
 from shared.models.workflow_models import DetailedPlan, DetailedPlanStep
@@ -53,13 +54,13 @@ class ComplexityRemediationService:
         start_time = time.perf_counter()
         rel_path = str(file_path.relative_to(self.context.git_service.repo_path))
 
-        logger.info("🧪 [V2.3] Initiating Complexity Remediation: %s", rel_path)
+        logger.info("? [V2.3] Initiating Complexity Remediation: %s", rel_path)
 
         # 1. ANALYZE (Sensation)
         analyzer = FileAnalyzer(self.context)
         analysis = await analyzer.execute(file_path=rel_path)
         if not analysis.ok:
-            logger.error("❌ Analysis failed: %s", analysis.data.get("error"))
+            logger.error("? Analysis failed: %s", analysis.data.get("error"))
             return False
 
         # 2. STRATEGIZE (Decision)
@@ -80,7 +81,7 @@ class ComplexityRemediationService:
         )
 
         if not final_code_map:
-            logger.error("❌ Failed to generate a mathematically improved refactor.")
+            logger.error("? Failed to generate a mathematically improved refactor.")
             return False
 
         # 4. DECIDE (Blueprinting)
@@ -96,7 +97,7 @@ class ComplexityRemediationService:
 
         duration = time.perf_counter() - start_time
         if exec_results.success:
-            logger.info("✅ Complexity remediation successful (%.2fs)", duration)
+            logger.info("? Complexity remediation successful (%.2fs)", duration)
             return True
 
         return False
@@ -111,15 +112,18 @@ class ComplexityRemediationService:
         """
         The 'Hand' Reflex: Iteratively improves code until it passes the gates.
         """
+        model = PromptModel.load("complexity_reflex_refactor")
         current_prompt = f"Refactor {rel_path} to reduce complexity. Strategy: {strategy['instruction']}\n\nCODE:\n{original_code}"
 
         for attempt in range(3):
-            logger.info("🔄 Reflex Attempt %d/3...", attempt + 1)
+            logger.info("? Reflex Attempt %d/3...", attempt + 1)
 
             # GENERATE
             coder = await self.context.cognitive_service.aget_client_for_role("Coder")
-            response = await coder.make_request_async(
-                current_prompt, user_id="complexity_reflex"
+            response = await model.invoke(
+                context={"current_prompt": current_prompt},
+                client=coder,
+                user_id="complexity_reflex",
             )
 
             # Sensation (Parsing write blocks or simple fenced code)
@@ -155,7 +159,7 @@ class ComplexityRemediationService:
                 if not verdict.data.get("is_better")
                 else "Lobotomy detected (too much code deleted)"
             )
-            current_prompt += f"\n\n🚨 PAIN SIGNAL: {pain_signal}. Preserve all domain logic while splitting structures."
+            current_prompt += f"\n\n? PAIN SIGNAL: {pain_signal}. Preserve all domain logic while splitting structures."
 
         return None
 
@@ -170,7 +174,7 @@ class ComplexityRemediationService:
 
         if new_total_len < (orig_len * 0.5):
             logger.warning(
-                "🚨 Logic Conservation Alert: Proposed code is only %.1f%% of original size.",
+                "? Logic Conservation Alert: Proposed code is only %.1f%% of original size.",
                 (new_total_len / orig_len) * 100,
             )
             return True
