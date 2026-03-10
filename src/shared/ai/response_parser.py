@@ -3,20 +3,22 @@
 """
 response_parser — shared utility for parsing LLM responses.
 
-LLMs frequently wrap JSON output in markdown fences (```json ... ```)
+LLMs frequently wrap output in markdown fences (```json ... ```, ```python ... ```)
 despite instructions to the contrary. This module provides the canonical
 extraction logic so every call site handles it consistently.
 
 Constitutional context:
 - All AI responses flow through PromptModel.invoke()
 - Callers that need JSON must parse the string returned by invoke()
-- This module is the single, canonical implementation for that step
+- Callers that need raw code must strip fences before passing to FileHandler
+- This module is the single, canonical implementation for both steps
 
 Usage:
-    from shared.ai.response_parser import extract_json
+    from shared.ai.response_parser import extract_json, extract_code
 
     raw = await model.invoke(context, client)
-    data = extract_json(raw)
+    data = extract_json(raw)       # for JSON responses
+    code = extract_code(raw)       # for Python/code responses
 """
 
 from __future__ import annotations
@@ -26,9 +28,9 @@ import re
 from typing import Any
 
 
-# Matches ```json ... ``` or ``` ... ``` (with optional whitespace)
+# Matches ```<lang> ... ``` or ``` ... ``` (with optional whitespace)
 _FENCE_RE = re.compile(
-    r"```(?:json)?\s*\n?([\s\S]*?)\n?\s*```",
+    r"```(?:\w+)?\s*\n?([\s\S]*?)\n?\s*```",
     re.DOTALL,
 )
 
@@ -41,10 +43,6 @@ def extract_json(text: str) -> Any:
     Handles two common response formats:
     1. Plain JSON — the model returned raw JSON as instructed
     2. Fenced JSON — the model wrapped its response in ```json ... ``` or ``` ... ```
-
-    For fenced responses the first JSON object or array found inside
-    the fence is extracted. For plain responses the entire text is
-    parsed directly.
 
     Args:
         text: Raw string returned by an LLM invocation.
@@ -59,12 +57,10 @@ def extract_json(text: str) -> Any:
     if not text or not text.strip():
         raise ValueError("LLM response is empty — cannot extract JSON.")
 
-    # Try fenced extraction first
     match = _FENCE_RE.search(text)
     if match:
         return json.loads(match.group(1).strip())
 
-    # Fall back to direct parse
     return json.loads(text.strip())
 
 
@@ -72,9 +68,6 @@ def extract_json(text: str) -> Any:
 def extract_json_safe(text: str, default: Any = None) -> Any:
     """
     Like extract_json but returns `default` instead of raising on failure.
-
-    Useful when the caller wants to handle parse failures gracefully
-    without a try/except at every call site.
 
     Args:
         text: Raw string returned by an LLM invocation.
@@ -87,3 +80,28 @@ def extract_json_safe(text: str, default: Any = None) -> Any:
         return extract_json(text)
     except (json.JSONDecodeError, ValueError):
         return default
+
+
+# ID: c3d4e5f6-a7b8-9012-cdef-123456789013
+def extract_code(text: str) -> str:
+    """
+    Strip markdown code fences from an LLM response containing raw code.
+
+    Handles ```python ... ```, ```py ... ```, and plain ``` ... ``` wrappers.
+    Models frequently wrap code output in fences despite instructions.
+    The FileHandler syntax gate will reject fenced content — this must be
+    called before any .py content is passed to a Crate or FileHandler.
+
+    Args:
+        text: Raw string returned by an LLM invocation.
+
+    Returns:
+        Clean code string with fences removed.
+    """
+    if not text or not text.strip():
+        return text
+    stripped = text.strip()
+    match = _FENCE_RE.match(stripped)
+    if match:
+        return match.group(1).strip()
+    return stripped

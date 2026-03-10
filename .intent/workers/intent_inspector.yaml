@@ -1,0 +1,38 @@
+$schema: "META/worker.schema.json"
+kind: worker
+
+metadata:
+  id: workers.intent_inspector
+  title: Intent Inspector
+  version: "0.1.0"
+  authority: policy
+  status: active
+
+identity:
+  uuid: "f1e2d3c4-b5a6-7890-fedc-ba9876543210"
+  class: sensing
+
+mandate:
+  responsibility: >
+    Inspect the constitutional quality of .intent/ itself. Runs three passes:
+    (1) structural — verifies every document has required fields and a $schema reference;
+    (2) coherence — asks whether each document's narrative is clear, internally consistent,
+    and accurately describes what it declares;
+    (3) alignment — detects cross-document conflicts, orphaned declarations, and rules
+    that reference non-existent workers, files, or roles.
+    Posts all findings to the blackboard. Makes no changes.
+  phase: runtime
+  permitted_tools:
+    - llm.local
+  scope:
+    paths:
+      - ".intent/**"
+    domains:
+      - governance
+      - compliance
+  approval_required: false
+
+implementation:
+  module: will.workers.intent_inspector
+  class: IntentInspector
+  requires_core_context: true

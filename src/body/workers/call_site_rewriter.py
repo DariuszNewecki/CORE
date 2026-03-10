@@ -10,9 +10,9 @@ Ceremony (per file):
   1. Git checkpoint — record baseline SHA before any mutation
   2. Archive rollback plan — governed write to var/mind/rollbacks/
   3. LLM rewrite — PromptModel("call_site_rewriter") produces full rewritten file
-  4. Crate — pack rewritten file into an inbox Crate (CODE_MODIFICATION)
-  5. Canary validation — constitutional audit in sandbox, import gate blocking
-  6. Apply — apply_and_finalize_crate() writes to live src/ via FileHandler
+  4. Crate — ActionExecutor.execute("crate.create") packs rewritten file
+  5. Canary validation — CrateCreationService.validate_crate_by_id() (sandbox audit)
+  6. Apply — CrateCreationService.apply_and_finalize_crate() writes to live src/
   7. Git commit — checkpoint after successful apply
   8. Blackboard — post prompt.rewrite.complete, mark artifacts resolved
 
@@ -21,13 +21,12 @@ Constitutional standing:
   - Class:         acting
   - Phase:         execution
   - approval:      true
-  - src/ writes:   ONLY via Crate -> Canary -> apply_and_finalize_crate()
+  - src/ writes:   ONLY via ActionExecutor("crate.create") -> Canary -> apply
 
 Design rationale (no ProposalService):
   ProposalService is for A3 autonomous proposals with unknown scope.
-  This worker is human-triggered, scope is fully pre-audited (36 known
+  This worker is human-triggered, scope is fully pre-audited (known
   violations), and canary provides the safety gate. Git is the rollback.
-  Ceremony without bureaucracy.
 """
 
 from __future__ import annotations
@@ -38,6 +37,7 @@ from collections import defaultdict
 from datetime import UTC, datetime
 from typing import Any
 
+from shared.ai.response_parser import extract_code
 from shared.logger import getLogger
 from shared.workers.base import Worker
 
@@ -67,7 +67,7 @@ class CallSiteRewriter(Worker):
         """
         Args:
             core_context: Initialized CoreContext providing cognitive_service,
-                          file_handler, git_service, and path_resolver.
+                          file_handler, git_service, action_executor.
         """
         super().__init__()
         self._ctx = core_context
@@ -169,7 +169,7 @@ class CallSiteRewriter(Worker):
             await self._post_failed(file_path, findings, "LLM rewrite failed")
             return False
 
-        # 6. Pack into Crate
+        # 6. Pack into Crate via ActionExecutor (constitutional requirement)
         crate_id = await self._pack_crate(file_path, rewritten_source)
         if crate_id is None:
             await self._mark_findings(findings, "abandoned")
@@ -187,11 +187,11 @@ class CallSiteRewriter(Worker):
 
         # 8. Apply crate to live src/
         try:
-            from body.services.crate_creation_service import (
-                CrateCreationService,
+            from body.services.crate_processing_service import (
+                CrateProcessingService,
             )
 
-            svc = CrateCreationService(self._ctx)
+            svc = CrateProcessingService(self._ctx)
             await svc.apply_and_finalize_crate(crate_id)
         except Exception as e:
             logger.warning(
@@ -255,7 +255,7 @@ class CallSiteRewriter(Worker):
                 client=client,
                 user_id="call_site_rewriter",
             )
-            return _sanitize(result)
+            return _sanitize(extract_code(result))
         except Exception as e:
             logger.warning(
                 "CallSiteRewriter: LLM rewrite failed for %s — %s", file_path, e
@@ -263,18 +263,18 @@ class CallSiteRewriter(Worker):
             return None
 
     async def _pack_crate(self, file_path: str, rewritten_source: str) -> str | None:
-        """Pack rewritten file into a CODE_MODIFICATION Crate."""
-        try:
-            from body.services.crate_creation_service import (
-                CrateCreationService,
-            )
+        """
+        Pack rewritten file into a CODE_MODIFICATION Crate via ActionExecutor.
 
-            svc = CrateCreationService(self._ctx)
-            result = await svc.create_intent_crate(
+        Constitutional requirement: crate.create MUST go through ActionExecutor,
+        not CrateCreationService directly.
+        """
+        try:
+            result = await self._ctx.action_executor.execute(
+                "crate.create",
+                write=True,
                 intent=f"Rewrite direct LLM calls to PromptModel.invoke() in {file_path}",
                 payload_files={file_path: rewritten_source},
-                crate_type="CODE_MODIFICATION",
-                metadata={"worker": "call_site_rewriter", "file": file_path},
             )
             if not result.ok:
                 logger.warning(
@@ -289,11 +289,11 @@ class CallSiteRewriter(Worker):
     async def _run_canary(self, crate_id: str) -> bool:
         """Run canary validation on the crate. Returns True if passed."""
         try:
-            from body.services.crate_creation_service import (
-                CrateCreationService,
+            from body.services.crate_processing_service import (
+                CrateProcessingService,
             )
 
-            svc = CrateCreationService(self._ctx)
+            svc = CrateProcessingService(self._ctx)
             passed, findings = await svc.validate_crate_by_id(crate_id)
             if not passed:
                 logger.warning(
@@ -327,7 +327,6 @@ class CallSiteRewriter(Worker):
                 },
             )
         except Exception as e:
-            # Non-fatal — log and continue
             logger.warning("CallSiteRewriter: rollback archive failed — %s", e)
 
     def _build_violations_summary(self, findings: list[dict[str, Any]]) -> str:
