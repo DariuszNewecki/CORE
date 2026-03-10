@@ -315,7 +315,7 @@ class StrategicAuditor(TracedAgentMixin):
                 write=True,
                 session=session,
             )
-            logger.info("    ? %s %s", "?" if success else "?", message)
+            logger.info("    ? %s %s", "✅" if success else "❌", message)
 
     # ID: sa-log-summary
     def _log_summary(self, campaign: StrategicCampaign) -> None:

@@ -1,32 +1,5 @@
 [
   {
-    "check_id": "ai.prompt.model_required",
-    "severity": "error",
-    "message": "Line 67: direct call to 'make_request_async()' detected. Use PromptModel.invoke() instead. [ai.prompt.model_required]",
-    "file_path": "src/cli/logic/body_contracts_fixer.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "ai.prompt.model_required",
-    "severity": "error",
-    "message": "Line 92: direct call to 'make_request_async()' detected. Use PromptModel.invoke() instead. [ai.prompt.model_required]",
-    "file_path": "src/will/self_healing/test_generation/llm_correction.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "ai.prompt.model_required",
-    "severity": "error",
-    "message": "Line 55: direct call to 'make_request_async()' detected. Use PromptModel.invoke() instead. [ai.prompt.model_required]",
-    "file_path": "src/will/self_healing/test_generation/single_test_fixer.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
     "check_id": "logic.logging.standard_only",
     "severity": "warning",
     "message": "Line 244: Replace print() with logger.",
