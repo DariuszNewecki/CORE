@@ -3,6 +3,7 @@
 """
 ResearcherAgent - Negotiates context before generation.
 Implements the 'Understanding precedes Action' principle.
+HEALED: evaluate_readiness uses PromptModel.invoke() — ai.prompt.model_required compliant.
 """
 
 from __future__ import annotations
@@ -10,6 +11,7 @@ from __future__ import annotations
 import json
 from typing import Any
 
+from shared.ai.prompt_model import PromptModel
 from shared.logger import getLogger
 from will.orchestration.decision_tracer import DecisionTracer
 
@@ -29,8 +31,17 @@ class ResearcherAgent:
         Analyzes the goal and determines if context is sufficient.
         """
         client = await self.cognitive.aget_client_for_role("Planner")
-        prompt = f'\n        GOAL: {goal}\n\n        CURRENT CONTEXT:\n        {current_context}\n\n        TASK:\n        Analyze the goal and the provided code.\n        Identify if any dependencies, fixtures (conftest.py), or parent classes are missing.\n\n        RESPONSE FORMAT (Strict JSON):\n        {{\n          "status": "RESEARCHING" | "READY",\n          "reasoning": "Explain why you are ready or what is missing.",\n          "requests": [\n             {{"tool": "read_file", "path": "path/to/file.py"}},\n             {{"tool": "lookup_symbol", "qualname": "ClassName"}},\n             {{"tool": "search_vectors", "query": "semantic query"}}\n          ]\n        }}\n        '
-        response = await client.make_request_async(prompt, user_id="researcher_agent")
+
+        model = PromptModel.load("researcher_readiness")
+        response = await model.invoke(
+            context={
+                "goal": goal,
+                "current_context": current_context,
+            },
+            client=client,
+            user_id="researcher_agent",
+        )
+
         cleaned = response.replace("```json", "").replace("```", "").strip()
         try:
             decision = json.loads(cleaned)
