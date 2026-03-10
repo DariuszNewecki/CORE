@@ -1,13 +1,13 @@
 # src/will/agents/strategic_auditor/agent.py
 
 """
-StrategicAuditor — CORE's self-awareness agent.
+StrategicAuditor ? CORE's self-awareness agent.
 
 Reads full system state, reasons about it as a whole, produces a prioritised
 remediation campaign, and executes what is constitutionally permitted.
 
 Constitutional role:
-- Reads everything (audit, DB, .intent/, git) — never writes to .intent/
+- Reads everything (audit, DB, .intent/, git) ? never writes to .intent/
 - Flags anything requiring .intent/ amendment as escalation (requires_approval=True)
 - Executes autonomous tasks via develop_from_goal
 """
@@ -19,6 +19,7 @@ import uuid
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
 
+from shared.ai.prompt_model import PromptModel
 from shared.infrastructure.repositories.task_repository import TaskRepository
 from shared.logger import getLogger
 from will.agents.strategic_auditor.context_gatherer import SystemContextGatherer
@@ -35,80 +36,6 @@ if TYPE_CHECKING:
 
 
 logger = getLogger(__name__)
-
-
-_STRATEGIC_AUDIT_PROMPT = """
-You are the strategic reasoning layer of CORE — a constitutional autonomous
-development system. Your job is to reason about CORE's current state as a
-whole and produce a prioritised remediation campaign.
-
-IMPORTANT CONSTRAINTS:
-- You can only suggest changes to files under src/ or tests/
-- You CANNOT suggest changes to .intent/ files (the constitution)
-- If a fix genuinely requires changing .intent/, set requires_constitution_change=true
-  and explain what amendment is needed — a human will handle it
-- Focus on ROOT CAUSES, not symptoms — one fix should eliminate many findings
-- Order clusters by impact: fix the thing that unblocks the most other things first
-
---- SYSTEM STATE (6 DIMENSIONS) ---
-
-DIMENSION 1 — CONSTITUTIONAL HEALTH ({finding_count} findings):
-{audit_findings_summary}
-
-DIMENSION 2 — SEMANTIC LANDSCAPE (what concepts is CORE built from?):
-{semantic_landscape}
-
-DIMENSION 3 — KNOWLEDGE GAPS (where is CORE blind to itself?):
-{knowledge_gaps}
-
-DIMENSION 4 — STRUCTURAL HEALTH (what does CORE contain?):
-{structural_health}
-
-DIMENSION 5 — CHANGE CONTEXT (what is CORE becoming?):
-{change_context}
-
-DIMENSION 6 — INTENT DRIFT (where does meaning diverge from code?):
-{intent_drift}
-
-CONSTITUTION:
-{constitution_summary}
-
---- YOUR TASK ---
-
-1. Identify ROOT CAUSE CLUSTERS: group findings that share the same underlying cause.
-   Use ALL six dimensions — a violation cluster + semantic hotspot + drift signal
-   together indicate a much deeper problem than any one signal alone.
-
-2. For each cluster:
-   - root_cause: one sentence, precise
-   - affected_files: list of files
-   - proposed_fix: concrete, actionable
-   - requires_constitution_change: true only if .intent/ amendment is needed
-   - confidence: 0.0-1.0
-   - estimated_impact: low / medium / high
-
-3. Write a SYSTEM SUMMARY: one paragraph assessing CORE's current health across
-   all six dimensions.
-
-4. Order clusters: highest impact first, constitutional amendments last.
-
-Respond ONLY with valid JSON:
-{{
-  "system_summary": "...",
-  "clusters": [
-    {{
-      "cluster_id": "cluster_001",
-      "root_cause": "...",
-      "affected_files": ["src/..."],
-      "finding_ids": ["rule.id.1"],
-      "proposed_fix": "...",
-      "requires_constitution_change": false,
-      "confidence": 0.9,
-      "estimated_impact": "high"
-    }}
-  ]
-}}
-"""
 
 
 # ID: sa-strategic-auditor
@@ -151,7 +78,7 @@ class StrategicAuditor(TracedAgentMixin):
             StrategicCampaign with clusters, escalations, and human report
         """
         logger.info("=" * 70)
-        logger.info("🧠 STRATEGIC AUDIT — CORE Self-Awareness Cycle")
+        logger.info("? STRATEGIC AUDIT ? CORE Self-Awareness Cycle")
         logger.info("=" * 70)
 
         gatherer = SystemContextGatherer(self._ctx, self._cognitive)
@@ -212,31 +139,42 @@ class StrategicAuditor(TracedAgentMixin):
             s = _json.dumps(obj, indent=2, default=str)
             return s[:max_chars] + "..." if len(s) > max_chars else s
 
-        prompt = _STRATEGIC_AUDIT_PROMPT.format(
-            finding_count=len(findings),
-            audit_findings_summary="\n".join(lines[:50]),
-            semantic_landscape=_compact(system_context.get("semantic_landscape", {})),
-            knowledge_gaps=_compact(system_context.get("knowledge_gaps", {})),
-            structural_health=_compact(system_context.get("structural_health", {})),
-            change_context=_compact(system_context.get("change_context", {})),
-            intent_drift=_compact(system_context.get("intent_drift", {})),
-            constitution_summary=_compact(
-                {
-                    "policy_count": system_context.get("constitution_summary", {}).get(
-                        "policy_count", 0
-                    ),
-                    "policies": system_context.get("constitution_summary", {}).get(
-                        "policy_ids", []
-                    )[:15],
-                }
-            ),
-        )
-
-        logger.info("🤔 Reasoning about system state (LLM call)...")
+        logger.info("? Reasoning about system state (LLM call)...")
 
         try:
             client = await self._cognitive.aget_client_for_role("Architect")
-            response = await client.make_request_async(prompt)
+            model = PromptModel.load("architect_threats_analysis_prompt")
+            response = await model.invoke(
+                context={
+                    "finding_count": len(findings),
+                    "audit_findings_summary": "\n".join(lines[:50]),
+                    "semantic_landscape": _compact(
+                        system_context.get("semantic_landscape", {})
+                    ),
+                    "knowledge_gaps": _compact(
+                        system_context.get("knowledge_gaps", {})
+                    ),
+                    "structural_health": _compact(
+                        system_context.get("structural_health", {})
+                    ),
+                    "change_context": _compact(
+                        system_context.get("change_context", {})
+                    ),
+                    "intent_drift": _compact(system_context.get("intent_drift", {})),
+                    "constitution_summary": _compact(
+                        {
+                            "policy_count": system_context.get(
+                                "constitution_summary", {}
+                            ).get("policy_count", 0),
+                            "policies": system_context.get(
+                                "constitution_summary", {}
+                            ).get("policy_ids", [])[:15],
+                        }
+                    ),
+                },
+                client=client,
+                user_id="StrategicAuditor",
+            )
             raw = response.strip()
             if raw.startswith("```"):
                 raw = raw.split("```")[1]
@@ -333,7 +271,7 @@ class StrategicAuditor(TracedAgentMixin):
 
         await session.commit()
         logger.info(
-            "✅ Campaign persisted: parent=%s, %d tasks, %d escalations",
+            "? Campaign persisted: parent=%s, %d tasks, %d escalations",
             parent.id,
             campaign.autonomous_task_count,
             campaign.escalation_count,
@@ -350,7 +288,7 @@ class StrategicAuditor(TracedAgentMixin):
         )
 
         logger.info(
-            "🚀 Executing %d autonomous tasks...", campaign.autonomous_task_count
+            "? Executing %d autonomous tasks...", campaign.autonomous_task_count
         )
 
         for i, cluster in enumerate(campaign.clusters, 1):
@@ -365,7 +303,7 @@ class StrategicAuditor(TracedAgentMixin):
 
             if cluster.confidence < 0.7:
                 logger.info(
-                    "    ↳ ⏸️  Skipping (confidence too low — staged for review)"
+                    "    ? ??  Skipping (confidence too low ? staged for review)"
                 )
                 continue
 
@@ -377,21 +315,21 @@ class StrategicAuditor(TracedAgentMixin):
                 write=True,
                 session=session,
             )
-            logger.info("    ↳ %s %s", "✅" if success else "❌", message)
+            logger.info("    ? %s %s", "?" if success else "?", message)
 
     # ID: sa-log-summary
     def _log_summary(self, campaign: StrategicCampaign) -> None:
         """Print human-readable campaign summary to console."""
         logger.info("")
         logger.info("=" * 70)
-        logger.info("📊 STRATEGIC AUDIT RESULTS")
+        logger.info("? STRATEGIC AUDIT RESULTS")
         logger.info("=" * 70)
         logger.info("")
         logger.info("SYSTEM ASSESSMENT:")
         logger.info("%s", campaign.system_summary)
         logger.info("")
         logger.info(
-            "FINDINGS: %d total → %d root cause clusters → %d escalations",
+            "FINDINGS: %d total ? %d root cause clusters ? %d escalations",
             campaign.total_findings,
             campaign.autonomous_task_count,
             campaign.escalation_count,
@@ -413,7 +351,7 @@ class StrategicAuditor(TracedAgentMixin):
         if campaign.escalations:
             logger.info("")
             logger.info(
-                "⚠️  ESCALATIONS (require your review — .intent/ amendment needed):"
+                "??  ESCALATIONS (require your review ? .intent/ amendment needed):"
             )
             for i, c in enumerate(campaign.escalations, 1):
                 logger.info("  %d. %s", i, c.root_cause)

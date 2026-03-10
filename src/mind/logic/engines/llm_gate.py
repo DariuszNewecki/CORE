@@ -54,6 +54,7 @@ class LLMGateEngine(BaseEngine):
         self.llm = llm_client
         self._cache: dict[str, EngineResult] = {}
         self._prompt_model = PromptModel.load("llm_gate")
+        self._audit_prompt_model = PromptModel.load("llm_gate_audit_prompt")
 
     # ID: 66b7f4b7-72a8-43b9-af11-787c58e20524
     async def verify(
@@ -97,21 +98,16 @@ class LLMGateEngine(BaseEngine):
         if state_hash in self._cache:
             return self._cache[state_hash]
 
-        # 3. Format prompts from governed artifact
-        artifact = self._prompt_model.artifact
-        system_prompt = artifact.system_prompt
-
-        user_prompt = artifact.user_template.format(
-            instruction=instruction,
-            rationale=rationale,
-            code_content=content,
-        )
-
-        # 4. Invoke via Protocol (no direct make_request call)
+        # 3. Invoke via PromptModel
         try:
-            response_text = await self.llm.invoke_semantic_check(
-                prompt=user_prompt,
-                system_prompt=system_prompt,
+            response_text = await self._audit_prompt_model.invoke(
+                context={
+                    "instruction": instruction,
+                    "rationale": rationale,
+                    "code_content": content,
+                },
+                client=self.llm,
+                user_id="llm_gate_engine",
             )
 
             result_data = json.loads(response_text)

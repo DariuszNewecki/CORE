@@ -19,6 +19,7 @@ from pathlib import Path
 from typing import Any
 
 from body.services.file_service import FileService
+from shared.ai.prompt_model import PromptModel
 from shared.logger import getLogger
 from shared.utils.parsing import extract_python_code_from_response
 from will.orchestration.cognitive_service import CognitiveService
@@ -40,6 +41,7 @@ class SimpleTestGenerator:
         self.cognitive = cognitive_service
         self.file_handler = file_handler
         self.repo_root = repo_root
+        self.prompt_model = PromptModel.load("simple_test_generator_prompt")
 
     # ID: cf4829fd-5d26-44f2-b5af-219528cd77c3
     async def generate_test_for_symbol(
@@ -133,23 +135,16 @@ class SimpleTestGenerator:
         module_path = rel_path.replace("/", ".").replace(".py", "")
 
         try:
-            prompt_path = (
-                self.repo_root / "var" / "prompts" / "accumulative_test_gen.txt"
-            )
-            template = prompt_path.read_text(encoding="utf-8")
-
-            # STRENGTHENING: Append a warning about datetime mocking to the template
-            final_prompt = template.format(
-                file_path=file_path,
-                symbol_code=symbol_code,
-                module_path=module_path,
-                symbol_name=symbol_name,
-            )
-            final_prompt += "\n\nCRITICAL: If you mock datetime, do NOT use the real datetime.now() for comparisons, as it will cause a multi-year delta."
-
             client = await self.cognitive.aget_client_for_role("Coder")
-            response = await client.make_request_async(
-                final_prompt, user_id="simple_test_gen"
+            response = await self.prompt_model.invoke(
+                context={
+                    "file_path": file_path,
+                    "symbol_code": symbol_code,
+                    "module_path": module_path,
+                    "symbol_name": symbol_name,
+                },
+                client=client,
+                user_id="simple_test_gen",
             )
             return extract_python_code_from_response(response)
         except Exception as exc:

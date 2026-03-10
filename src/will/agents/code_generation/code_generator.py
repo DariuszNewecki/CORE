@@ -16,6 +16,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+from shared.ai.prompt_model import PromptModel
 from shared.logger import getLogger
 from shared.models.refusal_result import RefusalResult
 
@@ -79,6 +80,7 @@ class CodeGenerator:
         self.context_service = context_service
         self.semantic_enabled = context_builder is not None
         self.context_enrichment_enabled = context_service is not None
+        self._code_gen_model = PromptModel.load("code_generation_task_step_prompt")
 
     # ID: 08c73be8-7d10-4399-b527-a7702fc9cecd
     async def generate_code(
@@ -169,8 +171,9 @@ class CodeGenerator:
             confidence=0.9,
         )
 
-        raw_response = await generator.make_request_async(
-            enriched_prompt,
+        raw_response = await self._code_gen_model.invoke(
+            context={"enriched_prompt": enriched_prompt},
+            client=generator,
             user_id="coder_agent_a2",
         )
 

@@ -23,6 +23,7 @@ import json
 from pathlib import Path
 
 from body.atomic.registry import action_registry
+from shared.ai.prompt_model import PromptModel
 from shared.infrastructure.clients.qdrant_client import QdrantService
 from shared.logger import getLogger
 from shared.models import ExecutionTask, PlanExecutionError
@@ -52,7 +53,7 @@ class PlannerAgent:
         self.max_retries = max_retries
         self.tracer = DecisionTracer()
 
-        # PolicyVectorizer requires qdrant_service — degrade gracefully if absent
+        # PolicyVectorizer requires qdrant_service ? degrade gracefully if absent
         if qdrant_service is not None:
             self.policy_vectorizer = PolicyVectorizer(
                 repo_root=repo_path,
@@ -63,6 +64,9 @@ class PlannerAgent:
             self.policy_vectorizer = None
             logger.warning("PlannerAgent: Qdrant not available, policy RAG disabled.")
 
+        # Load PromptModel artifact once
+        self.plan_goal_model = PromptModel.load("plan_goal")
+
     # ID: 52208224-fea7-4d79-baee-d3b07d634624
     async def create_execution_plan(
         self, goal: str, reconnaissance_report: str = ""
@@ -71,7 +75,7 @@ class PlannerAgent:
         Creates an execution plan from a user goal and a reconnaissance report.
 
         CONSTITUTIONAL COMPLIANCE:
-        - P1.2: Pure planning — no side effects, no random, no cleanup calls.
+        - P1.2: Pure planning ? no side effects, no random, no cleanup calls.
         - Legal Counsel: Fetches relevant constitutional rules via RAG before planning.
         - Tracing: Records decision for every plan created (planning.trace_mandatory).
 
@@ -131,12 +135,21 @@ class PlannerAgent:
 
         for attempt in range(self.max_retries):
             logger.info(
-                "🧠 Planning execution steps (Attempt %d/%d)...",
+                "? Planning execution steps (Attempt %d/%d)...",
                 attempt + 1,
                 self.max_retries,
             )
 
-            response_text = await client.make_request_async(prompt)
+            response_text = await self.plan_goal_model.invoke(
+                context={
+                    "prompt": prompt,
+                    "goal": goal,
+                    "action_descriptions": action_descriptions,
+                    "reconnaissance_report": enriched_recon,
+                },
+                client=client,
+                user_id="planner_agent",
+            )
             if response_text:
                 try:
                     plan = parse_and_validate_plan(response_text)
@@ -196,7 +209,7 @@ class PlannerAgent:
             return rules_text
 
         except Exception as e:
-            # Legal Counsel failure is non-fatal — plan without it, log the gap
+            # Legal Counsel failure is non-fatal ? plan without it, log the gap
             logger.warning(
                 "Constitutional context fetch failed (planning without RAG): %s", e
             )

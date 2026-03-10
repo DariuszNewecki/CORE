@@ -16,6 +16,7 @@ from typing import Any
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.action_types import ActionImpact, ActionResult
+from shared.ai.prompt_model import PromptModel
 from shared.atomic_action import atomic_action
 from shared.infrastructure.context.service import ContextService
 from shared.infrastructure.repositories.symbol_definition_repository import (
@@ -150,17 +151,19 @@ async def define_single_symbol(
 
         # 2. Invoke AI Reasoning (Will)
         similar_context = _extract_similar_capabilities(packet, target_qualname)
-        template_path = (
-            context_service.project_root / "var" / "prompts" / "capability_definer.txt"
-        )
-        prompt = template_path.read_text(encoding="utf-8").format(
-            code=source_code, similar_capabilities=similar_context
-        )
 
+        model = PromptModel.load("symbol_definer_capability_definer")
         agent = await context_service.cognitive_service.aget_client_for_role(
             "CodeReviewer"
         )
-        response = await agent.make_request_async(prompt, user_id="symbol-definer")
+        response = await model.invoke(
+            context={
+                "code": source_code,
+                "similar_capabilities": similar_context,
+            },
+            client=agent,
+            user_id="symbol-definer",
+        )
 
         # 3. Parse result
         key = None
@@ -186,11 +189,11 @@ async def define_single_symbol(
         async with session_factory() as session:
             await _mark_attempt(symbol_id, status="defined", key=key, session=session)
 
-        logger.info("✅ Defined: %s -> %s", target_qualname, key)
+        logger.info("? Defined: %s -> %s", target_qualname, key)
         return {"id": symbol_id, "key": key}
 
     except Exception as exc:
-        logger.error("❌ Failed to define %s: %s", symbol_path, exc)
+        logger.error("? Failed to define %s: %s", symbol_path, exc)
         async with session_factory() as session:
             await _mark_attempt(
                 symbol_id,

@@ -7,12 +7,12 @@ Provides a CLI interface for human operators to directly invoke autonomous agent
 from __future__ import annotations
 
 import json
-import textwrap
 from typing import Any
 
 import typer
 
 from body.project_lifecycle.scaffolding_service import Scaffolder
+from shared.ai.prompt_model import PromptModel
 from shared.context import CoreContext
 from shared.logger import getLogger
 
@@ -38,17 +38,14 @@ async def scaffold_new_application(
     context: CoreContext, project_name: str, goal: str, initialize_git: bool = False
 ) -> tuple[bool, str]:
     """Uses an LLM to plan and generate a new, multi-file application."""
-    logger.info("🌱 Starting to scaffold new application '%s'...", project_name)
+    logger.info("? Starting to scaffold new application '%s'...", project_name)
     cognitive_service = context.cognitive_service
     await cognitive_service.initialize()
-    prompt_template = textwrap.dedent(
-        '\n        You are a senior software architect. Your task is to design the file structure and content for a new Python application based on a high-level goal.\n\n        **Goal:** "{goal}"\n\n        **Instructions:**\n        1.  Think step-by-step about the necessary files for a minimal, working version.\n        2.  Your output MUST be a single, valid JSON object with file paths as keys and content as values.\n        3.  Include a `pyproject.toml` and a simple `src/main.py`.\n        4.  Keep the code simple, clean, and functional.\n        '
-    ).strip()
-    final_prompt = prompt_template.format(goal=goal)
+    model = PromptModel.load("scaffold_new_application_prompt")
     try:
         planner_client = await cognitive_service.aget_client_for_role("Planner")
-        response_text = await planner_client.make_request_async(
-            final_prompt, user_id="scaffolding_agent"
+        response_text = await model.invoke(
+            context={"goal": goal}, client=planner_client, user_id="scaffolding_agent"
         )
         file_structure = _extract_json_from_response(response_text)
         if not isinstance(file_structure, dict):
@@ -81,9 +78,9 @@ async def scaffold_new_application(
             scoped_git_service.commit(
                 f"feat(scaffold): Initial commit for '{project_name}'"
             )
-        return (True, f"✅ Successfully scaffolded '{project_name}'.")
+        return (True, f"? Successfully scaffolded '{project_name}'.")
     except Exception as e:
-        logger.error("❌ Scaffolding failed: %s", e, exc_info=True)
+        logger.error("? Scaffolding failed: %s", e, exc_info=True)
         return (False, f"Scaffolding failed: {e!s}")
 
 
@@ -98,7 +95,7 @@ async def agent_scaffold(
     ),
 ):
     """Uses an LLM agent to autonomously scaffold a new application."""
-    logger.info("🤖 Invoking Agent to scaffold application '%s'...", name)
+    logger.info("? Invoking Agent to scaffold application '%s'...", name)
     logger.info("   -> Goal: '%s'", goal)
     core_context: CoreContext = ctx.obj
     success, message = await scaffold_new_application(

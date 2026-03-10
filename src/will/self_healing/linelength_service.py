@@ -13,6 +13,7 @@ from typing import TYPE_CHECKING
 
 from body.atomic.executor import ActionExecutor
 from mind.governance.audit_context import AuditorContext
+from shared.ai.prompt_model import PromptModel
 from shared.exceptions import CoreError
 from shared.infrastructure.config_service import ConfigService
 from shared.logger import getLogger
@@ -58,26 +59,14 @@ async def _async_fix_line_lengths(
 
     repo_root = await _resolve_repo_root(context, config_service)
 
-    # Resolve Prompt via PathResolver (SSOT)
-    try:
-        prompt_path = repo_root / "var" / "prompts" / "fix_line_length.prompt"
-        prompt_template = prompt_path.read_text(encoding="utf-8")
-    except Exception:
-        # Fallback to logical path if resolver is not fully initialized
-        prompt_path = repo_root / ".intent" / "prompts" / "fix_line_length.prompt"
-        if not prompt_path.exists():
-            logger.error(
-                "Prompt template 'fix_line_length' not found at %s. Aborting.",
-                prompt_path,
-            )
-            return
-        prompt_template = prompt_path.read_text(encoding="utf-8")
-
     executor = ActionExecutor(context)
     cognitive_service = context.cognitive_service
     fixer_client = await cognitive_service.aget_client_for_role("CodeStyleFixer")
     auditor_context = AuditorContext(repo_root)
     await auditor_context.load_knowledge_graph()
+
+    # Load PromptModel artifact once
+    model = PromptModel.load("line_length_refactorer")
 
     files_with_long_lines = []
     for file_path in files_to_process:
@@ -90,7 +79,7 @@ async def _async_fix_line_lengths(
             continue
 
     if not files_with_long_lines:
-        logger.info("✅ No files with long lines found.")
+        logger.info("? No files with long lines found.")
         return
 
     logger.info("Found %s file(s) with long lines to fix.", len(files_with_long_lines))
@@ -103,9 +92,10 @@ async def _async_fix_line_lengths(
             original_content = file_path.read_text(encoding="utf-8")
 
             # Will: Ask AI to refactor for line length
-            final_prompt = prompt_template.replace("{source_code}", original_content)
-            corrected_code = await fixer_client.make_request_async(
-                final_prompt, user_id="line_length_fixer_agent"
+            corrected_code = await model.invoke(
+                context={"source_code": original_content},
+                client=fixer_client,
+                user_id="line_length_fixer_agent",
             )
 
             if corrected_code and corrected_code.strip() != original_content.strip():

@@ -7,6 +7,7 @@ UPGRADED V2.4: Added Semantic Drift Detection.
 CONSTITUTIONAL COMPLIANCE V2.5: Integrated RefusalResult handling.
 HEALED V2.6: Wired via Shared Protocols to eliminate circular dependencies.
 HEALED V2.7: Uses get_intent_guard() singleton (no more redundant instantiation).
+HEALED V2.8: _repair_code uses PromptModel.invoke() — ai.prompt.model_required compliant.
 """
 
 from __future__ import annotations
@@ -15,6 +16,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from body.governance.intent_guard import get_intent_guard
+from shared.ai.prompt_model import PromptModel
 from shared.logger import getLogger
 from shared.models import ExecutionTask
 from shared.path_resolver import PathResolver
@@ -108,12 +110,10 @@ class CoderAgent:
         requirements = self.pattern_validator.get_pattern_requirements(pattern_id)
         context_str = f"Mission Goal: {goal}"
 
-        # Call generator (using the injected protocol)
         code_or_refusal = await self.code_generator.generate_code(
             task, goal, context_str, pattern_id, requirements
         )
 
-        # PRESERVED: v2.5 Handle refusal or get code
         code = await handle_code_generation_result(
             code_or_refusal,
             session_id=(
@@ -135,28 +135,20 @@ class CoderAgent:
         """Reflexive repair with v2.4 drift detection and v2.5 refusal logging."""
         logger.warning("Reflex: Sensory pain detected. Initiating repair.")
 
-        repair_prompt = f"""
-            SENSORY FEEDBACK (PAIN SIGNAL)
-            The code you generated previously failed in the execution sandbox.
-            ERROR: {pain_signal}
-
-            MISSION RECAP
-            Goal: {goal}
-            Task: {task.step}
-
-            PREVIOUS CODE
-            {previous_code or "# Missing previous code"}
-
-            INSTRUCTION
-            Analyze the error above. Fix the logic to resolve this error.
-            Return ONLY the corrected Python code in ```python fences.
-        """
-
         client = await self.cognitive_service.aget_client_for_role(
             "Coder", high_reasoning=True
         )
-        response = await client.make_request_async(
-            repair_prompt, user_id="reflex_repair"
+
+        model = PromptModel.load("coder_repair")
+        response = await model.invoke(
+            context={
+                "goal": goal,
+                "task_step": task.step,
+                "pain_signal": pain_signal,
+                "previous_code": previous_code or "# Missing previous code",
+            },
+            client=client,
+            user_id="reflex_repair",
         )
 
         from shared.utils.parsing import extract_python_code_from_response
@@ -193,7 +185,7 @@ class CoderAgent:
         alignment_score = await self._calculate_alignment(fixed_code, goal)
         if alignment_score < 0.4:
             logger.error(
-                "🚨 Semantic Drift Detected! Alignment Score: %.2f", alignment_score
+                "Semantic Drift Detected! Alignment Score: %.2f", alignment_score
             )
 
         self.tracer.record(

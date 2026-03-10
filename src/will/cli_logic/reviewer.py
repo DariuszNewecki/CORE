@@ -19,6 +19,7 @@ from rich.markdown import Markdown
 from rich.panel import Panel
 
 from body.services.file_service import FileService
+from shared.ai.prompt_model import PromptModel
 from shared.context import CoreContext
 from shared.logger import getLogger
 from will.orchestration.cognitive_service import CognitiveService
@@ -103,7 +104,7 @@ async def _orchestrate_review(
         output_path: Optional path to write output
         no_send: If True, don't send to AI, just bundle
     """
-    logger.info("🤖 Preparing %s review...", review_type)
+    logger.info("? Preparing %s review...", review_type)
 
     file_service = getattr(context, "file_service", None)
     if file_service is None:
@@ -155,8 +156,11 @@ async def _orchestrate_review(
     ):
         cognitive_service = CognitiveService(context.repo_path)
         reviewer_client = cognitive_service.get_client_for_role("Reviewer")
-        review_feedback = await reviewer_client.make_request_async(
-            final_prompt, user_id=f"{review_type}_operator"
+        model = PromptModel.load("reviewer_review_prompt")
+        review_feedback = await model.invoke(
+            context={"final_prompt": final_prompt},
+            client=reviewer_client,
+            user_id=f"{review_type}_operator",
         )
 
     logger.info(
@@ -216,7 +220,7 @@ async def code_review(
 ) -> None:
     """Submits a source file to an AI expert for a peer review and improvement suggestions."""
     logger.info(
-        "🤖 Submitting '%s' for AI peer review...",
+        "? Submitting '%s' for AI peer review...",
         file_path.relative_to(context.repo_path),
     )
 
@@ -229,16 +233,15 @@ async def code_review(
         source_code = file_service.read_file(rel_file)
 
         if source_code is None:
-            logger.error("❌ Error: Could not read file at '%s'", file_path)
+            logger.error("? Error: Could not read file at '%s'", file_path)
             raise typer.Exit(code=1)
 
         prompt_path = context.path_resolver.get_prompt_path("code_peer_review")
-
         rel_prompt = str(prompt_path.relative_to(context.repo_path))
         review_prompt_template = file_service.read_file(rel_prompt)
 
         if review_prompt_template is None:
-            logger.error("❌ Error: Could not read prompt template")
+            logger.error("? Error: Could not read prompt template")
             raise typer.Exit(code=1)
 
         final_prompt = f"{review_prompt_template}\n\n```python\n{source_code}\n```"
@@ -249,19 +252,22 @@ async def code_review(
         ):
             cognitive_service = CognitiveService(context.repo_path)
             reviewer_client = cognitive_service.get_client_for_role("CodeReviewer")
-            review_feedback = await reviewer_client.make_request_async(
-                final_prompt, user_id="code_review_operator"
+            model = PromptModel.load("code_peer_review")
+            review_feedback = await model.invoke(
+                context={"final_prompt": final_prompt},
+                client=reviewer_client,
+                user_id="code_review_operator",
             )
 
         logger.info(Panel("AI Peer Review Complete", style="bold green", expand=False))
         console.print(Markdown(review_feedback))
 
     except FileNotFoundError:
-        logger.error("❌ Error: File not found at '%s'", file_path)
+        logger.error("? Error: File not found at '%s'", file_path)
         raise typer.Exit(code=1)
     except Exception as e:
         logger.error(
-            "❌ An unexpected error occurred during peer review: %s",
+            "? An unexpected error occurred during peer review: %s",
             e,
             exc_info=True,
         )

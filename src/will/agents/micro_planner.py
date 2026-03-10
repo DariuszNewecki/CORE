@@ -17,6 +17,7 @@ from typing import Any
 
 import yaml
 
+from shared.ai.prompt_model import PromptModel
 from shared.logger import getLogger
 from shared.models import PlanExecutionError
 from shared.path_resolver import PathResolver
@@ -62,6 +63,9 @@ class MicroPlannerAgent:
             )
             raise
 
+        # Load PromptModel for constitutional compliance
+        self.micro_plan_model = PromptModel.load("micro_planner_create_micro_plan")
+
     # ID: d4a1edd0-a3ea-4f8d-a937-c6e95d8d4fb1
     async def create_micro_plan(self, goal: str) -> list[dict[str, Any]]:
         """Creates a safe execution plan from a user goal."""
@@ -69,15 +73,13 @@ class MicroPlannerAgent:
         # We pass the policy to the LLM so it knows the "Micro-Proposal" boundaries
         policy_content = json.dumps(self.policy, indent=2)
 
-        final_prompt = self.prompt_template.format(
-            policy_content=policy_content, user_goal=goal
-        )
-
         planner_client = await self.cognitive_service.aget_client_for_role("Planner")
 
-        logger.info("🤖 Micro-Planner: Designing low-risk execution strategy...")
-        response_text = await planner_client.make_request_async(
-            final_prompt, user_id="micro_planner_agent"
+        logger.info("? Micro-Planner: Designing low-risk execution strategy...")
+        response_text = await self.micro_plan_model.invoke(
+            context={"policy_content": policy_content, "user_goal": goal},
+            client=planner_client,
+            user_id="micro_planner_agent",
         )
 
         try:

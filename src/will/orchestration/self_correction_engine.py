@@ -11,6 +11,7 @@ import json
 import re
 from typing import TYPE_CHECKING, Any
 
+from shared.ai.prompt_model import PromptModel
 from shared.logger import getLogger
 from shared.path_resolver import PathResolver
 from shared.utils.parsing import parse_write_blocks
@@ -113,11 +114,19 @@ async def attempt_correction(
     hint_section = ""
     if symbol_hints:
         hint_section = f"\n# INTELLIGENT HINTS (FROM KNOWLEDGE GRAPH)\n{symbol_hints}\n"
-    correction_prompt = f"You are CORE's self-correction agent.\n\nA recent code generation attempt failed.\nPlease analyze the errors and fix the code below.\n\nFile: {file_path}\n\n[[violations]]\n{violations_json}\n[[/violations]]\n\n[[runtime_error]]\n{runtime_error}\n[[/runtime_error]]\n{hint_section}\n[[code]]\n{code.strip()}\n[[/code]]\n\nRespond with the full, corrected code in a single write block:\n[[write:{file_path}]]\n<corrected code here>\n[[/write]]"
-    final_prompt = pipeline.process(correction_prompt)
+    model = PromptModel.load("self_correction_engine_correction_prompt")
+    final_prompt = pipeline.process("")
     try:
-        llm_output = await generator.make_request_async(
-            final_prompt, user_id="auto_repair"
+        llm_output = await model.invoke(
+            context={
+                "file_path": file_path,
+                "violations_json": violations_json,
+                "runtime_error": runtime_error,
+                "hint_section": hint_section,
+                "code": code.strip(),
+            },
+            client=generator,
+            user_id="auto_repair",
         )
     except Exception as e:
         return {"status": "error", "message": f"LLM request failed: {e!s}"}
