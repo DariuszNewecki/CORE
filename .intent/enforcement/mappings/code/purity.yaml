@@ -118,3 +118,37 @@ mappings:
       check_type: dead_code_check
       tool: "vulture"
       confidence: 80
+
+  # 9. LAW: Production source files MUST be reachable from a declared entry point.
+  # Check type: knowledge_gate (Import graph traversal)
+  # Rationale: vulture detects unused symbols but cannot detect unreachable files.
+  # This check traverses the import graph from entry points and flags orphan files.
+  #
+  # DYNAMIC PLUGIN DIRECTORIES (loaded via pkgutil.iter_modules / importlib):
+  #   - src/mind/logic/engines/   → EngineRegistry (mind/logic/engines/registry.py)
+  #   - src/mind/governance/checks/ → check_registry.py
+  #   - src/will/workers/         → cli/resources/workers/run.py
+  #   - src/will/phases/          → will/orchestration/phase_registry.py
+  #   - src/body/services/        → body/services/service_registry.py
+  # These are convention-loaded at runtime — not reachable via static import graph.
+  purity.no_orphan_files:
+    engine: knowledge_gate
+    params:
+      check_type: orphan_file_check
+      entry_points:
+        # Static entry points
+        - "src/cli/"
+        - "src/body/atomic/"
+        - "src/main.py"
+        - "src/api/main.py"
+        # Dynamic plugin directories — loaded by registry scan, not static imports
+        - "src/mind/logic/engines/"
+        - "src/mind/governance/checks/"
+        - "src/will/workers/"
+        - "src/will/phases/"
+        - "src/body/services/"
+      excludes:
+        - "src/**/__init__.py"
+        - "src/**/__main__.py"
+        - "src/**/conftest.py"
+        - "scripts/**/*.py"

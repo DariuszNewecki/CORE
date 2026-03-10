@@ -1,8 +1,8 @@
 {
-  "audit_id": "d076089f-09c8-4461-ada2-ae8defb5181b",
-  "timestamp": "2026-03-10T13:59:31Z",
+  "audit_id": "25c83d2f-5239-4b8e-a6d1-3e63a0d7dfa1",
+  "timestamp": "2026-03-10T20:45:27Z",
   "passed": true,
-  "findings_count": 137,
+  "findings_count": 305,
   "executed_rules": [
     "ai.prompt.artifact.no_provider_leak",
     "ai.prompt.artifact.required_fields",
@@ -91,6 +91,7 @@
     "purity.no_ast_duplication",
     "purity.no_dead_code",
     "purity.no_metadata_decorators",
+    "purity.no_orphan_files",
     "purity.no_semantic_duplication",
     "purity.no_todo_placeholders",
     "purity.stable_id_anchor",

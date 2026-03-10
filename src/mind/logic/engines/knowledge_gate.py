@@ -6,11 +6,15 @@ Knowledge Graph Governance Engine.
 REFACTORED:
 - Handles "core.vector_index" vs "core.symbol_vector_links" schema drift.
 - Improved robustness for missing tables.
+V2.1: Added orphan_file_check — import graph traversal from declared entry points.
 """
 
 from __future__ import annotations
 
+import ast
+import fnmatch
 from collections import defaultdict
+from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from sqlalchemy import text
@@ -42,6 +46,7 @@ class KnowledgeGateEngine(BaseEngine):
             "semantic_duplication",
             "duplicate_ids",
             "table_has_records",
+            "orphan_file_check",
         }
 
     # ID: d2fa4e12-5198-462f-9615-0d286c200529
@@ -73,6 +78,8 @@ class KnowledgeGateEngine(BaseEngine):
             return self._check_duplicate_ids(context, params)
         elif check_type == "table_has_records":
             return await self._check_table_has_records(context, params)
+        elif check_type == "orphan_file_check":
+            return self._check_orphan_files(context, params)
 
         return []
 
@@ -200,10 +207,139 @@ class KnowledgeGateEngine(BaseEngine):
         self, context: AuditorContext, params: dict[str, Any]
     ) -> list[AuditFinding]:
         findings: list[AuditFinding] = []
-        # Fixed: Checking attribute safely
         qdrant = getattr(context, "qdrant_service", None)
         if not context.symbols_map or not qdrant:
             return findings
+        return findings
+
+    # ID: kg-orphan-check
+    def _check_orphan_files(
+        self, context: AuditorContext, params: dict[str, Any]
+    ) -> list[AuditFinding]:
+        """
+        Detects source files unreachable from any declared entry point via
+        the import graph. Closes the gap left by vulture's symbol-level analysis.
+        """
+        findings: list[AuditFinding] = []
+
+        repo_path = context.repo_path
+        entry_point_dirs = params.get("entry_points", ["src/cli/", "src/body/atomic/"])
+        exclude_patterns = params.get(
+            "excludes",
+            [
+                "src/**/__init__.py",
+                "src/**/__main__.py",
+                "src/**/conftest.py",
+            ],
+        )
+
+        src_root = repo_path / "src"
+        if not src_root.exists():
+            logger.warning("orphan_file_check: src/ not found at %s", src_root)
+            return findings
+
+        # 1. Collect all Python files under src/
+        all_files: set[Path] = set(src_root.rglob("*.py"))
+
+        # 2. Filter out excluded patterns
+        # ID: 51b8b5d5-9742-4412-87dc-e3ac585bd94e
+        def is_excluded(path: Path) -> bool:
+            rel = str(path.relative_to(repo_path))
+            return any(fnmatch.fnmatch(rel, pat) for pat in exclude_patterns)
+
+        candidate_files = {f for f in all_files if not is_excluded(f)}
+
+        # 3. Resolve entry point files
+        seeds: set[Path] = set()
+        for ep in entry_point_dirs:
+            ep_path = repo_path / ep
+            if ep_path.is_dir():
+                seeds.update(ep_path.rglob("*.py"))
+            elif ep_path.is_file():
+                seeds.add(ep_path)
+
+        if not seeds:
+            logger.warning(
+                "orphan_file_check: no entry point files found in %s", entry_point_dirs
+            )
+            return findings
+
+        # 4. Build import graph via AST traversal
+        # ID: e3057022-9b5d-4e38-a71b-01e92b47e96d
+        def resolve_import(module_name: str, current_file: Path) -> Path | None:
+            """Resolve a dotted module name to an absolute file path."""
+            parts = module_name.split(".")
+            # Try absolute from src/
+            candidate = src_root.joinpath(*parts).with_suffix(".py")
+            if candidate.exists():
+                return candidate
+            # Try as package __init__
+            init_candidate = src_root.joinpath(*parts, "__init__.py")
+            if init_candidate.exists():
+                return init_candidate
+            # Try relative from current file's directory
+            rel_candidate = current_file.parent.joinpath(*parts).with_suffix(".py")
+            if rel_candidate.exists():
+                return rel_candidate
+            return None
+
+        # ID: 0096be73-23f5-4bcc-b521-4befdaa4c860
+        def get_imports(file_path: Path) -> list[Path]:
+            """Extract all local imports from a Python file via AST."""
+            imports: list[Path] = []
+            try:
+                tree = ast.parse(
+                    file_path.read_text(encoding="utf-8"), filename=str(file_path)
+                )
+            except (SyntaxError, OSError):
+                return imports
+            for node in ast.walk(tree):
+                if isinstance(node, ast.Import):
+                    for alias in node.names:
+                        resolved = resolve_import(alias.name, file_path)
+                        if resolved:
+                            imports.append(resolved)
+                elif isinstance(node, ast.ImportFrom):
+                    if node.module:
+                        resolved = resolve_import(node.module, file_path)
+                        if resolved:
+                            imports.append(resolved)
+            return imports
+
+        # 5. BFS from seeds
+        reachable: set[Path] = set()
+        queue = list(seeds)
+        while queue:
+            current = queue.pop()
+            if current in reachable:
+                continue
+            reachable.add(current)
+            for imported in get_imports(current):
+                if imported not in reachable:
+                    queue.append(imported)
+
+        # 6. Orphans = candidates not reachable
+        orphans = candidate_files - reachable
+
+        for orphan in sorted(orphans):
+            rel = str(orphan.relative_to(repo_path))
+            findings.append(
+                AuditFinding(
+                    check_id="purity.no_orphan_files",
+                    severity=AuditSeverity.WARNING,
+                    message=f"Orphan file: '{rel}' is not reachable from any entry point.",
+                    file_path=rel,
+                )
+            )
+            logger.debug("orphan_file_check: flagged %s", rel)
+
+        logger.info(
+            "orphan_file_check: %d/%d files reachable, %d orphans found",
+            len(reachable),
+            len(candidate_files),
+            len(orphans),
+        )
+
         return findings
 
     def _create_duplication_finding(self, a, b, score, dtype) -> AuditFinding:

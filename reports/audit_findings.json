@@ -524,6 +524,15 @@
   {
     "check_id": "modularity.single_responsibility",
     "severity": "warning",
+    "message": "Modularity Debt: 58.2/100 (Limit: 60.0)",
+    "file_path": "src/mind/logic/engines/knowledge_gate.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "modularity.single_responsibility",
+    "severity": "warning",
     "message": "Modularity Debt: 54.8/100 (Limit: 60.0)",
     "file_path": "src/shared/ai/prompt_model.py",
     "line_number": null,
@@ -686,6 +695,15 @@
   {
     "check_id": "modularity.semantic_cohesion",
     "severity": "warning",
+    "message": "Modularity Debt: 58.2/100 (Limit: 60.0)",
+    "file_path": "src/mind/logic/engines/knowledge_gate.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "modularity.semantic_cohesion",
+    "severity": "warning",
     "message": "Modularity Debt: 54.8/100 (Limit: 60.0)",
     "file_path": "src/shared/ai/prompt_model.py",
     "line_number": null,
@@ -848,6 +866,15 @@
   {
     "check_id": "modularity.import_coupling",
     "severity": "warning",
+    "message": "Modularity Debt: 58.2/100 (Limit: 60.0)",
+    "file_path": "src/mind/logic/engines/knowledge_gate.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "modularity.import_coupling",
+    "severity": "warning",
     "message": "Modularity Debt: 54.8/100 (Limit: 60.0)",
     "file_path": "src/shared/ai/prompt_model.py",
     "line_number": null,
@@ -1003,6 +1030,15 @@
     "severity": "warning",
     "message": "Modularity Debt: 49.2/100 (Limit: 60.0)",
     "file_path": "src/mind/logic/engines/glob_gate.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "modularity.refactor_score_threshold",
+    "severity": "warning",
+    "message": "Modularity Debt: 58.2/100 (Limit: 60.0)",
+    "file_path": "src/mind/logic/engines/knowledge_gate.py",
     "line_number": null,
     "context": {},
     "details": {}
@@ -1278,6 +1314,1482 @@
     "severity": "warning",
     "message": "Dead code detected: src/body/governance/runtime_validator.py:156: unused variable 'dst_root' (100% confidence)",
     "file_path": "System",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/api/cli_user.py' is not reachable from any entry point.",
+    "file_path": "src/api/cli_user.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/api/dependencies.py' is not reachable from any entry point.",
+    "file_path": "src/api/dependencies.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/api/v1/development_routes.py' is not reachable from any entry point.",
+    "file_path": "src/api/v1/development_routes.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/api/v1/knowledge_routes.py' is not reachable from any entry point.",
+    "file_path": "src/api/v1/knowledge_routes.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/body/analyzers/knowledge_graph_analyzer.py' is not reachable from any entry point.",
+    "file_path": "src/body/analyzers/knowledge_graph_analyzer.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/body/analyzers/prompt_analyzer.py' is not reachable from any entry point.",
+    "file_path": "src/body/analyzers/prompt_analyzer.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/body/autonomy/micro_proposal_executor.py' is not reachable from any entry point.",
+    "file_path": "src/body/autonomy/micro_proposal_executor.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/body/evaluators/constitutional_evaluator.py' is not reachable from any entry point.",
+    "file_path": "src/body/evaluators/constitutional_evaluator.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/body/evaluators/performance_evaluator.py' is not reachable from any entry point.",
+    "file_path": "src/body/evaluators/performance_evaluator.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/body/evaluators/security_evaluator.py' is not reachable from any entry point.",
+    "file_path": "src/body/evaluators/security_evaluator.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/body/governance/code_validator.py' is not reachable from any entry point.",
+    "file_path": "src/body/governance/code_validator.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/body/governance/engine_dispatcher.py' is not reachable from any entry point.",
+    "file_path": "src/body/governance/engine_dispatcher.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/body/governance/key_management_service.py' is not reachable from any entry point.",
+    "file_path": "src/body/governance/key_management_service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/body/governance/path_validator.py' is not reachable from any entry point.",
+    "file_path": "src/body/governance/path_validator.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/body/governance/remediation_service.py' is not reachable from any entry point.",
+    "file_path": "src/body/governance/remediation_service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/body/governance/runtime_validator.py' is not reachable from any entry point.",
+    "file_path": "src/body/governance/runtime_validator.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/body/introspection/capability_discovery_service.py' is not reachable from any entry point.",
+    "file_path": "src/body/introspection/capability_discovery_service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/body/introspection/discovery/from_kgb.py' is not reachable from any entry point.",
+    "file_path": "src/body/introspection/discovery/from_kgb.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/body/introspection/discovery/from_source_scan.py' is not reachable from any entry point.",
+    "file_path": "src/body/introspection/discovery/from_source_scan.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/body/introspection/discovery/loader.py' is not reachable from any entry point.",
+    "file_path": "src/body/introspection/discovery/loader.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/body/introspection/discovery/registry.py' is not reachable from any entry point.",
+    "file_path": "src/body/introspection/discovery/registry.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/body/introspection/discovery/semantics.py' is not reachable from any entry point.",
+    "file_path": "src/body/introspection/discovery/semantics.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/body/introspection/discovery/sync.py' is not reachable from any entry point.",
+    "file_path": "src/body/introspection/discovery/sync.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/body/introspection/export_vectors.py' is not reachable from any entry point.",
+    "file_path": "src/body/introspection/export_vectors.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/body/introspection/generate_correction_map.py' is not reachable from any entry point.",
+    "file_path": "src/body/introspection/generate_correction_map.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/body/introspection/graph_analysis_service.py' is not reachable from any entry point.",
+    "file_path": "src/body/introspection/graph_analysis_service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/body/introspection/knowledge_vectorizer.py' is not reachable from any entry point.",
+    "file_path": "src/body/introspection/knowledge_vectorizer.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/body/introspection/pattern_vectorizer.py' is not reachable from any entry point.",
+    "file_path": "src/body/introspection/pattern_vectorizer.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/body/introspection/semantic_clusterer.py' is not reachable from any entry point.",
+    "file_path": "src/body/introspection/semantic_clusterer.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/body/introspection/symbol_index_builder.py' is not reachable from any entry point.",
+    "file_path": "src/body/introspection/symbol_index_builder.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/body/invokers/capability_invoker.py' is not reachable from any entry point.",
+    "file_path": "src/body/invokers/capability_invoker.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/body/maintenance/scripts/context_export.py' is not reachable from any entry point.",
+    "file_path": "src/body/maintenance/scripts/context_export.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/body/maintenance/scripts/vector_verify.py' is not reachable from any entry point.",
+    "file_path": "src/body/maintenance/scripts/vector_verify.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/body/operations/anchor.py' is not reachable from any entry point.",
+    "file_path": "src/body/operations/anchor.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/body/operations/incident_logic.py' is not reachable from any entry point.",
+    "file_path": "src/body/operations/incident_logic.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/body/project_lifecycle/bootstrap_service.py' is not reachable from any entry point.",
+    "file_path": "src/body/project_lifecycle/bootstrap_service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/body/project_lifecycle/definition_service.py' is not reachable from any entry point.",
+    "file_path": "src/body/project_lifecycle/definition_service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/body/quality/anchor.py' is not reachable from any entry point.",
+    "file_path": "src/body/quality/anchor.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/body/self_healing/capability_parser.py' is not reachable from any entry point.",
+    "file_path": "src/body/self_healing/capability_parser.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/body/self_healing/complexity_filter.py' is not reachable from any entry point.",
+    "file_path": "src/body/self_healing/complexity_filter.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/body/self_healing/fix_manifest_hygiene.py' is not reachable from any entry point.",
+    "file_path": "src/body/self_healing/fix_manifest_hygiene.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/body/self_healing/owner_tagging_service.py' is not reachable from any entry point.",
+    "file_path": "src/body/self_healing/owner_tagging_service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/body/self_healing/prune_private_capabilities.py' is not reachable from any entry point.",
+    "file_path": "src/body/self_healing/prune_private_capabilities.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/body/self_healing/test_context/detectors.py' is not reachable from any entry point.",
+    "file_path": "src/body/self_healing/test_context/detectors.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/body/self_healing/test_context/examples.py' is not reachable from any entry point.",
+    "file_path": "src/body/self_healing/test_context/examples.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/body/self_healing/test_context/formatter.py' is not reachable from any entry point.",
+    "file_path": "src/body/self_healing/test_context/formatter.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/body/self_healing/test_context/metrics.py' is not reachable from any entry point.",
+    "file_path": "src/body/self_healing/test_context/metrics.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/body/self_healing/test_context/models.py' is not reachable from any entry point.",
+    "file_path": "src/body/self_healing/test_context/models.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/body/self_healing/test_context/parsers.py' is not reachable from any entry point.",
+    "file_path": "src/body/self_healing/test_context/parsers.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/body/self_healing/test_context_analyzer.py' is not reachable from any entry point.",
+    "file_path": "src/body/self_healing/test_context_analyzer.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/body/self_healing/test_failure_analyzer.py' is not reachable from any entry point.",
+    "file_path": "src/body/self_healing/test_failure_analyzer.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/body/test_violation.py' is not reachable from any entry point.",
+    "file_path": "src/body/test_violation.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/body/workers/call_site_rewriter.py' is not reachable from any entry point.",
+    "file_path": "src/body/workers/call_site_rewriter.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/body/workers/doc_writer.py' is not reachable from any entry point.",
+    "file_path": "src/body/workers/doc_writer.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/body/workers/prompt_artifact_writer.py' is not reachable from any entry point.",
+    "file_path": "src/body/workers/prompt_artifact_writer.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/mind/governance/anchor.py' is not reachable from any entry point.",
+    "file_path": "src/mind/governance/anchor.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/mind/governance/check_registry.py' is not reachable from any entry point.",
+    "file_path": "src/mind/governance/check_registry.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/mind/governance/enforcement/async_units.py' is not reachable from any entry point.",
+    "file_path": "src/mind/governance/enforcement/async_units.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/mind/governance/enforcement/base.py' is not reachable from any entry point.",
+    "file_path": "src/mind/governance/enforcement/base.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/mind/governance/enforcement/sync_units.py' is not reachable from any entry point.",
+    "file_path": "src/mind/governance/enforcement/sync_units.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/mind/governance/governance_query.py' is not reachable from any entry point.",
+    "file_path": "src/mind/governance/governance_query.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/mind/governance/micro_proposal_validator.py' is not reachable from any entry point.",
+    "file_path": "src/mind/governance/micro_proposal_validator.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/mind/governance/policy_analyzer.py' is not reachable from any entry point.",
+    "file_path": "src/mind/governance/policy_analyzer.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/mind/governance/policy_gate.py' is not reachable from any entry point.",
+    "file_path": "src/mind/governance/policy_gate.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/mind/governance/policy_loader.py' is not reachable from any entry point.",
+    "file_path": "src/mind/governance/policy_loader.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/mind/governance/policy_resolver.py' is not reachable from any entry point.",
+    "file_path": "src/mind/governance/policy_resolver.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/mind/governance/registry.py' is not reachable from any entry point.",
+    "file_path": "src/mind/governance/registry.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/mind/governance/schemas.py' is not reachable from any entry point.",
+    "file_path": "src/mind/governance/schemas.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/mind/logic/auditor.py' is not reachable from any entry point.",
+    "file_path": "src/mind/logic/auditor.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/shared/ai/response_parser.py' is not reachable from any entry point.",
+    "file_path": "src/shared/ai/response_parser.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/shared/cli_types.py' is not reachable from any entry point.",
+    "file_path": "src/shared/cli_types.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/shared/constants.py' is not reachable from any entry point.",
+    "file_path": "src/shared/constants.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/shared/infrastructure/adapters/embedding_provider.py' is not reachable from any entry point.",
+    "file_path": "src/shared/infrastructure/adapters/embedding_provider.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/shared/infrastructure/context/cli.py' is not reachable from any entry point.",
+    "file_path": "src/shared/infrastructure/context/cli.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/shared/infrastructure/context/reuse.py' is not reachable from any entry point.",
+    "file_path": "src/shared/infrastructure/context/reuse.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/shared/infrastructure/events/base.py' is not reachable from any entry point.",
+    "file_path": "src/shared/infrastructure/events/base.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/shared/infrastructure/events/bus.py' is not reachable from any entry point.",
+    "file_path": "src/shared/infrastructure/events/bus.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/shared/infrastructure/intent/intent_connector.py' is not reachable from any entry point.",
+    "file_path": "src/shared/infrastructure/intent/intent_connector.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/shared/infrastructure/lifespan.py' is not reachable from any entry point.",
+    "file_path": "src/shared/infrastructure/lifespan.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/shared/infrastructure/repositories/symbol_definition_repository.py' is not reachable from any entry point.",
+    "file_path": "src/shared/infrastructure/repositories/symbol_definition_repository.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/shared/infrastructure/storage/file_provider.py' is not reachable from any entry point.",
+    "file_path": "src/shared/infrastructure/storage/file_provider.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/shared/legacy_models.py' is not reachable from any entry point.",
+    "file_path": "src/shared/legacy_models.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/shared/models/pattern_graph.py' is not reachable from any entry point.",
+    "file_path": "src/shared/models/pattern_graph.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/shared/processors/json_processor.py' is not reachable from any entry point.",
+    "file_path": "src/shared/processors/json_processor.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/shared/schemas/manifest_validator.py' is not reachable from any entry point.",
+    "file_path": "src/shared/schemas/manifest_validator.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/shared/utils/alias_resolver.py' is not reachable from any entry point.",
+    "file_path": "src/shared/utils/alias_resolver.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/shared/utils/header_tools.py' is not reachable from any entry point.",
+    "file_path": "src/shared/utils/header_tools.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/shared/utils/import_scanner.py' is not reachable from any entry point.",
+    "file_path": "src/shared/utils/import_scanner.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/shared/utils/manifest_aggregator.py' is not reachable from any entry point.",
+    "file_path": "src/shared/utils/manifest_aggregator.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/shared/utils/path_utils.py' is not reachable from any entry point.",
+    "file_path": "src/shared/utils/path_utils.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/shared/utils/text_cleaner.py' is not reachable from any entry point.",
+    "file_path": "src/shared/utils/text_cleaner.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/will/agents/action_introspection.py' is not reachable from any entry point.",
+    "file_path": "src/will/agents/action_introspection.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/will/agents/context_auditor.py' is not reachable from any entry point.",
+    "file_path": "src/will/agents/context_auditor.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/will/agents/conversational/agent.py' is not reachable from any entry point.",
+    "file_path": "src/will/agents/conversational/agent.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/will/agents/conversational/factory.py' is not reachable from any entry point.",
+    "file_path": "src/will/agents/conversational/factory.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/will/agents/conversational/helpers.py' is not reachable from any entry point.",
+    "file_path": "src/will/agents/conversational/helpers.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/will/agents/conversational_governed.py' is not reachable from any entry point.",
+    "file_path": "src/will/agents/conversational_governed.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/will/agents/deduction_agent.py' is not reachable from any entry point.",
+    "file_path": "src/will/agents/deduction_agent.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/will/agents/governance_mixin.py' is not reachable from any entry point.",
+    "file_path": "src/will/agents/governance_mixin.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/will/agents/intent_translator.py' is not reachable from any entry point.",
+    "file_path": "src/will/agents/intent_translator.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/will/agents/micro_planner.py' is not reachable from any entry point.",
+    "file_path": "src/will/agents/micro_planner.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/will/agents/plan_executor.py' is not reachable from any entry point.",
+    "file_path": "src/will/agents/plan_executor.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/will/agents/pre_flight_validator.py' is not reachable from any entry point.",
+    "file_path": "src/will/agents/pre_flight_validator.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/will/agents/reconnaissance_agent.py' is not reachable from any entry point.",
+    "file_path": "src/will/agents/reconnaissance_agent.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/will/agents/researcher_agent.py' is not reachable from any entry point.",
+    "file_path": "src/will/agents/researcher_agent.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/will/agents/self_correction_engine.py' is not reachable from any entry point.",
+    "file_path": "src/will/agents/self_correction_engine.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/will/agents/self_healing_agent.py' is not reachable from any entry point.",
+    "file_path": "src/will/agents/self_healing_agent.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/will/agents/specification_agent.py' is not reachable from any entry point.",
+    "file_path": "src/will/agents/specification_agent.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/will/autonomy/proposal_service.py' is not reachable from any entry point.",
+    "file_path": "src/will/autonomy/proposal_service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/will/autonomy/proposal_state_manager.py' is not reachable from any entry point.",
+    "file_path": "src/will/autonomy/proposal_state_manager.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/will/cli_logic/proposals_micro.py' is not reachable from any entry point.",
+    "file_path": "src/will/cli_logic/proposals_micro.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/will/cli_logic/reviewer.py' is not reachable from any entry point.",
+    "file_path": "src/will/cli_logic/reviewer.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/will/orchestration/intent_alignment.py' is not reachable from any entry point.",
+    "file_path": "src/will/orchestration/intent_alignment.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/will/orchestration/process_orchestrator.py' is not reachable from any entry point.",
+    "file_path": "src/will/orchestration/process_orchestrator.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/will/orchestration/remediation_orchestrator.py' is not reachable from any entry point.",
+    "file_path": "src/will/orchestration/remediation_orchestrator.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/will/self_healing/alignment/persistence.py' is not reachable from any entry point.",
+    "file_path": "src/will/self_healing/alignment/persistence.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/will/self_healing/alignment/sandbox.py' is not reachable from any entry point.",
+    "file_path": "src/will/self_healing/alignment/sandbox.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/will/self_healing/alignment/specialists.py' is not reachable from any entry point.",
+    "file_path": "src/will/self_healing/alignment/specialists.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/will/self_healing/alignment_orchestrator.py' is not reachable from any entry point.",
+    "file_path": "src/will/self_healing/alignment_orchestrator.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/will/self_healing/batch_remediation_service.py' is not reachable from any entry point.",
+    "file_path": "src/will/self_healing/batch_remediation_service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/will/self_healing/capability_reconciliation_service.py' is not reachable from any entry point.",
+    "file_path": "src/will/self_healing/capability_reconciliation_service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/will/self_healing/context_aware_test_generator.py' is not reachable from any entry point.",
+    "file_path": "src/will/self_healing/context_aware_test_generator.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/will/self_healing/coverage_remediation_service.py' is not reachable from any entry point.",
+    "file_path": "src/will/self_healing/coverage_remediation_service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/will/self_healing/coverage_watcher.py' is not reachable from any entry point.",
+    "file_path": "src/will/self_healing/coverage_watcher.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/will/self_healing/enrichment_service.py' is not reachable from any entry point.",
+    "file_path": "src/will/self_healing/enrichment_service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/will/self_healing/linelength_service.py' is not reachable from any entry point.",
+    "file_path": "src/will/self_healing/linelength_service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/will/self_healing/refactoring_proposal_writer.py' is not reachable from any entry point.",
+    "file_path": "src/will/self_healing/refactoring_proposal_writer.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/will/self_healing/simple_test_generator.py' is not reachable from any entry point.",
+    "file_path": "src/will/self_healing/simple_test_generator.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/will/self_healing/single_file_remediation.py' is not reachable from any entry point.",
+    "file_path": "src/will/self_healing/single_file_remediation.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/will/self_healing/test_generation/automatic_repair.py' is not reachable from any entry point.",
+    "file_path": "src/will/self_healing/test_generation/automatic_repair.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/will/self_healing/test_generation/code_extractor.py' is not reachable from any entry point.",
+    "file_path": "src/will/self_healing/test_generation/code_extractor.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/will/self_healing/test_generation/context_builder.py' is not reachable from any entry point.",
+    "file_path": "src/will/self_healing/test_generation/context_builder.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/will/self_healing/test_generation/executor.py' is not reachable from any entry point.",
+    "file_path": "src/will/self_healing/test_generation/executor.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/will/self_healing/test_generation/failure_parser.py' is not reachable from any entry point.",
+    "file_path": "src/will/self_healing/test_generation/failure_parser.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/will/self_healing/test_generation/generation_workflow.py' is not reachable from any entry point.",
+    "file_path": "src/will/self_healing/test_generation/generation_workflow.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/will/self_healing/test_generation/generator.py' is not reachable from any entry point.",
+    "file_path": "src/will/self_healing/test_generation/generator.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/will/self_healing/test_generation/llm_correction.py' is not reachable from any entry point.",
+    "file_path": "src/will/self_healing/test_generation/llm_correction.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/will/self_healing/test_generation/repair_workflow.py' is not reachable from any entry point.",
+    "file_path": "src/will/self_healing/test_generation/repair_workflow.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/will/self_healing/test_generation/single_test_fixer.py' is not reachable from any entry point.",
+    "file_path": "src/will/self_healing/test_generation/single_test_fixer.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/will/self_healing/test_generation/test_extractor.py' is not reachable from any entry point.",
+    "file_path": "src/will/self_healing/test_generation/test_extractor.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/will/self_healing/test_generation/test_scorer.py' is not reachable from any entry point.",
+    "file_path": "src/will/self_healing/test_generation/test_scorer.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/will/self_healing/test_generation/test_validator.py' is not reachable from any entry point.",
+    "file_path": "src/will/self_healing/test_generation/test_validator.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/will/self_healing/test_generator.py' is not reachable from any entry point.",
+    "file_path": "src/will/self_healing/test_generator.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/will/strategists/fix_strategist.py' is not reachable from any entry point.",
+    "file_path": "src/will/strategists/fix_strategist.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/will/strategists/sync_strategist.py' is not reachable from any entry point.",
+    "file_path": "src/will/strategists/sync_strategist.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/will/strategists/validation_strategist.py' is not reachable from any entry point.",
+    "file_path": "src/will/strategists/validation_strategist.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/will/test_generation/helpers/context_extractor.py' is not reachable from any entry point.",
+    "file_path": "src/will/test_generation/helpers/context_extractor.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/will/test_generation/helpers/test_executor.py' is not reachable from any entry point.",
+    "file_path": "src/will/test_generation/helpers/test_executor.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/will/test_generation/phases/generation_phase.py' is not reachable from any entry point.",
+    "file_path": "src/will/test_generation/phases/generation_phase.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/will/test_generation/phases/load_phase.py' is not reachable from any entry point.",
+    "file_path": "src/will/test_generation/phases/load_phase.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/will/test_generation/phases/parse_phase.py' is not reachable from any entry point.",
+    "file_path": "src/will/test_generation/phases/parse_phase.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/will/test_generation/strategy_link.py' is not reachable from any entry point.",
+    "file_path": "src/will/test_generation/strategy_link.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/will/tools/anchor_search.py' is not reachable from any entry point.",
+    "file_path": "src/will/tools/anchor_search.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/will/tools/cognitive_toolbox.py' is not reachable from any entry point.",
+    "file_path": "src/will/tools/cognitive_toolbox.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/will/tools/context/standards.py' is not reachable from any entry point.",
+    "file_path": "src/will/tools/context/standards.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/will/tools/file_navigator.py' is not reachable from any entry point.",
+    "file_path": "src/will/tools/file_navigator.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/will/tools/tool_generator.py' is not reachable from any entry point.",
+    "file_path": "src/will/tools/tool_generator.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/will/workflows/dev_sync_phases.py' is not reachable from any entry point.",
+    "file_path": "src/will/workflows/dev_sync_phases.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/will/workflows/dev_sync_reporter.py' is not reachable from any entry point.",
+    "file_path": "src/will/workflows/dev_sync_reporter.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/will/workflows/phases/code_analysis_phase.py' is not reachable from any entry point.",
+    "file_path": "src/will/workflows/phases/code_analysis_phase.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/will/workflows/phases/code_fixers_phase.py' is not reachable from any entry point.",
+    "file_path": "src/will/workflows/phases/code_fixers_phase.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/will/workflows/phases/database_sync_phase.py' is not reachable from any entry point.",
+    "file_path": "src/will/workflows/phases/database_sync_phase.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/will/workflows/phases/quality_checks_phase.py' is not reachable from any entry point.",
+    "file_path": "src/will/workflows/phases/quality_checks_phase.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/will/workflows/phases/vectorization_phase.py' is not reachable from any entry point.",
+    "file_path": "src/will/workflows/phases/vectorization_phase.py",
     "line_number": null,
     "context": {},
     "details": {}
