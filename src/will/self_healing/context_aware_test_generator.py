@@ -18,6 +18,7 @@ from typing import Any
 
 from body.services.file_service import FileService
 from body.services.service_registry import service_registry
+from shared.ai.prompt_model import PromptModel
 from shared.logger import getLogger
 from shared.utils.parsing import extract_python_code_from_response
 from will.orchestration.cognitive_service import CognitiveService
@@ -55,7 +56,6 @@ class ContextAwareTestGenerator:
                 session_factory=service_registry.session,
             )
 
-            # AST + file I/O offloaded for async-native compliance
             symbol_code = await asyncio.to_thread(
                 self._extract_symbol_code, file_path, symbol_name
             )
@@ -132,23 +132,19 @@ class ContextAwareTestGenerator:
             file_path.replace("src/", "", 1).replace(".py", "").replace("/", ".")
         )
 
-        prompt = (
-            f"Generate a pytest test for this Python symbol from {file_path}.\n"
-            "```python\n"
-            f"{symbol_code}\n"
-            "```\n"
-            f"Module path: {module_path}\n"
-            "Requirements:\n"
-            f"Write ONE test function named: test_{symbol_name}\n"
-            f"Import like: from {module_path} import {symbol_name}\n"
-            "Test the happy path (basic functionality)\n"
-            "Use mocks for external I/O or DB\n"
-            "Output ONLY the test function inside a ```python code block\n"
-        )
-
         try:
             client = await self.cognitive.aget_client_for_role("Coder")
-            response = await client.make_request_async(prompt, user_id="ctx_test_gen")
+            model = PromptModel.load("context_aware_test_gen")
+            response = await model.invoke(
+                context={
+                    "file_path": file_path,
+                    "symbol_name": symbol_name,
+                    "symbol_code": symbol_code,
+                    "module_path": module_path,
+                },
+                client=client,
+                user_id="ctx_test_gen",
+            )
             return extract_python_code_from_response(response)
         except Exception as exc:
             logger.error("LLM request failed: %s", exc)
@@ -186,7 +182,6 @@ class ContextAwareTestGenerator:
         self, test_code: str, symbol_name: str, source_file: str
     ) -> tuple[bool, str]:
         """Try to run the test without direct os.environ access."""
-        # Ensure directories exist via governed channel
         self.file_handler.ensure_dir("work/testing/failures")
         self.file_handler.ensure_dir("work/testing/temp")
 

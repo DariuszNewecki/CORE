@@ -4,12 +4,14 @@
 Handles self-correction for pattern and constitutional violations.
 
 FIXED: Changed v.message to v['message'] for dict access.
+HEALED: attempt_pattern_correction uses PromptModel.invoke() — ai.prompt.model_required compliant.
 """
 
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from shared.ai.prompt_model import PromptModel
 from shared.logger import getLogger
 from shared.utils.parsing import extract_python_code_from_response
 from will.orchestration.self_correction_engine import attempt_correction
@@ -70,12 +72,10 @@ class CorrectionEngine:
         Returns:
             Dict with 'status' and either 'code' or 'message'
         """
-        # FIXED: Changed v.message to v['message'] for dict access
         violation_messages = "\n".join(
             [f"- {v.get('message', str(v))}" for v in pattern_violations]
         )
 
-        # DECISION TRACING: Record correction attempt
         self.tracer.record(
             agent="CorrectionEngine",
             decision_type="pattern_correction",
@@ -86,23 +86,16 @@ class CorrectionEngine:
             confidence=0.7,
         )
 
-        correction_prompt = f"""
-The following code violates the {pattern_id} pattern:
-{current_code}
-
-Pattern Violations:
-{violation_messages}
-
-Pattern Requirements:
-{pattern_requirements}
-
-Please fix the code to comply with the {pattern_id} pattern.
-Return ONLY the corrected Python code.
-"""
-
         generator = await self.cognitive_service.aget_client_for_role("Coder")
-        raw_response = await generator.make_request_async(
-            correction_prompt,
+        model = PromptModel.load("pattern_correction")
+        raw_response = await model.invoke(
+            context={
+                "pattern_id": pattern_id,
+                "current_code": current_code,
+                "violation_messages": violation_messages,
+                "pattern_requirements": pattern_requirements,
+            },
+            client=generator,
             user_id="coder_agent_pattern_correction",
         )
 
@@ -134,7 +127,6 @@ Return ONLY the corrected Python code.
         Returns:
             Dict with 'status' and either 'code' or 'message'
         """
-        # DECISION TRACING: Record constitutional correction attempt
         self.tracer.record(
             agent="CorrectionEngine",
             decision_type="constitutional_correction",
@@ -155,7 +147,7 @@ Return ONLY the corrected Python code.
             "original_prompt": goal,
             "runtime_error": runtime_error,
         }
-        logger.info("  -> 🧬 Invoking self-correction engine...")
+        logger.info("  -> Invoking self-correction engine...")
         return await attempt_correction(
             correction_context,
             self.cognitive_service,

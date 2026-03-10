@@ -9,13 +9,16 @@ CONSTITUTIONAL PRINCIPLE:
 HARDENING (V2.6):
 - Decoupled from Will layer via Protocols (P2.2).
 - Uses TaskStructureProtocol and CognitiveProtocol to maintain Mind-Will boundary.
+HEALED: _extract_guidance_from_policy uses PromptModel.invoke() — ai.prompt.model_required compliant.
 """
 
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, ClassVar
 
+from shared.ai.prompt_model import PromptModel
 from shared.logger import getLogger
 
 
@@ -277,44 +280,18 @@ class AssumptionExtractor:
         policy_text: str,
         task_structure: TaskStructureProtocol,
     ) -> GuidanceExtraction | None:
-        prompt = f"""
-You are CORE's Constitutional Interpretation Engine.
-Your task: Extract operational guidance from a policy document.
-
-CONTEXT:
-The user is creating: {task_structure.intent}
-Task type: {task_structure.task_type.value}
-
-INCOMPLETE ASPECT:
-The user did not specify: {aspect}
-
-POLICY DOCUMENT:
-{policy_text}
-
-INSTRUCTIONS:
-Find guidance in the policy relevant to "{aspect}"
-Extract the recommended approach
-Cite the EXACT policy clause (rule ID or line reference)
-Rate confidence (0.0-1.0) based on how explicit the policy is
-
-RESPOND IN JSON:
-{{
-"has_guidance": true/false,
-"recommended_value": {{"strategy": "...", "retries": 3}},
-"policy_clause": ".intent/policies/xyz.yaml#rule_id",
-"explanation": "The policy recommends...",
-"confidence": 0.85
-}}
-
-If no guidance found, set has_guidance=false.
-"""
-
         try:
             interpreter = await self.llm.aget_client_for_role("Architect")
-
-            response = await interpreter.make_request(
-                prompt=prompt,
-                system_prompt="Interpret policy defaults.",
+            model = PromptModel.load("assumption_extractor")
+            response = await model.invoke(
+                context={
+                    "task_intent": task_structure.intent,
+                    "task_type": task_structure.task_type.value,
+                    "aspect": aspect,
+                    "policy_text": policy_text,
+                },
+                client=interpreter,
+                user_id="assumption_extractor",
             )
 
             json_str = response
@@ -322,8 +299,6 @@ If no guidance found, set has_guidance=false.
                 json_str = response.split("```json")[1].split("```")[0]
             elif "```" in response:
                 json_str = response.split("```")[1].split("```")[0]
-
-            import json
 
             result = json.loads(json_str.strip())
 
