@@ -37,6 +37,7 @@ from cli.resources.database import app as database_app
 from cli.resources.dev import app as dev_app
 from cli.resources.project import app as project_app
 from cli.resources.proposals import app as proposals_app
+from cli.resources.secrets import app as secrets_app
 from cli.resources.symbols import app as symbols_app
 from cli.resources.vectors import app as vectors_app
 from cli.resources.workers import app as workers_app
@@ -84,6 +85,9 @@ def register_all_commands(app_instance: typer.Typer) -> None:
 
     # OPERATOR TOOLS (Wave 4: maintenance & rewiring)
     app_instance.add_typer(tools_app, name="tools")
+    app_instance.add_typer(
+        secrets_app, name="secrets"
+    )  # For managing encrypted secrets
 
     # DAEMON MANAGEMENT
     app_instance.add_typer(daemon_app, name="daemon")

@@ -122,7 +122,7 @@ def find_duplicates(
 
     Includes:
     - Any ID appearing more than once (true duplicates)
-    - Any ID that is not a valid UUID (placeholders like "TBD",
+    - Any ID that is not a valid UUID (placeholders like "pending",
       template_value, executor_execute, or malformed UUIDs)
 
     Args:
@@ -186,7 +186,7 @@ def _build_replacement_plan(
     Build a per-file replacement plan for duplicate IDs.
 
     For each duplicate group, the first occurrence is preserved and all
-    subsequent occurrences get fresh UUIDs. Invalid placeholders ("TBD",
+    subsequent occurrences get fresh UUIDs. Invalid placeholders ("pending",
     template_value, etc.) are ALL replaced.
 
     Args:

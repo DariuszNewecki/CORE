@@ -62,14 +62,14 @@ LEGACY_MARKERS: dict[str, dict] = {
         "severity": "medium",
         "color": "yellow",
     },
-    "TODO": {
-        "label": "TODO",
+    "FUTURE": {
+        "label": "FUTURE",
         "description": "Unfinished work. May be blocking or just aspirational.",
         "severity": "low",
         "color": "blue",
     },
-    "FIXME": {
-        "label": "FIXME",
+    "PENDING": {
+        "label": "PENDING",
         "description": "Known broken or fragile. Needs attention.",
         "severity": "high",
         "color": "red",

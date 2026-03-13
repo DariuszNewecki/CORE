@@ -70,12 +70,12 @@ def admin_legacy_cmd(
         None,
         "--marker",
         "-m",
-        help="Filter by marker type (e.g. HEALED, TODO, DEPRECATED)",
+        help="Filter by marker type (e.g. HEALED, FUTURE, DEPRECATED)",
     ),
 ) -> None:
     """
     Find every HEALED, CONSTITUTIONAL FIX, CIRCULARITY FIX, DEPRECATED,
-    TODO, FIXME, HACK, WORKAROUND and LEGACY marker in the codebase.
+    FUTURE, PENDING, HACK, WORKAROUND and LEGACY marker in the codebase.
 
     This is your cleanup map. Start with high severity, highest count files.
 
