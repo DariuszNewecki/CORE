@@ -92,7 +92,7 @@ def _format_item_source(item: dict[str, Any]) -> str:
 def _format_packet_for_display(
     packet: dict[str, Any],
     file: str,
-    symbol: str,
+    symbol: str | None,
     task_type: str,
     show_prompt: bool,
 ) -> str:
@@ -114,7 +114,7 @@ def _format_packet_for_display(
     lines.append("CORE CONTEXT PACKAGE  [Agent Simulation Mode]")
     lines.append("=" * 80)
     lines.append(f"Target file  : {file}")
-    lines.append(f"Target symbol: {symbol}")
+    lines.append(f"Target symbol: {symbol or '(file-level)'}")
     lines.append(f"Task type    : {task_type}")
     lines.append(f"Packet ID    : {header.get('task_id', 'unknown')}")
     lines.append(f"Items        : {len(items)}")
@@ -178,7 +178,7 @@ def _format_packet_for_display(
 def _assemble_enriched_prompt(
     items: list[dict[str, Any]],
     file: str,
-    symbol: str,
+    symbol: str | None,
     task_type: str,
 ) -> str:
     """
@@ -198,7 +198,7 @@ def _assemble_enriched_prompt(
 
         # Existing code: prefer exact symbol name match, fall back to first item in target file
         if path == file and content:
-            if name == symbol:
+            if symbol and name == symbol:
                 existing_code = content  # exact match — always wins
             elif not existing_code:
                 existing_code = content  # fallback — first item in target file
@@ -227,7 +227,11 @@ def _assemble_enriched_prompt(
     parts = [
         "# Code Generation Task",
         "",
-        f"**Goal:** Implement `{symbol}` in `{file}`",
+        (
+            f"**Goal:** Implement `{symbol}` in `{file}`"
+            if symbol
+            else f"**Goal:** Work in `{file}`"
+        ),
         f"**Task type:** {task_type}",
         "",
     ]
@@ -256,7 +260,7 @@ def _assemble_enriched_prompt(
         "5. Use similar implementations as reference (not verbatim)",
         "",
         "## Code to Generate",
-        f"Symbol: `{symbol}`",
+        f"Symbol: `{symbol}`" if symbol else "Symbol: `(file-level)`",
         f"Target file: `{file}`",
     ]
 
@@ -281,8 +285,8 @@ async def build_cmd(
         "-f",
         help="Target file path (e.g. src/mind/governance/authority_package_builder.py)",
     ),
-    symbol: str = typer.Option(
-        ...,
+    symbol: str | None = typer.Option(
+        None,
         "--symbol",
         "-s",
         help="Target symbol name (e.g. AuthorityPackageBuilder)",
@@ -342,7 +346,7 @@ async def build_cmd(
     console.print(
         Panel(
             f"[bold]File:[/bold]   {file}\n"
-            f"[bold]Symbol:[/bold] {symbol}\n"
+            f"[bold]Symbol:[/bold] {symbol or '(file-level)'}\n"
             f"[bold]Task:[/bold]   {task}",
             title="[bold blue]🔬 Building Agent Context[/bold blue]",
             expand=False,
@@ -355,7 +359,12 @@ async def build_cmd(
         "task_type": task,
         "target_file": file,
         "target_symbol": symbol,
-        "summary": goal or f"Inspect context for {symbol} in {file}",
+        "summary": goal
+        or (
+            f"Inspect context for {symbol} in {file}"
+            if symbol
+            else f"Inspect file-level context for {file}"
+        ),
         "scope": {
             "traversal_depth": 2,
             "include": [file],

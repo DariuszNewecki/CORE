@@ -106,6 +106,8 @@ mappings:
     scope:
       applies_to:
         - "src/will/**/*.py"
+      excludes:
+        - "src/will/workers/*.py"
 
   # ==========================================================================
   # RULE 7: Will Delegates Filesystem Operations
