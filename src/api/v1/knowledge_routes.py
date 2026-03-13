@@ -26,51 +26,6 @@ async def list_capabilities(
     session: AsyncSession = Depends(get_api_session),
 ) -> dict:
     """
-        One sentence summary: Retrieve known capabilities from an API session and return them as a dictionary with a 'capabilities' key.
-    Args:
-    - session: An asynchronous session for API operations.
-    Returns:
-    A dictionary containing the known capabilities.
-    """
-    """
-    Retrieve known capabilities from an API session and return them as a dictionary with a 'capabilities' key.
-    """
-    """
-        One sentence summary: Retrieve known capabilities from an API session and return them as a dictionary with a 'capabilities' key.
-
-    Args:
-    - session: An asynchronous session for API operations.
-
-    Returns:
-    A dictionary containing the known capabilities.
-    """
-    """
-        One sentence summary:
-    This function returns known capabilities as a dictionary with a 'capabilities' key.
-    """
-    """
-        One sentence summary:
-    This function returns known capabilities as a dictionary with a 'capabilities' key.
-
-    Args:
-    - session: An asynchronous session for API operations.
-
-    Returns:
-    A dictionary containing the known capabilities.
-    """
-    """
-        One sentence summary:
-    This function returns known capabilities as a dictionary with a 'capabilities' key.
-
-    Args:
-
-    - session: An asynchronous session for API operations.
-
-    Returns:
-
-    - A dictionary containing the known capabilities.
-    """
-    """
     Return known capabilities.
 
     Tests expect a 200 on GET /v1/knowledge/capabilities and a JSON object

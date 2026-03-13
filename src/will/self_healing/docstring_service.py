@@ -11,6 +11,8 @@ CONSTITUTIONAL ALIGNMENT:
 
 from __future__ import annotations
 
+import ast
+from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from body.atomic.executor import ActionExecutor
@@ -23,6 +25,38 @@ if TYPE_CHECKING:
     from shared.context import CoreContext
 
 logger = getLogger(__name__)
+
+
+def _has_docstring_in_source(repo_path: Path, symbol: dict[str, Any]) -> bool:
+    """
+    Check the live source file for an existing docstring.
+
+    Reads the actual file on disk — never trusts the knowledge graph snapshot,
+    which may be stale. Returns True if a docstring already exists so the
+    caller can skip LLM generation entirely.
+    """
+    file_path_str = symbol.get("file_path", "")
+    name = symbol.get("name", "")
+
+    if not file_path_str or not name:
+        return False
+
+    file_path = repo_path / file_path_str
+    if not file_path.exists():
+        return False
+
+    try:
+        source = file_path.read_text(encoding="utf-8")
+        tree = ast.parse(source)
+    except Exception:
+        return False
+
+    for node in ast.walk(tree):
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+            if node.name == name and ast.get_docstring(node):
+                return True
+
+    return False
 
 
 async def _async_fix_docstrings(
@@ -39,6 +73,7 @@ async def _async_fix_docstrings(
     Args:
         context: CoreContext providing cognitive, knowledge, and executor services.
         dry_run: When True, reports what would change without writing to filesystem.
+        limit: Max symbols to process. 0 means no limit.
     """
     logger.info("Searching for symbols missing docstrings...")
 
@@ -46,11 +81,14 @@ async def _async_fix_docstrings(
     knowledge_service = context.knowledge_service
     graph = await knowledge_service.get_graph()
     symbols = graph.get("symbols", {})
+    repo_path = Path(context.git_service.repo_path)
 
+    # Guard: check live source file — never trust the stale knowledge graph.
+    # This prevents repeated docstring injection when the graph hasn't resynced.
     symbols_to_fix = [
         s
         for s in symbols.values()
-        if not s.get("docstring") and s.get("kind") == "function"
+        if s.get("kind") == "function" and not _has_docstring_in_source(repo_path, s)
     ]
 
     if limit > 0:
@@ -75,7 +113,7 @@ async def _async_fix_docstrings(
             logger.debug("Docstring progress: %d/%d", i, len(symbols_to_fix))
 
         try:
-            source_code = extract_source_code(context.git_service.repo_path, symbol)
+            source_code = extract_source_code(repo_path, symbol)
             if not source_code:
                 continue
 

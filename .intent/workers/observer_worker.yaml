@@ -1,0 +1,33 @@
+$schema: "META/worker.schema.json"
+kind: worker
+
+metadata:
+  id: workers.observer_worker
+  title: System Observer
+  version: "1.0.0"
+  authority: policy
+  status: active
+
+identity:
+  uuid: "a7f3c2e1-b4d5-4e6f-8a9b-0c1d2e3f4a5b"
+  class: sensing
+
+mandate:
+  responsibility: >
+    Observe system state across all constitutional domains and post a
+    structured situation report to the Blackboard and system_health_log.
+  phase: audit
+  approval_required: false
+  scope:
+    domains:
+      - governance
+      - compliance
+      - documentation
+      - symbols
+  schedule:
+    max_interval: 300
+
+implementation:
+  module: will.workers.observer_worker
+  class: ObserverWorker
+  requires_core_context: false

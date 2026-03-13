@@ -1,0 +1,31 @@
+$schema: "META/worker.schema.json"
+kind: worker
+
+metadata:
+  id: workers.worker_auditor
+  title: Worker Auditor
+  version: "1.0.0"
+  authority: policy
+  status: active
+
+identity:
+  uuid: "c3e4f5a6-b7c8-4d9e-0f1a-2b3c4d5e6f7a"
+  class: governance
+
+mandate:
+  responsibility: >
+    Detect workers that have missed their declared heartbeat schedule and post
+    a finding to the Blackboard for each silent or abandoned worker.
+  phase: audit
+  approval_required: false
+  scope:
+    domains:
+      - governance
+      - compliance
+  schedule:
+    max_interval: 120
+
+implementation:
+  module: will.workers.worker_auditor
+  class: WorkerAuditor
+  requires_core_context: false

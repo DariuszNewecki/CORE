@@ -1,12 +1,12 @@
 # src/mind/governance/auditor.py
 """Constitutional Auditor - The Unified Enforcement Engine.
 
-PURIFIED (V2.3.0)
+PURIFIED
 - Removed FileService and service_registry to satisfy Mind/Body separation.
 - Returns data structures only; does not perform filesystem mutations.
 - Caller is responsible for artifact persistence.
 
-HARDENED (V2.5.0)
+HARDENED
 - P0.1: Audit verdict is now PASS / FAIL / DEGRADED (three-state).
 - P0.1: Crashed rules tracked and surfaced in results.
 - P0.2: Stats use true denominator (all declared rules, not just mapped).

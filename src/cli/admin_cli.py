@@ -41,6 +41,7 @@ from cli.resources.symbols import app as symbols_app
 from cli.resources.vectors import app as vectors_app
 from cli.resources.workers import app as workers_app
 from shared.infrastructure.database.session_manager import get_session
+from will.commands.daemon import daemon_app
 
 
 console = Console()
@@ -83,6 +84,9 @@ def register_all_commands(app_instance: typer.Typer) -> None:
 
     # OPERATOR TOOLS (Wave 4: maintenance & rewiring)
     app_instance.add_typer(tools_app, name="tools")
+
+    # DAEMON MANAGEMENT
+    app_instance.add_typer(daemon_app, name="daemon")
 
 
 # Register the resource tree

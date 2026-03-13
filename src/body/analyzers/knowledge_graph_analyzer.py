@@ -28,42 +28,6 @@ logger = getLogger(__name__)
 # ID: e9b2c3d4-f5a6-7b8c-9d0e-1f2a3b4c5d6e
 class KnowledgeGraphAnalyzer(BaseAnalyzer):
     """
-        KnowledgeGraphAnalyzer executes the knowledge graph construction process for a codebase.
-    Args:
-        repo_root: Repository root path (required, no settings fallback).
-        **kwargs: Additional keyword arguments.
-    Returns:
-        ComponentResult containing the constructed graph data or an error if repo_root is not provided.
-    """
-
-    """
-        KnowledgeGraphAnalyzer executes the knowledge graph construction process for a codebase.
-    Args:
-        repo_root: Repository root path (required, no settings fallback).
-        **kwargs: Additional keyword arguments.
-    Returns:
-        ComponentResult containing the constructed graph data or an error if repo_root is not provided.
-    """
-
-    """
-        KnowledgeGraphAnalyzer executes the knowledge graph construction process for a codebase.
-    Args:
-        repo_root: Repository root path (required, no settings fallback).
-        **kwargs: Additional keyword arguments.
-    Returns:
-        ComponentResult containing the constructed graph data or an error if repo_root is not provided.
-    """
-
-    """
-        KnowledgeGraphAnalyzer executes the knowledge graph construction process for codebase analysis.
-    Args:
-        repo_root: Repository root path (required, no settings fallback).
-        **kwargs: Additional keyword arguments.
-    Returns:
-        ComponentResult containing the constructed graph data or an error if repo_root is not provided.
-    """
-
-    """
     Standardized component for building the Knowledge Graph.
 
     Constitutional Requirement:

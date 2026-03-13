@@ -121,15 +121,16 @@
                 "permitted_tools": {
                     "type": "array",
                     "items": {
-                        "type": "string",
-                        "enum": [
-                            "llm.local",
-                            "llm.remote",
-                            "agent"
-                        ]
+                        "type": "string"
                     },
-                    "uniqueItems": true,
-                    "description": "Tools this worker is constitutionally permitted to call. Empty means no AI tools."
+                    "description": "Canonical tool keys this worker is permitted to invoke."
+                },
+                "tools": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "description": "Alias for permitted_tools. Accepted for compatibility."
                 },
                 "scope": {
                     "type": "object",
@@ -139,33 +140,43 @@
                             "type": "array",
                             "items": {
                                 "type": "string"
-                            },
-                            "description": "Glob patterns defining filesystem scope. Empty means no filesystem access."
+                            }
                         },
                         "domains": {
                             "type": "array",
                             "items": {
                                 "type": "string"
-                            },
-                            "description": "Logical domains this worker may touch."
+                            }
                         },
                         "notes": {
                             "type": "string",
-                            "description": "Human-readable scope notes."
+                            "maxLength": 1000
                         }
                     }
                 },
                 "approval_required": {
                     "type": "boolean",
-                    "default": true,
                     "description": "Whether proposals from this worker require human approval before execution."
                 },
-                "tools": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    },
-                    "description": "Named atomic actions this worker is permitted to invoke."
+                "schedule": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                        "max_interval"
+                    ],
+                    "description": "Self-scheduling contract. When present, the worker manages its own asyncio loop. The Orchestrator enforces this contract via last_heartbeat monitoring.",
+                    "properties": {
+                        "max_interval": {
+                            "type": "integer",
+                            "minimum": 10,
+                            "description": "Maximum seconds between heartbeats. Constitutional commitment — the worker must post a heartbeat at least once per this interval."
+                        },
+                        "glide_off": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "description": "Grace period in seconds added to max_interval before the Orchestrator raises a violation. Defaults to 10% of max_interval if absent. Absorbs timing jitter without masking real silence."
+                        }
+                    }
                 }
             }
         },
@@ -176,24 +187,22 @@
                 "module",
                 "class"
             ],
-            "description": "Python implementation reference. The sole source of truth for how to instantiate this worker.",
             "properties": {
                 "module": {
                     "type": "string",
                     "minLength": 3,
                     "maxLength": 256,
-                    "description": "Python module path relative to src/. e.g. will.workers.doc_worker"
+                    "description": "Python module path. e.g. will.workers.doc_worker"
                 },
                 "class": {
                     "type": "string",
                     "minLength": 1,
                     "maxLength": 128,
-                    "description": "Python class name within the module. e.g. DocWorker"
+                    "description": "Python class name within the module."
                 },
                 "requires_core_context": {
                     "type": "boolean",
-                    "default": false,
-                    "description": "When true, worker is instantiated with core_context=. When false, with cognitive_service=."
+                    "description": "Whether this worker requires a CoreContext instance injected at construction."
                 }
             }
         }

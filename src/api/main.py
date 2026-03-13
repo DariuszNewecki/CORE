@@ -25,37 +25,7 @@ logger = getLogger(__name__)
 # ID: 2751f337-a513-4f6d-8f35-b9d7055faac0
 def create_app() -> FastAPI:
     """
-        Creates and configures a FastAPI application with routers, exception handlers, and a health check.
-    Args: None.
-    Returns: Configured FastAPI instance.
-    """
-    """
-    This function initializes a FastAPI instance, adds three routers for handling different types of requests, configures exception handlers for various errors, includes a health check endpoint to monitor application status, and returns the configured FastAPI application.
-    """
-    """
-    This function initializes a FastAPI instance, adds three routers to handle different types of requests, configures exception handling for various error scenarios, includes a health check endpoint to monitor the application's status, and returns the configured FastAPI application.
-    """
-    """
-        This function creates a FastAPI instance with three routers, registers exception handlers, includes health check endpoint, and returns the configured application instance.
-
-    plaintext
-    Args:
-        None
-
-    Returns:
-        FastAPI object
-    """
-    """
-    Summarize the code for create_app function to create a FastAPI instance with three routers, exception handlers, health check endpoint, and return it.
-    """
-    """
-        This function creates a FastAPI application with three routers, registers exception handlers, includes health check endpoint, and returns the configured application instance.
-
-    Args:
-    - None
-
-    Returns:
-    - FastAPI object
+    This function creates a FastAPI application with three routers, registers exception handlers, includes health check endpoint, and returns the configured application instance.
     """
     app = FastAPI(
         title="CORE - Self-Improving System Architect",
