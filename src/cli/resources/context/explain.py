@@ -36,14 +36,12 @@ logger = getLogger(__name__)
 console = Console()
 
 
-# ID: context-explain-format-packet
 def _format_exploration_for_display(packet: dict[str, Any]) -> str:
     """Format exploration packet for human readability."""
     lines: list[str] = []
     header = packet.get("header", {})
     stats = packet.get("provenance", {}).get("build_stats", {})
     items = packet.get("context", [])
-
     lines.append("=" * 80)
     lines.append("CONTEXT EXPLORATION")
     lines.append("=" * 80)
@@ -52,30 +50,25 @@ def _format_exploration_for_display(packet: dict[str, Any]) -> str:
     lines.append(f"Tokens : ~{stats.get('tokens_total', 0)}")
     lines.append(f"Mode   : {header.get('mode', 'HISTORICAL')}")
     lines.append("")
-
     if not items:
         lines.append("[!] No results found. Try different search terms.")
         lines.append(
             "    Ensure vectors are up to date: core-admin vectors vectorize --write"
         )
         return "\n".join(lines)
-
     lines.append("## RELEVANT CODE")
     lines.append("")
-
     for idx, item in enumerate(items, 1):
         name = item.get("name", "unknown")
         path = item.get("path", "unknown")
         item_type = item.get("item_type", "unknown")
         content = item.get("content", "")
         summary = item.get("summary", "")
-
         lines.append(f"### {idx}. {path}::{name}")
         lines.append(f"Type: {item_type}")
         if summary:
             lines.append(f"Summary: {summary[:120]}")
         lines.append("")
-
         if content:
             lines.append("```python")
             lines.append(content)
@@ -83,14 +76,11 @@ def _format_exploration_for_display(packet: dict[str, Any]) -> str:
         else:
             lines.append("(No code content available)")
         lines.append("")
-
     lines.append("=" * 80)
     lines.append(f"Build time: {stats.get('duration_ms', 0)}ms")
-
     return "\n".join(lines)
 
 
-# ID: context-explain-command
 @app.command("explain")
 @command_meta(
     canonical_name="context.explain",
@@ -99,7 +89,7 @@ def _format_exploration_for_display(packet: dict[str, Any]) -> str:
     summary="Explore codebase by concept using semantic search.",
 )
 @core_command(dangerous=False, requires_context=False)
-# ID: a9c5e223-4ec6-4f1c-8ec8-52641fa0dfa5
+# ID: f36a0b23-f6e7-4813-a75c-4482f78b41f4
 async def explain_cmd(
     ctx: typer.Context,
     query: str = typer.Argument(..., help="Natural language query"),
@@ -121,22 +111,17 @@ async def explain_cmd(
 
     service_registry.prime(get_session)
     core_context = create_core_context(service_registry)
-
     async with service_registry.session() as session:
         cognitive = await service_registry.get_cognitive_service()
         await cognitive.initialize(session)
-
-    console.print(f"[bold blue]🔍 Exploring:[/bold blue] {query}")
-
+    logger.info("[bold blue]🔍 Exploring:[/bold blue] %s", query)
     packet = await core_context.context_service.build_from_query(
         natural_query=query,
         max_tokens=max_tokens,
         max_items=max_items,
         use_cache=not no_cache,
     )
-
     formatted = _format_exploration_for_display(packet)
-
     if output:
         output_path = Path(output)
         repo_root = Path(core_context.git_service.repo_path).resolve()
@@ -151,7 +136,7 @@ async def explain_cmd(
         FileHandler(str(core_context.git_service.repo_path)).write_runtime_text(
             rel_output, formatted
         )
-        console.print(f"[green]✅ Exploration written to {output}[/green]")
+        logger.info("[green]✅ Exploration written to %s[/green]", output)
     else:
-        console.print("")
-        console.print(formatted)
+        logger.info("")
+        logger.info(formatted)

@@ -1,5 +1,4 @@
 # src/cli/commands/check/formatters.py
-
 """
 Output formatters for audit results.
 
@@ -16,13 +15,15 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
 
+from shared.logger import getLogger
 from shared.models import AuditFinding, AuditSeverity
 
 
+logger = getLogger(__name__)
 console = Console()
 
 
-# ID: 8802195d-91be-49bb-8739-f40873a702eb
+# ID: 8ee94b21-397f-43d1-8823-4aceef0c6dd9
 def print_verbose_findings(findings: list[AuditFinding]) -> None:
     """Prints every single finding in a detailed table for verbose output."""
     table = Table(
@@ -34,18 +35,15 @@ def print_verbose_findings(findings: list[AuditFinding]) -> None:
     table.add_column("Check ID", style="magenta")
     table.add_column("Message", style="white", overflow="fold")
     table.add_column("File:Line", style="yellow")
-
     severity_styles = {
         AuditSeverity.ERROR: "[bold red]ERROR[/bold red]",
         AuditSeverity.WARNING: "[bold yellow]WARNING[/bold yellow]",
         AuditSeverity.INFO: "[dim]INFO[/dim]",
     }
-
     for finding in findings:
         location = str(finding.file_path or "")
         if finding.line_number:
             location += f":{finding.line_number}"
-
         table.add_row(
             severity_styles.get(finding.severity, str(finding.severity)),
             finding.check_id,
@@ -55,17 +53,15 @@ def print_verbose_findings(findings: list[AuditFinding]) -> None:
     console.print(table)
 
 
-# ID: b2c3d4e5-f678-90ab-cdef-1234567890ab
+# ID: e59cfd3d-e9b2-4f89-b211-9d916fb3bf58
 def print_summary_findings(findings: list[AuditFinding]) -> None:
     """Groups findings by check ID only and prints a summary table."""
     grouped_findings: dict[tuple[str, AuditSeverity], list[AuditFinding]] = defaultdict(
         list
     )
-
     for f in findings:
         key = (f.check_id, f.severity)
         grouped_findings[key].append(f)
-
     table = Table(
         title="[bold]Audit Findings Summary[/bold]",
         show_header=True,
@@ -75,19 +71,16 @@ def print_summary_findings(findings: list[AuditFinding]) -> None:
     table.add_column("Check ID", style="magenta")
     table.add_column("Message", style="white", overflow="fold")
     table.add_column("Occurrences", style="yellow", justify="right")
-
     severity_styles = {
         AuditSeverity.ERROR: "[bold red]ERROR[/bold red]",
         AuditSeverity.WARNING: "[bold yellow]WARNING[/bold yellow]",
         AuditSeverity.INFO: "[dim]INFO[/dim]",
     }
-
     sorted_items = sorted(
         grouped_findings.items(),
         key=lambda item: (item[0][1], item[0][0]),
         reverse=True,
     )
-
     for (check_id, severity), finding_list in sorted_items:
         representative_message = finding_list[0].message
         table.add_row(
@@ -96,12 +89,11 @@ def print_summary_findings(findings: list[AuditFinding]) -> None:
             representative_message,
             str(len(finding_list)),
         )
-
     console.print(table)
     console.print("\n[dim]Run with '--verbose' to see all individual locations.[/dim]")
 
 
-# ID: c3d4e5f6-7890-abcd-ef12-34567890abcd
+# ID: 8f7d0e55-e907-489d-ae7a-23be0a6c11e8
 def print_audit_summary(
     *,
     passed: bool,
@@ -114,13 +106,10 @@ def print_audit_summary(
     summary_table = Table.grid(expand=True, padding=(0, 1))
     summary_table.add_column(justify="left")
     summary_table.add_column(justify="right", style="bold")
-
     summary_table.add_row("Errors:", f"[red]{len(errors)}[/red]")
     summary_table.add_row("Warnings:", f"[yellow]{len(warnings)}[/yellow]")
-
     if unassigned_count is not None:
         summary_table.add_row("Unassigned Symbols:", f"[cyan]{unassigned_count}[/cyan]")
-
     title = (
         f"✅ {title_prefix}AUDIT PASSED" if passed else f"❌ {title_prefix}AUDIT FAILED"
     )
@@ -128,7 +117,7 @@ def print_audit_summary(
     console.print(Panel(summary_table, title=title, style=style, expand=False))
 
 
-# ID: d4e5f6a7-8901-bcde-f123-4567890abcde
+# ID: 37925a3f-b826-4fee-ac5f-ab4c604adde9
 def print_filtered_audit_summary(
     *,
     passed: bool,
@@ -140,7 +129,6 @@ def print_filtered_audit_summary(
     summary_table = Table.grid(expand=True, padding=(0, 1))
     summary_table.add_column(justify="left")
     summary_table.add_column(justify="right", style="bold")
-
     summary_table.add_row("Total Rules:", str(stats["total_rules"]))
     summary_table.add_row("Filtered Rules:", str(stats["filtered_rules"]))
     summary_table.add_row("Executed Rules:", str(stats["executed_rules"]))
@@ -149,30 +137,27 @@ def print_filtered_audit_summary(
     summary_table.add_row("Total Findings:", str(stats["total_findings"]))
     summary_table.add_row("Errors:", f"[red]{len(errors)}[/red]")
     summary_table.add_row("Warnings:", f"[yellow]{len(warnings)}[/yellow]")
-
     title = "✅ FILTERED AUDIT PASSED" if passed else "❌ FILTERED AUDIT FAILED"
     style = "bold green" if passed else "bold red"
     console.print(Panel(summary_table, title=title, style=style, expand=False))
 
 
-# ID: e5f6a7b8-9012-cdef-1234-567890abcdef
+# ID: b431a529-88bf-4092-aff4-6f048338b425
 def print_executed_rules(executed_rules: set[str]) -> None:
     """Print list of executed rules."""
     if not executed_rules:
         return
-
     console.print("\n[dim]Executed rules:[/dim]")
     for rule_id in sorted(executed_rules):
         console.print(f"  [dim]• {rule_id}[/dim]")
 
 
-# ID: f6a7b8c9-0123-def1-2345-67890abcdef1
+# ID: bc54332a-43e4-49a6-b38b-ba599874189b
 def print_migration_delta(*, legacy_executed: set[str], v2_rule_ids: set[str]) -> None:
     """Print migration delta showing legacy vs v2 coverage."""
     legacy_only = sorted(legacy_executed - v2_rule_ids)
     v2_only = sorted(v2_rule_ids - legacy_executed)
     overlap = sorted(legacy_executed & v2_rule_ids)
-
     table = Table(
         title="[bold]Migration Delta (Legacy vs Engine-Based)[/bold]",
         show_header=True,
@@ -180,13 +165,11 @@ def print_migration_delta(*, legacy_executed: set[str], v2_rule_ids: set[str]) -
     )
     table.add_column("Metric", style="cyan")
     table.add_column("Count", style="yellow", justify="right")
-
     table.add_row("Legacy executed ids (evidence)", str(len(legacy_executed)))
     table.add_row("V2 rule ids (from findings)", str(len(v2_rule_ids)))
     table.add_row("Overlap", str(len(overlap)))
     table.add_row("Legacy-only", str(len(legacy_only)))
     table.add_row("V2-only", str(len(v2_only)))
-
     console.print(table)
 
     def _sample(values: list[str], n: int = 15) -> str:
@@ -204,14 +187,10 @@ def print_migration_delta(*, legacy_executed: set[str], v2_rule_ids: set[str]) -
     )
     details.add_column("Category", style="cyan")
     details.add_column("Sample ids", style="white", overflow="fold")
-
     details.add_row("Legacy-only (candidate to migrate)", _sample(legacy_only))
     details.add_row("V2-only (new coverage not in legacy evidence)", _sample(v2_only))
-
     console.print(details)
 
-
-# -- Context Build Hints -------------------------------------------------------
 
 _CHECK_TO_TASK: dict[str, str] = {
     "test": "test_generation",
@@ -227,15 +206,10 @@ _CHECK_TO_TASK: dict[str, str] = {
     "logic": "code_modification",
     "workflow": "code_modification",
 }
-
-# file_path values that are not real filesystem paths
 _SKIP_FILE_PREFIXES = ("DB", "none", "None", "System", "/")
-
-# Identifiers that look like symbols but are actually call patterns, not targets
 _CALL_PATTERNS = {"make_request_async", "make_request", "invoke", "print", "logger"}
 
 
-# file_path must look like a real src/ path
 def _is_real_file_path(file_path: str) -> bool:
     """Return True only for real source file paths."""
     if not file_path:
@@ -247,7 +221,6 @@ def _is_real_file_path(file_path: str) -> bool:
     return True
 
 
-# ID: context-build-hints-infer-task
 def _infer_task_type(check_id: str) -> str:
     """Map check_id prefix to the most appropriate context build task type."""
     check_lower = check_id.lower()
@@ -257,7 +230,6 @@ def _infer_task_type(check_id: str) -> str:
     return "code_modification"
 
 
-# ID: context-build-hints-extract-symbol
 def _extract_symbol(finding: AuditFinding) -> str | None:
     """
     Try to extract a symbol name from a finding.
@@ -268,29 +240,23 @@ def _extract_symbol(finding: AuditFinding) -> str | None:
     3. Parse message — only class/function names, not call patterns
     """
     ctx = finding.context or {}
-
     symbol_key = ctx.get("symbol_key") or ctx.get("symbol_path")
     if symbol_key:
         name = str(symbol_key).split("::")[-1].strip()
         if name and name not in _CALL_PATTERNS:
             return name
-
     name = ctx.get("name") or ctx.get("symbol_name")
     if name and str(name).strip() not in _CALL_PATTERNS:
         return str(name).strip()
-
-    # Parse single-quoted identifier from message — but skip call patterns
-    match = re.search(r"'([A-Za-z_][A-Za-z0-9_]*)'", finding.message or "")
+    match = re.search("'([A-Za-z_][A-Za-z0-9_]*)'", finding.message or "")
     if match:
         candidate = match.group(1)
         if candidate not in _CALL_PATTERNS:
             return candidate
-
     return None
 
 
-# ID: context-build-hints-print
-# ID: 486a2ea4-4c12-4197-b7da-128be47986dd
+# ID: 371b79f4-3a4b-4585-b2ca-fc7f481dcd59
 def print_context_build_hints(findings: list[AuditFinding]) -> None:
     """
     Print exact context build commands for actionable findings.
@@ -305,10 +271,8 @@ def print_context_build_hints(findings: list[AuditFinding]) -> None:
         if _is_real_file_path(str(f.file_path or ""))
         and f.severity >= AuditSeverity.WARNING
     ]
-
     if not actionable:
         return
-
     seen: set[tuple[str, str | None]] = set()
     hints: list[tuple[AuditFinding, str | None]] = []
     for f in actionable:
@@ -317,30 +281,24 @@ def print_context_build_hints(findings: list[AuditFinding]) -> None:
         if key not in seen:
             seen.add(key)
             hints.append((f, symbol))
-
     console.print()
     console.print(
         Panel(
-            f"[dim]{len(hints)} actionable location(s). "
-            "Run the command below for each, then paste the output to Claude.[/dim]",
-            title="[bold cyan]AI Workflow — Next Steps[/bold cyan]",
+            f"[dim]{len(hints)} actionable location(s). Run the command below for each, then paste the output to Claude.[/dim]",
+            title="[bold cyan]💡 AI Workflow — Next Steps[/bold cyan]",
             expand=False,
         )
     )
-
     severity_icon = {
-        AuditSeverity.ERROR: "[bold red]ERROR[/bold red]",
-        AuditSeverity.WARNING: "[bold yellow]WARN [/bold yellow]",
+        AuditSeverity.ERROR: "[bold red]❌ ERROR[/bold red]",
+        AuditSeverity.WARNING: "[bold yellow]⚠️  WARN [/bold yellow]",
     }
-
     for finding, symbol in hints:
         file_path = str(finding.file_path)
         task = _infer_task_type(finding.check_id)
         icon = severity_icon.get(finding.severity, "")
-
         console.print(f"\n  {icon} [magenta]{finding.check_id}[/magenta]")
         console.print(f"  [dim]{finding.message[:100]}[/dim]")
-
         if symbol:
             console.print(
                 f"\n  [green]core-admin context build \\\n"
@@ -350,12 +308,10 @@ def print_context_build_hints(findings: list[AuditFinding]) -> None:
                 f"      --output var/context_for_claude.md[/green]"
             )
         else:
-            # Have file but no symbol — build without --symbol
             console.print(
                 f"\n  [green]core-admin context build \\\n"
                 f"      --file {file_path} \\\n"
                 f"      --task {task} \\\n"
                 f"      --output var/context_for_claude.md[/green]"
             )
-
     console.print()

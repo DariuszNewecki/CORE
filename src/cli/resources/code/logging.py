@@ -1,5 +1,8 @@
 # src/cli/resources/code/logging.py
+from shared.logger import getLogger
 
+
+logger = getLogger(__name__)
 import typer
 from rich.console import Console
 
@@ -22,7 +25,7 @@ console = Console()
     dangerous=True,
 )
 @core_command(dangerous=True, requires_context=True)
-# ID: c149a7d3-60b5-4810-abd3-ab87aaf4f9af
+# ID: 5076493c-79a8-4f92-8c15-ddfd695d4275
 async def fix_logging_command(
     ctx: typer.Context,
     write: bool = typer.Option(
@@ -36,9 +39,6 @@ async def fix_logging_command(
     constitutional standard logging (LOG-001/LOG-003).
     """
     core_context: CoreContext = ctx.obj
-
     mode = "Applying" if write else "Analyzing"
-    console.print(f"[bold cyan]🪵  {mode} Logging Standards...[/bold cyan]")
-
-    # Routes to the fix.logging atomic action
+    logger.info("[bold cyan]🪵  %s Logging Standards...[/bold cyan]", mode)
     await core_context.action_executor.execute("fix.logging", write=write)

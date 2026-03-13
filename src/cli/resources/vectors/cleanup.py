@@ -23,19 +23,14 @@ console = Console()
 
 @app.command("cleanup")
 @core_command(dangerous=True, requires_context=False)
-# ID: 9c0d1e2f-3a4b-5c6d-7e8f-9a0b1c2d3e4f
+# ID: a644bc31-42c8-4d69-bb4b-f8f481ec2cb6
 async def cleanup_vectors(
     ctx: typer.Context,
     target: str = typer.Option(
-        "all",
-        "--target",
-        "-t",
-        help="Cleanup target: 'orphans', 'dangling', 'all'",
+        "all", "--target", "-t", help="Cleanup target: 'orphans', 'dangling', 'all'"
     ),
     write: bool = typer.Option(
-        False,
-        "--write",
-        help="Apply cleanup (default: dry-run)",
+        False, "--write", help="Apply cleanup (default: dry-run)"
     ),
 ) -> None:
     """
@@ -63,51 +58,37 @@ async def cleanup_vectors(
         # Full cleanup
         core-admin vectors cleanup --target all --write
     """
-    console.print("[bold cyan]🧹 Vector Cleanup[/bold cyan]")
-    console.print(f"Target: {target}")
-    console.print(f"Mode: {'WRITE' if write else 'DRY-RUN'}")
+    logger.info("[bold cyan]🧹 Vector Cleanup[/bold cyan]")
+    logger.info("Target: %s", target)
+    logger.info("Mode: %s", "WRITE" if write else "DRY-RUN")
     console.print()
-
     if not write:
-        console.print("[yellow]DRY-RUN: Use --write to apply changes[/yellow]")
-
+        logger.info("[yellow]DRY-RUN: Use --write to apply changes[/yellow]")
     try:
-        # Import the sync service
         from body.maintenance.sync_vectors import (
             _async_sync_vectors as sync_vectors_internal,
         )
 
         async with get_session() as session:
-            # The sync_vectors function handles all the logic
-            # We just need to map our target parameter to its expectations
             orphans_pruned, dangling_pruned = await sync_vectors_internal(
-                session=session,
-                dry_run=not write,
-                qdrant_service=None,  # Will create internally
+                session=session, dry_run=not write, qdrant_service=None
             )
-
             if write:
                 await session.commit()
-
-        # Display results
-        console.print()
-        console.print("[bold]Results:[/bold]")
-
+        logger.info()
+        logger.info("[bold]Results:[/bold]")
         if target in ["orphans", "all"]:
             status = "Would prune" if not write else "Pruned"
-            console.print(f"  Orphaned vectors: {status} {orphans_pruned}")
-
+            logger.info("  Orphaned vectors: %s %s", status, orphans_pruned)
         if target in ["dangling", "all"]:
             status = "Would prune" if not write else "Pruned"
-            console.print(f"  Dangling links: {status} {dangling_pruned}")
-
-        console.print()
+            logger.info("  Dangling links: %s %s", status, dangling_pruned)
+        logger.info()
         if write:
-            console.print("[green]✅ Cleanup completed successfully[/green]")
+            logger.info("[green]✅ Cleanup completed successfully[/green]")
         else:
-            console.print("[yellow]DRY-RUN completed - no changes made[/yellow]")
-
+            logger.info("[yellow]DRY-RUN completed - no changes made[/yellow]")
     except Exception as e:
         logger.error("Vector cleanup failed", exc_info=True)
-        console.print(f"[red]❌ Error: {e}[/red]", err=True)
+        logger.info("[red]❌ Error: %s[/red]", e)
         raise typer.Exit(1)

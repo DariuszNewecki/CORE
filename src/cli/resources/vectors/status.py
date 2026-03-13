@@ -1,4 +1,8 @@
 # src/cli/resources/vectors/status.py
+from shared.logger import getLogger
+
+
+logger = getLogger(__name__)
 import typer
 from rich.console import Console
 from rich.table import Table
@@ -13,22 +17,18 @@ console = Console()
 
 @app.command("status")
 @core_command(dangerous=False, requires_context=True)
-# ID: b67cc5bc-9f6b-47c5-94c4-8fead6faa4d1
+# ID: 61334967-75a9-4a0a-96aa-00e53698b7e8
 async def status_vectors(ctx: typer.Context) -> None:
     """Show vector store health and collection statistics."""
     qdrant = ctx.obj.qdrant_service
-
     try:
         collections = await qdrant.client.get_collections()
-
         table = Table(title="Qdrant Collections")
         table.add_column("Collection", style="cyan")
         table.add_column("Status", justify="center")
-
         for coll in collections.collections:
             table.add_row(coll.name, "🟢 Active")
-
-        console.print(table)
+        logger.info(table)
     except Exception as e:
-        console.print(f"[bold red]❌ Qdrant Connection Failed:[/bold red] {e}")
+        logger.info("[bold red]❌ Qdrant Connection Failed:[/bold red] %s", e)
         raise typer.Exit(1)

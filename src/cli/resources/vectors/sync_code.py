@@ -1,5 +1,8 @@
 # src/cli/resources/vectors/sync_code.py
+from shared.logger import getLogger
 
+
+logger = getLogger(__name__)
 import typer
 from rich.console import Console
 
@@ -22,7 +25,7 @@ console = Console()
     dangerous=True,
 )
 @core_command(dangerous=True, requires_context=True)
-# ID: a9f31fb5-2395-4a71-98c1-6817239c24cb
+# ID: 6489b6df-f2d8-4480-b0e2-e3054c9c11dc
 async def sync_code_cmd(
     ctx: typer.Context,
     write: bool = typer.Option(False, "--write", help="Commit vectors to Qdrant."),
@@ -35,8 +38,7 @@ async def sync_code_cmd(
     """
     core_context: CoreContext = ctx.obj
     mode = "SYNCING" if write else "ANALYZING"
-    console.print(f"[bold cyan]🧠 {mode} codebase vectors...[/bold cyan]")
-
+    logger.info("[bold cyan]🧠 %s codebase vectors...[/bold cyan]", mode)
     await core_context.action_executor.execute(
         "sync.vectors.code", write=write, force=force
     )

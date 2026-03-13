@@ -25,12 +25,9 @@ from shared.models import AuditFinding
 logger = getLogger(__name__)
 
 
-# ID: fb0168b4-bf66-496f-a739-0fed60bc6f5a
+# ID: 97071a65-22bd-4966-b794-7a8801d37fc2
 async def sort_imports_handler(
-    finding: AuditFinding,
-    file_handler: FileHandler,
-    repo_root: Path,
-    write: bool,
+    finding: AuditFinding, file_handler: FileHandler, repo_root: Path, write: bool
 ) -> FixResult:
     """
     Fix import ordering in a single file using ruff.
@@ -60,21 +57,13 @@ async def sort_imports_handler(
         )
         # Result: FixResult(ok=True, error_message=None, changes_made={"sorted": True})
     """
-
     start_time = time.time()
-
-    # Step 1: Get the file path from the finding
     if not finding.file_path:
         logger.warning("Finding has no file_path, cannot fix: %s", finding.message)
         return FixResult(
-            ok=False,
-            error_message="No file path in finding",
-            changes_made=None,
+            ok=False, error_message="No file path in finding", changes_made=None
         )
-
-    # Step 2: Resolve absolute path
     file_path = repo_root / finding.file_path
-
     if not file_path.exists():
         logger.error("File does not exist: %s", file_path)
         return FixResult(
@@ -82,50 +71,24 @@ async def sort_imports_handler(
             error_message=f"File not found: {finding.file_path}",
             changes_made=None,
         )
-
-    # Step 3: Read original content (for comparison and re-writing)
     try:
         original_content = file_path.read_text(encoding="utf-8")
     except Exception as e:
         logger.error("Failed to read file %s: %s", file_path, e)
         return FixResult(
-            ok=False,
-            error_message=f"Read failed: {e!s}",
-            changes_made=None,
+            ok=False, error_message=f"Read failed: {e!s}", changes_made=None
         )
-
-    # Step 4: Run ruff on this specific file
     try:
-        # Build the ruff command
-        # --select I = import sorting rules
-        # --fix = actually fix the file
-        # --exit-zero = don't return error code on violations
-        cmd = [
-            "ruff",
-            "check",
-            str(file_path),
-            "--select",
-            "I",  # Import sorting rules
-            "--exit-zero",  # Don't fail on violations found
-        ]
-
+        cmd = ["ruff", "check", str(file_path), "--select", "I", "--exit-zero"]
         if write:
             cmd.append("--fix")
-
-        # Run ruff asynchronously to avoid blocking event loop (ASYNC221 compliance)
         import asyncio
 
         process = await asyncio.create_subprocess_exec(
-            *cmd,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE,
+            *cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
         )
-
         _stdout_bytes, _stderr_bytes = await process.communicate()
-
-        # Ruff writes directly to the file, so we need to read it back
         if write:
-            # Step 5: Read the modified content
             try:
                 new_content = file_path.read_text(encoding="utf-8")
             except Exception as e:
@@ -135,10 +98,7 @@ async def sort_imports_handler(
                     error_message=f"Post-fix read failed: {e!s}",
                     changes_made=None,
                 )
-
-            # Step 6: Check if anything actually changed
             if new_content == original_content:
-                # No changes needed - imports were already sorted
                 duration_ms = int((time.time() - start_time) * 1000)
                 logger.info(
                     "No changes needed for %s (already sorted)", finding.file_path
@@ -152,24 +112,15 @@ async def sort_imports_handler(
                         "duration_ms": duration_ms,
                     },
                 )
-
-            # Step 7: Re-write via FileHandler for constitutional compliance
-            # This ensures IntentGuard validates the write
             try:
-                # Convert to repo-relative path
                 rel_path = str(file_path.relative_to(repo_root))
-
-                # Write via FileHandler (constitutional gateway)
                 file_handler.write_source_code(rel_path, new_content)
-
                 duration_ms = int((time.time() - start_time) * 1000)
-
                 logger.info(
                     "Successfully sorted imports in %s (%d ms)",
                     finding.file_path,
                     duration_ms,
                 )
-
                 return FixResult(
                     ok=True,
                     error_message=None,
@@ -179,7 +130,6 @@ async def sort_imports_handler(
                         "file_path": rel_path,
                     },
                 )
-
             except Exception as e:
                 logger.error("Failed to write via FileHandler: %s", e)
                 return FixResult(
@@ -187,12 +137,9 @@ async def sort_imports_handler(
                     error_message=f"FileHandler write failed: {e!s}",
                     changes_made=None,
                 )
-
         else:
-            # Dry-run mode - just report that we COULD fix it
             duration_ms = int((time.time() - start_time) * 1000)
             logger.info("Dry-run: Would sort imports in %s", finding.file_path)
-
             return FixResult(
                 ok=True,
                 error_message=None,
@@ -202,26 +149,20 @@ async def sort_imports_handler(
                     "duration_ms": duration_ms,
                 },
             )
-
     except Exception as e:
         logger.error("Ruff execution failed: %s", e)
         return FixResult(
-            ok=False,
-            error_message=f"Ruff failed: {e!s}",
-            changes_made=None,
+            ok=False, error_message=f"Ruff failed: {e!s}", changes_made=None
         )
 
 
-# Convenience function for testing
-# ID: 4ef99bc7-2149-4aba-b25a-446d7caa1392
+# ID: 673eec52-3119-407d-b4ef-fbe0fdde22ef
 async def test_handler(repo_root: Path):
     """
     Quick test function to verify the handler works.
     """
-    # REFACTORED: Removed direct settings import
     from shared.models import AuditSeverity
 
-    # Create a fake finding
     test_finding = AuditFinding(
         check_id="style.import_order",
         severity=AuditSeverity.WARNING,
@@ -229,17 +170,12 @@ async def test_handler(repo_root: Path):
         file_path="src/body/cli/admin_cli.py",
         line_number=None,
     )
-
-    # Create file handler
     file_handler = FileHandler(str(repo_root))
-
-    # Test dry-run
     result = await sort_imports_handler(
         finding=test_finding,
         file_handler=file_handler,
         repo_root=repo_root,
         write=False,
     )
-
-    print(f"Test result: {result}")
+    logger.info("Test result: %s", result)
     return result

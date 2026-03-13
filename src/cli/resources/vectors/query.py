@@ -26,7 +26,7 @@ console = Console()
 
 @app.command("query")
 @core_command(requires_context=True)
-# ID: 26c63756-eb12-4f88-a46b-b0e43d4760b6
+# ID: 44056798-de41-4934-8bba-97e6f88ce1f0
 async def query_vectors(
     ctx: typer.Context,
     query: str = typer.Argument(..., help="Natural language query"),
@@ -53,47 +53,29 @@ async def query_vectors(
         # Search both
         core-admin vectors query "governance" --collection policies
     """
-    console.print(f"[bold cyan]🔍 Querying {collection}[/bold cyan]")
-    console.print(f"Query: {query}")
+    logger.info("[bold cyan]🔍 Querying %s[/bold cyan]", collection)
+    logger.info("Query: %s", query)
     console.print()
-
     try:
-        # Get CoreContext which has CognitiveService
         core_context: CoreContext = ctx.obj
-
-        # Use QdrantService from context if available, otherwise create new
         qdrant_service = core_context.qdrant_service or QdrantService()
-
-        # Map collection name
         collection_name = (
             "core_policies" if collection == "policies" else "core-patterns"
         )
-
-        # Use the existing CognitiveEmbedderAdapter
         embedder = CognitiveEmbedderAdapter(core_context.cognitive_service)
-
-        # Create VectorIndexService with embedder
         service = VectorIndexService(
             qdrant_service=qdrant_service,
             collection_name=collection_name,
             embedder=embedder,
         )
-
-        # Perform search
         results = await service.query(query, limit=limit)
-
         if not results:
-            console.print("[yellow]No results found[/yellow]")
+            logger.info("[yellow]No results found[/yellow]")
             return
-
-        console.print(f"[bold]Top {len(results)} results:[/bold]")
-        console.print()
-
+        logger.info("[bold]Top %s results:[/bold]", len(results))
+        logger.info()
         for i, result in enumerate(results, 1):
-            # Extract fields - results may have different structures
             score = result.get("score", 0.0)
-
-            # Try various field names for content
             content = (
                 result.get("content")
                 or result.get("text")
@@ -101,8 +83,6 @@ async def query_vectors(
                 or result.get("payload", {}).get("text")
                 or ""
             )
-
-            # Try various field names for document ID
             doc_id = (
                 result.get("doc_id")
                 or result.get("id")
@@ -110,15 +90,11 @@ async def query_vectors(
                 or result.get("payload", {}).get("chunk_id")
                 or "Unknown"
             )
-
-            # Truncate content
             content_preview = content[:200] if content else "[No content available]"
-
-            console.print(f"[bold cyan]{i}. {doc_id}[/bold cyan] (score: {score:.3f})")
-            console.print(f"   {content_preview}...")
-            console.print()
-
+            logger.info("[bold cyan]%s. %s[/bold cyan] (score: %s)", i, doc_id, score)
+            logger.info("   %s...", content_preview)
+            logger.info()
     except Exception as e:
         logger.error("Vector query failed", exc_info=True)
-        console.print(f"[red]❌ Error: {e}[/red]")
+        logger.info("[red]❌ Error: %s[/red]", e)
         raise typer.Exit(1)

@@ -1,4 +1,8 @@
 # src/cli/resources/proposals/create.py
+from shared.logger import getLogger
+
+
+logger = getLogger(__name__)
 import typer
 from rich.console import Console
 
@@ -24,7 +28,7 @@ console = Console()
     dangerous=True,
 )
 @core_command(dangerous=True, requires_context=True)
-# ID: 50d1f9eb-cb56-4f81-ad07-3e25cd28dd34
+# ID: e3cc0065-b821-49dd-b90e-df86633d01c6
 async def create_proposal(
     ctx: typer.Context,
     goal: str = typer.Argument(..., help="Strategic goal of the proposal."),
@@ -43,39 +47,33 @@ async def create_proposal(
 
     Validates the plan and performs an initial risk assessment.
     """
-    console.print(f"[bold cyan]📝 Crafting Proposal:[/bold cyan] {goal}")
-
+    logger.info("[bold cyan]📝 Crafting Proposal:[/bold cyan] %s", goal)
     proposal_actions = parse_action_options(actions)
     if not proposal_actions:
-        console.print(
+        logger.info(
             "[yellow]⚠️ Warning: No actions specified. Proposal created as placeholder.[/yellow]"
         )
-
     proposal = Proposal(
         goal=goal,
         actions=proposal_actions,
         scope=ProposalScope(files=files),
         created_by="cli_operator",
     )
-
-    # Risk Assessment (Logic lives in domain model)
     risk = proposal.compute_risk()
-    console.print(f"Risk Tier: [bold]{risk.overall_risk.upper()}[/bold]")
-
+    logger.info("Risk Tier: [bold]%s[/bold]", risk.overall_risk.upper())
     if not write:
-        console.print(
+        logger.info(
             "[yellow]⚠️  DRY RUN MODE — No changes made. Use --write to persist.[/yellow]"
         )
-        console.print(f"[dim]Proposal goal: {proposal.goal}[/dim]")
+        logger.info("[dim]Proposal goal: %s[/dim]", proposal.goal)
         return
-
     async with service_registry.session() as session:
         await ProposalRepository(session).create(proposal)
         await session.commit()
-
-    console.print(
-        f"[green]✅ Proposal created: [bold]{proposal.proposal_id}[/bold][/green]"
+    logger.info(
+        "[green]✅ Proposal created: [bold]%s[/bold][/green]", proposal.proposal_id
     )
-    console.print(
-        f"[dim]Run 'core-admin proposals approve {proposal.proposal_id}' to authorize.[/dim]"
+    logger.info(
+        "[dim]Run 'core-admin proposals approve %s' to authorize.[/dim]",
+        proposal.proposal_id,
     )

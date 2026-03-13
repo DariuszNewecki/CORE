@@ -1,7 +1,10 @@
 # src/cli/resources/symbols/tag.py
-
 from __future__ import annotations
 
+from shared.logger import getLogger
+
+
+logger = getLogger(__name__)
 import typer
 from rich.console import Console
 
@@ -17,7 +20,7 @@ console = Console()
 
 @app.command("tag")
 @core_command(dangerous=True, requires_context=True, confirmation=True)
-# ID: d9e589d3-55e0-4a12-a5b3-08a89ea22717
+# ID: 7c191977-2cdb-4639-bf03-797ae163b7c5
 async def tag_symbols_command(
     ctx: typer.Context,
     write: bool = typer.Option(
@@ -36,10 +39,8 @@ async def tag_symbols_command(
     from will.self_healing.capability_tagging_service import main_async
 
     core_context: CoreContext = ctx.obj
-
     mode = "APPLYING" if write else "PREVIEWING"
-    console.print(f"[bold cyan]\U0001f9e0 {mode} AI capability tagging...[/bold cyan]")
-
+    logger.info("[bold cyan]🧠 %s AI capability tagging...[/bold cyan]", mode)
     await main_async(
         session_factory=get_session,
         cognitive_service=core_context.cognitive_service,

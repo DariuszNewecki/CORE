@@ -1,4 +1,8 @@
 # src/cli/resources/proposals/manage.py
+from shared.logger import getLogger
+
+
+logger = getLogger(__name__)
 import typer
 from rich.console import Console
 
@@ -13,21 +17,19 @@ console = Console()
 
 
 @core_command(dangerous=False)
-# ID: 414a736e-519d-4917-99af-7dd789c9bfbd
+# ID: 9bacc55b-be1d-4f71-a27e-6e83ba176e33
 async def show_proposal(proposal_id: str = typer.Argument(...)) -> None:
     """Show detailed breakdown and risk assessment of a proposal."""
     async with service_registry.session() as session:
         proposal = await ProposalRepository(session).get(proposal_id)
-
     if not proposal:
-        console.print(f"[red]Proposal {proposal_id} not found.[/red]")
+        logger.info("[red]Proposal %s not found.[/red]", proposal_id)
         raise typer.Exit(1)
-
     print_detailed_info(proposal)
 
 
 @core_command(dangerous=True)
-# ID: 86cc4cf5-d2a9-44f8-a02f-4a0251982841
+# ID: f2e065f7-c253-4c33-ae0d-5374ffdb8e23
 async def approve_proposal(
     proposal_id: str = typer.Argument(...),
     by: str = typer.Option("cli_admin", "--by", help="Approver identity."),
@@ -37,12 +39,11 @@ async def approve_proposal(
         repo = ProposalRepository(session)
         await repo.approve(proposal_id, approved_by=by)
         await session.commit()
-
-    console.print(f"[green]✅ Proposal {proposal_id} APPROVED by {by}.[/green]")
+    logger.info("[green]✅ Proposal %s APPROVED by %s.[/green]", proposal_id, by)
 
 
 @core_command(dangerous=True, confirmation=True)
-# ID: 66492b42-bccf-4ef2-8a7c-91d48ce8acd7
+# ID: f4cdc45a-2f42-4916-b4e3-a305b5357a9d
 async def execute_proposal(
     ctx: typer.Context,
     proposal_id: str = typer.Argument(...),
@@ -54,23 +55,20 @@ async def execute_proposal(
     Runs the atomic action sequence defined in the proposal.
     """
     if not write:
-        console.print("[yellow]💡 Dry-run: simulating execution steps...[/yellow]\n")
-
+        logger.info("[yellow]💡 Dry-run: simulating execution steps...[/yellow]\n")
     executor = ProposalExecutor(ctx.obj)
     result = await executor.execute(proposal_id, write=write)
-
     if result["ok"]:
-        console.print(
-            f"\n[bold green]✅ Execution Successful: {proposal_id}[/bold green]"
+        logger.info(
+            "\n[bold green]✅ Execution Successful: %s[/bold green]", proposal_id
         )
     else:
-        console.print(f"\n[bold red]❌ Execution Failed: {proposal_id}[/bold red]")
-
+        logger.info("\n[bold red]❌ Execution Failed: %s[/bold red]", proposal_id)
     print_execution_summary(result)
 
 
 @core_command(dangerous=True)
-# ID: 5241e4ec-9d4a-472b-bea5-a6b230a98d47
+# ID: 4ac3cfc1-feae-440c-b02f-4c57a6a1147d
 async def reject_proposal(
     proposal_id: str = typer.Argument(...),
     reason: str = typer.Option(..., "--reason", "-r"),
@@ -80,4 +78,4 @@ async def reject_proposal(
         repo = ProposalRepository(session)
         await repo.reject(proposal_id, reason=reason)
         await session.commit()
-    console.print(f"[yellow]🚫 Proposal {proposal_id} REJECTED.[/yellow]")
+    logger.info("[yellow]🚫 Proposal %s REJECTED.[/yellow]", proposal_id)

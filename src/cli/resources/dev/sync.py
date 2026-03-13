@@ -1,4 +1,8 @@
 # src/cli/resources/dev/sync.py
+from shared.logger import getLogger
+
+
+logger = getLogger(__name__)
 import typer
 from rich.console import Console
 
@@ -21,7 +25,7 @@ console = Console()
     dangerous=True,
 )
 @core_command(dangerous=True, requires_context=True, confirmation=True)
-# ID: 05c5113b-3613-4b56-be33-c680c6b7e74f
+# ID: a3cfcc6d-0028-41fe-93d9-c14440a3c75b
 async def sync_workflow(
     ctx: typer.Context,
     write: bool = typer.Option(
@@ -39,17 +43,11 @@ async def sync_workflow(
     3. Syncs semantic vectors to Qdrant.
     """
     core_context = ctx.obj
-
     mode = "WRITE" if write else "DRY-RUN"
-    console.print(f"[bold cyan]🔄 Running Dev-Sync Workflow ({mode})...[/bold cyan]")
-
-    # The workflow handles the composition of multiple atomic actions
+    logger.info("[bold cyan]🔄 Running Dev-Sync Workflow (%s)...[/bold cyan]", mode)
     workflow = DevSyncWorkflow(core_context)
     result = await workflow.run(write=write)
-
     if result.ok:
-        console.print("\n[bold green]✅ System synchronized successfully.[/bold green]")
+        logger.info("\n[bold green]✅ System synchronized successfully.[/bold green]")
     else:
-        console.print(
-            "\n[bold red]❌ Sync failed during one or more phases.[/bold red]"
-        )
+        logger.info("\n[bold red]❌ Sync failed during one or more phases.[/bold red]")

@@ -1,5 +1,4 @@
 # src/cli/commands/inspect/diagnostics.py
-
 """
 System diagnostics commands.
 
@@ -36,7 +35,7 @@ console = Console()
     summary="Displays a hierarchical tree view of all available CLI commands",
 )
 @core_command(dangerous=False, requires_context=False)
-# ID: 785bde18-d06d-4616-a451-28d107d9d059
+# ID: d7718166-cf0c-4ec3-b6e5-9f4804d56d1b
 def command_tree_cmd(ctx: typer.Context) -> None:
     """
     Displays a hierarchical tree view of all available CLI commands.
@@ -48,23 +47,21 @@ def command_tree_cmd(ctx: typer.Context) -> None:
 
     logger.info("Building CLI Command Tree...")
     tree_data = diagnostics_logic.build_cli_tree_data(main_app)
-
     root = Tree("[bold blue]CORE CLI[/bold blue]")
 
-    # ID: 1ba3f389-d768-401f-98ea-62c1b844ff10
+    # ID: 642514fc-30cb-4d57-b3fd-8f0b2461e77c
     def add_nodes(nodes: list[dict[str, Any]], parent: Tree) -> None:
         """Recursively add nodes to tree."""
         for node in nodes:
             label = f"[bold]{node['name']}[/bold]"
             if node.get("help"):
                 label += f": [dim]{node['help']}[/dim]"
-
             branch = parent.add(label)
             if "children" in node:
                 add_nodes(node["children"], branch)
 
     add_nodes(tree_data, root)
-    console.print(root)
+    logger.info(root)
 
 
 @command_meta(
@@ -74,7 +71,7 @@ def command_tree_cmd(ctx: typer.Context) -> None:
     summary="Identifies and classifies functions as SIMPLE or COMPLEX test targets",
 )
 @core_command(dangerous=False, requires_context=False)
-# ID: 3a48c44a-7cfe-4383-a3b5-f7b2a1c3051a
+# ID: ab41749f-0338-49c3-8a1e-9812a4f1b3a2
 def inspect_test_targets(
     ctx: typer.Context,
     file_path: Path = typer.Argument(
@@ -104,11 +101,9 @@ def inspect_test_targets(
     """
     analyzer = TestTargetAnalyzer()
     targets = analyzer.analyze_file(file_path)
-
     if not targets:
-        console.print("[yellow]No suitable public functions found to analyze.[/yellow]")
+        logger.info("[yellow]No suitable public functions found to analyze.[/yellow]")
         return
-
     table = Table(
         title="Test Target Analysis", header_style="bold magenta", show_header=True
     )
@@ -116,7 +111,6 @@ def inspect_test_targets(
     table.add_column("Complexity", style="magenta", justify="right")
     table.add_column("Classification", style="yellow")
     table.add_column("Reason")
-
     for target in targets:
         style = "green" if target.classification == "SIMPLE" else "red"
         table.add_row(
@@ -125,11 +119,9 @@ def inspect_test_targets(
             f"[{style}]{target.classification}[/{style}]",
             target.reason,
         )
+    logger.info(table)
 
-    console.print(table)
 
-
-# Export commands for registration
 diagnostics_commands = [
     {"name": "command-tree", "func": command_tree_cmd},
     {"name": "test-targets", "func": inspect_test_targets},

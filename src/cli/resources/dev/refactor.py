@@ -1,6 +1,4 @@
 # src/cli/resources/dev/refactor.py
-# ID: cli.resources.dev.refactor
-
 """
 Autonomous refactoring command.
 
@@ -38,14 +36,10 @@ console = Console()
     dangerous=True,
 )
 @core_command(dangerous=True, requires_context=True)
-# ID: dev-refactor-cmd-001
-# ID: dab0f73f-6db6-41bf-bac4-e57747fb737f
+# ID: df3bf750-e564-41cc-beb5-e6da5a97ebc1
 async def dev_refactor_cmd(
     ctx: typer.Context,
-    goal: str = typer.Argument(
-        ...,
-        help="High-level refactoring goal or file path.",
-    ),
+    goal: str = typer.Argument(..., help="High-level refactoring goal or file path."),
     write: bool = typer.Option(
         False, "--write", help="Apply changes. Default is dry-run."
     ),
@@ -73,29 +67,22 @@ async def dev_refactor_cmd(
     )
 
     context: CoreContext = ctx.obj
-
     load_dotenv()
-
-    # Pre-flight: LLM must be enabled
     async with get_session() as session:
         config = await ConfigService.create(session)
         if not await config.get_bool("LLM_ENABLED", default=False):
-            console.print(
-                "[red]❌ LLM_ENABLED is False. "
-                "Enable LLMs in database settings to use autonomous development.[/red]"
+            logger.info(
+                "[red]❌ LLM_ENABLED is False. Enable LLMs in database settings to use autonomous development.[/red]"
             )
             raise typer.Exit(code=1)
-
-    # Resolve workflow type
     workflow_type = infer_workflow_type(goal) if workflow == "auto" else workflow
-
     mode = "WRITE" if write else "DRY-RUN"
-    console.print(
-        f"[bold cyan]🤖 CORE Autonomous Refactor[/bold cyan] "
-        f"([yellow]{workflow_type}[/yellow] / {mode})"
+    logger.info(
+        "[bold cyan]🤖 CORE Autonomous Refactor[/bold cyan] ([yellow]%s[/yellow] / %s)",
+        workflow_type,
+        mode,
     )
-    console.print(f"[dim]Goal: {goal}[/dim]\n")
-
+    logger.info("[dim]Goal: %s[/dim]\n", goal)
     success, message = await develop_from_goal(
         context=context,
         goal=goal,
@@ -103,9 +90,8 @@ async def dev_refactor_cmd(
         write=write,
         task_id=None,
     )
-
     if success:
-        console.print(f"\n[bold green]✅ Success:[/bold green] {message}")
+        logger.info("\n[bold green]✅ Success:[/bold green] %s", message)
     else:
-        console.print(f"\n[bold red]❌ Failed:[/bold red] {message}")
+        logger.info("\n[bold red]❌ Failed:[/bold red] %s", message)
         raise typer.Exit(code=1)

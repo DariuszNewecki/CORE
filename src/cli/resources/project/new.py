@@ -1,8 +1,11 @@
 # src/cli/resources/project/new.py
+from shared.logger import getLogger
+
+
+logger = getLogger(__name__)
 import typer
 from rich.console import Console
 
-# UPDATED: Import from body instead of features
 from body.project_lifecycle.scaffolding_service import create_new_project
 from shared.cli_utils import core_command
 from shared.context import CoreContext
@@ -15,7 +18,7 @@ console = Console()
 
 @app.command("new")
 @core_command(dangerous=True, requires_context=True, confirmation=True)
-# ID: b2553fd5-8aac-4bb2-af48-744aeebbb1c4
+# ID: 32d44823-26a9-4059-8b64-969a46953225
 async def new_project_command(
     ctx: typer.Context,
     name: str = typer.Argument(..., help="The name of the new project."),
@@ -32,13 +35,10 @@ async def new_project_command(
     Creates the directory structure and initial .intent/ constitution.
     """
     core_context: CoreContext = ctx.obj
-
     mode = "Scaffolding" if write else "Previewing"
-    console.print(
-        f"[bold cyan]🚀 {mode} project:[/bold cyan] '{name}' (Profile: {profile})"
+    logger.info(
+        "[bold cyan]🚀 %s project:[/bold cyan] '%s' (Profile: %s)", mode, name, profile
     )
-
-    # The service handles the heavy lifting via ActionExecutor
     await create_new_project(
         context=core_context, name=name, profile=profile, write=write
     )

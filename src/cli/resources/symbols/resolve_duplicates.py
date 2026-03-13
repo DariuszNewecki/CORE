@@ -1,5 +1,8 @@
 # src/cli/resources/symbols/resolve_duplicates.py
+from shared.logger import getLogger
 
+
+logger = getLogger(__name__)
 import typer
 from rich.console import Console
 
@@ -14,7 +17,7 @@ console = Console()
 
 @app.command("resolve-duplicates")
 @core_command(dangerous=True, requires_context=True, confirmation=True)
-# ID: 35c377c3-f673-46d0-804b-9d878396d269
+# ID: c9ca3aa7-a542-4f3c-bbf3-d8dc97d4400a
 async def resolve_symbol_duplicates(
     ctx: typer.Context,
     write: bool = typer.Option(False, "--write", help="Regenerate conflicting UUIDs."),
@@ -26,10 +29,6 @@ async def resolve_symbol_duplicates(
     and colliding symbols are assigned fresh, unique identifiers.
     """
     core_context: CoreContext = ctx.obj
-
     mode = "RESOLVING" if write else "ANALYZING"
-    console.print(
-        f"[bold cyan]\U0001f46f {mode} duplicate ID collisions...[/bold cyan]"
-    )
-
+    logger.info("[bold cyan]👯 %s duplicate ID collisions...[/bold cyan]", mode)
     await core_context.action_executor.execute("fix.duplicate_ids", write=write)

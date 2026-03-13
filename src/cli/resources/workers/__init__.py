@@ -6,6 +6,7 @@ from __future__ import annotations
 import typer
 
 from .blackboard import workers_blackboard_cmd
+from .remediate import remediate_cmd
 from .run import workers_app
 
 

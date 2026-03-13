@@ -8,6 +8,10 @@ Enables focused work on one problem at a time.
 
 from __future__ import annotations
 
+from shared.logger import getLogger
+
+
+logger = getLogger(__name__)
 import typer
 from rich.console import Console
 
@@ -31,14 +35,11 @@ console = Console()
 
 
 @core_command(dangerous=False)
-# ID: 2abc4cf1-e9ba-48ea-a6f7-f26842563bc4
+# ID: a09ccda0-11ed-453b-9a35-e0e37f208959
 async def rule_cmd(
     ctx: typer.Context,
     rule: list[str] = typer.Option(
-        [],
-        "--rule",
-        "-r",
-        help="Specific rule ID(s) to execute (can be repeated)",
+        [], "--rule", "-r", help="Specific rule ID(s) to execute (can be repeated)"
     ),
     policy: list[str] = typer.Option(
         [],
@@ -47,9 +48,7 @@ async def rule_cmd(
         help="Execute all rules from specific policy ID(s) (can be repeated)",
     ),
     pattern: list[str] = typer.Option(
-        [],
-        "--pattern",
-        help="Regex pattern(s) for rule IDs (can be repeated)",
+        [], "--pattern", help="Regex pattern(s) for rule IDs (can be repeated)"
     ),
     severity: str = typer.Option(
         "warning",
@@ -85,34 +84,22 @@ async def rule_cmd(
       core-admin check rule --policy code.capabilities --rule linkage.assign_ids
     """
     core_context: CoreContext = ctx.obj
-
-    # Validate at least one filter specified
-    if not rule and not policy and not pattern:
-        console.print(
-            "[red]Error: Must specify at least one filter:[/red]\n"
-            "  --rule <rule_id>\n"
-            "  --policy <policy_id>\n"
-            "  --pattern <regex>\n"
+    if not rule and (not policy) and (not pattern):
+        logger.info(
+            "[red]Error: Must specify at least one filter:[/red]\n  --rule <rule_id>\n  --policy <policy_id>\n  --pattern <regex>\n"
         )
-        console.print("\nUse --help for examples")
+        logger.info("\nUse --help for examples")
         raise typer.Exit(1)
-
-    # Load knowledge graph
     await core_context.auditor_context.load_knowledge_graph()
-
-    # Execute filtered audit
-    console.print("[bold cyan]🔍 Running Filtered Constitutional Audit[/bold cyan]\n")
-
+    logger.info("[bold cyan]🔍 Running Filtered Constitutional Audit[/bold cyan]\n")
     if rule:
-        console.print(f"  Rules: {', '.join(rule)}")
+        logger.info("  Rules: %s", ", ".join(rule))
     if policy:
-        console.print(f"  Policies: {', '.join(policy)}")
+        logger.info("  Policies: %s", ", ".join(policy))
     if pattern:
-        console.print(f"  Patterns: {', '.join(pattern)}")
+        logger.info("  Patterns: %s", ", ".join(pattern))
     console.print()
-
     executed_rule_ids: set[str] = set()
-
     findings_dicts, executed_rules, stats = await run_filtered_audit(
         core_context.auditor_context,
         rule_ids=rule or None,
@@ -120,36 +107,21 @@ async def rule_cmd(
         rule_patterns=pattern or None,
         executed_rule_ids=executed_rule_ids,
     )
-
-    # Convert findings dicts to models
     all_findings = convert_finding_dicts_to_models(findings_dicts)
-
-    # Filter by severity
     min_severity = parse_min_severity(severity)
     filtered_findings = [f for f in all_findings if f.severity >= min_severity]
-
-    # Display results
     errors = [f for f in all_findings if f.severity.is_blocking]
     warnings = [f for f in all_findings if f.severity == AuditSeverity.WARNING]
-
     passed = len(errors) == 0
-
     print_filtered_audit_summary(
-        passed=passed,
-        stats=stats,
-        errors=errors,
-        warnings=warnings,
+        passed=passed, stats=stats, errors=errors, warnings=warnings
     )
-
     if filtered_findings:
         if verbose:
             print_verbose_findings(filtered_findings)
         else:
             print_summary_findings(filtered_findings)
-
-    # Show which rules were executed
-    if executed_rules and not verbose:
+    if executed_rules and (not verbose):
         print_executed_rules(executed_rules)
-
     if not passed:
         raise typer.Exit(1)

@@ -95,28 +95,29 @@ class CognitiveService:
         self._require_ready()
         assert self._config is not None
 
-        prefix = (resource.env_prefix or "").strip().upper()
+        # Key convention: <env_prefix>.<setting> (lowercase dot-notation)
+        # e.g. grok.api_url, ollama_reasoner.api_url, anthropic_claude_sonnet.model_name
+        prefix = (resource.env_prefix or "").strip().lower()
         if not prefix:
             raise ValueError(f"Resource '{resource.name}' is missing env_prefix.")
 
-        api_url = await self._config.get(f"{prefix}_API_URL")
-        model_name = await self._config.get(f"{prefix}_MODEL_NAME")
+        api_url = await self._config.get(f"{prefix}.api_url")
+        model_name = await self._config.get(f"{prefix}.model_name")
 
         if not api_url or not model_name:
             raise ValueError(f"Missing config for resource '{resource.name}'.")
 
         # API key is optional — Ollama and similar local providers don't require one.
-        # Matches the pattern used in ClientOrchestrator._create_provider_for_resource.
         api_key: str | None = None
         try:
             if self._session_factory:
                 async with self._session_factory() as session:
                     jit_config = await ConfigService.create(session)
                     api_key = await jit_config.get_secret(
-                        f"{prefix}_API_KEY", audit_context=resource.name
+                        f"{prefix}.api_key", audit_context=resource.name
                     )
             else:
-                api_key = await self._config.get_secret(f"{prefix}_API_KEY")
+                api_key = await self._config.get_secret(f"{prefix}.api_key")
         except (KeyError, SecretNotFoundError):
             logger.debug(
                 "No API key configured for resource '%s' — proceeding without one.",

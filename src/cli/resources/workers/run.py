@@ -16,10 +16,8 @@ from shared.logger import getLogger
 
 
 logger = getLogger(__name__)
-
 workers_app = typer.Typer(
-    help="Constitutional worker management.",
-    no_args_is_help=True,
+    help="Constitutional worker management.", no_args_is_help=True
 )
 
 
@@ -36,7 +34,6 @@ def _load_worker_declarations() -> dict[str, dict]:
     workers_dir: Path = settings.MIND / "workers"
     if not workers_dir.exists():
         return {}
-
     declarations = {}
     for yaml_path in sorted(workers_dir.glob("*.yaml")):
         try:
@@ -44,7 +41,7 @@ def _load_worker_declarations() -> dict[str, dict]:
             if data.get("metadata", {}).get("status") != "active":
                 continue
             impl = data.get("implementation")
-            if not impl or not impl.get("module") or not impl.get("class"):
+            if not impl or not impl.get("module") or (not impl.get("class")):
                 logger.warning(
                     "Worker declaration '%s' is missing implementation block — skipped.",
                     yaml_path.stem,
@@ -53,13 +50,12 @@ def _load_worker_declarations() -> dict[str, dict]:
             declarations[yaml_path.stem] = data
         except Exception as e:
             logger.warning("Could not load worker declaration %s: %s", yaml_path, e)
-
     return declarations
 
 
 @workers_app.command("run")
 @core_command(dangerous=False)
-# ID: f7a8b9c0-d1e2-3f4a-5b6c-7d8e9f0a1b2c
+# ID: ed6afc60-992e-4695-9a64-59844ec6be65
 async def workers_run_cmd(
     ctx: typer.Context,
     worker_name: str = typer.Argument(
@@ -72,37 +68,26 @@ async def workers_run_cmd(
     from rich.console import Console
 
     console = Console()
-
     declarations = _load_worker_declarations()
-
     if worker_name not in declarations:
         available = ", ".join(sorted(declarations.keys())) or "(none declared)"
-        console.print(f"[red]Unknown worker: {worker_name}[/red]")
-        console.print(f"Available: {available}")
+        logger.info("[red]Unknown worker: %s[/red]", worker_name)
+        logger.info("Available: %s", available)
         raise typer.Exit(code=1)
-
     declaration = declarations[worker_name]
     impl = declaration["implementation"]
     module_path: str = impl["module"]
     class_name: str = impl["class"]
     needs_context: bool = impl.get("requires_core_context", False)
-
     core_context: CoreContext = ctx.obj
-
-    # Initialize cognitive service — required by sensing workers
     async with get_session() as session:
         await core_context.cognitive_service.initialize(session)
-
     module = importlib.import_module(module_path)
     worker_class = getattr(module, class_name)
-
     if needs_context:
         worker = worker_class(core_context=core_context)
     else:
         worker = worker_class(cognitive_service=core_context.cognitive_service)
-
-    console.print(f"[bold green]Starting worker: {worker_name}[/bold green]")
-
+    logger.info("[bold green]Starting worker: %s[/bold green]", worker_name)
     await worker.start()
-
-    console.print(f"[bold green]Worker {worker_name} completed.[/bold green]")
+    logger.info("[bold green]Worker %s completed.[/bold green]", worker_name)

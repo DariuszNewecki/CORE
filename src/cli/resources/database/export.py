@@ -22,14 +22,11 @@ console = Console()
 
 @app.command("export")
 @core_command(dangerous=False, requires_context=True)
-# ID: 9d3e5f2a-7c1b-4e8d-9a6f-2b4e8d7c3a1f
+# ID: e7f86889-85aa-40c7-92f9-19f751f8162f
 async def export_database(
     ctx: typer.Context,
     output_dir: str = typer.Option(
-        "backups",
-        "--output-dir",
-        "-o",
-        help="Output directory for export files",
+        "backups", "--output-dir", "-o", help="Output directory for export files"
     ),
 ) -> None:
     """
@@ -49,19 +46,15 @@ async def export_database(
         # Export to custom directory
         core-admin database export --output-dir exports/2024
     """
-    console.print("[bold cyan]📤 Database Export[/bold cyan]")
-    console.print(f"Output directory: {output_dir}")
+    logger.info("[bold cyan]📤 Database Export[/bold cyan]")
+    logger.info("Output directory: %s", output_dir)
     console.print()
-
     try:
         from cli.logic.db import export_data
 
-        # Use existing export_data function
         export_data(output_dir)
-
-        console.print(f"[green]✅ Export completed to {output_dir}[/green]")
-
+        logger.info("[green]✅ Export completed to %s[/green]", output_dir)
     except Exception as e:
         logger.error("Database export failed", exc_info=True)
-        console.print(f"[red]❌ Error: {e}[/red]", err=True)
+        logger.info("[red]❌ Error: %s[/red]", e)
         raise typer.Exit(1)

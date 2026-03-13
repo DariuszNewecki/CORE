@@ -1,11 +1,14 @@
 # src/cli/commands/inspect/status.py
-
 """
 System and database status inspection commands.
 """
 
 from __future__ import annotations
 
+from shared.logger import getLogger
+
+
+logger = getLogger(__name__)
 import typer
 from rich.console import Console
 
@@ -24,31 +27,25 @@ console = Console()
     summary="Display database connection and migration status",
 )
 @core_command(dangerous=False, requires_context=False)
-# ID: 33e945f6-45aa-42e5-a008-c5fad806b92e
+# ID: 4d56d191-4d50-41f6-8d64-cc5732a92186
 async def status_command(ctx: typer.Context) -> None:
     """Display database connection and migration status."""
     report = await status_logic._get_status_report()
-
     if report.is_connected:
-        console.print("Database connection: OK")
+        logger.info("Database connection: OK")
     else:
-        console.print("Database connection: FAILED")
-
+        logger.info("Database connection: FAILED")
     if report.db_version:
-        console.print(f"Database version: {report.db_version}")
+        logger.info("Database version: %s", report.db_version)
     else:
-        console.print("Database version: none")
-
+        logger.info("Database version: none")
     pending = list(report.pending_migrations)
     if not pending:
-        console.print("Migrations are up to date.")
+        logger.info("Migrations are up to date.")
     else:
-        console.print(f"Found {len(pending)} pending migrations")
+        logger.info("Found %s pending migrations", len(pending))
         for mig in sorted(pending):
-            console.print(f"- {mig}")
+            logger.info("- %s", mig)
 
 
-# Export commands for registration
-status_commands = [
-    {"name": "status", "func": status_command},
-]
+status_commands = [{"name": "status", "func": status_command}]

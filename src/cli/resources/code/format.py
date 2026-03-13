@@ -1,4 +1,8 @@
 # src/cli/resources/code/format.py
+from shared.logger import getLogger
+
+
+logger = getLogger(__name__)
 import typer
 from rich.console import Console
 
@@ -13,7 +17,7 @@ console = Console()
 
 @app.command("format")
 @core_command(dangerous=True, requires_context=True)
-# ID: 2d58b4be-eeee-433a-b111-5d1198bfa0d7
+# ID: 3dfcec28-34fd-44d4-9aec-bcbf29eb6d76
 async def format_command(
     ctx: typer.Context,
     write: bool = typer.Option(
@@ -26,18 +30,15 @@ async def format_command(
     Defaults to dry-run mode. Use --write to apply changes.
     """
     mode = "Applying" if write else "Checking"
-    console.print(f"[bold cyan]✨ {mode} code formatting (Black + Ruff)...[/bold cyan]")
-
-    # Delegates to the established style service
+    logger.info("[bold cyan]✨ %s code formatting (Black + Ruff)...[/bold cyan]", mode)
     format_code(write=write)
-
     if not write:
-        console.print("\n[yellow]💡 Run with --write to apply these changes.[/yellow]")
+        logger.info("\n[yellow]💡 Run with --write to apply these changes.[/yellow]")
 
 
 @app.command("format-imports")
 @core_command(dangerous=True, requires_context=True)
-# ID: b892c98f-cc17-4bda-87b5-1323cdfc7b95
+# ID: 582d69b9-6f50-411a-a950-37e66ce2e07b
 async def format_imports_cmd(
     ctx: typer.Context,
     write: bool = typer.Option(False, "--write", help="Apply import sorting to disk."),
@@ -47,5 +48,4 @@ async def format_imports_cmd(
     Uses Ruff's import sorter (I) rules.
     """
     core_context = ctx.obj
-    # Routes to the fix.imports atomic action
     await core_context.action_executor.execute("fix.imports", write=write)

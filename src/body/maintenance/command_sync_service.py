@@ -13,7 +13,7 @@ CONSTITUTIONAL HARDENING (v2.3):
 from __future__ import annotations
 
 import inspect
-from typing import Any, Protocol
+from typing import Any
 
 from sqlalchemy import delete
 from sqlalchemy.dialects.postgresql import insert as pg_insert
@@ -22,28 +22,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from shared.infrastructure.database.models import CliCommand
 from shared.logger import getLogger
 from shared.models.command_meta import get_command_meta, infer_metadata_from_function
+from shared.protocols.typer_protocols import (
+    TyperAppLike,
+)
 
 
 logger = getLogger(__name__)
-
-
-# ID: 10bc5565-2f20-4497-8865-c36de47dcb48
-class TyperCommandLike(Protocol):
-    name: str | None
-    callback: Any
-    help: str | None
-
-
-# ID: d01d9def-d26d-4c50-84f6-4ecc6921c9a1
-class TyperGroupLike(Protocol):
-    name: str | None
-    typer_instance: Any
-
-
-# ID: f9bd5ff6-605c-4575-b5c6-dc61f23bf964
-class TyperAppLike(Protocol):
-    registered_commands: list[TyperCommandLike]
-    registered_groups: list[TyperGroupLike]
 
 
 def _introspect_typer_app(
@@ -98,44 +82,34 @@ def _introspect_typer_app(
         meta = get_command_meta(callback)
 
         if meta:
-            command_dict: dict[str, Any] = {
-                "name": meta.canonical_name,
-                "module": meta.module or callback.__module__,
-                "entrypoint": meta.entrypoint or callback.__name__,
-                "file_path": file_path,
-                "summary": meta.summary,
-                "category": meta.category
-                or prefix.replace(".", " ").strip()
-                or "general",
-                "behavior": meta.behavior.value,
-                "layer": meta.layer.value,
-                "aliases": meta.aliases or [],
-                "dangerous": meta.dangerous,
-                "params_list": params_list,
-                "has_callback": True,
-                "has_explicit_meta": True,
-            }
+            source = meta
+            summary = meta.summary
+            category = meta.category
+            has_explicit = True
         else:
             inferred = infer_metadata_from_function(
                 func=callback, command_name=cmd_info.name, group_prefix=prefix
             )
-            command_dict = {
-                "name": inferred.canonical_name,
-                "module": inferred.module or callback.__module__,
-                "entrypoint": inferred.entrypoint or callback.__name__,
-                "file_path": file_path,
-                "summary": inferred.summary or (cmd_info.help or "").split("\n")[0],
-                "category": inferred.category
-                or prefix.replace(".", " ").strip()
-                or "general",
-                "behavior": inferred.behavior.value,
-                "layer": inferred.layer.value,
-                "aliases": inferred.aliases or [],
-                "dangerous": inferred.dangerous,
-                "params_list": params_list,
-                "has_callback": True,
-                "has_explicit_meta": False,
-            }
+            source = inferred
+            summary = inferred.summary or (cmd_info.help or "").split("\n")[0]
+            category = inferred.category
+            has_explicit = False
+
+        command_dict: dict[str, Any] = {
+            "name": source.canonical_name,
+            "module": source.module or callback.__module__,
+            "entrypoint": source.entrypoint or callback.__name__,
+            "file_path": file_path,
+            "summary": summary,
+            "category": category or prefix.replace(".", " ").strip() or "general",
+            "behavior": source.behavior.value,
+            "layer": source.layer.value,
+            "aliases": source.aliases or [],
+            "dangerous": source.dangerous,
+            "params_list": params_list,
+            "has_callback": True,
+            "has_explicit_meta": has_explicit,
+        }
 
         commands.append(command_dict)
 
@@ -249,7 +223,7 @@ def audit_cli_registry(
                 violations.append(
                     {
                         "rule": "cli.dangerous_explicit",
-                        "message": "Mutating command is not marked 'dangerous=True' in metadata.",
+                        "message": "Mutating command is not marked as dangerous.",
                         "item": c["name"],
                     }
                 )

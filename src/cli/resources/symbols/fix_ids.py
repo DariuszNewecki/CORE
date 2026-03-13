@@ -1,4 +1,8 @@
 # src/cli/resources/symbols/fix_ids.py
+from shared.logger import getLogger
+
+
+logger = getLogger(__name__)
 import typer
 from rich.console import Console
 
@@ -21,7 +25,7 @@ console = Console()
     dangerous=True,
 )
 @core_command(dangerous=True, requires_context=True, confirmation=True)
-# ID: 888a9a3e-30b1-438d-ac9f-0bcc682d9f09
+# ID: 37ac33b4-76d3-40c4-8955-3b81a2a4ccf2
 async def fix_ids_command(
     ctx: typer.Context,
     write: bool = typer.Option(
@@ -34,13 +38,10 @@ async def fix_ids_command(
     Scans 'src/' and modifies files to ensure knowledge graph stability.
     """
     core_context: CoreContext = ctx.obj
-
     if not write:
-        console.print("[yellow]📋 Analysis mode: Scanning for missing IDs...[/yellow]")
+        logger.info("[yellow]📋 Analysis mode: Scanning for missing IDs...[/yellow]")
     else:
-        console.print(
+        logger.info(
             "[bold red]🧪 Applying missing ID anchors to source code...[/bold red]"
         )
-
-    # Routes to fix.ids atomic action
     await core_context.action_executor.execute("fix.ids", write=write)

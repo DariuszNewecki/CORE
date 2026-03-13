@@ -7,9 +7,9 @@ checker, ensuring the fixer can handle exactly what the checker detects.
 IntentGuard enforcement and auditability.
 
 Converts:
+- print() → logger.info()
 - console.print() → logger.info()
 - console.status() → logger.info()
-- print() → logger.info()
 - logger.info(f"text {var}") → logger.info("text %s", var)
 
 Constitutional Rules Enforced:
@@ -39,8 +39,10 @@ class LoggingFixer:
     """
     AST-based logging violation fixer.
 
-    This fixer understands code structure and can transform complex f-strings
-    into proper lazy % formatting while preserving code semantics.
+    Handles:
+    - print() → logger.info()
+    - console.print() / console.status() → logger.info()
+    - logger.info(f"...") → logger.info("...", args)
     """
 
     def __init__(
@@ -75,32 +77,26 @@ class LoggingFixer:
         try:
             content = file_path.read_text(encoding="utf-8")
 
-            # Parse into AST
             try:
                 tree = ast.parse(content, filename=str(file_path))
             except SyntaxError as e:
                 logger.debug("Syntax error in %s, skipping: %s", file_path, e)
                 return False
 
-            # Transform the AST
             transformer = LoggingTransformer(file_path)
             modified_tree = transformer.visit(tree)
 
-            # If nothing changed, skip
             if not transformer.modified:
                 return False
 
-            # Convert back to source code
             try:
                 fixed_content = ast.unparse(modified_tree)
             except Exception as e:
                 logger.error("Failed to unparse %s: %s", file_path, e)
                 return False
 
-            # Ensure logger import exists
             fixed_content = self._ensure_logger_import(fixed_content)
 
-            # Write or report
             rel_path = str(file_path.relative_to(self.repo_root))
             if not self.dry_run:
                 try:
@@ -132,7 +128,6 @@ class LoggingFixer:
         lines = content.split("\n")
         insert_idx = 0
 
-        # Find position after __future__ imports
         last_future_idx = -1
         for i, line in enumerate(lines):
             if line.strip().startswith("from __future__"):
@@ -141,7 +136,6 @@ class LoggingFixer:
         if last_future_idx != -1:
             insert_idx = last_future_idx + 1
         else:
-            # Find position after shebang/encoding
             for i, line in enumerate(lines):
                 if line.startswith("#!") or line.startswith("# -*-"):
                     insert_idx = i + 1
@@ -175,7 +169,10 @@ class LoggingFixer:
 # ID: a1b2c3d4-e5f6-7890-abcd-123456789012
 class LoggingTransformer(ast.NodeTransformer):
     """
-    AST NodeTransformer that fixes logging violations.
+    AST NodeTransformer that fixes all logging violations:
+    - print() → logger.info()
+    - console.print() / console.status() → logger.info()
+    - logger.*(f"...") → logger.*("...", args)
     """
 
     def __init__(self, file_path: Path):
@@ -185,9 +182,27 @@ class LoggingTransformer(ast.NodeTransformer):
         self.is_cli_layer = "body/cli" in str(file_path.as_posix())
 
     # ID: 9de559dc-607e-45f7-9880-217c77f68f31
-    def visit_Call(self, node: ast.Call) -> ast.Call:
-        """Visit function call nodes and fix logger f-strings."""
+    def visit_Call(self, node: ast.Call) -> ast.AST:
+        """Visit function call nodes and fix all logging violations."""
         self.generic_visit(node)
+
+        # Case 1: print(...) → logger.info(...)
+        if self._is_print_call(node):
+            # bare print() with no args is a spacer — skip, logger.info() requires a msg
+            if not node.args and not node.keywords:
+                return node
+            return self._replace_with_logger_info(node)
+
+        # Case 2: console.print(...) or console.status(...) → logger.info(...)
+        # CLI layer is the constitutional presentation layer — console.print() is
+        # allowed and correct there. Only replace in body/logic/shared layers.
+        if self._is_console_call(node) and not self.is_cli_layer:
+            # bare console.print() is a Rich spacer — skip
+            if not node.args and not node.keywords:
+                return node
+            return self._replace_with_logger_info(node)
+
+        # Case 3: logger.*(f"...") → logger.*("...", args)
         if self._is_logger_call(node):
             if node.args and isinstance(node.args[0], ast.JoinedStr):
                 transformed = self._transform_fstring_to_percent(node)
@@ -195,7 +210,20 @@ class LoggingTransformer(ast.NodeTransformer):
                     self.modified = True
                     self.fix_count += 1
                     return transformed
+
         return node
+
+    def _is_print_call(self, node: ast.Call) -> bool:
+        """Check if this is a bare print() call."""
+        return isinstance(node.func, ast.Name) and node.func.id == "print"
+
+    def _is_console_call(self, node: ast.Call) -> bool:
+        """Check if this is a console.print() or console.status() call."""
+        if not isinstance(node.func, ast.Attribute):
+            return False
+        if not isinstance(node.func.value, ast.Name):
+            return False
+        return node.func.value.id == "console" and node.func.attr in ("print", "status")
 
     def _is_logger_call(self, node: ast.Call) -> bool:
         """Check if this is a logger.method() call."""
@@ -206,14 +234,51 @@ class LoggingTransformer(ast.NodeTransformer):
                     return True
         return False
 
+    def _replace_with_logger_info(self, node: ast.Call) -> ast.Call:
+        """Replace print()/console.print() with logger.info(), handling f-strings."""
+        # Build logger.info attribute node
+        new_func = ast.Attribute(
+            value=ast.Name(id="logger", ctx=ast.Load()),
+            attr="info",
+            ctx=ast.Load(),
+        )
+        ast.copy_location(new_func, node.func)
+        ast.fix_missing_locations(new_func)
+
+        # Use original args — if it's an f-string, convert to % format
+        new_args = list(node.args)
+        if new_args and isinstance(new_args[0], ast.JoinedStr):
+            converted = self._fstring_to_percent_args(new_args[0])
+            if converted:
+                new_args = converted + new_args[1:]
+
+        new_call = ast.Call(func=new_func, args=new_args, keywords=[])
+        ast.copy_location(new_call, node)
+        ast.fix_missing_locations(new_call)
+
+        self.modified = True
+        self.fix_count += 1
+        return new_call
+
     def _transform_fstring_to_percent(self, node: ast.Call) -> ast.Call | None:
         """Transform logger.info(f"text {var}") to logger.info("text %s", var)."""
-        fstring = node.args[0]
+        converted = self._fstring_to_percent_args(node.args[0])
+        if not converted:
+            return None
+
+        new_args = converted + list(node.args[1:])
+        new_call = ast.Call(func=node.func, args=new_args, keywords=node.keywords)
+        ast.copy_location(new_call, node)
+        ast.fix_missing_locations(new_call)
+        return new_call
+
+    def _fstring_to_percent_args(self, fstring: ast.JoinedStr) -> list[ast.expr] | None:
+        """Convert an f-string AST node to [format_string, *args] for % formatting."""
         if not isinstance(fstring, ast.JoinedStr):
             return None
 
-        format_parts = []
-        format_args = []
+        format_parts: list[str] = []
+        format_args: list[ast.expr] = []
 
         for value in fstring.values:
             if isinstance(value, ast.Constant):
@@ -222,11 +287,7 @@ class LoggingTransformer(ast.NodeTransformer):
                 format_parts.append("%s")
                 format_args.append(value.value)
 
-        format_string = "".join(format_parts)
-        new_args = [ast.Constant(value=format_string), *format_args, *node.args[1:]]
-        new_call = ast.Call(func=node.func, args=new_args, keywords=node.keywords)
-        ast.copy_location(new_call, node)
-        return new_call
+        return [ast.Constant(value="".join(format_parts)), *format_args]
 
 
 # ID: d1a3f234-bfff-4385-a973-9f387d6b1cc3

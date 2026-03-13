@@ -1,5 +1,8 @@
 # src/cli/resources/admin/meta.py
+from shared.logger import getLogger
 
+
+logger = getLogger(__name__)
 import typer
 from rich.console import Console
 
@@ -22,7 +25,7 @@ console = Console()
     policies=["governance.audit_context"],
 )
 @core_command(dangerous=False, requires_context=False)
-# ID: 99ce89cf-44fa-49ad-bf0c-fa4f0a605d95
+# ID: 05ee1736-8480-40f6-94d9-f0e813eb5e0c
 async def admin_meta_cmd(
     ctx: typer.Context,
     format: str = typer.Option("list", "--format", help="Output format (list|json)"),
@@ -31,21 +34,17 @@ async def admin_meta_cmd(
     Explore the System Mind: Prints all authoritative constitutional files.
     """
     analyzer = ConstitutionalPathAnalyzer()
-    # The Body executes the Analyzer; the CLI handles the Rich presentation.
     result = await analyzer.execute()
-
     paths = result.data["paths"]
-
     if format == "json":
         import json
 
-        console.print(json.dumps(paths, indent=2))
+        logger.info(json.dumps(paths, indent=2))
     else:
-        console.print(
-            f"\n[bold cyan]🏛️  Authoritative Mind Artifacts ({len(paths)}):[/bold cyan]"
+        logger.info(
+            "\n[bold cyan]🏛️  Authoritative Mind Artifacts (%s):[/bold cyan]", len(paths)
         )
         for p in paths:
-            console.print(f"  [dim]•[/dim] {p}")
-        console.print()
-
+            logger.info("  [dim]•[/dim] %s", p)
+        logger.info()
     return ActionResult(action_id="admin.meta", ok=True, data=result.data)

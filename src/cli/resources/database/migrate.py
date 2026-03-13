@@ -22,13 +22,11 @@ console = Console()
 
 @app.command("migrate")
 @core_command(dangerous=True, requires_context=False)
-# ID: 2a7f9e3d-5b8c-4a1e-9d6f-3c2b7e8a4f1d
+# ID: d8b7978f-d801-4ba2-a669-f0fd48851b01
 async def migrate_database(
     ctx: typer.Context,
     apply: bool = typer.Option(
-        False,
-        "--apply",
-        help="Apply migrations (default: show pending)",
+        False, "--apply", help="Apply migrations (default: show pending)"
     ),
 ) -> None:
     """
@@ -43,10 +41,9 @@ async def migrate_database(
         # Apply all pending migrations
         core-admin database migrate --apply
     """
-    console.print("[bold cyan]🔄 Database Migration[/bold cyan]")
-    console.print(f"Mode: {'APPLY' if apply else 'PREVIEW'}")
+    logger.info("[bold cyan]🔄 Database Migration[/bold cyan]")
+    logger.info("Mode: %s", "APPLY" if apply else "PREVIEW")
     console.print()
-
     try:
         from shared.infrastructure.repositories.db.migration_service import (
             MigrationServiceError,
@@ -54,17 +51,14 @@ async def migrate_database(
         )
 
         await migrate_db(apply=apply)
-
-        console.print("[green]✅ Migration completed[/green]")
+        logger.info("[green]✅ Migration completed[/green]")
         if not apply:
-            console.print()
-            console.print("[yellow]💡 Run with --apply to execute migrations[/yellow]")
-
+            logger.info()
+            logger.info("[yellow]💡 Run with --apply to execute migrations[/yellow]")
     except MigrationServiceError as e:
-        console.print(f"[red]❌ Migration failed: {e}[/red]", err=True)
+        logger.info("[red]❌ Migration failed: %s[/red]", e)
         raise typer.Exit(e.exit_code)
-
     except Exception as e:
         logger.error("Migration failed", exc_info=True)
-        console.print(f"[red]❌ Error: {e}[/red]", err=True)
+        logger.info("[red]❌ Error: %s[/red]", e)
         raise typer.Exit(1)

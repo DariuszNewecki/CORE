@@ -1,4 +1,8 @@
 # src/cli/resources/code/actions.py
+from shared.logger import getLogger
+
+
+logger = getLogger(__name__)
 from rich.console import Console
 from rich.table import Table
 
@@ -19,20 +23,18 @@ console = Console()
     summary="List all registered Atomic Actions showing their IDs, categories, impact levels, and descriptions.",
     dangerous=False,
 )
-# ID: 496c50fa-3891-4a2b-b0cf-9fc93fa88fae
+# ID: 4f8e13a3-f017-4d0f-a6ef-340f81d05341
 def list_actions_cmd():
     """
     List all registered Atomic Actions (Body Capabilities).
     Shows IDs, categories, and impact levels for autonomous building blocks.
     """
     actions = action_registry.list_all()
-
     table = Table(title="Registered Atomic Actions", header_style="bold green")
     table.add_column("Action ID", style="cyan")
     table.add_column("Category", style="blue")
     table.add_column("Impact", style="magenta")
     table.add_column("Description")
-
     for action in sorted(actions, key=lambda x: x.action_id):
         table.add_row(
             action.action_id,
@@ -40,5 +42,4 @@ def list_actions_cmd():
             action.impact_level,
             action.description,
         )
-
-    console.print(table)
+    logger.info(table)

@@ -1,4 +1,8 @@
 # src/cli/resources/code/lint.py
+from shared.logger import getLogger
+
+
+logger = getLogger(__name__)
 import typer
 from rich.console import Console
 
@@ -13,10 +17,8 @@ console = Console()
 
 @app.command("lint")
 @core_command(dangerous=False, requires_context=True)
-# ID: 9db9ad62-1a9e-46b4-bfd2-7b7ea8856930
+# ID: 044f8edf-3262-4e8b-b394-fd76bdd74136
 async def lint_command(ctx: typer.Context) -> None:
     """Check code quality using Black and Ruff (Read-Only)."""
-    console.print("[bold cyan]🔎 Linting codebase...[/bold cyan]")
-
-    # Reuses the logic from the Mind enforcement layer
+    logger.info("[bold cyan]🔎 Linting codebase...[/bold cyan]")
     lint()

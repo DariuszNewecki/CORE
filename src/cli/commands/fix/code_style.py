@@ -12,6 +12,10 @@ CONSTITUTIONAL ALIGNMENT:
 
 from __future__ import annotations
 
+from shared.logger import getLogger
+
+
+logger = getLogger(__name__)
 import time
 
 import typer
@@ -22,7 +26,7 @@ from shared.atomic_action import atomic_action
 from shared.cli_utils import core_command
 from shared.context import CoreContext
 
-from . import console, fix_app
+from . import fix_app
 
 
 @atomic_action(
@@ -32,7 +36,7 @@ from . import console, fix_app
     policies=["file_headers"],
     category="fixers",
 )
-# ID: edb6d962-f821-475d-8885-ca8518569758
+# ID: 936e32e6-18a3-4b7c-a0f2-06cc8ca654f7
 async def fix_headers_internal(
     context: CoreContext, write: bool = False
 ) -> ActionResult:
@@ -40,21 +44,15 @@ async def fix_headers_internal(
     Core logic for fix headers command. Now uses governed ActionExecutor.
     """
     start_time = time.time()
-
     repo_root = context.git_service.repo_path
-
     try:
-        # Get all Python files in src/
         src_dir = repo_root / "src"
         all_py_files = [
             p.relative_to(repo_root).as_posix() for p in src_dir.rglob("*.py")
         ]
-
-        # _run_header_fix_cycle is async and requires context
         summary = await _run_header_fix_cycle(
             context, dry_run=not write, all_py_files=all_py_files
         )
-
         return ActionResult(
             action_id="fix.headers",
             ok=True,
@@ -64,7 +62,6 @@ async def fix_headers_internal(
                 "files_unchanged": summary["files_unchanged"],
                 "files_created": summary["files_created"],
                 "changed_file_paths": summary["changed_file_paths"],
-                # Backward-compatible aliases for existing reporters.
                 "files_scanned": summary["total_files_scanned"],
                 "violations_found": summary["files_changed"],
                 "fixed_count": summary["files_changed"] if write else 0,
@@ -74,15 +71,11 @@ async def fix_headers_internal(
             duration_sec=time.time() - start_time,
             impact=ActionImpact.WRITE_METADATA if write else ActionImpact.READ_ONLY,
         )
-
     except Exception as e:
         return ActionResult(
             action_id="fix.headers",
             ok=False,
-            data={
-                "error": str(e),
-                "error_type": type(e).__name__,
-            },
+            data={"error": str(e), "error_type": type(e).__name__},
             duration_sec=time.time() - start_time,
             logs=[f"Exception during header fix: {e}"],
         )
@@ -98,7 +91,7 @@ async def fix_headers_internal(
     impact=ActionImpact.WRITE_CODE,
     policies=["atomic_actions"],
 )
-# ID: 3fcdcae8-f417-41e3-bc81-1b09a39e2887
+# ID: 0077efbb-9090-42bb-a602-2ff3b7853875
 async def fix_headers_cmd(
     ctx: typer.Context,
     write: bool = typer.Option(
@@ -108,5 +101,5 @@ async def fix_headers_cmd(
     """
     CLI wrapper for fix headers command.
     """
-    with console.status("[cyan]Checking file headers...[/cyan]"):
+    with logger.info("[cyan]Checking file headers...[/cyan]"):
         return await fix_headers_internal(ctx.obj, write=write)

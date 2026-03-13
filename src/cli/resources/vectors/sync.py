@@ -1,5 +1,8 @@
 # src/cli/resources/vectors/sync.py
+from shared.logger import getLogger
 
+
+logger = getLogger(__name__)
 import typer
 from rich.console import Console
 
@@ -7,7 +10,7 @@ from shared.cli_utils import core_command
 from shared.context import CoreContext
 from shared.models.command_meta import CommandBehavior, CommandLayer, command_meta
 
-from .hub import app  # ← CHANGE: Import from .hub
+from .hub import app
 
 
 console = Console()
@@ -22,7 +25,7 @@ console = Console()
     dangerous=True,
 )
 @core_command(requires_context=True, dangerous=True)
-# ID: 0cbd298d-6653-4519-8642-8a82b754b238
+# ID: 558c245a-7663-4a87-bf2d-4e3c612498bd
 async def sync_vectors(
     ctx: typer.Context,
     write: bool = typer.Option(False, "--write", help="Apply changes to Qdrant."),
@@ -34,8 +37,8 @@ async def sync_vectors(
     Synchronize constitutional documents to vector collections.
     """
     core_context: CoreContext = ctx.obj
-    console.print(
-        f"[bold cyan]🧠 Vector Sync (Constitution): {'WRITE' if write else 'DRY-RUN'}[/bold cyan]"
+    logger.info(
+        "[bold cyan]🧠 Vector Sync (Constitution): %s[/bold cyan]",
+        "WRITE" if write else "DRY-RUN",
     )
-
     await core_context.action_executor.execute("sync.vectors.constitution", write=write)

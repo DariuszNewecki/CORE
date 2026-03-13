@@ -17,6 +17,10 @@ CONSTITUTIONAL ALIGNMENT:
 
 from __future__ import annotations
 
+from shared.logger import getLogger
+
+
+logger = getLogger(__name__)
 import time
 from pathlib import Path
 
@@ -27,10 +31,7 @@ from body.self_healing.duplicate_id_service import resolve_duplicate_ids
 from body.self_healing.id_tagging_service import assign_missing_ids
 from body.self_healing.policy_id_service import add_missing_policy_ids
 from body.self_healing.purge_legacy_tags_service import purge_legacy_tags
-from shared.action_types import (
-    ActionImpact,
-    ActionResult,
-)
+from shared.action_types import ActionImpact, ActionResult
 from shared.atomic_action import atomic_action
 from shared.cli_utils import core_command
 from shared.context import CoreContext
@@ -39,11 +40,7 @@ from will.self_healing.capability_tagging_service import (
     main_async as tag_capabilities_async,
 )
 
-# We only import the App and Console from the local hub
-from . import (
-    console,
-    fix_app,
-)
+from . import fix_app
 
 
 @atomic_action(
@@ -53,16 +50,14 @@ from . import (
     policies=["symbol_identification"],
     category="fixers",
 )
-# ID: 61377f91-d017-4749-a863-774ea5c2df3d
+# ID: 2d37fcb6-863e-4197-a3b8-88ad54a2b99c
 async def fix_ids_internal(context: CoreContext, write: bool = False) -> ActionResult:
     """
     Core logic for fix ids command. Now uses governed ActionExecutor.
     """
     start_time = time.time()
-
     try:
         total_assigned = await assign_missing_ids(context, write=write)
-
         return ActionResult(
             action_id="fix.ids",
             ok=True,
@@ -75,15 +70,11 @@ async def fix_ids_internal(context: CoreContext, write: bool = False) -> ActionR
             duration_sec=time.time() - start_time,
             impact=ActionImpact.WRITE_METADATA,
         )
-
     except Exception as e:
         return ActionResult(
             action_id="fix.ids",
             ok=False,
-            data={
-                "error": str(e),
-                "error_type": type(e).__name__,
-            },
+            data={"error": str(e), "error_type": type(e).__name__},
             duration_sec=time.time() - start_time,
             logs=[f"Exception during ID assignment: {e}"],
         )
@@ -96,7 +87,7 @@ async def fix_ids_internal(context: CoreContext, write: bool = False) -> ActionR
     policies=["id_uniqueness_check"],
     category="fixers",
 )
-# ID: 60d8c8e6-6c3a-46cb-91ca-a0a399b5c5d3
+# ID: ecc8bd51-3c19-4e0f-a689-fe3b33c5841c
 async def fix_duplicate_ids_internal(
     context: CoreContext, write: bool = False
 ) -> ActionResult:
@@ -109,7 +100,6 @@ async def fix_duplicate_ids_internal(
             resolved_count = await resolve_duplicate_ids(
                 context, session, dry_run=not write
             )
-
         return ActionResult(
             action_id="fix.duplicate_ids",
             ok=True,
@@ -135,7 +125,7 @@ async def fix_duplicate_ids_internal(
     help="Removes obsolete tag formats (e.g. old 'Tag:' or 'Metadata:' lines).",
 )
 @core_command(dangerous=True, confirmation=True)
-# ID: c7d68d69-bfaa-477c-a2f8-2d5a5457906a
+# ID: ab1c0d74-ec6c-45b4-a909-2a43eb9b8d41
 async def purge_legacy_tags_command(
     ctx: typer.Context,
     write: bool = typer.Option(
@@ -144,42 +134,40 @@ async def purge_legacy_tags_command(
 ) -> None:
     """Remove obsolete tag formats from Python files."""
     removed_count = await purge_legacy_tags(ctx.obj, dry_run=not write)
-
     mode = "removed" if write else "would be removed (dry-run)"
-    console.print(f"[bold green]Obsolete tags {mode}: {removed_count}[/bold green]")
+    logger.info("[bold green]Obsolete tags %s: %s[/bold green]", mode, removed_count)
 
 
 @fix_app.command(
-    "policy-ids",
-    help="Assigns missing IDs to policy files in .intent/policies/.",
+    "policy-ids", help="Assigns missing IDs to policy files in .intent/policies/."
 )
 @core_command(dangerous=True, confirmation=True)
-# ID: 31c08316-abc6-49ba-babd-938dfc0cdb09
+# ID: d17af23d-3b5a-4372-bf6a-efeef7f15c03
 async def fix_policy_ids_command(
     ctx: typer.Context,
     write: bool = typer.Option(
         False, "--write", help="Write the IDs to the policy files."
     ),
     policies_dir: Path = typer.Option(
-        Path(".intent/policies"),
-        help="Path to the policies directory.",
+        Path(".intent/policies"), help="Path to the policies directory."
     ),
 ) -> None:
     """Ensure each policy file has a unique policy_id."""
     added, skipped = await add_missing_policy_ids(ctx.obj, dry_run=not write)
-
     mode = "write" if write else "dry-run"
-    console.print(
-        f"[bold green]Policy IDs: added={added}, skipped={skipped} ({mode})[/bold green]"
+    logger.info(
+        "[bold green]Policy IDs: added=%s, skipped=%s (%s)[/bold green]",
+        added,
+        skipped,
+        mode,
     )
 
 
 @fix_app.command(
-    "tags",
-    help="Tags untagged capabilities by calling the capability-tagging service.",
+    "tags", help="Tags untagged capabilities by calling the capability-tagging service."
 )
 @core_command(dangerous=True, confirmation=True)
-# ID: 54686122-b1d1-44a3-8aa6-20daacc94e01
+# ID: 7d415daf-34de-4971-be89-991cd9490591
 async def fix_tags_command(
     ctx: typer.Context,
     write: bool = typer.Option(False, "--write", help="Write capability tags to DB."),
@@ -188,7 +176,6 @@ async def fix_tags_command(
     Automatically tag untagged capabilities using the AI naming agent.
     """
     core_context: CoreContext = ctx.obj
-
     await tag_capabilities_async(
         session_factory=get_session,
         cognitive_service=core_context.cognitive_service,
@@ -209,7 +196,7 @@ async def fix_tags_command(
     impact=ActionImpact.WRITE_CODE,
     policies=["atomic_actions"],
 )
-# ID: 476a84c1-c2b5-45d9-a7bf-65d297549495
+# ID: 96717df8-d28f-4124-bc1e-71bf3921b358
 async def fix_duplicate_ids_command(
     ctx: typer.Context,
     write: bool = typer.Option(
@@ -217,8 +204,7 @@ async def fix_duplicate_ids_command(
     ),
 ) -> ActionResult:
     """Detect and resolve duplicate IDs in Python files."""
-
-    with console.status("[cyan]Resolving duplicate IDs...[/cyan]"):
+    with logger.info("[cyan]Resolving duplicate IDs...[/cyan]"):
         return await fix_duplicate_ids_internal(ctx.obj, write=write)
 
 
@@ -233,7 +219,7 @@ async def fix_duplicate_ids_command(
     impact=ActionImpact.WRITE_CODE,
     policies=["atomic_actions"],
 )
-# ID: bf4ec2e4-67c6-46d4-b8dd-b12155b53339
+# ID: e8c8f803-1cad-4150-9e66-e50859d8bd35
 async def fix_placeholders_command(
     ctx: typer.Context,
     write: bool = typer.Option(
@@ -244,7 +230,7 @@ async def fix_placeholders_command(
     Detects and resolves forbidden placeholder strings (pending, FUTURE, etc.)
     using the governed ActionExecutor to ensure compliance with purity standards.
     """
-    with console.status("[cyan]Purging forbidden placeholders...[/cyan]"):
+    with logger.info("[cyan]Purging forbidden placeholders...[/cyan]"):
         executor = ActionExecutor(ctx.obj)
         return await executor.execute("fix.placeholders", write=write)
 
@@ -253,7 +239,7 @@ async def fix_placeholders_command(
     "dead-code", help="Mechanically remove unused variables/functions found by Vulture."
 )
 @core_command(dangerous=True)
-# ID: 3e2f4d95-02db-4f55-9fdb-9e55f9a9d918
+# ID: d2a428ee-63c2-4212-8c73-5bbebf514ff0
 async def fix_dead_code_cmd(
     ctx: typer.Context,
     write: bool = typer.Option(False, "--write", help="Apply the deletions."),
@@ -261,10 +247,9 @@ async def fix_dead_code_cmd(
     """CLI wrapper for the Vulture Healer."""
     from will.self_healing.vulture_healer import heal_dead_code
 
-    with console.status("[bold cyan]Snipping dead code scars...[/bold cyan]"):
+    with logger.info("[bold cyan]Snipping dead code scars...[/bold cyan]"):
         await heal_dead_code(ctx.obj, write=write)
-
     if not write:
-        console.print(
+        logger.info(
             "\n[yellow]💡 Dry run complete. Use --write to apply the 'Scissors'.[/yellow]"
         )

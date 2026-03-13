@@ -1,10 +1,11 @@
 # src/cli/resources/code/audit.py
 """Constitutional Audit CLI Command.
 
-Updated (V2.6.0)
+Updated (V2.6.1)
 - Fixed ImportError: Removed write_auto_ignored_reports (moved logic to Body).
 - Fixed TypeError: Explicitly mapping AuditStats fields.
 - Fully Compliant: CLI (Body) owns all side-effects (file writes).
+- Restored: Always show findings grouped by rule; --verbose shows per-location detail.
 """
 
 from __future__ import annotations
@@ -20,8 +21,12 @@ from rich.console import Console
 from body.services.file_service import FileService
 from body.services.service_registry import service_registry
 from cli.commands.check.converters import parse_min_severity
-from cli.commands.check.formatters import print_context_build_hints
-from cli.logic.audit_renderer import AuditStats, render_detail, render_overview
+from cli.commands.check.formatters import (
+    print_context_build_hints,
+    print_summary_findings,
+    print_verbose_findings,
+)
+from cli.logic.audit_renderer import AuditStats, render_overview
 from mind.governance.audit_postprocessor import apply_entry_point_downgrade
 from mind.governance.audit_report_writer import build_auto_ignored_markdown
 from mind.governance.auditor import ConstitutionalAuditor
@@ -143,7 +148,7 @@ async def audit_command(
             }
             file_service.write_file(EVIDENCE_FILE, json.dumps(evidence, indent=2))
 
-    # 3. Build AuditStats correctly
+    # 3. Presentation
     raw_stats = results.get("stats", {})
     audit_stats = AuditStats(
         total_rules=raw_stats.get("total_executable_rules", 0),
@@ -156,9 +161,16 @@ async def audit_command(
     )
 
     all_findings = [_to_audit_finding(f) for f in processed_findings]
+    filtered_findings = [f for f in all_findings if f.severity >= min_severity]
+
     render_overview(console, all_findings, audit_stats, duration, results["passed"])
-    if verbose:
-        render_detail(console, [f for f in all_findings if f.severity >= min_severity])
+
+    if filtered_findings:
+        if verbose:
+            print_verbose_findings(filtered_findings)
+        else:
+            print_summary_findings(filtered_findings)
+
     if not results["passed"]:
         print_context_build_hints(all_findings)
         raise typer.Exit(1)

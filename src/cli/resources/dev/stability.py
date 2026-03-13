@@ -1,5 +1,4 @@
 # src/cli/resources/dev/stability.py
-
 """
 Stability CLI Commands - Phase 2 Hardening.
 Orchestrates idempotency testing for atomic actions.
@@ -7,6 +6,10 @@ Orchestrates idempotency testing for atomic actions.
 
 from __future__ import annotations
 
+from shared.logger import getLogger
+
+
+logger = getLogger(__name__)
 import typer
 from rich.console import Console
 
@@ -28,7 +31,7 @@ console = Console()
     summary="Verify the idempotency (stability) of a specific atomic action.",
 )
 @core_command(dangerous=True, requires_context=True)
-# ID: 1aedab7e-b682-414f-8439-4b2a7287453b
+# ID: b6bb979d-bb7f-4a4d-8518-1bd977634891
 async def dev_stability_cmd(
     ctx: typer.Context,
     action_id: str = typer.Argument(
@@ -44,23 +47,20 @@ async def dev_stability_cmd(
     """
     core_context = ctx.obj
     harness = IdempotencyHarness(core_context)
-
-    console.print(
-        f"\n[bold cyan]🧪 Initiating Stability Trial: {action_id}[/bold cyan]\n"
+    logger.info(
+        "\n[bold cyan]🧪 Initiating Stability Trial: %s[/bold cyan]\n", action_id
     )
-
-    # Run the automated test sequence
     result = await harness.verify_action(action_id)
-
     if result.ok:
-        console.print(
-            f"\n[bold green]✅ PROVEN:[/bold green] Action '{action_id}' is idempotent and stable."
+        logger.info(
+            "\n[bold green]✅ PROVEN:[/bold green] Action '%s' is idempotent and stable.",
+            action_id,
         )
     else:
-        console.print(
-            f"\n[bold red]❌ FAILED:[/bold red] Action '{action_id}' is unstable (logic drift detected)."
+        logger.info(
+            "\n[bold red]❌ FAILED:[/bold red] Action '%s' is unstable (logic drift detected).",
+            action_id,
         )
         for error in result.errors:
-            console.print(f"  [yellow]![/yellow] {error}")
-
+            logger.info("  [yellow]![/yellow] %s", error)
         raise typer.Exit(code=1)

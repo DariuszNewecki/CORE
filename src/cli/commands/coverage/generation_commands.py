@@ -18,7 +18,7 @@ logger = getLogger(__name__)
 console = Console()
 
 
-# ID: 17b95400-ab72-4f44-8a79-64bf75d93a0f
+# ID: b27c8ef7-9e92-4995-ae21-3a2f7d42b73d
 def register_generation_commands(app: typer.Typer) -> None:
     """
     Register V2 test generation commands.
@@ -31,7 +31,7 @@ def register_generation_commands(app: typer.Typer) -> None:
 
 
 @core_command(dangerous=True, confirmation=True)
-# ID: a7d1c24e-3f5b-4b1a-9d2c-8e4f1a2b3c4d
+# ID: 35d81f3f-de8f-4984-b9ab-0b311669268d
 async def generate_adaptive_command(
     ctx: typer.Context,
     file_path: str = typer.Argument(..., help="Source file to generate tests for"),
@@ -57,70 +57,57 @@ async def generate_adaptive_command(
     )
 
     core_context: CoreContext = ctx.obj
-
-    console.print("[bold cyan]🧪 Adaptive Test Generation (V2)[/bold cyan]\n")
-
+    logger.info("[bold cyan]🧪 Adaptive Test Generation (V2)[/bold cyan]\n")
     try:
         generator = AdaptiveTestGenerator(context=core_context)
-
         result: TestGenerationResult = await generator.generate_tests_for_file(
-            file_path=file_path,
-            write=write,
-            max_failures_per_pattern=max_failures,
+            file_path=file_path, write=write, max_failures_per_pattern=max_failures
         )
-
         sandbox_passed = getattr(result, "sandbox_passed", None)
-
-        console.print("\n[bold]📊 Generation Results:[/bold]")
-        console.print(f"  File: {result.file_path}")
-        console.print(f"  Total symbols: {result.total_symbols}")
-
-        # Interpret counts with Promotion/Morgue semantics
-        console.print(f"  Validated tests: {result.tests_generated}")
+        logger.info("\n[bold]📊 Generation Results:[/bold]")
+        logger.info("  File: %s", result.file_path)
+        logger.info("  Total symbols: %s", result.total_symbols)
+        logger.info("  Validated tests: %s", result.tests_generated)
         if sandbox_passed is not None:
-            console.print(f"  Sandbox passed: {sandbox_passed}")
-        console.print(f"  Sandbox failed: {result.tests_failed}")
-        console.print(f"  Skipped: {result.tests_skipped}")
-
+            logger.info("  Sandbox passed: %s", sandbox_passed)
+        logger.info("  Sandbox failed: %s", result.tests_failed)
+        logger.info("  Skipped: %s", result.tests_skipped)
         rate_color = "green" if result.success_rate > 0.5 else "yellow"
-        console.print(
-            f"  Validation rate: [{rate_color}]{result.success_rate:.1%}[/{rate_color}]"
+        logger.info(
+            "  Validation rate: [%s]%s[/%s]",
+            rate_color,
+            result.success_rate,
+            rate_color,
         )
-
         if result.strategy_switches > 0:
-            console.print(
-                f"  Strategy switches: [cyan]{result.strategy_switches}[/cyan]"
+            logger.info(
+                "  Strategy switches: [cyan]%s[/cyan]", result.strategy_switches
             )
-
         if result.patterns_learned:
-            console.print("\n[bold]🧠 Patterns Learned:[/bold]")
+            logger.info("\n[bold]🧠 Patterns Learned:[/bold]")
             for pattern, count in sorted(
                 result.patterns_learned.items(), key=lambda x: x[1], reverse=True
             ):
-                console.print(f"  • {pattern}: {count}x")
-
-        console.print(f"\n⏱️  Duration: {result.total_duration:.2f}s")
-
+                logger.info("  • %s: %sx", pattern, count)
+        logger.info("\n⏱️  Duration: %ss", result.total_duration)
         if write:
-            console.print("\n[dim]Write mode:[/dim]")
-            console.print("  • Passing tests -> tests/... (mirrored)")
-            console.print("  • Failing tests  -> var/artifacts/test_gen/failures/...")
-
+            logger.info("\n[dim]Write mode:[/dim]")
+            logger.info("  • Passing tests -> tests/... (mirrored)")
+            logger.info("  • Failing tests  -> var/artifacts/test_gen/failures/...")
         if result.tests_generated > 0:
-            console.print("\n[bold green]✅ Completed generation cycle.[/bold green]")
+            logger.info("\n[bold green]✅ Completed generation cycle.[/bold green]")
         else:
-            console.print(
+            logger.info(
                 "\n[bold yellow]⚠️  No tests validated successfully.[/bold yellow]"
             )
-
     except Exception as e:
         logger.error("Adaptive test generation failed: %s", e, exc_info=True)
-        console.print(f"[red]❌ Generation failed: {e}[/red]")
+        logger.info("[red]❌ Generation failed: %s[/red]", e)
         raise typer.Exit(code=1)
 
 
 @core_command(dangerous=True, confirmation=True)
-# ID: b8c9d0e1-f2a3-4b5c-6d7e-8f9a0b1c2d3e
+# ID: 4158a9ca-f87e-4311-8a02-ea8d5e696f40
 async def generate_adaptive_batch_command(
     ctx: typer.Context,
     pattern: str = typer.Option("src/**/*.py", help="File pattern to match"),
@@ -140,20 +127,14 @@ async def generate_adaptive_batch_command(
 
     core_context: CoreContext = ctx.obj
     repo_root = core_context.git_service.repo_path
-
-    console.print(
+    logger.info(
         "[bold cyan]🧪 Adaptive Test Generation - Batch Mode (V2)[/bold cyan]\n"
     )
-
-    # Get coverage data
     analyzer = CoverageAnalyzer(repo_path=repo_root)
     coverage_map = analyzer.get_module_coverage()
-
-    # Find matching files
     all_files = list(repo_root.glob(pattern))
 
-    # Filter and sort by coverage
-    # ID: fa722b9a-ede7-4419-9ba5-e5cdafdd8f3c
+    # ID: a74712c6-0de0-4537-b3f9-e45810ef6281
     def get_coverage_score(file_path: Path) -> float:
         try:
             rel = str(file_path.relative_to(repo_root)).replace("\\", "/")
@@ -161,101 +142,84 @@ async def generate_adaptive_batch_command(
         except (ValueError, KeyError):
             return 0.0
 
-    # Filter by min_coverage threshold
     eligible_files = [f for f in all_files if get_coverage_score(f) <= min_coverage]
-
-    # Sort by coverage (lowest first) and limit
     prioritized_files = sorted(eligible_files, key=get_coverage_score)[:limit]
-
     if not prioritized_files:
-        console.print(
-            f"[yellow]No files found matching: {pattern} with coverage <= {min_coverage}%[/yellow]"
+        logger.info(
+            "[yellow]No files found matching: %s with coverage <= %s%[/yellow]",
+            pattern,
+            min_coverage,
         )
         return
-
-    console.print(
-        f"[cyan]Processing {len(prioritized_files)} files (Lowest Coverage First)...[/cyan]"
+    logger.info(
+        "[cyan]Processing %s files (Lowest Coverage First)...[/cyan]",
+        len(prioritized_files),
     )
-    console.print(f"[dim]Min coverage threshold: {min_coverage}%[/dim]\n")
-
-    # Track totals
+    logger.info("[dim]Min coverage threshold: %s%[/dim]\n", min_coverage)
     total_symbols = 0
     total_validated = 0
     total_sandbox_passed = 0
     total_tests_saved = 0
     total_failed_files = 0
     start_time = time.time()
-
     generator = AdaptiveTestGenerator(context=core_context)
-
     for idx, file_path in enumerate(prioritized_files, 1):
         rel_path = file_path.relative_to(repo_root)
         current_coverage = get_coverage_score(file_path)
-
-        console.print(
-            f"\n[bold cyan][{idx}/{len(prioritized_files)}][/bold cyan] {rel_path} (coverage: {current_coverage:.1f}%)"
+        logger.info(
+            "\n[bold cyan][%s/%s][/bold cyan] %s (coverage: %s%)",
+            idx,
+            len(prioritized_files),
+            rel_path,
+            current_coverage,
         )
-
         try:
             result = await generator.generate_tests_for_file(
-                file_path=str(rel_path),
-                write=write,
-                max_failures_per_pattern=3,
+                file_path=str(rel_path), write=write, max_failures_per_pattern=3
             )
-
-            # Accumulate stats
             total_symbols += result.total_symbols
             total_validated += result.tests_generated
             total_sandbox_passed += getattr(result, "sandbox_passed", 0)
-
-            # Count tests actually saved (from persistence results)
             for test_result in result.generated_tests:
                 if test_result.get("persisted") and test_result.get("persist_path"):
-                    # Check if it's not in morgue
                     if "failures" not in test_result.get("persist_path", ""):
                         total_tests_saved += 1
-
             if result.tests_generated > 0:
-                console.print(
-                    f"  ✅ Validated: {result.tests_generated}, Sandbox passed: {getattr(result, 'sandbox_passed', 0)}"
+                logger.info(
+                    "  ✅ Validated: %s, Sandbox passed: %s",
+                    result.tests_generated,
+                    getattr(result, "sandbox_passed", 0),
                 )
             else:
-                console.print("  ⚠️  No tests generated")
+                logger.info("  ⚠️  No tests generated")
                 total_failed_files += 1
-
         except Exception as e:
-            console.print(f"  ❌ Error: {e}")
+            logger.info("  ❌ Error: %s", e)
             total_failed_files += 1
             continue
-
-    # Final summary
     total_duration = time.time() - start_time
-
-    console.print("\n" + "=" * 80)
-    console.print("[bold]📊 Batch Generation Summary[/bold]\n")
-    console.print(f"  Files processed: {len(prioritized_files)}")
-    console.print(f"  Files failed: {total_failed_files}")
-    console.print(f"  Total symbols: {total_symbols}")
-    console.print(f"  Tests validated: {total_validated}")
-    console.print(f"  Tests sandbox-passed: {total_sandbox_passed}")
-
+    logger.info("\n" + "=" * 80)
+    logger.info("[bold]📊 Batch Generation Summary[/bold]\n")
+    logger.info("  Files processed: %s", len(prioritized_files))
+    logger.info("  Files failed: %s", total_failed_files)
+    logger.info("  Total symbols: %s", total_symbols)
+    logger.info("  Tests validated: %s", total_validated)
+    logger.info("  Tests sandbox-passed: %s", total_sandbox_passed)
     if write:
-        console.print(
-            f"  [bold green]Tests saved to suite: {total_tests_saved}[/bold green]"
+        logger.info(
+            "  [bold green]Tests saved to suite: %s[/bold green]", total_tests_saved
         )
     else:
-        console.print("  [dim]Tests saved: 0 (dry-run mode, use --write to save)[/dim]")
-
-    console.print(f"\n  Duration: {total_duration:.1f}s")
-    console.print(f"  Avg per file: {total_duration/len(prioritized_files):.1f}s")
-
+        logger.info("  [dim]Tests saved: 0 (dry-run mode, use --write to save)[/dim]")
+    logger.info("\n  Duration: %ss", total_duration)
+    logger.info("  Avg per file: %ss", total_duration / len(prioritized_files))
     if total_tests_saved > 0:
-        console.print(
-            f"\n[bold green]✅ Successfully saved {total_tests_saved} tests to your test suite![/bold green]"
+        logger.info(
+            "\n[bold green]✅ Successfully saved %s tests to your test suite![/bold green]",
+            total_tests_saved,
         )
     elif write:
-        console.print(
+        logger.info(
             "\n[yellow]⚠️  No tests were saved (all failed validation or sandbox)[/yellow]"
         )
-
-    console.print("=" * 80)
+    logger.info("=" * 80)

@@ -15,11 +15,20 @@ DESIGN:
     outside of this file and llm_client.py.
 
     A PromptModel is loaded from a directory under var/prompts/:
-        var/prompts/<name>/
+        var/prompts/<n>/
             model.yaml    — manifest: id, role, input contract, output contract
             system.txt    — constitutional system prompt (governs AI behaviour)
             user.txt      — user-turn template with {placeholders}
             examples.json — reference examples injected into system prompt (optional)
+
+CONSTITUTIONAL ENVELOPE (v2):
+    invoke() accepts target_files= to declare which source files the LLM
+    will generate or modify. The ConstitutionalEnvelope resolves all
+    applicable .intent/ rules for the touched layers and injects them
+    automatically between system.txt and examples.
+
+    The caller never specifies which rules apply — jurisdiction resolves that.
+    Law outranks intelligence.
 """
 
 from __future__ import annotations
@@ -73,6 +82,11 @@ class PromptModelManifest:
 
     success_criteria: str = ""
 
+    # Constitutional scope hint — used when target_files not passed at invoke time.
+    # Declares which layers this prompt type operates in.
+    # Example model.yaml: scope: { layers: ["body", "shared"] }
+    scope_layers: list[str] = field(default_factory=list)
+
 
 @dataclass
 # ID: pm-core-003
@@ -103,13 +117,23 @@ class PromptModel:
     """
     Factory and invocation surface for constitutional AI calls.
 
-    Usage:
+    Usage (basic):
         model = PromptModel.load("docstring_writer")
         result = await model.invoke(
             {"source_code": source},
             client=writer_client,
             user_id="docstring_healing_service",
         )
+
+    Usage (with constitutional envelope):
+        model = PromptModel.load("code_fixer")
+        result = await model.invoke(
+            {"source_code": source},
+            client=fixer_client,
+            user_id="fix_logging_service",
+            target_files=["src/body/workers/doc_worker.py"],
+        )
+        # Constitutional rules for the 'body' layer are automatically injected.
     """
 
     # ID: pm-core-005
@@ -201,6 +225,7 @@ class PromptModel:
         context: dict[str, Any],
         client: Any,
         user_id: str = "core_system",
+        target_files: list[str] | None = None,
     ) -> str:
         """
         Execute the AI invocation with full constitutional governance.
@@ -208,15 +233,18 @@ class PromptModel:
         Steps:
             1. Validate all required inputs are present
             2. Build user turn from template + context
-            3. Assemble system prompt with examples appended
+            3. Assemble system prompt: system.txt + constitutional envelope + examples
             4. Call client.make_request_with_system_async()
             5. Validate output against contract
             6. Return validated result
 
         Args:
-            context: Dict of {placeholder: value} matching input contract.
-            client: LLMClient instance (from CognitiveService role).
-            user_id: Audit identifier.
+            context:      Dict of {placeholder: value} matching input contract.
+            client:       LLMClient instance (from CognitiveService role).
+            user_id:      Audit identifier.
+            target_files: File paths the LLM will generate or modify.
+                          Used to resolve and inject applicable constitutional
+                          rules. Falls back to manifest.scope_layers if omitted.
 
         Returns:
             Validated AI response string.
@@ -239,15 +267,20 @@ class PromptModel:
                 "not provided in context."
             ) from e
 
-        # 3. Assemble system prompt (base + examples)
-        system_prompt = self._build_system_prompt(artifact)
+        # 3. Resolve target_files for envelope
+        #    Priority: explicit target_files > scope_layers hint from manifest
+        resolved_files = target_files or _expand_scope_layers(manifest.scope_layers)
 
-        # 4. Invoke — ONLY allowed call site for make_request_with_system_async
+        # 4. Assemble system prompt: system.txt + envelope + examples
+        system_prompt = self._build_system_prompt(artifact, resolved_files)
+
+        # 5. Invoke — ONLY allowed call site for make_request_with_system_async
         logger.debug(
-            "PromptModel '%s' invoking role '%s' for user '%s'",
+            "PromptModel '%s' invoking role '%s' for user '%s' (envelope layers: %s)",
             manifest.id,
             manifest.role,
             user_id,
+            sorted(_resolve_layers_for_log(resolved_files)),
         )
         raw_response = await client.make_request_with_system_async(
             prompt=user_prompt,
@@ -255,7 +288,7 @@ class PromptModel:
             user_id=user_id,
         )
 
-        # 5. Validate output
+        # 6. Validate output
         validated = self._validate_output(raw_response, manifest)
 
         return validated
@@ -276,6 +309,7 @@ class PromptModel:
 
         input_block = raw.get("input", {})
         output_block = raw.get("output", {})
+        scope_block = raw.get("scope", {})
 
         return PromptModelManifest(
             id=raw["id"],
@@ -291,6 +325,7 @@ class PromptModel:
             model_preference=raw.get("model", {}).get("preference", ""),
             temperature=raw.get("model", {}).get("temperature"),
             success_criteria=raw.get("success_criteria", ""),
+            scope_layers=scope_block.get("layers", []),
         )
 
     # ID: pm-core-008
@@ -307,15 +342,40 @@ class PromptModel:
 
     # ID: pm-core-009
     @staticmethod
-    def _build_system_prompt(artifact: PromptModelArtifact) -> str:
+    def _build_system_prompt(
+        artifact: PromptModelArtifact,
+        target_files: list[str],
+    ) -> str:
         """
-        Assemble the final system prompt from system.txt + examples.json.
+        Assemble the final system prompt.
 
-        Examples are appended as a structured reference block so the AI
-        sees concrete good/bad examples before the task.
+        Order:
+            1. system.txt   — task-specific grounding
+            2. Constitutional envelope — law for the touched layers (automatic)
+            3. examples.json — reference examples (optional)
         """
+        from shared.ai.constitutional_envelope import ConstitutionalEnvelope
+
         parts = [artifact.system_text]
 
+        # Constitutional envelope — injected between task prompt and examples
+        if target_files:
+            envelope = ConstitutionalEnvelope.build(target_files)
+            if envelope.text:
+                parts.append("")
+                parts.append(envelope.text)
+                logger.debug(
+                    "PromptModel '%s': injected %d constitutional rules",
+                    artifact.manifest.id,
+                    envelope.rule_count,
+                )
+        else:
+            logger.debug(
+                "PromptModel '%s': no target_files — constitutional envelope skipped",
+                artifact.manifest.id,
+            )
+
+        # Examples
         good_examples = [e for e in artifact.examples if e.get("label") == "good"]
         bad_examples = [
             e for e in artifact.examples if e.get("label", "").startswith("bad")
@@ -385,3 +445,41 @@ class PromptModel:
                 )
 
         return cleaned
+
+
+# ---------------------------------------------------------------------------
+# Module-level helpers
+# ---------------------------------------------------------------------------
+
+
+def _expand_scope_layers(scope_layers: list[str]) -> list[str]:
+    """
+    Convert manifest scope_layers hints into pseudo file paths so the envelope
+    resolver can determine jurisdiction without explicit target_files.
+
+    Example: ["body", "shared"] → ["src/body/_scope_hint", "src/shared/_scope_hint"]
+    """
+    if not scope_layers:
+        return []
+    return [f"src/{layer}/_scope_hint" for layer in scope_layers]
+
+
+def _resolve_layers_for_log(target_files: list[str]) -> set[str]:
+    """Cheap layer resolution for debug logging only."""
+    _LAYER_MAP = {
+        "src/body/": "body",
+        "src/will/": "will",
+        "src/mind/": "mind",
+        "src/shared/": "shared",
+        "src/cli/": "cli",
+    }
+    layers: set[str] = set()
+    for f in target_files:
+        f_norm = f.replace("\\", "/")
+        for prefix, layer in _LAYER_MAP.items():
+            if f_norm.startswith(prefix):
+                layers.add(layer)
+                break
+        else:
+            layers.add("shared")
+    return layers

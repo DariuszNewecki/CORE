@@ -1,7 +1,10 @@
 # src/cli/interactive.py
-
 from __future__ import annotations
 
+from shared.logger import getLogger
+
+
+logger = getLogger(__name__)
 import sys
 
 from rich.console import Console
@@ -16,10 +19,10 @@ console = Console()
 def _show_menu(title: str, options: dict[str, str], actions: dict):
     while True:
         console.clear()
-        console.print(Panel(f"[bold cyan]{title}[/bold cyan]"))
+        logger.info(Panel(f"[bold cyan]{title}[/bold cyan]"))
         for key, text in options.items():
-            console.print(f"  [{key}] {text}")
-        console.print("\n  [b] Back | [q] Quit")
+            logger.info("  [%s] %s", key, text)
+        logger.info("\n  [b] Back | [q] Quit")
         choice = console.input("\nEnter choice: ").lower()
         if choice == "b":
             return
@@ -30,11 +33,11 @@ def _show_menu(title: str, options: dict[str, str], actions: dict):
             try:
                 action()
             except Exception as e:
-                console.print(f"[red]Error: {e}[/red]")
+                logger.info("[red]Error: %s[/red]", e)
             console.input("\nPress Enter to return...")
 
 
-# ID: 49910bc4-e193-4c26-bf7f-7f24b8356480
+# ID: 827a231b-79dd-42ba-8ae4-2e3857a2f4b2
 def show_development_menu():
     _show_menu(
         title="AI Development & Quality",
@@ -61,7 +64,7 @@ def show_development_menu():
     )
 
 
-# ID: 431d5b2f-8186-4e61-af93-766a54e40e39
+# ID: c36a1e25-f2e0-4bf6-b860-1ecdfc6089eb
 def show_governance_menu():
     _show_menu(
         title="Constitutional Governance",
@@ -89,7 +92,7 @@ def show_governance_menu():
     )
 
 
-# ID: 38f63e99-7a3d-4734-9aaa-188e99e44846
+# ID: 6b97f86f-c37f-4df8-a754-4c1e84c4b575
 def show_system_menu():
     """Displays the System Health & CI submenu."""
     _show_menu(
@@ -113,7 +116,7 @@ def show_system_menu():
     )
 
 
-# ID: b13f7aa2-3d3a-4442-af86-19bfb95ccfb9
+# ID: 74f08345-03bd-4112-a13f-1353113e2c44
 def show_project_lifecycle_menu():
     """Displays the Project Lifecycle submenu."""
     _show_menu(
@@ -149,25 +152,23 @@ def show_project_lifecycle_menu():
     )
 
 
-# ID: 0493a7e1-3b54-478c-b22f-490a36be8b61
+# ID: 30f97ec8-8803-4ef3-91cf-4fb31943e28c
 def launch_interactive_menu():
     """The main entry point for the interactive TUI menu."""
     while True:
         console.clear()
-        console.print(
+        logger.info(
             Panel(
                 "[bold green]🏛️ Welcome to the CORE Interactive Shell[/bold green]",
                 subtitle="Select a command group",
             )
         )
-        console.print("[bold cyan]1.[/bold cyan] AI Development & Self-Healing")
-        console.print("[bold cyan]2.[/bold cyan] Constitutional Governance")
-        console.print("[bold cyan]3.[/bold cyan] System Health & CI")
-        console.print("[bold cyan]4.[/bold cyan] Project Lifecycle")
-        console.print("\n[bold red]q.[/bold red] Quit")
-
+        logger.info("[bold cyan]1.[/bold cyan] AI Development & Self-Healing")
+        logger.info("[bold cyan]2.[/bold cyan] Constitutional Governance")
+        logger.info("[bold cyan]3.[/bold cyan] System Health & CI")
+        logger.info("[bold cyan]4.[/bold cyan] Project Lifecycle")
+        logger.info("\n[bold red]q.[/bold red] Quit")
         choice = console.input("\nEnter your choice: ")
-
         if choice == "1":
             show_development_menu()
         elif choice == "2":

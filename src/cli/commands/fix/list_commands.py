@@ -8,13 +8,17 @@ Provides:
 
 from __future__ import annotations
 
+from shared.logger import getLogger
+
+
+logger = getLogger(__name__)
 from rich.table import Table
 
-from . import COMMAND_CONFIG, console, fix_app
+from . import COMMAND_CONFIG, fix_app
 
 
 @fix_app.command("list", help="List all available fix commands with their categories.")
-# ID: 3a6c8ca8-b655-45dd-9dbf-1ca747fee287
+# ID: cf22c003-eec0-4c68-8bac-f7876a276538
 def list_commands() -> None:
     """
     Render a Rich table of all fix subcommands based on COMMAND_CONFIG.
@@ -27,19 +31,15 @@ def list_commands() -> None:
     - Timeout (seconds)
     """
     table = Table(title="Available self-healing fix commands")
-
     table.add_column("Command", style="cyan", no_wrap=True)
     table.add_column("Category", style="magenta")
     table.add_column("Dangerous?", justify="center")
     table.add_column("Confirmation?", justify="center")
     table.add_column("Timeout (s)", justify="right")
-
     for name, cfg in sorted(COMMAND_CONFIG.items(), key=lambda item: item[0]):
         category = cfg.get("category", "-")
         dangerous = "yes" if cfg.get("dangerous", False) else "no"
         confirmation = "yes" if cfg.get("confirmation", False) else "no"
         timeout = str(cfg.get("timeout", "-"))
-
         table.add_row(name, category, dangerous, confirmation, timeout)
-
-    console.print(table)
+    logger.info(table)

@@ -1,5 +1,4 @@
 # src/cli/commands/components.py
-
 """
 Component Discovery Commands.
 Provides visibility into the available V2.2+ architectural building blocks.
@@ -18,12 +17,9 @@ from shared.logger import getLogger
 
 logger = getLogger(__name__)
 console = Console()
-
 components_app = typer.Typer(
     help="Discover and inspect V2 architectural components.", no_args_is_help=True
 )
-
-# Canonical packages where CORE components reside
 COMPONENT_PACKAGES = {
     "Interpreters": "will.interpreters",
     "Analyzers": "body.analyzers",
@@ -35,7 +31,7 @@ COMPONENT_PACKAGES = {
 
 @components_app.command("list")
 @core_command(dangerous=False, requires_context=False)
-# ID: 553adcbc-c7ec-4ef9-87e1-053820e7c631
+# ID: 7df262ec-7a35-4d7b-b43c-bb4bc786c1d7
 def list_components(
     ctx: typer.Context,
     filter_type: str = typer.Option(
@@ -45,24 +41,18 @@ def list_components(
     """
     Lists all registered V2 components across the Mind-Body-Will layers.
     """
-    console.print("\n[bold cyan]🔍 CORE Component Discovery[/bold cyan]\n")
-
+    logger.info("\n[bold cyan]🔍 CORE Component Discovery[/bold cyan]\n")
     table = Table(show_header=True, header_style="bold magenta")
     table.add_column("Phase", style="dim")
     table.add_column("Type", style="cyan")
     table.add_column("Component ID", style="bold green")
     table.add_column("Description")
-
     total_found = 0
-
     for label, package in COMPONENT_PACKAGES.items():
         if filter_type and filter_type.lower() not in label.lower():
             continue
-
         components = discover_components(package)
-
         for cid, cls in sorted(components.items()):
-            # Instantiate briefly to read metadata
             try:
                 instance = cls()
                 table.add_row(
@@ -73,10 +63,10 @@ def list_components(
                 table.add_row(
                     "ERROR", label, cid, f"[red]Initialization failed: {e}[/red]"
                 )
-
-    console.print(table)
-    console.print(
-        f"\n[bold green]✅ Found {total_found} active components across the system.[/bold green]\n"
+    logger.info(table)
+    logger.info(
+        "\n[bold green]✅ Found %s active components across the system.[/bold green]\n",
+        total_found,
     )
 
 

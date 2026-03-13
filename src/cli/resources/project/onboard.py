@@ -1,4 +1,8 @@
 # src/cli/resources/project/onboard.py
+from shared.logger import getLogger
+
+
+logger = getLogger(__name__)
 from pathlib import Path
 
 import typer
@@ -15,7 +19,7 @@ console = Console()
 
 @app.command("onboard")
 @core_command(dangerous=True, requires_context=False)
-# ID: 59edcd3c-aca7-46e8-8195-681065ee4054
+# ID: e625b650-05c8-421e-9cf7-073917b43dc9
 def onboard_project(
     path: Path = typer.Argument(..., help="Path to existing repository.", exists=True),
     write: bool = typer.Option(
@@ -27,7 +31,5 @@ def onboard_project(
 
     Analyzes code structure and scaffolds a minimal constitution.
     """
-    console.print(f"[bold cyan]⚓ Onboarding repository at:[/bold cyan] {path}")
-
-    # initialize_repository handles dry_run internally via its own logic
+    logger.info("[bold cyan]⚓ Onboarding repository at:[/bold cyan] %s", path)
     initialize_repository(path=path, dry_run=not write)

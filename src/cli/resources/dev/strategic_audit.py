@@ -1,6 +1,4 @@
 # src/cli/resources/dev/strategic_audit.py
-# ID: cli.resources.dev.strategic_audit
-
 """
 Strategic Audit command — CORE's self-awareness cycle.
 
@@ -36,8 +34,7 @@ console = Console()
     dangerous=True,
 )
 @core_command(dangerous=True, requires_context=True)
-# ID: dev-strategic-audit-cmd-001
-# ID: beba01c8-fafa-4692-a474-9cd30e02a195
+# ID: 0261fa1c-e876-4f07-83c2-dab6742ae7e6
 async def strategic_audit_cmd(
     ctx: typer.Context,
     write: bool = typer.Option(False, "--write", help="Persist campaign to database."),
@@ -66,71 +63,52 @@ async def strategic_audit_cmd(
 
     context: CoreContext = ctx.obj
     load_dotenv()
-
-    # --execute implies --write
     if execute:
         write = True
-
-    # Pre-flight: LLM must be enabled
     async with get_session() as session:
         config = await ConfigService.create(session)
         if not await config.get_bool("LLM_ENABLED", default=False):
-            console.print(
-                "[red]❌ LLM_ENABLED is False. "
-                "Enable LLMs in database settings to use strategic audit.[/red]"
+            logger.info(
+                "[red]❌ LLM_ENABLED is False. Enable LLMs in database settings to use strategic audit.[/red]"
             )
             raise typer.Exit(code=1)
-
     mode_parts = []
     if write:
         mode_parts.append("WRITE")
     if execute:
         mode_parts.append("EXECUTE")
     mode = " + ".join(mode_parts) if mode_parts else "DRY-RUN"
-
-    console.print(
-        f"\n[bold cyan]🧠 CORE Strategic Audit[/bold cyan] [dim]({mode})[/dim]\n"
+    logger.info(
+        "\n[bold cyan]🧠 CORE Strategic Audit[/bold cyan] [dim](%s)[/dim]\n", mode
     )
-
     try:
         cognitive_service = await context.registry.get_cognitive_service()
-
-        auditor = StrategicAuditor(
-            context=context,
-            cognitive_service=cognitive_service,
-        )
-
+        auditor = StrategicAuditor(context=context, cognitive_service=cognitive_service)
         async with get_session() as session:
             campaign = await auditor.run(
-                session=session,
-                write=write,
-                execute_autonomous=execute,
+                session=session, write=write, execute_autonomous=execute
             )
-
-        # Human summary already printed by auditor._log_summary()
-        # Print escalations prominently if any
         if campaign.escalations:
-            console.print(
-                f"\n[bold yellow]📬 {campaign.escalation_count} escalation(s) require your review.[/bold yellow]"
+            logger.info(
+                "\n[bold yellow]📬 %s escalation(s) require your review.[/bold yellow]",
+                campaign.escalation_count,
             )
-            console.print(
+            logger.info(
                 "[dim]These need .intent/ amendments — only you can approve them.[/dim]\n"
             )
             for i, e in enumerate(campaign.escalations, 1):
-                console.print(f"  [yellow]{i}.[/yellow] {e.root_cause}")
-                console.print(f"     [dim]{e.proposed_fix[:120]}[/dim]")
-
+                logger.info("  [yellow]%s.[/yellow] %s", i, e.root_cause)
+                logger.info("     [dim]%s[/dim]", e.proposed_fix[:120])
         if write:
-            console.print(
-                f"\n[green]✅ Campaign persisted.[/green] "
-                f"[dim]ID: {campaign.campaign_id}[/dim]"
+            logger.info(
+                "\n[green]✅ Campaign persisted.[/green] [dim]ID: %s[/dim]",
+                campaign.campaign_id,
             )
         else:
-            console.print(
+            logger.info(
                 "\n[dim]Dry-run complete. Use --write to persist, --execute to act.[/dim]"
             )
-
     except Exception as e:
         logger.exception("Strategic audit failed")
-        console.print(f"[red]❌ Strategic audit failed: {e}[/red]")
+        logger.info("[red]❌ Strategic audit failed: %s[/red]", e)
         raise typer.Exit(code=1)

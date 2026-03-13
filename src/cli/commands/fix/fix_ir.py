@@ -17,33 +17,17 @@ import typer
 from shared.cli_utils import core_command
 from shared.logger import getLogger
 
-# We only import the App and Console from the local hub
-from . import (
-    console,
-    fix_app,
-)
+from . import fix_app
 
 
 if TYPE_CHECKING:
     from shared.context import CoreContext
-
 logger = getLogger(__name__)
-
 IR_DIR = Path(".intent") / "mind" / "ir"
 TRIAGE_FILE = IR_DIR / "triage_log.yaml"
 INCIDENT_LOG_FILE = IR_DIR / "incident_log.yaml"
-
-TRIAGE_CONTENT = """\
-version: "0.1.0"
-type: "incident_triage_log"
-entries: []
-"""
-
-INCIDENT_LOG_CONTENT = """\
-version: "0.1.0"
-type: "incident_response_log"
-entries: []
-"""
+TRIAGE_CONTENT = 'version: "0.1.0"\ntype: "incident_triage_log"\nentries: []\n'
+INCIDENT_LOG_CONTENT = 'version: "0.1.0"\ntype: "incident_response_log"\nentries: []\n'
 
 
 def _run_ir_fix(
@@ -53,26 +37,25 @@ def _run_ir_fix(
     Generic handler for IR fix commands using the governed FileHandler.
     """
     rel_path = str(path).replace("\\", "/")
-
     if not write:
-        console.print(
-            f"[yellow]Dry run:[/yellow] would ensure {rel_path} exists with a "
-            f"minimal {label.lower()} structure. Use --write to apply."
+        logger.info(
+            "[yellow]Dry run:[/yellow] would ensure %s exists with a minimal %s structure. Use --write to apply.",
+            rel_path,
+            label.lower(),
         )
         return
-
     try:
         context.file_handler.write_runtime_text(rel_path, content)
         logger.info("Governed Write: %s at %s", label, rel_path)
-        console.print(f"[green]✅ Created {label}[/green]")
+        logger.info("[green]✅ Created %s[/green]", label)
     except Exception as e:
         logger.error("Failed to bootstrap %s: %s", label, e)
-        console.print(f"[red]❌ Failed to create {label}: {e}[/red]")
+        logger.info("[red]❌ Failed to create %s: %s[/red]", label, e)
 
 
 @fix_app.command("ir-triage", help="Initialize or update the incident triage log.")
 @core_command(dangerous=True, confirmation=False)
-# ID: cfce8395-9fdd-420e-bbaf-4cc18723bd5c
+# ID: c50add43-9412-44ad-b261-6f64aed07b21
 def fix_ir_triage(
     ctx: typer.Context,
     write: bool = typer.Option(
@@ -90,7 +73,7 @@ def fix_ir_triage(
 
 @fix_app.command("ir-log", help="Initialize or update the incident response log.")
 @core_command(dangerous=True, confirmation=False)
-# ID: c3e0e9ae-2e2e-4c7f-ac49-a857d44bfb86
+# ID: e2f34a52-0839-4146-bafd-7ce6b559a510
 def fix_ir_log(
     ctx: typer.Context,
     write: bool = typer.Option(

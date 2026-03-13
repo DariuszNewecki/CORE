@@ -343,14 +343,22 @@ class KnowledgeGateEngine(BaseEngine):
         return findings
 
     def _create_duplication_finding(self, a, b, score, dtype) -> AuditFinding:
+        name_a = a.get("qualname") or a.get("name") or "?"
+        name_b = b.get("qualname") or b.get("name") or "?"
+        module_a = a.get("module", "")
+        file_path = a.get("file_path") or (
+            "src/" + module_a.replace(".", "/") + ".py" if module_a else None
+        )
         return AuditFinding(
             check_id=f"purity.no_{dtype}_duplication",
             severity=AuditSeverity.WARNING,
-            message=f"{dtype.upper()} duplication detected.",
-            file_path=a.get("file_path"),
+            message=f"{dtype.upper()} duplication: '{name_a}' duplicates '{name_b}' (score={score:.2f})",
+            file_path=file_path,
             context={
-                "symbol_a": a.get("name"),
-                "symbol_b": b.get("name"),
+                "symbol_a": name_a,
+                "symbol_b": name_b,
+                "module_a": module_a,
+                "module_b": b.get("module", ""),
                 "similarity": score,
                 "type": dtype,
             },

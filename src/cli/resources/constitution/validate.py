@@ -1,4 +1,8 @@
 # src/cli/resources/constitution/validate.py
+from shared.logger import getLogger
+
+
+logger = getLogger(__name__)
 import typer
 from rich.console import Console
 
@@ -13,26 +17,25 @@ console = Console()
 
 @app.command("validate")
 @core_command(dangerous=False, requires_context=False)
-# ID: 02013dc8-27d4-455e-98ca-b68dd1379d01
+# ID: b75321ea-88dd-4ed1-93d8-b6730590777a
 def validate_constitution(ctx: typer.Context) -> None:
     """
     Validate all .intent artifacts against their JSON schemas.
 
     Ensures that the Mind is structurally sound and follows the META-SCHEMA.
     """
-    console.print("[bold cyan]🛡️  Validating Constitutional Artifacts...[/bold cyan]\n")
-
+    logger.info("[bold cyan]🛡️  Validating Constitutional Artifacts...[/bold cyan]\n")
     validator = MetaValidator()
     report = validator.validate_all_documents()
-
     if report.valid:
-        console.print(
-            f"[green]✅ Success! {report.documents_valid} documents validated.[/green]"
+        logger.info(
+            "[green]✅ Success! %s documents validated.[/green]", report.documents_valid
         )
     else:
-        console.print(
-            f"[bold red]❌ Validation Failed: {len(report.errors)} errors found.[/bold red]"
+        logger.info(
+            "[bold red]❌ Validation Failed: %s errors found.[/bold red]",
+            len(report.errors),
         )
         for err in report.errors:
-            console.print(f"   - [yellow]{err.document}[/yellow]: {err.message}")
+            logger.info("   - [yellow]%s[/yellow]: %s", err.document, err.message)
         raise typer.Exit(1)

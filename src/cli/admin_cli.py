@@ -1,5 +1,4 @@
 # src/cli/admin_cli.py
-
 """
 CORE Admin CLI - The Constitutional Command Center.
 
@@ -11,24 +10,19 @@ UNIX Philosophy: CLI provides atomic resource actions; Makefile composes them.
 
 from __future__ import annotations
 
+from shared.logger import getLogger
+
+
+logger = getLogger(__name__)
 import typer
 from rich.console import Console
 
-# 4. Infrastructure
 from body.infrastructure.bootstrap import create_core_context
 from body.services.service_registry import service_registry
-
-# NEW: Import the Interactive Test tool
 from cli.commands.interactive_test import app as interactive_test_app
 from cli.commands.refactor import refactor_app
-
-# 2. Interactive UI
 from cli.interactive import launch_interactive_menu
-
-# 3. Operator tools (maintenance, rewiring)
 from cli.logic.tools import tools_app
-
-# 1. Resource-First Imports (The "Neurons")
 from cli.resources.admin import app as admin_app
 from cli.resources.code import app as code_app
 from cli.resources.constitution import app as constitution_app
@@ -46,66 +40,49 @@ from will.commands.daemon import daemon_app
 
 
 console = Console()
-
 app = typer.Typer(
     name="core-admin",
     help="CORE: The Self-Improving System Architect's Toolkit.",
     no_args_is_help=False,
 )
-
-# Bootstrap the context (wiring all services)
 core_context = create_core_context(service_registry)
 
 
-# ID: 5519f6ee-d27e-4116-94b4-d981ede63650
+# ID: ceac52ff-a86d-47f6-9c1e-2580932a3767
 def register_all_commands(app_instance: typer.Typer) -> None:
     """
     Register CLI commands according to the Resource-First hierarchy.
     Legacy Verb-First groups (fix, check, inspect) have been purged.
     """
-
-    # --- RESOURCE-FIRST INTERFACE ---
-    app_instance.add_typer(admin_app, name="admin")  # Forensics & Analytics
-    app_instance.add_typer(code_app, name="code")  # Logic, formatting, & quality
-    app_instance.add_typer(context_app, name="context")  # Context building for LLMs
-    app_instance.add_typer(database_app, name="database")  # Postgres state & migrations
-    app_instance.add_typer(symbols_app, name="symbols")  # Identity registry & UUIDs
-    app_instance.add_typer(vectors_app, name="vectors")  # Semantic memory & Qdrant
+    app_instance.add_typer(admin_app, name="admin")
+    app_instance.add_typer(code_app, name="code")
+    app_instance.add_typer(context_app, name="context")
+    app_instance.add_typer(database_app, name="database")
+    app_instance.add_typer(symbols_app, name="symbols")
+    app_instance.add_typer(vectors_app, name="vectors")
     app_instance.add_typer(workers_app, name="workers")
-    app_instance.add_typer(
-        constitution_app, name="constitution"
-    )  # Governance & Policies
-    app_instance.add_typer(proposals_app, name="proposals")  # A3 Change management
-    app_instance.add_typer(project_app, name="project")  # Lifecycle & Documentation
-    app_instance.add_typer(dev_app, name="dev")  # Developer workbench
-
-    # REGISTER NEW INTERACTIVE TOOL
+    app_instance.add_typer(constitution_app, name="constitution")
+    app_instance.add_typer(proposals_app, name="proposals")
+    app_instance.add_typer(project_app, name="project")
+    app_instance.add_typer(dev_app, name="dev")
     app_instance.add_typer(interactive_test_app, name="interactive-test")
     app_instance.add_typer(refactor_app, name="refactor")
-
-    # OPERATOR TOOLS (Wave 4: maintenance & rewiring)
     app_instance.add_typer(tools_app, name="tools")
-    app_instance.add_typer(
-        secrets_app, name="secrets"
-    )  # For managing encrypted secrets
-
-    # DAEMON MANAGEMENT
+    app_instance.add_typer(secrets_app, name="secrets")
     app_instance.add_typer(daemon_app, name="daemon")
 
 
-# Register the resource tree
 register_all_commands(app)
 
 
 @app.callback(invoke_without_command=True)
-# ID: 7bab4a62-0125-464c-a1d7-633b8942d8c8
+# ID: 1f5f3dc8-cbc5-426f-8049-271f45e155f5
 def main(ctx: typer.Context) -> None:
     """Bootstrap services and launch TUI if no command given."""
     service_registry.prime(get_session)
     ctx.obj = core_context
-
     if ctx.invoked_subcommand is None:
-        console.print(
+        logger.info(
             "[bold green]🛏  CORE Admin Active. Resource-First Architecture v2.0 engaged.[/bold green]"
         )
         launch_interactive_menu()

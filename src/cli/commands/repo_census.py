@@ -1,5 +1,4 @@
 # src/cli/commands/repo_census.py
-
 """
 CIM-0: Repository Structural Census command.
 """
@@ -15,21 +14,17 @@ from rich.console import Console
 
 from body.services.cim import CensusService
 from shared.cli_utils import core_command
-
-# REFACTORED: Removed direct settings import
 from shared.logger import getLogger
 
 
 if TYPE_CHECKING:
     from shared.context import CoreContext
-
-
 logger = getLogger(__name__)
 console = Console()
 
 
 @core_command(dangerous=False, requires_context=True)
-# ID: 5c5f81a2-257d-4f70-8190-99c1c5c335a1
+# ID: 1440f47b-17e3-4b9f-bd26-332da3631636
 def repo_census_cmd(
     ctx: typer.Context,
     path: Path = typer.Option(
@@ -39,10 +34,7 @@ def repo_census_cmd(
         help="Repository root to inspect (default: current CORE repo)",
     ),
     out: Path = typer.Option(
-        None,
-        "--out",
-        "-o",
-        help="Output directory (default: var/cim/)",
+        None, "--out", "-o", help="Output directory (default: var/cim/)"
     ),
 ) -> None:
     """
@@ -57,45 +49,28 @@ def repo_census_cmd(
     This is a READ-ONLY operation that never modifies the target.
     """
     context: CoreContext = ctx.obj
-
-    # Default to current CORE repo
     if path is None:
         path = context.git_service.repo_path
     else:
         path = path.resolve()
-
     if not path.exists():
-        console.print(f"[red]Error: Path does not exist: {path}[/red]")
+        logger.info("[red]Error: Path does not exist: %s[/red]", path)
         raise typer.Exit(1)
-
     if not path.is_dir():
-        console.print(f"[red]Error: Path is not a directory: {path}[/red]")
+        logger.info("[red]Error: Path is not a directory: %s[/red]", path)
         raise typer.Exit(1)
-
-    # Default output directory
     if out is None:
         out = context.git_service.repo_path / "var" / "cim"
-
     out.mkdir(parents=True, exist_ok=True)
-
-    # Run census
-    console.print(f"[blue]Running CIM-0 census on: {path}[/blue]")
+    logger.info("[blue]Running CIM-0 census on: %s[/blue]", path)
     service = CensusService()
     census = service.run_census(path)
-
-    # Write artifact
     output_file = out / "repo_census.json"
     with output_file.open("w", encoding="utf-8") as f:
-        json.dump(
-            census.model_dump(mode="json"),
-            f,
-            indent=2,
-            ensure_ascii=False,
-        )
-
-    console.print(f"[green]✓ Census complete: {output_file}[/green]")
-    console.print(f"  Files scanned: {census.tree.total_files}")
-    console.print(f"  Execution surfaces: {len(census.execution_surfaces)}")
-    console.print(f"  Mutation surfaces: {len(census.mutation_surfaces)}")
+        json.dump(census.model_dump(mode="json"), f, indent=2, ensure_ascii=False)
+    logger.info("[green]✓ Census complete: %s[/green]", output_file)
+    logger.info("  Files scanned: %s", census.tree.total_files)
+    logger.info("  Execution surfaces: %s", len(census.execution_surfaces))
+    logger.info("  Mutation surfaces: %s", len(census.mutation_surfaces))
     if census.errors:
-        console.print(f"  [yellow]Errors: {len(census.errors)}[/yellow]")
+        logger.info("  [yellow]Errors: %s[/yellow]", len(census.errors))

@@ -1,5 +1,4 @@
 # src/cli/commands/inspect/analysis.py
-
 """
 Code analysis commands.
 
@@ -12,6 +11,10 @@ Commands:
 
 from __future__ import annotations
 
+from shared.logger import getLogger
+
+
+logger = getLogger(__name__)
 import typer
 from rich.console import Console
 
@@ -33,7 +36,7 @@ console = Console()
     summary="Finds and displays semantic capability clusters",
 )
 @core_command(dangerous=False)
-# ID: 30d28d93-d6e8-4015-8525-c15dcde62654
+# ID: 9c6d2c21-ed6b-4bf0-bbf2-d02b5a8a9d72
 async def clusters_cmd(
     ctx: typer.Context,
     n_clusters: int = typer.Option(
@@ -49,15 +52,13 @@ async def clusters_cmd(
     """
     core_context: CoreContext = ctx.obj
     clusters = await diagnostics_logic.find_clusters_logic(core_context, n_clusters)
-
     if not clusters:
-        console.print("[yellow]No clusters found.[/yellow]")
+        logger.info("[yellow]No clusters found.[/yellow]")
         return
-
-    console.print(f"[green]Found {len(clusters)} clusters:[/green]")
+    logger.info("[green]Found %s clusters:[/green]", len(clusters))
     for cluster in clusters:
-        console.print(
-            f"- {cluster.get('topic', 'Unknown')}: {cluster.get('size', 0)} items"
+        logger.info(
+            "- %s: %s items", cluster.get("topic", "Unknown"), cluster.get("size", 0)
         )
 
 
@@ -69,7 +70,7 @@ async def clusters_cmd(
     aliases=["clusters"],
 )
 @core_command(dangerous=False)
-# ID: ccaa2ab1-d8f3-4bc1-a108-9c0eccfca2e3
+# ID: 27c63367-a75d-4fbe-bc3e-aebfa1542549
 async def find_clusters_cmd(
     ctx: typer.Context,
     n_clusters: int = typer.Option(
@@ -92,11 +93,11 @@ async def find_clusters_cmd(
     summary="Runs semantic code duplication check",
 )
 @core_command(dangerous=False)
-# ID: 7c631dca-5259-4d2f-9ee8-676a48ec83c2
+# ID: cb72e5c2-4233-4de3-b784-4a3bf02ff34d
 async def duplicates_command(
     ctx: typer.Context,
     threshold: float = typer.Option(
-        0.80,
+        0.8,
         "--threshold",
         "-t",
         help="The minimum similarity score to consider a duplicate.",
@@ -122,7 +123,7 @@ async def duplicates_command(
     summary="Finds structurally identical helper functions that can be consolidated",
 )
 @core_command(dangerous=False)
-# ID: 349ae9d0-bd40-40a5-ab31-9f231db2b1c2
+# ID: 508b7556-2747-4822-8772-7a354bd82760
 async def common_knowledge_cmd(ctx: typer.Context) -> None:
     """
     Finds structurally identical helper functions that can be consolidated.
@@ -136,7 +137,6 @@ async def common_knowledge_cmd(ctx: typer.Context) -> None:
     await find_common_knowledge()
 
 
-# Export commands for registration
 analysis_commands = [
     {"name": "clusters", "func": clusters_cmd},
     {"name": "find-clusters", "func": find_clusters_cmd},

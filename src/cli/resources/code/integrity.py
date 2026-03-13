@@ -1,5 +1,4 @@
 # src/cli/resources/code/integrity.py
-
 """
 Integrity CLI Commands - Phase 2 Hardening.
 Allows the operator to baseline and verify the codebase state.
@@ -7,6 +6,10 @@ Allows the operator to baseline and verify the codebase state.
 
 from __future__ import annotations
 
+from shared.logger import getLogger
+
+
+logger = getLogger(__name__)
 import typer
 from rich.console import Console
 
@@ -21,7 +24,7 @@ console = Console()
 
 @app.command("baseline")
 @core_command(dangerous=False, requires_context=True)
-# ID: 65b8d971-364e-45c3-af9a-52004dd0ceb4
+# ID: d76fd565-17ef-4f35-9138-9530efc28324
 async def code_baseline_cmd(
     ctx: typer.Context,
     label: str = typer.Option(
@@ -34,16 +37,14 @@ async def code_baseline_cmd(
     """
     core_context = ctx.obj
     service = IntegrityService(core_context.git_service.repo_path)
-
-    console.print(f"[bold cyan]🔐 Creating integrity baseline: {label}...[/bold cyan]")
+    logger.info("[bold cyan]🔐 Creating integrity baseline: %s...[/bold cyan]", label)
     path = service.create_baseline(label)
-
-    console.print(f"[bold green]✅ Success![/bold green] Baseline stored at: {path}")
+    logger.info("[bold green]✅ Success![/bold green] Baseline stored at: %s", path)
 
 
 @app.command("verify")
 @core_command(dangerous=False, requires_context=True)
-# ID: 67a4cf17-e8b8-4517-9ced-a3360d752f87
+# ID: 56975e9b-9040-4c0e-bdc4-76b7c68c5abd
 async def code_verify_cmd(
     ctx: typer.Context,
     label: str = typer.Option(
@@ -56,20 +57,17 @@ async def code_verify_cmd(
     """
     core_context = ctx.obj
     service = IntegrityService(core_context.git_service.repo_path)
-
-    console.print(
-        f"[bold cyan]🔍 Verifying code integrity against baseline: {label}...[/bold cyan]"
+    logger.info(
+        "[bold cyan]🔍 Verifying code integrity against baseline: %s...[/bold cyan]",
+        label,
     )
     result = service.verify_integrity(label)
-
     if result.ok:
-        console.print(
+        logger.info(
             "[bold green]✅ Integrity Verified: No unauthorized changes detected.[/bold green]"
         )
     else:
-        console.print("[bold red]❌ Integrity Violation Found![/bold red]")
+        logger.info("[bold red]❌ Integrity Violation Found![/bold red]")
         for error in result.errors:
-            console.print(f"  [yellow]•[/yellow] {error}")
-
-        # Exit with error code to support CI/CD pipelines
+            logger.info("  [yellow]•[/yellow] %s", error)
         raise typer.Exit(code=1)

@@ -1,5 +1,4 @@
 # src/cli/commands/fix/imports.py
-
 """
 Import organization commands for the 'fix' CLI group.
 
@@ -13,6 +12,10 @@ CONSTITUTIONAL ALIGNMENT:
 
 from __future__ import annotations
 
+from shared.logger import getLogger
+
+
+logger = getLogger(__name__)
 import typer
 
 from shared.action_types import ActionImpact, ActionResult
@@ -20,11 +23,7 @@ from shared.atomic_action import atomic_action
 from shared.cli_utils import core_command
 from shared.utils.subprocess_utils import run_poetry_command
 
-# We only import the App and Console from the local hub
-from . import (
-    console,
-    fix_app,
-)
+from . import fix_app
 
 
 @fix_app.command(
@@ -32,13 +31,11 @@ from . import (
     help="Sort and group imports according to PEP 8 (stdlib → third-party → local).",
 )
 @core_command(dangerous=False)
-# ID: a8b9c0d1-e2f3-4a5b-6c7d-8e9f0a1b2c3d
+# ID: da8cd296-1100-48b8-b87a-1edeafa5db15
 async def fix_imports_command(
     ctx: typer.Context,
     write: bool = typer.Option(
-        False,
-        "--write/--dry-run",
-        help="Apply import sorting (default: dry-run)",
+        False, "--write/--dry-run", help="Apply import sorting (default: dry-run)"
     ),
 ) -> None:
     """
@@ -52,34 +49,21 @@ async def fix_imports_command(
     Uses ruff's import sorting (I) rules.
     """
     target_path = "src/"
-
-    console.print("[bold cyan]Sorting imports...[/bold cyan]")
-    console.print(f"Target: {target_path}")
-    console.print(f"Mode: {'WRITE' if write else 'DRY RUN'}")
-
+    logger.info("[bold cyan]Sorting imports...[/bold cyan]")
+    logger.info("Target: %s", target_path)
+    logger.info("Mode: %s", "WRITE" if write else "DRY RUN")
     try:
-        # Build ruff command
         cmd = ["ruff", "check", target_path, "--select", "I"]
-
         if write:
             cmd.append("--fix")
-
-        cmd.append("--exit-zero")  # Don't fail on violations
-
-        # Execute via sanctioned subprocess utility
-        run_poetry_command(
-            f"Sorting imports in {target_path}",
-            cmd,
-        )
-
-        console.print("[green]✅ Import sorting completed[/green]")
-
+        cmd.append("--exit-zero")
+        run_poetry_command(f"Sorting imports in {target_path}", cmd)
+        logger.info("[green]✅ Import sorting completed[/green]")
     except Exception as e:
-        console.print(f"[red]❌ Import sorting failed: {e}[/red]")
+        logger.info("[red]❌ Import sorting failed: %s[/red]", e)
         raise typer.Exit(1)
 
 
-# Atomic action wrapper for internal use
 @atomic_action(
     action_id="fix.imports",
     intent="Sort and group Python imports according to PEP 8 conventions",
@@ -87,7 +71,7 @@ async def fix_imports_command(
     policies=["import_organization"],
     category="fixers",
 )
-# ID: abd951ed-5daa-4f1c-8315-63c136c68e1d
+# ID: 0fc1ca3d-ca25-4c3d-ba07-b25abe44c95a
 async def fix_imports_internal(write: bool = False) -> ActionResult:
     """
     Internal atomic action for import sorting.
@@ -98,29 +82,18 @@ async def fix_imports_internal(write: bool = False) -> ActionResult:
 
     target_path = "src/"
     start = time.time()
-
     try:
-        # Build ruff command
         cmd = ["ruff", "check", target_path, "--select", "I"]
-
         if write:
             cmd.append("--fix")
-
         cmd.append("--exit-zero")
-
-        # Execute
-        run_poetry_command(
-            f"Sorting imports in {target_path}",
-            cmd,
-        )
-
+        run_poetry_command(f"Sorting imports in {target_path}", cmd)
         return ActionResult(
             action_id="fix.imports",
             ok=True,
             data={"status": "completed", "target": target_path, "write": write},
             duration_sec=time.time() - start,
         )
-
     except Exception as e:
         return ActionResult(
             action_id="fix.imports",

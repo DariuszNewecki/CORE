@@ -22,8 +22,7 @@ console = Console()
 
 @workers_app.command("blackboard")
 @core_command(dangerous=False)
-# ID: bb-cmd-001
-# ID: 5c3b95e4-bd23-4f7f-93f0-4f3c1b611ebf
+# ID: 24d5e438-b1e7-4cad-bd85-a44daca038c7
 async def workers_blackboard_cmd(
     ctx: typer.Context,
     filter: str | None = typer.Option(
@@ -45,16 +44,10 @@ async def workers_blackboard_cmd(
         help="Filter by entry_type: finding | report | heartbeat | claim | proposal.",
     ),
     limit: int = typer.Option(
-        50,
-        "--limit",
-        "-n",
-        help="Maximum number of entries to display.",
+        50, "--limit", "-n", help="Maximum number of entries to display."
     ),
     show_payload: bool = typer.Option(
-        False,
-        "--payload",
-        "-p",
-        help="Show full JSON payload for each entry.",
+        False, "--payload", "-p", help="Show full JSON payload for each entry."
     ),
 ) -> None:
     """Inspect the constitutional worker blackboard (read-only)."""
@@ -62,41 +55,28 @@ async def workers_blackboard_cmd(
 
     clauses = ["1=1"]
     params: dict[str, object] = {}
-
     if filter:
         clauses.append("subject LIKE :subject_prefix")
         params["subject_prefix"] = f"{filter}%"
-
     if status:
         clauses.append("status = :status")
         params["status"] = status
-
     if entry_type:
         clauses.append("entry_type = :entry_type")
         params["entry_type"] = entry_type
-
     where = " AND ".join(clauses)
     query = text(
-        f"""
-        SELECT id, entry_type, status, subject, worker_uuid, created_at, payload
-        FROM core.blackboard_entries
-        WHERE {where}
-        ORDER BY created_at DESC
-        LIMIT :limit
-        """
+        f"\n        SELECT id, entry_type, status, subject, worker_uuid, created_at, payload\n        FROM core.blackboard_entries\n        WHERE {where}\n        ORDER BY created_at DESC\n        LIMIT :limit\n        "
     )
     params["limit"] = limit
-
     async with get_session() as session:
         result = await session.execute(query, params)
         rows = result.fetchall()
-
     if not rows:
-        console.print("[yellow]No blackboard entries found.[/yellow]")
+        logger.info("[yellow]No blackboard entries found.[/yellow]")
         raise typer.Exit()
-
     table = Table(
-        title=f"Blackboard — {len(rows)} entr{'y' if len(rows) == 1 else 'ies'}",
+        title=f"Blackboard — {len(rows)} entr{('y' if len(rows) == 1 else 'ies')}",
         show_lines=show_payload,
     )
     table.add_column("Type", style="cyan", no_wrap=True)
@@ -106,26 +86,20 @@ async def workers_blackboard_cmd(
     table.add_column("Created", style="dim", no_wrap=True)
     if show_payload:
         table.add_column("Payload")
-
     _STATUS_STYLE = {
         "open": "green",
         "claimed": "yellow",
         "resolved": "blue",
         "abandoned": "red",
     }
-
     for row in rows:
         _entry_id, etype, estatus, subject, worker_uuid, created_at, payload = row
         status_str = f"[{_STATUS_STYLE.get(estatus, 'white')}]{estatus}[/]"
         created_str = created_at.strftime("%Y-%m-%d %H:%M:%S") if created_at else "-"
         worker_str = str(worker_uuid)[:8] + "..." if worker_uuid else "-"
-
         row_cells = [etype, status_str, subject, worker_str, created_str]
-
         if show_payload:
             raw = payload if isinstance(payload, dict) else json.loads(payload or "{}")
             row_cells.append(json.dumps(raw, indent=2))
-
         table.add_row(*row_cells)
-
-    console.print(table)
+    logger.info(table)

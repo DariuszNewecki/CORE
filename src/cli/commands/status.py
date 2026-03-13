@@ -1,5 +1,4 @@
 # src/cli/commands/status.py
-
 """
 Status command group.
 
@@ -24,10 +23,8 @@ from shared.logger import getLogger
 
 logger = getLogger(__name__)
 console = Console()
-
 status_app = typer.Typer(
-    help="Single-glance system state and readiness.",
-    no_args_is_help=True,
+    help="Single-glance system state and readiness.", no_args_is_help=True
 )
 
 
@@ -37,18 +34,15 @@ def _warn_not_wired(detail: str) -> None:
 
 async def _maybe_await(result: Any) -> None:
     if hasattr(result, "__await__"):
-        await result  # type: ignore[misc]
+        await result
 
 
 @status_app.command("drift")
 @core_command(dangerous=False)
-# ID: a115dadd-b7a5-431e-97d1-82d2a92ffad2
+# ID: 17ba54ad-6d9e-4392-9512-7b62053575ea
 async def drift_cmd(
     ctx: typer.Context,
-    scope: str = typer.Argument(
-        "all",
-        help="Drift scope: guard|symbol|vector|all",
-    ),
+    scope: str = typer.Argument("all", help="Drift scope: guard|symbol|vector|all"),
 ) -> None:
     """
     Consolidated drift entry point.
@@ -66,49 +60,43 @@ async def drift_cmd(
             fg=typer.colors.RED,
         )
         raise typer.Exit(code=2)
-
-    # Canonical implementations:
-    # - Guard drift lives in mind.enforcement.guard_cli (async command).
-    # - Symbol/vector drift live in inspect command module (existing logic).
     try:
         from mind.enforcement.guard_cli import guard_drift_cmd
-    except Exception as exc:  # pragma: no cover
+    except Exception as exc:
         logger.debug("status drift: cannot import guard_drift_cmd: %s", exc)
-        guard_drift_cmd = None  # type: ignore[assignment]
-
+        guard_drift_cmd = None
     try:
         from cli.commands import inspect as inspect_module
-    except Exception as exc:  # pragma: no cover
+    except Exception as exc:
         logger.debug("status drift: cannot import inspect module: %s", exc)
         _warn_not_wired("cannot import cli.commands.inspect")
         raise typer.Exit(code=0)
 
-    # ID: b5dbb533-7fe8-465f-bc13-c74c885c145e
+    # ID: b17ebacd-4c58-4894-90eb-7cad3c95bbcf
     async def run_guard() -> None:
-        console.print("[bold]Drift: guard[/bold]")
+        logger.info("[bold]Drift: guard[/bold]")
         if guard_drift_cmd is None:
             _warn_not_wired("guard drift handler not available")
             return
-        # Use defaults from guard_cli (root='.', etc.)
-        await _maybe_await(guard_drift_cmd())  # type: ignore[misc]
+        await _maybe_await(guard_drift_cmd())
 
-    # ID: 713f4631-e298-4fb9-a11e-7d77e7ebc472
+    # ID: 145d4c27-7a19-4104-8874-06f2d765ed58
     async def run_symbol() -> None:
-        console.print("[bold]Drift: symbol[/bold]")
+        logger.info("[bold]Drift: symbol[/bold]")
         fn = getattr(inspect_module, "symbol_drift_cmd", None)
         if not callable(fn):
             _warn_not_wired("inspect.symbol_drift_cmd not found")
             return
-        fn(ctx)  # type: ignore[misc]
+        fn(ctx)
 
-    # ID: 2875ccbe-184b-4ee3-85f8-6ab35be4048c
+    # ID: 24e7b157-b493-4ec0-9906-269f08fa9bdb
     async def run_vector() -> None:
-        console.print("[bold]Drift: vector[/bold]")
+        logger.info("[bold]Drift: vector[/bold]")
         fn = getattr(inspect_module, "vector_drift_command", None)
         if not callable(fn):
             _warn_not_wired("inspect.vector_drift_command not found")
             return
-        await _maybe_await(fn(ctx))  # type: ignore[misc]
+        await _maybe_await(fn(ctx))
 
     if scope_norm == "guard":
         await run_guard()
@@ -119,8 +107,6 @@ async def drift_cmd(
     if scope_norm == "vector":
         await run_vector()
         return
-
-    # all
     await run_guard()
     console.print()
     await run_symbol()

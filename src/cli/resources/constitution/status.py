@@ -1,4 +1,8 @@
 # src/cli/resources/constitution/status.py
+from shared.logger import getLogger
+
+
+logger = getLogger(__name__)
 import typer
 from rich.console import Console
 
@@ -13,7 +17,7 @@ console = Console()
 
 @app.command("status")
 @core_command(dangerous=False, requires_context=True)
-# ID: 7b039cb6-ea90-4bfc-aa1b-1d2eea60a34f
+# ID: d4c140ee-0765-402c-9a60-7b84909bad43
 def status_coverage(ctx: typer.Context) -> None:
     """
     Show enforcement coverage status for the entire constitution.
@@ -22,17 +26,13 @@ def status_coverage(ctx: typer.Context) -> None:
     """
     core_context = ctx.obj
     repo_root = core_context.git_service.repo_path
-
-    console.print(
+    logger.info(
         "[bold cyan]📊 Mapping Constitutional Enforcement Coverage...[/bold cyan]"
     )
-
-    # Extracts data from the mapping engine (JSON Law vs YAML Mappings)
     coverage_data = governance_logic.get_coverage_data(
         repo_root, core_context.file_handler
     )
-
     summary = coverage_data.get("summary", {})
-    console.print(f"\nTotal Rules: {summary.get('rules_total')}")
-    console.print(f"Enforced   : [green]{summary.get('rules_enforced')}[/green]")
-    console.print(f"Coverage   : [bold]{summary.get('execution_rate')}%[/bold]")
+    logger.info("\nTotal Rules: %s", summary.get("rules_total"))
+    logger.info("Enforced   : [green]%s[/green]", summary.get("rules_enforced"))
+    logger.info("Coverage   : [bold]%s%[/bold]", summary.get("execution_rate"))

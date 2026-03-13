@@ -56,8 +56,6 @@ from .hub import app
 
 logger = getLogger(__name__)
 console = Console()
-
-# Valid task types — mirrors CoderAgent task_type_map
 TASK_TYPES = [
     "code_generation",
     "code_modification",
@@ -67,17 +65,14 @@ TASK_TYPES = [
 ]
 
 
-# ID: context-build-format-source
 def _format_item_source(item: dict[str, Any]) -> str:
     """Human-readable explanation of WHY this item was included."""
     source = item.get("source", "unknown")
     score = item.get("score")
     score_str = f": {score:.2f}" if score else ""
     source_map = {
-        # Actual names emitted by ContextBuilder
         "qdrant": f"🔍 vector search / Qdrant (semantic{score_str})",
         "db_query": "🗄️  DB lookup (direct / graph)",
-        # Legacy / alternative names
         "builtin_ast": "📄 force-added (target file AST)",
         "db_direct": "🗄️  DB lookup (direct match)",
         "db_graph": "🕸️  DB graph traversal (dependency)",
@@ -88,7 +83,6 @@ def _format_item_source(item: dict[str, Any]) -> str:
     return source_map.get(source, f"📎 {source}")
 
 
-# ID: context-build-format-packet
 def _format_packet_for_display(
     packet: dict[str, Any],
     file: str,
@@ -109,7 +103,6 @@ def _format_packet_for_display(
     provenance = packet.get("provenance", {})
     stats = provenance.get("build_stats", {})
     items = packet.get("context", [])
-
     lines.append("=" * 80)
     lines.append("CORE CONTEXT PACKAGE  [Agent Simulation Mode]")
     lines.append("=" * 80)
@@ -121,7 +114,6 @@ def _format_packet_for_display(
     lines.append(f"Tokens (est) : ~{stats.get('tokens_total', 0)}")
     lines.append(f"Build time   : {stats.get('duration_ms', 0)}ms")
     lines.append("")
-
     if not items:
         lines.append("[!] No context items collected.")
         lines.append("    Check that the file path is correct and the DB is synced.")
@@ -129,7 +121,6 @@ def _format_packet_for_display(
     else:
         lines.append("## CONTEXT ITEMS")
         lines.append("")
-
         for idx, item in enumerate(items, 1):
             name = item.get("name", "unknown")
             path = item.get("path", "unknown")
@@ -137,14 +128,12 @@ def _format_packet_for_display(
             summary = item.get("summary", "")
             content = item.get("content", "")
             source_label = _format_item_source(item)
-
             lines.append(f"### {idx}. {path}::{name}")
             lines.append(f"Type   : {item_type}")
             lines.append(f"Source : {source_label}")
             if summary:
                 lines.append(f"Summary: {summary[:120]}")
             lines.append("")
-
             if content:
                 lines.append("```python")
                 lines.append(content)
@@ -152,7 +141,6 @@ def _format_packet_for_display(
             else:
                 lines.append("(No code content available — symbol may need re-sync)")
             lines.append("")
-
     if show_prompt:
         lines.append("=" * 80)
         lines.append("ASSEMBLED PROMPT  [What the LLM receives]")
@@ -161,7 +149,6 @@ def _format_packet_for_display(
         prompt = _assemble_enriched_prompt(items, file, symbol, task_type)
         lines.append(prompt)
         lines.append("")
-
     lines.append("=" * 80)
     lines.append("STATS")
     source_counts: dict[str, int] = {}
@@ -170,16 +157,11 @@ def _format_packet_for_display(
         source_counts[src] = source_counts.get(src, 0) + 1
     for src, count in sorted(source_counts.items()):
         lines.append(f"  {src}: {count}")
-
     return "\n".join(lines)
 
 
-# ID: context-build-assemble-prompt
 def _assemble_enriched_prompt(
-    items: list[dict[str, Any]],
-    file: str,
-    symbol: str | None,
-    task_type: str,
+    items: list[dict[str, Any]], file: str, symbol: str | None, task_type: str
 ) -> str:
     """
     Assemble the enriched prompt exactly as build_enriched_prompt() would.
@@ -189,30 +171,23 @@ def _assemble_enriched_prompt(
     similar: list[str] = []
     existing_code: str = ""
     seen: set[str] = set()
-
     for item in items:
         name = item.get("name", "")
         path = item.get("path", "")
         content = item.get("content", "")
         sig = item.get("signature", "")
-
-        # Existing code: prefer exact symbol name match, fall back to first item in target file
         if path == file and content:
             if symbol and name == symbol:
-                existing_code = content  # exact match — always wins
+                existing_code = content
             elif not existing_code:
-                existing_code = content  # fallback — first item in target file
-
-        # Dependencies
-        if name and name not in seen and item.get("item_type") in ("code", "symbol"):
+                existing_code = content
+        if name and name not in seen and (item.get("item_type") in ("code", "symbol")):
             seen.add(name)
             dep_line = f"- `{name}` from `{path}`"
             if sig:
                 dep_line += f"\n  Signature: `{sig}`"
             deps.append(dep_line)
-
-        # Similar symbols (items with actual code content)
-        if content and len(content) > 50 and item.get("item_type") == "code":
+        if content and len(content) > 50 and (item.get("item_type") == "code"):
             summary = item.get("summary", "")
             block = [f"### {name}"]
             if summary:
@@ -223,7 +198,6 @@ def _assemble_enriched_prompt(
                 block.append("# ... (truncated for display)")
             block.append("```")
             similar.append("\n".join(block))
-
     parts = [
         "# Code Generation Task",
         "",
@@ -235,22 +209,12 @@ def _assemble_enriched_prompt(
         f"**Task type:** {task_type}",
         "",
     ]
-
     if deps:
         parts += ["## Available Dependencies", "\n".join(deps), ""]
-
     if similar:
         parts += ["## Similar Implementations (for reference)", "\n".join(similar), ""]
-
     if existing_code:
-        parts += [
-            "## Existing Code Context",
-            "```python",
-            existing_code,
-            "```",
-            "",
-        ]
-
+        parts += ["## Existing Code Context", "```python", existing_code, "```", ""]
     parts += [
         "## Implementation Requirements",
         "1. Return ONLY valid Python code",
@@ -263,11 +227,9 @@ def _assemble_enriched_prompt(
         f"Symbol: `{symbol}`" if symbol else "Symbol: `(file-level)`",
         f"Target file: `{file}`",
     ]
-
     return "\n".join(parts)
 
 
-# ID: context-build-command
 @app.command("build")
 @command_meta(
     canonical_name="context.build",
@@ -276,7 +238,7 @@ def _assemble_enriched_prompt(
     summary="Simulate exact context CoderAgent sees — use before asking AI to work on a symbol.",
 )
 @core_command(dangerous=False, requires_context=False)
-# ID: ee369b65-c289-46d2-bf9a-d82a66552654
+# ID: 70baed4e-df80-4dc8-aff8-2c8c758c2ce6
 async def build_cmd(
     ctx: typer.Context,
     file: str = typer.Option(
@@ -286,16 +248,10 @@ async def build_cmd(
         help="Target file path (e.g. src/mind/governance/authority_package_builder.py)",
     ),
     symbol: str | None = typer.Option(
-        None,
-        "--symbol",
-        "-s",
-        help="Target symbol name (e.g. AuthorityPackageBuilder)",
+        None, "--symbol", "-s", help="Target symbol name (e.g. AuthorityPackageBuilder)"
     ),
     task: str = typer.Option(
-        "code_modification",
-        "--task",
-        "-t",
-        help=f"Task type: {', '.join(TASK_TYPES)}",
+        "code_modification", "--task", "-t", help=f"Task type: {', '.join(TASK_TYPES)}"
     ),
     goal: str = typer.Option(
         "",
@@ -309,10 +265,7 @@ async def build_cmd(
         help="Also show the assembled LLM prompt (what DeepSeek/Coder receives)",
     ),
     output: str = typer.Option(
-        None,
-        "--output",
-        "-o",
-        help="Write output to file instead of stdout",
+        None, "--output", "-o", help="Write output to file instead of stdout"
     ),
     no_cache: bool = typer.Option(False, "--no-cache", help="Bypass context cache"),
     max_tokens: int = typer.Option(30000, "--max-tokens", help="Token budget"),
@@ -328,32 +281,26 @@ async def build_cmd(
     Use this before asking Claude/DeepSeek to work on a specific symbol.
     """
     if task not in TASK_TYPES:
-        console.print(
-            f"[red]Unknown task type: {task}[/red]\n"
-            f"Valid types: {', '.join(TASK_TYPES)}"
+        logger.info(
+            "[red]Unknown task type: %s[/red]\nValid types: %s",
+            task,
+            ", ".join(TASK_TYPES),
         )
         raise typer.Exit(code=1)
-
     from shared.infrastructure.database.session_manager import get_session
 
     service_registry.prime(get_session)
     core_context = create_core_context(service_registry)
-
     async with service_registry.session() as session:
         cognitive = await service_registry.get_cognitive_service()
         await cognitive.initialize(session)
-
-    console.print(
+    logger.info(
         Panel(
-            f"[bold]File:[/bold]   {file}\n"
-            f"[bold]Symbol:[/bold] {symbol or '(file-level)'}\n"
-            f"[bold]Task:[/bold]   {task}",
+            f"[bold]File:[/bold]   {file}\n[bold]Symbol:[/bold] {symbol or '(file-level)'}\n[bold]Task:[/bold]   {task}",
             title="[bold blue]🔬 Building Agent Context[/bold blue]",
             expand=False,
         )
     )
-
-    # task_spec mirrors CoderAgent._build_context_package() exactly
     task_spec: dict[str, Any] = {
         "task_id": f"inspect_{uuid.uuid4().hex[:8]}",
         "task_type": task,
@@ -365,22 +312,13 @@ async def build_cmd(
             if symbol
             else f"Inspect file-level context for {file}"
         ),
-        "scope": {
-            "traversal_depth": 2,
-            "include": [file],
-        },
-        "constraints": {
-            "max_tokens": max_tokens,
-            "max_items": max_items,
-        },
+        "scope": {"traversal_depth": 2, "include": [file]},
+        "constraints": {"max_tokens": max_tokens, "max_items": max_items},
     }
-
     packet = await core_context.context_service.build_for_task(
         task_spec, use_cache=not no_cache
     )
-
     formatted = _format_packet_for_display(packet, file, symbol, task, show_prompt)
-
     if output:
         output_path = Path(output)
         repo_root = Path(core_context.git_service.repo_path).resolve()
@@ -395,7 +333,7 @@ async def build_cmd(
         FileHandler(str(core_context.git_service.repo_path)).write_runtime_text(
             rel_output, formatted
         )
-        console.print(f"[green]✅ Context written to {output}[/green]")
+        logger.info("[green]✅ Context written to %s[/green]", output)
     else:
-        console.print("")
-        console.print(formatted)
+        logger.info("")
+        logger.info(formatted)

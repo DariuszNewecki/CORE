@@ -1,4 +1,8 @@
 # src/cli/resources/code/test.py
+from shared.logger import getLogger
+
+
+logger = getLogger(__name__)
 import typer
 from rich.console import Console
 
@@ -13,11 +17,8 @@ console = Console()
 
 @app.command("test")
 @core_command(dangerous=False, requires_context=True)
-# ID: b6829b77-60e6-455b-a258-050eeb348dc9
+# ID: b89ff2a7-0bf3-47cf-90ba-66a3801630c3
 async def test_command(ctx: typer.Context) -> None:
     """Run the project test suite via pytest."""
-    console.print("[bold cyan]🧪 Running test suite...[/bold cyan]")
-
-    # test_system is an @atomic_action that returns an ActionResult
-    # result display is handled by the @core_command decorator
+    logger.info("[bold cyan]🧪 Running test suite...[/bold cyan]")
     return await test_system()

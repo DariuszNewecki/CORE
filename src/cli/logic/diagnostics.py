@@ -10,36 +10,18 @@ Rules:
 
 from __future__ import annotations
 
-from typing import Any, Protocol
+from typing import Any
 
 from shared.context import CoreContext
 from shared.infrastructure.intent.intent_repository import get_intent_repository
 from shared.infrastructure.knowledge.knowledge_service import KnowledgeService
 from shared.logger import getLogger
+from shared.protocols.typer_protocols import (
+    TyperAppLike,
+)
 
 
 logger = getLogger(__name__)
-
-
-# --- Typer Introspection Protocols (minimal surface; avoids import cycles) ---
-
-
-# ID: 2c0a9d7b-6f2c-4c2b-a4d0-8d0d53c3b2a1
-class TyperCommandLike(Protocol):
-    name: str | None
-    help: str | None
-
-
-# ID: 9bd4d6a1-4f2d-4f5f-9f4b-7c0a6e3b1b90
-class TyperGroupLike(Protocol):
-    name: str | None
-    typer_instance: Any
-
-
-# ID: 5b0f1a6e-2c18-4b87-9f5f-0b1e6c3e7a12
-class TyperAppLike(Protocol):
-    registered_commands: list[TyperCommandLike]
-    registered_groups: list[TyperGroupLike]
 
 
 # ID: 3c7a1c34-8b36-4d2e-9b2b-3c94b7a8bb12

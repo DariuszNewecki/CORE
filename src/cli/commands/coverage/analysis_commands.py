@@ -19,7 +19,7 @@ logger = getLogger(__name__)
 console = Console()
 
 
-# ID: 7753092e-6645-4a94-9555-ab221873ee76
+# ID: dc3466dd-9962-4fc9-94c7-c68021ecee26
 def register_analysis_commands(app: typer.Typer) -> None:
     """Register coverage analysis commands."""
     app.command("history")(coverage_history)
@@ -27,7 +27,7 @@ def register_analysis_commands(app: typer.Typer) -> None:
 
 
 @core_command(dangerous=False)
-# ID: f69d0e59-11bb-4607-9ba1-5e35060c2e3c
+# ID: e2676de4-1e05-4408-9cbe-a70795cf3417
 def coverage_history(
     ctx: typer.Context,
     limit: int = typer.Option(
@@ -46,22 +46,20 @@ def coverage_history(
         / "coverage_history.json"
     )
     if not history_file.exists():
-        console.print("[yellow]No coverage history found[/yellow]")
+        logger.info("[yellow]No coverage history found[/yellow]")
         return
     try:
         history_data = json.loads(history_file.read_text())
         runs = history_data.get("runs", [])
         last_run = history_data.get("last_run", {})
-        if not runs and not last_run:
-            console.print("[yellow]History file is empty[/yellow]")
+        if not runs and (not last_run):
+            logger.info("[yellow]History file is empty[/yellow]")
             return
-
-        console.print("[bold]📈 Coverage History[/bold]\n")
+        logger.info("[bold]📈 Coverage History[/bold]\n")
         if last_run:
-            console.print(
-                f"  Latest Run: [cyan]{last_run.get('overall_percent', 0)}%[/cyan]"
+            logger.info(
+                "  Latest Run: [cyan]%s%[/cyan]", last_run.get("overall_percent", 0)
             )
-
         if runs:
             table = Table(box=None)
             table.add_column("Date", style="dim")
@@ -75,36 +73,20 @@ def coverage_history(
                     f"{run.get('overall_percent', 0)}%",
                     f"[{color}]{delta:+.1f}%[/{color}]",
                 )
-            console.print(table)
+            logger.info(table)
     except Exception as e:
-        console.print(f"[red]Error reading history: {e}[/red]")
+        logger.info("[red]Error reading history: %s[/red]", e)
         raise typer.Exit(code=1)
 
 
 @core_command(dangerous=False)
-# ID: 3b9c1d2e-4f5a-6b7c-8d9e-0f1a2b3c4d5e
+# ID: 76d6a0c8-0e28-4de6-be76-0630526e54c0
 async def compare_methods_command(ctx: typer.Context) -> None:
     """
     Compare legacy (accumulate) vs new (adaptive) test generation methods.
     """
-    comparison_text = (
-        "[bold]OLD: Accumulative (V1)[/bold]\n"
-        "  Architecture: Monolithic (~800 lines)\n"
-        "  Learning: None (repeats same mistakes)\n"
-        "  Strategy: Fixed\n"
-        "  Success rate: ~0% on complex files\n\n"
-        "[bold]NEW: Adaptive (V2)[/bold]\n"
-        "  Architecture: Component-based (6 small components)\n"
-        "  Learning: Pattern recognition (switches after 3 failures)\n"
-        "  Strategy: Adaptive (file-type aware)\n"
-        "  Success rate: ~57% on complex files\n\n"
-        "[bold]Key Improvements:[/bold]\n"
-        "  ✓ File analysis before generation\n"
-        "  ✓ Failure pattern recognition\n"
-        "  ✓ Automatic strategy switching"
-    )
-
-    console.print(
+    comparison_text = "[bold]OLD: Accumulative (V1)[/bold]\n  Architecture: Monolithic (~800 lines)\n  Learning: None (repeats same mistakes)\n  Strategy: Fixed\n  Success rate: ~0% on complex files\n\n[bold]NEW: Adaptive (V2)[/bold]\n  Architecture: Component-based (6 small components)\n  Learning: Pattern recognition (switches after 3 failures)\n  Strategy: Adaptive (file-type aware)\n  Success rate: ~57% on complex files\n\n[bold]Key Improvements:[/bold]\n  ✓ File analysis before generation\n  ✓ Failure pattern recognition\n  ✓ Automatic strategy switching"
+    logger.info(
         Panel(
             comparison_text,
             title="📊 Method Comparison",

@@ -1,4 +1,8 @@
 # src/cli/resources/dev/test.py
+from shared.logger import getLogger
+
+
+logger = getLogger(__name__)
 import typer
 from rich.console import Console
 
@@ -13,7 +17,7 @@ console = Console()
 
 @app.command("test")
 @core_command(dangerous=True, requires_context=True)
-# ID: 86e90ce7-e818-4609-baa9-f9867e1aec36
+# ID: ffdee379-1a1e-429f-9dab-3ceaaa85ae1f
 async def test_interactive(
     ctx: typer.Context,
     target: str = typer.Argument(..., help="Path to the file you want to test."),
@@ -24,14 +28,11 @@ async def test_interactive(
     Allows you to review, edit, and approve test code step-by-step.
     """
     core_context = ctx.obj
-    console.print(
-        f"[bold cyan]🎯 Starting interactive test session for:[/bold cyan] {target}"
+    logger.info(
+        "[bold cyan]🎯 Starting interactive test session for:[/bold cyan] %s", target
     )
-
-    # Delegates to the interactive logic package (Octopus Reflex loop)
     success = await run_interactive_test_generation(
         target_file=target, core_context=core_context
     )
-
     if not success:
         raise typer.Exit(1)

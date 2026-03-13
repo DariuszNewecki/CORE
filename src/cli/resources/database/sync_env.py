@@ -31,14 +31,10 @@ console = Console()
     dangerous=True,
 )
 @core_command(dangerous=True, requires_context=True)
-# ID: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+# ID: 44ffa6cb-5c9e-4c12-b8ab-ab673dbdf0d4
 async def sync_env(
     ctx: typer.Context,
-    write: bool = typer.Option(
-        False,
-        "--write",
-        help="Apply sync (default: dry-run)",
-    ),
+    write: bool = typer.Option(False, "--write", help="Apply sync (default: dry-run)"),
 ) -> None:
     """
     Sync environment variables into the database runtime_settings table.
@@ -59,27 +55,21 @@ async def sync_env(
     """
     from body.maintenance.dotenv_sync_service import run_dotenv_sync
 
-    console.print("[bold cyan]⚙️  Environment Settings Sync[/bold cyan]")
-    console.print(f"Mode: {'WRITE' if write else 'DRY-RUN'}")
+    logger.info("[bold cyan]⚙️  Environment Settings Sync[/bold cyan]")
+    logger.info("Mode: %s", "WRITE" if write else "DRY-RUN")
     console.print()
-
     try:
         core_context = ctx.obj
-
         async with get_session() as session:
             await run_dotenv_sync(
-                context=core_context,
-                session=session,
-                dry_run=not write,
+                context=core_context, session=session, dry_run=not write
             )
-
         if not write:
-            console.print()
-            console.print("[yellow]💡 Run with --write to apply sync[/yellow]")
+            logger.info()
+            logger.info("[yellow]💡 Run with --write to apply sync[/yellow]")
         else:
-            console.print("[green]✅ Environment settings synced to database[/green]")
-
+            logger.info("[green]✅ Environment settings synced to database[/green]")
     except Exception as e:
         logger.error("Environment sync failed", exc_info=True)
-        console.print(f"[red]❌ Error: {e}[/red]", err=True)
+        logger.info("[red]❌ Error: %s[/red]", e)
         raise typer.Exit(1)

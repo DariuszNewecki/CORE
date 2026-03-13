@@ -1,5 +1,4 @@
 # src/cli/commands/dev_sync.py
-
 """
 Dev Sync Command - Atomic Action Architecture
 
@@ -12,6 +11,10 @@ Replaces the monolithic dev_sync with composable atomic actions.
 
 from __future__ import annotations
 
+from shared.logger import getLogger
+
+
+logger = getLogger(__name__)
 from typing import Any
 
 import typer
@@ -25,16 +28,14 @@ from shared.context import CoreContext
 
 
 console = Console()
-
 dev_sync_app = typer.Typer(
-    help="Development synchronization workflows",
-    no_args_is_help=True,
+    help="Development synchronization workflows", no_args_is_help=True
 )
 
 
 @dev_sync_app.command("sync")
 @core_command(dangerous=True, confirmation=True)
-# ID: 6f84e7f9-5b51-4d4d-b41a-8834cd7388b5
+# ID: fbe1973c-5d4b-4495-a37c-dd30beed6389
 async def dev_sync_command(
     ctx: typer.Context,
     write: bool = typer.Option(
@@ -55,56 +56,38 @@ async def dev_sync_command(
     """
     core_context: CoreContext = ctx.obj
     repo_root = core_context.git_service.repo_path
-
     console.print()
     console.rule("[bold cyan]CORE Dev Sync Workflow[/bold cyan]")
-    console.print(f"[bold]Mode:[/bold] {'WRITE' if write else 'DRY RUN'}")
-    console.print(f"[bold]Repo:[/bold] {repo_root}")
+    logger.info("[bold]Mode:[/bold] %s", "WRITE" if write else "DRY RUN")
+    logger.info("[bold]Repo:[/bold] %s", repo_root)
     console.print()
-
-    # CONSTITUTIONAL NOTE: Manual dispose_engine removed.
-    # The @core_command decorator handles infrastructure teardown centrally.
     with activity_run("dev.sync") as run:
-        # Execute workflow
         workflow = DevSyncWorkflow(core_context=core_context, write=write)
         result = await workflow.execute()
-
-        # Print results
         _print_workflow_results(result, write=write)
-
-        # Exit with error if workflow failed
         if not result.ok:
-            console.print("\n[red]✗ Workflow completed with failures[/red]")
+            logger.info("\n[red]✗ Workflow completed with failures[/red]")
             raise typer.Exit(1)
+        logger.info("\n[green]✓ Workflow completed successfully[/green]")
 
-        console.print("\n[green]✓ Workflow completed successfully[/green]")
 
-
-# ID: b171ef17-12fc-4d63-be4a-38f9f91c45ae
 def _print_workflow_results(result: Any, write: bool) -> None:
     """Print workflow results in a clean table format."""
-    console.print("\n[bold]Workflow Results[/bold]")
+    logger.info("\n[bold]Workflow Results[/bold]")
     console.print()
-
     for phase in result.phases:
-        # Phase header
         phase_status = "✓" if phase.ok else "✗"
-        console.print(
-            f"[bold]{phase_status} {phase.name}[/bold] ({phase.duration:.2f}s)"
+        logger.info(
+            "[bold]%s %s[/bold] (%ss)", phase_status, phase.name, phase.duration
         )
-
-        # Action table
         table = Table(show_header=True, box=None, padding=(0, 2))
         table.add_column("Action", style="cyan")
         table.add_column("Status", justify="center")
         table.add_column("Duration", justify="right")
         table.add_column("Details", style="dim")
-
         for action in phase.actions:
             status = "[green]✓[/green]" if action.ok else "[red]✗[/red]"
             duration = f"{action.duration_sec:.2f}s"
-
-            # Format details
             details = []
             if action.ok:
                 data = action.data or {}
@@ -114,25 +97,19 @@ def _print_workflow_results(result: Any, write: bool) -> None:
             else:
                 error = action.data.get("error", "Unknown error")
                 details.append(f"[red]{error}[/red]")
-
             table.add_row(
                 action.action_id,
                 status,
                 duration,
                 ", ".join(details) if details else "-",
             )
-
-        console.print(table)
-        console.print()
-
-    # Summary
-    console.print("[bold]Summary[/bold]")
-    console.print(f"  Total Actions: {result.total_actions}")
-    console.print(f"  Duration: {result.total_duration:.2f}s")
-    console.print(f"  Status: {'✓ Success' if result.ok else '✗ Failed'}")
-
+        logger.info(table)
+        logger.info()
+    logger.info("[bold]Summary[/bold]")
+    logger.info("  Total Actions: %s", result.total_actions)
+    logger.info("  Duration: %ss", result.total_duration)
+    logger.info("  Status: %s", "✓ Success" if result.ok else "✗ Failed")
     if not result.ok:
-        console.print(f"  Failed: {len(result.failed_actions)} actions")
-
+        logger.info("  Failed: %s actions", len(result.failed_actions))
     if not write:
-        console.print("\n[yellow]DRY RUN - Use --write to apply changes[/yellow]")
+        logger.info("\n[yellow]DRY RUN - Use --write to apply changes[/yellow]")

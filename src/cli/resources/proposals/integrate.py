@@ -1,5 +1,4 @@
 # src/cli/resources/proposals/integrate.py
-
 """
 Proposals Integration Action.
 Orchestrates the final integration of staged code changes into the system.
@@ -7,6 +6,10 @@ Orchestrates the final integration of staged code changes into the system.
 
 from __future__ import annotations
 
+from shared.logger import getLogger
+
+
+logger = getLogger(__name__)
 from typing import TYPE_CHECKING
 
 import typer
@@ -19,13 +22,12 @@ from . import app
 
 if TYPE_CHECKING:
     from shared.context import CoreContext
-
 console = Console()
 
 
 @app.command("integrate")
 @core_command(dangerous=False, requires_context=True)
-# ID: 9c4ca3d8-dc36-450e-b79d-848c18c118d8
+# ID: f779e122-cafa-44a9-80cc-b4b1a31cc363
 async def integrate_cmd(
     ctx: typer.Context,
     commit_message: str = typer.Option(
@@ -35,20 +37,16 @@ async def integrate_cmd(
     """
     Finalize and integrate staged changes into the repository.
     """
-    # UPDATED: Import from body instead of features
     from body.project_lifecycle.integration_service import (
         IntegrationError,
         integrate_changes,
     )
 
     core_context: CoreContext = ctx.obj
-
-    console.print("[bold cyan]🚀 Initiating integration sequence...[/bold cyan]")
-
+    logger.info("[bold cyan]🚀 Initiating integration sequence...[/bold cyan]")
     try:
-        # The service handles the multi-phase workflow orchestration
         await integrate_changes(context=core_context, commit_message=commit_message)
-        console.print(
+        logger.info(
             "[bold green]✅ Changes successfully integrated and committed.[/bold green]"
         )
     except IntegrationError as exc:

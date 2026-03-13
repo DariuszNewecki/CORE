@@ -1,5 +1,4 @@
 # src/cli/commands/fix/modularity.py
-
 """
 Automated Modularity Healing.
 Connects Modularity Diagnostics to the A3 Autonomous Loop.
@@ -11,19 +10,22 @@ CONSTITUTIONAL ALIGNMENT:
 
 from __future__ import annotations
 
+from shared.logger import getLogger
+
+
+logger = getLogger(__name__)
 import typer
 from rich.table import Table
 
 from shared.cli_utils import core_command
 from shared.context import CoreContext
 
-# We only import the App and Console from the local hub
-from . import console, fix_app
+from . import fix_app
 
 
 @fix_app.command("modularity", help="Autonomously modularize architectural offenders.")
 @core_command(dangerous=True, confirmation=True)
-# ID: d958ae30-2f04-4924-ada2-41b95a1f9a1e
+# ID: ea078c28-eb5f-46ec-b39c-e55cf33714ed
 async def fix_modularity_cmd(
     ctx: typer.Context,
     min_score: float = typer.Option(
@@ -45,24 +47,19 @@ async def fix_modularity_cmd(
 
     core_context: CoreContext = ctx.obj
     service = ModularityRemediationService(core_context)
-
-    with console.status("[bold cyan]CORE is defragmenting architecture...[/bold cyan]"):
+    with logger.info("[bold cyan]CORE is defragmenting architecture...[/bold cyan]"):
         results = await service.remediate_batch(
             min_score=min_score, limit=limit, write=write
         )
-
     if not results:
-        console.print("[green]✅ No files exceed the modularity threshold.[/green]")
+        logger.info("[green]✅ No files exceed the modularity threshold.[/green]")
         return
-
-    # Results Table
     table = Table(title="Modularity Healing Results")
     table.add_column("File", style="cyan")
     table.add_column("Status", justify="center")
     table.add_column("Initial", justify="right")
     table.add_column("Final", justify="right")
     table.add_column("Delta", style="green", justify="right")
-
     for res in results:
         status = "✅" if res["success"] else "❌"
         delta = res["improvement"]
@@ -73,5 +70,4 @@ async def fix_modularity_cmd(
             f"{res['final_score']:.1f}",
             f"-{delta:.1f}" if delta > 0 else "0.0",
         )
-
-    console.print(table)
+    logger.info(table)
