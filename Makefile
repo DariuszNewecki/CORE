@@ -21,9 +21,14 @@ PY          := $(POETRY) run python
 CORE_ADMIN  := $(POETRY) run core-admin
 OUTPUT_PATH := docs/10_CAPABILITY_REFERENCE.md
 
+# Daemon PID file — lives in var/ (runtime, gitignored)
+DAEMON_PID  := var/run/core-daemon.pid
+DAEMON_LOG  := var/log/core-daemon.log
+
 # ---- Phony targets -----------------------------------------------------------
 .PHONY: \
   help install lock run stop \
+  daemon daemon-start daemon-stop daemon-status daemon-restart daemon-logs \
   audit check-constitution check-ui validate \
   lint format test coverage dev-sync \
   dupes traces refusals cli-tree clean nuke \
@@ -58,6 +63,74 @@ run: ## Start the FastAPI server (uvicorn)
 stop: ## Kill any process listening on $(PORT)
 	@echo "🛑 Stopping any process on port $(PORT)..."
 	@command -v lsof >/dev/null 2>&1 && lsof -t -i:$(PORT) | xargs kill -9 2>/dev/null || true
+
+# ==============================================================================
+#   DAEMON — Background worker control
+# ==============================================================================
+
+daemon: daemon-status ## Alias: show daemon status
+
+daemon-start: ## Start the CORE daemon in the background
+	@mkdir -p var/run var/log
+	@if [ -f $(DAEMON_PID) ] && kill -0 "$$(cat $(DAEMON_PID))" 2>/dev/null; then \
+		echo "⚠️  Daemon already running (PID $$(cat $(DAEMON_PID)))"; \
+		exit 0; \
+	fi
+	@echo "🟢 Starting CORE daemon..."
+	@nohup $(POETRY) run python -c "import asyncio; from will.commands.daemon import _run_daemon; asyncio.run(_run_daemon())" >> $(DAEMON_LOG) 2>&1 & echo $$! > $(DAEMON_PID)
+	@sleep 2
+	@if kill -0 "$$(cat $(DAEMON_PID))" 2>/dev/null; then \
+		echo "✅ Daemon started (PID $$(cat $(DAEMON_PID))) — logs: $(DAEMON_LOG)"; \
+	else \
+		echo "❌ Daemon failed to start. Check logs: $(DAEMON_LOG)"; \
+		rm -f $(DAEMON_PID); \
+		exit 1; \
+	fi
+
+daemon-stop: ## Stop the CORE daemon gracefully
+	@{ \
+	  if [ ! -f $(DAEMON_PID) ]; then \
+	    echo "ℹ️  No PID file found — daemon may not be running"; \
+	    exit 0; \
+	  fi; \
+	  PID=$$(cat $(DAEMON_PID)); \
+	  if kill -0 "$$PID" 2>/dev/null; then \
+	    echo "🛑 Stopping CORE daemon (PID $$PID)..."; \
+	    kill -TERM "$$PID"; \
+	    for i in 1 2 3 4 5; do \
+	      sleep 1; \
+	      kill -0 "$$PID" 2>/dev/null || break; \
+	    done; \
+	    if kill -0 "$$PID" 2>/dev/null; then \
+	      echo "⚠️  Daemon did not stop gracefully — sending SIGKILL"; \
+	      kill -KILL "$$PID"; \
+	    fi; \
+	    echo "✅ Daemon stopped"; \
+	  else \
+	    echo "ℹ️  Daemon not running (stale PID $$PID)"; \
+	  fi; \
+	  rm -f $(DAEMON_PID); \
+	}
+
+daemon-restart: daemon-stop daemon-start ## Restart the CORE daemon
+
+daemon-status: ## Show daemon status
+	@if [ -f $(DAEMON_PID) ] && kill -0 "$$(cat $(DAEMON_PID))" 2>/dev/null; then \
+		echo "🟢 Daemon is RUNNING (PID $$(cat $(DAEMON_PID)))"; \
+		echo "   Logs: $(DAEMON_LOG)"; \
+	elif [ -f $(DAEMON_PID) ]; then \
+		echo "🔴 Daemon is STOPPED (stale PID file)"; \
+		rm -f $(DAEMON_PID); \
+	else \
+		echo "🔴 Daemon is STOPPED"; \
+	fi
+
+daemon-logs: ## Tail daemon logs (Ctrl+C to exit)
+	@if [ ! -f $(DAEMON_LOG) ]; then \
+		echo "ℹ️  No daemon log found at $(DAEMON_LOG)"; \
+		exit 0; \
+	fi
+	@tail -f $(DAEMON_LOG)
 
 # ==============================================================================
 #   QUALITY GATES & VALIDATION (Composing Atomic Resource Actions)

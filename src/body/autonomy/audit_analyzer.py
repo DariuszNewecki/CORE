@@ -10,6 +10,9 @@ Constitutional alignment:
 - Operates in micro_proposals autonomy lane only
 - Respects safe_paths and forbidden_paths
 - No mutations - pure analysis only
+
+FIXABLE_PATTERNS maps audit check IDs to registered atomic action IDs.
+All action_handler values are verified against the live action registry.
 """
 
 from __future__ import annotations
@@ -19,22 +22,25 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, ClassVar
 
-# REFACTORED: Removed direct settings import
 from shared.logger import getLogger
 
 
 logger = getLogger(__name__)
 
+# Minimum confidence required to generate a proposal.
+# Below this threshold the action is too uncertain to propose autonomously.
+MIN_CONFIDENCE: float = 0.80
+
 
 @dataclass
 # ID: dc64f3c1-b122-4032-ac7c-acf00f43f6d6
 class AutoFixablePattern:
-    """Mapping between audit finding patterns and autonomous actions."""
+    """Mapping between audit finding patterns and registered atomic actions."""
 
-    check_id_pattern: str  # Rule/check ID from audit finding
-    action_handler: str  # Action that can fix this violation
-    confidence: float  # How confident we are this will work (0.0-1.0)
-    risk_level: str  # "low", "medium", "high"
+    check_id_pattern: str  # Rule/check ID from audit finding (exact or prefix*)
+    action_handler: str  # Registered atomic action ID (verified against registry)
+    confidence: float  # 0.0-1.0 - below MIN_CONFIDENCE proposals are skipped
+    risk_level: str  # "low" | "medium" | "high"
     description: str  # Human-readable explanation
 
 
@@ -43,85 +49,93 @@ class AuditAnalyzer:
     """
     Analyzes audit findings to identify auto-fixable violations.
 
-    This is the first step in the autonomous loop trigger mechanism:
-    audit findings → auto-fixable list → proposals → execution
+    Autonomous loop: audit findings → fixable list → proposals → execution.
+
+    FIXABLE_PATTERNS uses only action IDs that exist in the live registry.
+    Verified set (from body/atomic/actions.py registrations):
+      fix.format, fix.imports, fix.headers, fix.ids, fix.duplicate_ids,
+      fix.logging, fix.placeholders, fix.atomic_actions, fix.docstrings
     """
 
-    # Mapping of known auto-fixable patterns
-    # Start conservative - only include high-confidence, low-risk fixes
     FIXABLE_PATTERNS: ClassVar[list[AutoFixablePattern]] = [
-        # Missing IDs (highest confidence, lowest risk)
+        # Missing stable ID anchors → fix.ids
         AutoFixablePattern(
             check_id_pattern="purity.stable_id_anchor",
-            action_handler="autonomy.self_healing.add_ids",
+            action_handler="fix.ids",
             confidence=0.95,
             risk_level="low",
-            description="Add missing capability IDs to functions/classes",
+            description="Add missing # ID: anchors to public symbols",
         ),
-        # Code formatting (high confidence, low risk)
+        # print() / console.print() violations → fix.logging
         AutoFixablePattern(
-            check_id_pattern="code_standards.max_line_length",
-            action_handler="autonomy.self_healing.fix_line_length",
+            check_id_pattern="logic.logging.standard_only",
+            action_handler="fix.logging",
             confidence=0.90,
             risk_level="low",
-            description="Fix lines exceeding length limit",
+            description="Replace print() calls with logger",
         ),
-        # Import sorting (high confidence, low risk)
+        # Import order / unused imports → fix.imports
         AutoFixablePattern(
             check_id_pattern="style.import_order",
-            action_handler="autonomy.self_healing.sort_imports",
+            action_handler="fix.imports",
             confidence=0.90,
             risk_level="low",
             description="Sort imports according to style policy",
         ),
-        # Unused imports (high confidence, low risk)
         AutoFixablePattern(
             check_id_pattern="style.no_unused_imports",
-            action_handler="autonomy.self_healing.fix_imports",
+            action_handler="fix.imports",
             confidence=0.85,
             risk_level="low",
             description="Remove unused imports",
         ),
-        # Code formatting (high confidence, low risk)
+        # Code formatting → fix.format
         AutoFixablePattern(
             check_id_pattern="style.formatter_required",
-            action_handler="autonomy.self_healing.format_code",
+            action_handler="fix.format",
             confidence=0.90,
             risk_level="low",
             description="Auto-format code with Black/Ruff",
         ),
-        # File headers (high confidence, low risk)
+        # File headers → fix.headers
         AutoFixablePattern(
             check_id_pattern="layout.src_module_header",
-            action_handler="autonomy.self_healing.fix_headers",
+            action_handler="fix.headers",
             confidence=0.85,
             risk_level="low",
-            description="Add or fix file headers",
+            description="Add or fix constitutional file headers",
         ),
-        # Missing docstrings (medium confidence, low risk)
+        # Placeholder docstrings → fix.docstrings
+        AutoFixablePattern(
+            check_id_pattern="purity.docstrings.required",
+            action_handler="fix.docstrings",
+            confidence=0.80,
+            risk_level="low",
+            description="Add missing docstrings to public symbols",
+        ),
         AutoFixablePattern(
             check_id_pattern="caps.no_placeholder_text",
-            action_handler="autonomy.self_healing.fix_docstrings",
-            confidence=0.75,
+            action_handler="fix.docstrings",
+            confidence=0.80,
             risk_level="low",
-            description="Add missing docstrings",
+            description="Replace placeholder docstrings with real ones",
         ),
-        # Dead code removal (medium confidence, medium risk)
+        # Duplicate symbol IDs → fix.duplicate_ids
         AutoFixablePattern(
-            check_id_pattern="code.dead_code",
-            action_handler="autonomy.self_healing.remove_dead_code",
-            confidence=0.70,
-            risk_level="medium",
-            description="Remove unreachable code",
+            check_id_pattern="linkage.duplicate_ids",
+            action_handler="fix.duplicate_ids",
+            confidence=0.85,
+            risk_level="low",
+            description="Resolve duplicate # ID: anchors",
         ),
     ]
 
-    def __init__(self, repo_root: Path):
+    def __init__(self, repo_root: Path) -> None:
         """
         Initialize analyzer.
 
         Args:
-            repo_root: Repository root path (defaults to context.git_service.repo_path)
+            repo_root: Repository root path
         """
         self.repo_root = repo_root
         self.findings_path = self.repo_root / "reports" / "audit_findings.json"
@@ -131,11 +145,14 @@ class AuditAnalyzer:
         """
         Analyze audit findings to identify auto-fixable violations.
 
+        Only patterns with confidence >= MIN_CONFIDENCE are included.
+
         Args:
-            findings_path: Path to audit findings JSON (defaults to standard location)
+            findings_path: Override path to audit findings JSON.
 
         Returns:
-            Analysis results with auto-fixable findings grouped by action
+            Dict with keys: status, total_findings, auto_fixable_count,
+            fixable_by_action, not_fixable, summary_by_action.
         """
         path = findings_path or self.findings_path
 
@@ -146,6 +163,7 @@ class AuditAnalyzer:
                 "message": f"No audit findings found at {path}",
                 "auto_fixable_count": 0,
                 "fixable_by_action": {},
+                "summary_by_action": [],
             }
 
         try:
@@ -158,6 +176,7 @@ class AuditAnalyzer:
                 "message": f"Failed to parse JSON: {e}",
                 "auto_fixable_count": 0,
                 "fixable_by_action": {},
+                "summary_by_action": [],
             }
 
         if not isinstance(findings, list):
@@ -169,41 +188,37 @@ class AuditAnalyzer:
                 "message": "Audit findings not in expected format",
                 "auto_fixable_count": 0,
                 "fixable_by_action": {},
+                "summary_by_action": [],
             }
 
         logger.info("Analyzing %d audit findings", len(findings))
 
-        # Group findings by fixable action
         fixable_by_action: dict[str, list[dict[str, Any]]] = {}
         not_fixable: list[dict[str, Any]] = []
 
         for finding in findings:
             check_id = finding.get("check_id", "") or finding.get("rule_id", "")
-
             if not check_id:
                 continue
 
-            # Find matching pattern
             pattern = self._find_matching_pattern(check_id)
 
-            if pattern:
+            if pattern and pattern.confidence >= MIN_CONFIDENCE:
                 action = pattern.action_handler
-                if action not in fixable_by_action:
-                    fixable_by_action[action] = []
-
-                # Enrich finding with fix metadata
-                enriched = {
-                    **finding,
-                    "fix_action": action,
-                    "fix_confidence": pattern.confidence,
-                    "fix_risk": pattern.risk_level,
-                    "fix_description": pattern.description,
-                }
-                fixable_by_action[action].append(enriched)
+                fixable_by_action.setdefault(action, [])
+                fixable_by_action[action].append(
+                    {
+                        **finding,
+                        "fix_action": action,
+                        "fix_confidence": pattern.confidence,
+                        "fix_risk": pattern.risk_level,
+                        "fix_description": pattern.description,
+                    }
+                )
             else:
                 not_fixable.append(finding)
 
-        total_fixable = sum(len(items) for items in fixable_by_action.values())
+        total_fixable = sum(len(v) for v in fixable_by_action.values())
 
         logger.info(
             "Analysis complete: %d auto-fixable (%.1f%%), %d not auto-fixable",
@@ -218,64 +233,38 @@ class AuditAnalyzer:
             "auto_fixable_count": total_fixable,
             "not_fixable_count": len(not_fixable),
             "fixable_by_action": fixable_by_action,
-            "not_fixable": not_fixable[:20],  # Sample of non-fixable for analysis
+            "not_fixable": not_fixable[:20],
             "summary_by_action": self._summarize_by_action(fixable_by_action),
         }
 
     # ID: d4e5f6a7-b8c9-0123-def1-234567890123
     def _find_matching_pattern(self, check_id: str) -> AutoFixablePattern | None:
-        """
-        Find the auto-fixable pattern that matches this check_id.
-
-        Args:
-            check_id: Check ID from audit finding
-
-        Returns:
-            Matching pattern or None
-        """
-        # Exact match first
+        """Find the pattern that matches this check_id (exact first, then prefix)."""
         for pattern in self.FIXABLE_PATTERNS:
             if pattern.check_id_pattern == check_id:
                 return pattern
-
-        # Prefix match (e.g., "style.*" matches "style.linter_required")
         for pattern in self.FIXABLE_PATTERNS:
             if pattern.check_id_pattern.endswith("*"):
                 prefix = pattern.check_id_pattern[:-1]
                 if check_id.startswith(prefix):
                     return pattern
-
         return None
 
     # ID: e5f6a7b8-c9d0-1234-ef12-345678901234
     def _summarize_by_action(
         self, fixable_by_action: dict[str, list[dict[str, Any]]]
     ) -> list[dict[str, Any]]:
-        """
-        Create a summary of fixable findings grouped by action.
-
-        Args:
-            fixable_by_action: Findings grouped by action handler
-
-        Returns:
-            List of summaries for each action
-        """
+        """Summarise fixable findings grouped by action for logging/reporting."""
         summaries = []
-
         for action, findings in sorted(fixable_by_action.items()):
             if not findings:
                 continue
-
-            # Get metadata from first finding (all should have same action)
             first = findings[0]
-
-            # Count affected files
-            affected_files = set()
+            affected_files: set[str] = set()
             for f in findings:
-                file_path = f.get("file_path") or f.get("file")
-                if file_path:
-                    affected_files.add(file_path)
-
+                fp = f.get("file_path") or f.get("file")
+                if fp:
+                    affected_files.add(fp)
             summaries.append(
                 {
                     "action": action,
@@ -284,13 +273,10 @@ class AuditAnalyzer:
                     "confidence": first.get("fix_confidence", 0.0),
                     "risk_level": first.get("fix_risk", "unknown"),
                     "description": first.get("fix_description", ""),
-                    "sample_files": sorted(affected_files)[:5],  # First 5 files
+                    "sample_files": sorted(affected_files)[:5],
                 }
             )
-
-        # Sort by finding count (most violations first)
         summaries.sort(key=lambda x: x["finding_count"], reverse=True)
-
         return summaries
 
 
@@ -299,15 +285,10 @@ def analyze_audit_findings(
     findings_path: Path | None = None,
     repo_root: Path | None = None,
 ) -> dict[str, Any]:
-    """
-    Convenience function to analyze audit findings.
+    """Convenience wrapper for AuditAnalyzer.analyze_findings()."""
+    if repo_root is None:
+        from shared.config import settings
 
-    Args:
-        findings_path: Path to audit findings JSON
-        repo_root: Repository root path
-
-    Returns:
-        Analysis results
-    """
+        repo_root = settings.REPO_PATH
     analyzer = AuditAnalyzer(repo_root=repo_root)
     return analyzer.analyze_findings(findings_path=findings_path)

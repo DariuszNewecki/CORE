@@ -9,6 +9,8 @@ Actions are composable, auditable, and constitutionally governed.
 Constitutional Alignment:
 - Boundary: Uses CoreContext for repo_path (no direct settings access)
 - Circularity Fix: Feature-level imports are performed inside functions.
+- Remediation: Each action declares which audit check_ids it fixes via remediates=[].
+  ViolationRemediatorWorker uses this to close the autonomous audit loop.
 """
 
 from __future__ import annotations
@@ -34,6 +36,7 @@ logger = getLogger(__name__)
     category=ActionCategory.FIX,
     policies=["rules/code/purity"],
     impact_level="safe",
+    remediates=["style.formatter_required"],
 )
 @atomic_action(
     action_id="format.code",
@@ -62,6 +65,7 @@ async def action_format_code(write: bool = False) -> ActionResult:
     category=ActionCategory.FIX,
     policies=["rules/code/purity"],
     impact_level="safe",
+    remediates=["style.import_order", "style.no_unused_imports"],
 )
 @atomic_action(
     action_id="fix.imports",
@@ -105,6 +109,7 @@ async def action_fix_imports(write: bool = False) -> ActionResult:
     category=ActionCategory.FIX,
     policies=["rules/code/purity"],
     impact_level="safe",
+    remediates=["layout.src_module_header"],
 )
 @atomic_action(
     action_id="fix.headers",
@@ -128,6 +133,7 @@ async def action_fix_headers(
     category=ActionCategory.FIX,
     policies=["rules/code/purity"],
     impact_level="safe",
+    remediates=["purity.stable_id_anchor", "linkage.assign_ids"],
 )
 @atomic_action(
     action_id="fix.ids",
@@ -151,6 +157,7 @@ async def action_fix_ids(
     category=ActionCategory.FIX,
     policies=["rules/code/linkage"],
     impact_level="moderate",
+    remediates=["linkage.duplicate_ids"],
 )
 @atomic_action(
     action_id="fix.duplicate_ids",
@@ -174,6 +181,7 @@ async def action_fix_duplicate_ids(
     category=ActionCategory.FIX,
     policies=["rules/code/purity"],
     impact_level="safe",
+    remediates=["logic.logging.standard_only"],
 )
 @atomic_action(
     action_id="fix.logging",
@@ -209,6 +217,7 @@ async def action_fix_logging(
     category=ActionCategory.FIX,
     policies=["rules/code/purity"],
     impact_level="moderate",
+    remediates=["caps.no_placeholder_text"],
 )
 @atomic_action(
     action_id="fix.placeholders",
@@ -256,6 +265,7 @@ async def action_fix_placeholders(
     category=ActionCategory.FIX,
     policies=["rules/architecture/atomic_actions"],
     impact_level="moderate",
+    remediates=["architecture.atomic_actions.must_return_action_result"],
 )
 @atomic_action(
     action_id="fix.atomic",
@@ -278,7 +288,6 @@ async def action_fix_atomic_actions(
     root_path = core_context.git_service.repo_path
 
     evaluator = AtomicActionsEvaluator(context=core_context)
-
     result_wrapper = await evaluator.execute(repo_root=root_path)
     data = result_wrapper.data
 
@@ -336,6 +345,7 @@ async def action_fix_atomic_actions(
     category=ActionCategory.FIX,
     policies=["rules/code/purity"],
     impact_level="moderate",
+    remediates=["purity.docstrings.required"],
 )
 @atomic_action(
     action_id="fix.docstrings",
