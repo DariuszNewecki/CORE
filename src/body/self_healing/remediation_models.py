@@ -18,8 +18,8 @@ from datetime import UTC, datetime
 from enum import Enum
 from typing import Any
 
-from body.autonomy.audit_analyzer import AutoFixablePattern
 from shared.models import AuditFinding
+from shared.models.remediation import AutoFixablePattern
 
 
 # ==============================================================================
@@ -204,23 +204,17 @@ def create_remediation_result(
 
     You just need to provide the actual data.
     """
-
-    # Generate unique ID for this session
     import uuid
 
     session_id = str(uuid.uuid4())
-
-    # Get current time in ISO format
     timestamp_utc = datetime.now(UTC).isoformat()
 
-    # Count successes and failures
     fixes_succeeded = sum(1 for detail in fix_details if detail.status == "success")
     fixes_failed = sum(1 for detail in fix_details if detail.status == "failed")
     fixes_attempted = fixes_succeeded + fixes_failed
 
-    # Calculate improvement
     improvement_delta = findings_before - findings_after
-    validation_passed = improvement_delta > 0  # We must show improvement
+    validation_passed = findings_after < findings_before
 
     return RemediationResult(
         session_id=session_id,

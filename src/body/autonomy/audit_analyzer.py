@@ -2,46 +2,90 @@
 """
 Audit Analyzer - Identifies auto-fixable violations from audit findings.
 
-This service bridges the gap between audit detection and autonomous remediation
-by analyzing audit findings and determining which ones can be automatically fixed
-within constitutional bounds.
+Bridges audit detection and autonomous remediation by reading the
+constitutional remediation map from .intent/ and matching audit findings
+against it.
 
 Constitutional alignment:
-- Operates in micro_proposals autonomy lane only
-- Respects safe_paths and forbidden_paths
+- Remediation mappings live in .intent/enforcement/mappings/remediation/
+- No action mappings are hardcoded in this file
+- Adding/removing a mapping is a constitutional act (.intent/ edit only)
 - No mutations - pure analysis only
-
-FIXABLE_PATTERNS maps audit check IDs to registered atomic action IDs.
-All action_handler values are verified against the live action registry.
 """
 
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, ClassVar
+from typing import Any
 
 from shared.logger import getLogger
 
 
 logger = getLogger(__name__)
 
-# Minimum confidence required to generate a proposal.
-# Below this threshold the action is too uncertain to propose autonomously.
+REMEDIATION_MAP_PATH = Path(
+    ".intent/enforcement/mappings/remediation/auto_remediation.yaml"
+)
 MIN_CONFIDENCE: float = 0.80
 
 
-@dataclass
 # ID: dc64f3c1-b122-4032-ac7c-acf00f43f6d6
-class AutoFixablePattern:
-    """Mapping between audit finding patterns and registered atomic actions."""
+def _load_remediation_map(repo_root: Path) -> dict[str, dict[str, Any]]:
+    """
+    Load the remediation map from .intent/enforcement/mappings/remediation/.
 
-    check_id_pattern: str  # Rule/check ID from audit finding (exact or prefix*)
-    action_handler: str  # Registered atomic action ID (verified against registry)
-    confidence: float  # 0.0-1.0 - below MIN_CONFIDENCE proposals are skipped
-    risk_level: str  # "low" | "medium" | "high"
-    description: str  # Human-readable explanation
+    Returns a dict of {check_id: {action, confidence, risk, description}}.
+    Fails gracefully - returns empty dict if file missing or malformed.
+    """
+    map_path = repo_root / REMEDIATION_MAP_PATH
+
+    if not map_path.exists():
+        logger.warning(
+            "Remediation map not found: %s - no autonomous proposals will be generated. "
+            "Create .intent/enforcement/mappings/remediation/auto_remediation.yaml to enable.",
+            map_path,
+        )
+        return {}
+
+    try:
+        import yaml
+
+        raw = yaml.safe_load(map_path.read_text(encoding="utf-8"))
+    except Exception as e:
+        logger.error("Failed to load remediation map from %s: %s", map_path, e)
+        return {}
+
+    mappings = raw.get("mappings", {})
+    if not isinstance(mappings, dict):
+        logger.error(
+            "Remediation map has unexpected format (expected dict under 'mappings')"
+        )
+        return {}
+
+    validated: dict[str, dict[str, Any]] = {}
+    for check_id, entry in mappings.items():
+        if not isinstance(entry, dict):
+            logger.warning(
+                "Remediation map: skipping malformed entry for '%s'", check_id
+            )
+            continue
+        if "action" not in entry:
+            logger.warning(
+                "Remediation map: entry '%s' missing 'action' field - skipped", check_id
+            )
+            continue
+        validated[check_id] = {
+            "action": entry["action"],
+            "confidence": float(entry.get("confidence", 0.0)),
+            "risk": entry.get("risk", "medium"),
+            "description": entry.get("description", ""),
+        }
+
+    logger.debug(
+        "Remediation map loaded: %d mappings from %s", len(validated), map_path
+    )
+    return validated
 
 
 # ID: b2c3d4e5-f6a7-8901-bcde-f12345678901
@@ -49,86 +93,13 @@ class AuditAnalyzer:
     """
     Analyzes audit findings to identify auto-fixable violations.
 
-    Autonomous loop: audit findings → fixable list → proposals → execution.
+    Autonomous loop: audit findings -> fixable list -> proposals -> execution.
 
-    FIXABLE_PATTERNS uses only action IDs that exist in the live registry.
-    Verified set (from body/atomic/actions.py registrations):
-      fix.format, fix.imports, fix.headers, fix.ids, fix.duplicate_ids,
-      fix.logging, fix.placeholders, fix.atomic_actions, fix.docstrings
+    The mapping from check_id to action is loaded from:
+      .intent/enforcement/mappings/remediation/auto_remediation.yaml
+
+    No hardcoded mappings. Adding a new remediable rule = editing .intent/ only.
     """
-
-    FIXABLE_PATTERNS: ClassVar[list[AutoFixablePattern]] = [
-        # Missing stable ID anchors → fix.ids
-        AutoFixablePattern(
-            check_id_pattern="purity.stable_id_anchor",
-            action_handler="fix.ids",
-            confidence=0.95,
-            risk_level="low",
-            description="Add missing # ID: anchors to public symbols",
-        ),
-        # print() / console.print() violations → fix.logging
-        AutoFixablePattern(
-            check_id_pattern="logic.logging.standard_only",
-            action_handler="fix.logging",
-            confidence=0.90,
-            risk_level="low",
-            description="Replace print() calls with logger",
-        ),
-        # Import order / unused imports → fix.imports
-        AutoFixablePattern(
-            check_id_pattern="style.import_order",
-            action_handler="fix.imports",
-            confidence=0.90,
-            risk_level="low",
-            description="Sort imports according to style policy",
-        ),
-        AutoFixablePattern(
-            check_id_pattern="style.no_unused_imports",
-            action_handler="fix.imports",
-            confidence=0.85,
-            risk_level="low",
-            description="Remove unused imports",
-        ),
-        # Code formatting → fix.format
-        AutoFixablePattern(
-            check_id_pattern="style.formatter_required",
-            action_handler="fix.format",
-            confidence=0.90,
-            risk_level="low",
-            description="Auto-format code with Black/Ruff",
-        ),
-        # File headers → fix.headers
-        AutoFixablePattern(
-            check_id_pattern="layout.src_module_header",
-            action_handler="fix.headers",
-            confidence=0.85,
-            risk_level="low",
-            description="Add or fix constitutional file headers",
-        ),
-        # Placeholder docstrings → fix.docstrings
-        AutoFixablePattern(
-            check_id_pattern="purity.docstrings.required",
-            action_handler="fix.docstrings",
-            confidence=0.80,
-            risk_level="low",
-            description="Add missing docstrings to public symbols",
-        ),
-        AutoFixablePattern(
-            check_id_pattern="caps.no_placeholder_text",
-            action_handler="fix.docstrings",
-            confidence=0.80,
-            risk_level="low",
-            description="Replace placeholder docstrings with real ones",
-        ),
-        # Duplicate symbol IDs → fix.duplicate_ids
-        AutoFixablePattern(
-            check_id_pattern="linkage.duplicate_ids",
-            action_handler="fix.duplicate_ids",
-            confidence=0.85,
-            risk_level="low",
-            description="Resolve duplicate # ID: anchors",
-        ),
-    ]
 
     def __init__(self, repo_root: Path) -> None:
         """
@@ -139,13 +110,23 @@ class AuditAnalyzer:
         """
         self.repo_root = repo_root
         self.findings_path = self.repo_root / "reports" / "audit_findings.json"
+        self._remediation_map: dict[str, dict[str, Any]] | None = None
+
+    def _get_remediation_map(self) -> dict[str, dict[str, Any]]:
+        """Lazy-load the remediation map (cached per instance)."""
+        if self._remediation_map is None:
+            self._remediation_map = _load_remediation_map(self.repo_root)
+        return self._remediation_map
 
     # ID: c3d4e5f6-a7b8-9012-cdef-123456789012
     def analyze_findings(self, findings_path: Path | None = None) -> dict[str, Any]:
         """
         Analyze audit findings to identify auto-fixable violations.
 
-        Only patterns with confidence >= MIN_CONFIDENCE are included.
+        Loads the remediation map from .intent/, reads audit findings,
+        matches each finding's check_id against the map, and groups
+        fixable findings by action. Only entries with confidence >=
+        MIN_CONFIDENCE are included.
 
         Args:
             findings_path: Override path to audit findings JSON.
@@ -154,6 +135,20 @@ class AuditAnalyzer:
             Dict with keys: status, total_findings, auto_fixable_count,
             fixable_by_action, not_fixable, summary_by_action.
         """
+        remediation_map = self._get_remediation_map()
+
+        if not remediation_map:
+            return {
+                "status": "no_remediation_map",
+                "message": (
+                    "No remediation mappings found. "
+                    "Create .intent/enforcement/mappings/remediation/auto_remediation.yaml."
+                ),
+                "auto_fixable_count": 0,
+                "fixable_by_action": {},
+                "summary_by_action": [],
+            }
+
         path = findings_path or self.findings_path
 
         if not path.exists():
@@ -191,7 +186,11 @@ class AuditAnalyzer:
                 "summary_by_action": [],
             }
 
-        logger.info("Analyzing %d audit findings", len(findings))
+        logger.info(
+            "Analyzing %d audit findings against %d remediation mappings",
+            len(findings),
+            len(remediation_map),
+        )
 
         fixable_by_action: dict[str, list[dict[str, Any]]] = {}
         not_fixable: list[dict[str, Any]] = []
@@ -201,18 +200,18 @@ class AuditAnalyzer:
             if not check_id:
                 continue
 
-            pattern = self._find_matching_pattern(check_id)
+            entry = remediation_map.get(check_id)
 
-            if pattern and pattern.confidence >= MIN_CONFIDENCE:
-                action = pattern.action_handler
+            if entry and entry["confidence"] >= MIN_CONFIDENCE:
+                action = entry["action"]
                 fixable_by_action.setdefault(action, [])
                 fixable_by_action[action].append(
                     {
                         **finding,
                         "fix_action": action,
-                        "fix_confidence": pattern.confidence,
-                        "fix_risk": pattern.risk_level,
-                        "fix_description": pattern.description,
+                        "fix_confidence": entry["confidence"],
+                        "fix_risk": entry["risk"],
+                        "fix_description": entry["description"],
                     }
                 )
             else:
@@ -237,24 +236,11 @@ class AuditAnalyzer:
             "summary_by_action": self._summarize_by_action(fixable_by_action),
         }
 
-    # ID: d4e5f6a7-b8c9-0123-def1-234567890123
-    def _find_matching_pattern(self, check_id: str) -> AutoFixablePattern | None:
-        """Find the pattern that matches this check_id (exact first, then prefix)."""
-        for pattern in self.FIXABLE_PATTERNS:
-            if pattern.check_id_pattern == check_id:
-                return pattern
-        for pattern in self.FIXABLE_PATTERNS:
-            if pattern.check_id_pattern.endswith("*"):
-                prefix = pattern.check_id_pattern[:-1]
-                if check_id.startswith(prefix):
-                    return pattern
-        return None
-
     # ID: e5f6a7b8-c9d0-1234-ef12-345678901234
     def _summarize_by_action(
         self, fixable_by_action: dict[str, list[dict[str, Any]]]
     ) -> list[dict[str, Any]]:
-        """Summarise fixable findings grouped by action for logging/reporting."""
+        """Summarise fixable findings grouped by action."""
         summaries = []
         for action, findings in sorted(fixable_by_action.items()):
             if not findings:
@@ -285,10 +271,19 @@ def analyze_audit_findings(
     findings_path: Path | None = None,
     repo_root: Path | None = None,
 ) -> dict[str, Any]:
-    """Convenience wrapper for AuditAnalyzer.analyze_findings()."""
-    if repo_root is None:
-        from shared.config import settings
+    """Convenience wrapper for AuditAnalyzer.analyze_findings().
 
-        repo_root = settings.REPO_PATH
+    Args:
+        findings_path: Override path to audit findings JSON.
+        repo_root: Repository root path. Required — callers must supply this.
+
+    Raises:
+        ValueError: If repo_root is not provided.
+    """
+    if repo_root is None:
+        raise ValueError(
+            "analyze_audit_findings: repo_root is required. "
+            "Pass settings.REPO_PATH from the calling layer."
+        )
     analyzer = AuditAnalyzer(repo_root=repo_root)
     return analyzer.analyze_findings(findings_path=findings_path)

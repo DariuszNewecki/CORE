@@ -13,6 +13,7 @@ from body.self_healing.remediation_models import (
 )
 from shared.logger import getLogger
 from shared.models import AuditFinding
+from shared.models.remediation import AutoFixablePattern
 
 
 logger = getLogger(__name__)
@@ -30,14 +31,12 @@ class RemediationPatternMatcher:
             len(self.patterns),
         )
 
-    def _load_fix_patterns(self) -> list:
+    def _load_fix_patterns(self) -> list[AutoFixablePattern]:
         """Load available fix patterns.
 
         Returns:
             List of AutoFixablePattern objects.
         """
-        from body.autonomy.audit_analyzer import AutoFixablePattern
-
         return [
             AutoFixablePattern(
                 check_id_pattern="style.import_order",
@@ -86,7 +85,9 @@ class RemediationPatternMatcher:
 
         return matched, unmatched
 
-    def _find_matching_pattern(self, check_id: str, target_pattern: str | None):
+    def _find_matching_pattern(
+        self, check_id: str, target_pattern: str | None
+    ) -> AutoFixablePattern | None:
         """Find pattern matching this check_id.
 
         Returns:
@@ -107,7 +108,7 @@ class RemediationPatternMatcher:
 
         return None
 
-    def _is_allowed(self, pattern, mode: RemediationMode) -> bool:
+    def _is_allowed(self, pattern: AutoFixablePattern, mode: RemediationMode) -> bool:
         """Check if pattern risk level is permitted under current mode.
 
         Returns:

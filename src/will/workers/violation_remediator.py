@@ -204,7 +204,8 @@ class ViolationRemediatorWorker(Worker):
         try:
             async with get_session() as session:
                 result = await session.execute(
-                    text("""
+                    text(
+                        """
                         SELECT id, subject, payload
                         FROM core.blackboard_entries
                         WHERE entry_type = 'finding'
@@ -212,7 +213,8 @@ class ViolationRemediatorWorker(Worker):
                           AND status = 'open'
                         ORDER BY created_at ASC
                         LIMIT 200
-                    """),
+                    """
+                    ),
                     {"prefix": f"{_FINDING_SUBJECT_PREFIX}%"},
                 )
                 rows = result.fetchall()
@@ -345,12 +347,14 @@ class ViolationRemediatorWorker(Worker):
             async with get_session() as session:
                 for entry_id in entry_ids:
                     await session.execute(
-                        text("""
+                        text(
+                            """
                             UPDATE core.blackboard_entries
                             SET status = 'resolved'
                             WHERE id = cast(:entry_id as uuid)
                               AND status = 'open'
-                        """),
+                        """
+                        ),
                         {"entry_id": entry_id},
                     )
                     resolved.append(entry_id)
