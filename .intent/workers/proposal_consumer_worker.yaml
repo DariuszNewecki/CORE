@@ -1,0 +1,42 @@
+$schema: "META/worker.schema.json"
+kind: worker
+
+metadata:
+  id: workers.proposal_consumer_worker
+  title: Proposal Consumer Worker
+  version: "1.0.0"
+  authority: policy
+  status: active
+
+identity:
+  uuid: "c1d2e3f4-a5b6-7890-cdef-123456789abc"
+  class: acting
+
+mandate:
+  responsibility: >
+    Poll for APPROVED proposals and execute them via ProposalExecutor
+    with write=True. This closes the A3 autonomous loop: proposals created
+    by ViolationRemediatorWorker are consumed and executed without human
+    intervention, unless approval_required=True on the proposal itself.
+    Posts a blackboard report with execution results after each run.
+  phase: execution
+  permitted_tools:
+    - crate.create
+    - canary.validate
+    - crate.apply
+    - git.commit
+  scope:
+    paths:
+      - "src/**"
+      - "var/mind/rollbacks/**"
+    domains:
+      - compliance
+      - remediation
+  approval_required: false
+  schedule:
+    max_interval: 60
+
+implementation:
+  module: will.workers.proposal_consumer_worker
+  class: ProposalConsumerWorker
+  requires_core_context: true
