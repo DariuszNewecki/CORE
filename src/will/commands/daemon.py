@@ -31,12 +31,10 @@ logger = getLogger(__name__)
 daemon_app = typer.Typer(help="Background worker daemon management.")
 
 
-@async_command
 @daemon_app.command("start")
+@async_command
 # ID: f3d2e3cd-7e95-473a-89d8-4af5438490ea
-async def start(
-    ctx: typer.Context,
-) -> None:
+async def start() -> None:
     """
     Start all self-scheduling background workers.
 
@@ -54,6 +52,8 @@ async def _run_daemon() -> None:
     """
     from will.workers.blackboard_auditor import BlackboardAuditor
     from will.workers.observer_worker import ObserverWorker
+    from will.workers.repo_crawler import RepoCrawlerWorker
+    from will.workers.repo_embedder import RepoEmbedderWorker
     from will.workers.worker_auditor import WorkerAuditor
 
     logger.info("CORE daemon starting...")
@@ -61,11 +61,17 @@ async def _run_daemon() -> None:
     observer = ObserverWorker()
     worker_auditor = WorkerAuditor()
     blackboard_auditor = BlackboardAuditor()
+    repo_crawler = RepoCrawlerWorker()
+    repo_embedder = (
+        RepoEmbedderWorker()
+    )  # self-initializes CognitiveService in run_loop
 
     tasks: list[asyncio.Task[Any]] = [
         asyncio.create_task(observer.run_loop(), name="observer_worker"),
         asyncio.create_task(worker_auditor.run_loop(), name="worker_auditor"),
         asyncio.create_task(blackboard_auditor.run_loop(), name="blackboard_auditor"),
+        asyncio.create_task(repo_crawler.run_loop(), name="repo_crawler"),
+        asyncio.create_task(repo_embedder.run_loop(), name="repo_embedder"),
     ]
 
     logger.info("CORE daemon: %d worker(s) started.", len(tasks))

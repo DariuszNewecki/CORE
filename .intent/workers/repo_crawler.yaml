@@ -1,0 +1,45 @@
+$schema: "META/worker.schema.json"
+kind: worker
+
+metadata:
+  id: workers.repo_crawler
+  title: Repo Crawler
+  version: "0.1.0"
+  authority: policy
+  status: active
+
+identity:
+  uuid: "f1a2b3c4-d5e6-7890-abcd-ef1234567891"
+  class: sensing
+
+mandate:
+  responsibility: >
+    Walk the CORE repository and build the structural self-model:
+    extract AST call graph edges into core.symbol_calls,
+    register all non-Python artifacts into core.repo_artifacts,
+    and cross-reference artifacts to symbols in core.artifact_symbol_links.
+    Skips unchanged files via SHA256 content hash. Never follows symlinks.
+    Does not embed — embedding is delegated to RepoEmbedderWorker.
+  phase: audit
+  permitted_tools:
+    - file.read
+  scope:
+    paths:
+      - "src/**"
+      - "docs/**"
+      - "tests/**"
+      - "var/prompts/**"
+      - "reports/**"
+      - ".intent/**"
+      - "infra/**"
+    domains:
+      - knowledge
+      - governance
+  approval_required: false
+  schedule:
+    max_interval: 86400
+
+implementation:
+  module: will.workers.repo_crawler
+  class: RepoCrawlerWorker
+  requires_core_context: false

@@ -1,0 +1,45 @@
+$schema: "META/worker.schema.json"
+kind: worker
+
+metadata:
+  id: workers.repo_embedder
+  title: Repo Embedder
+  version: "0.1.0"
+  authority: policy
+  status: active
+
+identity:
+  uuid: "a2b3c4d5-e6f7-8901-bcde-f12345678902"
+  class: sensing
+
+mandate:
+  responsibility: >
+    Consume repo_artifacts records where content_hash has changed or
+    chunk_count is zero, chunk each artifact by its type, embed the chunks,
+    and upsert them into the appropriate Qdrant collection:
+    docs→core-docs, tests→core-tests, prompts→core-prompts,
+    reports→core-reports, src Python bodies→core-symbols.
+    Updates repo_artifacts.chunk_count on completion.
+    Depends on RepoCrawlerWorker having populated repo_artifacts first.
+  phase: audit
+  permitted_tools:
+    - file.read
+    - llm.embedder
+  scope:
+    paths:
+      - "src/**"
+      - "docs/**"
+      - "tests/**"
+      - "var/prompts/**"
+      - "reports/**"
+    domains:
+      - knowledge
+      - semantic
+  approval_required: false
+  schedule:
+    max_interval: 43200
+
+implementation:
+  module: will.workers.repo_embedder
+  class: RepoEmbedderWorker
+  requires_core_context: false

@@ -18,9 +18,11 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from typing import Any
 
+from sqlalchemy import text
+
 from body.services.service_registry import service_registry
 from shared.logger import getLogger
-from will.autonomy.proposal import Proposal, ProposalStatus
+from will.autonomy.proposal import Proposal, ProposalScope, ProposalStatus
 from will.autonomy.proposal_repository import ProposalRepository
 from will.autonomy.proposal_state_manager import ProposalStateManager
 
@@ -42,6 +44,7 @@ class ProposalService:
     """
 
     def __init__(self, session: Any):
+        self._session = session
         self._repository = ProposalRepository(session)
         self._state_manager = ProposalStateManager(session)
 
@@ -152,3 +155,97 @@ class ProposalService:
         except Exception as e:
             await self.mark_failed(proposal_id, str(e))
             raise
+
+    # -------------------------
+    # Blast Radius / Scope
+    # -------------------------
+
+    # ID: 3e4f5a6b-7c8d-9e0f-1a2b-3c4d5e6f7a8b
+    async def populate_scope_from_blast_radius(
+        self,
+        proposal: Proposal,
+        target_symbol_paths: list[str],
+    ) -> ProposalScope:
+        """
+        Query v_symbol_blast_radius for the given symbols and return a
+        fully-populated ProposalScope.
+
+        The scope aggregates across all target symbols:
+          - symbols: the target symbols themselves + all transitively affected symbols
+          - files:   all distinct file_paths in the blast radius
+          - modules: all distinct module dotted paths in the blast radius
+
+        Args:
+            proposal: The proposal being built (not mutated here — caller assigns scope).
+            target_symbol_paths: List of symbol_path values to analyse
+                                 (e.g. ["src/will/autonomy/proposal_service.py::ProposalService.create"])
+
+        Returns:
+            A ProposalScope populated from the blast radius data.
+        """
+        if not target_symbol_paths:
+            logger.warning(
+                "populate_scope_from_blast_radius called with empty target list "
+                "for proposal '%s'",
+                getattr(proposal, "proposal_id", "?"),
+            )
+            return ProposalScope()
+
+        result = await self._session.execute(
+            text(
+                """
+                SELECT
+                    v.symbol_path,
+                    v.file_path,
+                    v.module,
+                    v.affected_files,
+                    v.affected_modules,
+                    v.affected_symbol_count
+                FROM core.v_symbol_blast_radius v
+                WHERE v.symbol_path = ANY(:paths)
+                """
+            ),
+            {"paths": list(target_symbol_paths)},
+        )
+        rows = result.fetchall()
+
+        if not rows:
+            logger.warning(
+                "populate_scope_from_blast_radius: none of %d target symbol(s) "
+                "found in v_symbol_blast_radius",
+                len(target_symbol_paths),
+            )
+            return ProposalScope(symbols=list(target_symbol_paths))
+
+        all_symbols: set[str] = set(target_symbol_paths)
+        all_files: set[str] = set()
+        all_modules: set[str] = set()
+
+        for row in rows:
+            # Own file and module
+            if row.file_path:
+                all_files.add(row.file_path)
+            if row.module:
+                all_modules.add(row.module)
+
+            # Blast radius aggregates (arrays may be None when no callers exist)
+            for fp in row.affected_files or []:
+                if fp:
+                    all_files.add(fp)
+            for mod in row.affected_modules or []:
+                if mod:
+                    all_modules.add(mod)
+
+        logger.info(
+            "populate_scope_from_blast_radius: %d target(s) → %d file(s), "
+            "%d module(s) in scope",
+            len(rows),
+            len(all_files),
+            len(all_modules),
+        )
+
+        return ProposalScope(
+            symbols=sorted(all_symbols),
+            files=sorted(all_files),
+            modules=sorted(all_modules),
+        )

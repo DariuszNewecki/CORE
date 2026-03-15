@@ -2,6 +2,7 @@
 exclude: "^(.archive/|.venv/|venv/|build/|dist/)"
 
 repos:
+  # Basic file hygiene
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.6.0
     hooks:
@@ -10,18 +11,23 @@ repos:
       - id: end-of-file-fixer
       - id: trailing-whitespace
 
+  # Black formatter (manual stage only)
   - repo: https://github.com/psf/black
     rev: 24.10.0
     hooks:
       - id: black
         stages: [manual]
+        files: \.pyi?$
         exclude: ^(scripts|dev-scripts)/
 
+  # Ruff linter + formatter (Python files only)
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.8.6
     hooks:
       - id: ruff
         args: [--fix, --exit-zero]
+        files: \.pyi?$
         exclude: ^(scripts|dev-scripts)/
       - id: ruff-format
+        files: \.pyi?$
         exclude: ^(scripts|dev-scripts)/
