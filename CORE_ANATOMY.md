@@ -9,29 +9,37 @@
 ## Core Phases
 
 **🟢 GOAL**
+
 Human objective or request given to the agent.
 
 **📂 CONTEXT**
+
 Repository state, knowledge sources, system inputs, conversation history.
 
 **🔒 CONSTRAINTS**
+
 Immutable constitutional rules & policies
 (92 rules across 7 engines — always enforced, never bypassed)
 
 **🗺️ PLAN**
+
 Agent reasons step-by-step → creates structured, rule-aware execution plan.
 
 **✨ GENERATE**
+
 AI produces code • changes • tool calls • actions.
 
 **✅ VALIDATE**
+
 Deterministic engines (AST, semantic, intent, style, etc.) check full compliance.
 
 **🔄 REMEDIATE**
+
 Validation fails? → Agent repairs violation
 (loops back to GENERATE/PLAN via Autonomy Ladder)
 
 **▶️ EXECUTE**
+
 Only approved, compliant actions run
 (file writes • commits • tools • system changes)
 
@@ -49,24 +57,37 @@ Only approved, compliant actions run
 
 ```mermaid
 flowchart TD
-    A["🟢 GOAL: HUMAN INTENT"] --> B["📂 CONTEXT\nRepo + knowledge + history"]
-    B --> C["🔒 CONSTRAINTS\nImmutable Rules (92/7 engines)"]
-    C --> D["🗺️ PLAN\nStep-by-step reasoning"]
-    D --> E["✨ GENERATE\nCode, actions, changes"]
-    E --> F["✅ VALIDATE\nDeterministic checks"]
-    F -->|Pass| G["▶️ EXECUTE\nApply changes"]
-    F -->|Fail| H["🔄 REMEDIATE\nRepair → loop back"]
+    %% Main flow
+    A["🟢 GOAL<br>HUMAN INTENT"] --> B["📂 CONTEXT<br>Repo state • knowledge • history"]
+    B --> C["🔒 CONSTRAINTS<br>Immutable rules<br>92 rules • 7 engines"]
+    C --> D["🗺️ PLAN<br>Step-by-step reasoning<br>Rule-aware plan"]
+    D --> E["✨ GENERATE<br>Code • changes • tool calls"]
+    E --> F["✅ VALIDATE<br>Deterministic checks<br>AST • semantic • intent • style"]
+    F -->|Pass| G["▶️ EXECUTE<br>Apply compliant changes"]
+    F -->|Fail| H["🔄 REMEDIATE<br>Repair violation<br>Autonomy Ladder"]
     H --> E
-    G --> I["Success"]
+    G --> I["✓ SUCCESS<br>Changes committed"]
 
+    %% Safety override
     subgraph "SAFETY HALT"
-        J["🚨 CONSTITUTIONAL VIOLATION\n→ HARD HALT + AUDIT LOG"]
+        direction TB
+        J["🚨 CONSTITUTIONAL VIOLATION<br>→ HARD HALT<br>+ FULL AUDIT LOG"]
     end
 
-    E -.->|Violation| J
-    F -.->|Violation| J
+    E -.->|Any violation| J
+    F -.->|Any violation| J
 
-    style J fill:#ffcccc,stroke:#c00,stroke-width:2px,color:#000
-    style C fill:#e6f3ff,stroke:#0066cc
-    style F fill:#fff3e6,stroke:#cc6600
-    linkStyle default stroke:#333,stroke-width:1.5px
+    %% Clean, GitHub-safe styling with classDef
+    classDef phase      fill:#f8f9fa, stroke:#495057, stroke-width:2px
+    classDef constraint fill:#d1e7ff, stroke:#0d6efd, stroke-width:2.5px
+    classDef validate   fill:#fff3cd, stroke:#ffc107, stroke-width:2.5px
+    classDef halt       fill:#ffebee, stroke:#dc3545, stroke-width:3px
+
+    class A,B,D,E,G,I phase
+    class C constraint
+    class F validate
+    class J halt
+
+    %% Link styling
+    linkStyle default stroke:#6c757d, stroke-width:1.8px
+    linkStyle 7,8 stroke:#dc3545, stroke-width:2.2px, stroke-dasharray: 5 3
