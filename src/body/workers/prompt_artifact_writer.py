@@ -36,6 +36,8 @@ _ARTIFACT_SUBJECT = "prompt.artifact"
 # Non-ASCII character filter for DB safety (PostgreSQL SQL_ASCII)
 _NON_ASCII_RE = re.compile(r"[^\x09\x0A\x0D\x20-\x7E]")
 
+_CLAIM_LIMIT = 25
+
 
 # ID: c3d4e5f6-a7b8-9012-cdef-123456789012
 class PromptArtifactWriter(Worker):
@@ -67,7 +69,7 @@ class PromptArtifactWriter(Worker):
         """
         await self.post_heartbeat()
 
-        findings = await self._fetch_open_extractions()
+        findings = await self._claim_open_extractions()
 
         if not findings:
             await self.post_report(
@@ -217,29 +219,38 @@ class PromptArtifactWriter(Worker):
     # Internal
     # -------------------------------------------------------------------------
 
-    async def _fetch_open_extractions(self) -> list[dict[str, Any]]:
-        """Return all open prompt.extraction findings."""
+    async def _claim_open_extractions(self) -> list[dict[str, Any]]:
+        """
+        Atomically claim open prompt.extraction findings.
+        Uses FOR UPDATE SKIP LOCKED to prevent double-claiming across
+        concurrent worker instances.
+        """
         from sqlalchemy import text
 
-        from shared.infrastructure.database.session_manager import (
-            get_session,
-        )
+        from shared.infrastructure.database.session_manager import get_session
 
         async with get_session() as session:
-            result = await session.execute(
-                text(
-                    """
-                    SELECT id, subject, payload
-                    FROM core.blackboard_entries
-                    WHERE entry_type = 'finding'
-                      AND subject LIKE :prefix
-                      AND status = 'open'
-                    ORDER BY created_at ASC
-                    """
-                ),
-                {"prefix": f"{_SOURCE_SUBJECT}::%"},
-            )
-            rows = result.fetchall()
+            async with session.begin():
+                result = await session.execute(
+                    text(
+                        """
+                        UPDATE core.blackboard_entries
+                        SET status = 'claimed', updated_at = now()
+                        WHERE id IN (
+                            SELECT id FROM core.blackboard_entries
+                            WHERE entry_type = 'finding'
+                              AND subject LIKE :prefix
+                              AND status = 'open'
+                            ORDER BY created_at ASC
+                            LIMIT :limit
+                            FOR UPDATE SKIP LOCKED
+                        )
+                        RETURNING id, subject, payload
+                        """
+                    ),
+                    {"prefix": f"{_SOURCE_SUBJECT}::%", "limit": _CLAIM_LIMIT},
+                )
+                rows = result.fetchall()
 
         findings = []
         for row in rows:
@@ -262,9 +273,7 @@ class PromptArtifactWriter(Worker):
         """Update the status of a blackboard finding by ID."""
         from sqlalchemy import text
 
-        from shared.infrastructure.database.session_manager import (
-            get_session,
-        )
+        from shared.infrastructure.database.session_manager import get_session
 
         async with get_session() as session:
             await session.execute(

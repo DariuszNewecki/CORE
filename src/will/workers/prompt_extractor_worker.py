@@ -38,6 +38,8 @@ _EXTRACTION_SUBJECT = "prompt.extraction"
 # Lines of context around the violation to send to the LLM
 _CONTEXT_LINES = 40
 
+_CLAIM_LIMIT = 25
+
 
 # ID: b2c3d4e5-f6a7-8901-bcde-f12345678901
 class PromptExtractorWorker(Worker):
@@ -73,7 +75,7 @@ class PromptExtractorWorker(Worker):
         """
         await self.post_heartbeat()
 
-        findings = await self._fetch_open_findings()
+        findings = await self._claim_open_findings()
 
         if not findings:
             await self.post_report(
@@ -167,8 +169,7 @@ class PromptExtractorWorker(Worker):
                 },
             )
 
-            # Mark source finding as claimed so it won't be reprocessed
-            await self._mark_finding(finding_id, "claimed")
+            await self._mark_finding(finding_id, "resolved")
 
             processed += 1
             logger.debug(
@@ -208,31 +209,38 @@ class PromptExtractorWorker(Worker):
         start = max(0, end - _CONTEXT_LINES)
         return "\n".join(lines[start:end])
 
-    async def _fetch_open_findings(self) -> list[dict[str, Any]]:
+    async def _claim_open_findings(self) -> list[dict[str, Any]]:
         """
-        Return all open ai.prompt.model_required findings not yet claimed.
+        Atomically claim open ai.prompt.model_required findings.
+        Uses FOR UPDATE SKIP LOCKED to prevent double-claiming across
+        concurrent worker instances.
         """
         from sqlalchemy import text
 
-        from shared.infrastructure.database.session_manager import (
-            get_session,
-        )
+        from shared.infrastructure.database.session_manager import get_session
 
         async with get_session() as session:
-            result = await session.execute(
-                text(
-                    """
-                    SELECT id, subject, payload
-                    FROM core.blackboard_entries
-                    WHERE entry_type = 'finding'
-                      AND subject LIKE :prefix
-                      AND status = 'open'
-                    ORDER BY created_at ASC
-                    """
-                ),
-                {"prefix": f"{_SOURCE_RULE}::%"},
-            )
-            rows = result.fetchall()
+            async with session.begin():
+                result = await session.execute(
+                    text(
+                        """
+                        UPDATE core.blackboard_entries
+                        SET status = 'claimed', updated_at = now()
+                        WHERE id IN (
+                            SELECT id FROM core.blackboard_entries
+                            WHERE entry_type = 'finding'
+                              AND subject LIKE :prefix
+                              AND status = 'open'
+                            ORDER BY created_at ASC
+                            LIMIT :limit
+                            FOR UPDATE SKIP LOCKED
+                        )
+                        RETURNING id, subject, payload
+                        """
+                    ),
+                    {"prefix": f"{_SOURCE_RULE}::%", "limit": _CLAIM_LIMIT},
+                )
+                rows = result.fetchall()
 
         findings = []
         for row in rows:
@@ -252,14 +260,10 @@ class PromptExtractorWorker(Worker):
         return findings
 
     async def _mark_finding(self, finding_id: str, status: str) -> None:
-        """
-        Update the status of a blackboard finding by ID.
-        """
+        """Update the status of a blackboard finding by ID."""
         from sqlalchemy import text
 
-        from shared.infrastructure.database.session_manager import (
-            get_session,
-        )
+        from shared.infrastructure.database.session_manager import get_session
 
         async with get_session() as session:
             await session.execute(

@@ -50,6 +50,8 @@ _FAILED_SUBJECT = "prompt.rewrite.failed"
 
 _NON_ASCII_RE = re.compile(r"[^\x09\x0A\x0D\x20-\x7E]")
 
+_CLAIM_LIMIT = 50
+
 
 # ID: e5f6a7b8-c9d0-1234-efab-567890123456
 class CallSiteRewriter(Worker):
@@ -80,7 +82,7 @@ class CallSiteRewriter(Worker):
         """
         await self.post_heartbeat()
 
-        findings = await self._fetch_open_artifacts()
+        findings = await self._claim_open_artifacts()
 
         if not findings:
             await self.post_report(
@@ -357,29 +359,38 @@ class CallSiteRewriter(Worker):
             },
         )
 
-    async def _fetch_open_artifacts(self) -> list[dict[str, Any]]:
-        """Return all open prompt.artifact findings."""
+    async def _claim_open_artifacts(self) -> list[dict[str, Any]]:
+        """
+        Atomically claim open prompt.artifact findings.
+        Uses FOR UPDATE SKIP LOCKED to prevent double-claiming across
+        concurrent worker instances.
+        """
         from sqlalchemy import text
 
-        from shared.infrastructure.database.session_manager import (
-            get_session,
-        )
+        from shared.infrastructure.database.session_manager import get_session
 
         async with get_session() as session:
-            result = await session.execute(
-                text(
-                    """
-                    SELECT id, subject, payload
-                    FROM core.blackboard_entries
-                    WHERE entry_type = 'finding'
-                      AND subject LIKE :prefix
-                      AND status = 'open'
-                    ORDER BY created_at ASC
-                """
-                ),
-                {"prefix": f"{_SOURCE_SUBJECT}::%"},
-            )
-            rows = result.fetchall()
+            async with session.begin():
+                result = await session.execute(
+                    text(
+                        """
+                        UPDATE core.blackboard_entries
+                        SET status = 'claimed', updated_at = now()
+                        WHERE id IN (
+                            SELECT id FROM core.blackboard_entries
+                            WHERE entry_type = 'finding'
+                              AND subject LIKE :prefix
+                              AND status = 'open'
+                            ORDER BY created_at ASC
+                            LIMIT :limit
+                            FOR UPDATE SKIP LOCKED
+                        )
+                        RETURNING id, subject, payload
+                        """
+                    ),
+                    {"prefix": f"{_SOURCE_SUBJECT}::%", "limit": _CLAIM_LIMIT},
+                )
+                rows = result.fetchall()
 
         findings = []
         for row in rows:
@@ -396,9 +407,7 @@ class CallSiteRewriter(Worker):
         """Batch-update status of a list of findings."""
         from sqlalchemy import text
 
-        from shared.infrastructure.database.session_manager import (
-            get_session,
-        )
+        from shared.infrastructure.database.session_manager import get_session
 
         ids = [f["id"] for f in findings]
         async with get_session() as session:

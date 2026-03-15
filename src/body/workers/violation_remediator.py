@@ -49,6 +49,8 @@ _FAILED_SUBJECT = "audit.remediation.failed"
 
 _NON_ASCII_RE = re.compile(r"[^\x09\x0A\x0D\x20-\x7E]")
 
+_CLAIM_LIMIT = 50
+
 
 # ID: bb52f62a-45c9-47a4-9ff8-788b0c6ca4f1
 class ViolationRemediator(Worker):
@@ -100,7 +102,7 @@ class ViolationRemediator(Worker):
             self._target_rule,
         )
 
-        findings = await self._fetch_open_findings()
+        findings = await self._claim_open_findings()
 
         if not findings:
             await self.post_report(
@@ -528,10 +530,11 @@ class ViolationRemediator(Worker):
             },
         )
 
-    async def _fetch_open_findings(self) -> list[dict[str, Any]]:
+    async def _claim_open_findings(self) -> list[dict[str, Any]]:
         """
-        Return all open audit.violation findings for the target rule
-        that have not been processed yet.
+        Atomically claim open audit.violation findings for the target rule.
+        Uses FOR UPDATE SKIP LOCKED to prevent double-claiming across
+        concurrent worker instances.
         """
         from sqlalchemy import text
 
@@ -540,20 +543,27 @@ class ViolationRemediator(Worker):
         prefix = f"{_SOURCE_SUBJECT}::{self._target_rule}::%"
 
         async with get_session() as session:
-            result = await session.execute(
-                text(
-                    """
-                    SELECT id, subject, payload
-                    FROM core.blackboard_entries
-                    WHERE entry_type = 'finding'
-                      AND subject LIKE :prefix
-                      AND status = 'open'
-                    ORDER BY created_at ASC
-                    """
-                ),
-                {"prefix": prefix},
-            )
-            rows = result.fetchall()
+            async with session.begin():
+                result = await session.execute(
+                    text(
+                        """
+                        UPDATE core.blackboard_entries
+                        SET status = 'claimed', updated_at = now()
+                        WHERE id IN (
+                            SELECT id FROM core.blackboard_entries
+                            WHERE entry_type = 'finding'
+                              AND subject LIKE :prefix
+                              AND status = 'open'
+                            ORDER BY created_at ASC
+                            LIMIT :limit
+                            FOR UPDATE SKIP LOCKED
+                        )
+                        RETURNING id, subject, payload
+                        """
+                    ),
+                    {"prefix": prefix, "limit": _CLAIM_LIMIT},
+                )
+                rows = result.fetchall()
 
         findings = []
         for row in rows:
