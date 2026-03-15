@@ -132,23 +132,27 @@ class LLMClient:
             self.provider.chat_completion, prompt, user_id
         )
 
-    # ID: fc56aaeb-0080-40a5-85b1-662ff3cab17e
+    # ID: pm-llm-client-001
+    # ID: 09f65041-e28e-4832-9336-9d7475e45565
     async def make_request_with_system_async(
         self,
         prompt: str,
         system_prompt: str,
         user_id: str = "core_system",
+        max_tokens: int = 4096,
     ) -> str:
         """
-        Makes a chat completion request with a constitutional system prompt.
+        Makes a governed chat completion request with a constitutional system prompt.
 
-        This is the governed entry point used by PromptModel.invoke().
-        Direct callers should use PromptModel instead.
+        This is the entry point used by PromptModel.invoke(). All PromptModel
+        invocations must flow through this method — direct calls to
+        make_request_async bypass constitutional system prompts.
 
         Args:
-            prompt: The user-turn content (filled template from user.txt).
-            system_prompt: The constitutional system prompt (from system.txt).
-            user_id: Identifier for audit tracing.
+            prompt: Filled user template (the rendered user.txt content).
+            system_prompt: Constitutional system prompt loaded from system.txt.
+            user_id: Audit identifier for tracing.
+            max_tokens: Token budget for this invocation, sourced from model.yaml.
 
         Returns:
             Raw string response from the AI provider.
@@ -157,7 +161,8 @@ class LLMClient:
             self.provider.chat_completion,
             prompt,
             user_id,
-            system_prompt,
+            system_prompt=system_prompt,
+            max_tokens=max_tokens,
         )
 
     # ID: 7e13b689-e8ae-48ac-819b-44f8d3b97e22
@@ -193,7 +198,11 @@ async def create_llm_client_for_role(
     from sqlalchemy import text
 
     query = text(
-        "\n        SELECT assigned_resource\n        FROM core.cognitive_roles\n        WHERE role = :role AND is_active = true\n    "
+        """
+        SELECT assigned_resource
+        FROM core.cognitive_roles
+        WHERE role = :role AND is_active = true
+    """
     )
     result = await db.execute(query, {"role": cognitive_role})
     row = result.fetchone()

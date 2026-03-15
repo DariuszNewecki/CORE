@@ -31,15 +31,18 @@ class OllamaProvider(AIProvider):
         prompt: str,
         user_id: str,
         system_prompt: str = "",
+        max_tokens: int = 4096,
     ) -> str:
         """
-        Generates a chat completion using the Ollama format.
+        Generates a chat completion using the Ollama /api/chat format.
 
         Args:
             prompt: User-turn content.
-            user_id: Audit identifier.
+            user_id: Audit identifier (unused by Ollama but kept for interface parity).
             system_prompt: Constitutional system prompt sent as the first
-                           system-role message in the conversation.
+                           system-role message. Falls back to a neutral default
+                           when empty so the model always receives a system turn.
+            max_tokens: Mapped to Ollama's options.num_predict to cap output length.
         """
         endpoint = f"{self.api_url}/api/chat"
         effective_system = (
@@ -52,6 +55,9 @@ class OllamaProvider(AIProvider):
                 {"role": "user", "content": prompt},
             ],
             "stream": False,
+            "options": {
+                "num_predict": max_tokens,
+            },
         }
         async with httpx.AsyncClient(timeout=self.timeout) as client:
             response = await client.post(endpoint, headers=self.headers, json=payload)
@@ -61,7 +67,13 @@ class OllamaProvider(AIProvider):
 
     # ID: fcc3342d-746d-4bb4-b153-8eef9465c0f0
     async def get_embedding(self, text: str) -> list[float]:
-        """Generates an embedding using the Ollama format."""
+        """
+        Generates an embedding using the Ollama /api/embeddings format.
+
+        Raises:
+            RuntimeError: If the model returns a Ghost Vector, indicating
+                          an Ollama model failure rather than a real embedding.
+        """
         endpoint = f"{self.api_url}/api/embeddings"
         payload = {"model": self.model_name, "prompt": text}
         async with httpx.AsyncClient(timeout=self.timeout) as client:

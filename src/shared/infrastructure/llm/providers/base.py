@@ -42,16 +42,18 @@ class AIProvider(ABC):
         prompt: str,
         user_id: str,
         system_prompt: str = "",
+        max_tokens: int = 4096,
     ) -> str:
         """
-        Generate a text completion for a given prompt.
+        Generates a text completion for a given prompt.
 
         Args:
-            prompt: The user-turn content.
-            user_id: Identifier for audit tracing.
-            system_prompt: Optional constitutional system prompt.
-                           When provided, governs the AI's role and constraints.
-                           Defaults to empty string (provider uses own default).
+            prompt: User-turn content.
+            user_id: Audit identifier.
+            system_prompt: Constitutional system prompt. Empty string uses
+                           the provider's built-in default.
+            max_tokens: Maximum tokens to generate. Controls response length;
+                        passed directly to the underlying API.
         """
         pass
 

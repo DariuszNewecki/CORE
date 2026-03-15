@@ -1,0 +1,22 @@
+{
+    "$schema": "META/rule_document.schema.json",
+    "kind": "rule_document",
+    "metadata": {
+        "id": "rules.architecture.mutation_surface",
+        "title": "Governed Mutation Surface Rules",
+        "version": "1.0.0",
+        "authority": "policy",
+        "phase": "audit",
+        "status": "active"
+    },
+    "rules": [
+        {
+            "id": "governance.mutation_surface.filehandler_required",
+            "statement": "All filesystem writes MUST route through FileHandler. Direct calls to write_text(), write_bytes(), or open() in write/append mode are prohibited in production code.",
+            "enforcement": "blocking",
+            "authority": "policy",
+            "phase": "audit",
+            "rationale": "Direct filesystem writes bypass constitutional governance, audit trails, impact classification, and IntentGuard enforcement. FileHandler is the sole governed mutation surface."
+        }
+    ]
+}

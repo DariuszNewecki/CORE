@@ -17,6 +17,7 @@ LAYER: will/commands — orchestration boundary.
 from __future__ import annotations
 
 import asyncio
+import importlib
 import signal
 from typing import Any
 
@@ -30,6 +31,34 @@ logger = getLogger(__name__)
 
 daemon_app = typer.Typer(help="Background worker daemon management.")
 
+# Workers requiring runtime parameters beyond YAML (e.g. target_rule).
+# Must be instantiated explicitly with call-site configuration.
+_SKIP_WORKERS: frozenset[str] = frozenset(
+    {
+        "audit_violation_sensor",
+        "violation_remediator",
+    }
+)
+
+# Default interval for one-shot workers that lack run_loop (seconds).
+_ONE_SHOT_INTERVAL = 300
+
+
+async def _run_one_shot_loop(worker: Any, stem: str, interval: int) -> None:
+    """
+    Wraps a one-shot worker (has start() but no run_loop()) in a periodic loop.
+    Re-instantiation is not needed — start() is idempotent per the Worker contract.
+    """
+    logger.info("CORE daemon: one-shot loop for '%s' (interval=%ds)", stem, interval)
+    while True:
+        try:
+            await worker.start()
+        except Exception as e:
+            logger.error(
+                "CORE daemon: one-shot worker '%s' failed: %s", stem, e, exc_info=True
+            )
+        await asyncio.sleep(interval)
+
 
 @daemon_app.command("start")
 @async_command
@@ -38,8 +67,8 @@ async def start() -> None:
     """
     Start all self-scheduling background workers.
 
-    Keeps the process alive until SIGTERM or SIGINT. Add additional
-    self-scheduling workers inside _run_daemon() as they are implemented.
+    Discovers workers dynamically from .intent/workers/*.yaml — no manual
+    registration required. Keeps the process alive until SIGTERM or SIGINT.
     """
     await _run_daemon()
 
@@ -47,32 +76,99 @@ async def start() -> None:
 # ID: c2d3e4f5-a6b7-8c9d-0e1f-2a3b4c5d6e7f
 async def _run_daemon() -> None:
     """
-    Async entry point. Starts all worker loops as asyncio tasks and
-    waits for shutdown signal.
+    Async entry point. Discovers all active workers from .intent/workers/,
+    instantiates each one, starts their run_loop (or one-shot loop) as
+    asyncio tasks, and waits for shutdown signal.
     """
-    from will.workers.blackboard_auditor import BlackboardAuditor
-    from will.workers.observer_worker import ObserverWorker
-    from will.workers.repo_crawler import RepoCrawlerWorker
-    from will.workers.repo_embedder import RepoEmbedderWorker
-    from will.workers.worker_auditor import WorkerAuditor
+    import yaml
+
+    from body.services.service_registry import service_registry
+    from shared.context import CoreContext
+    from shared.infrastructure.bootstrap_registry import BootstrapRegistry
 
     logger.info("CORE daemon starting...")
 
-    observer = ObserverWorker()
-    worker_auditor = WorkerAuditor()
-    blackboard_auditor = BlackboardAuditor()
-    repo_crawler = RepoCrawlerWorker()
-    repo_embedder = (
-        RepoEmbedderWorker()
-    )  # self-initializes CognitiveService in run_loop
+    ctx = CoreContext(registry=service_registry)
 
-    tasks: list[asyncio.Task[Any]] = [
-        asyncio.create_task(observer.run_loop(), name="observer_worker"),
-        asyncio.create_task(worker_auditor.run_loop(), name="worker_auditor"),
-        asyncio.create_task(blackboard_auditor.run_loop(), name="blackboard_auditor"),
-        asyncio.create_task(repo_crawler.run_loop(), name="repo_crawler"),
-        asyncio.create_task(repo_embedder.run_loop(), name="repo_embedder"),
-    ]
+    cog_svc: Any = None
+    try:
+        cog_svc = await service_registry.get_cognitive_service()
+    except Exception as e:
+        logger.warning(
+            "CORE daemon: CognitiveService unavailable — workers requiring it will be skipped: %s",
+            e,
+        )
+
+    workers_dir = BootstrapRegistry.get_repo_path() / ".intent" / "workers"
+    tasks: list[asyncio.Task[Any]] = []
+
+    for yaml_file in sorted(workers_dir.glob("*.yaml")):
+        stem = yaml_file.stem
+
+        if stem in _SKIP_WORKERS:
+            logger.info(
+                "CORE daemon: skipping '%s' — requires runtime configuration",
+                stem,
+            )
+            continue
+
+        try:
+            declaration = yaml.safe_load(yaml_file.read_text())
+
+            status = declaration.get("metadata", {}).get("status", "")
+            if status != "active":
+                logger.debug("CORE daemon: skipping '%s' — status=%s", stem, status)
+                continue
+
+            impl = declaration.get("implementation", {})
+            module_path = impl["module"]
+            class_name = impl["class"]
+            requires_ctx = impl.get("requires_core_context", False)
+
+            module = importlib.import_module(module_path)
+            WorkerClass = getattr(module, class_name)
+
+            if requires_ctx:
+                worker = WorkerClass(core_context=ctx)
+            else:
+                try:
+                    worker = WorkerClass()
+                except TypeError:
+                    if cog_svc is None:
+                        logger.warning(
+                            "CORE daemon: skipping '%s' — needs CognitiveService but unavailable",
+                            stem,
+                        )
+                        continue
+                    worker = WorkerClass(cognitive_service=cog_svc)
+
+            # Use run_loop() if the worker defines it; otherwise wrap start() in a loop.
+            if hasattr(worker, "run_loop"):
+                coro = worker.run_loop()
+            else:
+                interval = (
+                    declaration.get("mandate", {})
+                    .get("schedule", {})
+                    .get("max_interval", _ONE_SHOT_INTERVAL)
+                )
+                coro = _run_one_shot_loop(worker, stem, interval)
+
+            task = asyncio.create_task(coro, name=f"{stem}_worker")
+            tasks.append(task)
+            logger.info(
+                "CORE daemon: started worker '%s' (%s.%s)",
+                stem,
+                module_path,
+                class_name,
+            )
+
+        except Exception as e:
+            logger.error(
+                "CORE daemon: failed to load worker '%s': %s",
+                stem,
+                e,
+                exc_info=True,
+            )
 
     logger.info("CORE daemon: %d worker(s) started.", len(tasks))
 

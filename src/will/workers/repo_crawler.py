@@ -30,7 +30,6 @@ from typing import Any
 
 from sqlalchemy import text
 
-from shared.config import settings
 from shared.infrastructure.database.session_manager import get_session
 from shared.logger import getLogger
 from shared.workers.base import Worker
@@ -86,8 +85,10 @@ class RepoCrawlerWorker(Worker):
     declaration_name = "repo_crawler"
 
     def __init__(self, cognitive_service: Any = None) -> None:
+        from shared.infrastructure.bootstrap_registry import BootstrapRegistry
+
         super().__init__()
-        self._repo_root: Path = settings.REPO_PATH
+        self._repo_root: Path = BootstrapRegistry.get_repo_path()
         schedule = self._declaration.get("mandate", {}).get("schedule", {})
         self._max_interval: int = schedule.get("max_interval", 86400)
         self._glide_off: int = schedule.get(

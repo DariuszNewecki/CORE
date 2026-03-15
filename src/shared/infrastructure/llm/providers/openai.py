@@ -30,15 +30,18 @@ class OpenAIProvider(AIProvider):
         prompt: str,
         user_id: str,
         system_prompt: str = "",
+        max_tokens: int = 4096,
     ) -> str:
         """
-        Generates a chat completion using the OpenAI format.
+        Generates a chat completion using the OpenAI chat/completions format.
 
         Args:
             prompt: User-turn content.
-            user_id: Audit identifier.
+            user_id: Forwarded as the 'user' field for OpenAI audit tracing.
             system_prompt: Constitutional system prompt sent as the first
-                           system-role message in the conversation.
+                           system-role message. Falls back to a neutral default
+                           when empty.
+            max_tokens: Maximum tokens to generate, forwarded directly to the API.
         """
         endpoint = f"{self.api_url}/chat/completions"
         effective_system = (
@@ -50,6 +53,7 @@ class OpenAIProvider(AIProvider):
                 {"role": "system", "content": effective_system},
                 {"role": "user", "content": prompt},
             ],
+            "max_tokens": max_tokens,
             "user": user_id,
         }
         async with httpx.AsyncClient(timeout=self.timeout) as client:
@@ -60,7 +64,7 @@ class OpenAIProvider(AIProvider):
 
     # ID: bd55279d-308d-4483-890f-05835055b54e
     async def get_embedding(self, text: str) -> list[float]:
-        """Generates an embedding using the OpenAI format."""
+        """Generates an embedding using the OpenAI embeddings format."""
         endpoint = f"{self.api_url}/v1/embeddings"
         payload = {"model": self.model_name, "input": [text]}
         async with httpx.AsyncClient(timeout=self.timeout) as client:

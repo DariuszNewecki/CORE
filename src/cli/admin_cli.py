@@ -21,6 +21,7 @@ from body.infrastructure.bootstrap import create_core_context
 from body.services.service_registry import service_registry
 from cli.commands.interactive_test import app as interactive_test_app
 from cli.commands.refactor import refactor_app
+from cli.commands.status import status_app
 from cli.interactive import launch_interactive_menu
 from cli.logic.tools import tools_app
 from cli.resources.admin import app as admin_app
@@ -31,6 +32,7 @@ from cli.resources.database import app as database_app
 from cli.resources.dev import app as dev_app
 from cli.resources.project import app as project_app
 from cli.resources.proposals import app as proposals_app
+from cli.resources.runtime import app as runtime_app
 from cli.resources.secrets import app as secrets_app
 from cli.resources.symbols import app as symbols_app
 from cli.resources.vectors import app as vectors_app
@@ -58,6 +60,7 @@ def register_all_commands(app_instance: typer.Typer) -> None:
     app_instance.add_typer(code_app, name="code")
     app_instance.add_typer(context_app, name="context")
     app_instance.add_typer(database_app, name="database")
+    app_instance.add_typer(runtime_app, name="runtime")
     app_instance.add_typer(symbols_app, name="symbols")
     app_instance.add_typer(vectors_app, name="vectors")
     app_instance.add_typer(workers_app, name="workers")
@@ -70,6 +73,7 @@ def register_all_commands(app_instance: typer.Typer) -> None:
     app_instance.add_typer(tools_app, name="tools")
     app_instance.add_typer(secrets_app, name="secrets")
     app_instance.add_typer(daemon_app, name="daemon")
+    app_instance.add_typer(status_app, name="status")
 
 
 register_all_commands(app)
