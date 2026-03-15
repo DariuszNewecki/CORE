@@ -50,22 +50,23 @@ github.com/DariuszNewecki/CORE · Star · Fork · Build governed agents today
 
 ```mermaid
 flowchart TD
-    A[Goal: HUMAN INTENT] --> B[CONTEXT\nRepo state, knowledge, history]
-    B --> C[CONSTRAINTS\nImmutable Rules\n(92 rules, 7 engines)]
-    C --> D[PLAN\nStep-by-step reasoning\nRule-aware plan]
-    D --> E[GENERATE\nCode, changes, actions]
-    E --> F[VALIDATE\nDeterministic checks\n(AST, semantic, intent, style)]
-    F -->|Pass| G[EXECUTE\nCommit changes\nFiles, tools, repo]
-    F -->|Fail| H[REMEDIATE\nRepair violation\nAutonomy Ladder loop]
+    A["Goal: HUMAN INTENT"] --> B["CONTEXT\nRepo state, knowledge, history"]
+    B --> C["CONSTRAINTS\nImmutable Rules\n(92 rules, 7 engines)"]
+    C --> D["PLAN\nStep-by-step reasoning\nRule-aware plan"]
+    D --> E["GENERATE\nCode, changes, actions"]
+    E --> F["VALIDATE\nDeterministic checks\n(AST, semantic, intent, style)"]
+    F -->|Pass| G["EXECUTE\nCommit changes\nFiles, tools, repo"]
+    F -->|Fail| H["REMEDIATE\nRepair violation\nAutonomy Ladder loop"]
     H --> E
-    G --> I[Success\nChanges applied]
+    G --> I["Success\nChanges applied"]
 
     subgraph "SAFETY HALT"
-        J[CONSTITUTIONAL VIOLATION\n→ HARD HALT\n+ AUDIT LOG]
+        J["CONSTITUTIONAL VIOLATION\n→ HARD HALT\n+ AUDIT LOG"]
     end
 
     E -.->|Violation| J
     F -.->|Violation| J
+
     style J fill:#ffcccc,stroke:#c00,stroke-width:2px,color:#000
     style C fill:#e6f3ff,stroke:#0066cc
     style F fill:#fff3e6,stroke:#cc6600
