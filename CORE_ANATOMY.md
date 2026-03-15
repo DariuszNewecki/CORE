@@ -1,67 +1,66 @@
 # The Anatomy of a Governed AI Coding Agent
 
-**CORE – Constitutional Runtime Enforcement**
+**CORE** – Constitutional Runtime Enforcement
 
-**Goal: [HUMAN INTENT]**
-**CORE enforces unbreakable constitutional governance** over the entire agent workflow
-*(no prompt, no model output, no clever instruction can override the rules)*
+> **Goal: [HUMAN INTENT]**
+> CORE enforces **unbreakable constitutional governance** over the entire agent workflow.
+> No prompt • no model output • no clever trick can override the rules.
 
-## Text Overview
+## Core Phases
 
-**GOAL**
-Human objective or request provided to the agent.
+**🟢 GOAL**
+Human objective or request given to the agent.
 
-**CONTEXT**
-Current repository state, knowledge sources, system inputs, and conversation history.
+**📂 CONTEXT**
+Repository state, knowledge sources, system inputs, conversation history.
 
-**CONSTRAINTS**
-Immutable constitutional rules & governance policies
-(always enforced, never overridden, never bypassed)
+**🔒 CONSTRAINTS**
+Immutable constitutional rules & policies
+(92 rules across 7 engines — always enforced, never bypassed)
 
-**PLAN**
-Agent reasons step-by-step and produces a structured, rule-aware execution plan.
+**🗺️ PLAN**
+Agent reasons step-by-step → creates structured, rule-aware execution plan.
 
-**GENERATE**
-AI creates code, file changes, tool calls, or other actions.
+**✨ GENERATE**
+AI produces code • changes • tool calls • actions.
 
-**VALIDATE**
-Deterministic enforcement engines (AST, semantic, intent, style, etc.) verify full compliance.
+**✅ VALIDATE**
+Deterministic engines (AST, semantic, intent, style, etc.) check full compliance.
 
-**REMEDIATE**
-If validation fails → agent repairs the violation
+**🔄 REMEDIATE**
+Validation fails? → Agent repairs violation
 (loops back to GENERATE/PLAN via Autonomy Ladder)
 
-**EXECUTE**
-Only fully approved, rule-compliant actions are performed
-(file writes, commits, tool invocations, system changes)
+**▶️ EXECUTE**
+Only approved, compliant actions run
+(file writes • commits • tools • system changes)
 
-## Non-negotiable Safety Guarantee
-If **any** constitutional rule is violated at any stage:
-→ Execution halts immediately
-→ Full audit record created (reasoning trace + violation details)
-→ No changes are committed without passing all checks
+## Safety Guarantee
 
-**Result**
-Safe, auditable, jailbreak-resistant AI coding agents — production-ready in 2026.
+**If any constitutional rule is violated at any point:**
 
-github.com/DariuszNewecki/CORE · Star · Fork · Build governed agents today
+- Execution **halts immediately**
+- Full audit log created (trace + violation details)
+- **No changes** are ever committed without passing all checks
 
-## Visual Workflow (Mermaid Flowchart)
+**Result:** Safe • auditable • jailbreak-resistant AI coding agents — production-ready in 2026.
+
+## Visual Flow
 
 ```mermaid
 flowchart TD
-    A["Goal: HUMAN INTENT"] --> B["CONTEXT\nRepo state, knowledge, history"]
-    B --> C["CONSTRAINTS\nImmutable Rules\n(92 rules, 7 engines)"]
-    C --> D["PLAN\nStep-by-step reasoning\nRule-aware plan"]
-    D --> E["GENERATE\nCode, changes, actions"]
-    E --> F["VALIDATE\nDeterministic checks\n(AST, semantic, intent, style)"]
-    F -->|Pass| G["EXECUTE\nCommit changes\nFiles, tools, repo"]
-    F -->|Fail| H["REMEDIATE\nRepair violation\nAutonomy Ladder loop"]
+    A["🟢 GOAL: HUMAN INTENT"] --> B["📂 CONTEXT\nRepo + knowledge + history"]
+    B --> C["🔒 CONSTRAINTS\nImmutable Rules (92/7 engines)"]
+    C --> D["🗺️ PLAN\nStep-by-step reasoning"]
+    D --> E["✨ GENERATE\nCode, actions, changes"]
+    E --> F["✅ VALIDATE\nDeterministic checks"]
+    F -->|Pass| G["▶️ EXECUTE\nApply changes"]
+    F -->|Fail| H["🔄 REMEDIATE\nRepair → loop back"]
     H --> E
-    G --> I["Success\nChanges applied"]
+    G --> I["Success"]
 
     subgraph "SAFETY HALT"
-        J["CONSTITUTIONAL VIOLATION\n→ HARD HALT\n+ AUDIT LOG"]
+        J["🚨 CONSTITUTIONAL VIOLATION\n→ HARD HALT + AUDIT LOG"]
     end
 
     E -.->|Violation| J
