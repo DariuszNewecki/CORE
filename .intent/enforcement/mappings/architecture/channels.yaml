@@ -1,0 +1,84 @@
+# .intent/enforcement/mappings/architecture/channels.yaml
+#
+# Communication channel enforcement mappings for architectural compliance
+
+mappings:
+  # Logic/runtime code must not use direct print output.
+  architecture.channels.logic_logger_only:
+    engine: ast_gate
+    params:
+      check_type: no_print_statements
+    scope:
+      applies_to:
+        - "src/**/*.py"
+      excludes:
+        - "src/cli/**"
+        - "src/body/cli/**"
+        - "src/api/**"
+        - "src/shared/cli_utils/**"
+        - "src/will/cli_logic/**"
+        - "tests/**"
+
+  # Logic/runtime code must not use terminal-oriented rendering primitives.
+  # enforcement: reporting — see channels.json note for migration context.
+  architecture.channels.logic_no_terminal_rendering:
+    engine: ast_gate
+    params:
+      check_type: forbidden_imports_and_calls
+      forbidden_imports:
+        - "rich.console"
+        - "rich.table"
+        - "rich.panel"
+      forbidden_calls:
+        - "Console"
+        - "console.print"
+        - "Table"
+        - "Panel"
+        - "typer.echo"
+    scope:
+      applies_to:
+        - "src/**/*.py"
+      excludes:
+        - "src/cli/**"
+        - "src/body/cli/**"
+        - "src/api/**"
+        - "src/shared/cli_utils/**"
+        - "src/will/cli_logic/**"
+        - "tests/**"
+
+  # API modules must not use terminal-oriented rendering primitives.
+  architecture.channels.api_structured_output_only:
+    engine: ast_gate
+    params:
+      check_type: forbidden_imports_and_calls
+      forbidden_imports:
+        - "rich.console"
+        - "rich.table"
+        - "rich.panel"
+      forbidden_calls:
+        - "Console"
+        - "console.print"
+        - "Table"
+        - "Panel"
+        - "typer.echo"
+        - "print"
+    scope:
+      applies_to:
+        - "src/api/**/*.py"
+      excludes:
+        - "tests/**"
+
+  # Logger must not be abused as a presentation renderer.
+  architecture.channels.logger_not_presentation:
+    engine: ast_gate
+    params:
+      check_type: logger_not_presentation
+    scope:
+      applies_to:
+        - "src/**/*.py"
+      excludes:
+        - "src/cli/**"
+        - "src/body/cli/**"
+        - "src/shared/cli_utils/**"
+        - "src/will/cli_logic/**"
+        - "tests/**"

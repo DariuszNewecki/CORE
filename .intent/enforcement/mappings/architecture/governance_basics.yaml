@@ -8,7 +8,7 @@ mappings:
     engine: glob_gate
     params:
       patterns_prohibited:
-        - .intent/constitution/**
+        - .intent/**
     scope:
       applies_to:
         - src/**/*.py

@@ -15,11 +15,12 @@ Responsibilities (one per run):
   4. Post blackboard report.
 
 Qdrant collection routing:
+  python → core-code     (source implementation — chunked by class/function)
   doc    → core-docs
   test   → core-tests
   prompt → core-prompts
   report → core-reports
-  intent → core-patterns   (reuses existing)
+  intent → core-patterns (reuses existing)
   infra  → core-docs
 
 Depends on RepoCrawlerWorker having registered files in repo_artifacts first.
@@ -66,6 +67,7 @@ class RepoEmbedderWorker(Worker):
         self._glide_off: int = schedule.get(
             "glide_off", max(int(self._max_interval * 0.10), 10)
         )
+        self._batch_size: int = schedule.get("batch_size", 10)
 
     # ID: c4d5e6f7-a8b9-0c1d-3456-789012abcdef
     async def run_loop(self) -> None:
@@ -140,7 +142,7 @@ class RepoEmbedderWorker(Worker):
                     LIMIT :batch_size
                 """
                 ),
-                {"batch_size": _BATCH_SIZE},
+                {"batch_size": self._batch_size},
             )
             artifacts = result.fetchall()
 
@@ -234,7 +236,9 @@ def _chunk_file(file_path: Path, artifact_type: str) -> list[dict[str, Any]]:
     content = file_path.read_text(encoding="utf-8", errors="replace")
     rel_path = str(file_path)
 
-    if artifact_type in ("doc", "report", "infra"):
+    if artifact_type == "python":
+        return _chunk_by_symbol(content, rel_path)
+    elif artifact_type in ("doc", "report", "infra"):
         return _chunk_by_heading(content, rel_path)
     elif artifact_type == "test":
         return _chunk_by_function(content, rel_path)
@@ -244,6 +248,63 @@ def _chunk_file(file_path: Path, artifact_type: str) -> list[dict[str, Any]]:
         return _chunk_by_heading(content, rel_path)
     else:
         return _chunk_by_heading(content, rel_path)
+
+
+def _chunk_by_symbol(content: str, source: str) -> list[dict[str, Any]]:
+    """
+    Chunk Python source by class and function boundaries using AST.
+
+    Each top-level class and function becomes one chunk (with its full body).
+    Nested functions inside classes are included in the class chunk rather
+    than split out — this preserves semantic coherence.
+
+    Falls back to _chunk_by_heading on syntax errors.
+    """
+    import ast as _ast
+
+    chunks = []
+    lines = content.splitlines()
+
+    try:
+        tree = _ast.parse(content)
+    except SyntaxError:
+        return _chunk_by_heading(content, source)
+
+    # Only visit top-level nodes (module body)
+    for node in tree.body:
+        if isinstance(node, (_ast.FunctionDef, _ast.AsyncFunctionDef)):
+            start = node.lineno - 1
+            end = node.end_lineno or (start + 30)
+            text = "\n".join(lines[start:end]).strip()
+            if text:
+                chunks.extend(
+                    _split_large(
+                        text,
+                        source,
+                        node.name,
+                        chunk_type="function",
+                    )
+                )
+
+        elif isinstance(node, _ast.ClassDef):
+            start = node.lineno - 1
+            end = node.end_lineno or (start + 50)
+            text = "\n".join(lines[start:end]).strip()
+            if text:
+                chunks.extend(
+                    _split_large(
+                        text,
+                        source,
+                        node.name,
+                        chunk_type="class",
+                    )
+                )
+
+    if not chunks:
+        # Module has no top-level classes/functions — embed whole file
+        return _chunk_whole(content, source)
+
+    return chunks
 
 
 def _chunk_by_heading(content: str, source: str) -> list[dict[str, Any]]:
@@ -310,7 +371,12 @@ def _chunk_whole(content: str, source: str) -> list[dict[str, Any]]:
     return _split_large(content.strip(), source, "full")
 
 
-def _split_large(text: str, source: str, section: str) -> list[dict[str, Any]]:
+def _split_large(
+    text: str,
+    source: str,
+    section: str,
+    chunk_type: str = "section",
+) -> list[dict[str, Any]]:
     """Split text that exceeds _MAX_CHUNK_CHARS into overlapping sub-chunks."""
     if len(text) <= _MAX_CHUNK_CHARS:
         return [
@@ -319,7 +385,7 @@ def _split_large(text: str, source: str, section: str) -> list[dict[str, Any]]:
                 "metadata": {
                     "source": source,
                     "section": section,
-                    "chunk_type": "section",
+                    "chunk_type": chunk_type,
                 },
             }
         ]
@@ -335,7 +401,7 @@ def _split_large(text: str, source: str, section: str) -> list[dict[str, Any]]:
                     "metadata": {
                         "source": source,
                         "section": f"{section}_part{i}",
-                        "chunk_type": "section",
+                        "chunk_type": chunk_type,
                     },
                 }
             )

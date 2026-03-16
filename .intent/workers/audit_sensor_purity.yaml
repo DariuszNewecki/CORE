@@ -1,0 +1,33 @@
+$schema: "META/worker.schema.json"
+kind: worker
+
+metadata:
+  id: workers.audit_sensor_purity
+  title: Audit Sensor — Purity
+  version: "1.0.0"
+  authority: policy
+  status: active
+
+identity:
+  uuid: "a2b3c4d5-e6f7-8901-abcd-ef1234567891"
+  class: sensing
+
+mandate:
+  responsibility: >
+    Run the constitutional auditor scoped to the purity rule namespace and post
+    each unprocessed violation as a blackboard finding for downstream remediation.
+  phase: audit
+  permitted_tools: []
+  scope:
+    rule_namespace: "purity"
+    domains:
+      - audit
+      - compliance
+  approval_required: false
+  schedule:
+    max_interval: 600
+
+implementation:
+  module: will.workers.audit_violation_sensor
+  class: AuditViolationSensor
+  requires_core_context: true

@@ -1,7 +1,8 @@
 # src/shared/infrastructure/llm/providers/anthropic.py
 
 """
-Provides an AIProvider implementation for Ollama APIs.
+Provides an AIProvider implementation for the Anthropic Messages API.
+Uses httpx directly — no Anthropic SDK dependency required.
 """
 
 from __future__ import annotations
@@ -14,18 +15,26 @@ from .base import AIProvider
 
 
 logger = getLogger(__name__)
-GHOST_VECTOR_START = [0.63719, 0.45393, -4.16063]
+
+_DEFAULT_API_URL = "https://api.anthropic.com"
+_ANTHROPIC_VERSION = "2023-06-01"
 _DEFAULT_SYSTEM = "You are a helpful assistant."
 
 
-# ID: 3f78f7ca-33b1-4ac3-a701-30885722e7b1
-class OllamaProvider(AIProvider):
-    """Provider for Ollama-compatible chat and embedding APIs."""
+# ID: 3a1b2c4d-5e6f-7a8b-9c0d-1e2f3a4b5c6d
+class AnthropicProvider(AIProvider):
+    """Provider for the Anthropic Messages API."""
 
     def _prepare_headers(self) -> dict:
-        return {"Content-Type": "application/json"}
+        headers = {
+            "Content-Type": "application/json",
+            "anthropic-version": _ANTHROPIC_VERSION,
+        }
+        if self.api_key:
+            headers["x-api-key"] = self.api_key
+        return headers
 
-    # ID: b4ddef76-9da6-4b19-ad12-8f92eac28f86
+    # ID: 7b8c9d0e-1f2a-3b4c-5d6e-7f8a9b0c1d2e
     async def chat_completion(
         self,
         prompt: str,
@@ -34,61 +43,38 @@ class OllamaProvider(AIProvider):
         max_tokens: int = 4096,
     ) -> str:
         """
-        Generates a chat completion using the Ollama /api/chat format.
+        Generates a chat completion using the Anthropic Messages API.
 
         Args:
             prompt: User-turn content.
-            user_id: Audit identifier (unused by Ollama but kept for interface parity).
-            system_prompt: Constitutional system prompt sent as the first
-                           system-role message. Falls back to a neutral default
-                           when empty so the model always receives a system turn.
-            max_tokens: Mapped to Ollama's options.num_predict to cap output length.
+            user_id: Audit identifier (not forwarded — Anthropic API has no user field).
+            system_prompt: Constitutional system prompt. Falls back to a neutral
+                           default when empty.
+            max_tokens: Maximum tokens to generate.
         """
-        endpoint = f"{self.api_url}/api/chat"
+        api_url = self.api_url if self.api_url else _DEFAULT_API_URL
+        endpoint = f"{api_url}/v1/messages"
         effective_system = (
             system_prompt.strip() if system_prompt.strip() else _DEFAULT_SYSTEM
         )
         payload = {
             "model": self.model_name,
+            "max_tokens": max_tokens,
+            "system": effective_system,
             "messages": [
-                {"role": "system", "content": effective_system},
                 {"role": "user", "content": prompt},
             ],
-            "stream": False,
-            "options": {
-                "num_predict": max_tokens,
-            },
         }
         async with httpx.AsyncClient(timeout=self.timeout) as client:
             response = await client.post(endpoint, headers=self.headers, json=payload)
             response.raise_for_status()
             data = response.json()
-            return data["message"]["content"]
+            return data["content"][0]["text"]
 
-    # ID: fcc3342d-746d-4bb4-b153-8eef9465c0f0
+    # ID: 4e5f6a7b-8c9d-0e1f-2a3b-4c5d6e7f8a9b
     async def get_embedding(self, text: str) -> list[float]:
-        """
-        Generates an embedding using the Ollama /api/embeddings format.
-
-        Raises:
-            RuntimeError: If the model returns a Ghost Vector, indicating
-                          an Ollama model failure rather than a real embedding.
-        """
-        endpoint = f"{self.api_url}/api/embeddings"
-        payload = {"model": self.model_name, "prompt": text}
-        async with httpx.AsyncClient(timeout=self.timeout) as client:
-            response = await client.post(endpoint, headers=self.headers, json=payload)
-            response.raise_for_status()
-            data = response.json()
-            vec = data["embedding"]
-            if len(vec) > 3:
-                is_ghost = all(
-                    abs(a - b) < 0.001 for a, b in zip(vec[:3], GHOST_VECTOR_START)
-                )
-                if is_ghost:
-                    logger.error(
-                        "Ollama returned Ghost Vector (Model Failure) for input length %s",
-                        len(text),
-                    )
-                    raise RuntimeError("Embedding model failed (Ghost Vector returned)")
-            return vec
+        """Not supported — Anthropic does not offer an embeddings endpoint."""
+        raise NotImplementedError(
+            "AnthropicProvider does not support embeddings. "
+            "Use OllamaProvider or OpenAIProvider for embedding generation."
+        )

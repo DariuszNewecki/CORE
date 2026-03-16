@@ -67,6 +67,11 @@
                         "active",
                         "deprecated"
                     ]
+                },
+                "rationale": {
+                    "type": "string",
+                    "maxLength": 1000,
+                    "description": "Human-readable explanation of status decisions, e.g. why a worker is draft."
                 }
             }
         },
@@ -148,6 +153,12 @@
                                 "type": "string"
                             }
                         },
+                        "rule_namespace": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 128,
+                            "description": "Rule ID namespace prefix this worker is scoped to (e.g. 'purity', 'logic', 'architecture.channels'). The daemon passes this as rule_namespace to the worker constructor. Rule IDs are resolved dynamically from IntentRepository at runtime — all rules whose ID starts with this prefix are in scope."
+                        },
                         "notes": {
                             "type": "string",
                             "maxLength": 1000
@@ -175,6 +186,11 @@
                             "type": "integer",
                             "minimum": 0,
                             "description": "Grace period in seconds added to max_interval before the Orchestrator raises a violation. Defaults to 10% of max_interval if absent. Absorbs timing jitter without masking real silence."
+                        },
+                        "batch_size": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "description": "Number of items to process per run cycle. Workers that process collections in batches read this to control throughput."
                         }
                     }
                 }

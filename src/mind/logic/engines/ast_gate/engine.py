@@ -11,6 +11,7 @@ from mind.logic.engines.ast_gate.checks import (
     CapabilityChecks,
     ConservationChecks,
     GenericASTChecks,
+    LoggingChecks,
     NamingChecks,
     PromptModelChecks,
     PurityChecks,
@@ -49,6 +50,7 @@ class ASTGateEngine(BaseEngine):
             "forbidden_decorators",
             "forbidden_primitives",
             "forbidden_assignments",
+            "forbidden_imports_and_calls",
             "write_defaults_false",
             "prompt_model_required",
             "required_decorator",
@@ -59,6 +61,7 @@ class ASTGateEngine(BaseEngine):
             "modularity",
             "metadata_only_diff",
             "logic_conservation",
+            "logger_not_presentation",
         }
     )
 
@@ -125,6 +128,15 @@ class ASTGateEngine(BaseEngine):
         elif check_type == "no_direct_writes":
             violations.extend(PurityChecks.check_no_direct_writes(tree))
 
+        elif check_type == "forbidden_imports_and_calls":
+            violations.extend(
+                PurityChecks.check_forbidden_imports_and_calls(
+                    tree,
+                    forbidden_imports=params.get("forbidden_imports", []),
+                    forbidden_calls=params.get("forbidden_calls", []),
+                )
+            )
+
         # --- AI Governance ---
         elif check_type == "prompt_model_required":
             violations.extend(
@@ -190,6 +202,10 @@ class ASTGateEngine(BaseEngine):
 
         elif check_type == "test_file_naming":
             violations.extend(NamingChecks.check_test_file_naming(str(file_path)))
+
+        # --- Logging & Channel Discipline ---
+        elif check_type == "logger_not_presentation":
+            violations.extend(LoggingChecks.check_logger_not_presentation(tree))
 
         # --- Generic & Contract Primitives ---
         elif check_type in (

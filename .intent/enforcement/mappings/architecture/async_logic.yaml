@@ -14,7 +14,7 @@ mappings:
   # LAW: Logic modules MUST NOT hijack the event loop
   #
   # EXCLUSIONS RATIONALE (Mind-Body-Will Architecture):
-  # - CLI entry points (Body/API layer) MUST call asyncio.run() to bootstrap async runtime
+  # - CLI entry points MUST call asyncio.run() to bootstrap async runtime
   # - CLI helper utilities provide @async_command decorator (legitimate use)
   # - Internal logic/engines/tools MUST NOT call asyncio.run() (they run INSIDE the runtime)
   async.no_manual_loop_run:
@@ -25,8 +25,8 @@ mappings:
     scope:
       applies_to: ["src/**/*.py"]
       excludes:
-        # CLI Entry Points (Body/API layer) - Bootstrap async runtime
-        - "src/api/cli_user.py"
+        # CLI Entry Points - Bootstrap async runtime
+        - "src/cli/cli_user.py"
         - "src/body/cli/admin_cli.py"
         - "src/body/cli/commands/**" # Matches both commands/*.py and commands/*/*.py
         - "src/body/cli/resources/**" # CLI resource neurons (context/build, context/search, etc.)

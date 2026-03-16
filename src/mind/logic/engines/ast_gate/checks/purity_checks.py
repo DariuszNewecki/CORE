@@ -215,6 +215,49 @@ class PurityChecks:
                     )
         return violations
 
+    @staticmethod
+    # ID: f3a1c2d4-7e8b-4f9a-b6c5-2d3e4f5a6b7c
+    def check_forbidden_imports_and_calls(
+        tree: ast.AST,
+        forbidden_imports: list[str],
+        forbidden_calls: list[str],
+    ) -> list[str]:
+        """
+        Enforces architecture.channels rules by blocking terminal-rendering primitives
+        in non-UI modules.
+
+        Detects:
+        - Forbidden module imports (e.g. 'rich.console', 'rich.table')
+        - Forbidden call expressions (e.g. 'Console()', 'console.print()', 'Table()')
+        """
+        violations: list[str] = []
+        forbidden_import_set = {m.strip() for m in forbidden_imports if m.strip()}
+        forbidden_call_set = {c.strip() for c in forbidden_calls if c.strip()}
+
+        for node in ast.walk(tree):
+            # Check imports: `import rich.console` or `from rich.console import ...`
+            if isinstance(node, ast.Import):
+                for alias in node.names:
+                    if alias.name in forbidden_import_set:
+                        violations.append(
+                            f"Line {node.lineno}: Forbidden import '{alias.name}'."
+                        )
+            elif isinstance(node, ast.ImportFrom) and node.module:
+                if node.module in forbidden_import_set:
+                    violations.append(
+                        f"Line {node.lineno}: Forbidden import-from '{node.module}'."
+                    )
+
+            # Check calls: Console(), console.print(), Table(), etc.
+            elif isinstance(node, ast.Call):
+                name = ASTHelpers.full_attr_name(node.func)
+                if name in forbidden_call_set:
+                    violations.append(
+                        f"Line {ASTHelpers.lineno(node)}: Forbidden call '{name}()'."
+                    )
+
+        return violations
+
 
 def _is_write_mode(node: ast.Call) -> bool:
     """Internal helper to detect 'w' or 'a' in file open() calls."""

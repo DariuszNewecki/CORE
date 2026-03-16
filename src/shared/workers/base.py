@@ -54,16 +54,27 @@ class Worker(ABC):
     - Implement run() — the single unit of constitutional work
     - Never communicate directly with other Workers (blackboard only)
     - Never execute proposals without approval if approval_required is True
+
+    The declaration_name class attribute identifies which .intent/workers/ YAML
+    this worker loads. Subclasses set it as a class attribute. The daemon may
+    override it per-instance by passing declaration_name as a constructor kwarg —
+    this enables one worker class to serve multiple namespace declarations.
     """
 
     # Subclasses set this to the filename stem in .intent/workers/
     # e.g. "doc_worker" → loads .intent/workers/doc_worker.yaml
     declaration_name: str = ""
 
-    def __init__(self) -> None:
+    def __init__(self, *, declaration_name: str = "") -> None:
+        # Instance-level override takes precedence over class attribute.
+        # Allows one class to back multiple .intent/workers/ declarations.
+        if declaration_name:
+            self.declaration_name = declaration_name
+
         if not self.declaration_name:
             raise WorkerConfigurationError(
-                f"{self.__class__.__name__} must set declaration_name class attribute."
+                f"{self.__class__.__name__} must set declaration_name — "
+                "either as a class attribute or via the declaration_name constructor kwarg."
             )
 
         self._declaration = self._load_declaration()

@@ -1,0 +1,50 @@
+{
+    "$schema": "META/rule_document.schema.json",
+    "kind": "rule_document",
+    "metadata": {
+        "id": "rules.architecture.channels",
+        "title": "Architectural Communication Channels",
+        "version": "0.2.0",
+        "authority": "policy",
+        "phase": "runtime",
+        "status": "active"
+    },
+    "rules": [
+        {
+            "id": "architecture.channels.logic_logger_only",
+            "statement": "Non-UI runtime and logic modules MUST use the CORE standard logger for operational output.",
+            "enforcement": "blocking",
+            "authority": "policy",
+            "phase": "runtime"
+        },
+        {
+            "id": "architecture.channels.logic_no_terminal_rendering",
+            "statement": "Non-UI runtime and logic modules MUST NOT perform terminal-oriented rendering.",
+            "enforcement": "reporting",
+            "authority": "policy",
+            "phase": "runtime",
+            "rationale": "Softened to reporting: dev_sync workflow cluster (reporter, phases) violates this rule and must migrate to src/cli/. Restore to blocking once migration is complete."
+        },
+        {
+            "id": "architecture.channels.cli_rendering_allowed",
+            "statement": "CLI surface modules MAY use terminal-oriented rendering for user-facing output.",
+            "enforcement": "reporting",
+            "authority": "policy",
+            "phase": "runtime"
+        },
+        {
+            "id": "architecture.channels.api_structured_output_only",
+            "statement": "API modules MUST communicate through structured response mechanisms and MUST NOT use terminal-oriented rendering.",
+            "enforcement": "blocking",
+            "authority": "policy",
+            "phase": "runtime"
+        },
+        {
+            "id": "architecture.channels.logger_not_presentation",
+            "statement": "The CORE logger MUST be used for operational logging and MUST NOT be used as a presentation renderer.",
+            "enforcement": "reporting",
+            "authority": "policy",
+            "phase": "audit"
+        }
+    ]
+}

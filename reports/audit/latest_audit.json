@@ -1,9 +1,10 @@
 {
-  "audit_id": "cd2dc363-40df-4a31-99da-3feb463b7177",
-  "timestamp": "2026-03-14T08:38:24Z",
-  "passed": true,
-  "findings_count": 294,
+  "audit_id": "ef410062-c53c-478a-9124-6e2482d57b95",
+  "timestamp": "2026-03-16T15:54:55Z",
+  "passed": false,
+  "findings_count": 380,
   "executed_rules": [
+    "ai.cognitive_role.no_hardcoded_string",
     "ai.prompt.artifact.no_provider_leak",
     "ai.prompt.artifact.required_fields",
     "ai.prompt.artifact.role_abstraction",
@@ -19,6 +20,10 @@
     "architecture.boundary.file_handler_access",
     "architecture.boundary.intent_loader_access",
     "architecture.boundary.settings_access",
+    "architecture.channels.api_structured_output_only",
+    "architecture.channels.logger_not_presentation",
+    "architecture.channels.logic_logger_only",
+    "architecture.channels.logic_no_terminal_rendering",
     "architecture.constitution_read_only",
     "architecture.layer_exclusivity",
     "architecture.layers.no_body_to_will",
@@ -65,6 +70,7 @@
     "governance.dangerous_execution_primitives",
     "governance.intent_meta.required",
     "governance.logic_mutation.governed",
+    "governance.mutation_surface.filehandler_required",
     "governance.no_governance_bypass",
     "infrastructure.constitutional_documentation",
     "infrastructure.no_bare_except",
@@ -99,5 +105,5 @@
     "quality.test_integrity",
     "quality.type_safety"
   ],
-  "verdict": "PASS"
+  "verdict": "FAIL"
 }

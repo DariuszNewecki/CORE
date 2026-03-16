@@ -115,7 +115,7 @@ bandit = "^1.9.2"
 
 [tool.poetry.scripts]
 core-admin = "cli.admin_cli:app"
-core = "api.cli_user:app"
+core = "cli.cli_user:app"
 
 [tool.black]
 line-length = 88

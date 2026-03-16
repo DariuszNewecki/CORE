@@ -6,7 +6,12 @@ metadata:
   title: Audit Violation Sensor
   version: "0.1.0"
   authority: policy
-  status: active
+  status: draft
+  rationale: >
+    Requires a target_rule constructor argument that the generic daemon loader
+    cannot provide. Must be instantiated explicitly with call-site configuration.
+    Promote to active once a configuration mechanism (e.g. schedule.params) is
+    added to the worker schema and the daemon loader honours it.
 
 identity:
   uuid: "7199fd0e-a8ed-40e6-b7f1-5718d6b79ae4"

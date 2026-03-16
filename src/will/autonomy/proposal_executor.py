@@ -21,6 +21,7 @@ from body.services.service_registry import service_registry
 from shared.logger import getLogger
 from will.autonomy.proposal import ProposalStatus
 from will.autonomy.proposal_repository import ProposalRepository
+from will.autonomy.proposal_state_manager import ProposalStateManager
 
 
 logger = getLogger(__name__)
@@ -86,7 +87,8 @@ class ProposalExecutor:
 
             # 3. Mark as executing (only if write=True)
             if write:
-                await repo.mark_executing(proposal.proposal_id)
+                state_manager = ProposalStateManager(session)
+                await state_manager.mark_executing(proposal.proposal_id)
                 logger.info("Marked proposal as executing: %s", proposal.proposal_id)
             else:
                 logger.info("DRY-RUN mode - not updating proposal status")
@@ -163,7 +165,7 @@ class ProposalExecutor:
 
             if write:
                 if all_ok:
-                    await repo.mark_completed(
+                    await state_manager.mark_completed(
                         proposal.proposal_id,
                         results=action_results,
                     )
@@ -177,7 +179,7 @@ class ProposalExecutor:
                         aid for aid, res in action_results.items() if not res["ok"]
                     ]
                     reason = f"Actions failed: {', '.join(failed_actions)}"
-                    await repo.mark_failed(proposal.proposal_id, reason=reason)
+                    await state_manager.mark_failed(proposal.proposal_id, reason=reason)
                     logger.error(
                         "Proposal failed: %s - %s", proposal.proposal_id, reason
                     )
@@ -239,7 +241,8 @@ class ProposalExecutor:
                         continue
 
                     if write:
-                        await repo.mark_executing(proposal.proposal_id)
+                        state_manager = ProposalStateManager(session)
+                        await state_manager.mark_executing(proposal.proposal_id)
 
                     action_results: dict[str, Any] = {}
                     all_ok = True
@@ -277,7 +280,7 @@ class ProposalExecutor:
 
                     if write:
                         if all_ok:
-                            await repo.mark_completed(
+                            await state_manager.mark_completed(
                                 proposal.proposal_id,
                                 results=action_results,
                             )
@@ -288,7 +291,9 @@ class ProposalExecutor:
                                 if not res["ok"]
                             ]
                             reason = f"Actions failed: {', '.join(failed_actions)}"
-                            await repo.mark_failed(proposal.proposal_id, reason=reason)
+                            await state_manager.mark_failed(
+                                proposal.proposal_id, reason=reason
+                            )
 
                     results[proposal_id] = {
                         "ok": all_ok,

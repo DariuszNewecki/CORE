@@ -51,6 +51,12 @@ _NON_ASCII_RE = re.compile(r"[^\x09\x0A\x0D\x20-\x7E]")
 
 _CLAIM_LIMIT = 50
 
+# Qdrant collection for Python source semantic search
+_CODE_COLLECTION = "core-code"
+
+# Number of semantic examples to fetch per violating file
+_SEMANTIC_EXAMPLES_LIMIT = 3
+
 
 # ID: bb52f62a-45c9-47a4-9ff8-788b0c6ca4f1
 class ViolationRemediator(Worker):
@@ -166,16 +172,6 @@ class ViolationRemediator(Worker):
     ) -> bool:
         """
         Full ceremony (or dry-run) for a single file.
-
-        Dry-run (write=False):
-          read → checkpoint → context build → LLM fix → Crate → Canary →
-          post dry_run_complete (with proposed fix) → mark findings dry_run_complete
-
-        Write (write=True):
-          read → checkpoint → rollback archive → context build → LLM fix →
-          Crate → Canary → apply → git commit → post complete → mark resolved
-
-        Returns True on success, False on failure.
         """
         repo_root = self._ctx.git_service.repo_path
         abs_path = repo_root / file_path
@@ -189,22 +185,22 @@ class ViolationRemediator(Worker):
             await self._post_failed(file_path, findings, f"Cannot read file: {e}")
             return False
 
-        # 2. Git checkpoint — record SHA before any mutation
+        # 2. Git checkpoint
         try:
             baseline_sha = self._ctx.git_service.get_current_commit()
         except RuntimeError as e:
             logger.warning("ViolationRemediator: git checkpoint failed — %s", e)
             baseline_sha = "unknown"
 
-        # 3. Rollback archive — only in write mode (no point archiving in dry-run)
+        # 3. Rollback archive (write mode only)
         if self._write:
             self._archive_rollback(file_path, original_source, baseline_sha)
 
-        # 4. Build context package for the violating file
-        context_text = await self._build_context(file_path)
-
-        # 5. Build violations summary for the LLM prompt
+        # 4. Build violations summary for the LLM prompt
         violations_summary = self._build_violations_summary(findings)
+
+        # 5. Build context package — call graph context + semantic examples
+        context_text = await self._build_context(file_path, violations_summary)
 
         # 6. LLM fix via PromptModel + RemoteCoder (Grok)
         proposed_fix = await self._invoke_llm(
@@ -215,14 +211,14 @@ class ViolationRemediator(Worker):
             await self._post_failed(file_path, findings, "LLM fix failed")
             return False
 
-        # 7. Pack into Crate via ActionExecutor (constitutional requirement)
+        # 7. Pack into Crate via ActionExecutor
         crate_id = await self._pack_crate(file_path, proposed_fix)
         if crate_id is None:
             await self._mark_findings(findings, "abandoned")
             await self._post_failed(file_path, findings, "Crate creation failed")
             return False
 
-        # 8. Canary validation — runs in both dry-run and write mode
+        # 8. Canary validation
         canary_passed = await self._run_canary(crate_id)
         if not canary_passed:
             await self._mark_findings(findings, "abandoned")
@@ -231,7 +227,7 @@ class ViolationRemediator(Worker):
             )
             return False
 
-        # ---- DRY-RUN BRANCH: stop here, post proposed fix for review ----
+        # ---- DRY-RUN BRANCH ----
         if not self._write:
             await self.post_finding(
                 subject=f"{_DRY_RUN_SUBJECT}::{file_path}",
@@ -256,7 +252,7 @@ class ViolationRemediator(Worker):
             )
             return True
 
-        # ---- WRITE BRANCH: apply + commit ----
+        # ---- WRITE BRANCH ----
 
         # 9. Apply crate to live src/
         try:
@@ -280,7 +276,6 @@ class ViolationRemediator(Worker):
                 f"fix({self._target_rule}): autonomous remediation in {file_path}"
             )
         except RuntimeError as e:
-            # Non-fatal — file is already applied
             logger.warning("ViolationRemediator: git commit failed — %s", e)
 
         # 11. Post completion + resolve findings
@@ -308,14 +303,30 @@ class ViolationRemediator(Worker):
     # Context building
     # -------------------------------------------------------------------------
 
-    async def _build_context(self, file_path: str) -> str:
+    async def _build_context(self, file_path: str, violations_summary: str) -> str:
         """
-        Build a context package for the violating file using the
-        ContextService (same path as CoderAgent).
+        Build a context package for the violating file combining:
+        1. Call graph context (ContextService — structural neighbours)
+        2. Semantic examples (Qdrant core-code — similar correct implementations)
 
         Returns a formatted string suitable for inclusion in the LLM prompt.
-        Falls back to empty string if context service is unavailable.
         """
+        sections: list[str] = []
+
+        # --- Part 1: Call graph context ---
+        call_graph_ctx = await self._build_call_graph_context(file_path)
+        if call_graph_ctx:
+            sections.append(call_graph_ctx)
+
+        # --- Part 2: Semantic examples from Qdrant ---
+        semantic_ctx = await self._build_semantic_context(file_path, violations_summary)
+        if semantic_ctx:
+            sections.append(semantic_ctx)
+
+        return "\n\n".join(sections)
+
+    async def _build_call_graph_context(self, file_path: str) -> str:
+        """Structural context from ContextService (call graph neighbours)."""
         try:
             task_spec = {
                 "task_id": f"remediation::{self._target_rule}::{file_path}",
@@ -337,7 +348,7 @@ class ViolationRemediator(Worker):
             if not items:
                 return ""
 
-            lines = [f"## Context for {file_path}", ""]
+            lines = [f"## Structural Context for {file_path}", ""]
             for item in items:
                 name = item.get("name", "unknown")
                 path = item.get("path", "unknown")
@@ -352,10 +363,154 @@ class ViolationRemediator(Worker):
 
         except Exception as e:
             logger.warning(
-                "ViolationRemediator: context build failed for %s — %s",
+                "ViolationRemediator: call graph context failed for %s — %s",
                 file_path,
                 e,
             )
+            return ""
+
+    async def _build_semantic_context(
+        self, file_path: str, violations_summary: str
+    ) -> str:
+        """
+        Semantic context: find similar correct implementations in core-code.
+
+        Query vector is built from the violation description — "find code
+        that handles this kind of concern" rather than "find code that looks
+        like the violating file." This surfaces relevant examples of correct
+        patterns for the LLM to learn from.
+
+        Excludes the violating file itself from results.
+        Falls back silently if Qdrant or cognitive service is unavailable.
+        """
+        try:
+            cognitive = self._ctx.cognitive_service
+            if cognitive is None:
+                return ""
+
+            qdrant = getattr(self._ctx, "qdrant_service", None)
+            if qdrant is None:
+                return ""
+
+            # Build query from rule + violation context — semantic intent
+            query_text = (
+                f"rule: {self._target_rule}\n" f"violations:\n{violations_summary}"
+            )
+
+            embedding = await cognitive.get_embedding_for_code(query_text)
+            if embedding is None:
+                return ""
+
+            results = await qdrant.search(
+                collection_name=_CODE_COLLECTION,
+                query_vector=(
+                    list(embedding) if hasattr(embedding, "__iter__") else embedding
+                ),
+                limit=_SEMANTIC_EXAMPLES_LIMIT + 1,  # +1 to absorb self-match
+            )
+
+            if not results:
+                return ""
+
+            lines = ["## Semantic Examples — Similar Correct Implementations", ""]
+            added = 0
+
+            for hit in results:
+                payload = hit.payload or {}
+                example_path = payload.get("file_path", "")
+
+                # Skip the violating file itself
+                if example_path == file_path:
+                    continue
+
+                section = payload.get("section", "unknown")
+                score = round(hit.score, 3)
+
+                # Read the actual source chunk text from the Qdrant payload
+                # (the text field is not stored — read from disk via file_path)
+                chunk_text = await self._read_chunk_from_disk(example_path, payload)
+                if not chunk_text:
+                    continue
+
+                lines.append(f"### {example_path}::{section} (similarity={score})")
+                lines.append("```python")
+                lines.append(chunk_text)
+                lines.append("```")
+                lines.append("")
+                added += 1
+
+                if added >= _SEMANTIC_EXAMPLES_LIMIT:
+                    break
+
+            if added == 0:
+                return ""
+
+            logger.info(
+                "ViolationRemediator: added %d semantic examples for %s",
+                added,
+                file_path,
+            )
+            return "\n".join(lines)
+
+        except Exception as e:
+            logger.warning(
+                "ViolationRemediator: semantic context failed for %s — %s",
+                file_path,
+                e,
+            )
+            return ""
+
+    async def _read_chunk_from_disk(
+        self, file_path: str, payload: dict[str, Any]
+    ) -> str:
+        """
+        Read the relevant chunk text from disk using the chunk metadata.
+        Falls back to first 1500 chars of file if chunk boundaries unavailable.
+        """
+        try:
+            repo_root = self._ctx.git_service.repo_path
+            abs_path = repo_root / file_path
+            if not abs_path.exists():
+                return ""
+
+            source = abs_path.read_text(encoding="utf-8", errors="replace")
+
+            # Try to extract just the relevant symbol using section name
+            section = payload.get("section", "")
+            chunk_type = payload.get("chunk_type", "")
+
+            if (
+                chunk_type in ("class", "function")
+                and section
+                and "_part" not in section
+            ):
+                import ast
+
+                try:
+                    tree = ast.parse(source)
+                    lines = source.splitlines()
+                    for node in tree.body:
+                        if (
+                            isinstance(
+                                node,
+                                (
+                                    ast.ClassDef,
+                                    ast.FunctionDef,
+                                    ast.AsyncFunctionDef,
+                                ),
+                            )
+                            and node.name == section
+                        ):
+                            start = node.lineno - 1
+                            end = node.end_lineno or (start + 50)
+                            return "\n".join(lines[start:end])
+                except Exception:
+                    pass
+
+            # Fallback: first 1500 chars
+            return source[:1500]
+
+        except Exception:
             return ""
 
     # -------------------------------------------------------------------------
@@ -372,8 +527,6 @@ class ViolationRemediator(Worker):
         """
         Invoke PromptModel('violation_remediator') with RemoteCoder (Grok)
         to produce a fixed version of the source file.
-
-        Returns the fixed source as a string, or None on failure.
         """
         try:
             from shared.ai.prompt_model import PromptModel
@@ -416,10 +569,7 @@ class ViolationRemediator(Worker):
     # -------------------------------------------------------------------------
 
     async def _pack_crate(self, file_path: str, fixed_source: str) -> str | None:
-        """
-        Pack the fixed file into a CODE_MODIFICATION Crate via ActionExecutor.
-        Constitutional requirement: crate.create MUST go through ActionExecutor.
-        """
+        """Pack the fixed file into a CODE_MODIFICATION Crate via ActionExecutor."""
         try:
             result = await self._ctx.action_executor.execute(
                 "crate.create",
@@ -441,10 +591,7 @@ class ViolationRemediator(Worker):
             return None
 
     async def _run_canary(self, crate_id: str) -> bool:
-        """
-        Run canary validation on the crate. Returns True if passed.
-        Runs in both dry-run and write mode — safety gate is unconditional.
-        """
+        """Run canary validation on the crate. Returns True if passed."""
         try:
             from body.services.crate_processing_service import CrateProcessingService
 
@@ -547,63 +694,64 @@ class ViolationRemediator(Worker):
                 result = await session.execute(
                     text(
                         """
-                        UPDATE core.blackboard_entries
-                        SET status = 'claimed', updated_at = now()
-                        WHERE id IN (
-                            SELECT id FROM core.blackboard_entries
-                            WHERE entry_type = 'finding'
-                              AND subject LIKE :prefix
-                              AND status = 'open'
-                            ORDER BY created_at ASC
-                            LIMIT :limit
-                            FOR UPDATE SKIP LOCKED
-                        )
-                        RETURNING id, subject, payload
+                        SELECT id, subject, payload
+                        FROM core.blackboard_entries
+                        WHERE entry_type = 'finding'
+                          AND status = 'open'
+                          AND subject LIKE :prefix
+                        ORDER BY created_at ASC
+                        LIMIT :limit
+                        FOR UPDATE SKIP LOCKED
                         """
                     ),
                     {"prefix": prefix, "limit": _CLAIM_LIMIT},
                 )
                 rows = result.fetchall()
 
+                if not rows:
+                    return []
+
+                ids = [str(row[0]) for row in rows]
+                await session.execute(
+                    text(
+                        """
+                        UPDATE core.blackboard_entries
+                        SET status = 'claimed'
+                        WHERE id = ANY(:ids::uuid[])
+                        """
+                    ),
+                    {"ids": ids},
+                )
+
         findings = []
         for row in rows:
-            raw_payload = row[2]
-            payload = (
-                raw_payload
-                if isinstance(raw_payload, dict)
-                else json.loads(raw_payload)
-            )
+            payload = row[2]
+            if isinstance(payload, str):
+                payload = json.loads(payload)
             findings.append({"id": str(row[0]), "subject": row[1], "payload": payload})
         return findings
 
     async def _mark_findings(self, findings: list[dict[str, Any]], status: str) -> None:
-        """Batch-update the status of a list of findings."""
+        """Update blackboard entry status for a batch of findings."""
         from sqlalchemy import text
 
         from shared.infrastructure.database.session_manager import get_session
 
         ids = [f["id"] for f in findings]
         async with get_session() as session:
-            await session.execute(
-                text(
-                    """
-                    UPDATE core.blackboard_entries
-                    SET status = :status
-                    WHERE id = ANY(:ids)
-                    """
-                ),
-                {"status": status, "ids": ids},
-            )
-            await session.commit()
+            async with session.begin():
+                await session.execute(
+                    text(
+                        """
+                        UPDATE core.blackboard_entries
+                        SET status = :status
+                        WHERE id = ANY(:ids::uuid[])
+                        """
+                    ),
+                    {"status": status, "ids": ids},
+                )
 
 
-# ---------------------------------------------------------------------------
-# Module-level helpers
-# ---------------------------------------------------------------------------
-
-
-def _sanitize(value: str) -> str:
-    """Strip non-ASCII characters unsafe for PostgreSQL SQL_ASCII encoding."""
-    if not isinstance(value, str):
-        return str(value)
-    return _NON_ASCII_RE.sub("?", value)
+def _sanitize(text: str) -> str:
+    """Remove non-ASCII characters that could corrupt source files."""
+    return _NON_ASCII_RE.sub("", text).strip()

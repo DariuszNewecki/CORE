@@ -10,7 +10,8 @@ Repo Crawler Worker — structural self-model builder.
 Responsibilities (one per run):
   1. Open a crawl_run record.
   2. Walk declared directory scopes (no symlinks).
-  3. For each .py file: extract AST call graph → core.symbol_calls.
+  3. For each .py file: extract AST call graph → core.symbol_calls
+     AND register artifact → core.repo_artifacts (for semantic embedding).
   4. For each non-.py file: register → core.repo_artifacts.
   5. Cross-reference artifacts → symbols → core.artifact_symbol_links.
   6. Close crawl_run with summary stats.
@@ -43,7 +44,7 @@ logger = getLogger(__name__)
 
 _CRAWL_SCOPES: list[tuple[str, str]] = [
     # (glob_pattern, artifact_type)
-    ("src/**/*.py", "python"),  # Python — call graph only
+    ("src/**/*.py", "python"),  # Python — call graph + semantic embedding
     ("docs/**/*.md", "doc"),
     ("docs/**/*.rst", "doc"),
     ("tests/**/*.py", "test"),
@@ -58,6 +59,7 @@ _CRAWL_SCOPES: list[tuple[str, str]] = [
 ]
 
 _QDRANT_COLLECTION_MAP: dict[str, str] = {
+    "python": "core-code",  # Python source — semantic search over implementation
     "doc": "core-docs",
     "test": "core-tests",
     "prompt": "core-prompts",
@@ -88,6 +90,7 @@ class RepoCrawlerWorker(Worker):
         from shared.infrastructure.bootstrap_registry import BootstrapRegistry
 
         super().__init__()
+        self._cognitive_service = cognitive_service
         self._repo_root: Path = BootstrapRegistry.get_repo_path()
         schedule = self._declaration.get("mandate", {}).get("schedule", {})
         self._max_interval: int = schedule.get("max_interval", 86400)
@@ -95,21 +98,18 @@ class RepoCrawlerWorker(Worker):
             "glide_off", max(int(self._max_interval * 0.10), 10)
         )
 
-    # ID: a1b2c3d4-e5f6-7890-1234-abcdef012345
+    # ID: a1b2c3d4-e5f6-7890-abcd-ef1234567892
     async def run_loop(self) -> None:
         """
-        Continuous self-scheduling loop. Runs one crawl per max_interval seconds.
-        Sanctuary calls this once on bootstrap.
-
-        Never raises — exceptions are caught, logged, and posted to Blackboard.
+        Continuous self-scheduling loop. Runs one crawl pass per
+        max_interval seconds.
         """
-        import asyncio
-
         logger.info(
             "RepoCrawlerWorker: starting loop (max_interval=%ds, glide_off=%ds)",
             self._max_interval,
             self._glide_off,
         )
+
         await self._register()
 
         while True:
@@ -127,15 +127,15 @@ class RepoCrawlerWorker(Worker):
                 except Exception:
                     logger.exception("RepoCrawlerWorker: failed to post error report")
 
-            await asyncio.sleep(self._max_interval)
+            await __import__("asyncio").sleep(self._max_interval)
 
-    # ID: b3c4d5e6-f7a8-9b0c-1234-567890abcdef
+    # ID: b2c3d4e5-f6a7-8901-bcde-f12345678903
     async def run(self) -> None:
-        """Execute one full repository crawl."""
-        logger.info("RepoCrawlerWorker: starting crawl of %s", self._repo_root)
+        """Crawl repository — extract call graph and register artifacts."""
+        logger.info("RepoCrawlerWorker: starting crawl pass")
 
         crawl_run_id = uuid.uuid4()
-        stats: dict[str, int] = {
+        stats = {
             "files_scanned": 0,
             "files_changed": 0,
             "symbols_linked": 0,
@@ -144,14 +144,11 @@ class RepoCrawlerWorker(Worker):
         }
 
         async with get_session() as session:
-            # Open crawl run
             await session.execute(
                 text(
                     """
-                    INSERT INTO core.crawl_runs
-                        (id, triggered_by, status, started_at)
-                    VALUES
-                        (:id, 'worker', 'running', now())
+                    INSERT INTO core.crawl_runs (id, triggered_by, status, started_at)
+                    VALUES (cast(:id as uuid), 'worker', 'running', now())
                 """
                 ),
                 {"id": str(crawl_run_id)},
@@ -178,31 +175,35 @@ class RepoCrawlerWorker(Worker):
                         try:
                             content_hash = _sha256(file_path)
 
-                            if artifact_type == "python":
-                                # Python: extract call graph edges
-                                changed = await self._process_python_file(
-                                    session=session,
-                                    file_path=file_path,
-                                    rel_path=rel_path,
-                                    content_hash=content_hash,
-                                    existing_hashes=existing_hashes,
-                                    symbol_index=symbol_index,
-                                    crawl_run_id=crawl_run_id,
-                                    stats=stats,
-                                )
-                            else:
-                                # Non-Python: register artifact + cross-reference
-                                changed = await self._process_artifact_file(
-                                    session=session,
-                                    file_path=file_path,
-                                    rel_path=rel_path,
-                                    content_hash=content_hash,
-                                    artifact_type=artifact_type,
-                                    existing_hashes=existing_hashes,
-                                    symbol_index=symbol_index,
-                                    crawl_run_id=crawl_run_id,
-                                    stats=stats,
-                                )
+                            # Use a savepoint per file so one failure doesn't
+                            # abort the entire transaction and poison all
+                            # subsequent file inserts.
+                            async with session.begin_nested():
+                                if artifact_type == "python":
+                                    # Python: extract call graph AND register for embedding
+                                    changed = await self._process_python_file(
+                                        session=session,
+                                        file_path=file_path,
+                                        rel_path=rel_path,
+                                        content_hash=content_hash,
+                                        existing_hashes=existing_hashes,
+                                        symbol_index=symbol_index,
+                                        crawl_run_id=crawl_run_id,
+                                        stats=stats,
+                                    )
+                                else:
+                                    # Non-Python: register artifact + cross-reference
+                                    changed = await self._process_artifact_file(
+                                        session=session,
+                                        file_path=file_path,
+                                        rel_path=rel_path,
+                                        content_hash=content_hash,
+                                        artifact_type=artifact_type,
+                                        existing_hashes=existing_hashes,
+                                        symbol_index=symbol_index,
+                                        crawl_run_id=crawl_run_id,
+                                        stats=stats,
+                                    )
 
                             if changed:
                                 stats["files_changed"] += 1
@@ -260,7 +261,7 @@ class RepoCrawlerWorker(Worker):
         logger.info("RepoCrawlerWorker: crawl complete — %s", stats)
 
     # -------------------------------------------------------------------------
-    # Python file processing — call graph extraction
+    # Python file processing — call graph extraction + artifact registration
     # -------------------------------------------------------------------------
 
     # ID: c4d5e6f7-a8b9-0c1d-2e3f-4a5b6c7d8e9f
@@ -275,20 +276,65 @@ class RepoCrawlerWorker(Worker):
         crawl_run_id: uuid.UUID,
         stats: dict[str, int],
     ) -> bool:
-        """Extract AST call graph edges from a Python file."""
-        if existing_hashes.get(rel_path) == content_hash:
+        """
+        Extract AST call graph edges AND register in repo_artifacts for
+        semantic embedding by RepoEmbedderWorker.
+
+        Both operations run on every changed file. Call graph extraction
+        is skipped on unchanged files; artifact registration uses
+        ON CONFLICT DO UPDATE so it is always current.
+        """
+        changed = existing_hashes.get(rel_path) != content_hash
+
+        # Always register in repo_artifacts so RepoEmbedder can find it.
+        # ON CONFLICT DO UPDATE resets chunk_count to 0 only when hash changed,
+        # which tells RepoEmbedder to re-embed this file.
+        qdrant_collection = _QDRANT_COLLECTION_MAP["python"]
+        await session.execute(
+            text(
+                """
+                INSERT INTO core.repo_artifacts
+                    (id, file_path, artifact_type, content_hash,
+                     qdrant_collection, chunk_count, last_crawled_at, crawl_run_id)
+                VALUES
+                    (gen_random_uuid(), :file_path, :artifact_type, :content_hash,
+                     :qdrant_collection, 0, now(), cast(:crawl_run_id as uuid))
+                ON CONFLICT (file_path) DO UPDATE SET
+                    content_hash      = EXCLUDED.content_hash,
+                    artifact_type     = EXCLUDED.artifact_type,
+                    qdrant_collection = EXCLUDED.qdrant_collection,
+                    chunk_count       = CASE
+                        WHEN repo_artifacts.content_hash != EXCLUDED.content_hash
+                        THEN 0
+                        ELSE repo_artifacts.chunk_count
+                    END,
+                    last_crawled_at   = EXCLUDED.last_crawled_at,
+                    crawl_run_id      = EXCLUDED.crawl_run_id
+            """
+            ),
+            {
+                "file_path": rel_path,
+                "artifact_type": "python",
+                "content_hash": content_hash,
+                "qdrant_collection": qdrant_collection,
+                "crawl_run_id": str(crawl_run_id),
+            },
+        )
+
+        if not changed:
             return False
 
+        # Call graph extraction — only on changed files
         source = file_path.read_text(encoding="utf-8", errors="replace")
         try:
             tree = ast.parse(source)
         except SyntaxError:
             logger.warning("RepoCrawlerWorker: syntax error in %s, skipping", rel_path)
-            return False
+            return True  # Still registered in artifacts, just no call graph
 
         layer = _detect_layer(rel_path)
         extractor = _CallGraphExtractor(
-            rel_path=rel_path,  # used directly as symbol_path prefix
+            rel_path=rel_path,
             layer=layer,
             symbol_index=symbol_index,
             crawl_run_id=crawl_run_id,
@@ -383,7 +429,6 @@ class RepoCrawlerWorker(Worker):
         )
 
         if changed:
-            # Get the artifact id we just upserted
             result = await session.execute(
                 text("SELECT id FROM core.repo_artifacts WHERE file_path = :fp"),
                 {"fp": rel_path},
@@ -558,40 +603,25 @@ class _CallGraphExtractor(ast.NodeVisitor):
             )
 
     def _resolve_callee_id(self, callee_raw: str) -> str | None:
-        """
-        Multi-strategy callee resolution cascade.
-
-        Tries each strategy in order and returns the first match.
-        """
-        # Strategy 1: direct symbol_path key (almost never hits in practice,
-        # kept for completeness and future import-alias resolution)
+        """Multi-strategy callee resolution cascade."""
         hit = self._symbol_index.get(callee_raw)
         if hit:
             return hit
 
-        # Strategy 2: qualname match — the most common internal hit.
-        # e.g. callee_raw="RepoCrawlerWorker.run" → qualname_index lookup
         hit = self._qualname_index.get(callee_raw)
         if hit:
             return hit
 
-        # Strategy 3: self./cls. stripping + current-class qualification.
-        # e.g. "self.run" inside class RepoCrawlerWorker → "RepoCrawlerWorker.run"
         if self._current_class and callee_raw.startswith(("self.", "cls.")):
             stripped = callee_raw.split(".", 1)[1]
             qualified = f"{self._current_class}.{stripped}"
             hit = self._qualname_index.get(qualified)
             if hit:
                 return hit
-            # Also try the short name alone (handles inherited methods)
             hit = self._qualname_index.get(stripped)
             if hit:
                 return hit
 
-        # Strategy 4: module dotted path → file path conversion.
-        # e.g. "will.workers.repo_crawler.RepoCrawlerWorker"
-        #   → "src/will/workers/repo_crawler.py::RepoCrawlerWorker"
-        # Try progressively shorter module prefixes (rightmost segment = qualname)
         if "." in callee_raw:
             parts = callee_raw.split(".")
             for split in range(len(parts) - 1, 0, -1):
@@ -601,14 +631,11 @@ class _CallGraphExtractor(ast.NodeVisitor):
                 hit = self._symbol_index.get(candidate)
                 if hit:
                     return hit
-                # Also try without 'src/' prefix (handles relative imports)
                 candidate_no_src = "/".join(parts[:split]) + ".py::" + qualname
                 hit = self._symbol_index.get(candidate_no_src)
                 if hit:
                     return hit
 
-        # Strategy 5: short name unique match — only when exactly one symbol
-        # in the entire codebase has this short name (avoids false positives).
         short = callee_raw.split(".")[-1]
         hit = self._shortname_index.get(short)
         if hit:
@@ -625,7 +652,7 @@ class _CallGraphExtractor(ast.NodeVisitor):
     ) -> None:
         resolved_caller_id = caller_id or self._current_caller_id
         if resolved_caller_id is None:
-            return  # Can't record edge without a known caller
+            return
 
         callee_id = self._resolve_callee_id(callee_raw)
         caller_layer = self._layer
@@ -718,9 +745,8 @@ def _find_symbol_references(
     seen: set[str] = set()
 
     for symbol_path, symbol_id in symbol_index.items():
-        # Match on the qualname part (after the colon)
         qualname = symbol_path.split(":")[-1] if ":" in symbol_path else symbol_path
-        if len(qualname) < 4:  # skip trivially short names
+        if len(qualname) < 4:
             continue
         if qualname in content and symbol_id not in seen:
             seen.add(symbol_id)

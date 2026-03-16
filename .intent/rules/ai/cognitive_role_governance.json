@@ -1,0 +1,22 @@
+{
+    "$schema": "META/rule_document.schema.json",
+    "kind": "rule_document",
+    "metadata": {
+        "id": "rules.ai.cognitive_role_governance",
+        "title": "Cognitive Role Invocation Governance",
+        "version": "1.0.0",
+        "authority": "policy",
+        "phase": "audit",
+        "status": "active"
+    },
+    "rules": [
+        {
+            "id": "ai.cognitive_role.no_hardcoded_string",
+            "statement": "All calls to aget_client_for_role() MUST pass the role from model.manifest.role. Passing a string literal (e.g. aget_client_for_role(\"Coder\")) is PROHIBITED.",
+            "enforcement": "blocking",
+            "authority": "policy",
+            "phase": "audit",
+            "rationale": "A hardcoded role string couples the call site to a specific cognitive identity that has no constitutional standing at that location. The PromptModel manifest is the only legitimate authority for role declaration — it is the artifact that has been reviewed, declared, and governed. Bypassing it with a string literal is the cognitive equivalent of an inline prompt: ungoverned, untestable, and invisible to the audit system. CognitiveService maps roles to providers; call sites must not make that decision themselves."
+        }
+    ]
+}

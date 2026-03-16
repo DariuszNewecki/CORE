@@ -4,7 +4,7 @@ kind: worker
 metadata:
   id: workers.repo_embedder
   title: Repo Embedder
-  version: "0.1.0"
+  version: "0.2.0"
   authority: policy
   status: active
 
@@ -17,8 +17,8 @@ mandate:
     Consume repo_artifacts records where content_hash has changed or
     chunk_count is zero, chunk each artifact by its type, embed the chunks,
     and upsert them into the appropriate Qdrant collection:
-    docs→core-docs, tests→core-tests, prompts→core-prompts,
-    reports→core-reports, src Python bodies→core-symbols.
+    python→core-code, docs→core-docs, tests→core-tests, prompts→core-prompts,
+    reports→core-reports, intent→core-patterns.
     Updates repo_artifacts.chunk_count on completion.
     Depends on RepoCrawlerWorker having populated repo_artifacts first.
   phase: audit
@@ -38,6 +38,7 @@ mandate:
   approval_required: false
   schedule:
     max_interval: 43200
+    batch_size: 50
 
 implementation:
   module: will.workers.repo_embedder

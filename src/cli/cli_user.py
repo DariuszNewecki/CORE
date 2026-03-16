@@ -1,4 +1,4 @@
-# src/api/cli_user.py
+# src/cli/cli_user.py
 
 """
 End-user conversational CLI interface for CORE.

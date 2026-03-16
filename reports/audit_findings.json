@@ -1,5 +1,689 @@
 [
   {
+    "check_id": "ai.cognitive_role.no_hardcoded_string",
+    "severity": "error",
+    "message": "Forbidden Content [Line 249]: Matched restricted regex 'aget_client_for_role\\(\"[A-Za-z]'",
+    "file_path": "src/body/workers/call_site_rewriter.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "ai.cognitive_role.no_hardcoded_string",
+    "severity": "error",
+    "message": "Forbidden Content [Line 46]: Matched restricted regex 'aget_client_for_role\\(\"[A-Za-z]'",
+    "file_path": "src/cli/logic/agent.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "ai.cognitive_role.no_hardcoded_string",
+    "severity": "error",
+    "message": "Forbidden Content [Line 148]: Matched restricted regex 'aget_client_for_role\\(\"[A-Za-z]'",
+    "file_path": "src/cli/logic/body_contracts_fixer.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "ai.cognitive_role.no_hardcoded_string",
+    "severity": "error",
+    "message": "Forbidden Content [Line 284]: Matched restricted regex 'aget_client_for_role\\(\"[A-Za-z]'",
+    "file_path": "src/mind/governance/assumption_extractor.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "ai.cognitive_role.no_hardcoded_string",
+    "severity": "error",
+    "message": "Forbidden Content [Line 161]: Matched restricted regex 'aget_client_for_role\\(\"[A-Za-z]'",
+    "file_path": "src/will/agents/code_generation/code_generator.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "ai.cognitive_role.no_hardcoded_string",
+    "severity": "error",
+    "message": "Forbidden Content [Line 89]: Matched restricted regex 'aget_client_for_role\\(\"[A-Za-z]'",
+    "file_path": "src/will/agents/code_generation/correction_engine.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "ai.cognitive_role.no_hardcoded_string",
+    "severity": "error",
+    "message": "Forbidden Content [Line 47]: Matched restricted regex 'aget_client_for_role\\(\"[A-Za-z]'",
+    "file_path": "src/will/agents/context_auditor.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "ai.cognitive_role.no_hardcoded_string",
+    "severity": "error",
+    "message": "Forbidden Content [Line 146]: Matched restricted regex 'aget_client_for_role\\(\"[A-Za-z]'",
+    "file_path": "src/will/agents/conversational/agent.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "ai.cognitive_role.no_hardcoded_string",
+    "severity": "error",
+    "message": "Forbidden Content [Line 52]: Matched restricted regex 'aget_client_for_role\\(\"[A-Za-z]'",
+    "file_path": "src/will/agents/intent_translator.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "ai.cognitive_role.no_hardcoded_string",
+    "severity": "error",
+    "message": "Forbidden Content [Line 76]: Matched restricted regex 'aget_client_for_role\\(\"[A-Za-z]'",
+    "file_path": "src/will/agents/micro_planner.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "ai.cognitive_role.no_hardcoded_string",
+    "severity": "error",
+    "message": "Forbidden Content [Line 134]: Matched restricted regex 'aget_client_for_role\\(\"[A-Za-z]'",
+    "file_path": "src/will/agents/planner_agent.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "ai.cognitive_role.no_hardcoded_string",
+    "severity": "error",
+    "message": "Forbidden Content [Line 33]: Matched restricted regex 'aget_client_for_role\\(\"[A-Za-z]'",
+    "file_path": "src/will/agents/researcher_agent.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "ai.cognitive_role.no_hardcoded_string",
+    "severity": "error",
+    "message": "Forbidden Content [Line 35]: Matched restricted regex 'aget_client_for_role\\(\"[A-Za-z]'",
+    "file_path": "src/will/agents/self_correction_engine.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "ai.cognitive_role.no_hardcoded_string",
+    "severity": "error",
+    "message": "Forbidden Content [Line 145]: Matched restricted regex 'aget_client_for_role\\(\"[A-Za-z]'",
+    "file_path": "src/will/agents/strategic_auditor/agent.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "ai.cognitive_role.no_hardcoded_string",
+    "severity": "error",
+    "message": "Forbidden Content [Line 41]: Matched restricted regex 'aget_client_for_role\\(\"[A-Za-z]'",
+    "file_path": "src/will/maintenance/metadata_scribe_service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "ai.cognitive_role.no_hardcoded_string",
+    "severity": "error",
+    "message": "Forbidden Content [Line 68]: Matched restricted regex 'aget_client_for_role\\(\"[A-Za-z]'",
+    "file_path": "src/will/orchestration/self_correction_engine.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "ai.cognitive_role.no_hardcoded_string",
+    "severity": "error",
+    "message": "Forbidden Content [Line 47]: Matched restricted regex 'aget_client_for_role\\(\"[A-Za-z]'",
+    "file_path": "src/will/self_healing/alignment/specialists.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "ai.cognitive_role.no_hardcoded_string",
+    "severity": "error",
+    "message": "Forbidden Content [Line 84]: Matched restricted regex 'aget_client_for_role\\(\"[A-Za-z]'",
+    "file_path": "src/will/self_healing/alignment/specialists.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "ai.cognitive_role.no_hardcoded_string",
+    "severity": "error",
+    "message": "Forbidden Content [Line 120]: Matched restricted regex 'aget_client_for_role\\(\"[A-Za-z]'",
+    "file_path": "src/will/self_healing/alignment/specialists.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "ai.cognitive_role.no_hardcoded_string",
+    "severity": "error",
+    "message": "Forbidden Content [Line 73]: Matched restricted regex 'aget_client_for_role\\(\"[A-Za-z]'",
+    "file_path": "src/will/self_healing/capability_reconciliation_service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "ai.cognitive_role.no_hardcoded_string",
+    "severity": "error",
+    "message": "Forbidden Content [Line 122]: Matched restricted regex 'aget_client_for_role\\(\"[A-Za-z]'",
+    "file_path": "src/will/self_healing/complexity_service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "ai.cognitive_role.no_hardcoded_string",
+    "severity": "error",
+    "message": "Forbidden Content [Line 136]: Matched restricted regex 'aget_client_for_role\\(\"[A-Za-z]'",
+    "file_path": "src/will/self_healing/context_aware_test_generator.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "ai.cognitive_role.no_hardcoded_string",
+    "severity": "error",
+    "message": "Forbidden Content [Line 107]: Matched restricted regex 'aget_client_for_role\\(\"[A-Za-z]'",
+    "file_path": "src/will/self_healing/docstring_service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "ai.cognitive_role.no_hardcoded_string",
+    "severity": "error",
+    "message": "Forbidden Content [Line 64]: Matched restricted regex 'aget_client_for_role\\(\"[A-Za-z]'",
+    "file_path": "src/will/self_healing/linelength_service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "ai.cognitive_role.no_hardcoded_string",
+    "severity": "error",
+    "message": "Forbidden Content [Line 138]: Matched restricted regex 'aget_client_for_role\\(\"[A-Za-z]'",
+    "file_path": "src/will/self_healing/simple_test_generator.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "ai.cognitive_role.no_hardcoded_string",
+    "severity": "error",
+    "message": "Forbidden Content [Line 87]: Matched restricted regex 'aget_client_for_role\\(\"[A-Za-z]'",
+    "file_path": "src/will/self_healing/test_generation/generation_workflow.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "ai.cognitive_role.no_hardcoded_string",
+    "severity": "error",
+    "message": "Forbidden Content [Line 75]: Matched restricted regex 'aget_client_for_role\\(\"[A-Za-z]'",
+    "file_path": "src/will/self_healing/test_generation/llm_correction.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "ai.cognitive_role.no_hardcoded_string",
+    "severity": "error",
+    "message": "Forbidden Content [Line 48]: Matched restricted regex 'aget_client_for_role\\(\"[A-Za-z]'",
+    "file_path": "src/will/self_healing/test_generation/single_test_fixer.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "ai.cognitive_role.no_hardcoded_string",
+    "severity": "error",
+    "message": "Forbidden Content [Line 50]: Matched restricted regex 'aget_client_for_role\\(\"[A-Za-z]'",
+    "file_path": "src/will/self_healing/vulture_healer.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "ai.cognitive_role.no_hardcoded_string",
+    "severity": "error",
+    "message": "Forbidden Content [Line 134]: Matched restricted regex 'aget_client_for_role\\(\"[A-Za-z]'",
+    "file_path": "src/will/test_generation/helpers/test_executor.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "ai.cognitive_role.no_hardcoded_string",
+    "severity": "error",
+    "message": "Forbidden Content [Line 96]: Matched restricted regex 'aget_client_for_role\\(\"[A-Za-z]'",
+    "file_path": "src/will/workers/doc_worker.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "logic.logging.standard_only",
+    "severity": "warning",
+    "message": "Line 283: Replace print() with logger.",
+    "file_path": "src/cli/resources/runtime/health.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "logic.logging.standard_only",
+    "severity": "warning",
+    "message": "Line 285: Replace print() with logger.",
+    "file_path": "src/cli/resources/runtime/health.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "logic.logging.standard_only",
+    "severity": "warning",
+    "message": "Line 297: Replace print() with logger.",
+    "file_path": "src/cli/resources/runtime/health.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "logic.logging.standard_only",
+    "severity": "warning",
+    "message": "Line 301: Replace print() with logger.",
+    "file_path": "src/cli/resources/runtime/health.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "logic.logging.standard_only",
+    "severity": "warning",
+    "message": "Line 307: Replace print() with logger.",
+    "file_path": "src/cli/resources/runtime/health.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "logic.logging.standard_only",
+    "severity": "warning",
+    "message": "Line 314: Replace print() with logger.",
+    "file_path": "src/cli/resources/runtime/health.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "logic.logging.standard_only",
+    "severity": "warning",
+    "message": "Line 287: Replace print() with logger.",
+    "file_path": "src/cli/resources/runtime/health.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "logic.logging.standard_only",
+    "severity": "warning",
+    "message": "Line 290: Replace print() with logger.",
+    "file_path": "src/cli/resources/runtime/health.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "logic.logging.standard_only",
+    "severity": "warning",
+    "message": "Line 291: Replace print() with logger.",
+    "file_path": "src/cli/resources/runtime/health.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "logic.logging.standard_only",
+    "severity": "warning",
+    "message": "Line 292: Replace print() with logger.",
+    "file_path": "src/cli/resources/runtime/health.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "logic.logging.standard_only",
+    "severity": "warning",
+    "message": "Line 293: Replace print() with logger.",
+    "file_path": "src/cli/resources/runtime/health.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "logic.logging.standard_only",
+    "severity": "warning",
+    "message": "Line 294: Replace print() with logger.",
+    "file_path": "src/cli/resources/runtime/health.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "logic.logging.standard_only",
+    "severity": "warning",
+    "message": "Line 295: Replace print() with logger.",
+    "file_path": "src/cli/resources/runtime/health.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "logic.logging.standard_only",
+    "severity": "warning",
+    "message": "Line 299: Replace print() with logger.",
+    "file_path": "src/cli/resources/runtime/health.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "logic.logging.standard_only",
+    "severity": "warning",
+    "message": "Line 303: Replace print() with logger.",
+    "file_path": "src/cli/resources/runtime/health.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "logic.logging.standard_only",
+    "severity": "warning",
+    "message": "Line 309: Replace print() with logger.",
+    "file_path": "src/cli/resources/runtime/health.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "logic.logging.standard_only",
+    "severity": "warning",
+    "message": "Line 316: Replace print() with logger.",
+    "file_path": "src/cli/resources/runtime/health.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.channels.logic_no_terminal_rendering",
+    "severity": "warning",
+    "message": "Line 13: Forbidden import-from 'rich.console'.",
+    "file_path": "src/will/workflows/dev_sync_phases.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.channels.logic_no_terminal_rendering",
+    "severity": "warning",
+    "message": "Line 17: Forbidden import-from 'rich.console'.",
+    "file_path": "src/will/workflows/dev_sync_reporter.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.channels.logic_no_terminal_rendering",
+    "severity": "warning",
+    "message": "Line 18: Forbidden import-from 'rich.table'.",
+    "file_path": "src/will/workflows/dev_sync_reporter.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.channels.logic_no_terminal_rendering",
+    "severity": "warning",
+    "message": "Line 26: Forbidden call 'Console()'.",
+    "file_path": "src/will/workflows/dev_sync_reporter.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.channels.logic_no_terminal_rendering",
+    "severity": "warning",
+    "message": "Line 157: Forbidden call 'Table()'.",
+    "file_path": "src/will/workflows/dev_sync_reporter.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.channels.logic_no_terminal_rendering",
+    "severity": "warning",
+    "message": "Line 9: Forbidden import-from 'rich.console'.",
+    "file_path": "src/will/workflows/phases/code_analysis_phase.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.channels.logic_no_terminal_rendering",
+    "severity": "warning",
+    "message": "Line 10: Forbidden import-from 'rich.console'.",
+    "file_path": "src/will/workflows/phases/code_fixers_phase.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.channels.logic_no_terminal_rendering",
+    "severity": "warning",
+    "message": "Line 10: Forbidden import-from 'rich.console'.",
+    "file_path": "src/will/workflows/phases/database_sync_phase.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.channels.logic_no_terminal_rendering",
+    "severity": "warning",
+    "message": "Line 9: Forbidden import-from 'rich.console'.",
+    "file_path": "src/will/workflows/phases/quality_checks_phase.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.channels.logic_no_terminal_rendering",
+    "severity": "warning",
+    "message": "Line 11: Forbidden import-from 'rich.console'.",
+    "file_path": "src/will/workflows/phases/vectorization_phase.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.channels.logger_not_presentation",
+    "severity": "warning",
+    "message": "Line 249: logger used as renderer \u2014 Rich markup detected in log string; use plain text for logger.",
+    "file_path": "src/body/introspection/knowledge_vectorizer.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.channels.logger_not_presentation",
+    "severity": "warning",
+    "message": "Line 58: logger used as renderer \u2014 Rich markup detected in log string; use plain text for logger.",
+    "file_path": "src/body/introspection/vectorization_service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.channels.logger_not_presentation",
+    "severity": "warning",
+    "message": "Line 148: logger used as renderer \u2014 Rich markup detected in log string; use plain text for logger.",
+    "file_path": "src/mind/logic/auditor.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.channels.logger_not_presentation",
+    "severity": "warning",
+    "message": "Line 130: logger used as renderer \u2014 'table_name' appears to be a presentation object; use console.print().",
+    "file_path": "src/mind/logic/engines/knowledge_gate.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.channels.logger_not_presentation",
+    "severity": "warning",
+    "message": "Line 124: logger used as renderer \u2014 Rich markup detected in log string; use plain text for logger.",
+    "file_path": "src/will/orchestration/decision_tracer.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.channels.logger_not_presentation",
+    "severity": "warning",
+    "message": "Line 163: logger used as renderer \u2014 Rich markup detected in log string; use plain text for logger.",
+    "file_path": "src/will/self_healing/docstring_service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.channels.logger_not_presentation",
+    "severity": "warning",
+    "message": "Line 88: logger used as renderer \u2014 Rich markup detected in log string; use plain text for logger.",
+    "file_path": "src/will/workflows/dev_sync_reporter.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.channels.logger_not_presentation",
+    "severity": "warning",
+    "message": "Line 89: logger used as renderer \u2014 Rich markup detected in log string; use plain text for logger.",
+    "file_path": "src/will/workflows/dev_sync_reporter.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.channels.logger_not_presentation",
+    "severity": "warning",
+    "message": "Line 90: logger used as renderer \u2014 Rich markup detected in log string; use plain text for logger.",
+    "file_path": "src/will/workflows/dev_sync_reporter.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.channels.logger_not_presentation",
+    "severity": "warning",
+    "message": "Line 246: logger used as renderer \u2014 Rich markup detected in log string; use plain text for logger.",
+    "file_path": "src/will/workflows/dev_sync_reporter.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.channels.logger_not_presentation",
+    "severity": "warning",
+    "message": "Line 143: logger used as renderer \u2014 Rich markup detected in log string; use plain text for logger.",
+    "file_path": "src/will/workflows/dev_sync_reporter.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.channels.logger_not_presentation",
+    "severity": "warning",
+    "message": "Line 148: logger used as renderer \u2014 Rich markup detected in log string; use plain text for logger.",
+    "file_path": "src/will/workflows/dev_sync_reporter.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.channels.logger_not_presentation",
+    "severity": "warning",
+    "message": "Line 233: logger used as renderer \u2014 Rich markup detected in log string; use plain text for logger.",
+    "file_path": "src/will/workflows/dev_sync_reporter.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.channels.logger_not_presentation",
+    "severity": "warning",
+    "message": "Line 250: logger used as renderer \u2014 Rich markup detected in log string; use plain text for logger.",
+    "file_path": "src/will/workflows/dev_sync_reporter.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.channels.logger_not_presentation",
+    "severity": "warning",
+    "message": "Line 255: logger used as renderer \u2014 Rich markup detected in log string; use plain text for logger.",
+    "file_path": "src/will/workflows/dev_sync_reporter.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.channels.logger_not_presentation",
+    "severity": "warning",
+    "message": "Line 260: logger used as renderer \u2014 Rich markup detected in log string; use plain text for logger.",
+    "file_path": "src/will/workflows/dev_sync_reporter.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.channels.logger_not_presentation",
+    "severity": "warning",
+    "message": "Line 262: logger used as renderer \u2014 Rich markup detected in log string; use plain text for logger.",
+    "file_path": "src/will/workflows/dev_sync_reporter.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.channels.logger_not_presentation",
+    "severity": "warning",
+    "message": "Line 174: logger used as renderer \u2014 'table' appears to be a presentation object; use console.print().",
+    "file_path": "src/will/workflows/dev_sync_reporter.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
     "check_id": "architecture.max_file_size",
     "severity": "warning",
     "message": "Module has 416 lines, exceeds limit of 400",
@@ -38,7 +722,7 @@
   {
     "check_id": "architecture.max_file_size",
     "severity": "warning",
-    "message": "Module has 427 lines, exceeds limit of 400",
+    "message": "Module has 436 lines, exceeds limit of 400",
     "file_path": "src/body/workers/call_site_rewriter.py",
     "line_number": null,
     "context": {},
@@ -47,7 +731,7 @@
   {
     "check_id": "architecture.max_file_size",
     "severity": "warning",
-    "message": "Module has 599 lines, exceeds limit of 400",
+    "message": "Module has 757 lines, exceeds limit of 400",
     "file_path": "src/body/workers/violation_remediator.py",
     "line_number": null,
     "context": {},
@@ -130,6 +814,24 @@
     "severity": "warning",
     "message": "Module has 450 lines, exceeds limit of 400",
     "file_path": "src/will/workers/intent_inspector.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.max_file_size",
+    "severity": "warning",
+    "message": "Module has 762 lines, exceeds limit of 400",
+    "file_path": "src/will/workers/repo_crawler.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.max_file_size",
+    "severity": "warning",
+    "message": "Module has 465 lines, exceeds limit of 400",
+    "file_path": "src/will/workers/repo_embedder.py",
     "line_number": null,
     "context": {},
     "details": {}
@@ -425,7 +1127,7 @@
   {
     "check_id": "modularity.single_responsibility",
     "severity": "warning",
-    "message": "Modularity Debt: 58.9/100 (Limit: 60.0)",
+    "message": "Modularity Debt: 59.3/100 (Limit: 60.0)",
     "file_path": "src/body/workers/violation_remediator.py",
     "line_number": null,
     "context": {},
@@ -515,8 +1217,17 @@
   {
     "check_id": "modularity.single_responsibility",
     "severity": "warning",
-    "message": "Modularity Debt: 58.2/100 (Limit: 60.0)",
+    "message": "Modularity Debt: 58.7/100 (Limit: 60.0)",
     "file_path": "src/shared/workers/base.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "modularity.single_responsibility",
+    "severity": "warning",
+    "message": "Modularity Debt: 52.2/100 (Limit: 60.0)",
+    "file_path": "src/will/autonomy/proposal_service.py",
     "line_number": null,
     "context": {},
     "details": {}
@@ -553,6 +1264,24 @@
     "severity": "warning",
     "message": "Modularity Debt: 53.0/100 (Limit: 60.0)",
     "file_path": "src/will/workers/prompt_extractor_worker.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "modularity.single_responsibility",
+    "severity": "warning",
+    "message": "Modularity Debt: 61.9/100 (Limit: 60.0)",
+    "file_path": "src/will/workers/repo_crawler.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "modularity.single_responsibility",
+    "severity": "warning",
+    "message": "Modularity Debt: 58.9/100 (Limit: 60.0)",
+    "file_path": "src/will/workers/repo_embedder.py",
     "line_number": null,
     "context": {},
     "details": {}
@@ -614,7 +1343,7 @@
   {
     "check_id": "modularity.semantic_cohesion",
     "severity": "warning",
-    "message": "Modularity Debt: 58.9/100 (Limit: 60.0)",
+    "message": "Modularity Debt: 59.3/100 (Limit: 60.0)",
     "file_path": "src/body/workers/violation_remediator.py",
     "line_number": null,
     "context": {},
@@ -704,8 +1433,17 @@
   {
     "check_id": "modularity.semantic_cohesion",
     "severity": "warning",
-    "message": "Modularity Debt: 58.2/100 (Limit: 60.0)",
+    "message": "Modularity Debt: 58.7/100 (Limit: 60.0)",
     "file_path": "src/shared/workers/base.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "modularity.semantic_cohesion",
+    "severity": "warning",
+    "message": "Modularity Debt: 52.2/100 (Limit: 60.0)",
+    "file_path": "src/will/autonomy/proposal_service.py",
     "line_number": null,
     "context": {},
     "details": {}
@@ -742,6 +1480,24 @@
     "severity": "warning",
     "message": "Modularity Debt: 53.0/100 (Limit: 60.0)",
     "file_path": "src/will/workers/prompt_extractor_worker.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "modularity.semantic_cohesion",
+    "severity": "warning",
+    "message": "Modularity Debt: 61.9/100 (Limit: 60.0)",
+    "file_path": "src/will/workers/repo_crawler.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "modularity.semantic_cohesion",
+    "severity": "warning",
+    "message": "Modularity Debt: 58.9/100 (Limit: 60.0)",
+    "file_path": "src/will/workers/repo_embedder.py",
     "line_number": null,
     "context": {},
     "details": {}
@@ -803,7 +1559,7 @@
   {
     "check_id": "modularity.import_coupling",
     "severity": "warning",
-    "message": "Modularity Debt: 58.9/100 (Limit: 60.0)",
+    "message": "Modularity Debt: 59.3/100 (Limit: 60.0)",
     "file_path": "src/body/workers/violation_remediator.py",
     "line_number": null,
     "context": {},
@@ -893,8 +1649,17 @@
   {
     "check_id": "modularity.import_coupling",
     "severity": "warning",
-    "message": "Modularity Debt: 58.2/100 (Limit: 60.0)",
+    "message": "Modularity Debt: 58.7/100 (Limit: 60.0)",
     "file_path": "src/shared/workers/base.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "modularity.import_coupling",
+    "severity": "warning",
+    "message": "Modularity Debt: 52.2/100 (Limit: 60.0)",
+    "file_path": "src/will/autonomy/proposal_service.py",
     "line_number": null,
     "context": {},
     "details": {}
@@ -931,6 +1696,24 @@
     "severity": "warning",
     "message": "Modularity Debt: 53.0/100 (Limit: 60.0)",
     "file_path": "src/will/workers/prompt_extractor_worker.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "modularity.import_coupling",
+    "severity": "warning",
+    "message": "Modularity Debt: 61.9/100 (Limit: 60.0)",
+    "file_path": "src/will/workers/repo_crawler.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "modularity.import_coupling",
+    "severity": "warning",
+    "message": "Modularity Debt: 58.9/100 (Limit: 60.0)",
+    "file_path": "src/will/workers/repo_embedder.py",
     "line_number": null,
     "context": {},
     "details": {}
@@ -992,7 +1775,7 @@
   {
     "check_id": "modularity.refactor_score_threshold",
     "severity": "warning",
-    "message": "Modularity Debt: 58.9/100 (Limit: 60.0)",
+    "message": "Modularity Debt: 59.3/100 (Limit: 60.0)",
     "file_path": "src/body/workers/violation_remediator.py",
     "line_number": null,
     "context": {},
@@ -1082,8 +1865,17 @@
   {
     "check_id": "modularity.refactor_score_threshold",
     "severity": "warning",
-    "message": "Modularity Debt: 58.2/100 (Limit: 60.0)",
+    "message": "Modularity Debt: 58.7/100 (Limit: 60.0)",
     "file_path": "src/shared/workers/base.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "modularity.refactor_score_threshold",
+    "severity": "warning",
+    "message": "Modularity Debt: 52.2/100 (Limit: 60.0)",
+    "file_path": "src/will/autonomy/proposal_service.py",
     "line_number": null,
     "context": {},
     "details": {}
@@ -1120,6 +1912,24 @@
     "severity": "warning",
     "message": "Modularity Debt: 53.0/100 (Limit: 60.0)",
     "file_path": "src/will/workers/prompt_extractor_worker.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "modularity.refactor_score_threshold",
+    "severity": "warning",
+    "message": "Modularity Debt: 61.9/100 (Limit: 60.0)",
+    "file_path": "src/will/workers/repo_crawler.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "modularity.refactor_score_threshold",
+    "severity": "warning",
+    "message": "Modularity Debt: 58.9/100 (Limit: 60.0)",
+    "file_path": "src/will/workers/repo_embedder.py",
     "line_number": null,
     "context": {},
     "details": {}
@@ -1165,15 +1975,6 @@
     "severity": "warning",
     "message": "Dead code detected: src/body/governance/runtime_validator.py:156: unused variable 'dst_root' (100% confidence)",
     "file_path": "System",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/api/cli_user.py' is not reachable from any entry point.",
-    "file_path": "src/api/cli_user.py",
     "line_number": null,
     "context": {},
     "details": {}
@@ -1919,6 +2720,15 @@
   {
     "check_id": "purity.no_orphan_files",
     "severity": "warning",
+    "message": "Orphan file: 'src/shared/models/prompt_model.py' is not reachable from any entry point.",
+    "file_path": "src/shared/models/prompt_model.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
     "message": "Orphan file: 'src/shared/processors/json_processor.py' is not reachable from any entry point.",
     "file_path": "src/shared/processors/json_processor.py",
     "line_number": null,
@@ -2002,33 +2812,6 @@
     "severity": "warning",
     "message": "Orphan file: 'src/will/agents/context_auditor.py' is not reachable from any entry point.",
     "file_path": "src/will/agents/context_auditor.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/will/agents/conversational/agent.py' is not reachable from any entry point.",
-    "file_path": "src/will/agents/conversational/agent.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/will/agents/conversational/factory.py' is not reachable from any entry point.",
-    "file_path": "src/will/agents/conversational/factory.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/will/agents/conversational/helpers.py' is not reachable from any entry point.",
-    "file_path": "src/will/agents/conversational/helpers.py",
     "line_number": null,
     "context": {},
     "details": {}
@@ -2146,15 +2929,6 @@
     "severity": "warning",
     "message": "Orphan file: 'src/will/autonomy/proposal_service.py' is not reachable from any entry point.",
     "file_path": "src/will/autonomy/proposal_service.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/will/autonomy/proposal_state_manager.py' is not reachable from any entry point.",
-    "file_path": "src/will/autonomy/proposal_state_manager.py",
     "line_number": null,
     "context": {},
     "details": {}
