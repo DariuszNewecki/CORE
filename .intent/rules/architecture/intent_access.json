@@ -1,0 +1,38 @@
+{
+  "$schema": "META/rule_document.schema.json",
+  "kind": "rule_document",
+  "metadata": {
+    "id": "rules.architecture.intent_access",
+    "title": "Canonical Intent Access",
+    "version": "0.1.0",
+    "authority": "constitution",
+    "phase": "audit",
+    "status": "active"
+  },
+  "rules": [
+    {
+      "id": "architecture.intent.no_legacy_root_assumptions",
+      "statement": "Governance consumers MUST NOT hardcode legacy .intent root assumptions such as policies/, standards/, or charter/policies/ when resolving active governance artifacts.",
+      "enforcement": "reporting",
+      "authority": "constitution",
+      "phase": "audit",
+      "rationale": "Hardcoded legacy roots preserve migration drift and undermine convergence on the active intent tree."
+    },
+    {
+      "id": "architecture.intent.non_gateway_no_direct_resolution",
+      "statement": "Non-gateway Python components MUST NOT discover, scan, or load .intent governance artifacts through direct filesystem crawling or local parsing logic. Access to .intent governance artifacts MUST route through the shared intent infrastructure.",
+      "enforcement": "reporting",
+      "authority": "constitution",
+      "phase": "audit",
+      "rationale": "Parallel .intent resolution paths create identity drift, stale structural assumptions, and inconsistent governance behavior."
+    },
+    {
+      "id": "architecture.intent.gateway_is_shared_infrastructure",
+      "statement": "The sanctioned gateway for governance-memory access is the shared intent infrastructure under src/shared/infrastructure/intent/. Components outside that boundary SHOULD consume .intent through that layer rather than implementing local resolvers.",
+      "enforcement": "reporting",
+      "authority": "constitution",
+      "phase": "audit",
+      "rationale": "A governance system cannot remain deterministic if multiple subsystems invent their own policy-loading semantics."
+    }
+  ]
+}

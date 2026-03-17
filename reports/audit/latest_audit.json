@@ -1,8 +1,8 @@
 {
-  "audit_id": "73fc93ea-1f8c-49c7-a086-6cfba465d989",
-  "timestamp": "2026-03-17T16:01:57Z",
+  "audit_id": "23e2d1e1-36a1-4d87-845d-e9d25c90e78d",
+  "timestamp": "2026-03-17T20:54:34Z",
   "passed": false,
-  "findings_count": 391,
+  "findings_count": 421,
   "executed_rules": [
     "ai.cognitive_role.no_hardcoded_string",
     "ai.prompt.artifact.no_provider_leak",
@@ -25,6 +25,7 @@
     "architecture.channels.logic_logger_only",
     "architecture.channels.logic_no_terminal_rendering",
     "architecture.constitution_read_only",
+    "architecture.intent.non_gateway_no_direct_resolution",
     "architecture.layer_exclusivity",
     "architecture.layers.no_body_to_will",
     "architecture.layers.no_mind_execution",

@@ -22,7 +22,6 @@ from shared.logger import getLogger
 logger = getLogger(__name__)
 
 
-# ID: f7e8d9c0-b1a2-3456-c7d8-e9f0a1b2c3d4
 @register_action(
     action_id="remediate.cognitive_role",
     description="Fix hardcoded cognitive role strings (Architect, Coder, etc.) in source files",
@@ -39,6 +38,7 @@ logger = getLogger(__name__)
         # Add other related check_ids here if they exist
     ],
 )
+# ID: bf9420e3-f4ca-4cdf-aa11-7a9ecfa2a050
 async def remediate_cognitive_role(
     file_path: str | None = None,
     line_number: int | None = None,
@@ -87,7 +87,8 @@ async def remediate_cognitive_role(
 
             # Insert into blackboard as prompt.artifact
             result = await session.execute(
-                text("""
+                text(
+                    """
                     INSERT INTO core.blackboard_entries
                     (entry_type, subject, payload, status, created_at)
                     VALUES (
@@ -98,7 +99,8 @@ async def remediate_cognitive_role(
                         now()
                     )
                     RETURNING id
-                """),
+                """
+                ),
                 {
                     "subject": f"prompt.artifact::{file_path}",
                     "payload": json.dumps(payload),

@@ -61,7 +61,7 @@ async def drift_cmd(
         )
         raise typer.Exit(code=2)
     try:
-        from mind.enforcement.guard_cli import guard_drift_cmd
+        from mind.enforcement.guard import guard_drift_cmd
     except Exception as exc:
         logger.debug("status drift: cannot import guard_drift_cmd: %s", exc)
         guard_drift_cmd = None

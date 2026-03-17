@@ -17,6 +17,7 @@ from mind.logic.engines.ast_gate.checks import (
     PurityChecks,
 )
 from mind.logic.engines.ast_gate.checks.import_boundary import ImportBoundaryCheck
+from mind.logic.engines.ast_gate.checks.intent_access_check import IntentAccessCheck
 from mind.logic.engines.ast_gate.checks.modularity_checks import ModularityChecker
 from mind.logic.engines.base import BaseEngine, EngineResult
 from shared.path_resolver import PathResolver
@@ -62,6 +63,7 @@ class ASTGateEngine(BaseEngine):
             "metadata_only_diff",
             "logic_conservation",
             "logger_not_presentation",
+            "direct_intent_access",
         }
     )
 
@@ -162,6 +164,14 @@ class ASTGateEngine(BaseEngine):
             method = getattr(self._modularity_checker, method_name)
             findings = method(file_path, params)
             violations.extend([f["message"] for f in findings])
+
+        elif check_type == "direct_intent_access":
+            violations.extend(
+                IntentAccessCheck.check_direct_intent_access(
+                    tree=tree,
+                    file_path=file_path,
+                )
+            )
 
         # --- Async Safety ---
         elif check_type == "restrict_event_loop_creation":

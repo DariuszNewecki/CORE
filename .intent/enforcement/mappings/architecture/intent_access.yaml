@@ -1,0 +1,15 @@
+# .intent/enforcement/mappings/architecture/intent_access.yaml
+#
+# Enforces canonical access to .intent governance memory.
+
+mappings:
+  architecture.intent.non_gateway_no_direct_resolution:
+    engine: ast_gate
+    params:
+      check_type: direct_intent_access
+    scope:
+      applies_to:
+        - "src/**/*.py"
+      excludes:
+        - "src/shared/infrastructure/intent/**"
+        - "tests/**/*.py"

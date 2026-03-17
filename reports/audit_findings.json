@@ -423,6 +423,114 @@
     "details": {}
   },
   {
+    "check_id": "logic.logging.standard_only",
+    "severity": "warning",
+    "message": "Line 184: Replace print() with logger.",
+    "file_path": "src/cli/simple_health.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "logic.logging.standard_only",
+    "severity": "warning",
+    "message": "Line 185: Replace print() with logger.",
+    "file_path": "src/cli/simple_health.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "logic.logging.standard_only",
+    "severity": "warning",
+    "message": "Line 186: Replace print() with logger.",
+    "file_path": "src/cli/simple_health.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "logic.logging.standard_only",
+    "severity": "warning",
+    "message": "Line 187: Replace print() with logger.",
+    "file_path": "src/cli/simple_health.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "logic.logging.standard_only",
+    "severity": "warning",
+    "message": "Line 188: Replace print() with logger.",
+    "file_path": "src/cli/simple_health.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "logic.logging.standard_only",
+    "severity": "warning",
+    "message": "Line 189: Replace print() with logger.",
+    "file_path": "src/cli/simple_health.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "logic.logging.standard_only",
+    "severity": "warning",
+    "message": "Line 192: Replace print() with logger.",
+    "file_path": "src/cli/simple_health.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "logic.logging.standard_only",
+    "severity": "warning",
+    "message": "Line 197: Replace print() with logger.",
+    "file_path": "src/cli/simple_health.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "logic.logging.standard_only",
+    "severity": "warning",
+    "message": "Line 202: Replace print() with logger.",
+    "file_path": "src/cli/simple_health.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "logic.logging.standard_only",
+    "severity": "warning",
+    "message": "Line 20: Replace print() with logger.",
+    "file_path": "src/cli/simple_health.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "logic.logging.standard_only",
+    "severity": "warning",
+    "message": "Line 93: Replace print() with logger.",
+    "file_path": "src/cli/simple_health.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "logic.logging.standard_only",
+    "severity": "warning",
+    "message": "Line 191: Replace print() with logger.",
+    "file_path": "src/cli/simple_health.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
     "check_id": "architecture.channels.logic_no_terminal_rendering",
     "severity": "warning",
     "message": "Line 214: Forbidden call 'typer.echo()'.",
@@ -758,7 +866,7 @@
   {
     "check_id": "architecture.max_file_size",
     "severity": "warning",
-    "message": "Module has 505 lines, exceeds limit of 400",
+    "message": "Module has 508 lines, exceeds limit of 400",
     "file_path": "src/body/workers/call_site_rewriter.py",
     "line_number": null,
     "context": {},
@@ -1138,6 +1246,168 @@
     "severity": "info",
     "message": "Forbidden primitive 'os.environ' used (line 110).",
     "file_path": "src/will/test_generation/sandbox.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.intent.non_gateway_no_direct_resolution",
+    "severity": "warning",
+    "message": "Line 148: Direct .intent read via 'read_text()' outside shared intent infrastructure.",
+    "file_path": "src/body/introspection/knowledge_graph_service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.intent.non_gateway_no_direct_resolution",
+    "severity": "warning",
+    "message": "Line 133: Direct parsing of .intent content via 'yaml.safe_load()' outside shared intent infrastructure.",
+    "file_path": "src/body/project_lifecycle/scaffolding_service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.intent.non_gateway_no_direct_resolution",
+    "severity": "warning",
+    "message": "Line 133: Direct .intent read via 'read_text()' outside shared intent infrastructure.",
+    "file_path": "src/body/project_lifecycle/scaffolding_service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.intent.non_gateway_no_direct_resolution",
+    "severity": "warning",
+    "message": "Line 46: Direct .intent traversal via 'glob()' outside shared intent infrastructure.",
+    "file_path": "src/body/self_healing/fix_manifest_hygiene.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.intent.non_gateway_no_direct_resolution",
+    "severity": "warning",
+    "message": "Line 192: Direct .intent traversal via 'glob()' outside shared intent infrastructure.",
+    "file_path": "src/body/services/intent_schema_validator.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.intent.non_gateway_no_direct_resolution",
+    "severity": "warning",
+    "message": "Line 135: Direct .intent read via 'read_text()' outside shared intent infrastructure.",
+    "file_path": "src/cli/commands/coverage/check_commands.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.intent.non_gateway_no_direct_resolution",
+    "severity": "warning",
+    "message": "Line 164: Direct .intent read via 'read_bytes()' outside shared intent infrastructure.",
+    "file_path": "src/cli/logic/cli_utils.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.intent.non_gateway_no_direct_resolution",
+    "severity": "warning",
+    "message": "Line 173: Direct .intent read via 'read_bytes()' outside shared intent infrastructure.",
+    "file_path": "src/cli/logic/proposals/service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.intent.non_gateway_no_direct_resolution",
+    "severity": "warning",
+    "message": "Line 68: Direct .intent traversal via 'rglob()' outside shared intent infrastructure.",
+    "file_path": "src/mind/governance/meta_validator.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.intent.non_gateway_no_direct_resolution",
+    "severity": "warning",
+    "message": "Line 101: Direct .intent traversal via 'rglob()' outside shared intent infrastructure.",
+    "file_path": "src/mind/governance/meta_validator.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.intent.non_gateway_no_direct_resolution",
+    "severity": "warning",
+    "message": "Line 197: Direct .intent read via 'read_text()' outside shared intent infrastructure.",
+    "file_path": "src/shared/infrastructure/knowledge_graph_service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.intent.non_gateway_no_direct_resolution",
+    "severity": "warning",
+    "message": "Line 69: Direct parsing of .intent content via 'yaml.safe_load()' outside shared intent infrastructure.",
+    "file_path": "src/shared/utils/manifest_aggregator.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.intent.non_gateway_no_direct_resolution",
+    "severity": "warning",
+    "message": "Line 69: Direct .intent read via 'read_text()' outside shared intent infrastructure.",
+    "file_path": "src/shared/utils/manifest_aggregator.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.intent.non_gateway_no_direct_resolution",
+    "severity": "warning",
+    "message": "Line 125: Direct .intent traversal via 'glob()' outside shared intent infrastructure.",
+    "file_path": "src/will/commands/daemon.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.intent.non_gateway_no_direct_resolution",
+    "severity": "warning",
+    "message": "Line 46: Direct .intent read via 'read_text()' outside shared intent infrastructure.",
+    "file_path": "src/will/orchestration/intent_alignment.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.intent.non_gateway_no_direct_resolution",
+    "severity": "warning",
+    "message": "Line 178: Direct parsing of .intent content via 'yaml.safe_load()' outside shared intent infrastructure.",
+    "file_path": "src/will/orchestration/prompt_pipeline.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.intent.non_gateway_no_direct_resolution",
+    "severity": "warning",
+    "message": "Line 178: Direct .intent read via 'read_text()' outside shared intent infrastructure.",
+    "file_path": "src/will/orchestration/prompt_pipeline.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.intent.non_gateway_no_direct_resolution",
+    "severity": "warning",
+    "message": "Line 193: Direct .intent traversal via 'glob()' outside shared intent infrastructure.",
+    "file_path": "src/will/workers/worker_auditor.py",
     "line_number": null,
     "context": {},
     "details": {}
