@@ -1,0 +1,47 @@
+workflow_id: full_feature_development
+version: "1.0"
+status: experimental
+
+description: >
+  End-to-end development workflow for new features, including candidate code,
+  candidate tests, audit validation, and governed execution.
+
+stages:
+  - stage_id: interpret.intent
+    order: 1
+
+  - stage_id: parse.plan_actions
+    order: 2
+
+  - stage_id: load.operational_context
+    order: 3
+
+  - stage_id: runtime.generate_changes
+    order: 4
+
+  - stage_id: runtime.generate_tests
+    order: 5
+
+  - stage_id: audit.canary_validation
+    order: 6
+
+  - stage_id: audit.sandbox_validation
+    order: 7
+
+  - stage_id: audit.style_check
+    order: 8
+
+  - stage_id: audit.validate_changes
+    order: 9
+
+  - stage_id: execution.commit_changes
+    order: 10
+
+invariants:
+  must_hold:
+    - Candidate code and candidate tests must be audited before execution.
+    - Repository mutation occurs only in the Execution phase.
+    - Style and validation checks must not bypass constitutional audit.
+  must_not:
+    - Workflow must not commit unaudited production changes.
+    - Workflow must not commit failing generated tests.

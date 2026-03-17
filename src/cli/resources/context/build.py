@@ -1,42 +1,14 @@
 # src/cli/resources/context/build.py
+
 """
 Context build command - Agent simulation mode.
 
-Simulates EXACTLY what CoderAgent sees before code generation.
-Uses build_for_task() — the same code path as the autonomous agent —
-NOT build_from_query() which is a weaker exploration path.
-
-PURPOSE:
-    You are working with AI assistants (Claude, DeepSeek) on a 100k+ LOC codebase.
-    Before asking an AI to work on a specific symbol or file, run this command
-    to get the exact context slice the agent would receive. Paste that output
-    to the AI. It now has surgical precision instead of guessing.
-
-USAGE:
-    # Simulate what CoderAgent sees for a specific symbol
-    core-admin context build \\
-        --file src/mind/governance/authority_package_builder.py \\
-        --symbol AuthorityPackageBuilder \\
-        --task code_modification
-
-    # Also show the assembled LLM prompt
-    core-admin context build \\
-        --file src/will/cli_logic/reviewer.py \\
-        --symbol constitutional_review \\
-        --task code_generation \\
-        --show-prompt
-
-    # Write output to file for sharing with Claude/DeepSeek
-    core-admin context build \\
-        --file src/shared/infrastructure/context/service.py \\
-        --symbol ContextService \\
-        --task code_modification \\
-        --output var/context_for_claude.md
+Builds doctrine-aligned context packets and renders them for human / LAG use.
 """
 
 from __future__ import annotations
 
-import uuid
+import json
 from pathlib import Path
 from typing import Any
 
@@ -47,6 +19,10 @@ from rich.panel import Panel
 from body.infrastructure.bootstrap import create_core_context
 from body.services.service_registry import service_registry
 from shared.cli_utils import core_command
+from shared.infrastructure.context.models import (
+    ContextBuildRequest,
+    PhaseType,
+)
 from shared.infrastructure.storage.file_handler import FileHandler
 from shared.logger import getLogger
 from shared.models.command_meta import CommandBehavior, CommandLayer, command_meta
@@ -56,6 +32,7 @@ from .hub import app
 
 logger = getLogger(__name__)
 console = Console()
+
 TASK_TYPES = [
     "code_generation",
     "code_modification",
@@ -64,23 +41,112 @@ TASK_TYPES = [
     "conversational",
 ]
 
+_PHASE_BY_TASK: dict[str, PhaseType] = {
+    "code_generation": "execution",
+    "code_modification": "execution",
+    "test_generation": "audit",
+    "test.generate": "audit",
+    "conversational": "runtime",
+}
+
+
+def _resolve_phase(task: str) -> PhaseType:
+    return _PHASE_BY_TASK.get(task, "runtime")
+
 
 def _format_item_source(item: dict[str, Any]) -> str:
-    """Human-readable explanation of WHY this item was included."""
     source = item.get("source", "unknown")
     score = item.get("score")
-    score_str = f": {score:.2f}" if score else ""
+    score_str = f": {score:.2f}" if isinstance(score, int | float) else ""
+
     source_map = {
-        "qdrant": f"🔍 vector search / Qdrant (semantic{score_str})",
-        "db_query": "🗄️  DB lookup (direct / graph)",
-        "builtin_ast": "📄 force-added (target file AST)",
-        "db_direct": "🗄️  DB lookup (direct match)",
-        "db_graph": "🕸️  DB graph traversal (dependency)",
-        "vector_search": f"🔍 vector search (semantic{score_str})",
-        "ast_scope": "🔬 AST scope analysis",
+        "vector_search": f"🔍 vector search{score_str}",
+        "database": "🗄️ database",
+        "workspace": "✍️ workspace",
+        "filesystem": "📄 filesystem",
         "unknown": "❓ unknown source",
     }
     return source_map.get(source, f"📎 {source}")
+
+
+def _assemble_enriched_prompt(
+    evidence: list[dict[str, Any]],
+    file: str,
+    symbol: str | None,
+    task_type: str,
+) -> str:
+    deps: list[str] = []
+    examples: list[str] = []
+    existing_code = ""
+    seen: set[str] = set()
+
+    for item in evidence:
+        name = item.get("name", "")
+        path = item.get("path", "")
+        content = item.get("content", "") or ""
+        sig = item.get("signature", "") or ""
+
+        if path == file and content:
+            if symbol and name == symbol:
+                existing_code = content
+            elif not existing_code:
+                existing_code = content
+
+        if (
+            name
+            and name not in seen
+            and item.get("item_type") in {"code", "symbol", "semantic_match"}
+        ):
+            seen.add(name)
+            dep_line = f"- `{name}` from `{path}`"
+            if sig:
+                dep_line += f"\n  Signature: `{sig}`"
+            deps.append(dep_line)
+
+        if content and len(content) > 50 and item.get("item_type") == "code":
+            block = [f"### {name}"]
+            if item.get("summary"):
+                block.append(str(item["summary"]))
+            block.append("```python")
+            block.append(content[:500])
+            if len(content) > 500:
+                block.append("# ... (truncated for display)")
+            block.append("```")
+            examples.append("\n".join(block))
+
+    parts = [
+        "# Code Task",
+        "",
+        (
+            f"**Goal:** Implement or modify `{symbol}` in `{file}`"
+            if symbol
+            else f"**Goal:** Work in `{file}`"
+        ),
+        f"**Task type:** {task_type}",
+        "",
+    ]
+
+    if deps:
+        parts += ["## Available Dependencies", "\n".join(deps), ""]
+
+    if examples:
+        parts += ["## Relevant Code", "\n".join(examples), ""]
+
+    if existing_code:
+        parts += ["## Existing Code Context", "```python", existing_code, "```", ""]
+
+    parts += [
+        "## Requirements",
+        "1. Return only valid Python code",
+        "2. Include needed imports",
+        "3. Include type hints and docstrings",
+        "4. Respect CORE constitutional patterns",
+        "",
+        "## Target",
+        f"Symbol: `{symbol}`" if symbol else "Symbol: `(file-level)`",
+        f"Target file: `{file}`",
+    ]
+    return "\n".join(parts)
 
 
 def _format_packet_for_display(
@@ -90,144 +156,81 @@ def _format_packet_for_display(
     task_type: str,
     show_prompt: bool,
 ) -> str:
-    """
-    Format the context packet as a developer telescope output.
-
-    Shows:
-    - What was assembled and why (source attribution per item)
-    - The actual prompt that would be sent to the LLM (if --show-prompt)
-    - Build stats
-    """
     lines: list[str] = []
+
     header = packet.get("header", {})
     provenance = packet.get("provenance", {})
     stats = provenance.get("build_stats", {})
-    items = packet.get("context", [])
+    evidence = packet.get("evidence", [])
+
     lines.append("=" * 80)
-    lines.append("CORE CONTEXT PACKAGE  [Agent Simulation Mode]")
+    lines.append("CORE CONTEXT PACKET  [Agent Simulation Mode]")
     lines.append("=" * 80)
     lines.append(f"Target file  : {file}")
     lines.append(f"Target symbol: {symbol or '(file-level)'}")
     lines.append(f"Task type    : {task_type}")
-    lines.append(f"Packet ID    : {header.get('task_id', 'unknown')}")
-    lines.append(f"Items        : {len(items)}")
+    lines.append(f"Phase        : {packet.get('phase', 'unknown')}")
+    lines.append(f"Packet ID    : {header.get('packet_id', 'unknown')}")
+    lines.append(f"Evidence     : {len(evidence)}")
     lines.append(f"Tokens (est) : ~{stats.get('tokens_total', 0)}")
     lines.append(f"Build time   : {stats.get('duration_ms', 0)}ms")
     lines.append("")
-    if not items:
-        lines.append("[!] No context items collected.")
-        lines.append("    Check that the file path is correct and the DB is synced.")
-        lines.append("    Run: make dev-sync")
-    else:
-        lines.append("## CONTEXT ITEMS")
+
+    for section_name in ("constitution", "policy", "constraints", "runtime"):
+        section = packet.get(section_name)
+        if section:
+            lines.append(f"## {section_name.upper()}")
+            lines.append("```json")
+            lines.append(json.dumps(section, indent=2, sort_keys=True, default=str))
+            lines.append("```")
+            lines.append("")
+
+    if not evidence:
+        lines.append("[!] No evidence collected.")
         lines.append("")
-        for idx, item in enumerate(items, 1):
+    else:
+        lines.append("## EVIDENCE")
+        lines.append("")
+        for idx, item in enumerate(evidence, 1):
             name = item.get("name", "unknown")
             path = item.get("path", "unknown")
             item_type = item.get("item_type", "unknown")
             summary = item.get("summary", "")
             content = item.get("content", "")
             source_label = _format_item_source(item)
+
             lines.append(f"### {idx}. {path}::{name}")
             lines.append(f"Type   : {item_type}")
             lines.append(f"Source : {source_label}")
             if summary:
-                lines.append(f"Summary: {summary[:120]}")
+                lines.append(f"Summary: {str(summary)[:160]}")
             lines.append("")
             if content:
                 lines.append("```python")
                 lines.append(content)
                 lines.append("```")
             else:
-                lines.append("(No code content available — symbol may need re-sync)")
+                lines.append("(No code content available)")
             lines.append("")
+
     if show_prompt:
         lines.append("=" * 80)
-        lines.append("ASSEMBLED PROMPT  [What the LLM receives]")
+        lines.append("ASSEMBLED PROMPT")
         lines.append("=" * 80)
         lines.append("")
-        prompt = _assemble_enriched_prompt(items, file, symbol, task_type)
-        lines.append(prompt)
+        lines.append(_assemble_enriched_prompt(evidence, file, symbol, task_type))
         lines.append("")
+
     lines.append("=" * 80)
     lines.append("STATS")
     source_counts: dict[str, int] = {}
-    for item in items:
+    for item in evidence:
         src = item.get("source", "unknown")
         source_counts[src] = source_counts.get(src, 0) + 1
     for src, count in sorted(source_counts.items()):
         lines.append(f"  {src}: {count}")
+
     return "\n".join(lines)
-
-
-def _assemble_enriched_prompt(
-    items: list[dict[str, Any]], file: str, symbol: str | None, task_type: str
-) -> str:
-    """
-    Assemble the enriched prompt exactly as build_enriched_prompt() would.
-    This is what DeepSeek/Claude Coder actually receives.
-    """
-    deps: list[str] = []
-    similar: list[str] = []
-    existing_code: str = ""
-    seen: set[str] = set()
-    for item in items:
-        name = item.get("name", "")
-        path = item.get("path", "")
-        content = item.get("content", "")
-        sig = item.get("signature", "")
-        if path == file and content:
-            if symbol and name == symbol:
-                existing_code = content
-            elif not existing_code:
-                existing_code = content
-        if name and name not in seen and (item.get("item_type") in ("code", "symbol")):
-            seen.add(name)
-            dep_line = f"- `{name}` from `{path}`"
-            if sig:
-                dep_line += f"\n  Signature: `{sig}`"
-            deps.append(dep_line)
-        if content and len(content) > 50 and (item.get("item_type") == "code"):
-            summary = item.get("summary", "")
-            block = [f"### {name}"]
-            if summary:
-                block.append(summary)
-            block.append("```python")
-            block.append(content[:500])
-            if len(content) > 500:
-                block.append("# ... (truncated for display)")
-            block.append("```")
-            similar.append("\n".join(block))
-    parts = [
-        "# Code Generation Task",
-        "",
-        (
-            f"**Goal:** Implement `{symbol}` in `{file}`"
-            if symbol
-            else f"**Goal:** Work in `{file}`"
-        ),
-        f"**Task type:** {task_type}",
-        "",
-    ]
-    if deps:
-        parts += ["## Available Dependencies", "\n".join(deps), ""]
-    if similar:
-        parts += ["## Similar Implementations (for reference)", "\n".join(similar), ""]
-    if existing_code:
-        parts += ["## Existing Code Context", "```python", existing_code, "```", ""]
-    parts += [
-        "## Implementation Requirements",
-        "1. Return ONLY valid Python code",
-        "2. Include all necessary imports",
-        "3. Include docstrings and type hints",
-        "4. Follow constitutional patterns",
-        "5. Use similar implementations as reference (not verbatim)",
-        "",
-        "## Code to Generate",
-        f"Symbol: `{symbol}`" if symbol else "Symbol: `(file-level)`",
-        f"Target file: `{file}`",
-    ]
-    return "\n".join(parts)
 
 
 @app.command("build")
@@ -235,65 +238,45 @@ def _assemble_enriched_prompt(
     canonical_name="context.build",
     behavior=CommandBehavior.READ,
     layer=CommandLayer.BODY,
-    summary="Simulate exact context CoderAgent sees — use before asking AI to work on a symbol.",
+    summary="Simulate exact context CoderAgent sees.",
 )
 @core_command(dangerous=False, requires_context=False)
-# ID: 70baed4e-df80-4dc8-aff8-2c8c758c2ce6
+# ID: 945e6c12-26e2-423d-ad3e-0cb10faaccb1
 async def build_cmd(
     ctx: typer.Context,
-    file: str = typer.Option(
-        ...,
-        "--file",
-        "-f",
-        help="Target file path (e.g. src/mind/governance/authority_package_builder.py)",
-    ),
+    file: str = typer.Option(..., "--file", "-f", help="Target file path"),
     symbol: str | None = typer.Option(
-        None, "--symbol", "-s", help="Target symbol name (e.g. AuthorityPackageBuilder)"
+        None, "--symbol", "-s", help="Target symbol name"
     ),
     task: str = typer.Option(
         "code_modification", "--task", "-t", help=f"Task type: {', '.join(TASK_TYPES)}"
     ),
-    goal: str = typer.Option(
-        "",
-        "--goal",
-        "-g",
-        help="Optional: describe what you want to do (improves vector search relevance)",
-    ),
+    goal: str = typer.Option("", "--goal", "-g", help="Optional goal override"),
     show_prompt: bool = typer.Option(
-        False,
-        "--show-prompt",
-        help="Also show the assembled LLM prompt (what DeepSeek/Coder receives)",
+        False, "--show-prompt", help="Also show assembled LLM prompt"
     ),
-    output: str = typer.Option(
+    output: str | None = typer.Option(
         None, "--output", "-o", help="Write output to file instead of stdout"
     ),
     no_cache: bool = typer.Option(False, "--no-cache", help="Bypass context cache"),
-    max_tokens: int = typer.Option(30000, "--max-tokens", help="Token budget"),
-    max_items: int = typer.Option(20, "--max-items", help="Max context items"),
+    max_tokens: int = typer.Option(
+        30000, "--max-tokens", help="Token budget (display only)"
+    ),
+    max_items: int = typer.Option(20, "--max-items", help="Max evidence items hint"),
 ) -> None:
-    """
-    Build agent context — simulate exactly what CoderAgent sees.
-
-    Uses build_for_task() (same path as autonomous agent), NOT semantic search.
-    Outputs the context packet with source attribution per item,
-    and optionally the assembled LLM prompt.
-
-    Use this before asking Claude/DeepSeek to work on a specific symbol.
-    """
     if task not in TASK_TYPES:
-        logger.info(
-            "[red]Unknown task type: %s[/red]\nValid types: %s",
-            task,
-            ", ".join(TASK_TYPES),
-        )
+        logger.info("Unknown task type: %s", task)
         raise typer.Exit(code=1)
+
     from shared.infrastructure.database.session_manager import get_session
 
     service_registry.prime(get_session)
     core_context = create_core_context(service_registry)
+
     async with service_registry.session() as session:
         cognitive = await service_registry.get_cognitive_service()
         await cognitive.initialize(session)
+
     logger.info(
         Panel(
             f"[bold]File:[/bold]   {file}\n[bold]Symbol:[/bold] {symbol or '(file-level)'}\n[bold]Task:[/bold]   {task}",
@@ -301,24 +284,39 @@ async def build_cmd(
             expand=False,
         )
     )
-    task_spec: dict[str, Any] = {
-        "task_id": f"inspect_{uuid.uuid4().hex[:8]}",
-        "task_type": task,
-        "target_file": file,
-        "target_symbol": symbol,
-        "summary": goal
-        or (
-            f"Inspect context for {symbol} in {file}"
-            if symbol
-            else f"Inspect file-level context for {file}"
-        ),
-        "scope": {"traversal_depth": 2, "include": [file]},
-        "constraints": {"max_tokens": max_tokens, "max_items": max_items},
-    }
-    packet = await core_context.context_service.build_for_task(
-        task_spec, use_cache=not no_cache
+
+    request = ContextBuildRequest(
+        goal=goal
+        or (f"{task} for {symbol} in {file}" if symbol else f"{task} for {file}"),
+        trigger="cli",
+        phase=_resolve_phase(task),
+        target_files=[file],
+        target_symbols=[symbol] if symbol else [],
+        include_constitution=True,
+        include_policy=True,
+        include_symbols=True,
+        include_vectors=True,
+        include_runtime=True,
     )
+
+    packet_obj = await core_context.context_service.build(
+        request,
+        use_cache=not no_cache,
+    )
+
+    packet = {
+        "header": packet_obj.header,
+        "phase": packet_obj.request.phase,
+        "constitution": packet_obj.constitution,
+        "policy": packet_obj.policy,
+        "constraints": packet_obj.constraints,
+        "evidence": packet_obj.evidence[:max_items],
+        "runtime": packet_obj.runtime,
+        "provenance": packet_obj.provenance,
+    }
+
     formatted = _format_packet_for_display(packet, file, symbol, task, show_prompt)
+
     if output:
         output_path = Path(output)
         repo_root = Path(core_context.git_service.repo_path).resolve()
@@ -327,13 +325,16 @@ async def build_cmd(
             if not output_path.is_absolute()
             else output_path.resolve()
         )
+
         if not resolved.is_relative_to(repo_root):
             raise ValueError(f"Output path is outside repository boundary: {output}")
+
         rel_output = resolved.relative_to(repo_root).as_posix()
         FileHandler(str(core_context.git_service.repo_path)).write_runtime_text(
-            rel_output, formatted
+            rel_output,
+            formatted,
         )
-        logger.info("[green]✅ Context written to %s[/green]", output)
+        logger.info("✅ Context written to %s", output)
     else:
         logger.info("")
         logger.info(formatted)

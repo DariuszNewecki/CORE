@@ -3,7 +3,7 @@ kind: worker
 
 metadata:
   id: workers.audit_sensor_purity
-  title: Audit Sensor — Purity
+  title: Audit Sensor - Purity
   version: "1.0.0"
   authority: policy
   status: active

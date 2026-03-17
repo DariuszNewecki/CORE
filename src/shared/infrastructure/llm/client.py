@@ -36,12 +36,15 @@ class LLMClient:
         self.resource_config = resource_config
         self.model_name = provider.model_name
         self._semaphore: asyncio.Semaphore | None = None
-        self._last_request_time: float = 0
+        self._last_request_time: float = 0.0
 
     @classmethod
     # ID: b93deaf4-7da3-4c67-a4b1-e2a9ae1afeea
     async def create(
-        cls, db: AsyncSession, provider: AIProvider, resource_name: str
+        cls,
+        db: AsyncSession,
+        provider: AIProvider,
+        resource_name: str,
     ) -> LLMClient:
         """
         Factory method to create LLMClient with database configuration.
@@ -78,7 +81,7 @@ class LLMClient:
         )
         return instance
 
-    async def _enforce_rate_limit(self):
+    async def _enforce_rate_limit(self) -> None:
         """Enforce rate limiting based on database configuration."""
         rate_limit = await self.resource_config.get_rate_limit()
         if rate_limit > 0:
@@ -90,7 +93,7 @@ class LLMClient:
                 await asyncio.sleep(wait_time)
             self._last_request_time = asyncio.get_event_loop().time()
 
-    async def _request_with_retry(self, method, *args, **kwargs) -> Any:
+    async def _request_with_retry(self, method: Any, *args: Any, **kwargs: Any) -> Any:
         """
         Generic retry logic with concurrency control.
 
@@ -103,33 +106,49 @@ class LLMClient:
             raise RuntimeError(
                 "LLMClient not properly initialized - use create() factory method"
             )
+
         backoff_delays = [1.0, 2.0, 4.0]
+
         async with self._semaphore:
             await self._enforce_rate_limit()
+
             for attempt in range(len(backoff_delays) + 1):
                 try:
                     return await method(*args, **kwargs)
                 except Exception as e:
-                    error_message = f"Request failed (attempt {attempt + 1}/{len(backoff_delays) + 1}): {type(e).__name__} - {e}"
+                    total_attempts = len(backoff_delays) + 1
+                    error_message = (
+                        f"Request failed (attempt {attempt + 1}/{total_attempts}): "
+                        f"{type(e).__name__} - {e}"
+                    )
                     if attempt < len(backoff_delays):
                         wait_time = backoff_delays[attempt] + random.uniform(0, 0.5)
                         logger.warning(
-                            "%s. Retrying in %ss...", error_message, wait_time
+                            "%s. Retrying in %ss...",
+                            error_message,
+                            wait_time,
                         )
                         await asyncio.sleep(wait_time)
                         continue
+
                     logger.error(
-                        "Final attempt failed: %s", error_message, exc_info=True
+                        "Final attempt failed: %s",
+                        error_message,
+                        exc_info=True,
                     )
                     raise
 
     # ID: 32e259f1-415f-4f2e-9d49-08071b12ceba
     async def make_request_async(
-        self, prompt: str, user_id: str = "core_system"
+        self,
+        prompt: str,
+        user_id: str = "core_system",
     ) -> str:
         """Makes a chat completion request using the configured provider with retries."""
         return await self._request_with_retry(
-            self.provider.chat_completion, prompt, user_id
+            self.provider.chat_completion,
+            prompt,
+            user_id,
         )
 
     # ID: pm-llm-client-001
@@ -140,6 +159,7 @@ class LLMClient:
         system_prompt: str,
         user_id: str = "core_system",
         max_tokens: int = 4096,
+        response_format: dict[str, Any] | None = None,
     ) -> str:
         """
         Makes a governed chat completion request with a constitutional system prompt.
@@ -153,6 +173,10 @@ class LLMClient:
             system_prompt: Constitutional system prompt loaded from system.txt.
             user_id: Audit identifier for tracing.
             max_tokens: Token budget for this invocation, sourced from model.yaml.
+            response_format: Optional provider-agnostic structured-output contract.
+                Supported shapes:
+                    {"type": "json_object"}
+                    {"type": "json_schema", "schema": {...}}
 
         Returns:
             Raw string response from the AI provider.
@@ -163,6 +187,7 @@ class LLMClient:
             user_id,
             system_prompt=system_prompt,
             max_tokens=max_tokens,
+            response_format=response_format,
         )
 
     # ID: 7e13b689-e8ae-48ac-819b-44f8d3b97e22
@@ -173,7 +198,8 @@ class LLMClient:
 
 # ID: f0962c2a-eb02-4ef6-856f-413472d3a699
 async def create_llm_client_for_role(
-    db: AsyncSession, cognitive_role: str
+    db: AsyncSession,
+    cognitive_role: str,
 ) -> LLMClient:
     """
     Factory function to create an LLM client for a specific cognitive role.
@@ -206,16 +232,19 @@ async def create_llm_client_for_role(
     )
     result = await db.execute(query, {"role": cognitive_role})
     row = result.fetchone()
+
     if not row or not row[0]:
         raise ValueError(
             f"Cognitive role '{cognitive_role}' not found or not assigned to a resource"
         )
+
     resource_name = row[0]
     config = await ConfigService.create(db)
     resource_config = await LLMResourceConfig.for_resource(config, resource_name)
     api_url = await resource_config.get_api_url()
     api_key = await resource_config.get_api_key(audit_context=cognitive_role)
     model_name = await resource_config.get_model_name()
+
     if "anthropic" in api_url:
         from .providers.anthropic import AnthropicProvider
 
@@ -224,7 +253,9 @@ async def create_llm_client_for_role(
         from .providers.openai import OpenAIProvider
 
         provider = OpenAIProvider(
-            api_url=api_url, api_key=api_key, model_name=model_name
+            api_url=api_url,
+            api_key=api_key,
+            model_name=model_name,
         )
     elif "ollama" in api_url or "11434" in api_url:
         from .providers.ollama import OllamaProvider
@@ -234,6 +265,9 @@ async def create_llm_client_for_role(
         from .providers.openai import OpenAIProvider
 
         provider = OpenAIProvider(
-            api_url=api_url, api_key=api_key, model_name=model_name
+            api_url=api_url,
+            api_key=api_key,
+            model_name=model_name,
         )
+
     return await LLMClient.create(db, provider, resource_name)

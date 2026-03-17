@@ -1,0 +1,40 @@
+workflow_id: core.change_set.lifecycle
+version: "1.0"
+status: experimental
+
+description: >
+  Canonical workflow for transforming a normalized intent into governed,
+  validated, and committed change execution.
+
+stages:
+  - stage_id: interpret.intent
+    order: 1
+
+  - stage_id: parse.plan_actions
+    order: 2
+
+  - stage_id: load.operational_context
+    order: 3
+
+  - stage_id: runtime.generate_changes
+    order: 4
+
+  - stage_id: audit.validate_changes
+    order: 5
+
+  - stage_id: runtime.repair_changes
+    order: 6
+    conditional: on_validation_failure
+
+  - stage_id: execution.commit_changes
+    order: 7
+    conditional: on_validation_success
+
+invariants:
+  must_hold:
+    - Every stage belongs to exactly one constitutional phase.
+    - Rule evaluation occurs only in the Audit phase.
+    - Repository mutation occurs only in the Execution phase.
+  must_not:
+    - Workflow must not bypass audit validation.
+    - Workflow must not introduce new governance authority.

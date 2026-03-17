@@ -1,0 +1,46 @@
+phase_type: parse
+description: >
+  Transform interpreted intent into a structured, machine-usable operational
+  plan. Parse organizes intent into explicit actions, dependencies, and routing
+  without executing mutations.
+
+inputs:
+  - normalized_intent
+  - workflow_request
+  - available_capabilities
+
+outputs:
+  - action_plan
+  - stage_route
+  - planning_context
+
+constitutional_requirements:
+  - governance.no_governance_bypass
+  - autonomy.tracing.mandatory
+
+authority: policy
+failure_mode: block
+max_retries: 2
+
+agent_role: WorkflowPlanner
+
+permitted_actions:
+  - analyze_intent
+  - select_workflow
+  - derive_action_plan
+  - define_stage_route
+  - structure_operational_context
+
+forbidden_actions:
+  - execute_code
+  - modify_files
+  - evaluate_rules
+  - assert_new_authority
+
+success_criteria:
+  action_plan_valid: true
+  stage_route_defined: true
+
+notes: >
+  Parse is a constitutional phase. It structures intent into an explicit
+  operational plan but does not yet resolve runtime bindings or execute changes.

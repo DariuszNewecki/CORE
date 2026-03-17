@@ -1,0 +1,42 @@
+stage_id: audit.validate_changes
+version: "1.0"
+status: experimental
+
+phase: audit
+description: Evaluate candidate changes against applicable constitutional rules.
+
+agent_role: ChangeValidator
+
+inputs:
+  required:
+    - candidate_change_set
+    - constitutional_context
+  optional:
+    - repository_snapshot
+
+actions:
+  - action_id: audit.evaluate
+    purpose: Evaluate candidate changes
+    required: true
+
+outputs:
+  produces:
+    - validation_report
+
+invariants:
+  must_hold:
+    - Validation results are explicit and structured.
+    - Rule evaluation occurs only in Audit.
+  must_not:
+    - Must not repair changes directly.
+    - Must not commit changes.
+    - Must not reinterpret constitutional authority.
+
+ordering:
+  mode: sequential
+  depends_on:
+    - runtime.generate_changes
+  next_on_success:
+    - execution.commit_changes
+  next_on_failure:
+    - runtime.repair_changes

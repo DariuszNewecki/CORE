@@ -1,0 +1,40 @@
+stage_id: runtime.repair_changes
+version: "1.0"
+status: experimental
+
+phase: runtime
+description: Repair candidate changes in response to audit findings.
+
+agent_role: RepairAgent
+
+inputs:
+  required:
+    - candidate_change_set
+    - validation_report
+  optional:
+    - execution_context
+
+actions:
+  - action_id: change.repair
+    purpose: Repair failed candidate changes
+    required: true
+
+outputs:
+  produces:
+    - repaired_change_set
+
+invariants:
+  must_hold:
+    - Repairs are derived from explicit audit findings.
+    - Repaired outputs remain pre-commit.
+  must_not:
+    - Must not declare final compliance.
+    - Must not commit changes.
+
+ordering:
+  mode: sequential
+  depends_on:
+    - audit.validate_changes
+  next_on_success:
+    - audit.validate_changes
+  next_on_failure: []

@@ -1,0 +1,46 @@
+$schema: "META/worker.schema.json"
+kind: worker
+
+metadata:
+  id: workers.proposal_worker
+  title: Autonomous Proposal Worker
+  version: "1.2.0"
+  authority: policy
+  status: active
+
+identity:
+  uuid: "46d4fb89-4bd4-4c68-9086-a39e0563bb01"
+  class: acting
+
+mandate:
+  responsibility: >
+    Reads recent ERROR findings from core.audit_findings, reasons about each
+    group via PromptModel.invoke(), and creates Proposal objects in ProposalRepository.
+    Safe proposals (approval_required=False) are created in APPROVED status so
+    ProposalConsumerWorker can execute them immediately. Proposals requiring human
+    approval are created in DRAFT and wait for explicit sign-off.
+    Dry-run by default (config.write=false) — proposals are posted to Blackboard
+    for visibility without being persisted to DB.
+  phase: execution
+  permitted_tools:
+    - llm.remote_coder
+  scope:
+    domains:
+      - compliance
+      - remediation
+  approval_required: false
+  schedule:
+    max_interval: 600
+
+implementation:
+  module: will.workers.proposal_worker
+  class: AutonomousProposalWorker
+  requires_core_context: true
+
+# Worker-specific configuration — read by AutonomousProposalWorker via
+# self._declaration.get("config", {}) inside run().
+config:
+  write: false # Set true to persist proposals to DB
+  max_proposals_per_run: 3
+  lookback_minutes: 60
+  prompt_model: proposal_reasoner

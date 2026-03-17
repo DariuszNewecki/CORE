@@ -1,5 +1,6 @@
 # src/shared/ai/response_parser.py
 # ID: shared.ai.response_parser
+
 """
 response_parser — shared utility for parsing LLM responses.
 
@@ -40,9 +41,13 @@ def extract_json(text: str) -> Any:
     """
     Extract and parse JSON from an LLM response string.
 
-    Handles two common response formats:
-    1. Plain JSON — the model returned raw JSON as instructed
-    2. Fenced JSON — the model wrapped its response in ```json ... ``` or ``` ... ```
+    Parsing strategy:
+    1. Try direct JSON parse of the whole response
+    2. Try fenced JSON/code block content
+    3. Try extracting the first balanced JSON object or array from surrounding text
+
+    This keeps backward compatibility with messy model outputs while still
+    preferring strict structured responses when providers support them.
 
     Args:
         text: Raw string returned by an LLM invocation.
@@ -57,11 +62,29 @@ def extract_json(text: str) -> Any:
     if not text or not text.strip():
         raise ValueError("LLM response is empty — cannot extract JSON.")
 
-    match = _FENCE_RE.search(text)
-    if match:
-        return json.loads(match.group(1).strip())
+    stripped = text.strip()
 
-    return json.loads(text.strip())
+    # 1. Best case: response is already pure JSON
+    try:
+        return json.loads(stripped)
+    except json.JSONDecodeError:
+        pass
+
+    # 2. Common fallback: JSON wrapped in markdown fences
+    match = _FENCE_RE.search(stripped)
+    if match:
+        fenced_content = match.group(1).strip()
+        try:
+            return json.loads(fenced_content)
+        except json.JSONDecodeError:
+            pass
+
+    # 3. Last-resort fallback: extract first balanced JSON object/array
+    candidate = _extract_balanced_json_substring(stripped)
+    if candidate is not None:
+        return json.loads(candidate)
+
+    raise json.JSONDecodeError("No valid JSON found in LLM response.", stripped, 0)
 
 
 # ID: b2c3d4e5-f6a7-8901-bcde-f12345678902
@@ -78,7 +101,7 @@ def extract_json_safe(text: str, default: Any = None) -> Any:
     """
     try:
         return extract_json(text)
-    except (json.JSONDecodeError, ValueError):
+    except (json.JSONDecodeError, ValueError, TypeError):
         return default
 
 
@@ -100,8 +123,70 @@ def extract_code(text: str) -> str:
     """
     if not text or not text.strip():
         return text
+
     stripped = text.strip()
     match = _FENCE_RE.match(stripped)
     if match:
         return match.group(1).strip()
     return stripped
+
+
+# ID: d4e5f6a7-b8c9-0123-def1-234567890124
+def _extract_balanced_json_substring(text: str) -> str | None:
+    """
+    Extract the first balanced JSON object or array substring from text.
+
+    Handles cases like:
+        "Sure, here is the JSON:\\n{...}"
+        "Result:\\n[ ... ]"
+
+    This is intentionally conservative:
+    - tracks nesting depth
+    - ignores braces/brackets inside quoted strings
+    - returns the first complete top-level object/array only
+    """
+    start_index = None
+    stack: list[str] = []
+    in_string = False
+    escape = False
+
+    for i, char in enumerate(text):
+        if start_index is None:
+            if char == "{":
+                start_index = i
+                stack.append("}")
+                continue
+            if char == "[":
+                start_index = i
+                stack.append("]")
+                continue
+            continue
+
+        if in_string:
+            if escape:
+                escape = False
+            elif char == "\\":
+                escape = True
+            elif char == '"':
+                in_string = False
+            continue
+
+        if char == '"':
+            in_string = True
+            continue
+
+        if char == "{":
+            stack.append("}")
+            continue
+        if char == "[":
+            stack.append("]")
+            continue
+
+        if char in {"}", "]"}:
+            if not stack or char != stack[-1]:
+                return None
+            stack.pop()
+            if not stack and start_index is not None:
+                return text[start_index : i + 1]
+
+    return None

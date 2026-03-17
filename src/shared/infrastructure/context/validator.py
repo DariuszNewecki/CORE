@@ -1,10 +1,17 @@
 # src/shared/infrastructure/context/validator.py
 
 """
-ContextValidator - Enforces ContextPackage schema compliance.
+ContextValidator - enforces ContextPacket schema compliance.
 
-Validates packets against the runtime schema stored under:
-    var/context/schema.yaml
+Validates doctrine-aligned packets with sections:
+    header
+    phase
+    constitution
+    policy
+    constraints
+    evidence
+    runtime
+    provenance
 """
 
 from __future__ import annotations
@@ -22,21 +29,28 @@ from shared.models.validation_result import ValidationResult
 logger = getLogger(__name__)
 
 
-# ID: 974a8871-87cd-4f58-832f-d5492e72626f
+# ID: 9aba6527-289c-4511-8283-36074d5de950
 class ContextValidator:
-    """Validates ContextPackage packets against the runtime schema."""
+    """Validates ContextPacket packets against the runtime schema."""
 
     _REQUIRED_HEADER_FIELDS: ClassVar[set[str]] = {
         "packet_id",
-        "task_id",
-        "task_type",
         "created_at",
         "builder_version",
         "privacy",
+        "mode",
+        "goal",
+        "trigger",
     }
 
     _ALLOWED_PRIVACY_VALUES: ClassVar[set[str]] = {"local_only", "remote_allowed"}
-
+    _ALLOWED_PHASE_VALUES: ClassVar[set[str]] = {
+        "parse",
+        "load",
+        "audit",
+        "runtime",
+        "execution",
+    }
     _ALLOWED_ITEM_TYPES: ClassVar[set[str]] = {
         "symbol",
         "snippet",
@@ -45,27 +59,26 @@ class ContextValidator:
         "test",
         "signature",
         "code",
+        "semantic_match",
+    }
+    _OPTIONAL_OBJECT_SECTIONS: ClassVar[set[str]] = {
+        "constitution",
+        "policy",
+        "constraints",
+        "runtime",
+        "provenance",
     }
 
-    def __init__(self, schema_path: Path | None = None):
-        """
-        Initialize validator with schema.
-
-        Args:
-            schema_path: Optional override path to schema YAML.
-                         Defaults to var/context/schema.yaml via settings.
-        """
+    def __init__(self, schema_path: Path | None = None) -> None:
         self.schema_path: Path = schema_path or self._default_schema_path()
         self.schema: dict[str, Any] = self._load_schema()
 
     def _default_schema_path(self) -> Path:
-        """Resolve the default schema path."""
         if hasattr(settings.paths, "context_schema_path"):
             return settings.paths.context_schema_path()
         return settings.REPO_PATH / "var" / "context" / "schema.yaml"
 
     def _load_schema(self) -> dict[str, Any]:
-        """Load and parse schema YAML."""
         if not self.schema_path.exists():
             raise FileNotFoundError(f"Schema not found: {self.schema_path}")
 
@@ -84,38 +97,23 @@ class ContextValidator:
 
         return data
 
-    def _safe_int(self, value: Any) -> int:
-        """Best-effort integer conversion (returns 0 on bad input)."""
-        try:
-            return int(value)
-        except (TypeError, ValueError):
-            return 0
-
-    # ID: 2412a7ae-c33f-4055-909a-ca0b4a88e49b
+    # ID: decfe9e4-f915-4bcc-9ba0-46ea5bc713d7
     def validate(self, packet: dict[str, Any]) -> ValidationResult:
-        """
-        Validate packet against schema.
-
-        Args:
-            packet: ContextPackage dict
-
-        Returns:
-            ValidationResult object
-        """
         errors: list[str] = []
 
-        # Required fields from schema
         required_fields = self.schema.get("required_fields", [])
         if isinstance(required_fields, list):
             for field in required_fields:
                 if field not in packet:
                     errors.append(f"Missing required field: {field}")
 
-        # Validate components
         errors.extend(self._validate_header(packet.get("header", {})))
-        errors.extend(self._validate_constraints(packet))
-        errors.extend(self._validate_context(packet.get("context", [])))
+        errors.extend(self._validate_phase(packet.get("phase")))
+        errors.extend(self._validate_evidence(packet.get("evidence", [])))
+        errors.extend(self._validate_optional_sections(packet))
+        errors.extend(self._validate_constraints(packet.get("constraints", {})))
         errors.extend(self._validate_policy(packet))
+        errors.extend(self._validate_provenance(packet.get("provenance", {})))
 
         header = packet.get("header")
         packet_id = (
@@ -141,8 +139,7 @@ class ContextValidator:
             metadata={"packet_id": packet_id},
         )
 
-    def _validate_header(self, header: dict[str, Any]) -> list[str]:
-        """Validate header fields."""
+    def _validate_header(self, header: Any) -> list[str]:
         if not isinstance(header, dict):
             return ["Header must be an object"]
 
@@ -158,59 +155,60 @@ class ContextValidator:
 
         return errors
 
-    def _validate_constraints(self, packet: dict[str, Any]) -> list[str]:
-        """Validate resource constraints."""
-        constraints = packet.get("constraints", {})
+    def _validate_phase(self, phase: Any) -> list[str]:
+        if not isinstance(phase, str):
+            return ["Phase must be a string"]
+        if phase not in self._ALLOWED_PHASE_VALUES:
+            return [f"Invalid phase value: {phase}"]
+        return []
+
+    def _validate_constraints(self, constraints: Any) -> list[str]:
         if not isinstance(constraints, dict):
             return ["Constraints must be an object"]
 
         errors: list[str] = []
-        context_items = packet.get("context", [])
 
-        # Validate max_tokens
-        if "max_tokens" in constraints:
-            try:
-                max_tokens = int(constraints["max_tokens"])
-            except (ValueError, TypeError):
-                return ["constraints.max_tokens must be an integer"]
-
-            if isinstance(context_items, list):
-                total_tokens = sum(
-                    self._safe_int(item.get("tokens_est", 0))
-                    for item in context_items
-                    if isinstance(item, dict)
-                )
-                if total_tokens > max_tokens:
-                    errors.append(
-                        f"Token budget exceeded: {total_tokens} > {max_tokens}"
-                    )
+        applicable_rules = constraints.get("applicable_rules")
+        if applicable_rules is not None and not isinstance(applicable_rules, list):
+            errors.append("Constraints.applicable_rules must be an array")
 
         return errors
 
-    def _validate_context(self, context: Any) -> list[str]:
-        """Validate context array items."""
-        if not isinstance(context, list):
-            return ["Context must be an array"]
+    def _validate_evidence(self, evidence: Any) -> list[str]:
+        if not isinstance(evidence, list):
+            return ["Evidence must be an array"]
 
         errors: list[str] = []
 
-        for idx, item in enumerate(context):
+        for idx, item in enumerate(evidence):
             if not isinstance(item, dict):
-                errors.append(f"Context[{idx}] must be an object")
+                errors.append(f"Evidence[{idx}] must be an object")
                 continue
 
             missing_fields = sorted({"name", "item_type", "source"} - set(item.keys()))
             for field in missing_fields:
-                errors.append(f"Context[{idx}] missing required field: {field}")
+                errors.append(f"Evidence[{idx}] missing required field: {field}")
 
             item_type = item.get("item_type")
             if item_type is not None and item_type not in self._ALLOWED_ITEM_TYPES:
-                errors.append(f"Context[{idx}] invalid item_type: {item_type}")
+                errors.append(f"Evidence[{idx}] invalid item_type: {item_type}")
+
+        return errors
+
+    def _validate_optional_sections(self, packet: dict[str, Any]) -> list[str]:
+        errors: list[str] = []
+
+        for section in self._OPTIONAL_OBJECT_SECTIONS:
+            if section in packet and not isinstance(packet[section], dict):
+                errors.append(f"{section.capitalize()} must be an object")
+
+        constitution = packet.get("constitution")
+        if constitution is not None and not isinstance(constitution, dict):
+            errors.append("Constitution must be an object")
 
         return errors
 
     def _validate_policy(self, packet: dict[str, Any]) -> list[str]:
-        """Validate policy consistency."""
         policy = packet.get("policy", {})
         header = packet.get("header", {})
 
@@ -220,10 +218,30 @@ class ContextValidator:
             return ["Header must be an object"]
 
         errors: list[str] = []
+
         privacy = header.get("privacy")
         remote_allowed = bool(policy.get("remote_allowed"))
 
         if privacy == "local_only" and remote_allowed:
             errors.append("Privacy is local_only but policy.remote_allowed is true")
+
+        return errors
+
+    def _validate_provenance(self, provenance: Any) -> list[str]:
+        if not isinstance(provenance, dict):
+            return ["Provenance must be an object"]
+
+        errors: list[str] = []
+
+        if "cache_key" in provenance and not isinstance(provenance["cache_key"], str):
+            errors.append("Provenance.cache_key must be a string")
+
+        if "providers" in provenance and not isinstance(provenance["providers"], list):
+            errors.append("Provenance.providers must be an array")
+
+        if "build_stats" in provenance and not isinstance(
+            provenance["build_stats"], dict
+        ):
+            errors.append("Provenance.build_stats must be an object")
 
         return errors

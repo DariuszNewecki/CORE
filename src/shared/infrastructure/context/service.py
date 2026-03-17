@@ -1,19 +1,20 @@
 # src/shared/infrastructure/context/service.py
+
 """
-ContextService - Main orchestrator for ContextPackage lifecycle.
+ContextService - main orchestrator for ContextPacket lifecycle.
 
-Supports sensory injection via LimbWorkspace for "future truth" context.
-Coordinates the transition between Historical State (DB) and Shadow State (Workspace).
+Pipeline:
+    ContextBuildRequest
+        -> ContextBuilder
+        -> ContextValidator
+        -> ContextRedactor
+        -> ContextSerializer
 
-HEALED (V2.3.0):
-- JIT Service Resolution: Now resolves Cognitive and Qdrant services from the
-  global registry at runtime if they were provided as None during bootstrap.
-- Prevents 'Two Brains' bug while preserving all V2.3.0 query-parsing features.
+This service does not preserve legacy task_spec or query payload compatibility.
 """
 
 from __future__ import annotations
 
-import uuid
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -22,6 +23,7 @@ from shared.logger import getLogger
 from .builder import ContextBuilder
 from .cache import ContextCache
 from .database import ContextDatabase
+from .models import ContextBuildRequest, ContextPacket
 from .providers.ast import ASTProvider
 from .providers.db import DBProvider
 from .providers.vectors import VectorProvider
@@ -36,13 +38,10 @@ if TYPE_CHECKING:
 logger = getLogger(__name__)
 
 
-# ID: 6fee4321-e9f8-4234-b9f0-dbe2c49ec016
+# ID: abac420e-2c78-4e00-bdae-56ce751388d7
 class ContextService:
     """
-    Main service for ContextPackage lifecycle management.
-
-    Constitutional Role: Infrastructure Coordination.
-    Acts as the sensory nerve center for AI agents.
+    Main service for ContextPacket lifecycle management.
     """
 
     def __init__(
@@ -59,11 +58,9 @@ class ContextService:
         self._session_factory = session_factory
         self.workspace = workspace
 
-        # Store these privately; they might be None if called from bootstrap factory
         self._qdrant_client = qdrant_client
         self._cognitive_service = cognitive_service
 
-        # Initialize core components that don't need the "Brain" yet
         self.validator = ContextValidator()
         self.redactor = ContextRedactor()
         self.cache = ContextCache(self.config.get("cache_dir", "work/context_cache"))
@@ -71,153 +68,101 @@ class ContextService:
         self.ast_provider = ASTProvider(project_root)
 
         if self.workspace:
-            logger.info(
-                "ContextService initialized in SHADOW mode (Future Truth active)"
-            )
+            logger.info("ContextService initialized in SHADOW mode")
 
-    # ID: 498ac646-47e9-4e86-83b0-e25923ff9ef5
-    async def build_for_task(
-        self, task_spec: dict[str, Any], use_cache: bool = True
-    ) -> dict[str, Any]:
+    async def _ensure_brain_services(self) -> None:
         """
-        Build a context packet for a task.
-        CONSTITUTIONAL FIX: Resolves Brain and Memory JIT to ensure they are initialized.
+        Resolve vector/cognitive services JIT if missing at bootstrap.
         """
-        # 1. THE MERGE: If we are missing services, grab the Global ones from the Registry
         if self._cognitive_service is None or self._qdrant_client is None:
             from body.services.service_registry import service_registry
 
             if self._cognitive_service is None:
                 self._cognitive_service = await service_registry.get_cognitive_service()
+
             if self._qdrant_client is None:
                 self._qdrant_client = await service_registry.get_qdrant_service()
 
-        # 2. THE RE-WIRING: Ensure Providers use the AWAKE Brain
+    def _build_context_builder(self) -> ContextBuilder:
         db_provider = DBProvider(session_factory=self._session_factory)
         vector_provider = VectorProvider(self._qdrant_client, self._cognitive_service)
 
-        builder = ContextBuilder(
-            db_provider,
-            vector_provider,
-            self.ast_provider,
-            self.config,
+        return ContextBuilder(
+            db_provider=db_provider,
+            vector_provider=vector_provider,
+            ast_provider=self.ast_provider,
+            config=self.config,
             workspace=self.workspace,
         )
 
-        # 3. Cache Logic
+    # ID: b2fddb8f-af40-41d9-a45d-9af40ca1dc10
+    async def build(
+        self,
+        request: ContextBuildRequest,
+        use_cache: bool = True,
+    ) -> ContextPacket:
+        """
+        Canonical entry point for context packet assembly.
+        """
+        await self._ensure_brain_services()
+
         effective_use_cache = use_cache if self.workspace is None else False
+        cache_key = self._compute_request_cache_key(request)
+
         if effective_use_cache:
-            cache_key = ContextSerializer.compute_cache_key(task_spec)
             cached = self.cache.get(cache_key)
             if cached:
-                return cached
+                return self._payload_to_packet(cached, request)
 
-        # 4. Execute the build (This now has access to the awake Brain)
-        packet = await builder.build_for_task(task_spec)
+        builder = self._build_context_builder()
+        packet = await builder.build(request)
 
-        # 5. Validation and Redaction
-        result = self.validator.validate(packet)
-        if not result.ok:
-            logger.error("Context Packet rejected: %s", result.errors)
-            raise ValueError(f"Context validation failed: {result.errors}")
+        validation_result = self.validator.validate(packet)
+        if not validation_result.ok:
+            logger.error("Context packet rejected: %s", validation_result.errors)
+            raise ValueError(f"Context validation failed: {validation_result.errors}")
 
-        packet = self.redactor.redact(result.validated_data)
-        packet["provenance"]["packet_hash"] = ContextSerializer.compute_packet_hash(
-            packet
+        redacted_packet = self.redactor.redact(validation_result.validated_data)
+        redacted_packet.setdefault("provenance", {})
+        redacted_packet["provenance"]["packet_hash"] = (
+            ContextSerializer.compute_packet_hash(redacted_packet)
         )
 
-        return packet
+        if effective_use_cache:
+            self.cache.set(cache_key, redacted_packet)
 
-    # ID: 512bfbd1-2a03-4eec-aff5-64d8bf344d43
-    async def build_from_query(
+        return self._payload_to_packet(redacted_packet, request)
+
+    def _compute_request_cache_key(self, request: ContextBuildRequest) -> str:
+        payload = {
+            "goal": request.goal,
+            "trigger": request.trigger,
+            "phase": request.phase,
+            "workflow_id": request.workflow_id,
+            "stage_id": request.stage_id,
+            "target_files": list(request.target_files),
+            "target_symbols": list(request.target_symbols),
+            "target_paths": list(request.target_paths),
+            "include_constitution": request.include_constitution,
+            "include_policy": request.include_policy,
+            "include_symbols": request.include_symbols,
+            "include_vectors": request.include_vectors,
+            "include_runtime": request.include_runtime,
+        }
+        return ContextSerializer.compute_cache_key(payload)
+
+    def _payload_to_packet(
         self,
-        natural_query: str,
-        max_tokens: int = 30000,
-        max_items: int = 30,
-        use_cache: bool = True,
-    ) -> dict[str, Any]:
-        """
-        Build context package from natural language query.
-        PRESERVED: Full V2.3.0 classification logic.
-        """
-        logger.info("Building context from query: '%s'", natural_query)
-
-        query_type = self._classify_query(natural_query)
-        logger.debug("Query classified as: %s", query_type)
-
-        scope = self._extract_scope(natural_query, query_type)
-
-        task_spec = {
-            "task_id": f"query_{uuid.uuid4().hex[:8]}",
-            "task_type": "code_search",
-            "summary": natural_query,
-            "scope": scope,
-            "constraints": {
-                "max_tokens": max_tokens,
-                "max_items": max_items,
-            },
-        }
-
-        return await self.build_for_task(task_spec, use_cache=use_cache)
-
-    def _classify_query(self, query: str) -> str:
-        """Pattern indicators: specific code constructs"""
-        pattern_keywords = [
-            "isinstance",
-            "import",
-            "async",
-            "with",
-            "try",
-            "except",
-            "class",
-            "def",
-            "await",
-            "yield",
-            "lambda",
-        ]
-        query_lower = query.lower()
-
-        if any(keyword in query_lower for keyword in pattern_keywords):
-            return "pattern"
-        if any(phrase in query_lower for phrase in ["uses", "calls", "contains"]):
-            return "pattern"
-        return "semantic"
-
-    def _extract_scope(self, query: str, query_type: str) -> dict[str, Any]:
-        """Extract search scope from natural language query."""
-        scope: dict[str, Any] = {
-            "include": [],
-            "exclude": ["tests/", "migrations/", "__pycache__"],
-            "traversal_depth": 0,
-        }
-
-        query_lower = query.lower()
-        if query_type == "pattern":
-            pattern_keywords = [
-                "isinstance",
-                "async",
-                "await",
-                "with",
-                "try",
-                "except",
-                "class",
-                "def",
-                "import",
-                "lambda",
-                "yield",
-            ]
-            for keyword in pattern_keywords:
-                if keyword in query_lower:
-                    scope["include"].append(keyword)
-            scope["traversal_depth"] = 1
-
-        common_terms = ["in", "from", "within", "inside", "under"]
-        for term in common_terms:
-            if f" {term} " in f" {query_lower} ":
-                parts = query_lower.split(term)
-                if len(parts) > 1:
-                    potential_scope = parts[1].strip().split()[0]
-                    if potential_scope not in ["the", "a", "an", "all", "any"]:
-                        scope["include"].append(potential_scope)
-
-        return scope
+        payload: dict[str, Any],
+        request: ContextBuildRequest,
+    ) -> ContextPacket:
+        return ContextPacket(
+            request=request,
+            header=payload.get("header", {}),
+            constitution=payload.get("constitution", {}),
+            policy=payload.get("policy", {}),
+            constraints=payload.get("constraints", {}),
+            evidence=payload.get("evidence", {}),
+            runtime=payload.get("runtime", {}),
+            provenance=payload.get("provenance", {}),
+        )

@@ -1,6 +1,6 @@
 # src/shared/infrastructure/context/redactor.py
 
-"""Provides functionality for the redactor module."""
+"""Context packet redaction utilities."""
 
 from __future__ import annotations
 
@@ -11,7 +11,7 @@ from typing import Any
 
 
 @dataclass
-# ID: 3df1f51b-2647-4409-bfb4-9fc2f2e5c324
+# ID: 217da260-f777-4fa1-a29b-da690f973cd6
 class RedactionEvent:
     kind: str
     path: str | None
@@ -20,27 +20,27 @@ class RedactionEvent:
 
 
 @dataclass
-# ID: 4c2af27e-20b3-4f51-8bd0-268fd67e7e7e
+# ID: fe03be1b-2d23-4707-8428-8c5f7cc1be3b
 class RedactionReport:
     applied: list[RedactionEvent] = field(default_factory=list)
 
-    # ID: 9b3765f9-84ef-49a3-81c9-d1ddecd0548a
+    # ID: 402fe6fa-d954-4108-afd3-c6a498efb5e8
     def add(self, event: RedactionEvent) -> None:
         self.applied.append(event)
 
     @property
-    # ID: ada22ab0-bd08-4838-96a9-e709a0b8fb56
+    # ID: ea34d53e-e4da-4a60-b834-9935fcdf2b0a
     def touched_sensitive(self) -> bool:
         return any(
-            e.kind in ("content_masked", "content_removed", "path_removed")
-            for e in self.applied
+            event.kind in {"content_masked", "content_removed", "path_removed"}
+            for event in self.applied
         )
 
 
 DEFAULT_FORBIDDEN_PATHS = [
-    ".env",  # Root .env
+    ".env",
     ".env.*",
-    "**/.env",  # Nested .env
+    "**/.env",
     "**/.env.*",
     "**/env/**",
     "**/secrets/**",
@@ -53,9 +53,10 @@ def _should_remove_path(path: str, forbidden_globs: list[str]) -> bool:
     return any(p.match(glob) for glob in forbidden_globs)
 
 
-# ID: 870efb24-abf2-4c34-8749-55d68289de8b
+# ID: 2ba5eab5-8e98-4093-9395-6d6fa01db53e
 def redact_packet(
-    packet: dict[str, Any], policy: dict[str, Any] | None = None
+    packet: dict[str, Any],
+    policy: dict[str, Any] | None = None,
 ) -> tuple[dict[str, Any], RedactionReport]:
     policy = policy or {}
     red_cfg = policy.get("redaction", {})
@@ -63,34 +64,46 @@ def redact_packet(
 
     pkt = copy.deepcopy(packet)
     report = RedactionReport()
-    items: list[dict[str, Any]] = pkt.get("items", [])
 
-    kept = []
-    for it in items:
-        path = it.get("path") or ""
+    evidence = pkt.get("evidence", [])
+    if not isinstance(evidence, list):
+        evidence = []
+
+    kept: list[dict[str, Any]] = []
+    for item in evidence:
+        path = item.get("path") or ""
         if path and _should_remove_path(path, forbidden_paths):
             report.add(RedactionEvent("path_removed", path, "forbidden_path"))
             continue
-        kept.append(it)
-    pkt["items"] = kept
+        kept.append(item)
+
+    pkt["evidence"] = kept
+
+    provenance = pkt.setdefault("provenance", {})
+    provenance["redactions_applied"] = [
+        {
+            "kind": event.kind,
+            "path": event.path,
+            "reason": event.reason,
+            "detail": event.detail,
+        }
+        for event in report.applied
+    ]
+    provenance["sensitive_content_touched"] = report.touched_sensitive
 
     header = pkt.setdefault("header", {})
-    pol = header.setdefault("policy", {})
-    pol["redactions_applied"] = [
-        {"kind": e.kind, "path": e.path, "reason": e.reason} for e in report.applied
-    ]
     if report.touched_sensitive:
-        header.setdefault("privacy", {})["remote_allowed"] = False
+        header["privacy"] = "local_only"
 
     return pkt, report
 
 
-# ID: 303c0595-07f9-42ae-bf86-5ba9f00fd376
+# ID: 66112a36-f621-4c79-b299-f92ea0d6de5e
 class ContextRedactor:
-    def __init__(self, policy: dict[str, Any] | None = None):
+    def __init__(self, policy: dict[str, Any] | None = None) -> None:
         self.policy = policy or {}
 
-    # ID: 7c58f81a-bcc7-4459-bed7-13a0e69b2fa5
+    # ID: 99f8c335-34c5-4bc8-b883-15121dcf55bc
     def redact(self, packet: dict[str, Any]) -> dict[str, Any]:
         pkt, _ = redact_packet(packet, self.policy)
         return pkt

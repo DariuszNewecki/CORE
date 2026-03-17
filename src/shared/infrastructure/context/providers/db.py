@@ -1,12 +1,7 @@
 # src/shared/infrastructure/context/providers/db.py
 
 """
-DBProvider - Fetches symbols from PostgreSQL.
-
-CONSTITUTIONAL FIX (V2.3.0):
-- Modularized to reduce Modularity Debt (50.6 -> ~34.0).
-- Extracts SQL Generation to '_SQLRegistry'.
-- Focuses purely on Database Retrieval.
+DBProvider - fetches symbol evidence from PostgreSQL.
 """
 
 from __future__ import annotations
@@ -23,30 +18,41 @@ from shared.logger import getLogger
 logger = getLogger(__name__)
 
 
-# ID: cc3ee4dc-96ac-4568-be73-284148dde4e7
 class _SQLRegistry:
-    """Specialist in building complex SQL queries for the provider."""
+    """Build SQL fragments for database-backed context retrieval."""
 
     GRAPH_TRAVERSAL = text(
         """
         WITH RECURSIVE symbol_graph AS (
-            SELECT id, qualname, calls, 0 as depth FROM core.symbols WHERE id = :symbol_id
+            SELECT id, qualname, calls, 0 AS depth
+            FROM core.symbols
+            WHERE id = :symbol_id
+
             UNION ALL
+
             SELECT s.id, s.qualname, s.calls, sg.depth + 1
             FROM core.symbols s, symbol_graph sg
-            WHERE sg.depth < :depth AND (
-                s.qualname = ANY(SELECT jsonb_array_elements_text(sg.calls))
-                OR EXISTS (SELECT 1 FROM jsonb_array_elements_text(s.calls) AS elem WHERE elem ->> 0 = sg.qualname)
-            )
+            WHERE sg.depth < :depth
+              AND (
+                    s.qualname = ANY(
+                        SELECT jsonb_array_elements_text(sg.calls)
+                    )
+                    OR EXISTS (
+                        SELECT 1
+                        FROM jsonb_array_elements_text(s.calls) AS elem
+                        WHERE elem = sg.qualname
+                    )
+                  )
         )
-        SELECT s.* FROM core.symbols s
+        SELECT s.*
+        FROM core.symbols s
         JOIN (SELECT DISTINCT id FROM symbol_graph) AS ids ON s.id = ids.id
         WHERE s.id != :symbol_id;
-    """
+        """
     )
 
     @staticmethod
-    # ID: 9a58606a-051e-4a9e-9d1e-68306a246f32
+    # ID: f2e9fe0c-0629-4685-88a0-8baa4272722d
     def build_module_pattern(path: str) -> str:
         pattern = (
             path.replace("src/", "").replace("/", ".").replace(".py", "").strip(".")
@@ -54,28 +60,30 @@ class _SQLRegistry:
         return f"{pattern}%" if pattern else "%"
 
 
-# ID: cf20cce3-768d-4ab6-87e8-51f45928dd7e
+# ID: cc3d11db-9752-4031-ba67-4a08235ef5ee
 class DBProvider:
-    """Provides symbol data from database using DI session factory."""
+    """Provides database-backed symbol evidence."""
 
-    def __init__(self, session_factory: Callable | None = None):
+    def __init__(self, session_factory: Callable | None = None) -> None:
         self._session_factory = session_factory
 
-    # ID: 8a9b1c2d-3e4f-5a6b-7c8d-9e0f1a2b3c4d
+    # ID: da1254e0-fff8-43c1-8785-02f93cf9beae
     async def fetch_symbols_for_scope(
-        self, scope: dict[str, Any], max_items: int = 100
+        self,
+        scope: dict[str, Any],
+        max_items: int = 100,
     ) -> list[dict[str, Any]]:
-        """Fetch symbols matching scope definition."""
         if not self._session_factory:
             return []
 
         includes = scope.get("include", [])
-        # We use the specialist to build patterns
         patterns = [(_SQLRegistry.build_module_pattern(p), 1) for p in includes] or [
             ("%", 1)
         ]
 
-        symbols = []
+        evidence: list[dict[str, Any]] = []
+        seen: set[str] = set()
+
         async with self._session_factory() as db:
             for pattern, _ in patterns:
                 stmt = (
@@ -84,36 +92,71 @@ class DBProvider:
                     .limit(max_items)
                 )
                 result = await db.execute(stmt)
+
                 for row in result.scalars().all():
-                    if len(symbols) >= max_items:
-                        break
-                    symbols.append(self._format_item(row))
+                    item = self._format_symbol_row(row)
+                    dedupe_key = f"{item['name']}::{item['path']}"
+                    if dedupe_key in seen:
+                        continue
 
-        return symbols
+                    evidence.append(item)
+                    seen.add(dedupe_key)
 
-    # ID: cbdd5c76-f03c-432e-accf-cc75d956eacc
-    async def get_related_symbols(self, symbol_id: str, depth: int) -> list[dict]:
-        """Fetch related symbols via recursive graph traversal."""
+                    if len(evidence) >= max_items:
+                        return evidence
+
+        return evidence
+
+    # ID: 3560f987-718b-409d-bd20-e98cc4c5f7c9
+    async def get_related_symbols(
+        self,
+        symbol_id: str,
+        depth: int,
+    ) -> list[dict[str, Any]]:
         if depth <= 0 or not self._session_factory:
             return []
 
         async with self._session_factory() as db:
             result = await db.execute(
-                _SQLRegistry.GRAPH_TRAVERSAL, {"symbol_id": symbol_id, "depth": depth}
+                _SQLRegistry.GRAPH_TRAVERSAL,
+                {"symbol_id": symbol_id, "depth": depth},
             )
-            return [self._format_item(row) for row in result.mappings()]
+            return [self._format_mapping_row(row) for row in result.mappings().all()]
 
-    def _format_item(self, row: Any) -> dict:
-        """Standardizes DB row into a Context Item."""
+    def _format_symbol_row(self, row: Any) -> dict[str, Any]:
+        module = getattr(row, "module", "") or ""
+        qualname = getattr(row, "qualname", "") or ""
+
         return {
-            "name": row.qualname,
-            "path": f"src/{row.module.replace('.', '/')}.py",
+            "name": qualname,
+            "path": f"src/{module.replace('.', '/')}.py" if module else "",
             "item_type": "symbol",
-            "signature": getattr(row, "ast_signature", "pending"),
-            "summary": getattr(row, "intent", ""),
-            "source": "db_query",
+            "content": None,
+            "signature": getattr(row, "ast_signature", "") or "",
+            "summary": getattr(row, "intent", "") or "",
+            "source": "database",
+            "symbol_path": qualname,
             "metadata": {
-                "symbol_id": str(row.id),
+                "symbol_id": str(getattr(row, "id", "")),
                 "kind": getattr(row, "kind", "function"),
+            },
+        }
+
+    def _format_mapping_row(self, row: Any) -> dict[str, Any]:
+        module = row.get("module", "") or ""
+        qualname = row.get("qualname", "") or ""
+
+        return {
+            "name": qualname,
+            "path": f"src/{module.replace('.', '/')}.py" if module else "",
+            "item_type": "symbol",
+            "content": None,
+            "signature": row.get("ast_signature", "") or "",
+            "summary": row.get("intent", "") or "",
+            "source": "database",
+            "symbol_path": qualname,
+            "metadata": {
+                "symbol_id": str(row.get("id", "")),
+                "kind": row.get("kind", "function"),
             },
         }

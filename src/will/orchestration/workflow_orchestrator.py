@@ -4,7 +4,7 @@
 Constitutional Workflow Orchestrator
 
 Dynamically composes and executes phases based on workflow definitions
-from .intent/workflows/.
+from the constitutional repository.
 
 This replaces the hardcoded A3 loop with a constitutional, composable system.
 """
@@ -15,8 +15,7 @@ import time
 from dataclasses import dataclass
 from typing import Any
 
-import yaml
-
+from shared.infrastructure.intent.intent_repository import get_intent_repository
 from shared.logger import getLogger
 from shared.models.workflow_models import PhaseResult, PhaseWorkflowResult
 from shared.path_resolver import PathResolver
@@ -30,7 +29,7 @@ logger = getLogger(__name__)
 @dataclass
 # ID: 40124b3b-51eb-493c-bed4-e4a0b128443b
 class WorkflowDefinition:
-    """Parsed workflow definition from .intent/workflows/"""
+    """Parsed workflow definition from the constitutional repository."""
 
     workflow_type: str
     description: str
@@ -63,29 +62,20 @@ class WorkflowOrchestrator:
     """
     Constitutional workflow orchestrator.
 
-    Reads workflow definitions from .intent/workflows/
-    Composes phases dynamically based on goal type.
+    Reads workflow definitions from the constitutional repository
+    and composes phases dynamically based on goal type.
     """
 
     def __init__(self, phase_registry: PhaseRegistry, path_resolver: PathResolver):
         self.phases = phase_registry
         self._paths = path_resolver
         self.tracer = DecisionTracer(self._paths)
-        self.workflow_dir = self._paths.intent_root / "workflows"
+        self._intent_repo = get_intent_repository()
 
     # ID: b86b70a4-9d28-4ec5-81cb-80bdc1578bc6
     def _load_workflow_definition(self, workflow_type: str) -> WorkflowDefinition:
-        """Load workflow definition from Constitution."""
-        workflow_path = self.workflow_dir / f"{workflow_type}.yaml"
-
-        if not workflow_path.exists():
-            raise ValueError(
-                f"Unknown workflow type: {workflow_type}. "
-                f"Expected file: {workflow_path}"
-            )
-
-        with open(workflow_path) as f:
-            data = yaml.safe_load(f)
+        """Load workflow definition from the constitutional repository."""
+        data = self._intent_repo.load_workflow(workflow_type)
 
         return WorkflowDefinition(
             workflow_type=data["workflow_type"],
@@ -109,7 +99,7 @@ class WorkflowOrchestrator:
 
         Args:
             goal: High-level objective
-            workflow_type: Which workflow to use (from .intent/workflows/)
+            workflow_type: Which workflow to use
             write: Whether to apply changes
         """
         workflow_start = time.time()
@@ -121,17 +111,13 @@ class WorkflowOrchestrator:
         logger.info("Write Mode: %s", write)
         logger.info("=" * 80)
 
-        # Load workflow definition from Constitution
         workflow_def = self._load_workflow_definition(workflow_type)
 
-        # Validate write mode if required
         if workflow_def.write_required and not write:
             logger.info("Dry-run mode: No changes will be applied")
 
-        # Build execution context
         context = WorkflowContext(goal=goal, workflow_type=workflow_type, write=write)
 
-        # Execute phase pipeline
         phase_results = []
         for phase_name in workflow_def.phases:
             logger.info("")
@@ -151,19 +137,17 @@ class WorkflowOrchestrator:
 
                 if result.ok:
                     logger.info("✅ Phase completed: %.2fs", phase_duration)
-                    # Store phase outputs in context for next phase
                     context.results[phase_name] = result.data
                 else:
                     logger.error("❌ Phase failed: %s", result.error)
 
-                    # Check failure mode from phase definition
                     phase_def = self._load_phase_definition(phase_name)
                     failure_mode = phase_def.get("failure_mode", "block")
 
                     if failure_mode == "block":
                         logger.error("⛔ Workflow blocked by phase failure")
                         break
-                    elif failure_mode == "warn":
+                    if failure_mode == "warn":
                         logger.warning("⚠️  Phase failed but workflow continues")
                         continue
 
@@ -174,7 +158,6 @@ class WorkflowOrchestrator:
                 )
                 break
 
-        # Evaluate success criteria
         criteria_ok = self._evaluate_success_criteria(
             workflow_def.success_criteria, context
         )
@@ -205,31 +188,24 @@ class WorkflowOrchestrator:
 
         return result
 
-    def _load_phase_definition(self, phase_name: str) -> dict:
-        """Load phase definition from .intent/phases/"""
-        phase_path = self._paths.intent_root / "phases" / f"{phase_name}.yaml"
-        with open(phase_path) as f:
-            return yaml.safe_load(f)
+    def _load_phase_definition(self, phase_name: str) -> dict[str, Any]:
+        """Load phase definition from the constitutional repository."""
+        return self._intent_repo.load_phase(phase_name)
 
     def _evaluate_success_criteria(
         self, criteria: dict[str, Any], context: WorkflowContext
     ) -> bool:
         """Evaluate workflow success criteria by searching through phase results."""
-        # FIXED: Flatten results for easier lookup since phases nest their data
-        flat_results = {}
+        flat_results: dict[str, Any] = {}
         for phase_data in context.results.values():
             if isinstance(phase_data, dict):
                 flat_results.update(phase_data)
 
-        # Simple implementation - can be made more sophisticated
         for key, expected in criteria.items():
-            # FIXED: Search in the flattened map
             actual = flat_results.get(key)
 
             if isinstance(expected, bool):
                 if actual != expected:
-                    # Specific check for canary: if no tests found to run,
-                    # we count it as 'passed' for refactoring purposes.
                     if key == "canary_passes" and flat_results.get("skipped"):
                         continue
                     return False

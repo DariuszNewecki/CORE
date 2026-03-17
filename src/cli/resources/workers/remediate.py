@@ -87,7 +87,10 @@ async def remediate_cmd(
     )
     logger.info("\n[cyan]Step 1/2 — AuditViolationSensor[/cyan]")
     sensor = AuditViolationSensor(
-        core_context=core_context, target_rule=rule, dry_run=not write
+        core_context=core_context,
+        declaration_name=f"audit_sensor_{rule.split('.')[0]}",
+        rule_namespace=rule,
+        dry_run=not write,
     )
     await sensor.start()
     logger.info("[green]✓ Sensor complete.[/green]")

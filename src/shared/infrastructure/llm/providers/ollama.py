@@ -6,6 +6,8 @@ Provides an AIProvider implementation for Ollama APIs.
 
 from __future__ import annotations
 
+from typing import Any
+
 import httpx
 
 from shared.logger import getLogger
@@ -22,7 +24,7 @@ _DEFAULT_SYSTEM = "You are a helpful assistant."
 class OllamaProvider(AIProvider):
     """Provider for Ollama-compatible chat and embedding APIs."""
 
-    def _prepare_headers(self) -> dict:
+    def _prepare_headers(self) -> dict[str, str]:
         return {"Content-Type": "application/json"}
 
     # ID: b4ddef76-9da6-4b19-ad12-8f92eac28f86
@@ -32,6 +34,7 @@ class OllamaProvider(AIProvider):
         user_id: str,
         system_prompt: str = "",
         max_tokens: int = 4096,
+        response_format: dict[str, Any] | None = None,
     ) -> str:
         """
         Generates a chat completion using the Ollama /api/chat format.
@@ -43,12 +46,25 @@ class OllamaProvider(AIProvider):
                            system-role message. Falls back to a neutral default
                            when empty so the model always receives a system turn.
             max_tokens: Mapped to Ollama's options.num_predict to cap output length.
+            response_format: Optional provider-agnostic structured-output contract.
+
+                Supported:
+                    {"type": "json_object"}
+                    {"type": "json_schema", "schema": {...}}
+
+                Ollama mapping:
+                    - json_object -> payload["format"] = "json"
+                    - json_schema -> payload["format"] = <raw schema dict>
+
+        Returns:
+            Raw text content from Ollama's assistant message.
         """
         endpoint = f"{self.api_url}/api/chat"
         effective_system = (
             system_prompt.strip() if system_prompt.strip() else _DEFAULT_SYSTEM
         )
-        payload = {
+
+        payload: dict[str, Any] = {
             "model": self.model_name,
             "messages": [
                 {"role": "system", "content": effective_system},
@@ -59,6 +75,37 @@ class OllamaProvider(AIProvider):
                 "num_predict": max_tokens,
             },
         }
+
+        if response_format:
+            format_type = response_format.get("type")
+
+            if format_type == "json_schema":
+                schema = response_format.get("schema")
+                if isinstance(schema, dict) and schema:
+                    payload["format"] = schema
+                    logger.debug(
+                        "OllamaProvider using native JSON Schema structured output "
+                        "for model '%s'.",
+                        self.model_name,
+                    )
+                else:
+                    logger.warning(
+                        "OllamaProvider received invalid json_schema response_format; "
+                        "falling back to normal text generation."
+                    )
+            elif format_type == "json_object":
+                payload["format"] = "json"
+                logger.debug(
+                    "OllamaProvider using JSON object mode for model '%s'.",
+                    self.model_name,
+                )
+            else:
+                logger.warning(
+                    "OllamaProvider received unsupported response_format type '%s'; "
+                    "falling back to normal text generation.",
+                    format_type,
+                )
+
         async with httpx.AsyncClient(timeout=self.timeout) as client:
             response = await client.post(endpoint, headers=self.headers, json=payload)
             response.raise_for_status()
@@ -76,11 +123,13 @@ class OllamaProvider(AIProvider):
         """
         endpoint = f"{self.api_url}/api/embeddings"
         payload = {"model": self.model_name, "prompt": text}
+
         async with httpx.AsyncClient(timeout=self.timeout) as client:
             response = await client.post(endpoint, headers=self.headers, json=payload)
             response.raise_for_status()
             data = response.json()
             vec = data["embedding"]
+
             if len(vec) > 3:
                 is_ghost = all(
                     abs(a - b) < 0.001 for a, b in zip(vec[:3], GHOST_VECTOR_START)
@@ -91,4 +140,5 @@ class OllamaProvider(AIProvider):
                         len(text),
                     )
                     raise RuntimeError("Embedding model failed (Ghost Vector returned)")
+
             return vec

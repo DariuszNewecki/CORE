@@ -7,6 +7,7 @@ Defines the abstract base class for all AI provider strategies.
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from typing import Any
 
 import httpx
 
@@ -31,7 +32,7 @@ class AIProvider(ABC):
         self.headers = self._prepare_headers()
 
     @abstractmethod
-    def _prepare_headers(self) -> dict:
+    def _prepare_headers(self) -> dict[str, str]:
         """Prepare the specific headers for this provider."""
         pass
 
@@ -43,6 +44,7 @@ class AIProvider(ABC):
         user_id: str,
         system_prompt: str = "",
         max_tokens: int = 4096,
+        response_format: dict[str, Any] | None = None,
     ) -> str:
         """
         Generates a text completion for a given prompt.
@@ -54,6 +56,21 @@ class AIProvider(ABC):
                            the provider's built-in default.
             max_tokens: Maximum tokens to generate. Controls response length;
                         passed directly to the underlying API.
+            response_format: Optional provider-agnostic structured-output
+                             request contract.
+
+                             Supported shapes from upper layers:
+                                 {"type": "json_object"}
+                                 {"type": "json_schema", "schema": {...}}
+
+                             Providers may:
+                                 - support both shapes natively,
+                                 - support only one of them,
+                                 - ignore unsupported variants and fall back
+                                   to normal text generation.
+
+        Returns:
+            Raw provider response content as a string.
         """
         pass
 

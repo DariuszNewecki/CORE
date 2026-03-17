@@ -38,6 +38,6 @@ mandate:
   approval_required: true
 
 implementation:
-  module: body.workers.violation_remediator
-  class: ViolationRemediator
+  module: will.workers.violation_remediator
+  class: ViolationRemediatorWorker
   requires_core_context: true

@@ -174,6 +174,25 @@ class ProposalExecutor:
                         proposal.proposal_id,
                         total_duration,
                     )
+                    # Git commit — git_service.commit() already stages all changes
+                    # via add_all() internally. Failure is advisory: execution already
+                    # happened, we don't unwind it over a commit failure.
+                    if self.core_context.git_service:
+                        try:
+                            self.core_context.git_service.commit(
+                                f"fix({proposal.proposal_id[:8]}): {proposal.goal}"
+                            )
+                            logger.info(
+                                "Git commit created for proposal %s",
+                                proposal.proposal_id,
+                            )
+                        except Exception as git_err:
+                            logger.warning(
+                                "Git commit failed for proposal %s — changes applied "
+                                "but not committed: %s",
+                                proposal.proposal_id,
+                                git_err,
+                            )
                 else:
                     failed_actions = [
                         aid for aid, res in action_results.items() if not res["ok"]
@@ -284,6 +303,19 @@ class ProposalExecutor:
                                 proposal.proposal_id,
                                 results=action_results,
                             )
+                            # Git commit per proposal in batch — same advisory
+                            # semantics as single execute: log warning, don't unwind.
+                            if self.core_context.git_service:
+                                try:
+                                    self.core_context.git_service.commit(
+                                        f"fix({proposal.proposal_id[:8]}): {proposal.goal}"
+                                    )
+                                except Exception as git_err:
+                                    logger.warning(
+                                        "Git commit failed for batch proposal %s: %s",
+                                        proposal.proposal_id,
+                                        git_err,
+                                    )
                         else:
                             failed_actions = [
                                 aid

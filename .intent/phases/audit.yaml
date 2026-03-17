@@ -1,0 +1,44 @@
+phase_type: audit
+description: >
+  Evaluate candidate outputs against applicable constitutional and policy rules.
+  Audit is the only constitutional phase authorized to determine compliance.
+
+inputs:
+  - candidate_artifacts
+  - constitutional_context
+  - applicable_rules
+
+outputs:
+  - validation_report
+  - violation_report
+  - audit_decision
+
+constitutional_requirements:
+  - governance.rule_evaluation.exclusive
+  - autonomy.tracing.mandatory
+
+authority: policy
+failure_mode: block
+max_retries: 0
+
+agent_role: Auditor
+
+permitted_actions:
+  - evaluate_rules
+  - record_violations
+  - produce_validation_report
+  - declare_pass_fail
+
+forbidden_actions:
+  - modify_files
+  - repair_changes
+  - generate_new_code
+  - bypass_failed_rules
+
+success_criteria:
+  audit_result_explicit: true
+  rule_evaluation_complete: true
+
+notes: >
+  Audit is the sole constitutional phase for rule evaluation. It may approve or
+  reject candidate outputs, but it may not repair or execute them.

@@ -1,0 +1,35 @@
+workflow_id: coverage_remediation
+version: "1.0"
+status: experimental
+
+description: >
+  Generate tests for existing code with low or missing test coverage.
+  This workflow improves coverage without modifying production code.
+
+stages:
+  - stage_id: interpret.intent
+    order: 1
+
+  - stage_id: parse.plan_actions
+    order: 2
+
+  - stage_id: load.operational_context
+    order: 3
+
+  - stage_id: runtime.generate_tests
+    order: 4
+
+  - stage_id: audit.sandbox_validation
+    order: 5
+
+  - stage_id: execution.commit_changes
+    order: 6
+
+invariants:
+  must_hold:
+    - Workflow must not modify production code.
+    - Repository mutation is limited to governed test artifact promotion.
+    - Generated tests remain candidate artifacts until sandbox validation completes.
+  must_not:
+    - Workflow must not bypass sandbox validation before execution.
+    - Workflow must not commit failing tests as governed outputs.

@@ -1,0 +1,47 @@
+stage_id: runtime.generate_changes
+version: "1.0"
+status: experimental
+
+phase: runtime
+description: Produce candidate code and related change artifacts from the resolved action set.
+
+agent_role: Coder
+
+inputs:
+  required:
+    - execution_context
+    - resolved_action_set
+  optional:
+    - execution_plan
+    - specification
+    - context_package
+    - repository_snapshot
+
+actions:
+  - action_id: change.generate
+    purpose: Produce candidate code and related change artifacts
+    required: true
+
+outputs:
+  produces:
+    - candidate_change_set
+    - generated_code
+    - file_mappings
+
+invariants:
+  must_hold:
+    - Candidate outputs are structured and reviewable.
+    - Generation remains pre-commit.
+    - Generated artifacts are staged, not written to the repository.
+  must_not:
+    - Must not declare audit pass or fail.
+    - Must not commit repository changes.
+    - Must not produce final compliance decisions.
+
+ordering:
+  mode: sequential
+  depends_on:
+    - load.operational_context
+  next_on_success:
+    - audit.validate_changes
+  next_on_failure: []

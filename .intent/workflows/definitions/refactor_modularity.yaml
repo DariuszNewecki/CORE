@@ -1,0 +1,42 @@
+workflow_id: refactor_modularity
+version: "1.0"
+status: experimental
+
+description: >
+  Refactor existing code to improve modularity while preserving governed execution
+  boundaries. This workflow improves structure first; test regeneration is handled
+  separately.
+
+stages:
+  - stage_id: interpret.intent
+    order: 1
+
+  - stage_id: parse.plan_actions
+    order: 2
+
+  - stage_id: load.operational_context
+    order: 3
+
+  - stage_id: runtime.generate_changes
+    order: 4
+
+  - stage_id: audit.canary_validation
+    order: 5
+
+  - stage_id: audit.style_check
+    order: 6
+
+  - stage_id: audit.validate_changes
+    order: 7
+
+  - stage_id: execution.commit_changes
+    order: 8
+
+invariants:
+  must_hold:
+    - Workflow must not generate or commit new tests.
+    - Coverage remediation remains a separate workflow.
+    - Repository mutation occurs only in the Execution phase.
+  must_not:
+    - Workflow must not bypass audit validation before execution.
+    - Workflow must not treat canary validation as the sole source of compliance.

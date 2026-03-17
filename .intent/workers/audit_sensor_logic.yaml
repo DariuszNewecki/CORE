@@ -3,7 +3,7 @@ kind: worker
 
 metadata:
   id: workers.audit_sensor_logic
-  title: Audit Sensor — Logic
+  title: Audit Sensor - Logic
   version: "1.0.0"
   authority: policy
   status: active

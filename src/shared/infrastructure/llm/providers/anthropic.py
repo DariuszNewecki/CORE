@@ -7,6 +7,8 @@ Uses httpx directly — no Anthropic SDK dependency required.
 
 from __future__ import annotations
 
+from typing import Any
+
 import httpx
 
 from shared.logger import getLogger
@@ -25,7 +27,7 @@ _DEFAULT_SYSTEM = "You are a helpful assistant."
 class AnthropicProvider(AIProvider):
     """Provider for the Anthropic Messages API."""
 
-    def _prepare_headers(self) -> dict:
+    def _prepare_headers(self) -> dict[str, str]:
         headers = {
             "Content-Type": "application/json",
             "anthropic-version": _ANTHROPIC_VERSION,
@@ -41,6 +43,7 @@ class AnthropicProvider(AIProvider):
         user_id: str,
         system_prompt: str = "",
         max_tokens: int = 4096,
+        response_format: dict[str, Any] | None = None,
     ) -> str:
         """
         Generates a chat completion using the Anthropic Messages API.
@@ -51,12 +54,26 @@ class AnthropicProvider(AIProvider):
             system_prompt: Constitutional system prompt. Falls back to a neutral
                            default when empty.
             max_tokens: Maximum tokens to generate.
+            response_format: Optional provider-agnostic structured-output contract.
+
+                Currently ignored for Anthropic in this implementation.
+                Anthropic structured output requires a different mapping model
+                (typically tool use / constrained interfaces), so unsupported
+                formats safely fall back to standard text generation.
         """
+        if response_format:
+            logger.debug(
+                "AnthropicProvider received response_format type '%s' but will ignore it "
+                "and fall back to standard text generation.",
+                response_format.get("type"),
+            )
+
         api_url = self.api_url if self.api_url else _DEFAULT_API_URL
         endpoint = f"{api_url}/v1/messages"
         effective_system = (
             system_prompt.strip() if system_prompt.strip() else _DEFAULT_SYSTEM
         )
+
         payload = {
             "model": self.model_name,
             "max_tokens": max_tokens,
@@ -65,6 +82,7 @@ class AnthropicProvider(AIProvider):
                 {"role": "user", "content": prompt},
             ],
         }
+
         async with httpx.AsyncClient(timeout=self.timeout) as client:
             response = await client.post(endpoint, headers=self.headers, json=payload)
             response.raise_for_status()

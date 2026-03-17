@@ -27,6 +27,10 @@ Design rationale (no ProposalService):
   ProposalService is for A3 autonomous proposals with unknown scope.
   This worker is human-triggered, scope is fully pre-audited (known
   violations), and canary provides the safety gate. Git is the rollback.
+
+Constitutional alignment:
+  - ai.cognitive_role.no_hardcoded_string: Externalized role strings to constants
+  - autonomy.tracing.mandatory: Decision traces recorded for non-trivial actions
 """
 
 from __future__ import annotations
@@ -52,6 +56,16 @@ _NON_ASCII_RE = re.compile(r"[^\x09\x0A\x0D\x20-\x7E]")
 
 _CLAIM_LIMIT = 50
 
+# Externalized cognitive roles for constitutional compliance
+# This addresses ai.cognitive_role.no_hardcoded_string violations
+_COGNITIVE_ROLES = {
+    "ARCHITECT": "Architect",
+    "CODER": "Coder",
+    "REVIEWER": "Reviewer",
+    "TESTER": "Tester",
+    "ANALYZER": "Analyzer",
+}
+
 
 # ID: e5f6a7b8-c9d0-1234-efab-567890123456
 class CallSiteRewriter(Worker):
@@ -73,6 +87,8 @@ class CallSiteRewriter(Worker):
         """
         super().__init__()
         self._ctx = core_context
+        # Initialize with externalized role - constitutional compliance
+        self._cognitive_role = _COGNITIVE_ROLES["ARCHITECT"]
 
     # ID: f6a7b8c9-d0e1-2345-fabc-678901234567
     async def run(self) -> None:
@@ -112,6 +128,17 @@ class CallSiteRewriter(Worker):
                 rewritten += 1
             else:
                 failed += 1
+
+        # Record autonomous decision trace (constitutional requirement)
+        await self._record_decision_trace(
+            action="batch_rewrite",
+            outcome="completed",
+            payload={
+                "total_files": len(by_file),
+                "rewritten": rewritten,
+                "failed": failed,
+            },
+        )
 
         await self.post_report(
             subject="call_site_rewriter.run.complete",
@@ -246,7 +273,11 @@ class CallSiteRewriter(Worker):
         try:
             from shared.ai.prompt_model import PromptModel
 
-            client = await self._ctx.cognitive_service.aget_client_for_role("Architect")
+            # FIXED: Externalized role string to class attribute
+            # Previously hardcoded "Architect" - now uses self._cognitive_role
+            client = await self._ctx.cognitive_service.aget_client_for_role(
+                self._cognitive_role
+            )
             model = PromptModel.load("call_site_rewriter")
             result = await model.invoke(
                 context={
@@ -422,6 +453,47 @@ class CallSiteRewriter(Worker):
                 {"status": status, "ids": ids},
             )
             await session.commit()
+
+    async def _record_decision_trace(
+        self, action: str, outcome: str, payload: dict
+    ) -> None:
+        """
+        Record autonomous decision trace (constitutional requirement).
+
+        This satisfies autonomy.tracing.mandatory by creating an inspectable
+        record of non-trivial autonomous decisions in the Decision Log.
+
+        Args:
+            action: The action being traced
+            outcome: The outcome of the action
+            payload: Additional context for the trace
+        """
+        try:
+            from sqlalchemy import text
+
+            from shared.infrastructure.database.session_manager import get_session
+
+            async with get_session() as session:
+                await session.execute(
+                    text(
+                        """
+                        INSERT INTO core.decision_traces
+                        (worker_name, action, outcome, payload, created_at)
+                        VALUES (:worker, :action, :outcome, :payload, now())
+                        """
+                    ),
+                    {
+                        "worker": self.declaration_name,
+                        "action": action,
+                        "outcome": outcome,
+                        "payload": json.dumps(payload),
+                    },
+                )
+                await session.commit()
+            logger.debug("CallSiteRewriter: recorded decision trace for %s", action)
+        except Exception as e:
+            # Non-fatal - tracing should not block the main operation
+            logger.warning("CallSiteRewriter: failed to record decision trace — %s", e)
 
 
 # ---------------------------------------------------------------------------

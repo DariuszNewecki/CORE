@@ -1,43 +1,38 @@
 # src/cli/commands/check/audit.py
-"""Core audit commands: audit.
 
-Updated (V2.3.0)
-- CLI owns the reporting/persistence pipeline, preserving artifact creation.
-- Mind layer (Auditor) remains headless.
+"""
+Core audit commands: audit.
+Refactored to use the canonical CoreContext provided by the framework.
 """
 
 from __future__ import annotations
 
 import json
-from datetime import UTC, datetime
 from pathlib import Path
 
 import typer
 from rich.console import Console
+from rich.panel import Panel
+from rich.table import Table
+from sqlalchemy import text
 
-from body.services.file_service import FileService
-from body.services.service_registry import service_registry
 from cli.commands.check.converters import parse_min_severity
-from cli.commands.check.formatters import print_context_build_hints
-from cli.logic.audit_renderer import AuditStats, render_detail, render_overview
-from mind.governance.audit_postprocessor import apply_entry_point_downgrade
+from cli.commands.check.formatters import (
+    print_summary_findings,
+    print_verbose_findings,
+)
 from mind.governance.auditor import ConstitutionalAuditor
-from shared.activity_logging import activity_run
 from shared.cli_utils import core_command
+from shared.infrastructure.database.session_manager import get_session
+from shared.logger import getLogger
 from shared.models import AuditFinding, AuditSeverity
 
 
 console = Console()
-
-REPORTS_DIR = "reports"
-FINDINGS_FILE = "reports/audit_findings.json"
-EVIDENCE_FILE = "reports/audit/latest_audit.json"
+logger = getLogger(__name__)
 
 
-def _to_audit_finding(raw: dict | AuditFinding) -> AuditFinding:
-    if isinstance(raw, AuditFinding):
-        return raw
-
+def _to_audit_finding(raw: dict) -> AuditFinding:
     severity_map = {
         "info": AuditSeverity.INFO,
         "warning": AuditSeverity.WARNING,
@@ -45,7 +40,6 @@ def _to_audit_finding(raw: dict | AuditFinding) -> AuditFinding:
     }
     raw_severity = str(raw.get("severity", "info")).lower()
     severity = severity_map.get(raw_severity, AuditSeverity.INFO)
-
     return AuditFinding(
         check_id=raw.get("check_id", "unknown"),
         severity=severity,
@@ -56,8 +50,53 @@ def _to_audit_finding(raw: dict | AuditFinding) -> AuditFinding:
     )
 
 
+async def _persist_findings_to_db(findings: list[AuditFinding]) -> None:
+    """Persist audit findings to core.audit_findings (DB SSOT)."""
+    logger.info("_persist_findings_to_db called with %d findings.", len(findings))
+
+    if not findings:
+        logger.warning("No findings to persist — skipping.")
+        return
+
+    rows = [
+        {
+            "check_id": f.check_id,
+            "severity": (
+                f.severity.value if hasattr(f.severity, "value") else str(f.severity)
+            ),
+            "message": f.message,
+            "file_path": f.file_path,
+            "line_number": f.line_number,
+            "context": json.dumps(f.context) if f.context else None,
+        }
+        for f in findings
+    ]
+
+    logger.info("Persisting %d rows to core.audit_findings.", len(rows))
+
+    try:
+        async with get_session() as session:
+            await session.execute(text("TRUNCATE TABLE core.audit_findings"))
+            await session.execute(
+                text(
+                    """
+                    INSERT INTO core.audit_findings
+                        (check_id, severity, message, file_path, line_number, context)
+                    VALUES
+                        (:check_id, :severity, :message, :file_path,
+                         :line_number, cast(:context as jsonb))
+                    """
+                ),
+                rows,
+            )
+            await session.commit()
+        logger.info("Persisted %d findings to core.audit_findings.", len(rows))
+    except Exception as exc:
+        logger.error("Failed to persist findings to DB: %s", exc, exc_info=True)
+
+
 @core_command(dangerous=False)
-# ID: 6bd8138b-ced6-48fa-b5db-afe51ba9903d
+# ID: 2a6833cf-af2f-432f-8423-dad36e20d936
 async def audit_cmd(
     ctx: typer.Context,
     target: Path = typer.Argument(Path("src"), help="File or directory to audit."),
@@ -72,90 +111,51 @@ async def audit_cmd(
         False, "--verbose", "-v", help="Show individual findings."
     ),
 ) -> None:
-    """Run the full constitutional self-audit and persist evidence artifacts."""
+    """
+    Run the full constitutional self-audit.
+    """
     min_severity = parse_min_severity(severity)
 
-    core_context = ctx.obj
-    file_service = FileService(core_context.git_service.repo_path)
+    auditor_context = ctx.obj.auditor_context
+    auditor = ConstitutionalAuditor(auditor_context)
 
-    # Ensure directories exist
-    file_service.ensure_dir("reports/audit")
+    # Execute audit (Mind layer — pure, no I/O)
+    result = await auditor.run_full_audit_async()
+    findings = result["findings"]
+    logger.info("Audit returned %d findings.", len(findings))
 
-    # 1) Execute the headless audit
-    with activity_run("constitutional_audit") as run:
-        # JIT session injection for the Auditor
-        async with service_registry.session() as session:
-            core_context.auditor_context.db_session = session
-            auditor = ConstitutionalAuditor(core_context.auditor_context)
+    all_findings = [
+        _to_audit_finding(f.as_dict() if hasattr(f, "as_dict") else f) for f in findings
+    ]
+    logger.info("Converted to %d AuditFinding objects.", len(all_findings))
 
-            start_time = datetime.now(UTC)
-            results = await auditor.run_full_audit_async()
-            duration = (datetime.now(UTC) - start_time).total_seconds()
+    # Persist to DB SSOT (Body layer responsibility)
+    await _persist_findings_to_db(all_findings)
 
-            # Clean up session ref
-            core_context.auditor_context.db_session = None
-
-        # Extract verdict early — needed by both persistence and presentation
-        verdict = results.get("verdict")
-        verdict_str = (
-            verdict.value if verdict else ("PASS" if results["passed"] else "FAIL")
-        )
-
-        # 2) Persistence (CLI owns this)
-        findings = results["findings"]
-        findings_dicts = [f.as_dict() if hasattr(f, "as_dict") else f for f in findings]
-
-        # Write reports/audit_findings.json
-        file_service.write_file(FINDINGS_FILE, json.dumps(findings_dicts, indent=2))
-
-        # Post-processing (downgrade entry points and write processed report)
-        apply_entry_point_downgrade(
-            findings=findings_dicts,
-            symbol_index={},  # Placeholder or load from reports/symbol_index.json
-            reports_dir=Path(core_context.git_service.repo_path) / REPORTS_DIR,
-            file_service=file_service,
-            repo_root=Path(core_context.git_service.repo_path),
-        )
-
-        # Write reports/audit/latest_audit.json (Evidence Ledger)
-        evidence = {
-            "audit_id": run.run_id,
-            "timestamp": datetime.now(UTC).isoformat(),
-            "passed": results["passed"],
-            "findings_count": len(findings),
-            "executed_rules": sorted(list(results["executed_rule_ids"])),
-            "crashed_rules": sorted(list(results.get("crashed_rule_ids", set()))),
-            "verdict": verdict_str,
-        }
-        file_service.write_file(EVIDENCE_FILE, json.dumps(evidence, indent=2))
-
-    # 3) Presentation
-    all_findings = [_to_audit_finding(f) for f in findings]
+    # Presentation
     filtered_findings = [f for f in all_findings if f.severity >= min_severity]
+    errors = [f for f in all_findings if f.severity.is_blocking]
+    warnings = [f for f in all_findings if f.severity == AuditSeverity.WARNING]
+    infos = [f for f in all_findings if f.severity == AuditSeverity.INFO]
 
-    stats = results["stats"]
-    audit_stats = AuditStats(
-        total_rules=stats.get("total_executable_rules", 0),
-        executed_rules=stats.get("executed_dynamic_rules", 0),
-        coverage_percent=stats.get("coverage_percent", 0),
-        total_declared_rules=stats.get("total_declared_rules", 0),
-        crashed_rules=stats.get("crashed_rules", 0),
-        unmapped_rules=stats.get("unmapped_rules", 0),
-        effective_coverage_percent=stats.get("effective_coverage_percent", 0),
-    )
+    passed = result["passed"]
 
-    render_overview(
-        console,
-        all_findings,
-        audit_stats,
-        duration,
-        results["passed"],
-        verdict_str=verdict_str,
-    )
+    summary_table = Table.grid(expand=True, padding=(0, 1))
+    summary_table.add_row("Total Findings:", str(len(all_findings)))
+    summary_table.add_row("Errors:", f"[red]{len(errors)}[/red]")
+    summary_table.add_row("Warnings:", f"[yellow]{len(warnings)}[/yellow]")
+    summary_table.add_row("Info:", f"[cyan]{len(infos)}[/cyan]")
+    summary_table.add_row("Verdict:", f"[bold]{result['verdict'].value}[/bold]")
 
-    if filtered_findings and verbose:
-        render_detail(console, filtered_findings)
+    title = "✅ AUDIT PASSED" if passed else "❌ AUDIT FAILED"
+    style = "bold green" if passed else "bold red"
+    console.print(Panel(summary_table, title=title, style=style, expand=False))
 
-    if not results["passed"]:
-        print_context_build_hints(all_findings)
+    if filtered_findings:
+        if verbose:
+            print_verbose_findings(filtered_findings)
+        else:
+            print_summary_findings(filtered_findings)
+
+    if not passed:
         raise typer.Exit(1)

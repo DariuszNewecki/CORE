@@ -52,7 +52,6 @@ logger = getLogger(__name__)
 
 
 @dataclass
-# ID: pm-core-002
 # ID: 0e5e4048-5e19-4120-b5f5-b9b4d9838f77
 class PromptModelManifest:
     """
@@ -75,9 +74,11 @@ class PromptModelManifest:
     output_max_length: int = 0  # 0 = no limit
     output_must_contain: list[str] = field(default_factory=list)
     output_must_not_contain: list[str] = field(default_factory=list)
+    output_json_schema: dict[str, Any] | None = None
 
     # Model preferences (advisory — CognitiveService resolves actual model)
     model_preference: str = ""  # e.g. "local", "deepseek", "anthropic"
+    model_max_tokens: int = 4096
     temperature: float | None = None
 
     success_criteria: str = ""
@@ -167,7 +168,8 @@ class PromptModel:
         if not manifest_path.exists():
             raise FileNotFoundError(
                 f"PromptModel '{name}' missing model.yaml at {manifest_path}. "
-                "See: .intent/rules/ai/prompt_governance.json [ai.prompt.model_artifact_required]"
+                "See: .intent/rules/ai/prompt_governance.json "
+                "[ai.prompt.model_artifact_required]"
             )
         raw_manifest = yaml.safe_load(manifest_path.read_text(encoding="utf-8"))
         manifest = cls._parse_manifest(raw_manifest, name)
@@ -177,7 +179,8 @@ class PromptModel:
         if not system_path.exists():
             raise FileNotFoundError(
                 f"PromptModel '{name}' missing system.txt at {system_path}. "
-                "See: .intent/rules/ai/prompt_governance.json [ai.prompt.system_prompt_required]"
+                "See: .intent/rules/ai/prompt_governance.json "
+                "[ai.prompt.system_prompt_required]"
             )
         system_text = system_path.read_text(encoding="utf-8").strip()
         if not system_text:
@@ -202,7 +205,9 @@ class PromptModel:
                 examples = json.loads(examples_path.read_text(encoding="utf-8"))
             except json.JSONDecodeError as e:
                 logger.warning(
-                    "PromptModel '%s': could not parse examples.json: %s", name, e
+                    "PromptModel '%s': could not parse examples.json: %s",
+                    name,
+                    e,
                 )
 
         artifact = PromptModelArtifact(
@@ -234,9 +239,10 @@ class PromptModel:
             1. Validate all required inputs are present
             2. Build user turn from template + context
             3. Assemble system prompt: system.txt + constitutional envelope + examples
-            4. Call client.make_request_with_system_async()
-            5. Validate output against contract
-            6. Return validated result
+            4. Build response_format contract from manifest output block
+            5. Call client.make_request_with_system_async()
+            6. Validate output against contract
+            7. Return validated result
 
         Args:
             context:      Dict of {placeholder: value} matching input contract.
@@ -274,21 +280,29 @@ class PromptModel:
         # 4. Assemble system prompt: system.txt + envelope + examples
         system_prompt = self._build_system_prompt(artifact, resolved_files)
 
-        # 5. Invoke — ONLY allowed call site for make_request_with_system_async
+        # 5. Build response format contract
+        response_format = self._build_response_format(manifest)
+
+        # 6. Invoke — ONLY allowed call site for make_request_with_system_async
         logger.debug(
-            "PromptModel '%s' invoking role '%s' for user '%s' (envelope layers: %s)",
+            "PromptModel '%s' invoking role '%s' for user '%s' "
+            "(envelope layers: %s, output_format: %s, structured_output: %s)",
             manifest.id,
             manifest.role,
             user_id,
             sorted(_resolve_layers_for_log(resolved_files)),
+            manifest.output_format,
+            bool(response_format),
         )
         raw_response = await client.make_request_with_system_async(
             prompt=user_prompt,
             system_prompt=system_prompt,
             user_id=user_id,
+            max_tokens=manifest.model_max_tokens,
+            response_format=response_format,
         )
 
-        # 6. Validate output
+        # 7. Validate output
         validated = self._validate_output(raw_response, manifest)
 
         return validated
@@ -301,37 +315,96 @@ class PromptModel:
     @staticmethod
     def _parse_manifest(raw: dict[str, Any], name: str) -> PromptModelManifest:
         """Parse and validate raw YAML manifest dict into PromptModelManifest."""
+        if not isinstance(raw, dict):
+            raise ValueError(
+                f"PromptModel '{name}' model.yaml must contain a YAML object at the root."
+            )
+
         for required_key in ("id", "version", "role"):
             if not raw.get(required_key):
                 raise ValueError(
-                    f"PromptModel '{name}' model.yaml missing required field '{required_key}'."
+                    f"PromptModel '{name}' model.yaml missing required field "
+                    f"'{required_key}'."
                 )
 
         input_block = raw.get("input", {})
         output_block = raw.get("output", {})
+        model_block = raw.get("model", {})
         scope_block = raw.get("scope", {})
 
+        if not isinstance(input_block, dict):
+            raise ValueError(
+                f"PromptModel '{name}' field 'input' must be a mapping/object."
+            )
+        if not isinstance(output_block, dict):
+            raise ValueError(
+                f"PromptModel '{name}' field 'output' must be a mapping/object."
+            )
+        if not isinstance(model_block, dict):
+            raise ValueError(
+                f"PromptModel '{name}' field 'model' must be a mapping/object."
+            )
+        if not isinstance(scope_block, dict):
+            raise ValueError(
+                f"PromptModel '{name}' field 'scope' must be a mapping/object."
+            )
+
+        output_json_schema = output_block.get("json_schema")
+        if output_json_schema is not None and not isinstance(output_json_schema, dict):
+            raise ValueError(
+                f"PromptModel '{name}' field 'output.json_schema' must be an object."
+            )
+
+        model_max_tokens_raw = model_block.get("max_tokens", 4096)
+        try:
+            model_max_tokens = int(model_max_tokens_raw)
+        except (TypeError, ValueError) as e:
+            raise ValueError(
+                f"PromptModel '{name}' field 'model.max_tokens' must be an integer."
+            ) from e
+
+        if model_max_tokens <= 0:
+            raise ValueError(
+                f"PromptModel '{name}' field 'model.max_tokens' must be > 0."
+            )
+
+        output_max_length_raw = output_block.get("max_length", 0)
+        try:
+            output_max_length = int(output_max_length_raw)
+        except (TypeError, ValueError) as e:
+            raise ValueError(
+                f"PromptModel '{name}' field 'output.max_length' must be an integer."
+            ) from e
+
+        if output_max_length < 0:
+            raise ValueError(
+                f"PromptModel '{name}' field 'output.max_length' must be >= 0."
+            )
+
         return PromptModelManifest(
-            id=raw["id"],
-            version=raw["version"],
-            role=raw["role"],
-            description=raw.get("description", ""),
-            required_inputs=input_block.get("required", []),
-            optional_inputs=input_block.get("optional", []),
-            output_format=output_block.get("format", "raw_text"),
-            output_max_length=output_block.get("max_length", 0),
-            output_must_contain=output_block.get("must_contain", []),
-            output_must_not_contain=output_block.get("must_not_contain", []),
-            model_preference=raw.get("model", {}).get("preference", ""),
-            temperature=raw.get("model", {}).get("temperature"),
-            success_criteria=raw.get("success_criteria", ""),
-            scope_layers=scope_block.get("layers", []),
+            id=str(raw["id"]),
+            version=str(raw["version"]),
+            role=str(raw["role"]),
+            description=str(raw.get("description", "")),
+            required_inputs=list(input_block.get("required", [])),
+            optional_inputs=list(input_block.get("optional", [])),
+            output_format=str(output_block.get("format", "raw_text")),
+            output_max_length=output_max_length,
+            output_must_contain=list(output_block.get("must_contain", [])),
+            output_must_not_contain=list(output_block.get("must_not_contain", [])),
+            output_json_schema=output_json_schema,
+            model_preference=str(model_block.get("preference", "")),
+            model_max_tokens=model_max_tokens,
+            temperature=model_block.get("temperature"),
+            success_criteria=str(raw.get("success_criteria", "")),
+            scope_layers=list(scope_block.get("layers", [])),
         )
 
     # ID: pm-core-008
     @staticmethod
     def _validate_inputs(
-        context: dict[str, Any], manifest: PromptModelManifest
+        context: dict[str, Any],
+        manifest: PromptModelManifest,
     ) -> None:
         """Verify all required inputs are present in context."""
         missing = [k for k in manifest.required_inputs if k not in context]
@@ -339,6 +412,30 @@ class PromptModel:
             raise ValueError(
                 f"PromptModel '{manifest.id}': missing required inputs: {missing}"
             )
+
+    # ID: pm-core-008b
+    @staticmethod
+    def _build_response_format(
+        manifest: PromptModelManifest,
+    ) -> dict[str, Any] | None:
+        """
+        Build provider-agnostic response format contract from manifest output config.
+
+        Behaviour:
+            - output.json_schema present -> strict schema contract
+            - output.format == "json"    -> generic JSON object request
+            - otherwise                  -> no structured-output contract
+        """
+        if manifest.output_json_schema:
+            return {
+                "type": "json_schema",
+                "schema": manifest.output_json_schema,
+            }
+
+        if manifest.output_format.lower() == "json":
+            return {"type": "json_object"}
+
+        return None
 
     # ID: pm-core-009
     @staticmethod
@@ -432,14 +529,15 @@ class PromptModel:
         for pattern in manifest.output_must_contain:
             if pattern not in cleaned:
                 raise ValueError(
-                    f"PromptModel '{manifest.id}': output missing required pattern '{pattern}'. "
-                    f"Success criteria: {manifest.success_criteria}"
+                    f"PromptModel '{manifest.id}': output missing required pattern "
+                    f"'{pattern}'. Success criteria: {manifest.success_criteria}"
                 )
 
         for pattern in manifest.output_must_not_contain:
             if pattern in cleaned:
                 logger.warning(
-                    "PromptModel '%s': output contains forbidden pattern '%s' — check AI behaviour.",
+                    "PromptModel '%s': output contains forbidden pattern '%s' — "
+                    "check AI behaviour.",
                     manifest.id,
                     pattern,
                 )
@@ -466,7 +564,7 @@ def _expand_scope_layers(scope_layers: list[str]) -> list[str]:
 
 def _resolve_layers_for_log(target_files: list[str]) -> set[str]:
     """Cheap layer resolution for debug logging only."""
-    _LAYER_MAP = {
+    layer_map = {
         "src/body/": "body",
         "src/will/": "will",
         "src/mind/": "mind",
@@ -474,10 +572,10 @@ def _resolve_layers_for_log(target_files: list[str]) -> set[str]:
         "src/cli/": "cli",
     }
     layers: set[str] = set()
-    for f in target_files:
-        f_norm = f.replace("\\", "/")
-        for prefix, layer in _LAYER_MAP.items():
-            if f_norm.startswith(prefix):
+    for file_path in target_files:
+        file_norm = file_path.replace("\\", "/")
+        for prefix, layer in layer_map.items():
+            if file_norm.startswith(prefix):
                 layers.add(layer)
                 break
         else:

@@ -1,0 +1,57 @@
+stage_id: parse.plan_actions
+version: "1.0"
+status: experimental
+
+phase: parse
+description: Derive a deterministic action plan, workflow route, and planning context from normalized intent.
+
+agent_role: WorkflowPlanner
+
+inputs:
+  required:
+    - normalized_intent
+    - workflow_request
+  optional:
+    - repository_context
+    - known_capabilities
+    - reconnaissance_report
+    - constitutional_context
+
+actions:
+  - action_id: workflow.select
+    purpose: Select the appropriate workflow pattern
+    required: true
+
+  - action_id: action.plan
+    purpose: Produce an ordered action plan
+    required: true
+
+  - action_id: scope.assess
+    purpose: Identify affected files, dependencies, and operational risk
+    required: false
+
+outputs:
+  produces:
+    - action_plan
+    - stage_route
+    - affected_files
+    - risk_assessment
+    - planning_context
+
+invariants:
+  must_hold:
+    - Stage operates only on parsed representations.
+    - Output plan must be explicit and ordered.
+    - Planning remains pre-generation and pre-mutation.
+  must_not:
+    - Must not execute repository mutations.
+    - Must not evaluate constitutional rules.
+    - Must not commit changes.
+
+ordering:
+  mode: sequential
+  depends_on:
+    - interpret.intent
+  next_on_success:
+    - load.operational_context
+  next_on_failure: []

@@ -5,7 +5,7 @@ ContextSerializer - YAML I/O and token estimation.
 
 Policy:
 - No direct filesystem mutations outside governed surfaces.
-- Writes must go through FileHandler (runtime write) so IntentGuard is enforced.
+- Writes must go through FileHandler so IntentGuard is enforced.
 """
 
 from __future__ import annotations
@@ -25,130 +25,108 @@ from shared.logger import getLogger
 logger = getLogger(__name__)
 
 
-# ID: 8a0b45d0-e4cc-430f-b2fd-fa8565b57ad1
+# ID: 99a31e5a-ce83-437b-a03c-e21343ceeb3c
 class ContextSerializer:
-    """Serializes and deserializes ContextPackage."""
+    """Serializes and deserializes ContextPacket."""
 
     @staticmethod
-    # ID: d72a4cc4-12d1-4199-93b3-9bbe9f136a0a
+    # ID: 2ff86f07-0d18-4a4a-8778-ce742223f322
     def to_yaml(packet: dict[str, Any], output_path: str) -> None:
-        """Write packet to YAML file via governed mutation surface.
-
-        Args:
-            packet: ContextPackage dict
-            output_path: Output file path (repo-relative preferred; absolute allowed if under REPO_PATH)
-        """
         yaml_text = yaml.safe_dump(packet, default_flow_style=False, sort_keys=False)
 
         fh = FileHandler(str(settings.REPO_PATH))
         rel = _to_repo_relative_path(output_path)
 
         result = fh.write_runtime_text(rel, yaml_text)
-        # Avoid assuming a specific return type; log conservatively.
         try:
             status = getattr(result, "status", "unknown")
             logger.debug("Wrote context packet to %s (status=%s)", rel, status)
-        except Exception:  # pragma: no cover
+        except Exception:
             logger.debug("Wrote context packet to %s", rel)
 
     @staticmethod
-    # ID: 96174e18-7f6c-4f68-ab4c-1a93a6df9037
+    # ID: 9db70cab-e665-4635-858a-70fb80310b51
     def from_yaml(input_path: str) -> dict[str, Any]:
-        """Load packet from YAML file.
-
-        Note: reading does not mutate repo state, so direct Path read is acceptable.
-
-        Args:
-            input_path: Input file path
-
-        Returns:
-            ContextPackage dict (never None)
-        """
         packet = yaml.safe_load(Path(input_path).read_text(encoding="utf-8"))
         logger.debug("Loaded context packet from %s", input_path)
         return packet or {}
 
     @staticmethod
-    # ID: 17d2cd55-2c34-4198-a445-17d72548283c
+    # ID: f2d10834-5a64-4252-bd12-ec87c8e3f2c0
     def estimate_tokens(text: str) -> int:
-        """Estimate token count for text.
-
-        Heuristic: ~4 characters per token. Use for coarse budgeting only.
-        """
         return len(text) // 4
 
     @staticmethod
-    # ID: 4fed2123-7d1b-4bbc-84ad-49140d9da4cf
+    # ID: 4c1edebf-e182-4a7e-a0f7-a7469e431e9b
     def compute_packet_hash(packet: dict[str, Any]) -> str:
-        """Compute deterministic hash of the packet content.
-
-        Excludes volatile / provenance-style fields to keep hashing stable.
-        """
         canonical = {
             "header": packet.get("header", {}),
-            "problem": packet.get("problem", {}),
-            "scope": packet.get("scope", {}),
-            "constraints": packet.get("constraints", {}),
-            "context": packet.get("context", []),
-            "invariants": packet.get("invariants", []),
+            "phase": packet.get("phase"),
+            "constitution": packet.get("constitution", {}),
             "policy": packet.get("policy", {}),
+            "constraints": packet.get("constraints", {}),
+            "evidence": packet.get("evidence", []),
+            "runtime": packet.get("runtime", {}),
         }
-        canonical_json = json.dumps(canonical, sort_keys=True)
+        canonical_json = json.dumps(canonical, sort_keys=True, default=str)
         digest = hashlib.sha256(canonical_json.encode()).hexdigest()
         logger.debug("Computed context packet hash: %s...", digest[:8])
         return digest
 
     @staticmethod
-    # ID: 1e84a908-4195-448b-aa95-6409d88e033c
-    def compute_cache_key(task_spec: dict[str, Any]) -> str:
-        """Compute cache key from task specification.
-
-        Constitutional Fix:
-        Include the actual targets in the hash so each file/symbol gets its own context,
-        preventing cross-target context leakage when scope filters are identical.
-        """
+    # ID: fa12d7ab-310e-4b92-8e7a-95d6084e3536
+    def compute_cache_key(request_payload: dict[str, Any]) -> str:
         cache_fields = {
-            "task_type": task_spec.get("task_type"),
-            "target_file": task_spec.get("target_file"),
-            "target_symbol": task_spec.get("target_symbol"),
-            # Scope selectors:
-            "scope": task_spec.get("scope"),
-            "roots": task_spec.get("roots"),
-            "include": task_spec.get("include"),
-            "exclude": task_spec.get("exclude"),
+            "goal": request_payload.get("goal"),
+            "trigger": request_payload.get("trigger"),
+            "phase": request_payload.get("phase"),
+            "workflow_id": request_payload.get("workflow_id"),
+            "stage_id": request_payload.get("stage_id"),
+            "target_files": request_payload.get("target_files"),
+            "target_symbols": request_payload.get("target_symbols"),
+            "target_paths": request_payload.get("target_paths"),
+            "include_constitution": request_payload.get("include_constitution"),
+            "include_policy": request_payload.get("include_policy"),
+            "include_symbols": request_payload.get("include_symbols"),
+            "include_vectors": request_payload.get("include_vectors"),
+            "include_runtime": request_payload.get("include_runtime"),
         }
 
-        cache_json = json.dumps(cache_fields, sort_keys=True)
+        cache_json = json.dumps(cache_fields, sort_keys=True, default=str)
         cache_key = hashlib.sha256(cache_json.encode()).hexdigest()
         logger.debug("Computed cache key: %s...", cache_key[:8])
         return cache_key
 
     @staticmethod
-    # ID: 418b33f3-32f5-4895-8ac7-d5b793496231
+    # ID: 11dac58e-a863-4210-96f9-cbbb4bc0745b
     def estimate_packet_tokens(packet: dict[str, Any]) -> int:
-        """Estimate total tokens for packet."""
         total = 0
-        for item in packet.get("context", []):
+
+        for item in packet.get("evidence", []):
             try:
                 total += int(item.get("tokens_est", 0))
             except Exception:
-                # Be resilient to bad token annotations; treat as 0.
                 total += 0
 
-        total += 500  # structural overhead
+        for section_name in ("constitution", "policy", "constraints", "runtime"):
+            section = packet.get(section_name, {})
+            if section:
+                try:
+                    total += ContextSerializer.estimate_tokens(
+                        json.dumps(section, sort_keys=True, default=str)
+                    )
+                except Exception:
+                    total += 0
+
+        phase = packet.get("phase")
+        if phase:
+            total += ContextSerializer.estimate_tokens(str(phase))
+
+        total += 300
         return total
 
 
-# ID: 0d0f4f32-2d8c-4f90-8b2c-8e0d61d2f6aa
 def _to_repo_relative_path(path_str: str) -> str:
-    """Convert a path to a repo-relative POSIX path.
-
-    - If already relative: normalize and return (strip leading ./).
-    - If absolute under REPO_PATH: relativize.
-    - If absolute outside repo: raise.
-
-    Note: FileHandler/IntentGuard should enforce boundaries as well, but we fail early here.
-    """
     p = Path(path_str)
 
     if not p.is_absolute():

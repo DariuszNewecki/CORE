@@ -1,0 +1,139 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "CORE Workflow Stage Schema",
+  "description": "Schema for phase-bound workflow stage contracts in CORE.",
+  "type": "object",
+  "additionalProperties": false,
+
+  "properties": {
+
+    "stage_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9_.-]+$"
+    },
+
+    "version": {
+      "type": "string"
+    },
+
+    "status": {
+      "$ref": "./enums.json#/definitions/artifact_status"
+    },
+
+    "phase": {
+      "$ref": "./enums.json#/definitions/phase"
+    },
+
+    "description": {
+      "type": "string",
+      "minLength": 5
+    },
+
+    "agent_role": {
+      "type": "string"
+    },
+
+    "inputs": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "required": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "optional": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+
+    "actions": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "action_id": {
+            "type": "string"
+          },
+          "purpose": {
+            "type": "string"
+          },
+          "required": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "action_id",
+          "purpose"
+        ]
+      }
+    },
+
+    "outputs": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "produces": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      },
+      "required": [
+        "produces"
+      ]
+    },
+
+    "invariants": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "must_hold": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "must_not": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+
+    "ordering": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "mode": {
+          "$ref": "./enums.json#/definitions/workflow_ordering_mode"
+        },
+        "depends_on": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "next_on_success": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "next_on_failure": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      },
+      "required": [
+        "mode"
+      ]
+    }
+
+  },
+
+  "required": [
+    "stage_id",
+    "phase",
+    "description",
+    "actions",
+    "outputs",
+    "ordering"
+  ]
+}

@@ -85,8 +85,6 @@ class ConstitutionalAuditor:
         executed_rule_ids: set[str] = set()
         crashed_rule_ids: set[str] = set()
 
-        # NOTE: db_session is assumed to be provided via context
-        # (JIT injected by the CLI or Service Registry before call)
         EngineRegistry.initialize(self.context.paths)
 
         findings: list[AuditFinding] = await run_dynamic_rules(
@@ -95,12 +93,10 @@ class ConstitutionalAuditor:
             crashed_rule_ids=crashed_rule_ids,
         )
 
-        # Calculate statistics (P0.2: true denominator, unmapped visible)
         stats = get_dynamic_execution_stats(
             self.context, executed_rule_ids, crashed_rule_ids
         )
 
-        # Determine three-state verdict (P0.1)
         verdict = self._determine_verdict(findings, stats, crashed_rule_ids)
 
         logger.info(
@@ -117,7 +113,7 @@ class ConstitutionalAuditor:
             "executed_rule_ids": executed_rule_ids,
             "crashed_rule_ids": crashed_rule_ids,
             "verdict": verdict,
-            "passed": verdict == AuditVerdict.PASS,  # backward compat
+            "passed": verdict == AuditVerdict.PASS,
         }
 
     @staticmethod
@@ -127,27 +123,14 @@ class ConstitutionalAuditor:
         stats: dict,
         crashed_rule_ids: set[str],
     ) -> AuditVerdict:
-        """Determine audit verdict with truthfulness guarantees.
-
-        Three-state logic:
-        1. If any rule CRASHED → DEGRADED (we don't know the true state)
-        2. If any blocking violation found → FAIL (code is non-compliant)
-        3. Otherwise → PASS
-
-        DEGRADED takes priority over FAIL because a crashed enforcement
-        engine means we cannot trust ANY results — including apparent passes.
-        """
-        # DEGRADED: enforcement infrastructure itself failed
+        """Determine audit verdict with truthfulness guarantees."""
         if crashed_rule_ids:
             return AuditVerdict.DEGRADED
 
-        # FAIL: blocking violations found in code
         has_blocking_violations = any(
             (f.severity if hasattr(f, "severity") else AuditSeverity.INFO)
             == AuditSeverity.ERROR
             for f in findings
-            # Exclude ENFORCEMENT_FAILURE findings from "code violation" check
-            # (they're already handled by crashed_rule_ids above)
             if not (
                 hasattr(f, "context")
                 and isinstance(f.context, dict)
@@ -158,5 +141,4 @@ class ConstitutionalAuditor:
         if has_blocking_violations:
             return AuditVerdict.FAIL
 
-        # PASS: all checked rules passed, no crashes
         return AuditVerdict.PASS

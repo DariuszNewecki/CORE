@@ -1,36 +1,40 @@
 # src/shared/infrastructure/context/providers/vectors.py
 
 """
-VectorProvider - Semantic search via Qdrant.
+VectorProvider - semantic evidence retrieval via Qdrant.
 """
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 from shared.logger import getLogger
 
 
-if TYPE_CHECKING:
-    pass
-
 logger = getLogger(__name__)
 
 
-# ID: cd6237eb-1ab0-4488-95df-31092411019c
+# ID: 6e270409-6fa3-4ef2-a42d-a31e923bac52
 class VectorProvider:
-    """Provides semantic search via Qdrant."""
+    """Provides semantic search evidence via Qdrant."""
 
-    def __init__(self, qdrant_client=None, cognitive_service=None):
+    def __init__(
+        self,
+        qdrant_client: Any | None = None,
+        cognitive_service: Any | None = None,
+    ) -> None:
         self.qdrant = qdrant_client
         self.cognitive_service = cognitive_service
 
-    # ID: 3ca68418-6be2-4068-b05d-56c4b1191b3d
+    # ID: 5c869ad3-729e-4279-b8b1-2d2cc8b21549
     async def search_similar(
-        self, query: str, top_k: int = 10, collection: str = "core_capabilities"
+        self,
+        query: str,
+        top_k: int = 10,
+        collection: str = "core_capabilities",
     ) -> list[dict[str, Any]]:
-        """Search for semantically similar items using text query."""
-        logger.info("🧠 Searching Qdrant for: '%s' (top %s)", query, top_k)
+        """Search for semantically similar evidence items from a text query."""
+        logger.debug("Searching vectors for query '%s' (top_k=%s)", query, top_k)
 
         if not self.qdrant or not self.cognitive_service:
             logger.warning("Vector infrastructure incomplete - returning empty")
@@ -47,70 +51,51 @@ class VectorProvider:
             logger.error("Qdrant search failed: %s", e)
             return []
 
-    # ID: 90847657-c290-48cf-9b3a-429f37b26786
+    # ID: 0e8a4841-b1d6-4b73-8fba-f8a34325e0bf
     async def search_by_embedding(
         self,
         embedding: list[float],
         top_k: int = 10,
         collection: str = "core_capabilities",
     ) -> list[dict[str, Any]]:
-        """Search using pre-computed embedding."""
+        """Search using a pre-computed embedding."""
         if not self.qdrant:
             return []
+
         try:
             results = await self.qdrant.search_similar(
-                query_vector=embedding, limit=top_k, with_payload=True
+                query_vector=embedding,
+                limit=top_k,
+                with_payload=True,
             )
-            items = []
-            for hit in results:
-                payload = hit.get("payload", {})
-
-                file_path = payload.get("source_path") or payload.get("file_path", "")
-                symbol_name = payload.get("symbol") or payload.get(
-                    "symbol_path", payload.get("chunk_id", "unknown")
-                )
-
-                items.append(
-                    {
-                        "name": symbol_name,
-                        "path": file_path,
-                        "item_type": "symbol",
-                        "summary": payload.get("content", "")[:200],
-                        "score": hit.get("score", 0.0),
-                        "source": "qdrant",
-                    }
-                )
-            return items
+            return [self._format_hit(hit) for hit in results]
         except Exception as e:
             logger.error("Qdrant embedding search failed: %s", e, exc_info=True)
             return []
 
-    # ID: 96844a9d-5c4c-4c98-b245-b329e344973c
+    # ID: da668982-3dbe-49da-953b-9a532cb11617
     async def get_symbol_embedding(self, symbol_id: str) -> list[float] | None:
-        """Get embedding for a symbol by its vector ID."""
+        """Get stored embedding for a symbol by vector id."""
         if not self.qdrant:
             return None
+
         try:
             return await self.qdrant.get_vector_by_id(symbol_id)
-        except Exception:
+        except Exception as e:
+            logger.debug("Failed to fetch symbol embedding for %s: %s", symbol_id, e)
             return None
 
-    # ID: 8ae4adb2-18a5-4f06-a0c9-0e6c5b0996a2
+    # ID: aa556d35-f222-4e79-9204-b8725feafe50
     async def get_neighbors(
-        self, symbol_name: str, max_distance: float = 0.5, top_k: int = 10
+        self,
+        symbol_name: str,
+        max_distance: float = 0.5,
+        top_k: int = 10,
     ) -> list[dict[str, Any]]:
-        """
-        Get semantic neighbors of a symbol.
-        SMART IMPLEMENTATION: Preserved with threshold-aware search.
-        """
+        """Get semantic neighbors of a symbol."""
         if not self.cognitive_service or not self.qdrant:
             return []
 
-        logger.info(
-            "Finding semantic neighbors for: %s (radius: %s)", symbol_name, max_distance
-        )
-
-        # 1. Generate anchor embedding
         try:
             anchor_vec = await self.cognitive_service.get_embedding_for_code(
                 symbol_name
@@ -121,46 +106,50 @@ class VectorProvider:
             logger.error("Failed to get anchor embedding: %s", e)
             return []
 
-        # 2. Define similarity threshold (Distance 0.5 = Similarity 0.5)
         min_score = 1.0 - max_distance
 
-        # 3. Perform threshold-aware search
         try:
             results = await self.qdrant.search_similar(
-                query_vector=anchor_vec, limit=top_k, with_payload=True
+                query_vector=anchor_vec,
+                limit=top_k,
+                with_payload=True,
             )
 
-            # 4. Filter by similarity threshold
-            items = []
+            items: list[dict[str, Any]] = []
             for hit in results:
-                score = hit.get("score", 0.0)
-                if score >= min_score:
-                    payload = hit.get("payload", {})
+                score = float(hit.get("score", 0.0))
+                if score < min_score:
+                    continue
 
-                    file_path = payload.get("source_path") or payload.get(
-                        "file_path", ""
-                    )
-                    symbol_path = payload.get("symbol_path") or payload.get(
-                        "chunk_id", "unknown"
-                    )
+                item = self._format_hit(hit)
+                item["distance"] = 1.0 - score
+                items.append(item)
 
-                    items.append(
-                        {
-                            "name": symbol_path,
-                            "path": file_path,
-                            "item_type": "symbol",
-                            "summary": payload.get("content", "")[:200],
-                            "score": score,
-                            "distance": 1.0 - score,
-                            "source": "qdrant",
-                        }
-                    )
-
-            logger.info(
-                "Found %d neighbors within distance %s", len(items), max_distance
-            )
             return items
-
         except Exception as e:
             logger.error("Neighbor search failed: %s", e, exc_info=True)
             return []
+
+    def _format_hit(self, hit: dict[str, Any]) -> dict[str, Any]:
+        """Normalize a Qdrant hit into an evidence item."""
+        payload = hit.get("payload", {}) or {}
+
+        file_path = payload.get("source_path") or payload.get("file_path", "")
+        symbol_path = payload.get("symbol_path") or payload.get("symbol")
+        name = symbol_path or payload.get("chunk_id", "unknown")
+
+        return {
+            "name": name,
+            "path": file_path,
+            "item_type": "semantic_match",
+            "content": payload.get("content"),
+            "summary": (payload.get("content") or "")[:200],
+            "signature": payload.get("signature", ""),
+            "score": float(hit.get("score", 0.0)),
+            "source": "vector_search",
+            "symbol_path": symbol_path,
+            "metadata": {
+                "chunk_id": payload.get("chunk_id"),
+                "collection": payload.get("collection"),
+            },
+        }

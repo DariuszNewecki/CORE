@@ -22,8 +22,8 @@ The autonomous audit loop this closes:
       creates Proposal (one per action group)
       marks finding resolved
           ↓
-  ProposalExecutor
-      executes approved proposals
+  ProposalConsumerWorker
+      executes APPROVED proposals via ProposalExecutor
           ↓
   AuditViolationSensor runs again
       confirms violation gone or re-opens
@@ -34,6 +34,8 @@ Design constraints:
 - Never creates a proposal if an active one exists for the same action
 - Marks Blackboard entries resolved AFTER proposal is persisted (not before)
 - One proposal per action ID (not one per finding)
+- Safe proposals (approval_required=False) are created in APPROVED status
+  so ProposalConsumerWorker can pick them up immediately
 """
 
 from __future__ import annotations
@@ -73,13 +75,18 @@ class ViolationRemediatorWorker(Worker):
     atomic action via action_registry.get_by_check_id(), groups by action,
     deduplicates against active proposals, creates proposals, marks entries
     resolved.
+
+    Safe proposals (approval_required=False) are created in APPROVED status
+    so ProposalConsumerWorker can execute them without a separate approval step.
     """
 
     declaration_name = "violation_remediator"
 
-    def __init__(self, cognitive_service: Any = None) -> None:
-        """Accept cognitive_service from runner - not used, no LLM calls."""
-        super().__init__()
+    def __init__(
+        self, core_context: Any = None, declaration_name: str = "", **kwargs: Any
+    ) -> None:
+        """Accept daemon kwargs — core_context and cognitive_service not used, no LLM calls."""
+        super().__init__(declaration_name=declaration_name)
 
     # ID: c5d6e7f8-a9b0-1234-cdef-123456789014
     async def run(self) -> None:
@@ -196,13 +203,16 @@ class ViolationRemediatorWorker(Worker):
         Query Blackboard for open audit violation findings.
 
         Returns list of dicts with: entry_id, subject, payload.
+
+        Constitutional fix: uses service_registry.session() instead of
+        get_session() directly — Will layer must not import get_session.
         """
         from sqlalchemy import text
 
-        from shared.infrastructure.database.session_manager import get_session
+        from body.services.service_registry import service_registry
 
         try:
-            async with get_session() as session:
+            async with service_registry.session() as session:
                 result = await session.execute(
                     text(
                         """
@@ -271,7 +281,12 @@ class ViolationRemediatorWorker(Worker):
         action_id: str,
         findings: list[dict[str, Any]],
     ) -> str | None:
-        """Create and persist a Proposal for the given action and findings."""
+        """Create and persist a Proposal for the given action and findings.
+
+        Safe proposals (approval_required=False) are created in APPROVED status
+        so ProposalConsumerWorker can execute them without a separate approval step.
+        Proposals requiring human approval are created in DRAFT.
+        """
         from body.services.service_registry import service_registry
         from will.autonomy.proposal_repository import ProposalRepository
 
@@ -306,8 +321,30 @@ class ViolationRemediatorWorker(Worker):
             },
         )
 
-        risk = proposal.compute_risk()
-        proposal.approval_required = risk.overall_risk in ("high", "critical")
+        # compute_risk() sets approval_required correctly based on CORE's actual
+        # risk model: "safe" / "moderate" / "dangerous". The previous code compared
+        # against "high"/"critical" which don't exist — approval_required was always
+        # stuck at False regardless of actual risk level.
+        proposal.compute_risk()
+
+        # Skip the DRAFT→PENDING→APPROVED ceremony for proposals that don't need
+        # human sign-off. ProposalConsumerWorker only picks up APPROVED proposals,
+        # so anything left in DRAFT would never execute.
+        if not proposal.approval_required:
+            proposal.status = ProposalStatus.APPROVED
+            logger.info(
+                "ViolationRemediatorWorker: proposal for '%s' auto-approved "
+                "(risk=%s, approval_required=False)",
+                action_id,
+                proposal.risk.overall_risk if proposal.risk else "unknown",
+            )
+        else:
+            logger.info(
+                "ViolationRemediatorWorker: proposal for '%s' requires human approval "
+                "(risk=%s) — created in DRAFT",
+                action_id,
+                proposal.risk.overall_risk if proposal.risk else "unknown",
+            )
 
         is_valid, errors = proposal.validate()
         if not is_valid:
@@ -337,14 +374,17 @@ class ViolationRemediatorWorker(Worker):
         """
         Mark Blackboard entries as resolved.
         Returns list of successfully resolved entry IDs.
+
+        Constitutional fix: uses service_registry.session() instead of
+        get_session() directly — Will layer must not import get_session.
         """
         from sqlalchemy import text
 
-        from shared.infrastructure.database.session_manager import get_session
+        from body.services.service_registry import service_registry
 
         resolved = []
         try:
-            async with get_session() as session:
+            async with service_registry.session() as session:
                 for entry_id in entry_ids:
                     await session.execute(
                         text(

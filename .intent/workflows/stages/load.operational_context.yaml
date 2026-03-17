@@ -1,0 +1,48 @@
+stage_id: load.operational_context
+version: "1.0"
+status: experimental
+
+phase: load
+description: Resolve the planned workflow into an executable operational context.
+
+agent_role: ContextLoader
+
+inputs:
+  required:
+    - action_plan
+    - stage_route
+  optional:
+    - repository_context
+    - service_registry
+    - action_registry
+
+actions:
+  - action_id: context.resolve
+    purpose: Bind required runtime context for planned actions
+    required: true
+
+  - action_id: action.resolve
+    purpose: Resolve action references into executable action contracts
+    required: true
+
+outputs:
+  produces:
+    - execution_context
+    - resolved_action_set
+
+invariants:
+  must_hold:
+    - Stage resolves context without executing mutations.
+    - All resolved actions remain phase-consistent.
+  must_not:
+    - Must not evaluate rules.
+    - Must not generate unplanned actions.
+    - Must not commit changes.
+
+ordering:
+  mode: sequential
+  depends_on:
+    - parse.plan_actions
+  next_on_success:
+    - runtime.generate_changes
+  next_on_failure: []

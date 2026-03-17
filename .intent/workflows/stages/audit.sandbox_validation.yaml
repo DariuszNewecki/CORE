@@ -1,0 +1,43 @@
+stage_id: audit.sandbox_validation
+version: "1.0"
+status: experimental
+
+phase: audit
+description: Validate generated tests in isolated execution before promotion into governed test assets.
+
+agent_role: TestValidator
+
+inputs:
+  required:
+    - test_code
+    - module_under_test
+  optional:
+    - existing_test_patterns
+
+actions:
+  - action_id: test.sandbox_validate
+    purpose: Run generated tests in isolation to verify executability
+    required: true
+
+outputs:
+  produces:
+    - sandbox_results
+    - passing_tests
+    - failing_tests
+
+invariants:
+  must_hold:
+    - Validation runs in isolation from governed production execution.
+    - Stage applies only to workflows that generate tests.
+  must_not:
+    - Must not commit repository changes.
+    - Must not promote failing tests automatically.
+    - Must not declare constitutional compliance on its own.
+
+ordering:
+  mode: sequential
+  depends_on:
+    - runtime.generate_tests
+  next_on_success:
+    - audit.validate_changes
+  next_on_failure: []

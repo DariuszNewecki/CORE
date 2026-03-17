@@ -1,0 +1,44 @@
+stage_id: runtime.generate_tests
+version: "1.0"
+status: experimental
+
+phase: runtime
+description: Generate candidate tests for new or modified code to improve behavioral coverage.
+
+agent_role: TestGenerator
+
+inputs:
+  required:
+    - generated_code
+    - module_context
+  optional:
+    - existing_test_patterns
+    - coverage_targets
+
+actions:
+  - action_id: test.generate
+    purpose: Produce candidate tests for generated or modified code
+    required: true
+
+outputs:
+  produces:
+    - test_code
+    - coverage_projection
+    - test_manifest
+
+invariants:
+  must_hold:
+    - Generated tests remain candidate artifacts until validated.
+    - Stage may be skipped in workflows that do not require new tests.
+  must_not:
+    - Must not commit tests directly to the repository.
+    - Must not declare test validity without audit.
+    - Must not bypass sandbox validation when that validation is required.
+
+ordering:
+  mode: sequential
+  depends_on:
+    - runtime.generate_changes
+  next_on_success:
+    - audit.sandbox_validation
+  next_on_failure: []

@@ -1,0 +1,40 @@
+stage_id: execution.commit_changes
+version: "1.0"
+status: experimental
+
+phase: execution
+description: Apply validated changes through the governed execution surface.
+
+agent_role: CommitExecutor
+
+inputs:
+  required:
+    - validation_report
+    - candidate_change_set
+  optional:
+    - repaired_change_set
+    - execution_context
+
+actions:
+  - action_id: change.commit
+    purpose: Apply final governed changes
+    required: true
+
+outputs:
+  produces:
+    - commit_result
+
+invariants:
+  must_hold:
+    - Execution occurs only after successful audit outcome.
+    - Mutations pass through governed action surfaces.
+  must_not:
+    - Must not bypass atomic execution contracts.
+    - Must not execute on failed validation state.
+
+ordering:
+  mode: sequential
+  depends_on:
+    - audit.validate_changes
+  next_on_success: []
+  next_on_failure: []

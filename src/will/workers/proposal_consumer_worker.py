@@ -52,13 +52,10 @@ class ProposalConsumerWorker(Worker):
 
     declaration_name = "proposal_consumer_worker"
 
-    def __init__(self, core_context: Any) -> None:
-        """
-        Args:
-            core_context: Initialized CoreContext providing action_executor,
-                          git_service, cognitive_service.
-        """
-        super().__init__()
+    def __init__(
+        self, core_context: Any, declaration_name: str = "", **kwargs: Any
+    ) -> None:
+        super().__init__(declaration_name=declaration_name)
         self._ctx = core_context
 
     # ID: b2c3d4e5-f6a7-8901-bcde-f12345678901

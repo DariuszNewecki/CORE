@@ -80,24 +80,18 @@ class IntentConnector:
             return []
 
         applicable = []
-        # Standardize path for glob comparison
         target_path = str(file_path).replace("\\", "/")
 
         for ref in repo._rule_index.values():
             rule_content = ref.content
 
-            # 1. Check Rule-level scope
             scope = rule_content.get("scope")
 
-            # 2. Fallback to Policy-level scope
             if not scope:
                 policy = repo.load_policy(ref.policy_id)
-                # Check for standard CORE scope structures
                 scope = policy.get("scope", {}).get("paths") or policy.get("scope")
 
-            # 3. Decision: If no scope or path matches, the rule is applicable
             if not scope or self._path_matches_scope(target_path, scope):
-                # We return the enriched rule dictionary
                 applicable.append(self.get_rule(ref.rule_id))
 
         return applicable
@@ -111,12 +105,10 @@ class IntentConnector:
         patterns = [scope] if isinstance(scope, str) else scope
 
         for pattern in patterns:
-            # Recursive glob support
             if "**" in pattern:
                 prefix = pattern.split("/**")[0]
                 if not prefix or path.startswith(prefix):
                     return True
-            # Standard glob support
             if fnmatch.fnmatch(path, pattern):
                 return True
 
@@ -139,3 +131,27 @@ class IntentConnector:
             rid for rid, ref in repo._rule_index.items() if ref.policy_id == policy_id
         ]
         return sorted(rule_ids)
+
+    # ID: 2c7b8c3a-7b14-4d67-8f07-30f2f4a9d201
+    def list_workflows(self) -> list[str]:
+        """List workflow definitions from the constitutional repository."""
+        self._ensure_repo_ready()
+        return get_intent_repository().list_workflows()
+
+    # ID: 0d17b52e-0ed3-4d87-a0d1-24bff7f8d202
+    def load_workflow(self, workflow_id: str) -> dict[str, Any]:
+        """Load a workflow definition from the constitutional repository."""
+        self._ensure_repo_ready()
+        return get_intent_repository().load_workflow(workflow_id)
+
+    # ID: d4f9d4a2-08bb-41d3-92ec-8dba3f18d203
+    def list_phases(self) -> list[str]:
+        """List constitutional phase definitions from the constitutional repository."""
+        self._ensure_repo_ready()
+        return get_intent_repository().list_phases()
+
+    # ID: e9bb6f9c-3f18-49db-8d40-f58d7d58d204
+    def load_phase(self, phase_id: str) -> dict[str, Any]:
+        """Load a constitutional phase definition from the constitutional repository."""
+        self._ensure_repo_ready()
+        return get_intent_repository().load_phase(phase_id)

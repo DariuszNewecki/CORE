@@ -1,0 +1,45 @@
+stage_id: interpret.intent
+version: "1.0"
+status: experimental
+
+phase: interpret
+description: Normalize a raw goal into a bounded operational intent.
+
+agent_role: IntentInterpreter
+
+inputs:
+  required:
+    - raw_goal
+    - constitutional_context
+  optional:
+    - prior_workflow_state
+
+actions:
+  - action_id: intent.normalize
+    purpose: Convert raw goal into normalized intent
+    required: true
+  - action_id: intent.classify
+    purpose: Classify the requested workflow type
+    required: true
+
+outputs:
+  produces:
+    - normalized_intent
+    - workflow_request
+
+invariants:
+  must_hold:
+    - Stage belongs to exactly one constitutional phase.
+    - Stage does not evaluate rules.
+    - Stage does not introduce governance authority.
+  must_not:
+    - Must not mutate phase assignment.
+    - Must not bypass constitutional boundaries.
+    - Must not commit repository changes.
+
+ordering:
+  mode: sequential
+  depends_on: []
+  next_on_success:
+    - parse.plan_actions
+  next_on_failure: []

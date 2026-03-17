@@ -1,0 +1,46 @@
+stage_id: audit.canary_validation
+version: "1.0"
+status: experimental
+
+phase: audit
+description: Run existing tests against candidate changes to detect behavioral regressions and compatibility breaks.
+
+agent_role: CanaryValidator
+
+inputs:
+  required:
+    - candidate_change_set
+    - existing_test_suite
+    - affected_modules
+  optional:
+    - repository_snapshot
+    - file_mappings
+
+actions:
+  - action_id: test.canary_validate
+    purpose: Execute existing tests against candidate changes and record compatibility results
+    required: true
+
+outputs:
+  produces:
+    - test_results
+    - behavioral_diff
+    - regression_report
+
+invariants:
+  must_hold:
+    - Validation runs against existing governed tests.
+    - Stage produces explicit compatibility and regression signals.
+    - Stage does not modify repository contents.
+  must_not:
+    - Must not commit repository changes.
+    - Must not repair candidate changes directly.
+    - Must not declare constitutional compliance on its own.
+
+ordering:
+  mode: sequential
+  depends_on:
+    - runtime.generate_changes
+  next_on_success:
+    - audit.style_check
+  next_on_failure: []

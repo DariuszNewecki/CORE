@@ -1,0 +1,47 @@
+stage_id: audit.style_check
+version: "1.0"
+status: experimental
+
+phase: audit
+description: Validate candidate code against deterministic style, import, and type-check standards.
+
+agent_role: StyleValidator
+
+inputs:
+  required:
+    - generated_code
+    - project_style_config
+  optional:
+    - file_mappings
+
+actions:
+  - action_id: style.validate
+    purpose: Run deterministic style, formatting, import, and type validation checks
+    required: true
+
+  - action_id: style.autofix
+    purpose: Apply permitted automatic formatting fixes
+    required: false
+
+outputs:
+  produces:
+    - style_report
+    - formatted_code
+    - type_check_results
+
+invariants:
+  must_hold:
+    - Validation is deterministic and tool-based.
+    - Stage operates on candidate artifacts only.
+  must_not:
+    - Must not commit repository changes.
+    - Must not declare constitutional compliance on its own.
+    - Must not bypass broader audit evaluation.
+
+ordering:
+  mode: sequential
+  depends_on:
+    - runtime.generate_changes
+  next_on_success:
+    - audit.validate_changes
+  next_on_failure: []
