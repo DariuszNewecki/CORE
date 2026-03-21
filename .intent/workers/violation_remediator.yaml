@@ -4,7 +4,7 @@ kind: worker
 metadata:
   id: workers.violation_remediator
   title: Violation Remediator
-  version: "0.1.0"
+  version: "0.2.0"
   authority: policy
   status: active
 
@@ -14,30 +14,21 @@ identity:
 
 mandate:
   responsibility: >
-    For each open audit violation finding on the blackboard, build a context
-    package for the violating file, invoke RemoteCoder (Grok) via PromptModel
-    to produce a fix, validate via Crate/Canary ceremony, and apply to live
-    src/ with a git commit. Supports dry-run mode: LLM and Canary run but
-    nothing is applied or committed. Proposed fix is posted to the blackboard
-    for human review.
+    Consume open audit violation findings from the Blackboard, look up the
+    remediating action from the atomic action registry via the remediates
+    field, create one Proposal per unique action group, and mark each
+    consumed Blackboard entry as resolved. No LLM calls. No file writes.
   phase: execution
-  permitted_tools:
-    - llm.remote_coder
-    - file.read
-    - crate.create
-    - canary.validate
-    - crate.apply
-    - git.commit
+  permitted_tools: []
   scope:
-    paths:
-      - "src/**"
-      - "var/mind/rollbacks/**"
     domains:
       - compliance
       - remediation
-  approval_required: true
+  approval_required: false
+  schedule:
+    max_interval: 60
 
 implementation:
   module: will.workers.violation_remediator
   class: ViolationRemediatorWorker
-  requires_core_context: true
+  requires_core_context: false

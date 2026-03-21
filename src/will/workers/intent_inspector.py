@@ -48,11 +48,36 @@ _SUBJECT_ALIGNMENT = "intent_inspector.alignment"
 _REQUIRED_TOP_LEVEL_FIELDS = ("kind", "metadata")
 _REQUIRED_METADATA_FIELDS = ("id", "title", "version", "authority", "status")
 
-# Directories that are operational/stateful — skip LLM analysis
-_SKIP_DIRS = {"runtime", "mind_export", "keys"}
+# Directories that are operational/stateful or have a format the LLM
+# cannot coherently analyse — skip LLM passes for these subtrees.
+#
+# "enforcement" is excluded because enforcement mapping files use a
+# specialised {engine, params, scope} format that differs from governed
+# documents (kind/metadata/rules). The LLM has no schema for them and
+# produces noise findings about missing fields that don't exist in the
+# mapping format. Structural integrity of enforcement mappings is
+# validated by EnforcementMappingLoader at load time instead.
+_SKIP_DIRS = {"runtime", "mind_export", "keys", "enforcement"}
 
 # Maximum number of documents fed to the alignment pass in one LLM call
 _ALIGNMENT_BATCH = 20
+
+# Tokens the LLM uses to signal a clean pass — no findings to report.
+# Any response that, when stripped and uppercased, equals or starts with one
+# of these tokens is treated as a clean pass and produces zero findings.
+_CLEAN_PASS_TOKENS = (
+    "NO_FINDINGS",
+    "NO FINDINGS",
+    "NONE",
+    "OK",
+    "PASS",
+    "CLEAN",
+    "NO ISSUES",
+    "NO ISSUES FOUND",
+    "NO PROBLEMS",
+    "LOOKS GOOD",
+    "ALL GOOD",
+)
 
 
 # ID: f1e2d3c4-b5a6-7890-fedc-ba9876543210
@@ -91,7 +116,6 @@ class IntentInspector(Worker):
             await self.post_report(
                 subject="intent_inspector.run.complete",
                 payload={"error": f".intent/ not found at {intent_root}"},
-                status="abandoned",
             )
             return
 
@@ -101,14 +125,26 @@ class IntentInspector(Worker):
         )
 
         # --- Pass 1: Structural (pure Python, no LLM) ---
+        # Fetch existing open structural subjects once to avoid re-posting the
+        # same "missing $schema" warning every cycle for files that will never
+        # resolve automatically (e.g. config files, workflow stages).
+        existing_structural = await self._fetch_existing_subjects(_SUBJECT_STRUCTURAL)
         structural_findings = self._pass_structural(documents)
         structural_posted = 0
+        structural_skipped = 0
         for finding in structural_findings:
-            await self.post_finding(
-                subject=f"{_SUBJECT_STRUCTURAL}::{finding['path']}",
-                payload=finding,
-            )
+            subject = f"{_SUBJECT_STRUCTURAL}::{finding['path']}"
+            if subject in existing_structural:
+                structural_skipped += 1
+                continue
+            await self.post_finding(subject=subject, payload=finding)
             structural_posted += 1
+
+        if structural_skipped:
+            logger.debug(
+                "IntentInspector: structural pass — %d already open, skipped.",
+                structural_skipped,
+            )
 
         # --- Pass 2: Coherence (per-document LLM) ---
         coherence_posted = await self._pass_coherence(documents)
@@ -156,9 +192,23 @@ class IntentInspector(Worker):
             data = doc["data"]
             issues = []
 
-            # Must have $schema
+            # Must have $schema.
+            # If absent, the file is not a governed artifact — it may be a
+            # workflow stage definition, schema file, or other non-document
+            # YAML with its own format. Flag only the missing $schema and
+            # skip all downstream checks: kind, metadata, status etc. are
+            # only meaningful once we know what document type is declared.
             if not data.get("$schema"):
                 issues.append("missing $schema reference")
+                findings.append(
+                    {
+                        "pass": "structural",
+                        "path": path,
+                        "issues": issues,
+                        "severity": "warning",
+                    }
+                )
+                continue
 
             # Must have top-level required fields
             for field in _REQUIRED_TOP_LEVEL_FIELDS:
@@ -379,7 +429,6 @@ class IntentInspector(Worker):
                 or ""
             )
             if isinstance(responsibility, dict):
-                # rules block — summarise keys only
                 responsibility = f"rules: {list(responsibility.keys())}"
             summary = str(responsibility)[:200].replace("\n", " ").strip()
             lines.append(f"[{doc['path']}] kind={kind} id={doc_id} — {summary}")
@@ -398,8 +447,36 @@ class IntentInspector(Worker):
             SEVERITY: warning|error|info
             ---
 
-        Gracefully handles free-form text — wraps it as a single finding.
+        Clean pass signals:
+            If the LLM response (stripped, uppercased) matches or starts with
+            a known clean-pass token (NO_FINDINGS, OK, PASS, etc.), return an
+            empty list. A clean pass must not produce a blackboard finding.
+
+        Gracefully handles free-form text — wraps it as a single finding only
+        when the response is not a clean pass and contains no parseable structure.
         """
+        if not response or not response.strip():
+            return []
+
+        # Check for clean pass signal before any parsing.
+        # The LLM signals "nothing wrong" with tokens like NO_FINDINGS or OK.
+        # These must produce zero findings — not an info-level finding.
+        normalized = response.strip().upper()
+        for token in _CLEAN_PASS_TOKENS:
+            if (
+                normalized == token
+                or normalized.startswith(token + "\n")
+                or normalized.startswith(token + " ")
+                or normalized.startswith(token + ".")
+            ):
+                logger.debug(
+                    "IntentInspector %s: clean pass for %s ('%s')",
+                    pass_name,
+                    path,
+                    response.strip()[:40],
+                )
+                return []
+
         findings = []
         current: dict[str, Any] = {}
 
@@ -436,7 +513,9 @@ class IntentInspector(Worker):
                 }
             )
 
-        # Fallback: LLM returned free-form text, treat whole response as one finding
+        # Fallback: LLM returned free-form text with no parseable structure.
+        # Only wrap as a finding if the response is not a clean pass.
+        # (Clean pass check above already handled the NO_FINDINGS case.)
         if not findings and response.strip():
             findings.append(
                 {
@@ -448,3 +527,33 @@ class IntentInspector(Worker):
             )
 
         return findings
+
+    # ID: c9d0e1f2-a3b4-5c6d-7e8f-999999999999
+    async def _fetch_existing_subjects(self, subject_prefix: str) -> set[str]:
+        """
+        Query the blackboard for all already-open findings under a subject
+        prefix for this worker. Used to deduplicate structural and coherence
+        findings across cycles — avoids re-posting the same warning every
+        time the Inspector runs for files that will never self-resolve.
+        """
+        from sqlalchemy import text
+
+        from shared.infrastructure.database.session_manager import get_session
+
+        async with get_session() as session:
+            result = await session.execute(
+                text(
+                    """
+                    SELECT subject FROM core.blackboard_entries
+                    WHERE worker_uuid = :worker_uuid
+                      AND entry_type = 'finding'
+                      AND subject LIKE :prefix
+                      AND status NOT IN ('resolved', 'abandoned')
+                    """
+                ),
+                {
+                    "worker_uuid": str(self._worker_uuid),
+                    "prefix": f"{subject_prefix}::%",
+                },
+            )
+            return {row[0] for row in result.fetchall()}
