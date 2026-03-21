@@ -875,7 +875,7 @@
   {
     "check_id": "architecture.max_file_size",
     "severity": "warning",
-    "message": "Module has 757 lines, exceeds limit of 400",
+    "message": "Module has 823 lines, exceeds limit of 400",
     "file_path": "src/body/workers/violation_remediator.py",
     "line_number": null,
     "context": {},
@@ -956,8 +956,35 @@
   {
     "check_id": "architecture.max_file_size",
     "severity": "warning",
+    "message": "Module has 599 lines, exceeds limit of 400",
+    "file_path": "src/will/self_healing/remediation_interpretation/file_role_detector.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.max_file_size",
+    "severity": "warning",
+    "message": "Module has 421 lines, exceeds limit of 400",
+    "file_path": "src/will/self_healing/remediation_interpretation/responsibility_extractor.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.max_file_size",
+    "severity": "warning",
     "message": "Module has 467 lines, exceeds limit of 400",
     "file_path": "src/will/strategists/fix_strategist.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.max_file_size",
+    "severity": "warning",
+    "message": "Module has 434 lines, exceeds limit of 400",
+    "file_path": "src/will/workers/audit_violation_sensor.py",
     "line_number": null,
     "context": {},
     "details": {}
@@ -1370,7 +1397,7 @@
   {
     "check_id": "architecture.intent.non_gateway_no_direct_resolution",
     "severity": "warning",
-    "message": "Line 125: Direct .intent traversal via 'glob()' outside shared intent infrastructure.",
+    "message": "Line 202: Direct .intent traversal via 'glob()' outside shared intent infrastructure.",
     "file_path": "src/will/commands/daemon.py",
     "line_number": null,
     "context": {},
@@ -1406,7 +1433,7 @@
   {
     "check_id": "architecture.intent.non_gateway_no_direct_resolution",
     "severity": "warning",
-    "message": "Line 193: Direct .intent traversal via 'glob()' outside shared intent infrastructure.",
+    "message": "Line 212: Direct .intent traversal via 'glob()' outside shared intent infrastructure.",
     "file_path": "src/will/workers/worker_auditor.py",
     "line_number": null,
     "context": {},
@@ -1460,7 +1487,7 @@
   {
     "check_id": "modularity.single_responsibility",
     "severity": "warning",
-    "message": "Modularity Debt: 59.3/100 (Limit: 60.0)",
+    "message": "Modularity Debt: 58.9/100 (Limit: 60.0)",
     "file_path": "src/body/workers/violation_remediator.py",
     "line_number": null,
     "context": {},
@@ -1586,6 +1613,24 @@
   {
     "check_id": "modularity.single_responsibility",
     "severity": "warning",
+    "message": "Modularity Debt: 51.5/100 (Limit: 60.0)",
+    "file_path": "src/will/commands/daemon.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "modularity.single_responsibility",
+    "severity": "warning",
+    "message": "Modularity Debt: 48.3/100 (Limit: 60.0)",
+    "file_path": "src/will/self_healing/remediation_interpretation/file_role_detector.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "modularity.single_responsibility",
+    "severity": "warning",
     "message": "Modularity Debt: 50.4/100 (Limit: 60.0)",
     "file_path": "src/will/test_generation/sandbox.py",
     "line_number": null,
@@ -1631,7 +1676,7 @@
   {
     "check_id": "modularity.single_responsibility",
     "severity": "warning",
-    "message": "Modularity Debt: 50.6/100 (Limit: 60.0)",
+    "message": "Modularity Debt: 51.8/100 (Limit: 60.0)",
     "file_path": "src/will/workers/worker_auditor.py",
     "line_number": null,
     "context": {},
@@ -1685,7 +1730,7 @@
   {
     "check_id": "modularity.semantic_cohesion",
     "severity": "warning",
-    "message": "Modularity Debt: 59.3/100 (Limit: 60.0)",
+    "message": "Modularity Debt: 58.9/100 (Limit: 60.0)",
     "file_path": "src/body/workers/violation_remediator.py",
     "line_number": null,
     "context": {},
@@ -1811,6 +1856,24 @@
   {
     "check_id": "modularity.semantic_cohesion",
     "severity": "warning",
+    "message": "Modularity Debt: 51.5/100 (Limit: 60.0)",
+    "file_path": "src/will/commands/daemon.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "modularity.semantic_cohesion",
+    "severity": "warning",
+    "message": "Modularity Debt: 48.3/100 (Limit: 60.0)",
+    "file_path": "src/will/self_healing/remediation_interpretation/file_role_detector.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "modularity.semantic_cohesion",
+    "severity": "warning",
     "message": "Modularity Debt: 50.4/100 (Limit: 60.0)",
     "file_path": "src/will/test_generation/sandbox.py",
     "line_number": null,
@@ -1856,7 +1919,7 @@
   {
     "check_id": "modularity.semantic_cohesion",
     "severity": "warning",
-    "message": "Modularity Debt: 50.6/100 (Limit: 60.0)",
+    "message": "Modularity Debt: 51.8/100 (Limit: 60.0)",
     "file_path": "src/will/workers/worker_auditor.py",
     "line_number": null,
     "context": {},
@@ -1910,7 +1973,7 @@
   {
     "check_id": "modularity.import_coupling",
     "severity": "warning",
-    "message": "Modularity Debt: 59.3/100 (Limit: 60.0)",
+    "message": "Modularity Debt: 58.9/100 (Limit: 60.0)",
     "file_path": "src/body/workers/violation_remediator.py",
     "line_number": null,
     "context": {},
@@ -2036,6 +2099,24 @@
   {
     "check_id": "modularity.import_coupling",
     "severity": "warning",
+    "message": "Modularity Debt: 51.5/100 (Limit: 60.0)",
+    "file_path": "src/will/commands/daemon.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "modularity.import_coupling",
+    "severity": "warning",
+    "message": "Modularity Debt: 48.3/100 (Limit: 60.0)",
+    "file_path": "src/will/self_healing/remediation_interpretation/file_role_detector.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "modularity.import_coupling",
+    "severity": "warning",
     "message": "Modularity Debt: 50.4/100 (Limit: 60.0)",
     "file_path": "src/will/test_generation/sandbox.py",
     "line_number": null,
@@ -2081,7 +2162,7 @@
   {
     "check_id": "modularity.import_coupling",
     "severity": "warning",
-    "message": "Modularity Debt: 50.6/100 (Limit: 60.0)",
+    "message": "Modularity Debt: 51.8/100 (Limit: 60.0)",
     "file_path": "src/will/workers/worker_auditor.py",
     "line_number": null,
     "context": {},
@@ -2135,7 +2216,7 @@
   {
     "check_id": "modularity.refactor_score_threshold",
     "severity": "warning",
-    "message": "Modularity Debt: 59.3/100 (Limit: 60.0)",
+    "message": "Modularity Debt: 58.9/100 (Limit: 60.0)",
     "file_path": "src/body/workers/violation_remediator.py",
     "line_number": null,
     "context": {},
@@ -2261,6 +2342,24 @@
   {
     "check_id": "modularity.refactor_score_threshold",
     "severity": "warning",
+    "message": "Modularity Debt: 51.5/100 (Limit: 60.0)",
+    "file_path": "src/will/commands/daemon.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "modularity.refactor_score_threshold",
+    "severity": "warning",
+    "message": "Modularity Debt: 48.3/100 (Limit: 60.0)",
+    "file_path": "src/will/self_healing/remediation_interpretation/file_role_detector.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "modularity.refactor_score_threshold",
+    "severity": "warning",
     "message": "Modularity Debt: 50.4/100 (Limit: 60.0)",
     "file_path": "src/will/test_generation/sandbox.py",
     "line_number": null,
@@ -2306,7 +2405,7 @@
   {
     "check_id": "modularity.refactor_score_threshold",
     "severity": "warning",
-    "message": "Modularity Debt: 50.6/100 (Limit: 60.0)",
+    "message": "Modularity Debt: 51.8/100 (Limit: 60.0)",
     "file_path": "src/will/workers/worker_auditor.py",
     "line_number": null,
     "context": {},
@@ -2343,6 +2442,15 @@
     "check_id": "workflow.dead_code_check",
     "severity": "warning",
     "message": "Dead code detected: src/body/governance/runtime_validator.py:156: unused variable 'dst_root' (100% confidence)",
+    "file_path": "System",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "workflow.dead_code_check",
+    "severity": "warning",
+    "message": "Dead code detected: src/will/self_healing/remediation_interpretation/strategy_selector.py:376: unused variable 'preferred_roles' (100% confidence)",
     "file_path": "System",
     "line_number": null,
     "context": {},

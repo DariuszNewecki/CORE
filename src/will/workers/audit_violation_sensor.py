@@ -22,6 +22,21 @@ Design:
   IntentRepository._rule_index at runtime — no hardcoding.
 - Adding a rule to an existing namespace automatically brings it into scope.
 
+Deduplication contract:
+- Dedup is by subject string across ALL workers, not per-worker-UUID.
+- This prevents different instances of the same logical sensor (e.g. old
+  and new daemon generations) from re-posting the same violation.
+- A finding is considered a duplicate if a blackboard entry with the same
+  subject exists in any non-terminal status (not resolved or abandoned).
+
+Filtering contract:
+- Only findings with a real Python source file path are posted.
+  Sentinels like "System", "DB", "unknown", "__symbol_pair__*" indicate
+  project-scope or unresolvable violations that the remediator cannot act on.
+- Only findings whose check_id is a proper rule ID are posted.
+  Enforcement mapping file paths (containing "/" and ending in ".yaml"/".json")
+  are auditor internals leaking into the finding — they are dropped.
+
 LAYER: will/workers — sensing worker. Receives CoreContext via constructor
 injection. No file writes. No LLM. Pure perception.
 """
@@ -38,6 +53,21 @@ logger = getLogger(__name__)
 
 # Blackboard subject prefix for findings posted by this worker
 _FINDING_SUBJECT = "audit.violation"
+
+# File path values produced by the auditor for project-scope or unresolvable
+# findings. The remediator cannot open these as source files — skip them.
+_SENTINEL_FILE_PATHS: frozenset[str] = frozenset(
+    {
+        "System",
+        "system",
+        "DB",
+        "db",
+        "unknown",
+        "none",
+        "None",
+        "",
+    }
+)
 
 
 # ID: 7199fd0e-a8ed-40e6-b7f1-5718d6b79ae4
@@ -109,7 +139,17 @@ class AuditViolationSensor(Worker):
             rule_ids,
         )
 
-        violations = await self._run_audit(rule_ids)
+        raw_violations = await self._run_audit(rule_ids)
+        violations = self._filter_violations(raw_violations)
+
+        filtered_out = len(raw_violations) - len(violations)
+        if filtered_out:
+            logger.info(
+                "AuditViolationSensor[%s]: filtered %d unactionable violations "
+                "(sentinel file paths or malformed rule IDs).",
+                self._rule_namespace,
+                filtered_out,
+            )
 
         if not violations:
             await self.post_report(
@@ -118,22 +158,28 @@ class AuditViolationSensor(Worker):
                     "rule_namespace": self._rule_namespace,
                     "rule_ids_resolved": len(rule_ids),
                     "violations_found": 0,
+                    "filtered_unactionable": filtered_out,
                     "dry_run": self._dry_run,
-                    "message": f"No violations detected in namespace '{self._rule_namespace}'.",
+                    "message": (
+                        f"No actionable violations in namespace '{self._rule_namespace}'."
+                    ),
                 },
             )
             logger.info(
-                "AuditViolationSensor[%s]: no violations found.",
+                "AuditViolationSensor[%s]: no actionable violations found.",
                 self._rule_namespace,
             )
             return
 
         logger.info(
-            "AuditViolationSensor[%s]: %d violations found.",
+            "AuditViolationSensor[%s]: %d actionable violations.",
             self._rule_namespace,
             len(violations),
         )
 
+        # Dedup by subject — across ALL workers, not just this instance.
+        # This prevents different daemon generations from re-posting the same
+        # violation when the sensor restarts with a new UUID.
         existing = await self._fetch_existing_subjects()
 
         posted = 0
@@ -171,22 +217,25 @@ class AuditViolationSensor(Worker):
             payload={
                 "rule_namespace": self._rule_namespace,
                 "rule_ids_resolved": len(rule_ids),
-                "violations_found": len(violations),
+                "violations_found": len(raw_violations),
+                "filtered_unactionable": filtered_out,
                 "posted": posted,
                 "skipped_duplicates": skipped,
                 "dry_run": self._dry_run,
                 "message": (
                     f"Run complete. {posted} findings posted, "
-                    f"{skipped} duplicates skipped."
+                    f"{skipped} duplicates skipped, "
+                    f"{filtered_out} unactionable filtered."
                 ),
             },
         )
 
         logger.info(
-            "AuditViolationSensor[%s]: %d posted, %d skipped.",
+            "AuditViolationSensor[%s]: %d posted, %d skipped, %d filtered.",
             self._rule_namespace,
             posted,
             skipped,
+            filtered_out,
         )
 
     # -------------------------------------------------------------------------
@@ -274,8 +323,8 @@ class AuditViolationSensor(Worker):
                                 file_path = "src/" + module.replace(".", "/") + ".py"
                             break
 
-            if not file_path:
-                file_path = f"__symbol_pair__{ctx.get('symbol_a', 'unknown')}"
+                if not file_path:
+                    file_path = f"__symbol_pair__{ctx.get('symbol_a', 'unknown')}"
 
             violations.append(
                 {
@@ -290,16 +339,85 @@ class AuditViolationSensor(Worker):
 
         return violations
 
+    def _filter_violations(
+        self, violations: list[dict[str, Any]]
+    ) -> list[dict[str, Any]]:
+        """
+        Remove violations that cannot be acted on by the remediator.
+
+        Two categories are dropped:
+
+        1. Sentinel file paths — the auditor could not resolve a real source
+           file. These are project-scope or symbol-pair findings. The
+           remediator cannot open "System" or "__symbol_pair__foo" as a file.
+
+        2. Malformed rule IDs — the auditor returned an enforcement mapping
+           file path as check_id (e.g. "enforcement/mappings/arch/foo.yaml").
+           This is an auditor internal leaking into the finding. The remediator
+           cannot map a file path to a fix strategy, and it creates misleading
+           subjects on the blackboard.
+        """
+        actionable = []
+        for v in violations:
+            file_path = str(v.get("file_path") or "")
+            rule_id = str(v.get("rule_id") or "")
+
+            # Drop sentinel file paths
+            if file_path in _SENTINEL_FILE_PATHS:
+                logger.debug(
+                    "AuditViolationSensor: dropping sentinel file_path=%r rule=%r",
+                    file_path,
+                    rule_id,
+                )
+                continue
+
+            if file_path.startswith("__symbol_pair__"):
+                logger.debug(
+                    "AuditViolationSensor: dropping symbol-pair file_path=%r rule=%r",
+                    file_path,
+                    rule_id,
+                )
+                continue
+
+            # Drop findings where the file path is not a Python source file
+            if not file_path.endswith(".py"):
+                logger.debug(
+                    "AuditViolationSensor: dropping non-Python file_path=%r rule=%r",
+                    file_path,
+                    rule_id,
+                )
+                continue
+
+            # Drop malformed rule IDs — file paths leaked from the auditor engine.
+            # A real rule ID never contains "/" (e.g. "purity.no_dead_code").
+            # Enforcement mapping paths do (e.g. "enforcement/mappings/arch/foo.yaml").
+            if "/" in rule_id:
+                logger.debug(
+                    "AuditViolationSensor: dropping malformed rule_id=%r file=%r",
+                    rule_id,
+                    file_path,
+                )
+                continue
+
+            actionable.append(v)
+
+        return actionable
+
     async def _fetch_existing_subjects(self) -> set[str]:
         """
-        Query the blackboard for already-posted subjects for this namespace.
-        Used for deduplication across runs.
+        Query the blackboard for all already-posted subjects matching this
+        sensor's namespace prefix, regardless of which worker posted them.
+
+        Intentionally does NOT filter by worker_uuid. Deduplication must be
+        by subject content, not by poster identity. This prevents different
+        daemon generations or parallel sensor instances from re-posting the
+        same violation when their UUIDs differ.
         """
         from sqlalchemy import text
 
         from shared.infrastructure.database.session_manager import get_session
 
-        prefix = f"{_FINDING_SUBJECT}::{self._rule_namespace}.%"
+        prefix = f"{_FINDING_SUBJECT}::{self._rule_namespace}%"
 
         async with get_session() as session:
             result = await session.execute(
@@ -308,7 +426,7 @@ class AuditViolationSensor(Worker):
                     SELECT subject FROM core.blackboard_entries
                     WHERE entry_type = 'finding'
                       AND subject LIKE :prefix
-                      AND status NOT IN ('resolved', 'abandoned', 'dry_run_complete')
+                      AND status NOT IN ('resolved', 'abandoned')
                     """
                 ),
                 {"prefix": prefix},

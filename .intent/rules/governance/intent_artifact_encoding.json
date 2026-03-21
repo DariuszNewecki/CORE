@@ -1,0 +1,22 @@
+{
+    "$schema": "META/rule_document.schema.json",
+    "kind": "rule_document",
+    "metadata": {
+        "id": "rules.governance.intent_artifact_encoding",
+        "title": "Intent Artifact Character Encoding",
+        "version": "1.0.0",
+        "authority": "policy",
+        "phase": "parse",
+        "status": "active"
+    },
+    "rules": [
+        {
+            "id": "governance.intent_artifact_encoding.ascii_only",
+            "statement": "All .intent/ artifact files (*.yaml, *.json) MUST contain only printable ASCII characters (0x20-0x7E) plus standard whitespace (0x09, 0x0A, 0x0D). Unicode characters are forbidden.",
+            "enforcement": "blocking",
+            "authority": "policy",
+            "phase": "parse",
+            "rationale": "Intent artifacts are loaded into a PostgreSQL SQL_ASCII encoded database via worker_registry and blackboard_entries. Non-ASCII characters in YAML title or responsibility fields cause UntranslatableCharacterError at runtime, silently crashing governance workers. The constraint is also defensive against copy-paste from editors or LLMs that substitute typographic characters (em dashes, curly quotes, ellipses) for their ASCII equivalents."
+        }
+    ]
+}

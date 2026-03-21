@@ -66,17 +66,26 @@ async def workers_blackboard_cmd(
         params["entry_type"] = entry_type
     where = " AND ".join(clauses)
     query = text(
-        f"\n        SELECT id, entry_type, status, subject, worker_uuid, created_at, payload\n        FROM core.blackboard_entries\n        WHERE {where}\n        ORDER BY created_at DESC\n        LIMIT :limit\n        "
+        f"""
+        SELECT id, entry_type, status, subject, worker_uuid, created_at, payload
+        FROM core.blackboard_entries
+        WHERE {where}
+        ORDER BY created_at DESC
+        LIMIT :limit
+        """
     )
     params["limit"] = limit
+
     async with get_session() as session:
         result = await session.execute(query, params)
         rows = result.fetchall()
+
     if not rows:
-        logger.info("[yellow]No blackboard entries found.[/yellow]")
+        console.print("[yellow]No blackboard entries found.[/yellow]")
         raise typer.Exit()
+
     table = Table(
-        title=f"Blackboard — {len(rows)} entr{('y' if len(rows) == 1 else 'ies')}",
+        title=f"Blackboard — {len(rows)} entr{'y' if len(rows) == 1 else 'ies'}",
         show_lines=show_payload,
     )
     table.add_column("Type", style="cyan", no_wrap=True)
@@ -86,15 +95,20 @@ async def workers_blackboard_cmd(
     table.add_column("Created", style="dim", no_wrap=True)
     if show_payload:
         table.add_column("Payload")
+
     _STATUS_STYLE = {
         "open": "green",
         "claimed": "yellow",
         "resolved": "blue",
         "abandoned": "red",
+        "indeterminate": "magenta",
+        "dry_run_complete": "cyan",
     }
+
     for row in rows:
         _entry_id, etype, estatus, subject, worker_uuid, created_at, payload = row
-        status_str = f"[{_STATUS_STYLE.get(estatus, 'white')}]{estatus}[/]"
+        status_style = _STATUS_STYLE.get(estatus, "white")
+        status_str = f"[{status_style}]{estatus}[/{status_style}]"
         created_str = created_at.strftime("%Y-%m-%d %H:%M:%S") if created_at else "-"
         worker_str = str(worker_uuid)[:8] + "..." if worker_uuid else "-"
         row_cells = [etype, status_str, subject, worker_str, created_str]
@@ -102,4 +116,5 @@ async def workers_blackboard_cmd(
             raw = payload if isinstance(payload, dict) else json.loads(payload or "{}")
             row_cells.append(json.dumps(raw, indent=2))
         table.add_row(*row_cells)
-    logger.info(table)
+
+    console.print(table)

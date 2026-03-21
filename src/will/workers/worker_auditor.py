@@ -26,6 +26,7 @@ only. No LLM. No file writes.
 from __future__ import annotations
 
 import asyncio
+import re
 from pathlib import Path
 from typing import Any
 
@@ -46,6 +47,18 @@ _GLIDE_OFF_MULTIPLIER = 0.10
 
 # Fallback threshold (seconds) for workers with no schedule declaration
 _FALLBACK_THRESHOLD = 600
+
+# Strip non-ASCII characters that PostgreSQL SQL_ASCII encoding cannot store.
+# Worker names from .intent/workers/ YAML titles may contain Unicode dashes or
+# other decorative characters that cause UntranslatableCharacterError on insert.
+_NON_ASCII_RE = re.compile(r"[^\x09\x0A\x0D\x20-\x7E]")
+
+
+def _sanitize(value: str) -> str:
+    """Replace non-ASCII characters with '?' for SQL_ASCII database safety."""
+    if not isinstance(value, str):
+        return str(value)
+    return _NON_ASCII_RE.sub("?", value)
 
 
 # ID: c3e4f5a6-b7c8-4d9e-0f1a-2b3c4d5e6f7a
@@ -97,7 +110,7 @@ class WorkerAuditor(Worker):
                     await self._post_entry(
                         entry_type="report",
                         subject="worker_auditor.cycle_error",
-                        payload={"error": str(exc)},
+                        payload={"error": _sanitize(str(exc))},
                         status="abandoned",
                     )
                 except Exception:
@@ -127,10 +140,14 @@ class WorkerAuditor(Worker):
 
         flagged = 0
         for worker in workers:
-            worker_name = worker["worker_name"]
+            # Sanitize worker_name — registry may contain non-ASCII characters
+            # from YAML titles (e.g. em dashes). SQL_ASCII encoding rejects them.
+            worker_name = _sanitize(worker["worker_name"])
             worker_uuid = str(worker["worker_uuid"])
             seconds_silent = worker["seconds_silent"]
 
+            # Match against threshold using sanitized name (thresholds are also
+            # loaded from YAML titles which are now sanitized in _load_worker_thresholds)
             threshold = self._thresholds.get(worker_name, _FALLBACK_THRESHOLD)
 
             if seconds_silent > threshold:
@@ -182,6 +199,8 @@ class WorkerAuditor(Worker):
         max_interval + glide_off per worker title.
 
         Returns mapping of worker_name (title) → threshold in seconds.
+        Worker titles are sanitized to ASCII to match the sanitized names
+        read from worker_registry during the audit cycle.
         Workers without schedule declaration use _FALLBACK_THRESHOLD.
         """
         thresholds: dict[str, int] = {}
@@ -193,7 +212,10 @@ class WorkerAuditor(Worker):
         for yaml_path in intent_workers.glob("*.yaml"):
             try:
                 data = strict_yaml_processor.load_strict(yaml_path)
-                title = data.get("metadata", {}).get("title", "")
+                raw_title = data.get("metadata", {}).get("title", "")
+                # Sanitize the title to match what will be in worker_registry
+                # after re-registration with the fixed YAML files.
+                title = _sanitize(raw_title)
                 schedule = data.get("mandate", {}).get("schedule")
                 if title and schedule:
                     max_interval = schedule.get("max_interval", _FALLBACK_THRESHOLD)
@@ -248,15 +270,11 @@ class WorkerAuditor(Worker):
                 text(
                     """
                     SELECT subject FROM core.blackboard_entries
-                    WHERE worker_uuid = :worker_uuid
-                      AND entry_type = 'finding'
+                    WHERE entry_type = 'finding'
                       AND subject LIKE :prefix
                       AND status NOT IN ('resolved', 'abandoned')
                     """
                 ),
-                {
-                    "worker_uuid": str(self._worker_uuid),
-                    "prefix": f"{_FINDING_SUBJECT}::%",
-                },
+                {"prefix": f"{_FINDING_SUBJECT}::%"},
             )
             return {row[0] for row in result.fetchall()}

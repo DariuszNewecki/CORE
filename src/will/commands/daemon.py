@@ -64,6 +64,79 @@ async def start() -> None:
     await _run_daemon()
 
 
+def _instantiate_worker(
+    WorkerClass: Any,
+    kwargs: dict[str, Any],
+    requires_ctx: bool,
+    ctx: Any,
+    cog_svc: Any,
+    stem: str,
+) -> Any | None:
+    """
+    Attempt to instantiate a worker with progressively simpler kwargs.
+
+    Instantiation order:
+    1. Full kwargs (declaration_name + rule_namespace + params + core_context/nothing)
+    2. Standard kwargs only (declaration_name + rule_namespace, no extra params)
+    3. Bare instantiation (no kwargs at all) — for workers with hardcoded
+       declaration_name class attributes that predate the daemon kwarg contract
+    4. Cognitive service fallback (for workers that need it but don't take core_context)
+
+    Returns the instantiated worker, or None if all attempts fail.
+    """
+    standard_keys = {"declaration_name", "rule_namespace"}
+    standard_kwargs = {k: v for k, v in kwargs.items() if k in standard_keys}
+
+    attempts: list[tuple[str, Any]]
+
+    if requires_ctx:
+        attempts = [
+            ("full + core_context", lambda: WorkerClass(core_context=ctx, **kwargs)),
+            (
+                "standard + core_context",
+                lambda: WorkerClass(core_context=ctx, **standard_kwargs),
+            ),
+            ("bare + core_context", lambda: WorkerClass(core_context=ctx)),
+        ]
+    else:
+        attempts = [
+            ("full kwargs", lambda: WorkerClass(**kwargs)),
+            ("standard kwargs", lambda: WorkerClass(**standard_kwargs)),
+            ("bare", lambda: WorkerClass()),
+        ]
+        if cog_svc is not None:
+            attempts.append(
+                (
+                    "cognitive_service",
+                    lambda: WorkerClass(cognitive_service=cog_svc, **kwargs),
+                )
+            )
+
+    for label, attempt in attempts:
+        try:
+            worker = attempt()
+            if label != "full kwargs" and label != "full + core_context":
+                logger.info(
+                    "CORE daemon: '%s' instantiated via fallback '%s'.",
+                    stem,
+                    label,
+                )
+            return worker
+        except TypeError:
+            continue
+        except Exception as exc:
+            logger.error(
+                "CORE daemon: '%s' instantiation failed unexpectedly (%s): %s",
+                stem,
+                label,
+                exc,
+                exc_info=True,
+            )
+            return None
+
+    return None
+
+
 # ID: c2d3e4f5-a6b7-8c9d-0e1f-2a3b4c5d6e7f
 async def _run_daemon() -> None:
     """
@@ -71,11 +144,15 @@ async def _run_daemon() -> None:
     instantiates each one, starts their run_loop (or one-shot loop) as
     asyncio tasks, and waits for shutdown signal.
 
-    Constructor kwargs are resolved from the declaration:
-    - requires_core_context → passes core_context=ctx
-    - mandate.scope.rule_namespace → passes rule_namespace=<value>
-    - declaration stem → always passed as declaration_name=<stem>
-      so one worker class can back multiple namespace declarations.
+    Constructor kwargs are resolved from the declaration in this order:
+    1. declaration_name — always included (stem of the YAML file)
+    2. rule_namespace   — from mandate.scope.rule_namespace if present
+    3. core_context     — if implementation.requires_core_context is true
+    4. implementation.params — arbitrary extra kwargs merged last
+
+    Instantiation is tried with progressively simpler kwargs when TypeError
+    occurs, so workers with hardcoded declaration_name class attributes and
+    plain __init__(self) signatures are still started correctly.
     """
     import yaml
 
@@ -138,35 +215,61 @@ async def _run_daemon() -> None:
             class_name = impl["class"]
             requires_ctx = impl.get("requires_core_context", False)
 
-            # Resolve optional kwargs declared in the YAML
+            # Build constructor kwargs.
+            # declaration_name is always included — enables one class to back
+            # multiple namespace declarations with distinct UUIDs.
+            kwargs: dict[str, Any] = {"declaration_name": stem}
+
             rule_namespace = (
                 declaration.get("mandate", {})
                 .get("scope", {})
                 .get("rule_namespace", "")
             )
+            if rule_namespace:
+                kwargs["rule_namespace"] = rule_namespace
+
+            # implementation.params — arbitrary extra constructor kwargs.
+            # Protected standard fields cannot be overridden via params.
+            extra_params = impl.get("params") or {}
+            if extra_params:
+                protected = {
+                    "declaration_name",
+                    "rule_namespace",
+                    "core_context",
+                    "cognitive_service",
+                }
+                clashes = set(extra_params) & protected
+                if clashes:
+                    logger.warning(
+                        "CORE daemon: '%s' implementation.params contains protected "
+                        "keys %s — they will be ignored.",
+                        stem,
+                        clashes,
+                    )
+                    extra_params = {
+                        k: v for k, v in extra_params.items() if k not in protected
+                    }
+                kwargs.update(extra_params)
 
             module = importlib.import_module(module_path)
             WorkerClass = getattr(module, class_name)
 
-            # declaration_name always passed so one class can back
-            # multiple namespace declarations with distinct UUIDs.
-            kwargs: dict[str, Any] = {"declaration_name": stem}
-            if rule_namespace:
-                kwargs["rule_namespace"] = rule_namespace
+            worker = _instantiate_worker(
+                WorkerClass=WorkerClass,
+                kwargs=kwargs,
+                requires_ctx=requires_ctx,
+                ctx=ctx,
+                cog_svc=cog_svc,
+                stem=stem,
+            )
 
-            if requires_ctx:
-                worker = WorkerClass(core_context=ctx, **kwargs)
-            else:
-                try:
-                    worker = WorkerClass(**kwargs)
-                except TypeError:
-                    if cog_svc is None:
-                        logger.warning(
-                            "CORE daemon: skipping '%s' — needs CognitiveService but unavailable",
-                            stem,
-                        )
-                        continue
-                    worker = WorkerClass(cognitive_service=cog_svc, **kwargs)
+            if worker is None:
+                logger.error(
+                    "CORE daemon: could not instantiate '%s' — all attempts failed. "
+                    "Worker will not be started.",
+                    stem,
+                )
+                continue
 
             # Use run_loop() if the worker defines it; otherwise wrap start() in a loop.
             if hasattr(worker, "run_loop"):

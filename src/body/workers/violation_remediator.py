@@ -4,18 +4,33 @@
 ViolationRemediator - Constitutional Compliance Acting Worker.
 
 Responsibility: For each open audit violation finding on the blackboard,
-build a context package for the violating file, invoke RemoteCoder (Grok)
-via PromptModel to produce a fix, validate via Crate/Canary ceremony, and
-apply to live src/ with a git commit.
+build a deterministic architectural context package for the violating file
+(evidence only, not authority), invoke RemoteCoder (Grok) via PromptModel
+to produce a fix, validate via Crate/Canary ceremony, and apply to live
+src/ with a git commit.
+
+Phase discipline:
+  RUNTIME phase  — _plan_file():  read source, build architectural context,
+                                  validate confidence, decide whether to proceed.
+  EXECUTION phase — _execute_file(): LLM invocation, Crate, Canary, apply, commit.
+
+These phases are separated. Indeterminate planning outcomes block execution.
 
 Dry-run safety chain:
-  - write=False → LLM runs, proposed fix is produced
-  - write=False → Crate is created (packed) but NOT applied
-  - write=False → Canary runs on the Crate (validates without applying)
-  - write=False → No git commit
-  - write=False → Blackboard entry posted as status='dry_run_complete'
-                  with full proposed fix for human review
-  - write=True  → Full ceremony: apply + commit
+  - write=False -> planning runs (confidence-gated)
+  - write=False -> LLM runs, proposed fix is produced
+  - write=False -> Crate is created (packed) but NOT applied
+  - write=False -> Canary runs on the Crate (validates without applying)
+  - write=False -> No git commit
+  - write=False -> Blackboard entry posted as status='dry_run_complete'
+                   with full proposed fix for human review
+  - write=True  -> Full ceremony: apply + commit
+
+Failure discipline:
+  - Brief build failure       -> indeterminate -> halt, do NOT proceed
+  - Low role confidence       -> indeterminate -> halt in write mode
+  - git commit failure        -> abandoned    -> return False (not "resolved")
+  - Any exception in ceremony -> abandoned    -> return False
 
 Constitutional standing:
 - Declaration:      .intent/workers/violation_remediator.yaml
@@ -25,7 +40,7 @@ Constitutional standing:
                     canary.validate, crate.apply, git.commit
 - Approval:         true
 
-LAYER: body/workers — acting worker. Receives CoreContext via constructor
+LAYER: body/workers - acting worker. Receives CoreContext via constructor
 injection. All src/ writes via ActionExecutor -> Crate -> Canary -> apply.
 """
 
@@ -33,11 +48,16 @@ from __future__ import annotations
 
 import json
 import re
+from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Any
 
 from shared.logger import getLogger
 from shared.workers.base import Worker
+from will.self_healing.remediation_interpretation.service import (
+    RemediationInterpretationError,
+    RemediationInterpretationService,
+)
 
 
 logger = getLogger(__name__)
@@ -51,32 +71,61 @@ _NON_ASCII_RE = re.compile(r"[^\x09\x0A\x0D\x20-\x7E]")
 
 _CLAIM_LIMIT = 50
 
-# Qdrant collection for Python source semantic search
 _CODE_COLLECTION = "core-code"
-
-# Number of semantic examples to fetch per violating file
 _SEMANTIC_EXAMPLES_LIMIT = 3
+
+# Minimum role detection confidence required to proceed in write mode.
+# Below this threshold the architectural context is too uncertain to trust
+# for autonomous code modification.
+_MIN_ROLE_CONFIDENCE_FOR_WRITE = 0.55
+
+# Severity ordering for claim priority (higher = claimed first).
+_SEVERITY_RANK = {"critical": 4, "error": 3, "warning": 2, "info": 1}
+
+
+@dataclass
+class _RemediationPlan:
+    """
+    Output of the RUNTIME planning phase.
+
+    This is evidence assembled before the execution ceremony begins.
+    It is passed to the LLM as architectural context — not as authority.
+    The LLM must treat it as advisory input, not as a directive.
+    """
+
+    file_path: str
+    original_source: str
+    baseline_sha: str
+    violations_summary: str
+    # architectural_context carries the deterministic brief as evidence.
+    # It is NOT a planning authority. It is evidence of the file's
+    # detected role, responsibility clusters, and candidate strategies.
+    # The LLM is free to disagree with it; it must satisfy the rule.
+    architectural_context: dict[str, Any]
+    context_text: str
 
 
 # ID: bb52f62a-45c9-47a4-9ff8-788b0c6ca4f1
 class ViolationRemediator(Worker):
     """
     Acting worker. Claims open audit violation findings from the blackboard,
-    builds context for the violating file, invokes RemoteCoder (Grok) via
-    PromptModel to produce a fix, then runs the full Crate/Canary ceremony.
+    builds a deterministic architectural context package (evidence, not law)
+    for the violating file, invokes RemoteCoder (Grok) via PromptModel to
+    produce a fix, then runs the full Crate/Canary ceremony.
 
-    In dry-run mode (write=False): LLM and Canary run, nothing is applied,
-    proposed fix is posted to the blackboard for human review.
+    In dry-run mode (write=False): planning, LLM, and Canary run,
+    nothing is applied, proposed fix is posted to the blackboard for human
+    review.
 
-    In write mode (write=True): full ceremony — apply + git commit.
+    In write mode (write=True): full ceremony - apply + git commit.
 
-    One Crate per file — all violations in a file are fixed in a single
+    One Crate per file - all violations in a file are fixed in a single
     LLM invocation to preserve coherence and minimise API cost.
 
     Args:
         core_context: Initialized CoreContext.
         target_rule: Only process findings for this rule ID.
-        write: If False, dry-run mode — no src/ writes, no commits.
+        write: If False, dry-run mode - no src/ writes, no commits.
     """
 
     declaration_name = "violation_remediator"
@@ -91,6 +140,7 @@ class ViolationRemediator(Worker):
         self._ctx = core_context
         self._target_rule = target_rule
         self._write = write
+        self._interpretation_service = RemediationInterpretationService()
 
     # ID: vr-run-001
     # ID: 83141abe-9611-497f-a14c-29c5cf04d305
@@ -123,11 +173,19 @@ class ViolationRemediator(Worker):
             logger.info("ViolationRemediator: no open findings.")
             return
 
-        # Group by file — one LLM call per file covers all its violations
         by_file: dict[str, list[dict[str, Any]]] = {}
-        for f in findings:
-            fp = f["payload"]["file_path"]
-            by_file.setdefault(fp, []).append(f)
+        for finding in findings:
+            payload = finding.get("payload") or {}
+            file_path = str(payload.get("file_path") or "").strip()
+
+            if not file_path:
+                logger.warning(
+                    "ViolationRemediator: skipping finding %s with missing file_path",
+                    finding.get("id"),
+                )
+                continue
+
+            by_file.setdefault(file_path, []).append(finding)
 
         logger.info(
             "ViolationRemediator: %d findings across %d files [%s].",
@@ -153,7 +211,7 @@ class ViolationRemediator(Worker):
                 "write": self._write,
                 "succeeded": succeeded,
                 "failed": failed,
-                "message": (f"[{mode}] {succeeded} files processed, {failed} failed."),
+                "message": f"[{mode}] {succeeded} files processed, {failed} failed.",
             },
         )
         logger.info(
@@ -164,70 +222,193 @@ class ViolationRemediator(Worker):
         )
 
     # -------------------------------------------------------------------------
-    # Per-file ceremony
+    # Top-level per-file orchestration
     # -------------------------------------------------------------------------
 
     async def _process_file(
-        self, file_path: str, findings: list[dict[str, Any]]
+        self,
+        file_path: str,
+        findings: list[dict[str, Any]],
     ) -> bool:
         """
-        Full ceremony (or dry-run) for a single file.
+        Orchestrate the two-phase ceremony for a single file.
+
+        RUNTIME phase:  _plan_file()    — read, interpret, gate confidence
+        EXECUTION phase: _execute_file() — LLM, crate, canary, apply, commit
+        """
+        plan = await self._plan_file(file_path, findings)
+        if plan is None:
+            # Planning marked findings already; do not proceed.
+            return False
+
+        return await self._execute_file(file_path, findings, plan)
+
+    # -------------------------------------------------------------------------
+    # RUNTIME phase — planning
+    # -------------------------------------------------------------------------
+
+    async def _plan_file(
+        self,
+        file_path: str,
+        findings: list[dict[str, Any]],
+    ) -> _RemediationPlan | None:
+        """
+        RUNTIME phase: read the source file and build the architectural
+        context package. Validates confidence before returning.
+
+        Returns None (and marks findings indeterminate) if:
+        - the source file cannot be read
+        - the architectural context service raises
+        - role confidence is below threshold in write mode
+
+        This method intentionally performs NO execution-phase actions.
         """
         repo_root = self._ctx.git_service.repo_path
         abs_path = repo_root / file_path
 
-        # 1. Read current source
         try:
             original_source = abs_path.read_text(encoding="utf-8")
-        except OSError as e:
-            logger.warning("ViolationRemediator: cannot read %s — %s", file_path, e)
+        except OSError as exc:
+            logger.warning(
+                "ViolationRemediator: cannot read %s - %s",
+                file_path,
+                exc,
+            )
             await self._mark_findings(findings, "abandoned")
-            await self._post_failed(file_path, findings, f"Cannot read file: {e}")
-            return False
+            await self._post_failed(file_path, findings, f"Cannot read file: {exc}")
+            return None
 
-        # 2. Git checkpoint
         try:
             baseline_sha = self._ctx.git_service.get_current_commit()
-        except RuntimeError as e:
-            logger.warning("ViolationRemediator: git checkpoint failed — %s", e)
+        except RuntimeError as exc:
+            logger.warning(
+                "ViolationRemediator: git checkpoint failed - %s",
+                exc,
+            )
             baseline_sha = "unknown"
 
-        # 3. Rollback archive (write mode only)
-        if self._write:
-            self._archive_rollback(file_path, original_source, baseline_sha)
+        # Build architectural context.
+        # Failure here is indeterminate — we cannot safely plan without it.
+        # We do NOT fall back to an empty brief and continue.
+        try:
+            architectural_context = (
+                self._interpretation_service.build_reasoning_brief_dict(
+                    file_path=file_path,
+                    source_code=original_source,
+                    findings=findings,
+                )
+            )
+        except RemediationInterpretationError as exc:
+            logger.warning(
+                "ViolationRemediator: architectural context failed for %s - %s "
+                "[indeterminate — halting]",
+                file_path,
+                exc,
+            )
+            await self._mark_findings(findings, "indeterminate")
+            await self._post_failed(
+                file_path,
+                findings,
+                f"Architectural context indeterminate: {exc}",
+            )
+            return None
 
-        # 4. Build violations summary for the LLM prompt
+        # Confidence gate for write mode.
+        # In dry-run mode we allow low-confidence for human review.
+        role_confidence = (
+            architectural_context.get("file_role", {}).get("confidence", 0.0) or 0.0
+        )
+        if self._write and role_confidence < _MIN_ROLE_CONFIDENCE_FOR_WRITE:
+            logger.warning(
+                "ViolationRemediator: role confidence %.2f < %.2f for %s "
+                "[indeterminate in write mode — halting]",
+                role_confidence,
+                _MIN_ROLE_CONFIDENCE_FOR_WRITE,
+                file_path,
+            )
+            await self._mark_findings(findings, "indeterminate")
+            await self._post_failed(
+                file_path,
+                findings,
+                (
+                    f"Role confidence {role_confidence:.2f} below write threshold "
+                    f"{_MIN_ROLE_CONFIDENCE_FOR_WRITE}. Human review required."
+                ),
+            )
+            return None
+
+        logger.info(
+            "ViolationRemediator: plan ready for %s "
+            "(role=%s, confidence=%.2f, recommended=%s)",
+            file_path,
+            architectural_context.get("file_role", {}).get("role_id", "unknown"),
+            role_confidence,
+            (architectural_context.get("recommended_strategy") or {}).get(
+                "strategy_id", "none"
+            ),
+        )
+
         violations_summary = self._build_violations_summary(findings)
-
-        # 5. Build context package — call graph context + semantic examples
         context_text = await self._build_context(file_path, violations_summary)
 
-        # 6. LLM fix via PromptModel + RemoteCoder (Grok)
+        return _RemediationPlan(
+            file_path=file_path,
+            original_source=original_source,
+            baseline_sha=baseline_sha,
+            violations_summary=violations_summary,
+            architectural_context=architectural_context,
+            context_text=context_text,
+        )
+
+    # -------------------------------------------------------------------------
+    # EXECUTION phase — ceremony
+    # -------------------------------------------------------------------------
+
+    async def _execute_file(
+        self,
+        file_path: str,
+        findings: list[dict[str, Any]],
+        plan: _RemediationPlan,
+    ) -> bool:
+        """
+        EXECUTION phase: LLM proposal, Crate, Canary, apply, commit.
+
+        plan.architectural_context is passed to the LLM as advisory
+        evidence, labelled explicitly as 'architectural_context' — not as
+        a planning directive. The LLM's obligation is to satisfy the rule,
+        not to follow the brief.
+        """
+        if self._write:
+            self._archive_rollback(file_path, plan.original_source, plan.baseline_sha)
+
         proposed_fix = await self._invoke_llm(
-            file_path, original_source, context_text, violations_summary
+            file_path=file_path,
+            source_code=plan.original_source,
+            context_text=plan.context_text,
+            violations_summary=plan.violations_summary,
+            architectural_context=plan.architectural_context,
         )
         if proposed_fix is None:
             await self._mark_findings(findings, "abandoned")
             await self._post_failed(file_path, findings, "LLM fix failed")
             return False
 
-        # 7. Pack into Crate via ActionExecutor
         crate_id = await self._pack_crate(file_path, proposed_fix)
         if crate_id is None:
             await self._mark_findings(findings, "abandoned")
             await self._post_failed(file_path, findings, "Crate creation failed")
             return False
 
-        # 8. Canary validation
         canary_passed = await self._run_canary(crate_id)
         if not canary_passed:
             await self._mark_findings(findings, "abandoned")
             await self._post_failed(
-                file_path, findings, f"Canary failed for crate {crate_id}"
+                file_path,
+                findings,
+                f"Canary failed for crate {crate_id}",
             )
             return False
 
-        # ---- DRY-RUN BRANCH ----
         if not self._write:
             await self.post_finding(
                 subject=f"{_DRY_RUN_SUBJECT}::{file_path}",
@@ -235,58 +416,74 @@ class ViolationRemediator(Worker):
                     "file_path": file_path,
                     "rule": self._target_rule,
                     "crate_id": crate_id,
-                    "baseline_sha": baseline_sha,
+                    "baseline_sha": plan.baseline_sha,
                     "canary_passed": canary_passed,
                     "proposed_fix": proposed_fix,
                     "violations_count": len(findings),
+                    "architectural_context": plan.architectural_context,
                     "message": (
                         "Dry-run complete. Canary passed. "
-                        "Review 'proposed_fix' then re-run with write=True."
+                        "Review 'proposed_fix' and 'architectural_context' "
+                        "then re-run with write=True."
                     ),
                 },
             )
             await self._mark_findings(findings, "dry_run_complete")
             logger.info(
-                "ViolationRemediator: [DRY-RUN] %s — canary passed, fix ready for review.",
+                "ViolationRemediator: [DRY-RUN] %s - canary passed, fix ready.",
                 file_path,
             )
             return True
 
-        # ---- WRITE BRANCH ----
+        # --- write mode: apply then commit ---
 
-        # 9. Apply crate to live src/
         try:
             from body.services.crate_processing_service import CrateProcessingService
 
-            svc = CrateProcessingService(self._ctx)
-            await svc.apply_and_finalize_crate(crate_id)
-        except Exception as e:
+            service = CrateProcessingService(self._ctx)
+            await service.apply_and_finalize_crate(crate_id)
+        except Exception as exc:
             logger.warning(
-                "ViolationRemediator: apply_and_finalize failed for %s — %s",
+                "ViolationRemediator: apply_and_finalize failed for %s - %s",
                 crate_id,
-                e,
+                exc,
             )
             await self._mark_findings(findings, "abandoned")
-            await self._post_failed(file_path, findings, f"Apply failed: {e}")
+            await self._post_failed(file_path, findings, f"Apply failed: {exc}")
             return False
 
-        # 10. Git commit
+        # Commit MUST succeed before findings are marked resolved.
+        # A failed commit means the repo and the blackboard would disagree
+        # about whether the fix is live. That is a data integrity failure.
         try:
             self._ctx.git_service.commit(
                 f"fix({self._target_rule}): autonomous remediation in {file_path}"
             )
-        except RuntimeError as e:
-            logger.warning("ViolationRemediator: git commit failed — %s", e)
+        except RuntimeError as exc:
+            logger.error(
+                "ViolationRemediator: git commit FAILED for %s - %s "
+                "[marking abandoned — fix is applied but uncommitted]",
+                file_path,
+                exc,
+            )
+            await self._mark_findings(findings, "abandoned")
+            await self._post_failed(
+                file_path,
+                findings,
+                f"Git commit failed after apply: {exc}. "
+                "Fix is applied to disk but NOT committed. Manual intervention required.",
+            )
+            return False
 
-        # 11. Post completion + resolve findings
         await self.post_finding(
             subject=f"{_COMPLETE_SUBJECT}::{file_path}",
             payload={
                 "file_path": file_path,
                 "rule": self._target_rule,
                 "crate_id": crate_id,
-                "baseline_sha": baseline_sha,
+                "baseline_sha": plan.baseline_sha,
                 "violations_fixed": len(findings),
+                "architectural_context": plan.architectural_context,
             },
         )
         await self._mark_findings(findings, "resolved")
@@ -300,220 +497,6 @@ class ViolationRemediator(Worker):
         return True
 
     # -------------------------------------------------------------------------
-    # Context building
-    # -------------------------------------------------------------------------
-
-    async def _build_context(self, file_path: str, violations_summary: str) -> str:
-        """
-        Build a context package for the violating file combining:
-        1. Call graph context (ContextService — structural neighbours)
-        2. Semantic examples (Qdrant core-code — similar correct implementations)
-
-        Returns a formatted string suitable for inclusion in the LLM prompt.
-        """
-        sections: list[str] = []
-
-        # --- Part 1: Call graph context ---
-        call_graph_ctx = await self._build_call_graph_context(file_path)
-        if call_graph_ctx:
-            sections.append(call_graph_ctx)
-
-        # --- Part 2: Semantic examples from Qdrant ---
-        semantic_ctx = await self._build_semantic_context(file_path, violations_summary)
-        if semantic_ctx:
-            sections.append(semantic_ctx)
-
-        return "\n\n".join(sections)
-
-    async def _build_call_graph_context(self, file_path: str) -> str:
-        """Structural context from ContextService (call graph neighbours)."""
-        try:
-            task_spec = {
-                "task_id": f"remediation::{self._target_rule}::{file_path}",
-                "summary": (f"Fix {self._target_rule} violations in {file_path}"),
-                "task_type": "code_modification",
-                "scope": {
-                    "include": [file_path],
-                    "traversal_depth": 1,
-                },
-                "constraints": {
-                    "max_tokens": 8000,
-                    "max_items": 20,
-                },
-            }
-            packet = await self._ctx.context_service.build_for_task(
-                task_spec, use_cache=False
-            )
-            items = packet.get("context", [])
-            if not items:
-                return ""
-
-            lines = [f"## Structural Context for {file_path}", ""]
-            for item in items:
-                name = item.get("name", "unknown")
-                path = item.get("path", "unknown")
-                content = item.get("content", "")
-                if content:
-                    lines.append(f"### {path}::{name}")
-                    lines.append("```python")
-                    lines.append(content)
-                    lines.append("```")
-                    lines.append("")
-            return "\n".join(lines)
-
-        except Exception as e:
-            logger.warning(
-                "ViolationRemediator: call graph context failed for %s — %s",
-                file_path,
-                e,
-            )
-            return ""
-
-    async def _build_semantic_context(
-        self, file_path: str, violations_summary: str
-    ) -> str:
-        """
-        Semantic context: find similar correct implementations in core-code.
-
-        Query vector is built from the violation description — "find code
-        that handles this kind of concern" rather than "find code that looks
-        like the violating file." This surfaces relevant examples of correct
-        patterns for the LLM to learn from.
-
-        Excludes the violating file itself from results.
-        Falls back silently if Qdrant or cognitive service is unavailable.
-        """
-        try:
-            cognitive = self._ctx.cognitive_service
-            if cognitive is None:
-                return ""
-
-            qdrant = getattr(self._ctx, "qdrant_service", None)
-            if qdrant is None:
-                return ""
-
-            # Build query from rule + violation context — semantic intent
-            query_text = (
-                f"rule: {self._target_rule}\n" f"violations:\n{violations_summary}"
-            )
-
-            embedding = await cognitive.get_embedding_for_code(query_text)
-            if embedding is None:
-                return ""
-
-            results = await qdrant.search(
-                collection_name=_CODE_COLLECTION,
-                query_vector=(
-                    list(embedding) if hasattr(embedding, "__iter__") else embedding
-                ),
-                limit=_SEMANTIC_EXAMPLES_LIMIT + 1,  # +1 to absorb self-match
-            )
-
-            if not results:
-                return ""
-
-            lines = ["## Semantic Examples — Similar Correct Implementations", ""]
-            added = 0
-
-            for hit in results:
-                payload = hit.payload or {}
-                example_path = payload.get("file_path", "")
-
-                # Skip the violating file itself
-                if example_path == file_path:
-                    continue
-
-                section = payload.get("section", "unknown")
-                score = round(hit.score, 3)
-
-                # Read the actual source chunk text from the Qdrant payload
-                # (the text field is not stored — read from disk via file_path)
-                chunk_text = await self._read_chunk_from_disk(example_path, payload)
-                if not chunk_text:
-                    continue
-
-                lines.append(f"### {example_path}::{section} (similarity={score})")
-                lines.append("```python")
-                lines.append(chunk_text)
-                lines.append("```")
-                lines.append("")
-                added += 1
-
-                if added >= _SEMANTIC_EXAMPLES_LIMIT:
-                    break
-
-            if added == 0:
-                return ""
-
-            logger.info(
-                "ViolationRemediator: added %d semantic examples for %s",
-                added,
-                file_path,
-            )
-            return "\n".join(lines)
-
-        except Exception as e:
-            logger.warning(
-                "ViolationRemediator: semantic context failed for %s — %s",
-                file_path,
-                e,
-            )
-            return ""
-
-    async def _read_chunk_from_disk(
-        self, file_path: str, payload: dict[str, Any]
-    ) -> str:
-        """
-        Read the relevant chunk text from disk using the chunk metadata.
-        Falls back to first 1500 chars of file if chunk boundaries unavailable.
-        """
-        try:
-            repo_root = self._ctx.git_service.repo_path
-            abs_path = repo_root / file_path
-            if not abs_path.exists():
-                return ""
-
-            source = abs_path.read_text(encoding="utf-8", errors="replace")
-
-            # Try to extract just the relevant symbol using section name
-            section = payload.get("section", "")
-            chunk_type = payload.get("chunk_type", "")
-
-            if (
-                chunk_type in ("class", "function")
-                and section
-                and "_part" not in section
-            ):
-                import ast
-
-                try:
-                    tree = ast.parse(source)
-                    lines = source.splitlines()
-                    for node in tree.body:
-                        if (
-                            isinstance(
-                                node,
-                                (
-                                    ast.ClassDef,
-                                    ast.FunctionDef,
-                                    ast.AsyncFunctionDef,
-                                ),
-                            )
-                            and node.name == section
-                        ):
-                            start = node.lineno - 1
-                            end = node.end_lineno or (start + 50)
-                            return "\n".join(lines[start:end])
-                except Exception:
-                    pass
-
-            # Fallback: first 1500 chars
-            return source[:1500]
-
-        except Exception:
-            return ""
-
-    # -------------------------------------------------------------------------
     # LLM invocation
     # -------------------------------------------------------------------------
 
@@ -523,13 +506,19 @@ class ViolationRemediator(Worker):
         source_code: str,
         context_text: str,
         violations_summary: str,
+        architectural_context: dict[str, Any],
     ) -> str | None:
         """
-        Invoke PromptModel('violation_remediator') with RemoteCoder (Grok)
-        to produce a fixed version of the source file.
+        Invoke RemoteCoder (Grok) via PromptModel to produce a fix.
+
+        architectural_context is passed as advisory evidence under the key
+        'architectural_context'. The prompt template must treat it as
+        context, not as a directive. The LLM's obligation is to satisfy
+        the violated rule, not to execute the recommended strategy.
         """
         try:
             from shared.ai.prompt_model import PromptModel
+            from shared.ai.response_parser import extract_code
 
             client = await self._ctx.cognitive_service.aget_client_for_role(
                 "RemoteCoder"
@@ -541,26 +530,33 @@ class ViolationRemediator(Worker):
                     "source_code": source_code,
                     "context_package": context_text or "(no additional context)",
                     "violations": violations_summary,
+                    # NOTE: architectural_context is advisory evidence only.
+                    # It describes detected file role and candidate strategies.
+                    # It is NOT a planning directive. The fix must satisfy
+                    # the violated rule; the context informs, not commands.
+                    "architectural_context": json.dumps(
+                        architectural_context, indent=2
+                    ),
                     "rule_id": self._target_rule,
                 },
                 client=client,
                 user_id="violation_remediator",
             )
-            from shared.ai.response_parser import extract_code
 
             fixed = _sanitize(extract_code(result))
             if not fixed:
                 logger.warning(
-                    "ViolationRemediator: LLM returned empty fix for %s", file_path
+                    "ViolationRemediator: LLM returned empty fix for %s",
+                    file_path,
                 )
                 return None
             return fixed
 
-        except Exception as e:
+        except Exception as exc:
             logger.warning(
-                "ViolationRemediator: LLM invocation failed for %s — %s",
+                "ViolationRemediator: LLM invocation failed for %s - %s",
                 file_path,
-                e,
+                exc,
             )
             return None
 
@@ -582,12 +578,13 @@ class ViolationRemediator(Worker):
             )
             if not result.ok:
                 logger.warning(
-                    "ViolationRemediator: Crate creation failed — %s", result.data
+                    "ViolationRemediator: Crate creation failed - %s",
+                    result.data,
                 )
                 return None
             return result.data["crate_id"]
-        except Exception as e:
-            logger.warning("ViolationRemediator: Crate error — %s", e)
+        except Exception as exc:
+            logger.warning("ViolationRemediator: Crate error - %s", exc)
             return None
 
     async def _run_canary(self, crate_id: str) -> bool:
@@ -595,8 +592,8 @@ class ViolationRemediator(Worker):
         try:
             from body.services.crate_processing_service import CrateProcessingService
 
-            svc = CrateProcessingService(self._ctx)
-            passed, findings = await svc.validate_crate_by_id(crate_id)
+            service = CrateProcessingService(self._ctx)
+            passed, findings = await service.validate_crate_by_id(crate_id)
             if not passed:
                 logger.warning(
                     "ViolationRemediator: Canary FAILED for %s (%d findings)",
@@ -604,8 +601,8 @@ class ViolationRemediator(Worker):
                     len(findings),
                 )
             return passed
-        except Exception as e:
-            logger.warning("ViolationRemediator: Canary error — %s", e)
+        except Exception as exc:
+            logger.warning("ViolationRemediator: Canary error - %s", exc)
             return False
 
     # -------------------------------------------------------------------------
@@ -613,16 +610,20 @@ class ViolationRemediator(Worker):
     # -------------------------------------------------------------------------
 
     def _archive_rollback(
-        self, file_path: str, original_source: str, baseline_sha: str
+        self,
+        file_path: str,
+        original_source: str,
+        baseline_sha: str,
     ) -> None:
         """Archive rollback plan to var/mind/rollbacks/ via governed FileHandler."""
         try:
-            fh = self._ctx.file_handler
+            file_handler = self._ctx.file_handler
             timestamp = datetime.now(UTC).strftime("%Y%m%d%H%M%S")
             safe_name = file_path.replace("/", "_").replace(".", "_")
             rel_path = f"var/mind/rollbacks/{timestamp}-{safe_name}.json"
-            fh.ensure_dir("var/mind/rollbacks")
-            fh.write_runtime_json(
+
+            file_handler.ensure_dir("var/mind/rollbacks")
+            file_handler.write_runtime_json(
                 rel_path,
                 {
                     "file_path": file_path,
@@ -633,8 +634,55 @@ class ViolationRemediator(Worker):
                     "worker": "violation_remediator",
                 },
             )
-        except Exception as e:
-            logger.warning("ViolationRemediator: rollback archive failed — %s", e)
+        except Exception as exc:
+            logger.warning("ViolationRemediator: rollback archive failed - %s", exc)
+
+    # -------------------------------------------------------------------------
+    # Context building
+    # -------------------------------------------------------------------------
+
+    async def _build_context(self, file_path: str, violations_summary: str) -> str:
+        """
+        Build a context package for the violating file combining:
+        1. Call graph context (ContextService - structural neighbours)
+        2. Semantic examples (Qdrant core-code - similar correct implementations)
+        """
+        parts: list[str] = []
+
+        try:
+            ctx_service = self._ctx.context_service
+            call_graph_ctx = await ctx_service.get_context_for_file(file_path)
+            if call_graph_ctx:
+                parts.append(f"=== Call graph context ===\n{call_graph_ctx}")
+        except Exception as exc:
+            logger.debug(
+                "ViolationRemediator: call graph context unavailable for %s - %s",
+                file_path,
+                exc,
+            )
+
+        try:
+            qdrant = self._ctx.vector_store
+            hits = await qdrant.search(
+                collection=_CODE_COLLECTION,
+                query=violations_summary,
+                limit=_SEMANTIC_EXAMPLES_LIMIT,
+            )
+            if hits:
+                examples = "\n\n".join(
+                    h.payload.get("source", "") for h in hits if h.payload
+                )
+                parts.append(
+                    f"=== Semantic examples (correct implementations) ===\n{examples}"
+                )
+        except Exception as exc:
+            logger.debug(
+                "ViolationRemediator: semantic context unavailable for %s - %s",
+                file_path,
+                exc,
+            )
+
+        return "\n\n".join(parts) if parts else ""
 
     # -------------------------------------------------------------------------
     # Summary helpers
@@ -643,14 +691,15 @@ class ViolationRemediator(Worker):
     def _build_violations_summary(self, findings: list[dict[str, Any]]) -> str:
         """Produce a JSON summary of violations for the LLM prompt."""
         violations = []
-        for f in findings:
-            p = f["payload"]
+        for finding in findings:
+            payload = finding.get("payload") or {}
             violations.append(
                 {
-                    "rule": p.get("rule", self._target_rule),
-                    "file_path": p.get("file_path"),
-                    "line_number": p.get("line_number"),
-                    "message": p.get("message", ""),
+                    "rule": payload.get("rule", self._target_rule),
+                    "file_path": payload.get("file_path"),
+                    "line_number": payload.get("line_number"),
+                    "message": payload.get("message", ""),
+                    "severity": payload.get("severity", "warning"),
                 }
             )
         return json.dumps(violations, indent=2)
@@ -673,13 +722,15 @@ class ViolationRemediator(Worker):
                 "rule": self._target_rule,
                 "reason": reason,
                 "write": self._write,
-                "finding_ids": [f["id"] for f in findings],
+                "finding_ids": [finding["id"] for finding in findings],
             },
         )
 
     async def _claim_open_findings(self) -> list[dict[str, Any]]:
         """
-        Atomically claim open audit.violation findings for the target rule.
+        Atomically claim open audit.violation findings for the target rule,
+        ordered by severity (critical first) then by creation time.
+
         Uses FOR UPDATE SKIP LOCKED to prevent double-claiming across
         concurrent worker instances.
         """
@@ -687,71 +738,86 @@ class ViolationRemediator(Worker):
 
         from shared.infrastructure.database.session_manager import get_session
 
-        prefix = f"{_SOURCE_SUBJECT}::{self._target_rule}::%"
-
         async with get_session() as session:
             async with session.begin():
                 result = await session.execute(
                     text(
                         """
-                        SELECT id, subject, payload
-                        FROM core.blackboard_entries
-                        WHERE entry_type = 'finding'
-                          AND status = 'open'
-                          AND subject LIKE :prefix
-                        ORDER BY created_at ASC
-                        LIMIT :limit
-                        FOR UPDATE SKIP LOCKED
+                        UPDATE core.blackboard_entries
+                        SET status = 'claimed', updated_at = now()
+                        WHERE id IN (
+                            SELECT id FROM core.blackboard_entries
+                            WHERE entry_type = 'finding'
+                              AND subject LIKE :prefix
+                              AND status = 'open'
+                            ORDER BY
+                                CASE (payload->>'severity')
+                                    WHEN 'critical' THEN 1
+                                    WHEN 'error'    THEN 2
+                                    WHEN 'warning'  THEN 3
+                                    WHEN 'info'     THEN 4
+                                    ELSE 5
+                                END ASC,
+                                created_at ASC
+                            LIMIT :limit
+                            FOR UPDATE SKIP LOCKED
+                        )
+                        RETURNING id, subject, payload
                         """
                     ),
-                    {"prefix": prefix, "limit": _CLAIM_LIMIT},
+                    {"prefix": f"{_SOURCE_SUBJECT}::%", "limit": _CLAIM_LIMIT},
                 )
                 rows = result.fetchall()
 
-                if not rows:
-                    return []
-
-                ids = [str(row[0]) for row in rows]
-                await session.execute(
-                    text(
-                        """
-                        UPDATE core.blackboard_entries
-                        SET status = 'claimed'
-                        WHERE id = ANY(:ids::uuid[])
-                        """
-                    ),
-                    {"ids": ids},
-                )
-
         findings = []
         for row in rows:
-            payload = row[2]
-            if isinstance(payload, str):
-                payload = json.loads(payload)
-            findings.append({"id": str(row[0]), "subject": row[1], "payload": payload})
+            raw_payload = row[2]
+            payload = (
+                raw_payload
+                if isinstance(raw_payload, dict)
+                else json.loads(raw_payload)
+            )
+            findings.append(
+                {
+                    "id": str(row[0]),
+                    "subject": row[1],
+                    "payload": payload,
+                }
+            )
         return findings
 
     async def _mark_findings(self, findings: list[dict[str, Any]], status: str) -> None:
-        """Update blackboard entry status for a batch of findings."""
+        """Batch-update status of a list of findings."""
+        for finding in findings:
+            await self._mark_finding(finding["id"], status)
+
+    async def _mark_finding(self, finding_id: str, status: str) -> None:
+        """Update the status of a single blackboard finding by ID."""
         from sqlalchemy import text
 
         from shared.infrastructure.database.session_manager import get_session
 
-        ids = [f["id"] for f in findings]
         async with get_session() as session:
-            async with session.begin():
-                await session.execute(
-                    text(
-                        """
-                        UPDATE core.blackboard_entries
-                        SET status = :status
-                        WHERE id = ANY(:ids::uuid[])
-                        """
-                    ),
-                    {"status": status, "ids": ids},
-                )
+            await session.execute(
+                text(
+                    """
+                    UPDATE core.blackboard_entries
+                    SET status = :status, updated_at = now()
+                    WHERE id = :id
+                    """
+                ),
+                {"status": status, "id": finding_id},
+            )
+            await session.commit()
 
 
-def _sanitize(text: str) -> str:
-    """Remove non-ASCII characters that could corrupt source files."""
-    return _NON_ASCII_RE.sub("", text).strip()
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+
+
+def _sanitize(value: str) -> str:
+    """Strip non-ASCII characters that PostgreSQL SQL_ASCII cannot store."""
+    if not isinstance(value, str):
+        return str(value)
+    return _NON_ASCII_RE.sub("?", value)

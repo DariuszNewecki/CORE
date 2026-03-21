@@ -3,19 +3,20 @@ kind: worker
 
 metadata:
   id: workers.audit_sensor_logic
-  title: Audit Sensor - Logic
+  title: Audit Violation Sensor - Logic
   version: "1.0.0"
   authority: policy
   status: active
 
 identity:
-  uuid: "b3c4d5e6-f7a8-9012-bcde-f12345678902"
+  uuid: "c3d4e5f6-a7b8-4012-cdef-123456789012"
   class: sensing
 
 mandate:
   responsibility: >
-    Run the constitutional auditor scoped to the logic rule namespace and post
-    each unprocessed violation as a blackboard finding for downstream remediation.
+    Run the constitutional auditor scoped to all logic.* rules and post
+    each unprocessed violation as a blackboard finding for downstream
+    processing by ViolationRemediatorWorker. No LLM calls. No file writes.
   phase: audit
   permitted_tools: []
   scope:
@@ -31,3 +32,5 @@ implementation:
   module: will.workers.audit_violation_sensor
   class: AuditViolationSensor
   requires_core_context: true
+  params:
+    dry_run: false

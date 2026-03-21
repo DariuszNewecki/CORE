@@ -2,25 +2,25 @@ $schema: "META/worker.schema.json"
 kind: worker
 
 metadata:
-  id: workers.audit_sensor_purity
-  title: Audit Violation Sensor - Purity
+  id: workers.audit_sensor_modularity
+  title: Audit Violation Sensor - Modularity
   version: "1.0.0"
   authority: policy
   status: active
 
 identity:
-  uuid: "a1b2c3d4-e5f6-4890-abcd-ef1234567890"
+  uuid: "e5f6a7b8-c9d0-4234-9abc-345678901234"
   class: sensing
 
 mandate:
   responsibility: >
-    Run the constitutional auditor scoped to all purity.* rules and post
+    Run the constitutional auditor scoped to all modularity.* rules and post
     each unprocessed violation as a blackboard finding for downstream
     processing by ViolationRemediatorWorker. No LLM calls. No file writes.
   phase: audit
   permitted_tools: []
   scope:
-    rule_namespace: "purity"
+    rule_namespace: "modularity"
     domains:
       - audit
       - compliance

@@ -219,6 +219,18 @@
                 "requires_core_context": {
                     "type": "boolean",
                     "description": "Whether this worker requires a CoreContext instance injected at construction."
+                },
+                "params": {
+                    "type": "object",
+                    "description": "Arbitrary constructor kwargs passed to the worker at instantiation time by the daemon loader. Use for worker-specific configuration that cannot be expressed through standard schema fields (e.g. dry_run: false to mark sensor findings as actionable by downstream remediators). Values are merged into the kwargs dict after standard fields (declaration_name, rule_namespace, core_context) are resolved, so they may not override those.",
+                    "additionalProperties": {
+                        "oneOf": [
+                            {"type": "string"},
+                            {"type": "boolean"},
+                            {"type": "integer"},
+                            {"type": "number"}
+                        ]
+                    }
                 }
             }
         }

@@ -1,8 +1,8 @@
 {
-  "audit_id": "23e2d1e1-36a1-4d87-845d-e9d25c90e78d",
-  "timestamp": "2026-03-17T20:54:34Z",
+  "audit_id": "fdf633a2-25ee-42cc-8226-8bc60f360125",
+  "timestamp": "2026-03-21T07:23:44Z",
   "passed": false,
-  "findings_count": 421,
+  "findings_count": 433,
   "executed_rules": [
     "ai.cognitive_role.no_hardcoded_string",
     "ai.prompt.artifact.no_provider_leak",
@@ -69,6 +69,7 @@
     "governance.artifact_mutation.traceable",
     "governance.constitution.read_only",
     "governance.dangerous_execution_primitives",
+    "governance.intent_artifact_encoding.ascii_only",
     "governance.intent_meta.required",
     "governance.logic_mutation.governed",
     "governance.mutation_surface.filehandler_required",
