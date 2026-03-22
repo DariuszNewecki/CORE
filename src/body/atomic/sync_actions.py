@@ -16,7 +16,6 @@ import time
 
 from body.atomic.registry import ActionCategory, register_action
 from body.introspection.sync_service import run_sync_with_db
-from body.introspection.vectorization_service import run_vectorize
 from shared.action_types import ActionImpact, ActionResult
 from shared.atomic_action import atomic_action
 from shared.context import CoreContext
@@ -95,6 +94,20 @@ async def action_sync_database(
         )
 
 
+async def _count_pending_artifacts() -> int:
+    """Count repo_artifacts with chunk_count = 0 (unembedded, not permanently skipped)."""
+    from sqlalchemy import text
+
+    async with get_session() as session:
+        result = await session.execute(
+            text(
+                "SELECT COUNT(*) FROM core.repo_artifacts "
+                "WHERE chunk_count = 0 AND chunk_count != -1"
+            )
+        )
+        return result.scalar() or 0
+
+
 @register_action(
     action_id="sync.vectors.code",
     description="Vectorize code symbols to Qdrant",
@@ -115,31 +128,70 @@ async def action_sync_code_vectors(
     core_context: CoreContext, write: bool = False, force: bool = False
 ) -> ActionResult:
     """
-    Vectorize code symbols and sync to Qdrant.
-    """
-    start = time.time()
-    try:
-        logger.info("Vectorizing code symbols")
+    Vectorize codebase artifacts to Qdrant using the constitutional worker pipeline.
 
-        async with get_session() as session:
-            async with session.begin():
-                await run_vectorize(
-                    context=core_context,
-                    session=session,
-                    dry_run=not write,
-                    force=force,
+    Pipeline:
+      1. RepoCrawlerWorker.run() — walks repo, registers artifacts in core.repo_artifacts
+      2. RepoEmbedderWorker.run() — chunks, embeds, upserts to per-type Qdrant collections
+
+    Replaces the legacy vectorization_service.run_vectorize() which sent whole files
+    without chunking to the monolithic core_capabilities collection.
+    """
+    from will.workers.repo_crawler import RepoCrawlerWorker
+    from will.workers.repo_embedder import RepoEmbedderWorker
+
+    start = time.time()
+
+    try:
+        if not write:
+            logger.info("Dry-run: would run RepoCrawlerWorker + RepoEmbedderWorker")
+            return ActionResult(
+                action_id="sync.vectors.code",
+                ok=True,
+                data={"status": "dry_run"},
+                duration_sec=time.time() - start,
+            )
+
+        cognitive_service = core_context.cognitive_service
+        if cognitive_service is None and hasattr(core_context, "registry"):
+            cognitive_service = await core_context.registry.get_cognitive_service()
+
+        # Phase 1: Crawl — register/update repo_artifacts
+        logger.info("sync.vectors.code: Phase 1 — RepoCrawlerWorker")
+        crawler = RepoCrawlerWorker(cognitive_service=cognitive_service)
+        await crawler.run()
+
+        # Phase 2: Embed — chunk and upsert all pending artifacts in batches
+        logger.info("sync.vectors.code: Phase 2 — RepoEmbedderWorker")
+        embedder = RepoEmbedderWorker(cognitive_service=cognitive_service)
+
+        max_passes = 500  # safety ceiling
+        for pass_num in range(1, max_passes + 1):
+            pending = await _count_pending_artifacts()
+            if pending == 0:
+                logger.info(
+                    "sync.vectors.code: all artifacts embedded after %d pass(es)",
+                    pass_num - 1,
                 )
+                break
+            logger.info(
+                "sync.vectors.code: embedding pass %d (%d artifacts pending)",
+                pass_num,
+                pending,
+            )
+            await embedder.run()
+        else:
+            logger.warning(
+                "sync.vectors.code: reached max embedding passes (%d)", max_passes
+            )
 
         return ActionResult(
             action_id="sync.vectors.code",
             ok=True,
-            data={
-                "status": "completed",
-                "dry_run": not write,
-                "force": force,
-            },
+            data={"status": "completed", "dry_run": False},
             duration_sec=time.time() - start,
         )
+
     except Exception as e:
         logger.error("Code vectorization failed: %s", e, exc_info=True)
         return ActionResult(

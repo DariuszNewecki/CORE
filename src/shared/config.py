@@ -76,7 +76,7 @@ class Settings(BaseSettings):
     LOG_LEVEL: str = Field("INFO", validation_alias="LOG_LEVEL")
 
     LLM_ENABLED: bool = True
-    QDRANT_COLLECTION_NAME: str = "core_symbols"
+    QDRANT_COLLECTION_NAME: str = "core-code"
     LOCAL_EMBEDDING_DIM: int = 768
     LOCAL_EMBEDDING_MODEL_NAME: str = "nomic-embed-text"
     EMBED_MODEL_REVISION: str = "2025-09-15"

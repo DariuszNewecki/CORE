@@ -19,6 +19,10 @@ logger = getLogger(__name__)
 GHOST_VECTOR_START = [0.63719, 0.45393, -4.16063]
 _DEFAULT_SYSTEM = "You are a helpful assistant."
 
+# nomic-embed-text supports up to 8192 tokens. At ~3 chars/token for source
+# code, 24000 chars sits safely under the limit for the vast majority of files.
+_EMBEDDING_MAX_CHARS = 20000
+
 
 # ID: 3f78f7ca-33b1-4ac3-a701-30885722e7b1
 class OllamaProvider(AIProvider):
@@ -115,20 +119,44 @@ class OllamaProvider(AIProvider):
     # ID: fcc3342d-746d-4bb4-b153-8eef9465c0f0
     async def get_embedding(self, text: str) -> list[float]:
         """
-        Generates an embedding using the Ollama /api/embeddings format.
+        Generates an embedding using the Ollama /api/embed format (Ollama 0.4+).
+
+        Uses the current Ollama embedding API:
+            POST /api/embed
+            payload: {"model": ..., "input": ..., "options": {"num_ctx": ...}}
+            response: {"embeddings": [[...]]}
+
+        num_ctx is passed explicitly per-request because Ollama ignores
+        num_ctx in the Modelfile for embedding models.
+
+        Input is truncated to _EMBEDDING_MAX_CHARS before sending as a
+        last-resort safety net.
 
         Raises:
             RuntimeError: If the model returns a Ghost Vector, indicating
                           an Ollama model failure rather than a real embedding.
         """
-        endpoint = f"{self.api_url}/api/embeddings"
-        payload = {"model": self.model_name, "prompt": text}
+        endpoint = f"{self.api_url}/api/embed"
+
+        if len(text) > _EMBEDDING_MAX_CHARS:
+            logger.warning(
+                "Embedding input truncated from %d to %d chars (model context limit).",
+                len(text),
+                _EMBEDDING_MAX_CHARS,
+            )
+            text = text[:_EMBEDDING_MAX_CHARS]
+
+        payload = {
+            "model": self.model_name,
+            "input": text,
+            "options": {"num_ctx": 8192},
+        }
 
         async with httpx.AsyncClient(timeout=self.timeout) as client:
             response = await client.post(endpoint, headers=self.headers, json=payload)
             response.raise_for_status()
             data = response.json()
-            vec = data["embedding"]
+            vec = data["embeddings"][0]
 
             if len(vec) > 3:
                 is_ghost = all(

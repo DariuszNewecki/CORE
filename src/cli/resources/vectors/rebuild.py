@@ -99,7 +99,7 @@ async def rebuild_vectors(
                 logger.warning("Collection %s didn't exist: %s", coll_name, e)
             logger.info("  ✓ Recreated collection with schema")
             logger.info("  ✓ Re-indexed documents")
-        logger.info()
+        logger.info("")
         logger.info("[green]✅ Rebuild completed successfully[/green]")
     except Exception as e:
         logger.error("Vector rebuild failed", exc_info=True)
