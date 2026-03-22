@@ -245,20 +245,11 @@ class CodeGenerationPhase:
                     metadata["repair_failed"] = True
                     metadata["generation_failed"] = True
 
-            # Create detailed step (compatibility shim — works with both old and new)
-            try:
-                step = DetailedPlanStep(
-                    description=getattr(task, "step", getattr(task, "description", "")),
-                    action=getattr(task, "action", ""),
-                    params=getattr(task, "params", None),
-                )
-            except TypeError:
-                # Fallback if signature is different
-                step = DetailedPlanStep(
-                    step=getattr(task, "step", ""),
-                    action=getattr(task, "action", ""),
-                    params=getattr(task, "params", None),
-                )
+            # Build step via from_execution_task so generated code is injected
+            # into params. file.create and file.edit require params["code"] to
+            # be present — the old manual construction was bypassing this.
+            generated_code = code if not metadata.get("generation_failed") else None
+            step = DetailedPlanStep.from_execution_task(task, code=generated_code)
 
             # Attach metadata
             step.metadata = metadata

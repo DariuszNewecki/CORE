@@ -37,6 +37,45 @@ if TYPE_CHECKING:
 
 logger = getLogger(__name__)
 
+# Params that are meaningful only for file mutation actions.
+# fix.* and sync.* actions operate repo-wide and must not receive these.
+_FILE_SCOPED_PARAMS = frozenset(
+    {"file_path", "code", "symbol_name", "justification", "tag"}
+)
+
+# Action prefixes whose implementations do not accept file-scoped params.
+_REPO_WIDE_PREFIXES = ("fix.", "sync.")
+
+
+def _params_to_dict(params) -> dict:
+    """
+    Safely convert step params to a plain dict.
+
+    Handles both TaskParams (Pydantic model) and plain dicts — defensive
+    because DetailedPlanStep.params is typed as dict[str, Any] but the
+    pipeline may pass TaskParams objects.
+    """
+    if params is None:
+        return {}
+    if hasattr(params, "model_dump"):
+        return params.model_dump(exclude_none=True)
+    if isinstance(params, dict):
+        return params
+    return {}
+
+
+def _strip_params_for_action(action_id: str, params_dict: dict) -> dict:
+    """
+    Remove file-scoped params that repo-wide actions do not accept.
+
+    fix.* and sync.* actions (fix.imports, fix.format, sync.db, etc.)
+    operate on the whole repo and have no file_path parameter in their
+    signatures. Passing these causes a TypeError at invocation time.
+    """
+    if any(action_id.startswith(prefix) for prefix in _REPO_WIDE_PREFIXES):
+        return {k: v for k, v in params_dict.items() if k not in _FILE_SCOPED_PARAMS}
+    return params_dict
+
 
 # ID: a1b2c3d4-e5f6-7890-abcd-ef0123456789
 class ExecutionAgent(TracedAgentMixin):
@@ -145,13 +184,11 @@ class ExecutionAgent(TracedAgentMixin):
                 logger.info("    ↳ ✅ Step outcome: Success")
 
                 # PHASE 1 ENHANCEMENT: Capture file content if this was a file creation
-                if (
-                    step.action in ("file.create", "file.edit")
-                    and "code" in step.params
-                ):
-                    file_path = step.params.get("file_path", "")
-                    if file_path:
-                        files_written[file_path] = step.params["code"]
+                if step.action in ("file.create", "file.edit"):
+                    params_dict = _params_to_dict(step.params)
+                    file_path = params_dict.get("file_path", "")
+                    if file_path and "code" in params_dict:
+                        files_written[file_path] = params_dict["code"]
             else:
                 failure_count += 1
                 error_msg = result.data.get("error", "Unknown error")
@@ -233,10 +270,13 @@ class ExecutionAgent(TracedAgentMixin):
         at call time, causing GovernanceBypassError.
         """
         try:
+            params_dict = _params_to_dict(step.params)
+            params_dict = _strip_params_for_action(step.action, params_dict)
+
             result = await self.executor.execute(
                 action_id=step.action,
                 write=self.write,
-                **step.params,
+                **params_dict,
             )
 
             return result
