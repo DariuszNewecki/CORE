@@ -133,6 +133,96 @@ class ContextService:
 
         return self._payload_to_packet(redacted_packet, request)
 
+    # ID: 4f9a1c3e-7b82-4d56-a8e1-2c0f5e9d3a71
+    async def build_for_task(
+        self,
+        task_spec: dict[str, Any],
+        use_cache: bool = True,
+    ) -> dict[str, Any]:
+        """
+        Bridge: task_spec dict -> ContextBuildRequest -> ContextPacket -> legacy dict.
+
+        Callers (code_generator, test_gen, conversational_agent) pass a task_spec
+        dict and expect a plain dict back with a "context" key containing evidence
+        items.  This method converts the dict to a typed ContextBuildRequest, calls
+        the canonical build() pipeline, then re-shapes the ContextPacket back into
+        the dict format those callers consume.
+
+        task_spec shape (authoritative):
+            {
+                "task_id":       str,           # used as goal fallback
+                "task_type":     str,           # maps to PhaseType
+                "target_file":   str,           # primary target file
+                "target_symbol": str,           # primary target symbol
+                "summary":       str,           # becomes goal (preferred)
+                "scope": {
+                    "include":         list[str],   # additional target files
+                    "traversal_depth": int,         # advisory, builder decides
+                },
+                "constraints": {
+                    "max_tokens": int,              # advisory, builder decides
+                    "max_items":  int,              # advisory, builder decides
+                },
+            }
+
+        Returns a dict compatible with all existing callers:
+            {
+                "context":    list[dict],   # evidence items from ContextPacket
+                "provenance": dict,
+                "header":     dict,
+            }
+        """
+        _PHASE_BY_TASK_TYPE: dict[str, str] = {
+            "code_generation": "execution",
+            "code_modification": "execution",
+            "test_generation": "audit",
+            "test.generate": "audit",
+            "conversational": "runtime",
+        }
+
+        task_type = task_spec.get("task_type", "code_generation")
+        target_file = task_spec.get("target_file", "")
+        target_symbol = task_spec.get("target_symbol", "")
+        # Prefer summary; fall back to task_id, then task_type
+        goal = task_spec.get("summary") or task_spec.get("task_id") or task_type
+        scope_include: list[str] = task_spec.get("scope", {}).get("include", [])
+        phase = _PHASE_BY_TASK_TYPE.get(task_type, "execution")
+
+        # Merge target_file with scope.include; deduplicate, preserve order, drop empties
+        raw_files = ([target_file] if target_file else []) + list(scope_include)
+        target_files = list(dict.fromkeys(f for f in raw_files if f))
+
+        request = ContextBuildRequest(
+            goal=goal,
+            trigger="agent",  # type: ignore[arg-type]
+            phase=phase,  # type: ignore[arg-type]
+            target_files=target_files,
+            target_symbols=[target_symbol] if target_symbol else [],
+            include_constitution=True,
+            include_policy=True,
+            include_symbols=True,
+            include_vectors=True,
+            include_runtime=True,
+        )
+
+        packet = await self.build(request, use_cache=use_cache)
+
+        # Re-shape ContextPacket -> legacy dict consumed by callers.
+        # Callers index on "context"; ContextPacket stores evidence under .evidence.
+        # The builder produces a list; the dataclass annotation says dict — guard both.
+        evidence = packet.evidence
+        if isinstance(evidence, dict):
+            evidence = list(evidence.values()) if evidence else []
+
+        context_count = len(evidence) if isinstance(evidence, list) else 0
+        logger.info("Found %d context items for task_type=%s", context_count, task_type)
+
+        return {
+            "context": evidence,
+            "provenance": packet.provenance,
+            "header": packet.header,
+        }
+
     def _compute_request_cache_key(self, request: ContextBuildRequest) -> str:
         payload = {
             "goal": request.goal,
