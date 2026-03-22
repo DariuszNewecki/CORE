@@ -14,8 +14,7 @@ from body.services.file_service import FileService
 from shared.infrastructure.context.limb_workspace import LimbWorkspace
 from shared.infrastructure.context.service import ContextService
 from shared.logger import getLogger
-from shared.models.execution_models import DetailedPlan, DetailedPlanStep
-from shared.models.workflow_models import PhaseResult
+from shared.models.workflow_models import DetailedPlan, DetailedPlanStep, PhaseResult
 from will.orchestration.decision_tracer import DecisionTracer
 from will.test_generation.sandbox import PytestSandboxRunner
 

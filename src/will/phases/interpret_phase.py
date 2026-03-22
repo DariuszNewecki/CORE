@@ -38,6 +38,14 @@ if TYPE_CHECKING:
 
 logger = getLogger(__name__)
 
+_VALID_WORKFLOW_TYPES = frozenset(
+    {
+        "refactor_modularity",
+        "coverage_remediation",
+        "full_feature_development",
+    }
+)
+
 
 # ID: 6b2d1d07-81f6-4a13-a6cf-abc933ee4d20
 class InterpretPhase:
@@ -82,12 +90,31 @@ class InterpretPhase:
             # before falling back to inference.
             if workflow_context.workflow_type:
                 workflow_type = workflow_context.workflow_type
+                if workflow_type not in _VALID_WORKFLOW_TYPES:
+                    logger.error(
+                        "❌ INTERPRET: Unknown workflow_type '%s' provided explicitly. "
+                        "Valid types: %s",
+                        workflow_type,
+                        sorted(_VALID_WORKFLOW_TYPES),
+                    )
+                    return PhaseResult(
+                        name="interpret",
+                        ok=False,
+                        error=f"Unknown workflow_type: '{workflow_type}'",
+                        data={"clarification_needed": True},
+                    )
                 logger.info(
                     "✅ INTERPRET: Using explicit workflow '%s' (skipping inference)",
                     workflow_type,
                 )
             else:
                 workflow_type = self._infer_workflow_type(goal)
+                logger.warning(
+                    "⚠️  INTERPRET: No explicit workflow_type provided — "
+                    "inferred '%s' from goal text. "
+                    "Prefer passing workflow_type explicitly.",
+                    workflow_type,
+                )
 
             # Extract target information
             target_info = self._extract_target_info(goal)

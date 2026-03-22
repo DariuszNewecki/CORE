@@ -31,6 +31,7 @@ class DevelopmentGoal(BaseModel):
     """
 
     goal: str
+    workflow_type: str
 
 
 @router.post("/develop/goal", status_code=202)
@@ -63,6 +64,7 @@ async def start_development_cycle(
                 session=dev_session,
                 context=core_context,
                 goal=payload.goal,
+                workflow_type=payload.workflow_type,
                 task_id=new_task.id,
                 output_mode="direct",
             )

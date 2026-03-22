@@ -172,7 +172,7 @@ class CodeGenerator:
         )
 
         raw_response = await self._code_gen_model.invoke(
-            context={"enriched_prompt": enriched_prompt},
+            context={"task_step": enriched_prompt},
             client=generator,
             user_id="coder_agent_a2",
         )

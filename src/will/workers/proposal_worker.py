@@ -366,7 +366,7 @@ async def _evaluate_group(
 
         actionable = parsed.get("actionable", False)
         goal = parsed.get("goal", "")
-        workflow_type = parsed.get("workflow_type", "refactor_modularity")
+        workflow_type = parsed.get("workflow_type")
         rationale = parsed.get("rationale", "")
 
         if not isinstance(actionable, bool):
@@ -383,16 +383,28 @@ async def _evaluate_group(
             )
             return {"actionable": False, "rationale": "invalid_goal_type"}
 
-        if not isinstance(workflow_type, str):
-            workflow_type = "refactor_modularity"
+        if not workflow_type or not isinstance(workflow_type, str):
+            logger.warning(
+                "Proposal evaluation for %s missing valid workflow_type.",
+                group["check_id"],
+            )
+            return {"actionable": False, "rationale": "missing_workflow_type"}
 
         if not isinstance(rationale, str):
             rationale = ""
 
+        workflow_type = workflow_type.strip()
+        if not workflow_type:
+            logger.warning(
+                "Proposal evaluation for %s missing valid workflow_type.",
+                group["check_id"],
+            )
+            return {"actionable": False, "rationale": "missing_workflow_type"}
+
         return {
             "actionable": actionable,
             "goal": goal.strip(),
-            "workflow_type": workflow_type.strip() or "refactor_modularity",
+            "workflow_type": workflow_type,
             "rationale": rationale.strip(),
         }
 

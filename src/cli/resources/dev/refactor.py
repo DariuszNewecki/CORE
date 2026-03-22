@@ -44,7 +44,7 @@ async def dev_refactor_cmd(
         False, "--write", help="Apply changes. Default is dry-run."
     ),
     workflow: str = typer.Option(
-        "auto",
+        "refactor_modularity",
         "--workflow",
         help="Workflow type: auto, refactor_modularity, coverage_remediation.",
     ),
@@ -63,7 +63,6 @@ async def dev_refactor_cmd(
     """
     from will.autonomy.autonomous_developer import (
         develop_from_goal,
-        infer_workflow_type,
     )
 
     context: CoreContext = ctx.obj
@@ -75,7 +74,7 @@ async def dev_refactor_cmd(
                 "[red]❌ LLM_ENABLED is False. Enable LLMs in database settings to use autonomous development.[/red]"
             )
             raise typer.Exit(code=1)
-    workflow_type = infer_workflow_type(goal) if workflow == "auto" else workflow
+    workflow_type = workflow
     mode = "WRITE" if write else "DRY-RUN"
     logger.info(
         "[bold cyan]🤖 CORE Autonomous Refactor[/bold cyan] ([yellow]%s[/yellow] / %s)",

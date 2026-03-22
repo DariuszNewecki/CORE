@@ -3,43 +3,35 @@ description: >
   Produce and manipulate candidate operational outputs within governed workflow
   boundaries. Runtime may generate, transform, or repair artifacts, but does not
   perform final rule evaluation or final execution.
-
 inputs:
   - execution_context
   - resolved_action_set
   - workflow_state
-
 outputs:
   - candidate_artifacts
   - repaired_artifacts
   - runtime_results
-
 constitutional_requirements:
   - governance.no_governance_bypass
   - autonomy.tracing.mandatory
-
 authority: policy
 failure_mode: block
 max_retries: 3
-
 agent_role: RuntimeOperator
-
 permitted_actions:
   - generate_artifacts
   - transform_artifacts
   - repair_artifacts
   - prepare_candidate_outputs
-
 forbidden_actions:
   - evaluate_rules
   - assert_final_compliance
   - commit_changes
   - mutate_phase_boundaries
-
 success_criteria:
   candidate_outputs_produced: true
-
 notes: >
   Runtime is the constitutional phase where candidate work is performed. It may
   generate or repair outputs, but compliance decisions remain exclusive to Audit
   and final mutation remains exclusive to Execution.
+implementation: will.phases.runtime_phase.RuntimePhase

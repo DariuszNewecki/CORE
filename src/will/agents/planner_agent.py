@@ -144,7 +144,7 @@ class PlannerAgent:
                 context={
                     "prompt": prompt,
                     "goal": goal,
-                    "action_descriptions": action_descriptions,
+                    "action_descriptions_str": action_descriptions,
                     "reconnaissance_report": enriched_recon,
                 },
                 client=client,

@@ -13,7 +13,7 @@ from pathlib import Path
 
 from body.services.file_service import FileService
 from shared.logger import getLogger
-from shared.models.execution_models import DetailedPlanStep
+from shared.models.workflow_models import DetailedPlanStep
 
 
 logger = getLogger(__name__)

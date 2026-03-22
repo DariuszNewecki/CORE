@@ -3,44 +3,36 @@ description: >
   Resolve parsed plans into executable operational context. Load binds the
   planned workflow to concrete resources, action contracts, and runtime-ready
   inputs without performing governed mutations.
-
 inputs:
   - action_plan
   - stage_route
   - planning_context
   - available_resources
-
 outputs:
   - execution_context
   - resolved_action_set
   - resolved_dependencies
-
 constitutional_requirements:
   - governance.no_governance_bypass
   - autonomy.tracing.mandatory
-
 authority: policy
 failure_mode: block
 max_retries: 2
-
 agent_role: ContextLoader
-
 permitted_actions:
   - resolve_action_contracts
   - bind_resources
   - load_dependencies
   - prepare_execution_context
-
 forbidden_actions:
   - modify_files
   - evaluate_rules
   - commit_changes
   - introduce_unplanned_actions
-
 success_criteria:
   execution_context_ready: true
   action_set_resolved: true
-
 notes: >
   Load is a constitutional phase. It prepares runtime-ready context from parsed
   plans but remains pre-mutation and pre-audit.
+implementation: will.phases.load_phase.LoadPhase

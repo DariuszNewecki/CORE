@@ -37,6 +37,26 @@ if TYPE_CHECKING:
 
 logger = getLogger(__name__)
 
+_VALID_WORKFLOW_TYPES = frozenset(
+    {
+        "refactor_modularity",
+        "coverage_remediation",
+        "full_feature_development",
+    }
+)
+
+
+def _resolve_workflow_type(value: str) -> str:
+    """Return value if it is a known workflow type, else the safe default."""
+    if isinstance(value, str) and value.strip() in _VALID_WORKFLOW_TYPES:
+        return value.strip()
+    logger.warning(
+        "Unknown or missing workflow_type '%s' from LLM — "
+        "defaulting to full_feature_development",
+        value,
+    )
+    return "full_feature_development"
+
 
 # ID: sa-strategic-auditor
 # ID: 752c04d3-2c98-4847-a256-1271ef60f6c4
@@ -200,6 +220,7 @@ class StrategicAuditor(TracedAgentMixin):
                 ),
                 confidence=float(c.get("confidence", 0.8)),
                 estimated_impact=c.get("estimated_impact", "medium"),
+                workflow_type=_resolve_workflow_type(c.get("workflow_type", "")),
             )
             (escalations if cluster.requires_constitution_change else clusters).append(
                 cluster
@@ -282,10 +303,7 @@ class StrategicAuditor(TracedAgentMixin):
         self, session: AsyncSession, campaign: StrategicCampaign
     ) -> None:
         """Execute non-escalation clusters via develop_from_goal."""
-        from will.autonomy.autonomous_developer import (
-            develop_from_goal,
-            infer_workflow_type,
-        )
+        from will.autonomy.autonomous_developer import develop_from_goal
 
         logger.info(
             "? Executing %d autonomous tasks...", campaign.autonomous_task_count
@@ -307,11 +325,10 @@ class StrategicAuditor(TracedAgentMixin):
                 )
                 continue
 
-            workflow = infer_workflow_type(cluster.proposed_fix)
             success, message = await develop_from_goal(
                 context=self._ctx,
                 goal=cluster.proposed_fix,
-                workflow_type=workflow,
+                workflow_type=cluster.workflow_type,
                 write=True,
                 session=session,
             )
@@ -383,6 +400,7 @@ class StrategicAuditor(TracedAgentMixin):
                     "finding_ids": c.finding_ids,
                     "confidence": c.confidence,
                     "estimated_impact": c.estimated_impact,
+                    "workflow_type": c.workflow_type,
                 }
                 for c in campaign.clusters
             ],

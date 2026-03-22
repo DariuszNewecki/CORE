@@ -74,14 +74,56 @@ class WorkflowOrchestrator:
 
     # ID: b86b70a4-9d28-4ec5-81cb-80bdc1578bc6
     def _load_workflow_definition(self, workflow_type: str) -> WorkflowDefinition:
-        """Load workflow definition from the constitutional repository."""
+        """
+        Load workflow definition from the constitutional repository.
+
+        Bridges the YAML schema to WorkflowDefinition:
+          - YAML 'workflow_id'  → workflow_type
+          - YAML 'stages'       → ordered, deduplicated phase names
+          - YAML 'invariants'   → success_criteria (empty dict if absent;
+                                  invariants are constitutional constraints,
+                                  not outcome metrics)
+
+        Phase names are extracted from stage_id prefixes:
+          "interpret.intent"        → "interpret"
+          "audit.sandbox_validation" → "audit"
+          "execution.commit_changes" → "execution"
+        """
         data = self._intent_repo.load_workflow(workflow_type)
 
+        # YAML uses 'workflow_id'; fall back to the requested type if missing.
+        wf_type = data.get("workflow_type") or data.get("workflow_id", workflow_type)
+
+        # YAML 'stages' is a list of {stage_id, order, conditional?}.
+        # Extract unique phase names in stage order.
+        stages = data.get("stages", [])
+        seen: set[str] = set()
+        phases: list[str] = []
+        for stage in sorted(stages, key=lambda s: s.get("order", 0)):
+            stage_id = stage.get("stage_id", "")
+            phase_name = stage_id.split(".")[0] if "." in stage_id else stage_id
+            if phase_name and phase_name not in seen:
+                seen.add(phase_name)
+                phases.append(phase_name)
+
+        if not phases:
+            logger.warning(
+                "Workflow '%s' has no resolvable phases from stages — "
+                "check .intent/workflows/%s.yaml",
+                workflow_type,
+                workflow_type,
+            )
+
+        # YAML 'invariants' expresses must_hold/must_not constitutional constraints.
+        # These are not outcome metrics; use explicit 'success_criteria' if present,
+        # otherwise default to empty so all-phases-pass becomes the sole criterion.
+        success_criteria: dict[str, Any] = data.get("success_criteria", {})
+
         return WorkflowDefinition(
-            workflow_type=data["workflow_type"],
-            description=data["description"],
-            phases=data["phases"],
-            success_criteria=data["success_criteria"],
+            workflow_type=wf_type,
+            description=data.get("description", ""),
+            phases=phases,
+            success_criteria=success_criteria,
             write_required=data.get("write_required", True),
             dangerous=data.get("dangerous", False),
             timeout_minutes=data.get("timeout_minutes", 30),
