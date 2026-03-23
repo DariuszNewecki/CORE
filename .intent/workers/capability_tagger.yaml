@@ -1,0 +1,36 @@
+$schema: "META/worker.schema.json"
+kind: worker
+
+metadata:
+  id: workers.capability_tagger
+  title: Capability Tagger
+  version: "1.0.0"
+  authority: policy
+  status: active
+
+identity:
+  uuid: "e1f2a3b4-c5d6-7890-efab-cd1234567890"
+  class: sensing
+
+mandate:
+  responsibility: >
+    Query the knowledge graph for public symbols with no capability key
+    assigned, generate LLM-powered capability suggestions via
+    CapabilityTaggerAgent, and persist the assignments to the database.
+  phase: audit
+  permitted_tools:
+    - llm.local
+  scope:
+    paths:
+      - "src/**/*.py"
+    domains:
+      - knowledge
+      - symbols
+  approval_required: false
+  schedule:
+    max_interval: 3600
+
+implementation:
+  module: will.workers.capability_tagger
+  class: CapabilityTaggerWorker
+  requires_core_context: false
