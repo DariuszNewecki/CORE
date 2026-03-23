@@ -20,6 +20,7 @@ DB access is legitimate here: blackboard IS the infrastructure.
 
 from __future__ import annotations
 
+import re
 import uuid
 from abc import ABC, abstractmethod
 from datetime import UTC, datetime
@@ -33,6 +34,10 @@ from shared.processors.yaml_processor import strict_yaml_processor
 
 logger = getLogger(__name__)
 
+# PostgreSQL DB is SQL_ASCII encoded — non-ASCII characters cause
+# UntranslatableCharacterError on insert. Sanitize all payload strings.
+_NON_ASCII_RE = re.compile(r"[^\x09\x0A\x0D\x20-\x7E]")
+
 
 # ID: 5bd51595-1946-496c-9fc6-00c1a96acbc3
 class WorkerConfigurationError(RuntimeError):
@@ -42,6 +47,22 @@ class WorkerConfigurationError(RuntimeError):
 # ID: 3f3d8cae-10d2-4ed7-bb70-d9d19fe70882
 class WorkerRegistrationError(RuntimeError):
     """Raised when a Worker fails to register in worker_registry."""
+
+
+def _sanitize_str(value: str) -> str:
+    """Replace non-ASCII characters with '?' for SQL_ASCII DB safety."""
+    return _NON_ASCII_RE.sub("?", value)
+
+
+def _sanitize_payload(obj: Any) -> Any:
+    """Recursively sanitize all strings in a payload to printable ASCII."""
+    if isinstance(obj, str):
+        return _sanitize_str(obj)
+    if isinstance(obj, dict):
+        return {k: _sanitize_payload(v) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [_sanitize_payload(i) for i in obj]
+    return obj
 
 
 # ID: d4e5f6a7-b8c9-0d1e-2f3a-4b5c6d7e8f90
@@ -285,6 +306,9 @@ class Worker(ABC):
 
         Every decision, finding, and report must be recorded here.
         This is the enforcement point for the history obligation.
+
+        Payload is sanitized to ASCII before insert — the DB is SQL_ASCII
+        encoded and will reject non-ASCII characters with UntranslatableCharacterError.
         """
         import json
 
@@ -310,7 +334,7 @@ class Worker(ABC):
                         "phase": self._phase,
                         "status": status,
                         "subject": subject,
-                        "payload": json.dumps(payload),
+                        "payload": json.dumps(_sanitize_payload(payload)),
                     },
                 )
 
