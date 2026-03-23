@@ -10,12 +10,9 @@ be initiated via the primary 'develop refactor' command.
 from __future__ import annotations
 
 import typer
-from dotenv import load_dotenv
 
-from body.introspection.vectorization_service import run_vectorize
 from shared.cli_utils import core_command
 from shared.context import CoreContext
-from shared.infrastructure.database.session_manager import get_session
 from shared.logger import getLogger
 
 
@@ -37,34 +34,11 @@ async def vectorize_command(
     ),
 ):
     """
-    Vectorize capabilities in the knowledge base for semantic search.
+    Vectorize codebase artifacts using the constitutional worker pipeline
+    (RepoCrawlerWorker + RepoEmbedderWorker).
     """
     context: CoreContext = ctx.obj
 
-    logger.info("🚀 Starting capability vectorization process...")
+    logger.info("🚀 Starting vectorization via constitutional worker pipeline...")
 
-    # Load environment
-    load_dotenv()
-
-    # We open a single session and keep it open for the duration of the task
-    async with get_session() as session:
-        from shared.infrastructure.config_service import ConfigService
-
-        # 1. Check if LLMs are enabled (Mind-layer state)
-        config = await ConfigService.create(session)
-        llm_enabled = await config.get_bool("LLM_ENABLED", default=False)
-
-        if not llm_enabled:
-            logger.error("❌ LLMs must be enabled to generate embeddings.")
-            raise typer.Exit(code=1)
-
-        # 2. Execute vectorization (Body-layer action)
-        try:
-            # Note: run_vectorize takes dry_run, which is !write
-            # We pass the open session to ensure it can update the DB correctly
-            await run_vectorize(
-                context=context, session=session, dry_run=not write, force=force
-            )
-        except Exception as e:
-            logger.error("❌ Orchestration failed: %s", e, exc_info=True)
-            raise typer.Exit(code=1)
+    await context.action_executor.execute("sync.vectors.code", write=write, force=force)

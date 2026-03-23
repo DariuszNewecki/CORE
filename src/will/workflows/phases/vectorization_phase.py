@@ -1,28 +1,24 @@
 # src/will/workflows/phases/vectorization_phase.py
-"""Vectorization phase - constitutional vectors and knowledge graph."""
+"""
+Vectorization phase — delegates to the constitutional worker pipeline
+via the sync.vectors.code and sync.vectors.constitution atomic actions.
+"""
 
 from __future__ import annotations
 
 import time
-import traceback
 from typing import Any
 
-import typer
 from rich.console import Console
 
-from body.introspection.vectorization_service import run_vectorize
 from shared.action_types import ActionResult
 from shared.context import CoreContext
-from shared.infrastructure.vector.adapters.constitutional_adapter import (
-    ConstitutionalAdapter,
-)
-from shared.infrastructure.vector.vector_index_service import VectorIndexService
 from will.workflows.dev_sync_reporter import DevSyncReporter
 
 
 # ID: dfc4107b-e6e6-42f6-b037-d1f160eda92b
 class VectorizationPhase:
-    """Executes vectorization operations."""
+    """Executes vectorization operations via the constitutional action pipeline."""
 
     def __init__(
         self,
@@ -42,104 +38,50 @@ class VectorizationPhase:
     async def execute(self) -> None:
         """Execute vectorization operations."""
         phase = self.reporter.start_phase("Vectorization")
+        write = not self.dry_run
 
-        # Sync constitutional vectors
-        await self._sync_constitutional_vectors(phase)
+        await self._sync_constitutional_vectors(phase, write)
+        await self._sync_code_vectors(phase, write)
 
-        # Vectorize knowledge graph
-        await self._vectorize_knowledge_graph(phase)
-
-    async def _sync_constitutional_vectors(self, phase: Any) -> None:
-        """Sync policy and pattern vectors."""
+    async def _sync_constitutional_vectors(self, phase: Any, write: bool) -> None:
+        """Sync policy and pattern vectors via action executor."""
+        start = time.time()
         try:
-            start = time.time()
             self.console.print("[cyan]Syncing constitutional vectors...[/cyan]")
-
-            adapter = ConstitutionalAdapter()
-
-            # Policies
-            policy_items = adapter.policies_to_items()
-            assert (
-                self.core_context.qdrant_service is not None
-            ), "QdrantService not initialized"
-            policy_service = VectorIndexService(
-                self.core_context.qdrant_service,
-                "core_policies",
+            result = await self.core_context.action_executor.execute(
+                "sync.vectors.constitution", write=write
             )
-            await policy_service.ensure_collection()
-            if not self.dry_run:
-                await policy_service.index_items(policy_items)
-
-            # Patterns
-            pattern_items = adapter.patterns_to_items()
-            assert (
-                self.core_context.qdrant_service is not None
-            ), "QdrantService not initialized"
-            pattern_service = VectorIndexService(
-                self.core_context.qdrant_service,
-                "core-patterns",
-            )
-            await pattern_service.ensure_collection()
-            if not self.dry_run:
-                await pattern_service.index_items(pattern_items)
-
-            self.reporter.record_result(
-                ActionResult(
-                    action_id="manage.vectors.sync",
-                    ok=True,
-                    data={
-                        "policies_count": len(policy_items),
-                        "patterns_count": len(pattern_items),
-                        "dry_run": self.dry_run,
-                    },
-                    duration_sec=time.time() - start,
-                ),
-                phase,
-            )
-
+            self.reporter.record_result(result, phase)
         except Exception as e:
+            self.console.print(f"[yellow]⚠️  Constitutional sync warning: {e}[/yellow]")
             self.reporter.record_result(
                 ActionResult(
-                    action_id="manage.vectors.sync",
+                    action_id="sync.vectors.constitution",
                     ok=False,
                     data={"error": str(e)},
-                ),
-                phase,
-            )
-            self.console.print(f"[yellow]⚠️  Constitutional sync warning: {e}[/yellow]")
-
-    async def _vectorize_knowledge_graph(self, phase: Any) -> None:
-        """Vectorize knowledge graph symbols."""
-        try:
-            start = time.time()
-            self.console.print("[cyan]Vectorizing knowledge graph...[/cyan]")
-            async with self.session_factory() as session:
-                await run_vectorize(
-                    context=self.core_context,
-                    session=session,
-                    dry_run=self.dry_run,
-                    force=False,
-                )
-
-            self.reporter.record_result(
-                ActionResult(
-                    action_id="run.vectorize",
-                    ok=True,
-                    data={"status": "completed"},
                     duration_sec=time.time() - start,
                 ),
                 phase,
             )
+
+    async def _sync_code_vectors(self, phase: Any, write: bool) -> None:
+        """Sync code vectors via RepoCrawlerWorker + RepoEmbedderWorker pipeline."""
+        start = time.time()
+        try:
+            self.console.print("[cyan]Vectorizing codebase artifacts...[/cyan]")
+            result = await self.core_context.action_executor.execute(
+                "sync.vectors.code", write=write
+            )
+            self.reporter.record_result(result, phase)
         except Exception as e:
-            error_details = traceback.format_exc()
-            self.console.print(f"[red]❌ Vectorization failed: {e}[/red]")
-            self.console.print(f"[dim]{error_details}[/dim]")
+            self.console.print(f"[red]❌ Code vectorization failed: {e}[/red]")
             self.reporter.record_result(
                 ActionResult(
-                    action_id="run.vectorize",
+                    action_id="sync.vectors.code",
                     ok=False,
-                    data={"error": str(e), "traceback": error_details},
+                    data={"error": str(e)},
+                    duration_sec=time.time() - start,
                 ),
                 phase,
             )
-            raise typer.Exit(1)
+            raise

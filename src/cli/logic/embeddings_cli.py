@@ -2,18 +2,15 @@
 
 """
 CLI wiring for embeddings & vectorization commands.
-Exposes: `core-admin knowledge vectorize [--write|--dry-run] [--cap capability --cap ...]`
+Exposes: `core-admin knowledge vectorize [--write|--dry-run]`
 """
 
 from __future__ import annotations
 
-from pathlib import Path
-
 import typer
 
-from body.introspection.vectorization_service import run_vectorize
-from body.services.service_registry import service_registry
-from shared.infrastructure.knowledge.knowledge_service import KnowledgeService
+from shared.cli_utils import core_command
+from shared.context import CoreContext
 from shared.logger import getLogger
 
 
@@ -24,50 +21,23 @@ app = typer.Typer(
 
 
 @app.command("vectorize")
+@core_command(dangerous=True)
 # ID: bd2d47b7-8dce-4e8c-93bd-0c31d0b13be0
 async def vectorize_cmd(
-    write: bool = typer.Option(
-        False, "--write", help="Persist changes to knowledge graph after run."
-    ),
+    ctx: typer.Context,
+    write: bool = typer.Option(False, "--write", help="Persist vectors to Qdrant."),
     dry_run: bool = typer.Option(
-        False, "--dry-run", help="Do not upsert to Qdrant, simulate only."
-    ),
-    verbose: bool = typer.Option(
-        False, "--verbose", help="Verbose logging / stack traces."
-    ),
-    cap: list[str] | None = typer.Option(
-        None, "--cap", help="Limit to specific capability keys (repeatable)."
-    ),
-    flush_every: int = typer.Option(
-        10, "--flush-every", help="Flush/save cadence (N processed chunks)."
+        False, "--dry-run", help="Simulate only, do not upsert to Qdrant."
     ),
 ):
     """
-    Vectorize code chunks into Qdrant with per-chunk idempotency.
+    Vectorize codebase artifacts using the constitutional worker pipeline
+    (RepoCrawlerWorker + RepoEmbedderWorker).
     """
-    repo_root = Path(".").resolve()
-    ks = KnowledgeService()
-    knowledge = ks.load_graph()
-    symbols_map: dict = knowledge.get("symbols", knowledge)
-    cognitive = await service_registry.get_cognitive_service()
-    qdrant = await service_registry.get_qdrant_service()
-    targets: set[str] | None = set(cap) if cap else None
-    typer.echo("🚀 Starting capability vectorization process (per-chunk idempotent)…")
+    context: CoreContext = ctx.obj
 
-    await run_vectorize(
-        repo_root=repo_root,
-        symbols_map=symbols_map,
-        cognitive_service=cognitive,
-        qdrant_service=qdrant,
-        dry_run=dry_run,
-        verbose=verbose,
-        target_capabilities=targets,
-        flush_every=flush_every,
-    )
-    if write and (not dry_run):
-        ks.save_graph(knowledge)
-        typer.echo("📝 Saved updated knowledge graph.")
-    else:
-        typer.echo(
-            "Info: Not saving graph (use --write and disable --dry-run to persist)."
-        )
+    if dry_run:
+        write = False
+
+    logger.info("🚀 Starting vectorization via constitutional worker pipeline...")
+    await context.action_executor.execute("sync.vectors.code", write=write)

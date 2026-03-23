@@ -101,7 +101,7 @@ class EmbeddingService:
     - LOCAL_EMBEDDING_MODEL_NAME
 
     Endpoint:
-    - POST {LOCAL_EMBEDDING_API_URL}/api/embeddings with {model, prompt}
+    - POST {LOCAL_EMBEDDING_API_URL}/api/embed with {model, input} (Ollama 0.4+)
     """
 
     def __init__(self, timeout: float = 30.0) -> None:
@@ -109,7 +109,7 @@ class EmbeddingService:
         self.model = _require_setting("LOCAL_EMBEDDING_MODEL_NAME")
         self.timeout = timeout
 
-        self.endpoint = "/api/embeddings"
+        self.endpoint = "/api/embed"
         self.headers: dict[str, str] = {"Content-Type": "application/json"}
 
         logger.info(
@@ -122,7 +122,7 @@ class EmbeddingService:
     async def get_embedding(self, text: str) -> list[float]:
         """Return a single embedding vector for the given text."""
         url = f"{self.base}{self.endpoint}"
-        payload = {"model": self.model, "prompt": text}
+        payload = {"model": self.model, "input": text, "options": {"num_ctx": 8192}}
 
         async with httpx.AsyncClient(timeout=self.timeout) as client:
             resp = await client.post(url, json=payload, headers=self.headers)
@@ -136,12 +136,12 @@ class EmbeddingService:
             raise RuntimeError(f"Embedding API HTTP {resp.status_code}")
 
         data = resp.json()
-        vec = data.get("embedding")
-        if not vec:
+        embeddings = data.get("embeddings")
+        if not embeddings or not embeddings[0]:
             logger.error("Local embedding service returned no vector.")
             raise RuntimeError("No vector returned from embedding service")
 
-        return vec
+        return embeddings[0]
 
 
 # ID: 14fd20cf-3101-4970-84b0-942ea9fffda3

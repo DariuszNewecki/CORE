@@ -16,7 +16,6 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from body.atomic.executor import ActionExecutor
-from body.introspection.knowledge_helpers import extract_source_code
 from shared.ai.prompt_model import PromptModel
 from shared.logger import getLogger
 
@@ -25,6 +24,29 @@ if TYPE_CHECKING:
     from shared.context import CoreContext
 
 logger = getLogger(__name__)
+
+
+# ID: f7d310e7-c416-4e65-a3c9-c56347297423
+def extract_source_code(repo_root: Path, symbol_data: dict[str, Any]) -> str | None:
+    """Extract source code for a symbol using its database record."""
+    module_path = symbol_data.get("module")
+    symbol_path_str = symbol_data.get("symbol_path")
+    if not module_path or not symbol_path_str:
+        return None
+    file_path = repo_root / ("src/" + module_path.replace(".", "/") + ".py")
+    if not file_path.exists():
+        return None
+    symbol_name = symbol_path_str.split("::")[-1]
+    try:
+        content = file_path.read_text("utf-8")
+        tree = ast.parse(content, filename=str(file_path))
+        for node in ast.walk(tree):
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+                if getattr(node, "name", None) == symbol_name:
+                    return ast.get_source_segment(content, node)
+    except Exception:
+        return None
+    return None
 
 
 def _has_docstring_in_source(repo_path: Path, symbol: dict[str, Any]) -> bool:
