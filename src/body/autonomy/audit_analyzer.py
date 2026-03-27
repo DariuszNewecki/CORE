@@ -11,6 +11,13 @@ Constitutional alignment:
 - No action mappings are hardcoded in this file
 - Adding/removing a mapping is a constitutional act (.intent/ edit only)
 - No mutations - pure analysis only
+
+V2.7 FIX:
+- Removed hardcoded REMEDIATION_MAP_PATH constant.
+- Removed hardcoded MIN_CONFIDENCE constant.
+- Both are now loaded via PathResolver from:
+    .intent/enforcement/config/governance_paths.yaml
+- AuditAnalyzer.findings_path now uses PathResolver.audit_findings_path.
 """
 
 from __future__ import annotations
@@ -19,38 +26,62 @@ import json
 from pathlib import Path
 from typing import Any
 
+import yaml
+
 from shared.logger import getLogger
+from shared.path_resolver import PathResolver
 
 
 logger = getLogger(__name__)
 
-REMEDIATION_MAP_PATH = Path(
-    ".intent/enforcement/mappings/remediation/auto_remediation.yaml"
-)
-MIN_CONFIDENCE: float = 0.80
+# Fallback used only when governance_paths.yaml cannot be loaded.
+# This constant must NOT be used in logic — it is a last-resort default only.
+_FALLBACK_MIN_CONFIDENCE: float = 0.80
+
+
+# ID: e1f2a3b4-c5d6-7890-efab-cd0000000001
+def _load_governance_config(path_resolver: PathResolver) -> dict[str, Any]:
+    """
+    Load governance paths & thresholds from .intent/enforcement/config/governance_paths.yaml.
+
+    Returns empty dict on failure so callers can apply fallbacks gracefully.
+    """
+    config_path = path_resolver.governance_config_path
+    if not config_path.exists():
+        logger.warning(
+            "Governance config not found at %s — using fallback defaults. "
+            "Create .intent/enforcement/config/governance_paths.yaml to configure.",
+            config_path,
+        )
+        return {}
+    try:
+        raw = yaml.safe_load(config_path.read_text(encoding="utf-8"))
+        return raw if isinstance(raw, dict) else {}
+    except Exception as e:
+        logger.error("Failed to load governance config from %s: %s", config_path, e)
+        return {}
 
 
 # ID: dc64f3c1-b122-4032-ac7c-acf00f43f6d6
-def _load_remediation_map(repo_root: Path) -> dict[str, dict[str, Any]]:
+def _load_remediation_map(path_resolver: PathResolver) -> dict[str, dict[str, Any]]:
     """
-    Load the remediation map from .intent/enforcement/mappings/remediation/.
+    Load the remediation map via PathResolver.
 
+    Path is resolved from PathResolver.remediation_map_path — never hardcoded.
     Returns a dict of {check_id: {action, confidence, risk, description}}.
-    Fails gracefully - returns empty dict if file missing or malformed.
+    Fails gracefully — returns empty dict if file missing or malformed.
     """
-    map_path = repo_root / REMEDIATION_MAP_PATH
+    map_path = path_resolver.remediation_map_path
 
     if not map_path.exists():
         logger.warning(
-            "Remediation map not found: %s - no autonomous proposals will be generated. "
-            "Create .intent/enforcement/mappings/remediation/auto_remediation.yaml to enable.",
+            "Remediation map not found: %s — no autonomous proposals will be generated. "
+            "Populate .intent/enforcement/mappings/remediation/auto_remediation.yaml to enable.",
             map_path,
         )
         return {}
 
     try:
-        import yaml
-
         raw = yaml.safe_load(map_path.read_text(encoding="utf-8"))
     except Exception as e:
         logger.error("Failed to load remediation map from %s: %s", map_path, e)
@@ -72,8 +103,12 @@ def _load_remediation_map(repo_root: Path) -> dict[str, dict[str, Any]]:
             continue
         if "action" not in entry:
             logger.warning(
-                "Remediation map: entry '%s' missing 'action' field - skipped", check_id
+                "Remediation map: entry '%s' missing 'action' field — skipped", check_id
             )
+            continue
+        # Skip PENDING entries explicitly (status field in auto_remediation.yaml)
+        if entry.get("status") == "PENDING":
+            logger.debug("Remediation map: skipping PENDING entry '%s'", check_id)
             continue
         validated[check_id] = {
             "action": entry["action"],
@@ -83,7 +118,7 @@ def _load_remediation_map(repo_root: Path) -> dict[str, dict[str, Any]]:
         }
 
     logger.debug(
-        "Remediation map loaded: %d mappings from %s", len(validated), map_path
+        "Remediation map loaded: %d active mappings from %s", len(validated), map_path
     )
     return validated
 
@@ -98,7 +133,11 @@ class AuditAnalyzer:
     The mapping from check_id to action is loaded from:
       .intent/enforcement/mappings/remediation/auto_remediation.yaml
 
-    No hardcoded mappings. Adding a new remediable rule = editing .intent/ only.
+    The min_confidence threshold is loaded from:
+      .intent/enforcement/config/governance_paths.yaml
+
+    No paths or thresholds are hardcoded in this file.
+    Adding a new remediable rule = editing .intent/ only.
     """
 
     def __init__(self, repo_root: Path) -> None:
@@ -106,16 +145,34 @@ class AuditAnalyzer:
         Initialize analyzer.
 
         Args:
-            repo_root: Repository root path
+            repo_root: Repository root path. Used to construct PathResolver.
+                       Kept as a Path argument for backward compatibility with
+                       all existing callers.
         """
-        self.repo_root = repo_root
-        self.findings_path = self.repo_root / "reports" / "audit_findings.json"
+        self._path_resolver = PathResolver(repo_root)
+
+        # Derive findings path from PathResolver — never hardcoded.
+        self.findings_path = self._path_resolver.audit_findings_path
+
+        # Load min_confidence from constitutional governance config.
+        gov_config = _load_governance_config(self._path_resolver)
+        self._min_confidence: float = float(
+            gov_config.get("remediation", {}).get(
+                "min_confidence", _FALLBACK_MIN_CONFIDENCE
+            )
+        )
+        logger.debug(
+            "AuditAnalyzer: min_confidence=%.2f (source: %s)",
+            self._min_confidence,
+            "governance_paths.yaml" if gov_config else "fallback default",
+        )
+
         self._remediation_map: dict[str, dict[str, Any]] | None = None
 
     def _get_remediation_map(self) -> dict[str, dict[str, Any]]:
         """Lazy-load the remediation map (cached per instance)."""
         if self._remediation_map is None:
-            self._remediation_map = _load_remediation_map(self.repo_root)
+            self._remediation_map = _load_remediation_map(self._path_resolver)
         return self._remediation_map
 
     # ID: c3d4e5f6-a7b8-9012-cdef-123456789012
@@ -126,7 +183,7 @@ class AuditAnalyzer:
         Loads the remediation map from .intent/, reads audit findings,
         matches each finding's check_id against the map, and groups
         fixable findings by action. Only entries with confidence >=
-        MIN_CONFIDENCE are included.
+        min_confidence (from governance_paths.yaml) are included.
 
         Args:
             findings_path: Override path to audit findings JSON.
@@ -142,7 +199,7 @@ class AuditAnalyzer:
                 "status": "no_remediation_map",
                 "message": (
                     "No remediation mappings found. "
-                    "Create .intent/enforcement/mappings/remediation/auto_remediation.yaml."
+                    "Populate .intent/enforcement/mappings/remediation/auto_remediation.yaml."
                 ),
                 "auto_fixable_count": 0,
                 "fixable_by_action": {},
@@ -176,7 +233,8 @@ class AuditAnalyzer:
 
         if not isinstance(findings, list):
             logger.error(
-                "Unexpected findings format: expected list, got %s", type(findings)
+                "Unexpected findings format: expected list, got %s",
+                type(findings),
             )
             return {
                 "status": "format_error",
@@ -187,9 +245,11 @@ class AuditAnalyzer:
             }
 
         logger.info(
-            "Analyzing %d audit findings against %d remediation mappings",
+            "Analyzing %d audit findings against %d remediation mappings "
+            "(min_confidence=%.2f)",
             len(findings),
             len(remediation_map),
+            self._min_confidence,
         )
 
         fixable_by_action: dict[str, list[dict[str, Any]]] = {}
@@ -202,7 +262,7 @@ class AuditAnalyzer:
 
             entry = remediation_map.get(check_id)
 
-            if entry and entry["confidence"] >= MIN_CONFIDENCE:
+            if entry and entry["confidence"] >= self._min_confidence:
                 action = entry["action"]
                 fixable_by_action.setdefault(action, [])
                 fixable_by_action[action].append(
@@ -241,49 +301,18 @@ class AuditAnalyzer:
         self, fixable_by_action: dict[str, list[dict[str, Any]]]
     ) -> list[dict[str, Any]]:
         """Summarise fixable findings grouped by action."""
-        summaries = []
-        for action, findings in sorted(fixable_by_action.items()):
-            if not findings:
-                continue
-            first = findings[0]
-            affected_files: set[str] = set()
-            for f in findings:
-                fp = f.get("file_path") or f.get("file")
-                if fp:
-                    affected_files.add(fp)
-            summaries.append(
-                {
-                    "action": action,
-                    "finding_count": len(findings),
-                    "affected_files": len(affected_files),
-                    "confidence": first.get("fix_confidence", 0.0),
-                    "risk_level": first.get("fix_risk", "unknown"),
-                    "description": first.get("fix_description", ""),
-                    "sample_files": sorted(affected_files)[:5],
-                }
+        return [
+            {
+                "action": action,
+                "count": len(findings),
+                "files": list({f.get("file_path", "unknown") for f in findings})[:10],
+                "avg_confidence": (
+                    sum(f["fix_confidence"] for f in findings) / len(findings)
+                    if findings
+                    else 0.0
+                ),
+            }
+            for action, findings in sorted(
+                fixable_by_action.items(), key=lambda kv: len(kv[1]), reverse=True
             )
-        summaries.sort(key=lambda x: x["finding_count"], reverse=True)
-        return summaries
-
-
-# ID: f6a7b8c9-d0e1-2345-f123-456789012345
-def analyze_audit_findings(
-    findings_path: Path | None = None,
-    repo_root: Path | None = None,
-) -> dict[str, Any]:
-    """Convenience wrapper for AuditAnalyzer.analyze_findings().
-
-    Args:
-        findings_path: Override path to audit findings JSON.
-        repo_root: Repository root path. Required — callers must supply this.
-
-    Raises:
-        ValueError: If repo_root is not provided.
-    """
-    if repo_root is None:
-        raise ValueError(
-            "analyze_audit_findings: repo_root is required. "
-            "Pass settings.REPO_PATH from the calling layer."
-        )
-    analyzer = AuditAnalyzer(repo_root=repo_root)
-    return analyzer.analyze_findings(findings_path=findings_path)
+        ]

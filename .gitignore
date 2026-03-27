@@ -35,6 +35,7 @@ coverage.json
 *.swp
 .DS_Store
 Thumbs.db
+CLAUDE.md
 
 # -----------------------------------------------------------------------------
 # External mounts — symlinked, never versioned

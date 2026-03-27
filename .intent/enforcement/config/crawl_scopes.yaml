@@ -1,0 +1,73 @@
+# .intent/enforcement/config/crawl_scopes.yaml
+#
+# Constitutional Crawl Scopes & Vector Collection Mapping
+# Authority: constitution
+# Phase: load
+# Status: active
+#
+# PURPOSE:
+#   Defines what the RepoCrawlerWorker indexes and where vectors are stored.
+#   Moving these out of Python constants makes crawl scope a constitutional
+#   decision — adding a new directory to be indexed is an .intent/ edit,
+#   not a code change.
+#
+# RULE: _CRAWL_SCOPES and _QDRANT_COLLECTION_MAP in RepoCrawlerWorker
+#   MUST be loaded from this file, not hardcoded in Python.
+
+crawl_scopes:
+  # Each entry: glob pattern (relative to repo root) + artifact type label.
+  # artifact_type drives the Qdrant collection routing below.
+  - pattern: "src/**/*.py"
+    artifact_type: python
+
+  - pattern: "docs/**/*.md"
+    artifact_type: doc
+
+  - pattern: "docs/**/*.rst"
+    artifact_type: doc
+
+  - pattern: "tests/**/*.py"
+    artifact_type: test
+
+  - pattern: "var/prompts/**/model.yaml"
+    artifact_type: prompt
+
+  - pattern: "var/prompts/**/system.txt"
+    artifact_type: prompt
+
+  - pattern: "var/prompts/**/user.txt"
+    artifact_type: prompt
+
+  - pattern: "var/reports/**/*.yaml"
+    artifact_type: report
+
+  - pattern: "var/reports/**/*.md"
+    artifact_type: report
+
+  - pattern: ".intent/**/*.yaml"
+    artifact_type: intent
+
+  - pattern: ".intent/**/*.json"
+    artifact_type: intent
+
+  - pattern: "infra/**/*.sql"
+    artifact_type: infra
+
+qdrant_collections:
+  # Maps artifact_type → Qdrant collection name.
+  # Changing a collection name here triggers a re-index on next sync.
+  python: "core-code"
+  doc: "core-docs"
+  test: "core-tests"
+  prompt: "core-prompts"
+  report: "core-reports"
+  intent: "core-patterns"
+  infra: "core-docs"
+
+layer_map:
+  # Maps src/ directory prefix → constitutional layer name.
+  # Used by RepoCrawlerWorker to tag artifacts with their layer.
+  "src/mind": "mind"
+  "src/body": "body"
+  "src/will": "will"
+  "src/shared": "shared"

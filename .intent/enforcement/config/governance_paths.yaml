@@ -1,0 +1,38 @@
+# .intent/enforcement/config/governance_paths.yaml
+#
+# Constitutional Governance Paths & Thresholds
+# Authority: constitution
+# Phase: load
+# Status: active
+#
+# PURPOSE:
+#   Single source of truth for all governance-relevant paths and thresholds
+#   that would otherwise be hardcoded in src/.
+#   Consumed at startup by PathResolver and any component that needs
+#   governance configuration.
+#
+# RULE: Any path or threshold that controls autonomous behaviour
+#   MUST be declared here, not as a Python constant in Body or Will.
+
+remediation:
+  # Path (relative to repo root) to the autonomous remediation mapping.
+  # Consumed by: body/autonomy/audit_analyzer.py
+  map_path: ".intent/enforcement/mappings/remediation/auto_remediation.yaml"
+
+  # Minimum confidence threshold for AuditAnalyzer to propose an autonomous fix.
+  # Range: 0.0 – 1.0
+  # safe_only mode requires entries >= this value in auto_remediation.yaml.
+  # Raise only when fixer coverage and test confidence both justify it.
+  min_confidence: 0.80
+
+audit_findings:
+  # Path (relative to repo root) to the raw audit findings produced by
+  # `core-admin check audit`. Used by vulture_healer and AuditAnalyzer.
+  raw_path: "var/reports/audit_findings.json"
+
+  # Path (relative to repo root) to the processed findings consumed by
+  # AuditRemediationService. Written by the audit post-processor.
+  processed_path: "var/reports/audit_findings.processed.json"
+
+  # Path (relative to repo root) where remediation evidence artifacts are written.
+  remediation_dir: "var/reports/remediation"

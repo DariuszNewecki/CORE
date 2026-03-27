@@ -1,0 +1,187 @@
+# .intent/enforcement/mappings/remediation/auto_remediation.yaml
+#
+# Constitutional Remediation Map
+# Authority: policy
+# Phase: audit
+# Status: active
+#
+# PURPOSE:
+#   Maps audit check_ids to autonomous fix handlers.
+#   Consumed by: body/autonomy/audit_analyzer.py (AuditAnalyzer)
+#                will/self_healing/remediation_pattern_matcher.py (RemediationPatternMatcher)
+#
+# CONFIDENCE TIERS:
+#   >= 0.90  → safe_only mode (deterministic, zero reasoning required)
+#   >= 0.70  → medium_risk mode (deterministic with light validation)
+#   >= 0.50  → all_deterministic mode (requires handler to be confirmed working)
+#   < 0.50   → NOT dispatched; handler stub must be implemented first
+#
+# RISK LEVELS:
+#   low    → single-file, deterministic, fully reversible
+#   medium → multi-step, deterministic but affects logic flow
+#   high   → structural changes, requires LLM or A3 loop
+#
+# HANDLER STATUS KEY:
+#   ACTIVE   → handler confirmed in body/self_healing/handlers/ or via ActionExecutor
+#   PENDING  → handler does not yet exist; confidence set below MIN_CONFIDENCE (0.80)
+#              to prevent dispatch until implemented
+#
+# NOTE ON MIN_CONFIDENCE:
+#   AuditAnalyzer.MIN_CONFIDENCE = 0.80
+#   Only entries >= 0.80 will be proposed for autonomous execution.
+#   PENDING entries are documented here for roadmap visibility only.
+
+mappings:
+
+  # ===========================================================================
+  # TIER 1: ACTIVE — safe_only (confidence >= 0.90)
+  # Deterministic, fully reversible, no reasoning required.
+  # ===========================================================================
+
+  style.import_order:
+    action: sort_imports
+    confidence: 0.92
+    risk: low
+    description: >
+      Sort imports in a single file using ruff (isort-compatible).
+      Handler: body/self_healing/handlers/import_sorting_handler.py → sort_imports_handler
+    status: ACTIVE
+
+  linkage.duplicate_ids:
+    action: fix_duplicate_ids
+    confidence: 0.90
+    risk: low
+    description: >
+      Regenerate fresh UUIDs for any duplicate # ID: comment tags.
+      Handler: fix.duplicate via ActionExecutor (fix/ids.py → fix_duplicate_ids_internal)
+      Safe: only rewrites comment lines, never touches logic.
+    status: ACTIVE
+
+  purity.forbidden_placeholders:
+    action: fix_placeholders
+    confidence: 0.92
+    risk: low
+    description: >
+      Replace forbidden placeholder strings (TODO → FUTURE, FIXME → PENDING,
+      TBD → pending, PLACEHOLDER → template_value, N/A → none).
+      Handler: fix.placeholders via ActionExecutor (placeholder_fixer_service.py)
+      Deterministic regex — no reasoning required.
+    status: ACTIVE
+
+  # ===========================================================================
+  # TIER 2: ACTIVE — medium_risk (confidence 0.80–0.89)
+  # Deterministic with validation step; affects more than formatting.
+  # ===========================================================================
+
+  workflow.dead_code_check:
+    action: heal_dead_code
+    confidence: 0.82
+    risk: medium
+    description: >
+      Remove unused variables and functions identified by Vulture.
+      Handler: will/self_healing/vulture_healer.py → heal_dead_code
+      Uses LLM to confirm safety before deletion. Requires audit_findings.json
+      to be present. Only processes findings with check_id = workflow.dead_code_check.
+    status: ACTIVE
+
+  architecture.max_file_size:
+    action: fix_modularity
+    confidence: 0.80
+    risk: medium
+    description: >
+      Files exceeding 400 lines are routed to the A3 refactor_modularity workflow.
+      Handler: will/self_healing/modularity_remediation_service.py → remediate_batch
+      Requires LLM_ENABLED=true. Dry-run safe — write=False by default.
+    status: ACTIVE
+
+  modularity.refactor_score_threshold:
+    action: fix_modularity
+    confidence: 0.80
+    risk: medium
+    description: >
+      Files with refactor score >= 60 are candidates for autonomous modularisation
+      via the A3 refactor_modularity workflow.
+      Handler: same as architecture.max_file_size — ModularityRemediationService.
+    status: ACTIVE
+
+  # ===========================================================================
+  # TIER 3: PENDING — handler implementation required
+  # Documented for roadmap visibility. Confidence set below MIN_CONFIDENCE (0.80)
+  # so AuditAnalyzer will not dispatch these until handlers are implemented.
+  # ===========================================================================
+
+  linkage.assign_ids:
+    action: assign_missing_ids
+    confidence: 0.75
+    risk: low
+    description: >
+      Insert # ID: UUID comment above public functions and methods that lack one.
+      PENDING: No dedicated handler exists yet. The Finalizer in the A3 loop handles
+      this post-generation. A standalone deterministic handler should be added to
+      body/self_healing/handlers/id_assignment_handler.py.
+      When implemented, raise confidence to 0.91 (fully deterministic via AST).
+    status: PENDING
+
+  architecture.constitution_read_only:
+    action: remove_intent_write
+    confidence: 0.60
+    risk: high
+    description: >
+      Code attempting to write to .intent/ must be refactored to use
+      IntentRepository or read-only access patterns.
+      PENDING: Requires structural refactor — no safe deterministic handler possible.
+      Route to A3 full_feature_development workflow with manual approval gate.
+    status: PENDING
+
+  modularity.single_responsibility:
+    action: fix_modularity
+    confidence: 0.72
+    risk: high
+    description: >
+      Files with 3+ detected responsibilities are candidates for splitting.
+      PENDING: confidence below MIN_CONFIDENCE because single-responsibility
+      detection has false-positive risk. Raise to 0.82 once ModularityRemediationService
+      validates its responsibility-cluster detection against 20+ real cases.
+    status: PENDING
+
+  modularity.import_coupling:
+    action: fix_modularity
+    confidence: 0.70
+    risk: medium
+    description: >
+      Files touching 4+ concern areas flagged for modularisation review.
+      PENDING: Same confidence gate as modularity.single_responsibility.
+      These two rules often co-fire — handle them together.
+    status: PENDING
+
+  code.imports.no_stale_namespace:
+    action: fix_stale_imports
+    confidence: 0.55
+    risk: high
+    description: >
+      Update import statements referencing moved/renamed modules.
+      PENDING: Dangerous without a full import graph. A dedicated handler must
+      resolve old→new module paths from GitService history before this can be
+      automated. Do not raise confidence until that resolver exists.
+    status: PENDING
+
+  architecture.mind.no_body_invocation:
+    action: refactor_layer_violation
+    confidence: 0.50
+    risk: high
+    description: >
+      Mind layer components importing Body layer directly must be refactored
+      to use dependency injection or service interfaces.
+      PENDING: Structural refactor requiring human review. Route to A3 loop
+      with explicit human approval step before execution.
+    status: PENDING
+
+  governance.mutation_surface.filehandler_required:
+    action: refactor_direct_writes
+    confidence: 0.55
+    risk: high
+    description: >
+      Direct filesystem writes (write_text, open(w)) must be replaced with
+      FileHandler calls. PENDING: Requires AST rewrite of call sites — not
+      purely mechanical without context on the surrounding logic.
+    status: PENDING

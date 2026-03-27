@@ -198,7 +198,9 @@ class ProposalExecutor:
                         aid for aid, res in action_results.items() if not res["ok"]
                     ]
                     reason = f"Actions failed: {', '.join(failed_actions)}"
-                    await state_manager.mark_failed(proposal.proposal_id, reason=reason)
+                    await state_manager.mark_failed(
+                        proposal.proposal_id, reason=reason, results=action_results
+                    )
                     logger.error(
                         "Proposal failed: %s - %s", proposal.proposal_id, reason
                     )
@@ -324,7 +326,9 @@ class ProposalExecutor:
                             ]
                             reason = f"Actions failed: {', '.join(failed_actions)}"
                             await state_manager.mark_failed(
-                                proposal.proposal_id, reason=reason
+                                proposal.proposal_id,
+                                reason=reason,
+                                results=action_results,
                             )
 
                     results[proposal_id] = {

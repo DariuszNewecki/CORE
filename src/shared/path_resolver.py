@@ -10,11 +10,19 @@ Key boundary rules:
 Design:
 - Deterministic path construction.
 - No side effects.
+
+V2.7 ADDITIONS:
+- remediation_map_path: canonical path to auto_remediation.yaml
+- audit_findings_path: canonical path to raw audit findings
+- audit_findings_processed_path: canonical path to processed audit findings
+- governance_config_path: canonical path to governance_paths.yaml
+- crawl_scopes_config_path: canonical path to crawl_scopes.yaml
+- workers_dir: canonical path to .intent/workers/
+These replace all hardcoded Path("...") constants in Body and Will layers.
 """
 
 from __future__ import annotations
 
-import glob
 from pathlib import Path
 from typing import Any, ClassVar
 
@@ -176,8 +184,6 @@ class PathResolver:
     def canary_dir(self) -> Path:
         return self.workflows_dir / "canary"
 
-    # Add after line 201 (after canary_dir property):
-
     @property
     # ID: a665cb45-3f2d-42d2-ac93-4156468d007f
     def morgue_dir(self) -> Path:
@@ -185,39 +191,102 @@ class PathResolver:
         return self.workflows_dir / "morgue"
 
     @property
-    # ID: af8d468e-91b9-4732-ba76-a710719919fe
-    def quarantine_dir(self) -> Path:
-        """Directory for artifacts pending review."""
-        return self.workflows_dir / "quarantine"
-
-    @property
-    # ID: c02aebe7-9030-4a29-8a0a-29f221481c3c
+    # ID: c3d4e5f6-a7b8-9012-cdef-111111111111
     def prompts_dir(self) -> Path:
         return self._repo_root.joinpath(*self._DEFAULT_PROMPTS_SUBDIR)
 
-    # ID: e890ddef-5847-49cb-8fe4-b013d5262c39
-    def prompt(self, name: str) -> Path:
-        safe = name.strip().replace("\\", "/").split("/")[-1]
-        return self.prompts_dir / f"{safe}.prompt"
-
-    # ID: 8e6f9bcc-a967-4edb-a015-bd97c6b556f5
-    def list_prompts(self) -> list[str]:
-        if not self.prompts_dir.exists():
-            return []
-        return sorted({p.stem for p in self.prompts_dir.glob("*.prompt")})
+    # =========================================================================
+    # GOVERNANCE PATHS (V2.7)
+    # These replace hardcoded Path("...") constants in Body and Will layers.
+    # All governance-relevant paths are resolved here and nowhere else.
+    # =========================================================================
 
     @property
-    # ID: e187c5cf-0bb2-4346-92b4-0bc6da6b5eb5
-    def work_dir(self) -> Path:
-        return self._repo_root / "work"
+    # ID: a1b2c3d4-e5f6-7890-abcd-ef0000000001
+    def governance_config_path(self) -> Path:
+        """
+        Path to the constitutional governance paths & thresholds config.
+        Source of truth for MIN_CONFIDENCE, audit findings paths, etc.
+        File: .intent/enforcement/config/governance_paths.yaml
+        """
+        return self._intent_root / "enforcement" / "config" / "governance_paths.yaml"
+
+    @property
+    # ID: a1b2c3d4-e5f6-7890-abcd-ef0000000002
+    def crawl_scopes_config_path(self) -> Path:
+        """
+        Path to the crawl scopes & Qdrant collection mapping config.
+        Source of truth for RepoCrawlerWorker scopes and collection names.
+        File: .intent/enforcement/config/crawl_scopes.yaml
+        """
+        return self._intent_root / "enforcement" / "config" / "crawl_scopes.yaml"
+
+    @property
+    # ID: a1b2c3d4-e5f6-7890-abcd-ef0000000003
+    def remediation_map_path(self) -> Path:
+        """
+        Canonical path to the autonomous remediation mapping.
+        Replaces: REMEDIATION_MAP_PATH = Path(".intent/enforcement/mappings/remediation/auto_remediation.yaml")
+        in body/autonomy/audit_analyzer.py
+        """
+        return (
+            self._intent_root
+            / "enforcement"
+            / "mappings"
+            / "remediation"
+            / "auto_remediation.yaml"
+        )
+
+    @property
+    # ID: a1b2c3d4-e5f6-7890-abcd-ef0000000004
+    def audit_findings_path(self) -> Path:
+        """
+        Canonical path to the raw audit findings JSON.
+        Replaces: repo_root / "reports" / "audit_findings.json"
+        in vulture_healer.py and AuditAnalyzer.
+        """
+        return self.reports_dir / "audit_findings.json"
+
+    @property
+    # ID: a1b2c3d4-e5f6-7890-abcd-ef0000000005
+    def audit_findings_processed_path(self) -> Path:
+        """
+        Canonical path to the processed audit findings JSON.
+        Replaces: repo_root / "reports" / "audit_findings.processed.json"
+        in AuditRemediationService._default_findings_path().
+        """
+        return self.reports_dir / "audit_findings.processed.json"
+
+    @property
+    # ID: a1b2c3d4-e5f6-7890-abcd-ef0000000006
+    def remediation_evidence_dir(self) -> Path:
+        """
+        Canonical directory for remediation evidence artifacts.
+        Replaces: repo_root / "reports" / "remediation" in RemediationEvidenceWriter.
+        """
+        return self.reports_dir / "remediation"
+
+    @property
+    # ID: a1b2c3d4-e5f6-7890-abcd-ef0000000007
+    def workers_dir(self) -> Path:
+        """
+        Canonical path to .intent/workers/ declarations.
+        Replaces: Path(".intent/workers") in WorkerAuditor.
+        """
+        return self._intent_root / "workers"
 
     # =========================================================================
-    # STRUCTURE VALIDATION
+    # VALIDATION
     # =========================================================================
 
-    # ID: 0b5bfb1a-d91b-43a1-8034-2f2e4a9921a5
+    # ID: 3f6e9c2a-1b4d-4e7f-8a0c-5d2e9b3c6a1f
     def validate_structure(self) -> ValidationResult:
-        """Check for existence of required runtime directories."""
+        """
+        Validate that the expected runtime directory structure exists.
+
+        Returns:
+            ValidationResult with ok=True if all required dirs exist.
+        """
         required_dirs: list[tuple[Path, str]] = [
             (self.var_dir, "var/"),
             (self.workflows_dir, "var/workflows/"),
@@ -241,6 +310,19 @@ class PathResolver:
 
         if not self.intent_root.exists():
             errors.append(f"Missing constitutional intent root at {self.intent_root}")
+
+        # Validate governance config files exist
+        if not self.governance_config_path.exists():
+            errors.append(
+                f"Missing governance config: {self.governance_config_path} "
+                "(create .intent/enforcement/config/governance_paths.yaml)"
+            )
+
+        if not self.crawl_scopes_config_path.exists():
+            errors.append(
+                f"Missing crawl scopes config: {self.crawl_scopes_config_path} "
+                "(create .intent/enforcement/config/crawl_scopes.yaml)"
+            )
 
         return ValidationResult(
             ok=not errors,
@@ -273,51 +355,45 @@ class PathResolver:
             self.intent_root / "rules",
         ]
 
-        # Cleanup input
         raw = policy_id.replace("\\", "/").strip().lstrip("/")
         for prefix in ("policies/", "standards/", ".intent/"):
             if raw.startswith(prefix):
                 raw = raw[len(prefix) :]
 
-        # 1) Try Direct Match in all roots
         for root in search_roots:
             direct = root / raw
-            # Try with various extensions
             for ext in (".json", ".yaml", ".yml", ""):
                 p = direct.with_suffix(ext) if ext else direct
                 if p.is_file() and p.exists():
                     return p
 
-        # 2) Recursive stem lookup if direct match fails
         stem = Path(raw).name
         for root in search_roots:
             if not root.exists():
                 continue
-            # Search for files with this stem and valid extensions
-            pattern = str(root / "**" / f"{stem}.*")
-            matches = [
-                m
-                for m in glob.glob(pattern, recursive=True)
-                if Path(m).suffix.lower() in (".json", ".yaml", ".yml")
-            ]
-            if matches:
-                # Return the shortest path to prefer higher-level definitions
-                matches.sort(key=len)
-                return Path(matches[0])
-
-        # Informative error if not found
-        available = []
-        for root in search_roots:
-            if root.exists():
-                available.extend(
-                    [
-                        Path(p).stem
-                        for p in glob.glob(str(root / "**" / "*.*"), recursive=True)
-                        if Path(p).suffix in {".json", ".yaml", ".yml"}
-                    ]
-                )
+            for ext in (".json", ".yaml", ".yml"):
+                matches = list(root.rglob(f"{stem}{ext}"))
+                if matches:
+                    return matches[0]
 
         raise FileNotFoundError(
-            f"Constitutional resource '{policy_id}' not found in 'policies/' or 'standards/'. "
-            f"Available: {', '.join(sorted(set(available)))}"
+            f"Policy '{policy_id}' not found in {[str(r) for r in search_roots]}"
         )
+
+    # ID: 9a3f6c2e-1b4d-4e7f-8a0c-5d2e9b3c6a1f
+    def workflow(self, workflow_id: str) -> Path:
+        """Resolve a workflow definition YAML from .intent/workflows/."""
+        base = self.intent_root / "workflows"
+        for subdir in ("definitions", ""):
+            candidate = base / subdir / f"{workflow_id}.yaml"
+            if candidate.exists():
+                return candidate
+        raise FileNotFoundError(f"Workflow '{workflow_id}' not found under {base}")
+
+    # ID: 8b2e5a1c-3d6f-4e7a-9b0c-2d5e8a3c7b1e
+    def phase(self, phase_id: str) -> Path:
+        """Resolve a phase definition YAML from .intent/phases/."""
+        candidate = self.intent_root / "phases" / f"{phase_id}.yaml"
+        if candidate.exists():
+            return candidate
+        raise FileNotFoundError(f"Phase '{phase_id}' not found at {candidate}")

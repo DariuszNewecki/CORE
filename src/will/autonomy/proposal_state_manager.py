@@ -84,8 +84,13 @@ class ProposalStateManager:
         logger.info("Marked proposal as completed: %s", proposal_id)
 
     # ID: 2f596c85-0d22-4de4-b919-791346cdb6aa
-    async def mark_failed(self, proposal_id: str, reason: str) -> None:
-        """Mark proposal as failed with reason."""
+    async def mark_failed(
+        self,
+        proposal_id: str,
+        reason: str,
+        results: dict[str, Any] | None = None,
+    ) -> None:
+        """Mark proposal as failed with reason and execution results."""
         from shared.infrastructure.database.models.autonomous_proposals import (
             AutonomousProposal,
         )
@@ -97,6 +102,7 @@ class ProposalStateManager:
                 status=ProposalStatus.FAILED.value,
                 execution_completed_at=datetime.now(UTC),
                 failure_reason=reason,
+                execution_results=results or {},
             )
         )
         await self._session.execute(stmt)
