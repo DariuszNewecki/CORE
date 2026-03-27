@@ -18,7 +18,9 @@ console = Console()
 
 @core_command(dangerous=False)
 # ID: 9bacc55b-be1d-4f71-a27e-6e83ba176e33
-async def show_proposal(proposal_id: str = typer.Argument(...)) -> None:
+async def show_proposal(
+    ctx: typer.Context, proposal_id: str = typer.Argument(...)
+) -> None:
     """Show detailed breakdown and risk assessment of a proposal."""
     async with service_registry.session() as session:
         proposal = await ProposalRepository(session).get(proposal_id)
@@ -31,6 +33,7 @@ async def show_proposal(proposal_id: str = typer.Argument(...)) -> None:
 @core_command(dangerous=True)
 # ID: f2e065f7-c253-4c33-ae0d-5374ffdb8e23
 async def approve_proposal(
+    ctx: typer.Context,
     proposal_id: str = typer.Argument(...),
     by: str = typer.Option("cli_admin", "--by", help="Approver identity."),
 ) -> None:
@@ -70,6 +73,7 @@ async def execute_proposal(
 @core_command(dangerous=True)
 # ID: 4ac3cfc1-feae-440c-b02f-4c57a6a1147d
 async def reject_proposal(
+    ctx: typer.Context,
     proposal_id: str = typer.Argument(...),
     reason: str = typer.Option(..., "--reason", "-r"),
 ) -> None:

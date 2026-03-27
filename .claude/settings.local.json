@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -m poetry run core-admin dev sync --write)"
+    ]
+  }
+}

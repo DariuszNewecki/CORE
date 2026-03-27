@@ -1,8 +1,8 @@
 {
-  "audit_id": "917101f7-65b3-4c24-a9f1-2390fb63c4d9",
-  "timestamp": "2026-03-21T19:54:48Z",
+  "audit_id": "039bddf4-1997-45c8-aca2-d6b5e7078ee5",
+  "timestamp": "2026-03-27T22:00:54Z",
   "passed": false,
-  "findings_count": 434,
+  "findings_count": 377,
   "executed_rules": [
     "ai.cognitive_role.no_hardcoded_string",
     "ai.prompt.artifact.no_provider_leak",
@@ -62,7 +62,6 @@
     "cli.command.metadata_required",
     "cli.command.no_duplicates",
     "code.imports.must_resolve",
-    "code.imports.no_stale_namespace",
     "data.integrity.vector_sync",
     "data.security.no_raw_secrets",
     "data.ssot.database_primacy",
@@ -79,8 +78,6 @@
     "infrastructure.no_business_logic",
     "infrastructure.no_strategic_decisions",
     "infrastructure.service_registry.no_conditional_loading",
-    "linkage.assign_ids",
-    "linkage.duplicate_ids",
     "logic.di.no_global_session",
     "logic.logging.standard_only",
     "metadata.semantic_preservation",

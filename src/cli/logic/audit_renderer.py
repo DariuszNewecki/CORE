@@ -25,7 +25,7 @@ logger = getLogger(__name__)
 
 
 @dataclass
-# ID: 99c2f961-2fd8-42f5-b01d-d255e06768a3
+# ID: b6f850ed-7599-49b1-8fd6-423ea130fa30
 class AuditStats:
     """Execution statistics for a constitutional audit run."""
 
@@ -38,7 +38,7 @@ class AuditStats:
     effective_coverage_percent: float = 0
 
 
-# ID: 3956b979-6631-49d4-9d75-0c796fd7e03c
+# ID: 88bbf06d-5b83-4723-b2fb-19fe628b3dc2
 def render_overview(
     console: Console,
     findings: list[AuditFinding],
@@ -74,14 +74,14 @@ def render_overview(
     _render_verdict(console, groups, verdict_str=verdict_str, passed=passed)
 
 
-# ID: 987a5499-6280-41a8-980e-f53619cc147f
+# ID: 15fba057-c29d-4bc9-9ed1-feb9850255da
 def render_detail(console: Console, findings: list[AuditFinding]) -> None:
     """Render detailed findings tables grouped by severity."""
     groups: list[SeverityGroup] = group_findings(findings)
     _render_details_groups(console, groups)
 
 
-# ID: a0549ee5-957c-4d6e-957a-9c452f3dd702
+# ID: b71905e8-454b-4597-9282-9e09ae1dab4d
 def render_audit_report(
     findings: list[AuditFinding], console: Console | None = None
 ) -> None:

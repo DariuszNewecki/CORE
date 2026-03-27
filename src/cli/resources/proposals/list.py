@@ -17,7 +17,7 @@ console = Console()
 
 
 @core_command(dangerous=False, requires_context=False)
-# ID: f673f79c-c42c-4e4e-94f7-563ee310411b
+# ID: 0485ff02-01f2-4f9d-b22d-9fde692b8bf7
 async def list_proposals(
     status: str = typer.Option(
         None, "--status", "-s", help="Filter by status (pending, approved, etc.)"

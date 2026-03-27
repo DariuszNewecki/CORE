@@ -26,16 +26,9 @@ from shared.logger import getLogger
 
 logger = getLogger(__name__)
 console = Console()
-
 runtime_app = typer.Typer(
-    help="Runtime state and health of the running CORE system.",
-    no_args_is_help=True,
+    help="Runtime state and health of the running CORE system.", no_args_is_help=True
 )
-
-
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
 
 
 def _age(ts: datetime | None) -> str:
@@ -62,21 +55,16 @@ def _worker_colour(status: str, last_heartbeat: datetime | None) -> str:
     if last_heartbeat.tzinfo is None:
         last_heartbeat = last_heartbeat.replace(tzinfo=UTC)
     age_s = (datetime.now(UTC) - last_heartbeat).total_seconds()
-    if age_s < 600:  # < 10 min — healthy
+    if age_s < 600:
         return "green"
-    if age_s < 3600:  # < 1 h — stale
+    if age_s < 3600:
         return "yellow"
-    return "red"  # silent
-
-
-# ---------------------------------------------------------------------------
-# Command
-# ---------------------------------------------------------------------------
+    return "red"
 
 
 @runtime_app.command("health")
 @async_command
-# ID: 7f8a9b0c-1d2e-3f4a-5b6c-7d8e9f0a1b2c
+# ID: 9e789579-9bd7-4249-83cd-712739779bcf
 async def health_cmd(
     plain: bool = typer.Option(
         False, "--plain", help="Plain text output (log/pipe friendly)."
@@ -92,97 +80,54 @@ async def health_cmd(
         workers = (
             await session.execute(
                 text(
-                    """
-            SELECT worker_name, worker_class, phase, status, last_heartbeat
-            FROM core.worker_registry
-            ORDER BY last_heartbeat DESC NULLS LAST
-            """
+                    "\n            SELECT worker_name, worker_class, phase, status, last_heartbeat\n            FROM core.worker_registry\n            ORDER BY last_heartbeat DESC NULLS LAST\n            "
                 )
             )
         ).fetchall()
-
         bb_summary = (
             await session.execute(
                 text(
-                    """
-            SELECT status, COUNT(*) AS cnt
-            FROM core.blackboard_entries
-            GROUP BY status
-            ORDER BY cnt DESC
-            """
+                    "\n            SELECT status, COUNT(*) AS cnt\n            FROM core.blackboard_entries\n            GROUP BY status\n            ORDER BY cnt DESC\n            "
                 )
             )
         ).fetchall()
-
         bb_recent = (
             await session.execute(
                 text(
-                    """
-            SELECT entry_type, subject, status, created_at
-            FROM core.blackboard_entries
-            ORDER BY created_at DESC
-            LIMIT 8
-            """
+                    "\n            SELECT entry_type, subject, status, created_at\n            FROM core.blackboard_entries\n            ORDER BY created_at DESC\n            LIMIT 8\n            "
                 )
             )
         ).fetchall()
-
         health = (
             await session.execute(
                 text(
-                    """
-            SELECT observed_at, open_findings, stale_entries,
-                   silent_workers, orphaned_symbols
-            FROM core.system_health_log
-            ORDER BY observed_at DESC
-            LIMIT 1
-            """
+                    "\n            SELECT observed_at, open_findings, stale_entries,\n                   silent_workers, orphaned_symbols\n            FROM core.system_health_log\n            ORDER BY observed_at DESC\n            LIMIT 1\n            "
                 )
             )
         ).fetchone()
-
         crawl = (
             await session.execute(
                 text(
-                    """
-            SELECT started_at, status, files_scanned, files_changed, edges_created
-            FROM core.crawl_runs
-            ORDER BY started_at DESC
-            LIMIT 3
-            """
+                    "\n            SELECT started_at, status, files_scanned, files_changed, edges_created\n            FROM core.crawl_runs\n            ORDER BY started_at DESC\n            LIMIT 3\n            "
                 )
             )
         ).fetchall()
-
         blast = (
             await session.execute(
                 text(
-                    """
-            SELECT symbol_path, affected_symbol_count, direct_caller_count
-            FROM core.v_symbol_blast_radius
-            ORDER BY affected_symbol_count DESC
-            LIMIT 10
-            """
+                    "\n            SELECT symbol_path, affected_symbol_count, direct_caller_count\n            FROM core.v_symbol_blast_radius\n            ORDER BY affected_symbol_count DESC\n            LIMIT 10\n            "
                 )
             )
         ).fetchall()
-
     if plain:
         _render_plain(workers, bb_summary, bb_recent, health, crawl, blast)
     else:
         _render_rich(workers, bb_summary, bb_recent, health, crawl, blast)
 
 
-# ---------------------------------------------------------------------------
-# Rich renderer
-# ---------------------------------------------------------------------------
-
-
 def _render_rich(workers, bb_summary, bb_recent, health, crawl, blast) -> None:
     console.rule("[bold cyan]CORE Runtime Health[/bold cyan]")
-
-    # Workers
-    console.print("\n[bold]Workers[/bold]")
+    logger.info("\n[bold]Workers[/bold]")
     t = Table(show_header=True, header_style="bold magenta")
     t.add_column("Name")
     t.add_column("Class")
@@ -198,11 +143,9 @@ def _render_rich(workers, bb_summary, bb_recent, health, crawl, blast) -> None:
             f"[{c}]{w.status}[/{c}]",
             _age(w.last_heartbeat),
         )
-    console.print(t)
-
-    # Observer snapshot
+    logger.info(t)
     if health:
-        console.print("\n[bold]Observer — Latest Snapshot[/bold]")
+        logger.info("\n[bold]Observer — Latest Snapshot[/bold]")
         t2 = Table(show_header=True, header_style="bold magenta")
         t2.add_column("Observed")
         t2.add_column("Open Findings")
@@ -216,19 +159,15 @@ def _render_rich(workers, bb_summary, bb_recent, health, crawl, blast) -> None:
             str(health.silent_workers),
             str(health.orphaned_symbols),
         )
-        console.print(t2)
-
-    # Blackboard summary
-    console.print("\n[bold]Blackboard[/bold]")
+        logger.info(t2)
+    logger.info("\n[bold]Blackboard[/bold]")
     t3 = Table(show_header=True, header_style="bold magenta")
     t3.add_column("Status")
     t3.add_column("Count")
     for row in bb_summary:
         t3.add_row(row.status, str(row.cnt))
-    console.print(t3)
-
-    # Blackboard recent
-    console.print("\n[bold]Blackboard — Recent Entries[/bold]")
+    logger.info(t3)
+    logger.info("\n[bold]Blackboard — Recent Entries[/bold]")
     t4 = Table(show_header=True, header_style="bold magenta")
     t4.add_column("Type")
     t4.add_column("Subject")
@@ -236,10 +175,8 @@ def _render_rich(workers, bb_summary, bb_recent, health, crawl, blast) -> None:
     t4.add_column("Age")
     for e in bb_recent:
         t4.add_row(e.entry_type, e.subject, e.status, _age(e.created_at))
-    console.print(t4)
-
-    # Crawl stats
-    console.print("\n[bold]Recent Crawls[/bold]")
+    logger.info(t4)
+    logger.info("\n[bold]Recent Crawls[/bold]")
     t5 = Table(show_header=True, header_style="bold magenta")
     t5.add_column("Started")
     t5.add_column("Status")
@@ -254,65 +191,64 @@ def _render_rich(workers, bb_summary, bb_recent, health, crawl, blast) -> None:
             str(c.files_changed),
             str(c.edges_created),
         )
-    console.print(t5)
-
-    # Blast radius
-    console.print("\n[bold]Blast Radius — Top Symbols[/bold]")
+    logger.info(t5)
+    logger.info("\n[bold]Blast Radius — Top Symbols[/bold]")
     t6 = Table(show_header=True, header_style="bold magenta")
     t6.add_column("Symbol Path")
     t6.add_column("Affected", justify="right")
     t6.add_column("Direct Callers", justify="right")
     for b in blast:
         t6.add_row(
-            b.symbol_path,
-            str(b.affected_symbol_count),
-            str(b.direct_caller_count),
+            b.symbol_path, str(b.affected_symbol_count), str(b.direct_caller_count)
         )
-    console.print(t6)
-
+    logger.info(t6)
     console.rule()
 
 
-# ---------------------------------------------------------------------------
-# Plain renderer
-# ---------------------------------------------------------------------------
-
-
 def _render_plain(workers, bb_summary, bb_recent, health, crawl, blast) -> None:
-    print("=== CORE Runtime Health ===\n")
-
-    print("-- Workers --")
+    logger.info("=== CORE Runtime Health ===\n")
+    logger.info("-- Workers --")
     for w in workers:
-        print(f"  {w.worker_name:<30} {w.status:<10} {_age(w.last_heartbeat)}")
-
+        logger.info(
+            "  %s %s %s",
+            w.worker_name.ljust(30),
+            w.status.ljust(10),
+            _age(w.last_heartbeat),
+        )
     if health:
-        print("\n-- Observer (latest) --")
-        print(f"  observed:         {_age(health.observed_at)}")
-        print(f"  open_findings:    {health.open_findings}")
-        print(f"  stale_entries:    {health.stale_entries}")
-        print(f"  silent_workers:   {health.silent_workers}")
-        print(f"  orphaned_symbols: {health.orphaned_symbols}")
-
-    print("\n-- Blackboard --")
+        logger.info("\n-- Observer (latest) --")
+        logger.info("  observed:         %s", _age(health.observed_at))
+        logger.info("  open_findings:    %s", health.open_findings)
+        logger.info("  stale_entries:    %s", health.stale_entries)
+        logger.info("  silent_workers:   %s", health.silent_workers)
+        logger.info("  orphaned_symbols: %s", health.orphaned_symbols)
+    logger.info("\n-- Blackboard --")
     for row in bb_summary:
-        print(f"  {row.status:<12} {row.cnt}")
-
-    print("\n-- Recent Blackboard Entries --")
+        logger.info("  %s %s", row.status.ljust(12), row.cnt)
+    logger.info("\n-- Recent Blackboard Entries --")
     for e in bb_recent:
-        print(
-            f"  {e.entry_type:<12} {e.subject:<40} {e.status:<10} {_age(e.created_at)}"
+        logger.info(
+            "  %s %s %s %s",
+            e.entry_type.ljust(12),
+            e.subject.ljust(40),
+            e.status.ljust(10),
+            _age(e.created_at),
         )
-
-    print("\n-- Recent Crawls --")
+    logger.info("\n-- Recent Crawls --")
     for c in crawl:
-        print(
-            f"  {_age(c.started_at):<12} {c.status:<12} "
-            f"scanned={c.files_scanned} changed={c.files_changed} edges={c.edges_created}"
+        logger.info(
+            "  %s %s scanned=%s changed=%s edges=%s",
+            _age(c.started_at).ljust(12),
+            c.status.ljust(12),
+            c.files_scanned,
+            c.files_changed,
+            c.edges_created,
         )
-
-    print("\n-- Blast Radius Top Symbols --")
+    logger.info("\n-- Blast Radius Top Symbols --")
     for b in blast:
-        print(
-            f"  affected={b.affected_symbol_count:<5} "
-            f"callers={b.direct_caller_count:<5} {b.symbol_path}"
+        logger.info(
+            "  affected=%-5s callers=%-5s %s",
+            b.affected_symbol_count,
+            b.direct_caller_count,
+            b.symbol_path,
         )

@@ -173,7 +173,7 @@
   {
     "check_id": "ai.cognitive_role.no_hardcoded_string",
     "severity": "error",
-    "message": "Forbidden Content [Line 122]: Matched restricted regex 'aget_client_for_role\\(\"[A-Za-z]'",
+    "message": "Forbidden Content [Line 156]: Matched restricted regex 'aget_client_for_role\\(\"[A-Za-z]'",
     "file_path": "src/will/self_healing/complexity_service.py",
     "line_number": null,
     "context": {},
@@ -191,7 +191,7 @@
   {
     "check_id": "ai.cognitive_role.no_hardcoded_string",
     "severity": "error",
-    "message": "Forbidden Content [Line 107]: Matched restricted regex 'aget_client_for_role\\(\"[A-Za-z]'",
+    "message": "Forbidden Content [Line 129]: Matched restricted regex 'aget_client_for_role\\(\"[A-Za-z]'",
     "file_path": "src/will/self_healing/docstring_service.py",
     "line_number": null,
     "context": {},
@@ -245,15 +245,6 @@
   {
     "check_id": "ai.cognitive_role.no_hardcoded_string",
     "severity": "error",
-    "message": "Forbidden Content [Line 50]: Matched restricted regex 'aget_client_for_role\\(\"[A-Za-z]'",
-    "file_path": "src/will/self_healing/vulture_healer.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "ai.cognitive_role.no_hardcoded_string",
-    "severity": "error",
     "message": "Forbidden Content [Line 134]: Matched restricted regex 'aget_client_for_role\\(\"[A-Za-z]'",
     "file_path": "src/will/test_generation/helpers/test_executor.py",
     "line_number": null,
@@ -265,267 +256,6 @@
     "severity": "error",
     "message": "Forbidden Content [Line 96]: Matched restricted regex 'aget_client_for_role\\(\"[A-Za-z]'",
     "file_path": "src/will/workers/doc_worker.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "logic.logging.standard_only",
-    "severity": "warning",
-    "message": "Line 282: Replace print() with logger.",
-    "file_path": "src/cli/resources/runtime/health.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "logic.logging.standard_only",
-    "severity": "warning",
-    "message": "Line 284: Replace print() with logger.",
-    "file_path": "src/cli/resources/runtime/health.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "logic.logging.standard_only",
-    "severity": "warning",
-    "message": "Line 296: Replace print() with logger.",
-    "file_path": "src/cli/resources/runtime/health.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "logic.logging.standard_only",
-    "severity": "warning",
-    "message": "Line 300: Replace print() with logger.",
-    "file_path": "src/cli/resources/runtime/health.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "logic.logging.standard_only",
-    "severity": "warning",
-    "message": "Line 306: Replace print() with logger.",
-    "file_path": "src/cli/resources/runtime/health.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "logic.logging.standard_only",
-    "severity": "warning",
-    "message": "Line 313: Replace print() with logger.",
-    "file_path": "src/cli/resources/runtime/health.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "logic.logging.standard_only",
-    "severity": "warning",
-    "message": "Line 286: Replace print() with logger.",
-    "file_path": "src/cli/resources/runtime/health.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "logic.logging.standard_only",
-    "severity": "warning",
-    "message": "Line 289: Replace print() with logger.",
-    "file_path": "src/cli/resources/runtime/health.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "logic.logging.standard_only",
-    "severity": "warning",
-    "message": "Line 290: Replace print() with logger.",
-    "file_path": "src/cli/resources/runtime/health.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "logic.logging.standard_only",
-    "severity": "warning",
-    "message": "Line 291: Replace print() with logger.",
-    "file_path": "src/cli/resources/runtime/health.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "logic.logging.standard_only",
-    "severity": "warning",
-    "message": "Line 292: Replace print() with logger.",
-    "file_path": "src/cli/resources/runtime/health.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "logic.logging.standard_only",
-    "severity": "warning",
-    "message": "Line 293: Replace print() with logger.",
-    "file_path": "src/cli/resources/runtime/health.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "logic.logging.standard_only",
-    "severity": "warning",
-    "message": "Line 294: Replace print() with logger.",
-    "file_path": "src/cli/resources/runtime/health.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "logic.logging.standard_only",
-    "severity": "warning",
-    "message": "Line 298: Replace print() with logger.",
-    "file_path": "src/cli/resources/runtime/health.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "logic.logging.standard_only",
-    "severity": "warning",
-    "message": "Line 302: Replace print() with logger.",
-    "file_path": "src/cli/resources/runtime/health.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "logic.logging.standard_only",
-    "severity": "warning",
-    "message": "Line 308: Replace print() with logger.",
-    "file_path": "src/cli/resources/runtime/health.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "logic.logging.standard_only",
-    "severity": "warning",
-    "message": "Line 315: Replace print() with logger.",
-    "file_path": "src/cli/resources/runtime/health.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "logic.logging.standard_only",
-    "severity": "warning",
-    "message": "Line 184: Replace print() with logger.",
-    "file_path": "src/cli/simple_health.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "logic.logging.standard_only",
-    "severity": "warning",
-    "message": "Line 185: Replace print() with logger.",
-    "file_path": "src/cli/simple_health.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "logic.logging.standard_only",
-    "severity": "warning",
-    "message": "Line 186: Replace print() with logger.",
-    "file_path": "src/cli/simple_health.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "logic.logging.standard_only",
-    "severity": "warning",
-    "message": "Line 187: Replace print() with logger.",
-    "file_path": "src/cli/simple_health.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "logic.logging.standard_only",
-    "severity": "warning",
-    "message": "Line 188: Replace print() with logger.",
-    "file_path": "src/cli/simple_health.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "logic.logging.standard_only",
-    "severity": "warning",
-    "message": "Line 189: Replace print() with logger.",
-    "file_path": "src/cli/simple_health.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "logic.logging.standard_only",
-    "severity": "warning",
-    "message": "Line 192: Replace print() with logger.",
-    "file_path": "src/cli/simple_health.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "logic.logging.standard_only",
-    "severity": "warning",
-    "message": "Line 197: Replace print() with logger.",
-    "file_path": "src/cli/simple_health.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "logic.logging.standard_only",
-    "severity": "warning",
-    "message": "Line 202: Replace print() with logger.",
-    "file_path": "src/cli/simple_health.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "logic.logging.standard_only",
-    "severity": "warning",
-    "message": "Line 20: Replace print() with logger.",
-    "file_path": "src/cli/simple_health.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "logic.logging.standard_only",
-    "severity": "warning",
-    "message": "Line 93: Replace print() with logger.",
-    "file_path": "src/cli/simple_health.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "logic.logging.standard_only",
-    "severity": "warning",
-    "message": "Line 191: Replace print() with logger.",
-    "file_path": "src/cli/simple_health.py",
     "line_number": null,
     "context": {},
     "details": {}
@@ -650,26 +380,8 @@
   {
     "check_id": "architecture.channels.logic_no_terminal_rendering",
     "severity": "warning",
-    "message": "Line 11: Forbidden import-from 'rich.console'.",
+    "message": "Line 12: Forbidden import-from 'rich.console'.",
     "file_path": "src/will/workflows/phases/vectorization_phase.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.channels.logger_not_presentation",
-    "severity": "warning",
-    "message": "Line 249: logger used as renderer \u2014 Rich markup detected in log string; use plain text for logger.",
-    "file_path": "src/body/introspection/knowledge_vectorizer.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.channels.logger_not_presentation",
-    "severity": "warning",
-    "message": "Line 58: logger used as renderer \u2014 Rich markup detected in log string; use plain text for logger.",
-    "file_path": "src/body/introspection/vectorization_service.py",
     "line_number": null,
     "context": {},
     "details": {}
@@ -704,8 +416,17 @@
   {
     "check_id": "architecture.channels.logger_not_presentation",
     "severity": "warning",
-    "message": "Line 163: logger used as renderer \u2014 Rich markup detected in log string; use plain text for logger.",
+    "message": "Line 185: logger used as renderer \u2014 Rich markup detected in log string; use plain text for logger.",
     "file_path": "src/will/self_healing/docstring_service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.channels.logger_not_presentation",
+    "severity": "warning",
+    "message": "Line 146: logger used as renderer \u2014 Rich markup detected in log string; use plain text for logger.",
+    "file_path": "src/will/self_healing/vulture_healer.py",
     "line_number": null,
     "context": {},
     "details": {}
@@ -841,15 +562,6 @@
     "severity": "warning",
     "message": "Module has 428 lines, exceeds limit of 400",
     "file_path": "src/body/evaluators/atomic_actions_evaluator.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.max_file_size",
-    "severity": "warning",
-    "message": "Module has 430 lines, exceeds limit of 400",
-    "file_path": "src/body/introspection/pattern_vectorizer.py",
     "line_number": null,
     "context": {},
     "details": {}
@@ -1001,7 +713,7 @@
   {
     "check_id": "architecture.max_file_size",
     "severity": "warning",
-    "message": "Module has 559 lines, exceeds limit of 400",
+    "message": "Module has 569 lines, exceeds limit of 400",
     "file_path": "src/will/workers/intent_inspector.py",
     "line_number": null,
     "context": {},
@@ -1505,7 +1217,7 @@
   {
     "check_id": "modularity.single_responsibility",
     "severity": "warning",
-    "message": "Modularity Debt: 53.7/100 (Limit: 60.0)",
+    "message": "Modularity Debt: 53.6/100 (Limit: 60.0)",
     "file_path": "src/cli/commands/check/formatters.py",
     "line_number": null,
     "context": {},
@@ -1604,7 +1316,7 @@
   {
     "check_id": "modularity.single_responsibility",
     "severity": "warning",
-    "message": "Modularity Debt: 58.7/100 (Limit: 60.0)",
+    "message": "Modularity Debt: 60.3/100 (Limit: 60.0)",
     "file_path": "src/shared/workers/base.py",
     "line_number": null,
     "context": {},
@@ -1631,6 +1343,15 @@
   {
     "check_id": "modularity.single_responsibility",
     "severity": "warning",
+    "message": "Modularity Debt: 52.2/100 (Limit: 60.0)",
+    "file_path": "src/will/self_healing/complexity_service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "modularity.single_responsibility",
+    "severity": "warning",
     "message": "Modularity Debt: 48.3/100 (Limit: 60.0)",
     "file_path": "src/will/self_healing/remediation_interpretation/file_role_detector.py",
     "line_number": null,
@@ -1649,7 +1370,7 @@
   {
     "check_id": "modularity.single_responsibility",
     "severity": "warning",
-    "message": "Modularity Debt: 58.2/100 (Limit: 60.0)",
+    "message": "Modularity Debt: 58.3/100 (Limit: 60.0)",
     "file_path": "src/will/workers/intent_inspector.py",
     "line_number": null,
     "context": {},
@@ -1748,7 +1469,7 @@
   {
     "check_id": "modularity.semantic_cohesion",
     "severity": "warning",
-    "message": "Modularity Debt: 53.7/100 (Limit: 60.0)",
+    "message": "Modularity Debt: 53.6/100 (Limit: 60.0)",
     "file_path": "src/cli/commands/check/formatters.py",
     "line_number": null,
     "context": {},
@@ -1847,7 +1568,7 @@
   {
     "check_id": "modularity.semantic_cohesion",
     "severity": "warning",
-    "message": "Modularity Debt: 58.7/100 (Limit: 60.0)",
+    "message": "Modularity Debt: 60.3/100 (Limit: 60.0)",
     "file_path": "src/shared/workers/base.py",
     "line_number": null,
     "context": {},
@@ -1874,6 +1595,15 @@
   {
     "check_id": "modularity.semantic_cohesion",
     "severity": "warning",
+    "message": "Modularity Debt: 52.2/100 (Limit: 60.0)",
+    "file_path": "src/will/self_healing/complexity_service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "modularity.semantic_cohesion",
+    "severity": "warning",
     "message": "Modularity Debt: 48.3/100 (Limit: 60.0)",
     "file_path": "src/will/self_healing/remediation_interpretation/file_role_detector.py",
     "line_number": null,
@@ -1892,7 +1622,7 @@
   {
     "check_id": "modularity.semantic_cohesion",
     "severity": "warning",
-    "message": "Modularity Debt: 58.2/100 (Limit: 60.0)",
+    "message": "Modularity Debt: 58.3/100 (Limit: 60.0)",
     "file_path": "src/will/workers/intent_inspector.py",
     "line_number": null,
     "context": {},
@@ -1991,7 +1721,7 @@
   {
     "check_id": "modularity.import_coupling",
     "severity": "warning",
-    "message": "Modularity Debt: 53.7/100 (Limit: 60.0)",
+    "message": "Modularity Debt: 53.6/100 (Limit: 60.0)",
     "file_path": "src/cli/commands/check/formatters.py",
     "line_number": null,
     "context": {},
@@ -2090,7 +1820,7 @@
   {
     "check_id": "modularity.import_coupling",
     "severity": "warning",
-    "message": "Modularity Debt: 58.7/100 (Limit: 60.0)",
+    "message": "Modularity Debt: 60.3/100 (Limit: 60.0)",
     "file_path": "src/shared/workers/base.py",
     "line_number": null,
     "context": {},
@@ -2117,6 +1847,15 @@
   {
     "check_id": "modularity.import_coupling",
     "severity": "warning",
+    "message": "Modularity Debt: 52.2/100 (Limit: 60.0)",
+    "file_path": "src/will/self_healing/complexity_service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "modularity.import_coupling",
+    "severity": "warning",
     "message": "Modularity Debt: 48.3/100 (Limit: 60.0)",
     "file_path": "src/will/self_healing/remediation_interpretation/file_role_detector.py",
     "line_number": null,
@@ -2135,7 +1874,7 @@
   {
     "check_id": "modularity.import_coupling",
     "severity": "warning",
-    "message": "Modularity Debt: 58.2/100 (Limit: 60.0)",
+    "message": "Modularity Debt: 58.3/100 (Limit: 60.0)",
     "file_path": "src/will/workers/intent_inspector.py",
     "line_number": null,
     "context": {},
@@ -2234,7 +1973,7 @@
   {
     "check_id": "modularity.refactor_score_threshold",
     "severity": "warning",
-    "message": "Modularity Debt: 53.7/100 (Limit: 60.0)",
+    "message": "Modularity Debt: 53.6/100 (Limit: 60.0)",
     "file_path": "src/cli/commands/check/formatters.py",
     "line_number": null,
     "context": {},
@@ -2333,7 +2072,7 @@
   {
     "check_id": "modularity.refactor_score_threshold",
     "severity": "warning",
-    "message": "Modularity Debt: 58.7/100 (Limit: 60.0)",
+    "message": "Modularity Debt: 60.3/100 (Limit: 60.0)",
     "file_path": "src/shared/workers/base.py",
     "line_number": null,
     "context": {},
@@ -2360,6 +2099,15 @@
   {
     "check_id": "modularity.refactor_score_threshold",
     "severity": "warning",
+    "message": "Modularity Debt: 52.2/100 (Limit: 60.0)",
+    "file_path": "src/will/self_healing/complexity_service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "modularity.refactor_score_threshold",
+    "severity": "warning",
     "message": "Modularity Debt: 48.3/100 (Limit: 60.0)",
     "file_path": "src/will/self_healing/remediation_interpretation/file_role_detector.py",
     "line_number": null,
@@ -2378,7 +2126,7 @@
   {
     "check_id": "modularity.refactor_score_threshold",
     "severity": "warning",
-    "message": "Modularity Debt: 58.2/100 (Limit: 60.0)",
+    "message": "Modularity Debt: 58.3/100 (Limit: 60.0)",
     "file_path": "src/will/workers/intent_inspector.py",
     "line_number": null,
     "context": {},
@@ -2448,6 +2196,29 @@
     "details": {}
   },
   {
+    "check_id": "purity.no_ast_duplication",
+    "severity": "warning",
+    "message": "AST duplication: 'ConstitutionalEvaluator.phase' duplicates 'LogicConservationValidator.phase' (score=1.00)",
+    "file_path": "src/body/evaluators/constitutional_evaluator.py",
+    "line_number": null,
+    "context": {
+      "symbol_a": "ConstitutionalEvaluator.phase",
+      "symbol_b": "LogicConservationValidator.phase",
+      "module_a": "body.evaluators.constitutional_evaluator",
+      "module_b": "body.validators.logic_conservation_validator",
+      "similarity": 1.0,
+      "type": "ast"
+    },
+    "details": {
+      "symbol_a": "ConstitutionalEvaluator.phase",
+      "symbol_b": "LogicConservationValidator.phase",
+      "module_a": "body.evaluators.constitutional_evaluator",
+      "module_b": "body.validators.logic_conservation_validator",
+      "similarity": 1.0,
+      "type": "ast"
+    }
+  },
+  {
     "check_id": "workflow.dead_code_check",
     "severity": "warning",
     "message": "Dead code detected: src/body/governance/runtime_validator.py:156: unused variable 'dst_root' (100% confidence)",
@@ -2461,276 +2232,6 @@
     "severity": "warning",
     "message": "Dead code detected: src/will/self_healing/remediation_interpretation/strategy_selector.py:376: unused variable 'preferred_roles' (100% confidence)",
     "file_path": "System",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/api/dependencies.py' is not reachable from any entry point.",
-    "file_path": "src/api/dependencies.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/api/v1/development_routes.py' is not reachable from any entry point.",
-    "file_path": "src/api/v1/development_routes.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/api/v1/knowledge_routes.py' is not reachable from any entry point.",
-    "file_path": "src/api/v1/knowledge_routes.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/body/analyzers/knowledge_graph_analyzer.py' is not reachable from any entry point.",
-    "file_path": "src/body/analyzers/knowledge_graph_analyzer.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/body/analyzers/prompt_analyzer.py' is not reachable from any entry point.",
-    "file_path": "src/body/analyzers/prompt_analyzer.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/body/autonomy/audit_analyzer.py' is not reachable from any entry point.",
-    "file_path": "src/body/autonomy/audit_analyzer.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/body/autonomy/micro_proposal_executor.py' is not reachable from any entry point.",
-    "file_path": "src/body/autonomy/micro_proposal_executor.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/body/evaluators/constitutional_evaluator.py' is not reachable from any entry point.",
-    "file_path": "src/body/evaluators/constitutional_evaluator.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/body/evaluators/performance_evaluator.py' is not reachable from any entry point.",
-    "file_path": "src/body/evaluators/performance_evaluator.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/body/evaluators/security_evaluator.py' is not reachable from any entry point.",
-    "file_path": "src/body/evaluators/security_evaluator.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/body/governance/code_validator.py' is not reachable from any entry point.",
-    "file_path": "src/body/governance/code_validator.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/body/governance/engine_dispatcher.py' is not reachable from any entry point.",
-    "file_path": "src/body/governance/engine_dispatcher.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/body/governance/key_management_service.py' is not reachable from any entry point.",
-    "file_path": "src/body/governance/key_management_service.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/body/governance/path_validator.py' is not reachable from any entry point.",
-    "file_path": "src/body/governance/path_validator.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/body/governance/remediation_service.py' is not reachable from any entry point.",
-    "file_path": "src/body/governance/remediation_service.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/body/governance/runtime_validator.py' is not reachable from any entry point.",
-    "file_path": "src/body/governance/runtime_validator.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/body/introspection/capability_discovery_service.py' is not reachable from any entry point.",
-    "file_path": "src/body/introspection/capability_discovery_service.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/body/introspection/discovery/from_kgb.py' is not reachable from any entry point.",
-    "file_path": "src/body/introspection/discovery/from_kgb.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/body/introspection/discovery/from_source_scan.py' is not reachable from any entry point.",
-    "file_path": "src/body/introspection/discovery/from_source_scan.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/body/introspection/discovery/loader.py' is not reachable from any entry point.",
-    "file_path": "src/body/introspection/discovery/loader.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/body/introspection/discovery/registry.py' is not reachable from any entry point.",
-    "file_path": "src/body/introspection/discovery/registry.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/body/introspection/discovery/semantics.py' is not reachable from any entry point.",
-    "file_path": "src/body/introspection/discovery/semantics.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/body/introspection/discovery/sync.py' is not reachable from any entry point.",
-    "file_path": "src/body/introspection/discovery/sync.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/body/introspection/export_vectors.py' is not reachable from any entry point.",
-    "file_path": "src/body/introspection/export_vectors.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/body/introspection/generate_correction_map.py' is not reachable from any entry point.",
-    "file_path": "src/body/introspection/generate_correction_map.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/body/introspection/graph_analysis_service.py' is not reachable from any entry point.",
-    "file_path": "src/body/introspection/graph_analysis_service.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/body/introspection/knowledge_vectorizer.py' is not reachable from any entry point.",
-    "file_path": "src/body/introspection/knowledge_vectorizer.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/body/introspection/pattern_vectorizer.py' is not reachable from any entry point.",
-    "file_path": "src/body/introspection/pattern_vectorizer.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/body/introspection/semantic_clusterer.py' is not reachable from any entry point.",
-    "file_path": "src/body/introspection/semantic_clusterer.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/body/introspection/symbol_index_builder.py' is not reachable from any entry point.",
-    "file_path": "src/body/introspection/symbol_index_builder.py",
     "line_number": null,
     "context": {},
     "details": {}

@@ -23,7 +23,7 @@ logger = getLogger(__name__)
 console = Console()
 
 
-# ID: 8ee94b21-397f-43d1-8823-4aceef0c6dd9
+# ID: 076139d5-417e-4ebf-8a93-55c9fed86537
 def print_verbose_findings(findings: list[AuditFinding]) -> None:
     """Prints every single finding in a detailed table for verbose output."""
     table = Table(
@@ -50,10 +50,10 @@ def print_verbose_findings(findings: list[AuditFinding]) -> None:
             finding.message,
             location,
         )
-    console.print(table)
+    logger.info(table)
 
 
-# ID: e59cfd3d-e9b2-4f89-b211-9d916fb3bf58
+# ID: 725dd6e5-5fef-4dfb-9c30-1580d0c37eac
 def print_summary_findings(findings: list[AuditFinding]) -> None:
     """Groups findings by check ID only and prints a summary table."""
     grouped_findings: dict[tuple[str, AuditSeverity], list[AuditFinding]] = defaultdict(
@@ -89,11 +89,11 @@ def print_summary_findings(findings: list[AuditFinding]) -> None:
             representative_message,
             str(len(finding_list)),
         )
-    console.print(table)
-    console.print("\n[dim]Run with '--verbose' to see all individual locations.[/dim]")
+    logger.info(table)
+    logger.info("\n[dim]Run with '--verbose' to see all individual locations.[/dim]")
 
 
-# ID: 8f7d0e55-e907-489d-ae7a-23be0a6c11e8
+# ID: 7b142e18-fdcf-402b-8cdd-0bde1f858d4b
 def print_audit_summary(
     *,
     passed: bool,
@@ -114,10 +114,10 @@ def print_audit_summary(
         f"✅ {title_prefix}AUDIT PASSED" if passed else f"❌ {title_prefix}AUDIT FAILED"
     )
     style = "bold green" if passed else "bold red"
-    console.print(Panel(summary_table, title=title, style=style, expand=False))
+    logger.info(Panel(summary_table, title=title, style=style, expand=False))
 
 
-# ID: 37925a3f-b826-4fee-ac5f-ab4c604adde9
+# ID: 9aedca06-cec3-4d82-a7af-58e1c499af83
 def print_filtered_audit_summary(
     *,
     passed: bool,
@@ -139,20 +139,20 @@ def print_filtered_audit_summary(
     summary_table.add_row("Warnings:", f"[yellow]{len(warnings)}[/yellow]")
     title = "✅ FILTERED AUDIT PASSED" if passed else "❌ FILTERED AUDIT FAILED"
     style = "bold green" if passed else "bold red"
-    console.print(Panel(summary_table, title=title, style=style, expand=False))
+    logger.info(Panel(summary_table, title=title, style=style, expand=False))
 
 
-# ID: b431a529-88bf-4092-aff4-6f048338b425
+# ID: 8353651f-d4a9-4ba7-931d-f71c5d5376c3
 def print_executed_rules(executed_rules: set[str]) -> None:
     """Print list of executed rules."""
     if not executed_rules:
         return
-    console.print("\n[dim]Executed rules:[/dim]")
+    logger.info("\n[dim]Executed rules:[/dim]")
     for rule_id in sorted(executed_rules):
-        console.print(f"  [dim]• {rule_id}[/dim]")
+        logger.info("  [dim]• %s[/dim]", rule_id)
 
 
-# ID: bc54332a-43e4-49a6-b38b-ba599874189b
+# ID: 2110e2f9-ba00-4f67-8448-fe5ae9d8a764
 def print_migration_delta(*, legacy_executed: set[str], v2_rule_ids: set[str]) -> None:
     """Print migration delta showing legacy vs v2 coverage."""
     legacy_only = sorted(legacy_executed - v2_rule_ids)
@@ -170,7 +170,7 @@ def print_migration_delta(*, legacy_executed: set[str], v2_rule_ids: set[str]) -
     table.add_row("Overlap", str(len(overlap)))
     table.add_row("Legacy-only", str(len(legacy_only)))
     table.add_row("V2-only", str(len(v2_only)))
-    console.print(table)
+    logger.info(table)
 
     def _sample(values: list[str], n: int = 15) -> str:
         if not values:
@@ -189,7 +189,7 @@ def print_migration_delta(*, legacy_executed: set[str], v2_rule_ids: set[str]) -
     details.add_column("Sample ids", style="white", overflow="fold")
     details.add_row("Legacy-only (candidate to migrate)", _sample(legacy_only))
     details.add_row("V2-only (new coverage not in legacy evidence)", _sample(v2_only))
-    console.print(details)
+    logger.info(details)
 
 
 _CHECK_TO_TASK: dict[str, str] = {
@@ -256,7 +256,7 @@ def _extract_symbol(finding: AuditFinding) -> str | None:
     return None
 
 
-# ID: 371b79f4-3a4b-4585-b2ca-fc7f481dcd59
+# ID: d6daa334-6463-457e-ab54-e84b2264f784
 def print_context_build_hints(findings: list[AuditFinding]) -> None:
     """
     Print exact context build commands for actionable findings.
@@ -282,7 +282,7 @@ def print_context_build_hints(findings: list[AuditFinding]) -> None:
             seen.add(key)
             hints.append((f, symbol))
     console.print()
-    console.print(
+    logger.info(
         Panel(
             f"[dim]{len(hints)} actionable location(s). Run the command below for each, then paste the output to Claude.[/dim]",
             title="[bold cyan]💡 AI Workflow — Next Steps[/bold cyan]",
@@ -297,21 +297,19 @@ def print_context_build_hints(findings: list[AuditFinding]) -> None:
         file_path = str(finding.file_path)
         task = _infer_task_type(finding.check_id)
         icon = severity_icon.get(finding.severity, "")
-        console.print(f"\n  {icon} [magenta]{finding.check_id}[/magenta]")
-        console.print(f"  [dim]{finding.message[:100]}[/dim]")
+        logger.info("\n  %s [magenta]%s[/magenta]", icon, finding.check_id)
+        logger.info("  [dim]%s[/dim]", finding.message[:100])
         if symbol:
-            console.print(
-                f"\n  [green]core-admin context build \\\n"
-                f"      --file {file_path} \\\n"
-                f"      --symbol {symbol} \\\n"
-                f"      --task {task} \\\n"
-                f"      --output var/context_for_claude.md[/green]"
+            logger.info(
+                "\n  [green]core-admin context build \\\n      --file %s \\\n      --symbol %s \\\n      --task %s \\\n      --output var/context_for_claude.md[/green]",
+                file_path,
+                symbol,
+                task,
             )
         else:
-            console.print(
-                f"\n  [green]core-admin context build \\\n"
-                f"      --file {file_path} \\\n"
-                f"      --task {task} \\\n"
-                f"      --output var/context_for_claude.md[/green]"
+            logger.info(
+                "\n  [green]core-admin context build \\\n      --file %s \\\n      --task %s \\\n      --output var/context_for_claude.md[/green]",
+                file_path,
+                task,
             )
     console.print()

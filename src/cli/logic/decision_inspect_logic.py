@@ -21,7 +21,7 @@ from shared.infrastructure.repositories.decision_trace_repository import (
 console = Console()
 
 
-# ID: a3ccc70c-0d7f-4e9a-a2f0-ff3103749e15
+# ID: 832820bd-1e00-453b-979c-5ad702814e25
 async def show_session_trace_logic(
     repo: DecisionTraceRepository, session_id: str, details: bool
 ):
@@ -40,7 +40,7 @@ async def show_session_trace_logic(
             logger.info("   Rationale: %s", d.get("rationale"))
 
 
-# ID: f9fd1f36-480b-41ac-999e-55f74d51a60f
+# ID: 3818285c-c8c9-4727-8792-d47371ee64f3
 async def list_recent_traces_logic(
     repo: DecisionTraceRepository, limit: int, agent: str | None, failures_only: bool
 ):

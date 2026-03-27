@@ -22,7 +22,7 @@ console = Console()
 
 @workers_app.command("blackboard")
 @core_command(dangerous=False)
-# ID: 24d5e438-b1e7-4cad-bd85-a44daca038c7
+# ID: 4a064a13-ac50-45be-aba5-dc9ce99540b6
 async def workers_blackboard_cmd(
     ctx: typer.Context,
     filter: str | None = typer.Option(
@@ -66,26 +66,17 @@ async def workers_blackboard_cmd(
         params["entry_type"] = entry_type
     where = " AND ".join(clauses)
     query = text(
-        f"""
-        SELECT id, entry_type, status, subject, worker_uuid, created_at, payload
-        FROM core.blackboard_entries
-        WHERE {where}
-        ORDER BY created_at DESC
-        LIMIT :limit
-        """
+        f"\n        SELECT id, entry_type, status, subject, worker_uuid, created_at, payload\n        FROM core.blackboard_entries\n        WHERE {where}\n        ORDER BY created_at DESC\n        LIMIT :limit\n        "
     )
     params["limit"] = limit
-
     async with get_session() as session:
         result = await session.execute(query, params)
         rows = result.fetchall()
-
     if not rows:
-        console.print("[yellow]No blackboard entries found.[/yellow]")
+        logger.info("[yellow]No blackboard entries found.[/yellow]")
         raise typer.Exit()
-
     table = Table(
-        title=f"Blackboard — {len(rows)} entr{'y' if len(rows) == 1 else 'ies'}",
+        title=f"Blackboard — {len(rows)} entr{('y' if len(rows) == 1 else 'ies')}",
         show_lines=show_payload,
     )
     table.add_column("Type", style="cyan", no_wrap=True)
@@ -95,7 +86,6 @@ async def workers_blackboard_cmd(
     table.add_column("Created", style="dim", no_wrap=True)
     if show_payload:
         table.add_column("Payload")
-
     _STATUS_STYLE = {
         "open": "green",
         "claimed": "yellow",
@@ -104,7 +94,6 @@ async def workers_blackboard_cmd(
         "indeterminate": "magenta",
         "dry_run_complete": "cyan",
     }
-
     for row in rows:
         _entry_id, etype, estatus, subject, worker_uuid, created_at, payload = row
         status_style = _STATUS_STYLE.get(estatus, "white")
@@ -116,5 +105,4 @@ async def workers_blackboard_cmd(
             raw = payload if isinstance(payload, dict) else json.loads(payload or "{}")
             row_cells.append(json.dumps(raw, indent=2))
         table.add_row(*row_cells)
-
-    console.print(table)
+    logger.info(table)
