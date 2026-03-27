@@ -1,6 +1,6 @@
 # CORE: Toward True Autonomy
 ### The Closed-Loop Architecture for A3 and Beyond
-*Darek Kłeczek · March 2026*
+*Darek Newecki · March 2026*
 
 ---
 

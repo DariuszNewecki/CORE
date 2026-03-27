@@ -233,22 +233,25 @@ class BlackboardAuditor(Worker):
             ]
 
     async def _fetch_existing_findings(self) -> set[str]:
-        """Return subjects of open blackboard.entry_stale findings."""
+        """
+        Return subjects of open blackboard.entry_stale findings.
+
+        Intentionally does NOT filter by worker_uuid. Deduplication must be
+        by subject content, not by poster identity. This prevents different
+        daemon generations from re-posting the same stale finding when their
+        UUIDs differ across restarts.
+        """
         async with get_session() as session:
             result = await session.execute(
                 text(
                     """
                     SELECT subject FROM core.blackboard_entries
-                    WHERE worker_uuid = :worker_uuid
-                      AND entry_type = 'finding'
+                    WHERE entry_type = 'finding'
                       AND subject LIKE :prefix
                       AND status NOT IN ('resolved', 'abandoned')
                     """
                 ),
-                {
-                    "worker_uuid": str(self._worker_uuid),
-                    "prefix": f"{_FINDING_SUBJECT}::%",
-                },
+                {"prefix": f"{_FINDING_SUBJECT}::%"},
             )
             return {row[0] for row in result.fetchall()}
 

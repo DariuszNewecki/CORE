@@ -267,7 +267,9 @@ class IntentInspector(Worker):
             )
             return 1
 
+        existing_coherence = await self._fetch_existing_subjects(_SUBJECT_COHERENCE)
         posted = 0
+        skipped = 0
 
         for doc in documents:
             if doc.get("skip_llm"):
@@ -275,6 +277,11 @@ class IntentInspector(Worker):
 
             raw_yaml = doc.get("raw", "")
             if not raw_yaml.strip():
+                continue
+
+            subject = f"{_SUBJECT_COHERENCE}::{doc['path']}"
+            if subject in existing_coherence:
+                skipped += 1
                 continue
 
             try:
@@ -294,14 +301,17 @@ class IntentInspector(Worker):
 
             findings = self._parse_llm_findings(response, doc["path"], "coherence")
             for finding in findings:
-                await self.post_finding(
-                    subject=f"{_SUBJECT_COHERENCE}::{doc['path']}",
-                    payload=finding,
-                )
+                await self.post_finding(subject=subject, payload=finding)
+                existing_coherence.add(subject)
                 posted += 1
 
             # Yield control between documents — this is a long-running worker
             await asyncio.sleep(0)
+
+        if skipped:
+            logger.debug(
+                "IntentInspector: coherence pass — %d already open, skipped.", skipped
+            )
 
         return posted
 
@@ -353,12 +363,14 @@ class IntentInspector(Worker):
             logger.error("IntentInspector alignment: LLM failed — %s", e)
             return 0
 
+        existing_alignment = await self._fetch_existing_subjects(_SUBJECT_ALIGNMENT)
         findings = self._parse_llm_findings(response, "cross-document", "alignment")
         for finding in findings:
-            await self.post_finding(
-                subject=f"{_SUBJECT_ALIGNMENT}::{finding.get('path', 'cross-document')}",
-                payload=finding,
-            )
+            subject = f"{_SUBJECT_ALIGNMENT}::{finding.get('path', 'cross-document')}"
+            if subject in existing_alignment:
+                continue
+            await self.post_finding(subject=subject, payload=finding)
+            existing_alignment.add(subject)
             posted += 1
 
         return posted
@@ -528,13 +540,15 @@ class IntentInspector(Worker):
 
         return findings
 
-    # ID: c9d0e1f2-a3b4-5c6d-7e8f-999999999999
     async def _fetch_existing_subjects(self, subject_prefix: str) -> set[str]:
         """
         Query the blackboard for all already-open findings under a subject
-        prefix for this worker. Used to deduplicate structural and coherence
-        findings across cycles — avoids re-posting the same warning every
-        time the Inspector runs for files that will never self-resolve.
+        prefix, regardless of which worker posted them.
+
+        Intentionally does NOT filter by worker_uuid. Deduplication must be
+        by subject content, not by poster identity. This prevents different
+        daemon generations from re-posting the same finding when their UUIDs
+        differ across restarts.
         """
         from sqlalchemy import text
 
@@ -544,16 +558,12 @@ class IntentInspector(Worker):
             result = await session.execute(
                 text(
                     """
-                    SELECT subject FROM core.blackboard_entries
-                    WHERE worker_uuid = :worker_uuid
-                      AND entry_type = 'finding'
-                      AND subject LIKE :prefix
-                      AND status NOT IN ('resolved', 'abandoned')
-                    """
+                        SELECT subject FROM core.blackboard_entries
+                        WHERE entry_type = 'finding'
+                        AND subject LIKE :prefix
+                        AND status NOT IN ('resolved', 'abandoned')
+                        """
                 ),
-                {
-                    "worker_uuid": str(self._worker_uuid),
-                    "prefix": f"{subject_prefix}::%",
-                },
+                {"prefix": f"{subject_prefix}::%"},
             )
             return {row[0] for row in result.fetchall()}

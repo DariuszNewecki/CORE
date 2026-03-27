@@ -55,7 +55,7 @@ def find_definition_line(
 
 
 @dataclass
-# ID: aae372c1-f0db-43e3-a048-89940a5fd108
+# ID: 8a5d3394-7880-4d00-9276-fb1d248a34c6
 class SymbolIdResult:
     """Holds the result of finding a symbol's ID and definition line."""
 
