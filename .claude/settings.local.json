@@ -1,7 +1,21 @@
 {
   "permissions": {
     "allow": [
-      "Bash(python -m poetry run core-admin dev sync --write)"
+      "Bash(python -m poetry run core-admin dev sync --write)",
+      "Bash(poetry run:*)",
+      "Bash(.venv/bin/python -m core_admin dev sync --write)",
+      "Bash(.venv/bin/core-admin dev:*)",
+      "Bash(/mnt/dev/CORE/.venv/bin/python /mnt/dev/CORE/.venv/bin/core-admin dev sync --write)",
+      "Bash(PYTHONPATH=src /mnt/dev/CORE/.venv/bin/python /mnt/dev/CORE/.venv/bin/core-admin dev sync --write)",
+      "Bash(PYTHONPATH=src CORE_REPO_ROOT=/mnt/dev/CORE /mnt/dev/CORE/.venv/bin/python /mnt/dev/CORE/.venv/bin/core-admin dev sync --write)",
+      "Read(//opt/dev/CORE/src/shared/**)",
+      "Bash(python3 -c \"import os; print\\(os.path.realpath\\(''/mnt/dev/CORE''\\)\\)\")",
+      "Bash(/mnt/dev/CORE/.venv/bin/python -c \"import sys; sys.path.insert\\(0, ''/mnt/dev/CORE/src''\\); from shared.config import REPO_ROOT; print\\(REPO_ROOT\\)\")",
+      "Bash(python3 -c \"from pathlib import Path; f = Path\\(''/mnt/dev/CORE/src/shared/config.py''\\).resolve\\(\\); print\\(f.parents[2]\\)\")",
+      "Read(//opt/**)",
+      "Bash(find /mnt/dev/CORE/.venv/lib -name *.pth)",
+      "Bash(find /mnt/dev/CORE/.venv/lib -name *.egg-link -o -name direct_url.json)",
+      "Bash(/mnt/dev/CORE/.venv/bin/python /mnt/dev/CORE/.venv/bin/core-admin dev sync --help)"
     ]
   }
 }
