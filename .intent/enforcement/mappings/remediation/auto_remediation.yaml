@@ -86,23 +86,23 @@ mappings:
 
   architecture.max_file_size:
     action: fix_modularity
-    confidence: 0.80
+    confidence: 0.70  # was 0.80 — gated until Logic Conservation Gate implemented
     risk: medium
     description: >
       Files exceeding 400 lines are routed to the A3 refactor_modularity workflow.
       Handler: will/self_healing/modularity_remediation_service.py → remediate_batch
       Requires LLM_ENABLED=true. Dry-run safe — write=False by default.
-    status: ACTIVE
+    status: PENDING
 
   modularity.refactor_score_threshold:
     action: fix_modularity
-    confidence: 0.80
+    confidence: 0.70  # was 0.80 — gated until Logic Conservation Gate implemented
     risk: medium
     description: >
       Files with refactor score >= 60 are candidates for autonomous modularisation
       via the A3 refactor_modularity workflow.
       Handler: same as architecture.max_file_size — ModularityRemediationService.
-    status: ACTIVE
+    status: PENDING
 
   # ===========================================================================
   # TIER 3: PENDING — handler implementation required
