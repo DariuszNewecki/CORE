@@ -197,12 +197,27 @@ async def action_fix_logging(
     start = time.time()
     from cli.commands.fix_logging import LoggingFixer
 
+    if core_context.file_handler is None:
+        return ActionResult(
+            action_id="fix.logging",
+            ok=False,
+            data={"error": "file_handler not initialized"},
+            duration_sec=time.time() - start,
+        )
     fixer = LoggingFixer(
         repo_root=core_context.git_service.repo_path,
         file_handler=core_context.file_handler,
         dry_run=not write,
     )
-    result = fixer.fix_all()
+    try:
+        result = fixer.fix_all()
+    except Exception as e:
+        return ActionResult(
+            action_id="fix.logging",
+            ok=False,
+            data={"error": str(e)},
+            duration_sec=time.time() - start,
+        )
     return ActionResult(
         action_id="fix.logging",
         ok=True,
