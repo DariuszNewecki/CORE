@@ -113,10 +113,13 @@ class ProposalExecutor:
                 )
 
                 try:
+                    params = {
+                        k: v for k, v in action.parameters.items() if k != "write"
+                    }
                     result = await self.action_executor.execute(
                         action_id=action_id,
                         write=write,
-                        **action.parameters,
+                        **params,
                     )
 
                     action_duration = time.time() - action_start
@@ -274,10 +277,15 @@ class ProposalExecutor:
                         action_id = action.action_id
 
                         try:
+                            params = {
+                                k: v
+                                for k, v in action.parameters.items()
+                                if k != "write"
+                            }
                             r = await self.action_executor.execute(
                                 action_id=action_id,
                                 write=write,
-                                **action.parameters,
+                                **params,
                             )
                             action_results[action_id] = {
                                 "ok": r.ok,

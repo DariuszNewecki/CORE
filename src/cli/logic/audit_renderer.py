@@ -1,4 +1,3 @@
-# src/cli/logic/audit_renderer.py
 """Facade/orchestrator for audit report rendering.
 
 Orchestrates grouping and delegated rendering; preserves original behavior.
@@ -25,7 +24,7 @@ logger = getLogger(__name__)
 
 
 @dataclass
-# ID: b6f850ed-7599-49b1-8fd6-423ea130fa30
+# ID: a010d8e0-b1db-4b16-acfe-733c996c7248
 class AuditStats:
     """Execution statistics for a constitutional audit run."""
 
@@ -38,7 +37,7 @@ class AuditStats:
     effective_coverage_percent: float = 0
 
 
-# ID: 88bbf06d-5b83-4723-b2fb-19fe628b3dc2
+# ID: 0b88103e-949f-4a1d-9daf-c2042c6346b9
 def render_overview(
     console: Console,
     findings: list[AuditFinding],
@@ -64,7 +63,7 @@ def render_overview(
         f"Total findings: [cyan]{len(findings)}[/cyan]",
         "",
     )
-    console.print(
+    logger.info(
         Panel(stats_table, title="[bold]Audit Execution Stats[/bold]", expand=False)
     )
     console.print()
@@ -74,14 +73,14 @@ def render_overview(
     _render_verdict(console, groups, verdict_str=verdict_str, passed=passed)
 
 
-# ID: 15fba057-c29d-4bc9-9ed1-feb9850255da
+# ID: 74348bb7-e619-4392-84e6-2d90203f709f
 def render_detail(console: Console, findings: list[AuditFinding]) -> None:
     """Render detailed findings tables grouped by severity."""
     groups: list[SeverityGroup] = group_findings(findings)
     _render_details_groups(console, groups)
 
 
-# ID: b71905e8-454b-4597-9282-9e09ae1dab4d
+# ID: 60c17a61-817e-468b-998c-6af7318c170c
 def render_audit_report(
     findings: list[AuditFinding], console: Console | None = None
 ) -> None:
@@ -114,7 +113,7 @@ def _render_verdict(
         label = "PASSED" if is_passed else "FAILED"
     style = "bold green" if is_passed else "bold red"
     panel_style = "green" if is_passed else "red"
-    console.print(
+    logger.info(
         Panel(
             Text(label, style=style),
             title="[bold white]Final Verdict[/bold white]",
