@@ -3,15 +3,15 @@
 
 from __future__ import annotations
 
-from shared.logger import getLogger
-
-
-logger = getLogger(__name__)
 from rich.console import Console
 from rich.table import Table
 from rich.text import Text
 
+from shared.logger import getLogger
 from shared.models.audit_rendering import SeverityGroup, get_severity_style
+
+
+logger = getLogger(__name__)
 
 
 # ID: a42afd0d-567d-4404-a401-aa26b2664246
@@ -19,7 +19,7 @@ def render_overview(console: Console, groups: list[SeverityGroup]) -> None:
     """Render overview table with severity counts and percentages."""
     total = sum(len(g.findings) for g in groups)
     if total == 0:
-        logger.info("[bold green]No findings.[/]")
+        console.print("[bold green]No findings.[/]")
         return
     table = Table(
         title="[bold magenta]Audit Overview[/bold magenta]",
@@ -36,4 +36,4 @@ def render_overview(console: Console, groups: list[SeverityGroup]) -> None:
         pct = count / total * 100
         sev_text = Text(group.severity.name, style=get_severity_style(group.severity))
         table.add_row(sev_text, str(count), f"{pct:.1f}%")
-    logger.info(table)
+    console.print(table)

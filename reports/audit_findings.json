@@ -857,7 +857,7 @@
   {
     "check_id": "architecture.intent.non_gateway_no_direct_resolution",
     "severity": "warning",
-    "message": "Line 206: Direct .intent traversal via 'glob()' outside shared intent infrastructure.",
+    "message": "Line 204: Direct .intent traversal via 'glob()' outside shared intent infrastructure.",
     "file_path": "src/will/commands/daemon.py",
     "line_number": null,
     "context": {},
@@ -920,7 +920,7 @@
   {
     "check_id": "modularity.single_responsibility",
     "severity": "warning",
-    "message": "Modularity Debt: 51.8/100 (Limit: 60.0)",
+    "message": "Modularity Debt: 52.2/100 (Limit: 60.0)",
     "file_path": "src/body/services/service_registry.py",
     "line_number": null,
     "context": {},
@@ -1073,7 +1073,7 @@
   {
     "check_id": "modularity.single_responsibility",
     "severity": "warning",
-    "message": "Modularity Debt: 51.7/100 (Limit: 60.0)",
+    "message": "Modularity Debt: 51.6/100 (Limit: 60.0)",
     "file_path": "src/will/commands/daemon.py",
     "line_number": null,
     "context": {},
@@ -1172,7 +1172,7 @@
   {
     "check_id": "modularity.semantic_cohesion",
     "severity": "warning",
-    "message": "Modularity Debt: 51.8/100 (Limit: 60.0)",
+    "message": "Modularity Debt: 52.2/100 (Limit: 60.0)",
     "file_path": "src/body/services/service_registry.py",
     "line_number": null,
     "context": {},
@@ -1325,7 +1325,7 @@
   {
     "check_id": "modularity.semantic_cohesion",
     "severity": "warning",
-    "message": "Modularity Debt: 51.7/100 (Limit: 60.0)",
+    "message": "Modularity Debt: 51.6/100 (Limit: 60.0)",
     "file_path": "src/will/commands/daemon.py",
     "line_number": null,
     "context": {},
@@ -1424,7 +1424,7 @@
   {
     "check_id": "modularity.import_coupling",
     "severity": "warning",
-    "message": "Modularity Debt: 51.8/100 (Limit: 60.0)",
+    "message": "Modularity Debt: 52.2/100 (Limit: 60.0)",
     "file_path": "src/body/services/service_registry.py",
     "line_number": null,
     "context": {},
@@ -1577,7 +1577,7 @@
   {
     "check_id": "modularity.import_coupling",
     "severity": "warning",
-    "message": "Modularity Debt: 51.7/100 (Limit: 60.0)",
+    "message": "Modularity Debt: 51.6/100 (Limit: 60.0)",
     "file_path": "src/will/commands/daemon.py",
     "line_number": null,
     "context": {},
@@ -1676,7 +1676,7 @@
   {
     "check_id": "modularity.refactor_score_threshold",
     "severity": "warning",
-    "message": "Modularity Debt: 51.8/100 (Limit: 60.0)",
+    "message": "Modularity Debt: 52.2/100 (Limit: 60.0)",
     "file_path": "src/body/services/service_registry.py",
     "line_number": null,
     "context": {},
@@ -1829,7 +1829,7 @@
   {
     "check_id": "modularity.refactor_score_threshold",
     "severity": "warning",
-    "message": "Modularity Debt: 51.7/100 (Limit: 60.0)",
+    "message": "Modularity Debt: 51.6/100 (Limit: 60.0)",
     "file_path": "src/will/commands/daemon.py",
     "line_number": null,
     "context": {},
@@ -1903,15 +1903,6 @@
     "severity": "warning",
     "message": "Modularity Debt: 51.8/100 (Limit: 60.0)",
     "file_path": "src/will/workers/worker_auditor.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.boundary.file_handler_access",
-    "severity": "error",
-    "message": "/opt/dev/CORE/src/will/commands/daemon.py:199 - Forbidden import: 'from shared.infrastructure.storage.file_handler import FileHandler' (matches constitutional boundary rule: shared.infrastructure.storage.file_handler.FileHandler)",
-    "file_path": "src/will/commands/daemon.py",
     "line_number": null,
     "context": {},
     "details": {}

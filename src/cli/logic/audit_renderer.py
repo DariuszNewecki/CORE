@@ -22,6 +22,7 @@ from shared.utils.audit_grouping import SEVERITY_ORDER, get_max_severity, group_
 
 
 logger = getLogger(__name__)
+console = Console()
 
 
 @dataclass
@@ -64,7 +65,7 @@ def render_overview(
         f"Total findings: [cyan]{len(findings)}[/cyan]",
         "",
     )
-    logger.info(
+    console.print(
         Panel(stats_table, title="[bold]Audit Execution Stats[/bold]", expand=False)
     )
     console.print()
@@ -114,7 +115,7 @@ def _render_verdict(
         label = "PASSED" if is_passed else "FAILED"
     style = "bold green" if is_passed else "bold red"
     panel_style = "green" if is_passed else "red"
-    logger.info(
+    console.print(
         Panel(
             Text(label, style=style),
             title="[bold white]Final Verdict[/bold white]",

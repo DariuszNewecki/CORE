@@ -1,8 +1,8 @@
 {
-  "audit_id": "882f1f71-5967-40ba-9aac-eae737f8f9f0",
-  "timestamp": "2026-03-28T11:21:56Z",
-  "passed": false,
-  "findings_count": 349,
+  "audit_id": "fc0ff986-2416-4565-8a88-09a82b8bfbf3",
+  "timestamp": "2026-03-28T13:58:48Z",
+  "passed": true,
+  "findings_count": 348,
   "executed_rules": [
     "ai.cognitive_role.no_hardcoded_string",
     "ai.prompt.artifact.no_provider_leak",
@@ -104,5 +104,5 @@
     "quality.test_integrity",
     "quality.type_safety"
   ],
-  "verdict": "FAIL"
+  "verdict": "PASS"
 }
