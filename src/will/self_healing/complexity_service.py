@@ -153,7 +153,9 @@ class ComplexityRemediationService:
             logger.info("🔁 Reflex Attempt %d/3...", attempt + 1)
 
             # ── GENERATE ──────────────────────────────────────────────────────
-            coder = await self.context.cognitive_service.aget_client_for_role("Coder")
+            coder = await self.context.cognitive_service.aget_client_for_role(
+                model.manifest.role
+            )
             response = await model.invoke(
                 context={"current_prompt": current_prompt},
                 client=coder,

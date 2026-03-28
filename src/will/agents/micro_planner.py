@@ -73,7 +73,9 @@ class MicroPlannerAgent:
         # We pass the policy to the LLM so it knows the "Micro-Proposal" boundaries
         policy_content = json.dumps(self.policy, indent=2)
 
-        planner_client = await self.cognitive_service.aget_client_for_role("Planner")
+        planner_client = await self.cognitive_service.aget_client_for_role(
+            self.micro_plan_model.manifest.role
+        )
 
         logger.info("? Micro-Planner: Designing low-risk execution strategy...")
         response_text = await self.micro_plan_model.invoke(

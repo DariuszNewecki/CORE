@@ -135,7 +135,9 @@ class SimpleTestGenerator:
         module_path = rel_path.replace("/", ".").replace(".py", "")
 
         try:
-            client = await self.cognitive.aget_client_for_role("Coder")
+            client = await self.cognitive.aget_client_for_role(
+                self.prompt_model.manifest.role
+            )
             response = await self.prompt_model.invoke(
                 context={
                     "file_path": file_path,

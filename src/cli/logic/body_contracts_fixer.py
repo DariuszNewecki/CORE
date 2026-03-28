@@ -145,7 +145,8 @@ async def fix_body_ui_violations(
         items = items[:limit]
 
     cognitive = core_context.cognitive_service
-    agent = await cognitive.aget_client_for_role("CodeReviewer")
+    model = PromptModel.load("body_contracts_fixer")
+    agent = await cognitive.aget_client_for_role(model.manifest.role)
     processor = ThrottledParallelProcessor(description="Fixing Body UI violations...")
 
     # ID: dbf3bacb-1562-48e3-acfa-9127c985737b

@@ -45,7 +45,7 @@ class SingleTestFixer:
             return {"status": "error", "error": "Source extraction failed"}
 
         model = PromptModel.load("single_test_fixer")
-        client = await self.cognitive.aget_client_for_role("Coder")
+        client = await self.cognitive.aget_client_for_role(model.manifest.role)
 
         for attempt in range(self.max_attempts):
             logger.info(

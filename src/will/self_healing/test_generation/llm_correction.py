@@ -72,10 +72,13 @@ class LLMCorrectionService:
         violations_json = json.dumps(violations, indent=2)
 
         try:
-            llm_client = await self.cognitive.aget_client_for_role("Coder")
-
             if syntax_only:
                 model = PromptModel.load("llm_correction_syntax")
+            else:
+                model = PromptModel.load("llm_correction_structural")
+            llm_client = await self.cognitive.aget_client_for_role(model.manifest.role)
+
+            if syntax_only:
                 llm_output = await model.invoke(
                     context={
                         "file_path": file_path,
@@ -86,7 +89,6 @@ class LLMCorrectionService:
                     user_id="self_correction",
                 )
             else:
-                model = PromptModel.load("llm_correction_structural")
                 llm_output = await model.invoke(
                     context={
                         "file_path": file_path,

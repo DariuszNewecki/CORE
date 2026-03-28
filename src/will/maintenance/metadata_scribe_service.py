@@ -38,7 +38,9 @@ class MetadataScribeService:
         """
         try:
             # Use the Architect role for better structural reasoning
-            agent = await self.cognitive.aget_client_for_role("RefactoringArchitect")
+            agent = await self.cognitive.aget_client_for_role(
+                self.draft_metadata_model.manifest.role
+            )
 
             context = {
                 "function_name": function_name,

@@ -32,7 +32,8 @@ async def _attempt_correction(
 ) -> dict:
     """Attempts to fix a failed validation or test result using an enriched LLM prompt."""
     pipeline = _build_pipeline(path_resolver)
-    generator = await cognitive_service.aget_client_for_role("Coder")
+    model = PromptModel.load("self_correction_engine_correction_prompt")
+    generator = await cognitive_service.aget_client_for_role(model.manifest.role)
 
     file_path = failure_context.get("file_path")
     code = failure_context.get("code")
@@ -43,8 +44,6 @@ async def _attempt_correction(
             "status": "error",
             "message": "Missing required failure context fields.",
         }
-
-    model = PromptModel.load("self_correction_engine_correction_prompt")
 
     # Handle LLM errors defensively so the caller gets a structured error.
     try:

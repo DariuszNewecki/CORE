@@ -281,8 +281,8 @@ class AssumptionExtractor:
         task_structure: TaskStructureProtocol,
     ) -> GuidanceExtraction | None:
         try:
-            interpreter = await self.llm.aget_client_for_role("Architect")
             model = PromptModel.load("assumption_extractor")
+            interpreter = await self.llm.aget_client_for_role(model.manifest.role)
             response = await model.invoke(
                 context={
                     "task_intent": task_structure.intent,

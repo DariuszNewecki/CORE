@@ -43,7 +43,9 @@ async def scaffold_new_application(
     await cognitive_service.initialize()
     model = PromptModel.load("scaffold_new_application_prompt")
     try:
-        planner_client = await cognitive_service.aget_client_for_role("Planner")
+        planner_client = await cognitive_service.aget_client_for_role(
+            model.manifest.role
+        )
         response_text = await model.invoke(
             context={"goal": goal}, client=planner_client, user_id="scaffolding_agent"
         )

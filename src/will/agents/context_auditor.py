@@ -44,11 +44,10 @@ class ContextAuditor:
             ]
         )
 
-        client = await self.cognitive.aget_client_for_role("ContextAuditor")
+        model = PromptModel.load("context_auditor")
+        client = await self.cognitive.aget_client_for_role(model.manifest.role)
 
         logger.info("📡 Sourcing context completeness for: %s", goal[:50])
-
-        model = PromptModel.load("context_auditor")
         response = await model.invoke(
             context={
                 "goal": goal,

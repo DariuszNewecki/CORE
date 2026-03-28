@@ -61,12 +61,11 @@ async def _async_fix_line_lengths(
 
     executor = ActionExecutor(context)
     cognitive_service = context.cognitive_service
-    fixer_client = await cognitive_service.aget_client_for_role("CodeStyleFixer")
-    auditor_context = AuditorContext(repo_root)
-    await auditor_context.load_knowledge_graph()
-
     # Load PromptModel artifact once
     model = PromptModel.load("line_length_refactorer")
+    fixer_client = await cognitive_service.aget_client_for_role(model.manifest.role)
+    auditor_context = AuditorContext(repo_root)
+    await auditor_context.load_knowledge_graph()
 
     files_with_long_lines = []
     for file_path in files_to_process:

@@ -133,8 +133,8 @@ class ContextAwareTestGenerator:
         )
 
         try:
-            client = await self.cognitive.aget_client_for_role("Coder")
             model = PromptModel.load("context_aware_test_gen")
+            client = await self.cognitive.aget_client_for_role(model.manifest.role)
             response = await model.invoke(
                 context={
                     "file_path": file_path,

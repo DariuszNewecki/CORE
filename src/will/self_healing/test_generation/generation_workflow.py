@@ -84,7 +84,9 @@ class GenerationWorkflow:
         Note: Prompt building is currently handled inline.
         FUTURE: Extract to PromptBuilder when implemented.
         """
-        llm_client = await self.cognitive.aget_client_for_role("Coder")
+        llm_client = await self.cognitive.aget_client_for_role(
+            self.test_gen_model.manifest.role
+        )
 
         raw_response = await self.test_gen_model.invoke(
             context={

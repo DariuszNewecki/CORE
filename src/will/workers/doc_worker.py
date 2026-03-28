@@ -93,7 +93,7 @@ class DocWorker(Worker):
         # input validation, and output contract.
         # Ref: .intent/rules/ai/prompt_governance.json [ai.prompt.model_required]
         prompt_model = PromptModel.load("docstring_writer")
-        client = await self._cognitive.aget_client_for_role("LocalCoder")
+        client = await self._cognitive.aget_client_for_role(prompt_model.manifest.role)
 
         proposed = 0
         skipped = 0

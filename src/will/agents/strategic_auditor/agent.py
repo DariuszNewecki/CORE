@@ -162,8 +162,8 @@ class StrategicAuditor(TracedAgentMixin):
         logger.info("? Reasoning about system state (LLM call)...")
 
         try:
-            client = await self._cognitive.aget_client_for_role("Architect")
             model = PromptModel.load("architect_threats_analysis_prompt")
+            client = await self._cognitive.aget_client_for_role(model.manifest.role)
             response = await model.invoke(
                 context={
                     "finding_count": len(findings),

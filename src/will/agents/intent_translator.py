@@ -49,7 +49,9 @@ class IntentTranslator:
         structured goal for the PlannerAgent.
         """
         logger.info("Translating user intent: '%s'", user_input)
-        client = await self.cognitive_service.aget_client_for_role("IntentTranslator")
+        client = await self.cognitive_service.aget_client_for_role(
+            self.model.manifest.role
+        )
 
         final_prompt = self.prompt_pipeline.process(
             self.prompt_template.format(user_input=user_input)

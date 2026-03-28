@@ -65,7 +65,8 @@ async def attempt_correction(
     Now includes deep symbol lookup for ImportErrors by analyzing the code.
     """
     pipeline = _build_pipeline(path_resolver)
-    generator = await cognitive_service.aget_client_for_role("Coder")
+    model = PromptModel.load("self_correction_engine_correction_prompt")
+    generator = await cognitive_service.aget_client_for_role(model.manifest.role)
     file_path = failure_context.get("file_path")
     code = failure_context.get("code")
     violations = failure_context.get("violations", [])
@@ -114,7 +115,6 @@ async def attempt_correction(
     hint_section = ""
     if symbol_hints:
         hint_section = f"\n# INTELLIGENT HINTS (FROM KNOWLEDGE GRAPH)\n{symbol_hints}\n"
-    model = PromptModel.load("self_correction_engine_correction_prompt")
     final_prompt = pipeline.process("")
     try:
         llm_output = await model.invoke(

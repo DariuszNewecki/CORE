@@ -30,9 +30,8 @@ class ResearcherAgent:
         """
         Analyzes the goal and determines if context is sufficient.
         """
-        client = await self.cognitive.aget_client_for_role("Planner")
-
         model = PromptModel.load("researcher_readiness")
+        client = await self.cognitive.aget_client_for_role(model.manifest.role)
         response = await model.invoke(
             context={
                 "goal": goal,

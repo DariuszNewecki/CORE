@@ -86,8 +86,10 @@ class CorrectionEngine:
             confidence=0.7,
         )
 
-        generator = await self.cognitive_service.aget_client_for_role("Coder")
         model = PromptModel.load("pattern_correction")
+        generator = await self.cognitive_service.aget_client_for_role(
+            model.manifest.role
+        )
         raw_response = await model.invoke(
             context={
                 "pattern_id": pattern_id,

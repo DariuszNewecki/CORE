@@ -131,7 +131,9 @@ class TestExecutor:
 
             # Generate test via LLM
             cognitive_svc = await self.context.registry.get_cognitive_service()
-            coder_client = await cognitive_svc.aget_client_for_role("Coder")
+            coder_client = await cognitive_svc.aget_client_for_role(
+                self.model.manifest.role
+            )
 
             raw = await self.model.invoke(
                 context={"prompt": prompt},

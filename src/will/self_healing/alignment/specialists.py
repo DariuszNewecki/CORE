@@ -44,7 +44,7 @@ class SpecialistDispatcher:
         )
 
         model = PromptModel.load("godd_object_modularizer")
-        agent = await self.cognitive.aget_client_for_role("RefactoringArchitect")
+        agent = await self.cognitive.aget_client_for_role(model.manifest.role)
         response = await model.invoke(
             context={
                 "file_path": file_path,
@@ -81,7 +81,7 @@ class SpecialistDispatcher:
         )
 
         model = PromptModel.load("logic_alignment_generic_repair")
-        agent = await self.cognitive.aget_client_for_role("Coder")
+        agent = await self.cognitive.aget_client_for_role(model.manifest.role)
         response = await model.invoke(
             context={
                 "file_path": file_path,
@@ -117,7 +117,7 @@ class SpecialistDispatcher:
         violation_details = f"Rule: {violation.get('check_id')}\nSeverity: {violation.get('severity')}\nMessage: {violation.get('message')}\nLine: {violation.get('line_number', 'none')}"
 
         model = PromptModel.load("logic_alignment_generic_repair")
-        agent = await self.cognitive.aget_client_for_role("Coder")
+        agent = await self.cognitive.aget_client_for_role(model.manifest.role)
         response = await model.invoke(
             context={
                 "file_path": file_path,

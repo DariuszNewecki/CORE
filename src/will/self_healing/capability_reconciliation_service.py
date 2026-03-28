@@ -70,7 +70,9 @@ class CapabilityReconciliationService:
 
         refactored_code_json = json.dumps(refactoring_plan, indent=2)
 
-        constitutionalist = await self.cognitive_service.aget_client_for_role("Planner")
+        constitutionalist = await self.cognitive_service.aget_client_for_role(
+            self.capability_reconciliation_model.manifest.role
+        )
         response = await self.capability_reconciliation_model.invoke(
             context={
                 "original_capabilities": original_capabilities,

@@ -127,7 +127,7 @@ async def health_cmd(
 
 def _render_rich(workers, bb_summary, bb_recent, health, crawl, blast) -> None:
     console.rule("[bold cyan]CORE Runtime Health[/bold cyan]")
-    logger.info("\n[bold]Workers[/bold]")
+    console.print("\n[bold]Workers[/bold]")
     t = Table(show_header=True, header_style="bold magenta")
     t.add_column("Name")
     t.add_column("Class")
@@ -143,9 +143,9 @@ def _render_rich(workers, bb_summary, bb_recent, health, crawl, blast) -> None:
             f"[{c}]{w.status}[/{c}]",
             _age(w.last_heartbeat),
         )
-    logger.info(t)
+    console.print(t)
     if health:
-        logger.info("\n[bold]Observer — Latest Snapshot[/bold]")
+        console.print("\n[bold]Observer — Latest Snapshot[/bold]")
         t2 = Table(show_header=True, header_style="bold magenta")
         t2.add_column("Observed")
         t2.add_column("Open Findings")
@@ -159,15 +159,15 @@ def _render_rich(workers, bb_summary, bb_recent, health, crawl, blast) -> None:
             str(health.silent_workers),
             str(health.orphaned_symbols),
         )
-        logger.info(t2)
-    logger.info("\n[bold]Blackboard[/bold]")
+        console.print(t2)
+    console.print("\n[bold]Blackboard[/bold]")
     t3 = Table(show_header=True, header_style="bold magenta")
     t3.add_column("Status")
     t3.add_column("Count")
     for row in bb_summary:
         t3.add_row(row.status, str(row.cnt))
-    logger.info(t3)
-    logger.info("\n[bold]Blackboard — Recent Entries[/bold]")
+    console.print(t3)
+    console.print("\n[bold]Blackboard — Recent Entries[/bold]")
     t4 = Table(show_header=True, header_style="bold magenta")
     t4.add_column("Type")
     t4.add_column("Subject")
@@ -175,8 +175,8 @@ def _render_rich(workers, bb_summary, bb_recent, health, crawl, blast) -> None:
     t4.add_column("Age")
     for e in bb_recent:
         t4.add_row(e.entry_type, e.subject, e.status, _age(e.created_at))
-    logger.info(t4)
-    logger.info("\n[bold]Recent Crawls[/bold]")
+    console.print(t4)
+    console.print("\n[bold]Recent Crawls[/bold]")
     t5 = Table(show_header=True, header_style="bold magenta")
     t5.add_column("Started")
     t5.add_column("Status")
@@ -191,8 +191,8 @@ def _render_rich(workers, bb_summary, bb_recent, health, crawl, blast) -> None:
             str(c.files_changed),
             str(c.edges_created),
         )
-    logger.info(t5)
-    logger.info("\n[bold]Blast Radius — Top Symbols[/bold]")
+    console.print(t5)
+    console.print("\n[bold]Blast Radius — Top Symbols[/bold]")
     t6 = Table(show_header=True, header_style="bold magenta")
     t6.add_column("Symbol Path")
     t6.add_column("Affected", justify="right")
@@ -201,7 +201,7 @@ def _render_rich(workers, bb_summary, bb_recent, health, crawl, blast) -> None:
         t6.add_row(
             b.symbol_path, str(b.affected_symbol_count), str(b.direct_caller_count)
         )
-    logger.info(t6)
+    console.print(t6)
     console.rule()
 
 

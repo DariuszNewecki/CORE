@@ -126,7 +126,9 @@ async def _async_fix_docstrings(
     # Raises FileNotFoundError if var/prompts/docstring_writer/ is incomplete
     prompt_model = PromptModel.load("docstring_writer")
 
-    writer_client = await context.cognitive_service.aget_client_for_role("Coder")
+    writer_client = await context.cognitive_service.aget_client_for_role(
+        prompt_model.manifest.role
+    )
 
     file_modification_map: dict[str, list[dict[str, Any]]] = {}
 

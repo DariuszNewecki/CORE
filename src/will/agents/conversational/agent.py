@@ -143,7 +143,9 @@ class ConversationalAgent:
             # ============================================================
             logger.info("? GENERATE: Creating response...")
             prompt = self._build_llm_prompt(user_message, context_package, task)
-            client = await self.cognitive_service.aget_client_for_role("Planner")
+            client = await self.cognitive_service.aget_client_for_role(
+                self.response_model.manifest.role
+            )
             llm_response = await self.response_model.invoke(
                 context={"prompt": prompt},
                 client=client,

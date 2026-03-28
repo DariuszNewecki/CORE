@@ -158,7 +158,9 @@ class CodeGenerator:
             )
 
         enriched_prompt = self.prompt_pipeline.process(prompt)
-        generator = await self.cognitive_service.aget_client_for_role("Coder")
+        generator = await self.cognitive_service.aget_client_for_role(
+            self._code_gen_model.manifest.role
+        )
 
         # DECISION TRACING: Record LLM invocation
         self.tracer.record(

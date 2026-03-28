@@ -131,7 +131,9 @@ class PlannerAgent:
             prompt_template=prompt_template,
         )
 
-        client = await self.cognitive_service.aget_client_for_role("Planner")
+        client = await self.cognitive_service.aget_client_for_role(
+            self.plan_goal_model.manifest.role
+        )
 
         for attempt in range(self.max_retries):
             logger.info(
