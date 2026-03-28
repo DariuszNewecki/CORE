@@ -1,3 +1,4 @@
+# src/cli/renderers/audit_overview.py
 """Renderer for audit overview table."""
 
 from __future__ import annotations

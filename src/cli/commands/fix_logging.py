@@ -179,7 +179,9 @@ class LoggingTransformer(ast.NodeTransformer):
         self.file_path = file_path
         self.modified = False
         self.fix_count = 0
-        self.is_cli_layer = "body/cli" in str(file_path.as_posix())
+        self.is_cli_layer = "body/cli" in str(
+            file_path.as_posix()
+        ) or "/src/cli/" in str(file_path.as_posix())
 
     # ID: 9de559dc-607e-45f7-9880-217c77f68f31
     def visit_Call(self, node: ast.Call) -> ast.AST:

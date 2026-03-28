@@ -1,3 +1,4 @@
+# src/cli/commands/check/formatters.py
 """
 Output formatters for audit results.
 

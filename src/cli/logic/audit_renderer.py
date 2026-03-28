@@ -1,3 +1,4 @@
+# src/cli/logic/audit_renderer.py
 """Facade/orchestrator for audit report rendering.
 
 Orchestrates grouping and delegated rendering; preserves original behavior.
