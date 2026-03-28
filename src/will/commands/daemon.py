@@ -196,6 +196,8 @@ async def _run_daemon() -> None:
     except Exception as e:
         logger.warning("CORE daemon: GitService unavailable: %s", e)
 
+    ctx.file_handler = service_registry.get_file_handler()
+
     workers_dir = BootstrapRegistry.get_repo_path() / ".intent" / "workers"
     tasks: list[asyncio.Task[Any]] = []
 

@@ -15,7 +15,14 @@
       "Read(//opt/**)",
       "Bash(find /mnt/dev/CORE/.venv/lib -name *.pth)",
       "Bash(find /mnt/dev/CORE/.venv/lib -name *.egg-link -o -name direct_url.json)",
-      "Bash(/mnt/dev/CORE/.venv/bin/python /mnt/dev/CORE/.venv/bin/core-admin dev sync --help)"
+      "Bash(/mnt/dev/CORE/.venv/bin/python /mnt/dev/CORE/.venv/bin/core-admin dev sync --help)",
+      "Bash(find /opt/dev/CORE -type f -name LoggingFixer* -o -name *logging_fixer*)",
+      "Bash(find /opt/dev/CORE -type f -name *daemon* -o -name *scheduler* -o -name *worker_runner*)",
+      "Bash(find /opt/dev/CORE -path */migrations* -type d)",
+      "Bash(find /opt/dev/CORE -name *migration* -type f)",
+      "Bash(grep -n 'file_handler or' /opt/dev/CORE/src/**/*.py)",
+      "Bash(grep -rn file_handler.*None /opt/dev/CORE/src --include=*.py)",
+      "Bash(find /opt/dev/CORE/src -name *daemon* -type f)"
     ]
   }
 }

@@ -245,6 +245,17 @@ class ServiceRegistry:
 
         return self._instances["cognitive_service"]
 
+    # ID: 3f7a1b2c-d4e5-6f78-90ab-cdef01234567
+    def get_file_handler(self) -> Any:
+        """Return a FileHandler rooted at the repo path. Belongs in the Body layer."""
+        if "file_handler" not in self._instances:
+            from shared.infrastructure.storage.file_handler import FileHandler
+
+            self._instances["file_handler"] = FileHandler(
+                str(bootstrap_registry.get_repo_path())
+            )
+        return self._instances["file_handler"]
+
     # ID: 92dd68b8-a18e-4482-a861-ff4bf8732e4f
     async def get_auditor_context(self) -> AuditorContext:
         async with self._lock:
