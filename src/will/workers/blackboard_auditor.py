@@ -173,7 +173,9 @@ class BlackboardAuditor(Worker):
 
     async def _fetch_stale_entries(self) -> list[dict[str, Any]]:
         """Return Blackboard entries that have exceeded their SLA tier."""
-        svc = await self._core_context.registry.get_blackboard_service()
+        from body.services.service_registry import service_registry
+
+        svc = await service_registry.get_blackboard_service()
         return await svc.fetch_stale_entries()
 
     async def _fetch_existing_findings(self) -> set[str]:
@@ -185,10 +187,14 @@ class BlackboardAuditor(Worker):
         daemon generations from re-posting the same stale finding when their
         UUIDs differ across restarts.
         """
-        svc = await self._core_context.registry.get_blackboard_service()
+        from body.services.service_registry import service_registry
+
+        svc = await service_registry.get_blackboard_service()
         return await svc.fetch_open_finding_subjects_by_prefix(f"{_FINDING_SUBJECT}::%")
 
     async def _count_active_entries(self) -> int:
         """Count total active Blackboard entries for the report."""
-        svc = await self._core_context.registry.get_blackboard_service()
+        from body.services.service_registry import service_registry
+
+        svc = await service_registry.get_blackboard_service()
         return await svc.count_active_entries()
