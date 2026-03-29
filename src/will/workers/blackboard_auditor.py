@@ -34,9 +34,6 @@ from __future__ import annotations
 import asyncio
 from typing import Any
 
-from sqlalchemy import text
-
-from shared.infrastructure.database.session_manager import get_session
 from shared.logger import getLogger
 from shared.workers.base import Worker
 
@@ -171,66 +168,13 @@ class BlackboardAuditor(Worker):
         logger.info("BlackboardAuditor: cycle complete — flagged=%d", flagged)
 
     # -------------------------------------------------------------------------
-    # DB reads
+    # DB reads — delegated to BlackboardService
     # -------------------------------------------------------------------------
 
     async def _fetch_stale_entries(self) -> list[dict[str, Any]]:
-        """
-        Return Blackboard entries that have exceeded their SLA tier.
-        """
-        async with get_session() as session:
-            result = await session.execute(
-                text(
-                    """
-                    SELECT
-                        id,
-                        entry_type,
-                        subject,
-                        worker_uuid,
-                        status,
-                        EXTRACT(EPOCH FROM (now() - created_at))::int AS age_seconds,
-                        CASE entry_type
-                            WHEN 'heartbeat' THEN CAST(:sla_heartbeat AS INT)
-                            WHEN 'finding'   THEN CAST(:sla_finding AS INT)
-                            WHEN 'report'    THEN CAST(:sla_report AS INT)
-                            WHEN 'proposal'  THEN CAST(:sla_proposal AS INT)
-                            ELSE CAST(:sla_default AS INT)
-                        END AS sla_seconds
-                    FROM core.blackboard_entries
-                    WHERE status NOT IN ('resolved', 'abandoned')
-                      AND subject NOT LIKE 'blackboard.entry_stale::%'
-                      AND subject NOT LIKE 'worker.silent::%'
-                      AND EXTRACT(EPOCH FROM (now() - created_at)) >
-                        CASE entry_type
-                            WHEN 'heartbeat' THEN CAST(:sla_heartbeat AS INT)
-                            WHEN 'finding'   THEN CAST(:sla_finding AS INT)
-                            WHEN 'report'    THEN CAST(:sla_report AS INT)
-                            WHEN 'proposal'  THEN CAST(:sla_proposal AS INT)
-                            ELSE CAST(:sla_default AS INT)
-                        END
-                    ORDER BY age_seconds DESC
-                    """
-                ),
-                {
-                    "sla_heartbeat": _SLA["heartbeat"],
-                    "sla_finding": _SLA["finding"],
-                    "sla_report": _SLA["report"],
-                    "sla_proposal": _SLA["proposal"],
-                    "sla_default": _SLA_DEFAULT,
-                },
-            )
-            return [
-                {
-                    "id": row[0],
-                    "entry_type": row[1],
-                    "subject": row[2],
-                    "worker_uuid": row[3],
-                    "status": row[4],
-                    "age_seconds": row[5] or 0,
-                    "sla_seconds": row[6],
-                }
-                for row in result.fetchall()
-            ]
+        """Return Blackboard entries that have exceeded their SLA tier."""
+        svc = await self._core_context.registry.get_blackboard_service()
+        return await svc.fetch_stale_entries()
 
     async def _fetch_existing_findings(self) -> set[str]:
         """
@@ -241,29 +185,10 @@ class BlackboardAuditor(Worker):
         daemon generations from re-posting the same stale finding when their
         UUIDs differ across restarts.
         """
-        async with get_session() as session:
-            result = await session.execute(
-                text(
-                    """
-                    SELECT subject FROM core.blackboard_entries
-                    WHERE entry_type = 'finding'
-                      AND subject LIKE :prefix
-                      AND status NOT IN ('resolved', 'abandoned')
-                    """
-                ),
-                {"prefix": f"{_FINDING_SUBJECT}::%"},
-            )
-            return {row[0] for row in result.fetchall()}
+        svc = await self._core_context.registry.get_blackboard_service()
+        return await svc.fetch_open_finding_subjects_by_prefix(f"{_FINDING_SUBJECT}::%")
 
     async def _count_active_entries(self) -> int:
         """Count total active Blackboard entries for the report."""
-        async with get_session() as session:
-            result = await session.execute(
-                text(
-                    """
-                    SELECT COUNT(*) FROM core.blackboard_entries
-                    WHERE status NOT IN ('resolved', 'abandoned')
-                    """
-                )
-            )
-            return result.scalar() or 0
+        svc = await self._core_context.registry.get_blackboard_service()
+        return await svc.count_active_entries()
