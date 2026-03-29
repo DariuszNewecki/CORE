@@ -106,8 +106,11 @@ mappings:
     scope:
       applies_to:
         - "src/will/**/*.py"
-      excludes:
-        - "src/will/workers/*.py"
+      # REMOVED: src/will/workers/*.py exemption — no rationale was ever documented.
+      # This exemption was silently hiding 14 production violations across Will workers
+      # (external audit 2026-03-28, Finding 1.1 / Finding 1.6).
+      # Will workers must use dependency injection like all other Will components.
+      # Tracking: full remediation requires WillDatabasePort refactor (Finding 1.1).
 
   # ==========================================================================
   # RULE 7: Will Delegates Filesystem Operations
@@ -184,6 +187,9 @@ mappings:
 
   # ==========================================================================
   # RULE 12: Body Never Invokes Will
+  # EXTENDED 2026-03-28: Added will.workers and will.self_healing —
+  # external audit found 4 production violations invisible because these
+  # namespaces were absent from the forbidden list (Finding 1.2).
   # ==========================================================================
 
   architecture.layers.no_body_to_will:
@@ -195,6 +201,10 @@ mappings:
         - "will.agents"
         - "src.will.orchestration"
         - "will.orchestration"
+        - "src.will.workers"
+        - "will.workers"
+        - "src.will.self_healing"
+        - "will.self_healing"
     scope:
       applies_to:
         - "src/body/**/*.py"
@@ -226,6 +236,7 @@ mappings:
         - "src/shared/**/*.py"
       excludes:
         - "src/shared/infrastructure/service_registry.py"
+
 # ==============================================================================
 # Meta: This mapping file restores CORE's founding architectural principle
 # ==============================================================================
