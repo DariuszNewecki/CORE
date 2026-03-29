@@ -1,9 +1,9 @@
 # src/cli/resources/code/docstrings.py
 import typer
 
+from body.self_healing.docstring_service import fix_docstrings
 from shared.cli_utils import core_command
 from shared.models.command_meta import CommandBehavior, CommandLayer, command_meta
-from will.self_healing.docstring_service import fix_docstrings
 
 from .hub import app
 

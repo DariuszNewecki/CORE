@@ -10,12 +10,12 @@ import typer
 from rich.console import Console
 
 from body.self_healing.code_style_service import format_code
+from body.self_healing.docstring_service import fix_docstrings
 from cli.commands.fix.code_style import fix_headers_internal
 from cli.commands.fix.metadata import fix_ids_internal
 from cli.commands.fix_logging import LoggingFixer
 from shared.action_types import ActionResult
 from shared.context import CoreContext
-from will.self_healing.docstring_service import fix_docstrings
 from will.workflows.dev_sync_reporter import DevSyncReporter
 
 

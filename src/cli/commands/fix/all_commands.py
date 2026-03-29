@@ -25,13 +25,13 @@ from body.introspection.sync_service import run_sync_with_db
 from body.maintenance.command_sync_service import _sync_commands_to_db
 from body.maintenance.sync_vectors import main_async as sync_vectors_async
 from body.self_healing.code_style_service import format_code
+from body.self_healing.docstring_service import fix_docstrings
 from body.self_healing.id_tagging_service import assign_missing_ids
 from body.self_healing.policy_id_service import add_missing_policy_ids
 from body.self_healing.purge_legacy_tags_service import purge_legacy_tags
 from shared.cli_utils import core_command
 from shared.context import CoreContext
 from shared.infrastructure.database.session_manager import get_session
-from will.self_healing.docstring_service import fix_docstrings
 
 from . import COMMAND_CONFIG, fix_app
 from .fix_ir import fix_ir_log, fix_ir_triage
