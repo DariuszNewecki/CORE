@@ -22,7 +22,14 @@ from shared.logger import getLogger
 
 
 if TYPE_CHECKING:
+    from body.services.artifact_service import ArtifactService
+    from body.services.audit_findings_service import AuditFindingsService
     from body.services.blackboard_service import BlackboardService
+    from body.services.crawl_service import CrawlService
+    from body.services.doc_service import DocService
+    from body.services.health_log_service import HealthLogService
+    from body.services.symbol_service import SymbolService
+    from body.services.worker_registry_service import WorkerRegistryService
     from mind.governance.audit_context import AuditorContext
     from shared.infrastructure.clients.qdrant_client import QdrantService
     from will.orchestration.cognitive_service import CognitiveService
@@ -35,7 +42,14 @@ logger = getLogger(__name__)
 KERNEL_SERVICES: Final[dict[str, str]] = {
     "knowledge_service": "shared.infrastructure.knowledge.knowledge_service.KnowledgeService",
     "auditor": "mind.governance.auditor.ConstitutionalAuditor",
+    "artifact_service": "body.services.artifact_service.ArtifactService",
+    "audit_findings_service": "body.services.audit_findings_service.AuditFindingsService",
     "blackboard_service": "body.services.blackboard_service.BlackboardService",
+    "crawl_service": "body.services.crawl_service.CrawlService",
+    "doc_service": "body.services.doc_service.DocService",
+    "health_log_service": "body.services.health_log_service.HealthLogService",
+    "symbol_service": "body.services.symbol_service.SymbolService",
+    "worker_registry_service": "body.services.worker_registry_service.WorkerRegistryService",
 }
 
 
@@ -161,8 +175,22 @@ class ServiceRegistry:
             return await self.get_cognitive_service()
         if name == "auditor_context":
             return await self.get_auditor_context()
+        if name == "artifact_service":
+            return await self.get_artifact_service()
+        if name == "audit_findings_service":
+            return await self.get_audit_findings_service()
         if name == "blackboard_service":
             return await self.get_blackboard_service()
+        if name == "crawl_service":
+            return await self.get_crawl_service()
+        if name == "doc_service":
+            return await self.get_doc_service()
+        if name == "health_log_service":
+            return await self.get_health_log_service()
+        if name == "symbol_service":
+            return await self.get_symbol_service()
+        if name == "worker_registry_service":
+            return await self.get_worker_registry_service()
 
         # 2. Kernel Map Lookup
         async with self._lock:
@@ -277,6 +305,69 @@ class ServiceRegistry:
 
                 self._instances["blackboard_service"] = BlackboardService()
         return self._instances["blackboard_service"]
+
+    # ID: ae87e40d-d979-4b5f-9dea-480f48e7f43f
+    async def get_doc_service(self) -> DocService:
+        async with self._lock:
+            if "doc_service" not in self._instances:
+                from body.services.doc_service import DocService
+
+                self._instances["doc_service"] = DocService()
+        return self._instances["doc_service"]
+
+    # ID: 95fc7965-0a6a-4554-b5a3-b7abb696c044
+    async def get_health_log_service(self) -> HealthLogService:
+        async with self._lock:
+            if "health_log_service" not in self._instances:
+                from body.services.health_log_service import HealthLogService
+
+                self._instances["health_log_service"] = HealthLogService()
+        return self._instances["health_log_service"]
+
+    # ID: 2f4822e2-fdcb-4b0f-8edd-2d93193d08ef
+    async def get_audit_findings_service(self) -> AuditFindingsService:
+        async with self._lock:
+            if "audit_findings_service" not in self._instances:
+                from body.services.audit_findings_service import AuditFindingsService
+
+                self._instances["audit_findings_service"] = AuditFindingsService()
+        return self._instances["audit_findings_service"]
+
+    # ID: 4dd57094-61f1-4f94-aa69-f9d5f54d0701
+    async def get_crawl_service(self) -> CrawlService:
+        async with self._lock:
+            if "crawl_service" not in self._instances:
+                from body.services.crawl_service import CrawlService
+
+                self._instances["crawl_service"] = CrawlService()
+        return self._instances["crawl_service"]
+
+    # ID: 051bb11b-bbfe-40f3-8a55-6331f62cbd2f
+    async def get_artifact_service(self) -> ArtifactService:
+        async with self._lock:
+            if "artifact_service" not in self._instances:
+                from body.services.artifact_service import ArtifactService
+
+                self._instances["artifact_service"] = ArtifactService()
+        return self._instances["artifact_service"]
+
+    # ID: c5703bfa-8280-43cb-ae28-e556423ad2ea
+    async def get_worker_registry_service(self) -> WorkerRegistryService:
+        async with self._lock:
+            if "worker_registry_service" not in self._instances:
+                from body.services.worker_registry_service import WorkerRegistryService
+
+                self._instances["worker_registry_service"] = WorkerRegistryService()
+        return self._instances["worker_registry_service"]
+
+    # ID: 54147026-4a1c-4e67-81f8-498b1bfaa705
+    async def get_symbol_service(self) -> SymbolService:
+        async with self._lock:
+            if "symbol_service" not in self._instances:
+                from body.services.symbol_service import SymbolService
+
+                self._instances["symbol_service"] = SymbolService()
+        return self._instances["symbol_service"]
 
 
 # Global instance

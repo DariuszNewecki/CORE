@@ -137,7 +137,7 @@
   {
     "check_id": "architecture.channels.logger_not_presentation",
     "severity": "warning",
-    "message": "Line 130: logger used as renderer \u2014 'table_name' appears to be a presentation object; use console.print().",
+    "message": "Line 167: logger used as renderer \u2014 'table_name' appears to be a presentation object; use console.print().",
     "file_path": "src/mind/logic/engines/knowledge_gate.py",
     "line_number": null,
     "context": {},
@@ -344,6 +344,15 @@
   {
     "check_id": "architecture.max_file_size",
     "severity": "warning",
+    "message": "Module has 406 lines, exceeds limit of 400",
+    "file_path": "src/mind/logic/engines/knowledge_gate.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.max_file_size",
+    "severity": "warning",
     "message": "Module has 583 lines, exceeds limit of 400",
     "file_path": "src/shared/ai/prompt_model.py",
     "line_number": null,
@@ -443,7 +452,7 @@
   {
     "check_id": "architecture.max_file_size",
     "severity": "warning",
-    "message": "Module has 434 lines, exceeds limit of 400",
+    "message": "Module has 418 lines, exceeds limit of 400",
     "file_path": "src/will/workers/audit_violation_sensor.py",
     "line_number": null,
     "context": {},
@@ -900,6 +909,168 @@
     "details": {}
   },
   {
+    "check_id": "architecture.will.no_direct_database_access",
+    "severity": "warning",
+    "message": "/opt/dev/CORE/src/will/workers/audit_ingest_worker.py:211 - Forbidden import: 'from shared.infrastructure.database.session_manager import get_session' (matches constitutional boundary rule: shared.infrastructure.database.session_manager.get_session)",
+    "file_path": "src/will/workers/audit_ingest_worker.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.will.no_direct_database_access",
+    "severity": "warning",
+    "message": "/opt/dev/CORE/src/will/workers/audit_violation_sensor.py:278 - Forbidden import: 'from shared.infrastructure.database.session_manager import get_session' (matches constitutional boundary rule: shared.infrastructure.database.session_manager.get_session)",
+    "file_path": "src/will/workers/audit_violation_sensor.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.will.no_direct_database_access",
+    "severity": "warning",
+    "message": "/opt/dev/CORE/src/will/workers/blackboard_auditor.py:39 - Forbidden import: 'from shared.infrastructure.database.session_manager import get_session' (matches constitutional boundary rule: shared.infrastructure.database.session_manager.get_session)",
+    "file_path": "src/will/workers/blackboard_auditor.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.will.no_direct_database_access",
+    "severity": "warning",
+    "message": "/opt/dev/CORE/src/will/workers/capability_tagger.py:110 - Forbidden import: 'from shared.infrastructure.database.session_manager import get_session' (matches constitutional boundary rule: shared.infrastructure.database.session_manager.get_session)",
+    "file_path": "src/will/workers/capability_tagger.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.will.no_direct_database_access",
+    "severity": "warning",
+    "message": "/opt/dev/CORE/src/will/workers/capability_tagger.py:142 - Forbidden import: 'from shared.infrastructure.database.session_manager import get_session' (matches constitutional boundary rule: shared.infrastructure.database.session_manager.get_session)",
+    "file_path": "src/will/workers/capability_tagger.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.will.no_direct_database_access",
+    "severity": "warning",
+    "message": "/opt/dev/CORE/src/will/workers/doc_worker.py:30 - Forbidden import: 'from shared.infrastructure.database.session_manager import get_session' (matches constitutional boundary rule: shared.infrastructure.database.session_manager.get_session)",
+    "file_path": "src/will/workers/doc_worker.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.will.no_direct_database_access",
+    "severity": "warning",
+    "message": "/opt/dev/CORE/src/will/workers/intent_inspector.py:555 - Forbidden import: 'from shared.infrastructure.database.session_manager import get_session' (matches constitutional boundary rule: shared.infrastructure.database.session_manager.get_session)",
+    "file_path": "src/will/workers/intent_inspector.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.will.no_direct_database_access",
+    "severity": "warning",
+    "message": "/opt/dev/CORE/src/will/workers/observer_worker.py:33 - Forbidden import: 'from shared.infrastructure.database.session_manager import get_session' (matches constitutional boundary rule: shared.infrastructure.database.session_manager.get_session)",
+    "file_path": "src/will/workers/observer_worker.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.will.no_direct_database_access",
+    "severity": "warning",
+    "message": "/opt/dev/CORE/src/will/workers/prompt_extractor_worker.py:220 - Forbidden import: 'from shared.infrastructure.database.session_manager import get_session' (matches constitutional boundary rule: shared.infrastructure.database.session_manager.get_session)",
+    "file_path": "src/will/workers/prompt_extractor_worker.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.will.no_direct_database_access",
+    "severity": "warning",
+    "message": "/opt/dev/CORE/src/will/workers/prompt_extractor_worker.py:266 - Forbidden import: 'from shared.infrastructure.database.session_manager import get_session' (matches constitutional boundary rule: shared.infrastructure.database.session_manager.get_session)",
+    "file_path": "src/will/workers/prompt_extractor_worker.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.will.no_direct_database_access",
+    "severity": "warning",
+    "message": "/opt/dev/CORE/src/will/workers/proposal_worker.py:41 - Forbidden import: 'from shared.infrastructure.database.session_manager import get_session' (matches constitutional boundary rule: shared.infrastructure.database.session_manager.get_session)",
+    "file_path": "src/will/workers/proposal_worker.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.will.no_direct_database_access",
+    "severity": "warning",
+    "message": "/opt/dev/CORE/src/will/workers/repo_crawler.py:34 - Forbidden import: 'from shared.infrastructure.database.session_manager import get_session' (matches constitutional boundary rule: shared.infrastructure.database.session_manager.get_session)",
+    "file_path": "src/will/workers/repo_crawler.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.will.no_direct_database_access",
+    "severity": "warning",
+    "message": "/opt/dev/CORE/src/will/workers/repo_embedder.py:39 - Forbidden import: 'from shared.infrastructure.database.session_manager import get_session' (matches constitutional boundary rule: shared.infrastructure.database.session_manager.get_session)",
+    "file_path": "src/will/workers/repo_embedder.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.will.no_direct_database_access",
+    "severity": "warning",
+    "message": "/opt/dev/CORE/src/will/workers/worker_auditor.py:35 - Forbidden import: 'from shared.infrastructure.database.session_manager import get_session' (matches constitutional boundary rule: shared.infrastructure.database.session_manager.get_session)",
+    "file_path": "src/will/workers/worker_auditor.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.layers.no_body_to_will",
+    "severity": "warning",
+    "message": "/opt/dev/CORE/src/body/atomic/fix_actions.py:377 - Forbidden import: 'from will.self_healing.docstring_service import fix_docstrings' (matches constitutional boundary rule: will.self_healing)",
+    "file_path": "src/body/atomic/fix_actions.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.layers.no_body_to_will",
+    "severity": "warning",
+    "message": "/opt/dev/CORE/src/body/atomic/sync_actions.py:140 - Forbidden import: 'from will.workers.repo_crawler import RepoCrawlerWorker' (matches constitutional boundary rule: will.workers)",
+    "file_path": "src/body/atomic/sync_actions.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.layers.no_body_to_will",
+    "severity": "warning",
+    "message": "/opt/dev/CORE/src/body/atomic/sync_actions.py:141 - Forbidden import: 'from will.workers.repo_embedder import RepoEmbedderWorker' (matches constitutional boundary rule: will.workers)",
+    "file_path": "src/body/atomic/sync_actions.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.layers.no_body_to_will",
+    "severity": "warning",
+    "message": "/opt/dev/CORE/src/body/workers/violation_remediator.py:57 - Forbidden import: 'from will.self_healing.remediation_interpretation.service import RemediationInterpretationError' (matches constitutional boundary rule: will.self_healing)",
+    "file_path": "src/body/workers/violation_remediator.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
     "check_id": "modularity.single_responsibility",
     "severity": "warning",
     "message": "Modularity Debt: 54.2/100 (Limit: 60.0)",
@@ -920,7 +1091,7 @@
   {
     "check_id": "modularity.single_responsibility",
     "severity": "warning",
-    "message": "Modularity Debt: 52.2/100 (Limit: 60.0)",
+    "message": "Modularity Debt: 53.1/100 (Limit: 60.0)",
     "file_path": "src/body/services/service_registry.py",
     "line_number": null,
     "context": {},
@@ -1010,7 +1181,7 @@
   {
     "check_id": "modularity.single_responsibility",
     "severity": "warning",
-    "message": "Modularity Debt: 58.6/100 (Limit: 60.0)",
+    "message": "Modularity Debt: 60.0/100 (Limit: 60.0)",
     "file_path": "src/mind/logic/engines/knowledge_gate.py",
     "line_number": null,
     "context": {},
@@ -1172,7 +1343,7 @@
   {
     "check_id": "modularity.semantic_cohesion",
     "severity": "warning",
-    "message": "Modularity Debt: 52.2/100 (Limit: 60.0)",
+    "message": "Modularity Debt: 53.1/100 (Limit: 60.0)",
     "file_path": "src/body/services/service_registry.py",
     "line_number": null,
     "context": {},
@@ -1262,7 +1433,7 @@
   {
     "check_id": "modularity.semantic_cohesion",
     "severity": "warning",
-    "message": "Modularity Debt: 58.6/100 (Limit: 60.0)",
+    "message": "Modularity Debt: 60.0/100 (Limit: 60.0)",
     "file_path": "src/mind/logic/engines/knowledge_gate.py",
     "line_number": null,
     "context": {},
@@ -1424,7 +1595,7 @@
   {
     "check_id": "modularity.import_coupling",
     "severity": "warning",
-    "message": "Modularity Debt: 52.2/100 (Limit: 60.0)",
+    "message": "Modularity Debt: 53.1/100 (Limit: 60.0)",
     "file_path": "src/body/services/service_registry.py",
     "line_number": null,
     "context": {},
@@ -1514,7 +1685,7 @@
   {
     "check_id": "modularity.import_coupling",
     "severity": "warning",
-    "message": "Modularity Debt: 58.6/100 (Limit: 60.0)",
+    "message": "Modularity Debt: 60.0/100 (Limit: 60.0)",
     "file_path": "src/mind/logic/engines/knowledge_gate.py",
     "line_number": null,
     "context": {},
@@ -1676,7 +1847,7 @@
   {
     "check_id": "modularity.refactor_score_threshold",
     "severity": "warning",
-    "message": "Modularity Debt: 52.2/100 (Limit: 60.0)",
+    "message": "Modularity Debt: 53.1/100 (Limit: 60.0)",
     "file_path": "src/body/services/service_registry.py",
     "line_number": null,
     "context": {},
@@ -1766,7 +1937,7 @@
   {
     "check_id": "modularity.refactor_score_threshold",
     "severity": "warning",
-    "message": "Modularity Debt: 58.6/100 (Limit: 60.0)",
+    "message": "Modularity Debt: 60.0/100 (Limit: 60.0)",
     "file_path": "src/mind/logic/engines/knowledge_gate.py",
     "line_number": null,
     "context": {},
@@ -1902,6 +2073,132 @@
     "check_id": "modularity.refactor_score_threshold",
     "severity": "warning",
     "message": "Modularity Debt: 51.8/100 (Limit: 60.0)",
+    "file_path": "src/will/workers/worker_auditor.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.boundary.database_session_access",
+    "severity": "error",
+    "message": "/opt/dev/CORE/src/will/workers/audit_ingest_worker.py:211 - Forbidden import: 'from shared.infrastructure.database.session_manager import get_session' (matches constitutional boundary rule: shared.infrastructure.database.session_manager.get_session)",
+    "file_path": "src/will/workers/audit_ingest_worker.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.boundary.database_session_access",
+    "severity": "error",
+    "message": "/opt/dev/CORE/src/will/workers/audit_violation_sensor.py:278 - Forbidden import: 'from shared.infrastructure.database.session_manager import get_session' (matches constitutional boundary rule: shared.infrastructure.database.session_manager.get_session)",
+    "file_path": "src/will/workers/audit_violation_sensor.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.boundary.database_session_access",
+    "severity": "error",
+    "message": "/opt/dev/CORE/src/will/workers/blackboard_auditor.py:39 - Forbidden import: 'from shared.infrastructure.database.session_manager import get_session' (matches constitutional boundary rule: shared.infrastructure.database.session_manager.get_session)",
+    "file_path": "src/will/workers/blackboard_auditor.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.boundary.database_session_access",
+    "severity": "error",
+    "message": "/opt/dev/CORE/src/will/workers/capability_tagger.py:110 - Forbidden import: 'from shared.infrastructure.database.session_manager import get_session' (matches constitutional boundary rule: shared.infrastructure.database.session_manager.get_session)",
+    "file_path": "src/will/workers/capability_tagger.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.boundary.database_session_access",
+    "severity": "error",
+    "message": "/opt/dev/CORE/src/will/workers/capability_tagger.py:142 - Forbidden import: 'from shared.infrastructure.database.session_manager import get_session' (matches constitutional boundary rule: shared.infrastructure.database.session_manager.get_session)",
+    "file_path": "src/will/workers/capability_tagger.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.boundary.database_session_access",
+    "severity": "error",
+    "message": "/opt/dev/CORE/src/will/workers/doc_worker.py:30 - Forbidden import: 'from shared.infrastructure.database.session_manager import get_session' (matches constitutional boundary rule: shared.infrastructure.database.session_manager.get_session)",
+    "file_path": "src/will/workers/doc_worker.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.boundary.database_session_access",
+    "severity": "error",
+    "message": "/opt/dev/CORE/src/will/workers/intent_inspector.py:555 - Forbidden import: 'from shared.infrastructure.database.session_manager import get_session' (matches constitutional boundary rule: shared.infrastructure.database.session_manager.get_session)",
+    "file_path": "src/will/workers/intent_inspector.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.boundary.database_session_access",
+    "severity": "error",
+    "message": "/opt/dev/CORE/src/will/workers/observer_worker.py:33 - Forbidden import: 'from shared.infrastructure.database.session_manager import get_session' (matches constitutional boundary rule: shared.infrastructure.database.session_manager.get_session)",
+    "file_path": "src/will/workers/observer_worker.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.boundary.database_session_access",
+    "severity": "error",
+    "message": "/opt/dev/CORE/src/will/workers/prompt_extractor_worker.py:220 - Forbidden import: 'from shared.infrastructure.database.session_manager import get_session' (matches constitutional boundary rule: shared.infrastructure.database.session_manager.get_session)",
+    "file_path": "src/will/workers/prompt_extractor_worker.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.boundary.database_session_access",
+    "severity": "error",
+    "message": "/opt/dev/CORE/src/will/workers/prompt_extractor_worker.py:266 - Forbidden import: 'from shared.infrastructure.database.session_manager import get_session' (matches constitutional boundary rule: shared.infrastructure.database.session_manager.get_session)",
+    "file_path": "src/will/workers/prompt_extractor_worker.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.boundary.database_session_access",
+    "severity": "error",
+    "message": "/opt/dev/CORE/src/will/workers/proposal_worker.py:41 - Forbidden import: 'from shared.infrastructure.database.session_manager import get_session' (matches constitutional boundary rule: shared.infrastructure.database.session_manager.get_session)",
+    "file_path": "src/will/workers/proposal_worker.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.boundary.database_session_access",
+    "severity": "error",
+    "message": "/opt/dev/CORE/src/will/workers/repo_crawler.py:34 - Forbidden import: 'from shared.infrastructure.database.session_manager import get_session' (matches constitutional boundary rule: shared.infrastructure.database.session_manager.get_session)",
+    "file_path": "src/will/workers/repo_crawler.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.boundary.database_session_access",
+    "severity": "error",
+    "message": "/opt/dev/CORE/src/will/workers/repo_embedder.py:39 - Forbidden import: 'from shared.infrastructure.database.session_manager import get_session' (matches constitutional boundary rule: shared.infrastructure.database.session_manager.get_session)",
+    "file_path": "src/will/workers/repo_embedder.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.boundary.database_session_access",
+    "severity": "error",
+    "message": "/opt/dev/CORE/src/will/workers/worker_auditor.py:35 - Forbidden import: 'from shared.infrastructure.database.session_manager import get_session' (matches constitutional boundary rule: shared.infrastructure.database.session_manager.get_session)",
     "file_path": "src/will/workers/worker_auditor.py",
     "line_number": null,
     "context": {},

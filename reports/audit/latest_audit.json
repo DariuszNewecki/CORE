@@ -1,8 +1,8 @@
 {
-  "audit_id": "4d451bd5-c4ea-40c6-a48d-aa48a59e3c2d",
-  "timestamp": "2026-03-28T14:02:10Z",
-  "passed": true,
-  "findings_count": 348,
+  "audit_id": "39b7bb32-40dd-41d7-9545-b57639c43da0",
+  "timestamp": "2026-03-29T10:08:28Z",
+  "passed": false,
+  "findings_count": 381,
   "executed_rules": [
     "ai.cognitive_role.no_hardcoded_string",
     "ai.prompt.artifact.no_provider_leak",
@@ -19,6 +19,7 @@
     "architecture.boundary.database_session_access",
     "architecture.boundary.file_handler_access",
     "architecture.boundary.intent_loader_access",
+    "architecture.boundary.llm_client_access",
     "architecture.boundary.settings_access",
     "architecture.channels.api_structured_output_only",
     "architecture.channels.logger_not_presentation",
@@ -104,5 +105,5 @@
     "quality.test_integrity",
     "quality.type_safety"
   ],
-  "verdict": "PASS"
+  "verdict": "FAIL"
 }

@@ -21,7 +21,6 @@ blackboard. Does not write source files.
 
 from __future__ import annotations
 
-import json
 import re
 from pathlib import Path
 from typing import Any
@@ -122,6 +121,8 @@ class PromptExtractorWorker(Worker):
                 continue
 
             try:
+                import json
+
                 raw = await model.invoke(
                     context={
                         "file_path": file_path_str,
@@ -215,68 +216,13 @@ class PromptExtractorWorker(Worker):
         Uses FOR UPDATE SKIP LOCKED to prevent double-claiming across
         concurrent worker instances.
         """
-        from sqlalchemy import text
-
-        from shared.infrastructure.database.session_manager import get_session
-
-        async with get_session() as session:
-            async with session.begin():
-                result = await session.execute(
-                    text(
-                        """
-                        UPDATE core.blackboard_entries
-                        SET status = 'claimed', updated_at = now()
-                        WHERE id IN (
-                            SELECT id FROM core.blackboard_entries
-                            WHERE entry_type = 'finding'
-                              AND subject LIKE :prefix
-                              AND status = 'open'
-                            ORDER BY created_at ASC
-                            LIMIT :limit
-                            FOR UPDATE SKIP LOCKED
-                        )
-                        RETURNING id, subject, payload
-                        """
-                    ),
-                    {"prefix": f"{_SOURCE_RULE}::%", "limit": _CLAIM_LIMIT},
-                )
-                rows = result.fetchall()
-
-        findings = []
-        for row in rows:
-            raw_payload = row[2]
-            payload = (
-                raw_payload
-                if isinstance(raw_payload, dict)
-                else json.loads(raw_payload)
-            )
-            findings.append(
-                {
-                    "id": str(row[0]),
-                    "subject": row[1],
-                    "payload": payload,
-                }
-            )
-        return findings
+        svc = await self._core_context.registry.get_blackboard_service()
+        return await svc.claim_open_findings(f"{_SOURCE_RULE}::%", _CLAIM_LIMIT)
 
     async def _mark_finding(self, finding_id: str, status: str) -> None:
         """Update the status of a blackboard finding by ID."""
-        from sqlalchemy import text
-
-        from shared.infrastructure.database.session_manager import get_session
-
-        async with get_session() as session:
-            await session.execute(
-                text(
-                    """
-                    UPDATE core.blackboard_entries
-                    SET status = :status
-                    WHERE id = :id
-                    """
-                ),
-                {"status": status, "id": finding_id},
-            )
-            await session.commit()
+        svc = await self._core_context.registry.get_blackboard_service()
+        await svc.update_entry_status(finding_id, status)
 
 
 # ---------------------------------------------------------------------------
