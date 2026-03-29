@@ -223,7 +223,8 @@ mappings:
         - "src/mind/**/*.py"
 
   # ==========================================================================
-  # RULE 14: Shared Infrastructure is Utility (Advisory - uses knowledge_gate)
+  # RULE 14: Shared Never Makes Strategic Decisions (Advisory - knowledge_gate)
+  # Strategic decisions require LLM judgment — cannot be mechanically detected.
   # ==========================================================================
 
   architecture.shared.no_strategic_decisions:
@@ -236,6 +237,50 @@ mappings:
         - "src/shared/**/*.py"
       excludes:
         - "src/shared/infrastructure/service_registry.py"
+
+  # ==========================================================================
+  # RULE 15: Shared Never Imports From Layers — Blocking AST Gate
+  # Constitutional basis: CORE-Mind-Body-Will-Separation.md §7.2 Admission Test 1
+  # ADDED 2026-03-28: Implements the shared/ admission test as enforceable law.
+  # Replaces the previously advisory-only governance of src/shared/.
+  # ==========================================================================
+
+  architecture.shared.no_layer_imports:
+    engine: ast_gate
+    params:
+      check_type: import_boundary
+      forbidden:
+        - "src.mind"
+        - "mind"
+        - "src.body"
+        - "body"
+        - "src.will"
+        - "will"
+    scope:
+      applies_to:
+        - "src/shared/**/*.py"
+      excludes:
+        # Bootstrap sanctuary — wires layers together at startup only,
+        # not subject to layer separation rules
+        - "src/shared/infrastructure/service_registry.py"
+        - "src/shared/infrastructure/bootstrap_registry.py"
+        - "src/shared/workers/base.py"
+        # TEMPORARY — violations pending remediation:
+        # file_handler.py: imports body.governance.intent_guard —
+        #   IntentGuard must be injected, not imported directly
+        - "src/shared/infrastructure/storage/file_handler.py"
+        # context/service.py: lazy imports body.services.service_registry —
+        #   service_registry must be injected via constructor
+        - "src/shared/infrastructure/context/service.py"
+        # cognitive_adapter.py: lazy imports will.orchestration.cognitive_service —
+        #   CognitiveService must be replaced with a shared protocol
+        - "src/shared/infrastructure/vector/cognitive_adapter.py"
+        # Deprecated shims — re-export from body/ pending caller cleanup:
+        - "src/shared/infrastructure/repositories/decision_trace_repository.py"
+        - "src/shared/infrastructure/repositories/refusal_repository.py"
+        # Tests
+        - "src/shared/**/test_*.py"
+        - "tests/**"
 
 # ==============================================================================
 # Meta: This mapping file restores CORE's founding architectural principle
