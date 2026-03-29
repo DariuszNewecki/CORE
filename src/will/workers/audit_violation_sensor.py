@@ -413,22 +413,6 @@ class AuditViolationSensor(Worker):
         daemon generations or parallel sensor instances from re-posting the
         same violation when their UUIDs differ.
         """
-        from sqlalchemy import text
-
-        from shared.infrastructure.database.session_manager import get_session
-
         prefix = f"{_FINDING_SUBJECT}::{self._rule_namespace}%"
-
-        async with get_session() as session:
-            result = await session.execute(
-                text(
-                    """
-                    SELECT subject FROM core.blackboard_entries
-                    WHERE entry_type = 'finding'
-                      AND subject LIKE :prefix
-                      AND status NOT IN ('resolved', 'abandoned')
-                    """
-                ),
-                {"prefix": prefix},
-            )
-            return {row[0] for row in result.fetchall()}
+        svc = await self._core_context.registry.get_blackboard_service()
+        return await svc.fetch_open_finding_subjects_by_prefix(prefix)
