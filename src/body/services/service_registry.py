@@ -22,6 +22,7 @@ from shared.logger import getLogger
 
 
 if TYPE_CHECKING:
+    from body.services.blackboard_service import BlackboardService
     from mind.governance.audit_context import AuditorContext
     from shared.infrastructure.clients.qdrant_client import QdrantService
     from will.orchestration.cognitive_service import CognitiveService
@@ -34,7 +35,7 @@ logger = getLogger(__name__)
 KERNEL_SERVICES: Final[dict[str, str]] = {
     "knowledge_service": "shared.infrastructure.knowledge.knowledge_service.KnowledgeService",
     "auditor": "mind.governance.auditor.ConstitutionalAuditor",
-    # Add other dynamic services here if needed in the future
+    "blackboard_service": "body.services.blackboard_service.BlackboardService",
 }
 
 
@@ -160,6 +161,8 @@ class ServiceRegistry:
             return await self.get_cognitive_service()
         if name == "auditor_context":
             return await self.get_auditor_context()
+        if name == "blackboard_service":
+            return await self.get_blackboard_service()
 
         # 2. Kernel Map Lookup
         async with self._lock:
@@ -265,6 +268,15 @@ class ServiceRegistry:
                 repo_path = bootstrap_registry.get_repo_path()
                 self._instances["auditor_context"] = AuditorContext(repo_path)
         return self._instances["auditor_context"]
+
+    # ID: d0cf02aa-1808-40f1-8a87-429fb7fdad4b
+    async def get_blackboard_service(self) -> BlackboardService:
+        async with self._lock:
+            if "blackboard_service" not in self._instances:
+                from body.services.blackboard_service import BlackboardService
+
+                self._instances["blackboard_service"] = BlackboardService()
+        return self._instances["blackboard_service"]
 
 
 # Global instance
