@@ -1,31 +1,29 @@
-# src/will/self_healing/remediation_interpretation/service.py
-# DEPRECATED: moved to shared/self_healing/remediation_interpretation/
-# src/will/self_healing/remediation_interpretation/service.py
+# src/shared/self_healing/remediation_interpretation/service.py
 
 from __future__ import annotations
 
 from typing import Any
 
-from will.self_healing.remediation_interpretation.file_context_assembler import (
+from shared.self_healing.remediation_interpretation.file_context_assembler import (
     FileContextAssembler,
 )
-from will.self_healing.remediation_interpretation.file_role_detector import (
+from shared.self_healing.remediation_interpretation.file_role_detector import (
     FileRoleDetector,
 )
-from will.self_healing.remediation_interpretation.finding_normalizer import (
+from shared.self_healing.remediation_interpretation.finding_normalizer import (
     FindingNormalizer,
 )
-from will.self_healing.remediation_interpretation.models import ReasoningBrief
-from will.self_healing.remediation_interpretation.reasoning_brief_builder import (
+from shared.self_healing.remediation_interpretation.models import ReasoningBrief
+from shared.self_healing.remediation_interpretation.reasoning_brief_builder import (
     ReasoningBriefBuilder,
 )
-from will.self_healing.remediation_interpretation.responsibility_extractor import (
+from shared.self_healing.remediation_interpretation.responsibility_extractor import (
     ResponsibilityExtractor,
 )
-from will.self_healing.remediation_interpretation.strategy_catalog import (
+from shared.self_healing.remediation_interpretation.strategy_catalog import (
     StrategyCatalog,
 )
-from will.self_healing.remediation_interpretation.strategy_selector import (
+from shared.self_healing.remediation_interpretation.strategy_selector import (
     StrategySelector,
 )
 

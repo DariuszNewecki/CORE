@@ -374,7 +374,7 @@ async def action_fix_docstrings(
 ) -> ActionResult:
     """Generate and inject missing docstrings using the Coder LLM role."""
     start = time.time()
-    from will.self_healing.docstring_service import fix_docstrings
+    from body.self_healing.docstring_service import fix_docstrings
 
     await fix_docstrings(context=core_context, write=write)
     return ActionResult(

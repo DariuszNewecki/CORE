@@ -53,11 +53,11 @@ from datetime import UTC, datetime
 from typing import Any
 
 from shared.logger import getLogger
-from shared.workers.base import Worker
-from will.self_healing.remediation_interpretation.service import (
+from shared.self_healing.remediation_interpretation.service import (
     RemediationInterpretationError,
     RemediationInterpretationService,
 )
+from shared.workers.base import Worker
 
 
 logger = getLogger(__name__)
@@ -734,57 +734,11 @@ class ViolationRemediator(Worker):
         Uses FOR UPDATE SKIP LOCKED to prevent double-claiming across
         concurrent worker instances.
         """
-        from sqlalchemy import text
-
-        from shared.infrastructure.database.session_manager import get_session
-
-        async with get_session() as session:
-            async with session.begin():
-                result = await session.execute(
-                    text(
-                        """
-                        UPDATE core.blackboard_entries
-                        SET status = 'claimed', updated_at = now()
-                        WHERE id IN (
-                            SELECT id FROM core.blackboard_entries
-                            WHERE entry_type = 'finding'
-                              AND subject LIKE :prefix
-                              AND status = 'open'
-                            ORDER BY
-                                CASE (payload->>'severity')
-                                    WHEN 'critical' THEN 1
-                                    WHEN 'error'    THEN 2
-                                    WHEN 'warning'  THEN 3
-                                    WHEN 'info'     THEN 4
-                                    ELSE 5
-                                END ASC,
-                                created_at ASC
-                            LIMIT :limit
-                            FOR UPDATE SKIP LOCKED
-                        )
-                        RETURNING id, subject, payload
-                        """
-                    ),
-                    {"prefix": f"{_SOURCE_SUBJECT}::%", "limit": _CLAIM_LIMIT},
-                )
-                rows = result.fetchall()
-
-        findings = []
-        for row in rows:
-            raw_payload = row[2]
-            payload = (
-                raw_payload
-                if isinstance(raw_payload, dict)
-                else json.loads(raw_payload)
-            )
-            findings.append(
-                {
-                    "id": str(row[0]),
-                    "subject": row[1],
-                    "payload": payload,
-                }
-            )
-        return findings
+        bb = await self._ctx.registry.get_blackboard_service()
+        return await bb.claim_violation_findings(
+            prefix=f"{_SOURCE_SUBJECT}::%",
+            limit=_CLAIM_LIMIT,
+        )
 
     async def _mark_findings(self, findings: list[dict[str, Any]], status: str) -> None:
         """Batch-update status of a list of findings."""
@@ -793,22 +747,8 @@ class ViolationRemediator(Worker):
 
     async def _mark_finding(self, finding_id: str, status: str) -> None:
         """Update the status of a single blackboard finding by ID."""
-        from sqlalchemy import text
-
-        from shared.infrastructure.database.session_manager import get_session
-
-        async with get_session() as session:
-            await session.execute(
-                text(
-                    """
-                    UPDATE core.blackboard_entries
-                    SET status = :status, updated_at = now()
-                    WHERE id = :id
-                    """
-                ),
-                {"status": status, "id": finding_id},
-            )
-            await session.commit()
+        bb = await self._ctx.registry.get_blackboard_service()
+        await bb.update_entry_status(finding_id, status)
 
 
 # ---------------------------------------------------------------------------

@@ -1,13 +1,11 @@
-# src/will/self_healing/remediation_interpretation/file_role_detector.py
-# DEPRECATED: moved to shared/self_healing/remediation_interpretation/
-# src/will/self_healing/remediation_interpretation/file_role_detector.py
+# src/shared/self_healing/remediation_interpretation/file_role_detector.py
 
 from __future__ import annotations
 
 import ast
 from collections.abc import Iterable
 
-from will.self_healing.remediation_interpretation.models import (
+from shared.self_healing.remediation_interpretation.models import (
     FileRole,
     NormalizedFinding,
 )

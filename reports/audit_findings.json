@@ -128,6 +128,15 @@
   {
     "check_id": "architecture.channels.logger_not_presentation",
     "severity": "warning",
+    "message": "Line 187: logger used as renderer \u2014 Rich markup detected in log string; use plain text for logger.",
+    "file_path": "src/body/self_healing/docstring_service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.channels.logger_not_presentation",
+    "severity": "warning",
     "message": "Line 148: logger used as renderer \u2014 Rich markup detected in log string; use plain text for logger.",
     "file_path": "src/mind/logic/auditor.py",
     "line_number": null,
@@ -155,7 +164,7 @@
   {
     "check_id": "architecture.channels.logger_not_presentation",
     "severity": "warning",
-    "message": "Line 187: logger used as renderer \u2014 Rich markup detected in log string; use plain text for logger.",
+    "message": "Line 189: logger used as renderer \u2014 Rich markup detected in log string; use plain text for logger.",
     "file_path": "src/will/self_healing/docstring_service.py",
     "line_number": null,
     "context": {},
@@ -173,7 +182,7 @@
   {
     "check_id": "architecture.channels.logger_not_presentation",
     "severity": "warning",
-    "message": "Line 221: logger used as renderer \u2014 Rich markup detected in log string; use plain text for logger.",
+    "message": "Line 218: logger used as renderer \u2014 Rich markup detected in log string; use plain text for logger.",
     "file_path": "src/will/workers/proposal_worker.py",
     "line_number": null,
     "context": {},
@@ -299,6 +308,15 @@
   {
     "check_id": "architecture.max_file_size",
     "severity": "warning",
+    "message": "Module has 562 lines, exceeds limit of 400",
+    "file_path": "src/body/atomic/sync_actions.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.max_file_size",
+    "severity": "warning",
     "message": "Module has 428 lines, exceeds limit of 400",
     "file_path": "src/body/evaluators/atomic_actions_evaluator.py",
     "line_number": null,
@@ -317,6 +335,15 @@
   {
     "check_id": "architecture.max_file_size",
     "severity": "warning",
+    "message": "Module has 866 lines, exceeds limit of 400",
+    "file_path": "src/body/services/crawl_service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.max_file_size",
+    "severity": "warning",
     "message": "Module has 508 lines, exceeds limit of 400",
     "file_path": "src/body/workers/call_site_rewriter.py",
     "line_number": null,
@@ -326,7 +353,7 @@
   {
     "check_id": "architecture.max_file_size",
     "severity": "warning",
-    "message": "Module has 823 lines, exceeds limit of 400",
+    "message": "Module has 763 lines, exceeds limit of 400",
     "file_path": "src/body/workers/violation_remediator.py",
     "line_number": null,
     "context": {},
@@ -389,6 +416,24 @@
   {
     "check_id": "architecture.max_file_size",
     "severity": "warning",
+    "message": "Module has 599 lines, exceeds limit of 400",
+    "file_path": "src/shared/self_healing/remediation_interpretation/file_role_detector.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.max_file_size",
+    "severity": "warning",
+    "message": "Module has 421 lines, exceeds limit of 400",
+    "file_path": "src/shared/self_healing/remediation_interpretation/responsibility_extractor.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.max_file_size",
+    "severity": "warning",
     "message": "Module has 415 lines, exceeds limit of 400",
     "file_path": "src/will/agents/strategic_auditor/agent.py",
     "line_number": null,
@@ -425,7 +470,7 @@
   {
     "check_id": "architecture.max_file_size",
     "severity": "warning",
-    "message": "Module has 599 lines, exceeds limit of 400",
+    "message": "Module has 601 lines, exceeds limit of 400",
     "file_path": "src/will/self_healing/remediation_interpretation/file_role_detector.py",
     "line_number": null,
     "context": {},
@@ -434,7 +479,7 @@
   {
     "check_id": "architecture.max_file_size",
     "severity": "warning",
-    "message": "Module has 421 lines, exceeds limit of 400",
+    "message": "Module has 423 lines, exceeds limit of 400",
     "file_path": "src/will/self_healing/remediation_interpretation/responsibility_extractor.py",
     "line_number": null,
     "context": {},
@@ -461,7 +506,7 @@
   {
     "check_id": "architecture.max_file_size",
     "severity": "warning",
-    "message": "Module has 569 lines, exceeds limit of 400",
+    "message": "Module has 554 lines, exceeds limit of 400",
     "file_path": "src/will/workers/intent_inspector.py",
     "line_number": null,
     "context": {},
@@ -470,25 +515,7 @@
   {
     "check_id": "architecture.max_file_size",
     "severity": "warning",
-    "message": "Module has 418 lines, exceeds limit of 400",
-    "file_path": "src/will/workers/proposal_worker.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.max_file_size",
-    "severity": "warning",
-    "message": "Module has 762 lines, exceeds limit of 400",
-    "file_path": "src/will/workers/repo_crawler.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.max_file_size",
-    "severity": "warning",
-    "message": "Module has 465 lines, exceeds limit of 400",
+    "message": "Module has 438 lines, exceeds limit of 400",
     "file_path": "src/will/workers/repo_embedder.py",
     "line_number": null,
     "context": {},
@@ -902,17 +929,8 @@
   {
     "check_id": "architecture.intent.non_gateway_no_direct_resolution",
     "severity": "warning",
-    "message": "Line 212: Direct .intent traversal via 'glob()' outside shared intent infrastructure.",
+    "message": "Line 211: Direct .intent traversal via 'glob()' outside shared intent infrastructure.",
     "file_path": "src/will/workers/worker_auditor.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.will.no_direct_database_access",
-    "severity": "warning",
-    "message": "/opt/dev/CORE/src/will/workers/audit_ingest_worker.py:211 - Forbidden import: 'from shared.infrastructure.database.session_manager import get_session' (matches constitutional boundary rule: shared.infrastructure.database.session_manager.get_session)",
-    "file_path": "src/will/workers/audit_ingest_worker.py",
     "line_number": null,
     "context": {},
     "details": {}
@@ -929,79 +947,7 @@
   {
     "check_id": "architecture.will.no_direct_database_access",
     "severity": "warning",
-    "message": "/opt/dev/CORE/src/will/workers/blackboard_auditor.py:39 - Forbidden import: 'from shared.infrastructure.database.session_manager import get_session' (matches constitutional boundary rule: shared.infrastructure.database.session_manager.get_session)",
-    "file_path": "src/will/workers/blackboard_auditor.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.will.no_direct_database_access",
-    "severity": "warning",
-    "message": "/opt/dev/CORE/src/will/workers/capability_tagger.py:110 - Forbidden import: 'from shared.infrastructure.database.session_manager import get_session' (matches constitutional boundary rule: shared.infrastructure.database.session_manager.get_session)",
-    "file_path": "src/will/workers/capability_tagger.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.will.no_direct_database_access",
-    "severity": "warning",
-    "message": "/opt/dev/CORE/src/will/workers/capability_tagger.py:142 - Forbidden import: 'from shared.infrastructure.database.session_manager import get_session' (matches constitutional boundary rule: shared.infrastructure.database.session_manager.get_session)",
-    "file_path": "src/will/workers/capability_tagger.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.will.no_direct_database_access",
-    "severity": "warning",
-    "message": "/opt/dev/CORE/src/will/workers/doc_worker.py:30 - Forbidden import: 'from shared.infrastructure.database.session_manager import get_session' (matches constitutional boundary rule: shared.infrastructure.database.session_manager.get_session)",
-    "file_path": "src/will/workers/doc_worker.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.will.no_direct_database_access",
-    "severity": "warning",
-    "message": "/opt/dev/CORE/src/will/workers/intent_inspector.py:555 - Forbidden import: 'from shared.infrastructure.database.session_manager import get_session' (matches constitutional boundary rule: shared.infrastructure.database.session_manager.get_session)",
-    "file_path": "src/will/workers/intent_inspector.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.will.no_direct_database_access",
-    "severity": "warning",
-    "message": "/opt/dev/CORE/src/will/workers/observer_worker.py:33 - Forbidden import: 'from shared.infrastructure.database.session_manager import get_session' (matches constitutional boundary rule: shared.infrastructure.database.session_manager.get_session)",
-    "file_path": "src/will/workers/observer_worker.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.will.no_direct_database_access",
-    "severity": "warning",
-    "message": "/opt/dev/CORE/src/will/workers/prompt_extractor_worker.py:220 - Forbidden import: 'from shared.infrastructure.database.session_manager import get_session' (matches constitutional boundary rule: shared.infrastructure.database.session_manager.get_session)",
-    "file_path": "src/will/workers/prompt_extractor_worker.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.will.no_direct_database_access",
-    "severity": "warning",
-    "message": "/opt/dev/CORE/src/will/workers/prompt_extractor_worker.py:266 - Forbidden import: 'from shared.infrastructure.database.session_manager import get_session' (matches constitutional boundary rule: shared.infrastructure.database.session_manager.get_session)",
-    "file_path": "src/will/workers/prompt_extractor_worker.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.will.no_direct_database_access",
-    "severity": "warning",
-    "message": "/opt/dev/CORE/src/will/workers/proposal_worker.py:41 - Forbidden import: 'from shared.infrastructure.database.session_manager import get_session' (matches constitutional boundary rule: shared.infrastructure.database.session_manager.get_session)",
+    "message": "/opt/dev/CORE/src/will/workers/proposal_worker.py:175 - Forbidden import: 'from shared.infrastructure.database.session_manager import get_session' (matches constitutional boundary rule: shared.infrastructure.database.session_manager.get_session)",
     "file_path": "src/will/workers/proposal_worker.py",
     "line_number": null,
     "context": {},
@@ -1010,62 +956,8 @@
   {
     "check_id": "architecture.will.no_direct_database_access",
     "severity": "warning",
-    "message": "/opt/dev/CORE/src/will/workers/repo_crawler.py:34 - Forbidden import: 'from shared.infrastructure.database.session_manager import get_session' (matches constitutional boundary rule: shared.infrastructure.database.session_manager.get_session)",
-    "file_path": "src/will/workers/repo_crawler.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.will.no_direct_database_access",
-    "severity": "warning",
-    "message": "/opt/dev/CORE/src/will/workers/repo_embedder.py:39 - Forbidden import: 'from shared.infrastructure.database.session_manager import get_session' (matches constitutional boundary rule: shared.infrastructure.database.session_manager.get_session)",
+    "message": "/opt/dev/CORE/src/will/workers/repo_embedder.py:96 - Forbidden import: 'from shared.infrastructure.database.session_manager import get_session' (matches constitutional boundary rule: shared.infrastructure.database.session_manager.get_session)",
     "file_path": "src/will/workers/repo_embedder.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.will.no_direct_database_access",
-    "severity": "warning",
-    "message": "/opt/dev/CORE/src/will/workers/worker_auditor.py:35 - Forbidden import: 'from shared.infrastructure.database.session_manager import get_session' (matches constitutional boundary rule: shared.infrastructure.database.session_manager.get_session)",
-    "file_path": "src/will/workers/worker_auditor.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.layers.no_body_to_will",
-    "severity": "warning",
-    "message": "/opt/dev/CORE/src/body/atomic/fix_actions.py:377 - Forbidden import: 'from will.self_healing.docstring_service import fix_docstrings' (matches constitutional boundary rule: will.self_healing)",
-    "file_path": "src/body/atomic/fix_actions.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.layers.no_body_to_will",
-    "severity": "warning",
-    "message": "/opt/dev/CORE/src/body/atomic/sync_actions.py:140 - Forbidden import: 'from will.workers.repo_crawler import RepoCrawlerWorker' (matches constitutional boundary rule: will.workers)",
-    "file_path": "src/body/atomic/sync_actions.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.layers.no_body_to_will",
-    "severity": "warning",
-    "message": "/opt/dev/CORE/src/body/atomic/sync_actions.py:141 - Forbidden import: 'from will.workers.repo_embedder import RepoEmbedderWorker' (matches constitutional boundary rule: will.workers)",
-    "file_path": "src/body/atomic/sync_actions.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.layers.no_body_to_will",
-    "severity": "warning",
-    "message": "/opt/dev/CORE/src/body/workers/violation_remediator.py:57 - Forbidden import: 'from will.self_healing.remediation_interpretation.service import RemediationInterpretationError' (matches constitutional boundary rule: will.self_healing)",
-    "file_path": "src/body/workers/violation_remediator.py",
     "line_number": null,
     "context": {},
     "details": {}
@@ -1091,7 +983,16 @@
   {
     "check_id": "modularity.single_responsibility",
     "severity": "warning",
-    "message": "Modularity Debt: 53.1/100 (Limit: 60.0)",
+    "message": "Modularity Debt: 60.3/100 (Limit: 60.0)",
+    "file_path": "src/body/services/crawl_service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "modularity.single_responsibility",
+    "severity": "warning",
+    "message": "Modularity Debt: 58.6/100 (Limit: 60.0)",
     "file_path": "src/body/services/service_registry.py",
     "line_number": null,
     "context": {},
@@ -1226,6 +1127,15 @@
   {
     "check_id": "modularity.single_responsibility",
     "severity": "warning",
+    "message": "Modularity Debt: 48.3/100 (Limit: 60.0)",
+    "file_path": "src/shared/self_healing/remediation_interpretation/file_role_detector.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "modularity.single_responsibility",
+    "severity": "warning",
     "message": "Modularity Debt: 60.3/100 (Limit: 60.0)",
     "file_path": "src/shared/workers/base.py",
     "line_number": null,
@@ -1289,35 +1199,8 @@
   {
     "check_id": "modularity.single_responsibility",
     "severity": "warning",
-    "message": "Modularity Debt: 53.0/100 (Limit: 60.0)",
-    "file_path": "src/will/workers/prompt_extractor_worker.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.single_responsibility",
-    "severity": "warning",
-    "message": "Modularity Debt: 61.9/100 (Limit: 60.0)",
-    "file_path": "src/will/workers/repo_crawler.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.single_responsibility",
-    "severity": "warning",
-    "message": "Modularity Debt: 58.9/100 (Limit: 60.0)",
+    "message": "Modularity Debt: 58.3/100 (Limit: 60.0)",
     "file_path": "src/will/workers/repo_embedder.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.single_responsibility",
-    "severity": "warning",
-    "message": "Modularity Debt: 51.8/100 (Limit: 60.0)",
-    "file_path": "src/will/workers/worker_auditor.py",
     "line_number": null,
     "context": {},
     "details": {}
@@ -1343,7 +1226,16 @@
   {
     "check_id": "modularity.semantic_cohesion",
     "severity": "warning",
-    "message": "Modularity Debt: 53.1/100 (Limit: 60.0)",
+    "message": "Modularity Debt: 60.3/100 (Limit: 60.0)",
+    "file_path": "src/body/services/crawl_service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "modularity.semantic_cohesion",
+    "severity": "warning",
+    "message": "Modularity Debt: 58.6/100 (Limit: 60.0)",
     "file_path": "src/body/services/service_registry.py",
     "line_number": null,
     "context": {},
@@ -1478,6 +1370,15 @@
   {
     "check_id": "modularity.semantic_cohesion",
     "severity": "warning",
+    "message": "Modularity Debt: 48.3/100 (Limit: 60.0)",
+    "file_path": "src/shared/self_healing/remediation_interpretation/file_role_detector.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "modularity.semantic_cohesion",
+    "severity": "warning",
     "message": "Modularity Debt: 60.3/100 (Limit: 60.0)",
     "file_path": "src/shared/workers/base.py",
     "line_number": null,
@@ -1541,35 +1442,8 @@
   {
     "check_id": "modularity.semantic_cohesion",
     "severity": "warning",
-    "message": "Modularity Debt: 53.0/100 (Limit: 60.0)",
-    "file_path": "src/will/workers/prompt_extractor_worker.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.semantic_cohesion",
-    "severity": "warning",
-    "message": "Modularity Debt: 61.9/100 (Limit: 60.0)",
-    "file_path": "src/will/workers/repo_crawler.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.semantic_cohesion",
-    "severity": "warning",
-    "message": "Modularity Debt: 58.9/100 (Limit: 60.0)",
+    "message": "Modularity Debt: 58.3/100 (Limit: 60.0)",
     "file_path": "src/will/workers/repo_embedder.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.semantic_cohesion",
-    "severity": "warning",
-    "message": "Modularity Debt: 51.8/100 (Limit: 60.0)",
-    "file_path": "src/will/workers/worker_auditor.py",
     "line_number": null,
     "context": {},
     "details": {}
@@ -1595,7 +1469,16 @@
   {
     "check_id": "modularity.import_coupling",
     "severity": "warning",
-    "message": "Modularity Debt: 53.1/100 (Limit: 60.0)",
+    "message": "Modularity Debt: 60.3/100 (Limit: 60.0)",
+    "file_path": "src/body/services/crawl_service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "modularity.import_coupling",
+    "severity": "warning",
+    "message": "Modularity Debt: 58.6/100 (Limit: 60.0)",
     "file_path": "src/body/services/service_registry.py",
     "line_number": null,
     "context": {},
@@ -1730,6 +1613,15 @@
   {
     "check_id": "modularity.import_coupling",
     "severity": "warning",
+    "message": "Modularity Debt: 48.3/100 (Limit: 60.0)",
+    "file_path": "src/shared/self_healing/remediation_interpretation/file_role_detector.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "modularity.import_coupling",
+    "severity": "warning",
     "message": "Modularity Debt: 60.3/100 (Limit: 60.0)",
     "file_path": "src/shared/workers/base.py",
     "line_number": null,
@@ -1793,35 +1685,8 @@
   {
     "check_id": "modularity.import_coupling",
     "severity": "warning",
-    "message": "Modularity Debt: 53.0/100 (Limit: 60.0)",
-    "file_path": "src/will/workers/prompt_extractor_worker.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.import_coupling",
-    "severity": "warning",
-    "message": "Modularity Debt: 61.9/100 (Limit: 60.0)",
-    "file_path": "src/will/workers/repo_crawler.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.import_coupling",
-    "severity": "warning",
-    "message": "Modularity Debt: 58.9/100 (Limit: 60.0)",
+    "message": "Modularity Debt: 58.3/100 (Limit: 60.0)",
     "file_path": "src/will/workers/repo_embedder.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.import_coupling",
-    "severity": "warning",
-    "message": "Modularity Debt: 51.8/100 (Limit: 60.0)",
-    "file_path": "src/will/workers/worker_auditor.py",
     "line_number": null,
     "context": {},
     "details": {}
@@ -1847,7 +1712,16 @@
   {
     "check_id": "modularity.refactor_score_threshold",
     "severity": "warning",
-    "message": "Modularity Debt: 53.1/100 (Limit: 60.0)",
+    "message": "Modularity Debt: 60.3/100 (Limit: 60.0)",
+    "file_path": "src/body/services/crawl_service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "modularity.refactor_score_threshold",
+    "severity": "warning",
+    "message": "Modularity Debt: 58.6/100 (Limit: 60.0)",
     "file_path": "src/body/services/service_registry.py",
     "line_number": null,
     "context": {},
@@ -1982,6 +1856,15 @@
   {
     "check_id": "modularity.refactor_score_threshold",
     "severity": "warning",
+    "message": "Modularity Debt: 48.3/100 (Limit: 60.0)",
+    "file_path": "src/shared/self_healing/remediation_interpretation/file_role_detector.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "modularity.refactor_score_threshold",
+    "severity": "warning",
     "message": "Modularity Debt: 60.3/100 (Limit: 60.0)",
     "file_path": "src/shared/workers/base.py",
     "line_number": null,
@@ -2045,44 +1928,8 @@
   {
     "check_id": "modularity.refactor_score_threshold",
     "severity": "warning",
-    "message": "Modularity Debt: 53.0/100 (Limit: 60.0)",
-    "file_path": "src/will/workers/prompt_extractor_worker.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.refactor_score_threshold",
-    "severity": "warning",
-    "message": "Modularity Debt: 61.9/100 (Limit: 60.0)",
-    "file_path": "src/will/workers/repo_crawler.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.refactor_score_threshold",
-    "severity": "warning",
-    "message": "Modularity Debt: 58.9/100 (Limit: 60.0)",
+    "message": "Modularity Debt: 58.3/100 (Limit: 60.0)",
     "file_path": "src/will/workers/repo_embedder.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.refactor_score_threshold",
-    "severity": "warning",
-    "message": "Modularity Debt: 51.8/100 (Limit: 60.0)",
-    "file_path": "src/will/workers/worker_auditor.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.boundary.database_session_access",
-    "severity": "error",
-    "message": "/opt/dev/CORE/src/will/workers/audit_ingest_worker.py:211 - Forbidden import: 'from shared.infrastructure.database.session_manager import get_session' (matches constitutional boundary rule: shared.infrastructure.database.session_manager.get_session)",
-    "file_path": "src/will/workers/audit_ingest_worker.py",
     "line_number": null,
     "context": {},
     "details": {}
@@ -2099,79 +1946,7 @@
   {
     "check_id": "architecture.boundary.database_session_access",
     "severity": "error",
-    "message": "/opt/dev/CORE/src/will/workers/blackboard_auditor.py:39 - Forbidden import: 'from shared.infrastructure.database.session_manager import get_session' (matches constitutional boundary rule: shared.infrastructure.database.session_manager.get_session)",
-    "file_path": "src/will/workers/blackboard_auditor.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.boundary.database_session_access",
-    "severity": "error",
-    "message": "/opt/dev/CORE/src/will/workers/capability_tagger.py:110 - Forbidden import: 'from shared.infrastructure.database.session_manager import get_session' (matches constitutional boundary rule: shared.infrastructure.database.session_manager.get_session)",
-    "file_path": "src/will/workers/capability_tagger.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.boundary.database_session_access",
-    "severity": "error",
-    "message": "/opt/dev/CORE/src/will/workers/capability_tagger.py:142 - Forbidden import: 'from shared.infrastructure.database.session_manager import get_session' (matches constitutional boundary rule: shared.infrastructure.database.session_manager.get_session)",
-    "file_path": "src/will/workers/capability_tagger.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.boundary.database_session_access",
-    "severity": "error",
-    "message": "/opt/dev/CORE/src/will/workers/doc_worker.py:30 - Forbidden import: 'from shared.infrastructure.database.session_manager import get_session' (matches constitutional boundary rule: shared.infrastructure.database.session_manager.get_session)",
-    "file_path": "src/will/workers/doc_worker.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.boundary.database_session_access",
-    "severity": "error",
-    "message": "/opt/dev/CORE/src/will/workers/intent_inspector.py:555 - Forbidden import: 'from shared.infrastructure.database.session_manager import get_session' (matches constitutional boundary rule: shared.infrastructure.database.session_manager.get_session)",
-    "file_path": "src/will/workers/intent_inspector.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.boundary.database_session_access",
-    "severity": "error",
-    "message": "/opt/dev/CORE/src/will/workers/observer_worker.py:33 - Forbidden import: 'from shared.infrastructure.database.session_manager import get_session' (matches constitutional boundary rule: shared.infrastructure.database.session_manager.get_session)",
-    "file_path": "src/will/workers/observer_worker.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.boundary.database_session_access",
-    "severity": "error",
-    "message": "/opt/dev/CORE/src/will/workers/prompt_extractor_worker.py:220 - Forbidden import: 'from shared.infrastructure.database.session_manager import get_session' (matches constitutional boundary rule: shared.infrastructure.database.session_manager.get_session)",
-    "file_path": "src/will/workers/prompt_extractor_worker.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.boundary.database_session_access",
-    "severity": "error",
-    "message": "/opt/dev/CORE/src/will/workers/prompt_extractor_worker.py:266 - Forbidden import: 'from shared.infrastructure.database.session_manager import get_session' (matches constitutional boundary rule: shared.infrastructure.database.session_manager.get_session)",
-    "file_path": "src/will/workers/prompt_extractor_worker.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.boundary.database_session_access",
-    "severity": "error",
-    "message": "/opt/dev/CORE/src/will/workers/proposal_worker.py:41 - Forbidden import: 'from shared.infrastructure.database.session_manager import get_session' (matches constitutional boundary rule: shared.infrastructure.database.session_manager.get_session)",
+    "message": "/opt/dev/CORE/src/will/workers/proposal_worker.py:175 - Forbidden import: 'from shared.infrastructure.database.session_manager import get_session' (matches constitutional boundary rule: shared.infrastructure.database.session_manager.get_session)",
     "file_path": "src/will/workers/proposal_worker.py",
     "line_number": null,
     "context": {},
@@ -2180,26 +1955,8 @@
   {
     "check_id": "architecture.boundary.database_session_access",
     "severity": "error",
-    "message": "/opt/dev/CORE/src/will/workers/repo_crawler.py:34 - Forbidden import: 'from shared.infrastructure.database.session_manager import get_session' (matches constitutional boundary rule: shared.infrastructure.database.session_manager.get_session)",
-    "file_path": "src/will/workers/repo_crawler.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.boundary.database_session_access",
-    "severity": "error",
-    "message": "/opt/dev/CORE/src/will/workers/repo_embedder.py:39 - Forbidden import: 'from shared.infrastructure.database.session_manager import get_session' (matches constitutional boundary rule: shared.infrastructure.database.session_manager.get_session)",
+    "message": "/opt/dev/CORE/src/will/workers/repo_embedder.py:96 - Forbidden import: 'from shared.infrastructure.database.session_manager import get_session' (matches constitutional boundary rule: shared.infrastructure.database.session_manager.get_session)",
     "file_path": "src/will/workers/repo_embedder.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.boundary.database_session_access",
-    "severity": "error",
-    "message": "/opt/dev/CORE/src/will/workers/worker_auditor.py:35 - Forbidden import: 'from shared.infrastructure.database.session_manager import get_session' (matches constitutional boundary rule: shared.infrastructure.database.session_manager.get_session)",
-    "file_path": "src/will/workers/worker_auditor.py",
     "line_number": null,
     "context": {},
     "details": {}
@@ -2255,6 +2012,696 @@
     }
   },
   {
+    "check_id": "purity.no_ast_duplication",
+    "severity": "warning",
+    "message": "AST duplication: 'extract_source_code' duplicates 'extract_source_code' (score=1.00)",
+    "file_path": "src/body/self_healing/docstring_service.py",
+    "line_number": null,
+    "context": {
+      "symbol_a": "extract_source_code",
+      "symbol_b": "extract_source_code",
+      "module_a": "body.self_healing.docstring_service",
+      "module_b": "will.self_healing.docstring_service",
+      "similarity": 1.0,
+      "type": "ast"
+    },
+    "details": {
+      "symbol_a": "extract_source_code",
+      "symbol_b": "extract_source_code",
+      "module_a": "body.self_healing.docstring_service",
+      "module_b": "will.self_healing.docstring_service",
+      "similarity": 1.0,
+      "type": "ast"
+    }
+  },
+  {
+    "check_id": "purity.no_ast_duplication",
+    "severity": "warning",
+    "message": "AST duplication: 'fix_docstrings' duplicates 'fix_docstrings' (score=1.00)",
+    "file_path": "src/body/self_healing/docstring_service.py",
+    "line_number": null,
+    "context": {
+      "symbol_a": "fix_docstrings",
+      "symbol_b": "fix_docstrings",
+      "module_a": "body.self_healing.docstring_service",
+      "module_b": "will.self_healing.docstring_service",
+      "similarity": 1.0,
+      "type": "ast"
+    },
+    "details": {
+      "symbol_a": "fix_docstrings",
+      "symbol_b": "fix_docstrings",
+      "module_a": "body.self_healing.docstring_service",
+      "module_b": "will.self_healing.docstring_service",
+      "similarity": 1.0,
+      "type": "ast"
+    }
+  },
+  {
+    "check_id": "purity.no_ast_duplication",
+    "severity": "warning",
+    "message": "AST duplication: 'FileContextAssembler' duplicates 'FileContextAssembler' (score=1.00)",
+    "file_path": "src/shared/self_healing/remediation_interpretation/file_context_assembler.py",
+    "line_number": null,
+    "context": {
+      "symbol_a": "FileContextAssembler",
+      "symbol_b": "FileContextAssembler",
+      "module_a": "shared.self_healing.remediation_interpretation.file_context_assembler",
+      "module_b": "will.self_healing.remediation_interpretation.file_context_assembler",
+      "similarity": 1.0,
+      "type": "ast"
+    },
+    "details": {
+      "symbol_a": "FileContextAssembler",
+      "symbol_b": "FileContextAssembler",
+      "module_a": "shared.self_healing.remediation_interpretation.file_context_assembler",
+      "module_b": "will.self_healing.remediation_interpretation.file_context_assembler",
+      "similarity": 1.0,
+      "type": "ast"
+    }
+  },
+  {
+    "check_id": "purity.no_ast_duplication",
+    "severity": "warning",
+    "message": "AST duplication: 'FileContextAssembler.assemble' duplicates 'FileContextAssembler.assemble' (score=1.00)",
+    "file_path": "src/shared/self_healing/remediation_interpretation/file_context_assembler.py",
+    "line_number": null,
+    "context": {
+      "symbol_a": "FileContextAssembler.assemble",
+      "symbol_b": "FileContextAssembler.assemble",
+      "module_a": "shared.self_healing.remediation_interpretation.file_context_assembler",
+      "module_b": "will.self_healing.remediation_interpretation.file_context_assembler",
+      "similarity": 1.0,
+      "type": "ast"
+    },
+    "details": {
+      "symbol_a": "FileContextAssembler.assemble",
+      "symbol_b": "FileContextAssembler.assemble",
+      "module_a": "shared.self_healing.remediation_interpretation.file_context_assembler",
+      "module_b": "will.self_healing.remediation_interpretation.file_context_assembler",
+      "similarity": 1.0,
+      "type": "ast"
+    }
+  },
+  {
+    "check_id": "purity.no_ast_duplication",
+    "severity": "warning",
+    "message": "AST duplication: 'FileRoleDetector' duplicates 'FileRoleDetector' (score=1.00)",
+    "file_path": "src/shared/self_healing/remediation_interpretation/file_role_detector.py",
+    "line_number": null,
+    "context": {
+      "symbol_a": "FileRoleDetector",
+      "symbol_b": "FileRoleDetector",
+      "module_a": "shared.self_healing.remediation_interpretation.file_role_detector",
+      "module_b": "will.self_healing.remediation_interpretation.file_role_detector",
+      "similarity": 1.0,
+      "type": "ast"
+    },
+    "details": {
+      "symbol_a": "FileRoleDetector",
+      "symbol_b": "FileRoleDetector",
+      "module_a": "shared.self_healing.remediation_interpretation.file_role_detector",
+      "module_b": "will.self_healing.remediation_interpretation.file_role_detector",
+      "similarity": 1.0,
+      "type": "ast"
+    }
+  },
+  {
+    "check_id": "purity.no_ast_duplication",
+    "severity": "warning",
+    "message": "AST duplication: 'FileRoleDetector.detect' duplicates 'FileRoleDetector.detect' (score=1.00)",
+    "file_path": "src/shared/self_healing/remediation_interpretation/file_role_detector.py",
+    "line_number": null,
+    "context": {
+      "symbol_a": "FileRoleDetector.detect",
+      "symbol_b": "FileRoleDetector.detect",
+      "module_a": "shared.self_healing.remediation_interpretation.file_role_detector",
+      "module_b": "will.self_healing.remediation_interpretation.file_role_detector",
+      "similarity": 1.0,
+      "type": "ast"
+    },
+    "details": {
+      "symbol_a": "FileRoleDetector.detect",
+      "symbol_b": "FileRoleDetector.detect",
+      "module_a": "shared.self_healing.remediation_interpretation.file_role_detector",
+      "module_b": "will.self_healing.remediation_interpretation.file_role_detector",
+      "similarity": 1.0,
+      "type": "ast"
+    }
+  },
+  {
+    "check_id": "purity.no_ast_duplication",
+    "severity": "warning",
+    "message": "AST duplication: 'FindingNormalizer' duplicates 'FindingNormalizer' (score=1.00)",
+    "file_path": "src/shared/self_healing/remediation_interpretation/finding_normalizer.py",
+    "line_number": null,
+    "context": {
+      "symbol_a": "FindingNormalizer",
+      "symbol_b": "FindingNormalizer",
+      "module_a": "shared.self_healing.remediation_interpretation.finding_normalizer",
+      "module_b": "will.self_healing.remediation_interpretation.finding_normalizer",
+      "similarity": 1.0,
+      "type": "ast"
+    },
+    "details": {
+      "symbol_a": "FindingNormalizer",
+      "symbol_b": "FindingNormalizer",
+      "module_a": "shared.self_healing.remediation_interpretation.finding_normalizer",
+      "module_b": "will.self_healing.remediation_interpretation.finding_normalizer",
+      "similarity": 1.0,
+      "type": "ast"
+    }
+  },
+  {
+    "check_id": "purity.no_ast_duplication",
+    "severity": "warning",
+    "message": "AST duplication: 'FindingNormalizer.normalize' duplicates 'FindingNormalizer.normalize' (score=1.00)",
+    "file_path": "src/shared/self_healing/remediation_interpretation/finding_normalizer.py",
+    "line_number": null,
+    "context": {
+      "symbol_a": "FindingNormalizer.normalize",
+      "symbol_b": "FindingNormalizer.normalize",
+      "module_a": "shared.self_healing.remediation_interpretation.finding_normalizer",
+      "module_b": "will.self_healing.remediation_interpretation.finding_normalizer",
+      "similarity": 1.0,
+      "type": "ast"
+    },
+    "details": {
+      "symbol_a": "FindingNormalizer.normalize",
+      "symbol_b": "FindingNormalizer.normalize",
+      "module_a": "shared.self_healing.remediation_interpretation.finding_normalizer",
+      "module_b": "will.self_healing.remediation_interpretation.finding_normalizer",
+      "similarity": 1.0,
+      "type": "ast"
+    }
+  },
+  {
+    "check_id": "purity.no_ast_duplication",
+    "severity": "warning",
+    "message": "AST duplication: 'FindingNormalizer.normalize_one' duplicates 'FindingNormalizer.normalize_one' (score=1.00)",
+    "file_path": "src/shared/self_healing/remediation_interpretation/finding_normalizer.py",
+    "line_number": null,
+    "context": {
+      "symbol_a": "FindingNormalizer.normalize_one",
+      "symbol_b": "FindingNormalizer.normalize_one",
+      "module_a": "shared.self_healing.remediation_interpretation.finding_normalizer",
+      "module_b": "will.self_healing.remediation_interpretation.finding_normalizer",
+      "similarity": 1.0,
+      "type": "ast"
+    },
+    "details": {
+      "symbol_a": "FindingNormalizer.normalize_one",
+      "symbol_b": "FindingNormalizer.normalize_one",
+      "module_a": "shared.self_healing.remediation_interpretation.finding_normalizer",
+      "module_b": "will.self_healing.remediation_interpretation.finding_normalizer",
+      "similarity": 1.0,
+      "type": "ast"
+    }
+  },
+  {
+    "check_id": "purity.no_ast_duplication",
+    "severity": "warning",
+    "message": "AST duplication: 'FileRole' duplicates 'FileRole' (score=1.00)",
+    "file_path": "src/shared/self_healing/remediation_interpretation/models.py",
+    "line_number": null,
+    "context": {
+      "symbol_a": "FileRole",
+      "symbol_b": "FileRole",
+      "module_a": "shared.self_healing.remediation_interpretation.models",
+      "module_b": "will.self_healing.remediation_interpretation.models",
+      "similarity": 1.0,
+      "type": "ast"
+    },
+    "details": {
+      "symbol_a": "FileRole",
+      "symbol_b": "FileRole",
+      "module_a": "shared.self_healing.remediation_interpretation.models",
+      "module_b": "will.self_healing.remediation_interpretation.models",
+      "similarity": 1.0,
+      "type": "ast"
+    }
+  },
+  {
+    "check_id": "purity.no_ast_duplication",
+    "severity": "warning",
+    "message": "AST duplication: 'NormalizedFinding' duplicates 'NormalizedFinding' (score=1.00)",
+    "file_path": "src/shared/self_healing/remediation_interpretation/models.py",
+    "line_number": null,
+    "context": {
+      "symbol_a": "NormalizedFinding",
+      "symbol_b": "NormalizedFinding",
+      "module_a": "shared.self_healing.remediation_interpretation.models",
+      "module_b": "will.self_healing.remediation_interpretation.models",
+      "similarity": 1.0,
+      "type": "ast"
+    },
+    "details": {
+      "symbol_a": "NormalizedFinding",
+      "symbol_b": "NormalizedFinding",
+      "module_a": "shared.self_healing.remediation_interpretation.models",
+      "module_b": "will.self_healing.remediation_interpretation.models",
+      "similarity": 1.0,
+      "type": "ast"
+    }
+  },
+  {
+    "check_id": "purity.no_ast_duplication",
+    "severity": "warning",
+    "message": "AST duplication: 'ReasoningBrief' duplicates 'ReasoningBrief' (score=1.00)",
+    "file_path": "src/shared/self_healing/remediation_interpretation/models.py",
+    "line_number": null,
+    "context": {
+      "symbol_a": "ReasoningBrief",
+      "symbol_b": "ReasoningBrief",
+      "module_a": "shared.self_healing.remediation_interpretation.models",
+      "module_b": "will.self_healing.remediation_interpretation.models",
+      "similarity": 1.0,
+      "type": "ast"
+    },
+    "details": {
+      "symbol_a": "ReasoningBrief",
+      "symbol_b": "ReasoningBrief",
+      "module_a": "shared.self_healing.remediation_interpretation.models",
+      "module_b": "will.self_healing.remediation_interpretation.models",
+      "similarity": 1.0,
+      "type": "ast"
+    }
+  },
+  {
+    "check_id": "purity.no_ast_duplication",
+    "severity": "warning",
+    "message": "AST duplication: 'ReasoningBrief.to_dict' duplicates 'ReasoningBrief.to_dict' (score=1.00)",
+    "file_path": "src/shared/self_healing/remediation_interpretation/models.py",
+    "line_number": null,
+    "context": {
+      "symbol_a": "ReasoningBrief.to_dict",
+      "symbol_b": "ReasoningBrief.to_dict",
+      "module_a": "shared.self_healing.remediation_interpretation.models",
+      "module_b": "will.self_healing.remediation_interpretation.models",
+      "similarity": 1.0,
+      "type": "ast"
+    },
+    "details": {
+      "symbol_a": "ReasoningBrief.to_dict",
+      "symbol_b": "ReasoningBrief.to_dict",
+      "module_a": "shared.self_healing.remediation_interpretation.models",
+      "module_b": "will.self_healing.remediation_interpretation.models",
+      "similarity": 1.0,
+      "type": "ast"
+    }
+  },
+  {
+    "check_id": "purity.no_ast_duplication",
+    "severity": "warning",
+    "message": "AST duplication: 'RemediationStrategy' duplicates 'RemediationStrategy' (score=1.00)",
+    "file_path": "src/shared/self_healing/remediation_interpretation/models.py",
+    "line_number": null,
+    "context": {
+      "symbol_a": "RemediationStrategy",
+      "symbol_b": "RemediationStrategy",
+      "module_a": "shared.self_healing.remediation_interpretation.models",
+      "module_b": "will.self_healing.remediation_interpretation.models",
+      "similarity": 1.0,
+      "type": "ast"
+    },
+    "details": {
+      "symbol_a": "RemediationStrategy",
+      "symbol_b": "RemediationStrategy",
+      "module_a": "shared.self_healing.remediation_interpretation.models",
+      "module_b": "will.self_healing.remediation_interpretation.models",
+      "similarity": 1.0,
+      "type": "ast"
+    }
+  },
+  {
+    "check_id": "purity.no_ast_duplication",
+    "severity": "warning",
+    "message": "AST duplication: 'ResponsibilityCluster' duplicates 'ResponsibilityCluster' (score=1.00)",
+    "file_path": "src/shared/self_healing/remediation_interpretation/models.py",
+    "line_number": null,
+    "context": {
+      "symbol_a": "ResponsibilityCluster",
+      "symbol_b": "ResponsibilityCluster",
+      "module_a": "shared.self_healing.remediation_interpretation.models",
+      "module_b": "will.self_healing.remediation_interpretation.models",
+      "similarity": 1.0,
+      "type": "ast"
+    },
+    "details": {
+      "symbol_a": "ResponsibilityCluster",
+      "symbol_b": "ResponsibilityCluster",
+      "module_a": "shared.self_healing.remediation_interpretation.models",
+      "module_b": "will.self_healing.remediation_interpretation.models",
+      "similarity": 1.0,
+      "type": "ast"
+    }
+  },
+  {
+    "check_id": "purity.no_ast_duplication",
+    "severity": "warning",
+    "message": "AST duplication: 'ReasoningBriefBuilder' duplicates 'ReasoningBriefBuilder' (score=1.00)",
+    "file_path": "src/shared/self_healing/remediation_interpretation/reasoning_brief_builder.py",
+    "line_number": null,
+    "context": {
+      "symbol_a": "ReasoningBriefBuilder",
+      "symbol_b": "ReasoningBriefBuilder",
+      "module_a": "shared.self_healing.remediation_interpretation.reasoning_brief_builder",
+      "module_b": "will.self_healing.remediation_interpretation.reasoning_brief_builder",
+      "similarity": 1.0,
+      "type": "ast"
+    },
+    "details": {
+      "symbol_a": "ReasoningBriefBuilder",
+      "symbol_b": "ReasoningBriefBuilder",
+      "module_a": "shared.self_healing.remediation_interpretation.reasoning_brief_builder",
+      "module_b": "will.self_healing.remediation_interpretation.reasoning_brief_builder",
+      "similarity": 1.0,
+      "type": "ast"
+    }
+  },
+  {
+    "check_id": "purity.no_ast_duplication",
+    "severity": "warning",
+    "message": "AST duplication: 'ReasoningBriefBuilder.build' duplicates 'ReasoningBriefBuilder.build' (score=1.00)",
+    "file_path": "src/shared/self_healing/remediation_interpretation/reasoning_brief_builder.py",
+    "line_number": null,
+    "context": {
+      "symbol_a": "ReasoningBriefBuilder.build",
+      "symbol_b": "ReasoningBriefBuilder.build",
+      "module_a": "shared.self_healing.remediation_interpretation.reasoning_brief_builder",
+      "module_b": "will.self_healing.remediation_interpretation.reasoning_brief_builder",
+      "similarity": 1.0,
+      "type": "ast"
+    },
+    "details": {
+      "symbol_a": "ReasoningBriefBuilder.build",
+      "symbol_b": "ReasoningBriefBuilder.build",
+      "module_a": "shared.self_healing.remediation_interpretation.reasoning_brief_builder",
+      "module_b": "will.self_healing.remediation_interpretation.reasoning_brief_builder",
+      "similarity": 1.0,
+      "type": "ast"
+    }
+  },
+  {
+    "check_id": "purity.no_ast_duplication",
+    "severity": "warning",
+    "message": "AST duplication: 'ResponsibilityExtractor' duplicates 'ResponsibilityExtractor' (score=1.00)",
+    "file_path": "src/shared/self_healing/remediation_interpretation/responsibility_extractor.py",
+    "line_number": null,
+    "context": {
+      "symbol_a": "ResponsibilityExtractor",
+      "symbol_b": "ResponsibilityExtractor",
+      "module_a": "shared.self_healing.remediation_interpretation.responsibility_extractor",
+      "module_b": "will.self_healing.remediation_interpretation.responsibility_extractor",
+      "similarity": 1.0,
+      "type": "ast"
+    },
+    "details": {
+      "symbol_a": "ResponsibilityExtractor",
+      "symbol_b": "ResponsibilityExtractor",
+      "module_a": "shared.self_healing.remediation_interpretation.responsibility_extractor",
+      "module_b": "will.self_healing.remediation_interpretation.responsibility_extractor",
+      "similarity": 1.0,
+      "type": "ast"
+    }
+  },
+  {
+    "check_id": "purity.no_ast_duplication",
+    "severity": "warning",
+    "message": "AST duplication: 'ResponsibilityExtractor.extract' duplicates 'ResponsibilityExtractor.extract' (score=1.00)",
+    "file_path": "src/shared/self_healing/remediation_interpretation/responsibility_extractor.py",
+    "line_number": null,
+    "context": {
+      "symbol_a": "ResponsibilityExtractor.extract",
+      "symbol_b": "ResponsibilityExtractor.extract",
+      "module_a": "shared.self_healing.remediation_interpretation.responsibility_extractor",
+      "module_b": "will.self_healing.remediation_interpretation.responsibility_extractor",
+      "similarity": 1.0,
+      "type": "ast"
+    },
+    "details": {
+      "symbol_a": "ResponsibilityExtractor.extract",
+      "symbol_b": "ResponsibilityExtractor.extract",
+      "module_a": "shared.self_healing.remediation_interpretation.responsibility_extractor",
+      "module_b": "will.self_healing.remediation_interpretation.responsibility_extractor",
+      "similarity": 1.0,
+      "type": "ast"
+    }
+  },
+  {
+    "check_id": "purity.no_ast_duplication",
+    "severity": "warning",
+    "message": "AST duplication: 'RemediationInterpretationError' duplicates 'RemediationInterpretationError' (score=1.00)",
+    "file_path": "src/shared/self_healing/remediation_interpretation/service.py",
+    "line_number": null,
+    "context": {
+      "symbol_a": "RemediationInterpretationError",
+      "symbol_b": "RemediationInterpretationError",
+      "module_a": "shared.self_healing.remediation_interpretation.service",
+      "module_b": "will.self_healing.remediation_interpretation.service",
+      "similarity": 1.0,
+      "type": "ast"
+    },
+    "details": {
+      "symbol_a": "RemediationInterpretationError",
+      "symbol_b": "RemediationInterpretationError",
+      "module_a": "shared.self_healing.remediation_interpretation.service",
+      "module_b": "will.self_healing.remediation_interpretation.service",
+      "similarity": 1.0,
+      "type": "ast"
+    }
+  },
+  {
+    "check_id": "purity.no_ast_duplication",
+    "severity": "warning",
+    "message": "AST duplication: 'RemediationInterpretationService' duplicates 'RemediationInterpretationService' (score=1.00)",
+    "file_path": "src/shared/self_healing/remediation_interpretation/service.py",
+    "line_number": null,
+    "context": {
+      "symbol_a": "RemediationInterpretationService",
+      "symbol_b": "RemediationInterpretationService",
+      "module_a": "shared.self_healing.remediation_interpretation.service",
+      "module_b": "will.self_healing.remediation_interpretation.service",
+      "similarity": 1.0,
+      "type": "ast"
+    },
+    "details": {
+      "symbol_a": "RemediationInterpretationService",
+      "symbol_b": "RemediationInterpretationService",
+      "module_a": "shared.self_healing.remediation_interpretation.service",
+      "module_b": "will.self_healing.remediation_interpretation.service",
+      "similarity": 1.0,
+      "type": "ast"
+    }
+  },
+  {
+    "check_id": "purity.no_ast_duplication",
+    "severity": "warning",
+    "message": "AST duplication: 'RemediationInterpretationService.build_reasoning_brief' duplicates 'RemediationInterpretationService.build_reasoning_brief' (score=1.00)",
+    "file_path": "src/shared/self_healing/remediation_interpretation/service.py",
+    "line_number": null,
+    "context": {
+      "symbol_a": "RemediationInterpretationService.build_reasoning_brief",
+      "symbol_b": "RemediationInterpretationService.build_reasoning_brief",
+      "module_a": "shared.self_healing.remediation_interpretation.service",
+      "module_b": "will.self_healing.remediation_interpretation.service",
+      "similarity": 1.0,
+      "type": "ast"
+    },
+    "details": {
+      "symbol_a": "RemediationInterpretationService.build_reasoning_brief",
+      "symbol_b": "RemediationInterpretationService.build_reasoning_brief",
+      "module_a": "shared.self_healing.remediation_interpretation.service",
+      "module_b": "will.self_healing.remediation_interpretation.service",
+      "similarity": 1.0,
+      "type": "ast"
+    }
+  },
+  {
+    "check_id": "purity.no_ast_duplication",
+    "severity": "warning",
+    "message": "AST duplication: 'RemediationInterpretationService.build_reasoning_brief_dict' duplicates 'RemediationInterpretationService.build_reasoning_brief_dict' (score=1.00)",
+    "file_path": "src/shared/self_healing/remediation_interpretation/service.py",
+    "line_number": null,
+    "context": {
+      "symbol_a": "RemediationInterpretationService.build_reasoning_brief_dict",
+      "symbol_b": "RemediationInterpretationService.build_reasoning_brief_dict",
+      "module_a": "shared.self_healing.remediation_interpretation.service",
+      "module_b": "will.self_healing.remediation_interpretation.service",
+      "similarity": 1.0,
+      "type": "ast"
+    },
+    "details": {
+      "symbol_a": "RemediationInterpretationService.build_reasoning_brief_dict",
+      "symbol_b": "RemediationInterpretationService.build_reasoning_brief_dict",
+      "module_a": "shared.self_healing.remediation_interpretation.service",
+      "module_b": "will.self_healing.remediation_interpretation.service",
+      "similarity": 1.0,
+      "type": "ast"
+    }
+  },
+  {
+    "check_id": "purity.no_ast_duplication",
+    "severity": "warning",
+    "message": "AST duplication: 'StrategyCatalog' duplicates 'StrategyCatalog' (score=1.00)",
+    "file_path": "src/shared/self_healing/remediation_interpretation/strategy_catalog.py",
+    "line_number": null,
+    "context": {
+      "symbol_a": "StrategyCatalog",
+      "symbol_b": "StrategyCatalog",
+      "module_a": "shared.self_healing.remediation_interpretation.strategy_catalog",
+      "module_b": "will.self_healing.remediation_interpretation.strategy_catalog",
+      "similarity": 1.0,
+      "type": "ast"
+    },
+    "details": {
+      "symbol_a": "StrategyCatalog",
+      "symbol_b": "StrategyCatalog",
+      "module_a": "shared.self_healing.remediation_interpretation.strategy_catalog",
+      "module_b": "will.self_healing.remediation_interpretation.strategy_catalog",
+      "similarity": 1.0,
+      "type": "ast"
+    }
+  },
+  {
+    "check_id": "purity.no_ast_duplication",
+    "severity": "warning",
+    "message": "AST duplication: 'StrategyCatalog.get_template' duplicates 'StrategyCatalog.get_template' (score=1.00)",
+    "file_path": "src/shared/self_healing/remediation_interpretation/strategy_catalog.py",
+    "line_number": null,
+    "context": {
+      "symbol_a": "StrategyCatalog.get_template",
+      "symbol_b": "StrategyCatalog.get_template",
+      "module_a": "shared.self_healing.remediation_interpretation.strategy_catalog",
+      "module_b": "will.self_healing.remediation_interpretation.strategy_catalog",
+      "similarity": 1.0,
+      "type": "ast"
+    },
+    "details": {
+      "symbol_a": "StrategyCatalog.get_template",
+      "symbol_b": "StrategyCatalog.get_template",
+      "module_a": "shared.self_healing.remediation_interpretation.strategy_catalog",
+      "module_b": "will.self_healing.remediation_interpretation.strategy_catalog",
+      "similarity": 1.0,
+      "type": "ast"
+    }
+  },
+  {
+    "check_id": "purity.no_ast_duplication",
+    "severity": "warning",
+    "message": "AST duplication: 'StrategyCatalog.list_templates' duplicates 'StrategyCatalog.list_templates' (score=1.00)",
+    "file_path": "src/shared/self_healing/remediation_interpretation/strategy_catalog.py",
+    "line_number": null,
+    "context": {
+      "symbol_a": "StrategyCatalog.list_templates",
+      "symbol_b": "StrategyCatalog.list_templates",
+      "module_a": "shared.self_healing.remediation_interpretation.strategy_catalog",
+      "module_b": "will.self_healing.remediation_interpretation.strategy_catalog",
+      "similarity": 1.0,
+      "type": "ast"
+    },
+    "details": {
+      "symbol_a": "StrategyCatalog.list_templates",
+      "symbol_b": "StrategyCatalog.list_templates",
+      "module_a": "shared.self_healing.remediation_interpretation.strategy_catalog",
+      "module_b": "will.self_healing.remediation_interpretation.strategy_catalog",
+      "similarity": 1.0,
+      "type": "ast"
+    }
+  },
+  {
+    "check_id": "purity.no_ast_duplication",
+    "severity": "warning",
+    "message": "AST duplication: 'StrategyTemplate' duplicates 'StrategyTemplate' (score=1.00)",
+    "file_path": "src/shared/self_healing/remediation_interpretation/strategy_catalog.py",
+    "line_number": null,
+    "context": {
+      "symbol_a": "StrategyTemplate",
+      "symbol_b": "StrategyTemplate",
+      "module_a": "shared.self_healing.remediation_interpretation.strategy_catalog",
+      "module_b": "will.self_healing.remediation_interpretation.strategy_catalog",
+      "similarity": 1.0,
+      "type": "ast"
+    },
+    "details": {
+      "symbol_a": "StrategyTemplate",
+      "symbol_b": "StrategyTemplate",
+      "module_a": "shared.self_healing.remediation_interpretation.strategy_catalog",
+      "module_b": "will.self_healing.remediation_interpretation.strategy_catalog",
+      "similarity": 1.0,
+      "type": "ast"
+    }
+  },
+  {
+    "check_id": "purity.no_ast_duplication",
+    "severity": "warning",
+    "message": "AST duplication: 'StrategySelector' duplicates 'StrategySelector' (score=1.00)",
+    "file_path": "src/shared/self_healing/remediation_interpretation/strategy_selector.py",
+    "line_number": null,
+    "context": {
+      "symbol_a": "StrategySelector",
+      "symbol_b": "StrategySelector",
+      "module_a": "shared.self_healing.remediation_interpretation.strategy_selector",
+      "module_b": "will.self_healing.remediation_interpretation.strategy_selector",
+      "similarity": 1.0,
+      "type": "ast"
+    },
+    "details": {
+      "symbol_a": "StrategySelector",
+      "symbol_b": "StrategySelector",
+      "module_a": "shared.self_healing.remediation_interpretation.strategy_selector",
+      "module_b": "will.self_healing.remediation_interpretation.strategy_selector",
+      "similarity": 1.0,
+      "type": "ast"
+    }
+  },
+  {
+    "check_id": "purity.no_ast_duplication",
+    "severity": "warning",
+    "message": "AST duplication: 'StrategySelector.choose_recommended' duplicates 'StrategySelector.choose_recommended' (score=1.00)",
+    "file_path": "src/shared/self_healing/remediation_interpretation/strategy_selector.py",
+    "line_number": null,
+    "context": {
+      "symbol_a": "StrategySelector.choose_recommended",
+      "symbol_b": "StrategySelector.choose_recommended",
+      "module_a": "shared.self_healing.remediation_interpretation.strategy_selector",
+      "module_b": "will.self_healing.remediation_interpretation.strategy_selector",
+      "similarity": 1.0,
+      "type": "ast"
+    },
+    "details": {
+      "symbol_a": "StrategySelector.choose_recommended",
+      "symbol_b": "StrategySelector.choose_recommended",
+      "module_a": "shared.self_healing.remediation_interpretation.strategy_selector",
+      "module_b": "will.self_healing.remediation_interpretation.strategy_selector",
+      "similarity": 1.0,
+      "type": "ast"
+    }
+  },
+  {
+    "check_id": "purity.no_ast_duplication",
+    "severity": "warning",
+    "message": "AST duplication: 'StrategySelector.select' duplicates 'StrategySelector.select' (score=1.00)",
+    "file_path": "src/shared/self_healing/remediation_interpretation/strategy_selector.py",
+    "line_number": null,
+    "context": {
+      "symbol_a": "StrategySelector.select",
+      "symbol_b": "StrategySelector.select",
+      "module_a": "shared.self_healing.remediation_interpretation.strategy_selector",
+      "module_b": "will.self_healing.remediation_interpretation.strategy_selector",
+      "similarity": 1.0,
+      "type": "ast"
+    },
+    "details": {
+      "symbol_a": "StrategySelector.select",
+      "symbol_b": "StrategySelector.select",
+      "module_a": "shared.self_healing.remediation_interpretation.strategy_selector",
+      "module_b": "will.self_healing.remediation_interpretation.strategy_selector",
+      "similarity": 1.0,
+      "type": "ast"
+    }
+  },
+  {
     "check_id": "workflow.dead_code_check",
     "severity": "warning",
     "message": "Dead code detected: src/body/governance/runtime_validator.py:156: unused variable 'dst_root' (100% confidence)",
@@ -2266,7 +2713,16 @@
   {
     "check_id": "workflow.dead_code_check",
     "severity": "warning",
-    "message": "Dead code detected: src/will/self_healing/remediation_interpretation/strategy_selector.py:376: unused variable 'preferred_roles' (100% confidence)",
+    "message": "Dead code detected: src/shared/self_healing/remediation_interpretation/strategy_selector.py:376: unused variable 'preferred_roles' (100% confidence)",
+    "file_path": "System",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "workflow.dead_code_check",
+    "severity": "warning",
+    "message": "Dead code detected: src/will/self_healing/remediation_interpretation/strategy_selector.py:378: unused variable 'preferred_roles' (100% confidence)",
     "file_path": "System",
     "line_number": null,
     "context": {},
@@ -3105,6 +3561,87 @@
     "severity": "warning",
     "message": "Orphan file: 'src/will/self_healing/refactoring_proposal_writer.py' is not reachable from any entry point.",
     "file_path": "src/will/self_healing/refactoring_proposal_writer.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/will/self_healing/remediation_interpretation/file_context_assembler.py' is not reachable from any entry point.",
+    "file_path": "src/will/self_healing/remediation_interpretation/file_context_assembler.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/will/self_healing/remediation_interpretation/file_role_detector.py' is not reachable from any entry point.",
+    "file_path": "src/will/self_healing/remediation_interpretation/file_role_detector.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/will/self_healing/remediation_interpretation/finding_normalizer.py' is not reachable from any entry point.",
+    "file_path": "src/will/self_healing/remediation_interpretation/finding_normalizer.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/will/self_healing/remediation_interpretation/models.py' is not reachable from any entry point.",
+    "file_path": "src/will/self_healing/remediation_interpretation/models.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/will/self_healing/remediation_interpretation/reasoning_brief_builder.py' is not reachable from any entry point.",
+    "file_path": "src/will/self_healing/remediation_interpretation/reasoning_brief_builder.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/will/self_healing/remediation_interpretation/responsibility_extractor.py' is not reachable from any entry point.",
+    "file_path": "src/will/self_healing/remediation_interpretation/responsibility_extractor.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/will/self_healing/remediation_interpretation/service.py' is not reachable from any entry point.",
+    "file_path": "src/will/self_healing/remediation_interpretation/service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/will/self_healing/remediation_interpretation/strategy_catalog.py' is not reachable from any entry point.",
+    "file_path": "src/will/self_healing/remediation_interpretation/strategy_catalog.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/will/self_healing/remediation_interpretation/strategy_selector.py' is not reachable from any entry point.",
+    "file_path": "src/will/self_healing/remediation_interpretation/strategy_selector.py",
     "line_number": null,
     "context": {},
     "details": {}

@@ -1,17 +1,15 @@
-# src/will/self_healing/remediation_interpretation/strategy_selector.py
-# DEPRECATED: moved to shared/self_healing/remediation_interpretation/
-# src/will/self_healing/remediation_interpretation/strategy_selector.py
+# src/shared/self_healing/remediation_interpretation/strategy_selector.py
 
 from __future__ import annotations
 
 from typing import Any
 
-from will.self_healing.remediation_interpretation.models import (
+from shared.self_healing.remediation_interpretation.models import (
     FileRole,
     RemediationStrategy,
     ResponsibilityCluster,
 )
-from will.self_healing.remediation_interpretation.strategy_catalog import (
+from shared.self_healing.remediation_interpretation.strategy_catalog import (
     StrategyCatalog,
     StrategyTemplate,
 )

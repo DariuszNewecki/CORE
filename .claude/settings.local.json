@@ -31,7 +31,9 @@
       "Bash(find /opt/dev/CORE/src -name \"*.py\" -type f -exec grep -l \"logger\\\\.\" {})",
       "Bash(grep -r \":\\\\s*[0-9]\\\\{4,5\\\\}\\\\|port\\\\s*=\\\\|url.*localhost\" /opt/dev/CORE/src --include=\"*.py\")",
       "Bash(find /opt/dev/CORE/src -name *.py -type f -exec grep -l \"import.*but.*not\\\\|unused\\\\|Dead code\\\\|TODO.*delete\\\\|FIXME.*remove\" {})",
-      "Bash(python3 -c \"import uuid; ids=[str\\(uuid.uuid4\\(\\)\\) for _ in range\\(35\\)]; [print\\(id\\) for id in ids]\")"
+      "Bash(python3 -c \"import uuid; ids=[str\\(uuid.uuid4\\(\\)\\) for _ in range\\(35\\)]; [print\\(id\\) for id in ids]\")",
+      "Bash(python -c \":*)",
+      "Bash(python3 -c \"import sys; sys.path.insert\\(0, ''/opt/dev/CORE/src''\\); from shared.self_healing.remediation_interpretation.service import RemediationInterpretationService, RemediationInterpretationError; print\\(''OK''\\)\")"
     ]
   }
 }

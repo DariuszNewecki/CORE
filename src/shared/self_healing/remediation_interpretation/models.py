@@ -1,6 +1,4 @@
-# src/will/self_healing/remediation_interpretation/models.py
-# DEPRECATED: moved to shared/self_healing/remediation_interpretation/
-# src/will/self_healing/remediation_interpretation/models.py
+# src/shared/self_healing/remediation_interpretation/models.py
 
 from __future__ import annotations
 

@@ -1,12 +1,10 @@
-# src/will/self_healing/remediation_interpretation/finding_normalizer.py
-# DEPRECATED: moved to shared/self_healing/remediation_interpretation/
-# src/will/self_healing/remediation_interpretation/finding_normalizer.py
+# src/shared/self_healing/remediation_interpretation/finding_normalizer.py
 
 from __future__ import annotations
 
 from typing import Any
 
-from will.self_healing.remediation_interpretation.models import NormalizedFinding
+from shared.self_healing.remediation_interpretation.models import NormalizedFinding
 
 
 # ID: 5f3f6c39-2d8a-4b97-a6a0-4e97c2b7e9f1

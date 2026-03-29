@@ -1,6 +1,4 @@
-# src/will/self_healing/docstring_service.py
-# DEPRECATED: moved to body/self_healing/docstring_service.py
-# src/will/self_healing/docstring_service.py
+# src/body/self_healing/docstring_service.py
 
 """
 AI-powered docstring healing via constitutional PromptModel.

@@ -228,16 +228,82 @@ The API layer (`src/api/`) is a special case:
 
 ---
 
-## 7. Shared Infrastructure Exception
+## 7. Shared Infrastructure — The Constitutional Fourth Primitive
 
-The Shared layer (`src/shared/`) provides infrastructure primitives:
+### 7.1 What Shared Is
 
-* Shared components MAY access any infrastructure
-* Shared components are **utilities**, not layers
-* Shared components MUST NOT make strategic decisions
-* Shared components MUST NOT evaluate constitutional rules
+`src/shared/` is not a fourth architectural layer. It is **layer-independent infrastructure** — code that exists to serve all three layers without belonging to any of them.
 
-**Rationale:** Shared provides the tools that layers use. It is not itself a layer in the Mind/Body/Will model.
+The distinction is constitutional, not organizational. A layer has a role in the governance model: Mind governs, Body executes, Will decides. Shared has no role. It provides tools. It makes no decisions, defines no law, executes no strategy.
+
+**Shared is the substrate the layers run on.**
+
+---
+
+### 7.2 The Admission Test
+
+A module belongs in `src/shared/` if and only if it satisfies **all three** of the following:
+
+**Test 1 — Layer Independence**
+The module imports nothing from `src/mind/`, `src/body/`, or `src/will/`. If it imports from any layer, it belongs in a layer — either the one it imports from, or a higher one. There are no exceptions to this test.
+
+**Test 2 — No Strategic Decisions**
+The module does not decide which action to take, which goal to pursue, or which path to follow. It may compute, transform, validate, or communicate — but it does not choose. Choice belongs to Will.
+
+**Test 3 — No Rule Evaluation**
+The module does not evaluate constitutional rules against evidence. It may define data structures that rules operate on, but it does not determine compliance. Evaluation belongs to Mind.
+
+If a module fails any test, it does not belong in `src/shared/`. The admission test is the enforcement gate. No exceptions, no "close enough."
+
+---
+
+### 7.3 Three Legitimate Categories
+
+Modules that pass the admission test fall into one of three categories:
+
+**Category 1 — Infrastructure Primitives**
+Foundational machinery all layers consume: database session management, vector store clients, file handler, bootstrap registry, configuration, logging, AI client wrappers, knowledge service, intent repository. These are the plumbing of CORE. They have no opinion about what flows through them.
+
+**Category 2 — Cross-Layer Protocols and Interfaces**
+Abstract interfaces that allow layers to communicate without coupling. A Body service that Will needs to call should define its interface in `shared/protocols/` — Will depends on the protocol, Body implements it, neither depends on the other. This is the constitutional mechanism for eliminating circular imports between layers.
+
+**Category 3 — Pure Utilities**
+Deterministic algorithms and data structures with zero layer dependencies: parsers, normalizers, transformers, data models, utility functions. The defining characteristic is not what they do but what they do not import. If the module's entire dependency graph stays within `shared/` and the Python standard library, it belongs here.
+
+---
+
+### 7.4 What Is Forbidden in Shared
+
+The following patterns are constitutional violations in `src/shared/`:
+
+* Any import from `src/mind/`, `src/body/`, or `src/will/`
+* Strategic decision-making (choosing between options based on goals)
+* Rule evaluation (determining constitutional compliance)
+* Worker base classes that encode daemon lifecycle — the Worker base class is permitted in `shared/workers/` only because it provides pure scaffolding with no layer-specific logic; the moment it encodes strategic behavior it must move to Will
+* LLM invocation logic — `shared/ai/` may wrap the transport layer but must not encode prompt strategy or cognitive roles; those belong to Will
+
+---
+
+### 7.5 The Historical Failure Mode
+
+The typical failure is: a module is ambiguous — it feels too "cognitive" for Body but has no Will infrastructure — so it gets placed in `shared/` by default. Over time, `shared/` accumulates modules that don't pass the admission test, and the constitutional grey zone grows.
+
+The admission test exists precisely to prevent this. The question is never "where does this feel like it belongs?" The question is always "does it pass all three tests?" If yes — `shared/`. If no — determine which layer owns it and place it there.
+
+Today's example: `remediation_interpretation/` is deterministic analysis logic with no layer imports. It passes all three tests. It belongs in `shared/`. The fact that it was previously in `will/` was a placement error, not a constitutional intent.
+
+---
+
+### 7.6 Enforcement
+
+The rule `architecture.shared.no_strategic_decisions` is upgraded from advisory (`knowledge_gate`) to a blocking AST gate covering:
+
+* Forbidden imports from any of the three layers
+* Strategic decision patterns
+
+This is declared in `.intent/enforcement/mappings/architecture/layer_separation.yaml` and applies to all of `src/shared/**/*.py`.
+
+**Shared that drifts into layers is detectable and blockable. It must be.**
 
 ---
 
@@ -310,7 +376,7 @@ This paper assumes:
 * `CORE-Constitution-Read-Only-Contract.md` (Mind immutability)
 
 It is referenced by enforcement mappings in:
-* `.intent/enforcement/mappings/architecture/mind_body_will_separation.yaml`
+* `.intent/enforcement/mappings/architecture/layer_separation.yaml`
 
 ---
 
