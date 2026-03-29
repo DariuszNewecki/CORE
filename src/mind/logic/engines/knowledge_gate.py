@@ -7,6 +7,7 @@ REFACTORED:
 - Handles "core.vector_index" vs "core.symbol_vector_links" schema drift.
 - Improved robustness for missing tables.
 V2.1: Added orphan_file_check — import graph traversal from declared entry points.
+V2.2: Added constitutional table name whitelist — prevents SQL injection via YAML.
 """
 
 from __future__ import annotations
@@ -36,6 +37,24 @@ class KnowledgeGateEngine(BaseEngine):
     """
 
     engine_id = "knowledge_gate"
+
+    # Constitutional whitelist of tables this engine may query.
+    # Table names in SQL cannot be parameterized — they must be validated
+    # against a known-good set before interpolation.
+    # In a self-modifying system, YAML-sourced table names are a supply-chain
+    # risk: an adversarially crafted proposal could inject arbitrary SQL via
+    # the enforcement mapping. This whitelist closes that window.
+    # To add a new table: amend this constant AND submit a constitutional proposal.
+    _ALLOWED_TABLES: frozenset[str] = frozenset(
+        {
+            "core.symbol_vector_links",
+            "core.vector_index",  # legacy alias — shim converts to symbol_vector_links below
+            "core.cli_commands",
+            "core.llm_resources",
+            "core.cognitive_roles",
+            "core.domains",
+        }
+    )
 
     @classmethod
     # ID: 301b31bb-1c1c-4c1e-8bb6-3880f1a1dd4d
@@ -96,6 +115,24 @@ class KnowledgeGateEngine(BaseEngine):
         # Policy says 'core.vector_index', but database uses 'core.symbol_vector_links'
         if table_name == "core.vector_index":
             table_name = "core.symbol_vector_links"
+
+        # CONSTITUTIONAL WHITELIST:
+        # Table names cannot be parameterized in SQL — validate against known-good set
+        # before interpolation. Closes the supply-chain window where an autonomous
+        # proposal could modify an enforcement mapping YAML to inject SQL via table name.
+        if table_name not in self._ALLOWED_TABLES:
+            findings.append(
+                AuditFinding(
+                    check_id="knowledge_gate.table_not_whitelisted",
+                    severity=AuditSeverity.ERROR,
+                    message=(
+                        f"Table '{table_name}' is not in the constitutional whitelist. "
+                        "Add it to KnowledgeGateEngine._ALLOWED_TABLES via a governed proposal."
+                    ),
+                    file_path="DB",
+                )
+            )
+            return findings
 
         db_session = getattr(context, "db_session", None)
         if not db_session:
@@ -223,7 +260,13 @@ class KnowledgeGateEngine(BaseEngine):
         findings: list[AuditFinding] = []
 
         repo_path = context.repo_path
-        entry_point_dirs = params.get("entry_points", ["src/cli/", "src/body/atomic/"])
+        entry_point_dirs = params.get("entry_points")
+        if not entry_point_dirs:
+            logger.error(
+                "orphan_file_check called without entry_points param — "
+                "cannot proceed safely, skipping."
+            )
+            return findings
         exclude_patterns = params.get(
             "excludes",
             [

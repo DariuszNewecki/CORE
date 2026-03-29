@@ -128,7 +128,7 @@ class ViolationRemediator(Worker):
         write: If False, dry-run mode - no src/ writes, no commits.
     """
 
-    declaration_name = "violation_remediator"
+    declaration_name = "violation_executor"
 
     def __init__(
         self,

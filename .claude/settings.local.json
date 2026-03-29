@@ -22,7 +22,15 @@
       "Bash(find /opt/dev/CORE -name *migration* -type f)",
       "Bash(grep -n 'file_handler or' /opt/dev/CORE/src/**/*.py)",
       "Bash(grep -rn file_handler.*None /opt/dev/CORE/src --include=*.py)",
-      "Bash(find /opt/dev/CORE/src -name *daemon* -type f)"
+      "Bash(find /opt/dev/CORE/src -name *daemon* -type f)",
+      "Bash(find /opt/dev/CORE/.intent/workflows -name *.yaml -o -name *.yml)",
+      "Bash(find /opt/dev/CORE/src -name *.py -type f -exec grep -l qdrant {})",
+      "Bash(2)",
+      "Bash(find /opt/dev/CORE/src -name *.py -type f -exec grep -l \"def.*write.*text\\\\|Path.*write\" {})",
+      "Bash(find /opt/dev/CORE/src -name *.py -type f -exec grep -l \"def.*session\\\\|def.*connection\" {})",
+      "Bash(find /opt/dev/CORE/src -name \"*.py\" -type f -exec grep -l \"logger\\\\.\" {})",
+      "Bash(grep -r \":\\\\s*[0-9]\\\\{4,5\\\\}\\\\|port\\\\s*=\\\\|url.*localhost\" /opt/dev/CORE/src --include=\"*.py\")",
+      "Bash(find /opt/dev/CORE/src -name *.py -type f -exec grep -l \"import.*but.*not\\\\|unused\\\\|Dead code\\\\|TODO.*delete\\\\|FIXME.*remove\" {})"
     ]
   }
 }
