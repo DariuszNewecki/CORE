@@ -201,31 +201,8 @@ class AuditIngestWorker(Worker):
         """
         Query the blackboard for already-posted subjects from this worker.
         Used for deduplication — avoids re-posting the same violation across runs.
-
-        DB access via get_session is permitted for will/workers per the
-        architecture.boundary.database_session_access exclusion in
-        .intent/rules/architecture/privileged_boundaries.json.
         """
-        from sqlalchemy import text
-
-        from shared.infrastructure.database.session_manager import (
-            get_session,
+        svc = await self._core_context.registry.get_blackboard_service()
+        return await svc.fetch_open_finding_subjects_by_worker(
+            str(self._worker_uuid), f"{_FINDING_SUBJECT}::%"
         )
-
-        async with get_session() as session:
-            result = await session.execute(
-                text(
-                    """
-                    SELECT subject FROM core.blackboard_entries
-                    WHERE worker_uuid = :worker_uuid
-                      AND entry_type = 'finding'
-                      AND subject LIKE :prefix
-                      AND status NOT IN ('resolved', 'abandoned')
-                    """
-                ),
-                {
-                    "worker_uuid": str(self._worker_uuid),
-                    "prefix": f"{_FINDING_SUBJECT}::%",
-                },
-            )
-            return {row[0] for row in result.fetchall()}

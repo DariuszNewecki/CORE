@@ -550,20 +550,5 @@ class IntentInspector(Worker):
         daemon generations from re-posting the same finding when their UUIDs
         differ across restarts.
         """
-        from sqlalchemy import text
-
-        from shared.infrastructure.database.session_manager import get_session
-
-        async with get_session() as session:
-            result = await session.execute(
-                text(
-                    """
-                        SELECT subject FROM core.blackboard_entries
-                        WHERE entry_type = 'finding'
-                        AND subject LIKE :prefix
-                        AND status NOT IN ('resolved', 'abandoned')
-                        """
-                ),
-                {"prefix": f"{subject_prefix}::%"},
-            )
-            return {row[0] for row in result.fetchall()}
+        svc = await self._core_context.registry.get_blackboard_service()
+        return await svc.fetch_open_finding_subjects_by_prefix(f"{subject_prefix}::%")
