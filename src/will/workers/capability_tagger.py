@@ -105,41 +105,17 @@ class CapabilityTaggerWorker(Worker):
 
     async def _fetch_untagged_symbols(self) -> list[dict]:
         """Fetch public symbols with no capability key, ordered by symbol_path."""
-        from sqlalchemy import text
+        from body.services.service_registry import service_registry
 
-        from shared.infrastructure.database.session_manager import get_session
-
-        async with get_session() as session:
-            result = await session.execute(
-                text(
-                    """
-                    SELECT
-                        id, symbol_path, qualname, file_path,
-                        kind, domain, docstring, is_public, calls
-                    FROM core.symbols
-                    WHERE key IS NULL
-                      AND is_public = true
-                      AND state != 'deprecated'
-                      AND file_path IS NOT NULL
-                      AND file_path != ''
-                    ORDER BY symbol_path
-                    LIMIT :batch_size
-                    """
-                ),
-                {"batch_size": _BATCH_SIZE},
-            )
-            rows = result.mappings().all()
-
-        return [dict(row) for row in rows]
+        svc = await service_registry.get_symbol_service()
+        return await svc.fetch_untagged_symbols(_BATCH_SIZE)
 
     async def _tag_symbols(self, symbols: list[dict]) -> int:
         """
         Invoke CapabilityTaggerAgent and persist results.
         Returns count of successfully tagged symbols.
         """
-        from sqlalchemy import text
-
-        from shared.infrastructure.database.session_manager import get_session
+        from body.services.service_registry import service_registry
         from shared.infrastructure.knowledge.knowledge_service import KnowledgeService
         from will.agents.capability_tagger_agent import CapabilityTaggerAgent
 
@@ -149,52 +125,28 @@ class CapabilityTaggerWorker(Worker):
             knowledge_service=knowledge_service,
         )
 
-        # Convert DB rows to the format CapabilityTaggerAgent expects
-        symbols_map = {
-            str(s["id"]): {
-                "uuid": str(s["id"]),
-                "name": s["qualname"].split(".")[-1] if s["qualname"] else "",
-                "file_path": s["file_path"],
-                "domain": s["domain"],
-                "docstring": s["docstring"],
-                "calls": s["calls"] or [],
-                "is_public": s["is_public"],
-                "capability": None,
-            }
-            for s in symbols
-        }
-
         suggestions = await agent.suggest_and_apply_tags(limit=_BATCH_SIZE)
 
         if not suggestions:
             return 0
 
-        tagged = 0
-        async with get_session() as session:
-            async with session.begin():
-                for _key, info in suggestions.items():
-                    symbol_uuid = info.get("key")
-                    suggested_key = str(info.get("suggestion", "")).strip()
+        assignments = []
+        for _key, info in suggestions.items():
+            symbol_uuid = info.get("key")
+            suggested_key = str(info.get("suggestion", "")).strip()
 
-                    if not symbol_uuid or not suggested_key or "." not in suggested_key:
-                        continue
+            if not symbol_uuid or not suggested_key or "." not in suggested_key:
+                continue
 
-                    await session.execute(
-                        text(
-                            """
-                            UPDATE core.symbols
-                            SET key = :key, updated_at = NOW()
-                            WHERE id = cast(:id as uuid)
-                              AND key IS NULL
-                            """
-                        ),
-                        {"key": suggested_key, "id": symbol_uuid},
-                    )
-                    tagged += 1
-                    logger.debug(
-                        "CapabilityTaggerWorker: %s -> %s",
-                        info.get("name"),
-                        suggested_key,
-                    )
+            assignments.append({"id": symbol_uuid, "key": suggested_key})
+            logger.debug(
+                "CapabilityTaggerWorker: %s -> %s",
+                info.get("name"),
+                suggested_key,
+            )
 
-        return tagged
+        if assignments:
+            svc = await service_registry.get_symbol_service()
+            await svc.apply_symbol_keys(assignments)
+
+        return len(assignments)

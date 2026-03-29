@@ -30,9 +30,6 @@ import re
 from pathlib import Path
 from typing import Any
 
-from sqlalchemy import text
-
-from shared.infrastructure.database.session_manager import get_session
 from shared.logger import getLogger
 from shared.processors.yaml_processor import strict_yaml_processor
 from shared.workers.base import Worker
@@ -132,11 +129,13 @@ class WorkerAuditor(Worker):
         4. For each worker exceeding threshold: post finding (deduplicated)
         5. Post completion report
         """
+        from body.services.service_registry import service_registry
+
         await self.post_heartbeat()
 
         self._thresholds = self._load_worker_thresholds()
-        workers = await self._fetch_registered_workers()
-        existing = await self._fetch_existing_findings()
+        workers = await self._fetch_registered_workers(service_registry)
+        existing = await self._fetch_existing_findings(service_registry)
 
         flagged = 0
         for worker in workers:
@@ -235,46 +234,12 @@ class WorkerAuditor(Worker):
     # DB reads
     # -------------------------------------------------------------------------
 
-    async def _fetch_registered_workers(self) -> list[dict[str, Any]]:
+    async def _fetch_registered_workers(self, registry: Any) -> list[dict[str, Any]]:
         """Return all active workers with seconds since last heartbeat."""
-        async with get_session() as session:
-            result = await session.execute(
-                text(
-                    """
-                    SELECT
-                        worker_uuid,
-                        worker_name,
-                        status,
-                        EXTRACT(EPOCH FROM (now() - last_heartbeat))::int
-                            AS seconds_silent
-                    FROM core.worker_registry
-                    WHERE status != 'abandoned'
-                    ORDER BY seconds_silent DESC
-                    """
-                )
-            )
-            return [
-                {
-                    "worker_uuid": row[0],
-                    "worker_name": row[1],
-                    "status": row[2],
-                    "seconds_silent": row[3] or 0,
-                }
-                for row in result.fetchall()
-            ]
+        svc = await registry.get_worker_registry_service()
+        return await svc.fetch_registered_workers()
 
-    async def _fetch_existing_findings(self) -> set[str]:
+    async def _fetch_existing_findings(self, registry: Any) -> set[str]:
         """Return subjects of open worker.silent findings to avoid duplicates."""
-        async with get_session() as session:
-            result = await session.execute(
-                text(
-                    """
-                    SELECT subject FROM core.blackboard_entries
-                    WHERE entry_type = 'finding'
-                      AND subject LIKE :prefix
-                      AND status NOT IN ('resolved', 'abandoned')
-                    """
-                ),
-                {"prefix": f"{_FINDING_SUBJECT}::%"},
-            )
-            return {row[0] for row in result.fetchall()}
+        svc = await registry.get_blackboard_service()
+        return await svc.fetch_open_finding_subjects_by_prefix(f"{_FINDING_SUBJECT}::%")

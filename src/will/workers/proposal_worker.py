@@ -24,7 +24,6 @@ Constitutional alignment:
   - All LLM calls via PromptModel.invoke() (ai.prompt.model_required)
   - LLM client resolved via core_context.cognitive_service (no direct instantiation)
   - PromptModel.load() inside run(), never at module level
-  - get_session permitted in will/workers/ via explicit constitutional exclusion
   - No direct file writes — proposals execute via ProposalConsumerWorker → ProposalExecutor
   - Config read from YAML declaration (self._declaration["config"]), not injected externally
 """
@@ -33,12 +32,8 @@ from __future__ import annotations
 
 import json
 import uuid
-from datetime import UTC, datetime, timedelta
 from typing import Any
 
-from sqlalchemy import text
-
-from shared.infrastructure.database.session_manager import get_session
 from shared.logger import getLogger
 from shared.workers.base import Worker
 
@@ -177,6 +172,8 @@ class AutonomousProposalWorker(Worker):
                 continue
 
             if write:
+                from shared.infrastructure.database.session_manager import get_session
+
                 async with get_session() as session:
                     from will.autonomy.proposal_repository import ProposalRepository
 
@@ -291,38 +288,10 @@ async def _read_recent_findings(lookback_minutes: int) -> list[dict[str, Any]]:
     """
     Query core.audit_findings for recent ERROR-level violations grouped by check_id.
     """
-    since = datetime.now(UTC) - timedelta(minutes=lookback_minutes)
+    from body.services.service_registry import service_registry
 
-    async with get_session() as session:
-        result = await session.execute(
-            text(
-                """
-                SELECT
-                    check_id,
-                    COUNT(*)                        AS hit_count,
-                    array_agg(DISTINCT file_path)   AS files,
-                    array_agg(message ORDER BY created_at DESC) AS messages
-                FROM core.audit_findings
-                WHERE severity = 'error'
-                  AND created_at >= :since
-                GROUP BY check_id
-                ORDER BY hit_count DESC
-                LIMIT 20
-                """
-            ),
-            {"since": since},
-        )
-        rows = result.fetchall()
-
-    return [
-        {
-            "check_id": str(row[0]),
-            "count": int(row[1]),
-            "files": [f for f in (row[2] or []) if f],
-            "sample_messages": list((row[3] or [])[:3]),
-        }
-        for row in rows
-    ]
+    svc = await service_registry.get_audit_findings_service()
+    return await svc.fetch_recent_error_findings(lookback_minutes)
 
 
 async def _evaluate_group(

@@ -33,10 +33,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from sqlalchemy import text
-
 from shared.infrastructure.clients.qdrant_client import QdrantService
-from shared.infrastructure.database.session_manager import get_session
 from shared.logger import getLogger
 from shared.workers.base import Worker
 
@@ -96,6 +93,8 @@ class RepoEmbedderWorker(Worker):
                 repo_path=self._repo_root,
                 qdrant_service=qdrant,
             )
+            from shared.infrastructure.database.session_manager import get_session
+
             async with get_session() as init_session:
                 await cognitive.initialize(init_session)
             self._cognitive_service = cognitive
@@ -122,6 +121,8 @@ class RepoEmbedderWorker(Worker):
     # ID: b3c4d5e6-f7a8-9b0c-2345-678901abcdef
     async def run(self) -> None:
         """Embed a batch of unprocessed repo artifacts."""
+        from body.services.service_registry import service_registry
+
         logger.info("RepoEmbedderWorker: starting embedding pass")
 
         qdrant = QdrantService()
@@ -129,29 +130,20 @@ class RepoEmbedderWorker(Worker):
 
         stats = {"processed": 0, "chunks_total": 0, "errors": 0}
 
-        async with get_session() as session:
-            # Fetch unembedded artifacts (chunk_count = 0)
-            result = await session.execute(
-                text(
-                    """
-                    SELECT id, file_path, artifact_type, qdrant_collection
-                    FROM core.repo_artifacts
-                    WHERE chunk_count = 0
-                      AND chunk_count != -1
-                    ORDER BY last_crawled_at DESC
-                    LIMIT :batch_size
-                """
-                ),
-                {"batch_size": self._batch_size},
-            )
-            artifacts = result.fetchall()
+        svc = await service_registry.get_artifact_service()
+        artifacts = await svc.fetch_unembedded_artifacts(self._batch_size)
 
         if not artifacts:
             logger.info("RepoEmbedderWorker: nothing to embed, all artifacts current")
             await self.post_heartbeat()
             return
 
-        for artifact_id, file_path, artifact_type, collection in artifacts:
+        for artifact in artifacts:
+            artifact_id = artifact["id"]
+            file_path = artifact["file_path"]
+            artifact_type = artifact["artifact_type"]
+            collection = artifact["qdrant_collection"]
+
             full_path = self._repo_root / file_path
             if not full_path.exists():
                 logger.warning("RepoEmbedderWorker: file missing: %s", file_path)
@@ -161,14 +153,7 @@ class RepoEmbedderWorker(Worker):
                 chunks = _chunk_file(full_path, artifact_type)
                 if not chunks:
                     # Empty file — mark permanently skipped
-                    async with get_session() as session:
-                        await session.execute(
-                            text(
-                                "UPDATE core.repo_artifacts SET chunk_count = -1 WHERE id = cast(:artifact_id as uuid)"
-                            ),
-                            {"artifact_id": str(artifact_id)},
-                        )
-                        await session.commit()
+                    await svc.mark_artifact_empty(artifact_id)
                     logger.info(
                         "RepoEmbedderWorker: empty file skipped permanently: %s",
                         file_path,
@@ -184,19 +169,7 @@ class RepoEmbedderWorker(Worker):
                     cognitive=cognitive,
                 )
 
-                # Update chunk_count
-                async with get_session() as session:
-                    await session.execute(
-                        text(
-                            """
-                            UPDATE core.repo_artifacts
-                            SET chunk_count = :chunk_count
-                            WHERE id = cast(:artifact_id as uuid)
-                        """
-                        ),
-                        {"chunk_count": chunk_count, "artifact_id": str(artifact_id)},
-                    )
-                    await session.commit()
+                await svc.update_artifact_chunk_count(artifact_id, chunk_count)
 
                 stats["processed"] += 1
                 stats["chunks_total"] += chunk_count

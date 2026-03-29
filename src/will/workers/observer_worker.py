@@ -25,12 +25,8 @@ system_health_log. No LLM. No file writes. No direct worker communication.
 from __future__ import annotations
 
 import asyncio
-from datetime import UTC, datetime
 from typing import Any
 
-from sqlalchemy import text
-
-from shared.infrastructure.database.session_manager import get_session
 from shared.logger import getLogger
 from shared.workers.base import Worker
 
@@ -141,73 +137,10 @@ class ObserverWorker(Worker):
     # ID: d0e6f5a4-c7b8-4a9f-1d2e-3f4a5b6c7d8e
     async def _collect_state(self) -> dict[str, Any]:
         """Read system state counts from the DB. No LLM. No side effects."""
-        async with get_session() as session:
-            open_findings = await self._count_open_findings(session)
-            stale_entries = await self._count_stale_entries(session)
-            silent_workers = await self._count_silent_workers(session)
-            orphaned_symbols = await self._count_orphaned_symbols(session)
+        from body.services.service_registry import service_registry
 
-        return {
-            "open_findings": open_findings,
-            "stale_entries": stale_entries,
-            "silent_workers": silent_workers,
-            "orphaned_symbols": orphaned_symbols,
-            "observed_at": datetime.now(UTC).isoformat(),
-        }
-
-    async def _count_open_findings(self, session: Any) -> int:
-        result = await session.execute(
-            text(
-                """
-                SELECT COUNT(*) FROM core.blackboard_entries
-                WHERE entry_type = 'finding'
-                  AND status NOT IN ('resolved', 'abandoned')
-                """
-            )
-        )
-        return result.scalar() or 0
-
-    async def _count_stale_entries(self, session: Any) -> int:
-        result = await session.execute(
-            text(
-                """
-                SELECT COUNT(*) FROM core.blackboard_entries
-                WHERE status NOT IN ('resolved', 'abandoned')
-                  AND created_at < now() - make_interval(secs => :threshold)
-                """
-            ),
-            {"threshold": _STALE_THRESHOLD_SECONDS},
-        )
-        return result.scalar() or 0
-
-    async def _count_silent_workers(self, session: Any) -> int:
-        result = await session.execute(
-            text(
-                """
-                SELECT COUNT(*) FROM core.worker_registry
-                WHERE status = 'active'
-                  AND last_heartbeat < now() - interval '10 minutes'
-                """
-            )
-        )
-        return result.scalar() or 0
-
-    async def _count_orphaned_symbols(self, session: Any) -> int:
-        result = await session.execute(
-            text(
-                """
-                SELECT COUNT(*) FROM core.symbols s1
-                WHERE s1.key IS NULL
-                    AND s1.is_public = true
-                    AND NOT EXISTS (
-                    -- Check if any other symbol's 'calls' array contains this symbol's qualname
-                    SELECT 1 FROM core.symbols s2
-                    WHERE s2.calls @> to_jsonb(s1.qualname)
-                    )
-                """
-            )
-        )
-        return result.scalar() or 0
+        svc = await service_registry.get_health_log_service()
+        return await svc.collect_system_state(_STALE_THRESHOLD_SECONDS)
 
     # -------------------------------------------------------------------------
     # Health log write
@@ -216,24 +149,7 @@ class ObserverWorker(Worker):
     # ID: e1f7a6b5-d8c9-4b0f-2e3f-4a5b6c7d8e9f
     async def _write_health_log(self, state: dict[str, Any]) -> None:
         """Append one row to core.system_health_log. Never updates existing rows."""
-        async with get_session() as session:
-            async with session.begin():
-                await session.execute(
-                    text(
-                        """
-                        INSERT INTO core.system_health_log
-                            (open_findings, stale_entries, silent_workers,
-                             orphaned_symbols, payload)
-                        VALUES
-                            (:open_findings, :stale_entries, :silent_workers,
-                             :orphaned_symbols, cast(:payload as jsonb))
-                        """
-                    ),
-                    {
-                        "open_findings": state["open_findings"],
-                        "stale_entries": state["stale_entries"],
-                        "silent_workers": state["silent_workers"],
-                        "orphaned_symbols": state["orphaned_symbols"],
-                        "payload": "{}",
-                    },
-                )
+        from body.services.service_registry import service_registry
+
+        svc = await service_registry.get_health_log_service()
+        await svc.write_health_log(state)

@@ -24,10 +24,7 @@ import asyncio
 from pathlib import Path
 from typing import Any
 
-from sqlalchemy import text
-
 from shared.ai.prompt_model import PromptModel
-from shared.infrastructure.database.session_manager import get_session
 from shared.logger import getLogger
 from shared.workers.base import Worker
 
@@ -166,25 +163,10 @@ class DocWorker(Worker):
 
     async def _fetch_undocumented_symbols(self) -> list[dict[str, Any]]:
         """Query core.symbols for public symbols with missing or empty intent."""
-        async with get_session() as session:
-            result = await session.execute(
-                text(
-                    """
-                    select
-                        symbol_path,
-                        module,
-                        qualname,
-                        kind,
-                        file_path
-                    from core.symbols
-                    where
-                        is_public = true
-                        and (intent is null or trim(intent) = '')
-                    order by module, qualname
-                """
-                )
-            )
-            return [dict(row._mapping) for row in result]
+        from body.services.service_registry import service_registry
+
+        svc = await service_registry.get_doc_service()
+        return await svc.fetch_undocumented_symbols()
 
     def _read_source(self, symbol: dict[str, Any]) -> str | None:
         """

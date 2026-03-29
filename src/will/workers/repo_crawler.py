@@ -29,9 +29,6 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from sqlalchemy import text
-
-from shared.infrastructure.database.session_manager import get_session
 from shared.logger import getLogger
 from shared.workers.base import Worker
 
@@ -132,6 +129,8 @@ class RepoCrawlerWorker(Worker):
     # ID: b2c3d4e5-f6a7-8901-bcde-f12345678903
     async def run(self) -> None:
         """Crawl repository — extract call graph and register artifacts."""
+        from body.services.service_registry import service_registry
+
         logger.info("RepoCrawlerWorker: starting crawl pass")
 
         crawl_run_id = uuid.uuid4()
@@ -143,112 +142,64 @@ class RepoCrawlerWorker(Worker):
             "chunks_upserted": 0,
         }
 
-        async with get_session() as session:
-            await session.execute(
-                text(
-                    """
-                    INSERT INTO core.crawl_runs (id, triggered_by, status, started_at)
-                    VALUES (cast(:id as uuid), 'worker', 'running', now())
-                """
-                ),
-                {"id": str(crawl_run_id)},
-            )
-            await session.commit()
+        svc = await service_registry.get_crawl_service()
+        await svc.open_crawl_run(str(crawl_run_id))
 
-            try:
-                # Load existing symbol index (symbol_path → uuid)
-                symbol_index = await self._load_symbol_index(session)
+        try:
+            symbol_index = await svc.load_symbol_index()
+            existing_hashes = await svc.load_artifact_hashes()
 
-                # Load existing artifact hashes for skip-if-unchanged
-                existing_hashes = await self._load_artifact_hashes(session)
+            for glob_pattern, artifact_type in _CRAWL_SCOPES:
+                for file_path in sorted(self._repo_root.glob(glob_pattern)):
+                    # Never follow symlinks
+                    if file_path.is_symlink():
+                        continue
 
-                # Walk all scopes
-                for glob_pattern, artifact_type in _CRAWL_SCOPES:
-                    for file_path in sorted(self._repo_root.glob(glob_pattern)):
-                        # Never follow symlinks
-                        if file_path.is_symlink():
-                            continue
+                    rel_path = str(file_path.relative_to(self._repo_root))
+                    stats["files_scanned"] += 1
 
-                        rel_path = str(file_path.relative_to(self._repo_root))
-                        stats["files_scanned"] += 1
+                    try:
+                        content_hash = _sha256(file_path)
 
-                        try:
-                            content_hash = _sha256(file_path)
-
-                            # Use a savepoint per file so one failure doesn't
-                            # abort the entire transaction and poison all
-                            # subsequent file inserts.
-                            async with session.begin_nested():
-                                if artifact_type == "python":
-                                    # Python: extract call graph AND register for embedding
-                                    changed = await self._process_python_file(
-                                        session=session,
-                                        file_path=file_path,
-                                        rel_path=rel_path,
-                                        content_hash=content_hash,
-                                        existing_hashes=existing_hashes,
-                                        symbol_index=symbol_index,
-                                        crawl_run_id=crawl_run_id,
-                                        stats=stats,
-                                    )
-                                else:
-                                    # Non-Python: register artifact + cross-reference
-                                    changed = await self._process_artifact_file(
-                                        session=session,
-                                        file_path=file_path,
-                                        rel_path=rel_path,
-                                        content_hash=content_hash,
-                                        artifact_type=artifact_type,
-                                        existing_hashes=existing_hashes,
-                                        symbol_index=symbol_index,
-                                        crawl_run_id=crawl_run_id,
-                                        stats=stats,
-                                    )
-
-                            if changed:
-                                stats["files_changed"] += 1
-
-                        except Exception as exc:
-                            logger.warning(
-                                "RepoCrawlerWorker: error processing %s: %s",
-                                rel_path,
-                                exc,
+                        if artifact_type == "python":
+                            changed = await self._process_python_file(
+                                svc=svc,
+                                file_path=file_path,
+                                rel_path=rel_path,
+                                content_hash=content_hash,
+                                existing_hashes=existing_hashes,
+                                symbol_index=symbol_index,
+                                crawl_run_id=crawl_run_id,
+                                stats=stats,
+                            )
+                        else:
+                            changed = await self._process_artifact_file(
+                                svc=svc,
+                                file_path=file_path,
+                                rel_path=rel_path,
+                                content_hash=content_hash,
+                                artifact_type=artifact_type,
+                                existing_hashes=existing_hashes,
+                                symbol_index=symbol_index,
+                                crawl_run_id=crawl_run_id,
+                                stats=stats,
                             )
 
-                await session.commit()
+                        if changed:
+                            stats["files_changed"] += 1
 
-                # Close crawl run as completed
-                await session.execute(
-                    text(
-                        """
-                        UPDATE core.crawl_runs SET
-                            status          = 'completed',
-                            files_scanned   = :files_scanned,
-                            files_changed   = :files_changed,
-                            symbols_linked  = :symbols_linked,
-                            edges_created   = :edges_created,
-                            chunks_upserted = :chunks_upserted,
-                            finished_at     = now()
-                        WHERE id = :id
-                    """
-                    ),
-                    {"id": str(crawl_run_id), **stats},
-                )
-                await session.commit()
+                    except Exception as exc:
+                        logger.warning(
+                            "RepoCrawlerWorker: error processing %s: %s",
+                            rel_path,
+                            exc,
+                        )
 
-            except Exception as exc:
-                await session.execute(
-                    text(
-                        """
-                        UPDATE core.crawl_runs
-                        SET status = 'failed', error_message = :err, finished_at = now()
-                        WHERE id = :id
-                    """
-                    ),
-                    {"id": str(crawl_run_id), "err": str(exc)},
-                )
-                await session.commit()
-                raise
+            await svc.close_crawl_run_completed(str(crawl_run_id), stats)
+
+        except Exception as exc:
+            await svc.close_crawl_run_failed(str(crawl_run_id), str(exc))
+            raise
 
         await self.post_report(
             subject="repo.crawl.complete",
@@ -267,7 +218,7 @@ class RepoCrawlerWorker(Worker):
     # ID: c4d5e6f7-a8b9-0c1d-2e3f-4a5b6c7d8e9f
     async def _process_python_file(
         self,
-        session: Any,
+        svc: Any,
         file_path: Path,
         rel_path: str,
         content_hash: str,
@@ -286,39 +237,9 @@ class RepoCrawlerWorker(Worker):
         """
         changed = existing_hashes.get(rel_path) != content_hash
 
-        # Always register in repo_artifacts so RepoEmbedder can find it.
-        # ON CONFLICT DO UPDATE resets chunk_count to 0 only when hash changed,
-        # which tells RepoEmbedder to re-embed this file.
         qdrant_collection = _QDRANT_COLLECTION_MAP["python"]
-        await session.execute(
-            text(
-                """
-                INSERT INTO core.repo_artifacts
-                    (id, file_path, artifact_type, content_hash,
-                     qdrant_collection, chunk_count, last_crawled_at, crawl_run_id)
-                VALUES
-                    (gen_random_uuid(), :file_path, :artifact_type, :content_hash,
-                     :qdrant_collection, 0, now(), cast(:crawl_run_id as uuid))
-                ON CONFLICT (file_path) DO UPDATE SET
-                    content_hash      = EXCLUDED.content_hash,
-                    artifact_type     = EXCLUDED.artifact_type,
-                    qdrant_collection = EXCLUDED.qdrant_collection,
-                    chunk_count       = CASE
-                        WHEN repo_artifacts.content_hash != EXCLUDED.content_hash
-                        THEN 0
-                        ELSE repo_artifacts.chunk_count
-                    END,
-                    last_crawled_at   = EXCLUDED.last_crawled_at,
-                    crawl_run_id      = EXCLUDED.crawl_run_id
-            """
-            ),
-            {
-                "file_path": rel_path,
-                "artifact_type": "python",
-                "content_hash": content_hash,
-                "qdrant_collection": qdrant_collection,
-                "crawl_run_id": str(crawl_run_id),
-            },
+        await svc.upsert_python_artifact(
+            rel_path, content_hash, qdrant_collection, str(crawl_run_id)
         )
 
         if not changed:
@@ -342,40 +263,8 @@ class RepoCrawlerWorker(Worker):
         edges = extractor.extract(tree)
 
         if edges:
-            # Delete stale edges for this file before inserting fresh ones
-            await session.execute(
-                text(
-                    """
-                    DELETE FROM core.symbol_calls
-                    WHERE file_path = :file_path
-                      AND crawl_run_id != :crawl_run_id
-                """
-                ),
-                {"file_path": rel_path, "crawl_run_id": str(crawl_run_id)},
-            )
-
-            for edge in edges:
-                await session.execute(
-                    text(
-                        """
-                        INSERT INTO core.symbol_calls
-                            (id, caller_id, callee_id, callee_raw, edge_kind,
-                             file_path, line_number, is_cross_layer, is_external,
-                             crawl_run_id, created_at)
-                        VALUES
-                            (gen_random_uuid(),
-                             cast(:caller_id as uuid),
-                             cast(:callee_id as uuid),
-                             :callee_raw, :edge_kind,
-                             :file_path, :line_number,
-                             :is_cross_layer, :is_external,
-                             cast(:crawl_run_id as uuid),
-                             now())
-                        ON CONFLICT DO NOTHING
-                    """
-                    ),
-                    edge,
-                )
+            await svc.delete_stale_symbol_calls(rel_path, str(crawl_run_id))
+            await svc.insert_symbol_calls(edges)
             stats["edges_created"] += len(edges)
 
         return True
@@ -387,7 +276,7 @@ class RepoCrawlerWorker(Worker):
     # ID: d5e6f7a8-b9c0-1d2e-3f4a-5b6c7d8e9f0a
     async def _process_artifact_file(
         self,
-        session: Any,
+        svc: Any,
         file_path: Path,
         rel_path: str,
         content_hash: str,
@@ -401,79 +290,21 @@ class RepoCrawlerWorker(Worker):
         changed = existing_hashes.get(rel_path) != content_hash
 
         qdrant_collection = _QDRANT_COLLECTION_MAP.get(artifact_type)
-
-        await session.execute(
-            text(
-                """
-                INSERT INTO core.repo_artifacts
-                    (id, file_path, artifact_type, content_hash,
-                     qdrant_collection, last_crawled_at, crawl_run_id)
-                VALUES
-                    (gen_random_uuid(), :file_path, :artifact_type, :content_hash,
-                     :qdrant_collection, now(), cast(:crawl_run_id as uuid))
-                ON CONFLICT (file_path) DO UPDATE SET
-                    content_hash     = EXCLUDED.content_hash,
-                    artifact_type    = EXCLUDED.artifact_type,
-                    qdrant_collection = EXCLUDED.qdrant_collection,
-                    last_crawled_at  = EXCLUDED.last_crawled_at,
-                    crawl_run_id     = EXCLUDED.crawl_run_id
-            """
-            ),
-            {
-                "file_path": rel_path,
-                "artifact_type": artifact_type,
-                "content_hash": content_hash,
-                "qdrant_collection": qdrant_collection,
-                "crawl_run_id": str(crawl_run_id),
-            },
+        await svc.upsert_artifact(
+            rel_path, artifact_type, content_hash, qdrant_collection, str(crawl_run_id)
         )
 
         if changed:
-            result = await session.execute(
-                text("SELECT id FROM core.repo_artifacts WHERE file_path = :fp"),
-                {"fp": rel_path},
-            )
-            row = result.fetchone()
-            if row:
-                artifact_id = str(row[0])
+            artifact_id = await svc.fetch_artifact_id(rel_path)
+            if artifact_id:
                 content = file_path.read_text(encoding="utf-8", errors="replace")
                 links = _find_symbol_references(
                     content, symbol_index, rel_path, artifact_type
                 )
-                for link in links:
-                    await session.execute(
-                        text(
-                            """
-                            INSERT INTO core.artifact_symbol_links
-                                (id, artifact_id, symbol_id, link_kind, confidence, source)
-                            VALUES
-                                (gen_random_uuid(),
-                                 cast(:artifact_id as uuid),
-                                 cast(:symbol_id as uuid),
-                                 :link_kind, :confidence, :source)
-                            ON CONFLICT DO NOTHING
-                        """
-                        ),
-                        {"artifact_id": artifact_id, **link},
-                    )
+                await svc.insert_artifact_symbol_links(artifact_id, links)
                 stats["symbols_linked"] += len(links)
 
         return changed
-
-    async def _load_symbol_index(self, session: Any) -> dict[str, str]:
-        """Load symbol_path → id mapping from core.symbols."""
-        result = await session.execute(
-            text("SELECT symbol_path, id FROM core.symbols WHERE state != 'deprecated'")
-        )
-        return {row[0]: str(row[1]) for row in result.fetchall()}
-
-    # ID: f7a8b9c0-d1e2-3f4a-5b6c-7d8e9f0a1b2c
-    async def _load_artifact_hashes(self, session: Any) -> dict[str, str]:
-        """Load file_path → content_hash for skip-if-unchanged logic."""
-        result = await session.execute(
-            text("SELECT file_path, content_hash FROM core.repo_artifacts")
-        )
-        return {row[0]: row[1] for row in result.fetchall()}
 
 
 # ---------------------------------------------------------------------------
