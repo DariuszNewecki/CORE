@@ -109,3 +109,22 @@ class ArtifactService:
                 {"chunk_count": chunk_count, "artifact_id": artifact_id},
             )
             await session.commit()
+
+    # ID: c3d4e5f6-a7b8-9012-cdef-012345678901
+    async def count_pending_artifacts(self) -> int:
+        """
+        Count repo_artifacts with chunk_count = 0 (unembedded, not permanently skipped).
+
+        Covers:
+          - sync_actions.action_sync_code_vectors — per-pass pending check
+        """
+        from body.services.service_registry import ServiceRegistry
+
+        async with ServiceRegistry.session() as session:
+            result = await session.execute(
+                text(
+                    "SELECT COUNT(*) FROM core.repo_artifacts "
+                    "WHERE chunk_count = 0 AND chunk_count != -1"
+                )
+            )
+            return result.scalar() or 0
