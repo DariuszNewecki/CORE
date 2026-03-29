@@ -158,10 +158,10 @@ class CoderAgent:
         # PRESERVED: v2.5 Refusal Case Recording
         if not fixed_code:
             logger.error("Failed to extract code from repair response")
-            from shared.component_primitive import ComponentPhase
-            from shared.infrastructure.repositories.refusal_repository import (
+            from body.infrastructure.repositories.refusal_repository import (
                 RefusalRepository,
             )
+            from shared.component_primitive import ComponentPhase
 
             repo = RefusalRepository()
             await repo.record_refusal(

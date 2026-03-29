@@ -15,7 +15,7 @@ existing CoderAgent workflow without breaking compatibility.
 
 from __future__ import annotations
 
-from shared.infrastructure.repositories.refusal_repository import RefusalRepository
+from body.infrastructure.repositories.refusal_repository import RefusalRepository
 from shared.logger import getLogger
 from shared.models.refusal_result import RefusalResult
 

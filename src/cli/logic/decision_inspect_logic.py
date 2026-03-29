@@ -13,7 +13,7 @@ logger = getLogger(__name__)
 from rich.console import Console
 from rich.table import Table
 
-from shared.infrastructure.repositories.decision_trace_repository import (
+from body.infrastructure.repositories.decision_trace_repository import (
     DecisionTraceRepository,
 )
 

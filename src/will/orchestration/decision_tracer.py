@@ -205,7 +205,7 @@ class DecisionTracer:
         - No session injection — repository opens its own session context (Body-owned)
         - DB failures must never block execution (handled by caller)
         """
-        from shared.infrastructure.repositories.decision_trace_repository import (
+        from body.infrastructure.repositories.decision_trace_repository import (
             DecisionTraceRepository,
         )
 

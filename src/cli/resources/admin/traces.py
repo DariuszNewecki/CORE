@@ -2,11 +2,11 @@
 
 import typer
 
-from shared.cli_utils import core_command
-from shared.infrastructure.database.session_manager import get_session
-from shared.infrastructure.repositories.decision_trace_repository import (
+from body.infrastructure.repositories.decision_trace_repository import (
     DecisionTraceRepository,
 )
+from shared.cli_utils import core_command
+from shared.infrastructure.database.session_manager import get_session
 
 from .hub import app
 

@@ -20,7 +20,7 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
 
-from shared.infrastructure.repositories.refusal_repository import RefusalRepository
+from body.infrastructure.repositories.refusal_repository import RefusalRepository
 
 
 console = Console()

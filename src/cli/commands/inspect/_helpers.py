@@ -23,7 +23,7 @@ from rich.table import Table
 
 
 if TYPE_CHECKING:
-    from shared.infrastructure.repositories.decision_trace_repository import (
+    from body.infrastructure.repositories.decision_trace_repository import (
         DecisionTraceRepository,
     )
 console = Console()
