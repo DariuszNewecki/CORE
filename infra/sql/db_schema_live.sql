@@ -660,6 +660,8 @@ CREATE TABLE core.autonomous_proposals (
     approved_by text,
     approved_at timestamp with time zone,
     failure_reason text,
+    version integer DEFAULT 0 NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
     CONSTRAINT autonomous_proposals_status_check CHECK ((status = ANY (ARRAY['draft'::text, 'pending'::text, 'approved'::text, 'executing'::text, 'completed'::text, 'failed'::text, 'rejected'::text])))
 );
 
@@ -3802,6 +3804,13 @@ CREATE TRIGGER trg_audit_symbols AFTER INSERT OR DELETE OR UPDATE ON core.symbol
 --
 
 CREATE TRIGGER trg_blackboard_updated_at BEFORE UPDATE ON core.blackboard_entries FOR EACH ROW EXECUTE FUNCTION core.touch_blackboard_updated_at();
+
+
+--
+-- Name: autonomous_proposals trg_autonomous_proposals_updated_at; Type: TRIGGER; Schema: core; Owner: lira_user
+--
+
+CREATE TRIGGER trg_autonomous_proposals_updated_at BEFORE UPDATE ON core.autonomous_proposals FOR EACH ROW EXECUTE FUNCTION core.set_updated_at();
 
 
 --
