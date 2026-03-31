@@ -93,6 +93,17 @@ class ProposalExecutor:
             else:
                 logger.info("DRY-RUN mode - not updating proposal status")
 
+            # Capture pre-execution HEAD so we can restore the working tree on failure.
+            pre_execution_sha = None
+            if self.core_context.git_service:
+                try:
+                    pre_execution_sha = (
+                        self.core_context.git_service.get_current_commit()
+                    )
+                    logger.info("Pre-execution HEAD: %s", pre_execution_sha)
+                except Exception as sha_err:
+                    logger.warning("Could not capture pre-execution SHA: %s", sha_err)
+
             # 4. Execute actions in order
             action_results: dict[str, Any] = {}
             all_ok = True
@@ -207,6 +218,22 @@ class ProposalExecutor:
                     logger.error(
                         "Proposal failed: %s - %s", proposal.proposal_id, reason
                     )
+                    # Restore the working tree to pre-execution state.
+                    if self.core_context.git_service and pre_execution_sha is not None:
+                        try:
+                            self.core_context.git_service._run_command(
+                                ["checkout", "--", "."]
+                            )
+                            logger.info(
+                                "Rolled back working tree to pre-execution state (%s)",
+                                pre_execution_sha,
+                            )
+                        except Exception as rollback_err:
+                            logger.warning(
+                                "Rollback failed for proposal %s: %s",
+                                proposal.proposal_id,
+                                rollback_err,
+                            )
             else:
                 logger.info("DRY-RUN complete - no status updates")
 
