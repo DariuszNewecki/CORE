@@ -311,8 +311,16 @@ async def action_fix_atomic_actions(
     root_path = core_context.git_service.repo_path
 
     evaluator = AtomicActionsEvaluator(context=core_context)
-    result_wrapper = await evaluator.execute(repo_root=root_path)
-    data = result_wrapper.data
+    try:
+        result_wrapper = await evaluator.execute(repo_root=root_path)
+        data = result_wrapper.data
+    except Exception as e:
+        return ActionResult(
+            action_id="fix.atomic_actions",
+            ok=False,
+            data={"error": str(e)},
+            duration_sec=time.time() - start_time,
+        )
 
     if not data["violations"]:
         return ActionResult(
@@ -338,6 +346,7 @@ async def action_fix_atomic_actions(
 
     fixes_applied = 0
     files_modified = 0
+    files_failed = 0
 
     for file_path, file_violations in violations_by_file.items():
         try:
@@ -353,11 +362,16 @@ async def action_fix_atomic_actions(
                 fixes_applied += len(file_violations)
         except Exception as e:
             logger.error("Error fixing %s: %s", file_path, e)
+            files_failed += 1
 
     return ActionResult(
         action_id="fix.atomic_actions",
-        ok=True,
-        data={"files_modified": files_modified, "violations_fixed": fixes_applied},
+        ok=files_failed == 0,
+        data={
+            "files_modified": files_modified,
+            "violations_fixed": fixes_applied,
+            "files_failed": files_failed,
+        },
         duration_sec=time.time() - start_time,
     )
 
