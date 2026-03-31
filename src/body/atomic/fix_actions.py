@@ -50,7 +50,15 @@ async def action_format_code(write: bool = False) -> ActionResult:
     start = time.time()
     from body.self_healing.code_style_service import format_code
 
-    format_code(write=write)
+    try:
+        format_code(write=write)
+    except Exception as e:
+        return ActionResult(
+            action_id="fix.format",
+            ok=False,
+            data={"error": str(e), "write": write},
+            duration_sec=time.time() - start,
+        )
     return ActionResult(
         action_id="fix.format",
         ok=True,
