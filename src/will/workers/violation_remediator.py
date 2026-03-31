@@ -138,7 +138,7 @@ class ViolationRemediatorWorker(Worker):
         # 4. Create proposals + 5. Mark entries resolved
         proposals_created: list[str] = []
         proposals_skipped: list[str] = []
-        entries_resolved: list[str] = []
+        entries_resolved: int = 0
 
         for action_id, findings in action_groups.items():
             if action_id in active_action_ids:
@@ -157,14 +157,14 @@ class ViolationRemediatorWorker(Worker):
                 resolved = await self._resolve_entries(
                     [f["entry_id"] for f in findings]
                 )
-                entries_resolved.extend(resolved)
+                entries_resolved += resolved
                 logger.info(
                     "ViolationRemediatorWorker: created proposal '%s' for action '%s' "
                     "(%d findings, %d entries resolved)",
                     proposal_id,
                     action_id,
                     len(findings),
-                    len(resolved),
+                    resolved,
                 )
 
         # 6. Post blackboard report
@@ -176,7 +176,7 @@ class ViolationRemediatorWorker(Worker):
                 "action_groups": len(action_groups),
                 "proposals_created": len(proposals_created),
                 "proposals_skipped_dedup": len(proposals_skipped),
-                "entries_resolved": len(entries_resolved),
+                "entries_resolved": entries_resolved,
                 "created_actions": proposals_created,
                 "skipped_actions": proposals_skipped,
                 "unmappable_rules": list(
@@ -203,48 +203,14 @@ class ViolationRemediatorWorker(Worker):
         Query Blackboard for open audit violation findings.
 
         Returns list of dicts with: entry_id, subject, payload.
-
-        Constitutional fix: uses service_registry.session() instead of
-        get_session() directly — Will layer must not import get_session.
         """
-        from sqlalchemy import text
-
         from body.services.service_registry import service_registry
 
         try:
-            async with service_registry.session() as session:
-                result = await session.execute(
-                    text(
-                        """
-                        SELECT id, subject, payload
-                        FROM core.blackboard_entries
-                        WHERE entry_type = 'finding'
-                          AND subject LIKE :prefix
-                          AND status = 'open'
-                        ORDER BY created_at ASC
-                        LIMIT 200
-                    """
-                    ),
-                    {"prefix": f"{_FINDING_SUBJECT_PREFIX}%"},
-                )
-                rows = result.fetchall()
-
-            findings = []
-            for row in rows:
-                entry_id, subject, payload = row
-                if isinstance(payload, str):
-                    import json
-
-                    payload = json.loads(payload)
-                findings.append(
-                    {
-                        "entry_id": str(entry_id),
-                        "subject": subject,
-                        "payload": payload or {},
-                    }
-                )
-            return findings
-
+            blackboard_service = await service_registry.get_blackboard_service()
+            return await blackboard_service.fetch_open_findings(
+                prefix=f"{_FINDING_SUBJECT_PREFIX}%", limit=200
+            )
         except Exception as e:
             logger.error("ViolationRemediatorWorker: failed to load findings: %s", e)
             return []
@@ -370,35 +336,16 @@ class ViolationRemediatorWorker(Worker):
             return None
 
     # ID: a9b0c1d2-e3f4-5678-abcd-567890123458
-    async def _resolve_entries(self, entry_ids: list[str]) -> list[str]:
+    async def _resolve_entries(self, entry_ids: list[str]) -> int:
         """
         Mark Blackboard entries as resolved.
-        Returns list of successfully resolved entry IDs.
-
-        Constitutional fix: uses service_registry.session() instead of
-        get_session() directly — Will layer must not import get_session.
+        Returns count of entries successfully resolved.
         """
-        from sqlalchemy import text
-
         from body.services.service_registry import service_registry
 
-        resolved = []
         try:
-            async with service_registry.session() as session:
-                for entry_id in entry_ids:
-                    await session.execute(
-                        text(
-                            """
-                            UPDATE core.blackboard_entries
-                            SET status = 'resolved'
-                            WHERE id = cast(:entry_id as uuid)
-                              AND status = 'open'
-                        """
-                        ),
-                        {"entry_id": entry_id},
-                    )
-                    resolved.append(entry_id)
-                await session.commit()
+            blackboard_service = await service_registry.get_blackboard_service()
+            return await blackboard_service.resolve_entries(entry_ids)
         except Exception as e:
             logger.error("ViolationRemediatorWorker: failed to resolve entries: %s", e)
-        return resolved
+            return 0
