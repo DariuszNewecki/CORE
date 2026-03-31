@@ -312,6 +312,83 @@ class BlackboardService:
             )
         return findings
 
+    # ID: 7e4f9a1b-2c3d-4e5f-8a6b-7c8d9e0f1a2b
+    async def fetch_open_findings(
+        self, prefix: str, limit: int
+    ) -> list[dict[str, Any]]:
+        """
+        Return up to *limit* open finding entries whose subject matches *prefix*,
+        ordered oldest-first.  Payload is always returned as a dict.
+
+        Covers:
+          - ViolationRemediatorWorker._load_open_findings
+        """
+        from body.services.service_registry import ServiceRegistry
+
+        async with ServiceRegistry.session() as session:
+            result = await session.execute(
+                text(
+                    """
+                    SELECT id, subject, payload
+                    FROM core.blackboard_entries
+                    WHERE entry_type = 'finding'
+                      AND subject LIKE :prefix
+                      AND status = 'open'
+                    ORDER BY created_at ASC
+                    LIMIT :limit
+                    """
+                ),
+                {"prefix": prefix, "limit": limit},
+            )
+            rows = result.fetchall()
+
+        findings = []
+        for row in rows:
+            raw_payload = row[2]
+            payload = (
+                raw_payload
+                if isinstance(raw_payload, dict)
+                else json.loads(raw_payload)
+            )
+            findings.append(
+                {
+                    "entry_id": str(row[0]),
+                    "subject": row[1],
+                    "payload": payload or {},
+                }
+            )
+        return findings
+
+    # ID: 3d4e5f6a-7b8c-9d0e-1f2a-3b4c5d6e7f8a
+    async def resolve_entries(self, entry_ids: list[str]) -> int:
+        """
+        Mark each entry in *entry_ids* as resolved, provided it is still open.
+        All updates run inside a single transaction.  Returns the count of rows
+        actually updated (entries already resolved or missing are not counted).
+
+        Covers:
+          - ViolationRemediatorWorker._resolve_entries
+        """
+        from body.services.service_registry import ServiceRegistry
+
+        resolved_count = 0
+        async with ServiceRegistry.session() as session:
+            async with session.begin():
+                for entry_id in entry_ids:
+                    result = await session.execute(
+                        text(
+                            """
+                            UPDATE core.blackboard_entries
+                            SET status = 'resolved'
+                            WHERE id = cast(:entry_id as uuid)
+                              AND status = 'open'
+                            """
+                        ),
+                        {"entry_id": entry_id},
+                    )
+                    resolved_count += result.rowcount
+        return resolved_count
+
     # ID: 54c114b0-4c6d-484f-8b20-d9ff5fa24caf
     async def update_entry_status(self, entry_id: str, status: str) -> None:
         """
