@@ -38,18 +38,7 @@
       "Bash(git -C /opt/dev/CORE log --all --oneline -- src/shared/infrastructure/lifespan.py)",
       "Bash(find /opt/dev/CORE/.intent/phases -name *.yaml)",
       "Bash(git add:*)",
-      "Bash(git commit:*)",
-      "Bash(find /mnt/dev/CORE/docs -maxdepth 3 -name *.md)",
-      "Bash(find /mnt/dev/CORE -maxdepth 3 -name *A3* -o -name *readiness* -o -name *checklist*)",
-      "Bash(find /mnt/dev/CORE/src/will -name *.py -type f)",
-      "Bash(find /mnt/dev/CORE/infra -name *.sql -type f)",
-      "Bash(grep -r max_deletion /mnt/dev/CORE --include=*.py --include=*.yaml)",
-      "Bash(grep -r 'FOR UPDATE' /mnt/dev/CORE --include=*.py)",
-      "Bash(find /mnt/dev/CORE -type f -name *violation*remediator*)",
-      "Bash(grep -E \"\\\\.\\(yaml|json|py|prompt\\)$\")",
-      "Bash(ls -la /mnt/dev/CORE/src/body/workers/violation_remediator*)",
-      "Bash(find /mnt/dev/CORE/src -name *proposal_executor* -o -name *executor* -type f)",
-      "Bash(git check-ignore:*)"
+      "Bash(git commit:*)"
     ]
   }
 }

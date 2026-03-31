@@ -4715,6 +4715,8 @@ GRANT ALL ON TABLE core.worker_registry TO core;
 GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE core.worker_registry TO core_db;
 
 
+CREATE UNIQUE INDEX autonomous_proposals_executing_once ON core.autonomous_proposals USING btree (proposal_id) WHERE ((status)::text = 'executing'::text);
+
 --
 -- Name: DEFAULT PRIVILEGES FOR SEQUENCES; Type: DEFAULT ACL; Schema: core; Owner: lira_user
 --
