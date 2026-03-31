@@ -68,6 +68,16 @@ mappings:
       Deterministic regex — no reasoning required.
     status: ACTIVE
 
+  linkage.assign_ids:
+    action: assign_missing_ids
+    confidence: 0.91
+    risk: low
+    description: >
+      Insert # ID: UUID comment above public functions and methods that lack one.
+      Handler: body/self_healing/handlers/id_assignment_handler.py → assign_missing_ids_handler (7c3b04fa)
+      Pure AST, no LLM, fully deterministic. Decorator-aware via find_symbol_id_and_def_line.
+    status: ACTIVE
+
   # ===========================================================================
   # TIER 2: ACTIVE — medium_risk (confidence 0.80–0.89)
   # Deterministic with validation step; affects more than formatting.
@@ -113,18 +123,6 @@ mappings:
   # Documented for roadmap visibility. Confidence set below MIN_CONFIDENCE (0.80)
   # so AuditAnalyzer will not dispatch these until handlers are implemented.
   # ===========================================================================
-
-  linkage.assign_ids:
-    action: assign_missing_ids
-    confidence: 0.75
-    risk: low
-    description: >
-      Insert # ID: UUID comment above public functions and methods that lack one.
-      PENDING: No dedicated handler exists yet. The Finalizer in the A3 loop handles
-      this post-generation. A standalone deterministic handler should be added to
-      body/self_healing/handlers/id_assignment_handler.py.
-      When implemented, raise confidence to 0.91 (fully deterministic via AST).
-    status: PENDING
 
   architecture.constitution_read_only:
     action: remove_intent_write
