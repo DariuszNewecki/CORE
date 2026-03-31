@@ -15,6 +15,7 @@ Constitutional standing:
 from __future__ import annotations
 
 import json
+import uuid
 from typing import Any
 
 from sqlalchemy import text
@@ -249,7 +250,7 @@ class BlackboardService:
 
     # ID: f3a8d1c2-7e45-4b09-a3f6-9d2c0e5b1a87
     async def claim_violation_findings(
-        self, prefix: str, limit: int
+        self, prefix: str, limit: int, claimed_by: uuid.UUID | None = None
     ) -> list[dict[str, Any]]:
         """
         Atomically claim up to *limit* open findings whose subject matches
@@ -270,7 +271,9 @@ class BlackboardService:
                     text(
                         """
                         UPDATE core.blackboard_entries
-                        SET status = 'claimed', updated_at = now()
+                        SET status = 'claimed',
+                            claimed_by = :claimed_by,
+                            updated_at = now()
                         WHERE id IN (
                             SELECT id FROM core.blackboard_entries
                             WHERE entry_type = 'finding'
@@ -291,7 +294,7 @@ class BlackboardService:
                         RETURNING id, subject, payload
                         """
                     ),
-                    {"prefix": prefix, "limit": limit},
+                    {"prefix": prefix, "limit": limit, "claimed_by": str(claimed_by) if claimed_by else None},
                 )
                 rows = result.fetchall()
 

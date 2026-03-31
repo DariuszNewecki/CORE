@@ -738,6 +738,7 @@ class ViolationRemediator(Worker):
         return await bb.claim_violation_findings(
             prefix=f"{_SOURCE_SUBJECT}::%",
             limit=_CLAIM_LIMIT,
+            claimed_by=self._worker_uuid,
         )
 
     async def _mark_findings(self, findings: list[dict[str, Any]], status: str) -> None:

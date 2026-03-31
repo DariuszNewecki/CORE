@@ -209,7 +209,8 @@ class ViolationRemediatorWorker(Worker):
         try:
             blackboard_service = await service_registry.get_blackboard_service()
             return await blackboard_service.claim_violation_findings(
-                prefix=f"{_FINDING_SUBJECT_PREFIX}%", limit=200
+                prefix=f"{_FINDING_SUBJECT_PREFIX}%", limit=200,
+                claimed_by=self._worker_uuid,
             )
         except Exception as e:
             logger.error("ViolationRemediatorWorker: failed to load findings: %s", e)
