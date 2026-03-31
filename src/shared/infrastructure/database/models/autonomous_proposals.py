@@ -11,7 +11,7 @@ from __future__ import annotations
 import uuid
 from typing import ClassVar
 
-from sqlalchemy import Boolean, Column, DateTime, Text, func
+from sqlalchemy import Boolean, Column, DateTime, Integer, Text, func
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.dialects.postgresql import UUID as pgUUID
 
@@ -76,3 +76,9 @@ class AutonomousProposal(Base):
 
     # Failure tracking
     failure_reason = Column(Text)
+
+    # Optimistic locking / audit
+    version = Column(Integer, nullable=False, server_default="0")
+    updated_at = Column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
