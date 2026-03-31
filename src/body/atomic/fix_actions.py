@@ -384,7 +384,15 @@ async def action_fix_docstrings(
     start = time.time()
     from body.self_healing.docstring_service import fix_docstrings
 
-    await fix_docstrings(context=core_context, write=write)
+    try:
+        await fix_docstrings(context=core_context, write=write)
+    except Exception as e:
+        return ActionResult(
+            action_id="fix.docstrings",
+            ok=False,
+            data={"error": str(e), "write": write},
+            duration_sec=time.time() - start,
+        )
     return ActionResult(
         action_id="fix.docstrings",
         ok=True,
