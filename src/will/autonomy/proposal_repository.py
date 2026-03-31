@@ -89,6 +89,7 @@ class ProposalRepository:
             .where(AutonomousProposal.status == status.value)
             .order_by(AutonomousProposal.created_at.desc())
             .limit(limit)
+            .with_for_update(skip_locked=True)
         )
         result = await self._session.execute(stmt)
         return [ProposalMapper.from_db_model(p) for p in result.scalars().all()]
