@@ -10,6 +10,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
+from body.validators.logic_conservation_validator import LogicConservationValidator
 from mind.governance.enforcement_loader import EnforcementMappingLoader
 from mind.logic.engines.ast_gate.checks.modularity_checks import ModularityChecker
 from shared.context import CoreContext
@@ -127,12 +128,17 @@ class ModularityRemediationService:
 
         results: list[dict[str, Any]] = []
         repo_root = self.context.git_service.repo_path
+        conservation_validator = LogicConservationValidator()
 
         for violator in violators:
             file_path = violator["file"]
             score = violator["score"]
+            rel_path = str(file_path.relative_to(repo_root))
 
             logger.info("Remediating %s (score=%.1f)", file_path.name, score)
+
+            # Snapshot original before the workflow writes anything.
+            original_code = file_path.read_text(encoding="utf-8")
 
             goal = (
                 f"Refactor {file_path.relative_to(repo_root)} "
@@ -148,9 +154,35 @@ class ModularityRemediationService:
                     write=write,
                 )
 
+                # Logic Conservation Gate — mirrors ComplexityRemediationService._run_reflex_loop.
+                # Only evaluated when write=True and the workflow reported success.
+                # In dry-run mode ExecutionPhase never writes files, so there is nothing to measure.
+                if success and write:
+                    new_code = file_path.read_text(encoding="utf-8")
+                    conservation_verdict = await conservation_validator.evaluate(
+                        original_code=original_code,
+                        proposed_map={rel_path: new_code},
+                        deletions_authorized=False,
+                    )
+                    if not conservation_verdict.ok:
+                        ratio = conservation_verdict.data.get("ratio", 0.0)
+                        logger.error(
+                            "Logic evaporation in %s (ratio=%.2f) — reverting.",
+                            file_path.name,
+                            ratio,
+                        )
+                        self.context.file_handler.write_runtime_text(
+                            rel_path, original_code
+                        )
+                        success = False
+                        message = (
+                            f"Logic evaporation detected (ratio={ratio:.2f}); "
+                            "refactor reverted."
+                        )
+
                 results.append(
                     {
-                        "file": str(file_path.relative_to(repo_root)),
+                        "file": rel_path,
                         "original_score": score,
                         "success": success,
                         "message": message,
@@ -161,7 +193,7 @@ class ModularityRemediationService:
                 logger.error("Remediation failed for %s: %s", file_path, e)
                 results.append(
                     {
-                        "file": str(file_path.relative_to(repo_root)),
+                        "file": rel_path,
                         "original_score": score,
                         "success": False,
                         "message": str(e),
