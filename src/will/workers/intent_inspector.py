@@ -300,10 +300,11 @@ class IntentInspector(Worker):
                 continue
 
             findings = self._parse_llm_findings(response, doc["path"], "coherence")
-            for finding in findings:
-                await self.post_finding(subject=subject, payload=finding)
+            if findings:
                 existing_coherence.add(subject)
-                posted += 1
+                for finding in findings:
+                    await self.post_finding(subject=subject, payload=finding)
+                    posted += 1
 
             # Yield control between documents — this is a long-running worker
             await asyncio.sleep(0)
@@ -369,8 +370,8 @@ class IntentInspector(Worker):
             subject = f"{_SUBJECT_ALIGNMENT}::{finding.get('path', 'cross-document')}"
             if subject in existing_alignment:
                 continue
-            await self.post_finding(subject=subject, payload=finding)
             existing_alignment.add(subject)
+            await self.post_finding(subject=subject, payload=finding)
             posted += 1
 
         return posted

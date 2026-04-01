@@ -105,4 +105,4 @@ async def workers_blackboard_cmd(
             raw = payload if isinstance(payload, dict) else json.loads(payload or "{}")
             row_cells.append(json.dumps(raw, indent=2))
         table.add_row(*row_cells)
-    logger.info(table)
+    console.print(table)

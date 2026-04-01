@@ -64,7 +64,7 @@ async def admin_health_cmd(
             f"[{w_color}]{row.silent_workers}[/{w_color}]",
             f"[{o_color}]{row.orphaned_symbols}[/{o_color}]",
         )
-    logger.info(table)
+    console.print(table)
     logger.info(
         "\n[dim]Run `core-admin workers blackboard` to investigate specific findings.[/dim]\n"
     )
