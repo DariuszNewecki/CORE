@@ -147,7 +147,7 @@ class PromptModel:
         Args:
             name: Directory name under var/prompts/ (e.g. 'docstring_writer').
             prompts_root: Override path to var/prompts/. Defaults to
-                          settings.paths.prompt(name).parent.
+                          settings.paths.prompts_dir.
 
         Returns:
             Initialised PromptModel ready for invoke().
@@ -159,7 +159,7 @@ class PromptModel:
         if prompts_root is None:
             from shared.config import settings
 
-            prompts_root = settings.paths.prompt(name).parent
+            prompts_root = settings.paths.prompts_dir
 
         artifact_dir = prompts_root / name
 
