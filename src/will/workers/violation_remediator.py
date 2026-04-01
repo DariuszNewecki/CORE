@@ -119,7 +119,7 @@ class ViolationRemediatorWorker(Worker):
         unmappable: list[dict[str, Any]] = []
 
         for finding in open_findings:
-            rule = finding["payload"].get("rule", "")
+            rule = finding["payload"].get("check_id") or finding["payload"].get("rule", "")
             definition = action_registry.get_by_check_id(rule)
 
             if definition:
@@ -180,7 +180,7 @@ class ViolationRemediatorWorker(Worker):
                 "created_actions": proposals_created,
                 "skipped_actions": proposals_skipped,
                 "unmappable_rules": list(
-                    {f["payload"].get("rule", "unknown") for f in unmappable}
+                    {f["payload"].get("check_id") or f["payload"].get("rule", "unknown") for f in unmappable}
                 ),
             },
         )
@@ -209,7 +209,8 @@ class ViolationRemediatorWorker(Worker):
         try:
             blackboard_service = await service_registry.get_blackboard_service()
             return await blackboard_service.claim_violation_findings(
-                prefix=f"{_FINDING_SUBJECT_PREFIX}%", limit=200,
+                prefix=f"{_FINDING_SUBJECT_PREFIX}%",
+                limit=200,
                 claimed_by=self._worker_uuid,
             )
         except Exception as e:
@@ -265,7 +266,7 @@ class ViolationRemediatorWorker(Worker):
             }
         )
 
-        rules = sorted({f["payload"].get("rule", "unknown") for f in findings})
+        rules = sorted({f["payload"].get("check_id") or f["payload"].get("rule", "unknown") for f in findings})
 
         proposal = Proposal(
             goal=(
