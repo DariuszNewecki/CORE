@@ -294,7 +294,11 @@ class BlackboardService:
                         RETURNING id, subject, payload
                         """
                     ),
-                    {"prefix": prefix, "limit": limit, "claimed_by": str(claimed_by) if claimed_by else None},
+                    {
+                        "prefix": prefix,
+                        "limit": limit,
+                        "claimed_by": str(claimed_by) if claimed_by else None,
+                    },
                 )
                 rows = result.fetchall()
 
@@ -391,6 +395,43 @@ class BlackboardService:
                     )
                     resolved_count += result.rowcount
         return resolved_count
+
+    # ID: a7b2c8d3-e4f5-6789-abcd-ef0123456789
+    async def release_claimed_entries(self, entry_ids: list[str]) -> int:
+        """
+        Reset claimed entries back to open status and clear claimed_by.
+
+        Used when a worker claims findings but cannot act on them (e.g.
+        unmappable violations with no registered remediation action).
+        Releasing prevents them from staying claimed forever.
+
+        Only updates entries currently in 'claimed' status.
+        Returns the count of rows actually updated.
+        """
+        if not entry_ids:
+            return 0
+
+        from body.services.service_registry import ServiceRegistry
+
+        released = 0
+        async with ServiceRegistry.session() as session:
+            async with session.begin():
+                for entry_id in entry_ids:
+                    result = await session.execute(
+                        text(
+                            """
+                            UPDATE core.blackboard_entries
+                            SET status = 'open',
+                                claimed_by = NULL,
+                                updated_at = now()
+                            WHERE id = cast(:entry_id as uuid)
+                              AND status = 'claimed'
+                            """
+                        ),
+                        {"entry_id": entry_id},
+                    )
+                    released += result.rowcount
+        return released
 
     # ID: 54c114b0-4c6d-484f-8b20-d9ff5fa24caf
     async def update_entry_status(self, entry_id: str, status: str) -> None:

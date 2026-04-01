@@ -167,6 +167,14 @@ class ViolationRemediatorWorker(Worker):
                     resolved,
                 )
 
+        # 5b. Release unmappable findings back to open so they don't stay claimed
+        entries_released = await self._release_unmappable(unmappable)
+        if entries_released:
+            logger.info(
+                "ViolationRemediatorWorker: released %d unmappable findings back to open",
+                entries_released,
+            )
+
         # 6. Post blackboard report
         await self.post_report(
             subject="violation_remediator.completed",
@@ -177,6 +185,7 @@ class ViolationRemediatorWorker(Worker):
                 "proposals_created": len(proposals_created),
                 "proposals_skipped_dedup": len(proposals_skipped),
                 "entries_resolved": entries_resolved,
+                "entries_released": entries_released,
                 "created_actions": proposals_created,
                 "skipped_actions": proposals_skipped,
                 "unmappable_rules": list(
@@ -350,4 +359,26 @@ class ViolationRemediatorWorker(Worker):
             return await blackboard_service.resolve_entries(entry_ids)
         except Exception as e:
             logger.error("ViolationRemediatorWorker: failed to resolve entries: %s", e)
+            return 0
+
+    # ID: b0c1d2e3-f4a5-6789-bcde-678901234569
+    async def _release_unmappable(self, findings: list[dict[str, Any]]) -> int:
+        """
+        Release claimed findings that have no registered remediation action
+        back to open status so another worker or a future registry update
+        can pick them up.
+        """
+        if not findings:
+            return 0
+
+        from body.services.service_registry import service_registry
+
+        entry_ids = [f["id"] for f in findings]
+        try:
+            blackboard_service = await service_registry.get_blackboard_service()
+            return await blackboard_service.release_claimed_entries(entry_ids)
+        except Exception as e:
+            logger.error(
+                "ViolationRemediatorWorker: failed to release unmappable entries: %s", e
+            )
             return 0
