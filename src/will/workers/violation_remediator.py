@@ -211,13 +211,19 @@ class ViolationRemediatorWorker(Worker):
         """
         Query Blackboard for open audit violation findings.
 
-        Returns list of dicts with: entry_id, subject, payload.
+        Claims findings atomically, then immediately filters out any whose
+        check_id/rule has no registered remediation action.  Unmappable
+        findings are released back to open status so they are not held
+        claimed indefinitely.
+
+        Returns only mappable findings (list of dicts with: id, subject, payload).
         """
+        from body.atomic.registry import action_registry
         from body.services.service_registry import service_registry
 
         try:
             blackboard_service = await service_registry.get_blackboard_service()
-            return await blackboard_service.claim_violation_findings(
+            claimed = await blackboard_service.claim_violation_findings(
                 prefix=f"{_FINDING_SUBJECT_PREFIX}%",
                 limit=200,
                 claimed_by=self._worker_uuid,
@@ -225,6 +231,44 @@ class ViolationRemediatorWorker(Worker):
         except Exception as e:
             logger.error("ViolationRemediatorWorker: failed to load findings: %s", e)
             return []
+
+        if not claimed:
+            return []
+
+        # Post-claim filter: keep only findings with a known remediation mapping.
+        mappable: list[dict[str, Any]] = []
+        unmappable_ids: list[str] = []
+
+        for finding in claimed:
+            rule = (
+                finding["payload"].get("check_id")
+                or finding["payload"].get("rule", "")
+            )
+            if action_registry.get_by_check_id(rule):
+                mappable.append(finding)
+            else:
+                unmappable_ids.append(finding["id"])
+
+        # Immediately release unmappable findings so they don't stay claimed.
+        if unmappable_ids:
+            try:
+                released = await blackboard_service.release_claimed_entries(
+                    unmappable_ids
+                )
+                logger.info(
+                    "ViolationRemediatorWorker: released %d/%d unmappable "
+                    "findings at claim time",
+                    released,
+                    len(unmappable_ids),
+                )
+            except Exception as e:
+                logger.error(
+                    "ViolationRemediatorWorker: failed to release "
+                    "unmappable findings at claim time: %s",
+                    e,
+                )
+
+        return mappable
 
     # ID: e7f8a9b0-c1d2-3456-efab-345678901236
     async def _get_active_proposal_action_ids(self) -> set[str]:
