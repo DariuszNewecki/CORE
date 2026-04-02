@@ -7,9 +7,9 @@ Constitutional role: acting worker, remediation phase.
 
 Responsibility (from .intent/workers/violation_remediator.yaml):
   Consume open audit violation findings from the Blackboard, look up the
-  remediating action from the atomic action registry (via the remediates
-  field), create one Proposal per unique action group, and mark each
-  consumed Blackboard entry as resolved.
+  remediating action from .intent/enforcement/mappings/remediation/auto_remediation.yaml
+  (via _load_remediation_map), create one Proposal per unique action group,
+  and mark each consumed Blackboard entry as resolved.
 
 The autonomous audit loop this closes:
 
@@ -18,7 +18,7 @@ The autonomous audit loop this closes:
           ↓
   ViolationRemediatorWorker (acting)  ← THIS WORKER
       reads open findings from Blackboard
-      looks up action via action_registry.get_by_check_id(rule)
+      looks up action via remediation map from .intent/
       creates Proposal (one per action group)
       marks finding resolved
           ↓
@@ -71,10 +71,9 @@ class ViolationRemediatorWorker(Worker):
     """
     Acting worker that converts Blackboard violation findings into proposals.
 
-    Reads open audit.violation findings, maps each rule to a registered
-    atomic action via action_registry.get_by_check_id(), groups by action,
-    deduplicates against active proposals, creates proposals, marks entries
-    resolved.
+    Reads open audit.violation findings, maps each rule to a remediation
+    action via .intent/ remediation map, groups by action, deduplicates
+    against active proposals, creates proposals, marks entries resolved.
 
     Safe proposals (approval_required=False) are created in APPROVED status
     so ProposalConsumerWorker can execute them without a separate approval step.
@@ -88,12 +87,21 @@ class ViolationRemediatorWorker(Worker):
         """Accept daemon kwargs — core_context and cognitive_service not used, no LLM calls."""
         super().__init__(declaration_name=declaration_name)
 
+    def _get_remediation_map(self) -> dict:
+        """Load rule-to-action mappings from .intent/ via PathResolver."""
+        from body.autonomy.audit_analyzer import _load_remediation_map
+        from shared.config import settings
+        from shared.path_resolver import PathResolver
+
+        path_resolver = PathResolver(settings.REPO_PATH)
+        return _load_remediation_map(path_resolver)
+
     # ID: c5d6e7f8-a9b0-1234-cdef-123456789014
     async def run(self) -> None:
         """
         Core work unit:
         1. Load open violation findings from Blackboard
-        2. Group by action (via registry.get_by_check_id)
+        2. Group by action (via .intent/ remediation map)
         3. Deduplicate against active proposals
         4. Create proposals for new action groups
         5. Mark consumed Blackboard entries resolved
@@ -112,23 +120,26 @@ class ViolationRemediatorWorker(Worker):
             len(open_findings),
         )
 
-        # 2. Group by action using registry
-        from body.atomic.registry import action_registry
+        # 2. Group by action using .intent/ remediation map
+        remediation_map = self._get_remediation_map()
 
         action_groups: dict[str, list[dict[str, Any]]] = {}
         unmappable: list[dict[str, Any]] = []
 
         for finding in open_findings:
-            rule = finding["payload"].get("check_id") or finding["payload"].get("rule", "")
-            definition = action_registry.get_by_check_id(rule)
+            rule = finding["payload"].get("check_id") or finding["payload"].get(
+                "rule", ""
+            )
+            entry = remediation_map.get(rule)
 
-            if definition:
-                action_groups.setdefault(definition.action_id, [])
-                action_groups[definition.action_id].append(finding)
+            if entry:
+                action_id = entry["action"]
+                action_groups.setdefault(action_id, [])
+                action_groups[action_id].append(finding)
             else:
                 unmappable.append(finding)
                 logger.debug(
-                    "ViolationRemediatorWorker: no action registered for rule '%s'",
+                    "ViolationRemediatorWorker: no remediation mapping for rule '%s'",
                     rule,
                 )
 
@@ -154,9 +165,7 @@ class ViolationRemediatorWorker(Worker):
             if proposal_id:
                 proposals_created.append(action_id)
                 # Mark all findings for this action as resolved
-                resolved = await self._resolve_entries(
-                    [f["entry_id"] for f in findings]
-                )
+                resolved = await self._resolve_entries([f["id"] for f in findings])
                 entries_resolved += resolved
                 logger.info(
                     "ViolationRemediatorWorker: created proposal '%s' for action '%s' "
@@ -189,7 +198,11 @@ class ViolationRemediatorWorker(Worker):
                 "created_actions": proposals_created,
                 "skipped_actions": proposals_skipped,
                 "unmappable_rules": list(
-                    {f["payload"].get("check_id") or f["payload"].get("rule", "unknown") for f in unmappable}
+                    {
+                        f["payload"].get("check_id")
+                        or f["payload"].get("rule", "unknown")
+                        for f in unmappable
+                    }
                 ),
             },
         )
@@ -212,13 +225,12 @@ class ViolationRemediatorWorker(Worker):
         Query Blackboard for open audit violation findings.
 
         Claims findings atomically, then immediately filters out any whose
-        check_id/rule has no registered remediation action.  Unmappable
+        check_id/rule has no entry in the .intent/ remediation map.  Unmappable
         findings are released back to open status so they are not held
         claimed indefinitely.
 
         Returns only mappable findings (list of dicts with: id, subject, payload).
         """
-        from body.atomic.registry import action_registry
         from body.services.service_registry import service_registry
 
         try:
@@ -236,15 +248,15 @@ class ViolationRemediatorWorker(Worker):
             return []
 
         # Post-claim filter: keep only findings with a known remediation mapping.
+        remediation_map = self._get_remediation_map()
         mappable: list[dict[str, Any]] = []
         unmappable_ids: list[str] = []
 
         for finding in claimed:
-            rule = (
-                finding["payload"].get("check_id")
-                or finding["payload"].get("rule", "")
+            rule = finding["payload"].get("check_id") or finding["payload"].get(
+                "rule", ""
             )
-            if action_registry.get_by_check_id(rule):
+            if remediation_map.get(rule):
                 mappable.append(finding)
             else:
                 unmappable_ids.append(finding["id"])
@@ -319,7 +331,12 @@ class ViolationRemediatorWorker(Worker):
             }
         )
 
-        rules = sorted({f["payload"].get("check_id") or f["payload"].get("rule", "unknown") for f in findings})
+        rules = sorted(
+            {
+                f["payload"].get("check_id") or f["payload"].get("rule", "unknown")
+                for f in findings
+            }
+        )
 
         proposal = Proposal(
             goal=(

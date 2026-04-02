@@ -49,8 +49,7 @@
       "Bash(grep -E \"\\\\.\\(yaml|json|py|prompt\\)$\")",
       "Bash(ls -la /mnt/dev/CORE/src/body/workers/violation_remediator*)",
       "Bash(find /mnt/dev/CORE/src -name *proposal_executor* -o -name *executor* -type f)",
-      "Bash(git check-ignore:*)",
-      "Bash(python -c ':*)"
+      "Bash(git check-ignore:*)"
     ]
   }
 }

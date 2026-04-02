@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -c ':*)",
+      "Read(//tmp/**)",
+      "Bash(python)"
+    ]
+  }
+}
