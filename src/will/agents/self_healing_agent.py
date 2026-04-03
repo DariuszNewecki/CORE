@@ -9,10 +9,14 @@ boundaries. All actions are validated against governance rules before execution.
 
 from __future__ import annotations
 
+import ast
 from dataclasses import dataclass
+from pathlib import Path
 
-from mind.governance.governance_mixin import GovernanceMixin
+from shared.ast_utility import find_symbol_id_and_def_line
+from shared.context import CoreContext
 from shared.logger import getLogger
+from will.agents.governance_mixin import GovernanceMixin
 from will.orchestration.decision_tracer import DecisionTracer
 
 
@@ -47,15 +51,19 @@ class SelfHealingAgent(GovernanceMixin):
     Agent that autonomously fixes code quality issues.
 
     All actions validated against constitutional governance before execution.
+    Delegates all execution to Body layer via ActionExecutor — Will never
+    implements directly.
     """
 
-    def __init__(self, agent_id: str = "self_healing_agent"):
+    def __init__(self, core_context: CoreContext, agent_id: str = "self_healing_agent"):
         """
         Initialize self-healing agent.
 
         Args:
-            agent_id: Unique identifier for this agent instance
+            core_context: Core context providing access to Body services.
+            agent_id: Unique identifier for this agent instance.
         """
+        self._core_context = core_context
         self.agent_id = agent_id
         self.tracer = DecisionTracer()
         self.proposals: list[HealingProposal] = []
@@ -103,13 +111,13 @@ class SelfHealingAgent(GovernanceMixin):
                     try:
                         await self._execute_healing(proposal)
                         results["fixed"] += 1
-                        logger.info("✅ Healed: %s - {issue.action}", path)
+                        logger.info("✅ Healed: %s - %s", path, issue.action)
                     except Exception as e:
                         results["errors"] += 1
-                        logger.error("❌ Healing failed: {path} - %s", e)
+                        logger.error("❌ Healing failed: %s - %s", path, e)
                 else:
                     results["blocked"] += 1
-                    logger.info("🚫 Healing blocked: %s - {decision.rationale}", path)
+                    logger.info("🚫 Healing blocked: %s - %s", path, decision.rationale)
         self._log_summary(results)
         self.tracer.record(
             agent=self.__class__.__name__,
@@ -135,21 +143,82 @@ class SelfHealingAgent(GovernanceMixin):
 
     async def _detect_issues(self, filepath: str) -> list[IssueDetected]:
         """
-        Detect code quality issues in file.
+        Detect missing # ID: tags on public symbols in a Python file.
+
+        Uses the same AST utility as id_assignment_handler to ensure
+        detection and fixing use identical logic.
 
         Args:
-            filepath: Path to file to analyze
+            filepath: Path to file to analyze.
 
         Returns:
-            List of detected issues
+            List of detected issues — at most one per file.
         """
-        return []
+        path = Path(filepath)
+        if not path.exists() or path.suffix != ".py":
+            return []
 
-    async def _execute_healing(self, proposal: HealingProposal):
+        try:
+            source = path.read_text(encoding="utf-8")
+            tree = ast.parse(source, filename=filepath)
+        except (SyntaxError, OSError):
+            return []
+
+        lines = source.splitlines()
+        missing: list[str] = []
+
+        for node in ast.walk(tree):
+            if not isinstance(
+                node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)
+            ):
+                continue
+            # Skip private and dunder symbols — they do not require IDs
+            is_dunder = node.name.startswith("__") and node.name.endswith("__")
+            if node.name.startswith("_") or is_dunder:
+                continue
+            symbol_id, _ = find_symbol_id_and_def_line(lines, node)
+            if symbol_id is None:
+                missing.append(node.name)
+
+        if not missing:
+            return []
+
+        preview = ", ".join(missing[:3])
+        suffix = "..." if len(missing) > 3 else ""
+        return [
+            IssueDetected(
+                type="missing_id",
+                action="fix.ids",
+                description=(
+                    f"Missing # ID: tags on {len(missing)} public symbol(s): "
+                    f"{preview}{suffix}"
+                ),
+                severity="low",
+            )
+        ]
+
+    async def _execute_healing(self, proposal: HealingProposal) -> None:
         """
-        Execute approved healing action.
+        Execute approved healing action via Body's ActionExecutor.
+
+        Will never implements directly — all execution delegated to Body.
 
         Args:
-            proposal: Approved healing proposal to execute
+            proposal: Approved healing proposal to execute.
+
+        Raises:
+            RuntimeError: If ActionExecutor reports failure.
         """
-        pass
+        from body.atomic.executor import ActionExecutor
+
+        executor = ActionExecutor(self._core_context)
+        result = await executor.execute(
+            action_id=proposal.action,
+            write=True,
+            file_path=proposal.filepath,
+        )
+        if not result.ok:
+            raise RuntimeError(
+                f"ActionExecutor failed for {proposal.action}: "
+                f"{result.data.get('error', 'unknown error')}"
+            )
