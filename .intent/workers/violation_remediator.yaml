@@ -31,4 +31,4 @@ mandate:
 implementation:
   module: will.workers.violation_remediator
   class: ViolationRemediatorWorker
-  requires_core_context: false
+  requires_core_context: true
