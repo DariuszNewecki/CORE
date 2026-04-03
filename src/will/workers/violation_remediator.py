@@ -84,16 +84,16 @@ class ViolationRemediatorWorker(Worker):
     def __init__(
         self, core_context: Any = None, declaration_name: str = "", **kwargs: Any
     ) -> None:
-        """Accept daemon kwargs — core_context and cognitive_service not used, no LLM calls."""
+        """Accept daemon kwargs — stores core_context for repo path resolution."""
         super().__init__(declaration_name=declaration_name)
+        self._core_context = core_context
 
     def _get_remediation_map(self) -> dict:
         """Load rule-to-action mappings from .intent/ via PathResolver."""
         from body.autonomy.audit_analyzer import _load_remediation_map
-        from shared.config import settings
         from shared.path_resolver import PathResolver
 
-        path_resolver = PathResolver(settings.REPO_PATH)
+        path_resolver = PathResolver(self._core_context.git_service.repo_path)
         return _load_remediation_map(path_resolver)
 
     # ID: c5d6e7f8-a9b0-1234-cdef-123456789014

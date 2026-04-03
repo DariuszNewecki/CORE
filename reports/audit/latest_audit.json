@@ -1,8 +1,8 @@
 {
-  "audit_id": "8a1a6891-165a-4c2c-a1eb-b8ebf30996fb",
-  "timestamp": "2026-03-29T14:17:27Z",
-  "passed": false,
-  "findings_count": 348,
+  "audit_id": "c614cc55-7aea-459c-9a86-6bb1c06d4305",
+  "timestamp": "2026-04-03T08:14:24Z",
+  "passed": true,
+  "findings_count": 346,
   "executed_rules": [
     "ai.cognitive_role.no_hardcoded_string",
     "ai.prompt.artifact.no_provider_leak",
@@ -92,7 +92,6 @@
     "planning.file_path_validation",
     "planning.no_code_generation",
     "planning.trace_mandatory",
-    "purity.docstrings.required",
     "purity.logic_conservation",
     "purity.no_ast_duplication",
     "purity.no_dead_code",
@@ -100,10 +99,9 @@
     "purity.no_orphan_files",
     "purity.no_semantic_duplication",
     "purity.no_todo_placeholders",
-    "purity.stable_id_anchor",
     "quality.security_audit",
     "quality.test_integrity",
     "quality.type_safety"
   ],
-  "verdict": "FAIL"
+  "verdict": "PASS"
 }

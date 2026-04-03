@@ -77,6 +77,7 @@ class RepoEmbedderWorker(Worker):
 
         Never raises — exceptions are caught, logged, and posted to Blackboard.
         """
+        from body.services.service_registry import service_registry
         from shared.infrastructure.clients.qdrant_client import QdrantService
         from will.orchestration.cognitive_service import CognitiveService
 
@@ -93,9 +94,7 @@ class RepoEmbedderWorker(Worker):
                 repo_path=self._repo_root,
                 qdrant_service=qdrant,
             )
-            from shared.infrastructure.database.session_manager import get_session
-
-            async with get_session() as init_session:
+            async with service_registry.session() as init_session:
                 await cognitive.initialize(init_session)
             self._cognitive_service = cognitive
 

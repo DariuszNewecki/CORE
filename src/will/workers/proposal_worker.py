@@ -172,11 +172,10 @@ class AutonomousProposalWorker(Worker):
                 continue
 
             if write:
-                from shared.infrastructure.database.session_manager import get_session
+                from body.services.service_registry import service_registry
+                from will.autonomy.proposal_repository import ProposalRepository
 
-                async with get_session() as session:
-                    from will.autonomy.proposal_repository import ProposalRepository
-
+                async with service_registry.session() as session:
                     repo = ProposalRepository(session)
                     await repo.create(proposal)
 

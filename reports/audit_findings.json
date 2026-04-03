@@ -173,7 +173,7 @@
   {
     "check_id": "architecture.channels.logger_not_presentation",
     "severity": "warning",
-    "message": "Line 218: logger used as renderer \u2014 Rich markup detected in log string; use plain text for logger.",
+    "message": "Line 217: logger used as renderer \u2014 Rich markup detected in log string; use plain text for logger.",
     "file_path": "src/will/workers/proposal_worker.py",
     "line_number": null,
     "context": {},
@@ -299,6 +299,15 @@
   {
     "check_id": "architecture.max_file_size",
     "severity": "warning",
+    "message": "Module has 414 lines, exceeds limit of 400",
+    "file_path": "src/body/atomic/fix_actions.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.max_file_size",
+    "severity": "warning",
     "message": "Module has 562 lines, exceeds limit of 400",
     "file_path": "src/body/atomic/sync_actions.py",
     "line_number": null,
@@ -310,6 +319,15 @@
     "severity": "warning",
     "message": "Module has 428 lines, exceeds limit of 400",
     "file_path": "src/body/evaluators/atomic_actions_evaluator.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.max_file_size",
+    "severity": "warning",
+    "message": "Module has 457 lines, exceeds limit of 400",
+    "file_path": "src/body/services/blackboard_service.py",
     "line_number": null,
     "context": {},
     "details": {}
@@ -344,7 +362,7 @@
   {
     "check_id": "architecture.max_file_size",
     "severity": "warning",
-    "message": "Module has 763 lines, exceeds limit of 400",
+    "message": "Module has 764 lines, exceeds limit of 400",
     "file_path": "src/body/workers/violation_remediator.py",
     "line_number": null,
     "context": {},
@@ -452,6 +470,15 @@
   {
     "check_id": "architecture.max_file_size",
     "severity": "warning",
+    "message": "Module has 415 lines, exceeds limit of 400",
+    "file_path": "src/will/autonomy/proposal_executor.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.max_file_size",
+    "severity": "warning",
     "message": "Module has 441 lines, exceeds limit of 400",
     "file_path": "src/will/interpreters/request_interpreter.py",
     "line_number": null,
@@ -479,7 +506,7 @@
   {
     "check_id": "architecture.max_file_size",
     "severity": "warning",
-    "message": "Module has 554 lines, exceeds limit of 400",
+    "message": "Module has 555 lines, exceeds limit of 400",
     "file_path": "src/will/workers/intent_inspector.py",
     "line_number": null,
     "context": {},
@@ -488,7 +515,7 @@
   {
     "check_id": "architecture.max_file_size",
     "severity": "warning",
-    "message": "Module has 438 lines, exceeds limit of 400",
+    "message": "Module has 437 lines, exceeds limit of 400",
     "file_path": "src/will/workers/repo_embedder.py",
     "line_number": null,
     "context": {},
@@ -497,7 +524,7 @@
   {
     "check_id": "architecture.max_file_size",
     "severity": "warning",
-    "message": "Module has 404 lines, exceeds limit of 400",
+    "message": "Module has 445 lines, exceeds limit of 400",
     "file_path": "src/will/workers/violation_remediator.py",
     "line_number": null,
     "context": {},
@@ -909,33 +936,6 @@
     "details": {}
   },
   {
-    "check_id": "architecture.will.no_direct_database_access",
-    "severity": "warning",
-    "message": "/opt/dev/CORE/src/will/workers/audit_violation_sensor.py:278 - Forbidden import: 'from shared.infrastructure.database.session_manager import get_session' (matches constitutional boundary rule: shared.infrastructure.database.session_manager.get_session)",
-    "file_path": "src/will/workers/audit_violation_sensor.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.will.no_direct_database_access",
-    "severity": "warning",
-    "message": "/opt/dev/CORE/src/will/workers/proposal_worker.py:175 - Forbidden import: 'from shared.infrastructure.database.session_manager import get_session' (matches constitutional boundary rule: shared.infrastructure.database.session_manager.get_session)",
-    "file_path": "src/will/workers/proposal_worker.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.will.no_direct_database_access",
-    "severity": "warning",
-    "message": "/opt/dev/CORE/src/will/workers/repo_embedder.py:96 - Forbidden import: 'from shared.infrastructure.database.session_manager import get_session' (matches constitutional boundary rule: shared.infrastructure.database.session_manager.get_session)",
-    "file_path": "src/will/workers/repo_embedder.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
     "check_id": "modularity.single_responsibility",
     "severity": "warning",
     "message": "Modularity Debt: 54.2/100 (Limit: 60.0)",
@@ -1064,7 +1064,7 @@
   {
     "check_id": "modularity.single_responsibility",
     "severity": "warning",
-    "message": "Modularity Debt: 60.0/100 (Limit: 60.0)",
+    "message": "Modularity Debt: 60.1/100 (Limit: 60.0)",
     "file_path": "src/shared/ai/prompt_model.py",
     "line_number": null,
     "context": {},
@@ -1298,7 +1298,7 @@
   {
     "check_id": "modularity.semantic_cohesion",
     "severity": "warning",
-    "message": "Modularity Debt: 60.0/100 (Limit: 60.0)",
+    "message": "Modularity Debt: 60.1/100 (Limit: 60.0)",
     "file_path": "src/shared/ai/prompt_model.py",
     "line_number": null,
     "context": {},
@@ -1532,7 +1532,7 @@
   {
     "check_id": "modularity.import_coupling",
     "severity": "warning",
-    "message": "Modularity Debt: 60.0/100 (Limit: 60.0)",
+    "message": "Modularity Debt: 60.1/100 (Limit: 60.0)",
     "file_path": "src/shared/ai/prompt_model.py",
     "line_number": null,
     "context": {},
@@ -1766,7 +1766,7 @@
   {
     "check_id": "modularity.refactor_score_threshold",
     "severity": "warning",
-    "message": "Modularity Debt: 60.0/100 (Limit: 60.0)",
+    "message": "Modularity Debt: 60.1/100 (Limit: 60.0)",
     "file_path": "src/shared/ai/prompt_model.py",
     "line_number": null,
     "context": {},
@@ -1866,33 +1866,6 @@
     "check_id": "modularity.refactor_score_threshold",
     "severity": "warning",
     "message": "Modularity Debt: 58.3/100 (Limit: 60.0)",
-    "file_path": "src/will/workers/repo_embedder.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.boundary.database_session_access",
-    "severity": "error",
-    "message": "/opt/dev/CORE/src/will/workers/audit_violation_sensor.py:278 - Forbidden import: 'from shared.infrastructure.database.session_manager import get_session' (matches constitutional boundary rule: shared.infrastructure.database.session_manager.get_session)",
-    "file_path": "src/will/workers/audit_violation_sensor.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.boundary.database_session_access",
-    "severity": "error",
-    "message": "/opt/dev/CORE/src/will/workers/proposal_worker.py:175 - Forbidden import: 'from shared.infrastructure.database.session_manager import get_session' (matches constitutional boundary rule: shared.infrastructure.database.session_manager.get_session)",
-    "file_path": "src/will/workers/proposal_worker.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.boundary.database_session_access",
-    "severity": "error",
-    "message": "/opt/dev/CORE/src/will/workers/repo_embedder.py:96 - Forbidden import: 'from shared.infrastructure.database.session_manager import get_session' (matches constitutional boundary rule: shared.infrastructure.database.session_manager.get_session)",
     "file_path": "src/will/workers/repo_embedder.py",
     "line_number": null,
     "context": {},
@@ -2061,6 +2034,15 @@
     "severity": "warning",
     "message": "Orphan file: 'src/body/self_healing/fix_manifest_hygiene.py' is not reachable from any entry point.",
     "file_path": "src/body/self_healing/fix_manifest_hygiene.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/body/self_healing/handlers/id_assignment_handler.py' is not reachable from any entry point.",
+    "file_path": "src/body/self_healing/handlers/id_assignment_handler.py",
     "line_number": null,
     "context": {},
     "details": {}

@@ -274,12 +274,12 @@ class AuditViolationSensor(Worker):
         Run a filtered constitutional audit for the resolved rule IDs and
         return normalized violation dicts.
         """
+        from body.services.service_registry import service_registry
         from mind.governance.filtered_audit import run_filtered_audit
-        from shared.infrastructure.database.session_manager import get_session
 
         auditor_context = self._core_context.auditor_context
 
-        async with get_session() as session:
+        async with service_registry.session() as session:
             auditor_context.db_session = session
             await auditor_context.load_knowledge_graph()
             raw_findings, _, _ = await run_filtered_audit(
