@@ -4,14 +4,16 @@
 from __future__ import annotations
 
 import time
-from typing import Any
-
-from rich.console import Console
+from typing import TYPE_CHECKING, Any
 
 from cli.logic.duplicates import inspect_duplicates_async
 from shared.action_types import ActionResult
 from shared.context import CoreContext
 from will.workflows.dev_sync_reporter import DevSyncReporter
+
+
+if TYPE_CHECKING:
+    from rich.console import Console
 
 
 # ID: 19d2867c-472b-4971-9eda-1bc3ee0e6e89

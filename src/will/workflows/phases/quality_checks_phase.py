@@ -4,15 +4,20 @@
 from __future__ import annotations
 
 import time
-from typing import Any
-
-from rich.console import Console
+from typing import TYPE_CHECKING, Any
 
 from cli.logic.body_contracts_checker import check_body_contracts
 from mind.enforcement.audit import lint
 from shared.action_types import ActionResult
 from shared.context import CoreContext
+from shared.logger import getLogger
 from will.workflows.dev_sync_reporter import DevSyncReporter
+
+
+if TYPE_CHECKING:
+    from rich.console import Console
+
+logger = getLogger(__name__)
 
 
 # ID: 17dff4dd-8f46-437d-847d-9b4ccce07495
@@ -34,17 +39,14 @@ class QualityChecksPhase:
         """Execute all quality checks."""
         phase = self.reporter.start_phase("Quality Checks")
 
-        # Run linter
         await self._run_lint(phase)
-
-        # Check body contracts
         await self._check_body_contracts(phase)
 
     async def _run_lint(self, phase: Any) -> None:
         """Run linting checks."""
         try:
             start = time.time()
-            self.console.print("[cyan]Running linter...[/cyan]")
+            logger.info("Running linter...")
             lint()
 
             self.reporter.record_result(
@@ -66,15 +68,13 @@ class QualityChecksPhase:
                 ),
                 phase,
             )
-            self.console.print(
-                "[yellow]⚠️  Lint failures detected, continuing...[/yellow]"
-            )
+            logger.warning("Lint failures detected, continuing...")
 
     async def _check_body_contracts(self, phase: Any) -> None:
         """Verify Body layer contracts."""
         try:
             start = time.time()
-            self.console.print("[cyan]Checking Body contracts...[/cyan]")
+            logger.info("Checking Body contracts...")
             await check_body_contracts(
                 repo_root=self.core_context.git_service.repo_path
             )
@@ -98,6 +98,4 @@ class QualityChecksPhase:
                 ),
                 phase,
             )
-            self.console.print(
-                "[yellow]⚠️  Body contract issues detected, continuing...[/yellow]"
-            )
+            logger.warning("Body contract issues detected, continuing...")

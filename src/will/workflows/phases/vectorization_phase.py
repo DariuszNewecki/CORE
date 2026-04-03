@@ -7,13 +7,18 @@ via the sync.vectors.code and sync.vectors.constitution atomic actions.
 from __future__ import annotations
 
 import time
-from typing import Any
-
-from rich.console import Console
+from typing import TYPE_CHECKING, Any
 
 from shared.action_types import ActionResult
 from shared.context import CoreContext
+from shared.logger import getLogger
 from will.workflows.dev_sync_reporter import DevSyncReporter
+
+
+if TYPE_CHECKING:
+    from rich.console import Console
+
+logger = getLogger(__name__)
 
 
 # ID: dfc4107b-e6e6-42f6-b037-d1f160eda92b
@@ -47,13 +52,13 @@ class VectorizationPhase:
         """Sync policy and pattern vectors via action executor."""
         start = time.time()
         try:
-            self.console.print("[cyan]Syncing constitutional vectors...[/cyan]")
+            logger.info("Syncing constitutional vectors...")
             result = await self.core_context.action_executor.execute(
                 "sync.vectors.constitution", write=write
             )
             self.reporter.record_result(result, phase)
         except Exception as e:
-            self.console.print(f"[yellow]⚠️  Constitutional sync warning: {e}[/yellow]")
+            logger.warning("Constitutional sync warning: %s", e)
             self.reporter.record_result(
                 ActionResult(
                     action_id="sync.vectors.constitution",
@@ -68,13 +73,13 @@ class VectorizationPhase:
         """Sync code vectors via RepoCrawlerWorker + RepoEmbedderWorker pipeline."""
         start = time.time()
         try:
-            self.console.print("[cyan]Vectorizing codebase artifacts...[/cyan]")
+            logger.info("Vectorizing codebase artifacts...")
             result = await self.core_context.action_executor.execute(
                 "sync.vectors.code", write=write
             )
             self.reporter.record_result(result, phase)
         except Exception as e:
-            self.console.print(f"[red]❌ Code vectorization failed: {e}[/red]")
+            logger.error("Code vectorization failed: %s", e)
             self.reporter.record_result(
                 ActionResult(
                     action_id="sync.vectors.code",

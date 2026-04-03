@@ -4,16 +4,22 @@
 from __future__ import annotations
 
 import time
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import typer
-from rich.console import Console
 
 from body.introspection.sync_service import run_sync_with_db
 from body.project_lifecycle.definition_service import define_symbols
 from shared.action_types import ActionResult
 from shared.context import CoreContext
+from shared.logger import getLogger
 from will.workflows.dev_sync_reporter import DevSyncReporter
+
+
+if TYPE_CHECKING:
+    from rich.console import Console
+
+logger = getLogger(__name__)
 
 
 # ID: a7f3e8c9-4d5b-4c6a-8e9f-1a2b3c4d5e6f
@@ -39,17 +45,14 @@ class DatabaseSyncPhase:
         """Execute database sync operations."""
         phase = self.reporter.start_phase("Database Sync")
 
-        # Sync knowledge graph
         await self._sync_knowledge(phase)
-
-        # Define symbols
         await self._define_symbols(phase)
 
     async def _sync_knowledge(self, phase: Any) -> None:
         """Sync knowledge graph with database."""
         try:
             start = time.time()
-            self.console.print("[cyan]Syncing knowledge graph...[/cyan]")
+            logger.info("Syncing knowledge graph...")
             if not self.dry_run:
                 async with self.session_factory() as session:
                     stats = await run_sync_with_db(session)
@@ -63,7 +66,7 @@ class DatabaseSyncPhase:
                     phase,
                 )
             else:
-                self.console.print("[dim]Skipping knowledge sync (dry-run)[/dim]")
+                logger.info("Skipping knowledge sync (dry-run)")
         except Exception as e:
             self.reporter.record_result(
                 ActionResult(
@@ -79,11 +82,10 @@ class DatabaseSyncPhase:
         """Define capability keys for symbols."""
         try:
             start = time.time()
-            self.console.print("[cyan]Defining symbols...[/cyan]")
+            logger.info("Defining symbols...")
 
             ctx_service = self.core_context.context_service
 
-            # Wire dependencies if missing
             if not ctx_service.cognitive_service:
                 ctx_service.cognitive_service = self.core_context.cognitive_service
             if not ctx_service.vector_provider.qdrant:
@@ -113,6 +115,4 @@ class DatabaseSyncPhase:
                 ),
                 phase,
             )
-            self.console.print(
-                "[yellow]⚠️  Symbol definition issue, continuing...[/yellow]"
-            )
+            logger.warning("Symbol definition issue, continuing...")

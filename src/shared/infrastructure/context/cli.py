@@ -18,7 +18,10 @@ from shared.infrastructure.context.models import ContextBuildRequest
 from shared.infrastructure.context.serializers import ContextSerializer
 from shared.infrastructure.context.service import ContextService
 from shared.infrastructure.context.validator import ContextValidator
+from shared.logger import getLogger
 
+
+logger = getLogger(__name__)
 
 app = typer.Typer(
     name="context",
@@ -211,10 +214,10 @@ def show_cmd(
     ),
 ) -> None:
     packet = ContextSerializer.from_yaml(str(file))
-    typer.echo(f"packet_id: {packet.get('header', {}).get('packet_id', '')}")
-    typer.echo(f"goal: {packet.get('header', {}).get('goal', '')}")
-    typer.echo(f"phase: {packet.get('phase', '')}")
-    typer.echo(f"evidence_count: {len(packet.get('evidence', []))}")
+    logger.info("packet_id: %s", packet.get("header", {}).get("packet_id", ""))
+    logger.info("goal: %s", packet.get("header", {}).get("goal", ""))
+    logger.info("phase: %s", packet.get("phase", ""))
+    logger.info("evidence_count: %s", len(packet.get("evidence", [])))
 
 
 @atomic_action(

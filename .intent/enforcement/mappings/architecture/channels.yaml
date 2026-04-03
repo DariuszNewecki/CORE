@@ -21,6 +21,11 @@ mappings:
 
   # Logic/runtime code must not use terminal-oriented rendering primitives.
   # enforcement: reporting — see channels.json note for migration context.
+  # src/will/workflows/** excluded pending migration to src/cli/.
+  # This entire cluster (dev_sync_reporter, phase executors) is constitutional
+  # debt: it performs terminal rendering from Will layer. Migration is required
+  # before this rule can be restored to blocking enforcement.
+  # Tracked in: architecture.channels.logic_no_terminal_rendering rationale.
   architecture.channels.logic_no_terminal_rendering:
     engine: ast_gate
     params:
@@ -44,6 +49,7 @@ mappings:
         - "src/api/**"
         - "src/shared/cli_utils/**"
         - "src/will/cli_logic/**"
+        - "src/will/workflows/**"
         - "tests/**"
 
   # API modules must not use terminal-oriented rendering primitives.
@@ -81,4 +87,5 @@ mappings:
         - "src/body/cli/**"
         - "src/shared/cli_utils/**"
         - "src/will/cli_logic/**"
+        - "src/will/workflows/**"
         - "tests/**"

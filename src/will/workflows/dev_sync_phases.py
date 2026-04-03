@@ -2,15 +2,13 @@
 """
 Dev sync workflow phase execution.
 
-Coordinates execution of dev-sync phases through specialized phase executors.
+Coordinates execution of dev-sync workflow phases through specialized phase executors.
 Each phase is handled by a dedicated class for better modularity and testability.
 """
 
 from __future__ import annotations
 
-from typing import Any
-
-from rich.console import Console
+from typing import TYPE_CHECKING, Any
 
 from shared.context import CoreContext
 from will.workflows.dev_sync_reporter import DevSyncReporter
@@ -21,6 +19,10 @@ from will.workflows.phases import (
     QualityChecksPhase,
     VectorizationPhase,
 )
+
+
+if TYPE_CHECKING:
+    from rich.console import Console
 
 
 # ID: 1d7f96e0-3fc3-4453-ae6b-e42aa17504b9

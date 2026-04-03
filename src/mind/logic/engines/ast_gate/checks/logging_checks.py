@@ -39,22 +39,64 @@ class LoggingChecks:
 
         Detects:
         - logger.*(rich_object) — passing Rich Table/Panel/Console objects into logger calls
-        - logger.*(markup_string) — passing strings with Rich markup tags into logger calls
+        - logger.*(markup_string) — passing strings with actual Rich markup tags into logger calls
 
         Rationale: logger calls with Rich objects or markup indicate the logger is being
         used as a rendering surface. Rich objects should go to console.print(); operational
         facts should go to the logger as plain strings.
+
+        NOTE: Plain-text labels like [DRY RUN], [%s], [ERROR] are NOT Rich markup and
+        must not trigger this check. Only actual Rich style tags (e.g. [bold], [red],
+        [cyan], [/bold]) are violations.
+
+        NOTE: Variable name hinting (e.g. 'table_name') is intentionally excluded —
+        it produces too many false positives. Only direct passing of known Rich types
+        (Table, Panel, Console, etc.) by their class name is flagged.
         """
         findings: list[str] = []
 
-        # Rich presentation types that must not be passed to logger
-        rich_presentation_types = {
+        # Rich presentation types that must not be passed to logger.
+        # Only exact name matches are flagged — no heuristic name guessing.
+        _RICH_PRESENTATION_TYPES = {
             "Table",
             "Panel",
             "Console",
             "Columns",
             "Tree",
             "Group",
+        }
+
+        # Known Rich style and color names used in markup tags.
+        # Only these constitute actual Rich markup — not arbitrary [LABEL] patterns.
+        _RICH_STYLES = {
+            "bold",
+            "dim",
+            "italic",
+            "underline",
+            "strike",
+            "reverse",
+            "red",
+            "green",
+            "yellow",
+            "blue",
+            "magenta",
+            "cyan",
+            "white",
+            "bright_red",
+            "bright_green",
+            "bright_yellow",
+            "bright_blue",
+            "bright_magenta",
+            "bright_cyan",
+            "bright_white",
+            "black",
+            "bold red",
+            "bold green",
+            "bold yellow",
+            "bold cyan",
+            "bold magenta",
+            "bold blue",
+            "bold white",
         }
 
         for node in ast.walk(tree):
@@ -69,26 +111,20 @@ class LoggingChecks:
 
             for arg in node.args:
                 # Pattern 1: logger.info(table) — bare Name that is a known Rich type
-                if isinstance(arg, ast.Name) and arg.id in rich_presentation_types:
+                if isinstance(arg, ast.Name) and arg.id in _RICH_PRESENTATION_TYPES:
                     findings.append(
                         f"Line {ASTHelpers.lineno(node)}: logger used as renderer — "
                         f"pass Rich '{arg.id}' to console.print(), not logger."
                     )
 
-                # Pattern 2: logger.info(rich_obj) — variable with a suggestive name
-                elif isinstance(arg, ast.Name) and any(
-                    hint in arg.id.lower()
-                    for hint in ("table", "panel", "markup", "renderable")
-                ):
-                    findings.append(
-                        f"Line {ASTHelpers.lineno(node)}: logger used as renderer — "
-                        f"'{arg.id}' appears to be a presentation object; use console.print()."
-                    )
-
-                # Pattern 3: logger.info("[bold]text[/bold]") — Rich markup in string literal
+                # Pattern 2: logger.info("[bold]text[/bold]") — actual Rich markup in string.
+                # Only fires on known Rich style tags or closing tags ([/...]).
+                # Does NOT fire on plain-text labels like [DRY RUN], [%s], [ERROR].
                 elif isinstance(arg, ast.Constant) and isinstance(arg.value, str):
                     val = arg.value
-                    if "[/" in val or (val.startswith("[") and "]" in val):
+                    has_closing_tag = "[/" in val
+                    has_style_tag = any(f"[{s}]" in val for s in _RICH_STYLES)
+                    if has_closing_tag or has_style_tag:
                         findings.append(
                             f"Line {ASTHelpers.lineno(node)}: logger used as renderer — "
                             f"Rich markup detected in log string; use plain text for logger."

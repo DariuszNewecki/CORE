@@ -4,10 +4,9 @@
 from __future__ import annotations
 
 import time
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import typer
-from rich.console import Console
 
 from body.self_healing.code_style_service import format_code
 from body.self_healing.docstring_service import fix_docstrings
@@ -16,7 +15,14 @@ from cli.commands.fix.metadata import fix_ids_internal
 from cli.commands.fix_logging import LoggingFixer
 from shared.action_types import ActionResult
 from shared.context import CoreContext
+from shared.logger import getLogger
 from will.workflows.dev_sync_reporter import DevSyncReporter
+
+
+if TYPE_CHECKING:
+    from rich.console import Console
+
+logger = getLogger(__name__)
 
 
 # ID: 1248d364-44a9-4eec-8954-2a3b2269e352
@@ -43,14 +49,14 @@ class CodeFixersPhase:
         phase = self.reporter.start_phase("Code Fixers")
 
         # Fix IDs
-        self.console.print("[cyan]Assigning stable IDs...[/cyan]")
+        logger.info("Assigning stable IDs...")
         result = await fix_ids_internal(write=self.write)
         self.reporter.record_result(result, phase)
         if not result.ok:
             raise typer.Exit(1)
 
         # Fix Headers
-        self.console.print("[cyan]Checking file headers...[/cyan]")
+        logger.info("Checking file headers...")
         result = await fix_headers_internal(write=self.write)
         self.reporter.record_result(result, phase)
         if not result.ok:
@@ -69,7 +75,7 @@ class CodeFixersPhase:
         """Fix logging standards."""
         try:
             start = time.time()
-            self.console.print("[cyan]Checking logging standards...[/cyan]")
+            logger.info("Checking logging standards...")
             fixer = LoggingFixer(
                 self.core_context.git_service.repo_path, dry_run=self.dry_run
             )
@@ -93,13 +99,13 @@ class CodeFixersPhase:
                 ),
                 phase,
             )
-            self.console.print("[yellow]⚠️  Logging fix issues, continuing...[/yellow]")
+            logger.warning("Logging fix issues, continuing...")
 
     async def _fix_docstrings(self, phase: Any) -> None:
         """Fix missing docstrings."""
         try:
             start = time.time()
-            self.console.print("[cyan]Checking docstrings...[/cyan]")
+            logger.info("Checking docstrings...")
             await fix_docstrings(context=self.core_context, write=self.write)
 
             self.reporter.record_result(
@@ -126,7 +132,7 @@ class CodeFixersPhase:
         """Format code with Black/Ruff."""
         try:
             start = time.time()
-            self.console.print("[cyan]Formatting code...[/cyan]")
+            logger.info("Formatting code...")
             format_code()
 
             self.reporter.record_result(
