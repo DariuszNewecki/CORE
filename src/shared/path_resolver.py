@@ -230,11 +230,7 @@ class PathResolver:
         in body/autonomy/audit_analyzer.py
         """
         return (
-            self._intent_root
-            / "enforcement"
-            / "mappings"
-            / "remediation"
-            / "auto_remediation.yaml"
+            self._intent_root / "enforcement" / "remediation" / "auto_remediation.yaml"
         )
 
     @property
