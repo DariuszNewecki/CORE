@@ -1,0 +1,36 @@
+$schema: "META/worker.schema.json"
+kind: worker
+
+metadata:
+  id: workers.self_healing_agent
+  title: Self-Healing Agent
+  version: "1.0.0"
+  authority: policy
+  status: active
+
+identity:
+  uuid: "a3f7c2d1-b4e8-4f91-9c2a-7d5e6b8f0a3c"
+  class: sensing
+
+mandate:
+  responsibility: >
+    Scan src/**/*.py for public symbols missing # ID: tags and post one
+    blackboard finding per affected file. No LLM calls. No file writes.
+    Findings are consumed by ViolationRemediatorWorker which maps
+    linkage.assign_ids to the assign_missing_ids action handler.
+  phase: audit
+  permitted_tools: []
+  scope:
+    paths:
+      - "src/**/*.py"
+    domains:
+      - compliance
+      - linkage
+  approval_required: false
+  schedule:
+    max_interval: 3600
+
+implementation:
+  module: will.agents.self_healing_agent
+  class: SelfHealingAgent
+  requires_core_context: true
