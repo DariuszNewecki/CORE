@@ -119,6 +119,23 @@ class IntentRepository:
             f"Unsupported intent artifact type: {path.suffix} ({path})"
         )
 
+    # ID: a2b3c4d5-e6f7-8901-abcd-ef1234567890
+    def load_text(self, rel: str | Path) -> str:
+        """
+        Load a raw text artifact from .intent/ (e.g. markdown files).
+        Enforces boundary — path must be within intent root.
+        Read-only. No parsing.
+        """
+        abs_path = self.resolve_rel(rel)
+        if not abs_path.exists():
+            raise GovernanceError(f"Intent text artifact not found: {abs_path}")
+        try:
+            return abs_path.read_text(encoding="utf-8", errors="ignore")
+        except Exception as e:
+            raise GovernanceError(
+                f"Failed to read text artifact {abs_path}: {e}"
+            ) from e
+
     # ID: 352c67ce-9d90-4ab2-944c-e6ef3622b411
     def load_policy(self, logical_path_or_id: str) -> dict[str, Any]:
         if "." in logical_path_or_id and "/" not in logical_path_or_id:

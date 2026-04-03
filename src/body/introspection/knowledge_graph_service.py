@@ -12,8 +12,6 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-import yaml
-
 from shared.ast_utility import (
     FunctionCallVisitor,
     calculate_structural_hash,
@@ -39,72 +37,27 @@ class KnowledgeGraphBuilder:
 
     def __init__(self, root_path: Path, workspace: LimbWorkspace | None = None) -> None:
         self.root_path = Path(root_path).resolve()
-        self.intent_dir = self.root_path / ".intent"
         self.src_dir = self.root_path / "src"
         self.workspace = workspace
-        self.symbols: dict[str, dict[str, Any]] = {}
 
+        self.symbols: dict[str, dict[str, Any]] = {}
         self.domain_map = self._load_domain_map()
         self.entry_point_patterns = self._load_entry_point_patterns()
 
     def _load_domain_map(self) -> dict[str, str]:
-        """Load the architectural domain map."""
-        try:
-            rel_path = ".intent/mind/knowledge/source_structure.yaml"
-            structure = None
-
-            if self.workspace and self.workspace.exists(rel_path):
-                content = self.workspace.read_text(rel_path)
-                structure = yaml.safe_load(content) or {}
-            else:
-                path = self.intent_dir / "mind" / "knowledge" / "source_structure.yaml"
-                if not path.exists():
-                    path = (
-                        self.intent_dir
-                        / "mind"
-                        / "knowledge"
-                        / "project_structure.yaml"
-                    )
-
-                if path.exists():
-                    structure = yaml.safe_load(path.read_text("utf-8")) or {}
-
-            if structure:
-                items = structure.get("structure", []) or structure.get(
-                    "architectural_domains", []
-                )
-                return {
-                    str(self.src_dir / d.get("path", "").replace("src/", "")): d.get(
-                        "domain"
-                    )
-                    for d in items
-                    if "path" in d and "domain" in d
-                }
-            return {}
-        except Exception as exc:
-            logger.warning("Failed to load domain map: %s", exc)
-            return {}
+        """
+        Loads the architectural domain map.
+        Source structure file has been removed — returns empty map.
+        Callers fall back to heuristic domain detection.
+        """
+        return {}
 
     def _load_entry_point_patterns(self) -> list[dict[str, Any]]:
-        """Load entry point patterns."""
-        try:
-            rel_path = ".intent/mind/knowledge/entry_point_patterns.yaml"
-            content = None
-
-            if self.workspace and self.workspace.exists(rel_path):
-                content = self.workspace.read_text(rel_path)
-            else:
-                path = self.root_path / rel_path
-                if path.exists():
-                    content = path.read_text("utf-8")
-
-            if content:
-                data = yaml.safe_load(content) or {}
-                return data.get("patterns", [])
-            return []
-        except Exception as exc:
-            logger.warning("Failed to load entry point patterns: %s", exc)
-            return []
+        """
+        Loads entry point patterns.
+        Patterns file has been removed — returns empty list.
+        """
+        return []
 
     # ID: 75c969e0-5c7c-4f58-9a46-62815947d77a
     def build(self) -> dict[str, Any]:
@@ -149,11 +102,13 @@ class KnowledgeGraphBuilder:
 
             tree = ast.parse(content, filename=rel_path)
             source_lines = content.splitlines()
+
             for node in ast.walk(tree):
                 if isinstance(
                     node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)
                 ):
                     self._process_symbol(node, Path(rel_path), source_lines)
+
         except Exception as exc:
             logger.error("Failed to process file %s: %s", rel_path, exc)
 
@@ -161,14 +116,10 @@ class KnowledgeGraphBuilder:
         """Determine the architectural domain of a file."""
         abs_file_path = (self.root_path / file_path).resolve()
 
-        # UPDATED HEURISTIC: Check new layered homes
         parts = file_path.parts
-        # If path is src/layer/domain/...
         if len(parts) >= 3 and parts[0] == "src":
-            # Example: src/body/self_healing/ -> domain is self_healing
             return parts[2]
 
-        # Constitution-driven mapping
         for domain_path, domain_name in self.domain_map.items():
             if str(abs_file_path).startswith(str(Path(domain_path).resolve())):
                 return domain_name
@@ -183,8 +134,7 @@ class KnowledgeGraphBuilder:
             return
 
         symbol_path_key = f"{rel_path.as_posix()}::{node.name}"
-
-        metadata = parse_metadata_comment(node, source_lines)
+        metadata = parse_metadata_comment(node, source_lines) or {}
         docstring = (extract_docstring(node) or "").strip()
 
         call_visitor = FunctionCallVisitor()
@@ -216,4 +166,5 @@ class KnowledgeGraphBuilder:
             ),
             "structural_hash": calculate_structural_hash(node),
         }
+
         self.symbols[symbol_path_key] = symbol_data

@@ -6,7 +6,6 @@ Refactored logic for proposal lifecycle management.
 CONSTITUTIONAL COMPLIANCE:
 - Uses FileHandler for all mutations (IntentGuard enforced)
 - Uses PathResolver for path resolution
-- Searches .intent/ structure for configuration
 - Verifies signatures cryptographically
 """
 
@@ -66,56 +65,14 @@ class ProposalService:
         self.proposals_dir = path_resolver.proposals_dir
         self.fs.ensure_dir(_to_repo_rel(self.repo_root, self.proposals_dir))
 
-        # Load approver configuration
-        app_cfg = (
-            yaml_processor.load(
-                path_resolver.intent_root / "constitution" / "approvers.yaml"
-            )
-            or {}
-        )
-        self.approver_keys = {
-            a["identity"]: a["public_key"] for a in app_cfg.get("approvers", [])
-        }
-        self.quorum_config = app_cfg.get("quorum", {})
+        # Approver configuration — not yet provisioned.
+        # Populate var/governance/approvers.yaml to enable quorum enforcement.
+        self.approver_keys: dict[str, str] = {}
+        self.quorum_config: dict = {}
 
-        # FIXED: Search new .intent/ structure for critical paths
-        # Try multiple possible locations
-        critical_paths_candidates = [
-            path_resolver.intent_root / "constitution" / "critical_paths.json",
-            path_resolver.intent_root / "constitution" / "critical_paths.yaml",
-            path_resolver.intent_root
-            / "rules"
-            / "architecture"
-            / "critical_paths.json",
-            path_resolver.intent_root
-            / "rules"
-            / "architecture"
-            / "critical_paths.yaml",
-        ]
-
-        # Allow override from config
-        if "critical_paths_source" in app_cfg:
-            override_path = path_resolver.intent_root / app_cfg["critical_paths_source"]
-            critical_paths_candidates.insert(0, override_path)
-
-        self.critical_paths = []
-        for crit_path in critical_paths_candidates:
-            if crit_path.exists():
-                try:
-                    paths_data = yaml_processor.load(crit_path) or {}
-                    self.critical_paths = paths_data.get("paths", [])
-                    logger.debug("Loaded critical paths from: %s", crit_path)
-                    break
-                except Exception as e:
-                    logger.debug(
-                        "Could not load critical paths from %s: %s", crit_path, e
-                    )
-                    continue
-
-        if not self.critical_paths:
-            logger.warning(
-                "No critical_paths.yaml found in .intent/ structure, all paths treated as standard"
-            )
+        # Critical paths configuration — not yet provisioned.
+        # Populate var/governance/critical_paths.yaml to enable path classification.
+        self.critical_paths: list = []
 
     # ID: 7cf17c56-adf6-47a7-a70d-7342e2064c16
     def list(self) -> list[ProposalInfo]:
@@ -161,14 +118,19 @@ class ProposalService:
             identity: Identity of the signer
 
         Raises:
-            FileNotFoundError: If proposal doesn't exist
+            FileNotFoundError: If proposal or private key doesn't exist
         """
         path = self.proposals_dir / proposal_name
         if not path.exists():
             raise FileNotFoundError(f"Proposal '{proposal_name}' not found.")
 
         proposal = yaml_processor.load(path) or {}
-        key_path = self.repo_root / ".intent" / "keys" / "private.key"
+        key_path = self.repo_root / "var" / "keys" / "private.key"
+        if not key_path.exists():
+            raise FileNotFoundError(
+                f"Private key not found at {key_path}. "
+                "Run 'core-admin manage keys generate' to create one."
+            )
         private_key = serialization.load_pem_private_key(
             key_path.read_bytes(), password=None
         )

@@ -152,9 +152,9 @@ def save_yaml_file(path: Path, data: dict[str, Any], file_handler: FileHandler) 
 def load_private_key(repo_root: Path) -> ed25519.Ed25519PrivateKey:
     """
     Loads the operator's private key.
-    Requires repo_root to locate .intent/keys/private.key without global settings.
+    Requires repo_root to locate var/keys/private.key without global settings.
     """
-    key_path = repo_root / ".intent" / "keys" / "private.key"
+    key_path = repo_root / "var" / "keys" / "private.key"
     if not key_path.exists():
         logger.error(
             "Private key not found at %s. Please run 'core-admin manage keys generate' to create one.",

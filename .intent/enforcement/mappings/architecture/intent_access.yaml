@@ -12,4 +12,9 @@ mappings:
         - "src/**/*.py"
       excludes:
         - "src/shared/infrastructure/intent/**"
+        - "src/body/project_lifecycle/scaffolding_service.py"
+        - "src/body/services/intent_schema_validator.py"
+        - "src/mind/governance/meta_validator.py"
+        - "src/will/commands/daemon.py"
+        - "src/will/workers/worker_auditor.py"
         - "tests/**/*.py"

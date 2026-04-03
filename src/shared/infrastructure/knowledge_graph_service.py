@@ -21,8 +21,6 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-import yaml
-
 from shared.ast_utility import (
     FunctionCallVisitor,
     calculate_structural_hash,
@@ -59,7 +57,6 @@ class KnowledgeGraphBuilder:
                       uncommitted changes.
         """
         self.root_path = root_path.resolve()
-        self.intent_dir = self.root_path / ".intent"
         self.src_dir = self.root_path / "src"
         self.workspace = workspace
 
@@ -68,83 +65,18 @@ class KnowledgeGraphBuilder:
         self.entry_point_patterns = self._load_entry_point_patterns()
 
     def _load_domain_map(self) -> dict[str, str]:
-        """Loads the architectural domain map from the constitution."""
-        try:
-            structure: dict[str, Any] | None = None
-
-            # Prefer workspace overlay to allow refactor-time domain boundary changes.
-            rel_path = ".intent/mind/knowledge/source_structure.yaml"
-            if self.workspace and self.workspace.exists(rel_path):
-                content = self.workspace.read_text(rel_path)
-                structure = yaml.safe_load(content) or {}
-
-            if structure is None:
-                structure_path = (
-                    self.intent_dir / "mind" / "knowledge" / "source_structure.yaml"
-                )
-                if not structure_path.exists():
-                    structure_path = (
-                        self.intent_dir
-                        / "mind"
-                        / "knowledge"
-                        / "project_structure.yaml"
-                    )
-
-                if structure_path.exists():
-                    structure = (
-                        yaml.safe_load(structure_path.read_text(encoding="utf-8")) or {}
-                    )
-                else:
-                    return {}
-
-            items = (
-                structure.get("structure", [])
-                or structure.get("architectural_domains", [])
-                or []
-            )
-            domain_map: dict[str, str] = {}
-
-            for d in items:
-                if not isinstance(d, dict):
-                    continue
-                if "path" not in d or "domain" not in d:
-                    continue
-
-                raw_path = str(d.get("path", ""))
-                # Normalize "src/..." entries to be relative to src_dir.
-                normalized = (
-                    raw_path.replace("src/", "", 1)
-                    if raw_path.startswith("src/")
-                    else raw_path
-                )
-                abs_prefix = (self.src_dir / normalized).resolve()
-                domain_map[str(abs_prefix)] = str(d.get("domain"))
-
-            return domain_map
-
-        except Exception as e:
-            logger.warning("Failed to load domain map: %s", e)
-            return {}
+        """
+        Loads the architectural domain map.
+        Source structure file has been removed — returns empty map.
+        Callers fall back to heuristic domain detection.
+        """
+        return {}
 
     def _load_entry_point_patterns(self) -> list[dict[str, Any]]:
-        """Loads the patterns for identifying system entry points."""
-        patterns_path_rel = ".intent/mind/knowledge/entry_point_patterns.yaml"
-        try:
-            if self.workspace and self.workspace.exists(patterns_path_rel):
-                content = self.workspace.read_text(patterns_path_rel)
-                patterns = yaml.safe_load(content) or {}
-                return patterns.get("patterns", []) or []
-
-            patterns_path = self.root_path / patterns_path_rel
-            if patterns_path.exists():
-                patterns = (
-                    yaml.safe_load(patterns_path.read_text(encoding="utf-8")) or {}
-                )
-                return patterns.get("patterns", []) or []
-        except Exception:
-            # Patterns are optional; ignore failures.
-            return []
-
+        """
+        Loads entry point patterns.
+        Patterns file has been removed — returns empty list.
+        """
         return []
 
     # ID: df77032e-a986-4846-8c38-9849daabe695
@@ -160,12 +92,9 @@ class KnowledgeGraphBuilder:
 
         self.symbols = {}
 
-        # 1) Determine which files to scan
         if self.workspace:
-            # Sensation: unified list of virtual + physical files (relative paths expected).
             files_to_scan = self.workspace.list_files(directory="src", pattern="*.py")
         else:
-            # Historical fallback: direct disk I/O
             if not self.src_dir.exists():
                 logger.warning("Source directory not found: %s", self.src_dir)
                 return {"metadata": {}, "symbols": {}}
@@ -174,7 +103,6 @@ class KnowledgeGraphBuilder:
                 str(p.relative_to(self.root_path)) for p in self.src_dir.rglob("*.py")
             ]
 
-        # 2) Perform the scan
         for rel_path in files_to_scan:
             self._scan_file_v2(rel_path)
 
@@ -212,7 +140,6 @@ class KnowledgeGraphBuilder:
         """Determines the architectural domain of a file (file_path is relative to root)."""
         abs_file_path = (self.root_path / file_path).resolve()
 
-        # Heuristic: src/features/<domain>/...
         parts = file_path.parts
         if "features" in parts:
             idx = parts.index("features")
@@ -221,7 +148,6 @@ class KnowledgeGraphBuilder:
                 if candidate and not candidate.endswith(".py"):
                     return candidate
 
-        # Constitution-driven mapping (prefix match)
         for domain_path, domain_name in self.domain_map.items():
             try:
                 if str(abs_file_path).startswith(str(Path(domain_path).resolve())):
@@ -248,7 +174,6 @@ class KnowledgeGraphBuilder:
         try:
             call_visitor.visit(node)
         except Exception:
-            # Visitor should be best-effort; do not block symbol extraction.
             pass
 
         symbol_data: dict[str, Any] = {

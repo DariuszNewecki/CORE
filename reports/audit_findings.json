@@ -416,7 +416,7 @@
   {
     "check_id": "architecture.max_file_size",
     "severity": "warning",
-    "message": "Module has 616 lines, exceeds limit of 400",
+    "message": "Module has 633 lines, exceeds limit of 400",
     "file_path": "src/shared/infrastructure/intent/intent_repository.py",
     "line_number": null,
     "context": {},
@@ -776,15 +776,6 @@
   {
     "check_id": "architecture.intent.non_gateway_no_direct_resolution",
     "severity": "warning",
-    "message": "Line 148: Direct .intent read via 'read_text()' outside shared intent infrastructure.",
-    "file_path": "src/body/introspection/knowledge_graph_service.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.intent.non_gateway_no_direct_resolution",
-    "severity": "warning",
     "message": "Line 133: Direct parsing of .intent content via 'yaml.safe_load()' outside shared intent infrastructure.",
     "file_path": "src/body/project_lifecycle/scaffolding_service.py",
     "line_number": null,
@@ -803,44 +794,8 @@
   {
     "check_id": "architecture.intent.non_gateway_no_direct_resolution",
     "severity": "warning",
-    "message": "Line 46: Direct .intent traversal via 'glob()' outside shared intent infrastructure.",
-    "file_path": "src/body/self_healing/fix_manifest_hygiene.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.intent.non_gateway_no_direct_resolution",
-    "severity": "warning",
     "message": "Line 192: Direct .intent traversal via 'glob()' outside shared intent infrastructure.",
     "file_path": "src/body/services/intent_schema_validator.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.intent.non_gateway_no_direct_resolution",
-    "severity": "warning",
-    "message": "Line 135: Direct .intent read via 'read_text()' outside shared intent infrastructure.",
-    "file_path": "src/cli/commands/coverage/check_commands.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.intent.non_gateway_no_direct_resolution",
-    "severity": "warning",
-    "message": "Line 164: Direct .intent read via 'read_bytes()' outside shared intent infrastructure.",
-    "file_path": "src/cli/logic/cli_utils.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.intent.non_gateway_no_direct_resolution",
-    "severity": "warning",
-    "message": "Line 173: Direct .intent read via 'read_bytes()' outside shared intent infrastructure.",
-    "file_path": "src/cli/logic/proposals/service.py",
     "line_number": null,
     "context": {},
     "details": {}
@@ -866,62 +821,8 @@
   {
     "check_id": "architecture.intent.non_gateway_no_direct_resolution",
     "severity": "warning",
-    "message": "Line 197: Direct .intent read via 'read_text()' outside shared intent infrastructure.",
-    "file_path": "src/shared/infrastructure/knowledge_graph_service.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.intent.non_gateway_no_direct_resolution",
-    "severity": "warning",
-    "message": "Line 69: Direct parsing of .intent content via 'yaml.safe_load()' outside shared intent infrastructure.",
-    "file_path": "src/shared/utils/manifest_aggregator.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.intent.non_gateway_no_direct_resolution",
-    "severity": "warning",
-    "message": "Line 69: Direct .intent read via 'read_text()' outside shared intent infrastructure.",
-    "file_path": "src/shared/utils/manifest_aggregator.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.intent.non_gateway_no_direct_resolution",
-    "severity": "warning",
     "message": "Line 204: Direct .intent traversal via 'glob()' outside shared intent infrastructure.",
     "file_path": "src/will/commands/daemon.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.intent.non_gateway_no_direct_resolution",
-    "severity": "warning",
-    "message": "Line 46: Direct .intent read via 'read_text()' outside shared intent infrastructure.",
-    "file_path": "src/will/orchestration/intent_alignment.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.intent.non_gateway_no_direct_resolution",
-    "severity": "warning",
-    "message": "Line 178: Direct parsing of .intent content via 'yaml.safe_load()' outside shared intent infrastructure.",
-    "file_path": "src/will/orchestration/prompt_pipeline.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.intent.non_gateway_no_direct_resolution",
-    "severity": "warning",
-    "message": "Line 178: Direct .intent read via 'read_text()' outside shared intent infrastructure.",
-    "file_path": "src/will/orchestration/prompt_pipeline.py",
     "line_number": null,
     "context": {},
     "details": {}
@@ -1118,15 +1019,6 @@
   {
     "check_id": "modularity.single_responsibility",
     "severity": "warning",
-    "message": "Modularity Debt: 52.5/100 (Limit: 60.0)",
-    "file_path": "src/will/agents/self_healing_agent.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.single_responsibility",
-    "severity": "warning",
     "message": "Modularity Debt: 52.2/100 (Limit: 60.0)",
     "file_path": "src/will/autonomy/proposal_service.py",
     "line_number": null,
@@ -1354,15 +1246,6 @@
     "severity": "warning",
     "message": "Modularity Debt: 60.3/100 (Limit: 60.0)",
     "file_path": "src/shared/workers/base.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.semantic_cohesion",
-    "severity": "warning",
-    "message": "Modularity Debt: 52.5/100 (Limit: 60.0)",
-    "file_path": "src/will/agents/self_healing_agent.py",
     "line_number": null,
     "context": {},
     "details": {}
@@ -1604,15 +1487,6 @@
   {
     "check_id": "modularity.import_coupling",
     "severity": "warning",
-    "message": "Modularity Debt: 52.5/100 (Limit: 60.0)",
-    "file_path": "src/will/agents/self_healing_agent.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.import_coupling",
-    "severity": "warning",
     "message": "Modularity Debt: 52.2/100 (Limit: 60.0)",
     "file_path": "src/will/autonomy/proposal_service.py",
     "line_number": null,
@@ -1840,15 +1714,6 @@
     "severity": "warning",
     "message": "Modularity Debt: 60.3/100 (Limit: 60.0)",
     "file_path": "src/shared/workers/base.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.refactor_score_threshold",
-    "severity": "warning",
-    "message": "Modularity Debt: 52.5/100 (Limit: 60.0)",
-    "file_path": "src/will/agents/self_healing_agent.py",
     "line_number": null,
     "context": {},
     "details": {}
@@ -2052,15 +1917,6 @@
     "severity": "warning",
     "message": "Orphan file: 'src/body/self_healing/complexity_filter.py' is not reachable from any entry point.",
     "file_path": "src/body/self_healing/complexity_filter.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/body/self_healing/fix_manifest_hygiene.py' is not reachable from any entry point.",
-    "file_path": "src/body/self_healing/fix_manifest_hygiene.py",
     "line_number": null,
     "context": {},
     "details": {}
@@ -2502,15 +2358,6 @@
     "severity": "warning",
     "message": "Orphan file: 'src/shared/utils/import_scanner.py' is not reachable from any entry point.",
     "file_path": "src/shared/utils/import_scanner.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/shared/utils/manifest_aggregator.py' is not reachable from any entry point.",
-    "file_path": "src/shared/utils/manifest_aggregator.py",
     "line_number": null,
     "context": {},
     "details": {}

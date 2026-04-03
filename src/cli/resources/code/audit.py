@@ -77,6 +77,11 @@ async def audit_command(
     rule: list[str] = typer.Option([], "--rule", "-r"),
     policy: list[str] = typer.Option([], "--policy", "-p"),
     verbose: bool = typer.Option(False, "--verbose", "-v"),
+    classify: bool = typer.Option(
+        False,
+        "--classify",
+        help="Print context build commands for all findings.",
+    ),
 ) -> None:
     """Run the constitutional self-audit."""
     min_severity = parse_min_severity(severity)
@@ -170,6 +175,9 @@ async def audit_command(
             print_verbose_findings(filtered_findings)
         else:
             print_summary_findings(filtered_findings)
+
+    if classify:
+        print_context_build_hints(all_findings)
 
     if not results["passed"]:
         print_context_build_hints(all_findings)
