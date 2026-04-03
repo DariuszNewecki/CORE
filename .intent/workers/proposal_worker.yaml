@@ -6,7 +6,7 @@ metadata:
   title: Autonomous Proposal Worker
   version: "1.2.0"
   authority: policy
-  status: active
+  status: paused
 
 identity:
   uuid: "46d4fb89-4bd4-4c68-9086-a39e0563bb01"

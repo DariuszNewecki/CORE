@@ -6,7 +6,7 @@ metadata:
   title: Repo Embedder
   version: "0.2.0"
   authority: policy
-  status: active
+  status: paused
 
 identity:
   uuid: "a2b3c4d5-e6f7-8901-bcde-f12345678902"

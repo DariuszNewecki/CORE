@@ -6,7 +6,7 @@ metadata:
   title: Intent Inspector
   version: "0.1.0"
   authority: policy
-  status: active
+  status: paused
 
 identity:
   uuid: "f1e2d3c4-b5a6-7890-fedc-ba9876543210"

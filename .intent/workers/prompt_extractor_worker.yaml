@@ -6,7 +6,7 @@ metadata:
   title: Prompt Extractor Worker
   version: "0.1.0"
   authority: policy
-  status: active
+  status: paused
 
 identity:
   uuid: "b2c3d4e5-f6a7-8901-bcde-f12345678901"

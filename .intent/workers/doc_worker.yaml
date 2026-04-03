@@ -6,7 +6,7 @@ metadata:
   title: Documentation Worker
   version: "0.1.0"
   authority: policy
-  status: active
+  status: paused
 
 identity:
   uuid: "8d1e536d-846f-4635-8955-2fdef4b72e6a"
