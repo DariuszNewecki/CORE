@@ -15,7 +15,7 @@ from fastapi import APIRouter, BackgroundTasks, Depends, Request
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.dependencies import get_api_session, open_background_session
+from api.dependencies import get_api_session
 from shared.context import CoreContext
 from shared.infrastructure.repositories.task_repository import TaskRepository
 from will.autonomy.autonomous_developer import develop_from_goal
@@ -26,12 +26,11 @@ router = APIRouter()
 
 # ID: 7b83814d-b747-4c17-b054-9e8f2b8b8325
 class DevelopmentGoal(BaseModel):
-    """
-    This class represents a development goal as a string, inheriting from BaseModel.
-    """
+    """Request model for autonomous development goals."""
 
     goal: str
     workflow_type: str
+    write: bool = False
 
 
 @router.post("/develop/goal", status_code=202)
@@ -58,16 +57,14 @@ async def start_development_cycle(
 
     # ID: 419febbe-ce48-49a1-a1a7-ae800ce5cb4a
     async def run_development() -> None:
-        """Background task — session acquired via sanctioned provider."""
-        async with open_background_session() as dev_session:
-            await develop_from_goal(
-                session=dev_session,
-                context=core_context,
-                goal=payload.goal,
-                workflow_type=payload.workflow_type,
-                task_id=new_task.id,
-                output_mode="direct",
-            )
+        """Background task — CoreContext manages its own infrastructure."""
+        await develop_from_goal(
+            context=core_context,
+            goal=payload.goal,
+            workflow_type=payload.workflow_type,
+            write=payload.write,
+            task_id=new_task.id,
+        )
 
     background_tasks.add_task(run_development)
     return {"task_id": str(new_task.id), "status": "Task accepted and running."}
