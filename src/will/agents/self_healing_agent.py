@@ -194,8 +194,8 @@ class SelfHealingAgent(Worker):
             is_dunder = node.name.startswith("__") and node.name.endswith("__")
             if node.name.startswith("_") or is_dunder:
                 continue
-            symbol_id, _ = find_symbol_id_and_def_line(lines, node)
-            if symbol_id is None:
+            result = find_symbol_id_and_def_line(node, lines)
+            if not result.has_id:
                 missing.append(node.name)
 
         if not missing:
