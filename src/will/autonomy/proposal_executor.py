@@ -13,8 +13,12 @@ CONSTITUTIONAL (current):
 
 from __future__ import annotations
 
+import asyncio
+import json
 import time
 from typing import Any
+
+from sqlalchemy import text
 
 from body.atomic.executor import ActionExecutor
 from body.services.service_registry import service_registry
@@ -207,6 +211,88 @@ class ProposalExecutor:
                                 proposal.proposal_id,
                                 git_err,
                             )
+
+                    # -- Consequence recording --
+                    # Runs after mark_completed regardless of git commit outcome.
+                    try:
+                        post_execution_sha = (
+                            self.core_context.git_service.get_current_commit()
+                            if self.core_context.git_service
+                            else None
+                        )
+                    except Exception:
+                        post_execution_sha = None
+                        logger.warning(
+                            "Could not capture post-execution SHA for %s",
+                            proposal.proposal_id,
+                        )
+
+                    # Changed files between pre and post SHAs
+                    changed_files: list[str] = []
+                    if pre_execution_sha and post_execution_sha:
+                        try:
+                            diff_proc = await asyncio.create_subprocess_exec(
+                                "git",
+                                "diff",
+                                "--name-only",
+                                pre_execution_sha,
+                                post_execution_sha,
+                                stdout=asyncio.subprocess.PIPE,
+                                stderr=asyncio.subprocess.PIPE,
+                                cwd=str(self.core_context.git_service.repo_path),
+                            )
+                            stdout, _ = await diff_proc.communicate()
+                            changed_files = [
+                                f for f in stdout.decode().strip().splitlines() if f
+                            ]
+                        except Exception as diff_err:
+                            logger.warning(
+                                "Could not determine changed files for %s: %s",
+                                proposal.proposal_id,
+                                diff_err,
+                            )
+
+                    files_changed = [{"path": p} for p in changed_files]
+                    authorized_by_rules = proposal.scope.policies
+                    findings_resolved = proposal.constitutional_constraints.get(
+                        "finding_ids", []
+                    )
+
+                    try:
+                        async with service_registry.session() as cons_session:
+                            await cons_session.execute(
+                                text(
+                                    "INSERT INTO core.proposal_consequences "
+                                    "(proposal_id, pre_execution_sha, "
+                                    "post_execution_sha, files_changed, "
+                                    "findings_resolved, authorized_by_rules) "
+                                    "VALUES (:pid, :pre, :post, :files, "
+                                    ":findings, :rules) "
+                                    "ON CONFLICT (proposal_id) DO NOTHING"
+                                ),
+                                {
+                                    "pid": proposal.proposal_id,
+                                    "pre": pre_execution_sha,
+                                    "post": post_execution_sha,
+                                    "files": json.dumps(files_changed),
+                                    "findings": json.dumps(findings_resolved),
+                                    "rules": json.dumps(authorized_by_rules),
+                                },
+                            )
+                            await cons_session.commit()
+                        logger.info(
+                            "Consequence recorded for %s: "
+                            "%d files changed, post_sha=%s",
+                            proposal.proposal_id,
+                            len(files_changed),
+                            post_execution_sha,
+                        )
+                    except Exception as cons_err:
+                        logger.warning(
+                            "Failed to record consequence for %s: %s",
+                            proposal.proposal_id,
+                            cons_err,
+                        )
                 else:
                     failed_actions = [
                         aid for aid, res in action_results.items() if not res["ok"]

@@ -42,6 +42,6 @@ async def list_proposals(
                 proposals.extend(batch)
             title = "Recent Proposals"
     if not proposals:
-        logger.info("[yellow]No proposals found.[/yellow]")
+        console.print("[yellow]No proposals found.[/yellow]")
     else:
-        logger.info(render_list_table(proposals, title))
+        console.print(render_list_table(proposals, title))

@@ -4748,3 +4748,26 @@ ALTER DEFAULT PRIVILEGES FOR ROLE lira_user IN SCHEMA core GRANT SELECT,INSERT,D
 --
 -- PostgreSQL database dump complete
 --
+CREATE TABLE core.proposal_consequences (
+    -- One row per executed proposal. proposal_id is both PK and FK.
+    proposal_id          TEXT PRIMARY KEY REFERENCES core.autonomous_proposals(proposal_id),
+
+    recorded_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+    -- Git causality chain
+    pre_execution_sha    TEXT,
+    post_execution_sha   TEXT,
+
+    -- What changed (array of {path, before_hash, after_hash})
+    files_changed        JSONB NOT NULL DEFAULT '[]',
+
+    -- Which finding IDs this execution resolved (first approximation: from proposal scope)
+    findings_resolved    JSONB NOT NULL DEFAULT '[]',
+
+    -- Which constitutional rules authorized this execution (from proposal scope.policies)
+    authorized_by_rules  JSONB NOT NULL DEFAULT '[]'
+);
+
+COMMENT ON TABLE core.proposal_consequences IS
+    'Consequence log: records what each executed proposal actually changed. '
+    'Closes the causal chain: Finding → Proposal → Approval → Execution → File Changes.';
