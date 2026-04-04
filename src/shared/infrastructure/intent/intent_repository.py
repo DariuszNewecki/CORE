@@ -184,6 +184,31 @@ class IntentRepository:
 
         raise GovernanceError(f"Workflow not found: {workflow_id}")
 
+    # ID: 6b7f77ac-6504-4740-bd99-de389c76a46c
+    def list_workers(self) -> list[str]:
+        """List all constitutionally declared worker IDs from .intent/workers/."""
+        base = self.resolve_rel("workers")
+        if not base.exists():
+            return []
+        out: list[str] = []
+        for path in self._iter_policy_files(base):
+            try:
+                rel = path.relative_to(self._root)
+                out.append(str(rel.with_suffix("")).replace("\\", "/"))
+            except ValueError:
+                continue
+        return sorted(out)
+
+    # ID: 3ce78dc7-6090-42b3-97ca-ec7c61b0d7f4
+    def load_worker(self, worker_id: str) -> dict[str, Any]:
+        """Load a worker declaration by its canonical ID (e.g. 'workers/my_worker')."""
+        worker_id = worker_id.strip().lstrip("/")
+        candidates = self._candidate_paths_for_id(worker_id)
+        for path in candidates:
+            if path.exists():
+                return self.load_document(path)
+        raise GovernanceError(f"Worker declaration not found: {worker_id}")
+
     # ID: de413c80-9e66-4d70-89e7-8f81a522aac5
     def list_phases(self) -> list[str]:
         base = self.resolve_rel("phases")

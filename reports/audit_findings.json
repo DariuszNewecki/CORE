@@ -92,7 +92,7 @@
   {
     "check_id": "architecture.max_file_size",
     "severity": "warning",
-    "message": "Module has 406 lines, exceeds limit of 400",
+    "message": "Module has 430 lines, exceeds limit of 400",
     "file_path": "src/mind/logic/engines/knowledge_gate.py",
     "line_number": null,
     "context": {},
@@ -128,7 +128,7 @@
   {
     "check_id": "architecture.max_file_size",
     "severity": "warning",
-    "message": "Module has 633 lines, exceeds limit of 400",
+    "message": "Module has 658 lines, exceeds limit of 400",
     "file_path": "src/shared/infrastructure/intent/intent_repository.py",
     "line_number": null,
     "context": {},
@@ -587,15 +587,6 @@
   {
     "check_id": "modularity.single_responsibility",
     "severity": "warning",
-    "message": "Modularity Debt: 50.2/100 (Limit: 60.0)",
-    "file_path": "src/mind/governance/enforcement/async_units.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.single_responsibility",
-    "severity": "warning",
     "message": "Modularity Debt: 49.2/100 (Limit: 60.0)",
     "file_path": "src/mind/logic/engines/glob_gate.py",
     "line_number": null,
@@ -605,7 +596,7 @@
   {
     "check_id": "modularity.single_responsibility",
     "severity": "warning",
-    "message": "Modularity Debt: 60.0/100 (Limit: 60.0)",
+    "message": "Modularity Debt: 60.5/100 (Limit: 60.0)",
     "file_path": "src/mind/logic/engines/knowledge_gate.py",
     "line_number": null,
     "context": {},
@@ -641,7 +632,7 @@
   {
     "check_id": "modularity.single_responsibility",
     "severity": "warning",
-    "message": "Modularity Debt: 51.0/100 (Limit: 60.0)",
+    "message": "Modularity Debt: 50.9/100 (Limit: 60.0)",
     "file_path": "src/shared/infrastructure/intent/intent_repository.py",
     "line_number": null,
     "context": {},
@@ -821,15 +812,6 @@
   {
     "check_id": "modularity.semantic_cohesion",
     "severity": "warning",
-    "message": "Modularity Debt: 50.2/100 (Limit: 60.0)",
-    "file_path": "src/mind/governance/enforcement/async_units.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.semantic_cohesion",
-    "severity": "warning",
     "message": "Modularity Debt: 49.2/100 (Limit: 60.0)",
     "file_path": "src/mind/logic/engines/glob_gate.py",
     "line_number": null,
@@ -839,7 +821,7 @@
   {
     "check_id": "modularity.semantic_cohesion",
     "severity": "warning",
-    "message": "Modularity Debt: 60.0/100 (Limit: 60.0)",
+    "message": "Modularity Debt: 60.5/100 (Limit: 60.0)",
     "file_path": "src/mind/logic/engines/knowledge_gate.py",
     "line_number": null,
     "context": {},
@@ -875,7 +857,7 @@
   {
     "check_id": "modularity.semantic_cohesion",
     "severity": "warning",
-    "message": "Modularity Debt: 51.0/100 (Limit: 60.0)",
+    "message": "Modularity Debt: 50.9/100 (Limit: 60.0)",
     "file_path": "src/shared/infrastructure/intent/intent_repository.py",
     "line_number": null,
     "context": {},
@@ -1055,15 +1037,6 @@
   {
     "check_id": "modularity.import_coupling",
     "severity": "warning",
-    "message": "Modularity Debt: 50.2/100 (Limit: 60.0)",
-    "file_path": "src/mind/governance/enforcement/async_units.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.import_coupling",
-    "severity": "warning",
     "message": "Modularity Debt: 49.2/100 (Limit: 60.0)",
     "file_path": "src/mind/logic/engines/glob_gate.py",
     "line_number": null,
@@ -1073,7 +1046,7 @@
   {
     "check_id": "modularity.import_coupling",
     "severity": "warning",
-    "message": "Modularity Debt: 60.0/100 (Limit: 60.0)",
+    "message": "Modularity Debt: 60.5/100 (Limit: 60.0)",
     "file_path": "src/mind/logic/engines/knowledge_gate.py",
     "line_number": null,
     "context": {},
@@ -1109,7 +1082,7 @@
   {
     "check_id": "modularity.import_coupling",
     "severity": "warning",
-    "message": "Modularity Debt: 51.0/100 (Limit: 60.0)",
+    "message": "Modularity Debt: 50.9/100 (Limit: 60.0)",
     "file_path": "src/shared/infrastructure/intent/intent_repository.py",
     "line_number": null,
     "context": {},
@@ -1289,15 +1262,6 @@
   {
     "check_id": "modularity.refactor_score_threshold",
     "severity": "warning",
-    "message": "Modularity Debt: 50.2/100 (Limit: 60.0)",
-    "file_path": "src/mind/governance/enforcement/async_units.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.refactor_score_threshold",
-    "severity": "warning",
     "message": "Modularity Debt: 49.2/100 (Limit: 60.0)",
     "file_path": "src/mind/logic/engines/glob_gate.py",
     "line_number": null,
@@ -1307,7 +1271,7 @@
   {
     "check_id": "modularity.refactor_score_threshold",
     "severity": "warning",
-    "message": "Modularity Debt: 60.0/100 (Limit: 60.0)",
+    "message": "Modularity Debt: 60.5/100 (Limit: 60.0)",
     "file_path": "src/mind/logic/engines/knowledge_gate.py",
     "line_number": null,
     "context": {},
@@ -1343,7 +1307,7 @@
   {
     "check_id": "modularity.refactor_score_threshold",
     "severity": "warning",
-    "message": "Modularity Debt: 51.0/100 (Limit: 60.0)",
+    "message": "Modularity Debt: 50.9/100 (Limit: 60.0)",
     "file_path": "src/shared/infrastructure/intent/intent_repository.py",
     "line_number": null,
     "context": {},
@@ -1440,6 +1404,15 @@
     "details": {}
   },
   {
+    "check_id": "workflow.pytest_check",
+    "severity": "info",
+    "message": "Quality Gate pytest_check failed: ============================= test session starts ==============================",
+    "file_path": "System",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
     "check_id": "purity.no_ast_duplication",
     "severity": "warning",
     "message": "AST duplication: 'ConstitutionalEvaluator.phase' duplicates 'LogicConservationValidator.phase' (score=1.00)",
@@ -1510,24 +1483,6 @@
   {
     "check_id": "purity.no_orphan_files",
     "severity": "warning",
-    "message": "Orphan file: 'src/body/operations/anchor.py' is not reachable from any entry point.",
-    "file_path": "src/body/operations/anchor.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/body/operations/incident_logic.py' is not reachable from any entry point.",
-    "file_path": "src/body/operations/incident_logic.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
     "message": "Orphan file: 'src/body/project_lifecycle/bootstrap_service.py' is not reachable from any entry point.",
     "file_path": "src/body/project_lifecycle/bootstrap_service.py",
     "line_number": null,
@@ -1539,15 +1494,6 @@
     "severity": "warning",
     "message": "Orphan file: 'src/body/project_lifecycle/definition_service.py' is not reachable from any entry point.",
     "file_path": "src/body/project_lifecycle/definition_service.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/body/quality/anchor.py' is not reachable from any entry point.",
-    "file_path": "src/body/quality/anchor.py",
     "line_number": null,
     "context": {},
     "details": {}
@@ -1672,96 +1618,6 @@
   {
     "check_id": "purity.no_orphan_files",
     "severity": "warning",
-    "message": "Orphan file: 'src/body/test_violation.py' is not reachable from any entry point.",
-    "file_path": "src/body/test_violation.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/body/workers/call_site_rewriter.py' is not reachable from any entry point.",
-    "file_path": "src/body/workers/call_site_rewriter.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/body/workers/doc_writer.py' is not reachable from any entry point.",
-    "file_path": "src/body/workers/doc_writer.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/body/workers/prompt_artifact_writer.py' is not reachable from any entry point.",
-    "file_path": "src/body/workers/prompt_artifact_writer.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/mind/governance/anchor.py' is not reachable from any entry point.",
-    "file_path": "src/mind/governance/anchor.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/mind/governance/check_registry.py' is not reachable from any entry point.",
-    "file_path": "src/mind/governance/check_registry.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/mind/governance/enforcement/async_units.py' is not reachable from any entry point.",
-    "file_path": "src/mind/governance/enforcement/async_units.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/mind/governance/enforcement/base.py' is not reachable from any entry point.",
-    "file_path": "src/mind/governance/enforcement/base.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/mind/governance/enforcement/sync_units.py' is not reachable from any entry point.",
-    "file_path": "src/mind/governance/enforcement/sync_units.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/mind/governance/governance_query.py' is not reachable from any entry point.",
-    "file_path": "src/mind/governance/governance_query.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
     "message": "Orphan file: 'src/mind/governance/micro_proposal_validator.py' is not reachable from any entry point.",
     "file_path": "src/mind/governance/micro_proposal_validator.py",
     "line_number": null,
@@ -1771,80 +1627,8 @@
   {
     "check_id": "purity.no_orphan_files",
     "severity": "warning",
-    "message": "Orphan file: 'src/mind/governance/policy_analyzer.py' is not reachable from any entry point.",
-    "file_path": "src/mind/governance/policy_analyzer.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/mind/governance/policy_gate.py' is not reachable from any entry point.",
-    "file_path": "src/mind/governance/policy_gate.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/mind/governance/policy_loader.py' is not reachable from any entry point.",
-    "file_path": "src/mind/governance/policy_loader.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/mind/governance/policy_resolver.py' is not reachable from any entry point.",
-    "file_path": "src/mind/governance/policy_resolver.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/mind/governance/registry.py' is not reachable from any entry point.",
-    "file_path": "src/mind/governance/registry.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/mind/governance/schemas.py' is not reachable from any entry point.",
-    "file_path": "src/mind/governance/schemas.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/mind/logic/auditor.py' is not reachable from any entry point.",
-    "file_path": "src/mind/logic/auditor.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
     "message": "Orphan file: 'src/shared/cli_types.py' is not reachable from any entry point.",
     "file_path": "src/shared/cli_types.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/shared/constants.py' is not reachable from any entry point.",
-    "file_path": "src/shared/constants.py",
     "line_number": null,
     "context": {},
     "details": {}
@@ -1942,15 +1726,6 @@
   {
     "check_id": "purity.no_orphan_files",
     "severity": "warning",
-    "message": "Orphan file: 'src/shared/legacy_models.py' is not reachable from any entry point.",
-    "file_path": "src/shared/legacy_models.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
     "message": "Orphan file: 'src/shared/models/pattern_graph.py' is not reachable from any entry point.",
     "file_path": "src/shared/models/pattern_graph.py",
     "line_number": null,
@@ -1969,44 +1744,8 @@
   {
     "check_id": "purity.no_orphan_files",
     "severity": "warning",
-    "message": "Orphan file: 'src/shared/processors/json_processor.py' is not reachable from any entry point.",
-    "file_path": "src/shared/processors/json_processor.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/shared/schemas/manifest_validator.py' is not reachable from any entry point.",
-    "file_path": "src/shared/schemas/manifest_validator.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/shared/utils/alias_resolver.py' is not reachable from any entry point.",
-    "file_path": "src/shared/utils/alias_resolver.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
     "message": "Orphan file: 'src/shared/utils/header_tools.py' is not reachable from any entry point.",
     "file_path": "src/shared/utils/header_tools.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/shared/utils/import_scanner.py' is not reachable from any entry point.",
-    "file_path": "src/shared/utils/import_scanner.py",
     "line_number": null,
     "context": {},
     "details": {}
@@ -2023,62 +1762,8 @@
   {
     "check_id": "purity.no_orphan_files",
     "severity": "warning",
-    "message": "Orphan file: 'src/shared/utils/text_cleaner.py' is not reachable from any entry point.",
-    "file_path": "src/shared/utils/text_cleaner.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/will/agents/action_introspection.py' is not reachable from any entry point.",
-    "file_path": "src/will/agents/action_introspection.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/will/agents/context_auditor.py' is not reachable from any entry point.",
-    "file_path": "src/will/agents/context_auditor.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/will/agents/conversational_governed.py' is not reachable from any entry point.",
-    "file_path": "src/will/agents/conversational_governed.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/will/agents/deduction_agent.py' is not reachable from any entry point.",
-    "file_path": "src/will/agents/deduction_agent.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
     "message": "Orphan file: 'src/will/agents/governance_mixin.py' is not reachable from any entry point.",
     "file_path": "src/will/agents/governance_mixin.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/will/agents/intent_translator.py' is not reachable from any entry point.",
-    "file_path": "src/will/agents/intent_translator.py",
     "line_number": null,
     "context": {},
     "details": {}
@@ -2097,60 +1782,6 @@
     "severity": "warning",
     "message": "Orphan file: 'src/will/agents/plan_executor.py' is not reachable from any entry point.",
     "file_path": "src/will/agents/plan_executor.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/will/agents/pre_flight_validator.py' is not reachable from any entry point.",
-    "file_path": "src/will/agents/pre_flight_validator.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/will/agents/reconnaissance_agent.py' is not reachable from any entry point.",
-    "file_path": "src/will/agents/reconnaissance_agent.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/will/agents/researcher_agent.py' is not reachable from any entry point.",
-    "file_path": "src/will/agents/researcher_agent.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/will/agents/self_correction_engine.py' is not reachable from any entry point.",
-    "file_path": "src/will/agents/self_correction_engine.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/will/agents/self_healing_agent.py' is not reachable from any entry point.",
-    "file_path": "src/will/agents/self_healing_agent.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/will/agents/specification_agent.py' is not reachable from any entry point.",
-    "file_path": "src/will/agents/specification_agent.py",
     "line_number": null,
     "context": {},
     "details": {}

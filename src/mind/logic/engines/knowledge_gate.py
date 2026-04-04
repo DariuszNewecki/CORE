@@ -349,6 +349,30 @@ class KnowledgeGateEngine(BaseEngine):
                             imports.append(resolved)
             return imports
 
+        # 3b. Seed from constitutionally declared workers (via IntentRepository)
+        try:
+            for worker_id in context.intent_repo.list_workers():
+                try:
+                    worker_decl = context.intent_repo.load_worker(worker_id)
+                    module_path = worker_decl.get("implementation", {}).get("module")
+                    if module_path:
+                        resolved = resolve_import(module_path, repo_path / "src")
+                        if resolved and resolved.exists():
+                            seeds.add(resolved)
+                            logger.debug(
+                                "orphan_file_check: seeded from %s → %s",
+                                worker_id,
+                                resolved,
+                            )
+                except Exception as worker_err:
+                    logger.warning(
+                        "orphan_file_check: could not load worker %s: %s",
+                        worker_id,
+                        worker_err,
+                    )
+        except Exception as e:
+            logger.warning("orphan_file_check: worker seeding failed: %s", e)
+
         # 5. BFS from seeds
         reachable: set[Path] = set()
         queue = list(seeds)
