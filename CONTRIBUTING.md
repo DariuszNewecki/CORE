@@ -2,7 +2,7 @@
 
 CORE is a **constitution-driven system**.
 
-All contributions must respect and preserve the project’s constitutional model,
+All contributions must respect and preserve the project's constitutional model,
 defined in the `.intent/` directory.
 
 If you have not read `.intent/`, you are **not ready to contribute**.
@@ -11,7 +11,7 @@ If you have not read `.intent/`, you are **not ready to contribute**.
 
 ## CORE First Principle: The Constitution
 
-The `.intent/` directory contains CORE’s Constitution:
+The `.intent/` directory contains CORE's Constitution:
 - architectural rules
 - governance constraints
 - enforcement mappings
@@ -31,6 +31,11 @@ Changes that violate constitutional intent will be rejected, even if they pass C
 Before opening a PR, contributors are expected to:
 - Review relevant files in `.intent/`
 - Understand which rules apply to the area being changed
+- Run a constitutional audit locally and confirm it passes:
+
+```bash
+poetry run core-admin code audit
+```
 
 If a change impacts governance, architecture, or enforcement logic,
 this **must be explicitly stated** in the PR description.
@@ -59,9 +64,9 @@ Rules:
 ---
 
 ### 4. CI Is Necessary, Not Sufficient
-CI currently performs smoke testing.
+CI verifies basic correctness and constitutional compliance.
 
-Passing CI **does not guarantee** constitutional correctness.
+Passing CI **does not guarantee** full constitutional correctness.
 Maintainers may reject PRs that pass CI but violate intent.
 
 ---
@@ -78,13 +83,13 @@ If `pre-commit` hooks exist, contributors are expected to run them locally.
 ## What Is Not Acceptable
 - Changes that bypass or dilute `.intent/`
 - Introducing behavior that contradicts declared intent
-- “It works” as justification for architectural violations
+- "It works" as justification for architectural violations
 - Force-pushes to shared branches
 
 ---
 
 ## Unsure?
-If you are unsure whether a change aligns with CORE’s Constitution:
+If you are unsure whether a change aligns with CORE's Constitution:
 **open an issue or discussion first**.
 
 Intent clarification is always preferred over corrective cleanup.

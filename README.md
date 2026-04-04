@@ -83,64 +83,38 @@ Body performs mutations. Body does not judge. Body does not govern.
 
 ## How CORE Works
 
-Every autonomous operation follows a **workflow** composed of reusable phases, declared in `.intent/workflows/` — not in code.
-
-<details>
-<summary>📊 Expand workflow diagram</summary>
+Every autonomous operation is governed by the same constitutional loop:
 
 ```mermaid
 flowchart TD
-    HumanGoal(["👤 Human Goal\n(natural language)"])
+    A["🟢 GOAL\nHUMAN INTENT"] --> B["📂 CONTEXT\nRepo state • knowledge • history"]
+    B --> C["🔒 CONSTRAINTS\nImmutable rules\n92 rules • 7 engines"]
+    C --> D["🗺️ PLAN\nStep-by-step reasoning\nRule-aware plan"]
+    D --> E["✨ GENERATE\nCode • changes • tool calls"]
+    E --> F["✅ VALIDATE\nDeterministic checks\nAST • semantic • intent • style"]
+    F -->|Pass| G["▶️ EXECUTE\nApply compliant changes"]
+    F -->|Fail| H["🔄 REMEDIATE\nRepair violation\nAutonomy Ladder"]
+    H --> E
+    G --> I["✓ SUCCESS\nChanges committed"]
 
-    HumanGoal --> Interpret["🔍 Interpret\nInfer workflow type\nfrom goal keywords"]
-
-    Interpret -->|refactor / split / extract| WF_R["📦 refactor_modularity"]
-    Interpret -->|test / coverage| WF_C["🧪 coverage_remediation"]
-    Interpret -->|implement / add / create| WF_F["✨ full_feature_development"]
-
-    subgraph WF_R_FLOW["Refactor Modularity Workflow"]
+    subgraph "SAFETY HALT"
         direction TB
-        R1["📋 Planning\nAnalyze & propose split"] -->
-        R2["⚙️ Code Generation\nGenerate refactored modules"] -->
-        R3["🐦 Canary Validation\nRun existing tests"] -->
-        R4["✅ Style Check\nruff · black · constitutional"] -->
-        R5["💾 Execution\nApply changes + git commit"]
+        J["🚨 CONSTITUTIONAL VIOLATION\n→ HARD HALT\n+ FULL AUDIT LOG"]
     end
 
-    subgraph WF_C_FLOW["Coverage Remediation Workflow"]
-        direction TB
-        C1["📋 Planning\nIdentify uncovered symbols"] -->
-        C2["🧪 Test Generation\nGenerate tests via AI"] -->
-        C3["🏖️ Sandbox Validation\nValidate in isolation"] -->
-        C4["💾 Execution\nPromote passing tests"]
-    end
+    E -.->|Any violation| J
+    F -.->|Any violation| J
 
-    subgraph WF_F_FLOW["Full Feature Development Workflow"]
-        direction TB
-        F1["📋 Planning\nStructure the task"] -->
-        F2["⚙️ Code Generation\nGenerate feature code"] -->
-        F3["🧪 Test Generation\nGenerate feature tests"] -->
-        F4["🐦 Canary Validation\nRun existing tests"] -->
-        F5["🏖️ Sandbox Validation\nValidate new tests"] -->
-        F6["✅ Style Check"] -->
-        F7["💾 Execution\nApply + commit"]
-    end
+    classDef phase      fill:#f8f9fa,stroke:#495057,stroke-width:2px
+    classDef constraint fill:#d1e7ff,stroke:#0d6efd,stroke-width:2.5px
+    classDef validate   fill:#fff3cd,stroke:#ffc107,stroke-width:2.5px
+    classDef halt       fill:#ffebee,stroke:#dc3545,stroke-width:3px
 
-    WF_R --> WF_R_FLOW
-    WF_C --> WF_C_FLOW
-    WF_F --> WF_F_FLOW
-
-    WF_R_FLOW --> Constitutional
-    WF_C_FLOW --> Constitutional
-    WF_F_FLOW --> Constitutional
-
-    Constitutional{"🏛️ Constitutional\nCompliance Check\n92 rules · 7 engines"}
-
-    Constitutional -->|PASS| Commit["✅ Committed to Git\nClean audit trail"]
-    Constitutional -->|FAIL| Halt["🛑 Halted\nViolation logged\nNo changes applied"]
+    class A,B,D,E,G,I phase
+    class C constraint
+    class F validate
+    class J halt
 ```
-
-</details>
 
 ---
 
@@ -185,7 +159,7 @@ Enforcement strengths: **Blocking** · **Reporting** · **Advisory**
 
 Deterministic when possible. LLM only when necessary.
 
-92 rules across 33 policies. 78 executable. 0 blocking violations.
+92 rules across 33 policies. 78 executable.
 
 ---
 
@@ -226,7 +200,7 @@ cp .env.example .env
 make db-setup
 
 # Run a constitutional audit
-poetry run core-admin check audit
+poetry run core-admin code audit
 ```
 
 ---
@@ -240,21 +214,16 @@ Full documentation, architecture deep-dive, and governance reference:
 
 ## Project Status
 
-**Current Release:** v2.2.0 — Constitutional Workflow System
+**Current Release:** v2.2.2 — Constitutional Workflow System
 
 Active work: increasing test coverage autonomously (A2) and stabilising before advancing to A3 strategic autonomy.
 
 ---
 
-## Acknowledgments
-
-- [Ruben Hassid](https://substack.com/@ruben) — PromptModel artifact pattern
-  inspired by his prompt engineering work
----
-
 ## License
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 ---
 
 <div align="center">
