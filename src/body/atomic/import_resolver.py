@@ -28,7 +28,8 @@ class ImportResolver:
 
     # ID: 9a0b1c2d-3e4f-5a6b-7c8d-9e0f1a2b3c4d
     def resolve(self, source: str, symbol_names: list[str]) -> list[str]:
-        """Return minimal import statement strings for *symbol_names*.
+        """Return minimal import statements and module-level definitions
+        needed by *symbol_names*.
 
         Parameters
         ----------
@@ -40,9 +41,10 @@ class ImportResolver:
         Returns
         -------
         list[str]
-            Import statement source lines needed by those symbols.
-            ``__future__`` imports and ``TYPE_CHECKING`` blocks are
-            always included.
+            Import statement source lines followed by any module-level
+            assignment lines (e.g. ``logger = getLogger(__name__)``)
+            that the target symbols reference.  ``__future__`` imports
+            and ``TYPE_CHECKING`` blocks are always included.
         """
         tree = ast.parse(source)
         source_lines = source.splitlines(keepends=True)
@@ -56,6 +58,16 @@ class ImportResolver:
                 import_nodes.append(node)
             elif isinstance(node, ast.If) and self._is_type_checking_guard(node):
                 type_checking_block.append(node)
+
+        # --- collect module-level assignments (Assign / AnnAssign) ---------
+        module_assigns: dict[str, ast.stmt] = {}
+        for node in ast.iter_child_nodes(tree):
+            if isinstance(node, ast.Assign):
+                for target in node.targets:
+                    if isinstance(target, ast.Name):
+                        module_assigns[target.id] = node
+            elif isinstance(node, ast.AnnAssign) and isinstance(node.target, ast.Name):
+                module_assigns[node.target.id] = node
 
         # --- classify imports ----------------------------------------------
         future_imports: list[str] = []
@@ -71,13 +83,31 @@ class ImportResolver:
         # --- collect names referenced by the target symbols ----------------
         needed_names = self._collect_references(tree, symbol_names)
 
-        # --- match regular imports against needed names --------------------
+        # --- find module-level assignments needed by target symbols --------
+        symbol_name_set = set(symbol_names)
+        needed_assign_nodes: dict[str, ast.stmt] = {}
+        for name, node in module_assigns.items():
+            if name in needed_names and name not in symbol_name_set:
+                needed_assign_nodes[name] = node
+
+        # --- expand needed names with references from those assignments ----
+        # e.g. ``logger = getLogger(__name__)`` pulls in ``getLogger``
+        for node in needed_assign_nodes.values():
+            for child in ast.walk(node):
+                if isinstance(child, ast.Name):
+                    needed_names.add(child.id)
+                elif isinstance(child, ast.Attribute):
+                    root = self._attribute_root(child)
+                    if root:
+                        needed_names.add(root)
+
+        # --- match regular imports against expanded needed names -----------
         matched: list[str] = []
         for node, stmt_text in regular_imports:
             if self._import_provides(node, needed_names):
                 matched.append(stmt_text)
 
-        # --- assemble result: future → TYPE_CHECKING → matched -------------
+        # --- assemble result: future → TYPE_CHECKING → imports → assigns ---
         result: list[str] = list(future_imports)
 
         if type_checking_block:
@@ -85,6 +115,15 @@ class ImportResolver:
                 result.append(self._node_source(block_node, source_lines))
 
         result.extend(matched)
+
+        # Module-level definitions placed after real imports
+        seen_lines: set[int] = set()
+        for node in needed_assign_nodes.values():
+            if node.lineno not in seen_lines:
+                result.append("")
+                result.append(self._node_source(node, source_lines))
+                seen_lines.add(node.lineno)
+
         return result
 
     # ------------------------------------------------------------------

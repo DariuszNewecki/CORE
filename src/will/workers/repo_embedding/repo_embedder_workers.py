@@ -1,5 +1,6 @@
-# sensing.py
-"""Contains the main worker class and chunking logic"""
+# src/will/workers/repo_embedding/repo_embedder_workers.py
+# repo_embedder_workers.py
+"""Contains the main worker class responsible for embedding repo artifacts."""
 
 from __future__ import annotations
 
@@ -9,7 +10,13 @@ from pathlib import Path
 from typing import Any
 
 from shared.infrastructure.clients.qdrant_client import QdrantService
+from shared.logger import getLogger
 from shared.workers.base import Worker
+
+
+logger = getLogger(__name__)
+
+from .helpers import _chunk_file, _embed_and_upsert
 
 
 # ID: a2b3c4d5-e6f7-8901-bcde-f12345678902
@@ -161,25 +168,3 @@ class RepoEmbedderWorker(Worker):
             },
         )
         logger.info("RepoEmbedderWorker: pass complete — %s", stats)
-
-
-def _chunk_file(file_path: Path, artifact_type: str) -> list[dict[str, Any]]:
-    """
-    Chunk a file into semantic units for embedding.
-    Returns list of chunk dicts: {text, metadata}.
-    """
-    content = file_path.read_text(encoding="utf-8", errors="replace")
-    rel_path = str(file_path)
-
-    if artifact_type == "python":
-        return _chunk_by_symbol(content, rel_path)
-    elif artifact_type in ("doc", "report", "infra"):
-        return _chunk_by_heading(content, rel_path)
-    elif artifact_type == "test":
-        return _chunk_by_function(content, rel_path)
-    elif artifact_type == "prompt":
-        return _chunk_whole(content, rel_path)
-    elif artifact_type == "intent":
-        return _chunk_by_heading(content, rel_path)
-    else:
-        return _chunk_by_heading(content, rel_path)

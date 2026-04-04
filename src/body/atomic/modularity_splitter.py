@@ -87,6 +87,22 @@ class ModularitySplitter:
                     if isinstance(target, ast.Name):
                         top_level[target.id] = node
 
+        # Build symbol → module_name map for cross-module resolution
+        symbol_to_module: dict[str, str] = {}
+        for mod in plan.modules:
+            for sym in mod.symbols:
+                symbol_to_module[sym] = mod.module_name
+
+        # Collect all module-level assignment names from original source
+        module_assigns: set[str] = set()
+        for node in ast.iter_child_nodes(tree):
+            if isinstance(node, ast.Assign):
+                for target in node.targets:
+                    if isinstance(target, ast.Name):
+                        module_assigns.add(target.id)
+            elif isinstance(node, ast.AnnAssign) and isinstance(node.target, ast.Name):
+                module_assigns.add(node.target.id)
+
         result = SplitResult(
             files=[],
             original_path=source_path,
@@ -103,14 +119,42 @@ class ModularitySplitter:
             "",
         ]
 
+        plan_symbols: set[str] = set()
         for mod in plan.modules:
-            content = self._build_module(source, source_lines, tree, top_level, mod)
+            plan_symbols.update(mod.symbols)
+
+        # Track which module first includes each module-level assignment
+        assign_to_first_module: dict[str, str] = {}
+
+        for mod in plan.modules:
+            content = self._build_module(
+                source, source_lines, tree, top_level, mod, symbol_to_module
+            )
             target = package_path / f"{mod.module_name}.py"
             result.files.append((target, content))
 
-            # __init__.py re-export line
+            # __init__.py re-export line for plan symbols
             symbols_csv = ", ".join(mod.symbols)
             init_lines.append(f"from .{mod.module_name} import {symbols_csv}")
+
+            # Track module-level assigns referenced by this module's symbols
+            refs = self._collect_all_refs(top_level, mod.symbols)
+            for assign_name in module_assigns:
+                if (
+                    assign_name in refs
+                    and assign_name not in plan_symbols
+                    and assign_name not in assign_to_first_module
+                ):
+                    assign_to_first_module[assign_name] = mod.module_name
+
+        # Re-export public module-level assignments in __init__.py
+        reexport_by_module: dict[str, list[str]] = {}
+        for name, mod_name in assign_to_first_module.items():
+            if not name.startswith("_"):
+                reexport_by_module.setdefault(mod_name, []).append(name)
+
+        for mod_name, names in sorted(reexport_by_module.items()):
+            init_lines.append(f"from .{mod_name} import {', '.join(sorted(names))}")
 
         init_lines.append("")  # trailing newline
         result.files.append((package_path / "__init__.py", "\n".join(init_lines)))
@@ -128,6 +172,7 @@ class ModularitySplitter:
         tree: ast.Module,
         top_level: dict[str, ast.stmt],
         mod: ModuleSpec,
+        symbol_to_module: dict[str, str],
     ) -> str:
         """Compose the content for a single target module file."""
         # Validate that every symbol exists
@@ -135,8 +180,24 @@ class ModularitySplitter:
         if missing:
             raise SplitPlanError(f"Symbols not found in source AST: {missing}")
 
-        # Resolve imports
+        # Resolve imports (now includes module-level assignments)
         import_lines = self._resolver.resolve(source, mod.symbols)
+
+        # Compute cross-module imports for symbols in other split modules
+        cross_imports: dict[str, set[str]] = {}
+        for sym_name in mod.symbols:
+            node = top_level[sym_name]
+            for child in ast.walk(node):
+                if isinstance(child, ast.Name) and child.id in symbol_to_module:
+                    other_mod = symbol_to_module[child.id]
+                    if other_mod != mod.module_name:
+                        cross_imports.setdefault(other_mod, set()).add(child.id)
+
+        cross_import_lines: list[str] = []
+        for other_mod, syms in sorted(cross_imports.items()):
+            cross_import_lines.append(
+                f"from .{other_mod} import {', '.join(sorted(syms))}"
+            )
 
         # Extract symbol source text, preserving originals
         symbol_blocks: list[str] = []
@@ -153,10 +214,18 @@ class ModularitySplitter:
         parts.append(f'"""{mod.rationale}"""')
         parts.append("")
 
-        # Imports
+        # External imports + module-level assignments
         for imp in import_lines:
             parts.append(imp)
-        if import_lines:
+
+        # Cross-module relative imports
+        if cross_import_lines:
+            if import_lines:
+                parts.append("")
+            for line in cross_import_lines:
+                parts.append(line)
+
+        if import_lines or cross_import_lines:
             parts.append("")
             parts.append("")
 
@@ -165,6 +234,21 @@ class ModularitySplitter:
         parts.append("")  # trailing newline
 
         return "\n".join(parts)
+
+    @staticmethod
+    def _collect_all_refs(
+        top_level: dict[str, ast.stmt], symbol_names: list[str]
+    ) -> set[str]:
+        """Collect all Name references from the bodies of *symbol_names*."""
+        refs: set[str] = set()
+        for sym_name in symbol_names:
+            node = top_level.get(sym_name)
+            if node is None:
+                continue
+            for child in ast.walk(node):
+                if isinstance(child, ast.Name):
+                    refs.add(child.id)
+        return refs
 
     def _extract_node_source(self, node: ast.stmt, source_lines: list[str]) -> str:
         """Extract the original source text of *node* including leading comments.
