@@ -1,8 +1,8 @@
 {
-  "audit_id": "ab9c7199-66fd-4ae7-8bbb-bc83623b5cb2",
-  "timestamp": "2026-04-04T10:13:42Z",
+  "audit_id": "d376f633-69f8-4df6-a09f-96d046464647",
+  "timestamp": "2026-04-04T14:50:06Z",
   "passed": true,
-  "findings_count": 252,
+  "findings_count": 249,
   "executed_rules": [
     "ai.cognitive_role.no_hardcoded_string",
     "ai.prompt.artifact.no_provider_leak",

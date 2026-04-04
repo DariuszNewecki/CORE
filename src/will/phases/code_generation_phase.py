@@ -417,9 +417,10 @@ Rules:
         )
 
         try:
-            client = await self.context.cognitive_service.aget_client_for_role("Coder")
-
             model = PromptModel.load("code_generation_task_step_prompt")
+            client = await self.context.cognitive_service.aget_client_for_role(
+                model.manifest.role
+            )
             raw_response = await model.invoke(
                 context={
                     "task_step": (self._SPLIT_PLAN_SYSTEM_PROMPT + "\n\n" + user_prompt)
