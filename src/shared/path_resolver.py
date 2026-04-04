@@ -386,6 +386,14 @@ class PathResolver:
                 return candidate
         raise FileNotFoundError(f"Workflow '{workflow_id}' not found under {base}")
 
+    # ID: 4c7e2f91-a3b8-4d05-9e6a-1f8c3b5d7a02
+    def prompt(self, prompt_name: str) -> Path:
+        """Resolve a named prompt directory from var/prompts/."""
+        candidate = self.prompts_dir / prompt_name
+        if candidate.exists():
+            return candidate
+        raise FileNotFoundError(f"Prompt '{prompt_name}' not found at {candidate}")
+
     # ID: 8b2e5a1c-3d6f-4e7a-9b0c-2d5e8a3c7b1e
     def phase(self, phase_id: str) -> Path:
         """Resolve a phase definition YAML from .intent/phases/."""

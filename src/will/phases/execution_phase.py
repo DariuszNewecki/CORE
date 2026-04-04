@@ -47,6 +47,22 @@ class ExecutionPhase:
 
         # Extract detailed_plan from previous phase
         code_gen_data = ctx.results.get("code_generation", {})
+
+        # Deterministic split path: ModularitySplitter already wrote files
+        if code_gen_data.get("deterministic_split"):
+            split_results = code_gen_data.get("split_results", [])
+            files_written = [r["file"] for r in split_results if r.get("ok")]
+            return PhaseResult(
+                name="execution",
+                ok=bool(files_written),
+                data={
+                    "deterministic_split": True,
+                    "files_written": files_written,
+                    "split_results": split_results,
+                },
+                duration_sec=time.time() - start,
+            )
+
         detailed_plan = code_gen_data.get("detailed_plan")
 
         if not detailed_plan:

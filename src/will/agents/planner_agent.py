@@ -114,12 +114,11 @@ class PlannerAgent:
         # Load the planning prompt template
         path_resolver = PathResolver(self.repo_path)
         try:
-            prompt_template = path_resolver.prompt("planner_agent").read_text(
-                encoding="utf-8"
-            )
+            prompt_dir = path_resolver.prompt("planner_agent")
+            prompt_template = (prompt_dir / "system.txt").read_text(encoding="utf-8")
         except FileNotFoundError:
             logger.error(
-                "Constitutional prompt 'planner_agent.prompt' missing from var/prompts/"
+                "Constitutional prompt 'planner_agent/system.txt' missing from var/prompts/"
             )
             raise
 
@@ -132,7 +131,7 @@ class PlannerAgent:
         )
 
         client = await self.cognitive_service.aget_client_for_role(
-            self.plan_goal_model.manifest.role
+            self.plan_goal_model._artifact.manifest.role
         )
 
         for attempt in range(self.max_retries):
