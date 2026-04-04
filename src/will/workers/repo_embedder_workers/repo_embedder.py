@@ -1,30 +1,5 @@
-# src/will/workers/repo_embedder.py
-"""
-Repo Embedder Worker — semantic self-model builder.
-
-- Declaration:  .intent/workers/repo_embedder.yaml
-- Class:        sensing
-- Phase:        audit
-- Schedule:     max_interval=43200s, glide_off=4320s (10% default)
-
-Responsibilities (one per run):
-  1. Query repo_artifacts for records where chunk_count = 0
-     (new files or files whose hash changed since last crawl).
-  2. For each artifact, load file, chunk by type, embed, upsert to Qdrant.
-  3. Update repo_artifacts.chunk_count on success.
-  4. Post blackboard report.
-
-Qdrant collection routing:
-  python → core-code     (source implementation — chunked by class/function)
-  doc    → core-docs
-  test   → core-tests
-  prompt → core-prompts
-  report → core-reports
-  intent → core-patterns (reuses existing)
-  infra  → core-docs
-
-Depends on RepoCrawlerWorker having registered files in repo_artifacts first.
-"""
+# repo_embedder.py
+"""Contains the main worker class and chunking functions."""
 
 from __future__ import annotations
 
@@ -34,14 +9,7 @@ from pathlib import Path
 from typing import Any
 
 from shared.infrastructure.clients.qdrant_client import QdrantService
-from shared.logger import getLogger
 from shared.workers.base import Worker
-
-
-logger = getLogger(__name__)
-
-_BATCH_SIZE = 10  # artifacts processed per run cycle
-_MAX_CHUNK_CHARS = 1500  # characters per semantic chunk
 
 
 # ID: a2b3c4d5-e6f7-8901-bcde-f12345678902
@@ -195,11 +163,6 @@ class RepoEmbedderWorker(Worker):
         logger.info("RepoEmbedderWorker: pass complete — %s", stats)
 
 
-# ---------------------------------------------------------------------------
-# Chunking strategies by artifact type
-# ---------------------------------------------------------------------------
-
-
 def _chunk_file(file_path: Path, artifact_type: str) -> list[dict[str, Any]]:
     """
     Chunk a file into semantic units for embedding.
@@ -341,97 +304,3 @@ def _chunk_by_function(content: str, source: str) -> list[dict[str, Any]]:
 def _chunk_whole(content: str, source: str) -> list[dict[str, Any]]:
     """Treat small files as a single chunk."""
     return _split_large(content.strip(), source, "full")
-
-
-def _split_large(
-    text: str,
-    source: str,
-    section: str,
-    chunk_type: str = "section",
-) -> list[dict[str, Any]]:
-    """Split text that exceeds _MAX_CHUNK_CHARS into overlapping sub-chunks."""
-    if len(text) <= _MAX_CHUNK_CHARS:
-        return [
-            {
-                "text": text,
-                "metadata": {
-                    "source": source,
-                    "section": section,
-                    "chunk_type": chunk_type,
-                },
-            }
-        ]
-
-    chunks = []
-    step = _MAX_CHUNK_CHARS - 200  # 200-char overlap
-    for i, start in enumerate(range(0, len(text), step)):
-        chunk_text = text[start : start + _MAX_CHUNK_CHARS].strip()
-        if chunk_text:
-            chunks.append(
-                {
-                    "text": chunk_text,
-                    "metadata": {
-                        "source": source,
-                        "section": f"{section}_part{i}",
-                        "chunk_type": chunk_type,
-                    },
-                }
-            )
-    return chunks
-
-
-# ---------------------------------------------------------------------------
-# Qdrant upsert
-# ---------------------------------------------------------------------------
-
-
-async def _embed_and_upsert(
-    chunks: list[dict[str, Any]],
-    collection: str,
-    file_path: str,
-    artifact_type: str,
-    qdrant: Any,
-    cognitive: Any,
-) -> int:
-    """Embed chunks and upsert to Qdrant. Returns number of chunks upserted."""
-    from qdrant_client import models as qm
-
-    from shared.universal import get_deterministic_id
-
-    await qdrant.ensure_collection(collection_name=collection)
-
-    points = []
-    for i, chunk in enumerate(chunks):
-        text = chunk["text"]
-        embedding = await cognitive.get_embedding_for_code(text)
-        if embedding is None:
-            continue
-
-        item_id = f"{file_path}::chunk::{i}"
-        point_id = get_deterministic_id(item_id)
-        payload = {
-            **chunk["metadata"],
-            "item_id": item_id,
-            "artifact_type": artifact_type,
-            "file_path": file_path,
-        }
-        points.append(
-            qm.PointStruct(
-                id=point_id,
-                vector=(
-                    embedding.tolist()
-                    if hasattr(embedding, "tolist")
-                    else list(embedding)
-                ),
-                payload=payload,
-            )
-        )
-
-    if points:
-        await qdrant.upsert_points(
-            collection_name=collection,
-            points=points,
-            wait=True,
-        )
-
-    return len(points)

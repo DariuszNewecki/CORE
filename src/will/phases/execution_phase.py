@@ -48,19 +48,12 @@ class ExecutionPhase:
         # Extract detailed_plan from previous phase
         code_gen_data = ctx.results.get("code_generation", {})
 
-        # Deterministic split path: ModularitySplitter already wrote files
+        # Deterministic split path: ModularitySplitter produced SplitResults
+        # that still need to be written to disk.
         if code_gen_data.get("deterministic_split"):
             split_results = code_gen_data.get("split_results", [])
-            files_written = [r["file"] for r in split_results if r.get("ok")]
-            return PhaseResult(
-                name="execution",
-                ok=bool(files_written),
-                data={
-                    "deterministic_split": True,
-                    "files_written": files_written,
-                    "split_results": split_results,
-                },
-                duration_sec=time.time() - start,
+            return await self._execute_deterministic_split(
+                split_results, ctx.write, start
             )
 
         detailed_plan = code_gen_data.get("detailed_plan")
@@ -123,3 +116,64 @@ class ExecutionPhase:
                 error=f"Execution crashed: {e}",
                 duration_sec=time.time() - start,
             )
+
+    # ID: 7c8d9e0f-1a2b-3c4d-5e6f-7a8b9c0d1e2f
+    async def _execute_deterministic_split(
+        self,
+        split_results: list[dict],
+        write: bool,
+        start: float,
+    ) -> PhaseResult:
+        """Write SplitResult files to disk and remove the original source."""
+        file_handler = self.context.file_handler
+        repo_root = self.context.git_service.repo_path
+        files_written: list[str] = []
+        files_deleted: list[str] = []
+
+        for entry in split_results:
+            if not entry.get("ok"):
+                continue
+
+            split_result = entry.get("split_result")
+            if split_result is None:
+                continue
+
+            if not write:
+                for file_path, _content in split_result.files:
+                    logger.info("Dry-run: would write %s", file_path)
+                if split_result.original_path.exists():
+                    logger.info("Dry-run: would delete %s", split_result.original_path)
+                continue
+
+            # Write each new module file
+            for file_path, content in split_result.files:
+                rel_path = str(file_path.relative_to(repo_root))
+                file_handler.write_runtime_text(rel_path, content)
+                files_written.append(rel_path)
+                logger.info("Wrote split module: %s", rel_path)
+
+            # Delete the original monolith file
+            if split_result.original_path.exists():
+                rel_original = str(split_result.original_path.relative_to(repo_root))
+                split_result.original_path.unlink()
+                files_deleted.append(rel_original)
+                logger.info("Deleted original: %s", rel_original)
+
+        if not write:
+            return PhaseResult(
+                name="execution",
+                ok=True,
+                data={"dry_run": True, "files_written": []},
+                duration_sec=time.time() - start,
+            )
+
+        return PhaseResult(
+            name="execution",
+            ok=bool(files_written),
+            data={
+                "deterministic_split": True,
+                "files_written": files_written,
+                "files_deleted": files_deleted,
+            },
+            duration_sec=time.time() - start,
+        )
