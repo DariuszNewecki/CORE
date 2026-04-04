@@ -88,14 +88,18 @@ def print_detailed_info(p: Proposal):
 
 # ID: a649ba15-71d8-46ee-b4cd-9888207ed45d
 def print_execution_summary(result: dict):
-    logger.info("Actions executed: %s", result["actions_executed"])
-    logger.info("Succeeded: %s", result["actions_succeeded"])
-    logger.info("Failed: %s", result["actions_failed"])
-    logger.info("Duration: %ss\n", result["duration_sec"])
+    if not result.get("ok") and "actions_executed" not in result:
+        # Early-exit result from executor (proposal not approved, not found, etc.)
+        logger.info("Error: %s", result.get("error", "Unknown error"))
+        return
+    logger.info("Actions executed: %s", result.get("actions_executed", 0))
+    logger.info("Succeeded: %s", result.get("actions_succeeded", 0))
+    logger.info("Failed: %s", result.get("actions_failed", 0))
+    logger.info("Duration: %ss\n", result.get("duration_sec", 0))
     logger.info("[bold]Action Results:[/bold]")
-    for action_id, res in result["action_results"].items():
+    for action_id, res in result.get("action_results", {}).items():
         mark = "[green]✓[/green]" if res["ok"] else "[red]✗[/red]"
         logger.info("  %s %s: %ss", mark, action_id, res["duration_sec"])
         if not res["ok"]:
-            err = res["data"].get("error", "Unknown error")
+            err = res.get("data", {}).get("error", "Unknown error")
             logger.info("      [red]%s[/red]", err)

@@ -98,6 +98,7 @@ class GitService:
     def commit(self, message: str) -> None:
         """
         Commits staged changes with the provided message.
+        Retries once if pre-commit hooks modify files on the first attempt.
         """
         try:
             self.add_all()
@@ -107,8 +108,34 @@ class GitService:
             self._run_command(["commit", "-m", message])
             logger.info("Committed changes with message: '%s'", message)
         except RuntimeError as e:
-            emsg = (str(e) or "").lower()
-            if "nothing to commit" in emsg or "no changes added to commit" in emsg:
+            emsg = str(e) or ""
+            emsg_lower = emsg.lower()
+            if (
+                "nothing to commit" in emsg_lower
+                or "no changes added to commit" in emsg_lower
+            ):
                 logger.info("No changes staged. Skipping commit.")
                 return
+            # Pre-commit hooks may modify files and cause the first commit to fail.
+            # Stage the hook modifications and retry exactly once.
+            if (
+                "hook id:" in emsg_lower
+                or "files were modified by this hook" in emsg_lower
+            ):
+                logger.warning(
+                    "Pre-commit hooks modified files. Staging and retrying commit."
+                )
+                try:
+                    self.add_all()
+                    self._run_command(["commit", "-m", message])
+                    logger.info(
+                        "Committed on retry after hook modifications: '%s'", message
+                    )
+                    return
+                except RuntimeError as retry_err:
+                    retry_msg = (str(retry_err) or "").lower()
+                    if "nothing to commit" in retry_msg:
+                        logger.info("Nothing to commit after hook retry.")
+                        return
+                    raise
             raise
