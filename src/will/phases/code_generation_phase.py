@@ -10,6 +10,7 @@ Instead it produces a ``SplitPlan`` (boundary decisions only) and
 
 from __future__ import annotations
 
+import ast
 import json
 import time
 from dataclasses import asdict
@@ -286,6 +287,9 @@ Responsibility clusters already identified:
 
 File: {source_file}
 
+Actual symbols in this file (use ONLY these exact names):
+{actual_symbols}
+
 Source (for reference — do NOT rewrite it):
 ```python
 {source_code}
@@ -309,6 +313,10 @@ Rules:
 - module_name must be a valid Python identifier
 - At least 2 modules required
 - new_package_name should match the original filename without .py
+
+CRITICAL: Your response must be ONLY the JSON object.
+No explanation. No markdown. No text before or after.
+No ```json fences. Start your response with {{ and end with }}.
 """
 
     # ID: c3a1b2d4-5e6f-7a8b-9c0d-1e2f3a4b5c6d
@@ -338,6 +346,16 @@ Rules:
 
             source_code = source_path.read_text(encoding="utf-8")
 
+            # --- Extract actual symbol names from AST --------------------
+            tree = ast.parse(source_code, filename=file_path_str)
+            actual_symbols = [
+                node.name
+                for node in ast.iter_child_nodes(tree)
+                if isinstance(
+                    node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)
+                )
+            ]
+
             # --- Gather responsibility clusters from earlier phases -------
             clusters_raw = context.results.get("planning", {}).get("clusters", [])
             clusters_text = (
@@ -351,6 +369,7 @@ Rules:
                 source_file=file_path_str,
                 source_code=source_code,
                 clusters_text=clusters_text,
+                actual_symbols=actual_symbols,
             )
 
             if split_plan_result is None:
@@ -405,6 +424,7 @@ Rules:
         source_file: str,
         source_code: str,
         clusters_text: str,
+        actual_symbols: list[str],
     ) -> SplitPlan | None:
         """Ask the LLM for a SplitPlan JSON; parse and validate it.
 
@@ -414,12 +434,13 @@ Rules:
             clusters=clusters_text,
             source_file=source_file,
             source_code=source_code,
+            actual_symbols=", ".join(actual_symbols),
         )
 
         try:
             model = PromptModel.load("code_generation_task_step_prompt")
             client = await self.context.cognitive_service.aget_client_for_role(
-                model.manifest.role
+                model._artifact.manifest.role
             )
             raw_response = await model.invoke(
                 context={

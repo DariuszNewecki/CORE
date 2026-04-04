@@ -77,6 +77,11 @@ class SplitPlan:
 
         Raises SplitPlanError if JSON is malformed or validation fails.
         """
+        raw = raw.strip()
+        if raw.startswith("```"):
+            raw = raw.split("\n", 1)[-1]
+            raw = raw.rsplit("```", 1)[0]
+        raw = raw.strip()
         try:
             data: dict[str, Any] = json.loads(raw)
         except (json.JSONDecodeError, TypeError) as exc:

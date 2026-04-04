@@ -77,7 +77,7 @@ class RefactorDisplay:
                 str(c["resp"]),
                 str(c["loc"]),
             )
-        logger.info(table)
+        console.print(table)
 
     @staticmethod
     # ID: bedaeaa7-18e6-4ad9-b47e-ac1faa3e70f5
@@ -134,7 +134,7 @@ class RefactorDisplay:
         table.add_row(
             "[bold]TOTAL DEBT[/bold]", f"[bold]{total_score:.1f}[/bold]", "100"
         )
-        logger.info(table)
+        console.print(table)
 
     @staticmethod
     def _show_responsibilities(details: dict) -> None:

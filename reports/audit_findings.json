@@ -56,8 +56,8 @@
   {
     "check_id": "architecture.max_file_size",
     "severity": "warning",
-    "message": "Module has 866 lines, exceeds limit of 400",
-    "file_path": "src/body/services/crawl_service.py",
+    "message": "Module has 566 lines, exceeds limit of 400",
+    "file_path": "src/body/services/crawl_service/main_module.py",
     "line_number": null,
     "context": {},
     "details": {}
@@ -209,7 +209,7 @@
   {
     "check_id": "architecture.max_file_size",
     "severity": "warning",
-    "message": "Module has 459 lines, exceeds limit of 400",
+    "message": "Module has 480 lines, exceeds limit of 400",
     "file_path": "src/will/phases/code_generation_phase.py",
     "line_number": null,
     "context": {},
@@ -515,8 +515,8 @@
   {
     "check_id": "modularity.single_responsibility",
     "severity": "warning",
-    "message": "Modularity Debt: 60.3/100 (Limit: 60.0)",
-    "file_path": "src/body/services/crawl_service.py",
+    "message": "Modularity Debt: 54.0/100 (Limit: 60.0)",
+    "file_path": "src/body/services/crawl_service/main_module.py",
     "line_number": null,
     "context": {},
     "details": {}
@@ -731,8 +731,8 @@
   {
     "check_id": "modularity.semantic_cohesion",
     "severity": "warning",
-    "message": "Modularity Debt: 60.3/100 (Limit: 60.0)",
-    "file_path": "src/body/services/crawl_service.py",
+    "message": "Modularity Debt: 54.0/100 (Limit: 60.0)",
+    "file_path": "src/body/services/crawl_service/main_module.py",
     "line_number": null,
     "context": {},
     "details": {}
@@ -947,8 +947,8 @@
   {
     "check_id": "modularity.import_coupling",
     "severity": "warning",
-    "message": "Modularity Debt: 60.3/100 (Limit: 60.0)",
-    "file_path": "src/body/services/crawl_service.py",
+    "message": "Modularity Debt: 54.0/100 (Limit: 60.0)",
+    "file_path": "src/body/services/crawl_service/main_module.py",
     "line_number": null,
     "context": {},
     "details": {}
@@ -1163,8 +1163,8 @@
   {
     "check_id": "modularity.refactor_score_threshold",
     "severity": "warning",
-    "message": "Modularity Debt: 60.3/100 (Limit: 60.0)",
-    "file_path": "src/body/services/crawl_service.py",
+    "message": "Modularity Debt: 54.0/100 (Limit: 60.0)",
+    "file_path": "src/body/services/crawl_service/main_module.py",
     "line_number": null,
     "context": {},
     "details": {}
