@@ -268,7 +268,11 @@ class ProposalExecutor:
                                     "findings_resolved, authorized_by_rules) "
                                     "VALUES (:pid, :pre, :post, :files, "
                                     ":findings, :rules) "
-                                    "ON CONFLICT (proposal_id) DO NOTHING"
+                                    "ON CONFLICT (proposal_id) DO UPDATE SET "
+                                    "files_changed = EXCLUDED.files_changed, "
+                                    "findings_resolved = EXCLUDED.findings_resolved, "
+                                    "authorized_by_rules = EXCLUDED.authorized_by_rules, "
+                                    "post_execution_sha = EXCLUDED.post_execution_sha"
                                 ),
                                 {
                                     "pid": proposal.proposal_id,
