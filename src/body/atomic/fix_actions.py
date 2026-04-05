@@ -484,6 +484,143 @@ def _find_callers(target_path, repo_root) -> list[str]:
     return callers
 
 
+def _execute_mechanical_split(
+    source_path,
+    repo_root,
+    plan: dict,
+    original_content: str,
+) -> list[dict]:
+    """
+    Mechanically split a Python file based on a plan from modularity_analyze.
+
+    Uses AST line numbers to extract symbol text slices.
+    Preserves all comments including existing # ID: tags.
+    New files get a path header on line 1 (constitutional requirement).
+    Imports for each new file are reconstructed from the original import block.
+    No LLM involved — pure deterministic execution.
+
+    Returns list of {"path": str, "content": str} dicts.
+    """
+    import ast as _ast
+
+    lines = original_content.splitlines(keepends=True)
+    parts = plan.get("parts", [])
+    import_updates = plan.get("import_updates", [])
+
+    if not parts:
+        raise ValueError("Plan contains no parts")
+
+    # Parse AST to get line numbers for each top-level symbol
+    tree = _ast.parse(original_content)
+    symbol_lines: dict[str, tuple[int, int]] = {}  # name -> (start, end) 1-based
+
+    top_level_nodes = [
+        n
+        for n in _ast.walk(tree)
+        if isinstance(
+            n,
+            (
+                _ast.FunctionDef,
+                _ast.AsyncFunctionDef,
+                _ast.ClassDef,
+            ),
+        )
+        and isinstance(getattr(n, "col_offset", -1), int)
+        and n.col_offset == 0
+    ]
+
+    for i, node in enumerate(top_level_nodes):
+        # Include any decorators above the node
+        start = node.decorator_list[0].lineno if node.decorator_list else node.lineno
+        # Also include # ID: comment line immediately above decorators/def
+        if start > 1 and lines[start - 2].strip().startswith("# ID:"):
+            start -= 1
+
+        # End line: one line before the next top-level node, or end of file
+        if i + 1 < len(top_level_nodes):
+            next_node = top_level_nodes[i + 1]
+            next_start = (
+                next_node.decorator_list[0].lineno
+                if next_node.decorator_list
+                else next_node.lineno
+            )
+            # Walk back to include any # ID: comment for the next node
+            if next_start > 1 and lines[next_start - 2].strip().startswith("# ID:"):
+                next_start -= 1
+            end = next_start - 1
+        else:
+            end = len(lines)
+
+        symbol_lines[node.name] = (start, end)
+
+    # Extract the import block from the original file (everything before first def/class)
+    first_symbol_line = min(
+        (v[0] for v in symbol_lines.values()), default=len(lines) + 1
+    )
+    original_import_block = "".join(lines[: first_symbol_line - 1]).rstrip()
+
+    # Determine which symbols stay in the original file
+    all_extracted_symbols: set[str] = set()
+    for part_idx, part in enumerate(parts):
+        if part_idx == 0:
+            continue  # First part stays in original file
+        all_extracted_symbols.update(part.get("symbols", []))
+
+    # Build output files
+    result_files = []
+    source_dir = source_path.parent
+    rel_dir = str(source_dir.relative_to(repo_root))
+
+    for part_idx, part in enumerate(parts):
+        symbols = part.get("symbols", [])
+        filename = part.get("filename", "")
+        if not filename:
+            continue
+
+        # Build file path
+        if part_idx == 0:
+            # First part: keep the original filename
+            file_path = str(source_path.relative_to(repo_root))
+        else:
+            file_path = f"{rel_dir}/{filename}"
+
+        # Collect text slices for this part's symbols
+        symbol_slices = []
+        for sym in symbols:
+            if sym in symbol_lines:
+                start, end = symbol_lines[sym]
+                slice_text = "".join(lines[start - 1 : end])
+                symbol_slices.append(slice_text.rstrip())
+
+        if not symbol_slices:
+            continue
+
+        # Reconstruct imports: use original import block, trim unused later
+        # For simplicity, include the full import block in all files.
+        # fix.imports will clean unused imports afterward.
+        body = "\n\n\n".join(symbol_slices)
+        content = f"# {file_path}\n" f"{original_import_block}\n\n\n" f"{body}\n"
+        result_files.append({"path": file_path, "content": content})
+
+    # Apply import_updates to callers
+    for update in import_updates:
+        caller_path = repo_root / update.get("file", "")
+        if caller_path.exists():
+            caller_content = caller_path.read_text(encoding="utf-8")
+            old = update.get("old", "")
+            new = update.get("new", "")
+            if old and new and old in caller_content:
+                updated = caller_content.replace(old, new)
+                result_files.append(
+                    {
+                        "path": update["file"],
+                        "content": updated,
+                    }
+                )
+
+    return result_files
+
+
 @register_action(
     action_id="fix.modularity",
     description="Split a file that violates modularity rules using two-phase LLM analysis",
@@ -656,48 +793,26 @@ async def action_fix_modularity(
         rel_path,
     )
 
-    # 4. Phase 2 — execute the split
+    # 4. Phase 2 — mechanical split (no LLM, pure AST + text slices)
+    logger.info(
+        "fix.modularity: executing mechanical split of %s into %d parts",
+        rel_path,
+        len(plan.get("parts", [])),
+    )
+
     try:
-        split_model = PromptModel.load("modularity_split")
-        split_client = await core_context.cognitive_service.aget_client_for_role(
-            split_model.manifest.role
-        )
-        split_raw = await split_model.invoke(
-            split_client,
-            {
-                "file_path": rel_path,
-                "layer": layer,
-                "content": original_content,
-                "plan": plan_raw,
-            },
+        files = _execute_mechanical_split(
+            source_path=target,
+            repo_root=repo_root,
+            plan=plan,
+            original_content=original_content,
         )
     except Exception as e:
-        logger.error("fix.modularity: split phase failed: %s", e)
+        logger.error("fix.modularity: mechanical split failed: %s", e)
         return ActionResult(
             action_id="fix.modularity",
             ok=False,
-            data={"error": f"split phase failed: {e}", "file": rel_path},
-            duration_sec=time.time() - start,
-        )
-
-    try:
-        clean_split = split_raw.strip()
-        if "```" in clean_split:
-            import re
-
-            match = re.search(r"```(?:json)?\s*([\s\S]*?)```", clean_split)
-            clean_split = match.group(1).strip() if match else clean_split
-        brace = clean_split.find("{")
-        if brace > 0:
-            clean_split = clean_split[brace:]
-        split_result = json.loads(clean_split)
-        files = split_result.get("files", [])
-    except Exception as e:
-        logger.error("fix.modularity: could not parse split response: %s", e)
-        return ActionResult(
-            action_id="fix.modularity",
-            ok=False,
-            data={"error": "split response not valid JSON", "file": rel_path},
+            data={"error": f"split failed: {e}", "file": rel_path},
             duration_sec=time.time() - start,
         )
 
