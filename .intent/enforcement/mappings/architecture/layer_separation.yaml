@@ -112,6 +112,17 @@ mappings:
       # Will workers must use dependency injection like all other Will components.
       # Tracking: full remediation requires WillDatabasePort refactor (Finding 1.1).
 
+    # KNOWN SEMANTIC VIOLATION — not detectable by this AST gate:
+    # proposal_executor.py writes directly to core.proposal_consequences using
+    # raw SQL via service_registry.session() (Body-owned session factory).
+    # Because it imports service_registry rather than get_session, the AST gate
+    # cannot catch it. The violation is architectural: Will is performing direct
+    # DB writes rather than delegating to a Body service.
+    #
+    # Required fix: extract consequence log writer into ConsequenceLogService
+    # (Body layer), inject into ProposalExecutor via constructor.
+    # Tracking: consequence_log_body_extraction (pending)
+
   # ==========================================================================
   # RULE 7: Will Delegates Filesystem Operations
   # ==========================================================================
