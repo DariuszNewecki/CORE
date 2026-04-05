@@ -589,9 +589,24 @@ async def action_fix_modularity(
         )
 
     try:
-        plan = json.loads(plan_raw)
+        # Strip markdown fences and preamble — LLMs often wrap JSON in ```json ... ```
+        clean = plan_raw.strip()
+        if "```" in clean:
+            import re
+
+            match = re.search(r"```(?:json)?\s*([\s\S]*?)```", clean)
+            clean = match.group(1).strip() if match else clean
+        # Find first { in case of any preamble text
+        brace = clean.find("{")
+        if brace > 0:
+            clean = clean[brace:]
+        plan = json.loads(clean)
     except Exception as e:
-        logger.error("fix.modularity: could not parse analyze response: %s", e)
+        logger.error(
+            "fix.modularity: could not parse analyze response: %s\nRaw: %s",
+            e,
+            plan_raw[:500] if plan_raw else "(empty)",
+        )
         return ActionResult(
             action_id="fix.modularity",
             ok=False,
@@ -666,7 +681,16 @@ async def action_fix_modularity(
         )
 
     try:
-        split_result = json.loads(split_raw)
+        clean_split = split_raw.strip()
+        if "```" in clean_split:
+            import re
+
+            match = re.search(r"```(?:json)?\s*([\s\S]*?)```", clean_split)
+            clean_split = match.group(1).strip() if match else clean_split
+        brace = clean_split.find("{")
+        if brace > 0:
+            clean_split = clean_split[brace:]
+        split_result = json.loads(clean_split)
         files = split_result.get("files", [])
     except Exception as e:
         logger.error("fix.modularity: could not parse split response: %s", e)
