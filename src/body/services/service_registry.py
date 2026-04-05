@@ -25,6 +25,7 @@ if TYPE_CHECKING:
     from body.services.artifact_service import ArtifactService
     from body.services.audit_findings_service import AuditFindingsService
     from body.services.blackboard_service import BlackboardService
+    from body.services.consequence_log_service import ConsequenceLogService
     from body.services.crawl_service import CrawlService
     from body.services.doc_service import DocService
     from body.services.health_log_service import HealthLogService
@@ -45,6 +46,7 @@ KERNEL_SERVICES: Final[dict[str, str]] = {
     "artifact_service": "body.services.artifact_service.ArtifactService",
     "audit_findings_service": "body.services.audit_findings_service.AuditFindingsService",
     "blackboard_service": "body.services.blackboard_service.BlackboardService",
+    "consequence_log_service": "body.services.consequence_log_service.ConsequenceLogService",
     "crawl_service": "body.services.crawl_service.CrawlService",
     "doc_service": "body.services.doc_service.DocService",
     "health_log_service": "body.services.health_log_service.HealthLogService",
@@ -181,6 +183,8 @@ class ServiceRegistry:
             return await self.get_audit_findings_service()
         if name == "blackboard_service":
             return await self.get_blackboard_service()
+        if name == "consequence_log_service":
+            return await self.get_consequence_log_service()
         if name == "crawl_service":
             return await self.get_crawl_service()
         if name == "doc_service":
@@ -296,6 +300,15 @@ class ServiceRegistry:
                 repo_path = bootstrap_registry.get_repo_path()
                 self._instances["auditor_context"] = AuditorContext(repo_path)
         return self._instances["auditor_context"]
+
+    # ID: af57e204-14d9-4855-88e8-c35cfefd02f4
+    async def get_consequence_log_service(self) -> ConsequenceLogService:
+        async with self._lock:
+            if "consequence_log_service" not in self._instances:
+                from body.services.consequence_log_service import ConsequenceLogService
+
+                self._instances["consequence_log_service"] = ConsequenceLogService()
+        return self._instances["consequence_log_service"]
 
     # ID: d0cf02aa-1808-40f1-8a87-429fb7fdad4b
     async def get_blackboard_service(self) -> BlackboardService:

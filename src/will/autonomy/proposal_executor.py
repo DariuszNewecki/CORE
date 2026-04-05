@@ -14,11 +14,8 @@ CONSTITUTIONAL (current):
 from __future__ import annotations
 
 import asyncio
-import json
 import time
 from typing import Any
-
-from sqlalchemy import text
 
 from body.atomic.executor import ActionExecutor
 from body.services.service_registry import service_registry
@@ -213,7 +210,7 @@ class ProposalExecutor:
                             )
 
                     # -- Consequence recording --
-                    # Runs after mark_completed regardless of git commit outcome.
+                    # Delegated to ConsequenceLogService (Body layer).
                     try:
                         post_execution_sha = (
                             self.core_context.git_service.get_current_commit()
@@ -227,7 +224,6 @@ class ProposalExecutor:
                             proposal.proposal_id,
                         )
 
-                    # Changed files between pre and post SHAs
                     changed_files: list[str] = []
                     if pre_execution_sha and post_execution_sha:
                         try:
@@ -252,44 +248,19 @@ class ProposalExecutor:
                                 diff_err,
                             )
 
-                    files_changed = [{"path": p} for p in changed_files]
-                    authorized_by_rules = proposal.scope.policies
-                    findings_resolved = proposal.constitutional_constraints.get(
-                        "finding_ids", []
-                    )
-
                     try:
-                        async with service_registry.session() as cons_session:
-                            await cons_session.execute(
-                                text(
-                                    "INSERT INTO core.proposal_consequences "
-                                    "(proposal_id, pre_execution_sha, "
-                                    "post_execution_sha, files_changed, "
-                                    "findings_resolved, authorized_by_rules) "
-                                    "VALUES (:pid, :pre, :post, :files, "
-                                    ":findings, :rules) "
-                                    "ON CONFLICT (proposal_id) DO UPDATE SET "
-                                    "files_changed = EXCLUDED.files_changed, "
-                                    "findings_resolved = EXCLUDED.findings_resolved, "
-                                    "authorized_by_rules = EXCLUDED.authorized_by_rules, "
-                                    "post_execution_sha = EXCLUDED.post_execution_sha"
-                                ),
-                                {
-                                    "pid": proposal.proposal_id,
-                                    "pre": pre_execution_sha,
-                                    "post": post_execution_sha,
-                                    "files": json.dumps(files_changed),
-                                    "findings": json.dumps(findings_resolved),
-                                    "rules": json.dumps(authorized_by_rules),
-                                },
-                            )
-                            await cons_session.commit()
-                        logger.info(
-                            "Consequence recorded for %s: "
-                            "%d files changed, post_sha=%s",
-                            proposal.proposal_id,
-                            len(files_changed),
-                            post_execution_sha,
+                        consequence_svc = (
+                            await service_registry.get_consequence_log_service()
+                        )
+                        await consequence_svc.record(
+                            proposal_id=proposal.proposal_id,
+                            pre_execution_sha=pre_execution_sha,
+                            post_execution_sha=post_execution_sha,
+                            files_changed=[{"path": p} for p in changed_files],
+                            findings_resolved=proposal.constitutional_constraints.get(
+                                "finding_ids", []
+                            ),
+                            authorized_by_rules=proposal.scope.policies,
                         )
                     except Exception as cons_err:
                         logger.warning(
@@ -443,6 +414,9 @@ class ProposalExecutor:
                                         proposal.proposal_id,
                                         git_err,
                                     )
+                            # TODO: consequence recording not implemented for batch execution.
+                            # ConsequenceLogService.record() should be called here once
+                            # batch execution is used in production. See execute() for reference.
                         else:
                             failed_actions = [
                                 aid
