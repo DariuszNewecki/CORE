@@ -243,7 +243,6 @@ def calculate_structural_hash(node: ast.AST) -> str:
         return hashlib.sha256(fallback.encode("utf-8")).hexdigest()
 
 
-# ADD these lines
 # ID: 6ca3e58a-deda-4cd8-b9fa-d9909235e218
 def normalize_ast(node: ast.AST) -> str:
     """
