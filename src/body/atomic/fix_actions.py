@@ -1,5 +1,4 @@
 # src/body/atomic/fix_actions.py
-# src/body/atomic/fix_actions.py
 
 """
 Atomic Fix Actions - Code Remediation
