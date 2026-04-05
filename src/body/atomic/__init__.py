@@ -12,6 +12,7 @@ from body.atomic import (
     file_ops,
     fix_actions,
     metadata_ops,
+    modularity_fix,
     sync_actions,
 )
 from body.atomic.check_actions import action_check_imports
@@ -32,6 +33,7 @@ from body.atomic.fix_actions import (
     action_format_code as action_fix_format,
 )
 from body.atomic.metadata_ops import action_tag_metadata
+from body.atomic.modularity_fix import action_fix_modularity
 from body.atomic.registry import action_registry, register_action
 from body.atomic.sync_actions import (
     action_sync_code_vectors,
@@ -49,6 +51,7 @@ __all__ = [
     "action_fix_headers",
     "action_fix_ids",
     "action_fix_logging",
+    "action_fix_modularity",
     "action_read_file",
     "action_registry",
     "action_sync_code_vectors",
