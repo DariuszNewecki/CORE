@@ -38,9 +38,10 @@ async def approve_proposal(
     by: str = typer.Option("cli_admin", "--by", help="Approver identity."),
 ) -> None:
     """Authorize a pending proposal for execution."""
+    from will.autonomy.proposal_state_manager import ProposalStateManager
+
     async with service_registry.session() as session:
-        repo = ProposalRepository(session)
-        await repo.approve(proposal_id, approved_by=by)
+        await ProposalStateManager(session).approve(proposal_id, approved_by=by)
         await session.commit()
     logger.info("[green]✅ Proposal %s APPROVED by %s.[/green]", proposal_id, by)
 
@@ -78,8 +79,8 @@ async def reject_proposal(
     reason: str = typer.Option(..., "--reason", "-r"),
 ) -> None:
     """Reject a proposal and prevent its execution."""
+    from will.autonomy.proposal_state_manager import ProposalStateManager
+
     async with service_registry.session() as session:
-        repo = ProposalRepository(session)
-        await repo.reject(proposal_id, reason=reason)
-        await session.commit()
+        await ProposalStateManager(session).reject(proposal_id, reason=reason)
     logger.info("[yellow]🚫 Proposal %s REJECTED.[/yellow]", proposal_id)
