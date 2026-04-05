@@ -12,7 +12,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import Any
 
-from shared.component_primitive import ComponentResult
+from shared.component_primitive import ComponentPhase, ComponentResult
 from shared.context import CoreContext
 
 
@@ -30,10 +30,12 @@ class BaseEvaluator(ABC):
         """Unique identifier for this evaluator."""
 
     @property
-    @abstractmethod
     # ID: 9062c5d4-f7db-44ff-ad27-f98758061cb9
-    def phase(self) -> str:
-        """Execution phase this evaluator belongs to."""
+    def phase(self) -> ComponentPhase:
+        """All evaluators operate in the AUDIT phase."""
+        from shared.component_primitive import ComponentPhase
+
+        return ComponentPhase.AUDIT
 
     @abstractmethod
     # ID: fd232b4d-4cc7-4c80-8e2a-dca89d96b16b

@@ -28,7 +28,7 @@ from __future__ import annotations
 import time
 
 from body.evaluators.base_evaluator import BaseEvaluator
-from shared.component_primitive import ComponentPhase, ComponentResult
+from shared.component_primitive import ComponentResult
 from shared.logger import getLogger
 
 
@@ -68,10 +68,7 @@ class LogicConservationValidator(BaseEvaluator):
     def component_id(self) -> str:
         return "logic_conservation_validator"
 
-    @property
-    # ID: c3d4e5f6-a7b8-9012-cdef-123456789012
-    def phase(self) -> ComponentPhase:
-        return ComponentPhase.AUDIT
+    # phase is inherited from BaseEvaluator — all evaluators are AUDIT phase.
 
     # ID: d4e5f6a7-b8c9-0123-defa-234567890123
     async def evaluate(

@@ -2,7 +2,8 @@
 """
 Database migration command.
 
-Runs pending Alembic migrations to update schema.
+Runs pending policy-driven migrations via MigrationService.
+No Alembic — raw SQL scripts, custom ledger in core._migrations.
 """
 
 from __future__ import annotations

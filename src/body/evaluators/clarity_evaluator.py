@@ -11,7 +11,7 @@ import time
 
 from radon.visitors import ComplexityVisitor
 
-from shared.component_primitive import ComponentPhase, ComponentResult
+from shared.component_primitive import ComponentResult
 from shared.logger import getLogger
 
 from .base_evaluator import BaseEvaluator
@@ -29,10 +29,7 @@ class ClarityEvaluator(BaseEvaluator):
     def component_id(self) -> str:
         return "clarity_evaluator"
 
-    @property
-    # ID: 85122bba-ab4f-42bc-b320-7a658c8444ef
-    def phase(self) -> str:
-        return ComponentPhase.AUDIT.value
+    # phase is inherited from BaseEvaluator — all evaluators are AUDIT phase.
 
     # ID: c35226bd-1d63-46fc-9ceb-f3c5a1d63208
     async def evaluate(
