@@ -523,7 +523,7 @@ async def action_fix_modularity(
     import json
 
     from body.validators.logic_conservation_validator import LogicConservationValidator
-    from shared.ai.prompt_model import PromptModel
+    from shared.models.prompt_model import PromptModel
 
     start = time.time()
     repo_root = core_context.git_service.repo_path
@@ -569,7 +569,8 @@ async def action_fix_modularity(
             analyze_model.manifest.role
         )
         plan_raw = await analyze_model.invoke(
-            context={
+            analyze_client,
+            {
                 "file_path": rel_path,
                 "layer": layer,
                 "violations": "architecture.max_file_size, modularity.refactor_score_threshold",
@@ -577,8 +578,6 @@ async def action_fix_modularity(
                 "content": original_content,
                 "callers": "\n".join(callers) if callers else "(none)",
             },
-            client=analyze_client,
-            user_id="fix_modularity_action",
         )
     except Exception as e:
         logger.error("fix.modularity: analyze phase failed: %s", e)
@@ -649,14 +648,13 @@ async def action_fix_modularity(
             split_model.manifest.role
         )
         split_raw = await split_model.invoke(
-            context={
+            split_client,
+            {
                 "file_path": rel_path,
                 "layer": layer,
                 "content": original_content,
                 "plan": plan_raw,
             },
-            client=split_client,
-            user_id="fix_modularity_action",
         )
     except Exception as e:
         logger.error("fix.modularity: split phase failed: %s", e)
