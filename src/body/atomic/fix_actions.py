@@ -413,3 +413,342 @@ async def action_fix_docstrings(
         data={"write": write},
         duration_sec=time.time() - start,
     )
+
+
+def _find_worst_modularity_violator(repo_root):
+    """Find the src/ Python file with the most lines. Excludes __init__.py and tests."""
+    from pathlib import Path
+
+    skip_dirs = {"tests", "__pycache__", ".venv", "venv", ".git", "work", "var"}
+    src_root = repo_root / "src"
+    if not src_root.exists():
+        return None
+
+    worst: tuple[int, Path] | None = None
+    for py_file in src_root.rglob("*.py"):
+        if py_file.name == "__init__.py":
+            continue
+        if any(part in py_file.parts for part in skip_dirs):
+            continue
+        try:
+            line_count = len(py_file.read_text(encoding="utf-8").splitlines())
+            if line_count >= 400:
+                if worst is None or line_count > worst[0]:
+                    worst = (line_count, py_file)
+        except Exception:
+            continue
+    return worst[1] if worst else None
+
+
+def _detect_layer_from_path(path, repo_root) -> str:
+    """Detect architectural layer from file path."""
+    rel = str(path.relative_to(repo_root))
+    if rel.startswith("src/mind"):
+        return "mind"
+    if rel.startswith("src/body"):
+        return "body"
+    if rel.startswith("src/will"):
+        return "will"
+    if rel.startswith("src/shared"):
+        return "shared"
+    return "unknown"
+
+
+def _find_callers(target_path, repo_root) -> list[str]:
+    """Find files in src/ that import from the target module."""
+    import ast
+
+    target_module = (
+        str(target_path.relative_to(repo_root)).replace("/", ".").removesuffix(".py")
+    )
+    if target_module.startswith("src."):
+        target_module = target_module[4:]
+
+    callers = []
+    src_root = repo_root / "src"
+    for py_file in src_root.rglob("*.py"):
+        if py_file == target_path:
+            continue
+        try:
+            tree = ast.parse(py_file.read_text(encoding="utf-8"))
+            for node in ast.walk(tree):
+                if isinstance(node, ast.Import | ast.ImportFrom):
+                    if isinstance(node, ast.ImportFrom) and node.module:
+                        if node.module == target_module or node.module.startswith(
+                            target_module + "."
+                        ):
+                            callers.append(str(py_file.relative_to(repo_root)))
+                            break
+        except Exception:
+            continue
+    return callers
+
+
+@register_action(
+    action_id="fix.modularity",
+    description="Split a file that violates modularity rules using two-phase LLM analysis",
+    category=ActionCategory.FIX,
+    policies=["rules/architecture/modularity"],
+    impact_level="moderate",
+    remediates=[
+        "architecture.max_file_size",
+        "modularity.refactor_score_threshold",
+        "modularity.single_responsibility",
+        "modularity.import_coupling",
+        "modularity.semantic_cohesion",
+    ],
+)
+@atomic_action(
+    action_id="fix.modularity",
+    intent="Two-phase split: Architect finds the seam, RefactoringArchitect executes. Logic Conservation Gate guards.",
+    impact=ActionImpact.WRITE_CODE,
+    policies=["atomic_actions"],
+)
+# ID: 2e4e8a14-6495-4869-a047-43bb508d0d4a
+async def action_fix_modularity(
+    core_context: CoreContext,
+    write: bool = False,
+    file_path: str | None = None,
+    **kwargs,
+) -> ActionResult:
+    """
+    Split a modularity-violating file using two-phase LLM analysis.
+
+    Phase 1 (modularity_analyze): Architect finds the natural seam and
+    assigns confidence. Low/medium confidence defers to human session.
+
+    Phase 2 (modularity_split): RefactoringArchitect executes the approved
+    plan mechanically. Logic Conservation Gate validates before any write.
+    """
+    import json
+
+    from body.validators.logic_conservation_validator import LogicConservationValidator
+    from shared.ai.prompt_model import PromptModel
+
+    start = time.time()
+    repo_root = core_context.git_service.repo_path
+
+    # 1. Find target file
+    if file_path:
+        target = repo_root / file_path
+        if not target.exists():
+            return ActionResult(
+                action_id="fix.modularity",
+                ok=False,
+                data={"error": f"File not found: {file_path}"},
+                duration_sec=time.time() - start,
+            )
+    else:
+        target = _find_worst_modularity_violator(repo_root)
+        if target is None:
+            return ActionResult(
+                action_id="fix.modularity",
+                ok=True,
+                data={"message": "No modularity violations found"},
+                duration_sec=time.time() - start,
+            )
+
+    rel_path = str(target.relative_to(repo_root))
+    original_content = target.read_text(encoding="utf-8")
+    line_count = len(original_content.splitlines())
+    layer = _detect_layer_from_path(target, repo_root)
+    callers = _find_callers(target, repo_root)
+
+    logger.info(
+        "fix.modularity: analyzing %s (%d lines, layer=%s, callers=%d)",
+        rel_path,
+        line_count,
+        layer,
+        len(callers),
+    )
+
+    # 2. Phase 1 — find the seam
+    try:
+        analyze_model = PromptModel.load("modularity_analyze")
+        analyze_client = await core_context.cognitive_service.aget_client_for_role(
+            analyze_model.manifest.role
+        )
+        plan_raw = await analyze_model.invoke(
+            context={
+                "file_path": rel_path,
+                "layer": layer,
+                "violations": "architecture.max_file_size, modularity.refactor_score_threshold",
+                "line_count": str(line_count),
+                "content": original_content,
+                "callers": "\n".join(callers) if callers else "(none)",
+            },
+            client=analyze_client,
+            user_id="fix_modularity_action",
+        )
+    except Exception as e:
+        logger.error("fix.modularity: analyze phase failed: %s", e)
+        return ActionResult(
+            action_id="fix.modularity",
+            ok=False,
+            data={"error": f"analyze phase failed: {e}", "file": rel_path},
+            duration_sec=time.time() - start,
+        )
+
+    try:
+        plan = json.loads(plan_raw)
+    except Exception as e:
+        logger.error("fix.modularity: could not parse analyze response: %s", e)
+        return ActionResult(
+            action_id="fix.modularity",
+            ok=False,
+            data={"error": "analyze response not valid JSON", "file": rel_path},
+            duration_sec=time.time() - start,
+        )
+
+    # 3. Evaluate confidence
+    can_split = plan.get("can_split", False)
+    confidence = plan.get("confidence", "low")
+    reason = plan.get("reason", "")
+
+    if not can_split:
+        logger.info(
+            "fix.modularity: %s is cohesive, no split needed — %s",
+            rel_path,
+            reason,
+        )
+        return ActionResult(
+            action_id="fix.modularity",
+            ok=True,
+            data={"action": "no_split", "file": rel_path, "reason": reason},
+            duration_sec=time.time() - start,
+        )
+
+    if confidence in ("low", "medium"):
+        logger.info(
+            "fix.modularity: %s confidence=%s — deferring to human session",
+            rel_path,
+            confidence,
+        )
+        return ActionResult(
+            action_id="fix.modularity",
+            ok=True,
+            data={
+                "action": "deferred",
+                "file": rel_path,
+                "confidence": confidence,
+                "reason": reason,
+                "plan": plan,
+            },
+            duration_sec=time.time() - start,
+        )
+
+    logger.info(
+        "fix.modularity: %s confidence=high — proceeding to split phase",
+        rel_path,
+    )
+
+    # 4. Phase 2 — execute the split
+    try:
+        split_model = PromptModel.load("modularity_split")
+        split_client = await core_context.cognitive_service.aget_client_for_role(
+            split_model.manifest.role
+        )
+        split_raw = await split_model.invoke(
+            context={
+                "file_path": rel_path,
+                "layer": layer,
+                "content": original_content,
+                "plan": plan_raw,
+            },
+            client=split_client,
+            user_id="fix_modularity_action",
+        )
+    except Exception as e:
+        logger.error("fix.modularity: split phase failed: %s", e)
+        return ActionResult(
+            action_id="fix.modularity",
+            ok=False,
+            data={"error": f"split phase failed: {e}", "file": rel_path},
+            duration_sec=time.time() - start,
+        )
+
+    try:
+        split_result = json.loads(split_raw)
+        files = split_result.get("files", [])
+    except Exception as e:
+        logger.error("fix.modularity: could not parse split response: %s", e)
+        return ActionResult(
+            action_id="fix.modularity",
+            ok=False,
+            data={"error": "split response not valid JSON", "file": rel_path},
+            duration_sec=time.time() - start,
+        )
+
+    if not files:
+        return ActionResult(
+            action_id="fix.modularity",
+            ok=False,
+            data={"error": "split produced no files", "file": rel_path},
+            duration_sec=time.time() - start,
+        )
+
+    # 5. Logic Conservation Gate
+    proposed_map = {f["path"]: f["content"] for f in files}
+    try:
+        conservation_validator = LogicConservationValidator()
+        verdict = await conservation_validator.evaluate(
+            original_code=original_content,
+            proposed_map=proposed_map,
+            deletions_authorized=False,
+        )
+    except Exception as e:
+        logger.error("fix.modularity: Logic Conservation Gate failed: %s", e)
+        return ActionResult(
+            action_id="fix.modularity",
+            ok=False,
+            data={"error": f"conservation gate error: {e}", "file": rel_path},
+            duration_sec=time.time() - start,
+        )
+
+    if not verdict.ok:
+        ratio = verdict.data.get("ratio", 0.0)
+        logger.error(
+            "fix.modularity: logic evaporation in %s (ratio=%.2f) — aborting",
+            rel_path,
+            ratio,
+        )
+        return ActionResult(
+            action_id="fix.modularity",
+            ok=False,
+            data={
+                "error": "logic_evaporation",
+                "ratio": ratio,
+                "file": rel_path,
+            },
+            duration_sec=time.time() - start,
+        )
+
+    # 6. Write files
+    if write:
+        for file_info in files:
+            core_context.file_handler.write_runtime_text(
+                file_info["path"], file_info["content"]
+            )
+        logger.info(
+            "fix.modularity: split complete — %d files written",
+            len(files),
+        )
+    else:
+        logger.info(
+            "fix.modularity: dry-run — would write %d files",
+            len(files),
+        )
+
+    return ActionResult(
+        action_id="fix.modularity",
+        ok=True,
+        data={
+            "action": "split",
+            "file": rel_path,
+            "confidence": confidence,
+            "files_produced": [f["path"] for f in files],
+            "files_count": len(files),
+            "write": write,
+        },
+        duration_sec=time.time() - start,
+    )

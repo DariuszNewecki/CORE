@@ -32,9 +32,10 @@
 #   PENDING entries are documented here for roadmap visibility only.
 #
 # ACTION IDs MUST match exactly what is registered in body/atomic/.
-# Registered actions (as of 2026-04-02):
+# Registered actions (as of 2026-04-05):
 #   fix.atomic_actions, fix.docstrings, fix.duplicate_ids, fix.format,
-#   fix.headers, fix.ids, fix.imports, fix.logging, fix.placeholders
+#   fix.headers, fix.ids, fix.imports, fix.logging, fix.modularity,
+#   fix.placeholders
 
 mappings:
   # ===========================================================================
@@ -145,51 +146,62 @@ mappings:
     status: ACTIVE
 
   # ===========================================================================
-  # TIER 3: PENDING — action implementation required
-  # Documented for roadmap visibility only. Will not be dispatched.
+  # TIER 2: ACTIVE — high risk (confidence >= 0.85)
+  # LLM-assisted structural changes. Logic Conservation Gate required.
+  # Proposals created automatically. Human approval required before execution.
   # ===========================================================================
 
   architecture.max_file_size:
     action: fix.modularity
-    confidence: 0.50
+    confidence: 0.85
     risk: high
     description: >
-      Files exceeding 400 lines need splitting.
-      PENDING: fix.modularity action not yet registered in atomic registry.
-      Implement ModularityRemediationService as atomic action first.
-    status: PENDING
+      Files exceeding 400 lines are split using two-phase LLM analysis.
+      Phase 1 (Architect) finds the seam. Phase 2 (RefactoringArchitect)
+      executes. Logic Conservation Gate validates before any write.
+      Defers automatically on low/medium confidence.
+    status: ACTIVE
 
   modularity.refactor_score_threshold:
     action: fix.modularity
-    confidence: 0.50
+    confidence: 0.85
     risk: high
     description: >
-      PENDING: Same as architecture.max_file_size.
-    status: PENDING
+      Files with refactor score >= 60 are split using two-phase LLM analysis.
+      Defers automatically on low/medium confidence.
+    status: ACTIVE
 
   modularity.single_responsibility:
     action: fix.modularity
-    confidence: 0.50
+    confidence: 0.85
     risk: high
     description: >
-      PENDING: fix.modularity action not yet registered.
-    status: PENDING
+      Files with 3+ responsibilities are split using two-phase LLM analysis.
+      Defers automatically on low/medium confidence.
+    status: ACTIVE
 
   modularity.import_coupling:
     action: fix.modularity
-    confidence: 0.50
+    confidence: 0.85
     risk: high
     description: >
-      PENDING: fix.modularity action not yet registered.
-    status: PENDING
+      Files with high import coupling are split using two-phase LLM analysis.
+      Defers automatically on low/medium confidence.
+    status: ACTIVE
 
   modularity.semantic_cohesion:
     action: fix.modularity
-    confidence: 0.50
+    confidence: 0.85
     risk: high
     description: >
-      PENDING: fix.modularity action not yet registered.
-    status: PENDING
+      Files with low semantic cohesion are split using two-phase LLM analysis.
+      Defers automatically on low/medium confidence.
+    status: ACTIVE
+
+  # ===========================================================================
+  # TIER 3: PENDING — action implementation required
+  # Documented for roadmap visibility only. Will not be dispatched.
+  # ===========================================================================
 
   architecture.constitution_read_only:
     action: fix.layer_violation
