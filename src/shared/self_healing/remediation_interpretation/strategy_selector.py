@@ -376,7 +376,9 @@ class StrategySelector:
         preferred_roles: tuple[str, ...],
     ) -> bool:
         """Allow worker.* roles to match generic worker preference."""
-        return role_id.startswith("worker.")
+        return role_id.startswith("worker.") and any(
+            pr.startswith("worker.") for pr in preferred_roles
+        )
 
     def _dedupe_preserve_order(self, items: list[str]) -> list[str]:
         """Deduplicate strings while preserving original order."""

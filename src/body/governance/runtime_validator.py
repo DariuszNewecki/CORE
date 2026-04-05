@@ -68,7 +68,6 @@ class RuntimeValidatorService:
                 fs.ensure_dir(".")
                 _copy_repo_tree(
                     src_root=self.repo_root,
-                    dst_root=canary_path,
                     file_service=fs,
                     ignore_names={
                         ".git",
@@ -153,7 +152,7 @@ class RuntimeValidatorService:
 
 
 def _copy_repo_tree(
-    src_root: Path, dst_root: Path, file_service: FileService, ignore_names: set[str]
+    src_root: Path, file_service: FileService, ignore_names: set[str]
 ) -> None:
     """
     Copy a repository tree via governed writes.

@@ -263,7 +263,7 @@
   {
     "check_id": "governance.dangerous_execution_primitives",
     "severity": "info",
-    "message": "Forbidden primitive 'os.environ' used (line 94).",
+    "message": "Forbidden primitive 'os.environ' used (line 93).",
     "file_path": "src/body/governance/runtime_validator.py",
     "line_number": null,
     "context": {},
@@ -1380,47 +1380,6 @@
     "check_id": "workflow.pytest_check",
     "severity": "info",
     "message": "Quality Gate pytest_check failed: ============================= test session starts ==============================",
-    "file_path": "System",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_ast_duplication",
-    "severity": "warning",
-    "message": "AST duplication: 'ConstitutionalEvaluator.phase' duplicates 'LogicConservationValidator.phase' (score=1.00)",
-    "file_path": "src/body/evaluators/constitutional_evaluator.py",
-    "line_number": null,
-    "context": {
-      "symbol_a": "ConstitutionalEvaluator.phase",
-      "symbol_b": "LogicConservationValidator.phase",
-      "module_a": "body.evaluators.constitutional_evaluator",
-      "module_b": "body.validators.logic_conservation_validator",
-      "similarity": 1.0,
-      "type": "ast"
-    },
-    "details": {
-      "symbol_a": "ConstitutionalEvaluator.phase",
-      "symbol_b": "LogicConservationValidator.phase",
-      "module_a": "body.evaluators.constitutional_evaluator",
-      "module_b": "body.validators.logic_conservation_validator",
-      "similarity": 1.0,
-      "type": "ast"
-    }
-  },
-  {
-    "check_id": "workflow.dead_code_check",
-    "severity": "warning",
-    "message": "Dead code detected: src/body/governance/runtime_validator.py:156: unused variable 'dst_root' (100% confidence)",
-    "file_path": "System",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "workflow.dead_code_check",
-    "severity": "warning",
-    "message": "Dead code detected: src/shared/self_healing/remediation_interpretation/strategy_selector.py:376: unused variable 'preferred_roles' (100% confidence)",
     "file_path": "System",
     "line_number": null,
     "context": {},
