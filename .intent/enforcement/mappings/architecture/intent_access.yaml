@@ -18,3 +18,30 @@ mappings:
         - "src/will/commands/daemon.py"
         - "src/will/workers/worker_auditor.py"
         - "tests/**/*.py"
+
+  # ADVISORY DECLARATIONS — architectural guidance, not engine-checkable.
+  # These rules describe how .intent/ should be structured and accessed.
+  # They are constitutionally binding guidance for human architects.
+
+  architecture.intent.gateway_is_shared_infrastructure:
+    engine: advisory
+    params:
+      note: >
+        Architectural guidance. The .intent/ gateway is shared infrastructure
+        owned by no single layer. All layers access .intent/ through the
+        canonical gateway, never by direct path construction. Enforced by
+        architectural review and PathResolver usage convention.
+    scope:
+      applies_to:
+        - "src/**/*.py"
+
+  architecture.intent.no_legacy_root_assumptions:
+    engine: advisory
+    params:
+      note: >
+        Architectural guidance. No code may assume .intent/ lives at the
+        repository root via hardcoded relative paths. All .intent/ access
+        must use PathResolver. Enforced by convention and code review.
+    scope:
+      applies_to:
+        - "src/**/*.py"

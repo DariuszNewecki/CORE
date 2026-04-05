@@ -1,3 +1,15 @@
+# .intent/enforcement/mappings/architecture/atomic_actions.yaml
+#
+# Enforcement mappings for atomic action constitutional rules.
+# Based on: .intent/rules/architecture/atomic_actions.json
+#
+# Most rules in this file are enforced at Python runtime (registration-time
+# or execution-time) rather than by a static analysis engine. The
+# python_runtime engine documents where enforcement occurs in code.
+#
+# The advisory entry at the bottom is a naming boundary declaration —
+# it grants no automated check but removes the rule from declared_only.
+
 mappings:
   # Rule: atomic_actions.must_return_action_result
   # Enforcement: Registration-time validation in registry.py
@@ -45,6 +57,19 @@ mappings:
       enforcement_locations:
         - "body.atomic.registry.register_action"
         - "body.atomic.executor.ActionExecutor.execute"
+    scope:
+      applies_to:
+        - "src/body/atomic/**/*.py"
+
+  # ADVISORY DECLARATION — naming boundary rule, not engine-checkable.
+  atomic_actions.fix_action_scope:
+    engine: advisory
+    params:
+      note: >
+        Naming boundary declaration. fix.imports is exclusively scoped to
+        import ordering and sorting. It must not be used for import validation
+        or module existence checks. Enforced by code review and convention,
+        not by automated engine.
     scope:
       applies_to:
         - "src/body/atomic/**/*.py"

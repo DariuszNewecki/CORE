@@ -89,3 +89,15 @@ mappings:
         - "src/will/cli_logic/**"
         - "src/will/workflows/**"
         - "tests/**"
+
+  # ADVISORY DECLARATION — permissive rule, no engine check needed.
+  architecture.channels.cli_rendering_allowed:
+    engine: advisory
+    params:
+      note: >
+        Permissive declaration. CLI surface modules MAY use Rich and
+        terminal-oriented rendering for user-facing output. This rule
+        grants permission; it does not detect violations.
+    scope:
+      applies_to:
+        - "src/cli/**/*.py"
