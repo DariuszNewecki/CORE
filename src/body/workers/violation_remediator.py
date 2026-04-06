@@ -47,7 +47,6 @@ injection. All src/ writes via ActionExecutor -> Crate -> Canary -> apply.
 from __future__ import annotations
 
 import json
-import re
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Any
@@ -67,7 +66,6 @@ _COMPLETE_SUBJECT = "audit.remediation.complete"
 _DRY_RUN_SUBJECT = "audit.remediation.dry_run"
 _FAILED_SUBJECT = "audit.remediation.failed"
 
-_NON_ASCII_RE = re.compile(r"[^\x09\x0A\x0D\x20-\x7E]")
 
 _CLAIM_LIMIT = 50
 
@@ -782,10 +780,3 @@ class ViolationRemediator(Worker):
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
-
-
-def _sanitize(value: str) -> str:
-    """Strip non-ASCII characters that PostgreSQL SQL_ASCII cannot store."""
-    if not isinstance(value, str):
-        return str(value)
-    return _NON_ASCII_RE.sub("?", value)
