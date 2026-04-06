@@ -8,7 +8,8 @@
       "Bash(python -c \"import ast; ast.parse\\(open\\('src/body/workers/violation_remediator.py'\\).read\\(\\)\\); print\\('OK'\\)\")"
     ],
     "additionalDirectories": [
-      "/tmp"
+      "/tmp",
+      "/mnt/dev/CORE/.git"
     ]
   }
 }
