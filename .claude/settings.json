@@ -3,7 +3,9 @@
     "allow": [
       "Bash(python -c ':*)",
       "Read(//tmp/**)",
-      "Bash(python)"
+      "Bash(python)",
+      "Bash(python -c \"import ast; ast.parse\\(open\\('src/cli/resources/workers/remediate.py'\\).read\\(\\)\\); print\\('OK'\\)\")",
+      "Bash(python -c \"import ast; ast.parse\\(open\\('src/body/workers/violation_remediator.py'\\).read\\(\\)\\); print\\('OK'\\)\")"
     ],
     "additionalDirectories": [
       "/tmp"

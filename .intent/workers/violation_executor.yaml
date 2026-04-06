@@ -1,0 +1,45 @@
+# .intent/workers/violation_executor.yaml
+$schema: "META/worker.schema.json"
+kind: worker
+
+metadata:
+  id: workers.violation_executor
+  title: Violation Executor
+  version: "1.0.0"
+  authority: policy
+  status: active
+
+identity:
+  uuid: "c9d4e5f6-a7b8-4c0d-9e1f-2a3b4c5d6e7f"
+  class: acting
+
+mandate:
+  responsibility: >
+    For each open audit violation finding, build a deterministic architectural
+    context package (evidence only, not authority) for the violating file,
+    invoke RemoteCoder via PromptModel to produce a fix, validate via
+    Crate/Canary ceremony, and apply to live src/ with a git commit.
+    Also supports file-mode operation: accepts findings injected directly from
+    a file-scoped full audit (bypassing the Blackboard sensor), enabling
+    diagnosis-first remediation of a single file across all rules.
+  phase: execution
+  permitted_tools:
+    - llm.remote_coder
+    - file.read
+    - crate.create
+    - canary.validate
+    - crate.apply
+    - git.commit
+  scope:
+    paths:
+      - "src/**"
+      - "var/mind/rollbacks/**"
+    domains:
+      - compliance
+      - remediation
+  approval_required: true
+
+implementation:
+  module: body.workers.violation_remediator
+  class: ViolationRemediator
+  requires_core_context: true
