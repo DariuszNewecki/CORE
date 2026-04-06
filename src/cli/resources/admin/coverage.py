@@ -6,10 +6,6 @@ Analyzes the gap between declared laws and physical enforcement.
 
 from __future__ import annotations
 
-from shared.logger import getLogger
-
-
-logger = getLogger(__name__)
 import typer
 from rich.console import Console
 from rich.panel import Panel
@@ -17,9 +13,13 @@ from rich.table import Table
 
 from cli.logic.governance.traceability_service import GovernanceTraceabilityService
 from shared.cli_utils import core_command
+from shared.logger import getLogger
 from shared.models.command_meta import CommandBehavior, CommandLayer, command_meta
 
 from .hub import app
+
+
+logger = getLogger(__name__)
 
 
 console = Console()
@@ -47,7 +47,7 @@ async def admin_coverage_cmd(ctx: typer.Context) -> None:
     report = service.generate_traceability_report()
     summary = report["summary"]
     stats = f"Total Rules: {summary['total_rules']}\nEnforced   : [green]{summary['enforced_count']}[/green]\nUnbound    : [yellow]{summary['unbound_count']}[/yellow]\nCoverage   : [bold]{summary['coverage_percent']}%[/bold]"
-    logger.info(Panel(stats, title="Coverage Summary", expand=False))
+    console.print(Panel(stats, title="Coverage Summary", expand=False))
     if report["critical_gaps"]:
         logger.info(
             "\n[bold red]🚨 CRITICAL GAPS: Blocking Rules without Enforcement[/bold red]"
@@ -57,7 +57,7 @@ async def admin_coverage_cmd(ctx: typer.Context) -> None:
         gap_table.add_column("Policy Source", style="dim")
         for gap in report["critical_gaps"]:
             gap_table.add_row(gap["id"], gap["policy"])
-        logger.info(gap_table)
+        console.print(gap_table)
     else:
         logger.info(
             "\n[bold green]✅ No Critical Gaps: All 'Blocking' rules are bound to engines.[/bold green]"

@@ -11,8 +11,17 @@
   {
     "check_id": "architecture.max_file_size",
     "severity": "warning",
-    "message": "Module has 753 lines, exceeds limit of 400",
+    "message": "Module has 414 lines, exceeds limit of 400",
     "file_path": "src/body/atomic/fix_actions.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "architecture.max_file_size",
+    "severity": "warning",
+    "message": "Module has 506 lines, exceeds limit of 400",
+    "file_path": "src/body/atomic/modularity_fix.py",
     "line_number": null,
     "context": {},
     "details": {}
@@ -497,8 +506,8 @@
   {
     "check_id": "modularity.single_responsibility",
     "severity": "warning",
-    "message": "Modularity Debt: 60.3/100 (Limit: 60.0)",
-    "file_path": "src/body/atomic/fix_actions.py",
+    "message": "Modularity Debt: 57.2/100 (Limit: 60.0)",
+    "file_path": "src/body/atomic/modularity_fix.py",
     "line_number": null,
     "context": {},
     "details": {}
@@ -722,8 +731,8 @@
   {
     "check_id": "modularity.semantic_cohesion",
     "severity": "warning",
-    "message": "Modularity Debt: 60.3/100 (Limit: 60.0)",
-    "file_path": "src/body/atomic/fix_actions.py",
+    "message": "Modularity Debt: 57.2/100 (Limit: 60.0)",
+    "file_path": "src/body/atomic/modularity_fix.py",
     "line_number": null,
     "context": {},
     "details": {}
@@ -947,8 +956,8 @@
   {
     "check_id": "modularity.import_coupling",
     "severity": "warning",
-    "message": "Modularity Debt: 60.3/100 (Limit: 60.0)",
-    "file_path": "src/body/atomic/fix_actions.py",
+    "message": "Modularity Debt: 57.2/100 (Limit: 60.0)",
+    "file_path": "src/body/atomic/modularity_fix.py",
     "line_number": null,
     "context": {},
     "details": {}
@@ -1172,8 +1181,8 @@
   {
     "check_id": "modularity.refactor_score_threshold",
     "severity": "warning",
-    "message": "Modularity Debt: 60.3/100 (Limit: 60.0)",
-    "file_path": "src/body/atomic/fix_actions.py",
+    "message": "Modularity Debt: 57.2/100 (Limit: 60.0)",
+    "file_path": "src/body/atomic/modularity_fix.py",
     "line_number": null,
     "context": {},
     "details": {}
@@ -1705,15 +1714,6 @@
     "severity": "warning",
     "message": "Orphan file: 'src/shared/models/pattern_graph.py' is not reachable from any entry point.",
     "file_path": "src/shared/models/pattern_graph.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/shared/models/prompt_model.py' is not reachable from any entry point.",
-    "file_path": "src/shared/models/prompt_model.py",
     "line_number": null,
     "context": {},
     "details": {}

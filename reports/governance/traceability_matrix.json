@@ -1,36 +1,12 @@
 {
   "summary": {
     "total_rules": 120,
-    "enforced_count": 103,
-    "unbound_count": 17,
-    "coverage_percent": 85.8
+    "enforced_count": 113,
+    "unbound_count": 7,
+    "coverage_percent": 94.2
   },
   "critical_gaps": [],
   "unbound_rules": [
-    {
-      "id": "atomic_actions.fix_action_scope",
-      "policy": "rules/architecture/atomic_actions",
-      "engine": "NONE",
-      "severity": "blocking"
-    },
-    {
-      "id": "architecture.channels.cli_rendering_allowed",
-      "policy": "rules/architecture/channels",
-      "engine": "NONE",
-      "severity": "reporting"
-    },
-    {
-      "id": "architecture.intent.no_legacy_root_assumptions",
-      "policy": "rules/architecture/intent_access",
-      "engine": "NONE",
-      "severity": "reporting"
-    },
-    {
-      "id": "architecture.intent.gateway_is_shared_infrastructure",
-      "policy": "rules/architecture/intent_access",
-      "engine": "NONE",
-      "severity": "reporting"
-    },
     {
       "id": "cli.resource_first",
       "policy": "rules/cli/interface_design",
@@ -72,42 +48,6 @@
       "policy": "rules/cli/interface_design",
       "engine": "NONE",
       "severity": "reporting"
-    },
-    {
-      "id": "metadata.operations.comment_insert",
-      "policy": "rules/code/metadata_mutations",
-      "engine": "NONE",
-      "severity": "blocking"
-    },
-    {
-      "id": "metadata.operations.comment_replace",
-      "policy": "rules/code/metadata_mutations",
-      "engine": "NONE",
-      "severity": "blocking"
-    },
-    {
-      "id": "metadata.operations.comment_delete",
-      "policy": "rules/code/metadata_mutations",
-      "engine": "NONE",
-      "severity": "blocking"
-    },
-    {
-      "id": "metadata.operations.docstring_insert",
-      "policy": "rules/code/metadata_mutations",
-      "engine": "NONE",
-      "severity": "blocking"
-    },
-    {
-      "id": "metadata.operations.docstring_replace",
-      "policy": "rules/code/metadata_mutations",
-      "engine": "NONE",
-      "severity": "blocking"
-    },
-    {
-      "id": "metadata.scope.universal",
-      "policy": "rules/code/metadata_mutations",
-      "engine": "NONE",
-      "severity": "blocking"
     }
   ]
 }
