@@ -10,9 +10,9 @@ to produce a fix, validate via Crate/Canary ceremony, and apply to live
 src/ with a git commit.
 
 Phase discipline:
-  RUNTIME phase  ? _plan_file():  read source, build architectural context,
+  RUNTIME phase  — _plan_file():  read source, build architectural context,
                                   validate confidence, decide whether to proceed.
-  EXECUTION phase ? _execute_file(): LLM invocation, Crate, Canary, apply, commit.
+  EXECUTION phase — _execute_file(): LLM invocation, Crate, Canary, apply, commit.
 
 These phases are separated. Indeterminate planning outcomes block execution.
 
@@ -89,7 +89,7 @@ class _RemediationPlan:
     Output of the RUNTIME planning phase.
 
     This is evidence assembled before the execution ceremony begins.
-    It is passed to the LLM as architectural context ? not as authority.
+    It is passed to the LLM as architectural context — not as authority.
     The LLM must treat it as advisory input, not as a directive.
     """
 
@@ -233,8 +233,8 @@ class ViolationRemediator(Worker):
         """
         Orchestrate the two-phase ceremony for a single file.
 
-        RUNTIME phase:  _plan_file()    ? read, interpret, gate confidence
-        EXECUTION phase: _execute_file() ? LLM, crate, canary, apply, commit
+        RUNTIME phase:  _plan_file()    — read, interpret, gate confidence
+        EXECUTION phase: _execute_file() — LLM, crate, canary, apply, commit
         """
         plan = await self._plan_file(file_path, findings)
         if plan is None:
@@ -244,7 +244,7 @@ class ViolationRemediator(Worker):
         return await self._execute_file(file_path, findings, plan)
 
     # -------------------------------------------------------------------------
-    # RUNTIME phase ? planning
+    # RUNTIME phase — planning
     # -------------------------------------------------------------------------
 
     async def _plan_file(
@@ -288,7 +288,7 @@ class ViolationRemediator(Worker):
             baseline_sha = "unknown"
 
         # Build architectural context.
-        # Failure here is indeterminate ? we cannot safely plan without it.
+        # Failure here is indeterminate — we cannot safely plan without it.
         # We do NOT fall back to an empty brief and continue.
         try:
             architectural_context = (
@@ -301,7 +301,7 @@ class ViolationRemediator(Worker):
         except RemediationInterpretationError as exc:
             logger.warning(
                 "ViolationRemediator: architectural context failed for %s - %s "
-                "[indeterminate ? halting]",
+                "[indeterminate — halting]",
                 file_path,
                 exc,
             )
@@ -321,7 +321,7 @@ class ViolationRemediator(Worker):
         if self._write and role_confidence < _MIN_ROLE_CONFIDENCE_FOR_WRITE:
             logger.warning(
                 "ViolationRemediator: role confidence %.2f < %.2f for %s "
-                "[indeterminate in write mode ? halting]",
+                "[indeterminate in write mode — halting]",
                 role_confidence,
                 _MIN_ROLE_CONFIDENCE_FOR_WRITE,
                 file_path,
@@ -361,7 +361,7 @@ class ViolationRemediator(Worker):
         )
 
     # -------------------------------------------------------------------------
-    # EXECUTION phase ? ceremony
+    # EXECUTION phase — ceremony
     # -------------------------------------------------------------------------
 
     async def _execute_file(
@@ -374,7 +374,7 @@ class ViolationRemediator(Worker):
         EXECUTION phase: LLM proposal, Crate, Canary, apply, commit.
 
         plan.architectural_context is passed to the LLM as advisory
-        evidence, labelled explicitly as 'architectural_context' ? not as
+        evidence, labelled explicitly as 'architectural_context' — not as
         a planning directive. The LLM's obligation is to satisfy the rule,
         not to follow the brief.
         """
@@ -462,7 +462,7 @@ class ViolationRemediator(Worker):
         except RuntimeError as exc:
             logger.error(
                 "ViolationRemediator: git commit FAILED for %s - %s "
-                "[marking abandoned ? fix is applied but uncommitted]",
+                "[marking abandoned — fix is applied but uncommitted]",
                 file_path,
                 exc,
             )
@@ -577,7 +577,7 @@ class ViolationRemediator(Worker):
                 )
                 return None
 
-            return _sanitize(code)
+            return code
 
         except Exception as exc:
             logger.warning(
