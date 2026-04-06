@@ -212,6 +212,7 @@ class StrategyCatalog:
                     "worker.actor",
                     "repository",
                     "model",
+                    "cli",
                 ),
                 preferred_for_rules=(
                     "architecture.max_file_size",

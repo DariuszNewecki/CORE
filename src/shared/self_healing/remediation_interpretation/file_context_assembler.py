@@ -308,6 +308,12 @@ class FileContextAssembler:
                 "Preserve command-entry role; avoid hidden domain logic "
                 "accumulation."
             )
+            constraints.append(
+                "Never modify, move, or rename functions decorated with @app.command, "
+                "@command_meta, or @core_command. Only extract pure undecorated helper "
+                "functions into a separate module. The command entry point must remain "
+                "in its original file with all its decorators intact."
+            )
 
         return constraints
 
