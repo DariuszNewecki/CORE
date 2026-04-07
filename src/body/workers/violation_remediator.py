@@ -378,6 +378,35 @@ class ViolationRemediator(Worker):
         a planning directive. The LLM's obligation is to satisfy the rule,
         not to follow the brief.
         """
+        # Gate: if all finding rules have a mapped atomic action in the
+        # remediation map, defer to the Will-layer proposal pipeline instead
+        # of running the generic LLM fixer.
+        mapped_action = self._check_atomic_action_coverage(findings)
+        if mapped_action is not None:
+            logger.info(
+                "ViolationRemediator: all rules for %s are covered by atomic "
+                "action '%s' — deferring to proposal pipeline",
+                file_path,
+                mapped_action,
+            )
+            await self._mark_findings(findings, "deferred_to_proposal")
+            await self.post_finding(
+                subject=f"{_FAILED_SUBJECT}::{file_path}",
+                payload={
+                    "file_path": file_path,
+                    "rule": self._target_rule,
+                    "reason": (
+                        f"Deferred to proposal pipeline: atomic action "
+                        f"'{mapped_action}' handles these rules. Use "
+                        f"'core-admin proposals list' to track execution."
+                    ),
+                    "write": self._write,
+                    "finding_ids": [f["id"] for f in findings],
+                    "mapped_action": mapped_action,
+                },
+            )
+            return False
+
         if self._write:
             self._archive_rollback(file_path, plan.original_source, plan.baseline_sha)
 
@@ -793,6 +822,46 @@ class ViolationRemediator(Worker):
     # -------------------------------------------------------------------------
     # Blackboard helpers
     # -------------------------------------------------------------------------
+
+    def _check_atomic_action_coverage(
+        self, findings: list[dict[str, Any]]
+    ) -> str | None:
+        """Check if all finding rules map to an ACTIVE atomic action.
+
+        Returns the action_id if every rule in *findings* maps to the same
+        ACTIVE action with confidence >= 0.80.  Returns None otherwise
+        (mixed actions, unmapped rules, or low confidence).
+        """
+        from body.autonomy.audit_analyzer import _load_remediation_map
+        from shared.path_resolver import PathResolver
+
+        try:
+            path_resolver = PathResolver(self._ctx.git_service.repo_path)
+            remediation_map = _load_remediation_map(path_resolver)
+        except Exception:
+            return None
+
+        if not remediation_map:
+            return None
+
+        mapped_actions: set[str] = set()
+        for finding in findings:
+            payload = finding.get("payload") or {}
+            rule = payload.get("rule") or payload.get("check_id") or ""
+            entry = remediation_map.get(rule)
+            if (
+                entry
+                and entry.get("status") == "ACTIVE"
+                and (entry.get("confidence") or 0) >= 0.80
+            ):
+                mapped_actions.add(entry["action"])
+            else:
+                return None
+
+        # Only defer if all findings map to a single atomic action.
+        if len(mapped_actions) == 1:
+            return mapped_actions.pop()
+        return None
 
     async def _post_failed(
         self,
