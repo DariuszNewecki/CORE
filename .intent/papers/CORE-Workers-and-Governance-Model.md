@@ -1,3 +1,5 @@
+<!-- path: .intent/papers/CORE-Workers-and-Governance-Model.md -->
+
 # CORE — Workers, Supervision, and the Blackboard
 
 **Status:** Constitutional Paper
@@ -11,6 +13,10 @@
 This paper defines the constitutional model for autonomous entities operating within CORE.
 
 It establishes what a Worker is, what a ShopManager is, how they coordinate, and what obligations govern their behavior. It does not define implementation. It defines standing.
+
+For technical implementation details of each Worker see the dedicated papers:
+`CORE-ViolationSensor.md`, `CORE-RemediatorWorker.md`, `CORE-ViolationExecutor.md`,
+`CORE-ConsumerWorker.md`, `CORE-ShopManager.md`.
 
 ---
 
@@ -36,7 +42,7 @@ A Worker:
 - Holds a mandate declared in `.intent/workers/`
 - Is responsible for exactly one domain of concern
 - Calls Agents or LLMs as labor tools — they have no constitutional standing of their own
-- Produces Proposals; it does not execute actions directly
+- Produces Proposals; it does not execute actions directly — with one constitutional exception: ConsumerWorker's sole mandate is executing approved Proposals via ActionExecutor.
 - Registers its identity on startup against its `.intent/` declaration
 - Writes a constitutional record of every decision it makes
 
@@ -65,6 +71,8 @@ A ShopManager that attempts domain work is in constitutional violation.
 Workers and ShopManagers do not communicate with each other directly. They coordinate through a shared ledger: the Blackboard.
 
 The Blackboard is not a constitutional entity. It is infrastructure. The constitution governs *behavior around* the Blackboard, not the Blackboard itself.
+
+For the technical definition of the Blackboard see `CORE-Blackboard.md`.
 
 **What the Blackboard contains:**
 - Findings posted by sensing Workers
@@ -106,7 +114,7 @@ The following obligations apply to all autonomous entities without exception:
 
 **Scope:** No entity may act outside its declared mandate. An entity that exceeds its scope is in violation regardless of the quality of its reasoning.
 
-**Proposal authority:** Workers propose; they do not execute directly. All proposals pass through constitutional enforcement gates before any action runs.
+**Proposal authority:** Workers propose; they do not execute directly. All proposals pass through constitutional enforcement gates before any action runs. The single exception is ConsumerWorker, whose declared mandate is execution of approved Proposals — it does not propose, it only executes what has already been authorized.
 
 **Thoroughness over throughput:** A Worker must not prioritize speed over accuracy. Autonomous operation is only valuable if its output is trustworthy. A Worker that produces fast but unreliable results is in violation of its mandate — confident wrong output is constitutionally worse than no output. Duration of execution is not a metric of failure. A Worker that takes two days to do its job correctly has succeeded. A Worker that takes two minutes and produces degraded output has failed.
 
@@ -119,6 +127,55 @@ Workers are started by the system and declare themselves to the Blackboard on st
 Workers are stopped constitutionally — not killed arbitrarily. In-flight Proposals at the time of termination are resolved before shutdown or explicitly marked as abandoned in the Blackboard record.
 
 A Worker whose declaration has been updated in `.intent/` operates under its new mandate for all future Proposals. Proposals created under a prior mandate are resolved under the law that was in force at the time of creation.
+
+---
+
+## 7a. Technical Run Cycle
+
+Every Worker executes the same technical cycle when started:
+
+start() → _register() → run() → [post report] → end
+
+**Step 1 — `_register()`**
+The Worker declares its identity in `core.worker_registry`. This is not
+optional. A Worker that cannot register has no constitutional standing
+and must not proceed.
+
+Registration records: `worker_uuid`, `worker_name`, `worker_class`,
+`phase`, `status=active`, `last_heartbeat=now()`.
+
+If the Worker UUID already exists in the registry (daemon restart),
+registration updates `status=active` and `last_heartbeat`.
+
+**Step 2 — `run()`**
+The Worker's single unit of constitutional work. Subclasses implement
+this method. It must:
+
+1. Post a heartbeat immediately on entry.
+2. Query the Blackboard for open findings matching its mandate.
+3. If no findings: post a report and return.
+4. Claim findings atomically (FOR UPDATE SKIP LOCKED).
+5. Process each claimed finding.
+6. Mark each finding resolved, abandoned, or deferred.
+7. Post a completion report.
+
+**Step 3 — Heartbeat**
+The heartbeat is a Blackboard entry of type `heartbeat` posted at the
+start of every `run()`. It proves the Worker is alive and constitutionally
+compliant. A Worker that does not post a heartbeat within its SLA is
+considered silent. Silence triggers ShopManager escalation.
+
+**Step 4 — Failure handling**
+If `run()` raises an unhandled exception, the Worker posts a
+`worker.error` report with `status=abandoned` and re-raises.
+In-flight claimed findings are left in `claimed` status — the
+ShopManager detects them as stale and escalates.
+
+**Step 5 — Termination**
+Workers are stopped by the daemon. In-flight findings at termination
+time must be resolved or explicitly marked `abandoned` before the
+Worker stops. A Worker that terminates with claimed findings it has
+not resolved is in violation.
 
 ---
 
@@ -154,8 +211,8 @@ Phase gates enforce sequence. No Worker acts outside its phase.
 This paper does not define:
 
 - Worker schemas or YAML structure — that is META
-- Blackboard table structure — that is infrastructure
-- Specific Worker implementations — that is code
+- Blackboard table structure — that is `CORE-Blackboard.md`
+- Specific Worker implementations — that is their dedicated papers
 - Trigger mechanisms — that is operational configuration
 
 Law precedes machinery. This paper is law. Machinery follows.

@@ -56,6 +56,47 @@ constructs a Constitutional Envelope for the target files:
 The LLM's obligation is to satisfy the rules. It is not asked to understand
 them. It is not asked to agree with them. It must satisfy them.
 
+## 4a. Technical Construction
+
+A ConstitutionalEnvelope is built by `ConstitutionalEnvelope.build(target_files)`:
+
+**Step 1 — Resolve layers**
+The target file paths are mapped to their architectural layers using
+path prefix matching (`src/will/`, `src/body/`, `src/mind/`, etc.).
+
+**Step 2 — Query rules**
+The IntentRepository is queried for all active rules via
+`list_policy_rules()`. Rules are filtered to those applicable to the
+resolved layers.
+
+**Step 3 — Deduplicate and sort**
+Duplicate rules are removed. Rules are sorted by authority precedence:
+Constitution before Policy before Code.
+
+**Step 4 — Format**
+The filtered rules are formatted as a constraints block — a structured
+text representation suitable for injection into a system prompt.
+
+**Step 5 — Return**
+The result is a `ConstitutionalEnvelope` with:
+- `text` — the formatted constraints block, ready for prompt injection
+- `rule_count` — number of rules injected
+- `layers` — the architectural layers resolved from the target files
+
+If no target files are provided, or if the IntentRepository is
+unavailable, the envelope returns empty with `rule_count=0`.
+The system fails open — LLM invocation proceeds without the envelope
+and is logged as a governance gap.
+
+## 4b. Injection
+
+The `envelope.text` is injected into the LLM system prompt as a
+dedicated section, typically labeled "Constitutional constraints" or
+"Governance requirements."
+
+The LLM is instructed that these constraints are not guidelines —
+they are requirements the produced code must satisfy.
+
 ---
 
 ## 5. Relationship to Gates

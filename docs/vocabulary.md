@@ -84,7 +84,7 @@ Who has the final right to decide. Every Rule has exactly one Authority.
 A single-purpose unit of work with a declared contract. The UNIX program
 in CORE's pipeline.
 
-→ [CORE-Adaptive-Workflow-Pattern.md](https://github.com/DariuszNewecki/CORE/blob/main/.intent/papers/CORE-Adaptive-Workflow-Pattern.md)
+→ [CORE-Action.md](https://github.com/DariuszNewecki/CORE/blob/main/.intent/papers/CORE-Action.md)
 
 ---
 
@@ -93,7 +93,7 @@ in CORE's pipeline.
 An observation posted to the Blackboard by a sensing Worker describing a
 violation or condition. Does not prescribe a response.
 
-→ [CORE-Workers-and-Governance-Model.md](https://github.com/DariuszNewecki/CORE/blob/main/.intent/papers/CORE-Workers-and-Governance-Model.md)
+→ [CORE-Finding.md](https://github.com/DariuszNewecki/CORE/blob/main/.intent/papers/CORE-Finding.md)
 
 ---
 
@@ -102,7 +102,7 @@ violation or condition. Does not prescribe a response.
 A declared, authorized intent to execute one or more Actions. Before
 authorization: a draft. After authorization: a commitment.
 
-→ [CORE-Workers-and-Governance-Model.md](https://github.com/DariuszNewecki/CORE/blob/main/.intent/papers/CORE-Workers-and-Governance-Model.md)
+→ [CORE-Proposal.md](https://github.com/DariuszNewecki/CORE/blob/main/.intent/papers/CORE-Proposal.md)
 
 ---
 
@@ -111,7 +111,7 @@ authorization: a draft. After authorization: a commitment.
 The shared ledger. The only communication channel between Workers.
 Remove it and the Octopus cannot coordinate.
 
-→ [CORE-Workers-and-Governance-Model.md](https://github.com/DariuszNewecki/CORE/blob/main/.intent/papers/CORE-Workers-and-Governance-Model.md)
+→ [CORE-Blackboard.md](https://github.com/DariuszNewecki/CORE/blob/main/.intent/papers/CORE-Blackboard.md)
 
 ---
 
@@ -170,18 +170,18 @@ These are the concrete realizations of the foundational concepts in CORE.
 | Body | The execution surface: atomic actions, gates, file writes. | [CORE-Mind-Body-Will-Separation.md](https://github.com/DariuszNewecki/CORE/blob/main/.intent/papers/CORE-Mind-Body-Will-Separation.md) |
 | Will | The autonomous layer: workers, proposals, the remediation loop. | [CORE-Mind-Body-Will-Separation.md](https://github.com/DariuszNewecki/CORE/blob/main/.intent/papers/CORE-Mind-Body-Will-Separation.md) |
 | Constitution | The supreme law in `.intent/`. Human-authored only. Immutable to CORE at runtime. | [CORE-CONSTITUTION-v0.md](https://github.com/DariuszNewecki/CORE/blob/main/.intent/constitution/CORE-CONSTITUTION-v0.md) |
-| AtomicAction | A registered, governed, single-purpose implementation of Action. | [CORE-Adaptive-Workflow-Pattern.md](https://github.com/DariuszNewecki/CORE/blob/main/.intent/papers/CORE-Adaptive-Workflow-Pattern.md) |
-| IntentRepository | The runtime index of all constitutional documents, rules, and policies in `.intent/`. | [CORE-Mind-Body-Will-Separation.md](https://github.com/DariuszNewecki/CORE/blob/main/.intent/papers/CORE-Mind-Body-Will-Separation.md) |
-| ViolationSensor | A sensing Worker that posts audit violations as Findings to the Blackboard. | [audit_violation_sensor.yaml](https://github.com/DariuszNewecki/CORE/blob/main/.intent/workers/audit_violation_sensor.yaml) |
-| RemediatorWorker | An acting Worker that claims Findings and creates Proposals via the RemediationMap. | [violation_remediator.yaml](https://github.com/DariuszNewecki/CORE/blob/main/.intent/workers/violation_remediator.yaml) |
-| ViolationExecutor | An acting Worker. Legacy LLM-direct remediation fallback for unmapped rules. | [violation_executor.yaml](https://github.com/DariuszNewecki/CORE/blob/main/.intent/workers/violation_executor.yaml) |
-| ConsumerWorker | An acting Worker that executes approved Proposals via ActionExecutor. | [proposal_consumer_worker.yaml](https://github.com/DariuszNewecki/CORE/blob/main/.intent/workers/proposal_consumer_worker.yaml) |
-| ShopManager | A Worker whose single job is supervising other Workers. | [CORE-Workers-and-Governance-Model.md](https://github.com/DariuszNewecki/CORE/blob/main/.intent/papers/CORE-Workers-and-Governance-Model.md) |
-| IntentGuard | The runtime Gate that evaluates every file write against constitutional Rules. | [CORE-Gate.md](https://github.com/DariuszNewecki/CORE/blob/main/.intent/papers/CORE-Gate.md) |
-| Canary | The execution Gate that validates a Crate before it is applied. | [CORE-Gate.md](https://github.com/DariuszNewecki/CORE/blob/main/.intent/papers/CORE-Gate.md) |
-| ConservationGate | The runtime Gate that ensures LLM-produced code preserves the logic it replaces. | [CORE-Gate.md](https://github.com/DariuszNewecki/CORE/blob/main/.intent/papers/CORE-Gate.md) |
+| AtomicAction | A registered, governed, single-purpose implementation of Action. | [CORE-Action.md](https://github.com/DariuszNewecki/CORE/blob/main/.intent/papers/CORE-Action.md) |
+| IntentRepository | The runtime index of all constitutional documents, rules, and policies in `.intent/`. | [CORE-IntentRepository.md](https://github.com/DariuszNewecki/CORE/blob/main/.intent/papers/CORE-IntentRepository.md) |
+| ViolationSensor | A sensing Worker that posts audit violations as Findings to the Blackboard. | [CORE-ViolationSensor.md](https://github.com/DariuszNewecki/CORE/blob/main/.intent/papers/CORE-ViolationSensor.md) |
+| RemediatorWorker | An acting Worker that claims Findings and creates Proposals via the RemediationMap. | [CORE-RemediatorWorker.md](https://github.com/DariuszNewecki/CORE/blob/main/.intent/papers/CORE-RemediatorWorker.md) |
+| ViolationExecutor | An acting Worker. Legacy LLM-direct remediation fallback for unmapped rules. | [CORE-ViolationExecutor.md](https://github.com/DariuszNewecki/CORE/blob/main/.intent/papers/CORE-ViolationExecutor.md) |
+| ConsumerWorker | An acting Worker that executes approved Proposals via ActionExecutor. | [CORE-ConsumerWorker.md](https://github.com/DariuszNewecki/CORE/blob/main/.intent/papers/CORE-ConsumerWorker.md) |
+| ShopManager | A Worker whose single job is supervising other Workers. | [CORE-ShopManager.md](https://github.com/DariuszNewecki/CORE/blob/main/.intent/papers/CORE-ShopManager.md) |
+| IntentGuard | The runtime Gate that evaluates every file write against constitutional Rules. | [CORE-IntentGuard.md](https://github.com/DariuszNewecki/CORE/blob/main/.intent/papers/CORE-IntentGuard.md) |
+| Canary | The execution Gate that validates a Crate before it is applied. | [CORE-Canary.md](https://github.com/DariuszNewecki/CORE/blob/main/.intent/papers/CORE-Canary.md) |
+| ConservationGate | The runtime Gate that ensures LLM-produced code preserves the logic it replaces. | [CORE-ConservationGate.md](https://github.com/DariuszNewecki/CORE/blob/main/.intent/papers/CORE-ConservationGate.md) |
 | ConstitutionalEnvelope | The set of Rules injected into an LLM prompt to constrain its output. | [CORE-ConstitutionalEnvelope.md](https://github.com/DariuszNewecki/CORE/blob/main/.intent/papers/CORE-ConstitutionalEnvelope.md) |
-| RemediationMap | The declared mapping from Rule to AtomicAction. Lives in `.intent/`. | [auto_remediation.yaml](https://github.com/DariuszNewecki/CORE/blob/main/.intent/enforcement/remediation/auto_remediation.yaml) |
+| RemediationMap | The declared mapping from Rule to AtomicAction. Lives in `.intent/`. | [CORE-RemediationMap.md](https://github.com/DariuszNewecki/CORE/blob/main/.intent/papers/CORE-RemediationMap.md) |
 
 ---
 
@@ -189,7 +189,7 @@ These are the concrete realizations of the foundational concepts in CORE.
 
 | Term | One sentence | Source |
 |------|-------------|--------|
-| Logic evaporation | LLM-produced code that is syntactically valid but silently deletes existing behavior. | [CORE-Gate.md](https://github.com/DariuszNewecki/CORE/blob/main/.intent/papers/CORE-Gate.md) |
+| Logic evaporation | LLM-produced code that is syntactically valid but silently deletes existing behavior. | [CORE-ConservationGate.md](https://github.com/DariuszNewecki/CORE/blob/main/.intent/papers/CORE-ConservationGate.md) |
 
 ---
 

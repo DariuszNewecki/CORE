@@ -104,7 +104,7 @@ Authority defines **who decides**, not **when** or **how**.
 
 ### 4. `phase`
 
-* MUST be one of: `Parse`, `Load`, `Audit`, `Runtime`, `Execution`
+* MUST be one of: `Interpret`, `Parse`, `Load`, `Audit`, `Runtime`, `Execution`
 * MUST be explicit
 * MUST NOT span multiple phases
 
