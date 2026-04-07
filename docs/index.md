@@ -37,6 +37,7 @@ CORE is a **controlled production pipeline** whose purpose is to converge toward
 ## Where to Go Next
 
 - [How It Works](how-it-works.md) — the constitutional model and enforcement loop
+- [Vocabulary](vocabulary.md) — every term CORE uses, defined precisely
 - [Autonomy Ladder](autonomy-ladder.md) — current capability level and roadmap
 - [Getting Started](getting-started.md) — install and run your first audit
 - [CLI Reference](cli-reference.md) — commands and workflows
