@@ -1,268 +1,7 @@
 [
   {
-    "check_id": "architecture.max_file_size",
-    "severity": "warning",
-    "message": "Module has 416 lines, exceeds limit of 400",
-    "file_path": "src/body/atomic/executor.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.max_file_size",
-    "severity": "warning",
-    "message": "Module has 414 lines, exceeds limit of 400",
-    "file_path": "src/body/atomic/fix_actions.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.max_file_size",
-    "severity": "warning",
-    "message": "Module has 506 lines, exceeds limit of 400",
-    "file_path": "src/body/atomic/modularity_fix.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.max_file_size",
-    "severity": "warning",
-    "message": "Module has 562 lines, exceeds limit of 400",
-    "file_path": "src/body/atomic/sync_actions.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.max_file_size",
-    "severity": "warning",
-    "message": "Module has 428 lines, exceeds limit of 400",
-    "file_path": "src/body/evaluators/atomic_actions_evaluator.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.max_file_size",
-    "severity": "warning",
-    "message": "Module has 457 lines, exceeds limit of 400",
-    "file_path": "src/body/services/blackboard_service.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.max_file_size",
-    "severity": "warning",
-    "message": "Module has 426 lines, exceeds limit of 400",
-    "file_path": "src/body/services/constitutional_validator.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.max_file_size",
-    "severity": "warning",
-    "message": "Module has 566 lines, exceeds limit of 400",
-    "file_path": "src/body/services/crawl_service/main_module.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.max_file_size",
-    "severity": "warning",
-    "message": "Module has 508 lines, exceeds limit of 400",
-    "file_path": "src/body/workers/call_site_rewriter.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.max_file_size",
-    "severity": "warning",
-    "message": "Module has 777 lines, exceeds limit of 400",
-    "file_path": "src/body/workers/violation_remediator.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.max_file_size",
-    "severity": "warning",
-    "message": "Module has 499 lines, exceeds limit of 400",
-    "file_path": "src/mind/governance/authority_package_builder.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.max_file_size",
-    "severity": "warning",
-    "message": "Module has 430 lines, exceeds limit of 400",
-    "file_path": "src/mind/logic/engines/knowledge_gate.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.max_file_size",
-    "severity": "warning",
-    "message": "Module has 583 lines, exceeds limit of 400",
-    "file_path": "src/shared/ai/prompt_model.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.max_file_size",
-    "severity": "warning",
-    "message": "Module has 449 lines, exceeds limit of 400",
-    "file_path": "src/shared/infrastructure/clients/qdrant_client.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.max_file_size",
-    "severity": "warning",
-    "message": "Module has 602 lines, exceeds limit of 400",
-    "file_path": "src/shared/infrastructure/context/builder.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.max_file_size",
-    "severity": "warning",
-    "message": "Module has 658 lines, exceeds limit of 400",
-    "file_path": "src/shared/infrastructure/intent/intent_repository.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.max_file_size",
-    "severity": "warning",
-    "message": "Module has 403 lines, exceeds limit of 400",
-    "file_path": "src/shared/path_resolver.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.max_file_size",
-    "severity": "warning",
-    "message": "Module has 599 lines, exceeds limit of 400",
-    "file_path": "src/shared/self_healing/remediation_interpretation/file_role_detector.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.max_file_size",
-    "severity": "warning",
-    "message": "Module has 421 lines, exceeds limit of 400",
-    "file_path": "src/shared/self_healing/remediation_interpretation/responsibility_extractor.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.max_file_size",
-    "severity": "warning",
-    "message": "Module has 415 lines, exceeds limit of 400",
-    "file_path": "src/will/agents/strategic_auditor/agent.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.max_file_size",
-    "severity": "warning",
-    "message": "Module has 603 lines, exceeds limit of 400",
-    "file_path": "src/will/agents/strategic_auditor/context_gatherer.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.max_file_size",
-    "severity": "warning",
-    "message": "Module has 421 lines, exceeds limit of 400",
-    "file_path": "src/will/autonomy/proposal.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.max_file_size",
-    "severity": "warning",
-    "message": "Module has 479 lines, exceeds limit of 400",
-    "file_path": "src/will/autonomy/proposal_executor.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.max_file_size",
-    "severity": "warning",
-    "message": "Module has 441 lines, exceeds limit of 400",
-    "file_path": "src/will/interpreters/request_interpreter.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.max_file_size",
-    "severity": "warning",
-    "message": "Module has 480 lines, exceeds limit of 400",
-    "file_path": "src/will/phases/code_generation_phase.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.max_file_size",
-    "severity": "warning",
-    "message": "Module has 467 lines, exceeds limit of 400",
-    "file_path": "src/will/strategists/fix_strategist.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.max_file_size",
-    "severity": "warning",
-    "message": "Module has 418 lines, exceeds limit of 400",
-    "file_path": "src/will/workers/audit_violation_sensor.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.max_file_size",
-    "severity": "warning",
-    "message": "Module has 555 lines, exceeds limit of 400",
-    "file_path": "src/will/workers/intent_inspector.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "architecture.max_file_size",
-    "severity": "warning",
-    "message": "Module has 445 lines, exceeds limit of 400",
-    "file_path": "src/will/workers/violation_remediator.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
     "check_id": "governance.dangerous_execution_primitives",
-    "severity": "info",
+    "severity": "warning",
     "message": "Forbidden primitive 'subprocess.run' used (line 82).",
     "file_path": "src/body/atomic/check_actions.py",
     "line_number": null,
@@ -271,7 +10,7 @@
   },
   {
     "check_id": "governance.dangerous_execution_primitives",
-    "severity": "info",
+    "severity": "warning",
     "message": "Forbidden primitive 'os.environ' used (line 93).",
     "file_path": "src/body/governance/runtime_validator.py",
     "line_number": null,
@@ -280,7 +19,7 @@
   },
   {
     "check_id": "governance.dangerous_execution_primitives",
-    "severity": "info",
+    "severity": "warning",
     "message": "Forbidden primitive 'os.getenv' used (line 43).",
     "file_path": "src/body/infrastructure/lifespan.py",
     "line_number": null,
@@ -289,7 +28,7 @@
   },
   {
     "check_id": "governance.dangerous_execution_primitives",
-    "severity": "info",
+    "severity": "warning",
     "message": "Forbidden primitive 'subprocess.run' used (line 91).",
     "file_path": "src/body/project_lifecycle/bootstrap_service.py",
     "line_number": null,
@@ -298,7 +37,7 @@
   },
   {
     "check_id": "governance.dangerous_execution_primitives",
-    "severity": "info",
+    "severity": "warning",
     "message": "Forbidden primitive 'subprocess.run' used (line 43).",
     "file_path": "src/body/quality/coverage_analyzer.py",
     "line_number": null,
@@ -307,7 +46,7 @@
   },
   {
     "check_id": "governance.dangerous_execution_primitives",
-    "severity": "info",
+    "severity": "warning",
     "message": "Forbidden primitive 'subprocess.run' used (line 117).",
     "file_path": "src/body/quality/coverage_analyzer.py",
     "line_number": null,
@@ -316,7 +55,7 @@
   },
   {
     "check_id": "governance.dangerous_execution_primitives",
-    "severity": "info",
+    "severity": "warning",
     "message": "Forbidden primitive 'subprocess.run' used (line 16).",
     "file_path": "src/body/self_healing/test_context/metrics.py",
     "line_number": null,
@@ -325,7 +64,7 @@
   },
   {
     "check_id": "governance.dangerous_execution_primitives",
-    "severity": "info",
+    "severity": "warning",
     "message": "Forbidden primitive 'compile' used (line 116).",
     "file_path": "src/body/services/policy_expression_evaluator.py",
     "line_number": null,
@@ -334,7 +73,7 @@
   },
   {
     "check_id": "governance.dangerous_execution_primitives",
-    "severity": "info",
+    "severity": "warning",
     "message": "Forbidden primitive 'eval' used (line 120).",
     "file_path": "src/body/services/policy_expression_evaluator.py",
     "line_number": null,
@@ -343,7 +82,16 @@
   },
   {
     "check_id": "governance.dangerous_execution_primitives",
-    "severity": "info",
+    "severity": "warning",
+    "message": "Forbidden primitive 'subprocess.run' used (line 684).",
+    "file_path": "src/body/workers/violation_remediator.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "governance.dangerous_execution_primitives",
+    "severity": "warning",
     "message": "Forbidden primitive 'subprocess.run' used (line 119).",
     "file_path": "src/cli/commands/check/quality_gates.py",
     "line_number": null,
@@ -352,7 +100,7 @@
   },
   {
     "check_id": "governance.dangerous_execution_primitives",
-    "severity": "info",
+    "severity": "warning",
     "message": "Forbidden primitive 'subprocess.run' used (line 118).",
     "file_path": "src/cli/commands/check/quality_gates.py",
     "line_number": null,
@@ -361,7 +109,7 @@
   },
   {
     "check_id": "governance.dangerous_execution_primitives",
-    "severity": "info",
+    "severity": "warning",
     "message": "Forbidden primitive 'subprocess.run' used (line 46).",
     "file_path": "src/cli/commands/coverage/services/coverage_reporter.py",
     "line_number": null,
@@ -370,7 +118,7 @@
   },
   {
     "check_id": "governance.dangerous_execution_primitives",
-    "severity": "info",
+    "severity": "warning",
     "message": "Forbidden primitive 'subprocess.run' used (line 65).",
     "file_path": "src/cli/commands/coverage/services/coverage_reporter.py",
     "line_number": null,
@@ -379,7 +127,7 @@
   },
   {
     "check_id": "governance.dangerous_execution_primitives",
-    "severity": "info",
+    "severity": "warning",
     "message": "Forbidden primitive 'os.environ' used (line 20).",
     "file_path": "src/cli/logic/interactive_test/steps/utils.py",
     "line_number": null,
@@ -388,7 +136,7 @@
   },
   {
     "check_id": "governance.dangerous_execution_primitives",
-    "severity": "info",
+    "severity": "warning",
     "message": "Forbidden primitive 'os.environ' used (line 98).",
     "file_path": "src/shared/config.py",
     "line_number": null,
@@ -397,7 +145,7 @@
   },
   {
     "check_id": "governance.dangerous_execution_primitives",
-    "severity": "info",
+    "severity": "warning",
     "message": "Forbidden primitive 'os.getenv' used (line 93).",
     "file_path": "src/shared/config.py",
     "line_number": null,
@@ -406,7 +154,7 @@
   },
   {
     "check_id": "governance.dangerous_execution_primitives",
-    "severity": "info",
+    "severity": "warning",
     "message": "Forbidden primitive 'subprocess.run' used (line 41).",
     "file_path": "src/shared/infrastructure/git_service.py",
     "line_number": null,
@@ -415,7 +163,7 @@
   },
   {
     "check_id": "governance.dangerous_execution_primitives",
-    "severity": "info",
+    "severity": "warning",
     "message": "Forbidden primitive 'subprocess.run' used (line 127).",
     "file_path": "src/shared/infrastructure/repositories/db/common.py",
     "line_number": null,
@@ -424,7 +172,7 @@
   },
   {
     "check_id": "governance.dangerous_execution_primitives",
-    "severity": "info",
+    "severity": "warning",
     "message": "Forbidden primitive 'subprocess.run' used (line 49).",
     "file_path": "src/shared/infrastructure/validation/ruff_linter.py",
     "line_number": null,
@@ -433,7 +181,7 @@
   },
   {
     "check_id": "governance.dangerous_execution_primitives",
-    "severity": "info",
+    "severity": "warning",
     "message": "Forbidden primitive 'subprocess.run' used (line 59).",
     "file_path": "src/shared/infrastructure/validation/ruff_linter.py",
     "line_number": null,
@@ -442,7 +190,7 @@
   },
   {
     "check_id": "governance.dangerous_execution_primitives",
-    "severity": "info",
+    "severity": "warning",
     "message": "Forbidden primitive 'os.getenv' used (line 20).",
     "file_path": "src/shared/logger.py",
     "line_number": null,
@@ -451,7 +199,7 @@
   },
   {
     "check_id": "governance.dangerous_execution_primitives",
-    "severity": "info",
+    "severity": "warning",
     "message": "Forbidden primitive 'os.getenv' used (line 21).",
     "file_path": "src/shared/logger.py",
     "line_number": null,
@@ -460,7 +208,7 @@
   },
   {
     "check_id": "governance.dangerous_execution_primitives",
-    "severity": "info",
+    "severity": "warning",
     "message": "Forbidden primitive 'subprocess.run' used (line 74).",
     "file_path": "src/shared/utils/subprocess_utils.py",
     "line_number": null,
@@ -469,7 +217,7 @@
   },
   {
     "check_id": "governance.dangerous_execution_primitives",
-    "severity": "info",
+    "severity": "warning",
     "message": "Forbidden primitive 'subprocess.run' used (line 541).",
     "file_path": "src/will/agents/strategic_auditor/context_gatherer.py",
     "line_number": null,
@@ -478,7 +226,7 @@
   },
   {
     "check_id": "governance.dangerous_execution_primitives",
-    "severity": "info",
+    "severity": "warning",
     "message": "Forbidden primitive 'subprocess.run' used (line 548).",
     "file_path": "src/will/agents/strategic_auditor/context_gatherer.py",
     "line_number": null,
@@ -487,7 +235,7 @@
   },
   {
     "check_id": "governance.dangerous_execution_primitives",
-    "severity": "info",
+    "severity": "warning",
     "message": "Forbidden primitive 'subprocess.run' used (line 555).",
     "file_path": "src/will/agents/strategic_auditor/context_gatherer.py",
     "line_number": null,
@@ -496,909 +244,9 @@
   },
   {
     "check_id": "governance.dangerous_execution_primitives",
-    "severity": "info",
+    "severity": "warning",
     "message": "Forbidden primitive 'os.environ' used (line 110).",
     "file_path": "src/will/test_generation/sandbox.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.single_responsibility",
-    "severity": "warning",
-    "message": "Modularity Debt: 57.2/100 (Limit: 60.0)",
-    "file_path": "src/body/atomic/modularity_fix.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.single_responsibility",
-    "severity": "warning",
-    "message": "Modularity Debt: 54.2/100 (Limit: 60.0)",
-    "file_path": "src/body/maintenance/refactor_settings_access.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.single_responsibility",
-    "severity": "warning",
-    "message": "Modularity Debt: 49.1/100 (Limit: 60.0)",
-    "file_path": "src/body/self_healing/header_service.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.single_responsibility",
-    "severity": "warning",
-    "message": "Modularity Debt: 54.0/100 (Limit: 60.0)",
-    "file_path": "src/body/services/crawl_service/main_module.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.single_responsibility",
-    "severity": "warning",
-    "message": "Modularity Debt: 59.3/100 (Limit: 60.0)",
-    "file_path": "src/body/services/service_registry.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.single_responsibility",
-    "severity": "warning",
-    "message": "Modularity Debt: 59.2/100 (Limit: 60.0)",
-    "file_path": "src/body/workers/call_site_rewriter.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.single_responsibility",
-    "severity": "warning",
-    "message": "Modularity Debt: 52.8/100 (Limit: 60.0)",
-    "file_path": "src/body/workers/doc_writer.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.single_responsibility",
-    "severity": "warning",
-    "message": "Modularity Debt: 58.4/100 (Limit: 60.0)",
-    "file_path": "src/body/workers/violation_remediator.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.single_responsibility",
-    "severity": "warning",
-    "message": "Modularity Debt: 53.3/100 (Limit: 60.0)",
-    "file_path": "src/cli/commands/check/formatters.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.single_responsibility",
-    "severity": "warning",
-    "message": "Modularity Debt: 56.0/100 (Limit: 60.0)",
-    "file_path": "src/cli/commands/governance.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.single_responsibility",
-    "severity": "warning",
-    "message": "Modularity Debt: 62.5/100 (Limit: 60.0)",
-    "file_path": "src/cli/resources/context/build.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.single_responsibility",
-    "severity": "warning",
-    "message": "Modularity Debt: 54.0/100 (Limit: 60.0)",
-    "file_path": "src/mind/governance/authority_package_builder.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.single_responsibility",
-    "severity": "warning",
-    "message": "Modularity Debt: 49.2/100 (Limit: 60.0)",
-    "file_path": "src/mind/logic/engines/glob_gate.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.single_responsibility",
-    "severity": "warning",
-    "message": "Modularity Debt: 60.5/100 (Limit: 60.0)",
-    "file_path": "src/mind/logic/engines/knowledge_gate.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.single_responsibility",
-    "severity": "warning",
-    "message": "Modularity Debt: 60.1/100 (Limit: 60.0)",
-    "file_path": "src/shared/ai/prompt_model.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.single_responsibility",
-    "severity": "warning",
-    "message": "Modularity Debt: 50.7/100 (Limit: 60.0)",
-    "file_path": "src/shared/infrastructure/context/builder.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.single_responsibility",
-    "severity": "warning",
-    "message": "Modularity Debt: 60.7/100 (Limit: 60.0)",
-    "file_path": "src/shared/infrastructure/context/cli.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.single_responsibility",
-    "severity": "warning",
-    "message": "Modularity Debt: 50.9/100 (Limit: 60.0)",
-    "file_path": "src/shared/infrastructure/intent/intent_repository.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.single_responsibility",
-    "severity": "warning",
-    "message": "Modularity Debt: 48.3/100 (Limit: 60.0)",
-    "file_path": "src/shared/self_healing/remediation_interpretation/file_role_detector.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.single_responsibility",
-    "severity": "warning",
-    "message": "Modularity Debt: 60.3/100 (Limit: 60.0)",
-    "file_path": "src/shared/workers/base.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.single_responsibility",
-    "severity": "warning",
-    "message": "Modularity Debt: 52.2/100 (Limit: 60.0)",
-    "file_path": "src/will/autonomy/proposal_service.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.single_responsibility",
-    "severity": "warning",
-    "message": "Modularity Debt: 51.6/100 (Limit: 60.0)",
-    "file_path": "src/will/commands/daemon.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.single_responsibility",
-    "severity": "warning",
-    "message": "Modularity Debt: 52.3/100 (Limit: 60.0)",
-    "file_path": "src/will/self_healing/complexity_service.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.single_responsibility",
-    "severity": "warning",
-    "message": "Modularity Debt: 50.4/100 (Limit: 60.0)",
-    "file_path": "src/will/test_generation/sandbox.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.single_responsibility",
-    "severity": "warning",
-    "message": "Modularity Debt: 58.3/100 (Limit: 60.0)",
-    "file_path": "src/will/workers/intent_inspector.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.semantic_cohesion",
-    "severity": "warning",
-    "message": "Modularity Debt: 57.2/100 (Limit: 60.0)",
-    "file_path": "src/body/atomic/modularity_fix.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.semantic_cohesion",
-    "severity": "warning",
-    "message": "Modularity Debt: 54.2/100 (Limit: 60.0)",
-    "file_path": "src/body/maintenance/refactor_settings_access.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.semantic_cohesion",
-    "severity": "warning",
-    "message": "Modularity Debt: 49.1/100 (Limit: 60.0)",
-    "file_path": "src/body/self_healing/header_service.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.semantic_cohesion",
-    "severity": "warning",
-    "message": "Modularity Debt: 54.0/100 (Limit: 60.0)",
-    "file_path": "src/body/services/crawl_service/main_module.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.semantic_cohesion",
-    "severity": "warning",
-    "message": "Modularity Debt: 59.3/100 (Limit: 60.0)",
-    "file_path": "src/body/services/service_registry.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.semantic_cohesion",
-    "severity": "warning",
-    "message": "Modularity Debt: 59.2/100 (Limit: 60.0)",
-    "file_path": "src/body/workers/call_site_rewriter.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.semantic_cohesion",
-    "severity": "warning",
-    "message": "Modularity Debt: 52.8/100 (Limit: 60.0)",
-    "file_path": "src/body/workers/doc_writer.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.semantic_cohesion",
-    "severity": "warning",
-    "message": "Modularity Debt: 58.4/100 (Limit: 60.0)",
-    "file_path": "src/body/workers/violation_remediator.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.semantic_cohesion",
-    "severity": "warning",
-    "message": "Modularity Debt: 53.3/100 (Limit: 60.0)",
-    "file_path": "src/cli/commands/check/formatters.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.semantic_cohesion",
-    "severity": "warning",
-    "message": "Modularity Debt: 56.0/100 (Limit: 60.0)",
-    "file_path": "src/cli/commands/governance.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.semantic_cohesion",
-    "severity": "warning",
-    "message": "Modularity Debt: 62.5/100 (Limit: 60.0)",
-    "file_path": "src/cli/resources/context/build.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.semantic_cohesion",
-    "severity": "warning",
-    "message": "Modularity Debt: 54.0/100 (Limit: 60.0)",
-    "file_path": "src/mind/governance/authority_package_builder.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.semantic_cohesion",
-    "severity": "warning",
-    "message": "Modularity Debt: 49.2/100 (Limit: 60.0)",
-    "file_path": "src/mind/logic/engines/glob_gate.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.semantic_cohesion",
-    "severity": "warning",
-    "message": "Modularity Debt: 60.5/100 (Limit: 60.0)",
-    "file_path": "src/mind/logic/engines/knowledge_gate.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.semantic_cohesion",
-    "severity": "warning",
-    "message": "Modularity Debt: 60.1/100 (Limit: 60.0)",
-    "file_path": "src/shared/ai/prompt_model.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.semantic_cohesion",
-    "severity": "warning",
-    "message": "Modularity Debt: 50.7/100 (Limit: 60.0)",
-    "file_path": "src/shared/infrastructure/context/builder.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.semantic_cohesion",
-    "severity": "warning",
-    "message": "Modularity Debt: 60.7/100 (Limit: 60.0)",
-    "file_path": "src/shared/infrastructure/context/cli.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.semantic_cohesion",
-    "severity": "warning",
-    "message": "Modularity Debt: 50.9/100 (Limit: 60.0)",
-    "file_path": "src/shared/infrastructure/intent/intent_repository.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.semantic_cohesion",
-    "severity": "warning",
-    "message": "Modularity Debt: 48.3/100 (Limit: 60.0)",
-    "file_path": "src/shared/self_healing/remediation_interpretation/file_role_detector.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.semantic_cohesion",
-    "severity": "warning",
-    "message": "Modularity Debt: 60.3/100 (Limit: 60.0)",
-    "file_path": "src/shared/workers/base.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.semantic_cohesion",
-    "severity": "warning",
-    "message": "Modularity Debt: 52.2/100 (Limit: 60.0)",
-    "file_path": "src/will/autonomy/proposal_service.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.semantic_cohesion",
-    "severity": "warning",
-    "message": "Modularity Debt: 51.6/100 (Limit: 60.0)",
-    "file_path": "src/will/commands/daemon.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.semantic_cohesion",
-    "severity": "warning",
-    "message": "Modularity Debt: 52.3/100 (Limit: 60.0)",
-    "file_path": "src/will/self_healing/complexity_service.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.semantic_cohesion",
-    "severity": "warning",
-    "message": "Modularity Debt: 50.4/100 (Limit: 60.0)",
-    "file_path": "src/will/test_generation/sandbox.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.semantic_cohesion",
-    "severity": "warning",
-    "message": "Modularity Debt: 58.3/100 (Limit: 60.0)",
-    "file_path": "src/will/workers/intent_inspector.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.import_coupling",
-    "severity": "warning",
-    "message": "Modularity Debt: 57.2/100 (Limit: 60.0)",
-    "file_path": "src/body/atomic/modularity_fix.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.import_coupling",
-    "severity": "warning",
-    "message": "Modularity Debt: 54.2/100 (Limit: 60.0)",
-    "file_path": "src/body/maintenance/refactor_settings_access.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.import_coupling",
-    "severity": "warning",
-    "message": "Modularity Debt: 49.1/100 (Limit: 60.0)",
-    "file_path": "src/body/self_healing/header_service.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.import_coupling",
-    "severity": "warning",
-    "message": "Modularity Debt: 54.0/100 (Limit: 60.0)",
-    "file_path": "src/body/services/crawl_service/main_module.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.import_coupling",
-    "severity": "warning",
-    "message": "Modularity Debt: 59.3/100 (Limit: 60.0)",
-    "file_path": "src/body/services/service_registry.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.import_coupling",
-    "severity": "warning",
-    "message": "Modularity Debt: 59.2/100 (Limit: 60.0)",
-    "file_path": "src/body/workers/call_site_rewriter.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.import_coupling",
-    "severity": "warning",
-    "message": "Modularity Debt: 52.8/100 (Limit: 60.0)",
-    "file_path": "src/body/workers/doc_writer.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.import_coupling",
-    "severity": "warning",
-    "message": "Modularity Debt: 58.4/100 (Limit: 60.0)",
-    "file_path": "src/body/workers/violation_remediator.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.import_coupling",
-    "severity": "warning",
-    "message": "Modularity Debt: 53.3/100 (Limit: 60.0)",
-    "file_path": "src/cli/commands/check/formatters.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.import_coupling",
-    "severity": "warning",
-    "message": "Modularity Debt: 56.0/100 (Limit: 60.0)",
-    "file_path": "src/cli/commands/governance.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.import_coupling",
-    "severity": "warning",
-    "message": "Modularity Debt: 62.5/100 (Limit: 60.0)",
-    "file_path": "src/cli/resources/context/build.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.import_coupling",
-    "severity": "warning",
-    "message": "Modularity Debt: 54.0/100 (Limit: 60.0)",
-    "file_path": "src/mind/governance/authority_package_builder.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.import_coupling",
-    "severity": "warning",
-    "message": "Modularity Debt: 49.2/100 (Limit: 60.0)",
-    "file_path": "src/mind/logic/engines/glob_gate.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.import_coupling",
-    "severity": "warning",
-    "message": "Modularity Debt: 60.5/100 (Limit: 60.0)",
-    "file_path": "src/mind/logic/engines/knowledge_gate.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.import_coupling",
-    "severity": "warning",
-    "message": "Modularity Debt: 60.1/100 (Limit: 60.0)",
-    "file_path": "src/shared/ai/prompt_model.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.import_coupling",
-    "severity": "warning",
-    "message": "Modularity Debt: 50.7/100 (Limit: 60.0)",
-    "file_path": "src/shared/infrastructure/context/builder.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.import_coupling",
-    "severity": "warning",
-    "message": "Modularity Debt: 60.7/100 (Limit: 60.0)",
-    "file_path": "src/shared/infrastructure/context/cli.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.import_coupling",
-    "severity": "warning",
-    "message": "Modularity Debt: 50.9/100 (Limit: 60.0)",
-    "file_path": "src/shared/infrastructure/intent/intent_repository.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.import_coupling",
-    "severity": "warning",
-    "message": "Modularity Debt: 48.3/100 (Limit: 60.0)",
-    "file_path": "src/shared/self_healing/remediation_interpretation/file_role_detector.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.import_coupling",
-    "severity": "warning",
-    "message": "Modularity Debt: 60.3/100 (Limit: 60.0)",
-    "file_path": "src/shared/workers/base.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.import_coupling",
-    "severity": "warning",
-    "message": "Modularity Debt: 52.2/100 (Limit: 60.0)",
-    "file_path": "src/will/autonomy/proposal_service.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.import_coupling",
-    "severity": "warning",
-    "message": "Modularity Debt: 51.6/100 (Limit: 60.0)",
-    "file_path": "src/will/commands/daemon.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.import_coupling",
-    "severity": "warning",
-    "message": "Modularity Debt: 52.3/100 (Limit: 60.0)",
-    "file_path": "src/will/self_healing/complexity_service.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.import_coupling",
-    "severity": "warning",
-    "message": "Modularity Debt: 50.4/100 (Limit: 60.0)",
-    "file_path": "src/will/test_generation/sandbox.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.import_coupling",
-    "severity": "warning",
-    "message": "Modularity Debt: 58.3/100 (Limit: 60.0)",
-    "file_path": "src/will/workers/intent_inspector.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.refactor_score_threshold",
-    "severity": "warning",
-    "message": "Modularity Debt: 57.2/100 (Limit: 60.0)",
-    "file_path": "src/body/atomic/modularity_fix.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.refactor_score_threshold",
-    "severity": "warning",
-    "message": "Modularity Debt: 54.2/100 (Limit: 60.0)",
-    "file_path": "src/body/maintenance/refactor_settings_access.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.refactor_score_threshold",
-    "severity": "warning",
-    "message": "Modularity Debt: 49.1/100 (Limit: 60.0)",
-    "file_path": "src/body/self_healing/header_service.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.refactor_score_threshold",
-    "severity": "warning",
-    "message": "Modularity Debt: 54.0/100 (Limit: 60.0)",
-    "file_path": "src/body/services/crawl_service/main_module.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.refactor_score_threshold",
-    "severity": "warning",
-    "message": "Modularity Debt: 59.3/100 (Limit: 60.0)",
-    "file_path": "src/body/services/service_registry.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.refactor_score_threshold",
-    "severity": "warning",
-    "message": "Modularity Debt: 59.2/100 (Limit: 60.0)",
-    "file_path": "src/body/workers/call_site_rewriter.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.refactor_score_threshold",
-    "severity": "warning",
-    "message": "Modularity Debt: 52.8/100 (Limit: 60.0)",
-    "file_path": "src/body/workers/doc_writer.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.refactor_score_threshold",
-    "severity": "warning",
-    "message": "Modularity Debt: 58.4/100 (Limit: 60.0)",
-    "file_path": "src/body/workers/violation_remediator.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.refactor_score_threshold",
-    "severity": "warning",
-    "message": "Modularity Debt: 53.3/100 (Limit: 60.0)",
-    "file_path": "src/cli/commands/check/formatters.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.refactor_score_threshold",
-    "severity": "warning",
-    "message": "Modularity Debt: 56.0/100 (Limit: 60.0)",
-    "file_path": "src/cli/commands/governance.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.refactor_score_threshold",
-    "severity": "warning",
-    "message": "Modularity Debt: 62.5/100 (Limit: 60.0)",
-    "file_path": "src/cli/resources/context/build.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.refactor_score_threshold",
-    "severity": "warning",
-    "message": "Modularity Debt: 54.0/100 (Limit: 60.0)",
-    "file_path": "src/mind/governance/authority_package_builder.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.refactor_score_threshold",
-    "severity": "warning",
-    "message": "Modularity Debt: 49.2/100 (Limit: 60.0)",
-    "file_path": "src/mind/logic/engines/glob_gate.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.refactor_score_threshold",
-    "severity": "warning",
-    "message": "Modularity Debt: 60.5/100 (Limit: 60.0)",
-    "file_path": "src/mind/logic/engines/knowledge_gate.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.refactor_score_threshold",
-    "severity": "warning",
-    "message": "Modularity Debt: 60.1/100 (Limit: 60.0)",
-    "file_path": "src/shared/ai/prompt_model.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.refactor_score_threshold",
-    "severity": "warning",
-    "message": "Modularity Debt: 50.7/100 (Limit: 60.0)",
-    "file_path": "src/shared/infrastructure/context/builder.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.refactor_score_threshold",
-    "severity": "warning",
-    "message": "Modularity Debt: 60.7/100 (Limit: 60.0)",
-    "file_path": "src/shared/infrastructure/context/cli.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.refactor_score_threshold",
-    "severity": "warning",
-    "message": "Modularity Debt: 50.9/100 (Limit: 60.0)",
-    "file_path": "src/shared/infrastructure/intent/intent_repository.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.refactor_score_threshold",
-    "severity": "warning",
-    "message": "Modularity Debt: 48.3/100 (Limit: 60.0)",
-    "file_path": "src/shared/self_healing/remediation_interpretation/file_role_detector.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.refactor_score_threshold",
-    "severity": "warning",
-    "message": "Modularity Debt: 60.3/100 (Limit: 60.0)",
-    "file_path": "src/shared/workers/base.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.refactor_score_threshold",
-    "severity": "warning",
-    "message": "Modularity Debt: 52.2/100 (Limit: 60.0)",
-    "file_path": "src/will/autonomy/proposal_service.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.refactor_score_threshold",
-    "severity": "warning",
-    "message": "Modularity Debt: 51.6/100 (Limit: 60.0)",
-    "file_path": "src/will/commands/daemon.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.refactor_score_threshold",
-    "severity": "warning",
-    "message": "Modularity Debt: 52.3/100 (Limit: 60.0)",
-    "file_path": "src/will/self_healing/complexity_service.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.refactor_score_threshold",
-    "severity": "warning",
-    "message": "Modularity Debt: 50.4/100 (Limit: 60.0)",
-    "file_path": "src/will/test_generation/sandbox.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "modularity.refactor_score_threshold",
-    "severity": "warning",
-    "message": "Modularity Debt: 58.3/100 (Limit: 60.0)",
-    "file_path": "src/will/workers/intent_inspector.py",
     "line_number": null,
     "context": {},
     "details": {}
@@ -1431,829 +279,424 @@
     "details": {}
   },
   {
-    "check_id": "purity.no_todo_placeholders",
+    "check_id": "modularity.needs_split",
     "severity": "warning",
-    "message": "Forbidden Content [Line 417]: Matched restricted regex '\\bTODO\\b'",
+    "message": "File has 415 lines (limit 400) with only 1 concern(s) \u2014 consider splitting",
+    "file_path": "src/body/atomic/fix_actions.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "modularity.needs_split",
+    "severity": "warning",
+    "message": "File has 461 lines (limit 400) with only 2 concern(s) \u2014 consider splitting",
+    "file_path": "src/body/atomic/modularity_fix.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "modularity.needs_split",
+    "severity": "warning",
+    "message": "File has 428 lines (limit 400) with only 2 concern(s) \u2014 consider splitting",
+    "file_path": "src/body/evaluators/atomic_actions_evaluator.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "modularity.needs_split",
+    "severity": "warning",
+    "message": "File has 426 lines (limit 400) with only 1 concern(s) \u2014 consider splitting",
+    "file_path": "src/body/services/constitutional_validator.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "modularity.needs_split",
+    "severity": "warning",
+    "message": "File has 499 lines (limit 400) with only 1 concern(s) \u2014 consider splitting",
+    "file_path": "src/mind/governance/authority_package_builder.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "modularity.needs_split",
+    "severity": "warning",
+    "message": "File has 583 lines (limit 400) with only 2 concern(s) \u2014 consider splitting",
+    "file_path": "src/shared/ai/prompt_model.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "modularity.needs_split",
+    "severity": "warning",
+    "message": "File has 449 lines (limit 400) with only 1 concern(s) \u2014 consider splitting",
+    "file_path": "src/shared/infrastructure/clients/qdrant_client.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "modularity.needs_split",
+    "severity": "warning",
+    "message": "File has 603 lines (limit 400) with only 1 concern(s) \u2014 consider splitting",
+    "file_path": "src/shared/infrastructure/context/builder.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "modularity.needs_split",
+    "severity": "warning",
+    "message": "File has 658 lines (limit 400) with only 2 concern(s) \u2014 consider splitting",
+    "file_path": "src/shared/infrastructure/intent/intent_repository.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "modularity.needs_split",
+    "severity": "warning",
+    "message": "File has 403 lines (limit 400) with only 2 concern(s) \u2014 consider splitting",
+    "file_path": "src/shared/path_resolver.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "modularity.needs_split",
+    "severity": "warning",
+    "message": "File has 599 lines (limit 400) with only 0 concern(s) \u2014 consider splitting",
+    "file_path": "src/shared/self_healing/remediation_interpretation/file_role_detector.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "modularity.needs_split",
+    "severity": "warning",
+    "message": "File has 421 lines (limit 400) with only 0 concern(s) \u2014 consider splitting",
+    "file_path": "src/shared/self_healing/remediation_interpretation/responsibility_extractor.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "modularity.needs_split",
+    "severity": "warning",
+    "message": "File has 422 lines (limit 400) with only 1 concern(s) \u2014 consider splitting",
+    "file_path": "src/will/autonomy/proposal.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "modularity.needs_split",
+    "severity": "warning",
+    "message": "File has 480 lines (limit 400) with only 2 concern(s) \u2014 consider splitting",
     "file_path": "src/will/autonomy/proposal_executor.py",
     "line_number": null,
     "context": {},
     "details": {}
   },
   {
-    "check_id": "purity.no_orphan_files",
+    "check_id": "modularity.needs_split",
     "severity": "warning",
-    "message": "Orphan file: 'src/body/invokers/capability_invoker.py' is not reachable from any entry point.",
-    "file_path": "src/body/invokers/capability_invoker.py",
+    "message": "File has 441 lines (limit 400) with only 1 concern(s) \u2014 consider splitting",
+    "file_path": "src/will/interpreters/request_interpreter.py",
     "line_number": null,
     "context": {},
     "details": {}
   },
   {
-    "check_id": "purity.no_orphan_files",
+    "check_id": "modularity.needs_split",
     "severity": "warning",
-    "message": "Orphan file: 'src/body/maintenance/scripts/context_export.py' is not reachable from any entry point.",
-    "file_path": "src/body/maintenance/scripts/context_export.py",
+    "message": "File has 480 lines (limit 400) with only 2 concern(s) \u2014 consider splitting",
+    "file_path": "src/will/phases/code_generation_phase.py",
     "line_number": null,
     "context": {},
     "details": {}
   },
   {
-    "check_id": "purity.no_orphan_files",
+    "check_id": "modularity.needs_split",
     "severity": "warning",
-    "message": "Orphan file: 'src/body/maintenance/scripts/vector_verify.py' is not reachable from any entry point.",
-    "file_path": "src/body/maintenance/scripts/vector_verify.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/body/project_lifecycle/bootstrap_service.py' is not reachable from any entry point.",
-    "file_path": "src/body/project_lifecycle/bootstrap_service.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/body/project_lifecycle/definition_service.py' is not reachable from any entry point.",
-    "file_path": "src/body/project_lifecycle/definition_service.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/body/self_healing/capability_parser.py' is not reachable from any entry point.",
-    "file_path": "src/body/self_healing/capability_parser.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/body/self_healing/complexity_filter.py' is not reachable from any entry point.",
-    "file_path": "src/body/self_healing/complexity_filter.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/body/self_healing/handlers/id_assignment_handler.py' is not reachable from any entry point.",
-    "file_path": "src/body/self_healing/handlers/id_assignment_handler.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/body/self_healing/owner_tagging_service.py' is not reachable from any entry point.",
-    "file_path": "src/body/self_healing/owner_tagging_service.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/body/self_healing/prune_private_capabilities.py' is not reachable from any entry point.",
-    "file_path": "src/body/self_healing/prune_private_capabilities.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/body/self_healing/test_context/detectors.py' is not reachable from any entry point.",
-    "file_path": "src/body/self_healing/test_context/detectors.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/body/self_healing/test_context/examples.py' is not reachable from any entry point.",
-    "file_path": "src/body/self_healing/test_context/examples.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/body/self_healing/test_context/formatter.py' is not reachable from any entry point.",
-    "file_path": "src/body/self_healing/test_context/formatter.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/body/self_healing/test_context/metrics.py' is not reachable from any entry point.",
-    "file_path": "src/body/self_healing/test_context/metrics.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/body/self_healing/test_context/models.py' is not reachable from any entry point.",
-    "file_path": "src/body/self_healing/test_context/models.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/body/self_healing/test_context/parsers.py' is not reachable from any entry point.",
-    "file_path": "src/body/self_healing/test_context/parsers.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/body/self_healing/test_context_analyzer.py' is not reachable from any entry point.",
-    "file_path": "src/body/self_healing/test_context_analyzer.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/body/self_healing/test_failure_analyzer.py' is not reachable from any entry point.",
-    "file_path": "src/body/self_healing/test_failure_analyzer.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/mind/governance/micro_proposal_validator.py' is not reachable from any entry point.",
-    "file_path": "src/mind/governance/micro_proposal_validator.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/shared/cli_types.py' is not reachable from any entry point.",
-    "file_path": "src/shared/cli_types.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/shared/infrastructure/adapters/embedding_provider.py' is not reachable from any entry point.",
-    "file_path": "src/shared/infrastructure/adapters/embedding_provider.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/shared/infrastructure/context/cli.py' is not reachable from any entry point.",
-    "file_path": "src/shared/infrastructure/context/cli.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/shared/infrastructure/context/reuse.py' is not reachable from any entry point.",
-    "file_path": "src/shared/infrastructure/context/reuse.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/shared/infrastructure/events/base.py' is not reachable from any entry point.",
-    "file_path": "src/shared/infrastructure/events/base.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/shared/infrastructure/events/bus.py' is not reachable from any entry point.",
-    "file_path": "src/shared/infrastructure/events/bus.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/shared/infrastructure/intent/intent_connector.py' is not reachable from any entry point.",
-    "file_path": "src/shared/infrastructure/intent/intent_connector.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/shared/infrastructure/repositories/decision_trace_repository.py' is not reachable from any entry point.",
-    "file_path": "src/shared/infrastructure/repositories/decision_trace_repository.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/shared/infrastructure/repositories/refusal_repository.py' is not reachable from any entry point.",
-    "file_path": "src/shared/infrastructure/repositories/refusal_repository.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/shared/infrastructure/repositories/symbol_definition_repository.py' is not reachable from any entry point.",
-    "file_path": "src/shared/infrastructure/repositories/symbol_definition_repository.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/shared/infrastructure/storage/file_provider.py' is not reachable from any entry point.",
-    "file_path": "src/shared/infrastructure/storage/file_provider.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/shared/models/pattern_graph.py' is not reachable from any entry point.",
-    "file_path": "src/shared/models/pattern_graph.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/shared/utils/header_tools.py' is not reachable from any entry point.",
-    "file_path": "src/shared/utils/header_tools.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/shared/utils/path_utils.py' is not reachable from any entry point.",
-    "file_path": "src/shared/utils/path_utils.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/will/agents/governance_mixin.py' is not reachable from any entry point.",
-    "file_path": "src/will/agents/governance_mixin.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/will/agents/micro_planner.py' is not reachable from any entry point.",
-    "file_path": "src/will/agents/micro_planner.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/will/agents/plan_executor.py' is not reachable from any entry point.",
-    "file_path": "src/will/agents/plan_executor.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/will/autonomy/proposal_service.py' is not reachable from any entry point.",
-    "file_path": "src/will/autonomy/proposal_service.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/will/cli_logic/proposals_micro.py' is not reachable from any entry point.",
-    "file_path": "src/will/cli_logic/proposals_micro.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/will/cli_logic/reviewer.py' is not reachable from any entry point.",
-    "file_path": "src/will/cli_logic/reviewer.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/will/orchestration/intent_alignment.py' is not reachable from any entry point.",
-    "file_path": "src/will/orchestration/intent_alignment.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/will/orchestration/process_orchestrator.py' is not reachable from any entry point.",
-    "file_path": "src/will/orchestration/process_orchestrator.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/will/orchestration/remediation_orchestrator.py' is not reachable from any entry point.",
-    "file_path": "src/will/orchestration/remediation_orchestrator.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/will/self_healing/alignment/persistence.py' is not reachable from any entry point.",
-    "file_path": "src/will/self_healing/alignment/persistence.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/will/self_healing/alignment/sandbox.py' is not reachable from any entry point.",
-    "file_path": "src/will/self_healing/alignment/sandbox.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/will/self_healing/alignment/specialists.py' is not reachable from any entry point.",
-    "file_path": "src/will/self_healing/alignment/specialists.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/will/self_healing/alignment_orchestrator.py' is not reachable from any entry point.",
-    "file_path": "src/will/self_healing/alignment_orchestrator.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/will/self_healing/batch_remediation_service.py' is not reachable from any entry point.",
-    "file_path": "src/will/self_healing/batch_remediation_service.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/will/self_healing/capability_reconciliation_service.py' is not reachable from any entry point.",
-    "file_path": "src/will/self_healing/capability_reconciliation_service.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/will/self_healing/context_aware_test_generator.py' is not reachable from any entry point.",
-    "file_path": "src/will/self_healing/context_aware_test_generator.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/will/self_healing/coverage_remediation_service.py' is not reachable from any entry point.",
-    "file_path": "src/will/self_healing/coverage_remediation_service.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/will/self_healing/coverage_watcher.py' is not reachable from any entry point.",
-    "file_path": "src/will/self_healing/coverage_watcher.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/will/self_healing/enrichment_service.py' is not reachable from any entry point.",
-    "file_path": "src/will/self_healing/enrichment_service.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/will/self_healing/linelength_service.py' is not reachable from any entry point.",
-    "file_path": "src/will/self_healing/linelength_service.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/will/self_healing/refactoring_proposal_writer.py' is not reachable from any entry point.",
-    "file_path": "src/will/self_healing/refactoring_proposal_writer.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/will/self_healing/simple_test_generator.py' is not reachable from any entry point.",
-    "file_path": "src/will/self_healing/simple_test_generator.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/will/self_healing/single_file_remediation.py' is not reachable from any entry point.",
-    "file_path": "src/will/self_healing/single_file_remediation.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/will/self_healing/test_generation/automatic_repair.py' is not reachable from any entry point.",
-    "file_path": "src/will/self_healing/test_generation/automatic_repair.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/will/self_healing/test_generation/code_extractor.py' is not reachable from any entry point.",
-    "file_path": "src/will/self_healing/test_generation/code_extractor.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/will/self_healing/test_generation/context_builder.py' is not reachable from any entry point.",
-    "file_path": "src/will/self_healing/test_generation/context_builder.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/will/self_healing/test_generation/executor.py' is not reachable from any entry point.",
-    "file_path": "src/will/self_healing/test_generation/executor.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/will/self_healing/test_generation/failure_parser.py' is not reachable from any entry point.",
-    "file_path": "src/will/self_healing/test_generation/failure_parser.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/will/self_healing/test_generation/generation_workflow.py' is not reachable from any entry point.",
-    "file_path": "src/will/self_healing/test_generation/generation_workflow.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/will/self_healing/test_generation/generator.py' is not reachable from any entry point.",
-    "file_path": "src/will/self_healing/test_generation/generator.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/will/self_healing/test_generation/llm_correction.py' is not reachable from any entry point.",
-    "file_path": "src/will/self_healing/test_generation/llm_correction.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/will/self_healing/test_generation/repair_workflow.py' is not reachable from any entry point.",
-    "file_path": "src/will/self_healing/test_generation/repair_workflow.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/will/self_healing/test_generation/single_test_fixer.py' is not reachable from any entry point.",
-    "file_path": "src/will/self_healing/test_generation/single_test_fixer.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/will/self_healing/test_generation/test_extractor.py' is not reachable from any entry point.",
-    "file_path": "src/will/self_healing/test_generation/test_extractor.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/will/self_healing/test_generation/test_scorer.py' is not reachable from any entry point.",
-    "file_path": "src/will/self_healing/test_generation/test_scorer.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/will/self_healing/test_generation/test_validator.py' is not reachable from any entry point.",
-    "file_path": "src/will/self_healing/test_generation/test_validator.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/will/self_healing/test_generator.py' is not reachable from any entry point.",
-    "file_path": "src/will/self_healing/test_generator.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/will/strategists/fix_strategist.py' is not reachable from any entry point.",
+    "message": "File has 467 lines (limit 400) with only 1 concern(s) \u2014 consider splitting",
     "file_path": "src/will/strategists/fix_strategist.py",
     "line_number": null,
     "context": {},
     "details": {}
   },
   {
-    "check_id": "purity.no_orphan_files",
+    "check_id": "modularity.needs_split",
     "severity": "warning",
-    "message": "Orphan file: 'src/will/strategists/sync_strategist.py' is not reachable from any entry point.",
-    "file_path": "src/will/strategists/sync_strategist.py",
+    "message": "File has 418 lines (limit 400) with only 1 concern(s) \u2014 consider splitting",
+    "file_path": "src/will/workers/audit_violation_sensor.py",
     "line_number": null,
     "context": {},
     "details": {}
   },
   {
-    "check_id": "purity.no_orphan_files",
+    "check_id": "modularity.needs_split",
     "severity": "warning",
-    "message": "Orphan file: 'src/will/strategists/validation_strategist.py' is not reachable from any entry point.",
-    "file_path": "src/will/strategists/validation_strategist.py",
+    "message": "File has 448 lines (limit 400) with only 1 concern(s) \u2014 consider splitting",
+    "file_path": "src/will/workers/violation_remediator.py",
     "line_number": null,
     "context": {},
     "details": {}
   },
   {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/will/test_generation/helpers/context_extractor.py' is not reachable from any entry point.",
-    "file_path": "src/will/test_generation/helpers/context_extractor.py",
+    "check_id": "modularity.needs_refactor",
+    "severity": "error",
+    "message": "File touches 4 concern areas (limit 3) \u2014 mixed disciplines",
+    "file_path": "src/body/introspection/capability_discovery_service.py",
     "line_number": null,
     "context": {},
     "details": {}
   },
   {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/will/test_generation/helpers/test_executor.py' is not reachable from any entry point.",
-    "file_path": "src/will/test_generation/helpers/test_executor.py",
+    "check_id": "modularity.needs_refactor",
+    "severity": "error",
+    "message": "File touches 4 concern areas (limit 3) \u2014 mixed disciplines",
+    "file_path": "src/body/introspection/generate_capability_docs.py",
     "line_number": null,
     "context": {},
     "details": {}
   },
   {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/will/test_generation/phases/generation_phase.py' is not reachable from any entry point.",
-    "file_path": "src/will/test_generation/phases/generation_phase.py",
+    "check_id": "modularity.needs_refactor",
+    "severity": "error",
+    "message": "File touches 4 concern areas (limit 3) \u2014 mixed disciplines",
+    "file_path": "src/body/introspection/semantic_clusterer.py",
     "line_number": null,
     "context": {},
     "details": {}
   },
   {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/will/test_generation/phases/load_phase.py' is not reachable from any entry point.",
-    "file_path": "src/will/test_generation/phases/load_phase.py",
+    "check_id": "modularity.needs_refactor",
+    "severity": "error",
+    "message": "File touches 4 concern areas (limit 3) \u2014 mixed disciplines",
+    "file_path": "src/body/maintenance/command_sync_service.py",
     "line_number": null,
     "context": {},
     "details": {}
   },
   {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/will/test_generation/phases/parse_phase.py' is not reachable from any entry point.",
-    "file_path": "src/will/test_generation/phases/parse_phase.py",
+    "check_id": "modularity.needs_refactor",
+    "severity": "error",
+    "message": "File touches 4 concern areas (limit 3) \u2014 mixed disciplines",
+    "file_path": "src/body/project_lifecycle/definition_service.py",
     "line_number": null,
     "context": {},
     "details": {}
   },
   {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/will/test_generation/strategy_link.py' is not reachable from any entry point.",
-    "file_path": "src/will/test_generation/strategy_link.py",
+    "check_id": "modularity.needs_refactor",
+    "severity": "error",
+    "message": "File touches 4 concern areas (limit 3) \u2014 mixed disciplines",
+    "file_path": "src/body/self_healing/duplicate_id_service.py",
     "line_number": null,
     "context": {},
     "details": {}
   },
   {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/will/tools/anchor_search.py' is not reachable from any entry point.",
-    "file_path": "src/will/tools/anchor_search.py",
+    "check_id": "modularity.needs_refactor",
+    "severity": "error",
+    "message": "File touches 4 concern areas (limit 3) \u2014 mixed disciplines",
+    "file_path": "src/cli/commands/check/audit.py",
     "line_number": null,
     "context": {},
     "details": {}
   },
   {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/will/tools/cognitive_toolbox.py' is not reachable from any entry point.",
-    "file_path": "src/will/tools/cognitive_toolbox.py",
+    "check_id": "modularity.needs_refactor",
+    "severity": "error",
+    "message": "File touches 4 concern areas (limit 3) \u2014 mixed disciplines",
+    "file_path": "src/cli/commands/develop.py",
     "line_number": null,
     "context": {},
     "details": {}
   },
   {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/will/tools/context/standards.py' is not reachable from any entry point.",
-    "file_path": "src/will/tools/context/standards.py",
+    "check_id": "modularity.needs_refactor",
+    "severity": "error",
+    "message": "File touches 4 concern areas (limit 3) \u2014 mixed disciplines",
+    "file_path": "src/cli/commands/fix/metadata.py",
     "line_number": null,
     "context": {},
     "details": {}
   },
   {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/will/tools/file_navigator.py' is not reachable from any entry point.",
-    "file_path": "src/will/tools/file_navigator.py",
+    "check_id": "modularity.needs_refactor",
+    "severity": "error",
+    "message": "File touches 4 concern areas (limit 3) \u2014 mixed disciplines",
+    "file_path": "src/cli/logic/db.py",
     "line_number": null,
     "context": {},
     "details": {}
   },
   {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/will/tools/tool_generator.py' is not reachable from any entry point.",
-    "file_path": "src/will/tools/tool_generator.py",
+    "check_id": "modularity.needs_refactor",
+    "severity": "error",
+    "message": "File touches 4 concern areas (limit 3) \u2014 mixed disciplines",
+    "file_path": "src/cli/logic/sync_domains.py",
     "line_number": null,
     "context": {},
     "details": {}
   },
   {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/will/workflows/dev_sync_phases.py' is not reachable from any entry point.",
-    "file_path": "src/will/workflows/dev_sync_phases.py",
+    "check_id": "modularity.needs_refactor",
+    "severity": "error",
+    "message": "File touches 4 concern areas (limit 3) \u2014 mixed disciplines",
+    "file_path": "src/cli/resources/code/audit.py",
     "line_number": null,
     "context": {},
     "details": {}
   },
   {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/will/workflows/dev_sync_reporter.py' is not reachable from any entry point.",
-    "file_path": "src/will/workflows/dev_sync_reporter.py",
+    "check_id": "modularity.needs_refactor",
+    "severity": "error",
+    "message": "File touches 4 concern areas (limit 3) \u2014 mixed disciplines",
+    "file_path": "src/cli/resources/context/build.py",
     "line_number": null,
     "context": {},
     "details": {}
   },
   {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/will/workflows/phases/code_analysis_phase.py' is not reachable from any entry point.",
-    "file_path": "src/will/workflows/phases/code_analysis_phase.py",
+    "check_id": "modularity.needs_refactor",
+    "severity": "error",
+    "message": "File touches 4 concern areas (limit 3) \u2014 mixed disciplines",
+    "file_path": "src/cli/resources/context/explain.py",
     "line_number": null,
     "context": {},
     "details": {}
   },
   {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/will/workflows/phases/code_fixers_phase.py' is not reachable from any entry point.",
-    "file_path": "src/will/workflows/phases/code_fixers_phase.py",
+    "check_id": "modularity.needs_refactor",
+    "severity": "error",
+    "message": "File touches 4 concern areas (limit 3) \u2014 mixed disciplines",
+    "file_path": "src/cli/resources/context/search.py",
     "line_number": null,
     "context": {},
     "details": {}
   },
   {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/will/workflows/phases/database_sync_phase.py' is not reachable from any entry point.",
-    "file_path": "src/will/workflows/phases/database_sync_phase.py",
+    "check_id": "modularity.needs_refactor",
+    "severity": "error",
+    "message": "File touches 4 concern areas (limit 3) \u2014 mixed disciplines",
+    "file_path": "src/cli/resources/workers/blackboard.py",
     "line_number": null,
     "context": {},
     "details": {}
   },
   {
-    "check_id": "purity.no_orphan_files",
-    "severity": "warning",
-    "message": "Orphan file: 'src/will/workflows/phases/quality_checks_phase.py' is not reachable from any entry point.",
-    "file_path": "src/will/workflows/phases/quality_checks_phase.py",
+    "check_id": "modularity.needs_refactor",
+    "severity": "error",
+    "message": "File touches 4 concern areas (limit 3) \u2014 mixed disciplines",
+    "file_path": "src/cli/resources/workers/remediate.py",
     "line_number": null,
     "context": {},
     "details": {}
   },
   {
-    "check_id": "purity.no_orphan_files",
+    "check_id": "modularity.needs_refactor",
+    "severity": "error",
+    "message": "File touches 4 concern areas (limit 3) \u2014 mixed disciplines",
+    "file_path": "src/cli/resources/workers/run.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "modularity.needs_refactor",
+    "severity": "error",
+    "message": "File touches 4 concern areas (limit 3) \u2014 mixed disciplines",
+    "file_path": "src/shared/cli_utils/decorators.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "modularity.needs_refactor",
+    "severity": "error",
+    "message": "File touches 4 concern areas (limit 3) \u2014 mixed disciplines",
+    "file_path": "src/shared/infrastructure/context/database.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "modularity.needs_refactor",
+    "severity": "error",
+    "message": "File touches 4 concern areas (limit 3) \u2014 mixed disciplines",
+    "file_path": "src/shared/infrastructure/validation/test_runner.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "modularity.needs_refactor",
+    "severity": "error",
+    "message": "File touches 4 concern areas (limit 3) \u2014 mixed disciplines",
+    "file_path": "src/shared/utils/embedding_utils.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "modularity.needs_refactor",
+    "severity": "error",
+    "message": "File touches 4 concern areas (limit 3) \u2014 mixed disciplines",
+    "file_path": "src/will/agents/strategic_auditor/agent.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "modularity.needs_refactor",
+    "severity": "error",
+    "message": "File touches 4 concern areas (limit 3) \u2014 mixed disciplines",
+    "file_path": "src/will/commands/daemon.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "modularity.needs_refactor",
+    "severity": "error",
+    "message": "File touches 4 concern areas (limit 3) \u2014 mixed disciplines",
+    "file_path": "src/will/orchestration/cognitive_service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "modularity.needs_refactor",
+    "severity": "error",
+    "message": "File touches 4 concern areas (limit 3) \u2014 mixed disciplines",
+    "file_path": "src/will/tools/context/retriever.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "modularity.needs_refactor",
+    "severity": "error",
+    "message": "File touches 4 concern areas (limit 3) \u2014 mixed disciplines",
+    "file_path": "src/will/tools/policy_vectorizer.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_todo_placeholders",
     "severity": "warning",
-    "message": "Orphan file: 'src/will/workflows/phases/vectorization_phase.py' is not reachable from any entry point.",
-    "file_path": "src/will/workflows/phases/vectorization_phase.py",
+    "message": "Forbidden Content [Line 417]: Matched restricted regex '\\bTODO\\b'",
+    "file_path": "src/will/autonomy/proposal_executor.py",
     "line_number": null,
     "context": {},
     "details": {}

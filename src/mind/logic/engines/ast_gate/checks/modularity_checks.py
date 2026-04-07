@@ -289,3 +289,82 @@ class ModularityChecker:
         self, file_path: Path, params: dict[str, Any]
     ) -> list[dict[str, Any]]:
         return self.check_refactor_score(file_path, params)
+
+    # ID: 7c4e1a93-bf52-4d8e-9a71-3f6d028e54c1
+    def check_needs_split(
+        self, file_path: Path, params: dict[str, Any]
+    ) -> list[dict[str, Any]]:
+        """Flag files that are too long but have few concerns — candidates for splitting."""
+        max_lines = int(params.get("max_lines", 400))
+
+        try:
+            content = file_path.read_text(encoding="utf-8")
+            tree = ast.parse(content)
+
+            loc = len(content.splitlines())
+            if loc <= max_lines:
+                return []
+
+            imports = self._extract_imports(tree)
+            concerns = self._identify_concerns(imports)
+
+            if len(concerns) <= 2:
+                return [
+                    {
+                        "rule_id": "modularity.needs_split",
+                        "severity": "warning",
+                        "message": (
+                            f"File has {loc} lines (limit {max_lines}) with only "
+                            f"{len(concerns)} concern(s) — consider splitting"
+                        ),
+                        "file": str(file_path),
+                        "details": {
+                            "lines_of_code": loc,
+                            "max_lines": max_lines,
+                            "concern_count": len(concerns),
+                            "concerns": concerns,
+                        },
+                    }
+                ]
+            return []
+
+        except Exception as e:
+            logger.error("Needs-split check failed for %s: %s", file_path, e)
+            return []
+
+    # ID: d9a2f5e7-41c3-4b09-8e56-2a7c93d1f480
+    def check_needs_refactor(
+        self, file_path: Path, params: dict[str, Any]
+    ) -> list[dict[str, Any]]:
+        """Flag files with too many concerns — mixed disciplines needing refactor."""
+        max_concerns = int(params.get("max_concerns", 3))
+
+        try:
+            content = file_path.read_text(encoding="utf-8")
+            tree = ast.parse(content)
+
+            imports = self._extract_imports(tree)
+            concerns = self._identify_concerns(imports)
+
+            if len(concerns) > max_concerns:
+                return [
+                    {
+                        "rule_id": "modularity.needs_refactor",
+                        "severity": "error",
+                        "message": (
+                            f"File touches {len(concerns)} concern areas "
+                            f"(limit {max_concerns}) — mixed disciplines"
+                        ),
+                        "file": str(file_path),
+                        "details": {
+                            "concern_count": len(concerns),
+                            "max_concerns": max_concerns,
+                            "concerns": concerns,
+                        },
+                    }
+                ]
+            return []
+
+        except Exception as e:
+            logger.error("Needs-refactor check failed for %s: %s", file_path, e)
+            return []

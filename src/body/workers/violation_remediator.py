@@ -46,6 +46,7 @@ injection. All src/ writes via ActionExecutor -> Crate -> Canary -> apply.
 
 from __future__ import annotations
 
+import asyncio
 import json
 import subprocess
 from dataclasses import dataclass
@@ -679,7 +680,9 @@ class ViolationRemediator(Worker):
             ),
         ):
             try:
-                proc = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+                proc = await asyncio.to_thread(
+                    subprocess.run, cmd, capture_output=True, text=True, timeout=30
+                )
                 if proc.returncode == 0:
                     logger.info(
                         "ViolationRemediator: %s aligned %s",

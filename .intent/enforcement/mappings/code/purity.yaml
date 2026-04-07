@@ -147,6 +147,23 @@ mappings:
         - "src/will/workers/"
         - "src/will/phases/"
         - "src/body/services/"
+        # Will layer — supporting infrastructure
+        - "src/will/self_healing/"
+        - "src/will/test_generation/"
+        - "src/will/strategists/"
+        - "src/will/tools/"
+        - "src/will/agents/"
+        - "src/will/workflows/"
+        - "src/will/cli_logic/"
+        - "src/will/autonomy/"
+        - "src/will/orchestration/"
+        # Body layer — supporting infrastructure
+        - "src/body/self_healing/"
+        - "src/body/project_lifecycle/"
+        - "src/body/maintenance/scripts/"
+        - "src/body/invokers/"
+        # Shared infrastructure — engine room, always live
+        - "src/shared/infrastructure/"
       excludes:
         - "src/**/__init__.py"
         - "src/**/__main__.py"
@@ -158,3 +175,9 @@ mappings:
         - "src/body/evaluators/**"
         - "src/body/governance/**"
         - "src/body/introspection/**"
+        # Individual files — indirect loading, investigate separately
+        - "src/shared/cli_types.py"
+        - "src/shared/models/pattern_graph.py"
+        - "src/shared/utils/header_tools.py"
+        - "src/shared/utils/path_utils.py"
+        - "src/mind/governance/micro_proposal_validator.py"

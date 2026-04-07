@@ -1,8 +1,8 @@
 {
-  "audit_id": "bdf6ea74-3962-4add-8c80-35cf8811d1df",
-  "timestamp": "2026-04-06T14:19:58Z",
-  "passed": true,
-  "findings_count": 251,
+  "audit_id": "11b13e10-8b00-4fda-8fbb-ba966d95bc51",
+  "timestamp": "2026-04-07T20:12:00Z",
+  "passed": false,
+  "findings_count": 78,
   "executed_rules": [
     "ai.cognitive_role.no_hardcoded_string",
     "ai.prompt.artifact.no_provider_leak",
@@ -33,7 +33,6 @@
     "architecture.layer_exclusivity",
     "architecture.layers.no_body_to_will",
     "architecture.layers.no_mind_execution",
-    "architecture.max_file_size",
     "architecture.meta_read_only",
     "architecture.mind.no_body_invocation",
     "architecture.mind.no_database_access",
@@ -103,10 +102,8 @@
     "metadata.scope.universal",
     "metadata.semantic_preservation",
     "modernization.legacy_scars",
-    "modularity.import_coupling",
-    "modularity.refactor_score_threshold",
-    "modularity.semantic_cohesion",
-    "modularity.single_responsibility",
+    "modularity.needs_refactor",
+    "modularity.needs_split",
     "modularity.unix_philosophy",
     "planning.conceptual_only",
     "planning.file_path_validation",
@@ -125,5 +122,5 @@
     "quality.test_integrity",
     "quality.type_safety"
   ],
-  "verdict": "PASS"
+  "verdict": "FAIL"
 }

@@ -4,7 +4,7 @@
     "metadata": {
         "id": "rules.architecture.governance_basics",
         "title": "Governance Basics",
-        "version": "0.1.4",
+        "version": "0.1.5",
         "authority": "policy",
         "phase": "runtime",
         "status": "active"
@@ -48,7 +48,7 @@
         {
             "id": "governance.dangerous_execution_primitives",
             "statement": "Dangerous execution primitives (eval, exec, compile, subprocess) require documented justification. AI agent code (Will layer) MUST NOT use these primitives. Infrastructure code (Body layer) MAY use them in designated sanctuary modules with clear operational need.",
-            "enforcement": "advisory",
+            "enforcement": "reporting",
             "authority": "policy",
             "phase": "execution"
         }

@@ -1,0 +1,30 @@
+{
+    "$schema": "META/rule_document.schema.json",
+    "kind": "rule_document",
+    "metadata": {
+        "id": "rules.code.modularity",
+        "title": "Code Modularity Rules",
+        "version": "1.0.0",
+        "authority": "constitution",
+        "phase": "audit",
+        "status": "active"
+    },
+    "rules": [
+        {
+            "id": "modularity.needs_split",
+            "statement": "A source file that exceeds the line limit AND contains a single coherent responsibility SHOULD be split into smaller files along natural seams. The logic must be preserved exactly — splitting is mechanical redistribution, not refactoring.",
+            "enforcement": "reporting",
+            "authority": "policy",
+            "phase": "audit",
+            "rationale": "Files that are too long but internally coherent are a modularization problem. They are automatable — the system can propose and execute splits without human judgment because no discipline boundaries are crossed."
+        },
+        {
+            "id": "modularity.needs_refactor",
+            "statement": "A source file that mixes distinct architectural disciplines, layers, or responsibilities MUST be refactored. Mixed-discipline files indicate misassigned responsibilities or layer boundary violations and cannot be resolved by mechanical splitting alone.",
+            "enforcement": "blocking",
+            "authority": "policy",
+            "phase": "audit",
+            "rationale": "Files mixing disciplines are an architectural violation, not a size problem. Resolving them requires human judgment about where responsibilities belong. Autonomous action is prohibited until a human has approved the architectural boundary decision."
+        }
+    ]
+}

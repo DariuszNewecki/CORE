@@ -29,7 +29,7 @@
 # NOTE ON MIN_CONFIDENCE:
 #   ViolationRemediatorWorker uses this map directly.
 #   Only entries >= 0.80 will produce proposals.
-#   PENDING entries are documented here for roadmap visibility only.
+#   PENDING entries are documented for roadmap visibility only.
 #
 # ACTION IDs MUST match exactly what is registered in body/atomic/.
 # Registered actions (as of 2026-04-05):
@@ -151,57 +151,30 @@ mappings:
   # Proposals created automatically. Human approval required before execution.
   # ===========================================================================
 
-  architecture.max_file_size:
+  modularity.needs_split:
     action: fix.modularity
     confidence: 0.85
     risk: high
     description: >
-      Files exceeding 400 lines are split using two-phase LLM analysis.
-      Phase 1 (Architect) finds the seam. Phase 2 (RefactoringArchitect)
-      executes. Logic Conservation Gate validates before any write.
-      Defers automatically on low/medium confidence.
-    status: ACTIVE
-
-  modularity.refactor_score_threshold:
-    action: fix.modularity
-    confidence: 0.85
-    risk: high
-    description: >
-      Files with refactor score >= 60 are split using two-phase LLM analysis.
-      Defers automatically on low/medium confidence.
-    status: ACTIVE
-
-  modularity.single_responsibility:
-    action: fix.modularity
-    confidence: 0.85
-    risk: high
-    description: >
-      Files with 3+ responsibilities are split using two-phase LLM analysis.
-      Defers automatically on low/medium confidence.
-    status: ACTIVE
-
-  modularity.import_coupling:
-    action: fix.modularity
-    confidence: 0.85
-    risk: high
-    description: >
-      Files with high import coupling are split using two-phase LLM analysis.
-      Defers automatically on low/medium confidence.
-    status: ACTIVE
-
-  modularity.semantic_cohesion:
-    action: fix.modularity
-    confidence: 0.85
-    risk: high
-    description: >
-      Files with low semantic cohesion are split using two-phase LLM analysis.
-      Defers automatically on low/medium confidence.
+      Files exceeding line limit with single coherent responsibility are split
+      using two-phase LLM analysis. Phase 1 (Architect) finds the seam.
+      Phase 2 (RefactoringArchitect) executes. Logic Conservation Gate
+      validates before any write. Defers automatically on low/medium confidence.
     status: ACTIVE
 
   # ===========================================================================
   # TIER 3: PENDING — action implementation required
   # Documented for roadmap visibility only. Will not be dispatched.
   # ===========================================================================
+
+  modularity.needs_refactor:
+    action: fix.modularity
+    confidence: 0.40
+    risk: high
+    description: >
+      PENDING: Mixed-discipline files require human architectural decision
+      before any autonomous action. Blocking rule — human review required.
+    status: PENDING
 
   architecture.constitution_read_only:
     action: fix.layer_violation

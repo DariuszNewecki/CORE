@@ -8,12 +8,6 @@ mappings:
   # =========================================================================
   # PERIMETER: No shadow layers outside Mind/Body/Will/shared/api
   # =========================================================================
-  # Constitutional rule: architecture.layer_exclusivity
-  #
-  # Uses the 'allowed_top_level_dirs' check_type in glob_gate.
-  # This is a whitelist — if a file doesn't match any allowed pattern,
-  # it's outside the constitutional boundary. This catches ALL shadow
-  # layers (current and future), not just known ones.
   architecture.layer_exclusivity:
     engine: glob_gate
     params:
@@ -38,18 +32,6 @@ mappings:
     engine: ast_gate
     params:
       check_type: no_module_level_async_engine
-    scope:
-      applies_to:
-        - "src/**/*.py"
-
-  # =========================================================================
-  # STRUCTURAL: Maximum file size (300 lines constitutional, 400 soft limit)
-  # =========================================================================
-  architecture.max_file_size:
-    engine: ast_gate
-    params:
-      check_type: max_file_lines
-      limit: 400
     scope:
       applies_to:
         - "src/**/*.py"

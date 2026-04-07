@@ -13,10 +13,10 @@ These concepts exist independently of any implementation. They would be true
 in any system governed by the same principles.
 
 [NorthStar](#northstar) · [UNIX](#unix) · [Octopus](#octopus) · [Worker](#worker) ·
-[Rule](#rule) · [Phase](#phase) · [Authority](#authority) · [Action](#action) ·
-[Finding](#finding) · [Proposal](#proposal) · [Blackboard](#blackboard) ·
-[Crate](#crate) · [Gate](#gate) · [Audit](#audit) · [Remediation](#remediation) ·
-[Convergence](#convergence)
+[Document](#document) · [Rule](#rule) · [Phase](#phase) · [Authority](#authority) ·
+[Evidence](#evidence) · [Action](#action) · [Finding](#finding) · [Proposal](#proposal) ·
+[Blackboard](#blackboard) · [Crate](#crate) · [Gate](#gate) · [Audit](#audit) ·
+[Remediation](#remediation) · [Convergence](#convergence) · [Indeterminate](#indeterminate)
 
 ---
 
@@ -55,6 +55,14 @@ law not intelligence. Every Worker has exactly one job.
 
 ---
 
+### Document
+
+A persisted artifact that CORE may load. Has no implicit meaning.
+
+→ [CORE-CONSTITUTION-v0.md](https://github.com/DariuszNewecki/CORE/blob/main/.intent/constitution/CORE-CONSTITUTION-v0.md)
+
+---
+
 ### Rule
 
 An atomic normative statement that evaluates to holds or violates.
@@ -76,6 +84,14 @@ When a Rule is evaluated. Every Rule belongs to exactly one Phase.
 Who has the final right to decide. Every Rule has exactly one Authority.
 
 → [CORE-CONSTITUTION-v0.md](https://github.com/DariuszNewecki/CORE/blob/main/.intent/constitution/CORE-CONSTITUTION-v0.md)
+
+---
+
+### Evidence
+
+The minimal set of inputs required to evaluate a Rule at a declared Phase.
+
+→ [CORE-Evidence-as-Input.md](https://github.com/DariuszNewecki/CORE/blob/main/.intent/papers/CORE-Evidence-as-Input.md)
 
 ---
 
@@ -160,6 +176,15 @@ creation. The operational goal of the autonomous loop.
 
 ---
 
+### Indeterminate
+
+An evaluation outcome where a Rule cannot be determined to hold or violate.
+Treated as blocking for blocking rules.
+
+→ [CORE-Rule-Evaluation-Semantics.md](https://github.com/DariuszNewecki/CORE/blob/main/.intent/papers/CORE-Rule-Evaluation-Semantics.md)
+
+---
+
 ## CORE implementations
 
 These are the concrete realizations of the foundational concepts in CORE.
@@ -171,7 +196,17 @@ These are the concrete realizations of the foundational concepts in CORE.
 | Will | The autonomous layer: workers, proposals, the remediation loop. | [CORE-Mind-Body-Will-Separation.md](https://github.com/DariuszNewecki/CORE/blob/main/.intent/papers/CORE-Mind-Body-Will-Separation.md) |
 | Constitution | The supreme law in `.intent/`. Human-authored only. Immutable to CORE at runtime. | [CORE-CONSTITUTION-v0.md](https://github.com/DariuszNewecki/CORE/blob/main/.intent/constitution/CORE-CONSTITUTION-v0.md) |
 | AtomicAction | A registered, governed, single-purpose implementation of Action. | [CORE-Action.md](https://github.com/DariuszNewecki/CORE/blob/main/.intent/papers/CORE-Action.md) |
+| ActionResult | The structured contract every AtomicAction must return: action_id, ok, data, duration_sec. | [CORE-Action.md](https://github.com/DariuszNewecki/CORE/blob/main/.intent/papers/CORE-Action.md) |
+| ActionExecutor | The Body-layer dispatcher that resolves an action_id to its registered AtomicAction and invokes it. | [CORE-Action.md](https://github.com/DariuszNewecki/CORE/blob/main/.intent/papers/CORE-Action.md) |
+| ProposalAction | A single AtomicAction within a Proposal, with its parameters and execution order. | [CORE-Proposal.md](https://github.com/DariuszNewecki/CORE/blob/main/.intent/papers/CORE-Proposal.md) |
+| ProposalScope | The declared files and domains a Proposal will touch. | [CORE-Proposal.md](https://github.com/DariuszNewecki/CORE/blob/main/.intent/papers/CORE-Proposal.md) |
+| ProposalExecutor | The Will-layer component that executes an approved Proposal by dispatching its actions via ActionExecutor. | [CORE-Proposal.md](https://github.com/DariuszNewecki/CORE/blob/main/.intent/papers/CORE-Proposal.md) |
+| FileHandler | The only governed write path for file system mutations in CORE. All writes pass through it and through IntentGuard. | [CORE-IntentGuard.md](https://github.com/DariuszNewecki/CORE/blob/main/.intent/papers/CORE-IntentGuard.md) |
 | IntentRepository | The runtime index of all constitutional documents, rules, and policies in `.intent/`. | [CORE-IntentRepository.md](https://github.com/DariuszNewecki/CORE/blob/main/.intent/papers/CORE-IntentRepository.md) |
+| CognitiveRole | A declared responsibility assigned to an AI cognitive resource. e.g. Architect, Coder, Auditor. | [CORE-Cognitive-Role-Capability-Resource-Taxonomy.md](https://github.com/DariuszNewecki/CORE/blob/main/.intent/papers/CORE-Cognitive-Role-Capability-Resource-Taxonomy.md) |
+| Capability | A technical ability that a cognitive resource provides. e.g. code_generation, reasoning. | [CORE-Capability-Taxonomy.md](https://github.com/DariuszNewecki/CORE/blob/main/.intent/papers/CORE-Capability-Taxonomy.md) |
+| Resource | A concrete AI model or service that provides one or more Capabilities. | [CORE-Cognitive-Role-Capability-Resource-Taxonomy.md](https://github.com/DariuszNewecki/CORE/blob/main/.intent/papers/CORE-Cognitive-Role-Capability-Resource-Taxonomy.md) |
+| GovernanceDecider | The Will-layer component that evaluates a proposed change against constitutional constraints and returns an authorization decision. | [CORE-Mind-Body-Will-Separation.md](https://github.com/DariuszNewecki/CORE/blob/main/.intent/papers/CORE-Mind-Body-Will-Separation.md) |
 | ViolationSensor | A sensing Worker that posts audit violations as Findings to the Blackboard. | [CORE-ViolationSensor.md](https://github.com/DariuszNewecki/CORE/blob/main/.intent/papers/CORE-ViolationSensor.md) |
 | RemediatorWorker | An acting Worker that claims Findings and creates Proposals via the RemediationMap. | [CORE-RemediatorWorker.md](https://github.com/DariuszNewecki/CORE/blob/main/.intent/papers/CORE-RemediatorWorker.md) |
 | ViolationExecutor | An acting Worker. Legacy LLM-direct remediation fallback for unmapped rules. | [CORE-ViolationExecutor.md](https://github.com/DariuszNewecki/CORE/blob/main/.intent/papers/CORE-ViolationExecutor.md) |
@@ -182,6 +217,8 @@ These are the concrete realizations of the foundational concepts in CORE.
 | ConservationGate | The runtime Gate that ensures LLM-produced code preserves the logic it replaces. | [CORE-ConservationGate.md](https://github.com/DariuszNewecki/CORE/blob/main/.intent/papers/CORE-ConservationGate.md) |
 | ConstitutionalEnvelope | The set of Rules injected into an LLM prompt to constrain its output. | [CORE-ConstitutionalEnvelope.md](https://github.com/DariuszNewecki/CORE/blob/main/.intent/papers/CORE-ConstitutionalEnvelope.md) |
 | RemediationMap | The declared mapping from Rule to AtomicAction. Lives in `.intent/`. | [CORE-RemediationMap.md](https://github.com/DariuszNewecki/CORE/blob/main/.intent/papers/CORE-RemediationMap.md) |
+| WorkflowStage | A bounded operational step inside a Phase that groups related Actions. | [CORE-Workflow-Stages.md](https://github.com/DariuszNewecki/CORE/blob/main/.intent/papers/CORE-Workflow-Stages.md) |
+| ContextPacket | The minimal evidence set required to evaluate Rules at a specific Phase. | [CORE-Context-Packet-Doctrine.md](https://github.com/DariuszNewecki/CORE/blob/main/.intent/papers/CORE-Context-Packet-Doctrine.md) |
 
 ---
 
@@ -189,9 +226,4 @@ These are the concrete realizations of the foundational concepts in CORE.
 
 | Term | One sentence | Source |
 |------|-------------|--------|
-| Logic evaporation | LLM-produced code that is syntactically valid but silently deletes existing behavior. | [CORE-ConservationGate.md](https://github.com/DariuszNewecki/CORE/blob/main/.intent/papers/CORE-ConservationGate.md) |
-
----
-
-*This page reflects `.intent/papers/CORE-Vocabulary.md` in the repository.
-The canonical source is always the repository.*
+| Logic evaporation | LLM-produced code that

@@ -1,0 +1,27 @@
+# Code modularity enforcement mappings
+# Source file structure enforcement — splitting and refactoring detection
+
+mappings:
+  # LAW: Files exceeding line limit with single coherent responsibility SHOULD be split
+  # Automatable — mechanical redistribution, no discipline boundaries crossed
+  modularity.needs_split:
+    engine: ast_gate
+    params:
+      check_type: modularity
+      check_method: check_needs_split
+      max_lines: 400
+    scope:
+      applies_to: ["src/**/*.py"]
+      excludes: ["tests/**", "scripts/**", "**/__init__.py"]
+
+  # LAW: Files mixing distinct architectural disciplines MUST be refactored
+  # Blocking — requires human judgment before any autonomous action
+  modularity.needs_refactor:
+    engine: ast_gate
+    params:
+      check_type: modularity
+      check_method: check_needs_refactor
+      max_concerns: 3
+    scope:
+      applies_to: ["src/**/*.py"]
+      excludes: ["tests/**", "scripts/**", "**/__init__.py"]

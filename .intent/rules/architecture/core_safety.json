@@ -4,7 +4,7 @@
     "metadata": {
         "id": "rules.architecture.core_safety",
         "title": "CORE Safety Rules",
-        "version": "0.1.0",
+        "version": "0.2.0",
         "authority": "policy",
         "phase": "runtime",
         "status": "active"
@@ -16,13 +16,6 @@
             "enforcement": "blocking",
             "authority": "policy",
             "phase": "load"
-        },
-        {
-            "id": "architecture.max_file_size",
-            "statement": "Source files MUST remain below a defined maximum size to preserve maintainability.",
-            "enforcement": "reporting",
-            "authority": "policy",
-            "phase": "audit"
         },
         {
             "id": "architecture.constitution_read_only",
