@@ -22,6 +22,7 @@ plugins:
 nav:
       - Home: index.md
       - How It Works: how-it-works.md
+      - Vocabulary: vocabulary.md
       - Autonomy Ladder: autonomy-ladder.md
       - Getting Started: getting-started.md
       - CLI Reference: cli-reference.md

@@ -51,7 +51,16 @@
       "Bash(find /mnt/dev/CORE/src -name *proposal_executor* -o -name *executor* -type f)",
       "Bash(git check-ignore:*)",
       "Bash(python -c ':*)",
-      "Bash(python3 -c \"import uuid; print\\(uuid.uuid4\\(\\)\\); print\\(uuid.uuid4\\(\\)\\)\")"
+      "Bash(python3 -c \"import uuid; print\\(uuid.uuid4\\(\\)\\); print\\(uuid.uuid4\\(\\)\\)\")",
+      "Bash(grep -rE \"LLM fix failed|Crate creation failed|ViolationRemediator\" /opt/dev/CORE/var/logs/*.log)",
+      "Bash(PGPASSWORD=core_db psql -U core_db -d core -h 192.168.20.23 -c \"SELECT subject, payload->>'reason' as reason, payload->>'file_path' as file, payload->>'write' as write_mode, payload->>'action_id' as action, created_at FROM core.blackboard_entries WHERE subject LIKE 'audit.remediation%' ORDER BY created_at DESC LIMIT 10;\")",
+      "Bash(PGPASSWORD=core_db psql -U core_db -d core -h 192.168.20.23 -c \"SELECT length\\(payload->>'proposed_fix'\\) as fix_len, payload->>'violations_count' as viol_count, payload->>'file_path' as file, payload->>'canary_passed' as canary, payload->>'message' as msg, payload->>'crate_id' as crate FROM core.blackboard_entries WHERE subject LIKE 'audit.remediation.dry_run%' ORDER BY created_at DESC LIMIT 1;\")",
+      "Bash(PGPASSWORD=core_db psql -U core_db -d core -h 192.168.20.23 -t -A -c \"SELECT payload->>'proposed_fix' FROM core.blackboard_entries WHERE subject LIKE 'audit.remediation.dry_run%' ORDER BY created_at DESC LIMIT 1;\")",
+      "Bash(xargs cat:*)",
+      "Bash(python3 -m py_compile src/body/workers/violation_remediator.py)",
+      "Bash(PGPASSWORD=core_db psql -U core_db -d core -h 192.168.20.23 -t -A -c \"SELECT payload->>'proposed_fix' FROM core.blackboard_entries WHERE subject LIKE '%build.py%' ORDER BY created_at DESC LIMIT 1;\")",
+      "Bash(PGPASSWORD=core_db psql -U core_db -d core -h 192.168.20.23 -c \"SELECT subject, payload FROM core.blackboard_entries WHERE subject LIKE 'audit.violation%build.py%' ORDER BY created_at DESC LIMIT 5;\")",
+      "Bash(grep -v \"^$\")"
     ]
   }
 }
