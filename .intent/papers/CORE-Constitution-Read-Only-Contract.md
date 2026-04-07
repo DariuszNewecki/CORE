@@ -1,4 +1,4 @@
-<!-- path: .intent/REBIRTH/papers/CORE-Constitution-Read-Only-Contract.md -->
+<!-- path: .intent/papers/CORE-Constitution-Read-Only-Contract.md -->
 
 # CORE — Constitution Read-Only Contract
 

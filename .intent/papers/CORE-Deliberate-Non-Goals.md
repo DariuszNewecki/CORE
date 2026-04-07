@@ -1,4 +1,4 @@
-<!-- path: papers/CORE-Deliberate-Non-Goals.md -->
+<!-- path: .intent/papers/CORE-Deliberate-Non-Goals.md -->
 
 # CORE: Deliberate Non-Goals
 
@@ -42,39 +42,56 @@ They are active prohibitions against accidental complexity.
 
 ## 3. Explicit Non-Goals
 
-### 3.1 CORE Does Not Define Taxonomies
+### 3.1 CORE Does Not Define Arbitrary Taxonomies
 
 CORE does not define:
 
-* rule categories,
-* domain hierarchies,
-* capability trees.
+* rule categories for external systems,
+* domain hierarchies imposed on user projects,
+* capability trees for purposes outside CORE's own operation.
 
-Such structures may exist externally but have no constitutional meaning.
+CORE does define a capability and cognitive role taxonomy for its own
+internal operation — specifically to govern how AI cognitive resources
+are selected and routed. This is a constitutional artifact of CORE's
+own governance, not a general-purpose taxonomy framework.
+
+Such internal taxonomies have constitutional standing because they are
+declared in `.intent/` and serve CORE's NorthStar directly. Taxonomies
+imposed on external systems have no constitutional meaning.
 
 ---
 
-### 3.2 CORE Does Not Provide Registries or Indexes
+### 3.2 CORE Does Not Provide Arbitrary Registries or Indexes
 
 CORE forbids:
 
-* persisted rule indexes,
-* authority registries,
-* canonical lookup tables.
+* persisted rule indexes as authoritative sources,
+* authority registries that substitute for declared law,
+* canonical lookup tables that replace explicit rule evaluation.
 
-Any such construct must remain an implementation artifact and must never become authoritative.
+CORE does maintain bounded infrastructure registries — specifically
+the ServiceRegistry and the atomic action registry — where explicitly
+declared and constitutionally bounded. These are infrastructure
+coordination mechanisms, not governance authorities. See
+`CORE-Infrastructure-Definition.md` for the constitutional boundary.
 
 ---
 
-### 3.3 CORE Does Not Manage Workflows
+### 3.3 CORE Does Not Manage External Workflows
 
 CORE does not orchestrate:
 
 * CI/CD pipelines,
-* approval flows,
-* human review processes.
+* approval flows for external systems,
+* human review processes outside its own governance loop.
 
-It governs *what is allowed*, not *how work proceeds*.
+CORE does define and govern its own internal workflows — the autonomous
+remediation loop, the proposal pipeline, the execution ceremony. These
+are constitutional artifacts declared in `.intent/workflows/` and
+`.intent/phases/`. They govern how CORE itself operates, not how
+external systems operate.
+
+It governs *what is allowed*, not *how external work proceeds*.
 
 ---
 

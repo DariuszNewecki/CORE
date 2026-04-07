@@ -1,4 +1,4 @@
-<!-- path: .intent/REBIRTH/papers/CORE-Emergency-and-Exception-Stance.md -->
+<!-- path: .intent/papers/CORE-Emergency-and-Exception-Stance.md -->
 
 # CORE — Emergency and Exception Stance
 

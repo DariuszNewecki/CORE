@@ -1,4 +1,4 @@
-<!-- path: .intent/REBIRTH/papers/CORE-Rule-Conflict-Semantics.md -->
+<!-- path: .intent/papers/CORE-Rule-Conflict-Semantics.md -->
 
 # CORE Rule Conflict Semantics
 

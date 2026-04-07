@@ -48,7 +48,7 @@ A Rule is an atomic normative statement expressing a single requirement. Rules a
 
 ### 3.3 Phase
 
-A Phase defines when a Rule is evaluated. CORE defines five phases: Parse, Load, Audit, Runtime, and Execution. Each rule belongs to exactly one phase.
+A Phase defines when a Rule is evaluated. CORE defines six phases: Interpret, Parse, Load, Audit, Runtime, and Execution. Each rule belongs to exactly one phase.
 
 ### 3.4 Authority
 

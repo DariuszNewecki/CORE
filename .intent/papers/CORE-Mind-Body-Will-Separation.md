@@ -108,6 +108,7 @@ Components in Body layer:
 * MUST receive explicit parameters for all operations
 * MAY access all infrastructure as needed for execution
 * MAY return structured results
+* MAY return evaluation results (e.g. quality scores, pattern findings) as data — this is not deciding, it is measuring. The Will layer decides what to do with the result.
 
 **Rationale:** Execution without bounds becomes arbitrary power.
 

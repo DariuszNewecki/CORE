@@ -32,6 +32,7 @@ Declare it here or remove it.
 | Rule | An atomic normative statement that evaluates to holds or violates. | `.intent/constitution/CORE-CONSTITUTION-v0.md` |
 | Phase | When a Rule is evaluated. Every Rule belongs to exactly one Phase. | `.intent/constitution/CORE-CONSTITUTION-v0.md` |
 | Authority | Who has the final right to decide. Every Rule has exactly one Authority. | `.intent/constitution/CORE-CONSTITUTION-v0.md` |
+| Evidence | The minimal set of inputs required to evaluate a Rule at a declared Phase. | `.intent/papers/CORE-Evidence-as-Input.md` |
 | Action | A single-purpose unit of work with a declared contract. | `.intent/papers/CORE-Action.md` |
 | Finding | An observation posted to the Blackboard by a sensing Worker. | `.intent/papers/CORE-Finding.md` |
 | Proposal | A declared, authorized intent to execute one or more Actions. | `.intent/papers/CORE-Proposal.md` |
@@ -41,6 +42,7 @@ Declare it here or remove it.
 | Audit | Inspection of system state against declared Rules. Produces Findings. | `.intent/papers/CORE-Rule-Evaluation-Semantics.md` |
 | Remediation | Resolution of a Finding by applying a governed fix. | `.intent/papers/CORE-Remediation.md` |
 | Convergence | The state where Finding resolution exceeds Finding creation. The operational goal. | `.intent/papers/CORE-Remediation.md` |
+| Indeterminate | An evaluation outcome where a Rule cannot be determined to hold or violate. Treated as blocking for blocking rules. | `.intent/papers/CORE-Rule-Evaluation-Semantics.md` |
 
 ---
 
@@ -57,7 +59,13 @@ Declare it here or remove it.
 | ActionExecutor | The Body-layer dispatcher that resolves an action_id to its registered AtomicAction and invokes it. | `.intent/papers/CORE-Action.md` |
 | ProposalAction | A single AtomicAction within a Proposal, with its parameters and execution order. | `.intent/papers/CORE-Proposal.md` |
 | ProposalScope | The declared files and domains a Proposal will touch. | `.intent/papers/CORE-Proposal.md` |
+| ProposalExecutor | The Will-layer component that executes an approved Proposal by dispatching its actions via ActionExecutor. | `.intent/papers/CORE-Proposal.md` |
+| FileHandler | The only governed write path for file system mutations in CORE. All writes pass through it and through IntentGuard. | `.intent/papers/CORE-IntentGuard.md` |
 | IntentRepository | The runtime index of all constitutional documents, rules, and policies in `.intent/`. | `.intent/papers/CORE-IntentRepository.md` |
+| CognitiveRole | A declared responsibility assigned to an AI cognitive resource. e.g. Architect, Coder, Auditor. | `.intent/papers/CORE-Cognitive-Role-Capability-Resource-Taxonomy.md` |
+| Capability | A technical ability that a cognitive resource provides. e.g. code_generation, reasoning. | `.intent/papers/CORE-Capability-Taxonomy.md` |
+| Resource | A concrete AI model or service that provides one or more Capabilities. | `.intent/papers/CORE-Cognitive-Role-Capability-Resource-Taxonomy.md` |
+| GovernanceDecider | The Will-layer component that evaluates a proposed change against constitutional constraints and returns an authorization decision. | `.intent/papers/CORE-Mind-Body-Will-Separation.md` |
 | ViolationSensor | A sensing Worker that posts audit violations as Findings to the Blackboard. | `.intent/papers/CORE-ViolationSensor.md` |
 | RemediatorWorker | An acting Worker that claims Findings and creates Proposals via the RemediationMap. | `.intent/papers/CORE-RemediatorWorker.md` |
 | ViolationExecutor | An acting Worker. Legacy LLM-direct remediation fallback for unmapped rules. | `.intent/papers/CORE-ViolationExecutor.md` |

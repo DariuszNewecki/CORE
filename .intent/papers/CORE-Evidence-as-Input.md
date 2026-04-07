@@ -1,4 +1,4 @@
-<!-- path: .intent/REBIRTH/papers/CORE-Evidence-as-Input.md -->
+<!-- path: .intent/papers/CORE-Evidence-as-Input.md -->
 
 # CORE — Evidence as Input
 

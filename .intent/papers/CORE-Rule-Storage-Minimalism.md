@@ -63,7 +63,7 @@ A machine-readable Rule is a single object with **exactly five keys**:
   "id": "<string>",
   "statement": "<string>",
   "authority": "<Meta|Constitution|Policy|Code>",
-  "phase": "<Parse|Load|Audit|Runtime|Execution>",
+  "phase": "<Interpret|Parse|Load|Audit|Runtime|Execution>",
   "enforcement": "<Blocking|Reporting|Advisory>"
 }
 ```
