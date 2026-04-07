@@ -346,7 +346,10 @@ class ViolationRemediatorWorker(Worker):
             actions=[
                 ProposalAction(
                     action_id=action_id,
-                    parameters={"write": True},
+                    parameters={
+                        "write": True,
+                        "file_path": affected_files[0] if affected_files else None,
+                    },
                     order=0,
                 )
             ],

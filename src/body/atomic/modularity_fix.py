@@ -273,8 +273,8 @@ async def action_fix_modularity(
     Phase 2 (modularity_split): RefactoringArchitect executes the approved
     plan mechanically. Logic Conservation Gate validates before any write.
     """
-    import json
-
+    from body.atomic.modularity_splitter import ModularitySplitter
+    from body.atomic.split_plan import SplitPlan, SplitPlanError
     from body.validators.logic_conservation_validator import LogicConservationValidator
     from shared.models.prompt_model import PromptModel
 
@@ -315,7 +315,7 @@ async def action_fix_modularity(
         len(callers),
     )
 
-    # 2. Phase 1 — find the seam
+    # 2. Phase 1 — find the seam via LLM
     try:
         analyze_model = PromptModel.load("modularity_analyze")
         analyze_client = await core_context.cognitive_service.aget_client_for_role(
@@ -341,20 +341,10 @@ async def action_fix_modularity(
             duration_sec=time.time() - start,
         )
 
+    # 3. Parse LLM response into a validated SplitPlan
     try:
-        # Strip markdown fences and preamble — LLMs often wrap JSON in ```json ... ```
-        clean = plan_raw.strip()
-        if "```" in clean:
-            import re
-
-            match = re.search(r"```(?:json)?\s*([\s\S]*?)```", clean)
-            clean = match.group(1).strip() if match else clean
-        # Find first { in case of any preamble text
-        brace = clean.find("{")
-        if brace > 0:
-            clean = clean[brace:]
-        plan = json.loads(clean)
-    except Exception as e:
+        split_plan = SplitPlan.from_llm_json(plan_raw)
+    except SplitPlanError as e:
         logger.error(
             "fix.modularity: could not parse analyze response: %s\nRaw: %s",
             e,
@@ -363,68 +353,32 @@ async def action_fix_modularity(
         return ActionResult(
             action_id="fix.modularity",
             ok=False,
-            data={"error": "analyze response not valid JSON", "file": rel_path},
-            duration_sec=time.time() - start,
-        )
-
-    # 3. Evaluate confidence
-    can_split = plan.get("can_split", False)
-    confidence = plan.get("confidence", "low")
-    reason = plan.get("reason", "")
-
-    if not can_split:
-        logger.info(
-            "fix.modularity: %s is cohesive, no split needed — %s",
-            rel_path,
-            reason,
-        )
-        return ActionResult(
-            action_id="fix.modularity",
-            ok=True,
-            data={"action": "no_split", "file": rel_path, "reason": reason},
-            duration_sec=time.time() - start,
-        )
-
-    if confidence in ("low", "medium"):
-        logger.info(
-            "fix.modularity: %s confidence=%s — deferring to human session",
-            rel_path,
-            confidence,
-        )
-        return ActionResult(
-            action_id="fix.modularity",
-            ok=True,
-            data={
-                "action": "deferred",
-                "file": rel_path,
-                "confidence": confidence,
-                "reason": reason,
-                "plan": plan,
-            },
+            data={"error": f"plan validation failed: {e}", "file": rel_path},
             duration_sec=time.time() - start,
         )
 
     logger.info(
-        "fix.modularity: %s confidence=high — proceeding to split phase",
+        "fix.modularity: %s — split plan validated (%d modules), proceeding",
         rel_path,
+        len(split_plan.modules),
     )
 
-    # 4. Phase 2 — mechanical split (no LLM, pure AST + text slices)
+    # 4. Phase 2 — deterministic split via ModularitySplitter
     logger.info(
-        "fix.modularity: executing mechanical split of %s into %d parts",
+        "fix.modularity: executing mechanical split of %s into %d modules",
         rel_path,
-        len(plan.get("parts", [])),
+        len(split_plan.modules),
     )
 
     try:
-        files = _execute_mechanical_split(
-            source_path=target,
-            repo_root=repo_root,
-            plan=plan,
-            original_content=original_content,
-        )
-    except Exception as e:
-        logger.error("fix.modularity: mechanical split failed: %s", e)
+        splitter = ModularitySplitter()
+        split_result = splitter.split(source_path=target, plan=split_plan)
+        files = [
+            {"path": str(p.relative_to(repo_root)), "content": content}
+            for p, content in split_result.files
+        ]
+    except SplitPlanError as e:
+        logger.error("fix.modularity: split failed — %s", e)
         return ActionResult(
             action_id="fix.modularity",
             ok=False,
@@ -498,7 +452,7 @@ async def action_fix_modularity(
         data={
             "action": "split",
             "file": rel_path,
-            "confidence": confidence,
+            "modules": len(split_plan.modules),
             "files_produced": [f["path"] for f in files],
             "files_count": len(files),
             "write": write,
