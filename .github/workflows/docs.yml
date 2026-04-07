@@ -49,4 +49,4 @@ jobs:
         steps:
             - name: Deploy GitHub Pages site
               id: pages
-              uses: actions/deploy-pages@v4
+              uses: actions/deploy-pages@v5
