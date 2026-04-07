@@ -47,8 +47,10 @@ injection. All src/ writes via ActionExecutor -> Crate -> Canary -> apply.
 from __future__ import annotations
 
 import json
+import subprocess
 from dataclasses import dataclass
 from datetime import UTC, datetime
+from pathlib import Path
 from typing import Any
 
 from shared.logger import getLogger
@@ -397,6 +399,8 @@ class ViolationRemediator(Worker):
             await self._post_failed(file_path, findings, "Crate creation failed")
             return False
 
+        await self._align_staged_file(crate_id, file_path)
+
         canary_passed = await self._run_canary(crate_id)
         if not canary_passed:
             await self._mark_findings(findings, "abandoned")
@@ -611,6 +615,63 @@ class ViolationRemediator(Worker):
         except Exception as exc:
             logger.warning("ViolationRemediator: Crate error - %s", exc)
             return None
+
+    async def _align_staged_file(self, crate_id: str, file_path: str) -> None:
+        """Best-effort formatting alignment on the staged crate file.
+
+        Runs black and ruff isort fix on the staged file so that Canary
+        does not trip on trivial style issues.  Failures are logged but
+        never raised — Canary will catch anything that remains.
+        """
+        staged = Path(f"var/workflows/crates/inbox/{crate_id}/{file_path}")
+        if not staged.exists():
+            logger.warning(
+                "ViolationRemediator: staged file not found for alignment - %s",
+                staged,
+            )
+            return
+
+        staged_str = str(staged)
+
+        for label, cmd in (
+            ("black", ["poetry", "run", "black", staged_str]),
+            (
+                "ruff-isort",
+                [
+                    "poetry",
+                    "run",
+                    "ruff",
+                    "check",
+                    "--select",
+                    "I",
+                    "--fix",
+                    staged_str,
+                ],
+            ),
+        ):
+            try:
+                proc = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+                if proc.returncode == 0:
+                    logger.info(
+                        "ViolationRemediator: %s aligned %s",
+                        label,
+                        file_path,
+                    )
+                else:
+                    logger.warning(
+                        "ViolationRemediator: %s returned %d for %s - %s",
+                        label,
+                        proc.returncode,
+                        file_path,
+                        (proc.stderr or "")[:300],
+                    )
+            except Exception as exc:
+                logger.warning(
+                    "ViolationRemediator: %s failed for %s - %s",
+                    label,
+                    file_path,
+                    exc,
+                )
 
     async def _run_canary(self, crate_id: str) -> bool:
         """Run canary validation on the crate. Returns True if passed."""
