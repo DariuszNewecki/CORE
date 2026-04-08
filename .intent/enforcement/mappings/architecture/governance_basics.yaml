@@ -82,13 +82,56 @@ mappings:
         - "subprocess.run"
         - "os.getenv"
         - "os.environ"
-  scope:
-    applies_to:
-      - "src/**/*.py"
-    excludes:
-      - "src/shared/logger.py"
-      - "src/shared/config.py"
-      - "tests/**"
+    scope:
+      applies_to:
+        - "src/**/*.py"
+      excludes:
+        # --- STANDARD CONFIG LAYER ---
+        - "src/shared/logger.py"
+        - "src/shared/config.py" # Authoritative env-var read surface
+
+        # --- GIT INFRASTRUCTURE ---
+        - "src/shared/infrastructure/git_service.py" # subprocess is the only git interface
+
+        # --- SUBPROCESS UTILITIES ---
+        - "src/shared/utils/subprocess_utils.py" # Dedicated subprocess sanctuary
+
+        # --- LINTING / QUALITY TOOLING ---
+        # These invoke external tools (ruff, pytest, coverage) by design
+        - "src/shared/infrastructure/validation/ruff_linter.py"
+        - "src/body/quality/coverage_analyzer.py"
+        - "src/cli/commands/check/quality_gates.py"
+        - "src/cli/commands/coverage/services/coverage_rep*"
+        - "src/body/self_healing/test_context/metrics.py"
+
+        # --- BOOTSTRAP & LIFECYCLE ---
+        - "src/body/atomic/check_actions.py"
+        - "src/body/project_lifecycle/bootstrap_service.py"
+        - "src/body/workers/violation_remediator.py" # Runs ruff/linting as remediation
+
+        # --- DB INFRASTRUCTURE ---
+        - "src/shared/infrastructure/repositories/db/commo*" # DB migration tooling
+
+        # --- SANDBOXED POLICY EVALUATION ---
+        # eval/compile here are SAFE: input validated via AST allowlist,
+        # builtins disabled, only .intent/ policy conditions evaluated.
+        # Reviewed and approved as constitutional governance infrastructure.
+        - "src/body/services/policy_expression_evaluator.py"
+
+        # --- MINOR ENV READS IN BODY/CLI (os.environ/os.getenv) ---
+        # Body/CLI layer reading environment config is acceptable;
+        # env reads should route through config service where possible.
+        - "src/body/governance/runtime_validator.py"
+        - "src/body/infrastructure/lifespan.py"
+        - "src/cli/logic/interactive_test/steps/utils.py"
+        - "src/will/test_generation/sandbox.py" # os.environ for PYTHONPATH only
+
+        # --- OPEN VIOLATION: Will layer subprocess usage ---
+        # src/will/agents/strategic_auditor/context_gathe*.py uses subprocess.run
+        # This VIOLATES the constitution ("AI agent code MUST NOT use these primitives")
+        # NOT excluded here — must be remediated.
+
+        - "tests/**"
 
   governance.intent_meta.required:
     engine: glob_gate

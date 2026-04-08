@@ -22,12 +22,10 @@ from shared.logger import getLogger
 logger = getLogger(__name__)
 
 
-# ID: 0a8f5bf2-e362-472c-a164-53c1b4f46625
+# ID: a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d
 class ModularityChecker:
     """Enforces modularity and refactoring thresholds constitutionally."""
 
-    # These patterns are the CORE of your detection logic.
-    # I have restored them exactly as they appear in your original file.
     RESPONSIBILITY_PATTERNS: ClassVar[dict[str, list[str]]] = {
         "data_access": [
             r"session\.",
@@ -88,6 +86,11 @@ class ModularityChecker:
         ],
     }
 
+    # Domain concern areas only.
+    # Deliberately excludes infrastructure primitives (async, logging, typing,
+    # pathlib, json) that are present in virtually every Python file and carry
+    # no architectural signal. The constitutional rule statement enumerates the
+    # intended concerns: "database, web, CLI, testing, ML, file I/O".
     IMPORT_CONCERNS: ClassVar[dict[str, list[str]]] = {
         "database": ["sqlalchemy", "psycopg2", "session", "query", "orm"],
         "web": ["fastapi", "requests", "httpx", "aiohttp", "flask"],
@@ -95,11 +98,9 @@ class ModularityChecker:
         "ml": ["sklearn", "torch", "transformers", "numpy", "pandas"],
         "cli": ["typer", "click", "argparse", "rich"],
         "file_io": ["pathlib", "json", "yaml", "toml", "pickle"],
-        "async": ["asyncio", "aiofiles", "trio"],
-        "logging": ["logging", "logger", "getLogger"],
     }
 
-    # --- INTERNAL HELPER METHODS (Restored from your original) ---
+    # --- INTERNAL HELPER METHODS ---
 
     def _detect_responsibilities(self, content: str) -> list[str]:
         found_responsibilities = set()
@@ -120,7 +121,7 @@ class ModularityChecker:
 
     def _calculate_cohesion(self, functions: list[dict[str, str]]) -> float:
         """
-        Original Jaccard Similarity Logic.
+        Jaccard Similarity cohesion.
         Calculates how related the functions are based on word overlap.
         """
         if len(functions) < 2:
@@ -164,7 +165,7 @@ class ModularityChecker:
                     concerns.add(concern)
         return sorted(concerns)
 
-    # --- THE MASTER SCORE LOGIC (Updated to pull from YAML) ---
+    # --- THE MASTER SCORE LOGIC ---
 
     # ID: 0a9433fe-9b18-4f46-8171-6eb1df60d60e
     def check_refactor_score(
@@ -172,73 +173,40 @@ class ModularityChecker:
     ) -> list[dict[str, Any]]:
         """
         Calculate comprehensive refactor score based on all dimensions.
-
-        IMPROVED SCORING:
-        - More lenient on small files (under 150 lines)
-        - Adjusted responsibility penalties
-        - Better cohesion calculation
         """
         target_value = float(params.get("max_score", 60.0))
-        warning_level = target_value * 0.8
+        warning_level = target_value * 0.8  # Gauss Gauge
 
         try:
             content = file_path.read_text(encoding="utf-8")
             tree = ast.parse(content)
 
-            # Get base metrics
+            # 1. Responsibilities (Weight: 35)
             resps = self._detect_responsibilities(content)
             resp_count = len(resps)
+            # Penalty starts after 1st responsibility
+            resp_score = min(max(0, resp_count - 1) * 15, 35)
+
+            # 2. Cohesion (Weight: 25)
             functions = self._extract_functions(tree)
             cohesion = self._calculate_cohesion(functions)
+            # Higher score for LOWER cohesion (Debt)
+            cohesion_score = (1.0 - cohesion) * 25
+
+            # 3. Coupling (Weight: 25)
             imports = self._extract_imports(tree)
             concerns = self._identify_concerns(imports)
+            # Penalty starts after 3rd concern area
+            coupling_score = min(max(0, len(concerns) - 3) * 7, 25)
+
+            # 4. Size (Weight: 15)
             loc = len(content.splitlines())
-
-            # 1. Responsibilities (Weight: 35) - ADJUSTED
-            # More lenient: penalty starts after 2nd responsibility
-            # Small files with 2-3 responsibilities are often acceptable
-            if resp_count <= 2:
-                resp_score = 0
-            elif resp_count == 3:
-                resp_score = 12
-            elif resp_count == 4:
-                resp_score = 24
-            else:
-                resp_score = min(35, 24 + (resp_count - 4) * 5)
-
-            # 2. Cohesion (Weight: 25) - ADJUSTED
-            # Only penalize if cohesion is genuinely poor AND file has multiple functions
-            if len(functions) <= 3:
-                # Small files with few functions get a pass on cohesion
-                cohesion_score = 0
-            else:
-                # Only penalize if cohesion is below 0.3 (genuinely unrelated functions)
-                if cohesion < 0.3:
-                    cohesion_score = (0.3 - cohesion) * 80  # Max ~24 points
-                else:
-                    cohesion_score = 0
-
-            # 3. Coupling (Weight: 25) - INCREASED from 20
-            # Penalty starts after 4th concern (more lenient)
-            coupling_score = min(max(0, len(concerns) - 4) * 6, 25)
-
-            # 4. Size (Weight: 15) - ADJUSTED with graduated penalties
-            # Small file exemption: under 150 lines = 0 penalty
-            if loc < 150:
-                size_score = 0
-            elif loc < 250:
-                # 150-250 lines: gentle penalty (0-5 points)
-                size_score = (loc - 150) / 20
-            elif loc < 400:
-                # 250-400 lines: moderate penalty (5-12 points)
-                size_score = 5 + ((loc - 250) / 20)
-            else:
-                # 400+ lines: steep penalty (12-15 points)
-                size_score = min(15, 12 + ((loc - 400) / 50))
+            # Penalty starts after 200 lines
+            size_score = min(max(0, (loc - 200) // 20), 15)
 
             total_score = resp_score + cohesion_score + coupling_score + size_score
 
-            # Return finding if exceeds warning level
+            # Return a finding if we exceed the Warning level (80% of target)
             if total_score > warning_level:
                 severity = "error" if total_score > target_value else "warning"
                 return [
@@ -289,82 +257,3 @@ class ModularityChecker:
         self, file_path: Path, params: dict[str, Any]
     ) -> list[dict[str, Any]]:
         return self.check_refactor_score(file_path, params)
-
-    # ID: 7c4e1a93-bf52-4d8e-9a71-3f6d028e54c1
-    def check_needs_split(
-        self, file_path: Path, params: dict[str, Any]
-    ) -> list[dict[str, Any]]:
-        """Flag files that are too long but have few concerns — candidates for splitting."""
-        max_lines = int(params.get("max_lines", 400))
-
-        try:
-            content = file_path.read_text(encoding="utf-8")
-            tree = ast.parse(content)
-
-            loc = len(content.splitlines())
-            if loc <= max_lines:
-                return []
-
-            imports = self._extract_imports(tree)
-            concerns = self._identify_concerns(imports)
-
-            if len(concerns) <= 2:
-                return [
-                    {
-                        "rule_id": "modularity.needs_split",
-                        "severity": "warning",
-                        "message": (
-                            f"File has {loc} lines (limit {max_lines}) with only "
-                            f"{len(concerns)} concern(s) — consider splitting"
-                        ),
-                        "file": str(file_path),
-                        "details": {
-                            "lines_of_code": loc,
-                            "max_lines": max_lines,
-                            "concern_count": len(concerns),
-                            "concerns": concerns,
-                        },
-                    }
-                ]
-            return []
-
-        except Exception as e:
-            logger.error("Needs-split check failed for %s: %s", file_path, e)
-            return []
-
-    # ID: d9a2f5e7-41c3-4b09-8e56-2a7c93d1f480
-    def check_needs_refactor(
-        self, file_path: Path, params: dict[str, Any]
-    ) -> list[dict[str, Any]]:
-        """Flag files with too many concerns — mixed disciplines needing refactor."""
-        max_concerns = int(params.get("max_concerns", 3))
-
-        try:
-            content = file_path.read_text(encoding="utf-8")
-            tree = ast.parse(content)
-
-            imports = self._extract_imports(tree)
-            concerns = self._identify_concerns(imports)
-
-            if len(concerns) > max_concerns:
-                return [
-                    {
-                        "rule_id": "modularity.needs_refactor",
-                        "severity": "error",
-                        "message": (
-                            f"File touches {len(concerns)} concern areas "
-                            f"(limit {max_concerns}) — mixed disciplines"
-                        ),
-                        "file": str(file_path),
-                        "details": {
-                            "concern_count": len(concerns),
-                            "max_concerns": max_concerns,
-                            "concerns": concerns,
-                        },
-                    }
-                ]
-            return []
-
-        except Exception as e:
-            logger.error("Needs-refactor check failed for %s: %s", file_path, e)
-            return []

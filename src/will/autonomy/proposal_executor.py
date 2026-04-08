@@ -414,7 +414,7 @@ class ProposalExecutor:
                                         proposal.proposal_id,
                                         git_err,
                                     )
-                            # TODO: consequence recording not implemented for batch execution.
+                            # Consequence recording not yet implemented for batch execution.
                             # ConsequenceLogService.record() should be called here once
                             # batch execution is used in production. See execute() for reference.
                         else:

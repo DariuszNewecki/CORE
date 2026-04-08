@@ -7,6 +7,9 @@ Responsibilities
 - Validate repo path and .git presence on init.
 - Provide small, composable operations (status, add, commit, etc.).
 - Raise RuntimeError with useful stderr/stdout on git failures.
+
+Constitutional sanctuary: this module is the sole permitted user of
+subprocess for git operations. All other layers must go through this service.
 """
 
 from __future__ import annotations
@@ -96,46 +99,46 @@ class GitService:
 
     # ID: 3acb0e63-e71b-4eba-a5ed-88e8e4eec35d
     def commit(self, message: str) -> None:
+        """Commits staged changes with the provided message."""
+        self._run_command(["commit", "-m", message])
+
+    # ID: a1b2c3d4-e5f6-7890-abcd-ef1234567892
+    def get_recent_commits(self, n: int = 10) -> list[str]:
         """
-        Commits staged changes with the provided message.
-        Retries once if pre-commit hooks modify files on the first attempt.
+        Returns the last n commit summaries (oneline, no merges).
+        Used by SystemContextGatherer for change context (Dimension 5).
         """
         try:
-            self.add_all()
-            if not self.get_staged_files():
-                logger.info("No changes staged to commit.")
-                return
-            self._run_command(["commit", "-m", message])
-            logger.info("Committed changes with message: '%s'", message)
-        except RuntimeError as e:
-            emsg = str(e) or ""
-            emsg_lower = emsg.lower()
-            if (
-                "nothing to commit" in emsg_lower
-                or "no changes added to commit" in emsg_lower
-            ):
-                logger.info("No changes staged. Skipping commit.")
-                return
-            # Pre-commit hooks may modify files and cause the first commit to fail.
-            # Stage the hook modifications and retry exactly once.
-            if (
-                "hook id:" in emsg_lower
-                or "files were modified by this hook" in emsg_lower
-            ):
-                logger.warning(
-                    "Pre-commit hooks modified files. Staging and retrying commit."
-                )
-                try:
-                    self.add_all()
-                    self._run_command(["commit", "-m", message])
-                    logger.info(
-                        "Committed on retry after hook modifications: '%s'", message
-                    )
-                    return
-                except RuntimeError as retry_err:
-                    retry_msg = (str(retry_err) or "").lower()
-                    if "nothing to commit" in retry_msg:
-                        logger.info("Nothing to commit after hook retry.")
-                        return
-                    raise
-            raise
+            output = self._run_command(["log", f"-{n}", "--oneline", "--no-merges"])
+            return output.splitlines() if output else []
+        except RuntimeError:
+            return []
+
+    # ID: b2c3d4e5-f6a7-8901-bcde-f12345678902
+    def get_diff_stat(self, base: str = "HEAD~5", target: str = "HEAD") -> str:
+        """
+        Returns the diffstat between two refs.
+        Used by SystemContextGatherer for change context (Dimension 5).
+        """
+        try:
+            return self._run_command(["diff", "--stat", base, target])
+        except RuntimeError:
+            return ""
+
+    # ID: c3d4e5f6-a7b8-9012-cdef-123456789003
+    def get_changed_files_log(self, n: int = 20) -> list[str]:
+        """
+        Returns filenames touched in the last n commits (Python files only).
+        Used by SystemContextGatherer for change context (Dimension 5).
+        """
+        try:
+            output = self._run_command(
+                ["log", "--name-only", "--pretty=format:", f"-{n}"]
+            )
+            return [
+                line.strip()
+                for line in output.splitlines()
+                if line.strip() and line.strip().endswith(".py")
+            ]
+        except RuntimeError:
+            return []

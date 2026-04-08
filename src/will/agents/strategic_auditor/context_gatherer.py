@@ -17,7 +17,6 @@ Never writes anything.
 from __future__ import annotations
 
 import math
-import subprocess
 from collections import defaultdict
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
@@ -532,47 +531,28 @@ class SystemContextGatherer:
 
         Recent git history reveals which parts of the system are actively
         evolving and provides causal context for audit findings.
+        Delegates all git operations to GitService (constitutional sanctuary).
         """
         logger.info("📜 [Dim 5] Reading change context...")
 
         try:
-            repo_path = self._ctx.git_service.repo_path
+            git = self._ctx.git_service
 
-            log = subprocess.run(
-                ["git", "log", f"-{n_commits}", "--oneline", "--no-merges"],
-                cwd=repo_path,
-                capture_output=True,
-                text=True,
-                timeout=10,
-            )
-            stat = subprocess.run(
-                ["git", "diff", "--stat", "HEAD~5", "HEAD"],
-                cwd=repo_path,
-                capture_output=True,
-                text=True,
-                timeout=10,
-            )
-            files_changed = subprocess.run(
-                ["git", "log", "--name-only", "--pretty=format:", "-20"],
-                cwd=repo_path,
-                capture_output=True,
-                text=True,
-                timeout=10,
-            )
+            log_lines = git.get_recent_commits(n_commits)
+            stat = git.get_diff_stat()
+            changed_files = git.get_changed_files_log()
 
             file_frequency: dict[str, int] = defaultdict(int)
-            for line in files_changed.stdout.splitlines():
-                line = line.strip()
-                if line and line.endswith(".py"):
-                    file_frequency[line] += 1
+            for line in changed_files:
+                file_frequency[line] += 1
 
             hot_files = sorted(
                 file_frequency.items(), key=lambda x: x[1], reverse=True
             )[:10]
 
             return {
-                "recent_commits": log.stdout.strip().splitlines(),
-                "recent_changes_stat": stat.stdout.strip(),
+                "recent_commits": log_lines,
+                "recent_changes_stat": stat,
                 "most_changed_files": [
                     {"file": f, "change_count": c} for f, c in hot_files
                 ],
