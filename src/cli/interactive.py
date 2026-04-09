@@ -19,7 +19,7 @@ console = Console()
 def _show_menu(title: str, options: dict[str, str], actions: dict):
     while True:
         console.clear()
-        logger.info(Panel(f"[bold cyan]{title}[/bold cyan]"))
+        console.print(Panel(f"[bold cyan]{title}[/bold cyan]"))
         for key, text in options.items():
             logger.info("  [%s] %s", key, text)
         logger.info("\n  [b] Back | [q] Quit")

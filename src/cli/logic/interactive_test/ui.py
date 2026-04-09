@@ -46,7 +46,7 @@ def prompt_user(
         User's choice (one of the option keys)
     """
     console.print()
-    logger.info(Panel(f"[bold cyan]{title}[/bold cyan]", expand=False))
+    console.print(Panel(f"[bold cyan]{title}[/bold cyan]", expand=False))
     logger.info(message)
     console.print()
     if preview:

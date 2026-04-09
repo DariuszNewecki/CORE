@@ -221,7 +221,9 @@ async def code_review(
                 client=reviewer_client,
                 user_id="code_review_operator",
             )
-        logger.info(Panel("AI Peer Review Complete", style="bold green", expand=False))
+        console.print(
+            Panel("AI Peer Review Complete", style="bold green", expand=False)
+        )
         logger.info(Markdown(review_feedback))
     except FileNotFoundError:
         logger.error("? Error: File not found at '%s'", file_path)

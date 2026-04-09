@@ -124,7 +124,7 @@ async def audit_cmd(
     summary_table.add_row("Verdict:", f"[bold]{result['verdict'].value}[/bold]")
     title = "✅ AUDIT PASSED" if passed else "❌ AUDIT FAILED"
     style = "bold green" if passed else "bold red"
-    logger.info(Panel(summary_table, title=title, style=style, expand=False))
+    console.print(Panel(summary_table, title=title, style=style, expand=False))
     if filtered_findings:
         if verbose:
             print_verbose_findings(filtered_findings)

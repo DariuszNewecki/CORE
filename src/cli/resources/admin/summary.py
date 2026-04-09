@@ -52,7 +52,7 @@ async def admin_summary_cmd(
     health = await service.get_recent_limb_health(limit=limit)
     status_color = "green" if health["status"] == "OPTIMAL" else "yellow"
     status_text = f"Limb State  : [bold {status_color}]{health['status']}[/bold {status_color}]\nScan Depth  : {health['total_checked']} actions\nPain Signals: {health['failure_count']} detected"
-    logger.info(Panel(status_text, title="Operational Sensation", expand=False))
+    console.print(Panel(status_text, title="Operational Sensation", expand=False))
     if health["issues"]:
         logger.info(
             "\n[bold red]🚨 Detected Pain Signals (Recent Failures):[/bold red]"

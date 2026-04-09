@@ -77,7 +77,7 @@ def info():
     from rich.panel import Panel
 
     console = Console()
-    logger.info(
+    console.print(
         Panel.fit(
             "[bold cyan]Interactive Test Generation[/bold cyan]\n\n[bold]Purpose:[/bold]\nGenerate tests with full visibility and control at each step.\n\n[bold]Features:[/bold]\n  • Step-by-step prompts and approval\n  • Code preview with syntax highlighting\n  • Edit at any step with $EDITOR\n  • Skip ahead or cancel anytime\n  • All artifacts saved to work/interactive/\n  • Complete decision log maintained\n\n[bold]Steps:[/bold]\n  1. [cyan]Generate[/cyan] - LLM creates test code\n  2. [cyan]Auto-heal[/cyan] - Fix imports, headers, format\n  3. [cyan]Audit[/cyan] - Constitutional governance check\n  4. [cyan]Canary[/cyan] - Optional sandbox trial\n  5. [cyan]Execute[/cyan] - Create the test file\n\n[bold]Usage:[/bold]\n  core-admin interactive-test generate <module-path>",
             border_style="cyan",
