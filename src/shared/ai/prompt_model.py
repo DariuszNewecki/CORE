@@ -223,6 +223,13 @@ class PromptModel:
         logger.debug("PromptModel '%s' loaded from %s", name, artifact_dir)
         return instance
 
+    @property
+    # ID: pm-core-manifest-accessor
+    # ID: 47a38e06-401d-4fdf-ba5e-96854fa5f940
+    def manifest(self) -> PromptModelManifest:
+        """Convenience accessor — returns the manifest from the loaded artifact."""
+        return self._artifact.manifest
+
     # ID: pm-core-006
     # ID: 4fb47d41-9cf8-4389-b981-850edad5398a
     async def invoke(

@@ -60,10 +60,10 @@ def prompt_user(
                 "[dim]... (%s more lines)[/dim]", len(preview.splitlines()) - 20
             )
         logger.info("─" * 60)
-        logger.info()
+        logger.info("")
     if artifact_path:
         logger.info("📂 Full output: [cyan]%s[/cyan]", artifact_path)
-        logger.info()
+        logger.info("")
     logger.info("[bold]Options:[/bold]")
     for key, desc in options.items():
         logger.info("  [bold yellow]\\[%s\\][/bold yellow] %s", key, desc)

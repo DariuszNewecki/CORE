@@ -14,8 +14,11 @@ CONSTITUTIONAL (current):
 from __future__ import annotations
 
 import asyncio
+import json
 import time
 from typing import Any
+
+from sqlalchemy import text
 
 from body.atomic.executor import ActionExecutor
 from body.services.service_registry import service_registry
@@ -267,6 +270,46 @@ class ProposalExecutor:
                             "Failed to record consequence for %s: %s",
                             proposal.proposal_id,
                             cons_err,
+                        )
+
+                    # Post test.run_required for each changed source file
+                    try:
+                        files_changed = [{"path": p} for p in changed_files]
+                        async with service_registry.session() as bb_session:
+                            for changed in files_changed:
+                                path = changed.get("path", "")
+                                if path.startswith("src/") and path.endswith(".py"):
+                                    await bb_session.execute(
+                                        text(
+                                            """
+                                            INSERT INTO core.blackboard_entries
+                                            (entry_type, subject, payload, status, created_at)
+                                            VALUES (
+                                                'finding',
+                                                :subject,
+                                                cast(:payload as jsonb),
+                                                'open',
+                                                now()
+                                            )
+                                            """
+                                        ),
+                                        {
+                                            "subject": f"test.run_required::{path}",
+                                            "payload": json.dumps(
+                                                {
+                                                    "source_file": path,
+                                                    "proposal_id": proposal.proposal_id,
+                                                    "post_execution_sha": post_execution_sha,
+                                                }
+                                            ),
+                                        },
+                                    )
+                            await bb_session.commit()
+                    except Exception as test_req_err:
+                        logger.warning(
+                            "Could not post test.run_required for proposal %s: %s",
+                            proposal.proposal_id,
+                            test_req_err,
                         )
                 else:
                     failed_actions = [

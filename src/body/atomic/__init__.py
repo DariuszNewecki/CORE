@@ -7,6 +7,7 @@ from __future__ import annotations
 
 # Import modules to trigger registration
 from body.atomic import (
+    build_tests_action,
     check_actions,
     crate_ops,
     file_ops,
@@ -15,6 +16,7 @@ from body.atomic import (
     modularity_fix,
     sync_actions,
 )
+from body.atomic.build_tests_action import action_build_tests
 from body.atomic.check_actions import action_check_imports
 from body.atomic.crate_ops import action_create_crate
 from body.atomic.file_ops import (
@@ -43,6 +45,7 @@ from body.atomic.sync_actions import (
 
 
 __all__ = [
+    "action_build_tests",
     "action_check_imports",
     "action_create_crate",
     "action_create_file",

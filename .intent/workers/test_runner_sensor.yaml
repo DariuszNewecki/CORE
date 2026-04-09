@@ -1,0 +1,29 @@
+$schema: "META/worker.schema.json"
+kind: worker
+
+metadata:
+  id: workers.test_runner_sensor
+  title: Test Runner Sensor
+  version: "1.0.0"
+  authority: policy
+  status: active
+
+identity:
+  uuid: "<generate-new-uuid>"
+  class: sensing
+
+mandate:
+  responsibility: >
+    Claim test.run_required findings from the Blackboard, run pytest scoped
+    to the corresponding test file, and post a test.failure finding for each
+    failing test. No LLM calls. No file writes.
+  phase: audit
+  permitted_tools: []
+  approval_required: false
+  schedule:
+    max_interval: 300
+
+implementation:
+  module: will.workers.test_runner_sensor
+  class: TestRunnerSensor
+  requires_core_context: true
