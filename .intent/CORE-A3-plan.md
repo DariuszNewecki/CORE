@@ -28,7 +28,7 @@ In A3, CORE's daemon finds problems in its own codebase, proposes fixes, execute
 | Item | Status |
 |------|--------|
 | Audit | PASSED — 4 findings (1 WARNING, 3 INFO), 0 blocking |
-| Active workers | 3 — audit_sensor_purity, violation_remediator, proposal_consumer_worker |
+| Active workers | 4 sensors active — all audit sensors running |
 | RemediationMap | 13 ACTIVE, 5 PENDING entries |
 | Constitutional papers | Complete — all 42+ findings closed |
 | MetaValidator | Operational — 70 documents clean |
@@ -36,16 +36,23 @@ In A3, CORE's daemon finds problems in its own codebase, proposes fixes, execute
 | ViolationExecutor | Declared, not implemented |
 | OptimizerWorker | Not yet designed |
 
+**Current sensor coverage (47 rules, 0 findings):**
+- `audit_sensor_purity` — 9 rules ✅
+- `audit_sensor_architecture` — 33 rules ✅
+- `audit_sensor_logic` — 2 rules ✅
+- `audit_sensor_modularity` — 3 rules ✅
+
 **Current warnings:**
 - `governance.dangerous_execution_primitives` — 1 occurrence (`subprocess.run` in `ceremony.py`) — unmapped
 
-**Phase 0/1 learnings:**
+**Phase 0/1/2 learnings:**
 - `core.proposals` is the legacy file-proposal table — NOT the autonomous proposals table
 - `core.autonomous_proposals` is the correct table to wipe for A3 clean slate
 - Pre-commit hook two-pass retry now handled in `GitService.commit()` — fixed
 - `violation_remediator/` submodule is the correct target architecture — monolith deleted
 - Remediator releasing unmappable findings is correct behaviour, not a bug
 - Phase 1 convergence achieved via human architectural decision, not autonomous remediation — this is valid
+- Codebase is constitutionally clean across all four audit domains
 
 ---
 
@@ -77,13 +84,6 @@ TRUNCATE core.autonomous_proposals RESTART IDENTITY CASCADE;
 ### Phase 1 — Single Loop, Proven Convergence ✅
 **Goal:** One sensor + one remediator running end to end, findings resolving.
 
-**Activate only:**
-- `audit_sensor_purity` — status: active
-- `violation_remediator` — status: active
-- `proposal_consumer_worker` — status: active
-
-**All other workers:** set to `paused` before starting daemon.
-
 **What we proved (session 2026-04-11):**
 - Sensor link ✅ — purity findings posted correctly
 - Remediator link ✅ — correctly releases unmappable findings (honest, not broken)
@@ -96,23 +96,24 @@ TRUNCATE core.autonomous_proposals RESTART IDENTITY CASCADE;
 
 ---
 
-### Phase 2 — Expand Sensors
+### Phase 2 — Expand Sensors ✅
 **Goal:** All four audit sensors running, loop still converging.
 
-**Activate in order — wait for previous sensor's backlog to clear before next:**
+**Activated in order:**
+1. `audit_sensor_architecture` — 33/33 rules, 0 findings ✅
+2. `audit_sensor_logic` — 2/2 rules, 0 findings ✅
+3. `audit_sensor_modularity` — 3/3 rules, 0 findings ✅
 
-1. `audit_sensor_architecture`
-2. `audit_sensor_logic`
-3. `audit_sensor_modularity` ← will surface modularization work
-
-**Rule:** Never activate the next sensor until the previous one's findings are resolved or delegated.
-
-**Success signal:** All four sensors active, Blackboard converging across all namespaces.
+**Success signal:** ✅ All four sensors active. 47 rules executed. 0 findings. Blackboard empty.
 
 ---
 
 ### Phase 3 — Capability Gaps
 **Goal:** Findings that can't be auto-remediated get correctly delegated.
+
+**Next step:** Activate remediator + consumer alongside all four sensors. The full loop needs
+real findings to converge on. This requires introducing work — either by temporarily
+relaxing a rule to surface violations, or by moving to a file that has known issues.
 
 **Three workstreams:**
 
@@ -184,7 +185,7 @@ For findings requiring `.intent/` edits or architectural decisions:
 |-------|--------|--------|
 | 0 — Clean slate | Audit passes, DB clean | ✅ Complete |
 | 1 — Single loop | Purity loop runs unattended | ✅ Complete — 0 findings, Blackboard empty |
-| 2 — All sensors | All sensors active, converging | ⬜ Not started |
+| 2 — All sensors | All sensors active, converging | ✅ Complete — 47 rules, 0 findings |
 | 3 — Capability gaps | No orphaned findings, tests growing | ⬜ Not started |
 | 4 — CLI health | All commands work, legacy gone | ⬜ Not started |
 | 5 — Visibility | Demo-ready, `tail -f` tells the story | ⬜ Not started |
@@ -195,8 +196,8 @@ For findings requiring `.intent/` edits or architectural decisions:
 
 | Blocker | Phase | Notes |
 |---------|-------|-------|
-| `fix.modularity` class-methods gap | 2 | Methods not handled by modularity action |
-| `governance.dangerous_execution_primitives` unmapped | 2+ | `subprocess.run` in `ceremony.py` — needs AtomicAction or architectural decision |
+| `fix.modularity` class-methods gap | 3 | Methods not handled by modularity action |
+| `governance.dangerous_execution_primitives` unmapped | 3+ | `subprocess.run` in `ceremony.py` — needs AtomicAction or architectural decision |
 | Orphan classifier (92 findings) | 3 | Largest single cluster — needs dedicated session |
 | ViolationExecutor not implemented | 3+ | Unmapped rules accumulate with no handler |
 
