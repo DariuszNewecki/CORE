@@ -133,7 +133,40 @@ An action that writes when `write=False` is a constitutional violation.
 
 ---
 
-## 9. Migration Note
+## 9. Authorization Token
+
+Every AtomicAction execution must be authorized. Authorization is
+represented by a governance token set on the ActionExecutor call context
+before any action is dispatched.
+
+**Token structure:**
+The governance token is a scoped context object carrying:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `proposal_id` | UUID | The Proposal that authorized this execution. |
+| `worker_uuid` | UUID | The Worker that created the Proposal. |
+| `authorized_at` | timestamp | When the Proposal reached `approved` status. |
+| `action_ids` | list | The specific action IDs authorized by this Proposal. |
+
+**Token scope:** Per-execution. The token is created by ActionExecutor
+at the start of a Proposal's execution ceremony and is valid only for
+the duration of that execution. It is not reused across Proposals and
+does not persist after execution completes.
+
+**Token lifetime:** The token is created when ActionExecutor begins
+executing an approved Proposal and is discarded when the Proposal
+reaches `completed` or `failed` status.
+
+**Enforcement:** ActionExecutor sets the token on its call context
+before dispatching any action. An action invoked without a valid token
+raises `GovernanceBypassError` and is not executed. This prevents
+any code path from calling an action outside the constitutional
+Proposal → ActionExecutor → AtomicAction chain.
+
+---
+
+## 10. Migration Note
 
 The codebase currently uses two stacked decorators: `@register_action`
 and `@atomic_action`. This is a known duplication that predates this
@@ -148,7 +181,7 @@ authoritative source for `impact`.
 
 ---
 
-## 10. Non-Goals
+## 11. Non-Goals
 
 This paper does not define:
 - the ActionExecutor dispatch mechanism

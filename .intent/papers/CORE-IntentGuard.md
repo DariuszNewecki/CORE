@@ -66,12 +66,28 @@ Layer is determined by the file path:
 
 IntentGuard operates in two modes:
 
-**Strict mode** — all violations block the write, including advisory rules.
-**Non-strict mode** (default) — only blocking rules prevent the write.
-Advisory and reporting rules are noted but do not block.
+**Strict mode** — blocking rules and policy rules both prevent the write.
+**Non-strict mode** (default) — only blocking rules (enforcement: blocking)
+prevent the write. Reporting and advisory rules are noted but do not block.
 
-The current default is non-strict. Strict mode is activated by
-`IntentGuard(strict=True)`.
+### 5a. Mode Selection
+
+Mode is selected at IntentGuard construction time and is system-wide
+for the lifetime of the process. It is not configurable per-action,
+per-Worker, or per-Proposal.
+
+The mode is set by the component that constructs the IntentGuard instance:
+
+- **Daemon startup** — the daemon constructs IntentGuard in non-strict
+  mode (default). All autonomous Workers operate under non-strict mode.
+- **CLI commands that explicitly request strict validation** — may
+  construct IntentGuard with `strict=True`. This is declared at the
+  CLI command level, not by the Worker or action.
+- **Tests** — may construct IntentGuard in either mode as required.
+
+No Worker, AtomicAction, or Proposal may select or override the mode
+at runtime. Mode selection is a startup-time declaration, not a
+per-write decision.
 
 ---
 
@@ -79,8 +95,10 @@ The current default is non-strict. Strict mode is activated by
 
 IntentGuard is initialized with the full rule set at startup:
 
+```
 IntentGuard initialised: N constitutional rules (always-block) + M policy
 rules (advisory). Strict mode: False.
+```
 
 Constitutional rules (Authority: Constitution) always block regardless
 of mode. Policy rules (Authority: Policy) block only in strict mode.
@@ -91,7 +109,9 @@ of mode. Policy rules (Authority: Policy) block only in strict mode.
 
 When IntentGuard blocks a write it raises:
 
+```
 ValueError: Blocked by IntentGuard: {violation message}
+```
 
 The caller receives this exception. No partial write occurs.
 The violation message contains the specific rule that was violated.

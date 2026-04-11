@@ -1,5 +1,14 @@
 [
   {
+    "check_id": "governance.dangerous_execution_primitives",
+    "severity": "warning",
+    "message": "Forbidden primitive 'subprocess.run' used (line 88).",
+    "file_path": "src/body/workers/violation_remediator/ceremony.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
     "check_id": "workflow.mypy_check",
     "severity": "info",
     "message": "Quality Gate mypy_check failed: src/will/test_generation/test_extractor.py:60: error: Argument 1 to \"_is_fixture\" of \"TestCodeExtractor\" has incompatible type \"FunctionDef | AsyncFunctionDef\"; expected \"FunctionDef\"  [arg-type]",
@@ -22,6 +31,83 @@
     "severity": "info",
     "message": "Quality Gate pytest_check failed: ============================= test session starts ==============================",
     "file_path": "System",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_ast_duplication",
+    "severity": "warning",
+    "message": "AST duplication: 'ViolationRemediator.run' duplicates 'ViolationRemediator.run' (score=1.00)",
+    "file_path": "src/body/workers/violation_remediator.py",
+    "line_number": null,
+    "context": {
+      "symbol_a": "ViolationRemediator.run",
+      "symbol_b": "ViolationRemediator.run",
+      "module_a": "body.workers.violation_remediator",
+      "module_b": "body.workers.violation_remediator.worker",
+      "similarity": 1.0,
+      "type": "ast"
+    },
+    "details": {
+      "symbol_a": "ViolationRemediator.run",
+      "symbol_b": "ViolationRemediator.run",
+      "module_a": "body.workers.violation_remediator",
+      "module_b": "body.workers.violation_remediator.worker",
+      "similarity": 1.0,
+      "type": "ast"
+    }
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/body/workers/violation_remediator/blackboard.py' is not reachable from any entry point.",
+    "file_path": "src/body/workers/violation_remediator/blackboard.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/body/workers/violation_remediator/ceremony.py' is not reachable from any entry point.",
+    "file_path": "src/body/workers/violation_remediator/ceremony.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/body/workers/violation_remediator/context.py' is not reachable from any entry point.",
+    "file_path": "src/body/workers/violation_remediator/context.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/body/workers/violation_remediator/llm.py' is not reachable from any entry point.",
+    "file_path": "src/body/workers/violation_remediator/llm.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/body/workers/violation_remediator/models.py' is not reachable from any entry point.",
+    "file_path": "src/body/workers/violation_remediator/models.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "purity.no_orphan_files",
+    "severity": "warning",
+    "message": "Orphan file: 'src/body/workers/violation_remediator/worker.py' is not reachable from any entry point.",
+    "file_path": "src/body/workers/violation_remediator/worker.py",
     "line_number": null,
     "context": {},
     "details": {}

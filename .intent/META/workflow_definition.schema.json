@@ -7,6 +7,16 @@
 
   "properties": {
 
+    "$schema": {
+      "type": "string",
+      "minLength": 1
+    },
+
+    "kind": {
+      "type": "string",
+      "const": "workflow_definition"
+    },
+
     "workflow_id": {
       "type": "string",
       "pattern": "^[a-z0-9_.-]+$"

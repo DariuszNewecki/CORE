@@ -60,7 +60,7 @@ A stage defines:
 
 * a coherent operational objective,
 * a constrained action surface,
-* optional ordering relative to other stages.
+* optional ordering relative to other stages within the same Phase.
 
 A stage does **not** introduce new governance authority.
 
@@ -84,12 +84,15 @@ Violation of these invariants constitutes a governance design error.
 
 Phases remain the **only governance boundary** in CORE.
 
-Workflow Stages exist strictly **inside** phases.
+Workflow Stages exist strictly **inside** phases. A stage that appears to
+span two phases is in fact two stages — one in each phase — sequenced
+across a phase transition. A single stage may never straddle a phase
+boundary.
 
 ```
 Interpret → Parse → Load → Audit → Runtime → Execution
-          ↑
-      Workflow Stages
+               ↑
+           Workflow Stages exist inside each Phase only
 ```
 
 A stage cannot alter:
@@ -136,17 +139,21 @@ Each action must still comply with all runtime rules.
 
 # 6. Stage Ordering
 
-Stages may define ordering constraints.
+Stages may define ordering constraints within their Phase.
 
 Ordering defines **operational sequencing**, not governance sequencing.
 
-Example:
+Example — stages within Runtime phase:
 
 ```
 plan → generate → validate → repair
 ```
 
-These sequences exist entirely inside a Phase or across phases via phase transitions.
+All four stages in this example exist inside the same Phase. If a
+sequence requires work from two different phases (e.g. validate in
+Audit, then repair in Runtime), those are two separate stages in two
+separate phases, sequenced via a phase transition — not a single stage
+crossing a boundary.
 
 Ordering must never reopen an earlier phase.
 
@@ -203,6 +210,7 @@ They must not:
 * create new phases
 * bypass rule evaluation
 * reinterpret governance authority
+* cross phase boundaries
 
 ---
 
@@ -213,6 +221,7 @@ Workflow Stages introduce operational structure without altering CORE's constitu
 Phases remain the exclusive governance boundaries.
 Rules remain atomic and phase-bound.
 Actions remain the smallest executable unit.
+Stages exist inside one phase only — never across boundaries.
 
 Workflow Stages simply organize how systems perform work inside those constraints.
 

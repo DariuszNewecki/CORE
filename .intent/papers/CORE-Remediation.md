@@ -46,6 +46,9 @@ auto-approved. Proposals requiring human review wait.
 The AtomicAction runs, produces an ActionResult, and creates a Crate.
 
 **Gates** — ConservationGate, IntentGuard, and Canary validate the Crate.
+Gates execute in this order: ConservationGate first, then IntentGuard,
+then Canary. A failure at any gate halts the pipeline. Later gates do
+not run if an earlier gate fails.
 
 **Apply** — if all Gates pass, the Crate is applied to production.
 
@@ -56,16 +59,43 @@ the loop succeeded. If it persists, a new Finding is posted.
 
 ## 4. The Two Paths
 
-CORE has two remediation paths. They are not equivalent.
+CORE has two remediation paths. They are not peers and do not compete.
+The RemediationMap is the partition key that determines which path handles
+a given Finding.
 
 **The Proposal Path** (constitutional) — Finding → RemediationMap →
 Proposal → AtomicAction. No LLM in the remediation logic itself.
-Deterministic. Traceable. The target state.
+Deterministic. Traceable. The target state. Handles all rules for which
+an AtomicAction has been declared in the RemediationMap.
 
 **The ViolationExecutor Path** (legacy fallback) — Finding → LLM invocation →
-Crate. Used only for rules that have no registered AtomicAction. Every rule
+Crate. Handles only rules with no active RemediationMap entry. Every rule
 handled by this path is a rule that has not yet been given proper constitutional
 remediation. The goal is to reduce this path to zero.
+
+### 4a. Path priority and claim routing
+
+RemediatorWorker has priority. On each run cycle:
+
+1. RemediatorWorker claims all open Findings whose rule has an active
+   RemediationMap entry. It creates Proposals for them and marks them
+   `deferred_to_proposal`.
+
+2. ViolationExecutor claims open Findings whose rule has NO active
+   RemediationMap entry. Before invoking the LLM, it re-checks the
+   RemediationMap. If an entry now exists (race condition), it releases
+   the claim back to `open` so RemediatorWorker can reclaim it on the
+   next cycle.
+
+3. A Finding MUST NOT be processed by both paths. The RemediationMap
+   is the sole authority on which path owns a given rule.
+
+### 4b. Receiving deferred Findings
+
+RemediatorWorker does not distinguish between a freshly-sensed Finding
+and one released back to `open` by ViolationExecutor. Both have
+`status = 'open'` and are claimed by the same prefix filter. No special
+handling is required. The Blackboard status contract is sufficient.
 
 ---
 
@@ -108,5 +138,6 @@ PENDING entries are documented for roadmap visibility and do not dispatch.
 This paper does not define:
 - the internal format of the RemediationMap
 - AtomicAction implementation details
-- LLM invocation strategy for ViolationExecutor
+- ViolationExecutor's LLM invocation strategy
+- the OptimizerWorker's codification logic — see `CORE-OptimizerWorker.md`
 - rollback procedures

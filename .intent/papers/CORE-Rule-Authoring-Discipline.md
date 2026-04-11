@@ -36,7 +36,32 @@ A Rule authored in violation of this discipline is **invalid**, regardless of in
 
 ---
 
-## The Author’s Burden
+## Load-Phase Structural Validation
+
+Rule documents are validated at Load phase against the canonical form
+declared in `META/rule_document.schema.json`. This validation runs
+automatically when the IntentRepository loads the rule document.
+
+A rule document that fails Load-phase validation is **rejected entirely**.
+No rules from the document enter the rule index. The rejection is logged
+at ERROR level and the operator must correct the document before the
+daemon can use its rules.
+
+Load-phase validation catches:
+
+* missing required fields (`id`, `statement`, `enforcement`, `authority`, `phase`)
+* field values outside the declared enums (e.g. invalid phase, invalid authority)
+* documents missing `$schema` or `kind` headers
+* structural malformation that prevents the document from being parsed
+
+Load-phase validation does **not** catch semantic discipline violations —
+compound obligations, aspirational statements, or non-deterministic
+requirements. Those remain the author's burden. The gate rejects
+structural failures; authoring discipline prevents semantic failures.
+
+---
+
+## The Author's Burden
 
 The burden of correctness lies entirely with the Rule author.
 

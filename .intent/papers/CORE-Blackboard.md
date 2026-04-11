@@ -39,7 +39,7 @@ Every entry in the Blackboard has exactly these fields:
 | `status` | text | Current lifecycle status. See section 5. |
 | `subject` | text | What this entry is about. See section 6. |
 | `payload` | jsonb | Entry-specific structured data. |
-| `claimed_by` | UUID | UUID of the Worker that claimed this entry. Null until claimed. |
+| `claimed_by` | UUID | UUID of the Worker that claimed this entry. Null until claimed. Set atomically with status=claimed. Cleared to null when status returns to open via release. Must equal the claiming Worker's worker_uuid. No other value is valid. |
 | `claimed_at` | timestamp | When this entry was claimed. Null until claimed. |
 | `resolved_at` | timestamp | When this entry reached a terminal status. |
 | `created_at` | timestamp | When this entry was created. Immutable. |
@@ -66,20 +66,49 @@ history obligation. Silence is a constitutional violation.
 
 ## 5. Status Lifecycle
 
-Every entry moves through statuses in one direction only.
+Every entry moves through statuses in one direction only. The canonical
+status values are declared in `.intent/META/enums.json` under
+`blackboard_entry_status`. No status value outside that declaration is
+valid.
 
+```
 open → claimed → resolved
-↘ abandoned
+              ↘ abandoned
+              ↘ deferred_to_proposal
+              ↘ dry_run_complete
+              ↘ indeterminate
+```
 
-| Status | Meaning |
-|--------|---------|
-| `open` | Posted. Not yet claimed by any Worker. |
-| `claimed` | Atomically claimed by exactly one Worker. No other Worker may claim it. |
-| `resolved` | Successfully processed. Terminal. |
-| `abandoned` | Processing failed or was interrupted. Terminal. |
+| Status | Terminal | Meaning |
+|--------|----------|---------|
+| `open` | No | Posted. Not yet claimed by any Worker. |
+| `claimed` | No | Atomically claimed by exactly one Worker. |
+| `resolved` | Yes | Successfully processed. |
+| `abandoned` | Yes | Processing failed or was interrupted. |
+| `deferred_to_proposal` | Yes | A Proposal was created for this finding. See section 5a. |
+| `dry_run_complete` | Yes | Finding was evaluated in dry-run mode. No fix was applied. |
+| `indeterminate` | Yes | Confidence too low to act. Requires human review. See section 5b. |
 
-Terminal statuses are permanent. A resolved or abandoned entry is never
-reopened. If the same condition recurs, a new Finding is posted.
+Non-terminal statuses are `open` and `claimed`. A Worker claiming findings
+MUST filter to these values only.
+
+### 5a. deferred_to_proposal revival
+
+`deferred_to_proposal` is terminal at the finding level, but the downstream
+Proposal may fail. If a Proposal reaches `failed` status, the ProposalConsumerWorker
+MUST reopen all findings that were marked `deferred_to_proposal` by that
+Proposal by setting their status back to `open` and clearing `claimed_by`.
+This ensures the remediation loop can reclaim them on the next cycle.
+
+### 5b. indeterminate exit
+
+An `indeterminate` finding requires explicit human action to exit. The
+architect reviews the finding, makes a determination, and either:
+- Sets status to `open` to re-enter the remediation loop, or
+- Sets status to `abandoned` to permanently close it.
+
+No automated Worker may transition an `indeterminate` finding without
+explicit human authorization recorded in the finding's payload.
 
 ---
 
@@ -89,13 +118,34 @@ The subject field is a structured string identifying what the entry is about.
 
 Format: `namespace::qualifier::identifier`
 
-Examples:
-- `audit.violation::style.import_order::src/body/workers/violation_remediator.py`
-- `audit.remediation.complete::src/body/workers/violation_remediator.py`
-- `audit.remediation.dry_run::src/body/workers/violation_remediator.py`
-- `audit.remediation.failed::src/body/workers/violation_remediator.py`
-- `worker.heartbeat`
-- `worker.error`
+### Finding subjects
+
+```
+audit.violation::{rule_id}::{file_path}
+```
+
+Example: `audit.violation::style.import_order::src/body/workers/violation_remediator.py`
+
+### Proposal subjects
+
+```
+proposal::{action_id}::{scope_key}
+```
+
+Where `scope_key` is the primary affected file path, or the action group
+identifier when multiple files are in scope. Example:
+`proposal::fix.imports::src/body/workers/violation_remediator.py`
+
+### Report and heartbeat subjects
+
+```
+audit.remediation.complete::{file_path}
+audit.remediation.dry_run::{file_path}
+audit.remediation.failed::{file_path}
+worker.heartbeat
+worker.error
+shopmanager.escalation::{worker_uuid}
+```
 
 The subject is the primary key for deduplication. Before posting a Finding,
 a Worker checks whether an entry with the same subject already exists in a
@@ -116,6 +166,26 @@ A Worker that claims a finding and then fails to process it must mark
 it `abandoned`. It must not leave it in `claimed` status indefinitely.
 A claimed entry that is never resolved or abandoned is a governance
 violation — it blocks all other Workers from acting on that finding.
+
+---
+
+## 7a. Dead Worker Recovery
+
+If a Worker terminates while holding claimed entries, those entries remain
+in `claimed` status indefinitely, blocking the remediation loop. Recovery
+is handled as follows:
+
+- The ShopManager detects Workers whose last heartbeat exceeds their declared
+  SLA plus glide-off period.
+- For each silent Worker, the ShopManager queries all Blackboard entries where
+  `claimed_by = {worker_uuid}` and `status = 'claimed'`.
+- Each such entry is reset to `status = 'open'`, `claimed_by = NULL`,
+  `claimed_at = NULL`.
+- A `report` entry is posted recording the recovery action, the Worker UUID,
+  and the count of released entries.
+
+No human action is required for dead-worker recovery. The ShopManager
+executes it autonomously within its governance authority.
 
 ---
 

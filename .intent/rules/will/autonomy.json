@@ -4,7 +4,7 @@
     "metadata": {
         "id": "rules.will.autonomy",
         "title": "Autonomous Lane Control",
-        "version": "1.0.0",
+        "version": "1.4.0",
         "authority": "policy",
         "phase": "runtime",
         "status": "active"
@@ -25,11 +25,18 @@
             "enforcement": "reporting"
         },
         {
-            "id": "autonomy.reasoning.policy_alignment",
-            "statement": "Agent goal planning MUST include a semantic check against the Quality Assurance policy.",
+            "id": "autonomy.remediation.min_confidence_floor",
+            "statement": "The RemediationMap MUST NOT dispatch any entry whose confidence value is below 0.80. Entries below this threshold MUST NOT produce Proposals regardless of their status field.",
             "authority": "policy",
             "phase": "runtime",
-            "enforcement": "reporting"
+            "enforcement": "blocking"
+        },
+        {
+            "id": "autonomy.conservation.min_preservation_ratio",
+            "statement": "The ConservationGate MUST reject any LLM-produced code whose logical token preservation ratio falls below 0.50 of the original, unless the invoking Proposal explicitly declares deletions_authorized=True.",
+            "authority": "policy",
+            "phase": "runtime",
+            "enforcement": "blocking"
         }
     ]
 }

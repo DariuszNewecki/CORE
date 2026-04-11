@@ -60,7 +60,27 @@
       "Bash(python3 -m py_compile src/body/workers/violation_remediator.py)",
       "Bash(PGPASSWORD=core_db psql -U core_db -d core -h 192.168.20.23 -t -A -c \"SELECT payload->>'proposed_fix' FROM core.blackboard_entries WHERE subject LIKE '%build.py%' ORDER BY created_at DESC LIMIT 1;\")",
       "Bash(PGPASSWORD=core_db psql -U core_db -d core -h 192.168.20.23 -c \"SELECT subject, payload FROM core.blackboard_entries WHERE subject LIKE 'audit.violation%build.py%' ORDER BY created_at DESC LIMIT 5;\")",
-      "Bash(grep -v \"^$\")"
+      "Bash(grep -v \"^$\")",
+      "Bash(core-admin admin:*)",
+      "Bash(python3 -c ':*)",
+      "Bash(grep -l \"orphan\" .intent/workers/*.yaml)",
+      "Bash(grep -l \"orphan\" .intent/policies/*.yaml)",
+      "Bash(ls .intent/policies/*.yaml)",
+      "Bash(grep -l \"no_orphan\\\\|orphan_file\" /opt/dev/CORE/src/mind/logic/engines/knowledge_gate/*.py)",
+      "Bash(grep -c ''\\\\''\\\\$schema'\\\\'' is a required property' /tmp/validate2.txt)",
+      "Bash(grep -v ''\\\\''\\\\$schema'\\\\''\\\\|'\\\\''kind'\\\\''')",
+      "Bash(printf \"  schema_missing:  \")",
+      "Bash(printf \"  kind_missing:    \")",
+      "Bash(printf \"  metadata_miss:   \")",
+      "Bash(printf \"  urlopen errs:    \")",
+      "Bash(printf \"  unknown_url:     \")",
+      "Bash(printf \"  is not type:     \")",
+      "Bash(ls -la /opt/dev/CORE/.intent/papers/*.md)",
+      "Bash(wc -l /opt/dev/CORE/.intent/papers/*.md)",
+      "Bash(git -C /opt/dev/CORE log --oneline -30 -- .intent/papers/)",
+      "Bash(git -C /opt/dev/CORE show 5bee534e --stat)",
+      "Read(//home/lira/.claude/**)",
+      "Bash(PGPASSWORD=core_db psql -h 192.168.20.23 -U core_db -d core -c \"SELECT COUNT\\(*\\) FILTER \\(WHERE kind = 'class'\\) AS classes, COUNT\\(*\\) FILTER \\(WHERE kind = 'function'\\) AS functions, COUNT\\(*\\) FILTER \\(WHERE kind = 'method'\\) AS methods, COUNT\\(*\\) AS total FROM core.symbols;\")"
     ]
   }
 }

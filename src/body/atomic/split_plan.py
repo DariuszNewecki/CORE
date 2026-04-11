@@ -32,6 +32,7 @@ class ModuleSpec:
     module_name: str
     symbols: list[str]
     rationale: str
+    is_class_split: bool = False
 
 
 @dataclass
@@ -97,6 +98,7 @@ class SplitPlan:
                     module_name=str(entry.get("module_name", "")),
                     symbols=list(entry.get("symbols", [])),
                     rationale=str(entry.get("rationale", "")),
+                    is_class_split=bool(entry.get("is_class_split", False)),
                 )
             )
 

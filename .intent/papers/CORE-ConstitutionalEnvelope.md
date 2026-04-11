@@ -80,15 +80,43 @@ text representation suitable for injection into a system prompt.
 **Step 5 — Return**
 The result is a `ConstitutionalEnvelope` with:
 - `text` — the formatted constraints block, ready for prompt injection
-- `rule_count` — number of rules injected
+- `rule_count` — number of rules injected (may be zero for ungoverned layers)
 - `layers` — the architectural layers resolved from the target files
 
-If no target files are provided, or if the IntentRepository is
-unavailable, the envelope returns empty with `rule_count=0`.
-The system fails open — LLM invocation proceeds without the envelope
-and is logged as a governance gap.
+## 4b. IntentRepository Unavailability vs Empty Envelope
 
-## 4b. Injection
+These two conditions are distinct and handled differently:
+
+**IntentRepository unreachable (fail-closed):**
+If the IntentRepository cannot be reached at build time, the envelope
+MUST NOT allow the LLM invocation to proceed ungoverned. The correct
+behaviour is fail-closed:
+
+- `ConstitutionalEnvelope.build()` raises a `GovernanceError` when the
+  IntentRepository cannot be reached.
+- The calling Worker catches `GovernanceError`, marks the in-flight
+  Finding as `abandoned`, posts a `report` entry with subject
+  `governance.envelope_failure::{worker_uuid}` recording the error,
+  and halts processing for the current run cycle.
+- No LLM invocation proceeds when the law is unreadable.
+
+The rationale: an ungoverned LLM mutation is constitutionally worse than
+no mutation. If the law cannot be read, the action must not proceed.
+
+**IntentRepository reachable but returns zero rules (fail-open):**
+If the IntentRepository is reachable but returns no applicable rules for
+the resolved layers, this is a valid constitutional state — the layer
+has no declared constraints yet. The envelope is returned with
+`rule_count=0` and an empty `text`. The LLM invocation proceeds without
+injected constraints. A `governance.envelope_empty::{worker_uuid}` advisory
+entry is posted to the Blackboard for observability, but processing
+continues.
+
+The rationale: new layers and layers under active development may
+legitimately have no rules yet. Blocking writes until a rule exists
+inverts the intended workflow — rules follow code, not the other way around.
+
+## 4c. Injection
 
 The `envelope.text` is injected into the LLM system prompt as a
 dedicated section, typically labeled "Constitutional constraints" or
@@ -96,6 +124,9 @@ dedicated section, typically labeled "Constitutional constraints" or
 
 The LLM is instructed that these constraints are not guidelines —
 they are requirements the produced code must satisfy.
+
+If `envelope.rule_count` is zero, the constraints section is omitted
+from the prompt entirely. The LLM is not told the envelope is empty.
 
 ---
 

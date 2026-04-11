@@ -68,7 +68,8 @@ Declare it here or remove it.
 | GovernanceDecider | The Will-layer component that evaluates a proposed change against constitutional constraints and returns an authorization decision. | `.intent/papers/CORE-Mind-Body-Will-Separation.md` |
 | ViolationSensor | A sensing Worker that posts audit violations as Findings to the Blackboard. | `.intent/papers/CORE-ViolationSensor.md` |
 | RemediatorWorker | An acting Worker that claims Findings and creates Proposals via the RemediationMap. | `.intent/papers/CORE-RemediatorWorker.md` |
-| ViolationExecutor | An acting Worker. Legacy LLM-direct remediation fallback for unmapped rules. | `.intent/papers/CORE-ViolationExecutor.md` |
+| ViolationExecutor | An acting Worker. Discovers remediation patterns for unmapped rules via LLM reasoning. Surfaces AtomicAction candidates for codification. Not yet implemented. | `.intent/papers/CORE-ViolationExecutor.md` |
+| OptimizerWorker | An acting Worker. Observes repeated ViolationExecutor patterns and proposes AtomicAction codification for graduation to the constitutional path. Not yet designed. | `.intent/papers/CORE-OptimizerWorker.md` |
 | ConsumerWorker | An acting Worker that executes approved Proposals via ActionExecutor. | `.intent/papers/CORE-ConsumerWorker.md` |
 | ShopManager | A Worker whose single job is supervising other Workers. | `.intent/papers/CORE-ShopManager.md` |
 | IntentGuard | The runtime Gate that evaluates every file write against constitutional Rules. | `.intent/papers/CORE-IntentGuard.md` |

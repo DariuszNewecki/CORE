@@ -100,6 +100,41 @@ def _find_callers(target_path, repo_root) -> list[str]:
     return callers
 
 
+def _extract_class_methods_context(source: str) -> str:
+    """
+    Detect single-dominant-class files and extract method inventory from AST.
+
+    Returns a formatted string listing the class name and all method names,
+    or a sentinel string if the file is not a single-class file.
+
+    This gives the LLM a precise symbol list so it only needs to reason
+    about grouping — not discover symbols by reading the full file.
+    """
+    import ast as _ast
+
+    try:
+        tree = _ast.parse(source)
+        class_defs = [
+            n for n in _ast.iter_child_nodes(tree) if isinstance(n, _ast.ClassDef)
+        ]
+        if len(class_defs) == 1:
+            dominant = class_defs[0]
+            method_names = [
+                n.name
+                for n in dominant.body
+                if isinstance(n, (_ast.FunctionDef, _ast.AsyncFunctionDef))
+            ]
+            if method_names:
+                return (
+                    f"Single dominant class: {dominant.name}\n"
+                    f"Methods ({len(method_names)}):\n"
+                    + "\n".join(f"  - {m}" for m in method_names)
+                )
+    except Exception:
+        pass
+    return "(not a single-class file)"
+
+
 def _execute_mechanical_split(
     source_path,
     repo_root,
@@ -315,7 +350,12 @@ async def action_fix_modularity(
         len(callers),
     )
 
-    # 2. Phase 1 — find the seam via LLM
+    # 2. Extract class method inventory deterministically from AST.
+    # For single-dominant-class files this gives the LLM a precise symbol
+    # list so it only needs to reason about grouping, not discover symbols.
+    class_methods_context = _extract_class_methods_context(original_content)
+
+    # 3. Phase 1 — find the seam via LLM
     try:
         analyze_model = PromptModel.load("modularity_analyze")
         analyze_client = await core_context.cognitive_service.aget_client_for_role(
@@ -330,6 +370,7 @@ async def action_fix_modularity(
                 "line_count": str(line_count),
                 "content": original_content,
                 "callers": "\n".join(callers) if callers else "(none)",
+                "class_methods": class_methods_context,
             },
         )
     except Exception as e:
@@ -341,7 +382,7 @@ async def action_fix_modularity(
             duration_sec=time.time() - start,
         )
 
-    # 3. Parse LLM response into a validated SplitPlan
+    # 4. Parse LLM response into a validated SplitPlan
     try:
         split_plan = SplitPlan.from_llm_json(plan_raw)
     except SplitPlanError as e:
@@ -363,7 +404,7 @@ async def action_fix_modularity(
         len(split_plan.modules),
     )
 
-    # 4. Phase 2 — deterministic split via ModularitySplitter
+    # 5. Phase 2 — deterministic split via ModularitySplitter
     logger.info(
         "fix.modularity: executing mechanical split of %s into %d modules",
         rel_path,
@@ -394,7 +435,7 @@ async def action_fix_modularity(
             duration_sec=time.time() - start,
         )
 
-    # 5. Logic Conservation Gate
+    # 6. Logic Conservation Gate
     proposed_map = {f["path"]: f["content"] for f in files}
     try:
         conservation_validator = LogicConservationValidator()
@@ -430,7 +471,7 @@ async def action_fix_modularity(
             duration_sec=time.time() - start,
         )
 
-    # 6. Write files
+    # 7. Write files
     if write:
         for file_info in files:
             core_context.file_handler.write_runtime_text(

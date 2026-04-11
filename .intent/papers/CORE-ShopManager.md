@@ -59,8 +59,47 @@ finding, it escalates to the Human.
 Escalation is a Blackboard entry of type `report` with subject
 `shopmanager.escalation::{condition}`.
 
-The Human is not in the loop for normal operations. Escalation is the
-exception, not the rule.
+### 4a. Human Notification Channel
+
+Escalation entries on the Blackboard are the authoritative record.
+The human notification channel is declared in
+`.intent/enforcement/config/governance_paths.yaml` under
+`escalation.notification_channel`. Supported channels:
+
+- `log` — escalation is written to the daemon log at ERROR level.
+  The human monitors logs. This is the default.
+- `file` — escalation is written to `var/escalations/{timestamp}.json`.
+  The human monitors the escalations directory.
+
+The channel is read at daemon startup. If the key is absent,
+`log` is the default. The channel is not configurable at runtime.
+
+### 4b. Human Authority and Resolution
+
+The human architect has full authority over escalated conditions.
+When the human resolves an escalation:
+
+1. The underlying condition is corrected directly (restart a Worker,
+   release a stale claim, fix a broken action, edit `.intent/`).
+2. The escalation Blackboard entry is marked `resolved` by the human
+   via `core-admin blackboard resolve {entry_id}`.
+3. Normal autonomous operation resumes on the next daemon cycle.
+
+The ShopManager does not wait for resolution. It continues monitoring
+and will re-escalate if the condition persists beyond the next check
+cycle.
+
+### 4c. Escalation State Machine
+
+```
+posted (open) → acknowledged (claimed by human via CLI) → resolved
+             ↘ re-escalated (condition persists after SLA)
+```
+
+A condition that has been escalated and not resolved within
+`escalation.re_escalation_interval` (declared in `governance_paths.yaml`,
+default 3600 seconds) is re-escalated with an updated entry referencing
+the original escalation ID.
 
 ---
 
@@ -71,13 +110,14 @@ use to monitor Workers. A ShopManager that goes silent is itself a
 finding — posted by its peers.
 
 If the entire supervisory team goes silent simultaneously, CORE cannot
-self-heal. This condition requires direct human intervention.
+self-heal. This condition requires direct human intervention — check the
+daemon process, inspect logs, and restart if necessary.
 
 ---
 
 ## 6. Non-Goals
 
 This paper does not define:
-- the human notification mechanism
-- automatic recovery actions
-- ShopManager scheduling frequency
+- automatic recovery actions beyond claim release (see CORE-Blackboard.md §7a)
+- ShopManager scheduling frequency (declared in worker YAML)
+- the implementation of notification channel integrations beyond log and file

@@ -54,7 +54,7 @@ async def run_db_merge(session: AsyncSession, code_state: list[dict]) -> dict[st
             text(
                 """
         SELECT COUNT(*) FROM core.symbols s JOIN core_symbols_staging st ON s.symbol_path = st.symbol_path
-        WHERE s.fingerprint != st.fingerprint OR s.calls::text != st.calls::text OR s.domain != st.domain
+        WHERE s.fingerprint != st.fingerprint OR s.calls::text != st.calls::text OR s.domain != st.domain OR s.kind != st.kind
     """
             )
         )
@@ -71,10 +71,10 @@ async def run_db_merge(session: AsyncSession, code_state: list[dict]) -> dict[st
         text(
             """
         UPDATE core.symbols
-        SET fingerprint = st.fingerprint, calls = st.calls, domain = st.domain,
+        SET fingerprint = st.fingerprint, calls = st.calls, domain = st.domain, kind = st.kind,
             last_modified = NOW(), last_embedded = NULL, updated_at = NOW()
         FROM core_symbols_staging st WHERE core.symbols.symbol_path = st.symbol_path
-        AND (core.symbols.fingerprint != st.fingerprint OR core.symbols.calls::text != st.calls::text OR core.symbols.domain != st.domain);
+        AND (core.symbols.fingerprint != st.fingerprint OR core.symbols.calls::text != st.calls::text OR core.symbols.domain != st.domain OR core.symbols.kind != st.kind);
     """
         )
     )

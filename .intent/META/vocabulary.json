@@ -1,0 +1,146 @@
+{
+  "$schema": "META/vocabulary.schema.json",
+  "kind": "vocabulary",
+  "metadata": {
+    "id": "core.vocabulary",
+    "title": "CORE Canonical Vocabulary",
+    "version": "1.0.0",
+    "authority": "meta",
+    "status": "active"
+  },
+  "terms": [
+
+    {
+      "term": "Worker",
+      "definition": "A daemon-resident autonomous unit that runs continuously, claims Blackboard entries, and performs sensing or acting. Workers are declared in .intent/workers/ and loaded by the daemon at startup.",
+      "not": "A Worker is not a Component. Workers are long-lived, daemon-resident, and claim work from the Blackboard. A Worker may contain or invoke Components, but is not itself phase-bound.",
+      "authoritative_paper": ".intent/papers/CORE-Workers-and-Governance-Model.md",
+      "aliases": ["Agent", "Service", "Processor"],
+      "see_also": ["Component", "Sensing Worker", "Acting Worker"]
+    },
+
+    {
+      "term": "Component",
+      "definition": "A phase-bound execution unit invoked within a single phase of a command lifecycle. Components return a ComponentResult and operate within the phase boundaries declared in CORE-Phases-as-Governance-Boundaries.md.",
+      "not": "A Component is not a Worker. Components are short-lived, phase-scoped, and invoked by orchestrators — not by the daemon. A Component does not claim Blackboard entries.",
+      "authoritative_paper": ".intent/papers/CORE-Adaptive-Workflow-Pattern.md",
+      "aliases": ["Handler", "Processor", "Step"],
+      "see_also": ["Worker", "Phase", "ComponentResult"]
+    },
+
+    {
+      "term": "Sensing Worker",
+      "definition": "A Worker whose sole responsibility is perception: it reads the world (filesystem, database, auditor output) and posts Findings to the Blackboard. It makes no decisions and takes no actions.",
+      "not": "A Sensing Worker must not write files, create Proposals, or invoke LLMs. It is read-only with respect to the governed system.",
+      "authoritative_paper": ".intent/papers/CORE-Workers-and-Governance-Model.md",
+      "see_also": ["Acting Worker", "Worker", "Finding"]
+    },
+
+    {
+      "term": "Acting Worker",
+      "definition": "A Worker whose responsibility is to consume Blackboard Findings and produce governed outputs — Proposals, reports, or remediation artifacts. It reacts; it does not sense.",
+      "not": "An Acting Worker must not run the auditor or scan the filesystem for new violations. Sensing is not its role.",
+      "authoritative_paper": ".intent/papers/CORE-Workers-and-Governance-Model.md",
+      "see_also": ["Sensing Worker", "Worker", "Proposal"]
+    },
+
+    {
+      "term": "AtomicAction",
+      "definition": "A registered, governed, deterministic operation that produces a Crate. Declared with @atomic_action, registered in the ActionRegistry, and executed exclusively via ActionExecutor. The unit of constitutional remediation.",
+      "not": "AtomicAction is not a ProposalAction line item and is not a generic verb for what a Worker does. The statement 'all actions must go through ActionExecutor' applies only to AtomicActions — not to Worker run-loop steps or Component invocations.",
+      "authoritative_paper": ".intent/papers/CORE-Action.md",
+      "aliases": ["Action"],
+      "see_also": ["ProposalAction", "ActionExecutor", "Crate"]
+    },
+
+    {
+      "term": "ProposalAction",
+      "definition": "A line item inside a Proposal that names an AtomicAction ID, its parameters, and its execution order. ProposalAction is a declaration of intent, not an execution. It is resolved to an AtomicAction at execution time by ProposalConsumerWorker.",
+      "not": "ProposalAction is not the same as AtomicAction. A ProposalAction references an AtomicAction by ID; it does not execute it.",
+      "authoritative_paper": ".intent/papers/CORE-Proposal.md",
+      "see_also": ["AtomicAction", "Proposal", "ProposalConsumerWorker"]
+    },
+
+    {
+      "term": "Finding",
+      "definition": "A Blackboard entry of type 'finding' posted by a Sensing Worker. It names a specific rule violation: the rule ID, the file path, and the severity. It is the input to the remediation loop.",
+      "not": "A Finding is not a Proposal and not a report. A Finding describes a detected problem; it does not prescribe a fix.",
+      "authoritative_paper": ".intent/papers/CORE-Finding.md",
+      "see_also": ["Blackboard", "Sensing Worker", "Proposal"]
+    },
+
+    {
+      "term": "Rule",
+      "definition": "A structured authority claim declared in a rule document under .intent/rules/. A Rule has an id, a statement, an authority level, a phase, and an enforcement strength. Rules are the constitutional unit of governance evaluation.",
+      "not": "Rule is not synonymous with Constitution or Policy. Constitution and Policy are authority levels that a Rule may carry. A Rule at constitution authority is a constitutional rule — but 'Rule' and 'Constitution' are not interchangeable terms.",
+      "authoritative_paper": ".intent/papers/CORE-Rule-Authoring-Discipline.md",
+      "aliases": ["Check", "Constraint", "Policy"],
+      "see_also": ["Authority", "Constitution", "Policy"]
+    },
+
+    {
+      "term": "Constitution",
+      "definition": "The authority level immediately below Meta. A Rule or paper at constitution authority declares non-negotiable structural constraints that cannot be overridden by Policy or Code authority artifacts. Also used informally to refer to the full .intent/ governance layer.",
+      "not": "Constitution is not a folder path and not a synonym for Rule. 'Constitutional rule' means a Rule with authority: constitution — not a rule located in a folder named constitution.",
+      "authoritative_paper": ".intent/papers/CORE-Constitutional-Foundations.md",
+      "see_also": ["Authority", "Policy", "Rule"]
+    },
+
+    {
+      "term": "Policy",
+      "definition": "The authority level below Constitution. Rules at policy authority declare architectural standards and conventions that may be adjusted within the bounds set by constitution-authority rules.",
+      "not": "Policy is not a folder path. The presence of a rule in .intent/rules/ does not determine its authority — the authority field in the rule document does.",
+      "authoritative_paper": ".intent/papers/CORE-Authority-Without-Registries.md",
+      "see_also": ["Authority", "Constitution", "Rule"]
+    },
+
+    {
+      "term": "dry_run (evaluation_only)",
+      "definition": "An audit or rule evaluation that runs the check logic and records whether a violation would be found, but generates no fix and posts no actionable Finding. The rule is evaluated; the system is not changed.",
+      "not": "evaluation_only dry-run does not produce a finding with dry_run=true. It produces no finding at all, or a finding explicitly tagged dry_run_scope: evaluation_only that must not enter the remediation pipeline.",
+      "authoritative_paper": ".intent/papers/CORE-Action.md",
+      "see_also": ["dry_run (fix_generated)", "dry_run (finding_suppressed)"]
+    },
+
+    {
+      "term": "dry_run (fix_generated)",
+      "definition": "An execution mode in which an AtomicAction or ViolationExecutor generates the full fix artifact (Crate) but does not apply it to the filesystem. The output is inspectable; the system is not changed.",
+      "not": "fix_generated dry-run is not the same as evaluation_only. A fix has been computed. The distinction matters for consequence logging and audit reconstruction.",
+      "authoritative_paper": ".intent/papers/CORE-ViolationExecutor.md",
+      "see_also": ["dry_run (evaluation_only)", "dry_run (finding_suppressed)", "Crate"]
+    },
+
+    {
+      "term": "dry_run (finding_suppressed)",
+      "definition": "A boolean field on a Blackboard Finding that marks it as produced in a dry-run context. A Finding with dry_run_scope: finding_suppressed must not be claimed by an Acting Worker for autonomous remediation.",
+      "not": "finding_suppressed is a property of the Finding record, not a mode of execution. It is set by the Sensing Worker at post time and is distinct from the execution mode of any downstream action.",
+      "authoritative_paper": ".intent/papers/CORE-Finding.md",
+      "see_also": ["dry_run (evaluation_only)", "dry_run (fix_generated)", "Finding"]
+    },
+
+    {
+      "term": "Remediation",
+      "definition": "The governed process of resolving a Finding by applying a fix through the constitutional pipeline: Finding → RemediationMap lookup → Proposal → AtomicAction → Crate → Gates → Apply. Every step is declared, authorized, traced, and reversible.",
+      "not": "Remediation is not repair. Repair is ad hoc. Remediation is governed. A fix applied outside the Proposal → AtomicAction path is repair, not remediation, regardless of whether it produces the correct result.",
+      "authoritative_paper": ".intent/papers/CORE-Remediation.md",
+      "see_also": ["Proposal Path", "ViolationExecutor Path", "AtomicAction"]
+    },
+
+    {
+      "term": "Proposal Path",
+      "definition": "The constitutional remediation path: Finding → RemediationMap → Proposal → AtomicAction. No LLM in the remediation logic. Deterministic, traceable, and the target state for all rules.",
+      "not": "The Proposal Path is not equivalent to the ViolationExecutor Path. They are not peers. The Proposal Path is the target architecture; the ViolationExecutor Path is a temporary fallback that must shrink to zero.",
+      "authoritative_paper": ".intent/papers/CORE-Remediation.md",
+      "see_also": ["ViolationExecutor Path", "RemediationMap", "AtomicAction"]
+    },
+
+    {
+      "term": "ViolationExecutor Path",
+      "definition": "The legacy remediation fallback: Finding → LLM invocation → Crate. Used only for rules that have no registered AtomicAction in the RemediationMap. Every rule handled by this path is a rule awaiting constitutional remediation. The goal is to reduce this path to zero.",
+      "not": "The ViolationExecutor Path is not a peer of the Proposal Path. It is a fallback. It must not claim findings whose rules are mapped in the RemediationMap — those belong to the Proposal Path.",
+      "authoritative_paper": ".intent/papers/CORE-ViolationExecutor.md",
+      "see_also": ["Proposal Path", "RemediationMap", "ViolationExecutor"]
+    }
+
+  ]
+}

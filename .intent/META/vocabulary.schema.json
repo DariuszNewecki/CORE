@@ -1,0 +1,71 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "CORE Vocabulary Document Schema",
+  "type": "object",
+  "additionalProperties": false,
+
+  "required": ["$schema", "kind", "metadata", "terms"],
+
+  "properties": {
+
+    "$schema": {
+      "type": "string"
+    },
+
+    "kind": {
+      "type": "string",
+      "const": "vocabulary"
+    },
+
+    "metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "title", "version", "authority", "status"],
+      "properties": {
+        "id":        { "type": "string" },
+        "title":     { "type": "string" },
+        "version":   { "type": "string" },
+        "authority": { "$ref": "./enums.json#/definitions/authority" },
+        "status":    { "$ref": "./enums.json#/definitions/artifact_status" }
+      }
+    },
+
+    "terms": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["term", "definition", "not", "authoritative_paper"],
+        "properties": {
+          "term": {
+            "type": "string",
+            "description": "The canonical term, exactly as it must appear in papers and code."
+          },
+          "definition": {
+            "type": "string",
+            "description": "One or two sentences. What this term means in CORE. Precise enough to distinguish it from adjacent terms."
+          },
+          "not": {
+            "type": "string",
+            "description": "What this term must not be confused with. Explicit disambiguation."
+          },
+          "authoritative_paper": {
+            "type": "string",
+            "description": "Path to the paper that is the authoritative source for this term. In case of conflict between this file and the paper, the paper wins — but this file is the index."
+          },
+          "aliases": {
+            "type": "array",
+            "description": "Other terms in use that map to this canonical term. Listed here so they can be detected and corrected.",
+            "items": { "type": "string" }
+          },
+          "see_also": {
+            "type": "array",
+            "description": "Related terms defined elsewhere in this document.",
+            "items": { "type": "string" }
+          }
+        }
+      }
+    }
+  }
+}

@@ -53,6 +53,83 @@
         "sequential",
         "parallel"
       ]
+    },
+
+    "worker_status": {
+      "description": "Operational status of a Worker declaration. active means the daemon loads and runs it. paused means the daemon skips it without retiring it. deprecated means it is retained for reference only and will not be loaded.",
+      "type": "string",
+      "enum": [
+        "active",
+        "paused",
+        "deprecated"
+      ]
+    },
+
+    "blackboard_entry_status": {
+      "description": "Canonical lifecycle states for all Blackboard entries. open and claimed are active (claimable or held). resolved, abandoned, deferred_to_proposal, dry_run_complete, and indeterminate are terminal — no worker may claim or transition them further without explicit revival.",
+      "type": "string",
+      "enum": [
+        "open",
+        "claimed",
+        "resolved",
+        "abandoned",
+        "deferred_to_proposal",
+        "dry_run_complete",
+        "indeterminate"
+      ]
+    },
+
+    "blackboard_entry_status_active": {
+      "description": "The subset of blackboard_entry_status values that are non-terminal. A Worker claiming findings MUST filter to these values only.",
+      "type": "string",
+      "enum": [
+        "open",
+        "claimed"
+      ]
+    },
+
+    "proposal_status": {
+      "description": "Canonical lifecycle states for Proposals. draft, pending, approved, and executing are active — deduplication must treat these as blocking a re-creation of the same action group. completed and failed are terminal.",
+      "type": "string",
+      "enum": [
+        "draft",
+        "pending",
+        "approved",
+        "executing",
+        "completed",
+        "failed"
+      ]
+    },
+
+    "proposal_status_active": {
+      "description": "The subset of proposal_status values that are active. RemediatorWorker MUST check for proposals in these states before creating a new one for the same action group.",
+      "type": "string",
+      "enum": [
+        "draft",
+        "pending",
+        "approved",
+        "executing"
+      ]
+    },
+
+    "proposal_risk": {
+      "description": "Risk classification for a Proposal. Determines whether approval_required is true. safe proposals are auto-approved. moderate and high require human review.",
+      "type": "string",
+      "enum": [
+        "safe",
+        "moderate",
+        "high"
+      ]
+    },
+
+    "dry_run_scope": {
+      "description": "Disambiguates the three distinct dry-run modes in CORE. evaluation_only means the rule was checked but no fix was generated. fix_generated means a fix was produced but not applied. finding_suppressed means the finding is tagged for exclusion from remediation pipelines.",
+      "type": "string",
+      "enum": [
+        "evaluation_only",
+        "fix_generated",
+        "finding_suppressed"
+      ]
     }
 
   }

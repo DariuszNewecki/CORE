@@ -41,22 +41,33 @@ Every Proposal must declare:
 | `created_by` | string | Identity of the Worker that created this Proposal. |
 | `constitutional_constraints` | object | Evidence of the constitutional basis for this Proposal. |
 | `approval_required` | boolean | Whether human approval is required before execution. |
-| `risk` | object | Risk assessment: overall_risk, action_risks, risk_factors, mitigation. |
+| `risk` | object | Risk assessment: overall_risk, action_risks, risk_factors, mitigation. See section 7. |
 
 ---
 
 ## 4. Status Lifecycle
 
-draft → approved → executing → completed
-↘ failed
+The canonical status values are declared in `.intent/META/enums.json`
+under `proposal_status`. No status value outside that declaration is valid.
 
-| Status | Meaning |
-|--------|---------|
-| `draft` | Created. Not yet authorized. Human review required. |
-| `approved` | Authorized. Ready for execution by ConsumerWorker. |
-| `executing` | ConsumerWorker has begun execution. |
-| `completed` | All actions executed successfully. |
-| `failed` | One or more actions failed. `failure_reason` is populated. |
+```
+draft → approved → executing → completed
+                             ↘ failed
+```
+
+| Status | Active | Meaning |
+|--------|--------|---------|
+| `draft` | Yes | Created. Not yet authorized. Human review required. |
+| `pending` | Yes | Submitted for approval. Awaiting human decision. |
+| `approved` | Yes | Authorized. Ready for execution by ConsumerWorker. |
+| `executing` | Yes | ConsumerWorker has begun execution. |
+| `completed` | No | All actions executed successfully. Terminal. |
+| `failed` | No | One or more actions failed. `failure_reason` is populated. Terminal. |
+
+Active statuses are `draft`, `pending`, `approved`, and `executing`.
+Deduplication checks MUST treat all active statuses as blocking
+re-creation of the same action group. The canonical active subset is
+declared in `.intent/META/enums.json` under `proposal_status_active`.
 
 **Auto-approval:** Proposals where `approval_required = false` are
 created directly in `approved` status. The ConsumerWorker picks them
@@ -65,6 +76,17 @@ up immediately without human intervention.
 **Human approval:** Proposals where `approval_required = true` are
 created in `draft` status. They wait until a human promotes them to
 `approved`.
+
+### 4a. Retry bound
+
+A `failed` Proposal is terminal. RemediatorWorker will create a new
+Proposal for the same action group on the next run cycle. To prevent
+infinite retry loops, the acting Worker MUST check the count of
+`failed` Proposals for the same `action_id` within the last 24 hours
+before creating a new one. If the count is 3 or more, the Worker MUST
+NOT create a new Proposal and MUST post a `report` entry flagging the
+action as repeatedly failing. Human intervention is required to reset
+the counter by resolving the underlying cause.
 
 ---
 
@@ -99,7 +121,16 @@ IntentGuard enforces actual write boundaries independently.
 
 ## 7. Risk Assessment
 
-Every Proposal carries a risk assessment computed at creation time.
+Every Proposal carries a risk assessment computed at creation time by
+the acting Worker that creates the Proposal. The canonical risk values
+are declared in `.intent/META/enums.json` under `proposal_risk`.
+
+Risk computation inputs:
+- The `action_id` declared in each ProposalAction
+- The number of files in scope
+- Whether any in-scope file is in a constitutional layer (`src/will/`,
+  `src/mind/`, `.intent/`)
+- Whether the action has previously failed for the same file
 
 | Field | Values | Meaning |
 |-------|--------|---------|
@@ -127,13 +158,20 @@ After execution, the Proposal carries:
 
 Each action result contains: `ok`, `data`, `order`, `duration_sec`.
 
+### 8a. Failure consequence
+
+When a Proposal reaches `failed` status, the ConsumerWorker MUST
+revive all Findings linked to this Proposal via their `proposal_id`
+payload field by resetting their status to `open`. See
+`CORE-Finding.md` section 7a for the full revival contract.
+
 ---
 
 ## 9. Deduplication
 
 Before creating a Proposal, the acting Worker checks whether an active
-Proposal already exists for the same action group. An active Proposal
-has status `draft`, `approved`, or `executing`.
+Proposal already exists for the same action group. Active statuses are
+`draft`, `pending`, `approved`, and `executing`.
 
 If an active Proposal exists for the same `action_id`: no new Proposal
 is created. The existing one is left to complete.

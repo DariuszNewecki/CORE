@@ -9,7 +9,7 @@ metadata:
   status: active
 
 identity:
-  uuid: "<generate-new-uuid>"
+  uuid: "4cd25142-3953-458f-8d0f-6cbe674e02f0"
   class: sensing
 
 mandate:

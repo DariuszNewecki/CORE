@@ -42,7 +42,24 @@ Each entry in the map declares:
 
 ---
 
-## 4. Dispatch Rules
+## 4. Write Authority
+
+The RemediationMap is a `.intent/` artifact. `.intent/` is read-only to
+CORE — no autonomous process may write, modify, or delete any file under
+`.intent/`, including the RemediationMap. This rule has no exceptions and
+no future autonomous override path.
+
+The human architect is the sole authority for adding, modifying, or
+retiring RemediationMap entries.
+
+CORE may surface optimization suggestions — for example, ViolationExecutor
+may identify a pattern that warrants a new mapping — but the suggestion is
+advisory only. The human reviews it and edits the file directly. CORE never
+writes the result back.
+
+---
+
+## 5. Dispatch Rules
 
 The RemediatorWorker applies these rules when reading the map:
 
@@ -50,9 +67,11 @@ The RemediatorWorker applies these rules when reading the map:
 for roadmap visibility only. They never produce Proposals.
 
 **Minimum confidence is 0.80.** Entries with confidence below 0.80 are
-not dispatched, regardless of status. This threshold is declared in
-`.intent/enforcement/config/governance_paths.yaml` under
-`remediation.min_confidence`. It is not hardcoded.
+not dispatched, regardless of status. This threshold is a constitutional
+Rule declared in `.intent/rules/will/autonomy.json` under rule ID
+`autonomy.remediation.min_confidence_floor`. It is blocking at runtime.
+Changing the threshold requires a rule amendment — it is not an
+operational configuration value.
 
 **One action per rule.** Each rule maps to exactly one AtomicAction.
 A rule with multiple competing actions has not been specified precisely
@@ -60,18 +79,26 @@ enough.
 
 ---
 
-## 5. Confidence Tiers
+## 6. Confidence Tiers
 
-| Confidence | Tier | Meaning |
-|------------|------|---------|
-| >= 0.90 | safe_only | Fully deterministic. No reasoning required. Auto-dispatched. |
-| >= 0.80 | medium_risk | Deterministic with light validation. Auto-dispatched. |
-| >= 0.50 | all_deterministic | Handler confirmed working but confidence limited. NOT dispatched (below min). |
-| < 0.50 | not dispatched | Handler stub only. NOT dispatched. |
+These tiers describe dispatch behaviour by confidence band. All tiers
+are deterministic — the labels reflect dispatch status, not quality
+of the underlying handler.
+
+| Confidence | Dispatch status | Meaning |
+|------------|-----------------|---------|
+| >= 0.90 | Auto-dispatched | Fully validated mapping. No reasoning required. |
+| >= 0.80 | Auto-dispatched | Validated mapping with light risk. |
+| >= 0.50 | Not dispatched | Handler exists but confidence is below the minimum floor. |
+| < 0.50 | Not dispatched | Handler stub only. Not ready for autonomous dispatch. |
+
+Entries in the 0.50–0.79 band are documented for roadmap visibility.
+They will be dispatched once confidence is raised to 0.80 or above
+through additional validation.
 
 ---
 
-## 6. How It Is Read
+## 7. How It Is Read
 
 The RemediatorWorker loads the map via `_load_remediation_map()` which
 reads the file at the path declared in `governance_paths.yaml`. The path
@@ -82,7 +109,7 @@ effect on the next daemon cycle without restart.
 
 ---
 
-## 7. Relationship to AtomicAction `remediates` Field
+## 8. Relationship to AtomicAction `remediates` Field
 
 The RemediationMap is the authoritative routing declaration.
 The `remediates` field on a registered AtomicAction is the implementation
@@ -97,7 +124,7 @@ Inconsistency between the two is a governance gap.
 
 ---
 
-## 8. Non-Goals
+## 9. Non-Goals
 
 This paper does not define:
 - the format of the YAML file beyond the fields above

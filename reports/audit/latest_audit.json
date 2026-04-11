@@ -1,8 +1,8 @@
 {
-  "audit_id": "6993ab58-dc39-4c6b-9179-4965b8f5fb9c",
-  "timestamp": "2026-04-09T21:57:27Z",
+  "audit_id": "da27d73f-30e9-4ef6-81c9-291080889d8f",
+  "timestamp": "2026-04-11T09:36:58Z",
   "passed": true,
-  "findings_count": 3,
+  "findings_count": 11,
   "executed_rules": [
     "ai.cognitive_role.no_hardcoded_string",
     "ai.prompt.artifact.no_provider_leak",
@@ -52,7 +52,6 @@
     "atomic_actions.no_governance_bypass",
     "atomic_actions.result_must_be_structured",
     "autonomy.lanes.boundary_enforcement",
-    "autonomy.reasoning.policy_alignment",
     "autonomy.tracing.mandatory",
     "capability.taxonomy.canonical_only",
     "capability.taxonomy.no_ad_hoc_capabilities",

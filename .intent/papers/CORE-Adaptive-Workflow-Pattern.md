@@ -1,4 +1,4 @@
-<!-- path: .intent/papers/CORE-V2-Adaptive-Workflow-Pattern.md -->
+<!-- path: .intent/papers/CORE-Adaptive-Workflow-Pattern.md -->
 
 # CORE: V2 Adaptive Workflow Pattern
 
@@ -368,6 +368,45 @@ class ComponentResult:
 
 ---
 
+## 7a. ComponentResult vs ActionResult
+
+`ComponentResult` and `ActionResult` are distinct types serving different
+layers and purposes. They are not interchangeable.
+
+**ComponentResult** — the return type of a Component in the V2 adaptive
+workflow. Carries workflow-routing fields (`confidence`, `next_suggested`,
+`metadata`) that allow the Orchestrator to make adaptive decisions.
+Components are phase-bound execution units in the Will/Body layers.
+
+**ActionResult** — the return type of an AtomicAction executed via
+ActionExecutor. Carries execution fields (`ok`, `data`, `impact`,
+`duration_sec`). AtomicActions are registered, governed, deterministic
+operations. They do not return ComponentResult.
+
+**The relationship:**
+
+When an Orchestrator or Component needs to invoke an AtomicAction as
+part of a workflow step, it calls ActionExecutor, which returns an
+ActionResult. The calling Component is responsible for mapping the
+ActionResult into its own ComponentResult before returning to the
+Orchestrator. ActionResult is never returned directly to the adaptive
+loop — the Component wraps it.
+
+```
+Orchestrator
+    → calls Component.execute()
+        → Component calls ActionExecutor.execute(action_id, ...)
+            → ActionExecutor returns ActionResult
+        → Component maps ActionResult into ComponentResult
+    → Orchestrator receives ComponentResult
+```
+
+AtomicActions never return ComponentResult directly. The V2 adaptive
+loop never receives ActionResult directly. The Component is the
+translation boundary between the two types.
+
+---
+
 ## 8. Decision Tracing
 
 All strategic decisions MUST be traced:
@@ -469,6 +508,9 @@ For a command to be V2-compliant:
 ❌ **Missing TERMINATE Boundary:** Not separating generation from finalization
 ❌ **Absolute Quality Gates:** "Is it perfect?" instead of "Did it improve?"
 ❌ **Unbounded Loops:** No termination conditions
+❌ **Returning ActionResult directly to Orchestrator:** AtomicAction results
+   must be wrapped in ComponentResult by the calling Component before
+   reaching the adaptive loop.
 
 ---
 
@@ -522,15 +564,13 @@ src/will/
     decision_tracer.py
     cognitive_service.py
 
-src/features/
-  test_generation_v2/
-    adaptive_test_generator.py  # Orchestrator
-  self_healing/
-    clarity_service_v2.py       # Orchestrator
-
-shared/
+src/shared/
   component_primitive.py  # Base classes and interfaces
 ```
+
+Note: orchestrator implementations live in the relevant `src/body/` or
+`src/will/` service modules. There is no `src/features/` directory in
+the current source layout.
 
 ---
 
@@ -581,7 +621,12 @@ Components resolve authority at runtime from declared rules, not from static reg
 ### 15.3 Phases as Governance Boundaries
 Each component declares its phase explicitly, preventing cross-phase evaluation.
 
-### 15.4 Common Governance Failure Modes
+### 15.4 Action Paper
+AtomicActions return `ActionResult`. Components return `ComponentResult`.
+The calling Component is the translation boundary between the two types.
+See section 7a.
+
+### 15.5 Common Governance Failure Modes
 V2 prevents temporal leakage (audit influencing runtime) through strict phase separation.
 
 ---

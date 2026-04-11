@@ -1,3 +1,5 @@
+<!-- path: .intent/papers/CORE-Cognitive-Routing-and-Resource-Selection.md -->
+
 # CORE Cognitive Routing and Resource Selection
 
 ## Abstract
@@ -128,6 +130,36 @@ When assigning or reassigning roles, consult this tier classification before sel
 
 ---
 
+# 3b. Role-to-Tier Binding Authority
+
+The tier classifications in section 3a are **architectural guidance**, not
+constitutional law. They describe the reasoning behind assignments but do
+not themselves constrain runtime behaviour.
+
+**The binding of a role to a resource is declared in `.intent/` and is
+human-authored.** Specifically:
+
+- Role-to-resource bindings are declared in
+  `.intent/mind/cognitive/` (or equivalent path declared in
+  `governance_paths.yaml`).
+- The human architect is the sole authority for creating, modifying, or
+  retiring a role-to-resource binding.
+- CORE reads bindings at startup from `.intent/` via the declared path.
+  It never writes them.
+- A binding change takes effect on the next daemon restart.
+
+**Role-to-resource bindings are not Rules** in the constitutional sense.
+They are not evaluated by the audit engine and do not produce Findings.
+They are operational declarations read by the CognitiveOrchestrator at
+runtime. Changing a binding is a governance act (human edits `.intent/`)
+but not a constitutional violation if done correctly.
+
+The consequence: which model writes production code is a human decision,
+declared in `.intent/`, with no autonomous override path. This is the
+same authority model that governs all `.intent/` content.
+
+---
+
 # 4. Preference Hierarchies
 
 CORE may define preference hierarchies when multiple resources are available.
@@ -207,7 +239,7 @@ CORE may adaptively prefer resources that demonstrate:
 * higher success rates
 * lower operational cost
 
-However, adaptive routing must always remain bounded by the constitutional rules defined in this paper.
+However, adaptive routing must always remain bounded by the constitutional rules defined in this paper. Adaptive preference operates within the declared binding — it may select among fallback options but may not override the primary binding declared in `.intent/`.
 
 ---
 
@@ -269,5 +301,8 @@ By enforcing capability validation, explicit selection criteria, and observable 
 * explainable
 * measurable
 * constitutionally governed
+
+Role-to-resource bindings are human-authored `.intent/` declarations.
+Which model writes production code is a human decision, not an autonomous one.
 
 These guarantees allow CORE to evolve its execution infrastructure without compromising governance or architectural integrity.

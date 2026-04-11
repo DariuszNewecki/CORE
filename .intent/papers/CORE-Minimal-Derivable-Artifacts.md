@@ -115,6 +115,32 @@ Render law and outcomes intelligibly.
 
 ---
 
+### 3.6 RemediationMap
+
+**Purpose:**
+Declare the routing table from Rule to AtomicAction for autonomous
+remediation.
+
+**Status:** Hand-authored law, not a derived projection.
+
+The RemediationMap is listed here to resolve its taxonomy status
+explicitly. It is a `.intent/` artifact and is therefore human-authored
+constitutional law — not a derivable artifact in the sense of sections
+2 and 3 above. It is included in this list to confirm that its existence
+is constitutionally sanctioned and to prevent it from being mistakenly
+treated as a generated or derivable output.
+
+**Constraints:**
+
+* human-authored only — never generated or autonomously written,
+* lives at `.intent/enforcement/remediation/auto_remediation.yaml`,
+* read-only to CORE at runtime,
+* authoritative for routing decisions of the RemediatorWorker.
+
+See `CORE-RemediationMap.md` for full definition and write authority.
+
+---
+
 ## 4. Explicitly Non-Derivable Artifacts
 
 The following must not be derived as authoritative artifacts:

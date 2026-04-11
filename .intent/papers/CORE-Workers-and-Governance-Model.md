@@ -42,7 +42,7 @@ A Worker:
 - Holds a mandate declared in `.intent/workers/`
 - Is responsible for exactly one domain of concern
 - Calls Agents or LLMs as labor tools — they have no constitutional standing of their own
-- Produces Proposals; it does not execute actions directly — with one constitutional exception: ConsumerWorker's sole mandate is executing approved Proposals via ActionExecutor.
+- Produces output appropriate to its type: Acting Workers create Proposals; Sensing Workers post Findings. See section 5.
 - Registers its identity on startup against its `.intent/` declaration
 - Writes a constitutional record of every decision it makes
 
@@ -94,9 +94,9 @@ This decoupling is intentional. Workers are replaceable. The Blackboard is perma
 
 Workers fall into three natural categories based on their relationship to the Blackboard:
 
-**Sensing Workers** — observe the system and post findings. They do not act.
+**Sensing Workers** — observe the system and post Findings to the Blackboard. They do not create Proposals and do not execute actions.
 
-**Acting Workers** — claim findings, create Proposals, and drive execution. They do not observe.
+**Acting Workers** — claim Findings, create Proposals, and drive execution. They do not observe.
 
 **Governance Workers** — monitor constitutional health of the system itself. They post governance findings.
 
@@ -110,11 +110,11 @@ The following obligations apply to all autonomous entities without exception:
 
 **Identity:** Every entity must have a UUID declared in its `.intent/` file. Every Proposal and every Blackboard entry it creates must carry that UUID. Proposals without a valid registered identity are rejected before reaching any enforcement gate.
 
-**History:** Every decision, every claim, every Proposal created must be written to the Blackboard as a constitutional record. Acting without writing history is a constitutional violation. Silence is not neutral — it is a violation.
+**History:** Every decision, every claim, every Blackboard entry created must be written to the Blackboard as a constitutional record. Acting without writing history is a constitutional violation. Silence is not neutral — it is a violation.
 
 **Scope:** No entity may act outside its declared mandate. An entity that exceeds its scope is in violation regardless of the quality of its reasoning.
 
-**Proposal authority:** Workers propose; they do not execute directly. All proposals pass through constitutional enforcement gates before any action runs. The single exception is ConsumerWorker, whose declared mandate is execution of approved Proposals — it does not propose, it only executes what has already been authorized.
+**Proposal authority:** Acting Workers propose; they do not execute directly. Sensing Workers post Findings; they do not propose. All Proposals pass through constitutional enforcement gates before any action runs. The single exception is ConsumerWorker, whose declared mandate is execution of approved Proposals — it does not propose, it only executes what has already been authorized.
 
 **Thoroughness over throughput:** A Worker must not prioritize speed over accuracy. Autonomous operation is only valuable if its output is trustworthy. A Worker that produces fast but unreliable results is in violation of its mandate — confident wrong output is constitutionally worse than no output. Duration of execution is not a metric of failure. A Worker that takes two days to do its job correctly has succeeded. A Worker that takes two minutes and produces degraded output has failed.
 
@@ -144,8 +144,18 @@ and must not proceed.
 Registration records: `worker_uuid`, `worker_name`, `worker_class`,
 `phase`, `status=active`, `last_heartbeat=now()`.
 
-If the Worker UUID already exists in the registry (daemon restart),
-registration updates `status=active` and `last_heartbeat`.
+**Worker UUID on restart:** A Worker's `worker_uuid` is permanent and
+declared in `.intent/workers/`. It does not change between daemon
+restarts. If the Worker UUID already exists in the registry, registration
+updates `status=active` and `last_heartbeat` — it does not create a new
+UUID. This means all Blackboard entries, Proposals, and deduplication
+records created by prior daemon generations remain associated with the
+same UUID across restarts.
+
+Deduplication of Findings is therefore scoped globally by subject, not
+by worker_uuid. The sensing Worker's UUID is irrelevant to dedup — what
+matters is whether an entry with the same subject exists in a non-terminal
+status. See `CORE-Finding.md` section 5.
 
 **Step 2 — `run()`**
 The Worker's single unit of constitutional work. Subclasses implement

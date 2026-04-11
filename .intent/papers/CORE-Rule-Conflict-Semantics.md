@@ -51,12 +51,34 @@ CORE treats such errors as defects in the declared law, not as runtime contingen
 
 Rule conflicts **MUST** be detected as early as possible.
 
-Preferred detection phases:
+Preferred detection phases and their mechanisms:
 
-* **Load Phase** — when conflicts can be determined from rule structure alone.
-* **Audit Phase** — when conflicts depend on derived system properties.
+**Load Phase** — detects conflicts determined from rule structure alone,
+without executing rules against any evidence. Load-phase detection
+inspects the structural properties of rule declarations:
 
-Conflicts discovered in later phases indicate insufficient earlier validation but remain governance errors.
+- Two rules at the same authority level and same phase that declare
+  mutually exclusive enforcement outcomes for the same target scope
+  (e.g. one requires a field present, another forbids it) are a
+  structural conflict detectable at Load.
+- Two rules at the same authority level and same phase whose
+  `statement` fields are logically contradictory as declared text
+  are a structural conflict.
+- Duplicate rule IDs within the same phase and authority level are
+  a structural conflict.
+
+Load-phase detection does not require evaluating rules against source
+files, runtime state, or derived metrics. It reads rule declarations
+only.
+
+**Audit Phase** — detects conflicts that depend on derived system
+properties and cannot be determined from declarations alone. For
+example, two rules that are structurally compatible but produce
+contradictory verdicts when evaluated against the same file at
+runtime are an Audit-phase conflict.
+
+Conflicts discovered in later phases indicate insufficient earlier
+validation but remain governance errors regardless of when detected.
 
 ---
 
@@ -88,11 +110,28 @@ Any implementation employing these mechanisms violates the Constitution.
 
 ## 7. Relationship to Authority Hierarchy
 
-Authority hierarchy resolves conflicts **only** between rules of different authority levels.
+Authority hierarchy resolves conflicts **only** between rules of different
+authority levels. This resolution is not a conflict in the sense of this
+paper — it is expected behaviour.
 
-This paper applies exclusively to conflicts where authority levels are equal.
+When two rules at different authority levels apply to the same phase and
+produce incompatible outcomes, the higher-authority rule wins
+unconditionally:
 
-Higher-authority rules overriding lower-authority rules is governed by the Constitution and is not affected by this paper.
+```
+Meta > Constitution > Policy > Code
+```
+
+This resolution is:
+- deterministic (no interpretation required),
+- phase-local (both rules are in the same phase; no phase transition occurs),
+- immediate (the lower-authority rule is simply superseded; it is not
+  an error unless the lower-authority rule explicitly contradicts a
+  constitutional invariant that it has no authority to override).
+
+This paper applies exclusively to conflicts where authority levels are
+equal. Cross-authority resolution is governed by the Constitution and
+is not affected by this paper.
 
 ---
 
@@ -103,13 +142,15 @@ A rule conflict is distinct from an indeterminate evaluation outcome.
 * **Indeterminate** indicates insufficient or invalid evidence.
 * **Conflict** indicates incompatible law.
 
-Both block progression for blocking rules, but their causes are different and must be reported distinctly.
+Both block progression for blocking rules, but their causes are different
+and must be reported distinctly.
 
 ---
 
 ## 9. Amendment Discipline
 
-This paper may be amended only by explicit constitutional replacement, in accordance with the CORE amendment mechanism.
+This paper may be amended only by explicit constitutional replacement, in
+accordance with the CORE amendment mechanism.
 
 ---
 

@@ -1,3 +1,6 @@
+$schema: "META/workflow_definition.schema.json"
+kind: workflow_definition
+
 workflow_id: coverage_remediation
 version: "1.0"
 status: experimental

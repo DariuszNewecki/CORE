@@ -1,0 +1,37 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "GLOBAL-DOCUMENT-META-SCHEMA.json",
+  "title": "CORE Global Document Meta-Schema",
+  "description": "Every non-META document in .intent/ must satisfy this schema. It enforces the minimum header contract: $schema and kind are required on all documents. metadata is required when present to have id, title, version, authority, and status as non-empty strings. Enum validation of authority and status is delegated to the per-document schema.",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["$schema", "kind"],
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "minLength": 1
+    },
+    "kind": {
+      "type": "string",
+      "enum": [
+        "rule_document",
+        "vocabulary",
+        "workflow_definition",
+        "workflow_stage",
+        "worker"
+      ]
+    },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["id", "title", "version", "authority", "status"],
+      "properties": {
+        "id":        { "type": "string", "minLength": 3 },
+        "title":     { "type": "string", "minLength": 3 },
+        "version":   { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$" },
+        "authority": { "type": "string", "minLength": 1 },
+        "status":    { "type": "string", "minLength": 1 }
+      }
+    }
+  }
+}

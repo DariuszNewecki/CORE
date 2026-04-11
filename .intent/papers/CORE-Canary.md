@@ -37,63 +37,94 @@ and before applying it.
 
 ---
 
-## 4. Sandbox Mechanism
+## 4. Baseline Definition
+
+The Canary compares the sandbox audit result against a baseline. The
+baseline is defined as follows:
+
+**The baseline is a snapshot of blocking violations present in the live
+repository taken at the moment the Crate is submitted for validation —
+immediately before Step 3 (sandbox creation).**
+
+This means:
+- Violations that existed before the Crate was created are in the baseline
+  and do not count against it.
+- Violations introduced by the Crate's changes that were not in the baseline
+  cause the Canary to fail.
+- Pre-existing violations that the Crate happens to fix reduce the violation
+  count but do not affect the pass condition.
+
+The baseline is computed once per Canary invocation and is not shared
+between invocations. It reflects the live tree at the time of validation,
+not at the time the Crate was authored.
+
+---
+
+## 5. Sandbox Mechanism
 
 **Step 1 — Locate the Crate**
 The Crate is read from `var/workflows/crates/inbox/{crate_id}/`.
 The manifest is loaded and validated against the Crate schema.
 
-**Step 2 — Create sandbox**
+**Step 2 — Snapshot the baseline**
+The constitutional audit runs against the live repository.
+The set of blocking violations is recorded as the baseline.
+
+**Step 3 — Create sandbox**
 A fresh sandbox is created at `work/canary/{crate_id}/`.
 If a sandbox with the same ID already exists, it is deleted first.
 
-**Step 3 — Snapshot the repository**
+**Step 4 — Snapshot the repository**
 The live repository is copied into the sandbox, excluding:
 `var/`, `.git/`, `__pycache__/`, `.venv/`, `work/`, `reports/`
 
-**Step 4 — Apply Crate changes**
+**Step 5 — Apply Crate changes**
 Each payload file in the Crate is written to its target path
 within the sandbox.
 
-**Step 5 — Run the audit**
+**Step 6 — Run the audit**
 The constitutional audit runs against the sandbox.
-New violations introduced by the Crate's changes are recorded.
+New blocking violations are identified by comparing against the baseline.
 
-**Step 6 — Evaluate**
-If the audit produces no new blocking violations: Canary passes.
-If the audit produces new blocking violations: Canary fails.
+**Step 7 — Evaluate**
+If the sandbox audit produces no blocking violations absent from the
+baseline: Canary passes.
+If the sandbox audit produces any blocking violations absent from the
+baseline: Canary fails.
 
-**Step 7 — Clean up**
+**Step 8 — Clean up**
 The sandbox is deleted regardless of outcome.
 
 ---
 
-## 5. Pass Condition
+## 6. Pass Condition
 
 The Canary passes if the sandbox audit produces no new blocking
-violations that were not present before the Crate was applied.
+violations that were not present in the baseline captured at Step 2.
 
 The Canary does not require zero violations. It requires that the
 Crate does not make the constitutional health of the codebase worse.
 
 ---
 
-## 6. Failure Response
+## 7. Failure Response
 
 When the Canary fails:
 - `validate_crate_by_id` returns `(False, [findings])`
-- The Crate remains in `inbox/` — it is not applied
+- The Crate is moved from `inbox/` to `var/workflows/crates/rejected/{crate_id}/`
+- The rejection is recorded in the Crate manifest with the blocking violations listed
 - The calling Worker marks the Finding `abandoned`
-- The failure is posted to the Blackboard
+- The failure is posted to the Blackboard as a report entry
 
-The Crate is not automatically retried. A failed Crate is a Finding
-that re-enters the remediation loop as a new violation.
+The Crate is not automatically retried. A failed Crate is a signal that
+the fix is wrong, not that the process failed. The Finding re-enters the
+remediation loop as a new open violation on the next sensor cycle.
 
 ---
 
-## 7. Non-Goals
+## 8. Non-Goals
 
 This paper does not define:
 - the audit engine used inside the sandbox
 - the specific rules evaluated
-- retention of failed sandboxes
+- long-term retention of rejected Crates

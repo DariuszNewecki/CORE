@@ -1,5 +1,5 @@
 {
-    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$schema": "http://json-schema.org/draft-07/schema#",
     "$id": "core.intent.worker.schema.json",
     "title": "CORE Worker Declaration",
     "description": "Constitutional declaration of a Worker or ShopManager entity. Existence in .intent/workers/ is the sole source of constitutional standing.",
@@ -61,17 +61,12 @@
                     "description": "Workers operate at policy or code authority. Never meta or constitution."
                 },
                 "status": {
-                    "type": "string",
-                    "enum": [
-                        "draft",
-                        "active",
-                        "deprecated"
-                    ]
+                    "$ref": "./enums.json#/definitions/worker_status"
                 },
                 "rationale": {
                     "type": "string",
                     "maxLength": 1000,
-                    "description": "Human-readable explanation of status decisions, e.g. why a worker is draft."
+                    "description": "Human-readable explanation of status decisions, e.g. why a worker is paused."
                 }
             }
         },
@@ -224,7 +219,7 @@
                     "type": "object",
                     "description": "Arbitrary constructor kwargs passed to the worker at instantiation time by the daemon loader. Use for worker-specific configuration that cannot be expressed through standard schema fields (e.g. dry_run: false to mark sensor findings as actionable by downstream remediators). Values are merged into the kwargs dict after standard fields (declaration_name, rule_namespace, core_context) are resolved, so they may not override those.",
                     "additionalProperties": {
-                        "oneOf": [
+                        "anyOf": [
                             {"type": "string"},
                             {"type": "boolean"},
                             {"type": "integer"},
@@ -232,6 +227,18 @@
                         ]
                     }
                 }
+            }
+        },
+        "config": {
+            "type": "object",
+            "description": "Worker-specific runtime configuration read by the worker via self._declaration.get('config', {}). Values are not passed to the constructor — they are read directly from the declaration at runtime.",
+            "additionalProperties": {
+                "anyOf": [
+                    {"type": "string"},
+                    {"type": "boolean"},
+                    {"type": "integer"},
+                    {"type": "number"}
+                ]
             }
         }
     }

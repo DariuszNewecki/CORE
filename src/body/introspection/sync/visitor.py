@@ -59,8 +59,8 @@ class SymbolVisitor(ast.NodeVisitor):
         )
         kind_map = {
             "ClassDef": "class",
-            "FunctionDef": "function",
-            "AsyncFunctionDef": "function",
+            "FunctionDef": "method" if self.class_stack else "function",
+            "AsyncFunctionDef": "method" if self.class_stack else "function",
         }
 
         call_visitor = FunctionCallVisitor()

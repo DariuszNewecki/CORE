@@ -1,3 +1,5 @@
+<!-- path: .intent/papers/CORE-Infrastructure-Definition.md -->
+
 # CORE: Infrastructure Definition and Authority Boundaries
 
 **Status:** Constitutional Paper (Foundational)
@@ -72,6 +74,40 @@ Without explicit definition, "infrastructure" becomes an expanding exemption spa
 
 ---
 
+## 3a. External System Wrappers — Bounded Domain Awareness
+
+Some infrastructure components wrap external systems (vector stores, AI
+clients, configuration databases). These components necessarily encode
+knowledge of the external system's schema, API, and data format. This
+is not a violation of criterion 4.
+
+The distinction is:
+
+**Permitted (structural awareness):** A component that knows the shape
+of an external system's API — field names, collection names, endpoint
+paths, data types — so it can translate CORE's requests into that
+system's protocol. This is mechanical adaptation.
+
+**Forbidden (correctness opinion):** A component that decides whether a
+CORE operation is semantically correct, appropriate, or safe based on
+domain knowledge. This is judgment.
+
+Examples:
+- `QdrantService` knowing the collection name and vector dimension is
+  structural awareness — permitted.
+- `QdrantService` deciding whether a symbol is "worth vectorizing" based
+  on its content would be a correctness opinion — forbidden.
+- `ConfigService` knowing that configuration values are stored by key
+  is structural awareness — permitted.
+- `ConfigService` deciding whether a configuration value represents a
+  safe threshold would be a correctness opinion — forbidden.
+
+Infrastructure wrappers for external systems pass the admission test
+when their domain knowledge is limited to the external system's
+structural schema, not to CORE's domain semantics.
+
+---
+
 ## 4. Infrastructure Authority Boundaries
 
 ### 4.1 What Infrastructure MAY Do
@@ -84,6 +120,7 @@ Without explicit definition, "infrastructure" becomes an expanding exemption spa
 * **Logging and Telemetry** - Record what happened (not why)
 * **Format Conversion** - Transform data shapes deterministically
 * **Error Propagation** - Pass errors up, never suppress
+* **External System Adaptation** - Translate requests to external system protocols
 
 **Key Principle:** Infrastructure can facilitate but never adjudicate.
 
@@ -154,49 +191,26 @@ Without explicit definition, "infrastructure" becomes an expanding exemption spa
 **What ServiceRegistry IS NOT Authorized To Do:**
 
 1. **Decide Which Services to Provide**
-   * Services must be declared in database or hardcoded
-   * No runtime decision about service availability
-   * No conditional service loading based on context
-
 2. **Validate Service Requests**
-   * Cannot reject requests based on "appropriateness"
-   * Cannot enforce access control
-   * Can only fail if service doesn't exist (mechanical failure)
-
 3. **Modify Service Behavior**
-   * Cannot wrap services with additional logic
-   * Cannot inject middleware based on conditions
-   * Cannot alter initialization parameters strategically
-
 4. **Track Service Usage for Decisions**
-   * May log for telemetry
-   * MUST NOT use logs to alter behavior
-   * MUST NOT implement usage-based policies
 
 ### 5.3 ServiceRegistry Constitutional Obligations
 
 **Transparency:**
 ```python
 async def get_service(self, name: str) -> Any:
-    """Get or create service with constitutional logging."""
     logger.info(
         "INFRASTRUCTURE: service_request",
         service=name,
         cached=name in self._instances,
         authority="infrastructure_coordination"
     )
-    # ... instantiation logic ...
 ```
 
-**Determinism:**
-* Same service name → same service instance (or same instantiation logic)
-* No hidden context switching
-* No temporal dependencies
+**Determinism:** Same service name → same service instance.
 
-**Non-Interpretation:**
-* Service names are opaque strings
-* No semantic understanding of what services do
-* No decisions based on service purpose
+**Non-Interpretation:** Service names are opaque strings.
 
 ---
 
@@ -206,7 +220,7 @@ async def get_service(self, name: str) -> Any:
 
 Infrastructure components are exempt from:
 * Mind/Body/Will layer restrictions
-* Import boundary enforcement (may import from any layer)
+* Import boundary enforcement (may import from any layer for wiring)
 * Strategic decision prohibition (no decisions to make)
 
 Infrastructure components remain subject to:
@@ -219,7 +233,7 @@ Infrastructure components remain subject to:
 
 **A component MAY claim infrastructure status only if:**
 
-1. It meets all four criteria in Section 3
+1. It meets all four criteria in Section 3 (including the clarification in 3a for external system wrappers)
 2. It respects authority boundaries in Section 4
 3. It is explicitly documented in this paper or amendments
 4. It provides transparent audit logging
@@ -229,7 +243,7 @@ Infrastructure components remain subject to:
 1. It makes any strategic decision
 2. It contains business logic
 3. It evaluates constitutional rules
-4. It interprets operations semantically
+4. It interprets operations semantically beyond external system adaptation
 
 ### 6.3 Infrastructure Registry
 
@@ -239,18 +253,25 @@ Infrastructure components remain subject to:
 |-----------|----------|---------------|-----------------|
 | `ServiceRegistry` | `shared/infrastructure/service_registry.py` | Dependency injection coordinator | Cannot decide which services to provide |
 | `SessionManager` | `shared/infrastructure/database/session_manager.py` | Database connection lifecycle | Cannot decide when to grant sessions |
-| `ConfigService` | `shared/infrastructure/config_service.py` | Configuration key-value store | Cannot interpret configuration semantics |
-| `QdrantService` | `shared/infrastructure/clients/qdrant_client.py` | Vector store client wrapper | Cannot decide what to vectorize |
+| `ConfigService` | `shared/infrastructure/config_service.py` | Configuration key-value store | Cannot interpret configuration semantics; reads values by key only |
+| `QdrantService` | `shared/infrastructure/clients/qdrant_client.py` | Vector store client wrapper | Encodes external system schema only; cannot decide what to vectorize |
+
+**Note on QdrantService and ConfigService:** Both components encode
+structural knowledge of their external systems (collection names,
+vector dimensions, configuration key formats). This is permitted
+external-system adaptation per section 3a. Neither component decides
+whether a CORE operation is semantically correct or safe. That judgment
+belongs to Body-layer services that call them.
 
 **Adding to Infrastructure Registry:**
 
 To declare a component as infrastructure, you must:
 1. Add entry to table above
-2. Document why it meets Section 3 criteria
-3. Define its authority limits
+2. Document why it meets Section 3 criteria (citing 3a if applicable)
+3. Define its authority limits explicitly
 4. Update enforcement mappings to exempt it
 
-**This is a constitutional amendment process.**
+This is a constitutional amendment process.
 
 ---
 
@@ -258,7 +279,6 @@ To declare a component as infrastructure, you must:
 
 ### 7.1 Infrastructure Boundary Enforcement
 
-**New Constitutional Rule:**
 ```yaml
 # .intent/enforcement/mappings/infrastructure/authority_boundaries.yaml
 
@@ -275,66 +295,21 @@ infrastructure.no_strategic_decisions:
   phase: audit
 ```
 
-**Rationale:** Advisory enforcement allows drift. Infrastructure must be mechanically pure.
-
 ### 7.2 Infrastructure Audit Requirements
 
-**All infrastructure components MUST:**
+All infrastructure components MUST:
 
-1. **Log State Transitions**
-   ```python
-   logger.info("INFRASTRUCTURE: event_type", **context)
-   ```
-
-2. **Expose Health Checks**
-   ```python
-   async def health_check(self) -> dict[str, Any]:
-       """Report infrastructure health status."""
-   ```
-
-3. **Document Authority Claims**
-   ```python
-   """
-   CONSTITUTIONAL AUTHORITY: Infrastructure (coordination)
-   AUTHORITY LIMITS: Cannot decide which services to instantiate
-   EXEMPTIONS: May import from any layer for wiring
-   """
-   ```
+1. Log state transitions with `INFRASTRUCTURE: event_type` prefix
+2. Expose health checks via `health_check()` method
+3. Document authority claims in class docstring
 
 ### 7.3 Violation Detection
 
-**Infrastructure violates this paper if:**
-
-* It contains conditional logic based on domain semantics
-* It implements retry logic with strategic backoff (vs mechanical retry)
-* It logs errors and changes behavior based on error patterns
-* It wraps operations with domain-specific validation
-
-**Example Violations:**
-
-```python
-# VIOLATION: Strategic decision
-async def get_service(self, name: str):
-    if name in self.high_priority_services:
-        return await self._fast_path(name)
-    else:
-        return await self._slow_path(name)
-    # Infrastructure chose between strategies - NOT ALLOWED
-
-# VIOLATION: Risk assessment
-async def get_service(self, name: str):
-    service = self._create_service(name)
-    if self._seems_dangerous(service):
-        raise SecurityException()
-    # Infrastructure evaluated safety - NOT ALLOWED
-
-# CORRECT: Mechanical coordination
-async def get_service(self, name: str):
-    if name not in self._service_map:
-        raise ValueError(f"Service {name} not registered")
-    return self._create_service(name)
-    # Pure coordination, no judgment - ALLOWED
-```
+Infrastructure violates this paper if it:
+* Contains conditional logic based on domain semantics
+* Implements retry logic with strategic backoff
+* Logs errors and changes behavior based on error patterns
+* Wraps operations with domain-specific validation
 
 ---
 
@@ -355,188 +330,54 @@ async def get_service(self, name: str):
 ### Phase 3: Split Preparation (MONTH 1-2)
 - [ ] Identify which ServiceRegistry methods are pure infrastructure
 - [ ] Identify which methods contain decisions (move to Body)
-- [ ] Design BootstrapRegistry (ungovernanced) vs RuntimeRegistry (governanced)
-- [ ] Create migration plan
+- [ ] Design BootstrapRegistry vs RuntimeRegistry split
 
 ### Phase 4: Constitutional Split (MONTH 2-3)
 - [ ] Extract BootstrapRegistry for system initialization
 - [ ] Move RuntimeRegistry to Body layer
 - [ ] Subject RuntimeRegistry to full constitutional governance
-- [ ] Update all callers to use appropriate registry
-
-**Goal:** ServiceRegistry either IS pure infrastructure, or we split it until it is.
 
 ---
 
-## 9. Why This Matters
-
-### 9.1 Architectural Integrity
-
-**Without Infrastructure Definition:**
-* Components bypass governance by claiming "we're special"
-* Constitutional coverage has holes
-* Mind/Body/Will separation becomes aspirational
-* Governance erodes through exception accumulation
-
-**With Infrastructure Definition:**
-* Every component has explicit constitutional status
-* Exemptions are bounded and auditable
-* Authority limits are clear and enforceable
-* No component operates without oversight
-
-### 9.2 Trust and Credibility
-
-**Current State:**
-> "CORE has constitutional governance... except for the parts we don't talk about"
-
-**Target State:**
-> "CORE has constitutional governance. Infrastructure is explicitly defined and bounded. Nothing operates without authority."
-
-**For Academic/Research Validation:**
-* Shows mature understanding of governance edge cases
-* Demonstrates willingness to acknowledge and bound exceptions
-* Provides template for other systems facing similar issues
-
-**For Production Deployment:**
-* Eliminates shadow government risk
-* Makes infrastructure audit-able
-* Provides clear upgrade path (Phase 4 split)
-
----
-
-## 10. Relationship to Other Constitutional Documents
+## 9. Relationship to Other Constitutional Documents
 
 **This Paper Depends On:**
-* `CORE-CONSTITUTION-v0.md` - Defines primitives (Document, Rule, Phase, Authority)
-* `CORE-Mind-Body-Will-Separation.md` - Defines the three layers this exempts from
-* `CORE-Constitutional-Foundations.md` - Establishes what "constitutional" means
+* `CORE-CONSTITUTION-v0.md`
+* `CORE-Mind-Body-Will-Separation.md`
+* `CORE-Constitutional-Foundations.md`
 
 **This Paper Extends:**
 * Mind/Body/Will from 3 layers to "3 layers + bounded infrastructure"
-* Authority model from 4 types to "4 types + infrastructure coordination"
 
 **This Paper Enables:**
-* `CORE-ServiceRegistry-Split.md` (future) - Plan to eliminate infrastructure exemption
 * Infrastructure health monitoring and telemetry
 * Clear upgrade path to fully governanced system
 
 ---
 
-## 11. Constitutional Amendment Path
+## 10. Constitutional Amendment Path
 
-**This paper will eventually be obsoleted by:**
-
-**Phase 4 Completion:**
-* All infrastructure becomes either:
-  * True bootstrap code (runs once, no governance needed), or
-  * Governed Body components (subject to full constitutional rules)
-* Infrastructure exemption shrinks to near-zero
-* ServiceRegistry becomes either pure bootstrap or governed runtime component
-
-**Target End State:**
-* BootstrapRegistry: 50 lines, runs once at startup, ungovernanced
-* RuntimeServiceRegistry: Full Body component, fully governanced
-* Infrastructure exemption: Only bootstrap code, clearly separated
-
-**Constitutional Evolution:**
-```
-v0.0: Mind/Body/Will (implicit infrastructure)
-v0.1: Mind/Body/Will + Infrastructure (this paper)
-v0.2: Mind/Body/Will + Bootstrap (infrastructure mostly eliminated)
-v1.0: Pure Mind/Body/Will (infrastructure fully eliminated or governed)
-```
+This paper will eventually be obsoleted when all infrastructure becomes
+either true bootstrap code (runs once, ungovernanced) or governed Body
+components. The infrastructure exemption shrinks to near-zero at that
+point.
 
 ---
 
-## 12. Conclusion
+## 11. Conclusion
 
 Infrastructure is not a failure of constitutional governance.
 
-Infrastructure is an acknowledgment that coordination machinery exists and must be bounded.
+Infrastructure is an acknowledgment that coordination machinery exists
+and must be bounded.
 
-This paper:
-* Defines what infrastructure is (and isn't)
-* Establishes clear authority boundaries
-* Acknowledges ServiceRegistry as infrastructure
-* Provides path to eliminate infrastructure exemption over time
-
-**ServiceRegistry is now constitutionally visible, bounded, and accountable.**
+This paper defines what infrastructure is, establishes clear authority
+boundaries, acknowledges the bounded domain awareness permitted for
+external system wrappers, and provides a path to eliminate the
+infrastructure exemption over time.
 
 The governance blind spot is closed.
 
 ---
 
-## Appendix A: Implementation Checklist
-
-**Immediate (This Week):**
-- [ ] Add this paper to `.intent/papers/CORE-Infrastructure-Definition.md`
-- [ ] Reference from `.intent/CORE-CHARTER.md`
-- [ ] Create `.intent/enforcement/mappings/infrastructure/authority_boundaries.yaml`
-- [ ] Update `src/shared/infrastructure/service_registry.py` docstring with constitutional authority claim
-- [ ] Add audit logging to `ServiceRegistry.get_service()`
-- [ ] Add audit logging to `ServiceRegistry.prime()`
-- [ ] Add `ServiceRegistry.health_check()` method
-
-**Near-Term (This Month):**
-- [ ] Review all components in `src/shared/infrastructure/`
-- [ ] Document each as infrastructure or reclassify
-- [ ] Update Infrastructure Registry table (Section 6.3)
-- [ ] Run constitutional audit with new infrastructure rules
-- [ ] Address any infrastructure violations discovered
-
-**Long-Term (This Quarter):**
-- [ ] Design BootstrapRegistry / RuntimeRegistry split
-- [ ] Create migration plan with backward compatibility
-- [ ] Implement split in feature branch
-- [ ] Validate split maintains constitutional compliance
-- [ ] Deploy split as constitutional amendment
-
----
-
-## Appendix B: Infrastructure Acid Test
-
-**Question:** Is this component infrastructure?
-
-**Test:**
-```python
-def is_infrastructure(component) -> bool:
-    """Constitutional infrastructure test."""
-
-    # Test 1: Can it choose between alternatives?
-    if component.makes_strategic_decisions():
-        return False  # NOT infrastructure
-
-    # Test 2: Does it contain domain knowledge?
-    if component.has_business_logic():
-        return False  # NOT infrastructure
-
-    # Test 3: Can it operate on arbitrary domains?
-    if not component.is_domain_agnostic():
-        return False  # NOT infrastructure
-
-    # Test 4: Is its behavior deterministic?
-    if not component.is_deterministic():
-        return False  # NOT infrastructure
-
-    return True  # IS infrastructure
-```
-
-**Apply to ServiceRegistry:**
-* Makes strategic decisions? **NO** - Just wires things
-* Contains business logic? **NO** - Pure coordination
-* Domain agnostic? **YES** - Works with any services
-* Deterministic? **YES** - Same inputs → same outputs
-
-**Result: ServiceRegistry IS infrastructure ✓**
-
----
-
 **END OF PAPER**
-
-This paper closes the constitutional blind spot identified in the architectural review.
-
-ServiceRegistry is now explicitly defined, bounded, and accountable.
-
-All components now have constitutional status. No exceptions.
-
-CORE's governance is complete.

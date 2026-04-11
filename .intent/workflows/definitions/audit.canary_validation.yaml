@@ -1,3 +1,6 @@
+$schema: "META/workflow_definition.schema.json"
+kind: workflow_definition
+
 workflow_id: full_feature_development
 version: "1.0"
 status: experimental

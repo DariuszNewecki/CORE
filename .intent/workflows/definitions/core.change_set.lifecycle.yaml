@@ -1,3 +1,6 @@
+$schema: "META/workflow_definition.schema.json"
+kind: workflow_definition
+
 workflow_id: core.change_set.lifecycle
 version: "1.0"
 status: experimental

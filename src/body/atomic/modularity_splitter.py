@@ -87,6 +87,37 @@ class ModularitySplitter:
                     if isinstance(target, ast.Name):
                         top_level[target.id] = node
 
+        # Second indexing pass: detect the single-dominant-class case.
+        # If one top-level ClassDef contains more than half the total symbols
+        # in the plan, build a method-name → AST-node index for that class.
+        class_methods: dict[str, ast.stmt] = {}
+        dominant_class_name: str | None = None
+        class_defs = [
+            n for n in ast.iter_child_nodes(tree) if isinstance(n, ast.ClassDef)
+        ]
+        total_plan_symbols = sum(len(m.symbols) for m in plan.modules)
+        if class_defs and total_plan_symbols > 0:
+            largest = max(
+                class_defs,
+                key=lambda c: sum(
+                    1
+                    for n in c.body
+                    if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))
+                ),
+            )
+            largest_method_count = sum(
+                1
+                for n in largest.body
+                if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))
+            )
+            if 2 * largest_method_count > total_plan_symbols:
+                dominant_class_name = largest.name
+                for member in largest.body:
+                    if isinstance(member, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                        class_methods[member.name] = member
+
+        is_class_split_plan = any(m.is_class_split for m in plan.modules)
+
         # Build symbol → module_name map for cross-module resolution
         symbol_to_module: dict[str, str] = {}
         for mod in plan.modules:
@@ -119,6 +150,51 @@ class ModularitySplitter:
             "",
         ]
 
+        # ----- class-split branch ----------------------------------------
+        if is_class_split_plan:
+            # Order modules so that the one containing __init__ comes first;
+            # multiple inheritance MRO will use its constructor.
+            primary_idx = next(
+                (i for i, m in enumerate(plan.modules) if "__init__" in m.symbols),
+                0,
+            )
+            ordered = [plan.modules[primary_idx]] + [
+                m for i, m in enumerate(plan.modules) if i != primary_idx
+            ]
+
+            parent_classes: list[str] = []
+            for mod in ordered:
+                content = self._build_module(
+                    source,
+                    source_lines,
+                    tree,
+                    top_level,
+                    mod,
+                    symbol_to_module,
+                    class_methods=class_methods,
+                )
+                target = package_path / f"{mod.module_name}.py"
+                result.files.append((target, content))
+
+                class_name = self._to_title_case(mod.module_name)
+                init_lines.append(f"from .{mod.module_name} import {class_name}")
+                parent_classes.append(class_name)
+
+            # Re-export the original class name for backward compatibility
+            # by composing the new per-module classes via multiple inheritance.
+            if dominant_class_name and parent_classes:
+                init_lines.append("")
+                init_lines.append("")
+                init_lines.append(
+                    f"class {dominant_class_name}({', '.join(parent_classes)}):"
+                )
+                init_lines.append("    pass")
+
+            init_lines.append("")  # trailing newline
+            result.files.append((package_path / "__init__.py", "\n".join(init_lines)))
+            return result
+
+        # ----- regular (top-level symbol) branch -------------------------
         plan_symbols: set[str] = set()
         for mod in plan.modules:
             plan_symbols.update(mod.symbols)
@@ -173,36 +249,50 @@ class ModularitySplitter:
         top_level: dict[str, ast.stmt],
         mod: ModuleSpec,
         symbol_to_module: dict[str, str],
+        *,
+        class_methods: dict[str, ast.stmt] | None = None,
     ) -> str:
         """Compose the content for a single target module file."""
-        # Validate that every symbol exists
-        missing = [s for s in mod.symbols if s not in top_level]
+        # Branch on is_class_split BEFORE choosing which index to use.
+        if mod.is_class_split:
+            symbol_index: dict[str, ast.stmt] = class_methods or {}
+        else:
+            symbol_index = top_level
+
+        # Validate that every symbol exists in the chosen index
+        missing = [s for s in mod.symbols if s not in symbol_index]
         if missing:
             raise SplitPlanError(f"Symbols not found in source AST: {missing}")
 
-        # Resolve imports (now includes module-level assignments)
-        import_lines = self._resolver.resolve(source, mod.symbols)
+        # Resolve imports
+        if mod.is_class_split:
+            method_nodes = [symbol_index[s] for s in mod.symbols]
+            import_lines = self._resolve_imports_for_methods(source, method_nodes)
+            # Methods reach each other via ``self.x``; no relative imports
+            cross_import_lines: list[str] = []
+        else:
+            import_lines = self._resolver.resolve(source, mod.symbols)
 
-        # Compute cross-module imports for symbols in other split modules
-        cross_imports: dict[str, set[str]] = {}
-        for sym_name in mod.symbols:
-            node = top_level[sym_name]
-            for child in ast.walk(node):
-                if isinstance(child, ast.Name) and child.id in symbol_to_module:
-                    other_mod = symbol_to_module[child.id]
-                    if other_mod != mod.module_name:
-                        cross_imports.setdefault(other_mod, set()).add(child.id)
+            # Compute cross-module imports for symbols in other split modules
+            cross_imports: dict[str, set[str]] = {}
+            for sym_name in mod.symbols:
+                node = top_level[sym_name]
+                for child in ast.walk(node):
+                    if isinstance(child, ast.Name) and child.id in symbol_to_module:
+                        other_mod = symbol_to_module[child.id]
+                        if other_mod != mod.module_name:
+                            cross_imports.setdefault(other_mod, set()).add(child.id)
 
-        cross_import_lines: list[str] = []
-        for other_mod, syms in sorted(cross_imports.items()):
-            cross_import_lines.append(
-                f"from .{other_mod} import {', '.join(sorted(syms))}"
-            )
+            cross_import_lines = []
+            for other_mod, syms in sorted(cross_imports.items()):
+                cross_import_lines.append(
+                    f"from .{other_mod} import {', '.join(sorted(syms))}"
+                )
 
         # Extract symbol source text, preserving originals
         symbol_blocks: list[str] = []
         for sym_name in mod.symbols:
-            node = top_level[sym_name]
+            node = symbol_index[sym_name]
             block = self._extract_node_source(node, source_lines)
             symbol_blocks.append(block)
 
@@ -229,11 +319,113 @@ class ModularitySplitter:
             parts.append("")
             parts.append("")
 
-        # Symbol bodies
-        parts.append("\n\n".join(symbol_blocks))
+        # Symbol bodies — wrap in a class for class splits, otherwise emit
+        # them as top-level definitions.
+        if mod.is_class_split:
+            class_name = self._to_title_case(mod.module_name)
+            parts.append(f"class {class_name}:")
+            # Methods are already indented for class scope in the original
+            # source, so we keep their text verbatim.
+            parts.append("\n\n".join(symbol_blocks))
+        else:
+            parts.append("\n\n".join(symbol_blocks))
         parts.append("")  # trailing newline
 
         return "\n".join(parts)
+
+    @staticmethod
+    def _to_title_case(snake: str) -> str:
+        """Convert ``snake_case`` → ``TitleCase``."""
+        return "".join(part.capitalize() for part in snake.split("_") if part)
+
+    def _resolve_imports_for_methods(
+        self, source: str, method_nodes: list[ast.stmt]
+    ) -> list[str]:
+        """Resolve minimal imports needed by a set of class method nodes.
+
+        Mirrors :meth:`ImportResolver.resolve` but starts from arbitrary AST
+        nodes rather than top-level symbol names — required for class splits
+        where the "symbols" are methods nested inside a ClassDef.
+        """
+        tree = ast.parse(source)
+        source_lines = source.splitlines(keepends=True)
+
+        # Collect top-level imports and any TYPE_CHECKING block
+        import_nodes: list[ast.stmt] = []
+        type_checking_block: list[ast.stmt] = []
+        for node in ast.iter_child_nodes(tree):
+            if isinstance(node, (ast.Import, ast.ImportFrom)):
+                import_nodes.append(node)
+            elif isinstance(node, ast.If) and self._resolver._is_type_checking_guard(
+                node
+            ):
+                type_checking_block.append(node)
+
+        # Module-level assignments
+        module_assigns: dict[str, ast.stmt] = {}
+        for node in ast.iter_child_nodes(tree):
+            if isinstance(node, ast.Assign):
+                for target in node.targets:
+                    if isinstance(target, ast.Name):
+                        module_assigns[target.id] = node
+            elif isinstance(node, ast.AnnAssign) and isinstance(node.target, ast.Name):
+                module_assigns[node.target.id] = node
+
+        # Classify imports
+        future_imports: list[str] = []
+        regular_imports: list[tuple[ast.stmt, str]] = []
+        for node in import_nodes:
+            stmt_text = self._resolver._node_source(node, source_lines)
+            if isinstance(node, ast.ImportFrom) and node.module == "__future__":
+                future_imports.append(stmt_text)
+            else:
+                regular_imports.append((node, stmt_text))
+
+        # Names referenced by the method bodies
+        needed_names: set[str] = set()
+        for mnode in method_nodes:
+            for child in ast.walk(mnode):
+                if isinstance(child, ast.Name):
+                    needed_names.add(child.id)
+                elif isinstance(child, ast.Attribute):
+                    root = self._resolver._attribute_root(child)
+                    if root:
+                        needed_names.add(root)
+
+        # Module-level assignments referenced by the method bodies
+        needed_assigns: dict[str, ast.stmt] = {}
+        for name, node in module_assigns.items():
+            if name in needed_names:
+                needed_assigns[name] = node
+        for node in needed_assigns.values():
+            for child in ast.walk(node):
+                if isinstance(child, ast.Name):
+                    needed_names.add(child.id)
+                elif isinstance(child, ast.Attribute):
+                    root = self._resolver._attribute_root(child)
+                    if root:
+                        needed_names.add(root)
+
+        # Match regular imports against expanded needed-name set
+        matched: list[str] = []
+        for node, stmt_text in regular_imports:
+            if self._resolver._import_provides(node, needed_names):
+                matched.append(stmt_text)
+
+        result: list[str] = list(future_imports)
+        if type_checking_block:
+            for block_node in type_checking_block:
+                result.append(self._resolver._node_source(block_node, source_lines))
+        result.extend(matched)
+
+        seen_lines: set[int] = set()
+        for node in needed_assigns.values():
+            if node.lineno not in seen_lines:
+                result.append("")
+                result.append(self._resolver._node_source(node, source_lines))
+                seen_lines.add(node.lineno)
+
+        return result
 
     @staticmethod
     def _collect_all_refs(

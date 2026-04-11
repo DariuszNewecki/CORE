@@ -6,7 +6,7 @@ metadata:
   title: Audit Violation Sensor (base — no namespace)
   version: "1.1.0"
   authority: policy
-  status: draft
+  status: paused
   rationale: >
     This is the base declaration with no rule_namespace. It is kept as a
     reference and for explicit call-site instantiation (e.g. core-admin workers

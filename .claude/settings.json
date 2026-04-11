@@ -45,7 +45,8 @@
       "Bash(python -m py_compile src/body/atomic/build_tests_action.py)",
       "Bash(python -m py_compile src/will/autonomy/proposal_executor.py)",
       "Bash(python -m py_compile src/will/workers/test_runner_sensor.py)",
-      "Bash(python -m py_compile src/body/atomic/__init__.py)"
+      "Bash(python -m py_compile src/body/atomic/__init__.py)",
+      "Bash(ls /mnt/dev/CORE/.intent/papers/*.md)"
     ],
     "additionalDirectories": [
       "/tmp",

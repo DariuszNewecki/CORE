@@ -11,7 +11,7 @@
 ## 1. Purpose
 
 This paper defines the Gate — the blocking validation point in CORE — and
-its three implementations: IntentGuard, Canary, and ConservationGate.
+its three implementations: ConservationGate, IntentGuard, and Canary.
 
 ---
 
@@ -41,31 +41,7 @@ violation — not a safety measure.
 
 ## 4. The Three Gates
 
-### 4.1 IntentGuard
-
-**Phase:** Runtime
-**What it evaluates:** Every file write, before it happens.
-**What it blocks:** Writes that violate constitutional rules.
-
-IntentGuard is the perimeter. No file may be written to the live codebase
-without passing IntentGuard. It evaluates the target path, the content,
-and the constitutional rules applicable to that file's layer.
-
-IntentGuard does not evaluate intent. It evaluates compliance.
-
-### 4.2 Canary
-
-**Phase:** Execution
-**What it evaluates:** A Crate, in a sandbox, before it is applied.
-**What it blocks:** Crates that fail structural or behavioral validation.
-
-The Canary creates a complete sandbox replica of the repository, applies
-the Crate's changes, and runs the constitutional audit. A Crate that
-produces new violations in the sandbox does not reach production.
-
-The Canary is the last line of defense before a change is permanent.
-
-### 4.3 ConservationGate
+### 4.1 ConservationGate
 
 **Phase:** Runtime
 **What it evaluates:** LLM-produced code against the original it replaces.
@@ -78,22 +54,68 @@ rejected — regardless of any other quality measure.
 
 Logic evaporation is a silent failure. The ConservationGate makes it loud.
 
+### 4.2 IntentGuard
+
+**Phase:** Runtime
+**What it evaluates:** Every file write, before it happens.
+**What it blocks:** Writes that violate constitutional rules.
+
+IntentGuard is the perimeter. No file may be written to the live codebase
+without passing IntentGuard. It evaluates the target path, the content,
+and the constitutional rules applicable to that file's layer.
+
+IntentGuard does not evaluate intent. It evaluates compliance.
+
+### 4.3 Canary
+
+**Phase:** Execution
+**What it evaluates:** A Crate, in a sandbox, before it is applied.
+**What it blocks:** Crates that introduce new blocking violations.
+
+The Canary creates a complete sandbox replica of the repository, applies
+the Crate's changes, and runs the constitutional audit. A Crate that
+produces new blocking violations not present in the baseline does not
+reach production.
+
+The Canary is the last line of defense before a change is permanent.
+
 ---
 
 ## 5. Gate Ordering
 
-In the execution ceremony, Gates run in this order:
+Gates execute in this fixed order:
 
+```
+ConservationGate → IntentGuard → Canary
+```
 
-ConservationGate (Runtime) → IntentGuard (Runtime) → Canary (Execution)
+**ConservationGate runs first** because it evaluates LLM-produced code
+before anything is written. A Crate whose logic conservation ratio falls
+below threshold is rejected before any write is attempted.
 
-ConservationGate runs first because it evaluates LLM output before anything
-is written. IntentGuard runs on every write. Canary runs last because it
-requires a complete Crate to validate against.
+**IntentGuard runs second** because it evaluates each file write against
+constitutional rules. It runs after ConservationGate has confirmed the
+content is logically sound.
+
+**Canary runs last** because it requires a complete, assembled Crate to
+validate in a sandbox. It is the final gate before the change is applied
+to the live repository.
+
+A failure at any gate halts the pipeline immediately. Gates that follow
+a failed gate do not run.
 
 ---
 
-## 6. Non-Goals
+## 6. Gate Verdicts and Disagreement
+
+Each Gate returns an independent verdict. When Gates disagree — for
+example, IntentGuard passes but ConservationGate fails — the pipeline
+halts at the first failure. There is no reconciliation between gate
+verdicts. The earliest gate to fail is authoritative for that execution.
+
+---
+
+## 7. Non-Goals
 
 This paper does not define:
 - the specific rules IntentGuard evaluates

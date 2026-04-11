@@ -1,4 +1,4 @@
-# src/body/workers/violation_remediator.py
+# src/body/workers/violation_remediator/worker.py
 # ID: body.workers.violation_remediator
 """
 ViolationRemediator - Constitutional Compliance Acting Worker.
@@ -46,12 +46,6 @@ injection. All src/ writes via ActionExecutor -> Crate -> Canary -> apply.
 
 from __future__ import annotations
 
-import asyncio
-import json
-import subprocess
-from dataclasses import dataclass
-from datetime import UTC, datetime
-from pathlib import Path
 from typing import Any
 
 from shared.logger import getLogger
@@ -61,53 +55,26 @@ from shared.self_healing.remediation_interpretation.service import (
 )
 from shared.workers.base import Worker
 
+from .blackboard import BlackboardMixin
+from .ceremony import CeremonyMixin
+from .context import ContextMixin
+from .llm import LLMMixin
+from .models import _RemediationPlan
+
 
 logger = getLogger(__name__)
 
-_SOURCE_SUBJECT = "audit.violation"
 _COMPLETE_SUBJECT = "audit.remediation.complete"
 _DRY_RUN_SUBJECT = "audit.remediation.dry_run"
-_FAILED_SUBJECT = "audit.remediation.failed"
-
-
-_CLAIM_LIMIT = 50
-
-_CODE_COLLECTION = "core-code"
-_SEMANTIC_EXAMPLES_LIMIT = 3
 
 # Minimum role detection confidence required to proceed in write mode.
-# Below this threshold the architectural context is too uncertain to trust
-# for autonomous code modification.
 _MIN_ROLE_CONFIDENCE_FOR_WRITE = 0.55
-
-# Severity ordering for claim priority (higher = claimed first).
-_SEVERITY_RANK = {"critical": 4, "error": 3, "warning": 2, "info": 1}
-
-
-@dataclass
-class _RemediationPlan:
-    """
-    Output of the RUNTIME planning phase.
-
-    This is evidence assembled before the execution ceremony begins.
-    It is passed to the LLM as architectural context — not as authority.
-    The LLM must treat it as advisory input, not as a directive.
-    """
-
-    file_path: str
-    original_source: str
-    baseline_sha: str
-    violations_summary: str
-    # architectural_context carries the deterministic brief as evidence.
-    # It is NOT a planning authority. It is evidence of the file's
-    # detected role, responsibility clusters, and candidate strategies.
-    # The LLM is free to disagree with it; it must satisfy the rule.
-    architectural_context: dict[str, Any]
-    context_text: str
 
 
 # ID: bb52f62a-45c9-47a4-9ff8-788b0c6ca4f1
-class ViolationRemediator(Worker):
+class ViolationRemediator(
+    BlackboardMixin, CeremonyMixin, ContextMixin, LLMMixin, Worker
+):
     """
     Acting worker. Claims open audit violation findings from the blackboard,
     builds a deterministic architectural context package (evidence, not law)
@@ -239,7 +206,6 @@ class ViolationRemediator(Worker):
         """
         plan = await self._plan_file(file_path, findings)
         if plan is None:
-            # Planning marked findings already; do not proceed.
             return False
 
         return await self._execute_file(file_path, findings, plan)
@@ -288,9 +254,6 @@ class ViolationRemediator(Worker):
             )
             baseline_sha = "unknown"
 
-        # Build architectural context.
-        # Failure here is indeterminate — we cannot safely plan without it.
-        # We do NOT fall back to an empty brief and continue.
         try:
             architectural_context = (
                 self._interpretation_service.build_reasoning_brief_dict(
@@ -314,8 +277,6 @@ class ViolationRemediator(Worker):
             )
             return None
 
-        # Confidence gate for write mode.
-        # In dry-run mode we allow low-confidence for human review.
         role_confidence = (
             architectural_context.get("file_role", {}).get("confidence", 0.0) or 0.0
         )
@@ -515,389 +476,3 @@ class ViolationRemediator(Worker):
             self._target_rule,
         )
         return True
-
-    # -------------------------------------------------------------------------
-    # LLM invocation
-    # -------------------------------------------------------------------------
-
-    async def _invoke_llm(
-        self,
-        file_path: str,
-        source_code: str,
-        context_text: str,
-        violations_summary: str,
-        architectural_context: dict[str, Any],
-    ) -> str | None:
-        """
-        Invoke RemoteCoder (Grok) via PromptModel to produce a fix.
-
-        architectural_context is passed as advisory evidence under the key
-        'architectural_context'. The prompt template must treat it as
-        context, not as a directive. The LLM's obligation is to satisfy
-        the violated rule, not to execute the recommended strategy.
-        """
-        import ast as _ast
-
-        from shared.ai.response_parser import extract_json
-
-        try:
-            from shared.ai.prompt_model import PromptModel
-
-            client = await self._ctx.cognitive_service.aget_client_for_role(
-                "RemoteCoder"
-            )
-            model = PromptModel.load("violation_remediator")
-            result = await model.invoke(
-                context={
-                    "file_path": file_path,
-                    "source_code": source_code,
-                    "context_package": context_text or "(no additional context)",
-                    "violations": violations_summary,
-                    # NOTE: architectural_context is advisory evidence only.
-                    # It describes detected file role and candidate strategies.
-                    # It is NOT a planning directive. The fix must satisfy
-                    # the violated rule; the context informs, not commands.
-                    "architectural_context": json.dumps(
-                        architectural_context, indent=2
-                    ),
-                    "rule_id": self._target_rule,
-                },
-                client=client,
-                user_id="violation_remediator",
-            )
-
-            try:
-                parsed = extract_json(result)
-            except (json.JSONDecodeError, ValueError) as parse_exc:
-                logger.warning(
-                    "ViolationRemediator: JSON parse failed for %s - %s\nRaw: %s",
-                    file_path,
-                    parse_exc,
-                    (result or "")[:500],
-                )
-                return None
-
-            code = parsed.get("code") or ""
-            if not code:
-                logger.warning(
-                    "ViolationRemediator: LLM response missing 'code' field for %s",
-                    file_path,
-                )
-                return None
-
-            try:
-                _ast.parse(code)
-            except SyntaxError as syn_exc:
-                logger.warning(
-                    "ViolationRemediator: LLM produced invalid Python for %s - %s\n"
-                    "First 200 chars: %s",
-                    file_path,
-                    syn_exc,
-                    code[:200],
-                )
-                return None
-
-            return code
-
-        except Exception as exc:
-            logger.warning(
-                "ViolationRemediator: LLM invocation failed for %s - %s",
-                file_path,
-                exc,
-            )
-            return None
-
-    # -------------------------------------------------------------------------
-    # Crate / Canary ceremony helpers
-    # -------------------------------------------------------------------------
-
-    async def _pack_crate(self, file_path: str, fixed_source: str) -> str | None:
-        """Pack the fixed file into a CODE_MODIFICATION Crate via ActionExecutor."""
-        try:
-            result = await self._ctx.action_executor.execute(
-                "crate.create",
-                write=True,
-                intent=(
-                    f"Fix {self._target_rule} violations in {file_path} "
-                    f"via autonomous remediation"
-                ),
-                payload_files={file_path: fixed_source},
-            )
-            if not result.ok:
-                logger.warning(
-                    "ViolationRemediator: Crate creation failed - %s",
-                    result.data,
-                )
-                return None
-            return result.data["crate_id"]
-        except Exception as exc:
-            logger.warning("ViolationRemediator: Crate error - %s", exc)
-            return None
-
-    async def _align_staged_file(self, crate_id: str, file_path: str) -> None:
-        """Best-effort formatting alignment on the staged crate file.
-
-        Runs black and ruff isort fix on the staged file so that Canary
-        does not trip on trivial style issues.  Failures are logged but
-        never raised — Canary will catch anything that remains.
-        """
-        staged = Path(f"var/workflows/crates/inbox/{crate_id}/{file_path}")
-        if not staged.exists():
-            logger.warning(
-                "ViolationRemediator: staged file not found for alignment - %s",
-                staged,
-            )
-            return
-
-        staged_str = str(staged)
-
-        for label, cmd in (
-            ("black", ["poetry", "run", "black", staged_str]),
-            (
-                "ruff-isort",
-                [
-                    "poetry",
-                    "run",
-                    "ruff",
-                    "check",
-                    "--select",
-                    "I",
-                    "--fix",
-                    staged_str,
-                ],
-            ),
-        ):
-            try:
-                proc = await asyncio.to_thread(
-                    subprocess.run, cmd, capture_output=True, text=True, timeout=30
-                )
-                if proc.returncode == 0:
-                    logger.info(
-                        "ViolationRemediator: %s aligned %s",
-                        label,
-                        file_path,
-                    )
-                else:
-                    logger.warning(
-                        "ViolationRemediator: %s returned %d for %s - %s",
-                        label,
-                        proc.returncode,
-                        file_path,
-                        (proc.stderr or "")[:300],
-                    )
-            except Exception as exc:
-                logger.warning(
-                    "ViolationRemediator: %s failed for %s - %s",
-                    label,
-                    file_path,
-                    exc,
-                )
-
-    async def _run_canary(self, crate_id: str) -> bool:
-        """Run canary validation on the crate. Returns True if passed."""
-        try:
-            from body.services.crate_processing_service import CrateProcessingService
-
-            service = CrateProcessingService(self._ctx)
-            passed, findings = await service.validate_crate_by_id(crate_id)
-            if not passed:
-                logger.warning(
-                    "ViolationRemediator: Canary FAILED for %s (%d findings)",
-                    crate_id,
-                    len(findings),
-                )
-            return passed
-        except Exception as exc:
-            logger.warning("ViolationRemediator: Canary error - %s", exc)
-            return False
-
-    # -------------------------------------------------------------------------
-    # Rollback archive
-    # -------------------------------------------------------------------------
-
-    def _archive_rollback(
-        self,
-        file_path: str,
-        original_source: str,
-        baseline_sha: str,
-    ) -> None:
-        """Archive rollback plan to var/mind/rollbacks/ via governed FileHandler."""
-        try:
-            file_handler = self._ctx.file_handler
-            timestamp = datetime.now(UTC).strftime("%Y%m%d%H%M%S")
-            safe_name = file_path.replace("/", "_").replace(".", "_")
-            rel_path = f"var/mind/rollbacks/{timestamp}-{safe_name}.json"
-
-            file_handler.ensure_dir("var/mind/rollbacks")
-            file_handler.write_runtime_json(
-                rel_path,
-                {
-                    "file_path": file_path,
-                    "rule": self._target_rule,
-                    "baseline_sha": baseline_sha,
-                    "original_source": original_source,
-                    "archived_at": datetime.now(UTC).isoformat(),
-                    "worker": "violation_remediator",
-                },
-            )
-        except Exception as exc:
-            logger.warning("ViolationRemediator: rollback archive failed - %s", exc)
-
-    # -------------------------------------------------------------------------
-    # Context building
-    # -------------------------------------------------------------------------
-
-    async def _build_context(self, file_path: str, violations_summary: str) -> str:
-        """
-        Build a context package for the violating file combining:
-        1. Call graph context (ContextService - structural neighbours)
-        2. Semantic examples (Qdrant core-code - similar correct implementations)
-        """
-        parts: list[str] = []
-
-        try:
-            ctx_service = self._ctx.context_service
-            call_graph_ctx = await ctx_service.get_context_for_file(file_path)
-            if call_graph_ctx:
-                parts.append(f"=== Call graph context ===\n{call_graph_ctx}")
-        except Exception as exc:
-            logger.debug(
-                "ViolationRemediator: call graph context unavailable for %s - %s",
-                file_path,
-                exc,
-            )
-
-        try:
-            qdrant = self._ctx.vector_store
-            hits = await qdrant.search(
-                collection=_CODE_COLLECTION,
-                query=violations_summary,
-                limit=_SEMANTIC_EXAMPLES_LIMIT,
-            )
-            if hits:
-                examples = "\n\n".join(
-                    h.payload.get("source", "") for h in hits if h.payload
-                )
-                parts.append(
-                    f"=== Semantic examples (correct implementations) ===\n{examples}"
-                )
-        except Exception as exc:
-            logger.debug(
-                "ViolationRemediator: semantic context unavailable for %s - %s",
-                file_path,
-                exc,
-            )
-
-        return "\n\n".join(parts) if parts else ""
-
-    # -------------------------------------------------------------------------
-    # Summary helpers
-    # -------------------------------------------------------------------------
-
-    def _build_violations_summary(self, findings: list[dict[str, Any]]) -> str:
-        """Produce a JSON summary of violations for the LLM prompt."""
-        violations = []
-        for finding in findings:
-            payload = finding.get("payload") or {}
-            violations.append(
-                {
-                    "rule": payload.get("rule", self._target_rule),
-                    "file_path": payload.get("file_path"),
-                    "line_number": payload.get("line_number"),
-                    "message": payload.get("message", ""),
-                    "severity": payload.get("severity", "warning"),
-                }
-            )
-        return json.dumps(violations, indent=2)
-
-    # -------------------------------------------------------------------------
-    # Blackboard helpers
-    # -------------------------------------------------------------------------
-
-    def _check_atomic_action_coverage(
-        self, findings: list[dict[str, Any]]
-    ) -> str | None:
-        """Check if all finding rules map to an ACTIVE atomic action.
-
-        Returns the action_id if every rule in *findings* maps to the same
-        ACTIVE action with confidence >= 0.80.  Returns None otherwise
-        (mixed actions, unmapped rules, or low confidence).
-        """
-        from body.autonomy.audit_analyzer import _load_remediation_map
-        from shared.path_resolver import PathResolver
-
-        try:
-            path_resolver = PathResolver(self._ctx.git_service.repo_path)
-            remediation_map = _load_remediation_map(path_resolver)
-        except Exception:
-            return None
-
-        if not remediation_map:
-            return None
-
-        mapped_actions: set[str] = set()
-        for finding in findings:
-            payload = finding.get("payload") or {}
-            rule = payload.get("rule") or payload.get("check_id") or ""
-            entry = remediation_map.get(rule)
-            if (
-                entry
-                and entry.get("status") == "ACTIVE"
-                and (entry.get("confidence") or 0) >= 0.80
-            ):
-                mapped_actions.add(entry["action"])
-            else:
-                return None
-
-        # Only defer if all findings map to a single atomic action.
-        if len(mapped_actions) == 1:
-            return mapped_actions.pop()
-        return None
-
-    async def _post_failed(
-        self,
-        file_path: str,
-        findings: list[dict[str, Any]],
-        reason: str,
-    ) -> None:
-        """Post a failure finding to the blackboard."""
-        await self.post_finding(
-            subject=f"{_FAILED_SUBJECT}::{file_path}",
-            payload={
-                "file_path": file_path,
-                "rule": self._target_rule,
-                "reason": reason,
-                "write": self._write,
-                "finding_ids": [finding["id"] for finding in findings],
-            },
-        )
-
-    async def _claim_open_findings(self) -> list[dict[str, Any]]:
-        """
-        Atomically claim open audit.violation findings for the target rule,
-        ordered by severity (critical first) then by creation time.
-
-        Uses FOR UPDATE SKIP LOCKED to prevent double-claiming across
-        concurrent worker instances.
-        """
-        bb = await self._ctx.registry.get_blackboard_service()
-        return await bb.claim_violation_findings(
-            prefix=f"{_SOURCE_SUBJECT}::%",
-            limit=_CLAIM_LIMIT,
-            claimed_by=self._worker_uuid,
-        )
-
-    async def _mark_findings(self, findings: list[dict[str, Any]], status: str) -> None:
-        """Batch-update status of a list of findings."""
-        for finding in findings:
-            await self._mark_finding(finding["id"], status)
-
-    async def _mark_finding(self, finding_id: str, status: str) -> None:
-        """Update the status of a single blackboard finding by ID."""
-        bb = await self._ctx.registry.get_blackboard_service()
-        await bb.update_entry_status(finding_id, status)
-
-
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------

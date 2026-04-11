@@ -37,10 +37,8 @@ implementation:
   class: AutonomousProposalWorker
   requires_core_context: true
 
-# Worker-specific configuration — read by AutonomousProposalWorker via
-# self._declaration.get("config", {}) inside run().
 config:
-  write: false # Set true to persist proposals to DB
+  write: false
   max_proposals_per_run: 3
   lookback_minutes: 60
   prompt_model: proposal_reasoner

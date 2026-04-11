@@ -1,53 +1,10 @@
 {
   "summary": {
-    "total_rules": 120,
-    "enforced_count": 113,
-    "unbound_count": 7,
-    "coverage_percent": 94.2
+    "total_rules": 117,
+    "enforced_count": 117,
+    "unbound_count": 0,
+    "coverage_percent": 100.0
   },
   "critical_gaps": [],
-  "unbound_rules": [
-    {
-      "id": "cli.resource_first",
-      "policy": "rules/cli/interface_design",
-      "engine": "NONE",
-      "severity": "blocking"
-    },
-    {
-      "id": "cli.no_layer_exposure",
-      "policy": "rules/cli/interface_design",
-      "engine": "NONE",
-      "severity": "blocking"
-    },
-    {
-      "id": "cli.standard_verbs",
-      "policy": "rules/cli/interface_design",
-      "engine": "NONE",
-      "severity": "reporting"
-    },
-    {
-      "id": "cli.dangerous_explicit",
-      "policy": "rules/cli/interface_design",
-      "engine": "NONE",
-      "severity": "blocking"
-    },
-    {
-      "id": "cli.async_execution",
-      "policy": "rules/cli/interface_design",
-      "engine": "NONE",
-      "severity": "blocking"
-    },
-    {
-      "id": "cli.discovery_strict",
-      "policy": "rules/cli/interface_design",
-      "engine": "NONE",
-      "severity": "blocking"
-    },
-    {
-      "id": "cli.help_required",
-      "policy": "rules/cli/interface_design",
-      "engine": "NONE",
-      "severity": "reporting"
-    }
-  ]
+  "unbound_rules": []
 }

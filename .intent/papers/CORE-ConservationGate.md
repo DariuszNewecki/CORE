@@ -51,7 +51,9 @@ The ConservationGate uses `LogicConservationValidator.evaluate()`:
 The validator extracts logical tokens from both original and proposed
 code and computes the preservation ratio:
 
+```
 ratio = preserved_tokens / original_tokens
+```
 
 Logical tokens are function definitions, class definitions, and
 meaningful statement bodies — not comments, whitespace, or formatting.
@@ -66,11 +68,15 @@ meaningful statement bodies — not comments, whitespace, or formatting.
 
 ## 5. Threshold
 
-The default threshold is declared in `.intent/`. It is not hardcoded.
+The minimum preservation ratio is **0.50**. This is a constitutional
+Rule declared in `.intent/rules/will/autonomy.json` under rule ID
+`autonomy.conservation.min_preservation_ratio`. It is blocking at
+runtime. Changing the threshold requires a rule amendment — it is not
+an operational configuration value.
 
-A ratio below threshold means the proposed code has deleted more than
-the permitted proportion of the original logic. The proposal is rejected
-and the original code is restored.
+A ratio below 0.50 means the proposed code has deleted more than half
+of the original logical tokens. The proposal is rejected and the
+original code is restored.
 
 ---
 
@@ -79,9 +85,11 @@ and the original code is restored.
 The ConservationGate is evaluated in `ModularityRemediationService`
 after the workflow reports success and before the result is accepted:
 
+```
 LLM produces code → workflow reports success → ConservationGate evaluates
 → passes: accept result
 → fails: revert to original, mark failed
+```
 
 It is also available for use by any Worker that invokes an LLM to
 produce a replacement for existing code.
@@ -95,13 +103,13 @@ the ConservationGate threshold is waived. This is for cases where the
 intent is to remove code — such as splitting a file, where the original
 file's content moves to new files rather than being preserved in place.
 
-Authorized deletions must be declared explicitly. The default is False.
+Authorized deletions must be declared explicitly in the Proposal.
+The default is False.
 
 ---
 
 ## 8. Non-Goals
 
 This paper does not define:
-- the specific threshold value
 - the token extraction algorithm in detail
 - integration with the Canary

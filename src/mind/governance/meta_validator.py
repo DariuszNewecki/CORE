@@ -10,11 +10,11 @@ FIX: Implements a Schema Registry to resolve internal $ref links.
 
 from __future__ import annotations
 
-import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+import jsonschema
 from jsonschema.validators import validator_for
 
 from shared.infrastructure.intent.intent_repository import (
@@ -57,14 +57,31 @@ class MetaValidator:
         self._all_schemas: dict[str, dict[str, Any]] = self._index_all_schemas()
 
         self.meta_schema = self._load_meta_schema()
+        self._validated_directories: list[str] | None = (
+            self._load_validated_directories()
+        )
         self.errors: list[ValidationError] = []
         self.warnings: list[ValidationError] = []
+
+    def _load_validated_directories(self) -> list[str] | None:
+        """Load .intent/META/intent_tree.yaml and return its validated_directories
+        list. Returns None if the file or the field is absent — callers fall back
+        to walking everything except META exclusions."""
+        try:
+            path = self.intent_root / "META" / "intent_tree.yaml"
+            doc = self.repo.load_document(path)
+        except Exception:
+            return None
+        dirs = doc.get("validated_directories") if isinstance(doc, dict) else None
+        if not isinstance(dirs, list):
+            return None
+        return [str(d).replace("\\", "/").rstrip("/") for d in dirs]
 
     def _index_all_schemas(self) -> dict[str, dict[str, Any]]:
         """Finds every .schema.json in the system and stores it in memory."""
         index = {}
         # Search the entire schemas directory
-        schemas_path = self.intent_root / "schemas"
+        schemas_path = self.intent_root / "META"
         for schema_file in schemas_path.rglob("*.schema.json"):
             try:
                 # Use filename as the lookup key for $ref resolution
@@ -78,7 +95,7 @@ class MetaValidator:
         return index
 
     def _load_meta_schema(self) -> dict[str, Any]:
-        rel_path = "schemas/META/GLOBAL-DOCUMENT-META-SCHEMA.json"
+        rel_path = "META/GLOBAL-DOCUMENT-META-SCHEMA.json"
         try:
             abs_path = self.repo.resolve_rel(rel_path)
             return self.repo.load_document(abs_path)
@@ -102,8 +119,27 @@ class MetaValidator:
                 # Skip the schemas themselves and excluded paths
                 if "/schemas/" in str(doc_file).replace("\\", "/"):
                     continue
+                # Skip META schema definition files — they are schema
+                # definitions, not governed documents.
+                if doc_file.name.endswith(".schema.json") or doc_file.name in (
+                    "enums.json",
+                    "GLOBAL-DOCUMENT-META-SCHEMA.json",
+                    "intent_tree.yaml",
+                ):
+                    continue
 
                 rel_path = doc_file.relative_to(self.intent_root)
+                # Restrict the walk to directories declared as validated in
+                # intent_tree.yaml. Files outside are silently skipped. If
+                # validated_directories is absent, fall back to walking
+                # everything (subject to META exclusions above).
+                if self._validated_directories is not None:
+                    rel_str = str(rel_path).replace("\\", "/")
+                    if not any(
+                        rel_str == d or rel_str.startswith(d + "/")
+                        for d in self._validated_directories
+                    ):
+                        continue
                 if any(str(rel_path).startswith(ex) for ex in excludes):
                     continue
 
@@ -134,42 +170,42 @@ class MetaValidator:
             self._add_error(str(rel_path), "invalid_structure", "Must be a mapping")
             return False
 
-        self._validate_required_fields(str(rel_path), doc)
-        self._validate_field_constraints(str(rel_path), doc)
+        from jsonschema import RefResolver
+
+        meta_dir = (self.intent_root / "META").resolve()
+        base_uri = meta_dir.as_uri() + "/"
+        resolver = RefResolver(
+            base_uri=base_uri,
+            referrer=self.meta_schema,
+            store=self._all_schemas,
+        )
+        try:
+            jsonschema.validate(doc, self.meta_schema, resolver=resolver)
+        except jsonschema.ValidationError as e:
+            path = ".".join(map(str, e.absolute_path)) or "root"
+            self._add_error(str(rel_path), "schema_violation", e.message, path)
+        except Exception as e:
+            self._add_error(
+                str(rel_path), "validator_error", f"Internal validator error: {e}"
+            )
         self._validate_against_json_schema(str(rel_path), doc)
 
         return len(self.errors) == doc_errors_before
 
-    def _validate_required_fields(self, doc_name: str, doc: dict):
-        required = self.meta_schema["header_schema"]["required_fields"]
-        for field in required:
-            if field not in doc:
-                self._add_error(
-                    doc_name, "missing_field", f"Missing field: {field}", field
-                )
-
-    def _validate_field_constraints(self, doc_name: str, doc: dict):
-        fields = self.meta_schema["header_schema"]["fields"]
-        for field_name in ["id", "version", "type", "schema_id"]:
-            if field_name in doc and field_name in fields:
-                pattern = fields[field_name].get("pattern")
-                if pattern and not re.match(pattern, str(doc[field_name])):
-                    self._add_error(
-                        doc_name, "invalid_pattern", f"{field_name} invalid", field_name
-                    )
-
     def _validate_against_json_schema(self, doc_name: str, doc: dict):
-        schema_id = doc.get("schema_id")
+        schema_id = doc.get("$schema")
         if not schema_id:
             return
 
-        schema = self._all_schemas.get(schema_id)
+        schema = self._all_schemas.get(schema_id) or self._all_schemas.get(
+            schema_id.split("/")[-1]
+        )
         if not schema:
             self._add_error(
                 doc_name,
                 "schema_not_found",
                 f"No schema for: {schema_id}",
-                "schema_id",
+                "$schema",
                 "warning",
             )
             return
@@ -190,7 +226,13 @@ class MetaValidator:
             # Run validation with a custom resolver logic (simplified for 3.12 compatibility)
             from jsonschema import RefResolver
 
-            resolver = RefResolver.from_schema(schema, store=self._all_schemas)
+            meta_dir = (self.intent_root / "META").resolve()
+            base_uri = meta_dir.as_uri() + "/"
+            resolver = RefResolver(
+                base_uri=base_uri,
+                referrer=schema,
+                store=self._all_schemas,
+            )
             validator = validator_cls(schema, resolver=resolver)
 
             for error in validator.iter_errors(doc):

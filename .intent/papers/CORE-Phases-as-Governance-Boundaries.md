@@ -228,7 +228,34 @@ This alignment ensures the Will layer has constitutional legitimacy from user in
 
 ---
 
-## 7. Failure Modes Prevented by Phase Discipline
+## 7. Cross-Layer Calls Within a Phase
+
+A component in one architectural layer may call a component in another
+layer during the same phase, subject to these rules:
+
+**Permitted cross-layer calls:**
+- Body calling a Mind validator during the same phase is legal. The call
+  does not constitute a phase transition. The calling component remains
+  in its declared phase; the validator executes within that same phase's
+  authority surface.
+- Will calling a Body service during Runtime is legal. The Body service
+  executes within the Runtime phase constraints.
+
+**Forbidden cross-layer calls:**
+- A call that would cause rule evaluation to occur in a phase different
+  from the phase in which the calling component is operating is a phase
+  violation. For example, a Body component in Parse phase MUST NOT
+  trigger Audit-phase rule evaluation by calling an auditor service.
+- A cross-layer call that changes the effective phase of the operation
+  is forbidden, regardless of which layers are involved.
+
+**The test:** A cross-layer call is legal if the called component operates
+under the same phase constraints as the caller. It is illegal if the call
+causes evaluation under a different phase's authority surface.
+
+---
+
+## 8. Failure Modes Prevented by Phase Discipline
 
 Strict phase boundaries prevent:
 * retroactive blocking based on audit findings,
@@ -241,7 +268,7 @@ Most governance duct tape arises from ignoring these boundaries.
 
 ---
 
-## 8. Relationship to Authority
+## 9. Relationship to Authority
 
 Phase determines *when*.
 Authority determines *who*.
@@ -253,7 +280,7 @@ A policy rule evaluated at runtime without authorization is invalid.
 
 ---
 
-## 9. Rationale for Six Phases
+## 10. Rationale for Six Phases
 
 The choice of exactly six phases reflects:
 
@@ -269,7 +296,7 @@ Extension beyond six would indicate either:
 
 ---
 
-## 10. Non-Goals
+## 11. Non-Goals
 
 This paper does not define:
 * enforcement engines,
@@ -281,7 +308,7 @@ Those must conform to phase law but are not part of it.
 
 ---
 
-## 11. Conclusion
+## 12. Conclusion
 
 Phases are not convenience layers. They are governance boundaries.
 
