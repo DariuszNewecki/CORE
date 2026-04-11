@@ -6,7 +6,7 @@ metadata:
   title: Audit Violation Sensor - Architecture
   version: "1.0.0"
   authority: policy
-  status: paused
+  status: active
 
 identity:
   uuid: "33516f95-fa01-4542-b3cc-84b06557a99c"

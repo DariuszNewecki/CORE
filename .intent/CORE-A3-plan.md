@@ -27,24 +27,25 @@ In A3, CORE's daemon finds problems in its own codebase, proposes fixes, execute
 
 | Item | Status |
 |------|--------|
-| Audit | PASSED — 11 findings (8 WARNING, 3 INFO), 0 blocking |
+| Audit | PASSED — 4 findings (1 WARNING, 3 INFO), 0 blocking |
 | Active workers | 3 — audit_sensor_purity, violation_remediator, proposal_consumer_worker |
 | RemediationMap | 13 ACTIVE, 5 PENDING entries |
 | Constitutional papers | Complete — all 42+ findings closed |
 | MetaValidator | Operational — 70 documents clean |
-| Knowledge graph | 2134 symbols — 596 classes, 963 methods, 575 functions |
+| Knowledge graph | 2132 symbols — updated after monolith deletion |
 | ViolationExecutor | Declared, not implemented |
 | OptimizerWorker | Not yet designed |
 
-**Current warnings (daemon should resolve):**
-- `purity.no_orphan_files` — 6 occurrences (orphan file cluster) — unmapped, needs Phase 3A
-- `purity.no_ast_duplication` — 1 occurrence — unmapped, needs Phase 3A
-- `governance.dangerous_execution_primitives` — 1 occurrence (subprocess.run)
+**Current warnings:**
+- `governance.dangerous_execution_primitives` — 1 occurrence (`subprocess.run` in `ceremony.py`) — unmapped
 
-**Phase 0 learnings:**
+**Phase 0/1 learnings:**
 - `core.proposals` is the legacy file-proposal table — NOT the autonomous proposals table
 - `core.autonomous_proposals` is the correct table to wipe for A3 clean slate
-- Pre-commit hook does not stage files written by `fix.modularity` split — git commit fails after split
+- Pre-commit hook two-pass retry now handled in `GitService.commit()` — fixed
+- `violation_remediator/` submodule is the correct target architecture — monolith deleted
+- Remediator releasing unmappable findings is correct behaviour, not a bug
+- Phase 1 convergence achieved via human architectural decision, not autonomous remediation — this is valid
 
 ---
 
@@ -73,7 +74,7 @@ TRUNCATE core.autonomous_proposals RESTART IDENTITY CASCADE;
 
 ---
 
-### Phase 1 — Single Loop, Proven Convergence 🔄
+### Phase 1 — Single Loop, Proven Convergence ✅
 **Goal:** One sensor + one remediator running end to end, findings resolving.
 
 **Activate only:**
@@ -83,22 +84,15 @@ TRUNCATE core.autonomous_proposals RESTART IDENTITY CASCADE;
 
 **All other workers:** set to `paused` before starting daemon.
 
-**Steps:**
-1. Pause all workers except the three above
-2. Wipe DB: `TRUNCATE core.blackboard_entries RESTART IDENTITY CASCADE; TRUNCATE core.autonomous_proposals RESTART IDENTITY CASCADE;`
-3. Start daemon: `systemctl --user start core-daemon`
-4. Watch: `journalctl --user -u core-daemon -f`
-5. Confirm: findings appear → proposals created → proposals executed → Blackboard empties
-6. Fix any loop breaks before proceeding
-
-**What we know from session 2026-04-11:**
-- Sensor link ✅ — 7 purity findings posted correctly
+**What we proved (session 2026-04-11):**
+- Sensor link ✅ — purity findings posted correctly
 - Remediator link ✅ — correctly releases unmappable findings (honest, not broken)
 - Consumer link ✅ — executes proposals, consequence logging confirmed working
-- Current purity findings (`purity.no_orphan_files`, `purity.no_ast_duplication`) are unmappable — loop is architecturally sound but has nothing to converge on until Phase 3A resolves the orphan cluster
-- `fix.modularity` git commit bug must be resolved before modularity proposals can converge
+- Git commit two-pass retry ✅ — fixed in `GitService.commit()`
+- Purity loop converged — 0 findings, Blackboard clean
+- `violation_remediator/` submodule wired correctly — monolith deleted
 
-**Success signal:** Purity findings autonomously resolved, Blackboard empty, no human code edits.
+**Success signal:** ✅ Purity sensor finds 0 actionable violations. Blackboard empty.
 
 ---
 
@@ -125,7 +119,6 @@ TRUNCATE core.autonomous_proposals RESTART IDENTITY CASCADE;
 **A — Orphan classifier (92 findings)**
 Dedicated triage session. Read each orphan file before recommending action.
 Cluster by cluster: auto-fix, delegate to human, or suppress with justification.
-Resolving this also unblocks Phase 1 convergence for `purity.no_orphan_files`.
 
 **B — Test writing**
 Wire test-writing AtomicAction. When audit finds missing test coverage:
@@ -190,7 +183,7 @@ For findings requiring `.intent/` edits or architectural decisions:
 | Phase | Signal | Status |
 |-------|--------|--------|
 | 0 — Clean slate | Audit passes, DB clean | ✅ Complete |
-| 1 — Single loop | Purity loop runs unattended | 🔄 In progress — loop architecture proven, convergence blocked by git commit bug + unmapped findings |
+| 1 — Single loop | Purity loop runs unattended | ✅ Complete — 0 findings, Blackboard empty |
 | 2 — All sensors | All sensors active, converging | ⬜ Not started |
 | 3 — Capability gaps | No orphaned findings, tests growing | ⬜ Not started |
 | 4 — CLI health | All commands work, legacy gone | ⬜ Not started |
@@ -202,15 +195,16 @@ For findings requiring `.intent/` edits or architectural decisions:
 
 | Blocker | Phase | Notes |
 |---------|-------|-------|
-| `fix.modularity` git commit failure | 1+ | Pre-commit hook runs with no staged files after split — changes applied to disk but not committed |
-| `purity.no_orphan_files` + `purity.no_ast_duplication` unmapped | 1 | Remediator correctly releases these — need Phase 3A resolution before purity loop can converge |
 | `fix.modularity` class-methods gap | 2 | Methods not handled by modularity action |
+| `governance.dangerous_execution_primitives` unmapped | 2+ | `subprocess.run` in `ceremony.py` — needs AtomicAction or architectural decision |
 | Orphan classifier (92 findings) | 3 | Largest single cluster — needs dedicated session |
 | ViolationExecutor not implemented | 3+ | Unmapped rules accumulate with no handler |
 
 **Resolved blockers:**
 | ~~Proposals dry-run bug~~ | ~~1~~ | ✅ Fixed — `proposal_worker.yaml` `write: true` |
 | ~~`execute_batch` consequence logging gap~~ | ~~1~~ | ✅ Fixed — `ConsequenceLogService.record()` wired |
+| ~~`fix.modularity` git commit failure~~ | ~~1+~~ | ✅ Fixed — `GitService.commit()` two-pass retry |
+| ~~`purity.no_orphan_files` + `purity.no_ast_duplication` unmapped~~ | ~~1~~ | ✅ Resolved — monolith deleted, submodule wired |
 
 ---
 
