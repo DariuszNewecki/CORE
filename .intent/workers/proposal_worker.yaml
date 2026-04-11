@@ -38,7 +38,7 @@ implementation:
   requires_core_context: true
 
 config:
-  write: false
+  write: true
   max_proposals_per_run: 3
   lookback_minutes: 60
   prompt_model: proposal_reasoner

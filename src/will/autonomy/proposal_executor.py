@@ -399,6 +399,19 @@ class ProposalExecutor:
                         state_manager = ProposalStateManager(session)
                         await state_manager.mark_executing(proposal.proposal_id)
 
+                    pre_execution_sha = None
+                    if self.core_context.git_service:
+                        try:
+                            pre_execution_sha = (
+                                self.core_context.git_service.get_current_commit()
+                            )
+                        except Exception as sha_err:
+                            logger.warning(
+                                "Could not capture pre-execution SHA for batch proposal %s: %s",
+                                proposal.proposal_id,
+                                sha_err,
+                            )
+
                     action_results: dict[str, Any] = {}
                     all_ok = True
                     sorted_actions = sorted(proposal.actions, key=lambda a: a.order)
@@ -457,9 +470,111 @@ class ProposalExecutor:
                                         proposal.proposal_id,
                                         git_err,
                                     )
-                            # Consequence recording not yet implemented for batch execution.
-                            # ConsequenceLogService.record() should be called here once
-                            # batch execution is used in production. See execute() for reference.
+                            # -- Consequence recording --
+                            try:
+                                post_execution_sha = (
+                                    self.core_context.git_service.get_current_commit()
+                                    if self.core_context.git_service
+                                    else None
+                                )
+                            except Exception:
+                                post_execution_sha = None
+                                logger.warning(
+                                    "Could not capture post-execution SHA for batch proposal %s",
+                                    proposal.proposal_id,
+                                )
+
+                            changed_files: list[str] = []
+                            if pre_execution_sha and post_execution_sha:
+                                try:
+                                    diff_proc = await asyncio.create_subprocess_exec(
+                                        "git",
+                                        "diff",
+                                        "--name-only",
+                                        pre_execution_sha,
+                                        post_execution_sha,
+                                        stdout=asyncio.subprocess.PIPE,
+                                        stderr=asyncio.subprocess.PIPE,
+                                        cwd=str(
+                                            self.core_context.git_service.repo_path
+                                        ),
+                                    )
+                                    stdout, _ = await diff_proc.communicate()
+                                    changed_files = [
+                                        f
+                                        for f in stdout.decode().strip().splitlines()
+                                        if f
+                                    ]
+                                except Exception as diff_err:
+                                    logger.warning(
+                                        "Could not determine changed files for batch proposal %s: %s",
+                                        proposal.proposal_id,
+                                        diff_err,
+                                    )
+
+                            try:
+                                consequence_svc = (
+                                    await service_registry.get_consequence_log_service()
+                                )
+                                await consequence_svc.record(
+                                    proposal_id=proposal.proposal_id,
+                                    pre_execution_sha=pre_execution_sha,
+                                    post_execution_sha=post_execution_sha,
+                                    files_changed=[{"path": p} for p in changed_files],
+                                    findings_resolved=proposal.constitutional_constraints.get(
+                                        "finding_ids", []
+                                    ),
+                                    authorized_by_rules=proposal.scope.policies,
+                                )
+                            except Exception as cons_err:
+                                logger.warning(
+                                    "Failed to record consequence for batch proposal %s: %s",
+                                    proposal.proposal_id,
+                                    cons_err,
+                                )
+
+                            try:
+                                files_changed_list = [
+                                    {"path": p} for p in changed_files
+                                ]
+                                async with service_registry.session() as bb_session:
+                                    for changed in files_changed_list:
+                                        path = changed.get("path", "")
+                                        if path.startswith("src/") and path.endswith(
+                                            ".py"
+                                        ):
+                                            await bb_session.execute(
+                                                text(
+                                                    """
+                                                    INSERT INTO core.blackboard_entries
+                                                    (entry_type, subject, payload, status, created_at)
+                                                    VALUES (
+                                                        'finding',
+                                                        :subject,
+                                                        cast(:payload as jsonb),
+                                                        'open',
+                                                        now()
+                                                    )
+                                                    """
+                                                ),
+                                                {
+                                                    "subject": f"test.run_required::{path}",
+                                                    "payload": json.dumps(
+                                                        {
+                                                            "source_file": path,
+                                                            "proposal_id": proposal.proposal_id,
+                                                            "post_execution_sha": post_execution_sha,
+                                                        }
+                                                    ),
+                                                },
+                                            )
+                                    await bb_session.commit()
+                            except Exception as test_req_err:
+                                logger.warning(
+                                    "Could not post test.run_required for batch proposal %s: %s",
+                                    proposal.proposal_id,
+                                    test_req_err,
+                                )
                         else:
                             failed_actions = [
                                 aid
