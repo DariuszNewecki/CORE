@@ -6,7 +6,7 @@ metadata:
   title: Worker Auditor
   version: "1.0.0"
   authority: policy
-  status: active
+  status: paused
 
 identity:
   uuid: "c3e4f5a6-b7c8-4d9e-0f1a-2b3c4d5e6f7a"

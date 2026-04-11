@@ -6,7 +6,7 @@ metadata:
   title: Repo Crawler
   version: "0.1.0"
   authority: policy
-  status: active
+  status: paused
 
 identity:
   uuid: "f1a2b3c4-d5e6-7890-abcd-ef1234567891"

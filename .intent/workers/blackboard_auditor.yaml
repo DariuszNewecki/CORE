@@ -6,7 +6,7 @@ metadata:
   title: Blackboard Auditor
   version: "1.0.0"
   authority: policy
-  status: active
+  status: paused
 
 identity:
   uuid: "d4e5f6a7-c8d9-4e0f-1a2b-3c4d5e6f7a8b"

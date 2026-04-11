@@ -6,7 +6,7 @@ metadata:
   title: Audit Violation Sensor - Logic
   version: "1.0.0"
   authority: policy
-  status: active
+  status: paused
 
 identity:
   uuid: "def9dd46-d731-400b-a332-c86d6f8c9ff3"

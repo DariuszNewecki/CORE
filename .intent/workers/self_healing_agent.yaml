@@ -6,7 +6,7 @@ metadata:
   title: Self-Healing Agent
   version: "1.0.0"
   authority: policy
-  status: active
+  status: paused
 
 identity:
   uuid: "a3f7c2d1-b4e8-4f91-9c2a-7d5e6b8f0a3c"

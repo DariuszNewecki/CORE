@@ -6,7 +6,7 @@ metadata:
   title: Audit Violation Sensor - Modularity
   version: "1.0.0"
   authority: policy
-  status: active
+  status: paused
 
 identity:
   uuid: "cf0760a5-bd3c-4a6c-bf86-4d5dfacfde01"

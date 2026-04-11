@@ -6,7 +6,7 @@ metadata:
   title: Proposal Consumer Worker
   version: "1.0.0"
   authority: policy
-  status: active
+  status: paused
 
 identity:
   uuid: "c1d2e3f4-a5b6-7890-cdef-123456789abc"
