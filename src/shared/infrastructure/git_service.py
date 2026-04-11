@@ -99,8 +99,27 @@ class GitService:
 
     # ID: 3acb0e63-e71b-4eba-a5ed-88e8e4eec35d
     def commit(self, message: str) -> None:
-        """Commits staged changes with the provided message."""
-        self._run_command(["commit", "-m", message])
+        """
+        Commits all changes with the provided message.
+
+        Stages all changes before committing. If the first commit attempt fails
+        because a pre-commit hook modified files (hooks exit non-zero and rewrite
+        staged content), stages again and retries once. This is the standard
+        two-pass pattern required when pre-commit hooks auto-fix files.
+        """
+        self._run_command(["add", "-A"])
+        try:
+            self._run_command(["commit", "-m", message])
+        except RuntimeError as first_err:
+            # Pre-commit hooks can modify files and exit non-zero on the first
+            # pass. Stage their changes and retry exactly once.
+            logger.info(
+                "GitService: first commit attempt failed — "
+                "re-staging after pre-commit hook modifications and retrying: %s",
+                first_err,
+            )
+            self._run_command(["add", "-A"])
+            self._run_command(["commit", "-m", message])
 
     # ID: a1b2c3d4-e5f6-7890-abcd-ef1234567892
     def get_recent_commits(self, n: int = 10) -> list[str]:

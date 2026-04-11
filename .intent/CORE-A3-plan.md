@@ -2,7 +2,7 @@
 
 **Status:** Active
 **Owner:** Darek (Dariusz Newecki)
-**Last updated:** 2026-04-10
+**Last updated:** 2026-04-11
 **Definition:** The daemon runs continuously, the Blackboard clears, the codebase converges, and every action is visible.
 
 ---
@@ -23,12 +23,12 @@ In A3, CORE's daemon finds problems in its own codebase, proposes fixes, execute
 
 ---
 
-## Current State (2026-04-10)
+## Current State (2026-04-11)
 
 | Item | Status |
 |------|--------|
 | Audit | PASSED — 11 findings (8 WARNING, 3 INFO), 0 blocking |
-| Active workers | 15 — all sensors, remediator, consumer active |
+| Active workers | 3 — audit_sensor_purity, violation_remediator, proposal_consumer_worker |
 | RemediationMap | 13 ACTIVE, 5 PENDING entries |
 | Constitutional papers | Complete — all 42+ findings closed |
 | MetaValidator | Operational — 70 documents clean |
@@ -37,15 +37,20 @@ In A3, CORE's daemon finds problems in its own codebase, proposes fixes, execute
 | OptimizerWorker | Not yet designed |
 
 **Current warnings (daemon should resolve):**
-- `purity.no_orphan_files` — 6 occurrences (orphan file cluster)
-- `purity.no_ast_duplication` — 1 occurrence
+- `purity.no_orphan_files` — 6 occurrences (orphan file cluster) — unmapped, needs Phase 3A
+- `purity.no_ast_duplication` — 1 occurrence — unmapped, needs Phase 3A
 - `governance.dangerous_execution_primitives` — 1 occurrence (subprocess.run)
+
+**Phase 0 learnings:**
+- `core.proposals` is the legacy file-proposal table — NOT the autonomous proposals table
+- `core.autonomous_proposals` is the correct table to wipe for A3 clean slate
+- Pre-commit hook does not stage files written by `fix.modularity` split — git commit fails after split
 
 ---
 
 ## A3 Phases
 
-### Phase 0 — Clean Slate
+### Phase 0 — Clean Slate ✅
 **Goal:** Known-good starting point before activating anything.
 
 **Steps:**
@@ -58,14 +63,17 @@ In A3, CORE's daemon finds problems in its own codebase, proposes fixes, execute
 ```sql
 -- Run on lira: psql -U core_db -d core -h 192.168.20.23
 TRUNCATE core.blackboard_entries RESTART IDENTITY CASCADE;
-TRUNCATE core.proposals RESTART IDENTITY CASCADE;
+TRUNCATE core.autonomous_proposals RESTART IDENTITY CASCADE;
 ```
+
+> ⚠️ `core.proposals` is the legacy table (file-level proposals). The autonomous loop
+> uses `core.autonomous_proposals`. Always truncate the correct table.
 
 **Success signal:** Daemon stopped, DB clean, audit passes.
 
 ---
 
-### Phase 1 — Single Loop, Proven Convergence
+### Phase 1 — Single Loop, Proven Convergence 🔄
 **Goal:** One sensor + one remediator running end to end, findings resolving.
 
 **Activate only:**
@@ -77,10 +85,18 @@ TRUNCATE core.proposals RESTART IDENTITY CASCADE;
 
 **Steps:**
 1. Pause all workers except the three above
-2. Start daemon: `systemctl --user start core-daemon`
-3. Watch: `journalctl --user -u core-daemon -f`
-4. Confirm: findings appear → proposals created → proposals executed → Blackboard empties
-5. Fix any loop breaks (dry-run bug, consequence logging gap) before proceeding
+2. Wipe DB: `TRUNCATE core.blackboard_entries RESTART IDENTITY CASCADE; TRUNCATE core.autonomous_proposals RESTART IDENTITY CASCADE;`
+3. Start daemon: `systemctl --user start core-daemon`
+4. Watch: `journalctl --user -u core-daemon -f`
+5. Confirm: findings appear → proposals created → proposals executed → Blackboard empties
+6. Fix any loop breaks before proceeding
+
+**What we know from session 2026-04-11:**
+- Sensor link ✅ — 7 purity findings posted correctly
+- Remediator link ✅ — correctly releases unmappable findings (honest, not broken)
+- Consumer link ✅ — executes proposals, consequence logging confirmed working
+- Current purity findings (`purity.no_orphan_files`, `purity.no_ast_duplication`) are unmappable — loop is architecturally sound but has nothing to converge on until Phase 3A resolves the orphan cluster
+- `fix.modularity` git commit bug must be resolved before modularity proposals can converge
 
 **Success signal:** Purity findings autonomously resolved, Blackboard empty, no human code edits.
 
@@ -109,6 +125,7 @@ TRUNCATE core.proposals RESTART IDENTITY CASCADE;
 **A — Orphan classifier (92 findings)**
 Dedicated triage session. Read each orphan file before recommending action.
 Cluster by cluster: auto-fix, delegate to human, or suppress with justification.
+Resolving this also unblocks Phase 1 convergence for `purity.no_orphan_files`.
 
 **B — Test writing**
 Wire test-writing AtomicAction. When audit finds missing test coverage:
@@ -172,8 +189,8 @@ For findings requiring `.intent/` edits or architectural decisions:
 
 | Phase | Signal | Status |
 |-------|--------|--------|
-| 0 — Clean slate | Audit passes, DB clean | ⬜ Not started |
-| 1 — Single loop | Purity loop runs unattended | ⬜ Not started |
+| 0 — Clean slate | Audit passes, DB clean | ✅ Complete |
+| 1 — Single loop | Purity loop runs unattended | 🔄 In progress — loop architecture proven, convergence blocked by git commit bug + unmapped findings |
 | 2 — All sensors | All sensors active, converging | ⬜ Not started |
 | 3 — Capability gaps | No orphaned findings, tests growing | ⬜ Not started |
 | 4 — CLI health | All commands work, legacy gone | ⬜ Not started |
@@ -185,11 +202,15 @@ For findings requiring `.intent/` edits or architectural decisions:
 
 | Blocker | Phase | Notes |
 |---------|-------|-------|
-| Proposals dry-run bug | 1 | Proposals not executing — investigate before Phase 1 |
-| `execute_batch` consequence logging gap | 1 | Causal chain broken for batch operations |
+| `fix.modularity` git commit failure | 1+ | Pre-commit hook runs with no staged files after split — changes applied to disk but not committed |
+| `purity.no_orphan_files` + `purity.no_ast_duplication` unmapped | 1 | Remediator correctly releases these — need Phase 3A resolution before purity loop can converge |
 | `fix.modularity` class-methods gap | 2 | Methods not handled by modularity action |
 | Orphan classifier (92 findings) | 3 | Largest single cluster — needs dedicated session |
 | ViolationExecutor not implemented | 3+ | Unmapped rules accumulate with no handler |
+
+**Resolved blockers:**
+| ~~Proposals dry-run bug~~ | ~~1~~ | ✅ Fixed — `proposal_worker.yaml` `write: true` |
+| ~~`execute_batch` consequence logging gap~~ | ~~1~~ | ✅ Fixed — `ConsequenceLogService.record()` wired |
 
 ---
 
@@ -217,6 +238,10 @@ poetry run core-admin dev sync --write
 
 # DB
 psql -U core_db -d core -h 192.168.20.23
+
+# Clean slate (correct tables)
+# TRUNCATE core.blackboard_entries RESTART IDENTITY CASCADE;
+# TRUNCATE core.autonomous_proposals RESTART IDENTITY CASCADE;
 ```
 
 ---
@@ -229,8 +254,9 @@ AuditViolationSensor
     → posts findings to Blackboard
 ViolationRemediatorWorker
     → claims findings, creates Proposals
+    → releases unmappable findings back to open (honest, not broken)
 ProposalConsumerWorker
-    → executes approved Proposals
+    → executes APPROVED proposals via ProposalExecutor
 AuditViolationSensor
     → confirms finding resolved or re-posts
 ```
