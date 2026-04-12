@@ -87,6 +87,9 @@ class ModularitySplitter:
                     if isinstance(target, ast.Name):
                         top_level[target.id] = node
 
+        # Determine up-front whether the plan targets class members.
+        is_class_split_plan = any(m.is_class_split for m in plan.modules)
+
         # Second indexing pass: detect the single-dominant-class case.
         # If one top-level ClassDef contains more than half the total symbols
         # in the plan, build a method-name → AST-node index for that class.
@@ -102,15 +105,26 @@ class ModularitySplitter:
                 key=lambda c: sum(
                     1
                     for n in c.body
-                    if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))
+                    if isinstance(
+                        n,
+                        (
+                            ast.FunctionDef,
+                            ast.AsyncFunctionDef,
+                            ast.AnnAssign,
+                            ast.Assign,
+                        ),
+                    )
                 ),
             )
-            largest_method_count = sum(
+            largest_member_count = sum(
                 1
                 for n in largest.body
-                if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))
+                if isinstance(
+                    n,
+                    (ast.FunctionDef, ast.AsyncFunctionDef, ast.AnnAssign, ast.Assign),
+                )
             )
-            if 2 * largest_method_count > total_plan_symbols:
+            if is_class_split_plan or 2 * largest_member_count > total_plan_symbols:
                 dominant_class_name = largest.name
                 for member in largest.body:
                     if isinstance(member, (ast.FunctionDef, ast.AsyncFunctionDef)):
@@ -123,8 +137,6 @@ class ModularitySplitter:
                         for target in member.targets:
                             if isinstance(target, ast.Name):
                                 class_methods[target.id] = member
-
-        is_class_split_plan = any(m.is_class_split for m in plan.modules)
 
         # Build symbol → module_name map for cross-module resolution
         symbol_to_module: dict[str, str] = {}
