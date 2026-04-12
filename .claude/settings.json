@@ -46,7 +46,9 @@
       "Bash(python -m py_compile src/will/autonomy/proposal_executor.py)",
       "Bash(python -m py_compile src/will/workers/test_runner_sensor.py)",
       "Bash(python -m py_compile src/body/atomic/__init__.py)",
-      "Bash(ls /mnt/dev/CORE/.intent/papers/*.md)"
+      "Bash(ls /mnt/dev/CORE/.intent/papers/*.md)",
+      "Bash(grep -E \"\\\\.py$\")",
+      "Bash(find /mnt/dev/CORE -type f -name \"*.py\" -exec grep -l \"class.*Finding\\\\|enum.*Status\\\\|finding.*status\" {} \\\\;)"
     ],
     "additionalDirectories": [
       "/tmp",

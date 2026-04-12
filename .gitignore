@@ -36,6 +36,7 @@ coverage.json
 .DS_Store
 Thumbs.db
 CLAUDE.md
+.claude/
 
 # -----------------------------------------------------------------------------
 # External mounts — symlinked, never versioned
