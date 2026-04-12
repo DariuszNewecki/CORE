@@ -29,12 +29,12 @@ In A3, CORE's daemon finds problems in its own codebase, proposes fixes, execute
 |------|--------|
 | Audit | PASSED — 3 INFO findings, 0 warnings, 0 blocking, 0 unmapped |
 | Coverage | 100% declared, 98% effective (2 passive_gate rules — correct) |
-| Active workers | 4 sensors active — all audit sensors running |
+| Active workers | 4 sensors + ViolationExecutor + ViolationRemediatorWorker + ProposalConsumerWorker |
 | RemediationMap | 13 ACTIVE, 5 PENDING entries |
 | Constitutional papers | Complete — all 42+ findings closed |
 | MetaValidator | Operational — 70 documents clean |
-| Knowledge graph | 2132 symbols |
-| ViolationExecutor | Declared, not implemented |
+| Knowledge graph | 2138 symbols |
+| ViolationExecutor | ✅ Implemented, active in daemon (Will layer, `src/will/workers/violation_executor.py`) |
 | OptimizerWorker | Not yet designed |
 
 **Current sensor coverage (47 rules, 0 findings):**
@@ -43,12 +43,23 @@ In A3, CORE's daemon finds problems in its own codebase, proposes fixes, execute
 - `audit_sensor_logic` — 2 rules ✅
 - `audit_sensor_modularity` — 3 rules ✅
 
-**Session 2026-04-12 fixes applied:**
-- `ceremony.py` exclude path updated — monolith reference replaced with submodule path
-- Stale subprocess violation comment removed from `governance_basics.yaml`
-- `autonomy.conservation.min_preservation_ratio` mapped to `passive_gate`
-- `autonomy.remediation.min_confidence_floor` mapped to `passive_gate`
-- Audit now at: 0 warnings, 0 unmapped, 100% declared coverage, PASSED
+**Session 2026-04-12 (previous) fixes applied:**
+- Stream C delegation infrastructure complete — `mark_indeterminate()` wired in BlackboardService
+- `fix.modularity` class-methods gap closed
+- Orphan classifier dissolved — 0 real orphans confirmed, 92 findings were false positives
+- Orphan check metric bug fixed (783/685 → 685/685)
+- RemediationMap loader `status` field fix
+
+**Session 2026-04-12 (this session) fixes applied:**
+- `ViolationExecutorWorker` implemented — `src/will/workers/violation_executor.py`
+- `BlackboardService.claim_unmapped_violation_findings()` + `abandon_entries()` added
+- `ViolationRemediator.declaration_name` corrected to `violation_remediator_body`
+- `ViolationRemediator.process_file()` public entry point added (Will → Body delegation interface)
+- `violation_executor.yaml` updated to point to Will-layer worker
+- `violation_remediator_body.yaml` authored for CLI-path Body worker
+- `_load_mapped_rule_ids` fixed to use `PathResolver` + `_load_remediation_map` (constitutional path)
+- Smoke test confirmed: 13 mapped rules loaded, daemon cycling clean
+- **Standing workflow rule established:** every Claude Code prompt that touches `src/` requires `core-admin context build` first — no exceptions
 
 ---
 
@@ -107,29 +118,21 @@ TRUNCATE core.autonomous_proposals RESTART IDENTITY CASCADE;
 ### Phase 3 — Capability Gaps
 **Goal:** Findings that can't be auto-remediated get correctly delegated.
 
-**Status:** Runway clean. Real work not yet started.
-
-**What we know:**
-- No ghost violations remain — baseline is accurate
-- Stream C has no test case yet — needs live findings from Stream A
-- Correct sequence: **Stream A → Stream C → Stream B**
+**Status:** ViolationExecutor implemented and live. Stream C wired. Stream A is the remaining active work.
 
 **Three workstreams:**
 
-**A — Orphan classifier (92 findings)** ← START HERE
-Dedicated triage session. Read each orphan file before recommending action.
-Cluster by cluster: auto-fix, delegate to human, or suppress with justification.
-This workstream will naturally produce live unmappable findings for Stream C to prove itself against.
+**A — Orphan classifier** ← NEXT
+Previously believed to have 92 findings — dissolved last session (all were false positives).
+Phase 3 Stream A now means: introduce real unmapped-rule findings to prove ViolationExecutor
+claims them, runs the LLM ceremony, and surfaces AtomicAction candidates to the Blackboard.
+This is the live end-to-end test of the ViolationExecutor path.
 
-**C — Human delegation protocol** ← depends on Stream A findings
+**C — Human delegation protocol** ✅ Infrastructure complete
 For findings requiring `.intent/` edits or architectural decisions:
-- Daemon marks finding `indeterminate` on Blackboard
+- Daemon marks finding `indeterminate` on Blackboard via `BlackboardService.mark_indeterminate()`
 - Log entry states exactly what human decision is needed
 - Human resolves, marks finding `open` to re-enter loop
-
-**Note:** `indeterminate` state already exists in BlackboardService. The missing piece
-is the transition logic in `ViolationRemediator._execute_file()` — currently proceeds
-to LLM for unmappable findings instead of parking them as `indeterminate`.
 
 **Log format for delegation:**
 ```
@@ -145,7 +148,8 @@ Wire test-writing AtomicAction. When audit finds missing test coverage:
 - Human approves first N proposals
 - Auto-approve once pattern is proven sound
 
-**Success signal:** No orphaned findings, test coverage growing, human delegation path working.
+**Success signal:** ViolationExecutor processes a real unmapped finding end-to-end, surfaces
+a candidate, no orphaned findings, test coverage growing, human delegation path exercised.
 
 ---
 
@@ -159,6 +163,9 @@ Wire test-writing AtomicAction. When audit finds missing test coverage:
 2. For each broken command — daemon proposes fix, human approves
 3. For each legacy command — human decides keep/remove, daemon executes
 4. Smoke test: `core-admin --help` — every command listed runs without error
+
+**Note:** Any place in the workflow where raw `psql` is the natural reach is a place where
+a `core-admin` command is missing or incomplete. These are Phase 4 audit items.
 
 **Success signal:** Clean `--help` output, no dead commands, no legacy stubs.
 
@@ -190,7 +197,7 @@ Wire test-writing AtomicAction. When audit finds missing test coverage:
 | 0 — Clean slate | Audit passes, DB clean | ✅ Complete |
 | 1 — Single loop | Purity loop runs unattended | ✅ Complete — 0 findings, Blackboard empty |
 | 2 — All sensors | All sensors active, converging | ✅ Complete — 47 rules, 0 findings |
-| 3 — Capability gaps | No orphaned findings, tests growing | 🔄 Runway clean — Stream A next |
+| 3 — Capability gaps | No orphaned findings, tests growing | 🔄 ViolationExecutor live — Stream A live test next |
 | 4 — CLI health | All commands work, legacy gone | ⬜ Not started |
 | 5 — Visibility | Demo-ready, `tail -f` tells the story | ⬜ Not started |
 
@@ -201,17 +208,22 @@ Wire test-writing AtomicAction. When audit finds missing test coverage:
 | Blocker | Phase | Notes |
 |---------|-------|-------|
 | `fix.modularity` class-methods gap | 3 | Methods not handled by modularity action |
-| Orphan classifier (92 findings) | 3 | Largest single cluster — dedicated triage session needed |
-| ViolationExecutor not implemented | 3+ | Unmapped rules proceed to LLM instead of parking as `indeterminate` |
-| Stream C delegation transition missing | 3 | `ViolationRemediator._execute_file()` needs `indeterminate` path wired |
+| ViolationExecutor end-to-end live test | 3 | Implementation done — needs real unmapped finding to prove full path |
+| OptimizerWorker | 3+ | Not yet designed — manual candidate review until then |
+| Stream B (test writing) | 3 | Depends on stable delegation path first |
 
 **Resolved blockers:**
-| ~~`governance.dangerous_execution_primitives` unmapped~~ | ~~3+~~ | ✅ Resolved — `ceremony.py` exclude path corrected; violation was stale |
-| ~~Unmapped rules (2)~~ | ~~3~~ | ✅ Resolved — `passive_gate` entries added for runtime-enforced threshold rules |
+| ~~ViolationExecutor not implemented~~ | ~~3+~~ | ✅ Resolved — Will-layer worker implemented, active in daemon, 13 mapped rules loaded |
+| ~~Stream C delegation transition missing~~ | ~~3~~ | ✅ Resolved — `mark_indeterminate()` wired in BlackboardService |
+| ~~`governance.dangerous_execution_primitives` unmapped~~ | ~~3+~~ | ✅ Resolved — `ceremony.py` exclude path corrected |
+| ~~Unmapped rules (2)~~ | ~~3~~ | ✅ Resolved — `passive_gate` entries added |
+| ~~Orphan classifier (92 findings)~~ | ~~3~~ | ✅ Dissolved — 0 real orphans, all were false positives |
 | ~~Proposals dry-run bug~~ | ~~1~~ | ✅ Fixed — `proposal_worker.yaml` `write: true` |
 | ~~`execute_batch` consequence logging gap~~ | ~~1~~ | ✅ Fixed — `ConsequenceLogService.record()` wired |
 | ~~`fix.modularity` git commit failure~~ | ~~1+~~ | ✅ Fixed — `GitService.commit()` two-pass retry |
 | ~~`purity.no_orphan_files` + `purity.no_ast_duplication` unmapped~~ | ~~1~~ | ✅ Resolved — monolith deleted, submodule wired |
+| ~~RemediationMap `status` field missing~~ | ~~3~~ | ✅ Fixed — loader now carries status field |
+| ~~`fix.modularity` class-methods gap~~ | ~~3~~ | ✅ Closed last session |
 
 ---
 
@@ -230,6 +242,13 @@ core-admin constitution validate
 
 # Blackboard
 core-admin workers blackboard
+core-admin workers blackboard --filter "violation_executor"
+
+# Workers
+core-admin workers run <declaration_name>
+
+# Context (REQUIRED before every Claude Code prompt that touches src/)
+core-admin context build --file <target_file> --task code_modification --goal "<goal>" --no-cache
 
 # Proposals
 core-admin proposals list
@@ -237,7 +256,7 @@ core-admin proposals list
 # Sync
 poetry run core-admin dev sync --write
 
-# DB
+# DB (only when no core-admin command covers the need)
 psql -U core_db -d core -h 192.168.20.23
 
 # Clean slate (correct tables)
@@ -247,15 +266,44 @@ psql -U core_db -d core -h 192.168.20.23
 
 ---
 
+## Standing Workflow Rule — Claude Code Prompts
+
+**Every Claude Code prompt that modifies or creates a `src/` file requires a context build first.**
+
+```bash
+# Step 1 — ground the prompt in repo reality
+core-admin context build \
+  --file <target_file> \
+  --task code_modification \
+  --goal "<what this change does>" \
+  --no-cache
+
+# Step 2 — construct the Claude Code prompt
+[paste context build output]
+---
+[implementation instruction]
+```
+
+This rule exists because AI code generation from memory produces code that is syntactically
+correct and constitutionally wrong in ways that only show up at runtime. The context package
+is not optional scaffolding — it is the grounding step that makes AI output trustworthy.
+Skipping it is accepting ungoverned AI output into CORE's own `src/`.
+
+---
+
 ## Architecture Reference
 
 **The autonomous loop:**
 ```
-AuditViolationSensor
+AuditViolationSensor (×4 namespaces)
     → posts findings to Blackboard
-ViolationRemediatorWorker
-    → claims findings, creates Proposals
-    → releases unmappable findings back to open (honest, not broken)
+ViolationRemediatorWorker (Will)
+    → claims MAPPED findings, creates Proposals
+    → releases unmapped findings back to open
+ViolationExecutorWorker (Will)         ← NEW — active
+    → claims UNMAPPED findings
+    → delegates ceremony to ViolationRemediator (Body)
+    → surfaces AtomicAction candidates to Blackboard
 ProposalConsumerWorker
     → executes APPROVED proposals via ProposalExecutor
 AuditViolationSensor
@@ -264,7 +312,17 @@ AuditViolationSensor
 
 **Two remediation paths:**
 - Proposal Path (constitutional): Finding → RemediationMap → Proposal → AtomicAction ← target state
-- ViolationExecutor Path (fallback): Finding → LLM → Crate ← not yet implemented
+- ViolationExecutor Path (discovery fallback): Finding → LLM → Crate → AtomicAction candidate ✅ implemented
+
+**Graduation path (rule promotion):**
+```
+ViolationExecutor surfaces candidate
+    → human observes pattern on Blackboard
+    → human authors AtomicAction + RemediationMap entry
+    → rule graduates to RemediatorWorker
+    → ViolationExecutor never touches that rule again
+(OptimizerWorker will automate observation step — not yet designed)
+```
 
 **Gate order on every write:**
 ```

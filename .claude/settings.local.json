@@ -80,7 +80,14 @@
       "Bash(git -C /opt/dev/CORE log --oneline -30 -- .intent/papers/)",
       "Bash(git -C /opt/dev/CORE show 5bee534e --stat)",
       "Read(//home/lira/.claude/**)",
-      "Bash(PGPASSWORD=core_db psql -h 192.168.20.23 -U core_db -d core -c \"SELECT COUNT\\(*\\) FILTER \\(WHERE kind = 'class'\\) AS classes, COUNT\\(*\\) FILTER \\(WHERE kind = 'function'\\) AS functions, COUNT\\(*\\) FILTER \\(WHERE kind = 'method'\\) AS methods, COUNT\\(*\\) AS total FROM core.symbols;\")"
+      "Bash(PGPASSWORD=core_db psql -h 192.168.20.23 -U core_db -d core -c \"SELECT COUNT\\(*\\) FILTER \\(WHERE kind = 'class'\\) AS classes, COUNT\\(*\\) FILTER \\(WHERE kind = 'function'\\) AS functions, COUNT\\(*\\) FILTER \\(WHERE kind = 'method'\\) AS methods, COUNT\\(*\\) AS total FROM core.symbols;\")",
+      "Bash(ls /opt/dev/CORE/.intent/*.yaml)",
+      "Bash(python3 -c \"import uuid; [print\\(uuid.uuid4\\(\\)\\) for _ in range\\(8\\)]\")",
+      "Bash(python -m core_admin code audit)",
+      "Bash(pip show:*)",
+      "Bash(python -m cli code audit)",
+      "Bash(python -m cli.main code audit)",
+      "Bash(core-admin context:*)"
     ],
     "additionalDirectories": [
       "/opt/dev/CORE/src/body/workers"

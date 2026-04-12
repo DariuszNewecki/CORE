@@ -1,0 +1,37 @@
+$schema: "META/worker.schema.json"
+kind: worker
+
+metadata:
+  id: workers.violation_remediator_body
+  title: Violation Remediator (Body / CLI)
+  version: "1.0.0"
+  authority: policy
+  status: paused
+  rationale: >
+    CLI-triggered Body-layer acting worker for per-rule LLM remediation.
+    Not daemon-run. Instantiated directly by core-admin workers remediate.
+    The daemon discovery path is ViolationExecutorWorker (violation_executor.yaml).
+
+identity:
+  uuid: "<new-uuid-here>"
+  class: acting
+
+mandate:
+  responsibility: >
+    For a single declared target_rule, claim open violation findings, build
+    architectural context, invoke RemoteCoder, validate via Crate/Canary, and
+    apply the fix with a git commit. Supports dry-run mode.
+  phase: execution
+  permitted_tools:
+    - llm.remote_coder
+    - file.read
+    - crate.create
+    - canary.validate
+    - crate.apply
+    - git.commit
+  approval_required: true
+
+implementation:
+  module: body.workers.violation_remediator
+  class: ViolationRemediator
+  requires_core_context: true

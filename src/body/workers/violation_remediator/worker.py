@@ -96,12 +96,12 @@ class ViolationRemediator(
         write: If False, dry-run mode - no src/ writes, no commits.
     """
 
-    declaration_name = "violation_executor"
+    declaration_name = "violation_remediator_body"
 
     def __init__(
         self,
         core_context: Any,
-        target_rule: str,
+        target_rule: str | None = None,
         write: bool = False,
     ) -> None:
         super().__init__()
@@ -192,6 +192,23 @@ class ViolationRemediator(
     # -------------------------------------------------------------------------
     # Top-level per-file orchestration
     # -------------------------------------------------------------------------
+
+    # ID: 0bc3eb6a-ecab-4c52-843b-90084d336782
+    async def process_file(
+        self,
+        file_path: str,
+        findings: list[dict[str, Any]],
+    ) -> bool:
+        """
+        Public entry point for per-file ceremony.
+
+        Called by ViolationExecutorWorker (Will layer) after it has already
+        claimed findings and performed the RemediationMap gate check.
+        Delegates to _process_file — the full RUNTIME + EXECUTION ceremony.
+
+        This is the Will → Body delegation interface for file remediation.
+        """
+        return await self._process_file(file_path, findings)
 
     async def _process_file(
         self,

@@ -7,7 +7,7 @@ metadata:
   title: Violation Executor
   version: "1.0.0"
   authority: policy
-  status: paused
+  status: active
 
 identity:
   uuid: "c9d4e5f6-a7b8-4c0d-9e1f-2a3b4c5d6e7f"
@@ -40,6 +40,6 @@ mandate:
   approval_required: true
 
 implementation:
-  module: body.workers.violation_remediator
-  class: ViolationRemediator
+  module: will.workers.violation_executor
+  class: ViolationExecutorWorker
   requires_core_context: true
