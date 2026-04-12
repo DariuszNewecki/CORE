@@ -126,11 +126,6 @@ mappings:
         - "src/cli/logic/interactive_test/steps/utils.py"
         - "src/will/test_generation/sandbox.py" # os.environ for PYTHONPATH only
 
-        # --- OPEN VIOLATION: Will layer subprocess usage ---
-        # src/will/agents/strategic_auditor/context_gathe*.py uses subprocess.run
-        # This VIOLATES the constitution ("AI agent code MUST NOT use these primitives")
-        # NOT excluded here — must be remediated.
-
         - "tests/**"
 
   governance.intent_meta.required:
