@@ -402,7 +402,7 @@ class KnowledgeGateEngine(BaseEngine):
 
         logger.info(
             "orphan_file_check: %d/%d files reachable, %d orphans found",
-            len(reachable),
+            len(reachable & candidate_files),
             len(candidate_files),
             len(orphans),
         )
