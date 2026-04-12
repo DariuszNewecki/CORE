@@ -433,6 +433,40 @@ class BlackboardService:
                     released += result.rowcount
         return released
 
+    # ID: d3a1f7b2-8c4e-4a9d-b6e5-1f0c3d7a2e89
+    async def mark_indeterminate(self, entry_ids: list[str]) -> int:
+        """
+        Mark claimed entries as indeterminate.
+
+        Used when a worker claims findings but reaches an inconclusive
+        outcome — the entry is neither resolved nor releasable back to
+        open.  Only updates entries currently in 'claimed' status.
+        Returns the count of rows actually updated.
+        """
+        if not entry_ids:
+            return 0
+
+        from body.services.service_registry import ServiceRegistry
+
+        updated = 0
+        async with ServiceRegistry.session() as session:
+            async with session.begin():
+                for entry_id in entry_ids:
+                    result = await session.execute(
+                        text(
+                            """
+                            UPDATE core.blackboard_entries
+                            SET status = 'indeterminate',
+                                updated_at = now()
+                            WHERE id = cast(:entry_id as uuid)
+                              AND status = 'claimed'
+                            """
+                        ),
+                        {"entry_id": entry_id},
+                    )
+                    updated += result.rowcount
+        return updated
+
     # ID: 54c114b0-4c6d-484f-8b20-d9ff5fa24caf
     async def update_entry_status(self, entry_id: str, status: str) -> None:
         """

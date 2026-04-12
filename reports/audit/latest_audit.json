@@ -1,6 +1,6 @@
 {
-  "audit_id": "47f26613-4745-4aa4-b78c-f0dea849792c",
-  "timestamp": "2026-04-12T11:12:02Z",
+  "audit_id": "73fc011e-efc6-41c9-8eb9-c2fd27a8d551",
+  "timestamp": "2026-04-12T11:56:02Z",
   "passed": true,
   "findings_count": 3,
   "executed_rules": [
@@ -51,7 +51,9 @@
     "atomic_actions.must_return_action_result",
     "atomic_actions.no_governance_bypass",
     "atomic_actions.result_must_be_structured",
+    "autonomy.conservation.min_preservation_ratio",
     "autonomy.lanes.boundary_enforcement",
+    "autonomy.remediation.min_confidence_floor",
     "autonomy.tracing.mandatory",
     "capability.taxonomy.canonical_only",
     "capability.taxonomy.no_ad_hoc_capabilities",

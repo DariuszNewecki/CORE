@@ -2,7 +2,7 @@
 
 **Status:** Active
 **Owner:** Darek (Dariusz Newecki)
-**Last updated:** 2026-04-11
+**Last updated:** 2026-04-12
 **Definition:** The daemon runs continuously, the Blackboard clears, the codebase converges, and every action is visible.
 
 ---
@@ -23,16 +23,17 @@ In A3, CORE's daemon finds problems in its own codebase, proposes fixes, execute
 
 ---
 
-## Current State (2026-04-11)
+## Current State (2026-04-12)
 
 | Item | Status |
 |------|--------|
-| Audit | PASSED — 4 findings (1 WARNING, 3 INFO), 0 blocking |
+| Audit | PASSED — 3 INFO findings, 0 warnings, 0 blocking, 0 unmapped |
+| Coverage | 100% declared, 98% effective (2 passive_gate rules — correct) |
 | Active workers | 4 sensors active — all audit sensors running |
 | RemediationMap | 13 ACTIVE, 5 PENDING entries |
 | Constitutional papers | Complete — all 42+ findings closed |
 | MetaValidator | Operational — 70 documents clean |
-| Knowledge graph | 2132 symbols — updated after monolith deletion |
+| Knowledge graph | 2132 symbols |
 | ViolationExecutor | Declared, not implemented |
 | OptimizerWorker | Not yet designed |
 
@@ -42,17 +43,12 @@ In A3, CORE's daemon finds problems in its own codebase, proposes fixes, execute
 - `audit_sensor_logic` — 2 rules ✅
 - `audit_sensor_modularity` — 3 rules ✅
 
-**Current warnings:**
-- `governance.dangerous_execution_primitives` — 1 occurrence (`subprocess.run` in `ceremony.py`) — unmapped
-
-**Phase 0/1/2 learnings:**
-- `core.proposals` is the legacy file-proposal table — NOT the autonomous proposals table
-- `core.autonomous_proposals` is the correct table to wipe for A3 clean slate
-- Pre-commit hook two-pass retry now handled in `GitService.commit()` — fixed
-- `violation_remediator/` submodule is the correct target architecture — monolith deleted
-- Remediator releasing unmappable findings is correct behaviour, not a bug
-- Phase 1 convergence achieved via human architectural decision, not autonomous remediation — this is valid
-- Codebase is constitutionally clean across all four audit domains
+**Session 2026-04-12 fixes applied:**
+- `ceremony.py` exclude path updated — monolith reference replaced with submodule path
+- Stale subprocess violation comment removed from `governance_basics.yaml`
+- `autonomy.conservation.min_preservation_ratio` mapped to `passive_gate`
+- `autonomy.remediation.min_confidence_floor` mapped to `passive_gate`
+- Audit now at: 0 warnings, 0 unmapped, 100% declared coverage, PASSED
 
 ---
 
@@ -111,27 +107,29 @@ TRUNCATE core.autonomous_proposals RESTART IDENTITY CASCADE;
 ### Phase 3 — Capability Gaps
 **Goal:** Findings that can't be auto-remediated get correctly delegated.
 
-**Next step:** Activate remediator + consumer alongside all four sensors. The full loop needs
-real findings to converge on. This requires introducing work — either by temporarily
-relaxing a rule to surface violations, or by moving to a file that has known issues.
+**Status:** Runway clean. Real work not yet started.
+
+**What we know:**
+- No ghost violations remain — baseline is accurate
+- Stream C has no test case yet — needs live findings from Stream A
+- Correct sequence: **Stream A → Stream C → Stream B**
 
 **Three workstreams:**
 
-**A — Orphan classifier (92 findings)**
+**A — Orphan classifier (92 findings)** ← START HERE
 Dedicated triage session. Read each orphan file before recommending action.
 Cluster by cluster: auto-fix, delegate to human, or suppress with justification.
+This workstream will naturally produce live unmappable findings for Stream C to prove itself against.
 
-**B — Test writing**
-Wire test-writing AtomicAction. When audit finds missing test coverage:
-- Daemon proposes test scaffolding
-- Human approves first N proposals
-- Auto-approve once pattern is proven sound
-
-**C — Human delegation protocol**
+**C — Human delegation protocol** ← depends on Stream A findings
 For findings requiring `.intent/` edits or architectural decisions:
 - Daemon marks finding `indeterminate` on Blackboard
 - Log entry states exactly what human decision is needed
 - Human resolves, marks finding `open` to re-enter loop
+
+**Note:** `indeterminate` state already exists in BlackboardService. The missing piece
+is the transition logic in `ViolationRemediator._execute_file()` — currently proceeds
+to LLM for unmappable findings instead of parking them as `indeterminate`.
 
 **Log format for delegation:**
 ```
@@ -140,6 +138,12 @@ For findings requiring `.intent/` edits or architectural decisions:
            Decision needed: where should responsibility X move?
            Update .intent/ then run: core-admin workers remediate --finding <id>
 ```
+
+**B — Test writing** ← depends on stable delegation path
+Wire test-writing AtomicAction. When audit finds missing test coverage:
+- Daemon proposes test scaffolding
+- Human approves first N proposals
+- Auto-approve once pattern is proven sound
 
 **Success signal:** No orphaned findings, test coverage growing, human delegation path working.
 
@@ -186,7 +190,7 @@ For findings requiring `.intent/` edits or architectural decisions:
 | 0 — Clean slate | Audit passes, DB clean | ✅ Complete |
 | 1 — Single loop | Purity loop runs unattended | ✅ Complete — 0 findings, Blackboard empty |
 | 2 — All sensors | All sensors active, converging | ✅ Complete — 47 rules, 0 findings |
-| 3 — Capability gaps | No orphaned findings, tests growing | ⬜ Not started |
+| 3 — Capability gaps | No orphaned findings, tests growing | 🔄 Runway clean — Stream A next |
 | 4 — CLI health | All commands work, legacy gone | ⬜ Not started |
 | 5 — Visibility | Demo-ready, `tail -f` tells the story | ⬜ Not started |
 
@@ -197,11 +201,13 @@ For findings requiring `.intent/` edits or architectural decisions:
 | Blocker | Phase | Notes |
 |---------|-------|-------|
 | `fix.modularity` class-methods gap | 3 | Methods not handled by modularity action |
-| `governance.dangerous_execution_primitives` unmapped | 3+ | `subprocess.run` in `ceremony.py` — needs AtomicAction or architectural decision |
-| Orphan classifier (92 findings) | 3 | Largest single cluster — needs dedicated session |
-| ViolationExecutor not implemented | 3+ | Unmapped rules accumulate with no handler |
+| Orphan classifier (92 findings) | 3 | Largest single cluster — dedicated triage session needed |
+| ViolationExecutor not implemented | 3+ | Unmapped rules proceed to LLM instead of parking as `indeterminate` |
+| Stream C delegation transition missing | 3 | `ViolationRemediator._execute_file()` needs `indeterminate` path wired |
 
 **Resolved blockers:**
+| ~~`governance.dangerous_execution_primitives` unmapped~~ | ~~3+~~ | ✅ Resolved — `ceremony.py` exclude path corrected; violation was stale |
+| ~~Unmapped rules (2)~~ | ~~3~~ | ✅ Resolved — `passive_gate` entries added for runtime-enforced threshold rules |
 | ~~Proposals dry-run bug~~ | ~~1~~ | ✅ Fixed — `proposal_worker.yaml` `write: true` |
 | ~~`execute_batch` consequence logging gap~~ | ~~1~~ | ✅ Fixed — `ConsequenceLogService.record()` wired |
 | ~~`fix.modularity` git commit failure~~ | ~~1+~~ | ✅ Fixed — `GitService.commit()` two-pass retry |

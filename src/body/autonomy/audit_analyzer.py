@@ -115,6 +115,7 @@ def _load_remediation_map(path_resolver: PathResolver) -> dict[str, dict[str, An
             "confidence": float(entry.get("confidence", 0.0)),
             "risk": entry.get("risk", "medium"),
             "description": entry.get("description", ""),
+            "status": entry.get("status", "ACTIVE"),
         }
 
     logger.debug(

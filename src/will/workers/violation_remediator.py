@@ -125,6 +125,7 @@ class ViolationRemediatorWorker(Worker):
 
         action_groups: dict[str, list[dict[str, Any]]] = {}
         unmappable: list[dict[str, Any]] = []
+        delegate: list[dict[str, Any]] = []
 
         for finding in open_findings:
             rule = finding["payload"].get("check_id") or finding["payload"].get(
@@ -132,7 +133,10 @@ class ViolationRemediatorWorker(Worker):
             )
             entry = remediation_map.get(rule)
 
-            if entry:
+            if entry and entry.get("status") == "DELEGATE":
+                finding["_map_entry"] = entry
+                delegate.append(finding)
+            elif entry:
                 action_id = entry["action"]
                 action_groups.setdefault(action_id, [])
                 action_groups[action_id].append(finding)
@@ -184,6 +188,26 @@ class ViolationRemediatorWorker(Worker):
                 entries_released,
             )
 
+        # 5c. Mark delegated findings as indeterminate — requires human decision
+        entries_delegated = await self._mark_delegated(delegate)
+        for finding in delegate:
+            rule = finding["payload"].get("check_id") or finding["payload"].get(
+                "rule", "unknown"
+            )
+            file_path = finding["payload"].get("file_path", "unknown")
+            map_entry = finding.get("_map_entry", {})
+            description = map_entry.get("description", "")
+            logger.info(
+                "[DELEGATE] %s -> HUMAN REQUIRED\n"
+                "           File: %s\n"
+                "           Decision needed: %s\n"
+                "           Resolve with: core-admin workers blackboard --reopen %s",
+                rule,
+                file_path,
+                description,
+                finding["id"],
+            )
+
         # 6. Post blackboard report
         await self.post_report(
             subject="violation_remediator.completed",
@@ -202,6 +226,14 @@ class ViolationRemediatorWorker(Worker):
                         f["payload"].get("check_id")
                         or f["payload"].get("rule", "unknown")
                         for f in unmappable
+                    }
+                ),
+                "delegated": len(delegate),
+                "delegated_rules": list(
+                    {
+                        f["payload"].get("check_id")
+                        or f["payload"].get("rule", "unknown")
+                        for f in delegate
                     }
                 ),
             },
@@ -444,5 +476,26 @@ class ViolationRemediatorWorker(Worker):
         except Exception as e:
             logger.error(
                 "ViolationRemediatorWorker: failed to release unmappable entries: %s", e
+            )
+            return 0
+
+    # ID: c1d2e3f4-a5b6-7890-cdef-789012345670
+    async def _mark_delegated(self, findings: list[dict[str, Any]]) -> int:
+        """
+        Mark delegated findings as indeterminate — they require human decision.
+        Returns count of entries successfully marked.
+        """
+        if not findings:
+            return 0
+
+        from body.services.service_registry import service_registry
+
+        entry_ids = [f["id"] for f in findings]
+        try:
+            blackboard_service = await service_registry.get_blackboard_service()
+            return await blackboard_service.mark_indeterminate(entry_ids)
+        except Exception as e:
+            logger.error(
+                "ViolationRemediatorWorker: failed to mark delegated entries: %s", e
             )
             return 0
