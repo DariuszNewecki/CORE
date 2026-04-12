@@ -46,6 +46,7 @@ injection. All src/ writes via ActionExecutor -> Crate -> Canary -> apply.
 
 from __future__ import annotations
 
+import uuid
 from typing import Any
 
 from shared.logger import getLogger
@@ -103,12 +104,19 @@ class ViolationRemediator(
         core_context: Any,
         target_rule: str | None = None,
         write: bool = False,
+        caller_uuid: uuid.UUID | None = None,
     ) -> None:
         super().__init__()
         self._ctx = core_context
         self._target_rule = target_rule
         self._write = write
         self._interpretation_service = RemediationInterpretationService()
+        # When invoked as a delegate (e.g. by ViolationExecutorWorker),
+        # use the calling worker's UUID for all Blackboard posts.
+        # ViolationRemediator is not registered in worker_registry in
+        # this mode — its own UUID would cause an FK violation.
+        if caller_uuid is not None:
+            self._worker_uuid = caller_uuid
 
     # ID: vr-run-001
     # ID: 83141abe-9611-497f-a14c-29c5cf04d305

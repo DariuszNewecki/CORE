@@ -56,7 +56,12 @@
       "Bash(PYTHONPATH=src .venv/bin/python -c \"import ast; ast.parse\\(open\\('src/will/workers/violation_executor.py'\\).read\\(\\)\\); print\\('Syntax OK'\\)\")",
       "Bash(PYTHONPATH=src .venv/bin/python -c \"import py_compile; py_compile.compile\\('src/will/workers/violation_executor.py', doraise=True\\); print\\('Compile OK'\\)\")",
       "Bash(PYTHONPATH=src .venv/bin/python -c \"from will.workers.violation_executor import ViolationExecutorWorker; print\\('Import OK'\\)\")",
-      "Bash(PYTHONPATH=src timeout 10 .venv/bin/python -c \"from body.atomic.executor import ActionExecutor; print\\('ActionExecutor import OK'\\)\")"
+      "Bash(PYTHONPATH=src timeout 10 .venv/bin/python -c \"from body.atomic.executor import ActionExecutor; print\\('ActionExecutor import OK'\\)\")",
+      "Bash(python -c \"import sys; sys.path.insert\\(0, 'src'\\); from cli.main import app\")",
+      "Bash(PYTHONPATH=src python -c \"from cli.admin_cli import app; from typer.testing import CliRunner; r = CliRunner\\(\\).invoke\\(app, ['code', 'audit']\\); print\\(r.output\\)\")",
+      "Bash(PYTHONPATH=src /mnt/dev/CORE/.venv/lib/python3.11/../../bin/python3.11 -c \"from cli.admin_cli import app; from typer.testing import CliRunner; r = CliRunner\\(\\).invoke\\(app, ['code', 'audit']\\); print\\(r.output\\); print\\('EXIT:', r.exit_code\\)\")",
+      "Bash(ls /mnt/dev/CORE/.venv/bin/python*)",
+      "Bash(.venv/bin/python3.12 -c ':*)"
     ],
     "additionalDirectories": [
       "/tmp",

@@ -34,7 +34,7 @@ In A3, CORE's daemon finds problems in its own codebase, proposes fixes, execute
 | Constitutional papers | Complete — all 42+ findings closed |
 | MetaValidator | Operational — 70 documents clean |
 | Knowledge graph | 2138 symbols |
-| ViolationExecutor | ✅ Implemented, active in daemon (Will layer, `src/will/workers/violation_executor.py`) |
+| ViolationExecutor | ✅ Implemented, active in daemon — LLM + Canary proven working |
 | OptimizerWorker | Not yet designed |
 
 **Current sensor coverage (47 rules, 0 findings):**
@@ -59,8 +59,13 @@ In A3, CORE's daemon finds problems in its own codebase, proposes fixes, execute
 - `violation_remediator_body.yaml` authored for CLI-path Body worker
 - `_load_mapped_rule_ids` fixed to use `PathResolver` + `_load_remediation_map` (constitutional path)
 - `ModularitySplitter` dominant-class detection fixed — selection metric and threshold gate
-- Smoke test confirmed: 13 mapped rules loaded, daemon cycling clean
-- **Standing workflow rule established:** every Claude Code prompt that touches `src/` requires `core-admin context build` first — no exceptions
+- `action_executor` monkey-patch guard added in `ViolationExecutorWorker._process_file()`
+- Live end-to-end test run: sensor detected violation, ViolationExecutor claimed it,
+  LLM (DeepSeek) produced fix, Canary passed — ceremony proven working
+- Remaining failure: dry_run result posting fails with FK violation —
+  ViolationRemediator posts to Blackboard using its own unregistered UUID
+- **Standing workflow rule established:** every Claude Code prompt that touches `src/` requires
+  `core-admin context build` first — no exceptions
 
 ---
 
@@ -119,14 +124,20 @@ TRUNCATE core.autonomous_proposals RESTART IDENTITY CASCADE;
 ### Phase 3 — Capability Gaps
 **Goal:** Findings that can't be auto-remediated get correctly delegated.
 
-**Status:** ViolationExecutor implemented and live. Stream C wired. Stream A is the remaining active work.
+**Status:** ViolationExecutor ceremony proven working (LLM + Canary both passed in live test).
+One remaining fix: dry_run result posting UUID registration issue.
 
 **Three workstreams:**
 
-**A — Live end-to-end test** ← NEXT
-Introduce a real finding for an unmapped rule and watch ViolationExecutor claim it,
-run the LLM ceremony, and surface an AtomicAction candidate to the Blackboard.
-This is the Phase 3 success signal for the ViolationExecutor path.
+**A — ViolationExecutor dry_run result posting fix** ← NEXT
+ViolationRemediator posts dry_run result to Blackboard using its own UUID, but it is
+instantiated internally by ViolationExecutor and never registered in worker_registry.
+Fix: ViolationRemediator must use the calling worker's UUID for Blackboard posts when
+invoked as a delegate, or skip its own posts entirely (ViolationExecutor handles candidate
+surfacing via `_surface_candidate`).
+
+Error: `ForeignKeyViolationError — worker_uuid 58351d97 not present in worker_registry`
+File: `src/body/workers/violation_remediator/blackboard.py` (dry_run post method)
 
 **C — Human delegation protocol** ✅ Infrastructure complete
 For findings requiring `.intent/` edits or architectural decisions:
@@ -148,8 +159,8 @@ Wire test-writing AtomicAction. When audit finds missing test coverage:
 - Human approves first N proposals
 - Auto-approve once pattern is proven sound
 
-**Success signal:** ViolationExecutor processes a real unmapped finding end-to-end, surfaces
-a candidate, no orphaned findings, test coverage growing, human delegation path exercised.
+**Success signal:** ViolationExecutor processes a real unmapped finding end-to-end without
+errors, surfaces a candidate on the Blackboard, sensor confirms finding resolved.
 
 ---
 
@@ -197,7 +208,7 @@ a `core-admin` command is missing or incomplete. These are Phase 4 audit items.
 | 0 — Clean slate | Audit passes, DB clean | ✅ Complete |
 | 1 — Single loop | Purity loop runs unattended | ✅ Complete — 0 findings, Blackboard empty |
 | 2 — All sensors | All sensors active, converging | ✅ Complete — 47 rules, 0 findings |
-| 3 — Capability gaps | No orphaned findings, tests growing | 🔄 ViolationExecutor live — Stream A live test next |
+| 3 — Capability gaps | No orphaned findings, tests growing | 🔄 Ceremony proven — dry_run posting fix next |
 | 4 — CLI health | All commands work, legacy gone | ⬜ Not started |
 | 5 — Visibility | Demo-ready, `tail -f` tells the story | ⬜ Not started |
 
@@ -207,12 +218,13 @@ a `core-admin` command is missing or incomplete. These are Phase 4 audit items.
 
 | Blocker | Phase | Notes |
 |---------|-------|-------|
-| ViolationExecutor end-to-end live test | 3 | Implementation done — needs real unmapped finding to prove full path |
+| ViolationExecutor dry_run result posting | 3 | FK violation — ViolationRemediator posts with unregistered UUID when invoked as delegate. Fix in `blackboard.py` dry_run post method. |
 | OptimizerWorker | 3+ | Not yet designed — manual candidate review until then |
 | Stream B (test writing) | 3 | Depends on stable delegation path first |
 
 **Resolved blockers:**
-| ~~ViolationExecutor not implemented~~ | ~~3+~~ | ✅ Resolved — Will-layer worker implemented, active in daemon, 13 mapped rules loaded |
+| ~~ViolationExecutor end-to-end live test~~ | ~~3~~ | ✅ Proven — LLM produced fix, Canary passed. Only result posting remains. |
+| ~~ViolationExecutor not implemented~~ | ~~3+~~ | ✅ Resolved — Will-layer worker implemented, active in daemon |
 | ~~Stream C delegation transition missing~~ | ~~3~~ | ✅ Resolved — `mark_indeterminate()` wired in BlackboardService |
 | ~~`fix.modularity` class-methods gap~~ | ~~3~~ | ✅ Resolved — selection metric and threshold gate fixed in `ModularitySplitter` |
 | ~~`governance.dangerous_execution_primitives` unmapped~~ | ~~3+~~ | ✅ Resolved — `ceremony.py` exclude path corrected |
@@ -311,7 +323,7 @@ AuditViolationSensor
 
 **Two remediation paths:**
 - Proposal Path (constitutional): Finding → RemediationMap → Proposal → AtomicAction ← target state
-- ViolationExecutor Path (discovery fallback): Finding → LLM → Crate → AtomicAction candidate ✅ implemented
+- ViolationExecutor Path (discovery fallback): Finding → LLM → Crate → AtomicAction candidate ✅ ceremony proven
 
 **Graduation path (rule promotion):**
 ```

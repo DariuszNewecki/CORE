@@ -239,6 +239,7 @@ class ViolationExecutorWorker(Worker):
                 core_context=self._ctx,
                 target_rule=target_rule,
                 write=self._write,
+                caller_uuid=self._worker_uuid,
             )
             ok = await remediator.process_file(file_path, findings)
             return ok, rule_ids if ok else []
