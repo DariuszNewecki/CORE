@@ -107,7 +107,7 @@ mappings:
         # --- BOOTSTRAP & LIFECYCLE ---
         - "src/body/atomic/check_actions.py"
         - "src/body/project_lifecycle/bootstrap_service.py"
-        - "src/body/workers/violation_remediator.py" # Runs ruff/linting as remediation
+        - "src/body/workers/violation_remediator/ceremony.py" # Runs ruff/linting as remediation — subprocess sanctuary
 
         # --- DB INFRASTRUCTURE ---
         - "src/shared/infrastructure/repositories/db/commo*" # DB migration tooling
