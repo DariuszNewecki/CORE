@@ -102,10 +102,17 @@ def _find_callers(target_path, repo_root) -> list[str]:
 
 def _extract_class_methods_context(source: str) -> str:
     """
-    Detect single-dominant-class files and extract method inventory from AST.
+    Detect the dominant class in a file and extract method/assignment inventory.
 
-    Returns a formatted string listing the class name and all method names,
-    or a sentinel string if the file is not a single-class file.
+    A class is dominant if it has the most methods among all top-level classes
+    and that count is at least 3. This mirrors the heuristic used by
+    ModularitySplitter (dominant = largest class when method count exceeds
+    half of plan symbols), adapted for pre-plan context where we use a
+    fixed threshold of 3 methods instead.
+
+    Returns a formatted string listing the class name, all method names,
+    and class-level assignments, or a sentinel string if no dominant class
+    is found.
 
     This gives the LLM a precise symbol list so it only needs to reason
     about grouping — not discover symbols by reading the full file.
@@ -117,159 +124,58 @@ def _extract_class_methods_context(source: str) -> str:
         class_defs = [
             n for n in _ast.iter_child_nodes(tree) if isinstance(n, _ast.ClassDef)
         ]
-        if len(class_defs) == 1:
-            dominant = class_defs[0]
-            method_names = [
-                n.name
-                for n in dominant.body
+        if not class_defs:
+            return "(not a single-class file)"
+
+        # Find the class with the most methods
+        best = None
+        best_count = 0
+        for cls in class_defs:
+            methods = [
+                n
+                for n in cls.body
                 if isinstance(n, (_ast.FunctionDef, _ast.AsyncFunctionDef))
             ]
-            if method_names:
-                return (
-                    f"Single dominant class: {dominant.name}\n"
-                    f"Methods ({len(method_names)}):\n"
-                    + "\n".join(f"  - {m}" for m in method_names)
-                )
+            if len(methods) > best_count:
+                best_count = len(methods)
+                best = cls
+
+        if best is None or best_count < 3:
+            return "(not a single-class file)"
+
+        dominant = best
+        method_names = [
+            n.name
+            for n in dominant.body
+            if isinstance(n, (_ast.FunctionDef, _ast.AsyncFunctionDef))
+        ]
+
+        # Collect class-level assignments (Assign and AnnAssign directly in class body)
+        assignment_names = []
+        for n in dominant.body:
+            if isinstance(n, _ast.AnnAssign) and isinstance(n.target, _ast.Name):
+                assignment_names.append(n.target.id)
+            elif isinstance(n, _ast.Assign):
+                for target in n.targets:
+                    if isinstance(target, _ast.Name):
+                        assignment_names.append(target.id)
+
+        result = (
+            f"Dominant class: {dominant.name}\n"
+            f"Methods ({len(method_names)}):\n"
+            + "\n".join(f"  - {m}" for m in method_names)
+        )
+
+        if assignment_names:
+            result += (
+                f"\nClass-level assignments ({len(assignment_names)}):\n"
+                + "\n".join(f"  - {a}" for a in assignment_names)
+            )
+
+        return result
     except Exception:
         pass
     return "(not a single-class file)"
-
-
-def _execute_mechanical_split(
-    source_path,
-    repo_root,
-    plan: dict,
-    original_content: str,
-) -> list[dict]:
-    """
-    Mechanically split a Python file based on a plan from modularity_analyze.
-
-    Uses AST line numbers to extract symbol text slices.
-    Preserves all comments including existing # ID: tags.
-    New files get a path header on line 1 (constitutional requirement).
-    Imports for each new file are reconstructed from the original import block.
-    No LLM involved — pure deterministic execution.
-
-    Returns list of {"path": str, "content": str} dicts.
-    """
-    import ast as _ast
-
-    lines = original_content.splitlines(keepends=True)
-    parts = plan.get("parts", [])
-    import_updates = plan.get("import_updates", [])
-
-    if not parts:
-        raise ValueError("Plan contains no parts")
-
-    # Parse AST to get line numbers for each top-level symbol
-    tree = _ast.parse(original_content)
-    symbol_lines: dict[str, tuple[int, int]] = {}  # name -> (start, end) 1-based
-
-    top_level_nodes = [
-        n
-        for n in _ast.walk(tree)
-        if isinstance(
-            n,
-            (
-                _ast.FunctionDef,
-                _ast.AsyncFunctionDef,
-                _ast.ClassDef,
-            ),
-        )
-        and isinstance(getattr(n, "col_offset", -1), int)
-        and n.col_offset == 0
-    ]
-
-    for i, node in enumerate(top_level_nodes):
-        # Include any decorators above the node
-        start = node.decorator_list[0].lineno if node.decorator_list else node.lineno
-        # Also include # ID: comment line immediately above decorators/def
-        if start > 1 and lines[start - 2].strip().startswith("# ID:"):
-            start -= 1
-
-        # End line: one line before the next top-level node, or end of file
-        if i + 1 < len(top_level_nodes):
-            next_node = top_level_nodes[i + 1]
-            next_start = (
-                next_node.decorator_list[0].lineno
-                if next_node.decorator_list
-                else next_node.lineno
-            )
-            # Walk back to include any # ID: comment for the next node
-            if next_start > 1 and lines[next_start - 2].strip().startswith("# ID:"):
-                next_start -= 1
-            end = next_start - 1
-        else:
-            end = len(lines)
-
-        symbol_lines[node.name] = (start, end)
-
-    # Extract the import block from the original file (everything before first def/class)
-    first_symbol_line = min(
-        (v[0] for v in symbol_lines.values()), default=len(lines) + 1
-    )
-    original_import_block = "".join(lines[: first_symbol_line - 1]).rstrip()
-
-    # Determine which symbols stay in the original file
-    all_extracted_symbols: set[str] = set()
-    for part_idx, part in enumerate(parts):
-        if part_idx == 0:
-            continue  # First part stays in original file
-        all_extracted_symbols.update(part.get("symbols", []))
-
-    # Build output files
-    result_files = []
-    source_dir = source_path.parent
-    rel_dir = str(source_dir.relative_to(repo_root))
-
-    for part_idx, part in enumerate(parts):
-        symbols = part.get("symbols", [])
-        filename = part.get("filename", "")
-        if not filename:
-            continue
-
-        # Build file path
-        if part_idx == 0:
-            # First part: keep the original filename
-            file_path = str(source_path.relative_to(repo_root))
-        else:
-            file_path = f"{rel_dir}/{filename}"
-
-        # Collect text slices for this part's symbols
-        symbol_slices = []
-        for sym in symbols:
-            if sym in symbol_lines:
-                start, end = symbol_lines[sym]
-                slice_text = "".join(lines[start - 1 : end])
-                symbol_slices.append(slice_text.rstrip())
-
-        if not symbol_slices:
-            continue
-
-        # Reconstruct imports: use original import block, trim unused later
-        # For simplicity, include the full import block in all files.
-        # fix.imports will clean unused imports afterward.
-        body = "\n\n\n".join(symbol_slices)
-        content = f"# {file_path}\n" f"{original_import_block}\n\n\n" f"{body}\n"
-        result_files.append({"path": file_path, "content": content})
-
-    # Apply import_updates to callers
-    for update in import_updates:
-        caller_path = repo_root / update.get("file", "")
-        if caller_path.exists():
-            caller_content = caller_path.read_text(encoding="utf-8")
-            old = update.get("old", "")
-            new = update.get("new", "")
-            if old and new and old in caller_content:
-                updated = caller_content.replace(old, new)
-                result_files.append(
-                    {
-                        "path": update["file"],
-                        "content": updated,
-                    }
-                )
-
-    return result_files
 
 
 @register_action(

@@ -115,6 +115,14 @@ class ModularitySplitter:
                 for member in largest.body:
                     if isinstance(member, (ast.FunctionDef, ast.AsyncFunctionDef)):
                         class_methods[member.name] = member
+                    elif isinstance(member, ast.AnnAssign) and isinstance(
+                        member.target, ast.Name
+                    ):
+                        class_methods[member.target.id] = member
+                    elif isinstance(member, ast.Assign):
+                        for target in member.targets:
+                            if isinstance(target, ast.Name):
+                                class_methods[target.id] = member
 
         is_class_split_plan = any(m.is_class_split for m in plan.modules)
 
