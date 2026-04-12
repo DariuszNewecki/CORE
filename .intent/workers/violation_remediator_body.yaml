@@ -13,7 +13,7 @@ metadata:
     The daemon discovery path is ViolationExecutorWorker (violation_executor.yaml).
 
 identity:
-  uuid: "<new-uuid-here>"
+  uuid: "58351d97-2576-4efb-a9af-8902157ea0aa"
   class: acting
 
 mandate:

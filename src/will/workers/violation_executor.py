@@ -226,6 +226,15 @@ class ViolationExecutorWorker(Worker):
         try:
             from body.workers.violation_remediator import ViolationRemediator
 
+            # Ensure action_executor is available on the context.
+            # action_executor is monkey-patched at CLI bootstrap time but is not
+            # guaranteed to exist when CoreContext is injected by the daemon.
+            # Pattern mirrors proposal_executor.py and plan_executor.py.
+            if not hasattr(self._ctx, "action_executor"):
+                from body.atomic.executor import ActionExecutor
+
+                self._ctx.action_executor = ActionExecutor(self._ctx)
+
             remediator = ViolationRemediator(
                 core_context=self._ctx,
                 target_rule=target_rule,

@@ -48,7 +48,15 @@
       "Bash(python -m py_compile src/body/atomic/__init__.py)",
       "Bash(ls /mnt/dev/CORE/.intent/papers/*.md)",
       "Bash(grep -E \"\\\\.py$\")",
-      "Bash(find /mnt/dev/CORE -type f -name \"*.py\" -exec grep -l \"class.*Finding\\\\|enum.*Status\\\\|finding.*status\" {} \\\\;)"
+      "Bash(find /mnt/dev/CORE -type f -name \"*.py\" -exec grep -l \"class.*Finding\\\\|enum.*Status\\\\|finding.*status\" {} \\\\;)",
+      "Bash(core-admin code:*)",
+      "Bash(.venv/bin/python -c \"from cli.admin_cli import app; import sys; sys.argv = ['core-admin', 'code', 'audit']; app\\(\\)\")",
+      "Bash(PYTHONPATH=src .venv/bin/python -c \"from cli.admin_cli import app; import sys; sys.argv = ['core-admin', 'code', 'audit']; app\\(\\)\")",
+      "Bash(.venv/bin/python -c ':*)",
+      "Bash(PYTHONPATH=src .venv/bin/python -c \"import ast; ast.parse\\(open\\('src/will/workers/violation_executor.py'\\).read\\(\\)\\); print\\('Syntax OK'\\)\")",
+      "Bash(PYTHONPATH=src .venv/bin/python -c \"import py_compile; py_compile.compile\\('src/will/workers/violation_executor.py', doraise=True\\); print\\('Compile OK'\\)\")",
+      "Bash(PYTHONPATH=src .venv/bin/python -c \"from will.workers.violation_executor import ViolationExecutorWorker; print\\('Import OK'\\)\")",
+      "Bash(PYTHONPATH=src timeout 10 .venv/bin/python -c \"from body.atomic.executor import ActionExecutor; print\\('ActionExecutor import OK'\\)\")"
     ],
     "additionalDirectories": [
       "/tmp",

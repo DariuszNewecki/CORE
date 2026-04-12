@@ -43,14 +43,14 @@ In A3, CORE's daemon finds problems in its own codebase, proposes fixes, execute
 - `audit_sensor_logic` — 2 rules ✅
 - `audit_sensor_modularity` — 3 rules ✅
 
-**Session 2026-04-12 (previous) fixes applied:**
+**Session 2026-04-11 fixes applied:**
 - Stream C delegation infrastructure complete — `mark_indeterminate()` wired in BlackboardService
 - `fix.modularity` class-methods gap closed
 - Orphan classifier dissolved — 0 real orphans confirmed, 92 findings were false positives
 - Orphan check metric bug fixed (783/685 → 685/685)
 - RemediationMap loader `status` field fix
 
-**Session 2026-04-12 (this session) fixes applied:**
+**Session 2026-04-12 fixes applied:**
 - `ViolationExecutorWorker` implemented — `src/will/workers/violation_executor.py`
 - `BlackboardService.claim_unmapped_violation_findings()` + `abandon_entries()` added
 - `ViolationRemediator.declaration_name` corrected to `violation_remediator_body`
@@ -58,6 +58,7 @@ In A3, CORE's daemon finds problems in its own codebase, proposes fixes, execute
 - `violation_executor.yaml` updated to point to Will-layer worker
 - `violation_remediator_body.yaml` authored for CLI-path Body worker
 - `_load_mapped_rule_ids` fixed to use `PathResolver` + `_load_remediation_map` (constitutional path)
+- `ModularitySplitter` dominant-class detection fixed — selection metric and threshold gate
 - Smoke test confirmed: 13 mapped rules loaded, daemon cycling clean
 - **Standing workflow rule established:** every Claude Code prompt that touches `src/` requires `core-admin context build` first — no exceptions
 
@@ -122,11 +123,10 @@ TRUNCATE core.autonomous_proposals RESTART IDENTITY CASCADE;
 
 **Three workstreams:**
 
-**A — Orphan classifier** ← NEXT
-Previously believed to have 92 findings — dissolved last session (all were false positives).
-Phase 3 Stream A now means: introduce real unmapped-rule findings to prove ViolationExecutor
-claims them, runs the LLM ceremony, and surfaces AtomicAction candidates to the Blackboard.
-This is the live end-to-end test of the ViolationExecutor path.
+**A — Live end-to-end test** ← NEXT
+Introduce a real finding for an unmapped rule and watch ViolationExecutor claim it,
+run the LLM ceremony, and surface an AtomicAction candidate to the Blackboard.
+This is the Phase 3 success signal for the ViolationExecutor path.
 
 **C — Human delegation protocol** ✅ Infrastructure complete
 For findings requiring `.intent/` edits or architectural decisions:
@@ -207,7 +207,6 @@ a `core-admin` command is missing or incomplete. These are Phase 4 audit items.
 
 | Blocker | Phase | Notes |
 |---------|-------|-------|
-| `fix.modularity` class-methods gap | 3 | Methods not handled by modularity action |
 | ViolationExecutor end-to-end live test | 3 | Implementation done — needs real unmapped finding to prove full path |
 | OptimizerWorker | 3+ | Not yet designed — manual candidate review until then |
 | Stream B (test writing) | 3 | Depends on stable delegation path first |
@@ -215,6 +214,7 @@ a `core-admin` command is missing or incomplete. These are Phase 4 audit items.
 **Resolved blockers:**
 | ~~ViolationExecutor not implemented~~ | ~~3+~~ | ✅ Resolved — Will-layer worker implemented, active in daemon, 13 mapped rules loaded |
 | ~~Stream C delegation transition missing~~ | ~~3~~ | ✅ Resolved — `mark_indeterminate()` wired in BlackboardService |
+| ~~`fix.modularity` class-methods gap~~ | ~~3~~ | ✅ Resolved — selection metric and threshold gate fixed in `ModularitySplitter` |
 | ~~`governance.dangerous_execution_primitives` unmapped~~ | ~~3+~~ | ✅ Resolved — `ceremony.py` exclude path corrected |
 | ~~Unmapped rules (2)~~ | ~~3~~ | ✅ Resolved — `passive_gate` entries added |
 | ~~Orphan classifier (92 findings)~~ | ~~3~~ | ✅ Dissolved — 0 real orphans, all were false positives |
@@ -223,7 +223,6 @@ a `core-admin` command is missing or incomplete. These are Phase 4 audit items.
 | ~~`fix.modularity` git commit failure~~ | ~~1+~~ | ✅ Fixed — `GitService.commit()` two-pass retry |
 | ~~`purity.no_orphan_files` + `purity.no_ast_duplication` unmapped~~ | ~~1~~ | ✅ Resolved — monolith deleted, submodule wired |
 | ~~RemediationMap `status` field missing~~ | ~~3~~ | ✅ Fixed — loader now carries status field |
-| ~~`fix.modularity` class-methods gap~~ | ~~3~~ | ✅ Closed last session |
 
 ---
 
@@ -300,7 +299,7 @@ AuditViolationSensor (×4 namespaces)
 ViolationRemediatorWorker (Will)
     → claims MAPPED findings, creates Proposals
     → releases unmapped findings back to open
-ViolationExecutorWorker (Will)         ← NEW — active
+ViolationExecutorWorker (Will)         ← active
     → claims UNMAPPED findings
     → delegates ceremony to ViolationRemediator (Body)
     → surfaces AtomicAction candidates to Blackboard

@@ -87,7 +87,8 @@
       "Bash(pip show:*)",
       "Bash(python -m cli code audit)",
       "Bash(python -m cli.main code audit)",
-      "Bash(core-admin context:*)"
+      "Bash(core-admin context:*)",
+      "Bash(wc -l /opt/dev/CORE/src/body/atomic/*.py)"
     ],
     "additionalDirectories": [
       "/opt/dev/CORE/src/body/workers"
