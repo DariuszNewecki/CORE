@@ -39,3 +39,27 @@ mappings:
         - "quality_assurance"
     scope:
       applies_to: ["src/will/agents/planner_agent.py"]
+
+  # LAW: ConservationGate MUST reject code below 0.50 preservation ratio
+  # ENFORCEMENT: Runtime check in ConservationGate — not statically checkable.
+  # Threshold is read from this rule's declaration at runtime.
+  autonomy.conservation.min_preservation_ratio:
+    engine: passive_gate
+    params:
+      enforced_by: "body.services.conservation_gate.ConservationGate"
+      enforcement_note: >
+        Runtime check — ConservationGate computes logical token preservation
+        ratio and rejects proposals below 0.50 unless deletions_authorized=True.
+        Cannot be checked statically; enforced on every LLM-produced code proposal.
+
+  # LAW: RemediationMap MUST NOT dispatch entries below confidence 0.80
+  # ENFORCEMENT: Runtime check in RemediatorWorker — not statically checkable.
+  # Threshold is read from governance_paths.yaml at runtime.
+  autonomy.remediation.min_confidence_floor:
+    engine: passive_gate
+    params:
+      enforced_by: "body.autonomy.audit_analyzer.AuditAnalyzer"
+      enforcement_note: >
+        Runtime check — AuditAnalyzer filters remediation map entries below
+        min_confidence (0.80, declared in governance_paths.yaml). Cannot be
+        checked statically; enforced on every RemediatorWorker run.

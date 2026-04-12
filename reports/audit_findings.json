@@ -1,14 +1,5 @@
 [
   {
-    "check_id": "governance.dangerous_execution_primitives",
-    "severity": "warning",
-    "message": "Forbidden primitive 'subprocess.run' used (line 88).",
-    "file_path": "src/body/workers/violation_remediator/ceremony.py",
-    "line_number": null,
-    "context": {},
-    "details": {}
-  },
-  {
     "check_id": "workflow.mypy_check",
     "severity": "info",
     "message": "Quality Gate mypy_check failed: src/will/test_generation/test_extractor.py:60: error: Argument 1 to \"_is_fixture\" of \"TestCodeExtractor\" has incompatible type \"FunctionDef | AsyncFunctionDef\"; expected \"FunctionDef\"  [arg-type]",
