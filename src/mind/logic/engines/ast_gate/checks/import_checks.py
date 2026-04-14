@@ -128,24 +128,34 @@ class ImportChecks:
                 return "internal"
             return "third_party"
 
-        order_index = {"future": 0, "stdlib": 1, "third_party": 2, "internal": 3}
+        order_index = {
+            "future": 0,
+            "stdlib": 1,
+            "third_party": 2,
+            "internal": 3,
+            "local": 4,
+        }
 
         findings: list[str] = []
         seen_max = -1
 
         for stmt in import_block:
-            roots = [r for r in _root_of_import(stmt) if r]
-            groups = {_classify_root(r, stmt) for r in roots} if roots else set()
-
-            if len(groups) > 1:
-                findings.append(
-                    f"Line {ASTHelpers.lineno(stmt)}: Mixed import groups in single statement"
-                )
-                grp = "third_party"
+            if isinstance(stmt, ast.ImportFrom) and stmt.level > 0:
+                grp = "local"
+                idx = 4
             else:
-                grp = next(iter(groups), "third_party")
+                roots = [r for r in _root_of_import(stmt) if r]
+                groups = {_classify_root(r, stmt) for r in roots} if roots else set()
 
-            idx = order_index.get(grp, 99)
+                if len(groups) > 1:
+                    findings.append(
+                        f"Line {ASTHelpers.lineno(stmt)}: Mixed import groups in single statement"
+                    )
+                    grp = "third_party"
+                else:
+                    grp = next(iter(groups), "third_party")
+
+                idx = order_index.get(grp, 99)
             if idx < seen_max:
                 findings.append(
                     f"Line {ASTHelpers.lineno(stmt)}: Imports not properly grouped"

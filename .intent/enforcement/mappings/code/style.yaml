@@ -8,6 +8,8 @@ mappings:
     engine: ast_gate
     params:
       check_type: import_order
+      internal_roots:
+        ["api", "body", "cli", "features", "mind", "services", "shared", "will"]
     scope:
       applies_to:
         - "src/**/*.py"
