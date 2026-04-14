@@ -1,0 +1,16 @@
+# .intent/enforcement/mappings/code/layout.yaml
+#
+# Enforces code layout rules: module headers.
+
+mappings:
+  layout.src_module_header:
+    engine: ast_gate
+    params:
+      check_type: module_header
+    scope:
+      applies_to:
+        - "src/**/*.py"
+      excludes:
+        - "**/__init__.py"
+        - "tests/**/*.py"
+        - "scripts/**/*.py"

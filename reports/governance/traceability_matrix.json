@@ -1,10 +1,29 @@
 {
   "summary": {
-    "total_rules": 117,
-    "enforced_count": 117,
-    "unbound_count": 0,
-    "coverage_percent": 100.0
+    "total_rules": 121,
+    "enforced_count": 118,
+    "unbound_count": 3,
+    "coverage_percent": 97.5
   },
   "critical_gaps": [],
-  "unbound_rules": []
+  "unbound_rules": [
+    {
+      "id": "layout.src_module_header",
+      "policy": "rules/code/layout",
+      "engine": "ast_gate",
+      "severity": "reporting"
+    },
+    {
+      "id": "style.import_order",
+      "policy": "rules/code/style",
+      "engine": "ast_gate",
+      "severity": "reporting"
+    },
+    {
+      "id": "style.formatter_required",
+      "policy": "rules/code/style",
+      "engine": "NONE",
+      "severity": "reporting"
+    }
+  ]
 }

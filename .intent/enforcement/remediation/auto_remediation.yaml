@@ -60,7 +60,7 @@ mappings:
       Safe: only rewrites comment lines, never touches logic.
     status: ACTIVE
 
-  purity.forbidden_placeholders:
+  purity.no_todo_placeholders:
     action: fix.placeholders
     confidence: 0.92
     risk: low

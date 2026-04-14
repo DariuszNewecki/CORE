@@ -1,0 +1,21 @@
+{
+    "$schema": "META/rule_document.schema.json",
+    "kind": "rule_document",
+    "metadata": {
+        "id": "rules.code.layout",
+        "title": "Code Layout Standards",
+        "version": "1.0.0",
+        "authority": "policy",
+        "phase": "audit",
+        "status": "active"
+    },
+    "rules": [
+        {
+            "id": "layout.src_module_header",
+            "statement": "Every Python source file in src/ MUST begin with a module header comment of the form '# src/<path/to/module.py>' on the first line.",
+            "authority": "policy",
+            "phase": "audit",
+            "enforcement": "reporting"
+        }
+    ]
+}

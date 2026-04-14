@@ -1,0 +1,36 @@
+$schema: "META/worker.schema.json"
+kind: worker
+
+metadata:
+  id: workers.audit_sensor_style
+  title: Audit Violation Sensor - Style
+  version: "1.0.0"
+  authority: policy
+  status: active
+
+identity:
+  uuid: "a7f2e4d1-8b3c-4a9e-b6d5-e8f1a2b3c4d5"
+  class: sensing
+
+mandate:
+  responsibility: >
+    Run the constitutional auditor scoped to all style.* rules and post
+    each unprocessed violation as a blackboard finding for downstream
+    processing by ViolationRemediatorWorker. No LLM calls. No file writes.
+  phase: audit
+  permitted_tools: []
+  scope:
+    rule_namespace: "style"
+    domains:
+      - audit
+      - compliance
+  approval_required: false
+  schedule:
+    max_interval: 600
+
+implementation:
+  module: will.workers.audit_violation_sensor
+  class: AuditViolationSensor
+  requires_core_context: true
+  params:
+    dry_run: false

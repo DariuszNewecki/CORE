@@ -1,0 +1,29 @@
+{
+    "$schema": "META/rule_document.schema.json",
+    "kind": "rule_document",
+    "metadata": {
+        "id": "rules.code.style",
+        "title": "Code Style Standards",
+        "version": "1.0.0",
+        "authority": "policy",
+        "phase": "audit",
+        "status": "active"
+    },
+    "rules": [
+        {
+            "id": "style.import_order",
+            "statement": "Python imports MUST be grouped and ordered: __future__ first, then stdlib, then third-party, then internal. Groups must not be interleaved.",
+            "authority": "policy",
+            "phase": "audit",
+            "enforcement": "reporting"
+        },
+        {
+            "id": "style.formatter_required",
+            "statement": "All Python source files MUST pass black formatting without changes.",
+            "authority": "policy",
+            "phase": "audit",
+            "enforcement": "reporting",
+            "rationale": "Deferred: per-file black invocation in the async daemon requires a dedicated session implementation."
+        }
+    ]
+}

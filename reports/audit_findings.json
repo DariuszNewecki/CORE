@@ -25,5 +25,1373 @@
     "line_number": null,
     "context": {},
     "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 29: Imports not properly grouped",
+    "file_path": "src/body/evaluators/atomic_actions_evaluator.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 17: Imports not properly grouped",
+    "file_path": "src/body/evaluators/clarity_evaluator.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 16: Imports not properly grouped",
+    "file_path": "src/body/introspection/capability_discovery_service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 19: Imports not properly grouped",
+    "file_path": "src/body/introspection/capability_discovery_service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 15: Imports not properly grouped",
+    "file_path": "src/body/introspection/sync/scanner.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 18: Imports not properly grouped",
+    "file_path": "src/body/introspection/sync_service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 19: Imports not properly grouped",
+    "file_path": "src/body/introspection/sync_service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 16: Imports not properly grouped",
+    "file_path": "src/body/self_healing/test_context_analyzer.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 17: Imports not properly grouped",
+    "file_path": "src/body/self_healing/test_context_analyzer.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 14: Imports not properly grouped",
+    "file_path": "src/body/services/cim/baselines.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 15: Imports not properly grouped",
+    "file_path": "src/body/services/cim/census_service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 16: Imports not properly grouped",
+    "file_path": "src/body/services/cim/census_service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 11: Imports not properly grouped",
+    "file_path": "src/body/services/cim/diff.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 13: Imports not properly grouped",
+    "file_path": "src/body/services/cim/history.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 15: Imports not properly grouped",
+    "file_path": "src/body/services/cim/policy.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 18: Imports not properly grouped",
+    "file_path": "src/body/services/cim/scanners.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 24: Imports not properly grouped",
+    "file_path": "src/body/services/cim/scanners.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 31: Imports not properly grouped",
+    "file_path": "src/body/services/cim/scanners.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 59: Imports not properly grouped",
+    "file_path": "src/body/workers/violation_remediator/worker.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 60: Imports not properly grouped",
+    "file_path": "src/body/workers/violation_remediator/worker.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 61: Imports not properly grouped",
+    "file_path": "src/body/workers/violation_remediator/worker.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 62: Imports not properly grouped",
+    "file_path": "src/body/workers/violation_remediator/worker.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 63: Imports not properly grouped",
+    "file_path": "src/body/workers/violation_remediator/worker.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 20: Imports not properly grouped",
+    "file_path": "src/cli/commands/fix/fix_ir.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 17: Imports not properly grouped",
+    "file_path": "src/cli/commands/guard.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 21: Imports not properly grouped",
+    "file_path": "src/cli/commands/inspect/decisions.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 21: Imports not properly grouped",
+    "file_path": "src/cli/commands/inspect/diagnostics.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 27: Imports not properly grouped",
+    "file_path": "src/cli/logic/db.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 16: Imports not properly grouped",
+    "file_path": "src/cli/logic/governance/traceability_service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 13: Imports not properly grouped",
+    "file_path": "src/cli/logic/hub/app.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 14: Imports not properly grouped",
+    "file_path": "src/cli/logic/hub/app.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 15: Imports not properly grouped",
+    "file_path": "src/cli/logic/hub/app.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 20: Imports not properly grouped",
+    "file_path": "src/cli/logic/interactive_test/steps/generation.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 20: Imports not properly grouped",
+    "file_path": "src/cli/logic/interactive_test/workflow.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 21: Imports not properly grouped",
+    "file_path": "src/cli/logic/interactive_test/workflow.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 28: Imports not properly grouped",
+    "file_path": "src/cli/logic/interactive_test/workflow.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 17: Imports not properly grouped",
+    "file_path": "src/cli/logic/proposal_service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 27: Imports not properly grouped",
+    "file_path": "src/cli/logic/proposals/service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 28: Imports not properly grouped",
+    "file_path": "src/cli/logic/proposals/service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 29: Imports not properly grouped",
+    "file_path": "src/cli/logic/proposals/service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 19: Imports not properly grouped",
+    "file_path": "src/cli/resources/admin/coverage.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 7: Imports not properly grouped",
+    "file_path": "src/cli/resources/admin/patterns.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 7: Imports not properly grouped",
+    "file_path": "src/cli/resources/admin/refusals.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 11: Imports not properly grouped",
+    "file_path": "src/cli/resources/admin/traces.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 23: Imports not properly grouped",
+    "file_path": "src/cli/resources/code/audit.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 24: Imports not properly grouped",
+    "file_path": "src/cli/resources/code/audit.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 29: Imports not properly grouped",
+    "file_path": "src/cli/resources/code/audit.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 38: Imports not properly grouped",
+    "file_path": "src/cli/resources/code/audit.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 6: Imports not properly grouped",
+    "file_path": "src/cli/resources/code/audit_duplicates.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 17: Imports not properly grouped",
+    "file_path": "src/cli/resources/code/clarity.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 17: Imports not properly grouped",
+    "file_path": "src/cli/resources/code/complexity.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 8: Imports not properly grouped",
+    "file_path": "src/cli/resources/code/docstrings.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 8: Imports not properly grouped",
+    "file_path": "src/cli/resources/code/fix_atomic.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 8: Imports not properly grouped",
+    "file_path": "src/cli/resources/code/refactor.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 30: Imports not properly grouped",
+    "file_path": "src/cli/resources/context/build.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 32: Imports not properly grouped",
+    "file_path": "src/cli/resources/context/explain.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 25: Imports not properly grouped",
+    "file_path": "src/cli/resources/context/search.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 17: Imports not properly grouped",
+    "file_path": "src/cli/resources/database/cleanup.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 16: Imports not properly grouped",
+    "file_path": "src/cli/resources/database/export.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 17: Imports not properly grouped",
+    "file_path": "src/cli/resources/database/migrate.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 17: Imports not properly grouped",
+    "file_path": "src/cli/resources/database/status.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 18: Imports not properly grouped",
+    "file_path": "src/cli/resources/database/sync.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 18: Imports not properly grouped",
+    "file_path": "src/cli/resources/database/sync_env.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 13: Imports not properly grouped",
+    "file_path": "src/cli/resources/database/sync_registry.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 24: Imports not properly grouped",
+    "file_path": "src/cli/resources/dev/chat.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 23: Imports not properly grouped",
+    "file_path": "src/cli/resources/dev/refactor.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 21: Imports not properly grouped",
+    "file_path": "src/cli/resources/dev/strategic_audit.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 17: Imports not properly grouped",
+    "file_path": "src/cli/resources/vectors/cleanup.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 20: Imports not properly grouped",
+    "file_path": "src/cli/resources/vectors/query.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 17: Imports not properly grouped",
+    "file_path": "src/cli/resources/vectors/rebuild.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 16: Imports not properly grouped",
+    "file_path": "src/cli/resources/workers/blackboard.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 37: Imports not properly grouped",
+    "file_path": "src/cli/resources/workers/remediate.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 28: Imports not properly grouped",
+    "file_path": "src/mind/logic/engines/artifact_gate.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 28: Imports not properly grouped",
+    "file_path": "src/mind/logic/engines/llm_gate.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 24: Imports not properly grouped",
+    "file_path": "src/shared/cli_utils/decorators.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 25: Imports not properly grouped",
+    "file_path": "src/shared/cli_utils/decorators.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 22: Imports not properly grouped",
+    "file_path": "src/shared/infrastructure/context/builder.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 23: Imports not properly grouped",
+    "file_path": "src/shared/infrastructure/context/builder.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 13: Imports not properly grouped",
+    "file_path": "src/shared/infrastructure/context/cache.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 23: Imports not properly grouped",
+    "file_path": "src/shared/infrastructure/context/service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 24: Imports not properly grouped",
+    "file_path": "src/shared/infrastructure/context/service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 25: Imports not properly grouped",
+    "file_path": "src/shared/infrastructure/context/service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 26: Imports not properly grouped",
+    "file_path": "src/shared/infrastructure/context/service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 27: Imports not properly grouped",
+    "file_path": "src/shared/infrastructure/context/service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 28: Imports not properly grouped",
+    "file_path": "src/shared/infrastructure/context/service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 29: Imports not properly grouped",
+    "file_path": "src/shared/infrastructure/context/service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 30: Imports not properly grouped",
+    "file_path": "src/shared/infrastructure/context/service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 31: Imports not properly grouped",
+    "file_path": "src/shared/infrastructure/context/service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 32: Imports not properly grouped",
+    "file_path": "src/shared/infrastructure/context/service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 14: Imports not properly grouped",
+    "file_path": "src/shared/infrastructure/events/bus.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 20: Imports not properly grouped",
+    "file_path": "src/shared/infrastructure/llm/client.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 16: Imports not properly grouped",
+    "file_path": "src/shared/infrastructure/llm/providers/anthropic.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 15: Imports not properly grouped",
+    "file_path": "src/shared/infrastructure/llm/providers/ollama.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 15: Imports not properly grouped",
+    "file_path": "src/shared/infrastructure/llm/providers/openai.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 14: Imports not properly grouped",
+    "file_path": "src/shared/infrastructure/repositories/db/migration_service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 23: Imports not properly grouped",
+    "file_path": "src/will/agents/code_generation/code_generator.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 24: Imports not properly grouped",
+    "file_path": "src/will/agents/code_generation/code_generator.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 18: Imports not properly grouped",
+    "file_path": "src/will/agents/code_generation/prompt_builders.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 47: Imports not properly grouped",
+    "file_path": "src/will/agents/conversational/agent.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 34: Imports not properly grouped",
+    "file_path": "src/will/phases/canary_validation_phase.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 35: Imports not properly grouped",
+    "file_path": "src/will/phases/canary_validation_phase.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 36: Imports not properly grouped",
+    "file_path": "src/will/phases/canary_validation_phase.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 30: Imports not properly grouped",
+    "file_path": "src/will/phases/code_generation_phase.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 31: Imports not properly grouped",
+    "file_path": "src/will/phases/code_generation_phase.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 32: Imports not properly grouped",
+    "file_path": "src/will/phases/code_generation_phase.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 33: Imports not properly grouped",
+    "file_path": "src/will/phases/code_generation_phase.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 19: Imports not properly grouped",
+    "file_path": "src/will/self_healing/alignment_orchestrator.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 20: Imports not properly grouped",
+    "file_path": "src/will/self_healing/alignment_orchestrator.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 21: Imports not properly grouped",
+    "file_path": "src/will/self_healing/alignment_orchestrator.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 23: Imports not properly grouped",
+    "file_path": "src/will/self_healing/test_generation/generation_workflow.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 24: Imports not properly grouped",
+    "file_path": "src/will/self_healing/test_generation/generation_workflow.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 25: Imports not properly grouped",
+    "file_path": "src/will/self_healing/test_generation/generation_workflow.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 20: Imports not properly grouped",
+    "file_path": "src/will/self_healing/test_generation/generator.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 21: Imports not properly grouped",
+    "file_path": "src/will/self_healing/test_generation/generator.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 22: Imports not properly grouped",
+    "file_path": "src/will/self_healing/test_generation/generator.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 23: Imports not properly grouped",
+    "file_path": "src/will/self_healing/test_generation/generator.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 24: Imports not properly grouped",
+    "file_path": "src/will/self_healing/test_generation/generator.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 25: Imports not properly grouped",
+    "file_path": "src/will/self_healing/test_generation/generator.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 26: Imports not properly grouped",
+    "file_path": "src/will/self_healing/test_generation/generator.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 27: Imports not properly grouped",
+    "file_path": "src/will/self_healing/test_generation/generator.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 23: Imports not properly grouped",
+    "file_path": "src/will/self_healing/test_generation/llm_correction.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 14: Imports not properly grouped",
+    "file_path": "src/will/self_healing/test_generation/repair_workflow.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 15: Imports not properly grouped",
+    "file_path": "src/will/self_healing/test_generation/repair_workflow.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 16: Imports not properly grouped",
+    "file_path": "src/will/self_healing/test_generation/repair_workflow.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 15: Imports not properly grouped",
+    "file_path": "src/will/self_healing/test_generation/single_test_fixer.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 16: Imports not properly grouped",
+    "file_path": "src/will/self_healing/test_generation/single_test_fixer.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 21: Imports not properly grouped",
+    "file_path": "src/will/test_generation/adaptive_test_generator.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 22: Imports not properly grouped",
+    "file_path": "src/will/test_generation/adaptive_test_generator.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 23: Imports not properly grouped",
+    "file_path": "src/will/test_generation/adaptive_test_generator.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 24: Imports not properly grouped",
+    "file_path": "src/will/test_generation/adaptive_test_generator.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 25: Imports not properly grouped",
+    "file_path": "src/will/test_generation/adaptive_test_generator.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 26: Imports not properly grouped",
+    "file_path": "src/will/test_generation/adaptive_test_generator.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 27: Imports not properly grouped",
+    "file_path": "src/will/test_generation/adaptive_test_generator.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 28: Imports not properly grouped",
+    "file_path": "src/will/test_generation/adaptive_test_generator.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 29: Imports not properly grouped",
+    "file_path": "src/will/test_generation/adaptive_test_generator.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 30: Imports not properly grouped",
+    "file_path": "src/will/test_generation/adaptive_test_generator.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 31: Imports not properly grouped",
+    "file_path": "src/will/test_generation/adaptive_test_generator.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 17: Imports not properly grouped",
+    "file_path": "src/will/tools/anchor_builder.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 15: Imports not properly grouped",
+    "file_path": "src/will/tools/architectural_context_builder.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 16: Imports not properly grouped",
+    "file_path": "src/will/tools/architectural_context_builder.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 17: Imports not properly grouped",
+    "file_path": "src/will/tools/architectural_context_builder.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 20: Imports not properly grouped",
+    "file_path": "src/will/tools/context/retriever.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 21: Imports not properly grouped",
+    "file_path": "src/will/tools/context/retriever.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 22: Imports not properly grouped",
+    "file_path": "src/will/tools/context/retriever.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 23: Imports not properly grouped",
+    "file_path": "src/will/tools/context/retriever.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 16: Imports not properly grouped",
+    "file_path": "src/will/tools/module_anchor_generator.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 22: Imports not properly grouped",
+    "file_path": "src/will/tools/module_anchor_generator.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 23: Imports not properly grouped",
+    "file_path": "src/will/tools/module_anchor_generator.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 24: Imports not properly grouped",
+    "file_path": "src/will/tools/module_anchor_generator.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 13: Imports not properly grouped",
+    "file_path": "src/will/workflows/phases/code_fixers_phase.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 14: Imports not properly grouped",
+    "file_path": "src/will/workflows/phases/code_fixers_phase.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "style.import_order",
+    "severity": "warning",
+    "message": "Line 15: Imports not properly grouped",
+    "file_path": "src/will/workflows/phases/code_fixers_phase.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
   }
 ]

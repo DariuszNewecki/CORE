@@ -11,6 +11,7 @@ from mind.logic.engines.ast_gate.checks import (
     CapabilityChecks,
     ConservationChecks,
     GenericASTChecks,
+    ImportChecks,
     LoggingChecks,
     NamingChecks,
     PromptModelChecks,
@@ -64,6 +65,8 @@ class ASTGateEngine(BaseEngine):
             "logic_conservation",
             "logger_not_presentation",
             "direct_intent_access",
+            "import_order",
+            "module_header",
         }
     )
 
@@ -233,6 +236,20 @@ class ASTGateEngine(BaseEngine):
                     err = GenericASTChecks.validate_requirement(node, requirement)
                     if err:
                         violations.append(f"Line {getattr(node, 'lineno', '?')}: {err}")
+
+        elif check_type == "import_order":
+            violations.extend(ImportChecks.check_import_order(tree, params))
+
+        elif check_type == "module_header":
+            import re
+
+            lines = source.splitlines()
+            first_line = lines[0] if lines else ""
+            if not re.match(r"^# src/", first_line):
+                violations.append(
+                    f"Line 1: Missing or incorrect module header. "
+                    f"Expected '# src/<path>', got: {first_line!r}"
+                )
 
         # 4. FINAL VERDICT
         return EngineResult(

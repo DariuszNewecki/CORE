@@ -1,8 +1,8 @@
 {
-  "audit_id": "e73ce64f-314a-45d0-87d7-3bed5938a013",
-  "timestamp": "2026-04-12T18:32:35Z",
+  "audit_id": "d1b3042e-c0bc-4587-8602-0b697dfa5e60",
+  "timestamp": "2026-04-14T16:59:33Z",
   "passed": true,
-  "findings_count": 3,
+  "findings_count": 155,
   "executed_rules": [
     "ai.cognitive_role.no_hardcoded_string",
     "ai.prompt.artifact.no_provider_leak",
@@ -91,6 +91,7 @@
     "infrastructure.no_business_logic",
     "infrastructure.no_strategic_decisions",
     "infrastructure.service_registry.no_conditional_loading",
+    "layout.src_module_header",
     "linkage.assign_ids",
     "linkage.duplicate_ids",
     "logic.di.no_global_session",
@@ -121,7 +122,8 @@
     "purity.stable_id_anchor",
     "quality.security_audit",
     "quality.test_integrity",
-    "quality.type_safety"
+    "quality.type_safety",
+    "style.import_order"
   ],
   "verdict": "PASS"
 }

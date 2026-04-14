@@ -1,0 +1,16 @@
+# .intent/enforcement/mappings/code/style.yaml
+#
+# Enforces code style rules: import order.
+# style.formatter_required is declared in rules but sensor deferred.
+
+mappings:
+  style.import_order:
+    engine: ast_gate
+    params:
+      check_type: import_order
+    scope:
+      applies_to:
+        - "src/**/*.py"
+      excludes:
+        - "tests/**/*.py"
+        - "scripts/**/*.py"
