@@ -1,0 +1,36 @@
+$schema: "META/worker.schema.json"
+kind: worker
+
+metadata:
+  id: workers.audit_sensor_linkage
+  title: Audit Violation Sensor - Linkage
+  version: "1.0.0"
+  authority: policy
+  status: active
+
+identity:
+  uuid: "c4d5e6f7-a8b9-4c0d-8e1f-2a3b4c5d6e7f"
+  class: sensing
+
+mandate:
+  responsibility: >
+    Run the constitutional auditor scoped to all linkage.* rules and post
+    each unprocessed violation as a blackboard finding for downstream
+    processing by ViolationRemediatorWorker. No LLM calls. No file writes.
+  phase: audit
+  permitted_tools: []
+  scope:
+    rule_namespace: "linkage"
+    domains:
+      - audit
+      - compliance
+  approval_required: false
+  schedule:
+    max_interval: 600
+
+implementation:
+  module: will.workers.audit_violation_sensor
+  class: AuditViolationSensor
+  requires_core_context: true
+  params:
+    dry_run: false
