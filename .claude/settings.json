@@ -61,7 +61,11 @@
       "Bash(PYTHONPATH=src python -c \"from cli.admin_cli import app; from typer.testing import CliRunner; r = CliRunner\\(\\).invoke\\(app, ['code', 'audit']\\); print\\(r.output\\)\")",
       "Bash(PYTHONPATH=src /mnt/dev/CORE/.venv/lib/python3.11/../../bin/python3.11 -c \"from cli.admin_cli import app; from typer.testing import CliRunner; r = CliRunner\\(\\).invoke\\(app, ['code', 'audit']\\); print\\(r.output\\); print\\('EXIT:', r.exit_code\\)\")",
       "Bash(ls /mnt/dev/CORE/.venv/bin/python*)",
-      "Bash(.venv/bin/python3.12 -c ':*)"
+      "Bash(.venv/bin/python3.12 -c ':*)",
+      "Bash(grep -rn \"cache\" /mnt/dev/CORE/src/cli/resources/context/*.py)",
+      "Bash(find /mnt/dev/CORE/src/cli/resources/context -name \"*.py\" -exec grep -l \"app.*cache\\\\|cache.*app\" {} \\\\;)",
+      "Bash(grep -n \"@.*\\\\.command\\\\|@refactor_app\\\\.command\\\\|@status_app\\\\.command\\\\|@daemon_app\\\\.command\\\\|@tools_app\\\\.command\" /mnt/dev/CORE/src/cli/commands/*.py /mnt/dev/CORE/src/will/commands/*.py)",
+      "Bash(python3 -c \"import uuid; print\\(uuid.uuid4\\(\\)\\)\")"
     ],
     "additionalDirectories": [
       "/tmp",

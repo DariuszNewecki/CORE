@@ -1,5 +1,5 @@
 # src/cli/resources/workers/blackboard.py
-"""Blackboard inspection command — read-only view of the worker coordination ledger."""
+"""Blackboard inspection and maintenance commands for the worker coordination ledger."""
 
 from __future__ import annotations
 
@@ -106,3 +106,107 @@ async def workers_blackboard_cmd(
             row_cells.append(json.dumps(raw, indent=2))
         table.add_row(*row_cells)
     console.print(table)
+
+
+@workers_app.command("purge")
+@core_command(dangerous=True)
+# ID: b2b41188-284f-47e7-8524-1a3027955755
+async def workers_blackboard_purge_cmd(
+    ctx: typer.Context,
+    status: str = typer.Option(
+        ...,
+        "--status",
+        "-s",
+        help="Filter by status (required): open | claimed | resolved | abandoned.",
+    ),
+    rule: str | None = typer.Option(
+        None,
+        "--rule",
+        "-r",
+        help="Filter by rule ID prefix in subject (e.g. 'style.import_order').",
+    ),
+    before: int | None = typer.Option(
+        None,
+        "--before",
+        "-b",
+        help="Only purge entries older than this many hours.",
+    ),
+    write: bool = typer.Option(
+        False, "--write", "-w", help="Apply deletion. Dry-run by default."
+    ),
+) -> None:
+    """Purge blackboard entries by status, with optional rule and age filters."""
+    from sqlalchemy import text
+
+    clauses = ["status = :status"]
+    params: dict[str, object] = {"status": status}
+    if rule:
+        clauses.append("subject LIKE :subject_prefix")
+        params["subject_prefix"] = f"{rule}%"
+    if before is not None:
+        clauses.append("created_at < NOW() - MAKE_INTERVAL(hours => :hours)")
+        params["hours"] = before
+    where = " AND ".join(clauses)
+
+    # Preview matching entries
+    preview_query = text(
+        f"""
+        SELECT id, entry_type, status, subject, worker_uuid, created_at
+        FROM core.blackboard_entries
+        WHERE {where}
+        ORDER BY created_at DESC
+        """
+    )
+    async with get_session() as session:
+        result = await session.execute(preview_query, params)
+        rows = result.fetchall()
+
+    if not rows:
+        console.print("[yellow]No blackboard entries match the given filters.[/yellow]")
+        raise typer.Exit()
+
+    table = Table(
+        title=f"Purge preview — {len(rows)} entr{('y' if len(rows) == 1 else 'ies')}",
+    )
+    table.add_column("Type", style="cyan", no_wrap=True)
+    table.add_column("Status", no_wrap=True)
+    table.add_column("Subject")
+    table.add_column("Worker UUID", style="dim", no_wrap=True)
+    table.add_column("Created", style="dim", no_wrap=True)
+
+    _STATUS_STYLE = {
+        "open": "green",
+        "claimed": "yellow",
+        "resolved": "blue",
+        "abandoned": "red",
+        "indeterminate": "magenta",
+        "dry_run_complete": "cyan",
+    }
+    for row in rows:
+        _entry_id, etype, estatus, subject, worker_uuid, created_at = row
+        status_style = _STATUS_STYLE.get(estatus, "white")
+        status_str = f"[{status_style}]{estatus}[/{status_style}]"
+        created_str = created_at.strftime("%Y-%m-%d %H:%M:%S") if created_at else "-"
+        worker_str = str(worker_uuid)[:8] + "..." if worker_uuid else "-"
+        table.add_row(etype, status_str, subject, worker_str, created_str)
+    console.print(table)
+
+    if not write:
+        console.print(
+            f"\n[dim]Dry run:[/dim] {len(rows)} entries would be deleted. "
+            "Pass [bold]--write[/bold] to apply."
+        )
+        return
+
+    delete_query = text(
+        f"""
+        DELETE FROM core.blackboard_entries
+        WHERE {where}
+        """
+    )
+    async with get_session() as session:
+        result = await session.execute(delete_query, params)
+        await session.commit()
+        deleted = result.rowcount
+
+    console.print(f"\n[bold green]Purged {deleted} blackboard entries.[/bold green]")
