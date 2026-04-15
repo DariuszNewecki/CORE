@@ -30,7 +30,7 @@ EXEMPTIONS:
 
 Refactored to comply with operations.runtime.env_vars_defined (no os.getenv).
 
-See: .intent/papers/CORE-Infrastructure-Definition.md Section 5
+See: .specs/papers/CORE-Infrastructure-Definition.md Section 5
 """
 
 from __future__ import annotations

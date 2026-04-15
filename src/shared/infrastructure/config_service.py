@@ -42,7 +42,7 @@ Design choices:
 HEALED (V2.3.0):
 - Added detach() method to release database sessions explicitly.
 
-See: .intent/papers/CORE-Infrastructure-Definition.md Section 5
+See: .specs/papers/CORE-Infrastructure-Definition.md Section 5
 """
 
 from __future__ import annotations

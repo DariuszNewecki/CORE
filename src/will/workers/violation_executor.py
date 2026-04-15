@@ -27,8 +27,8 @@ it graduates to RemediatorWorker and ViolationExecutorWorker never touches it
 again. Reducing this worker's workload to zero means CORE has fully codified
 its remediation knowledge.
 
-See: .intent/papers/CORE-ViolationExecutor.md
-     .intent/papers/CORE-OptimizerWorker.md
+See: .specs/papers/CORE-ViolationExecutor.md
+     .specs/papers/CORE-OptimizerWorker.md
 
 Constitutional standing:
 - Declaration:      .intent/workers/violation_executor.yaml

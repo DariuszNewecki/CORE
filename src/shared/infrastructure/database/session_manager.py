@@ -33,7 +33,7 @@ IMPLEMENTATION NOTES:
 - AsyncSession lifecycle managed via context manager
 - Engine disposal coordinated with event loop lifecycle
 
-See: .intent/papers/CORE-Infrastructure-Definition.md Section 5
+See: .specs/papers/CORE-Infrastructure-Definition.md Section 5
 """
 
 from __future__ import annotations
