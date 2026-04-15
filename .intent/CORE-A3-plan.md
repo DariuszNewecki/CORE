@@ -2,7 +2,7 @@
 
 **Status:** Active
 **Owner:** Darek (Dariusz Newecki)
-**Last updated:** 2026-04-12
+**Last updated:** 2026-04-14
 **Definition:** The daemon runs continuously, the Blackboard clears, the codebase converges, and every action is visible.
 
 ---
@@ -23,13 +23,13 @@ In A3, CORE's daemon finds problems in its own codebase, proposes fixes, execute
 
 ---
 
-## Current State (2026-04-12)
+## Current State (2026-04-14)
 
 | Item | Status |
 |------|--------|
-| Audit | PASSED — 3 INFO findings, 0 warnings, 0 blocking, 0 unmapped |
-| Coverage | 100% declared, 98% effective (2 passive_gate rules — correct) |
-| Active workers | 4 sensors + ViolationExecutor + ViolationRemediatorWorker + ProposalConsumerWorker |
+| Audit | PASSED — 0 findings, 0 blocking, 1 unmapped (style.formatter_required — deferred) |
+| Coverage | 100% declared, 99% effective |
+| Active workers | 7 sensors + ViolationExecutor |
 | RemediationMap | 13 ACTIVE, 5 PENDING entries |
 | Constitutional papers | Complete — all 42+ findings closed |
 | MetaValidator | Operational — 70 documents clean |
@@ -37,11 +37,14 @@ In A3, CORE's daemon finds problems in its own codebase, proposes fixes, execute
 | ViolationExecutor | ✅ Fully proven end-to-end — sensor → claim → LLM → Canary → dry_run posted |
 | OptimizerWorker | Not yet designed |
 
-**Current sensor coverage (47 rules, 0 findings):**
+**Current sensor coverage (52 rules, 0 findings):**
 - `audit_sensor_purity` — 9 rules ✅
 - `audit_sensor_architecture` — 33 rules ✅
 - `audit_sensor_logic` — 2 rules ✅
 - `audit_sensor_modularity` — 3 rules ✅
+- `audit_sensor_layout` — 1 rule ✅ (added 2026-04-14)
+- `audit_sensor_style` — 2 rules ✅ (added 2026-04-14)
+- `audit_sensor_linkage` — 2 rules ✅ (added 2026-04-14)
 
 **Session 2026-04-11 fixes applied:**
 - Stream C delegation infrastructure complete — `mark_indeterminate()` wired in BlackboardService
@@ -63,6 +66,18 @@ In A3, CORE's daemon finds problems in its own codebase, proposes fixes, execute
 - `caller_uuid` param added to `ViolationRemediator.__init__()` — ViolationExecutor passes its own UUID to prevent FK violation on Blackboard posts
 - **ViolationExecutor end-to-end proven:** sensor → claim → LLM (DeepSeek) → Canary pass → `audit.remediation.dry_run` posted successfully by ViolationExecutor UUID
 - **Standing workflow rule established:** every Claude Code prompt that touches `src/` requires `core-admin context build` first — no exceptions
+
+**Session 2026-04-14 fixes applied:**
+- Sensor coverage gap analysis completed — full matrix built (dev sync vs sensors vs remediation map)
+- `audit_sensor_layout` added — `layout.src_module_header` now detected by daemon ✅
+- `audit_sensor_style` added — `style.import_order` now detected by daemon ✅
+- `audit_sensor_linkage` added — `linkage.assign_ids` + `linkage.duplicate_ids` now detected ✅
+- `purity.no_todo_placeholders` naming mismatch fixed in `auto_remediation.yaml` ✅
+- `check_import_order` bug fixed — relative imports now classified as `local` (idx=4) ✅
+- `style.yaml` enforcement mapping `internal_roots` aligned with ruff `known-first-party` ✅
+- `core-admin workers blackboard purge` command added — filter by status, rule, age ✅
+- Stale Blackboard entries cleared (152 pre-fix `style.import_order` findings purged)
+- Daemon now running 8 workers: 7 sensors + ViolationExecutor
 
 ---
 
@@ -107,14 +122,17 @@ TRUNCATE core.autonomous_proposals RESTART IDENTITY CASCADE;
 ---
 
 ### Phase 2 — Expand Sensors ✅
-**Goal:** All four audit sensors running, loop still converging.
+**Goal:** All audit sensors running, loop still converging.
 
 **Activated in order:**
 1. `audit_sensor_architecture` — 33/33 rules, 0 findings ✅
 2. `audit_sensor_logic` — 2/2 rules, 0 findings ✅
 3. `audit_sensor_modularity` — 3/3 rules, 0 findings ✅
+4. `audit_sensor_layout` — 1/1 rules, 0 findings ✅ (2026-04-14)
+5. `audit_sensor_style` — 2/2 rules, 0 findings ✅ (2026-04-14)
+6. `audit_sensor_linkage` — 2/2 rules, 0 findings ✅ (2026-04-14)
 
-**Success signal:** ✅ All four sensors active. 47 rules executed. 0 findings. Blackboard empty.
+**Success signal:** ✅ All seven sensors active. 52 rules executed. 0 findings. Blackboard clean.
 
 ---
 
@@ -122,7 +140,7 @@ TRUNCATE core.autonomous_proposals RESTART IDENTITY CASCADE;
 **Goal:** Findings that can't be auto-remediated get correctly delegated.
 
 **Status:** ViolationExecutor fully proven end-to-end. Stream A and C complete.
-Next: Stream B (test writing) or Phase 4 (CLI health).
+Next: Stream B (test writing) or run ViolationExecutor in write=True mode on existing dry_run candidate.
 
 **Three workstreams:**
 
@@ -159,6 +177,7 @@ Wire test-writing AtomicAction. When audit finds missing test coverage:
 **Goal:** All commands working, legacy removed.
 
 **Command surface:** `src/cli/resources/` — 93 files across 14 directories.
+**Full command tree:** 18 command groups, 82 commands total (inventoried 2026-04-14).
 
 **Steps:**
 1. Inventory — Claude Code reads every command file, categorises as: working / broken / legacy
@@ -198,7 +217,7 @@ a `core-admin` command is missing or incomplete. These are Phase 4 audit items.
 |-------|--------|--------|
 | 0 — Clean slate | Audit passes, DB clean | ✅ Complete |
 | 1 — Single loop | Purity loop runs unattended | ✅ Complete — 0 findings, Blackboard empty |
-| 2 — All sensors | All sensors active, converging | ✅ Complete — 47 rules, 0 findings |
+| 2 — All sensors | All sensors active, converging | ✅ Complete — 52 rules, 7 sensors, 0 findings |
 | 3 — Capability gaps | No orphaned findings, tests growing | 🔄 ViolationExecutor proven — Stream B (tests) next |
 | 4 — CLI health | All commands work, legacy gone | ⬜ Not started |
 | 5 — Visibility | Demo-ready, `tail -f` tells the story | ⬜ Not started |
@@ -209,15 +228,25 @@ a `core-admin` command is missing or incomplete. These are Phase 4 audit items.
 
 | Blocker | Phase | Notes |
 |---------|-------|-------|
+| Sensor-fixer coherence validation | 3+ | No mechanism exists to detect when a sensor's detection logic contradicts the fixer's correction logic for the same rule. Deployed `audit_sensor_style` without validating against `fix.imports` — produced 152 false positives. Required manual diagnosis. A `governance.sensor_fixer_coherence` check is needed: for every RemediationMap entry, verify sensor findings and fixer dry-run agree on the same file set. Instrument qualification principle from GxP — a sensor must be validated before it is trusted. |
 | OptimizerWorker | 3+ | Not yet designed — manual candidate review until then |
 | Stream B (test writing) | 3 | Next active workstream — wire test-writing AtomicAction |
+| Ghost workers in registry | 4 | 16–32d old registrations from previous daemon generations — cosmetic, not blocking |
+| Observer snapshot stale | 4 | System Observer worker last ran 9d ago — needs investigation |
+| `style.formatter_required` | 3+ | Declared but no engine check — per-file Black in async daemon deferred |
 
 **Resolved blockers:**
-| ~~ViolationExecutor dry_run result posting~~ | ~~3~~ | ✅ Fixed — `caller_uuid` param added; ViolationExecutor UUID used for all Blackboard posts |
+
+| Blocker | Phase | Notes |
+|---------|-------|-------|
+| ~~Sensor coverage gaps~~ | ~~3~~ | ✅ Resolved — layout, style, linkage sensors added; all dev sync actions now have sensors |
+| ~~`purity.forbidden_placeholders` naming mismatch~~ | ~~3~~ | ✅ Fixed — renamed to `purity.no_todo_placeholders` in auto_remediation.yaml |
+| ~~`check_import_order` relative import bug~~ | ~~3~~ | ✅ Fixed — relative imports classified as `local` (idx=4) |
+| ~~ViolationExecutor dry_run result posting~~ | ~~3~~ | ✅ Fixed — `caller_uuid` param added |
 | ~~ViolationExecutor end-to-end live test~~ | ~~3~~ | ✅ Proven — full path working, dry_run posted cleanly |
 | ~~ViolationExecutor not implemented~~ | ~~3+~~ | ✅ Resolved — Will-layer worker implemented, active in daemon |
 | ~~Stream C delegation transition missing~~ | ~~3~~ | ✅ Resolved — `mark_indeterminate()` wired in BlackboardService |
-| ~~`fix.modularity` class-methods gap~~ | ~~3~~ | ✅ Resolved — selection metric and threshold gate fixed in `ModularitySplitter` |
+| ~~`fix.modularity` class-methods gap~~ | ~~3~~ | ✅ Resolved — selection metric and threshold gate fixed |
 | ~~`governance.dangerous_execution_primitives` unmapped~~ | ~~3+~~ | ✅ Resolved — `ceremony.py` exclude path corrected |
 | ~~Unmapped rules (2)~~ | ~~3~~ | ✅ Resolved — `passive_gate` entries added |
 | ~~Orphan classifier (92 findings)~~ | ~~3~~ | ✅ Dissolved — 0 real orphans, all were false positives |
@@ -240,11 +269,17 @@ journalctl --user -u core-daemon -f
 
 # Audit
 core-admin code audit
+core-admin check rule --rule <rule_id> --verbose
 core-admin constitution validate
 
 # Blackboard
 core-admin workers blackboard
-core-admin workers blackboard --filter "violation_executor"
+core-admin workers blackboard --status open
+core-admin workers blackboard --filter "audit.violation"
+core-admin workers purge --status <status> --rule <subject_prefix> --before <hours> --write
+
+# Runtime health (full view: workers, Blackboard, crawls, blast radius)
+core-admin runtime health
 
 # Workers
 core-admin workers run <declaration_name>
@@ -272,18 +307,20 @@ psql -U core_db -d core -h 192.168.20.23
 
 **Every Claude Code prompt that modifies or creates a `src/` file requires a context build first.**
 
-```bash
-# Step 1 — ground the prompt in repo reality
+**Claude Code must run the context build itself** — do not pre-build and paste. Structure every Claude Code prompt as follows:
+
+```
+Before writing any code, run this command and read the output:
+
 core-admin context build \
   --file <target_file> \
   --task code_modification \
   --goal "<what this change does>" \
   --no-cache
 
-# Step 2 — construct the Claude Code prompt
-[paste context build output]
----
-[implementation instruction]
+Then read <target_file> in full.
+Then [implementation instruction].
+Return the complete corrected file.
 ```
 
 This rule exists because AI code generation from memory produces code that is syntactically
@@ -297,7 +334,7 @@ Skipping it is accepting ungoverned AI output into CORE's own `src/`.
 
 **The autonomous loop:**
 ```
-AuditViolationSensor (×4 namespaces)
+AuditViolationSensor (×7 namespaces)
     → posts findings to Blackboard
 ViolationRemediatorWorker (Will)
     → claims MAPPED findings, creates Proposals
@@ -348,16 +385,15 @@ Active workers: [list or "all sensors active"]
 Next step: [specific action]
 ```
 
-
-
+---
 
 Current A3 phase: 3
-Last session: ViolationExecutor fully proven end-to-end.
-  All Stream A and C work complete.
+Last session: Sensor coverage gaps closed. 7 sensors active, 52 rules, 0 findings.
+  layout, style, linkage sensors added. Blackboard purge command added.
+  Stale entries cleared. Plan updated.
 Current blocker: None blocking. Stream B (test writing) is next.
-Blackboard state: clean
-Active workers: 4 sensors + ViolationExecutor +
-  ViolationRemediatorWorker + ProposalConsumerWorker
-Next step: Either wire Stream B (test-writing AtomicAction)
-  or run ViolationExecutor in write=True mode on a real finding
-  to get the convergence demo needed for publishing.
+Blackboard state: 2 open (1 purity.stable_id_anchor finding, 1 ViolationExecutor dry_run candidate)
+Active workers: 7 sensors (architecture, layout, linkage, logic, modularity, purity, style)
+  + ViolationExecutor. ViolationRemediatorWorker + ProposalConsumerWorker paused.
+Next step: Stream B — wire test-writing AtomicAction, or run ViolationExecutor
+  in write=True mode on the existing dry_run candidate to prove full convergence loop.
