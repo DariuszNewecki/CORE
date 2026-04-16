@@ -74,6 +74,71 @@ class BlackboardService:
             )
             return {row[0] for row in result.fetchall()}
 
+    # ID: 1b8e7a4c-3f2d-4c5b-9a01-8e6d2f9b0a31
+    async def fetch_active_finding_subjects_by_prefix(self, prefix: str) -> set[str]:
+        """
+        Return subjects of finding entries whose subject matches *prefix*
+        that are NOT yet resolved.
+
+        Includes abandoned entries — unlike fetch_open_finding_subjects_by_prefix.
+        Use this for sensor deduplication: a finding should not be re-posted
+        if an abandoned entry for the same subject already exists.
+
+        Status exclusion: 'resolved' only.
+        All other statuses (open, claimed, indeterminate, abandoned) are included.
+
+        Covers:
+          - AuditViolationSensor._fetch_existing_subjects
+        """
+        from body.services.service_registry import ServiceRegistry
+
+        async with ServiceRegistry.session() as session:
+            result = await session.execute(
+                text(
+                    """
+                    SELECT subject FROM core.blackboard_entries
+                    WHERE entry_type = 'finding'
+                      AND subject LIKE :prefix
+                      AND status NOT IN ('resolved')
+                    """
+                ),
+                {"prefix": prefix},
+            )
+            return {row[0] for row in result.fetchall()}
+
+    # ID: 6d2f0c8a-9e3b-4a51-b7c8-14e5d6f2a0b9
+    async def resolve_dry_run_entries_for_namespace(self, namespace_prefix: str) -> int:
+        """
+        Resolve all open audit.remediation.dry_run entries whose subject
+        matches the given namespace prefix.
+
+        Called by AuditViolationSensor when it completes a cycle with zero
+        violations — confirming that any dry-run entries for this namespace
+        describe violations that no longer exist.
+
+        Only resolves entries in 'open' status. Returns count of rows updated.
+
+        Subject pattern matched: 'audit.remediation.dry_run::<namespace_prefix>%'
+        """
+        from body.services.service_registry import ServiceRegistry
+
+        async with ServiceRegistry.session() as session:
+            async with session.begin():
+                result = await session.execute(
+                    text(
+                        """
+                        UPDATE core.blackboard_entries
+                        SET status = 'resolved', updated_at = now()
+                        WHERE entry_type = 'finding'
+                          AND subject LIKE 'audit.remediation.dry_run::'
+                                            || :namespace_prefix || '%'
+                          AND status = 'open'
+                        """
+                    ),
+                    {"namespace_prefix": namespace_prefix},
+                )
+                return result.rowcount or 0
+
     # ID: d98fae16-259d-4993-9e10-4b18c7ea7a70
     async def fetch_open_finding_subjects_by_worker(
         self, worker_uuid: str, prefix: str

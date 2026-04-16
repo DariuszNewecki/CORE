@@ -169,6 +169,17 @@ class AuditViolationSensor(Worker):
                 "AuditViolationSensor[%s]: no actionable violations found.",
                 self._rule_namespace,
             )
+            svc = await self._core_context.registry.get_blackboard_service()
+            expired = await svc.resolve_dry_run_entries_for_namespace(
+                self._rule_namespace
+            )
+            if expired:
+                logger.info(
+                    "AuditViolationSensor[%s]: expired %d stale dry-run entries "
+                    "(no violations found this cycle).",
+                    self._rule_namespace,
+                    expired,
+                )
             return
 
         logger.info(
@@ -408,6 +419,11 @@ class AuditViolationSensor(Worker):
         Query the blackboard for all already-posted subjects matching this
         sensor's namespace prefix, regardless of which worker posted them.
 
+        A finding is considered a duplicate if a blackboard entry with the same
+        subject exists in any status except resolved. This includes abandoned
+        entries — preventing sensors from re-posting violations that were
+        processed and abandoned on the same cycle.
+
         Intentionally does NOT filter by worker_uuid. Deduplication must be
         by subject content, not by poster identity. This prevents different
         daemon generations or parallel sensor instances from re-posting the
@@ -415,4 +431,4 @@ class AuditViolationSensor(Worker):
         """
         prefix = f"{_FINDING_SUBJECT}::{self._rule_namespace}%"
         svc = await self._core_context.registry.get_blackboard_service()
-        return await svc.fetch_open_finding_subjects_by_prefix(prefix)
+        return await svc.fetch_active_finding_subjects_by_prefix(prefix)
