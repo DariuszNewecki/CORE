@@ -320,7 +320,7 @@ async def build_cmd(
         cognitive = await service_registry.get_cognitive_service()
         await cognitive.initialize(session)
 
-    logger.info(
+    console.print(
         Panel(
             f"[bold]File:[/bold]   {file}\n[bold]Symbol:[/bold] {symbol or '(file-level)'}\n[bold]Task:[/bold]   {task}",
             title="[bold blue]🔬 Building Agent Context[/bold blue]",

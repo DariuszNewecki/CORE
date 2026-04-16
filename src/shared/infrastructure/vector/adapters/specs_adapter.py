@@ -127,6 +127,7 @@ class SpecsAdapter:
                 "source_path": f".specs/{doc_id}",
                 "section": section,
                 "content_sha256": hashlib.sha256(clean.encode("utf-8")).hexdigest(),
+                "text": clean,
             }
             items.append(VectorizableItem(item_id=item_id, text=clean, payload=payload))
 

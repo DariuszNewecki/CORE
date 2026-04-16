@@ -39,3 +39,7 @@ class EmbeddingPayload(BaseModel):
     capability_tags: list[str] | None = Field(
         None, description="Associated capability tags."
     )
+    text: str | None = Field(
+        None,
+        description="Raw text content of the chunk, for display and retrieval.",
+    )
