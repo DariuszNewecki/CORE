@@ -19,11 +19,11 @@ _NORTHSTAR_REL = "northstar/core_northstar.md"
 
 
 def _read_northstar() -> str:
-    """Reads NorthStar text via IntentRepository. Returns empty string on failure."""
+    """Reads NorthStar text via SpecsRepository. Returns empty string on failure."""
     try:
-        from shared.infrastructure.intent.intent_repository import get_intent_repository
+        from shared.infrastructure.specs.specs_repository import get_specs_repository
 
-        return get_intent_repository().load_text(_NORTHSTAR_REL)
+        return get_specs_repository().load_text(_NORTHSTAR_REL)
     except Exception:
         log.debug("NorthStar not available at %s", _NORTHSTAR_REL, exc_info=True)
         return ""

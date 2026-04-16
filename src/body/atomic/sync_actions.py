@@ -542,6 +542,19 @@ async def action_sync_constitutional_vectors(
             pattern_items, batch_size=10
         )
 
+        # Specs Sync
+        from shared.infrastructure.vector.adapters.specs_adapter import SpecsAdapter
+
+        specs_adapter = SpecsAdapter()
+        specs_items = specs_adapter.docs_to_items()
+        specs_service = VectorIndexService(
+            qdrant_service=core_context.qdrant_service,
+            collection_name="core_specs",
+            embedder=embedder,
+        )
+        await specs_service.ensure_collection()
+        specs_results = await specs_service.index_items(specs_items, batch_size=10)
+
         return ActionResult(
             action_id="sync.vectors.constitution",
             ok=True,
@@ -550,6 +563,8 @@ async def action_sync_constitutional_vectors(
                 "policies_indexed": len(policy_results),
                 "patterns_count": len(pattern_items),
                 "patterns_indexed": len(pattern_results),
+                "specs_count": len(specs_items),
+                "specs_indexed": len(specs_results),
             },
             duration_sec=time.time() - start,
         )

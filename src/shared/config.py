@@ -58,6 +58,7 @@ class Settings(BaseSettings):
     # --- Canonical Roots ---
     REPO_PATH: Path = REPO_ROOT
     MIND: Path = REPO_ROOT / ".intent"
+    SPECS: Path = REPO_ROOT / ".specs"
     BODY: Path = REPO_ROOT / "src"
 
     # --- Standard Infrastructure Paths ---
@@ -131,6 +132,7 @@ class Settings(BaseSettings):
         """Re-roots settings for test environments."""
         self.REPO_PATH = repo_path
         self.MIND = repo_path / ".intent"
+        self.SPECS = repo_path / ".specs"
         self.BODY = repo_path / "src"
         self._path_resolver = None
 
