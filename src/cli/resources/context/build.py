@@ -149,6 +149,38 @@ def _assemble_enriched_prompt(
     return "\n".join(parts)
 
 
+def _render_layer_constraints(section: Any) -> list[str]:
+    if not isinstance(section, dict):
+        return []
+
+    layer = section.get("layer")
+    rules = section.get("rules") or []
+    if not layer or not rules:
+        return []
+
+    lines: list[str] = [
+        f"## CONSTITUTIONAL CONSTRAINTS — {str(layer).upper()} layer",
+        "",
+        f"⛔ The following blocking rules apply to ALL files in the {layer} layer.",
+        "These constraints are derived from file path alone and are authoritative",
+        "regardless of role inference confidence.",
+        "",
+    ]
+
+    for rule in rules:
+        rid = rule.get("id") or "?"
+        statement = rule.get("statement") or ""
+        lines.append(f"{rid}: {statement}")
+
+    warning = section.get("warning") or ""
+    if warning:
+        lines.append("")
+        lines.append(f"⚠️  {warning}")
+
+    lines.append("")
+    return lines
+
+
 def _format_packet_for_display(
     packet: dict[str, Any],
     file: str,
@@ -176,8 +208,19 @@ def _format_packet_for_display(
     lines.append(f"Build time   : {stats.get('duration_ms', 0)}ms")
     lines.append("")
 
-    for section_name in ("constitution", "policy", "constraints", "runtime"):
+    for section_name in (
+        "layer_constraints",
+        "constitution",
+        "policy",
+        "constraints",
+        "runtime",
+    ):
         section = packet.get(section_name)
+        if section_name == "layer_constraints":
+            rendered = _render_layer_constraints(section)
+            if rendered:
+                lines.extend(rendered)
+            continue
         if section:
             lines.append(f"## {section_name.upper()}")
             lines.append("```json")
@@ -307,6 +350,7 @@ async def build_cmd(
     packet = {
         "header": packet_obj.header,
         "phase": packet_obj.request.phase,
+        "layer_constraints": packet_obj.layer_constraints,
         "constitution": packet_obj.constitution,
         "policy": packet_obj.policy,
         "constraints": packet_obj.constraints,

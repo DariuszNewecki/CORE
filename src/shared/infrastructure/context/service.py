@@ -249,6 +249,7 @@ class ContextService:
         return ContextPacket(
             request=request,
             header=payload.get("header", {}),
+            layer_constraints=payload.get("layer_constraints", {}),
             constitution=payload.get("constitution", {}),
             policy=payload.get("policy", {}),
             constraints=payload.get("constraints", {}),

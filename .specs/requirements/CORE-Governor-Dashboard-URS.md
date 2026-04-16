@@ -1,10 +1,21 @@
 # CORE — Governor Dashboard
 ## User Requirements
 
-**Status:** Draft
+**Status:** Active
 **Authority:** Policy
 **Scope:** `core-admin runtime dashboard` command
 **Audience:** Governor (operator of CORE)
+**Version:** 1.1
+**Last updated:** 2026-04-16
+
+---
+
+## Change Log
+
+| Version | Date | Change |
+|---------|------|--------|
+| 1.0 | 2026-04-15 | Initial draft — five panels including Governance Coverage (Panel 5) |
+| 1.1 | 2026-04-16 | Panel 5 replaced: Governance Coverage → Autonomous Reach. Data sources updated. Threshold configuration demoted to known gap. |
 
 ---
 
@@ -29,11 +40,11 @@ The dashboard must answer five questions, each with a color signal (green / ambe
 
 | # | Question | Green | Blue | Amber | Red |
 |---|----------|-------|------|-------|-----|
-| 1 | **Is the system converging?** | Findings resolving faster than created (today) | Flat — no net movement, or system idle | — | Findings accumulating |
-| 2 | **Does the governor have items waiting?** | 0 DELEGATE + 0 approval-required DRAFT | — | Any items waiting | Backlog growing |
-| 3 | **Is the loop running?** | All active workers heartbeat < 10 min | — | Any worker > 10 min stale | Worker missing or dead |
+| 1 | **Is the system converging?** | Findings resolving faster than created (last 24h) | Flat — no net movement, or system idle | — | Findings accumulating |
+| 2 | **Does the governor have items waiting?** | 0 DELEGATE + 0 approval-required DRAFT | — | Any items waiting | Backlog growing or items aging |
+| 3 | **Is the loop running?** | All active workers heartbeat < 10 min | — | Any worker 10–60 min stale | Worker missing or dead |
 | 4 | **Is the pipeline moving?** | Proposals executing, consequences logged recently | — | Proposals stuck in APPROVED but not executing | Failed proposals, no consequence activity |
-| 5 | **Is governance coverage intact?** | 100% rules mapped, 0 unmapped | — | Unmapped rules exist | Coverage below declared baseline |
+| 5 | **Can the daemon self-heal?** | Full autonomous reach — no blocked findings | — | Dry-run graduation candidates waiting | Abandoned findings — daemon cannot self-heal |
 
 Each panel shows the signal color and a single summary line of numbers.
 No lists. No file paths. No stack traces. Those belong in other commands.
@@ -63,7 +74,7 @@ The DB is the single source of truth — same principle as every other CORE sens
 | Governor inbox | `core.blackboard_entries` (status = `indeterminate`) + `core.autonomous_proposals` (status = `draft`, approval_required = true) |
 | Loop running | `core.worker_registry` (status, last_heartbeat) |
 | Pipeline moving | `core.autonomous_proposals` (status distribution) + `core.consequence_log` (most recent entry timestamp) |
-| Governance coverage | `core.blackboard_entries` aggregate OR dedicated coverage query (same source as `core-admin admin coverage`) |
+| Autonomous reach | `core.blackboard_entries` (status = `abandoned`) + `core.autonomous_proposals` (dry-run candidates) + `core.blackboard_entries` (ViolationExecutor in-flight claims) |
 
 ---
 
@@ -95,7 +106,8 @@ post to the Blackboard, or trigger any worker action.
 Shown:
 - Findings created in last 24h
 - Findings resolved in last 24h
-- Net direction: `↓ healing` / `→ flat` / `↑ accumulating`
+- Net direction: `converging` / `stable` / `diverging`
+- Net delta (+/-)
 - Current open finding count (total)
 
 Signal logic:
@@ -112,11 +124,11 @@ Signal logic:
 Shown:
 - DELEGATE items on Blackboard (status = `indeterminate`, entry_type = `finding`)
 - Proposals awaiting human approval (status = `draft`, approval_required = true)
-- Total: "X items need your attention"
+- Total: "X items awaiting governor"
 
 Signal logic:
 - Green: 0 items
-- Amber: 1–3 items
+- Amber: 1–3 items, none older than 24h
 - Red: 4+ items, or any item older than 24h
 
 ---
@@ -154,20 +166,27 @@ Signal logic:
 
 ---
 
-### Panel 5 — Governance Coverage
+### Panel 5 — Autonomous Reach
 
-**Headline signal:** Is the governance layer intact?
+**Headline signal:** Can the daemon self-heal without governor intervention?
+
+This panel answers whether the autonomous loop has a clear path forward — or whether
+findings exist that no remediation path can handle. Abandoned findings are the primary
+failure signal: they represent governance debt the daemon cannot resolve on its own.
+
+Dry-run graduation candidates are a secondary signal: findings where a ViolationExecutor
+path has been proven in dry-run mode and is waiting for promotion to live execution.
+These require governor review, but represent forward progress — not blockage.
 
 Shown:
-- Rules declared vs rules executed (last audit run)
-- Coverage % (effective)
-- Unmapped rules count
-- Last audit timestamp
+- Abandoned findings (no remediation path — daemon cannot self-heal)
+- Dry-run graduation candidates (ready to promote from dry-run to live)
+- ViolationExecutor in-flight claims (currently being processed on discovery path)
 
 Signal logic:
-- Green: 100% effective coverage, 0 unmapped
-- Amber: Unmapped rules exist (governance debt visible)
-- Red: Coverage below last known baseline, or last audit > 24h ago
+- Green: 0 abandoned findings, 0 dry-run candidates
+- Amber: Dry-run candidates exist (graduation waiting), 0 abandoned
+- Red: Abandoned findings exist (daemon cannot self-heal)
 
 ---
 
@@ -176,7 +195,7 @@ Signal logic:
 The following are explicitly out of scope for this command:
 
 - Individual finding details or file paths → use `core-admin code audit`
-- Blackboard entry inspection → use `core-admin runtime blackboard`
+- Blackboard entry inspection → use `core-admin workers blackboard`
 - Full worker logs → use `core-admin runtime health`
 - Proposal details → use existing proposal commands
 - Real-time streaming / live TUI → `watch` composability is sufficient
@@ -184,15 +203,24 @@ The following are explicitly out of scope for this command:
 
 ---
 
-## 7. Implementation Notes (for design phase)
+## 7. Implementation Notes
 
-- All five panels can be computed in a single DB session with five queries.
-- Queries should use a fixed 24h window (UTC) for consistency.
-- The command should gracefully degrade: if one panel's query fails,
-  show that panel as `UNKNOWN` (grey) and continue rendering the others.
-- Heartbeat thresholds (10 min amber, 60 min red) should be configurable
-  in `.intent/` or at minimum as named constants — not hardcoded magic numbers.
-- The 24h convergence window is a policy decision. It lives in `.intent/`, not in `src/`.
+- All five panels are computed in a single DB session with five queries.
+- Queries use a fixed 24h window (UTC) for consistency.
+- The command degrades gracefully: if one panel's query fails, that panel renders
+  as `UNKNOWN` (grey) and the others continue unaffected.
+
+**Known gap — threshold configuration:**
+Heartbeat thresholds (10 min amber, 60 min red), the 24h convergence window, and the
+30 min pipeline-stuck threshold are currently implemented as named constants in
+`src/cli/resources/runtime/health.py`. The requirement that these live in `.intent/`
+as configurable policy values is not yet met. This is tracked as a Phase 4 item.
+
+**Known gap — audit_runs write gap:**
+`core-admin code audit` does not persist results to the DB. The daemon's sensors
+are the continuous audit source; manual audit output is separate. Panel 4's
+"last consequence" metric reflects daemon-driven execution only. A manual audit
+run does not update the dashboard.
 
 ---
 

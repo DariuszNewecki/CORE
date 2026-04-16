@@ -52,6 +52,7 @@ class ContextPacket:
     request: ContextBuildRequest
 
     header: dict[str, Any] = field(default_factory=dict)
+    layer_constraints: dict[str, Any] = field(default_factory=dict)
     constitution: dict[str, Any] = field(default_factory=dict)
     policy: dict[str, Any] = field(default_factory=dict)
     constraints: dict[str, Any] = field(default_factory=dict)

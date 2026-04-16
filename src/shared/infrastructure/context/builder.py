@@ -33,6 +33,35 @@ if TYPE_CHECKING:
 logger = getLogger(__name__)
 
 
+LAYER_POLICY_IDS: dict[str, list[str]] = {
+    "mind": ["layer_separation", "privileged_boundaries"],
+    "body": ["layer_separation", "privileged_boundaries"],
+    "will": ["layer_separation", "privileged_boundaries", "autonomy"],
+    "shared": ["layer_separation"],
+}
+
+_LAYER_PATH_PREFIXES: tuple[tuple[str, str], ...] = (
+    ("src/mind/", "mind"),
+    ("src/body/", "body"),
+    ("src/will/", "will"),
+    ("src/shared/", "shared"),
+)
+
+_LAYER_CONSTRAINT_WARNING = (
+    "All blocking rules listed above are enforced regardless of role inference "
+    "confidence. Cross-layer imports are a constitutional violation detectable "
+    "from path alone."
+)
+
+
+# ID: 3a7f04c1-6d2b-4e89-ae12-5d9b3a8e1c42
+def _derive_layer_from_path(path: str) -> str | None:
+    for prefix, layer in _LAYER_PATH_PREFIXES:
+        if path.startswith(prefix):
+            return layer
+    return None
+
+
 # ID: ba433808-889c-4dc7-b247-5b0cfdc46bfc
 class ScopeTracker(ast.NodeVisitor):
     """AST visitor that collects symbol metadata and source slices."""
@@ -155,6 +184,7 @@ class ContextBuilder:
         }
 
         return {
+            "layer_constraints": self._build_layer_constraints(request),
             "header": header,
             "phase": request.phase,
             "constitution": constitution,
@@ -163,6 +193,48 @@ class ContextBuilder:
             "evidence": evidence,
             "runtime": runtime,
             "provenance": provenance,
+        }
+
+    def _build_layer_constraints(
+        self,
+        request: ContextBuildRequest,
+    ) -> dict[str, Any]:
+        empty: dict[str, Any] = {"layer": None, "rules": [], "warning": ""}
+
+        if not request.target_files:
+            return empty
+
+        layer = _derive_layer_from_path(request.target_files[0])
+        if layer is None:
+            return empty
+
+        policy_ids = LAYER_POLICY_IDS.get(layer)
+        if not policy_ids:
+            return empty
+
+        try:
+            candidate_rules = self.intent.find_rules(policy_ids=policy_ids)
+        except Exception as e:
+            logger.debug("Layer rule lookup failed for %s: %s", layer, e)
+            return empty
+
+        blocking_rules = [
+            {
+                "id": rule.get("id") or rule.get("rule_id") or "",
+                "statement": rule.get("statement", ""),
+                "enforcement": rule.get("enforcement", ""),
+            }
+            for rule in candidate_rules
+            if str(rule.get("authority", "")).lower() == "constitution"
+        ]
+
+        if not blocking_rules:
+            return {"layer": layer, "rules": [], "warning": ""}
+
+        return {
+            "layer": layer,
+            "rules": blocking_rules,
+            "warning": _LAYER_CONSTRAINT_WARNING,
         }
 
     async def _load_truth(self) -> dict[str, Any]:
