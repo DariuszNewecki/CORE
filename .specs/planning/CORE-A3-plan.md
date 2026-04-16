@@ -23,7 +23,7 @@ In A3, CORE's daemon finds problems in its own codebase, proposes fixes, execute
 
 ---
 
-## Current State (2026-04-16)
+## Current State (2026-04-16 end of day)
 
 | Item | Status |
 |------|--------|
@@ -34,8 +34,12 @@ In A3, CORE's daemon finds problems in its own codebase, proposes fixes, execute
 | Worker registry | Clean |
 | Blackboard | 0 open entries — clean baseline |
 | Governor dashboard | ✅ Implemented — `core-admin runtime dashboard` |
-| `.specs/` layer | ✅ Established — charter, papers, northstar, requirements, decisions, planning |
-| Context build layer constraints | ✅ Implemented — constitutional layer constraints emitted before role inference |
+| `.specs/` layer | ✅ Established and fully wired into vector layer |
+| Context build layer constraints | ✅ Implemented — layer-specific, noise-filtered |
+| Vector layer | ✅ `core_specs` collection live — 549 items from 53 documents |
+| Semantic search | ✅ All three collections queryable — `core_policies`, `core-patterns`, `core_specs` |
+| Context build evidence | ✅ Pulls from all three collections — papers surface alongside rules |
+| Functional requirements | ✅ First system-level document authored — `CORE-What-It-Does.md` |
 
 **Current sensor coverage (52 rules, 0 findings):**
 - `audit_sensor_purity` — 9 rules ✅
@@ -46,30 +50,40 @@ In A3, CORE's daemon finds problems in its own codebase, proposes fixes, execute
 - `audit_sensor_style` — 2 rules ✅
 - `audit_sensor_linkage` — 2 rules ✅
 
-**Session 2026-04-16 changes:**
-- `CORE-Governor-Dashboard-URS.md` updated to v1.1 — Panel 5 rewritten (Governance
-  Coverage → Autonomous Reach), data sources updated, threshold configuration gap
-  and audit_runs write gap documented explicitly
-- Context build now emits `## CONSTITUTIONAL CONSTRAINTS — <LAYER> layer` as first
-  section, before all other output, derived from file path alone:
-  - `LAYER_POLICY_IDS` constant in `builder.py` maps layers to policy leaf names
-  - `_derive_layer_from_path()` — deterministic path-prefix derivation
-  - `_build_layer_constraints()` — queries IntentRepository by layer, filters by
-    `authority == "constitution"`, suppresses section when no rules found
-  - `layer_constraints` wired as first key in `build()` packet assembly
-  - `ContextPacket` extended with `layer_constraints` field (backward compatible)
-  - CLI display tuple updated: `layer_constraints` renders before `constitution`
-  - Closes failure mode: Claude Code was adding cross-layer imports into Mind-layer
-    files because context output contained no constitutional boundary signal
-- Root cause of failure mode identified and documented: context build was deriving
-  constraints from workflow phase only, never from file's constitutional layer
-- Two stale Blackboard entries investigated and purged:
-  - `purity.stable_id_anchor::forensics_service.py` — violation no longer exists
-  - `audit.remediation.dry_run::enforcement_methods.py` — violation no longer exists
-- Blackboard hygiene gap identified: no mechanism detects when a dry-run or
-  violation entry's underlying violation has already been resolved
-- Known open item resolved: `architecture.mind.no_body_invocation` status confirmed
-  clean — full audit of `enforcement_methods.py` returned 0 violations
+**Session 2026-04-16 changes (full day):**
+
+*Morning:*
+- `CORE-Governor-Dashboard-URS.md` updated to v1.1 — Panel 5 rewritten,
+  data sources corrected, threshold config gap and audit_runs write gap documented
+- Context build emits `## CONSTITUTIONAL CONSTRAINTS — <LAYER> layer` as first section,
+  derived from file path alone; layer rule prefix filter reduces noise (20 → 11 rules)
+- Two stale Blackboard entries diagnosed and purged (both violations already resolved)
+- Blackboard hygiene — two failure modes fixed in `BlackboardService`:
+  (1) `fetch_active_finding_subjects_by_prefix()` includes abandoned entries in dedup;
+  (2) `resolve_dry_run_entries_for_namespace()` expires stale dry-run entries on
+  zero-violation sensor cycles
+
+*Afternoon:*
+- `CORE-What-It-Does.md` authored — first system-level functional requirements document;
+  describes problem, governor role, current vs. A5 state, regulated environment fit
+- `.specs/` vector gap identified and fully resolved:
+  - `SpecsRepository` — new read-only interface to `.specs/` with boundary enforcement
+  - `get_specs_repository()` singleton
+  - `SpecsAdapter` — converts `.specs/` markdown to VectorizableItems, section-chunked
+  - `sync.vectors.constitution` extended to cover `.specs/` → `core_specs` collection
+  - `intent_alignment.py` northstar fixed — was silently failing since 2026-04-15
+  - `EmbeddingPayload` extended with optional `text` field
+  - `source_path` payload corrected to `.specs/papers/X.md` format
+  - `core_specs` collection: 549 items indexed from 53 documents
+- Context build evidence wired to all three collections:
+  - `_gather_vector_evidence()` queries `core_policies` (3), `core-patterns` (2),
+    `core_specs` (3) with cross-collection deduplication
+  - `VectorProvider.search_by_embedding()` fixed — now calls `qdrant.search()` directly
+    so `collection_name` parameter is actually honoured
+  - `_format_hit()` fixed — unwraps `ScoredPoint` Pydantic objects to dicts
+- `core-admin vectors query --collection specs` added and working
+- Rich Panel rendering bug fixed in `build.py` — `console.print()` not `logger.info()`
+- `logger.info()` no-arg crash fixed in `query.py`
 
 ---
 
@@ -124,7 +138,7 @@ TRUNCATE core.autonomous_proposals RESTART IDENTITY CASCADE;
 **Goal:** Findings that can't be auto-remediated get correctly delegated.
 
 **Status:** ViolationExecutor fully proven end-to-end. Stream A and C complete.
-Next: Stream B (test writing). Blackboard hygiene bug — dedicated session needed.
+Next: Stream B (test writing).
 
 **Three workstreams:**
 
@@ -146,11 +160,6 @@ Wire test-writing AtomicAction. When audit finds missing test coverage:
 **Command surface:** `src/cli/resources/` — 93 files across 14 directories.
 **Full command tree:** 18 command groups, 82 commands total.
 
-**New scope (added 2026-04-15):**
-Every command gets a URS document in `.specs/requirements/` — generated from
-existing implementation by Claude Code + Claude.ai, reviewed and approved by governor.
-This closes the requirements layer gap identified in session 2026-04-15.
-
 **Steps:**
 1. Inventory — Claude Code reads every command file, categorises as: working / broken / legacy
 2. For each broken command — daemon proposes fix, human approves
@@ -162,6 +171,8 @@ This closes the requirements layer gap identified in session 2026-04-15.
 - `core-admin check rule` cannot find rules that exist in `.intent/rules/`
 - `core-admin workers` has no cleanup command — ghost registry entries require raw SQL
 - `core-admin runtime health` shows abandoned workers — filter needed
+- `core-admin vectors sync` has no `--force` flag — collection delete required when
+  payload structure changes without content changing (dedup uses content hash only)
 
 **Success signal:** Clean `--help` output, no dead commands, no legacy stubs, URS for every command group.
 
@@ -191,28 +202,35 @@ This closes the requirements layer gap identified in session 2026-04-15.
 
 | Blocker | Phase | Notes |
 |---------|-------|-------|
-| Blackboard hygiene bug | 3+ | Two failure modes: (1) sensor re-posts findings for already-abandoned items; (2) dry-run and violation entries persist after underlying violation is resolved. Both require `BlackboardService` fixes — dedicated session needed |
 | Sensor-fixer coherence validation | 3+ | No mechanism to detect when sensor detection contradicts fixer correction for the same rule |
 | OptimizerWorker | 3+ | Not yet designed — manual candidate review until then |
 | Stream B (test writing) | 3 | Next active workstream |
 | `core-admin check rule` lookup bug | 4 | Cannot find rules that exist in `.intent/rules/` |
 | `core-admin workers` missing cleanup command | 4 | Ghost registry entries require raw SQL |
 | `core-admin runtime health` worker filter | 4 | Shows abandoned workers — needs status filter |
+| `core-admin vectors sync` missing `--force` flag | 4 | Collection delete required to force payload re-index when content hash unchanged |
 | `style.formatter_required` | 3+ | Declared but no engine check — deferred |
 | `.specs/META/` | — | Schema for `.specs/` artifacts not yet authored |
 | `audit_runs` write gap | 4+ | `core-admin code audit` does not persist results to DB — dashboard Panel 4 shows "never"; manual audit and daemon audit are separate systems |
-| Context build layer constraints noise | 3+ | `layer_separation.json` contains rules for all layers; `find_rules()` returns the full file. Mind-layer output currently includes Body/Will/API rules. Fix: filter by rule ID prefix in `_build_layer_constraints()`. Polish item — not blocking |
 
 **Resolved blockers:**
 
 | Blocker | Notes |
 |---------|-------|
-| ~~Context build missing constitutional layer constraints~~ | ✅ Fixed 2026-04-16 — layer constraints section emitted first, before role inference |
-| ~~`architecture.mind.no_body_invocation` status unknown~~ | ✅ Resolved 2026-04-16 — full audit confirmed 0 violations; stale Blackboard entry purged |
-| ~~Stale Blackboard entries (2)~~ | ✅ Purged 2026-04-16 — both violations already resolved |
+| ~~Blackboard hygiene bug (2 failure modes)~~ | ✅ Fixed 2026-04-16 — dedup includes abandoned; dry-run entries expire on zero-violation cycles |
+| ~~`.specs/` invisible to vector layer~~ | ✅ Fixed 2026-04-16 — SpecsRepository, SpecsAdapter, core_specs collection (549 items) |
+| ~~Context build evidence missing constitutional papers~~ | ✅ Fixed 2026-04-16 — all three collections queried; papers surface as evidence |
+| ~~`intent_alignment.py` northstar broken~~ | ✅ Fixed 2026-04-16 — reads from SpecsRepository not IntentRepository |
+| ~~Context build layer constraints noise~~ | ✅ Fixed 2026-04-16 — LAYER_RULE_PREFIXES filter, 20 rules → 11 |
+| ~~`core-admin vectors query` missing specs collection~~ | ✅ Fixed 2026-04-16 |
+| ~~Rich Panel rendering bug in build.py~~ | ✅ Fixed 2026-04-16 |
+| ~~Context build missing constitutional layer constraints~~ | ✅ Fixed 2026-04-16 |
+| ~~`architecture.mind.no_body_invocation` status unknown~~ | ✅ Resolved 2026-04-16 |
+| ~~Stale Blackboard entries (2)~~ | ✅ Purged 2026-04-16 |
+| ~~No functional requirements document~~ | ✅ `CORE-What-It-Does.md` authored 2026-04-16 |
 | ~~Ghost worker registry entries (23)~~ | ✅ Marked abandoned via SQL — 2026-04-15 |
 | ~~`.intent/` contains non-operational documents~~ | ✅ `.specs/` layer established — 2026-04-15 |
-| ~~No requirements layer~~ | ✅ `.specs/requirements/` established, first URS authored — 2026-04-15 |
+| ~~No requirements layer~~ | ✅ `.specs/requirements/` established — 2026-04-15 |
 | ~~Sensor coverage gaps~~ | ✅ layout, style, linkage sensors added |
 | ~~`purity.forbidden_placeholders` naming mismatch~~ | ✅ Fixed |
 | ~~`check_import_order` relative import bug~~ | ✅ Fixed |
@@ -236,7 +254,7 @@ This closes the requirements layer gap identified in session 2026-04-15.
 .specs/
 ├── CORE-CHARTER.md       ← founding declaration
 ├── META/                 ← schema for .specs/ itself
-├── northstar/            ← why CORE exists
+├── northstar/            ← why CORE exists (including CORE-What-It-Does.md)
 ├── papers/               ← architectural reasoning
 ├── requirements/         ← URS documents
 ├── decisions/            ← ADRs
@@ -245,22 +263,27 @@ This closes the requirements layer gap identified in session 2026-04-15.
 
 ### 2026-04-15 — Dashboard reads daemon state only
 **Decision:** `core-admin runtime dashboard` reads the autonomous loop's DB state.
-Manual audit output (`core-admin code audit`) is irrelevant to the dashboard.
-The daemon's sensors are the continuous audit. The dashboard reads their output.
+Manual audit output is irrelevant. The daemon's sensors are the continuous audit.
 
 ### 2026-04-15 — Panel 5 is Autonomous Reach, not governance coverage
 **Decision:** Panel 5 answers "how much can the daemon fix without human help?"
-not "did the last manual audit pass?" Sources: Blackboard abandoned findings,
-dry-run candidates, ViolationExecutor in-flight claims.
+Sources: Blackboard abandoned findings, dry-run candidates, ViolationExecutor in-flight.
 
 ### 2026-04-16 — Context build emits layer constraints from path, not role inference
-**Decision:** Constitutional layer is derived from file path alone (`src/mind/` → mind).
-This derivation is deterministic and authoritative. Role inference is uncertain and
-secondary. Layer constraints must appear before role inference output so Claude Code
-sees constitutional boundaries unconditionally, regardless of role confidence.
-**Root cause closed:** Claude Code was adding cross-layer imports because context
-output had no layer signal — only workflow-phase-filtered rules that never included
-boundary rules for the target file's layer.
+**Decision:** Constitutional layer derived from file path alone (`src/mind/` → mind).
+Deterministic and authoritative. Layer constraints appear before all other sections.
+**Root cause closed:** Context build was deriving constraints from workflow phase only.
+
+### 2026-04-16 — `.specs/` is a first-class vector collection
+**Decision:** `.specs/` documents are vectorized into `core_specs` and queried by
+context build alongside `core_policies` and `core-patterns`. The reasoning layer
+(papers, northstar, requirements) must be semantically searchable — not just stored.
+**Implementation:** SpecsRepository → SpecsAdapter → VectorIndexService → `core_specs`
+
+### 2026-04-16 — Functional requirements layer established
+**Decision:** CORE needs a document answering "what does it do for a governor?"
+before anyone reads the architecture. `CORE-What-It-Does.md` is that document.
+It sits in `.specs/northstar/` and is the entry point for new readers.
 
 ---
 
@@ -300,6 +323,13 @@ core-admin context build --file <target_file> --task code_modification --goal "<
 
 # Proposals
 core-admin proposals list
+
+# Vectors
+core-admin vectors sync --write
+core-admin vectors query "<query>" --collection policies|patterns|specs --limit <n>
+# Force re-index when payload changed without content change (no --force flag yet):
+# python3 -c "import asyncio; from shared.infrastructure.clients.qdrant_client import QdrantService; asyncio.run(QdrantService().client.delete_collection('core_specs'))" 2>/dev/null
+# core-admin vectors sync --write
 
 # Sync
 poetry run core-admin dev sync --write
@@ -364,10 +394,18 @@ ConservationGate → IntentGuard → Canary
 
 **Repository layers:**
 ```
-.specs/     ← human intent layer (charter, papers, URS, ADRs, plans)
-.intent/    ← operational governance (constitution, rules, enforcement, workers)
-src/        ← implementation
+.specs/     ← human intent layer (charter, papers, URS, ADRs, plans) → core_specs
+.intent/    ← operational governance (constitution, rules, enforcement, workers) → core_policies, core-patterns
+src/        ← implementation → core-code
 infra/      ← infrastructure (DB migrations, SQL schema)
+```
+
+**Vector collections:**
+```
+core_specs      ← .specs/ markdown documents (549 items, 53 files)
+core_policies   ← .intent/ governance policies and rules
+core-patterns   ← .intent/ architecture patterns
+core-code       ← src/ code symbols
 ```
 
 ---
@@ -386,11 +424,11 @@ Next step: [specific action]
 ---
 
 Current A3 phase: 3
-Last session: URS v1.1 updated. Context build layer constraints implemented.
-  Two stale Blackboard entries purged. Clean baseline established.
-Current blocker: None blocking. Stream B (test writing) is next.
-  Blackboard hygiene bug (two failure modes) — dedicated session needed.
+Last session: Full day 2026-04-16. URS v1.1, context build layer constraints,
+  Blackboard hygiene fixes, CORE-What-It-Does.md, .specs/ fully wired into
+  vector layer (SpecsRepository, SpecsAdapter, core_specs 549 items), context
+  build evidence from all 3 collections, multiple CLI and rendering fixes.
+Current blocker: None blocking.
 Blackboard state: 0 open — clean
 Active workers: 7 sensors + ViolationExecutor (8 total)
 Next step: Stream B — wire test-writing AtomicAction.
-  Or: Blackboard hygiene bug session (BlackboardService fixes).
