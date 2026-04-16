@@ -2,7 +2,7 @@
 
 **Status:** Active
 **Owner:** Darek (Dariusz Newecki)
-**Last updated:** 2026-04-15
+**Last updated:** 2026-04-16
 **Definition:** The daemon runs continuously, the Blackboard clears, the codebase converges, and every action is visible.
 
 ---
@@ -23,18 +23,19 @@ In A3, CORE's daemon finds problems in its own codebase, proposes fixes, execute
 
 ---
 
-## Current State (2026-04-15)
+## Current State (2026-04-16)
 
 | Item | Status |
 |------|--------|
-| Audit | PASSED — 3 INFO findings, 0 blocking, 1 unmapped (style.formatter_required — deferred) |
+| Audit | PASSED — 0 findings, 0 blocking, 1 unmapped (style.formatter_required — deferred) |
 | Coverage | 121 declared, 120 executed, 99% effective |
 | Active workers | 8 (7 sensors + ViolationExecutor) |
 | RemediationMap | 13 ACTIVE, 5 PENDING entries |
-| Worker registry | Clean — 23 ghost entries marked abandoned |
-| Blackboard | 2 open entries, clean |
+| Worker registry | Clean |
+| Blackboard | 0 open entries — clean baseline |
 | Governor dashboard | ✅ Implemented — `core-admin runtime dashboard` |
 | `.specs/` layer | ✅ Established — charter, papers, northstar, requirements, decisions, planning |
+| Context build layer constraints | ✅ Implemented — constitutional layer constraints emitted before role inference |
 
 **Current sensor coverage (52 rules, 0 findings):**
 - `audit_sensor_purity` — 9 rules ✅
@@ -45,30 +46,30 @@ In A3, CORE's daemon finds problems in its own codebase, proposes fixes, execute
 - `audit_sensor_style` — 2 rules ✅
 - `audit_sensor_linkage` — 2 rules ✅
 
-**Session 2026-04-15 changes:**
-- `.specs/` layer established — charter, papers, northstar moved out of `.intent/`
-- `.intent/` is now purely operational governance
-- First URS authored: `CORE-Governor-Dashboard-URS.md` → `.specs/requirements/`
-- A3 plan moved to `.specs/planning/`
-- Ghost worker registry entries (23) marked abandoned via SQL
-- `core-admin runtime dashboard` implemented and committed — five panels:
-  - Convergence Direction (Panel 1)
-  - Governor Inbox (Panel 2)
-  - Loop Running (Panel 3)
-  - Pipeline Moving (Panel 4)
-  - Autonomous Reach (Panel 5 — replaces legacy governance coverage panel)
-- Dashboard first run surfaced: 20 abandoned findings (same rule, same file, April 12)
-  and 1 dry-run graduation candidate
-- Abandoned findings purged — sensor has not re-posted (violation may be resolved)
-- Docstring references updated from `.intent/papers/` to `.specs/papers/`
-
-**Known open items from dashboard first run:**
-- `architecture.mind.no_body_invocation` — 20 abandoned findings purged; sensor not
-  re-posting yet; violation status unknown (purged before full subject was captured)
-- Blackboard deduplication bug — sensor re-posts findings for already-abandoned items;
-  fix belongs in `BlackboardService.post_finding()` contract, not in sensor logic
-- `core-admin check rule` cannot find `architecture.mind.no_body_invocation` despite
-  rule existing in `.intent/rules/` — Phase 4 CLI bug
+**Session 2026-04-16 changes:**
+- `CORE-Governor-Dashboard-URS.md` updated to v1.1 — Panel 5 rewritten (Governance
+  Coverage → Autonomous Reach), data sources updated, threshold configuration gap
+  and audit_runs write gap documented explicitly
+- Context build now emits `## CONSTITUTIONAL CONSTRAINTS — <LAYER> layer` as first
+  section, before all other output, derived from file path alone:
+  - `LAYER_POLICY_IDS` constant in `builder.py` maps layers to policy leaf names
+  - `_derive_layer_from_path()` — deterministic path-prefix derivation
+  - `_build_layer_constraints()` — queries IntentRepository by layer, filters by
+    `authority == "constitution"`, suppresses section when no rules found
+  - `layer_constraints` wired as first key in `build()` packet assembly
+  - `ContextPacket` extended with `layer_constraints` field (backward compatible)
+  - CLI display tuple updated: `layer_constraints` renders before `constitution`
+  - Closes failure mode: Claude Code was adding cross-layer imports into Mind-layer
+    files because context output contained no constitutional boundary signal
+- Root cause of failure mode identified and documented: context build was deriving
+  constraints from workflow phase only, never from file's constitutional layer
+- Two stale Blackboard entries investigated and purged:
+  - `purity.stable_id_anchor::forensics_service.py` — violation no longer exists
+  - `audit.remediation.dry_run::enforcement_methods.py` — violation no longer exists
+- Blackboard hygiene gap identified: no mechanism detects when a dry-run or
+  violation entry's underlying violation has already been resolved
+- Known open item resolved: `architecture.mind.no_body_invocation` status confirmed
+  clean — full audit of `enforcement_methods.py` returned 0 violations
 
 ---
 
@@ -123,7 +124,7 @@ TRUNCATE core.autonomous_proposals RESTART IDENTITY CASCADE;
 **Goal:** Findings that can't be auto-remediated get correctly delegated.
 
 **Status:** ViolationExecutor fully proven end-to-end. Stream A and C complete.
-Next: Stream B (test writing).
+Next: Stream B (test writing). Blackboard hygiene bug — dedicated session needed.
 
 **Three workstreams:**
 
@@ -157,7 +158,7 @@ This closes the requirements layer gap identified in session 2026-04-15.
 4. URS generation pass — one URS per command group
 5. Smoke test: `core-admin --help` — every command listed runs without error
 
-**Known Phase 4 bugs (from dashboard session):**
+**Known Phase 4 bugs:**
 - `core-admin check rule` cannot find rules that exist in `.intent/rules/`
 - `core-admin workers` has no cleanup command — ghost registry entries require raw SQL
 - `core-admin runtime health` shows abandoned workers — filter needed
@@ -190,8 +191,7 @@ This closes the requirements layer gap identified in session 2026-04-15.
 
 | Blocker | Phase | Notes |
 |---------|-------|-------|
-| Blackboard deduplication bug | 3+ | Sensor re-posts findings for already-abandoned items. Fix: `BlackboardService.post_finding()` must check for existing abandoned findings with same subject before posting |
-| `architecture.mind.no_body_invocation` status unknown | 3 | 20 abandoned findings purged; sensor has not re-posted; file unknown (subject truncated, purged before full capture) |
+| Blackboard hygiene bug | 3+ | Two failure modes: (1) sensor re-posts findings for already-abandoned items; (2) dry-run and violation entries persist after underlying violation is resolved. Both require `BlackboardService` fixes — dedicated session needed |
 | Sensor-fixer coherence validation | 3+ | No mechanism to detect when sensor detection contradicts fixer correction for the same rule |
 | OptimizerWorker | 3+ | Not yet designed — manual candidate review until then |
 | Stream B (test writing) | 3 | Next active workstream |
@@ -200,15 +200,19 @@ This closes the requirements layer gap identified in session 2026-04-15.
 | `core-admin runtime health` worker filter | 4 | Shows abandoned workers — needs status filter |
 | `style.formatter_required` | 3+ | Declared but no engine check — deferred |
 | `.specs/META/` | — | Schema for `.specs/` artifacts not yet authored |
-| `audit_runs` write gap | 4+ | `core-admin code audit` does not persist results to DB — dashboard Panel 4 shows "never" for consequence log; manual audit and daemon audit are separate systems |
+| `audit_runs` write gap | 4+ | `core-admin code audit` does not persist results to DB — dashboard Panel 4 shows "never"; manual audit and daemon audit are separate systems |
+| Context build layer constraints noise | 3+ | `layer_separation.json` contains rules for all layers; `find_rules()` returns the full file. Mind-layer output currently includes Body/Will/API rules. Fix: filter by rule ID prefix in `_build_layer_constraints()`. Polish item — not blocking |
 
 **Resolved blockers:**
 
 | Blocker | Notes |
 |---------|-------|
+| ~~Context build missing constitutional layer constraints~~ | ✅ Fixed 2026-04-16 — layer constraints section emitted first, before role inference |
+| ~~`architecture.mind.no_body_invocation` status unknown~~ | ✅ Resolved 2026-04-16 — full audit confirmed 0 violations; stale Blackboard entry purged |
+| ~~Stale Blackboard entries (2)~~ | ✅ Purged 2026-04-16 — both violations already resolved |
 | ~~Ghost worker registry entries (23)~~ | ✅ Marked abandoned via SQL — 2026-04-15 |
-| ~~`.intent/` contains non-operational documents~~ | ✅ `.specs/` layer established — charter, papers, northstar moved out |
-| ~~No requirements layer~~ | ✅ `.specs/requirements/` established, first URS authored |
+| ~~`.intent/` contains non-operational documents~~ | ✅ `.specs/` layer established — 2026-04-15 |
+| ~~No requirements layer~~ | ✅ `.specs/requirements/` established, first URS authored — 2026-04-15 |
 | ~~Sensor coverage gaps~~ | ✅ layout, style, linkage sensors added |
 | ~~`purity.forbidden_placeholders` naming mismatch~~ | ✅ Fixed |
 | ~~`check_import_order` relative import bug~~ | ✅ Fixed |
@@ -222,9 +226,9 @@ This closes the requirements layer gap identified in session 2026-04-15.
 
 ---
 
-## Architectural Decisions Made (2026-04-15)
+## Architectural Decisions Made
 
-### `.specs/` layer established
+### 2026-04-15 — `.specs/` layer established
 **Decision:** Non-operational documents move out of `.intent/` into `.specs/`.
 **Test:** Does CORE read this file at runtime to make a governance decision? If no → `.specs/`.
 **Structure:**
@@ -239,15 +243,24 @@ This closes the requirements layer gap identified in session 2026-04-15.
 └── planning/             ← roadmaps, operational plans
 ```
 
-### Dashboard reads daemon state only
+### 2026-04-15 — Dashboard reads daemon state only
 **Decision:** `core-admin runtime dashboard` reads the autonomous loop's DB state.
 Manual audit output (`core-admin code audit`) is irrelevant to the dashboard.
 The daemon's sensors are the continuous audit. The dashboard reads their output.
 
-### Panel 5 is Autonomous Reach, not governance coverage
+### 2026-04-15 — Panel 5 is Autonomous Reach, not governance coverage
 **Decision:** Panel 5 answers "how much can the daemon fix without human help?"
 not "did the last manual audit pass?" Sources: Blackboard abandoned findings,
 dry-run candidates, ViolationExecutor in-flight claims.
+
+### 2026-04-16 — Context build emits layer constraints from path, not role inference
+**Decision:** Constitutional layer is derived from file path alone (`src/mind/` → mind).
+This derivation is deterministic and authoritative. Role inference is uncertain and
+secondary. Layer constraints must appear before role inference output so Claude Code
+sees constitutional boundaries unconditionally, regardless of role confidence.
+**Root cause closed:** Claude Code was adding cross-layer imports because context
+output had no layer signal — only workflow-phase-filtered rules that never included
+boundary rules for the target file's layer.
 
 ---
 
@@ -373,11 +386,11 @@ Next step: [specific action]
 ---
 
 Current A3 phase: 3
-Last session: .specs/ layer established. Dashboard implemented and committed.
-  Ghost workers cleaned up. First URS authored. 20 abandoned findings purged.
+Last session: URS v1.1 updated. Context build layer constraints implemented.
+  Two stale Blackboard entries purged. Clean baseline established.
 Current blocker: None blocking. Stream B (test writing) is next.
-  Blackboard deduplication bug noted — dedicated session needed.
-Blackboard state: 2 open (nature unknown — sensor cycle pending)
+  Blackboard hygiene bug (two failure modes) — dedicated session needed.
+Blackboard state: 0 open — clean
 Active workers: 7 sensors + ViolationExecutor (8 total)
 Next step: Stream B — wire test-writing AtomicAction.
-  Or: investigate architecture.mind.no_body_invocation if sensor re-posts.
+  Or: Blackboard hygiene bug session (BlackboardService fixes).
