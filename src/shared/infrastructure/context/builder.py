@@ -40,6 +40,28 @@ LAYER_POLICY_IDS: dict[str, list[str]] = {
     "shared": ["layer_separation"],
 }
 
+LAYER_RULE_PREFIXES: dict[str, list[str]] = {
+    "mind": [
+        "architecture.mind.",
+        "architecture.layer_",
+        "architecture.boundary.",
+        "architecture.layers.no_mind",
+    ],
+    "body": [
+        "architecture.body.",
+        "architecture.layer_",
+        "architecture.boundary.",
+        "architecture.layers.no_body",
+    ],
+    "will": [
+        "architecture.will.",
+        "architecture.layer_",
+        "architecture.boundary.",
+        "architecture.layers.",
+    ],
+    "shared": ["architecture.shared.", "architecture.layer_", "architecture.boundary."],
+}
+
 _LAYER_PATH_PREFIXES: tuple[tuple[str, str], ...] = (
     ("src/mind/", "mind"),
     ("src/body/", "body"),
@@ -218,14 +240,30 @@ class ContextBuilder:
             logger.debug("Layer rule lookup failed for %s: %s", layer, e)
             return empty
 
+        constitutional_rules = [
+            rule
+            for rule in candidate_rules
+            if str(rule.get("authority", "")).lower() == "constitution"
+        ]
+
+        prefixes = LAYER_RULE_PREFIXES.get(layer)
+        if prefixes:
+            constitutional_rules = [
+                rule
+                for rule in constitutional_rules
+                if any(
+                    str(rule.get("id") or rule.get("rule_id") or "").startswith(prefix)
+                    for prefix in prefixes
+                )
+            ]
+
         blocking_rules = [
             {
                 "id": rule.get("id") or rule.get("rule_id") or "",
                 "statement": rule.get("statement", ""),
                 "enforcement": rule.get("enforcement", ""),
             }
-            for rule in candidate_rules
-            if str(rule.get("authority", "")).lower() == "constitution"
+            for rule in constitutional_rules
         ]
 
         if not blocking_rules:

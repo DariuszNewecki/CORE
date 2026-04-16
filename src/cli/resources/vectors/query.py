@@ -34,7 +34,7 @@ async def query_vectors(
         "policies",
         "--collection",
         "-c",
-        help="Collection to query: 'policies' or 'patterns'",
+        help="Collection to query: 'policies', 'patterns', or 'specs'",
     ),
     limit: int = typer.Option(5, "--limit", "-n", help="Max results to return"),
 ) -> None:
@@ -60,7 +60,11 @@ async def query_vectors(
         core_context: CoreContext = ctx.obj
         qdrant_service = core_context.qdrant_service or QdrantService()
         collection_name = (
-            "core_policies" if collection == "policies" else "core-patterns"
+            "core_policies"
+            if collection == "policies"
+            else "core-patterns"
+            if collection == "patterns"
+            else "core_specs"
         )
         embedder = CognitiveEmbedderAdapter(core_context.cognitive_service)
         service = VectorIndexService(
@@ -73,7 +77,7 @@ async def query_vectors(
             logger.info("[yellow]No results found[/yellow]")
             return
         logger.info("[bold]Top %s results:[/bold]", len(results))
-        logger.info()
+        logger.info("")
         for i, result in enumerate(results, 1):
             score = result.get("score", 0.0)
             content = (
@@ -93,7 +97,7 @@ async def query_vectors(
             content_preview = content[:200] if content else "[No content available]"
             logger.info("[bold cyan]%s. %s[/bold cyan] (score: %s)", i, doc_id, score)
             logger.info("   %s...", content_preview)
-            logger.info()
+            logger.info("")
     except Exception as e:
         logger.error("Vector query failed", exc_info=True)
         logger.info("[red]❌ Error: %s[/red]", e)
