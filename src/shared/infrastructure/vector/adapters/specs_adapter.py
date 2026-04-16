@@ -124,6 +124,7 @@ class SpecsAdapter:
                 "doc_id": doc_id,
                 "doc_type": _DOC_TYPE,
                 "source": _SOURCE,
+                "source_path": f".specs/{doc_id}",
                 "section": section,
                 "content_sha256": hashlib.sha256(clean.encode("utf-8")).hexdigest(),
             }
