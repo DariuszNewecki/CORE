@@ -58,19 +58,27 @@ class VectorProvider:
         top_k: int = 10,
         collection: str = "core_capabilities",
     ) -> list[dict[str, Any]]:
-        """Search using a pre-computed embedding."""
+        """Search using a pre-computed embedding against the specified collection."""
         if not self.qdrant:
             return []
 
         try:
-            results = await self.qdrant.search_similar(
+            results = await self.qdrant.search(
+                collection_name=collection,
                 query_vector=embedding,
                 limit=top_k,
-                with_payload=True,
             )
-            return [self._format_hit(hit) for hit in results]
+            return [
+                self._format_hit({"score": hit.score, "payload": hit.payload})
+                for hit in results
+            ]
         except Exception as e:
-            logger.error("Qdrant embedding search failed: %s", e, exc_info=True)
+            logger.error(
+                "Qdrant embedding search failed for collection %s: %s",
+                collection,
+                e,
+                exc_info=True,
+            )
             return []
 
     # ID: da668982-3dbe-49da-953b-9a532cb11617

@@ -450,22 +450,51 @@ class ContextBuilder:
         if not self.vectors or not request.goal:
             return evidence
 
-        try:
-            results = await self.vectors.search_similar(request.goal, top_k=5)
-        except Exception as e:
-            logger.debug("Vector search failed: %s", e)
-            return evidence
+        # Query all three constitutional collections.
+        # core_capabilities is the legacy code-symbol collection.
+        # core_policies and core-patterns cover .intent/ governance artifacts.
+        # core_specs covers .specs/ human intent documents (papers, northstar,
+        # requirements, ADRs, planning) — added 2026-04-16.
+        collections = [
+            ("core_policies", 3),
+            ("core-patterns", 2),
+            ("core_specs", 3),
+        ]
 
-        for item in results:
-            rel_path = item.get("path", "")
-            hydrated = dict(item)
-            hydrated.setdefault("item_type", "semantic_match")
-            hydrated.setdefault("source", "vector_search")
+        seen_ids: set[str] = set()
 
-            if rel_path:
-                hydrated = self._extract_code_for_item(hydrated)
+        for collection, top_k in collections:
+            try:
+                results = await self.vectors.search_similar(
+                    request.goal, top_k=top_k, collection=collection
+                )
+            except Exception as e:
+                logger.debug(
+                    "Vector search failed for collection %s: %s", collection, e
+                )
+                continue
 
-            evidence.append(hydrated)
+            for item in results:
+                # Deduplicate across collections by doc_id or path
+                item_id = (
+                    item.get("doc_id")
+                    or item.get("id")
+                    or item.get("path")
+                    or str(item)
+                )
+                if item_id in seen_ids:
+                    continue
+                seen_ids.add(item_id)
+
+                rel_path = item.get("path", "")
+                hydrated = dict(item)
+                hydrated.setdefault("item_type", "semantic_match")
+                hydrated.setdefault("source", f"vector_search:{collection}")
+
+                if rel_path:
+                    hydrated = self._extract_code_for_item(hydrated)
+
+                evidence.append(hydrated)
 
         return evidence
 
