@@ -13,7 +13,7 @@ Every autonomous operation in CORE follows the same governed loop:
 ```mermaid
 flowchart TD
     A["🟢 GOAL\nHUMAN INTENT"] --> B["📂 CONTEXT\nRepo state • knowledge • history"]
-    B --> C["🔒 CONSTRAINTS\nImmutable rules\n92 rules • 7 engines"]
+    B --> C["🔒 CONSTRAINTS\nImmutable rules\n120 rules • 7 engines"]
     C --> D["🗺️ PLAN\nStep-by-step reasoning\nRule-aware plan"]
     D --> E["✨ GENERATE\nCode • changes • tool calls"]
     E --> F["✅ VALIDATE\nDeterministic checks\nAST • semantic • intent • style"]
@@ -43,15 +43,27 @@ flowchart TD
 
 ---
 
-## Three Constitutional Layers
+## Four Repository Layers
 
-CORE enforces a strict separation of responsibility across three layers. This separation is law — not convention.
+CORE separates responsibility across four layers. Three are enforced as constitutional law. One is the human reasoning layer.
+
+### 📐 Specs — Human Intent
+
+**Location:** `.specs/`
+
+The human intent layer. Contains architectural papers, northstar documents, user requirements, architectural decision records, and planning documents. This is where the reasoning behind constitutional decisions lives.
+
+`.specs/` is authored by humans and never written by CORE. It is vectorized into the `core_specs` collection and semantically searchable — context build evidence draws from it alongside constitutional rules.
+
+Start here: [`.specs/northstar/CORE-What-It-Does.md`](https://github.com/DariuszNewecki/CORE/blob/main/.specs/northstar/CORE%20-%20What%20It%20Does.md)
+
+---
 
 ### 🧠 Mind — Law
 
 **Location:** `.intent/` + `src/mind/`
 
-Mind defines what is allowed, required, or forbidden. It contains machine-readable constitutional rules, phase-aware enforcement models, and the authority hierarchy:
+Mind defines what is allowed, required, or forbidden. It contains machine-readable constitutional rules, enforcement mappings, phase-aware enforcement models, and the authority hierarchy:
 
 ```
 Meta → Constitution → Policy → Code
@@ -59,7 +71,7 @@ Meta → Constitution → Policy → Code
 
 **Mind never executes. Mind never mutates. Mind defines law.**
 
-The `.intent/` directory is the authoritative source. It is human-authored and immutable at runtime. CORE cannot write to it. No autonomous operation can amend constitutional law.
+The `.intent/` directory is the authoritative source for operational governance. It is human-authored and immutable at runtime. CORE cannot write to it. No autonomous operation can amend constitutional law.
 
 ---
 
@@ -140,6 +152,7 @@ If a blocking rule fails, execution halts. No partial states.
 
 | Component | Trusted? |
 |-----------|---------|
+| `.specs/` human intent | ✅ Yes |
 | `.intent/` constitution | ✅ Yes |
 | Rules engine | ✅ Yes |
 | Audit system | ✅ Yes |

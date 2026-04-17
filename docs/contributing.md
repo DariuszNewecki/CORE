@@ -4,7 +4,7 @@ CORE is an open project. Contributions are welcome — but CORE has a higher bar
 
 **Read [`CONTRIBUTING.md`](https://github.com/DariuszNewecki/CORE/blob/main/CONTRIBUTING.md) in the repository root before anything else.**
 
-The short version: if you have not read `.intent/`, you are not ready to contribute. The constitution is the starting point, not an afterthought.
+The short version: if you have not read `.specs/` and `.intent/`, you are not ready to contribute. The architectural papers explain why the constitution is what it is. The constitution is the starting point, not an afterthought.
 
 ---
 
@@ -33,10 +33,11 @@ You do not need to be a programmer. Clear thinkers who can reason about governan
 
 ## Areas Where Help Is Genuinely Useful
 
-- **Documentation** — keeping docs accurate and current as the architecture evolves
+- **Documentation** — keeping docs accurate and current as the architecture evolves. Start with `.specs/` — papers, requirements, and ADRs are a natural contribution surface.
 - **Governance reasoning** — stress-testing constitutional decisions and finding gaps
 - **Regulated industry context** — particularly GxP, Annex 11, and validated-state environments
-- **Ideation** — thinking through what A3 strategic autonomy actually requires
+- **A3 operational hardening** — CORE is currently at A3 (Governed Autonomy). The daemon runs continuously. Contributions that improve the autonomous loop, convergence signal, or governor experience are directly useful.
+- **Ideation** — the path from A3 to A4 (self-replication) is genuinely open. Architectural thinking welcome.
 
 ---
 

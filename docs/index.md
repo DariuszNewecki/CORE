@@ -21,6 +21,8 @@ CORE is a governance runtime. When an AI agent proposes a change, CORE:
 
 The result: AI-assisted development that is auditable, deterministic, and safe to run autonomously.
 
+At full autonomy (A3), the governor's job is two things: check the dashboard, and write constitutional intent. Everything else — finding violations, proposing fixes, executing changes, verifying results — is CORE's job.
+
 ---
 
 ## What CORE Is Not
@@ -34,11 +36,17 @@ CORE is a **controlled production pipeline** whose purpose is to converge toward
 
 ---
 
-## Where to Go Next
+## Where to Start
+
+New to CORE? Start with the functional description before reading the architecture:
+
+- [**What It Does**](https://github.com/DariuszNewecki/CORE/blob/main/.specs/northstar/CORE%20-%20What%20It%20Does.md) — what CORE is for, in plain language
+
+Then:
 
 - [How It Works](how-it-works.md) — the constitutional model and enforcement loop
 - [Vocabulary](vocabulary.md) — every term CORE uses, defined precisely
-- [Autonomy Ladder](autonomy-ladder.md) — current capability level and roadmap
+- [Autonomy Ladder](autonomy-ladder.md) — current capability level (A3) and roadmap
 - [Getting Started](getting-started.md) — install and run your first audit
 - [CLI Reference](cli-reference.md) — commands and workflows
 - [Contributing](contributing.md) — how to engage with the project

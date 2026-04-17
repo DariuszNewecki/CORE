@@ -30,7 +30,7 @@ CORE fixes known structural issues automatically.
 
 ---
 
-### A2 — Governed Generation ✅ ← current
+### A2 — Governed Generation ✅
 
 CORE generates new code under constitutional governance.
 
@@ -52,16 +52,18 @@ All operations follow the same self-correcting pattern.
 
 ---
 
-### A3 — Strategic Autonomy 🎯
+### A3 — Governed Autonomy ✅ ← current
 
-CORE autonomously identifies and proposes architectural improvements.
+CORE's daemon runs continuously, finds violations in its own codebase, proposes fixes, executes approved changes, and verifies the result — without the human writing a single line of code.
 
-- Multi-file architectural reasoning
-- Strategic refactoring proposals
-- Convergence toward clean, compliant state without human orchestration
-- Human role shifts from orchestrator to reviewer
+- Seven audit sensors running continuously across 52 rules
+- Violations posted to the Blackboard and automatically claimed for remediation
+- Proposals executed via governed atomic actions
+- Unmapped violations delegated to human judgment via the Governor Inbox
+- Governor dashboard (`core-admin runtime dashboard`) gives five-panel situational awareness
+- Human role: define intent, review proposals requiring architectural judgment, approve constitutional changes
 
-*Active work. Roadmap defined.*
+*Operational. Daemon running. Blackboard clean.*
 
 ---
 
@@ -93,5 +95,5 @@ Convergence toward a clean, compliant state is the fundamental operational metri
 |-------|-----------|
 | A0–A1 | Orchestrator — directs all operations |
 | A2–A2+ | Governor — approves proposals, monitors convergence |
-| A3 | Reviewer — validates strategic decisions |
+| A3 | Reviewer — checks dashboard, approves architectural decisions |
 | A4 | Architect — defines intent only |

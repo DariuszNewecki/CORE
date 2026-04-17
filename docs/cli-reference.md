@@ -19,7 +19,6 @@ poetry run core-admin code complexity     # Complexity analysis
 poetry run core-admin code clarity        # Clarity refactoring
 poetry run core-admin code docstrings     # Docstring compliance
 poetry run core-admin code actions        # List registered Atomic Actions
-poetry run core-admin code integrity      # Integrity checks
 poetry run core-admin code check-imports  # Import boundary checks
 ```
 
@@ -61,8 +60,6 @@ poetry run core-admin dev refactor <goal>              # Autonomous refactoring 
 poetry run core-admin dev refactor <goal> --write      # Apply refactoring
 poetry run core-admin dev strategic-audit              # Dry-run: full self-awareness cycle
 poetry run core-admin dev strategic-audit --write      # Persist campaign to DB
-poetry run core-admin dev strategic-audit --write --execute  # Persist + execute autonomously
-poetry run core-admin dev stability                    # Stability checks
 poetry run core-admin dev test <file>                  # Test generation for a file
 ```
 
@@ -70,12 +67,21 @@ poetry run core-admin dev test <file>                  # Test generation for a f
 
 ### `vectors` — Vector Store Operations (Qdrant)
 
+CORE maintains three vector collections: `core_policies` (`.intent/` governance),
+`core-patterns` (architecture patterns), and `core_specs` (`.specs/` human intent documents).
+
 ```bash
-poetry run core-admin vectors sync-code               # Sync symbol embeddings (dry-run)
-poetry run core-admin vectors sync-code --write       # Apply sync
-poetry run core-admin vectors rebuild                 # Dry-run: rebuild vector collections
+poetry run core-admin vectors sync --write             # Sync all three collections
+poetry run core-admin vectors sync-code                # Sync symbol embeddings (dry-run)
+poetry run core-admin vectors sync-code --write        # Apply code sync
+poetry run core-admin vectors query "<query>"          # Semantic search (default: policies)
+poetry run core-admin vectors query "<query>" --collection policies  # Search core_policies
+poetry run core-admin vectors query "<query>" --collection patterns  # Search core-patterns
+poetry run core-admin vectors query "<query>" --collection specs     # Search core_specs
+poetry run core-admin vectors status                   # Vector store health and collection stats
+poetry run core-admin vectors rebuild                  # Dry-run: rebuild vector collections
 poetry run core-admin vectors rebuild --collection symbols --write  # Rebuild symbols
-poetry run core-admin vectors rebuild --collection all --write      # Rebuild all
+poetry run core-admin vectors cleanup                  # Clean orphaned vectors
 ```
 
 ---
@@ -93,7 +99,34 @@ poetry run core-admin symbols sync     # Sync symbol registry
 ### `runtime` — Runtime State & Health
 
 ```bash
-poetry run core-admin runtime status  # Runtime health
+poetry run core-admin runtime dashboard        # Five-panel governor dashboard (recommended)
+poetry run core-admin runtime dashboard --plain  # Plain text output (pipe/watch friendly)
+poetry run core-admin runtime health           # Plumbing view: workers, blackboard, crawls
+```
+
+The governor dashboard answers five questions with color signals:
+1. **Convergence Direction** — is the codebase healing or accumulating debt?
+2. **Governor Inbox** — are there items requiring human judgment?
+3. **Loop Running** — are all workers alive and cycling?
+4. **Pipeline Moving** — are proposals flowing through to execution?
+5. **Autonomous Reach** — can the daemon self-heal without intervention?
+
+```bash
+watch -n 30 poetry run core-admin runtime dashboard  # Live monitoring
+```
+
+---
+
+### `workers` — Constitutional Worker Management
+
+```bash
+poetry run core-admin workers blackboard               # Inspect the Blackboard
+poetry run core-admin workers blackboard --status open # Open findings only
+poetry run core-admin workers blackboard --filter "audit.violation"  # Filter by subject
+poetry run core-admin workers purge --status <status> --rule <prefix> --before <hours> --write  # Purge entries
+poetry run core-admin workers remediate <rule>         # Run remediation pipeline for a rule
+poetry run core-admin workers remediate --file <path>  # Remediate all violations in a file
+poetry run core-admin workers run <declaration>        # Run a single worker manually
 ```
 
 ---
@@ -103,6 +136,7 @@ poetry run core-admin runtime status  # Runtime health
 ```bash
 poetry run core-admin database status   # Database state
 poetry run core-admin database migrate  # Run migrations
+poetry run core-admin database sync     # Sync database schema
 ```
 
 ---
@@ -110,8 +144,34 @@ poetry run core-admin database migrate  # Run migrations
 ### `daemon` — Background Worker Daemon
 
 ```bash
-systemctl --user restart core-daemon    # Restart via systemd
-poetry run core-admin daemon status     # Daemon status via CLI
+systemctl --user start core-daemon      # Start via systemd
+systemctl --user stop core-daemon       # Stop
+systemctl --user restart core-daemon    # Restart
+journalctl --user -u core-daemon -f     # Follow logs
+poetry run core-admin daemon start      # Start via CLI
+```
+
+---
+
+### `context` — Context Packages for LLM
+
+Every Claude Code prompt that modifies `src/` should be preceded by a context build.
+
+```bash
+poetry run core-admin context build --file <path> --task code_modification --goal "<goal>" --no-cache
+poetry run core-admin context search "<query>"   # Search context evidence
+pottery run core-admin context explain           # Explain context packet
+```
+
+---
+
+### `admin` — System Forensics & Governance
+
+```bash
+poetry run core-admin admin coverage    # Governance rule coverage
+poetry run core-admin admin status      # System health summary
+poetry run core-admin admin traces      # Decision traces
+poetry run core-admin admin health      # Admin health check
 ```
 
 ---
@@ -119,25 +179,7 @@ poetry run core-admin daemon status     # Daemon status via CLI
 ### `status` — Single-Glance System State
 
 ```bash
-poetry run core-admin status  # Full system readiness at a glance
-```
-
----
-
-### `admin` — System Forensics
-
-```bash
-poetry run core-admin admin traces    # Decision traces
-poetry run core-admin admin refusals  # Agent refusal analytics
-```
-
----
-
-### `workers` — Constitutional Worker Management
-
-```bash
-poetry run core-admin workers list    # List workers
-poetry run core-admin workers status  # Worker status
+poetry run core-admin status drift  # System state drift
 ```
 
 ---
@@ -146,7 +188,9 @@ poetry run core-admin workers status  # Worker status
 
 ```bash
 poetry run core-admin secrets list      # List secret keys
+poetry run core-admin secrets get <key> # Get a secret
 poetry run core-admin secrets set <key> # Set a secret
+poetry run core-admin secrets delete <key> # Delete a secret
 ```
 
 ---
@@ -161,20 +205,13 @@ poetry run core-admin project docs     # Generate project documentation
 
 ---
 
-### `context` — Context Packages for LLM
-
-```bash
-poetry run core-admin context build    # Build a context package
-poetry run core-admin context validate # Validate a context package
-poetry run core-admin context show     # Inspect a context package
-```
-
----
-
 ### `refactor` — Refactoring Analysis
 
 ```bash
 poetry run core-admin refactor analyze <file>  # Refactoring suggestions
+poetry run core-admin refactor score           # Refactoring score
+poetry run core-admin refactor stats           # Refactoring statistics
+poetry run core-admin refactor suggest         # Refactoring suggestions
 ```
 
 ---
@@ -182,7 +219,8 @@ poetry run core-admin refactor analyze <file>  # Refactoring suggestions
 ### `interactive-test` — Interactive Test Generation
 
 ```bash
-poetry run core-admin interactive-test  # Step-by-step test generation with approval
+poetry run core-admin interactive-test generate  # Step-by-step test generation with approval
+poetry run core-admin interactive-test info      # Test generation info
 ```
 
 ---
@@ -190,14 +228,15 @@ poetry run core-admin interactive-test  # Step-by-step test generation with appr
 ### `tools` — Governed Maintenance Tools
 
 ```bash
-poetry run core-admin tools  # List available maintenance tools
+poetry run core-admin tools export-context   # Export context
+poetry run core-admin tools rewire-imports   # Rewire import paths
 ```
 
 ---
 
 ## Command Conventions
 
-**`--write`** — required for any command that modifies files. Without it, commands run in dry-run mode.
+**`--write`** — required for any command that modifies files or data. Without it, commands run in dry-run mode.
 
 **Dry-run by default** — CORE never makes changes unless explicitly instructed.
 

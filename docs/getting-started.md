@@ -29,6 +29,20 @@ make db-setup
 
 ---
 
+## Start the Services
+
+CORE requires PostgreSQL and Qdrant running before any commands execute:
+
+```bash
+# Start services via Docker (or your preferred method)
+docker compose up -d
+
+# Verify database connection
+poetry run core-admin database status
+```
+
+---
+
 ## Your First Audit
 
 Once installed, run a constitutional audit to see the current state of the codebase:
@@ -37,7 +51,7 @@ Once installed, run a constitutional audit to see the current state of the codeb
 poetry run core-admin code audit
 ```
 
-This runs all 92 constitutional rules across 7 enforcement engines and reports:
+This runs 120 constitutional rules across 7 enforcement engines and reports:
 
 - **Blocking violations** — must be resolved before autonomous operation
 - **Warnings** — tracked but non-blocking
@@ -47,12 +61,30 @@ A clean audit (zero blocking violations) is the precondition for autonomous oper
 
 ---
 
+## Sync the Vector Layer
+
+CORE uses Qdrant for semantic search across constitutional documents and architectural papers. Sync the vector collections after installation:
+
+```bash
+poetry run core-admin vectors sync --write
+```
+
+This indexes `.intent/` governance documents and `.specs/` architectural papers into searchable vector collections. Context builds draw evidence from these collections.
+
+---
+
 ## Key Commands
 
 Sync the knowledge graph after code changes:
 
 ```bash
 poetry run core-admin dev sync --write
+```
+
+Check the governor dashboard — five-panel situational awareness:
+
+```bash
+poetry run core-admin runtime dashboard
 ```
 
 Check infrastructure health:

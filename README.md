@@ -57,9 +57,15 @@ Governance is executable.
 
 CORE separates responsibility into three constitutional layers. This separation is enforced as law — not convention.
 
+### 📐 Specs — Human Intent (`.specs/`)
+
+Where humans define what the system is for and why decisions were made. Contains architectural papers, northstar documents, user requirements, architectural decision records, and planning documents. This is the entry point for anyone trying to understand CORE before reading its implementation.
+
+`.specs/` is read by humans and searchable by CORE's semantic layer. It is never written by CORE itself.
+
 ### 🧠 Mind — Law (`.intent/` + `src/mind/`)
 
-Defines what is allowed, required, or forbidden. Contains machine-readable constitutional rules, phase-aware enforcement models, and the authority hierarchy (`Meta → Constitution → Policy → Code`).
+Defines what is allowed, required, or forbidden. Contains machine-readable constitutional rules, enforcement mappings, phase-aware governance models, and the authority hierarchy (`Meta → Constitution → Policy → Code`).
 
 Mind never executes. Mind never mutates. Mind defines law.
 
@@ -88,7 +94,7 @@ Every autonomous operation is governed by the same constitutional loop:
 ```mermaid
 flowchart TD
     A["🟢 GOAL\nHUMAN INTENT"] --> B["📂 CONTEXT\nRepo state • knowledge • history"]
-    B --> C["🔒 CONSTRAINTS\nImmutable rules\n92 rules • 7 engines"]
+    B --> C["🔒 CONSTRAINTS\nImmutable rules\n120 rules • 7 engines"]
     C --> D["🗺️ PLAN\nStep-by-step reasoning\nRule-aware plan"]
     D --> E["✨ GENERATE\nCode • changes • tool calls"]
     E --> F["✅ VALIDATE\nDeterministic checks\nAST • semantic • intent • style"]
@@ -159,7 +165,7 @@ Enforcement strengths: **Blocking** · **Reporting** · **Advisory**
 
 Deterministic when possible. LLM only when necessary.
 
-92 rules across 33 policies. 78 executable.
+120 rules across 126 policies. 121 executable.
 
 ---
 
@@ -170,8 +176,8 @@ CORE progresses through defined levels. Each adds capability while remaining con
 ```
 A0 — Self-Awareness       ✅  Knows what it is and where it lives
 A1 — Self-Healing         ✅  Fixes known structural issues automatically
-A2 — Governed Generation  ✅  Natural language → constitutionally aligned code  ← current
-A3 — Strategic Autonomy   🎯  Autonomously identifies architectural improvements
+A2 — Governed Generation  ✅  Natural language → constitutionally aligned code
+A3 — Governed Autonomy    🎯  Daemon finds, proposes, and fixes violations unattended  ← current
 A4 — Self-Replication     🔮  Writes CORE.NG from its own understanding of itself
 ```
 
@@ -210,13 +216,16 @@ poetry run core-admin code audit
 Full documentation, architecture deep-dive, and governance reference:
 [dariusznewecki.github.io/CORE](https://dariusznewecki.github.io/CORE/)
 
+To understand what CORE is for before reading its implementation, start here:
+[`.specs/northstar/CORE-What-It-Does.md`](.specs/northstar/CORE%20-%20What%20It%20Does.md)
+
 ---
 
 ## Project Status
 
-**Current Release:** v2.2.2 — Constitutional Workflow System
+**Current Release:** v2.2.2
 
-Active work: increasing test coverage autonomously (A2) and stabilising before advancing to A3 strategic autonomy.
+Active work: A3 Governed Autonomy — the daemon runs continuously, finds constitutional violations in its own codebase, proposes fixes, executes approved changes, and verifies the result. The governor's role is to define intent, review proposals that require architectural judgment, and approve constitutional changes.
 
 ---
 

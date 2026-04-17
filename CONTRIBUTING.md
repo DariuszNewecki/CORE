@@ -3,21 +3,27 @@
 CORE is a **constitution-driven system**.
 
 All contributions must respect and preserve the project's constitutional model,
-defined in the `.intent/` directory.
+defined in the `.intent/` and `.specs/` directories.
 
-If you have not read `.intent/`, you are **not ready to contribute**.
+If you have not read `.specs/` and `.intent/`, you are **not ready to contribute**.
 
 ---
 
 ## CORE First Principle: The Constitution
 
-The `.intent/` directory contains CORE's Constitution:
-- architectural rules
+The `.specs/` directory contains the human intent layer:
+- architectural papers explaining *why* decisions were made
+- northstar and founding documents
+- user requirements and ADRs
+- planning and roadmap documents
+
+The `.intent/` directory contains the operational governance layer:
+- constitutional rules
 - governance constraints
 - enforcement mappings
 - system invariants
 
-These rules are **authoritative**.
+Both are **authoritative**. `.specs/` explains the reasoning. `.intent/` enforces it.
 
 Code, tests, and tooling must comply with the Constitution — not the other way around.
 
@@ -29,8 +35,9 @@ Changes that violate constitutional intent will be rejected, even if they pass C
 
 ### 1. Read Before You Write
 Before opening a PR, contributors are expected to:
-- Review relevant files in `.intent/`
-- Understand which rules apply to the area being changed
+- Read `.specs/northstar/CORE-What-It-Does.md` to understand what CORE is for
+- Review relevant files in `.specs/papers/` for architectural context
+- Review relevant files in `.intent/` to understand which rules apply
 - Run a constitutional audit locally and confirm it passes:
 
 ```bash
@@ -82,6 +89,7 @@ If `pre-commit` hooks exist, contributors are expected to run them locally.
 
 ## What Is Not Acceptable
 - Changes that bypass or dilute `.intent/`
+- Changes that contradict architectural reasoning in `.specs/`
 - Introducing behavior that contradicts declared intent
 - "It works" as justification for architectural violations
 - Force-pushes to shared branches
