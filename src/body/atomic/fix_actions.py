@@ -45,13 +45,15 @@ logger = getLogger(__name__)
     policies=["atomic_actions"],
 )
 # ID: 5c3ede6c-23e1-4b92-8a00-7b2046eac121
-async def action_format_code(write: bool = False) -> ActionResult:
+async def action_format_code(
+    file_path: str | None = None, write: bool = False, **kwargs
+) -> ActionResult:
     """Format code using Black and Ruff."""
     start = time.time()
     from body.self_healing.code_style_service import format_code
 
     try:
-        format_code(write=write)
+        format_code(path=file_path, write=write)
     except Exception as e:
         return ActionResult(
             action_id="fix.format",

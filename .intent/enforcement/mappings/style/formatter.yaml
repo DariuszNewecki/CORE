@@ -1,0 +1,12 @@
+mappings:
+  style.formatter_required:
+    engine: workflow_gate
+    params:
+      check_type: ruff_format_check
+      exclude: "^(scripts|dev-scripts)/"
+    scope:
+      applies_to:
+        - "src/**/*.py"
+      excludes:
+        - "scripts/**"
+        - "dev-scripts/**"

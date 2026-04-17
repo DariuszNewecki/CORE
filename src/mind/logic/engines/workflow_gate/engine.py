@@ -24,6 +24,7 @@ from mind.logic.engines.workflow_gate.checks import (
     DeadCodeCheck,
     ImportResolutionCheck,
     LinterComplianceCheck,
+    RuffFormatCheck,
     TestVerificationCheck,
 )
 from mind.logic.engines.workflow_gate.checks.quality import QualityGateCheck
@@ -60,6 +61,7 @@ class WorkflowGateEngine(BaseEngine):
             AuditHistoryCheck(),
             LinterComplianceCheck(),
             ImportResolutionCheck(),
+            RuffFormatCheck(),
             QualityGateCheck(
                 path_resolver,
                 "mypy_check",
@@ -116,15 +118,27 @@ class WorkflowGateEngine(BaseEngine):
             # Native await - no loop hijacking required
             violations = await check_logic.verify(None, params)
 
-            return [
-                AuditFinding(
-                    check_id=f"workflow.{check_type}",
-                    severity=AuditSeverity.ERROR,
-                    message=v,
-                    file_path="System",
-                )
-                for v in violations
-            ]
+            findings = []
+            for v in violations:
+                if v.endswith(".py"):
+                    findings.append(
+                        AuditFinding(
+                            check_id=f"workflow.{check_type}",
+                            severity=AuditSeverity.ERROR,
+                            message=f"File would be reformatted: {v}",
+                            file_path=v,
+                        )
+                    )
+                else:
+                    findings.append(
+                        AuditFinding(
+                            check_id=f"workflow.{check_type}",
+                            severity=AuditSeverity.ERROR,
+                            message=v,
+                            file_path="System",
+                        )
+                    )
+            return findings
         except Exception as e:
             logger.error("Workflow logic '%s' failed: %s", check_type, e, exc_info=True)
             return [

@@ -15,6 +15,7 @@ from .coverage import CoverageMinimumCheck
 from .dead_code import DeadCodeCheck
 from .import_resolution import ImportResolutionCheck
 from .linter import LinterComplianceCheck
+from .ruff_format import RuffFormatCheck
 from .tests import TestVerificationCheck
 
 
@@ -26,5 +27,6 @@ __all__ = [
     "DeadCodeCheck",
     "ImportResolutionCheck",
     "LinterComplianceCheck",
+    "RuffFormatCheck",
     "TestVerificationCheck",
 ]
