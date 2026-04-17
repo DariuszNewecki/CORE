@@ -23,6 +23,7 @@ from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import typer
+from rich.columns import Columns
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
@@ -704,9 +705,11 @@ async def dashboard_cmd(
 
 # ID: c1a3d7e2-5f89-4b6c-a0d1-9e8f7c6b5a43
 def _render_dashboard_rich(data: dict[str, Any]) -> None:
+    panels = _build_panels(data)
     console.rule("[bold cyan]CORE Governor Dashboard[/bold cyan]")
-    for panel in _build_panels(data):
-        console.print(panel)
+    console.print(panels[0])
+    console.print(Columns([panels[1], panels[2]], expand=True))
+    console.print(Columns([panels[3], panels[4]], expand=True))
     console.rule()
 
 

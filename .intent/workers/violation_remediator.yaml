@@ -6,7 +6,7 @@ metadata:
   title: Violation Remediator
   version: "0.2.0"
   authority: policy
-  status: paused
+  status: active
 
 identity:
   uuid: "bb52f62a-45c9-47a4-9ff8-788b0c6ca4f1"
