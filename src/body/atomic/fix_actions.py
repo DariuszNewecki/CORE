@@ -32,7 +32,7 @@ logger = getLogger(__name__)
 
 @register_action(
     action_id="fix.format",
-    description="Format code with Black and Ruff",
+    description="Format code with ruff format and ruff check",
     category=ActionCategory.FIX,
     policies=["rules/code/purity"],
     impact_level="safe",
@@ -48,7 +48,7 @@ logger = getLogger(__name__)
 async def action_format_code(
     file_path: str | None = None, write: bool = False, **kwargs
 ) -> ActionResult:
-    """Format code using Black and Ruff."""
+    """Format code using ruff format and ruff check."""
     start = time.time()
     from body.self_healing.code_style_service import format_code
 

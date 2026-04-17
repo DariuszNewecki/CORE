@@ -1,4 +1,4 @@
-# .intent/enforcement/mappings/remediation/auto_remediation.yaml
+# .intent/enforcement/remediation/auto_remediation.yaml
 #
 # Constitutional Remediation Map
 # Authority: policy
@@ -126,7 +126,15 @@ mappings:
     confidence: 0.92
     risk: low
     description: >
-      Format file with black. Deterministic, fully reversible.
+      Format file with ruff-format. Deterministic, fully reversible.
+    status: ACTIVE
+
+  workflow.ruff_format_check:
+    action: fix.format
+    confidence: 0.92
+    risk: low
+    description: >
+      Format file with ruff-format. Deterministic, fully reversible.
     status: ACTIVE
 
   purity.docstrings.required:

@@ -17,7 +17,7 @@
 remediation:
   # Path (relative to repo root) to the autonomous remediation mapping.
   # Consumed by: body/autonomy/audit_analyzer.py
-  map_path: ".intent/enforcement/mappings/remediation/auto_remediation.yaml"
+  map_path: ".intent/enforcement/remediation/auto_remediation.yaml"
 
   # Minimum confidence threshold for AuditAnalyzer to propose an autonomous fix.
   # Range: 0.0 – 1.0

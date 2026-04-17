@@ -169,7 +169,9 @@ class ViolationRemediatorWorker(Worker):
             if proposal_id:
                 proposals_created.append(action_id)
                 # Mark all findings for this action as resolved
-                resolved = await self._resolve_entries([f["id"] for f in findings])
+                resolved = await self._resolve_entries(
+                    [f.get("id") or f.get("entry_id") for f in findings]
+                )
                 entries_resolved += resolved
                 logger.info(
                     "ViolationRemediatorWorker: created proposal '%s' for action '%s' "
@@ -205,7 +207,7 @@ class ViolationRemediatorWorker(Worker):
                 rule,
                 file_path,
                 description,
-                finding["id"],
+                finding.get("id") or finding.get("entry_id"),
             )
 
         # 6. Post blackboard report
@@ -291,7 +293,7 @@ class ViolationRemediatorWorker(Worker):
             if remediation_map.get(rule):
                 mappable.append(finding)
             else:
-                unmappable_ids.append(finding["id"])
+                unmappable_ids.append(finding.get("id") or finding.get("entry_id"))
 
         # Immediately release unmappable findings so they don't stay claimed.
         if unmappable_ids:
@@ -469,7 +471,7 @@ class ViolationRemediatorWorker(Worker):
 
         from body.services.service_registry import service_registry
 
-        entry_ids = [f["id"] for f in findings]
+        entry_ids = [f.get("id") or f.get("entry_id") for f in findings]
         try:
             blackboard_service = await service_registry.get_blackboard_service()
             return await blackboard_service.release_claimed_entries(entry_ids)
@@ -490,7 +492,7 @@ class ViolationRemediatorWorker(Worker):
 
         from body.services.service_registry import service_registry
 
-        entry_ids = [f["id"] for f in findings]
+        entry_ids = [f.get("id") or f.get("entry_id") for f in findings]
         try:
             blackboard_service = await service_registry.get_blackboard_service()
             return await blackboard_service.mark_indeterminate(entry_ids)

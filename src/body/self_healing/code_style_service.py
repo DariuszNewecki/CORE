@@ -4,7 +4,7 @@
 Provides the service logic for formatting code according to constitutional style rules.
 
 CONSTITUTIONAL FIX: Added 'write' parameter support to respect Dry Run intent.
-Ensures that external tools (Black/Ruff) do not mutate the disk unless authorized.
+Ensures that external tools (ruff format/ruff check) do not mutate the disk unless authorized.
 """
 
 from __future__ import annotations
@@ -15,7 +15,7 @@ from shared.utils.subprocess_utils import run_poetry_command
 # ID: 1655ba02-a26e-4f8b-847a-8e4d16acfea0
 def format_code(path: str | None = None, write: bool = True) -> None:
     """
-    Format code using Black and Ruff.
+    Format code using ruff format and ruff check.
 
     Args:
         path: Optional specific target. Defaults to src and tests.
@@ -26,13 +26,13 @@ def format_code(path: str | None = None, write: bool = True) -> None:
     else:
         targets = [path]
 
-    # --- Black Configuration ---
-    black_cmd = ["black"]
+    # --- Ruff Format Configuration ---
+    ruff_format_cmd = ["ruff", "format"]
     if not write:
-        black_cmd.append("--check")
-    black_cmd.extend(targets)
+        ruff_format_cmd.append("--check")
+    ruff_format_cmd.extend(targets)
 
-    # --- Ruff Configuration ---
+    # --- Ruff Check (Linter) Configuration ---
     ruff_cmd = ["ruff", "check"]
     if write:
         ruff_cmd.extend(["--fix", "--unsafe-fixes"])
@@ -43,8 +43,9 @@ def format_code(path: str | None = None, write: bool = True) -> None:
 
     # Execute
     run_poetry_command(
-        f"✨ Black ({'Write' if write else 'Check'}): {' '.join(targets)}", black_cmd
+        f"✨ Ruff Format ({'Write' if write else 'Check'}): {' '.join(targets)}",
+        ruff_format_cmd,
     )
     run_poetry_command(
-        f"✨ Ruff ({'Fix' if write else 'Check'}): {' '.join(targets)}", ruff_cmd
+        f"✨ Ruff Check ({'Fix' if write else 'Check'}): {' '.join(targets)}", ruff_cmd
     )
