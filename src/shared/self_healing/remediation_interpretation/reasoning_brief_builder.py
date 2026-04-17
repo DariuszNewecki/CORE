@@ -109,8 +109,7 @@ class ReasoningBriefBuilder:
         if file_role.role_id == "worker.sensor":
             constraints.append("Do not introduce mutation, apply, or commit behavior.")
             constraints.append(
-                "Do not introduce proposal-generation responsibility into "
-                "sensing flow."
+                "Do not introduce proposal-generation responsibility into sensing flow."
             )
         elif file_role.role_id == "worker.actor":
             constraints.append(
@@ -177,7 +176,7 @@ class ReasoningBriefBuilder:
         dominant_rule = self._dominant_rule(violation_summary)
         if dominant_rule is not None:
             notes.append(
-                f"Dominant remediation pressure comes from rule " f"'{dominant_rule}'."
+                f"Dominant remediation pressure comes from rule '{dominant_rule}'."
             )
 
         if responsibility_clusters:
