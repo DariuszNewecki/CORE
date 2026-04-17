@@ -110,7 +110,7 @@ async def run_dynamic_rules(
             )
 
     logger.info(
-        "Dynamic Rule Execution: Completed %d rules " "(Skipped %d stubs, %d crashed)",
+        "Dynamic Rule Execution: Completed %d rules (Skipped %d stubs, %d crashed)",
         executed_count,
         skipped_stub_count,
         len(crashed_rule_ids),
