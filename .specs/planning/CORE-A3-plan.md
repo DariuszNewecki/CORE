@@ -2,7 +2,7 @@
 
 **Status:** Active
 **Owner:** Darek (Dariusz Newecki)
-**Last updated:** 2026-04-16
+**Last updated:** 2026-04-17
 **Definition:** The daemon runs continuously, the Blackboard clears, the codebase converges, and every action is visible.
 
 ---
@@ -23,25 +23,29 @@ In A3, CORE's daemon finds problems in its own codebase, proposes fixes, execute
 
 ---
 
-## Current State (2026-04-16 end of day)
+## Current State (2026-04-17)
 
 | Item | Status |
 |------|--------|
-| Audit | PASSED — 0 findings, 0 blocking, 1 unmapped (style.formatter_required — deferred) |
-| Coverage | 121 declared, 120 executed, 99% effective |
-| Active workers | 8 (7 sensors + ViolationExecutor) |
-| RemediationMap | 13 ACTIVE, 5 PENDING entries |
-| Worker registry | Clean |
-| Blackboard | 0 open entries — clean baseline |
-| Governor dashboard | ✅ Implemented — `core-admin runtime dashboard` |
+| Audit | PASSED — 0 findings, 0 blocking, 0 unmapped |
+| Coverage | 121 declared, 121 executed, 100% effective |
+| Active workers | 12 (7 sensors + ViolationExecutor + ViolationRemediator + ProposalConsumer + BlackboardAuditor + WorkerAuditor) |
+| RemediationMap | 14 ACTIVE, 5 PENDING entries |
+| Worker registry | Clean — 12 active, 23 abandoned |
+| Blackboard | Converging — 6 open format findings, loop actively resolving |
+| Governor dashboard | ✅ Redesigned — two-column layout, full-width Convergence row |
 | `.specs/` layer | ✅ Established and fully wired into vector layer |
 | Context build layer constraints | ✅ Implemented — layer-specific, noise-filtered |
 | Vector layer | ✅ `core_specs` collection live — 549 items from 53 documents |
 | Semantic search | ✅ All three collections queryable — `core_policies`, `core-patterns`, `core_specs` |
 | Context build evidence | ✅ Pulls from all three collections — papers surface alongside rules |
 | Functional requirements | ✅ First system-level document authored — `CORE-What-It-Does.md` |
+| Proposal Path | ✅ Fully daemonized — ViolationRemediator + ProposalConsumer active |
+| Worker heartbeat | ✅ Fixed — registry last_heartbeat updates on every post_heartbeat() call |
+| Documentation | ✅ All docs updated — README, 7 docs pages, CONTRIBUTING.md, vocabulary.md |
+| `style.formatter_required` | ✅ Fully wired — sensor detects, Remediator proposes, Consumer executes, git commits |
 
-**Current sensor coverage (52 rules, 0 findings):**
+**Current sensor coverage (52 rules, 0 findings on clean codebase):**
 - `audit_sensor_purity` — 9 rules ✅
 - `audit_sensor_architecture` — 33 rules ✅
 - `audit_sensor_logic` — 2 rules ✅
@@ -50,40 +54,39 @@ In A3, CORE's daemon finds problems in its own codebase, proposes fixes, execute
 - `audit_sensor_style` — 2 rules ✅
 - `audit_sensor_linkage` — 2 rules ✅
 
-**Session 2026-04-16 changes (full day):**
+**Session 2026-04-17 changes:**
 
-*Morning:*
-- `CORE-Governor-Dashboard-URS.md` updated to v1.1 — Panel 5 rewritten,
-  data sources corrected, threshold config gap and audit_runs write gap documented
-- Context build emits `## CONSTITUTIONAL CONSTRAINTS — <LAYER> layer` as first section,
-  derived from file path alone; layer rule prefix filter reduces noise (20 → 11 rules)
-- Two stale Blackboard entries diagnosed and purged (both violations already resolved)
-- Blackboard hygiene — two failure modes fixed in `BlackboardService`:
-  (1) `fetch_active_finding_subjects_by_prefix()` includes abandoned entries in dedup;
-  (2) `resolve_dry_run_entries_for_namespace()` expires stale dry-run entries on
-  zero-violation sensor cycles
+*Morning (documentation + activation):*
+- All documentation updated to reflect current state:
+  - `README.md` — A3 current, `.specs/` layer, rule counts, dashboard link
+  - `docs/autonomy-ladder.md` — A3 marked ✅ ← current
+  - `docs/how-it-works.md` — `.specs/` layer added, rule counts corrected
+  - `docs/getting-started.md` — vector sync step, dashboard command added
+  - `docs/cli-reference.md` — dashboard, vectors query, workers blackboard added
+  - `docs/index.md` — CORE-What-It-Does.md as first read
+  - `docs/contributing.md` — `.specs/` added, A3 status corrected
+  - `docs/vocabulary.md` — 42 dead `.intent/papers/` links fixed → `.specs/papers/`
+  - `CONTRIBUTING.md` — `.specs/` added alongside `.intent/`
+- Governor dashboard redesigned — two-column layout
+- Worker re-evaluation — 4 workers activated: `blackboard_auditor`, `worker_auditor`,
+  `violation_remediator`, `proposal_consumer_worker`
+- Worker heartbeat fix — `_post_entry()` in `base.py` updates `worker_registry.last_heartbeat`
 
-*Afternoon:*
-- `CORE-What-It-Does.md` authored — first system-level functional requirements document;
-  describes problem, governor role, current vs. A5 state, regulated environment fit
-- `.specs/` vector gap identified and fully resolved:
-  - `SpecsRepository` — new read-only interface to `.specs/` with boundary enforcement
-  - `get_specs_repository()` singleton
-  - `SpecsAdapter` — converts `.specs/` markdown to VectorizableItems, section-chunked
-  - `sync.vectors.constitution` extended to cover `.specs/` → `core_specs` collection
-  - `intent_alignment.py` northstar fixed — was silently failing since 2026-04-15
-  - `EmbeddingPayload` extended with optional `text` field
-  - `source_path` payload corrected to `.specs/papers/X.md` format
-  - `core_specs` collection: 549 items indexed from 53 documents
-- Context build evidence wired to all three collections:
-  - `_gather_vector_evidence()` queries `core_policies` (3), `core-patterns` (2),
-    `core_specs` (3) with cross-collection deduplication
-  - `VectorProvider.search_by_embedding()` fixed — now calls `qdrant.search()` directly
-    so `collection_name` parameter is actually honoured
-  - `_format_hit()` fixed — unwraps `ScoredPoint` Pydantic objects to dicts
-- `core-admin vectors query --collection specs` added and working
-- Rich Panel rendering bug fixed in `build.py` — `console.print()` not `logger.info()`
-- `logger.info()` no-arg crash fixed in `query.py`
+*Afternoon (style.formatter_required end-to-end):*
+- `RuffFormatCheck` added to `workflow_gate` engine
+  - `src/mind/logic/engines/workflow_gate/checks/ruff_format.py`
+  - Registered in `checks/__init__.py` and `engine.py`
+  - `verify_context()` fixed to emit per-file AuditFindings with real file paths
+- `style.formatter_required` rule corrected — Black → ruff-format, `check` block added
+- Enforcement mapping added: `.intent/enforcement/mappings/style/formatter.yaml`
+- `workflow.ruff_format_check` added to remediation map → `fix.format`
+- `governance_paths.yaml` map_path corrected to actual file location
+- `fix.format` action fixed — now accepts `file_path` parameter
+- `format_code()` in `code_style_service.py` updated — Black replaced with ruff-format
+- `ViolationRemediatorWorker` fixed — `f["id"]` → `f.get("id") or f.get("entry_id")`
+- **Full autonomous loop proven end-to-end:**
+  Sensor detects → Blackboard → Remediator creates proposal → Consumer executes →
+  `fix.format` runs → git commit authored by CORE
 
 ---
 
@@ -138,7 +141,8 @@ TRUNCATE core.autonomous_proposals RESTART IDENTITY CASCADE;
 **Goal:** Findings that can't be auto-remediated get correctly delegated.
 
 **Status:** ViolationExecutor fully proven end-to-end. Stream A and C complete.
-Next: Stream B (test writing).
+Proposal Path fully daemonized. `style.formatter_required` autonomous loop proven.
+Next: Stream B (test writing). ViolationExecutor ceremony `'id'` bug still open.
 
 **Three workstreams:**
 
@@ -202,6 +206,9 @@ Wire test-writing AtomicAction. When audit finds missing test coverage:
 
 | Blocker | Phase | Notes |
 |---------|-------|-------|
+| ViolationExecutor ceremony `'id'` bug | 3+ | `ceremony failed — 'id'` KeyError when ViolationExecutor processes findings; blocks autonomous remediation of unmapped rules |
+| End-to-end Proposal Path verification | 3 | Loop proven with `fix.format`; needs verification across all mapped rules |
+| WorkerAuditor does not resolve findings on recovery | 3+ | `worker.silent` findings persist after workers recover — needs fix |
 | Sensor-fixer coherence validation | 3+ | No mechanism to detect when sensor detection contradicts fixer correction for the same rule |
 | OptimizerWorker | 3+ | Not yet designed — manual candidate review until then |
 | Stream B (test writing) | 3 | Next active workstream |
@@ -209,7 +216,6 @@ Wire test-writing AtomicAction. When audit finds missing test coverage:
 | `core-admin workers` missing cleanup command | 4 | Ghost registry entries require raw SQL |
 | `core-admin runtime health` worker filter | 4 | Shows abandoned workers — needs status filter |
 | `core-admin vectors sync` missing `--force` flag | 4 | Collection delete required to force payload re-index when content hash unchanged |
-| `style.formatter_required` | 3+ | Declared but no engine check — deferred |
 | `.specs/META/` | — | Schema for `.specs/` artifacts not yet authored |
 | `audit_runs` write gap | 4+ | `core-admin code audit` does not persist results to DB — dashboard Panel 4 shows "never"; manual audit and daemon audit are separate systems |
 
@@ -217,11 +223,16 @@ Wire test-writing AtomicAction. When audit finds missing test coverage:
 
 | Blocker | Notes |
 |---------|-------|
-| ~~Blackboard hygiene bug (2 failure modes)~~ | ✅ Fixed 2026-04-16 — dedup includes abandoned; dry-run entries expire on zero-violation cycles |
-| ~~`.specs/` invisible to vector layer~~ | ✅ Fixed 2026-04-16 — SpecsRepository, SpecsAdapter, core_specs collection (549 items) |
-| ~~Context build evidence missing constitutional papers~~ | ✅ Fixed 2026-04-16 — all three collections queried; papers surface as evidence |
-| ~~`intent_alignment.py` northstar broken~~ | ✅ Fixed 2026-04-16 — reads from SpecsRepository not IntentRepository |
-| ~~Context build layer constraints noise~~ | ✅ Fixed 2026-04-16 — LAYER_RULE_PREFIXES filter, 20 rules → 11 |
+| ~~`style.formatter_required` — deferred, no engine check~~ | ✅ Fully wired 2026-04-17 — RuffFormatCheck, enforcement mapping, remediation map, fix.format fixed, autonomous loop proven end-to-end |
+| ~~Proposal Path workers not daemonized~~ | ✅ Fixed 2026-04-17 — violation_remediator + proposal_consumer_worker activated |
+| ~~Worker heartbeat not updating registry~~ | ✅ Fixed 2026-04-17 — base.py _post_entry() updates worker_registry on heartbeat |
+| ~~BlackboardAuditor and WorkerAuditor not active~~ | ✅ Fixed 2026-04-17 — both activated |
+| ~~Documentation stale — A2 marked current, .specs/ absent~~ | ✅ Fixed 2026-04-17 — all docs updated |
+| ~~Blackboard hygiene bug (2 failure modes)~~ | ✅ Fixed 2026-04-16 |
+| ~~`.specs/` invisible to vector layer~~ | ✅ Fixed 2026-04-16 |
+| ~~Context build evidence missing constitutional papers~~ | ✅ Fixed 2026-04-16 |
+| ~~`intent_alignment.py` northstar broken~~ | ✅ Fixed 2026-04-16 |
+| ~~Context build layer constraints noise~~ | ✅ Fixed 2026-04-16 |
 | ~~`core-admin vectors query` missing specs collection~~ | ✅ Fixed 2026-04-16 |
 | ~~Rich Panel rendering bug in build.py~~ | ✅ Fixed 2026-04-16 |
 | ~~Context build missing constitutional layer constraints~~ | ✅ Fixed 2026-04-16 |
@@ -272,18 +283,31 @@ Sources: Blackboard abandoned findings, dry-run candidates, ViolationExecutor in
 ### 2026-04-16 — Context build emits layer constraints from path, not role inference
 **Decision:** Constitutional layer derived from file path alone (`src/mind/` → mind).
 Deterministic and authoritative. Layer constraints appear before all other sections.
-**Root cause closed:** Context build was deriving constraints from workflow phase only.
 
 ### 2026-04-16 — `.specs/` is a first-class vector collection
-**Decision:** `.specs/` documents are vectorized into `core_specs` and queried by
-context build alongside `core_policies` and `core-patterns`. The reasoning layer
-(papers, northstar, requirements) must be semantically searchable — not just stored.
-**Implementation:** SpecsRepository → SpecsAdapter → VectorIndexService → `core_specs`
+**Decision:** `.specs/` documents vectorized into `core_specs`, queried by context build
+alongside `core_policies` and `core-patterns`. Reasoning layer must be semantically searchable.
 
 ### 2026-04-16 — Functional requirements layer established
-**Decision:** CORE needs a document answering "what does it do for a governor?"
-before anyone reads the architecture. `CORE-What-It-Does.md` is that document.
-It sits in `.specs/northstar/` and is the entry point for new readers.
+**Decision:** `CORE-What-It-Does.md` is the entry point for new readers before architecture.
+
+### 2026-04-17 — Dashboard two-column layout
+**Decision:** Convergence Direction full-width (primary signal), remaining panels in
+two-column rows. Scales naturally when new panels are added.
+
+### 2026-04-17 — Worker heartbeat updates registry in base class
+**Decision:** `_post_entry()` in `base.py` updates `worker_registry.last_heartbeat`
+when `entry_type == 'heartbeat'`. Single fix point — all workers benefit automatically.
+
+### 2026-04-17 — ruff-format is the formatting authority, not Black
+**Decision:** `style.formatter_required` enforces ruff-format (commit-gate hook in
+`.pre-commit-config.yaml`). Black is `stages: [manual]` only and is not the authority.
+`fix.format` action and `format_code()` updated to invoke ruff-format.
+
+### 2026-04-17 — workflow.ruff_format_check is the Blackboard check_id for formatting
+**Decision:** The check_id posted to the Blackboard by `workflow_gate` engine is
+`workflow.ruff_format_check`. The remediation map must key on this, not `style.formatter_required`.
+Both keys map to `fix.format` for forward compatibility.
 
 ---
 
@@ -370,17 +394,21 @@ Return the complete corrected file.
 ```
 AuditViolationSensor (×7 namespaces)
     → posts findings to Blackboard
-ViolationRemediatorWorker (Will)
+ViolationRemediatorWorker (Will)       ← daemonized
     → claims MAPPED findings, creates Proposals
     → releases unmapped findings back to open
 ViolationExecutorWorker (Will)         ← active, fully proven
     → claims UNMAPPED findings
     → delegates ceremony to ViolationRemediator (Body)
     → surfaces AtomicAction candidates to Blackboard
-ProposalConsumerWorker
+ProposalConsumerWorker                 ← daemonized
     → executes APPROVED proposals via ProposalExecutor
 AuditViolationSensor
     → confirms finding resolved or re-posts
+BlackboardAuditor                      ← active
+    → monitors Blackboard SLA health
+WorkerAuditor                          ← active
+    → monitors worker liveness
 ```
 
 **Two remediation paths:**
@@ -424,11 +452,15 @@ Next step: [specific action]
 ---
 
 Current A3 phase: 3
-Last session: Full day 2026-04-16. URS v1.1, context build layer constraints,
-  Blackboard hygiene fixes, CORE-What-It-Does.md, .specs/ fully wired into
-  vector layer (SpecsRepository, SpecsAdapter, core_specs 549 items), context
-  build evidence from all 3 collections, multiple CLI and rendering fixes.
-Current blocker: None blocking.
-Blackboard state: 0 open — clean
-Active workers: 7 sensors + ViolationExecutor (8 total)
-Next step: Stream B — wire test-writing AtomicAction.
+Last session: 2026-04-17. Documentation updated. Dashboard redesigned. 4 workers
+  activated. Worker heartbeat fix. style.formatter_required fully wired — RuffFormatCheck,
+  enforcement mapping, remediation map, fix.format fixed (ruff-format), ViolationRemediator
+  f["id"] bug fixed. Full autonomous loop proven: sensor → Blackboard → Remediator →
+  Proposal → Consumer → fix.format → git commit by CORE.
+Current blocker: ViolationExecutor ceremony 'id' bug — blocks unmapped rule remediation.
+  WorkerAuditor does not resolve findings on recovery.
+Blackboard state: ~6 open format findings — loop actively converging
+Active workers: 12 (7 sensors + ViolationExecutor + ViolationRemediator +
+  ProposalConsumer + BlackboardAuditor + WorkerAuditor)
+Next step: Fix ViolationExecutor ceremony 'id' bug. Then Stream B — wire
+  test-writing AtomicAction.

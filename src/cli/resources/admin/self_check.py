@@ -87,7 +87,7 @@ async def self_check_cmd(
                         cmd["name"],
                         meta_draft["canonical_name"],
                     )
-                    decorator = f'@command_meta(\n    canonical_name="{meta_draft['canonical_name']}",\n    behavior=CommandBehavior.{meta_draft['behavior'].upper()},\n    layer=CommandLayer.{meta_draft['layer'].upper()},\n    summary="{meta_draft['summary']}",\n    dangerous={meta_draft['dangerous']}\n)\n'
+                    decorator = f'@command_meta(\n    canonical_name="{meta_draft["canonical_name"]}",\n    behavior=CommandBehavior.{meta_draft["behavior"].upper()},\n    layer=CommandLayer.{meta_draft["layer"].upper()},\n    summary="{meta_draft["summary"]}",\n    dangerous={meta_draft["dangerous"]}\n)\n'
                     target_def = f"def {cmd['entrypoint']}"
                     if f"async def {cmd['entrypoint']}" in source:
                         target_def = f"async def {cmd['entrypoint']}"
