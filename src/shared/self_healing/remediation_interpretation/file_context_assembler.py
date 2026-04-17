@@ -272,8 +272,7 @@ class FileContextAssembler:
 
         if file_role.layer != "unknown":
             constraints.append(
-                f"Preserve constitutional layer placement within "
-                f"'{file_role.layer}'."
+                f"Preserve constitutional layer placement within '{file_role.layer}'."
             )
 
         if file_role.role_id == "worker.sensor":
@@ -281,7 +280,7 @@ class FileContextAssembler:
                 "Preserve sensing-only character; do not introduce acting behavior."
             )
             constraints.append(
-                "Do not introduce mutation or proposal-generation " "responsibilities."
+                "Do not introduce mutation or proposal-generation responsibilities."
             )
         elif file_role.role_id == "worker.actor":
             constraints.append(
@@ -305,8 +304,7 @@ class FileContextAssembler:
             )
         elif file_role.role_id == "cli":
             constraints.append(
-                "Preserve command-entry role; avoid hidden domain logic "
-                "accumulation."
+                "Preserve command-entry role; avoid hidden domain logic accumulation."
             )
             constraints.append(
                 "Never modify, move, or rename functions decorated with @app.command, "
