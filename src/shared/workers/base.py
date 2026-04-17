@@ -338,6 +338,18 @@ class Worker(ABC):
                     },
                 )
 
+                if entry_type == "heartbeat":
+                    await session.execute(
+                        text(
+                            """
+                            update core.worker_registry
+                            set last_heartbeat = now(), status = 'active'
+                            where worker_uuid = :worker_uuid
+                        """
+                        ),
+                        {"worker_uuid": self._worker_uuid},
+                    )
+
         logger.debug(
             "Blackboard entry posted: type=%s subject=%s id=%s",
             entry_type,
