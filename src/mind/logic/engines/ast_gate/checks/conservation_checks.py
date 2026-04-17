@@ -71,7 +71,7 @@ class ConservationChecks:
                 reduction_pct = (1 - ratio) * 100
                 violations.append(
                     f"MASS DELETION DETECTED: Code density reduced by {reduction_pct:.1f}%. "
-                    f"(Threshold: {min_ratio*100:.0f}%). "
+                    f"(Threshold: {min_ratio * 100:.0f}%). "
                     "This suggests potential logic evaporation."
                 )
 
