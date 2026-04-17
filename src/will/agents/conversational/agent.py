@@ -250,7 +250,7 @@ class ConversationalAgent:
         task_context = f"""
 Task Interpretation:
 - Type: {task.task_type.value}
-- Targets: {', '.join(task.targets) if task.targets else 'none specified'}
+- Targets: {", ".join(task.targets) if task.targets else "none specified"}
 - Confidence: {task.confidence:.2f}
 """
 
