@@ -424,7 +424,7 @@ class BlackboardService:
             )
             findings.append(
                 {
-                    "entry_id": str(row[0]),
+                    "id": str(row[0]),
                     "subject": row[1],
                     "payload": payload or {},
                 }
@@ -451,7 +451,7 @@ class BlackboardService:
                         text(
                             """
                             UPDATE core.blackboard_entries
-                            SET status = 'resolved'
+                            SET status = 'resolved', updated_at = now()
                             WHERE id = cast(:entry_id as uuid)
                               AND status = 'open'
                             """
@@ -510,7 +510,7 @@ class BlackboardService:
         in the mapped_rule_ids set. Used by ViolationExecutorWorker (Will)
         to claim findings that RemediatorWorker left unclaimed.
 
-        Returns a list of dicts: {entry_id, subject, payload}.
+        Returns a list of dicts: {id, subject, payload}.
         """
         from body.services.service_registry import ServiceRegistry
 
@@ -542,7 +542,8 @@ class BlackboardService:
             )
             UPDATE core.blackboard_entries
             SET status = 'claimed',
-                claimed_by = cast(:claimed_by as uuid)
+                claimed_by = cast(:claimed_by as uuid),
+                updated_at = now()
             WHERE id IN (SELECT id FROM to_claim)
             RETURNING id, subject, payload
         """
@@ -562,7 +563,7 @@ class BlackboardService:
             )
             findings.append(
                 {
-                    "entry_id": str(row[0]),
+                    "id": str(row[0]),
                     "subject": row[1],
                     "payload": payload,
                 }
@@ -589,7 +590,7 @@ class BlackboardService:
                         text(
                             """
                             UPDATE core.blackboard_entries
-                            SET status = 'abandoned'
+                            SET status = 'abandoned', updated_at = now()
                             WHERE id = cast(:entry_id as uuid)
                               AND status = 'claimed'
                             """
@@ -648,7 +649,7 @@ class BlackboardService:
                 text(
                     """
                     UPDATE core.blackboard_entries
-                    SET status = :status
+                    SET status = :status, updated_at = now()
                     WHERE id = :id
                     """
                 ),
