@@ -29,7 +29,7 @@ from rich.panel import Panel
 from rich.table import Table
 from sqlalchemy import text
 
-from shared.cli_utils import async_command
+from cli.utils import async_command
 from shared.infrastructure.database.session_manager import get_session
 from shared.logger import getLogger
 

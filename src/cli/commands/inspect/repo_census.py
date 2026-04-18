@@ -18,7 +18,7 @@ from body.services.cim.baselines import BaselineManager
 from body.services.cim.diff import DiffEngine
 from body.services.cim.history import CensusHistory
 from body.services.cim.policy import PolicyEvaluator
-from shared.cli_utils import core_command
+from cli.utils import core_command
 from shared.logger import getLogger
 
 

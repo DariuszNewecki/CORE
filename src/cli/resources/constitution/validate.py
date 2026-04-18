@@ -6,8 +6,8 @@ logger = getLogger(__name__)
 import typer
 from rich.console import Console
 
+from cli.utils import core_command
 from mind.governance.meta_validator import MetaValidator
-from shared.cli_utils import core_command
 
 from . import app
 

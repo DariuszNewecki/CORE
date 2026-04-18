@@ -8,7 +8,7 @@ from rich.console import Console
 
 from cli.logic.diagnostics import get_unassigned_symbols_logic
 from cli.logic.symbol_drift import inspect_symbol_drift
-from shared.cli_utils import core_command
+from cli.utils import core_command
 
 from .hub import app
 

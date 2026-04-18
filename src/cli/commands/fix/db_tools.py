@@ -18,7 +18,7 @@ import typer
 
 from body.maintenance.command_sync_service import _sync_commands_to_db
 from body.maintenance.sync_vectors import main_async as sync_vectors_async
-from shared.cli_utils import core_command
+from cli.utils import core_command
 from shared.infrastructure.database.session_manager import get_session
 
 from . import fix_app

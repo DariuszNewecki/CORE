@@ -17,8 +17,8 @@ import typer
 
 from cli.logic.symbol_drift import inspect_symbol_drift
 from cli.logic.vector_drift import inspect_vector_drift
+from cli.utils import core_command, deprecated_command
 from mind.enforcement.guard_cli import register_guard
-from shared.cli_utils import core_command, deprecated_command
 from shared.context import CoreContext
 from shared.logger import getLogger
 from shared.models.command_meta import CommandBehavior, CommandLayer, command_meta

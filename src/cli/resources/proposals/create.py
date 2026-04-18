@@ -8,7 +8,7 @@ from rich.console import Console
 
 from body.services.service_registry import service_registry
 from cli.logic.autonomy.actions import parse_action_options
-from shared.cli_utils import core_command
+from cli.utils import core_command
 from shared.models.command_meta import CommandBehavior, CommandLayer, command_meta
 from will.autonomy.proposal import Proposal, ProposalScope
 from will.autonomy.proposal_repository import ProposalRepository

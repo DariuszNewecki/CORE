@@ -1,4 +1,4 @@
-# src/shared/cli_utils/helpers.py
+# src/cli/utils/helpers.py
 
 """
 CLI helper utilities for common command patterns.

@@ -5,7 +5,7 @@ import typer
 from body.infrastructure.repositories.decision_trace_repository import (
     DecisionTraceRepository,
 )
-from shared.cli_utils import core_command
+from cli.utils import core_command
 from shared.infrastructure.database.session_manager import get_session
 
 from .hub import app

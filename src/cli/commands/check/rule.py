@@ -25,8 +25,8 @@ from cli.commands.check.formatters import (
     print_summary_findings,
     print_verbose_findings,
 )
+from cli.utils import core_command
 from mind.governance.filtered_audit import run_filtered_audit
-from shared.cli_utils import core_command
 from shared.context import CoreContext
 from shared.models import AuditSeverity
 

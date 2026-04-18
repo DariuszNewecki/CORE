@@ -16,8 +16,8 @@ from rich.console import Console
 
 from cli.logic.body_contracts_checker import check_body_contracts
 from cli.logic.diagnostics_policy import policy_coverage
+from cli.utils import core_command
 from shared.action_types import ActionResult
-from shared.cli_utils import core_command
 
 
 console = Console()

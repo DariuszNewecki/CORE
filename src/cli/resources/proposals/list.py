@@ -8,7 +8,7 @@ from rich.console import Console
 
 from body.services.service_registry import service_registry
 from cli.logic.autonomy.views import render_list_table
-from shared.cli_utils import core_command
+from cli.utils import core_command
 from will.autonomy.proposal import ProposalStatus
 from will.autonomy.proposal_repository import ProposalRepository
 

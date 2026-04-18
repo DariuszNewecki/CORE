@@ -10,7 +10,7 @@ from __future__ import annotations
 import typer
 from rich.console import Console
 
-from shared.cli_utils import core_command
+from cli.utils import core_command
 from shared.context import CoreContext
 from shared.infrastructure.clients.qdrant_client import QdrantService
 from shared.infrastructure.vector.cognitive_adapter import CognitiveEmbedderAdapter

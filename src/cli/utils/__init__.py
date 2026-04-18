@@ -1,4 +1,4 @@
-# src/shared/cli_utils/__init__.py
+# src/cli/utils/__init__.py
 
 """
 Modularized Package Entry Point (V2.3).

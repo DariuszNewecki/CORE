@@ -1,0 +1,32 @@
+# .intent/enforcement/constitutional_envelope.yaml
+#
+# Constitutional rule injection configuration for LLM calls
+#
+# AUTHORITY: Constitutional governance (Mind layer)
+# ENFORCEMENT: Runtime rule selection for AI prompts
+#
+# Consumed by: src/shared/ai/constitutional_envelope.py
+#
+# Extracts what were previously hardcoded constants
+# (_LAYER_MAP, _ALWAYS_INCLUDE_CATEGORIES, _INCLUDE_ENFORCEMENT)
+# from Python source into constitutional governance.
+
+# File path prefix → canonical layer name for rule scope resolution
+layer_map:
+  "src/body/": "body"
+  "src/will/": "will"
+  "src/mind/": "mind"
+  "src/shared/": "shared"
+  "src/cli/": "cli"
+
+# Rule policy categories always injected regardless of layer context
+always_include_categories:
+  - "code"
+  - "logic"
+  - "ai"
+
+# Enforcement levels included in constitutional envelope
+# (advisory omitted as informational-only)
+include_enforcement_levels:
+  - "blocking"
+  - "reporting"

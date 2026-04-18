@@ -11,7 +11,7 @@ import typer
 from dotenv import load_dotenv
 from rich.console import Console
 
-from shared.cli_utils import core_command
+from cli.utils import core_command
 from shared.context import CoreContext
 from shared.infrastructure.config_service import ConfigService
 from shared.infrastructure.database.session_manager import get_session

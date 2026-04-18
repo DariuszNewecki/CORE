@@ -14,7 +14,7 @@ from rich.console import Console
 
 from body.services.file_service import FileService
 from body.services.service_registry import _ServiceLoader
-from shared.cli_utils import core_command
+from cli.utils import core_command
 from shared.context import CoreContext
 from shared.infrastructure.config_service import ConfigService
 from shared.logger import getLogger

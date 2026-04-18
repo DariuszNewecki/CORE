@@ -7,7 +7,7 @@ import typer
 from rich.console import Console
 
 from body.project_lifecycle.scaffolding_service import create_new_project
-from shared.cli_utils import core_command
+from cli.utils import core_command
 from shared.context import CoreContext
 
 from . import app

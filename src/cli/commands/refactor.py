@@ -24,7 +24,7 @@ from cli.commands.refactor_support.config import (
 from cli.commands.refactor_support.display import RefactorDisplay
 from cli.commands.refactor_support.display import console as refactor_console
 from cli.commands.refactor_support.recommendations import RecommendationEngine
-from shared.cli_utils import core_command
+from cli.utils import core_command
 from shared.context import CoreContext
 
 

@@ -6,7 +6,7 @@ logger = getLogger(__name__)
 import typer
 from rich.console import Console
 
-from shared.cli_utils import core_command
+from cli.utils import core_command
 from will.tools.policy_vectorizer import PolicyVectorizer
 
 from . import app

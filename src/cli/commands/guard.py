@@ -15,8 +15,8 @@ import typer
 from body.introspection.drift_detector import write_report
 from body.introspection.drift_service import run_drift_analysis_async
 from cli.logic.cli_utils import should_fail
+from cli.utils import core_command
 from mind.enforcement.guard import _print_pretty, _ux_defaults
-from shared.cli_utils import core_command
 
 
 __all__ = ["guard_drift_cmd", "register_guard"]

@@ -21,7 +21,7 @@ from rich.console import Console
 from cli.logic import diagnostics as diagnostics_logic
 from cli.logic.duplicates import inspect_duplicates_async
 from cli.logic.knowledge import find_common_knowledge
-from shared.cli_utils import core_command, deprecated_command
+from cli.utils import core_command, deprecated_command
 from shared.context import CoreContext
 from shared.models.command_meta import CommandBehavior, CommandLayer, command_meta
 

@@ -20,9 +20,9 @@ from pathlib import Path
 import typer
 
 from body.atomic.executor import ActionExecutor
+from cli.utils import core_command
 from shared.action_types import ActionImpact, ActionResult
 from shared.atomic_action import atomic_action
-from shared.cli_utils import core_command
 
 from . import fix_app
 

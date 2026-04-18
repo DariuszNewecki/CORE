@@ -23,7 +23,7 @@ from rich.panel import Panel
 from rich.table import Table
 
 from cli.logic import governance_logic as logic
-from shared.cli_utils import core_command
+from cli.utils import core_command
 from shared.logger import getLogger
 
 

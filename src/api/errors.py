@@ -1,4 +1,4 @@
-# src/shared/errors.py
+# src/api/errors.py
 
 """
 Centralizes HTTP exception handling to prevent sensitive stack trace leaks and ensure consistent error responses.

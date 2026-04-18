@@ -9,7 +9,7 @@ import typer
 from rich.console import Console
 
 from cli.logic.byor import initialize_repository
-from shared.cli_utils import core_command
+from cli.utils import core_command
 
 from . import app
 

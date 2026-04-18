@@ -17,8 +17,8 @@ from sqlalchemy import text
 
 from cli.commands.check.converters import parse_min_severity
 from cli.commands.check.formatters import print_summary_findings, print_verbose_findings
+from cli.utils import core_command
 from mind.governance.auditor import ConstitutionalAuditor
-from shared.cli_utils import core_command
 from shared.infrastructure.database.session_manager import get_session
 from shared.logger import getLogger
 from shared.models import AuditFinding, AuditSeverity

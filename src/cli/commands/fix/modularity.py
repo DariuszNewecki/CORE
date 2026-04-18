@@ -17,7 +17,7 @@ logger = getLogger(__name__)
 import typer
 from rich.table import Table
 
-from shared.cli_utils import core_command
+from cli.utils import core_command
 from shared.context import CoreContext
 
 from . import fix_app

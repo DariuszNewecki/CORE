@@ -31,7 +31,7 @@ from cli.logic.legacy_scan_logic import (
     get_top_debt_files,
     scan_for_legacy_markers,
 )
-from shared.cli_utils import core_command
+from cli.utils import core_command
 from shared.models.command_meta import CommandBehavior, CommandLayer, command_meta
 
 from .hub import app

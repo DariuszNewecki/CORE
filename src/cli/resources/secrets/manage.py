@@ -15,8 +15,7 @@ import time
 import typer
 from rich.table import Table
 
-from shared.action_types import ActionImpact, ActionResult
-from shared.cli_utils import (
+from cli.utils import (
     confirm_action,
     core_command,
     display_error,
@@ -24,6 +23,7 @@ from shared.cli_utils import (
     display_success,
     display_warning,
 )
+from shared.action_types import ActionImpact, ActionResult
 from shared.exceptions import SecretNotFoundError, SecretsError
 from shared.infrastructure.database.session_manager import get_session
 from shared.infrastructure.secrets_service import get_secrets_service

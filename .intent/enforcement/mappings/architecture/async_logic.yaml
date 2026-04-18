@@ -27,14 +27,10 @@ mappings:
       excludes:
         # CLI Entry Points - Bootstrap async runtime
         - "src/cli/cli_user.py"
-        - "src/body/cli/admin_cli.py"
-        - "src/body/cli/commands/**" # Matches both commands/*.py and commands/*/*.py
-        - "src/body/cli/resources/**" # CLI resource neurons (context/build, context/search, etc.)
         # CLI Helpers - Provide @async_command decorator
-        - "src/shared/cli_utils.py"
+        - "src/cli/utils/**"
         # Maintenance Scripts - Standalone entry points
-        - "src/features/maintenance/scripts/**"
-        - "src/body/maintenance/scripts/**" # Body-side maintenance scripts
+        - "src/body/maintenance/scripts/**"
         # Tests
         - "tests/**"
 
@@ -45,4 +41,4 @@ mappings:
       check_type: no_print_statements
     scope:
       applies_to: ["src/**/*.py"]
-      excludes: ["src/body/cli/commands/**", "src/api/**", "tests/**"]
+      excludes: ["src/api/**", "tests/**"]

@@ -6,8 +6,8 @@ logger = getLogger(__name__)
 import typer
 from rich.console import Console
 
+from cli.utils import core_command
 from mind.enforcement.audit import test_system
-from shared.cli_utils import core_command
 
 from .hub import app
 

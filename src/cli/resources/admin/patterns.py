@@ -2,7 +2,7 @@
 
 import typer
 
-from shared.cli_utils import core_command
+from cli.utils import core_command
 
 from .hub import app
 

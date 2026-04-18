@@ -15,7 +15,7 @@ mappings:
         - "src/body/project_lifecycle/scaffolding_service.py"
         - "src/body/services/intent_schema_validator.py"
         - "src/mind/governance/meta_validator.py"
-        - "src/will/commands/daemon.py"
+        - "src/cli/commands/daemon.py"
         - "src/will/workers/worker_auditor.py"
         - "tests/**/*.py"
 

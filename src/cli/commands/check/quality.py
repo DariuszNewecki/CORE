@@ -11,10 +11,10 @@ from __future__ import annotations
 import typer
 from rich.console import Console
 
+from cli.utils import core_command
 from mind.enforcement.audit import lint, test_system
 from shared.action_types import ActionImpact, ActionResult
 from shared.atomic_action import atomic_action
-from shared.cli_utils import core_command
 
 
 console = Console()

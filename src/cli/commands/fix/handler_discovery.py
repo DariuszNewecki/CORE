@@ -14,7 +14,7 @@ from rich.console import Console
 from rich.table import Table
 
 from body.atomic.registry import action_registry
-from shared.cli_utils import core_command
+from cli.utils import core_command
 
 from . import fix_app
 

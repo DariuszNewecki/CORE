@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import typer
 
-from shared.cli_utils import core_command
+from cli.utils import core_command
 
 
 mind_app = typer.Typer(

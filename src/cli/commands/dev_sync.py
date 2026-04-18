@@ -22,8 +22,8 @@ from rich.console import Console
 from rich.table import Table
 
 from body.workflows.dev_sync_workflow import DevSyncWorkflow
+from cli.utils import core_command
 from shared.activity_logging import activity_run
-from shared.cli_utils import core_command
 from shared.context import CoreContext
 
 

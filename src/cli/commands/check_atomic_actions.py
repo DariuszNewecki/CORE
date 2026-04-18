@@ -21,7 +21,7 @@ from body.evaluators.atomic_actions_evaluator import (
     AtomicActionViolation,
     format_atomic_action_violations,
 )
-from shared.cli_utils import core_command
+from cli.utils import core_command
 from shared.context import CoreContext
 from shared.logger import getLogger
 

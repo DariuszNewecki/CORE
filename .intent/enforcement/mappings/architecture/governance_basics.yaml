@@ -32,32 +32,9 @@ mappings:
         - "src/mind/governance/runtime_validator.py" # Validation infrastructure
         - "src/shared/infrastructure/validation/ruff_linter.py" # Linting infrastructure
 
-        # --- THE PROTECTED ZONE: Reporting & Metadata ---
-        # These components generate reports/artifacts and are governed by
-        # governance.artifact_mutation.traceable (reporting-level enforcement)
-        - "src/body/cli/commands/governance.py"
-        - "src/body/cli/logic/db.py"
-        - "src/body/cli/logic/cli_utils.py"
-        - "src/body/cli/logic/byor.py"
-        - "src/mind/governance/constitutional_monitor.py"
-        - "src/mind/governance/key_management_service.py"
-
         # --- AUTONOMOUS CODE: Now enforced (no exclusions) ---
         # Self-healing modules MUST route writes through FileHandler
         # Violations will be detected and must be fixed in P3
-
-  # 3. THE REPORTING LAW: Artifacts should use FileHandler.
-  # This rule issues WARNINGS for the files in THE PROTECTED ZONE.
-  governance.artifact_mutation.traceable:
-    engine: ast_gate
-    params:
-      check_type: no_direct_writes
-    scope:
-      applies_to:
-        - "src/body/cli/commands/governance.py"
-        - "src/body/cli/logic/**"
-        - "src/mind/governance/constitutional_monitor.py"
-        - "src/mind/governance/key_management_service.py"
 
   governance.no_governance_bypass:
     engine: ast_gate

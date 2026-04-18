@@ -13,9 +13,9 @@ from __future__ import annotations
 
 from fastapi import FastAPI
 
+from api.errors import register_exception_handlers
 from api.v1 import development_routes, knowledge_routes
 from body.infrastructure.lifespan import core_lifespan
-from shared.errors import register_exception_handlers
 from shared.logger import getLogger
 
 

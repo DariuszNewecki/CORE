@@ -9,7 +9,7 @@ from __future__ import annotations
 import typer
 from sqlalchemy import text
 
-from shared.cli_utils import core_command
+from cli.utils import core_command
 from shared.infrastructure.database.session_manager import get_session
 
 

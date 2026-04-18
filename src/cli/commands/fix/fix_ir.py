@@ -14,7 +14,7 @@ from typing import TYPE_CHECKING
 
 import typer
 
-from shared.cli_utils import core_command
+from cli.utils import core_command
 from shared.logger import getLogger
 
 from . import fix_app

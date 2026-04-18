@@ -17,7 +17,7 @@ from rich.console import Console
 from rich.table import Table
 
 from body.atomic.executor import ActionExecutor
-from shared.cli_utils import core_command
+from cli.utils import core_command
 from shared.context import CoreContext
 
 from .hub import app

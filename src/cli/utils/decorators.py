@@ -1,4 +1,4 @@
-# src/shared/cli_utils/decorators.py
+# src/cli/utils/decorators.py
 """
 Constitutional CLI Decorators.
 

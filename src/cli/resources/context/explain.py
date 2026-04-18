@@ -24,7 +24,7 @@ from rich.console import Console
 
 from body.infrastructure.bootstrap import create_core_context
 from body.services.service_registry import service_registry
-from shared.cli_utils import core_command
+from cli.utils import core_command
 from shared.infrastructure.storage.file_handler import FileHandler
 from shared.logger import getLogger
 from shared.models.command_meta import CommandBehavior, CommandLayer, command_meta

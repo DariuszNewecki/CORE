@@ -1,6 +1,6 @@
 {
-  "audit_id": "e4acfddf-0b83-48cf-ad02-3088e27dd4b9",
-  "timestamp": "2026-04-15T17:21:13Z",
+  "audit_id": "a2dfa9c2-aea4-461a-b4da-7a916a19bb29",
+  "timestamp": "2026-04-18T09:29:08Z",
   "passed": true,
   "findings_count": 3,
   "executed_rules": [
@@ -78,7 +78,6 @@
     "data.integrity.vector_sync",
     "data.security.no_raw_secrets",
     "data.ssot.database_primacy",
-    "governance.artifact_mutation.traceable",
     "governance.constitution.read_only",
     "governance.dangerous_execution_primitives",
     "governance.intent_artifact_encoding.ascii_only",
@@ -123,6 +122,7 @@
     "quality.security_audit",
     "quality.test_integrity",
     "quality.type_safety",
+    "style.formatter_required",
     "style.import_order"
   ],
   "verdict": "PASS"

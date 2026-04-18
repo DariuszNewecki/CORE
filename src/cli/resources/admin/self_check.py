@@ -9,7 +9,7 @@ import typer
 from rich.console import Console
 
 from body.atomic.executor import ActionExecutor
-from shared.cli_utils import core_command
+from cli.utils import core_command
 from shared.models.command_meta import CommandBehavior, CommandLayer, command_meta
 
 from .hub import app

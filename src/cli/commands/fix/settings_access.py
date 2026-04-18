@@ -11,7 +11,7 @@ import typer
 from rich.console import Console
 
 from body.maintenance.refactor_settings_access import refactor_settings_access
-from shared.cli_utils import core_command
+from cli.utils import core_command
 from shared.context import CoreContext
 
 from . import fix_app

@@ -27,12 +27,12 @@ from cli.commands.check.formatters import (
     print_verbose_findings,
 )
 from cli.logic.audit_renderer import AuditStats, render_overview
+from cli.utils import core_command
 from mind.governance.audit_postprocessor import apply_entry_point_downgrade
 from mind.governance.audit_report_writer import build_auto_ignored_markdown
 from mind.governance.auditor import ConstitutionalAuditor
 from mind.governance.filtered_audit import run_filtered_audit
 from shared.activity_logging import activity_run
-from shared.cli_utils import core_command
 from shared.models import AuditFinding, AuditSeverity
 
 from .hub import app

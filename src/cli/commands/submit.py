@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import typer
 
-from shared.cli_utils import deprecated_command
+from cli.utils import deprecated_command
 
 
 submit_app = typer.Typer(

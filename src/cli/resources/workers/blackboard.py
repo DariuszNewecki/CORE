@@ -9,7 +9,7 @@ import typer
 from rich.console import Console
 from rich.table import Table
 
-from shared.cli_utils.decorators import core_command
+from cli.utils.decorators import core_command
 from shared.infrastructure.database.session_manager import get_session
 from shared.logger import getLogger
 

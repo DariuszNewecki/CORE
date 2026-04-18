@@ -19,7 +19,7 @@ from rich.tree import Tree
 
 from body.self_healing.test_target_analyzer import TestTargetAnalyzer
 from cli.logic import diagnostics as diagnostics_logic
-from shared.cli_utils import core_command
+from cli.utils import core_command
 from shared.logger import getLogger
 from shared.models.command_meta import CommandBehavior, CommandLayer, command_meta
 

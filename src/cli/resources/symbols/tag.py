@@ -8,7 +8,7 @@ logger = getLogger(__name__)
 import typer
 from rich.console import Console
 
-from shared.cli_utils import core_command
+from cli.utils import core_command
 from shared.context import CoreContext
 from shared.infrastructure.database.session_manager import get_session
 

@@ -13,7 +13,7 @@ import typer
 from rich.console import Console
 from rich.table import Table
 
-from shared.cli_utils import core_command
+from cli.utils import core_command
 from shared.infrastructure.diagnostic_service import DiagnosticService
 from shared.models.command_meta import CommandBehavior, CommandLayer, command_meta
 

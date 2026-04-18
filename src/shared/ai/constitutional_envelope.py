@@ -29,30 +29,106 @@ logger = getLogger(__name__)
 
 
 # ---------------------------------------------------------------------------
-# Layer resolution
+# Constitutional configuration — loaded from .intent/ at runtime
 # ---------------------------------------------------------------------------
+#
+# Layer map, always-include categories, and enforcement-level filter are
+# constitutional policy decisions. They live in
+#   .intent/enforcement/constitutional_envelope.yaml
+# and are loaded lazily on first use. This module does not hardcode them.
 
-# File path prefix → canonical layer name
-_LAYER_MAP: dict[str, str] = {
+# Fallback values used only if the .intent/ config cannot be loaded.
+# These exist so the envelope degrades gracefully (fail-open) rather than
+# crashing every LLM call when the constitution file is missing.
+_FALLBACK_LAYER_MAP: dict[str, str] = {
     "src/body/": "body",
     "src/will/": "will",
     "src/mind/": "mind",
     "src/shared/": "shared",
     "src/cli/": "cli",
 }
+_FALLBACK_ALWAYS_INCLUDE_CATEGORIES: frozenset[str] = frozenset({"code", "logic", "ai"})
+_FALLBACK_INCLUDE_ENFORCEMENT: frozenset[str] = frozenset({"blocking", "reporting"})
 
-# Rule policy categories always injected regardless of layer
-_ALWAYS_INCLUDE_CATEGORIES: frozenset[str] = frozenset({"code", "logic", "ai"})
-
-# Enforcement levels included in the envelope (advisory is omitted — informational only)
-_INCLUDE_ENFORCEMENT: frozenset[str] = frozenset({"blocking", "reporting"})
-
-# Authority → sort precedence (lower = higher authority, injected first)
+# Authority → sort precedence (lower = higher authority, injected first).
+# This is structural, not policy — it reflects the type system of the
+# constitution itself, so it stays in code.
 _AUTHORITY_ORDER: dict[str, int] = {
     "constitution": 0,
     "policy": 1,
     "advisory": 2,
 }
+
+# Logical path (relative to .intent/ root) of the envelope config file.
+_CONFIG_REL_PATH = "enforcement/constitutional_envelope.yaml"
+
+# Cached config — populated on first call, reused thereafter.
+_config_cache: dict[str, Any] | None = None
+
+
+# ID: 4f3a9c1b-2e8d-4a6f-9b15-c70e1d8a5f24
+def _load_envelope_config() -> dict[str, Any]:
+    """
+    Load constitutional envelope config from .intent/ via IntentRepository.
+
+    Returns the cached dict on subsequent calls. On load failure, caches
+    an empty dict so callers fall through to fallbacks without retrying.
+    All .intent/ access goes through IntentRepository per constitutional rule.
+    """
+    global _config_cache
+    if _config_cache is not None:
+        return _config_cache
+
+    try:
+        from shared.infrastructure.intent.intent_repository import (
+            get_intent_repository,
+        )
+
+        repo = get_intent_repository()
+        config_path = repo.resolve_rel(_CONFIG_REL_PATH)
+        raw = repo.load_document(config_path)
+    except Exception as e:
+        logger.warning(
+            "ConstitutionalEnvelope config could not be loaded from "
+            ".intent/%s (%s) — using fallback constants.",
+            _CONFIG_REL_PATH,
+            e,
+        )
+        _config_cache = {}
+        return _config_cache
+
+    _config_cache = raw if isinstance(raw, dict) else {}
+    return _config_cache
+
+
+# ID: 8a2c5e91-7b04-43d1-a6f8-9e2b1c4d05a3
+def _layer_map() -> dict[str, str]:
+    """Return the file-prefix → layer mapping from .intent/ config."""
+    cfg = _load_envelope_config()
+    raw = cfg.get("layer_map")
+    if isinstance(raw, dict) and raw:
+        return {str(k): str(v) for k, v in raw.items()}
+    return _FALLBACK_LAYER_MAP
+
+
+# ID: c4e7d290-1f63-4892-bc05-3a8f6d9b7e10
+def _always_include_categories() -> frozenset[str]:
+    """Return the always-injected rule categories from .intent/ config."""
+    cfg = _load_envelope_config()
+    raw = cfg.get("always_include_categories")
+    if isinstance(raw, list) and raw:
+        return frozenset(str(c) for c in raw)
+    return _FALLBACK_ALWAYS_INCLUDE_CATEGORIES
+
+
+# ID: 6b91d3f4-58a2-4e07-b1c5-d2f4e80a9c63
+def _include_enforcement_levels() -> frozenset[str]:
+    """Return the enforcement levels included in the envelope from .intent/ config."""
+    cfg = _load_envelope_config()
+    raw = cfg.get("include_enforcement_levels")
+    if isinstance(raw, list) and raw:
+        return frozenset(str(level) for level in raw)
+    return _FALLBACK_INCLUDE_ENFORCEMENT
 
 
 # ---------------------------------------------------------------------------
@@ -67,11 +143,12 @@ def _resolve_layers(target_files: list[str]) -> set[str]:
 
     Falls back to 'shared' when a file does not match any known prefix.
     """
+    layer_map = _layer_map()
     layers: set[str] = set()
     for f in target_files:
         f_norm = f.replace("\\", "/")
         matched = False
-        for prefix, layer in _LAYER_MAP.items():
+        for prefix, layer in layer_map.items():
             if f_norm.startswith(prefix):
                 layers.add(layer)
                 matched = True
@@ -104,12 +181,12 @@ def _is_relevant(rule_entry: dict[str, Any], layers: set[str]) -> bool:
     """
     rule = rule_entry.get("rule", {})
     enforcement = rule.get("enforcement", "advisory")
-    if enforcement not in _INCLUDE_ENFORCEMENT:
+    if enforcement not in _include_enforcement_levels():
         return False
 
     category = _rule_category(rule_entry.get("policy_name", ""))
 
-    if category in _ALWAYS_INCLUDE_CATEGORIES:
+    if category in _always_include_categories():
         return True
 
     if category == "architecture" and len(layers) > 1:

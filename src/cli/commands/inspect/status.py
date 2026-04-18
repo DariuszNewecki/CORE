@@ -13,7 +13,7 @@ import typer
 from rich.console import Console
 
 import cli.logic.status as status_logic
-from shared.cli_utils import core_command
+from cli.utils import core_command
 from shared.models.command_meta import CommandBehavior, CommandLayer, command_meta
 
 

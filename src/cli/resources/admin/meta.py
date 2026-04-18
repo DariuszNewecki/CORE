@@ -7,9 +7,9 @@ import typer
 from rich.console import Console
 
 from body.analyzers.constitutional_path_analyzer import ConstitutionalPathAnalyzer
+from cli.utils import core_command
 from shared.action_types import ActionImpact, ActionResult
 from shared.atomic_action import atomic_action
-from shared.cli_utils import core_command
 
 from .hub import app
 

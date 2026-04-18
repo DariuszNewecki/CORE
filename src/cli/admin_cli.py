@@ -19,6 +19,7 @@ from rich.console import Console
 
 from body.infrastructure.bootstrap import create_core_context
 from body.services.service_registry import service_registry
+from cli.commands.daemon import daemon_app
 from cli.commands.interactive_test import app as interactive_test_app
 from cli.commands.refactor import refactor_app
 from cli.commands.status import status_app
@@ -38,7 +39,6 @@ from cli.resources.symbols import app as symbols_app
 from cli.resources.vectors import app as vectors_app
 from cli.resources.workers import app as workers_app
 from shared.infrastructure.database.session_manager import get_session
-from will.commands.daemon import daemon_app
 
 
 console = Console()

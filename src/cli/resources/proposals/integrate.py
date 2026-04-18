@@ -15,7 +15,7 @@ from typing import TYPE_CHECKING
 import typer
 from rich.console import Console
 
-from shared.cli_utils import core_command
+from cli.utils import core_command
 
 from . import app
 

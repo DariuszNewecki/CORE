@@ -26,7 +26,7 @@ import typer
 from rich.table import Table
 
 from body.self_healing.remediation_models import RemediationMode
-from shared.cli_utils import core_command
+from cli.utils import core_command
 from shared.context import CoreContext
 from will.self_healing.audit_remediation_service import AuditRemediationService
 

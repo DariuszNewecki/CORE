@@ -12,7 +12,7 @@ from rich.panel import Panel
 from rich.table import Table
 
 from cli.logic.governance.traceability_service import GovernanceTraceabilityService
-from shared.cli_utils import core_command
+from cli.utils import core_command
 from shared.logger import getLogger
 from shared.models.command_meta import CommandBehavior, CommandLayer, command_meta
 

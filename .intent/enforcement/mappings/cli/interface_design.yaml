@@ -60,7 +60,7 @@ mappings:
   cli.async_execution:
     engine: python_runtime
     params:
-      enforced_by: "shared.cli_utils.decorators.core_command"
+      enforced_by: "cli.utils.decorators.core_command"
       mechanism: "Decorator wraps async execution; absence causes RuntimeWarning at load"
     scope:
       applies_to: ["src/cli/resources/**/*.py"]

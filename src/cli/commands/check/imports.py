@@ -17,7 +17,7 @@ from rich.console import Console
 from rich.table import Table
 
 from body.atomic.check_actions import action_check_imports
-from shared.cli_utils import core_command
+from cli.utils import core_command
 
 
 console = Console()

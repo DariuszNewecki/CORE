@@ -1,4 +1,4 @@
-# src/shared/cli_utils/prompts.py
+# src/cli/utils/prompts.py
 """Refactored logic for src/shared/cli_utils/prompts.py."""
 
 from __future__ import annotations

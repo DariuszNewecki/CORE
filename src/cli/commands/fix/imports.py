@@ -18,9 +18,9 @@ from shared.logger import getLogger
 logger = getLogger(__name__)
 import typer
 
+from cli.utils import core_command
 from shared.action_types import ActionImpact, ActionResult
 from shared.atomic_action import atomic_action
-from shared.cli_utils import core_command
 from shared.utils.subprocess_utils import run_poetry_command
 
 from . import fix_app

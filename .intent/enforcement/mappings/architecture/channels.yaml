@@ -15,7 +15,7 @@ mappings:
         - "src/cli/**"
         - "src/body/cli/**"
         - "src/api/**"
-        - "src/shared/cli_utils/**"
+        - "src/cli/utils/**"
         - "src/will/cli_logic/**"
         - "tests/**"
 
@@ -47,7 +47,7 @@ mappings:
         - "src/cli/**"
         - "src/body/cli/**"
         - "src/api/**"
-        - "src/shared/cli_utils/**"
+        - "src/cli/utils/**"
         - "src/will/cli_logic/**"
         - "src/will/workflows/**"
         - "tests/**"
@@ -85,7 +85,7 @@ mappings:
       excludes:
         - "src/cli/**"
         - "src/body/cli/**"
-        - "src/shared/cli_utils/**"
+        - "src/cli/utils/**"
         - "src/will/cli_logic/**"
         - "src/will/workflows/**"
         - "tests/**"

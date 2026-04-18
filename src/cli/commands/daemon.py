@@ -1,4 +1,4 @@
-# src/will/commands/daemon.py
+# src/cli/commands/daemon.py
 # ID: will.commands.daemon
 """
 Daemon Command - Background Worker Lifecycle Management.
@@ -11,7 +11,7 @@ Constitutional standing:
 - Workers started here manage their own asyncio loops via run_loop().
 - This module does not schedule — it starts and monitors.
 
-LAYER: will/commands — orchestration boundary.
+LAYER: cli/commands — CLI entry point for Will orchestration.
 """
 
 from __future__ import annotations
@@ -23,7 +23,7 @@ from typing import Any
 
 import typer
 
-from shared.cli_utils import async_command
+from cli.utils import async_command
 from shared.logger import getLogger
 
 

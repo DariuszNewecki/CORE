@@ -7,7 +7,7 @@ import typer
 from rich.console import Console
 
 from cli.logic.interactive_test_logic import run_interactive_test_generation
-from shared.cli_utils import core_command
+from cli.utils import core_command
 
 from .hub import app
 

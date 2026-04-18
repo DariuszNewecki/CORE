@@ -7,7 +7,7 @@ import typer
 from rich.console import Console
 
 from cli.logic import governance_logic
-from shared.cli_utils import core_command
+from cli.utils import core_command
 
 from . import app
 

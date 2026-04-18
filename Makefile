@@ -77,7 +77,7 @@ daemon-start: ## Start the CORE daemon in the background
 		exit 0; \
 	fi
 	@echo "🟢 Starting CORE daemon..."
-	@nohup $(POETRY) run python -c "import asyncio; from will.commands.daemon import _run_daemon; asyncio.run(_run_daemon())" >> $(DAEMON_LOG) 2>&1 & echo $$! > $(DAEMON_PID)
+	@nohup $(POETRY) run python -c "import asyncio; from cli.commands.daemon import _run_daemon; asyncio.run(_run_daemon())" >> $(DAEMON_LOG) 2>&1 & echo $$! > $(DAEMON_PID)
 	@sleep 2
 	@if kill -0 "$$(cat $(DAEMON_PID))" 2>/dev/null; then \
 		echo "✅ Daemon started (PID $$(cat $(DAEMON_PID))) — logs: $(DAEMON_LOG)"; \

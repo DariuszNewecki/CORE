@@ -18,7 +18,7 @@ from rich.panel import Panel
 
 from body.infrastructure.bootstrap import create_core_context
 from body.services.service_registry import service_registry
-from shared.cli_utils import core_command
+from cli.utils import core_command
 from shared.infrastructure.context.models import (
     ContextBuildRequest,
     PhaseType,

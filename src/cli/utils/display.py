@@ -1,4 +1,4 @@
-# src/shared/cli_utils/display.py
+# src/cli/utils/display.py
 """Refactored logic for src/shared/cli_utils/display.py."""
 
 from __future__ import annotations
