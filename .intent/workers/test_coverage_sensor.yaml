@@ -1,0 +1,35 @@
+$schema: "META/worker.schema.json"
+kind: worker
+
+metadata:
+  id: workers.test_coverage_sensor
+  title: Test Coverage Sensor
+  version: "1.0.0"
+  authority: policy
+  status: active
+
+identity:
+  uuid: "f7e8d9c0-b1a2-4345-8901-234567890abc"
+  class: sensing
+
+mandate:
+  responsibility: >
+    Scan the declared source root for Python source files that have no
+    corresponding test file and post a test.run_required finding for each
+    gap. TestRunnerSensor consumes these findings to confirm and classify them.
+    Scan configuration is read at runtime from
+    .intent/enforcement/config/test_coverage.yaml.
+  phase: audit
+  permitted_tools: []
+  approval_required: false
+  scope:
+    domains:
+      - quality
+      - compliance
+  schedule:
+    max_interval: 600
+
+implementation:
+  module: will.workers.test_coverage_sensor
+  class: TestCoverageSensor
+  requires_core_context: true
