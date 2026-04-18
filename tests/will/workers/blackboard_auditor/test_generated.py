@@ -1,5 +1,5 @@
 import unittest
-from unittest.mock import Mock, patch, MagicMock
+
 from will.workers.blackboard_auditor import BlackboardAuditor
 
 
@@ -20,7 +20,7 @@ class TestBlackboardAuditor(unittest.TestCase):
         mock_data = {
             "entries": [
                 {"id": 1, "content": "Task 1", "status": "pending"},
-                {"id": 2, "content": "Task 2", "status": "completed"}
+                {"id": 2, "content": "Task 2", "status": "completed"},
             ]
         }
         result = self.auditor.audit(mock_data)
@@ -56,7 +56,7 @@ class TestBlackboardAuditor(unittest.TestCase):
                 {"id": 1, "content": "Task 1"},
                 {"id": 2, "status": "completed"},
                 "invalid_entry",
-                None
+                None,
             ]
         }
         result = self.auditor.audit(mock_data)
@@ -74,7 +74,7 @@ class TestBlackboardAuditor(unittest.TestCase):
             "entries": [
                 {"id": 1, "content": "Task 1", "status": "pending"},
                 {"id": 2, "content": "Task 2", "status": "unknown_status"},
-                {"id": 3, "content": "Task 3", "status": "completed"}
+                {"id": 3, "content": "Task 3", "status": "completed"},
             ]
         }
         result = self.auditor.audit(mock_data)
@@ -87,11 +87,11 @@ class TestBlackboardAuditor(unittest.TestCase):
 
     def test_audit_statelessness(self):
         """Ensure the audit method is stateless and idempotent."""
-        mock_data = {
-            "entries": [
-                {"id": 1, "content": "Task 1", "status": "pending"}
-            ]
-        }
+        mock_data = {"entries": [{"id": 1, "content": "Task 1", "status": "pending"}]}
         result1 = self.auditor.audit(mock_data)
         result2 = self.auditor.audit(mock_data)
-        s
+        self.assertEqual(result1, result2)
+
+
+if __name__ == "__main__":
+    unittest.main()
