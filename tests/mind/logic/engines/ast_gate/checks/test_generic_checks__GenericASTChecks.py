@@ -12,7 +12,6 @@ from mind.logic.engines.ast_gate.checks.generic_checks import GenericASTChecks
 
 
 class TestGenericASTChecksIsSelected:
-
     def test_is_selected_empty_selector_returns_true(self):
         """Empty selector should always return True"""
         node = ast.FunctionDef(
@@ -99,7 +98,6 @@ class TestGenericASTChecksIsSelected:
 
 
 class TestGenericASTChecksValidateRequirement:
-
     def test_validate_requirement_no_check_type_returns_none(self):
         """Should return None when no check_type specified"""
         node = ast.FunctionDef(

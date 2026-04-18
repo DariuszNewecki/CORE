@@ -12,7 +12,6 @@ from body.evaluators.atomic_actions_evaluator import format_atomic_action_violat
 
 
 class TestFormatAtomicActionViolations:
-
     def test_empty_violations_list(self):
         """Test with empty violations list returns success message."""
         result = format_atomic_action_violations([])

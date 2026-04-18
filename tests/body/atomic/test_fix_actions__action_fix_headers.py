@@ -16,7 +16,6 @@ async def test_action_fix_headers_context_usage():
     """Test that context is passed through correctly."""
 
     class MockCoreContext:
-
         def __init__(self, workspace_path):
             self.config = {"header_template": "Test Header"}
             self.workspace = workspace_path

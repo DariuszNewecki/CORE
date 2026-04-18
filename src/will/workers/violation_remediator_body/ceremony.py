@@ -1,4 +1,4 @@
-# src/body/workers/violation_remediator/ceremony.py
+# src/will/workers/violation_remediator_body/ceremony.py
 """
 Crate/Canary ceremony helpers for ViolationRemediator.
 
@@ -9,11 +9,11 @@ No LLM calls. No Blackboard writes.
 from __future__ import annotations
 
 import asyncio
-import subprocess
 from datetime import UTC, datetime
 from pathlib import Path
 
 from shared.logger import getLogger
+from shared.utils.subprocess_utils import run_command_async
 
 
 logger = getLogger(__name__)
@@ -84,9 +84,7 @@ class CeremonyMixin:
             ),
         ):
             try:
-                proc = await asyncio.to_thread(
-                    subprocess.run, cmd, capture_output=True, text=True, timeout=30
-                )
+                proc = await asyncio.wait_for(run_command_async(cmd), timeout=30)
                 if proc.returncode == 0:
                     logger.info(
                         "ViolationRemediator: %s aligned %s",

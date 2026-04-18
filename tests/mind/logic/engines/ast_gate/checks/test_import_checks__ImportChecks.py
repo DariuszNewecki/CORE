@@ -12,7 +12,6 @@ from mind.logic.engines.ast_gate.checks.import_checks import ImportChecks
 
 
 class TestCheckForbiddenImports:
-
     def test_empty_forbidden_list_returns_empty(self):
         """When forbidden list is empty, should return empty list."""
         tree = ast.parse("import os")
@@ -71,7 +70,6 @@ class TestCheckForbiddenImports:
 
 
 class TestCheckImportOrder:
-
     def test_non_module_tree_returns_empty(self):
         """When tree is not ast.Module, should return empty list."""
         tree = ast.parse("x = 1").body[0]

@@ -21,7 +21,6 @@ def test_copy_file():
         patch.object(Path, "write_bytes") as mock_write_bytes,
         patch.object(Path, "mkdir") as mock_mkdir,
     ):
-
         mock_read_bytes.return_value = test_data
 
         copy_file(src_path, dst_path)
@@ -45,7 +44,6 @@ def test_copy_file():
         patch.object(Path, "write_bytes") as mock_write_bytes,
         patch.object(Path, "mkdir") as mock_mkdir,
     ):
-
         mock_read_bytes.return_value = test_data
 
         copy_file(src_path, dst_path)
@@ -65,7 +63,6 @@ def test_copy_file():
         patch.object(Path, "write_bytes") as mock_write_bytes,
         patch.object(Path, "mkdir") as mock_mkdir,
     ):
-
         mock_read_bytes.return_value = test_data
 
         copy_file(src_path, dst_path)
@@ -85,7 +82,6 @@ def test_copy_file():
         patch.object(Path, "write_bytes") as mock_write_bytes,
         patch.object(Path, "mkdir") as mock_mkdir,
     ):
-
         mock_read_bytes.return_value = empty_data
 
         copy_file(src_path, dst_path)
@@ -104,7 +100,6 @@ def test_copy_file():
         patch.object(Path, "write_bytes") as mock_write_bytes,
         patch.object(Path, "mkdir") as mock_mkdir,
     ):
-
         mock_read_bytes.return_value = binary_data
 
         copy_file(src_path, dst_path)
@@ -123,7 +118,6 @@ def test_copy_file():
         patch.object(Path, "write_bytes") as mock_write_bytes,
         patch.object(Path, "mkdir") as mock_mkdir,
     ):
-
         mock_read_bytes.return_value = test_data
 
         # Create mock objects to track which paths are used

@@ -39,7 +39,7 @@ Constitutional standing:
 - Approval:         true (inherited from ViolationRemediator ceremony)
 
 LAYER: will/workers — acting worker. Delegates all execution ceremony to
-body.workers.violation_remediator.ViolationRemediator.process_file().
+will.workers.violation_remediator_body.ViolationRemediator.process_file().
 """
 
 from __future__ import annotations
@@ -224,7 +224,7 @@ class ViolationExecutorWorker(Worker):
         target_rule = rule_ids[0] if len(rule_ids) == 1 else "; ".join(rule_ids)
 
         try:
-            from body.workers.violation_remediator import ViolationRemediator
+            from will.workers.violation_remediator_body import ViolationRemediator
 
             # Ensure action_executor is available on the context.
             # action_executor is monkey-patched at CLI bootstrap time but is not

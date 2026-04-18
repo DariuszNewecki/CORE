@@ -12,7 +12,6 @@ from shared.action_types import ActionResult
 
 
 class TestActionResult:
-
     def test_basic_initialization(self):
         """Test basic initialization with required fields."""
         result = ActionResult(
@@ -67,7 +66,6 @@ class TestActionResult:
         """Test initialization with non-serializable data (should not crash)."""
 
         class CustomObject:
-
             def __repr__(self):
                 return "CustomObject()"
 

@@ -12,7 +12,6 @@ from mind.logic.engines.ast_gate.checks.naming_checks import NamingChecks
 
 
 class TestCheckCliAsyncHelpersPrivate:
-
     def test_no_async_functions(self):
         """Test when tree has no async functions"""
         code = "\ndef regular_function():\n    pass\n    \nclass MyClass:\n    def method(self):\n        pass\n"
@@ -57,7 +56,6 @@ class TestCheckCliAsyncHelpersPrivate:
 
 
 class TestCheckTestFileNaming:
-
     def test_non_test_file(self):
         """Test file without 'test' in name should pass"""
         result = NamingChecks.check_test_file_naming("/path/to/module.py")
@@ -100,7 +98,6 @@ class TestCheckTestFileNaming:
 
 
 class TestCheckMaxFileLines:
-
     def test_file_within_limit(self):
         """Test file with line count within limit"""
         code = "x = 1\ny = 2\nz = 3\n"
@@ -141,7 +138,6 @@ class TestCheckMaxFileLines:
 
 
 class TestCheckMaxFunctionLength:
-
     def test_function_within_limit(self):
         """Test function within line limit"""
         code = "\ndef short_function():\n    x = 1\n    y = 2\n    return x + y\n"

@@ -1,5 +1,5 @@
-# src/body/workers/violation_remediator/worker.py
-# ID: body.workers.violation_remediator
+# src/will/workers/violation_remediator_body/worker.py
+# ID: will.workers.violation_remediator_body
 """
 ViolationRemediator - Constitutional Compliance Acting Worker.
 
@@ -50,11 +50,11 @@ import uuid
 from typing import Any
 
 from shared.logger import getLogger
-from shared.self_healing.remediation_interpretation.service import (
+from shared.workers.base import Worker
+from will.self_healing.remediation_interpretation.service import (
     RemediationInterpretationError,
     RemediationInterpretationService,
 )
-from shared.workers.base import Worker
 
 from .blackboard import BlackboardMixin
 from .ceremony import CeremonyMixin

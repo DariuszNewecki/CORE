@@ -1,10 +1,10 @@
-# src/shared/self_healing/remediation_interpretation/responsibility_extractor.py
+# src/will/self_healing/remediation_interpretation/responsibility_extractor.py
 
 from __future__ import annotations
 
 from typing import Any
 
-from shared.self_healing.remediation_interpretation.models import ResponsibilityCluster
+from will.self_healing.remediation_interpretation.models import ResponsibilityCluster
 
 
 # ID: 2d31dc4e-c957-4cb6-b7c8-8d23d79dc0b4

@@ -1,4 +1,4 @@
-# src/body/workers/violation_remediator/__init__.py
+# src/will/workers/violation_remediator_body/__init__.py
 """
 ViolationRemediator package.
 

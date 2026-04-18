@@ -1,4 +1,4 @@
-# src/body/workers/violation_remediator/blackboard.py
+# src/will/workers/violation_remediator_body/blackboard.py
 """
 Blackboard interaction helpers for ViolationRemediator.
 

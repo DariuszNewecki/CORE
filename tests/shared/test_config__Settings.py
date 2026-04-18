@@ -68,7 +68,6 @@ def test_get_path_shim():
     )
 
     class MockPathResolver:
-
         def policy(self, logical_path):
             return Path(f"/mock/{logical_path}")
 
@@ -85,7 +84,6 @@ def test_load_method_empty_for_nonexistent():
     )
 
     class MockPathResolver:
-
         def policy(self, logical_path):
             return Path("/nonexistent/path/file.yaml")
 

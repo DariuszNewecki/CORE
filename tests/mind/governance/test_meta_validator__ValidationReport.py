@@ -10,7 +10,6 @@ from mind.governance.meta_validator import ValidationReport
 
 
 class TestValidationReport:
-
     def test_initialization_with_custom_values(self):
         """Test that ValidationReport can be initialized with custom values."""
         errors = ["error1", "error2"]

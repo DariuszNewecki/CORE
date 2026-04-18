@@ -24,7 +24,6 @@ async def test_action_sync_code_vectors_success_dry_run():
         patch("body.atomic.sync_actions.get_session") as mock_get_session,
         patch("body.atomic.sync_actions.run_vectorize") as mock_run_vectorize,
     ):
-
         mock_session = AsyncMock()
         mock_get_session.return_value.__aenter__.return_value = mock_session
 
@@ -57,7 +56,6 @@ async def test_action_sync_code_vectors_success_write_mode():
         patch("body.atomic.sync_actions.get_session") as mock_get_session,
         patch("body.atomic.sync_actions.run_vectorize") as mock_run_vectorize,
     ):
-
         mock_session = AsyncMock()
         mock_get_session.return_value.__aenter__.return_value = mock_session
 
@@ -88,7 +86,6 @@ async def test_action_sync_code_vectors_success_force_mode():
         patch("body.atomic.sync_actions.get_session") as mock_get_session,
         patch("body.atomic.sync_actions.run_vectorize") as mock_run_vectorize,
     ):
-
         mock_session = AsyncMock()
         mock_get_session.return_value.__aenter__.return_value = mock_session
 
@@ -117,7 +114,6 @@ async def test_action_sync_code_vectors_exception_handling():
         patch("body.atomic.sync_actions.run_vectorize") as mock_run_vectorize,
         patch("body.atomic.sync_actions.logger") as mock_logger,
     ):
-
         mock_session = AsyncMock()
         mock_get_session.return_value.__aenter__.return_value = mock_session
 
@@ -147,7 +143,6 @@ async def test_action_sync_code_vectors_default_parameters():
         patch("body.atomic.sync_actions.get_session") as mock_get_session,
         patch("body.atomic.sync_actions.run_vectorize") as mock_run_vectorize,
     ):
-
         mock_session = AsyncMock()
         mock_get_session.return_value.__aenter__.return_value = mock_session
 
@@ -175,7 +170,6 @@ async def test_action_sync_code_vectors_duration_measurement():
         patch("body.atomic.sync_actions.run_vectorize") as mock_run_vectorize,
         patch("body.atomic.sync_actions.time") as mock_time,
     ):
-
         mock_session = AsyncMock()
         mock_get_session.return_value.__aenter__.return_value = mock_session
 

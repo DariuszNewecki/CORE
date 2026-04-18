@@ -1,10 +1,10 @@
-# src/shared/self_healing/remediation_interpretation/reasoning_brief_builder.py
+# src/will/self_healing/remediation_interpretation/reasoning_brief_builder.py
 
 from __future__ import annotations
 
 from typing import Any
 
-from shared.self_healing.remediation_interpretation.models import (
+from will.self_healing.remediation_interpretation.models import (
     FileRole,
     NormalizedFinding,
     ReasoningBrief,

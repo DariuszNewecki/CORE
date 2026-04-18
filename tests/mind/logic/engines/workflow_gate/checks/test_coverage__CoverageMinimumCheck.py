@@ -16,7 +16,6 @@ from mind.logic.engines.workflow_gate.checks.coverage import CoverageMinimumChec
 
 
 class TestCoverageMinimumCheck:
-
     def test_init(self):
         """Test basic initialization."""
         check = CoverageMinimumCheck()

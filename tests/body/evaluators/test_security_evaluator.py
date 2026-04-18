@@ -375,7 +375,8 @@ api_key = "sk-1234567890abcdefghijklmnopqrstuvwxyz"
 result = eval(user_input)
         """
         result = await evaluator.execute(
-            code_content=code, check_scope=["secrets_exposure"]  # Only check secrets
+            code_content=code,
+            check_scope=["secrets_exposure"],  # Only check secrets
         )
 
         # Should find secrets but not eval

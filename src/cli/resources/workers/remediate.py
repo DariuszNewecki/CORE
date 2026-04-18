@@ -133,9 +133,9 @@ async def _run_file_pipeline(
     write: bool,
 ) -> None:
     """Audit a single file across all rules, then feed findings into ViolationRemediator."""
-    from body.workers.violation_remediator import ViolationRemediator
     from mind.governance.audit_context import AuditorContext
     from mind.governance.auditor import ConstitutionalAuditor
+    from will.workers.violation_remediator_body import ViolationRemediator
 
     repo_root: Path = core_context.git_service.repo_path
     abs_path = repo_root / file_path
@@ -288,8 +288,8 @@ async def _run_rule_pipeline(
     sense_only: bool,
 ) -> None:
     """Original rule-based pipeline: AuditViolationSensor → ViolationRemediator."""
-    from body.workers.violation_remediator import ViolationRemediator
     from will.workers.audit_violation_sensor import AuditViolationSensor
+    from will.workers.violation_remediator_body import ViolationRemediator
 
     mode = "SENSE-ONLY" if sense_only else "WRITE" if write else "DRY-RUN"
     logger.info(

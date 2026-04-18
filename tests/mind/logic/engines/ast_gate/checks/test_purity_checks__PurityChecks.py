@@ -12,7 +12,6 @@ from mind.logic.engines.ast_gate.checks.purity_checks import PurityChecks
 
 
 class TestPurityChecks:
-
     def test_domain_matches_allowed(self):
         """Test domain matching logic."""
         assert PurityChecks._domain_matches_allowed("mind.logic", ["mind.logic"])

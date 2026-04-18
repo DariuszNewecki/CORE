@@ -12,7 +12,6 @@ from mind.logic.engines.ast_gate.checks.async_checks import AsyncChecks
 
 
 class TestCheckRestrictedEventLoopCreation:
-
     def test_empty_forbidden_calls_returns_empty_list(self):
         """When forbidden_calls is empty, should return empty list."""
         tree = ast.parse("import asyncio")
@@ -79,7 +78,6 @@ class TestCheckRestrictedEventLoopCreation:
 
 
 class TestCheckNoImportTimeAsyncSingletons:
-
     def test_empty_disallowed_calls_returns_empty_list(self):
         """When disallowed_calls is empty, should return empty list."""
         tree = ast.parse("import asyncio")
@@ -107,7 +105,6 @@ class TestCheckNoImportTimeAsyncSingletons:
 
 
 class TestCheckNoModuleLevelAsyncEngine:
-
     def test_no_engine_creation_returns_empty(self):
         """Code without async engine creation should return empty list."""
         code = '\nfrom sqlalchemy import create_engine\nengine = create_engine("sqlite://")\n'
@@ -146,7 +143,6 @@ class TestCheckNoModuleLevelAsyncEngine:
 
 
 class TestCheckNoTaskReturnFromSyncCli:
-
     def test_no_sync_functions_returns_empty(self):
         """Code without sync functions should return empty list."""
         code = (

@@ -58,7 +58,6 @@ def test_activity_run():
         patch("shared.activity_logging._current_run_id") as mock_current_run_id,
         patch("shared.activity_logging.time.time") as mock_time,
     ):
-
         # Setup mocks
         mock_run = Mock()
         mock_run.run_id = "test-run-id-123"

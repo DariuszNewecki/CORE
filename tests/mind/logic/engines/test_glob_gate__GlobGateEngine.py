@@ -64,7 +64,6 @@ async def test_verify_invalid_path():
     engine = GlobGateEngine()
 
     class InvalidPath:
-
         def __str__(self):
             raise ValueError("Invalid path encoding")
 

@@ -1,3 +1,4 @@
+# src/shared/infrastructure/specs/__init__.py
 """Specs layer infrastructure — read-only access to .specs/ human intent documents."""
 
 from __future__ import annotations

@@ -1,4 +1,4 @@
-# src/body/workers/violation_remediator/models.py
+# src/will/workers/violation_remediator_body/models.py
 """
 Shared dataclasses for the ViolationRemediator package.
 """

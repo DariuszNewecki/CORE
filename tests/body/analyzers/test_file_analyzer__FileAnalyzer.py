@@ -129,12 +129,10 @@ async def test_fileanalyzer_with_context():
         file_path.write_text("def test(): pass")
 
         class MockGitService:
-
             def __init__(self, repo_path):
                 self.repo_path = Path(repo_path)
 
         class MockContext:
-
             def __init__(self, repo_path):
                 self.git_service = MockGitService(repo_path)
 

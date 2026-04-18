@@ -57,7 +57,8 @@ class TestDurationEvaluation:
     async def test_duration_within_threshold_passes(self, evaluator):
         """Duration within threshold should pass."""
         result = await evaluator.execute(
-            operation_type="query", duration_sec=0.5  # Threshold is 1s
+            operation_type="query",
+            duration_sec=0.5,  # Threshold is 1s
         )
 
         assert result.ok
@@ -67,7 +68,8 @@ class TestDurationEvaluation:
     async def test_duration_exceeds_threshold_fails(self, evaluator):
         """Duration exceeding threshold should fail."""
         result = await evaluator.execute(
-            operation_type="query", duration_sec=2.0  # Threshold is 1s
+            operation_type="query",
+            duration_sec=2.0,  # Threshold is 1s
         )
 
         assert not result.ok
@@ -77,7 +79,8 @@ class TestDurationEvaluation:
     async def test_duration_issue_includes_overhead(self, evaluator):
         """Duration issues should calculate overhead percentage."""
         result = await evaluator.execute(
-            operation_type="query", duration_sec=2.0  # 100% over threshold
+            operation_type="query",
+            duration_sec=2.0,  # 100% over threshold
         )
 
         duration_issue = next(
@@ -95,7 +98,8 @@ class TestMemoryEvaluation:
     async def test_memory_within_threshold_passes(self, evaluator):
         """Memory within threshold should pass."""
         result = await evaluator.execute(
-            operation_type="query", memory_mb=30  # Threshold is 50MB
+            operation_type="query",
+            memory_mb=30,  # Threshold is 50MB
         )
 
         assert result.ok
@@ -105,7 +109,8 @@ class TestMemoryEvaluation:
     async def test_memory_exceeds_threshold_fails(self, evaluator):
         """Memory exceeding threshold should fail."""
         result = await evaluator.execute(
-            operation_type="query", memory_mb=100  # Threshold is 50MB
+            operation_type="query",
+            memory_mb=100,  # Threshold is 50MB
         )
 
         assert not result.ok
@@ -120,7 +125,8 @@ class TestIOEvaluation:
     async def test_io_within_threshold_passes(self, evaluator):
         """I/O operations within threshold should pass."""
         result = await evaluator.execute(
-            operation_type="validation", io_operations=50  # Threshold is 100
+            operation_type="validation",
+            io_operations=50,  # Threshold is 100
         )
 
         assert result.ok
@@ -129,7 +135,8 @@ class TestIOEvaluation:
     async def test_io_exceeds_threshold_fails(self, evaluator):
         """I/O operations exceeding threshold should fail."""
         result = await evaluator.execute(
-            operation_type="validation", io_operations=200  # Threshold is 100
+            operation_type="validation",
+            io_operations=200,  # Threshold is 100
         )
 
         assert not result.ok

@@ -12,12 +12,10 @@ from shared.component_primitive import Component, ComponentPhase
 
 
 class TestComponent:
-
     def test_component_id_default_implementation(self):
         """Test that component_id returns lowercase class name by default."""
 
         class TestConcreteComponent(Component):
-
             @property
             def phase(self):
                 return ComponentPhase.EXECUTION
@@ -29,7 +27,6 @@ class TestComponent:
         """Test that component_id can be overridden by subclasses."""
 
         class CustomIDComponent(Component):
-
             @property
             def component_id(self):
                 return "custom-id"
@@ -72,7 +69,6 @@ class TestComponent:
         """Test that description returns default when no docstring exists."""
 
         class NoDocComponent(Component):
-
             @property
             def phase(self):
                 return ComponentPhase.EXECUTION

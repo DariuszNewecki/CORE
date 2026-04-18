@@ -13,7 +13,6 @@ from mind.governance.auditor import ConstitutionalAuditor
 
 
 class TestConstitutionalAuditor:
-
     def test_init_creates_directories(self):
         """Test that __init__ creates required report directories."""
         mock_context = Mock()

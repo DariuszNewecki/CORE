@@ -10,7 +10,6 @@ from pathlib import Path
 
 
 class TestCrateCreationService:
-
     def test_validate_payload_paths_valid(self, service):
         """Test path validation with valid paths."""
         payload_files = {

@@ -12,7 +12,6 @@ from body.governance.runtime_validator import RuntimeValidatorService
 
 
 class TestRuntimeValidatorService:
-
     def test_init_with_path_object(self):
         """Test initialization with Path object."""
         test_path = Path("/some/repo")

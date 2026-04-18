@@ -1,4 +1,4 @@
-# src/body/workers/violation_remediator/llm.py
+# src/will/workers/violation_remediator_body/llm.py
 """
 LLM invocation for ViolationRemediator.
 

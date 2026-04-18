@@ -38,9 +38,9 @@ def test_now_iso():
     assert re.match(iso_pattern, result) is not None
 
     # Specifically check it represents UTC (either Z or +00:00)
-    assert result.endswith(
-        ("Z", "+00:00")
-    ), f"Timestamp should end with Z or +00:00, got: {result}"
+    assert result.endswith(("Z", "+00:00")), (
+        f"Timestamp should end with Z or +00:00, got: {result}"
+    )
 
     # Test 3: Verify the timestamp can be parsed back to datetime
     # Remove Z and replace with +00:00 for consistent parsing

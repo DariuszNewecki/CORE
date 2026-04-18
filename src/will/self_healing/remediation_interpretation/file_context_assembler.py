@@ -1,11 +1,11 @@
-# src/shared/self_healing/remediation_interpretation/file_context_assembler.py
+# src/will/self_healing/remediation_interpretation/file_context_assembler.py
 
 from __future__ import annotations
 
 import ast
 from typing import Any
 
-from shared.self_healing.remediation_interpretation.models import (
+from will.self_healing.remediation_interpretation.models import (
     FileRole,
     NormalizedFinding,
 )

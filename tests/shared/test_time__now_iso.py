@@ -39,9 +39,9 @@ def test_now_iso_iso8601_format():
     assert result[16] == ":", f"Missing colon after minutes: {result}"
 
     # Check UTC indicator (either ends with '+00:00' or 'Z')
-    assert result.endswith("+00:00") or result.endswith(
-        "Z"
-    ), f"Missing UTC timezone indicator: {result}"
+    assert result.endswith("+00:00") or result.endswith("Z"), (
+        f"Missing UTC timezone indicator: {result}"
+    )
 
 
 def test_now_iso_contains_valid_date():
@@ -92,9 +92,9 @@ def test_now_iso_sequential_calls_different():
     result2 = now_iso()
 
     # They should not be identical (microseconds should differ)
-    assert (
-        result1 != result2
-    ), f"Sequential calls returned identical timestamps: {result1}"
+    assert result1 != result2, (
+        f"Sequential calls returned identical timestamps: {result1}"
+    )
 
 
 def test_now_iso_utc_timezone():
@@ -102,9 +102,9 @@ def test_now_iso_utc_timezone():
     result = now_iso()
 
     # Should end with either '+00:00' or 'Z' for UTC
-    assert result.endswith("+00:00") or result.endswith(
-        "Z"
-    ), f"Timestamp does not indicate UTC: {result}"
+    assert result.endswith("+00:00") or result.endswith("Z"), (
+        f"Timestamp does not indicate UTC: {result}"
+    )
 
     # If it ends with '+00:00', verify the format
     if result.endswith("+00:00"):
