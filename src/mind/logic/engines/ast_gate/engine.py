@@ -131,7 +131,12 @@ class ASTGateEngine(BaseEngine):
             )
 
         elif check_type == "no_direct_writes":
-            violations.extend(PurityChecks.check_no_direct_writes(tree))
+            violations.extend(
+                PurityChecks.check_no_direct_writes(
+                    tree,
+                    forbidden_additional=params.get("forbidden_additional", []),
+                )
+            )
 
         elif check_type == "forbidden_imports_and_calls":
             violations.extend(

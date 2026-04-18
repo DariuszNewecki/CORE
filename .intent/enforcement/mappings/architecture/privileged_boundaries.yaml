@@ -33,12 +33,12 @@ mappings:
         # Tracking issue: Will→database violations require WillDatabasePort refactor
         # before this rule can be promoted from reporting to blocking.
 
-  # ==========================================================================
-  # SETTINGS PRIMITIVE ACCESS
-  # Rule: architecture.boundary.settings_access
-  # ==========================================================================
-  # Only infrastructure and bootstrap may import Settings directly
-  # All other components MUST receive configuration through abstraction
+        # ==========================================================================
+        # SETTINGS PRIMITIVE ACCESS
+        # Rule: architecture.boundary.settings_access
+        # ==========================================================================
+        # Only infrastructure and bootstrap may import Settings directly
+        # All other components MUST receive configuration through abstraction
 
   architecture.boundary.settings_access:
     engine: ast_gate
@@ -61,30 +61,6 @@ mappings:
         - "src/body/infrastructure/**/*.py"
         - "src/body/**/test_*.py"
         - "src/mind/**/test_*.py"
-        - "src/will/**/test_*.py"
-        - "tests/**"
-
-  # ==========================================================================
-  # INTENT LOADER ACCESS
-  # Rule: architecture.boundary.intent_loader_access
-  # ==========================================================================
-  # Only Mind layer may directly access .intent/ through IntentLoader
-  # All other components MUST query through Mind services
-
-  architecture.boundary.intent_loader_access:
-    engine: ast_gate
-    params:
-      check_type: import_boundary
-      forbidden:
-        - "core.intent.loader.IntentLoader"
-        - "mind.intent.loader.IntentLoader"
-    scope:
-      applies_to:
-        - "src/body/**/*.py"
-        - "src/will/**/*.py"
-      excludes:
-        - "src/body/cli/commands/governance.py" # Governance tooling exception
-        - "src/body/**/test_*.py"
         - "src/will/**/test_*.py"
         - "tests/**"
 

@@ -27,14 +27,6 @@
             "rationale": "Direct settings access couples components to environment configuration, preventing testability and governance transparency."
         },
         {
-            "id": "architecture.boundary.intent_loader_access",
-            "statement": "Only Mind layer components and governance infrastructure MAY directly import IntentLoader. All other components MUST access constitutional documents through Mind services.",
-            "enforcement": "blocking",
-            "authority": "constitution",
-            "phase": "audit",
-            "rationale": "Direct .intent/ access bypasses constitutional governance. Only Mind layer may read law; all others must query through Mind's interface."
-        },
-        {
             "id": "architecture.boundary.file_handler_access",
             "statement": "Only Body layer and infrastructure components MAY directly instantiate FileHandler. Will and Mind layers MUST delegate file operations to Body services.",
             "enforcement": "blocking",

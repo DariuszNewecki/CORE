@@ -26,6 +26,15 @@ mappings:
   # debt: it performs terminal rendering from Will layer. Migration is required
   # before this rule can be restored to blocking enforcement.
   # Tracked in: architecture.channels.logic_no_terminal_rendering rationale.
+  #
+  # Widened 2026-04-18:
+  # - forbidden_imports: added rich.{pretty,tree,progress,markdown,live,prompt}
+  #   (all other Rich submodules that produce terminal output) plus pprint.
+  # - forbidden_calls: added sys.{stdout,stderr}.write (direct terminal I/O
+  #   that bypasses logger), pprint.pprint (stdlib pretty-printing), and
+  #   console.{log,rule} (other Rich Console output methods).
+  # Bare "pprint" deliberately NOT added — too generic a name to list bare;
+  # would require import-tracking to catch safely.
   architecture.channels.logic_no_terminal_rendering:
     engine: ast_gate
     params:
@@ -34,12 +43,30 @@ mappings:
         - "rich.console"
         - "rich.table"
         - "rich.panel"
+        # Added: other Rich submodules that produce terminal output
+        - "rich.pretty"
+        - "rich.tree"
+        - "rich.progress"
+        - "rich.markdown"
+        - "rich.live"
+        - "rich.prompt"
+        # Added: stdlib pretty-printing (terminal output)
+        - "pprint"
       forbidden_calls:
         - "Console"
         - "console.print"
         - "Table"
         - "Panel"
         - "typer.echo"
+        # Added: direct terminal I/O bypassing the logger
+        - "sys.stdout.write"
+        - "sys.stderr.write"
+        # Added: stdlib pretty-printing (qualified form only — bare pprint
+        # is too generic to list safely)
+        - "pprint.pprint"
+        # Added: other Rich Console output methods beyond .print
+        - "console.log"
+        - "console.rule"
     scope:
       applies_to:
         - "src/**/*.py"
@@ -53,6 +80,11 @@ mappings:
         - "tests/**"
 
   # API modules must not use terminal-oriented rendering primitives.
+  #
+  # Widened 2026-04-18: same additions as logic_no_terminal_rendering.
+  # The two rules share vocabulary; if the logic rule catches it, the API
+  # rule should too. Statement is if anything stronger for API (structured
+  # output only), so the wider gate matches intent.
   architecture.channels.api_structured_output_only:
     engine: ast_gate
     params:
@@ -61,6 +93,13 @@ mappings:
         - "rich.console"
         - "rich.table"
         - "rich.panel"
+        - "rich.pretty"
+        - "rich.tree"
+        - "rich.progress"
+        - "rich.markdown"
+        - "rich.live"
+        - "rich.prompt"
+        - "pprint"
       forbidden_calls:
         - "Console"
         - "console.print"
@@ -68,6 +107,11 @@ mappings:
         - "Panel"
         - "typer.echo"
         - "print"
+        - "sys.stdout.write"
+        - "sys.stderr.write"
+        - "pprint.pprint"
+        - "console.log"
+        - "console.rule"
     scope:
       applies_to:
         - "src/api/**/*.py"
@@ -96,8 +140,8 @@ mappings:
     params:
       note: >
         Permissive declaration. CLI surface modules MAY use Rich and
-        terminal-oriented rendering for user-facing output. This rule
-        grants permission; it does not detect violations.
+        terminal-oriented rendering for user-facing output. This rule grants
+        permission; it does not detect violations.
     scope:
       applies_to:
         - "src/cli/**/*.py"

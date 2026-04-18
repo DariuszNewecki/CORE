@@ -41,7 +41,10 @@ mappings:
         - "AUTHORITY LIMITS"
     scope:
       applies_to:
-        - "src/shared/infrastructure/service_registry.py"
+        # Path corrected 2026-04-18: service_registry.py actually lives at
+        # src/body/services/service_registry.py, not src/shared/infrastructure/.
+        # Previous path was a ghost — the rule applied to zero files.
+        - "src/body/services/service_registry.py"
         - "src/shared/infrastructure/database/session_manager.py"
         - "src/shared/infrastructure/config_service.py"
 
@@ -81,7 +84,10 @@ mappings:
         - "low_priority"
     scope:
       applies_to:
-        - "src/shared/infrastructure/service_registry.py"
+        # Path corrected 2026-04-18: service_registry.py actually lives at
+        # src/body/services/service_registry.py, not src/shared/infrastructure/.
+        # Previous path was a ghost — the rule applied to zero files.
+        - "src/body/services/service_registry.py"
 
   # ==========================================================================
   # RULE 5: Infrastructure Must Use Explicit Error Handling
@@ -91,17 +97,32 @@ mappings:
   #
   # CONSTITUTIONAL NOTE: Bare except: pass is selective suppression by omission.
   # All errors must be handled explicitly or propagated.
+  #
+  # Patterns widened 2026-04-18:
+  # - "except BaseException:\\s*pass" — bare-equivalent (catches everything including KeyboardInterrupt)
+  # - "except BaseException\\s+as\\s+\\w+:\\s*pass" — bare-equivalent with alias
+  # - "except Exception\\s+as\\s+\\w+:\\s*pass" — broad-catch with named alias + suppression
+  #
+  # Deliberately not added (require ast_gate, not regex_gate):
+  # - Bare "except:" with non-pass body that silently swallows the error name
+  # - Tuple forms like "except (Exception,): pass"
+  # These are real gaps in the statement's coverage but cannot be expressed
+  # in regex without false positives on legitimate re-raise patterns.
   infrastructure.no_bare_except:
     engine: regex_gate
     params:
       forbidden_patterns:
         - "except:\\s*pass"
         - "except Exception:\\s*pass"
+        - "except BaseException:\\s*pass"
+        - "except BaseException\\s+as\\s+\\w+:\\s*pass"
+        - "except Exception\\s+as\\s+\\w+:\\s*pass"
     scope:
       applies_to:
         - "src/shared/infrastructure/**/*.py"
       excludes:
         - "tests/**"
+
 # ==============================================================================
 # Meta: This mapping enforces infrastructure authority boundaries
 # ==============================================================================

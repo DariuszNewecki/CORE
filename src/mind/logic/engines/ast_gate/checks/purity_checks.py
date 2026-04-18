@@ -200,16 +200,30 @@ class PurityChecks:
 
     @staticmethod
     # ID: b7d320ba-ce8b-4274-8576-a254eeb58bd0
-    def check_no_direct_writes(tree: ast.AST) -> list[str]:
-        """Enforces the 'Governed Mutation Surface' by blocking raw filesystem writes."""
+    def check_no_direct_writes(
+        tree: ast.AST, forbidden_additional: list[str] | None = None
+    ) -> list[str]:
+        """Enforces the 'Governed Mutation Surface' by blocking raw filesystem writes.
+
+        Baseline blocks Path.write_text(), Path.write_bytes(), and open() in
+        write/append modes. The optional `forbidden_additional` parameter lets
+        mappings extend the list with fully-qualified names (e.g. 'os.replace',
+        'shutil.copyfile') via .intent/ without touching src/. Matched via
+        ASTHelpers.full_attr_name, so only dotted forms like 'os.replace' are
+        detected — bare-import forms (e.g. `from os import replace`) still
+        bypass this check and require import-tracking to close.
+        """
         violations = []
+        additional_set = {n.strip() for n in (forbidden_additional or []) if n.strip()}
         for n in ast.walk(tree):
             if isinstance(n, ast.Call):
                 name = ASTHelpers.full_attr_name(n.func)
                 # Matches Path.write_text(), Path.write_bytes(), and open() in write/append modes
-                if name in ("write_text", "write_bytes") or (
+                baseline_match = name in ("write_text", "write_bytes") or (
                     name == "open" and _is_write_mode(n)
-                ):
+                )
+                additional_match = name is not None and name in additional_set
+                if baseline_match or additional_match:
                     violations.append(
                         f"Direct write detected: '{name}' (line {ASTHelpers.lineno(n)}). Use FileHandler."
                     )

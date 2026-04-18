@@ -15,10 +15,35 @@ mappings:
 
   # 2. THE BLOCKING LAW: Logic mutations must be governed.
   # This list EXCLUDES components that are allowed to use direct writes.
+  #
+  # Widened 2026-04-18:
+  # The baseline check catches Path.write_text(), Path.write_bytes(), and
+  # open() in write/append modes. That's narrower than the statement's
+  # "logic modifications only through governed mutation surfaces." The
+  # forbidden_additional list extends the check to cover common alternative
+  # filesystem-mutation paths. Matched via ASTHelpers.full_attr_name, so only
+  # dotted forms (e.g. "os.replace", "shutil.copyfile") are detected. Bare-
+  # import forms (e.g. `from os import replace`) still bypass the check and
+  # require import-tracking to close — deferred to B.iii.
   governance.logic_mutation.governed:
     engine: ast_gate
     params:
       check_type: no_direct_writes
+      forbidden_additional:
+        # os filesystem mutation family
+        - "os.replace"
+        - "os.rename"
+        - "os.remove"
+        - "os.unlink"
+        - "os.rmdir"
+        # shutil filesystem mutation family
+        - "shutil.copyfile"
+        - "shutil.copy"
+        - "shutil.copy2"
+        - "shutil.move"
+        - "shutil.rmtree"
+        # Async filesystem
+        - "aiofiles.open"
     scope:
       applies_to:
         - "src/**/*.py"
@@ -31,7 +56,6 @@ mappings:
         - "src/body/services/crate_processing_service.py" # Crate generation infrastructure
         - "src/mind/governance/runtime_validator.py" # Validation infrastructure
         - "src/shared/infrastructure/validation/ruff_linter.py" # Linting infrastructure
-
         # --- AUTONOMOUS CODE: Now enforced (no exclusions) ---
         # Self-healing modules MUST route writes through FileHandler
         # Violations will be detected and must be fixed in P3
@@ -45,11 +69,33 @@ mappings:
         - "bypass_governance"
         - "disable_governance"
 
+  # Widened 2026-04-18:
+  # - "Popen" (bare) catches `from subprocess import Popen; Popen(...)` —
+  #   the bare-import form that previously bypassed the `subprocess.Popen`
+  #   pattern because full_attr_name resolves to "Popen" without the prefix.
+  # - subprocess variants (check_call, check_output, getoutput,
+  #   getstatusoutput) — all legitimate subprocess entry points that
+  #   invoke commands but don't route through run/call/Popen.
+  # - os process-spawn family (execv, execvp, execve, spawnv, spawnvp, fork) —
+  #   alternative paths to process creation outside the os.system family.
+  #
+  # Deliberately NOT added (collision risk):
+  # - Bare "call", "run", "fork" — names too generic; would produce false
+  #   positives on legitimate code (e.g., app.run(), func.call()).
+  # - "builtins.eval" / "builtins.exec" / "builtins.compile" — nobody writes
+  #   these forms; the bare names are already caught.
+  #
+  # Known remaining gap (requires AST import-tracking, not regex widening):
+  # - "from os import system; system(...)" bypasses "os.system" because
+  #   full_attr_name of bare system() is "system" and "system" is too
+  #   generic to list bare. A proper fix requires tracking imports and
+  #   resolving bare names back to their module. Deferred to B.iii.
   governance.dangerous_execution_primitives:
     engine: ast_gate
     params:
       check_type: forbidden_primitives
       forbidden:
+        # Original list
         - "eval"
         - "exec"
         - "compile"
@@ -59,6 +105,20 @@ mappings:
         - "subprocess.run"
         - "os.getenv"
         - "os.environ"
+        # Added: bare-import form of subprocess.Popen (distinctive name, low collision risk)
+        - "Popen"
+        # Added: subprocess family variants
+        - "subprocess.check_call"
+        - "subprocess.check_output"
+        - "subprocess.getoutput"
+        - "subprocess.getstatusoutput"
+        # Added: os process-spawn family (alternative paths to process creation)
+        - "os.execv"
+        - "os.execvp"
+        - "os.execve"
+        - "os.spawnv"
+        - "os.spawnvp"
+        - "os.fork"
     scope:
       applies_to:
         - "src/**/*.py"

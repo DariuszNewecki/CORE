@@ -1,5 +1,95 @@
 [
   {
+    "check_id": "ai.cognitive_role.no_hardcoded_string",
+    "severity": "error",
+    "message": "Forbidden Content [Line 156]: Matched restricted regex 'aget_client_for_role\\(\\s*[\"'][A-Za-z]'",
+    "file_path": "src/body/project_lifecycle/definition_service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "ai.cognitive_role.no_hardcoded_string",
+    "severity": "error",
+    "message": "Forbidden Content [Line 87]: Matched restricted regex 'aget_client_for_role\\(\\s*[\"'][A-Za-z]'",
+    "file_path": "src/body/workers/prompt_artifact_writer.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "ai.cognitive_role.no_hardcoded_string",
+    "severity": "error",
+    "message": "Forbidden Content [Line 138]: Matched restricted regex 'aget_client_for_role\\(\\s*[\"'][A-Za-z]'",
+    "file_path": "src/will/agents/coder_agent.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "ai.cognitive_role.no_hardcoded_string",
+    "severity": "error",
+    "message": "Forbidden Content [Line 220]: Matched restricted regex 'aget_client_for_role\\(\\s*[\"'][A-Za-z]'",
+    "file_path": "src/will/agents/tagger_agent.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "ai.cognitive_role.no_hardcoded_string",
+    "severity": "error",
+    "message": "Forbidden Content [Line 110]: Matched restricted regex 'aget_client_for_role\\(\\s*[\"'][A-Za-z]'",
+    "file_path": "src/will/self_healing/clarity_service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "ai.cognitive_role.no_hardcoded_string",
+    "severity": "error",
+    "message": "Forbidden Content [Line 259]: Matched restricted regex 'aget_client_for_role\\(\\s*[\"'][A-Za-z]'",
+    "file_path": "src/will/workers/intent_inspector.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "ai.cognitive_role.no_hardcoded_string",
+    "severity": "error",
+    "message": "Forbidden Content [Line 334]: Matched restricted regex 'aget_client_for_role\\(\\s*[\"'][A-Za-z]'",
+    "file_path": "src/will/workers/intent_inspector.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "ai.cognitive_role.no_hardcoded_string",
+    "severity": "error",
+    "message": "Forbidden Content [Line 92]: Matched restricted regex 'aget_client_for_role\\(\\s*[\"'][A-Za-z]'",
+    "file_path": "src/will/workers/prompt_extractor_worker.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "ai.cognitive_role.no_hardcoded_string",
+    "severity": "error",
+    "message": "Forbidden Content [Line 50]: Matched restricted regex 'aget_client_for_role\\(\\s*[\"'][A-Za-z]'",
+    "file_path": "src/will/workers/violation_remediator_body/llm.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "governance.dangerous_execution_primitives",
+    "severity": "warning",
+    "message": "Forbidden primitive 'subprocess.check_output' used (line 55).",
+    "file_path": "src/body/services/cim/scanners.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
     "check_id": "workflow.mypy_check",
     "severity": "info",
     "message": "Quality Gate mypy_check failed: src/will/test_generation/test_extractor.py:60: error: Argument 1 to \"_is_fixture\" of \"TestCodeExtractor\" has incompatible type \"FunctionDef | AsyncFunctionDef\"; expected \"FunctionDef\"  [arg-type]",
@@ -71,5 +161,23 @@
       "similarity": 1.0,
       "type": "ast"
     }
+  },
+  {
+    "check_id": "infrastructure.constitutional_documentation",
+    "severity": "warning",
+    "message": "Missing Required Content: Could not find pattern 'CONSTITUTIONAL AUTHORITY' in file.",
+    "file_path": "src/body/services/service_registry.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "infrastructure.constitutional_documentation",
+    "severity": "warning",
+    "message": "Missing Required Content: Could not find pattern 'AUTHORITY LIMITS' in file.",
+    "file_path": "src/body/services/service_registry.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
   }
 ]
