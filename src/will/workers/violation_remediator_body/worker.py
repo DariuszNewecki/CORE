@@ -378,7 +378,7 @@ class ViolationRemediator(
                 mapped_action,
             )
             bb = await self._ctx.registry.get_blackboard_service()
-            finding_ids = [f["id"] for f in findings]
+            finding_ids = [f.get("id") or f.get("entry_id") for f in findings]
             await bb.release_claimed_entries(finding_ids)
             return False
 
