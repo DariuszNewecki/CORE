@@ -131,7 +131,7 @@ class TestRunnerSensor(Worker):
         svc = await service_registry.get_blackboard_service()
 
         for finding in findings:
-            entry_id = finding["entry_id"]
+            entry_id = finding["id"]
             payload = finding.get("payload", {})
             source_file = payload.get("source_file", "")
 

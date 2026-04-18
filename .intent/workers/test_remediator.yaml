@@ -1,0 +1,32 @@
+$schema: "META/worker.schema.json"
+kind: worker
+
+metadata:
+  id: workers.test_remediator
+  title: Test Remediator
+  version: "0.1.0"
+  authority: policy
+  status: active
+
+identity:
+  uuid: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+  class: acting
+
+mandate:
+  responsibility: >
+    Claims test.missing and test.failure findings and creates build.tests
+    proposals for autonomous test generation.
+  phase: execution
+  permitted_tools: []
+  scope:
+    domains:
+      - testing
+      - remediation
+  approval_required: true
+  schedule:
+    max_interval: 60
+
+implementation:
+  module: will.workers.test_remediator
+  class: TestRemediatorWorker
+  requires_core_context: true

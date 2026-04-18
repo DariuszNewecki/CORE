@@ -220,6 +220,7 @@ class TestCoverageSensor(Worker):
         excluded: frozenset[str] = frozenset(
             config.get("excluded_filenames", list(_FALLBACK_EXCLUDED_FILENAMES))
         )
+        include_files: frozenset[str] = frozenset(config.get("include_files") or [])
 
         src_root = self._repo_root / source_root_rel
         if not src_root.exists():
@@ -235,6 +236,9 @@ class TestCoverageSensor(Worker):
             # Relative path from repo root, e.g. src/foo/bar.py
             rel = py_file.relative_to(self._repo_root)
             source_file = str(rel)
+
+            if include_files and source_file not in include_files:
+                continue
 
             # Derive test path by replacing source_root prefix and .py suffix.
             # src/foo/bar.py → tests/foo/bar/test_generated.py

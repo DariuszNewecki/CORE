@@ -6,7 +6,7 @@ metadata:
   title: Test Runner Sensor
   version: "1.0.0"
   authority: policy
-  status: paused
+  status: active
 
 identity:
   uuid: "4cd25142-3953-458f-8d0f-6cbe674e02f0"

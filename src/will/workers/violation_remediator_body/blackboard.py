@@ -49,9 +49,7 @@ class BlackboardMixin:
     async def _mark_findings(self, findings: list[dict[str, Any]], status: str) -> None:
         """Batch-update status of a list of findings."""
         for finding in findings:
-            await self._mark_finding(
-                finding.get("id") or finding.get("entry_id"), status
-            )
+            await self._mark_finding(finding["id"], status)
 
     async def _mark_finding(self, finding_id: str, status: str) -> None:
         """Update the status of a single blackboard finding by ID."""
@@ -72,9 +70,7 @@ class BlackboardMixin:
                 "rule": self._target_rule,
                 "reason": reason,
                 "write": self._write,
-                "finding_ids": [
-                    finding.get("id") or finding.get("entry_id") for finding in findings
-                ],
+                "finding_ids": [finding["id"] for finding in findings],
             },
         )
 

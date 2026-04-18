@@ -1,0 +1,26 @@
+# .intent/enforcement/config/test_coverage.yaml
+#
+# Test Coverage Scanning Configuration
+# Authority: policy
+# Phase: audit
+# Status: active
+#
+# PURPOSE:
+#   Governs how TestCoverageSensor scans for untested source files.
+#   Changing what gets scanned or excluded is an .intent/ edit, not
+#   a code change.
+#
+# RULE: TestCoverageSensor MUST read scan parameters from this file.
+#   No paths or exclusions may be hardcoded in src/.
+
+source_root: "src"
+test_root: "tests"
+test_file_suffix: "/test_generated.py"
+
+excluded_filenames:
+  - "__init__.py"
+
+# Scope limiter — if non-empty, only these files are scanned.
+# Remove or leave empty to scan the full source_root.
+include_files:
+  - "src/will/workers/blackboard_auditor.py"

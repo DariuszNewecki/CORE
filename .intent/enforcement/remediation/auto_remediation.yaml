@@ -215,3 +215,22 @@ mappings:
     description: >
       PENDING: AST rewrite requiring context on surrounding logic.
     status: PENDING
+
+test.missing:
+    action: build.tests
+    confidence: 0.82
+    risk: medium
+    description: >
+      Source file has no corresponding test file. CoderAgent generates
+      tests via build.tests AtomicAction. Creates a new file under
+      tests/ — no existing source is modified.
+    status: ACTIVE
+
+test.failure:
+    action: build.tests
+    confidence: 0.80
+    risk: medium
+    description: >
+      Existing test file is failing. CoderAgent regenerates tests via
+      build.tests AtomicAction. Human approval required before execution.
+    status: ACTIVE
