@@ -29,8 +29,10 @@ In A3, CORE's daemon finds problems in its own codebase, proposes fixes, execute
 |------|--------|
 | Audit | PASSED — 3 findings (all INFO), 0 blocking, 0 unmapped |
 | Coverage | 121 declared, 121 executed, 100% effective |
-| Active workers | 12 (7 sensors + ViolationExecutor + ViolationRemediator + ProposalConsumer + BlackboardAuditor + WorkerAuditor) |
+| Active workers | 15 (7 sensors + ViolationExecutor + ViolationRemediator + ProposalConsumer + BlackboardAuditor + WorkerAuditor + TestCoverageSensor + TestRunnerSensor + TestRemediatorWorker) |
 | RemediationMap | 14 ACTIVE, 5 PENDING entries |
+| Stream B (test writing) | ✅ Complete — TestCoverageSensor + TestRunnerSensor + TestRemediatorWorker + `build.tests` wired. First autonomous test committed. |
+| `build.tests` context gap | 🔄 CoderAgent generates without source context — ContextBuilder wiring pending |
 | Worker registry | Clean — 12 active, 23 abandoned |
 | Blackboard | Converging — 2 open legitimate findings, system healthy |
 | Constitutional boundaries | ✅ Clean — shared/ boundary audit complete via ADR-002 |
@@ -155,9 +157,10 @@ TRUNCATE core.autonomous_proposals RESTART IDENTITY CASCADE;
 ### Phase 3 — Capability Gaps
 **Goal:** Findings that can't be auto-remediated get correctly delegated.
 
-**Status:** ViolationExecutor fully proven end-to-end. Stream A and C complete.
+**Status:** All three streams complete. ViolationExecutor fully proven end-to-end.
 Proposal Path fully daemonized. `style.formatter_required` autonomous loop proven.
-Shared/ boundary cleanup complete. Next: Stream B (test writing). ViolationExecutor ceremony `'id'` bug still open.
+Shared/ boundary cleanup complete. Stream B test-writing wired — first autonomous test
+written (quality fix pending: CoderAgent needs source context before generating tests).
 
 **Three workstreams:**
 
@@ -165,11 +168,10 @@ Shared/ boundary cleanup complete. Next: Stream B (test writing). ViolationExecu
 
 **C — Human delegation protocol** ✅ Infrastructure complete
 
-**B — Test writing** ← NEXT
-Wire test-writing AtomicAction. When audit finds missing test coverage:
-- Daemon proposes test scaffolding
-- Human approves first N proposals
-- Auto-approve once pattern is proven sound
+**B — Test writing** ✅ Complete
+"Wire test-writing AtomicAction" → done. TestCoverageSensor + TestRunnerSensor +
+TestRemediatorWorker + `build.tests` wired. First autonomous test written
+(`tests/will/workers/blackboard_auditor/test_generated.py` — hallucinated, quality fix pending).
 
 ---
 
@@ -211,7 +213,7 @@ Wire test-writing AtomicAction. When audit finds missing test coverage:
 | 0 — Clean slate | Audit passes, DB clean | ✅ Complete |
 | 1 — Single loop | Purity loop runs unattended | ✅ Complete |
 | 2 — All sensors | All sensors active, converging | ✅ Complete — 52 rules, 7 sensors, 0 findings |
-| 3 — Capability gaps | No orphaned findings, tests growing | 🔄 Stream B (tests) next |
+| 3 — Capability gaps | No orphaned findings, tests growing | 🔄 Active — Stream B complete, `build.tests` context gap remaining |
 | 4 — CLI health | All commands work, legacy gone, URS written | ⬜ Not started |
 | 5 — Visibility | Demo-ready, `tail -f` tells the story | ⬜ Not started |
 
@@ -221,12 +223,11 @@ Wire test-writing AtomicAction. When audit finds missing test coverage:
 
 | Blocker | Phase | Notes |
 |---------|-------|-------|
-| ViolationExecutor ceremony `'id'` bug | 3+ | `ceremony failed — 'id'` KeyError when ViolationExecutor processes findings; blocks autonomous remediation of unmapped rules |
+| build.tests context gap | 3 | CoderAgent generates tests without source context — hallucinated API. Fix: call ContextBuilder (`RemediationInterpretationService.build_reasoning_brief_dict`) before CoderAgent in `build_tests_action.py`. Same pattern as `ViolationRemediator._plan_file()`. This is an intelligence gap, not a constitutional violation — belongs here, not in `.intent/rules/`. |
 | End-to-end Proposal Path verification | 3 | Loop proven with `fix.format`; needs verification across all mapped rules |
 | WorkerAuditor does not resolve findings on recovery | 3+ | `worker.silent` findings persist after workers recover — needs fix |
 | Sensor-fixer coherence validation | 3+ | No mechanism to detect when sensor detection contradicts fixer correction for the same rule |
 | OptimizerWorker | 3+ | Not yet designed — manual candidate review until then |
-| Stream B (test writing) | 3 | Next active workstream |
 | `core-admin check rule` lookup bug | 4 | Cannot find rules that exist in `.intent/rules/` |
 | `core-admin workers` missing cleanup command | 4 | Ghost registry entries require raw SQL |
 | `core-admin runtime health` worker filter | 4 | Shows abandoned workers — needs status filter |
@@ -238,6 +239,8 @@ Wire test-writing AtomicAction. When audit finds missing test coverage:
 
 | Blocker | Notes |
 |---------|-------|
+| ~~ViolationExecutor ceremony `'id'` bug~~ | ✅ Fixed 2026-04-18 — BlackboardService contract enforced (`finding["id"]` everywhere). `entry_id` was a local variable name confused with dict key. |
+| ~~Stream B test-writing not wired~~ | ✅ Complete 2026-04-18 — TestCoverageSensor + TestRunnerSensor + TestRemediatorWorker + `build.tests`. First autonomous test committed. |
 | ~~Shared/ boundary violations~~ | ✅ Resolved 2026-04-18 — ADR-002: constitutional moves (CLI utilities → cli/, remediation planning → will/, workers consolidation, subprocess governance, constitutional constants extraction) |
 | ~~`style.formatter_required` — deferred, no engine check~~ | ✅ Fully wired 2026-04-17 — RuffFormatCheck, enforcement mapping, remediation map, fix.format fixed, autonomous loop proven end-to-end |
 | ~~Proposal Path workers not daemonized~~ | ✅ Fixed 2026-04-17 — violation_remediator + proposal_consumer_worker activated |
@@ -474,11 +477,12 @@ Next step: [specific action]
 ---
 
 Current A3 phase: 3
-Last session: 2026-04-18. Shared/ boundary audit complete via ADR-002. All constitutional violations resolved architecturally: CLI utilities moved cli/, remediation planning to will/, workers consolidated, subprocess governance enforced, constitutional constants extracted. Obs-8.1 disproven empirically (intent_repository.py genuinely multi-layer: mind=2, body=6, will=5, cli=4). Audit PASSED maintained, 6 → 3 findings.
-Current blocker: ViolationExecutor ceremony 'id' bug — blocks unmapped rule remediation.
-  WorkerAuditor does not resolve findings on recovery.
-Blackboard state: 2 open legitimate findings — system healthy, boundaries clean
-Active workers: 12 (7 sensors + ViolationExecutor + ViolationRemediator +
-  ProposalConsumer + BlackboardAuditor + WorkerAuditor)
-Next step: Fix ViolationExecutor ceremony 'id' bug. Then Stream B — wire
-  test-writing AtomicAction.
+Last session: 2026-04-18 (end of day). Stream B complete. First autonomous test
+  written. ViolationExecutor `'id'` bug fixed. `action_executor` guard added to
+  `build_tests_action.py`. `proposals list --full-ids` added. Two governance rules
+  added then correctly removed (intelligence gap, not constitutional violation).
+Current blocker: `build.tests` context gap — CoderAgent needs source context before
+  generating tests.
+Blackboard state: converging — Stream B loop active, `test.missing` findings cycling
+Active workers: 15
+Next step: Wire ContextBuilder into `build_tests_action.py` before CoderAgent invocation.

@@ -1,9 +1,9 @@
 {
   "summary": {
-    "total_rules": 121,
+    "total_rules": 123,
     "enforced_count": 120,
-    "unbound_count": 1,
-    "coverage_percent": 99.2
+    "unbound_count": 3,
+    "coverage_percent": 97.6
   },
   "critical_gaps": [],
   "unbound_rules": [
@@ -12,6 +12,18 @@
       "policy": "rules/architecture/governance_basics",
       "engine": "NONE",
       "severity": "reporting"
+    },
+    {
+      "id": "governance.blackboard.finding_key_contract",
+      "policy": "rules/governance/blackboard",
+      "engine": "NONE",
+      "severity": "blocking"
+    },
+    {
+      "id": "governance.daemon.action_executor_guard",
+      "policy": "rules/governance/daemon",
+      "engine": "NONE",
+      "severity": "blocking"
     }
   ]
 }
