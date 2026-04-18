@@ -2,7 +2,7 @@
 
 **Status:** Active
 **Owner:** Darek (Dariusz Newecki)
-**Last updated:** 2026-04-17
+**Last updated:** 2026-04-18
 **Definition:** The daemon runs continuously, the Blackboard clears, the codebase converges, and every action is visible.
 
 ---
@@ -23,16 +23,17 @@ In A3, CORE's daemon finds problems in its own codebase, proposes fixes, execute
 
 ---
 
-## Current State (2026-04-17)
+## Current State (2026-04-18)
 
 | Item | Status |
 |------|--------|
-| Audit | PASSED — 0 findings, 0 blocking, 0 unmapped |
+| Audit | PASSED — 3 findings (all INFO), 0 blocking, 0 unmapped |
 | Coverage | 121 declared, 121 executed, 100% effective |
 | Active workers | 12 (7 sensors + ViolationExecutor + ViolationRemediator + ProposalConsumer + BlackboardAuditor + WorkerAuditor) |
 | RemediationMap | 14 ACTIVE, 5 PENDING entries |
 | Worker registry | Clean — 12 active, 23 abandoned |
-| Blackboard | Converging — 6 open format findings, loop actively resolving |
+| Blackboard | Converging — 2 open legitimate findings, system healthy |
+| Constitutional boundaries | ✅ Clean — shared/ boundary audit complete via ADR-002 |
 | Governor dashboard | ✅ Redesigned — two-column layout, full-width Convergence row |
 | `.specs/` layer | ✅ Established and fully wired into vector layer |
 | Context build layer constraints | ✅ Implemented — layer-specific, noise-filtered |
@@ -53,6 +54,20 @@ In A3, CORE's daemon finds problems in its own codebase, proposes fixes, execute
 - `audit_sensor_layout` — 1 rule ✅
 - `audit_sensor_style` — 2 rules ✅
 - `audit_sensor_linkage` — 2 rules ✅
+
+**Session 2026-04-18 changes:**
+
+*Shared/ boundary cleanup (architectural discipline):*
+- Complete boundary audit against three-criterion admission test (layer-independent, serves multiple layers, no governance logic)
+- **Constitutional violations resolved architecturally, not through rule exceptions:**
+  - CLI utilities moved: `shared/cli_utils/` → `cli/utils/` (113/114 single-layer usage)
+  - Remediation planning moved: `shared/self_healing/remediation_interpretation/` → `will/` (cognitive work)
+  - Workers consolidated: `body/workers/violation_remediator/` → `will/workers/violation_remediator_body/` (resolved obs-8.6)
+  - Governance constants extracted: `ai/constitutional_envelope.py` hardcoded constants → `.intent/enforcement/constitutional_envelope.yaml`
+  - Subprocess governance: `ceremony.py` raw `subprocess.run` → constitutional `subprocess_utils.run_command_async()`
+- **Empirical verification:** `intent_repository.py` placement confirmed correct (mind=2, body=6, will=5, cli=4 importers)
+- **System health maintained:** Audit PASSED throughout, findings reduced 6 → 3 (all INFO), daemon healthy
+- **Decision record:** ADR-002 created documenting all architectural decisions
 
 **Session 2026-04-17 changes:**
 
@@ -142,7 +157,7 @@ TRUNCATE core.autonomous_proposals RESTART IDENTITY CASCADE;
 
 **Status:** ViolationExecutor fully proven end-to-end. Stream A and C complete.
 Proposal Path fully daemonized. `style.formatter_required` autonomous loop proven.
-Next: Stream B (test writing). ViolationExecutor ceremony `'id'` bug still open.
+Shared/ boundary cleanup complete. Next: Stream B (test writing). ViolationExecutor ceremony `'id'` bug still open.
 
 **Three workstreams:**
 
@@ -223,6 +238,7 @@ Wire test-writing AtomicAction. When audit finds missing test coverage:
 
 | Blocker | Notes |
 |---------|-------|
+| ~~Shared/ boundary violations~~ | ✅ Resolved 2026-04-18 — ADR-002: constitutional moves (CLI utilities → cli/, remediation planning → will/, workers consolidation, subprocess governance, constitutional constants extraction) |
 | ~~`style.formatter_required` — deferred, no engine check~~ | ✅ Fully wired 2026-04-17 — RuffFormatCheck, enforcement mapping, remediation map, fix.format fixed, autonomous loop proven end-to-end |
 | ~~Proposal Path workers not daemonized~~ | ✅ Fixed 2026-04-17 — violation_remediator + proposal_consumer_worker activated |
 | ~~Worker heartbeat not updating registry~~ | ✅ Fixed 2026-04-17 — base.py _post_entry() updates worker_registry on heartbeat |
@@ -308,6 +324,12 @@ when `entry_type == 'heartbeat'`. Single fix point — all workers benefit autom
 **Decision:** The check_id posted to the Blackboard by `workflow_gate` engine is
 `workflow.ruff_format_check`. The remediation map must key on this, not `style.formatter_required`.
 Both keys map to `fix.format` for forward compatibility.
+
+### 2026-04-18 — Shared layer boundary enforcement (ADR-002)
+**Decision:** All shared/ boundary violations resolved through architectural moves, not rule exceptions. Constitutional violations require constitutional fixes.
+**Key moves:** CLI utilities to cli/ layer, remediation planning to will/ layer, governance constants extracted to .intent/, subprocess routing through constitutional infrastructure.
+**Verification:** Empirical import analysis, obs-8.6 resolution (two-worker separation pattern), audit health maintained throughout.
+**Rationale:** "Governance mappings live in .intent/, never hardcoded in src/" — policy decisions belong in constitutional layer, mechanisms belong in implementation layer.
 
 ---
 
@@ -452,14 +474,10 @@ Next step: [specific action]
 ---
 
 Current A3 phase: 3
-Last session: 2026-04-17. Documentation updated. Dashboard redesigned. 4 workers
-  activated. Worker heartbeat fix. style.formatter_required fully wired — RuffFormatCheck,
-  enforcement mapping, remediation map, fix.format fixed (ruff-format), ViolationRemediator
-  f["id"] bug fixed. Full autonomous loop proven: sensor → Blackboard → Remediator →
-  Proposal → Consumer → fix.format → git commit by CORE.
+Last session: 2026-04-18. Shared/ boundary audit complete via ADR-002. All constitutional violations resolved architecturally: CLI utilities moved cli/, remediation planning to will/, workers consolidated, subprocess governance enforced, constitutional constants extracted. Obs-8.1 disproven empirically (intent_repository.py genuinely multi-layer: mind=2, body=6, will=5, cli=4). Audit PASSED maintained, 6 → 3 findings.
 Current blocker: ViolationExecutor ceremony 'id' bug — blocks unmapped rule remediation.
   WorkerAuditor does not resolve findings on recovery.
-Blackboard state: ~6 open format findings — loop actively converging
+Blackboard state: 2 open legitimate findings — system healthy, boundaries clean
 Active workers: 12 (7 sensors + ViolationExecutor + ViolationRemediator +
   ProposalConsumer + BlackboardAuditor + WorkerAuditor)
 Next step: Fix ViolationExecutor ceremony 'id' bug. Then Stream B — wire

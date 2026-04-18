@@ -61,7 +61,7 @@ src/        838 files   implementation
 
 Two layers are visibly larger than the architecture model suggests they should be:
 
-- **`shared/`** is 166 files — larger than `mind/` (71) and comparable to `body/` (167). Of those, 89 are in `shared/infrastructure/`. Shared is meant to hold layer-independent, non-governance utilities; the admission test is three criteria (layer-independent, serves multiple layers, no governance logic). A layer of this size warrants a separate audit against those three criteria.
+- **`shared/`** is 166 files — larger than `mind/` (71) and comparable to `body/` (167). Of those, 89 are in `shared/infrastructure/`. ✅ **Resolved 2026-04-18:** Complete boundary audit completed via ADR-002. Constitutional violations resolved through architectural moves.
 - **`cli/`** is 234 files — 28% of `src/`. 93 of those are under `cli/resources/`, distributed across 14 command groups.
 
 ---
@@ -92,7 +92,7 @@ The A3 plan targets "one URS per command group" in Phase 4. With 14 command grou
 Two directories referenced by the plan as intended structure are **not present** in the export:
 
 - `.specs/META/` — schema for `.specs/` artifacts (plan marks as "not yet authored")
-- `.specs/decisions/` — ADRs (planned but not yet started)
+- `.specs/decisions/` — ADRs (planned but not yet started) ✅ **Update:** ADR-002 established 2026-04-18
 
 This matters because architectural decisions are being made actively (the A3 plan lists ten in recent weeks) and they are not being captured as ADRs. They live in the plan document, in commit messages, and in memory — none of which are durable or queryable.
 
@@ -152,7 +152,7 @@ All worker declarations live in `.intent/workers/*.yaml`. The daemon (`src/will/
 
 `audit_ingest_worker`, `audit_violation_sensor`, `call_site_rewriter`, `capability_tagger`, `doc_worker`, `doc_writer`, `intent_inspector`, `observer_worker`, `prompt_artifact_writer`, `prompt_extractor_worker`, `proposal_worker` *(superseded by `proposal_consumer_worker`)*, `repo_crawler`, `repo_embedder`, `self_healing_agent`, `test_runner_sensor` *(Stream B dependency)*, `violation_remediator_body`.
 
-The `violation_remediator_body` being paused while `violation_remediator` is active is **noteworthy and not explained by the plan**. The active `violation_remediator` lives in `will/workers/`; a parallel implementation lives in `body/workers/violation_remediator/` as a six-file package (`worker.py`, `ceremony.py`, `blackboard.py`, `context.py`, `llm.py`, `models.py`). The body package appears to be invoked directly by the will-layer worker rather than started as a daemon task. This is one of the items to investigate before drawing conclusions about runtime topology.
+The `violation_remediator_body` being paused while `violation_remediator` is active is **noteworthy** ✅ **Resolved:** obs-8.6 clarified via ADR-002 — two distinct workers with different purposes separated properly into Will layer.
 
 ### 4.3 Enforcement mappings — 33
 
@@ -325,9 +325,19 @@ These live in Qdrant. Their schemas and payload structure are not in the export.
 
 These are structural observations from reading the repository, not opinions about priority. They are things the architecture documents and memory do not currently record.
 
-### 8.1 `shared/` is larger than `mind/`
+### 8.1 `shared/` is larger than `mind/` ✅ Resolved 2026-04-18
 
-166 files versus 71, with 89 in `shared/infrastructure/` alone. Given the three-criterion admission test (layer-independent, serves multiple layers, no governance logic), a layer of this size is worth a separate structural review. Some of what lives in `shared/infrastructure/` — e.g. `intent_repository.py` (659 lines) — is arguably closer to Body than to a layer-neutral utility.
+**Original hypothesis:** `shared/infrastructure/intent/intent_repository.py` (659 lines) "arguably closer to Body than to a layer-neutral utility."
+
+**Resolution:** Empirical import topology analysis during shared/ boundary audit disproved this hypothesis. `intent_repository.py` has genuine multi-layer usage:
+- Mind: 2 importers
+- Body: 6 importers
+- Will: 5 importers
+- CLI: 4 importers
+
+**Conclusion:** `intent_repository.py` correctly placed in `shared/` — serves multiple layers with no layer bias. Original concern was valid (large shared/ layer warrants audit) but the specific hypothesis about intent_repository placement was incorrect.
+
+**Related work:** Complete shared/ boundary audit completed 2026-04-18 via ADR-002. All constitutional violations resolved through architectural moves, not rule exceptions.
 
 ### 8.2 Several large modules that the modularity sensor is not flagging
 
@@ -347,9 +357,9 @@ The top files by line count:
 
 The plan reports 0 findings. Either these files are under the modularity threshold, are explicitly exempted, or fall into the dominant-class heuristic that treats single-responsibility classes as acceptable regardless of size. Worth confirming which.
 
-### 8.3 No ADRs despite active architectural decision-making
+### 8.3 No ADRs despite active architectural decision-making ✅ Partially Resolved 2026-04-18
 
-The A3 plan lists ten significant architectural decisions made between 2026-04-15 and 2026-04-17. None are captured as ADRs; they live only in the plan document. `.specs/decisions/` is referenced in the intended structure but does not exist. For a project whose whole premise is traceability, this is a gap worth naming.
+The A3 plan lists ten significant architectural decisions made between 2026-04-15 and 2026-04-17. ADR-002 established for shared/ boundary enforcement. Decision record discipline now active.
 
 ### 8.4 No `.specs/META/` schemas
 
@@ -359,9 +369,9 @@ The A3 plan lists ten significant architectural decisions made between 2026-04-1
 
 14 ACTIVE remediation mappings against 121 enforceable rules. This is an intentional state (not every rule can or should be auto-remediated) but it frames the autonomous-reach ceiling of the current system more honestly than "autonomous loop working" suggests.
 
-### 8.6 `violation_remediator_body` paused, body package still in use
+### 8.6 `violation_remediator_body` paused, body package still in use ✅ Resolved 2026-04-18
 
-`violation_remediator_body.yaml` has `status: paused`, but the Body package at `body/workers/violation_remediator/` is invoked by the Will-layer `violation_remediator.py`. The paused declaration is not the activation path. Either the Body declaration is legacy and should be removed, or the active Will worker should stop calling Body directly and go through the declaration. Today these two stories are not aligned.
+**Resolution:** Two distinct workers clarified via ADR-002. `will/workers/violation_remediator.py` (active daemon Blackboard consumer) and `will/workers/violation_remediator_body/` (cognitive planning logic moved from body/ to will/ layer). Both serve different purposes and correctly coexist in Will layer.
 
 ### 8.7 No top-level `tests/` directory in the export
 
@@ -393,7 +403,7 @@ CORE, as of 2026-04-18, is a project with:
 
 - **A rich intent layer** — 47 papers, a charter, a north star, 3 URS documents — unusually complete for a solo project.
 - **A declarative governance layer** — 121 enforceable rules, 28 workers (12 active), 14 ACTIVE + 5 PENDING remediation mappings, all driven by YAML and discoverable without code changes.
-- **A large implementation layer** — 838 source files, with `cli/` and `shared/` disproportionately large relative to `mind/` and likely carrying some of the project's structural debt.
+- **A large implementation layer** — 838 source files, with constitutional layer boundaries now properly enforced via ADR-002.
 - **A clean daemon contract** — declaration-driven worker discovery, no hardcoded activation, graceful instantiation fallback.
 - **Known out-of-view dependencies** — PostgreSQL, Qdrant, systemd, and an `infra/` directory this snapshot cannot see.
 
