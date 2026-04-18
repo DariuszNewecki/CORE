@@ -7,8 +7,8 @@ Constitutional role: acting worker, remediation phase.
 
 Responsibility (from .intent/workers/test_remediator.yaml):
   Consume open test.missing and test.failure findings from the Blackboard
-  and create a build.tests proposal that drives autonomous test generation
-  for the affected source files. Every claimed finding is routed to the
+  and create one build.tests proposal per distinct source_file to drive
+  autonomous test generation. Every claimed finding is routed to the
   single 'build.tests' action — no remediation map lookup, no unmappable
   or delegate split.
 
@@ -20,8 +20,8 @@ The autonomous test loop this participates in:
           ↓
   TestRemediatorWorker (acting)  ← THIS WORKER
       reads open findings from Blackboard
-      groups every finding under the 'build.tests' action
-      creates a Proposal (deduped against active)
+      groups findings by source_file
+      creates one Proposal per source_file (deduped per source_file)
       marks findings resolved
           ↓
   ProposalConsumerWorker
@@ -33,9 +33,12 @@ The autonomous test loop this participates in:
 Design constraints:
 - No LLM calls
 - No direct file writes
-- Never creates a proposal if an active 'build.tests' one exists
-- Marks Blackboard entries resolved AFTER proposal is persisted (not before)
-- Routes every claimed finding to a single 'build.tests' action group
+- Dedup is per source_file — two concurrent build.tests proposals for
+  different source files are valid and must not block each other
+- Never creates a second proposal for a source_file that already has an
+  active 'build.tests' proposal
+- Marks Blackboard entries resolved AFTER the proposal for their source_file
+  is persisted (not before)
 """
 
 from __future__ import annotations
@@ -75,8 +78,10 @@ class TestRemediatorWorker(Worker):
     Acting worker that converts Blackboard test findings into build.tests proposals.
 
     Claims open test.missing and test.failure findings (two prefixes, merged),
-    routes every finding to the single 'build.tests' action, deduplicates
-    against active proposals, creates one proposal, marks entries resolved.
+    groups them by source_file, and creates one 'build.tests' proposal per
+    source_file. Dedup is per source_file — two concurrent build.tests
+    proposals for different source files are valid and must not block each
+    other.
     """
 
     declaration_name = "test_remediator"
@@ -93,11 +98,12 @@ class TestRemediatorWorker(Worker):
         """
         Core work unit:
         1. Claim open test.missing + test.failure findings from Blackboard
-        2. Route every finding to the single 'build.tests' action group
-        3. Deduplicate against active proposals
-        4. Create proposal (or release on dedup skip)
-        5. Mark consumed Blackboard entries resolved
-        6. Post blackboard report
+        2. Group findings by payload["source_file"]
+        3. For each group: check per-source_file dedup against active
+           build.tests proposals; create a proposal and resolve that
+           group's findings on success, or release that group's findings
+           on dedup skip
+        4. Post blackboard report
         """
         open_findings = await self._load_open_findings()
 
@@ -111,57 +117,72 @@ class TestRemediatorWorker(Worker):
             len(open_findings),
         )
 
-        active_action_ids = await self._get_active_proposal_action_ids()
+        # Group findings by source_file. _load_open_findings guarantees
+        # every finding has a non-empty payload["source_file"], but we
+        # defensively skip any that slipped through.
+        by_source: dict[str, list[dict[str, Any]]] = {}
+        for finding in open_findings:
+            source_file = (finding.get("payload") or {}).get("source_file")
+            if not source_file:
+                continue
+            by_source.setdefault(source_file, []).append(finding)
+
+        active_source_files = await self._get_active_build_tests_source_files()
 
         proposals_created: list[str] = []
-        proposals_skipped: list[str] = []
+        source_files_skipped: list[str] = []
         entries_resolved: int = 0
         entries_released: int = 0
 
-        if _TARGET_ACTION_ID in active_action_ids:
-            logger.info(
-                "TestRemediatorWorker: skipping '%s' — active proposal exists",
-                _TARGET_ACTION_ID,
-            )
-            proposals_skipped.append(_TARGET_ACTION_ID)
-            entries_released = await self._release_entries(
-                [f["id"] for f in open_findings]
-            )
-        else:
-            proposal_id = await self._create_proposal(_TARGET_ACTION_ID, open_findings)
+        for source_file, findings in by_source.items():
+            if source_file in active_source_files:
+                logger.info(
+                    "TestRemediatorWorker: skipping '%s' — active "
+                    "build.tests proposal exists for this source_file",
+                    source_file,
+                )
+                source_files_skipped.append(source_file)
+                released = await self._release_entries([f["id"] for f in findings])
+                entries_released += released
+                continue
+
+            proposal_id = await self._create_proposal(_TARGET_ACTION_ID, findings)
 
             if proposal_id:
-                proposals_created.append(_TARGET_ACTION_ID)
-                entries_resolved = await self._resolve_entries(
-                    [f["id"] for f in open_findings]
-                )
+                proposals_created.append(source_file)
+                resolved = await self._resolve_entries([f["id"] for f in findings])
+                entries_resolved += resolved
                 logger.info(
                     "TestRemediatorWorker: created proposal '%s' for action '%s' "
-                    "(%d findings, %d entries resolved)",
+                    "source_file='%s' (%d findings, %d entries resolved)",
                     proposal_id,
                     _TARGET_ACTION_ID,
-                    len(open_findings),
-                    entries_resolved,
+                    source_file,
+                    len(findings),
+                    resolved,
                 )
 
         await self.post_report(
             subject="test_remediator.completed",
             payload={
                 "open_findings": len(open_findings),
+                "source_files": len(by_source),
                 "proposals_created": len(proposals_created),
-                "proposals_skipped_dedup": len(proposals_skipped),
+                "source_files_skipped_dedup": len(source_files_skipped),
                 "entries_resolved": entries_resolved,
                 "entries_released": entries_released,
-                "created_actions": proposals_created,
-                "skipped_actions": proposals_skipped,
+                "created_for_source_files": proposals_created,
+                "skipped_source_files": source_files_skipped,
             },
         )
 
         logger.info(
-            "TestRemediatorWorker: done — %d proposals created, "
-            "%d skipped (dedup), %d entries resolved, %d entries released",
+            "TestRemediatorWorker: done — %d proposals created across %d "
+            "source file group(s), %d skipped (dedup), %d entries resolved, "
+            "%d entries released",
             len(proposals_created),
-            len(proposals_skipped),
+            len(by_source),
+            len(source_files_skipped),
             entries_resolved,
             entries_released,
         )
@@ -226,15 +247,23 @@ class TestRemediatorWorker(Worker):
 
         return valid
 
-    async def _get_active_proposal_action_ids(self) -> set[str]:
+    async def _get_active_build_tests_source_files(self) -> set[str]:
         """
-        Return action IDs that already have an active proposal.
-        Fail open — if unavailable, proceed without dedup.
+        Return the set of source_file values currently in flight for the
+        'build.tests' action — i.e. referenced by any active proposal.
+
+        A proposal is active when its status is in _ACTIVE_STATUSES. For
+        each such proposal, every action whose action_id is 'build.tests'
+        contributes its parameters["source_file"] (when present) to the
+        returned set.
+
+        Fail open — if the lookup raises, return an empty set and the
+        caller proceeds without per-source_file deduplication.
         """
         from body.services.service_registry import service_registry
         from will.autonomy.proposal_repository import ProposalRepository
 
-        active: set[str] = set()
+        active_source_files: set[str] = set()
         try:
             async with service_registry.session() as session:
                 repo = ProposalRepository(session)
@@ -242,14 +271,18 @@ class TestRemediatorWorker(Worker):
                     proposals = await repo.list_by_status(status, limit=200)
                     for proposal in proposals:
                         for action in proposal.actions:
-                            active.add(action.action_id)
+                            if action.action_id != _TARGET_ACTION_ID:
+                                continue
+                            source_file = (action.parameters or {}).get("source_file")
+                            if source_file:
+                                active_source_files.add(source_file)
         except Exception as e:
             logger.warning(
                 "TestRemediatorWorker: could not load active proposals (%s). "
-                "Proceeding without deduplication.",
+                "Proceeding without per-source_file deduplication.",
                 e,
             )
-        return active
+        return active_source_files
 
     async def _create_proposal(
         self,
@@ -257,6 +290,10 @@ class TestRemediatorWorker(Worker):
         findings: list[dict[str, Any]],
     ) -> str | None:
         """Create and persist a Proposal for the given action and findings.
+
+        All findings passed to this method must share a single source_file
+        (the caller groups them accordingly). The action parameter carries
+        exactly that source_file.
 
         Safe proposals (approval_required=False) are created in APPROVED status
         so ProposalConsumerWorker can execute them without a separate approval step.
