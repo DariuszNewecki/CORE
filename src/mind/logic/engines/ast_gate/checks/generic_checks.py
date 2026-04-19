@@ -37,7 +37,15 @@ class GenericASTChecks:
             return False
 
         if "name_regex" in selector:
-            return bool(re.search(selector["name_regex"], getattr(node, "name", "")))
+            # getattr returns None when the attribute exists but is None
+            # (ast.ExceptHandler without "as" binding, ast.MatchStar/MatchAs
+            # without binding). ast.TypeAlias.name is an ast.Name node, not
+            # a string. Coerce both cases to a safe empty-string fallback
+            # so the regex never sees a non-string value.
+            name = getattr(node, "name", "") or ""
+            if not isinstance(name, str):
+                return False
+            return bool(re.search(selector["name_regex"], name))
 
         return True
 
