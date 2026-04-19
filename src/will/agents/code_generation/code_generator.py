@@ -219,7 +219,7 @@ class CodeGenerator:
         try:
             task_spec = {
                 "task_id": f"codegen_{symbol_name}_{hash(goal) & 0xFFFFFFFF:08x}",
-                "task_type": "code_generation",
+                "task_type": task.task_type,
                 "target_file": target_file,
                 "target_symbol": symbol_name,
                 "summary": f"{goal} - {task.step}",

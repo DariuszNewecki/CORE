@@ -19,9 +19,10 @@ from rich.panel import Panel
 from body.infrastructure.bootstrap import create_core_context
 from body.services.service_registry import service_registry
 from cli.utils import core_command
-from shared.infrastructure.context.models import (
-    ContextBuildRequest,
-    PhaseType,
+from shared.infrastructure.context.models import ContextBuildRequest
+from shared.infrastructure.intent.task_type_phases import (
+    allowed_task_types,
+    resolve_phase,
 )
 from shared.infrastructure.storage.file_handler import FileHandler
 from shared.logger import getLogger
@@ -33,25 +34,11 @@ from .hub import app
 logger = getLogger(__name__)
 console = Console()
 
-TASK_TYPES = [
-    "code_generation",
-    "code_modification",
-    "test_generation",
-    "test.generate",
-    "conversational",
-]
-
-_PHASE_BY_TASK: dict[str, PhaseType] = {
-    "code_generation": "execution",
-    "code_modification": "execution",
-    "test_generation": "audit",
-    "test.generate": "audit",
-    "conversational": "runtime",
-}
-
-
-def _resolve_phase(task: str) -> PhaseType:
-    return _PHASE_BY_TASK.get(task, "runtime")
+# ADR-004: Typer --task autocompletion and help binding. The choice list
+# is derived from the governed vocabulary in
+# .intent/enforcement/config/task_type_phases.yaml and materialised once
+# at module load. No hardcoded copy of the vocabulary is permitted.
+_TASK_CHOICES: list[str] = sorted(allowed_task_types())
 
 
 def _format_item_source(item: dict[str, Any]) -> str:
@@ -292,7 +279,10 @@ async def build_cmd(
         None, "--symbol", "-s", help="Target symbol name"
     ),
     task: str = typer.Option(
-        "code_modification", "--task", "-t", help=f"Task type: {', '.join(TASK_TYPES)}"
+        "code_modification",
+        "--task",
+        "-t",
+        help=f"Task type: {', '.join(_TASK_CHOICES)}",
     ),
     goal: str = typer.Option("", "--goal", "-g", help="Optional goal override"),
     show_prompt: bool = typer.Option(
@@ -307,7 +297,7 @@ async def build_cmd(
     ),
     max_items: int = typer.Option(20, "--max-items", help="Max evidence items hint"),
 ) -> None:
-    if task not in TASK_TYPES:
+    if task not in allowed_task_types():
         logger.info("Unknown task type: %s", task)
         raise typer.Exit(code=1)
 
@@ -332,7 +322,7 @@ async def build_cmd(
         goal=goal
         or (f"{task} for {symbol} in {file}" if symbol else f"{task} for {file}"),
         trigger="cli",
-        phase=_resolve_phase(task),
+        phase=resolve_phase(task),
         target_files=[file],
         target_symbols=[symbol] if symbol else [],
         include_constitution=True,

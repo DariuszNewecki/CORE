@@ -18,6 +18,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+from shared.infrastructure.intent.task_type_phases import resolve_phase
 from shared.logger import getLogger
 
 from .builder import ContextBuilder
@@ -172,21 +173,13 @@ class ContextService:
                 "header":     dict,
             }
         """
-        _PHASE_BY_TASK_TYPE: dict[str, str] = {
-            "code_generation": "execution",
-            "code_modification": "execution",
-            "test_generation": "audit",
-            "test.generate": "audit",
-            "conversational": "runtime",
-        }
-
         task_type = task_spec.get("task_type", "code_generation")
         target_file = task_spec.get("target_file", "")
         target_symbol = task_spec.get("target_symbol", "")
         # Prefer summary; fall back to task_id, then task_type
         goal = task_spec.get("summary") or task_spec.get("task_id") or task_type
         scope_include: list[str] = task_spec.get("scope", {}).get("include", [])
-        phase = _PHASE_BY_TASK_TYPE.get(task_type, "execution")
+        phase = resolve_phase(task_type)
 
         # Merge target_file with scope.include; deduplicate, preserve order, drop empties
         raw_files = ([target_file] if target_file else []) + list(scope_include)
@@ -195,7 +188,7 @@ class ContextService:
         request = ContextBuildRequest(
             goal=goal,
             trigger="agent",  # type: ignore[arg-type]
-            phase=phase,  # type: ignore[arg-type]
+            phase=phase,
             target_files=target_files,
             target_symbols=[target_symbol] if target_symbol else [],
             include_constitution=True,

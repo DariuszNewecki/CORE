@@ -39,6 +39,7 @@ async def step_generate_code(session, target_file, coder_agent):
         params=TaskParams(
             file_path=f"tests/{target_file.replace('src/', '').replace('.py', '')}/test_generated.py"
         ),
+        task_type="test_generation",
     )
     goal = f"Generate comprehensive tests for {target_file}"
 

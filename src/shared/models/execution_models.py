@@ -8,7 +8,13 @@ They were previously duplicated here; removed to satisfy purity.no_ast_duplicati
 
 from __future__ import annotations
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
+
+from shared.infrastructure.intent.task_type_phases import allowed_task_types
+
+
+# ADR-004: Vocabulary governed by .intent/enforcement/config/task_type_phases.yaml.
+_ALLOWED_TASK_TYPES: frozenset[str] = allowed_task_types()
 
 
 # ID: 1a71c89f-73f0-436b-ad58-f24cfbdec162
@@ -29,6 +35,17 @@ class ExecutionTask(BaseModel):
     step: str
     action: str
     params: TaskParams
+    task_type: str = "code_generation"
+
+    @field_validator("task_type")
+    @classmethod
+    def _validate_task_type(cls, value: str) -> str:
+        if value not in _ALLOWED_TASK_TYPES:
+            raise ValueError(
+                f"Invalid task_type {value!r}; allowed values are "
+                f"{sorted(_ALLOWED_TASK_TYPES)}"
+            )
+        return value
 
 
 # ID: 73684d31-61e0-4f28-bb94-7134f296371b
