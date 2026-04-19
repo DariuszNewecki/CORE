@@ -183,3 +183,101 @@ section-order = ["future", "standard-library", "third-party", "first-party", "lo
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F401"]
 "tests/**/*.py" = ["B008", "F403"]
+
+# --- Migrated from pytest.ini ---
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+asyncio_mode = "auto"
+
+# pytest-dotenv
+env_files = [".env.test"]
+env_override_existing_values = true
+
+# logging
+log_cli = true
+log_cli_level = "INFO"
+
+# options
+addopts = [
+    "-v",
+    "--strict-markers",
+    "--strict-config",
+    "--cov=src",
+    "--cov-report=html:reports/htmlcov",
+    "--cov-report=term-missing:skip-covered",
+    "-m",
+    "not trio",
+]
+
+markers = [
+    "unit: Unit tests (fast, no external dependencies)",
+    "integration: Integration tests (database, external services)",
+    "e2e: End-to-end tests (full system)",
+    "slow: Slow running tests",
+    "trio: marks tests to run with trio backend (skipped by default)",
+]
+
+# --- Migrated from mypy.ini ---
+[tool.mypy]
+python_version = "3.12"
+ignore_missing_imports = false
+plugins = ["pydantic.mypy"]
+# Global: only catch catastrophic errors
+warn_return_any = false
+disallow_untyped_defs = false
+
+[[tool.mypy.overrides]]
+module = "src.features.*"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "src.will.tools.*"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "src.mind.logic.engines.ast_gate.*"
+ignore_errors = false
+
+# --- Migrated from .coveragerc ---
+[tool.coverage.run]
+branch = true
+source = ["src"]
+relative_files = true
+parallel = true
+omit = [
+    "src/features/self_healing/*",
+    "src/features/autonomy/*",
+    "src/mind/governance/checks/*",
+    "src/features/maintenance/*",
+    "src/features/project_lifecycle/*",
+    "src/features/introspection/*",
+    "tests/*",
+]
+
+[tool.coverage.paths]
+source = [
+    "src",
+    "*/src",
+]
+
+[tool.coverage.report]
+fail_under = 45
+show_missing = true
+skip_covered = false
+precision = 1
+exclude_lines = [
+    "pragma: no cover",
+    "raise NotImplementedError",
+    "raise AssertionError.*unreachable",
+]
+
+[tool.coverage.html]
+directory = "reports/htmlcov"
+
+[tool.coverage.xml]
+output = "reports/coverage.xml"
+
+[tool.coverage.json]
+output = "reports/coverage.json"
+pretty_print = true
