@@ -6,7 +6,7 @@
 - Generated: 2026-01-11 10:40:33
 """
 
-from shared.cli_utils import display_error
+from cli.utils.display import display_error
 
 
 def test_display_error_prints_formatted_message(capsys):

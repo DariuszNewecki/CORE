@@ -6,7 +6,7 @@
 - Generated: 2026-01-11 10:40:44
 """
 
-from shared.cli_utils import display_success
+from cli.utils.display import display_success
 
 
 def test_display_success_does_not_print_to_stderr(capsys):

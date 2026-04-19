@@ -6,7 +6,7 @@
 - Generated: 2026-01-11 10:41:22
 """
 
-from shared.cli_utils import display_info
+from cli.utils.display import display_info
 
 
 def test_display_info_return_value():

@@ -6,7 +6,7 @@
 - Generated: 2026-01-11 10:41:37
 """
 
-from shared.cli_utils import display_warning
+from cli.utils.display import display_warning
 
 
 def test_display_warning_basic_message():

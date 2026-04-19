@@ -12,7 +12,7 @@ from unittest.mock import Mock, patch
 import pytest
 import typer
 
-from shared.cli_utils import core_command
+from cli.utils.decorators import core_command
 
 
 def test_core_command_registers_metadata():

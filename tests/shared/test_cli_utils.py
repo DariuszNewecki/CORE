@@ -6,7 +6,7 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from shared.cli_utils import display_error
+from cli.utils.display import display_error
 
 
 def test_display_error():
@@ -55,7 +55,7 @@ def test_display_error():
         )
 
 
-from shared.cli_utils import display_success
+from cli.utils.display import display_success
 
 
 def test_display_success():
@@ -126,7 +126,7 @@ def test_display_success_long_message():
     mock_console.print.assert_called_once_with(expected_formatted_msg)
 
 
-from shared.cli_utils import display_info
+from cli.utils.display import display_info
 
 
 def test_display_info():
@@ -169,7 +169,7 @@ def test_display_info():
         mock_console.print.assert_called_once_with(f"[cyan]{special_msg}[/cyan]")
 
 
-from shared.cli_utils import display_warning
+from cli.utils.display import display_warning
 
 
 def test_display_warning():
@@ -228,7 +228,7 @@ def test_display_warning_multiline():
 
 import asyncio
 
-from shared.cli_utils import async_command
+from cli.utils.decorators import async_command
 
 
 def test_async_command():

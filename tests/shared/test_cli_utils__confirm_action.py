@@ -5,7 +5,7 @@
 - Generated: 2026-01-11 10:39:05
 """
 
-from shared.cli_utils import confirm_action
+from cli.utils.prompts import confirm_action
 
 
 # The function 'confirm_action' is a regular 'def', not 'async def'.

@@ -7,7 +7,7 @@
 
 import asyncio
 
-from shared.cli_utils import async_command
+from cli.utils.decorators import async_command
 
 
 # Detected: async_command is a decorator that returns a synchronous wrapper function

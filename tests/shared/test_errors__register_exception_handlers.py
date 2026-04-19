@@ -10,7 +10,7 @@ import logging
 
 from fastapi import FastAPI
 
-from shared.errors import register_exception_handlers
+from api.errors import register_exception_handlers
 
 
 def test_register_exception_handlers_info_log(caplog):
