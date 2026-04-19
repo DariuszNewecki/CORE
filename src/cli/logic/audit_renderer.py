@@ -113,8 +113,19 @@ def _render_verdict(
         label = verdict_str
     else:
         label = "PASSED" if is_passed else "FAILED"
-    style = "bold green" if is_passed else "bold red"
-    panel_style = "green" if is_passed else "red"
+    # DEGRADED is a tri-state distinct from PASS/FAIL: the instrument
+    # couldn't check some rules, so compliance is UNKNOWN. Render it in
+    # yellow to signal "instrument compromised" rather than collapsing
+    # into either green (pass) or red (fail).
+    if label.upper() == "DEGRADED":
+        style = "bold yellow"
+        panel_style = "yellow"
+    elif is_passed:
+        style = "bold green"
+        panel_style = "green"
+    else:
+        style = "bold red"
+        panel_style = "red"
     console.print(
         Panel(
             Text(label, style=style),

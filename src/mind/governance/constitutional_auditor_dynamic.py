@@ -109,6 +109,24 @@ async def run_dynamic_rules(
                 )
             )
 
+    # HARDENING P0.1 (completion): per-file engine crashes in
+    # execute_rule emit ENFORCEMENT_FAILURE findings but do not
+    # populate crashed_rule_ids from here. Aggregate their rule_ids
+    # so _determine_verdict correctly returns DEGRADED.
+    # Set semantics make this idempotent with the outer handler above.
+    _ENFORCEMENT_FAILURE_SUFFIX = ".enforcement_failure"
+    for finding in all_findings:
+        ctx = getattr(finding, "context", None)
+        check_id = getattr(finding, "check_id", "") or ""
+        if (
+            isinstance(ctx, dict)
+            and ctx.get("finding_type") == "ENFORCEMENT_FAILURE"
+            and check_id.endswith(_ENFORCEMENT_FAILURE_SUFFIX)
+        ):
+            rule_id = check_id[: -len(_ENFORCEMENT_FAILURE_SUFFIX)]
+            if rule_id:
+                crashed_rule_ids.add(rule_id)
+
     logger.info(
         "Dynamic Rule Execution: Completed %d rules (Skipped %d stubs, %d crashed)",
         executed_count,

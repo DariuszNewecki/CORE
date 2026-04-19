@@ -124,6 +124,15 @@ async def audit_command(
         # 2. Body performs the execution (File writes)
         timestamp_str = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
 
+        # Compute verdict_str once — needed for both the Evidence Ledger
+        # (conditional) and the Rich panel render (always). AuditVerdict
+        # is a tri-state (PASS/FAIL/DEGRADED); fall back to PASS/FAIL only
+        # when the auditor didn't supply a verdict (e.g. filtered runs).
+        verdict = results.get("verdict")
+        verdict_str = (
+            verdict.value if verdict else ("PASS" if results["passed"] else "FAIL")
+        )
+
         if not (rule or policy):
             # Write Main Findings
             file_service.write_file(
@@ -139,10 +148,6 @@ async def audit_command(
             )
 
             # Record Evidence Ledger
-            verdict = results.get("verdict")
-            verdict_str = (
-                verdict.value if verdict else ("PASS" if results["passed"] else "FAIL")
-            )
             evidence = {
                 "audit_id": run.run_id,
                 "timestamp": timestamp_str,
@@ -168,7 +173,14 @@ async def audit_command(
     all_findings = [_to_audit_finding(f) for f in processed_findings]
     filtered_findings = [f for f in all_findings if f.severity >= min_severity]
 
-    render_overview(console, all_findings, audit_stats, duration, results["passed"])
+    render_overview(
+        console,
+        all_findings,
+        audit_stats,
+        duration,
+        results["passed"],
+        verdict_str=verdict_str,
+    )
 
     if filtered_findings:
         if verbose:
