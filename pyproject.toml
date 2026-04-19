@@ -12,6 +12,7 @@ readme = "README.md"
 packages = [
     { include = "api", from = "src" },
     { include = "body", from = "src" },
+    { include = "cli", from = "src" },
     { include = "mind", from = "src" },
     { include = "shared", from = "src" },
     { include = "will", from = "src" },
