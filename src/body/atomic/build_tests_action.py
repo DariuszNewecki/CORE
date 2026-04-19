@@ -11,6 +11,9 @@ Constitutional Alignment:
 - Circularity Fix: Feature-level imports are performed inside functions.
 - Remediation: Declares remediates=["test.failure", "test.missing"] so
   ViolationRemediatorWorker can close the autonomous test loop.
+- Path mapping: source_file -> test_file is resolved via
+  shared.infrastructure.intent.test_coverage_paths.source_to_test_path
+  (governed by .intent/enforcement/config/test_coverage.yaml).
 """
 
 from __future__ import annotations
@@ -54,7 +57,7 @@ async def action_build_tests(
     """
     Generate a test file for source_file using CoderAgent.
 
-    1. Map source_file to test_file path
+    1. Map source_file to test_file path (governed by .intent/)
     2. Initialize CoderAgent (same as interactive_test workflow)
     3. Call coder_agent.generate_or_repair(task, goal)
     4. Run auto-heal: fix.imports, fix.headers, fix.format
@@ -66,16 +69,25 @@ async def action_build_tests(
     from body.atomic.file_ops import action_create_file
     from body.governance.intent_guard import get_intent_guard
     from body.services.service_registry import _ServiceLoader
+    from shared.infrastructure.intent.test_coverage_paths import (
+        source_to_test_path,
+    )
     from shared.models.execution_models import ExecutionTask, TaskParams
 
     start = time.time()
     repo_root = core_context.git_service.repo_path
 
-    # 1. Map source_file to test_file path
+    # 1. Map source_file to test_file path via governed helper.
     #    src/foo/bar.py → tests/foo/bar/test_generated.py
-    test_file = source_file.replace("src/", "tests/").replace(
-        ".py", "/test_generated.py"
-    )
+    try:
+        test_file = source_to_test_path(source_file)
+    except ValueError as e:
+        return ActionResult(
+            action_id="build.tests",
+            ok=False,
+            data={"error": f"Invalid source path: {e}"},
+            duration_sec=time.time() - start,
+        )
 
     logger.info(
         "build.tests: generating tests for %s → %s",
@@ -136,16 +148,30 @@ async def action_build_tests(
             duration_sec=time.time() - start,
         )
 
-    # 4. Construct ExecutionTask and generate code
+    # 4. Construct ExecutionTask and generate code.
+    #    CoderAgent -> CodeGenerator._build_context_package reads
+    #    task.params.file_path as target_file for ContextService.
+    #    Pointing file_path at the SOURCE file (not the not-yet-existing
+    #    test file) is what gives the LLM real symbols to ground tests
+    #    in. The test file path is communicated via the goal string and
+    #    is still the write destination in step 7 below.
     task = ExecutionTask(
-        step=f"Generate comprehensive tests for {source_file}",
+        step=f"Generate comprehensive pytest tests for module {source_file}",
         action="generate",
         params=TaskParams(
-            file_path=test_file,
+            file_path=source_file,
             symbol_name=None,
         ),
+        task_type="test_generation",
     )
-    goal = f"Generate comprehensive tests for {source_file}"
+    goal = (
+        f"Generate a comprehensive pytest test module for the source "
+        f"file {source_file}. The generated test module will be "
+        f"written to {test_file}. Cover the public symbols of the "
+        f"source module. Use only imports, classes, and functions "
+        f"that exist in the provided context evidence — do not "
+        f"invent symbols."
+    )
 
     try:
         generated_code = await coder_agent.generate_or_repair(task, goal)

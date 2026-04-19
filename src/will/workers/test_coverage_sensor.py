@@ -10,7 +10,8 @@ and posts test.missing for downstream remediation by ViolationRemediatorWorker.
 
 Scan behaviour is governed entirely by
 .intent/enforcement/config/test_coverage.yaml — no paths or exclusions
-are hardcoded in this file.
+are hardcoded in this file. All source->test mapping flows through
+shared.infrastructure.intent.test_coverage_paths.source_to_test_path.
 
 Constitutional standing:
 - Declaration:      .intent/workers/test_coverage_sensor.yaml
@@ -32,6 +33,10 @@ import asyncio
 from pathlib import Path
 from typing import Any
 
+from shared.infrastructure.intent.test_coverage_paths import (
+    load_test_coverage_config,
+    source_to_test_path,
+)
 from shared.logger import getLogger
 from shared.workers.base import Worker
 
@@ -39,13 +44,6 @@ from shared.workers.base import Worker
 logger = getLogger(__name__)
 
 _SUBJECT_PREFIX = "test.run_required"
-
-# Fallback config used only when .intent/enforcement/config/test_coverage.yaml
-# cannot be loaded. These constants MUST NOT be used in logic — last resort only.
-_FALLBACK_SOURCE_ROOT = "src"
-_FALLBACK_TEST_ROOT = "tests"
-_FALLBACK_TEST_FILE_SUFFIX = "/test_generated.py"
-_FALLBACK_EXCLUDED_FILENAMES: frozenset[str] = frozenset({"__init__.py"})
 
 
 # ID: f7e8d9c0-b1a2-4345-8901-234567890abc
@@ -158,45 +156,19 @@ class TestCoverageSensor(Worker):
         )
 
     # -------------------------------------------------------------------------
-    # Config loader — reads .intent/ via IntentRepository
+    # Config loader — thin wrapper around the shared policy-governed helper
     # -------------------------------------------------------------------------
 
     # ID: c4d5e6f7-a8b9-4012-1234-567890123def
     def _load_coverage_config(self) -> dict[str, Any]:
         """
         Load scan configuration from
-        .intent/enforcement/config/test_coverage.yaml via IntentRepository.
+        .intent/enforcement/config/test_coverage.yaml.
 
-        Returns fallback defaults on any load error so the sensor degrades
-        gracefully rather than halting.
+        Delegates to shared.infrastructure.intent.test_coverage_paths so
+        all config access flows through the same policy-governed helper.
         """
-        try:
-            from shared.infrastructure.intent.intent_repository import (
-                get_intent_repository,
-            )
-
-            repo = get_intent_repository()
-            config_path = repo.resolve_rel("enforcement/config/test_coverage.yaml")
-            config = repo.load_document(config_path)
-            if isinstance(config, dict):
-                logger.debug("TestCoverageSensor: loaded coverage config from .intent/")
-                return config
-            logger.warning(
-                "TestCoverageSensor: test_coverage.yaml did not parse as a dict "
-                "— using fallback defaults."
-            )
-        except Exception as exc:
-            logger.warning(
-                "TestCoverageSensor: could not load .intent/enforcement/config/"
-                "test_coverage.yaml (%s) — using fallback defaults.",
-                exc,
-            )
-        return {
-            "source_root": _FALLBACK_SOURCE_ROOT,
-            "test_root": _FALLBACK_TEST_ROOT,
-            "test_file_suffix": _FALLBACK_TEST_FILE_SUFFIX,
-            "excluded_filenames": list(_FALLBACK_EXCLUDED_FILENAMES),
-        }
+        return load_test_coverage_config()
 
     # -------------------------------------------------------------------------
     # Filesystem scan
@@ -208,17 +180,14 @@ class TestCoverageSensor(Worker):
         Walk source_root and return relative paths (from repo root) for
         Python source files that have no corresponding test file.
 
-        Mapping is driven entirely by config loaded from .intent/:
+        Mapping is driven entirely by config loaded from .intent/ via
+        source_to_test_path:
           {source_root}/foo/bar.py
             → {test_root}/foo/bar{test_file_suffix}
         """
-        source_root_rel: str = config.get("source_root", _FALLBACK_SOURCE_ROOT)
-        test_root_rel: str = config.get("test_root", _FALLBACK_TEST_ROOT)
-        test_file_suffix: str = config.get(
-            "test_file_suffix", _FALLBACK_TEST_FILE_SUFFIX
-        )
+        source_root_rel: str = config.get("source_root", "src")
         excluded: frozenset[str] = frozenset(
-            config.get("excluded_filenames", list(_FALLBACK_EXCLUDED_FILENAMES))
+            config.get("excluded_filenames", ["__init__.py"])
         )
         include_files: frozenset[str] = frozenset(config.get("include_files") or [])
 
@@ -240,13 +209,11 @@ class TestCoverageSensor(Worker):
             if include_files and source_file not in include_files:
                 continue
 
-            # Derive test path by replacing source_root prefix and .py suffix.
-            # src/foo/bar.py → tests/foo/bar/test_generated.py
-            test_rel = (
-                source_file.replace(
-                    f"{source_root_rel}/", f"{test_root_rel}/", 1
-                ).removesuffix(".py")
-            ) + test_file_suffix
+            try:
+                test_rel = source_to_test_path(source_file, config)
+            except ValueError:
+                continue  # skip files outside configured source_root
+
             test_path = self._repo_root / test_rel
 
             if not test_path.exists():

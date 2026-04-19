@@ -7,6 +7,11 @@ Responsibility: Consume test.run_required findings from the blackboard,
 run pytest on existing test files, and post test.failure or test.missing
 findings for downstream remediation.
 
+Source->test mapping is governed by
+.intent/enforcement/config/test_coverage.yaml and resolved through
+shared.infrastructure.intent.test_coverage_paths.source_to_test_path —
+never hardcoded in this file.
+
 Constitutional standing:
 - Declaration:      .intent/workers/test_runner_sensor.yaml
 - Class:            sensing
@@ -28,6 +33,10 @@ import re
 from pathlib import Path
 from typing import Any
 
+from shared.infrastructure.intent.test_coverage_paths import (
+    load_test_coverage_config,
+    source_to_test_path,
+)
 from shared.logger import getLogger
 from shared.workers.base import Worker
 
@@ -121,6 +130,10 @@ class TestRunnerSensor(Worker):
             )
             return
 
+        # Load coverage config once per cycle so every mapping below
+        # shares one consistent policy snapshot.
+        config = load_test_coverage_config()
+
         count_run = 0
         count_passed = 0
         count_failed = 0
@@ -139,10 +152,13 @@ class TestRunnerSensor(Worker):
                 await svc.resolve_entries([entry_id])
                 continue
 
-            # Map source_file to test_file
-            test_file = source_file.replace("src/", "tests/").replace(
-                ".py", "/test_generated.py"
-            )
+            # Map source_file to test_file via governed policy.
+            try:
+                test_file = source_to_test_path(source_file, config)
+            except ValueError:
+                await svc.resolve_entries([entry_id])
+                continue
+
             test_path = self._repo_root / test_file
 
             if not test_path.exists():
