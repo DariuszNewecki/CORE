@@ -82,21 +82,6 @@ def render_detail(console: Console, findings: list[AuditFinding]) -> None:
     _render_details_groups(console, groups)
 
 
-# ID: 60c17a61-817e-468b-998c-6af7318c170c
-def render_audit_report(
-    findings: list[AuditFinding], console: Console | None = None
-) -> None:
-    """Main entrypoint: render full audit report (overview, details, verdict)."""
-    if console is None:
-        console = Console()
-    groups: list[SeverityGroup] = group_findings(findings)
-    _render_overview_groups(console, groups)
-    console.print()
-    _render_details_groups(console, groups)
-    console.print()
-    _render_verdict(console, groups)
-
-
 def _render_verdict(
     console: Console,
     groups: list[SeverityGroup],
