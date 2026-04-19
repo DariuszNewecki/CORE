@@ -239,6 +239,92 @@ class ModularityChecker:
             logger.error("Analysis failed for %s: %s", file_path, e)
             return []
 
+    # --- RULE-ALIGNED SENSORS ---
+    # These are the methods the enforcement mappings in
+    # .intent/enforcement/mappings/code/modularity.yaml invoke by name.
+    # They were introduced in commit 90aab242, silently removed in
+    # 5a43be56, and restored here. The rules they back are declared
+    # active in .intent/rules/code/modularity.json.
+
+    # ID: 48e9ff26-da82-46c2-9e95-055b16bb02dc
+    def check_needs_split(
+        self, file_path: Path, params: dict[str, Any]
+    ) -> list[dict[str, Any]]:
+        """Flag files that are too long but have few concerns — candidates for splitting."""
+        max_lines = int(params.get("max_lines", 400))
+
+        try:
+            content = file_path.read_text(encoding="utf-8")
+            tree = ast.parse(content)
+
+            loc = len(content.splitlines())
+            if loc <= max_lines:
+                return []
+
+            imports = self._extract_imports(tree)
+            concerns = self._identify_concerns(imports)
+
+            if len(concerns) <= 2:
+                return [
+                    {
+                        "rule_id": "modularity.needs_split",
+                        "severity": "warning",
+                        "message": (
+                            f"File has {loc} lines (limit {max_lines}) with only "
+                            f"{len(concerns)} concern(s) — consider splitting"
+                        ),
+                        "file": str(file_path),
+                        "details": {
+                            "lines_of_code": loc,
+                            "max_lines": max_lines,
+                            "concern_count": len(concerns),
+                            "concerns": concerns,
+                        },
+                    }
+                ]
+            return []
+
+        except Exception as e:
+            logger.error("Needs-split check failed for %s: %s", file_path, e)
+            return []
+
+    # ID: e7415876-4981-4c11-b91e-05eb175948e1
+    def check_needs_refactor(
+        self, file_path: Path, params: dict[str, Any]
+    ) -> list[dict[str, Any]]:
+        """Flag files with too many concerns — mixed disciplines needing refactor."""
+        max_concerns = int(params.get("max_concerns", 3))
+
+        try:
+            content = file_path.read_text(encoding="utf-8")
+            tree = ast.parse(content)
+
+            imports = self._extract_imports(tree)
+            concerns = self._identify_concerns(imports)
+
+            if len(concerns) > max_concerns:
+                return [
+                    {
+                        "rule_id": "modularity.needs_refactor",
+                        "severity": "error",
+                        "message": (
+                            f"File touches {len(concerns)} concern areas "
+                            f"(limit {max_concerns}) — mixed disciplines"
+                        ),
+                        "file": str(file_path),
+                        "details": {
+                            "concern_count": len(concerns),
+                            "max_concerns": max_concerns,
+                            "concerns": concerns,
+                        },
+                    }
+                ]
+            return []
+
+        except Exception as e:
+            logger.error("Needs-refactor check failed for %s: %s", file_path, e)
+            return []
+
     # Compatibility methods to ensure 'check audit' doesn't break
     # ID: c964d35a-6041-42e2-80fa-ade2cf3c103e
     def check_single_responsibility(
