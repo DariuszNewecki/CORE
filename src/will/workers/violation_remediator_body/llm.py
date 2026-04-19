@@ -47,10 +47,10 @@ class LLMMixin:
         from shared.ai.response_parser import extract_json
 
         try:
-            client = await self._ctx.cognitive_service.aget_client_for_role(
-                "RemoteCoder"
-            )
             model = PromptModel.load("violation_remediator")
+            client = await self._ctx.cognitive_service.aget_client_for_role(
+                model.manifest.role
+            )
             result = await model.invoke(
                 context={
                     "file_path": file_path,

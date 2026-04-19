@@ -3,6 +3,12 @@
 """
 Service Registry - Centralized DI Container.
 
+CONSTITUTIONAL AUTHORITY: Infrastructure (coordination)
+AUTHORITY LIMITS: Cannot make policy decisions or evaluate governance rules.
+  Acts only as a service locator bound to the immutable KERNEL_SERVICES
+  map declared in this module. Service paths are compile-time constants,
+  not runtime lookups.
+
 CONSTITUTIONAL FIX (V2.3.0):
 - "Hardcoded Kernel": Service paths are now immutable constants, not DB lookups.
 - Removes RCE (Remote Code Execution) vulnerability where DB edits could hijack the kernel.

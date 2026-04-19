@@ -89,13 +89,13 @@ class PromptExtractorWorker(Worker):
 
         logger.info("PromptExtractorWorker: %d findings to process.", len(findings))
 
-        client = await self._core_context.cognitive_service.aget_client_for_role(
-            "LocalCoder"
-        )
-
         from shared.ai.prompt_model import PromptModel
 
         model = PromptModel.load("prompt_extractor")
+
+        client = await self._core_context.cognitive_service.aget_client_for_role(
+            model.manifest.role
+        )
 
         repo_path: Path = self._core_context.git_service.repo_path
 

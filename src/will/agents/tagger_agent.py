@@ -218,7 +218,7 @@ class CapabilityTaggerAgent:
         """
         if self.tagger_client is None:
             self.tagger_client = await self.cognitive_service.aget_client_for_role(
-                "CapabilityTagger"
+                self.prompt_model.manifest.role
             )
 
         logger.info("Searching for orphaned capabilities (using audit logic)...")

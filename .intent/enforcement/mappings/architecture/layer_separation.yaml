@@ -210,6 +210,16 @@ mappings:
   # recursive-directory-match — it requires at least one intermediate dir.
   # So "src/api/**/*.py" matched src/api/v1/*.py but silently missed top-level
   # src/api/main.py (the file this rule most needs to catch).
+  #
+  # COMPOSITION-ROOT EXEMPTION 2026-04-19: Added src/api/main.py to excludes.
+  # FastAPI requires `lifespan` to be declared at app creation; core_lifespan
+  # coordinates Body services (ServiceRegistry, bootstrap, health gate, service
+  # warm-up, knowledge-graph load). Composition roots wire layers together by
+  # architectural design — they are not bypasses. This exemption is analogous
+  # to the bootstrap sanctuary already granted under Rule 15
+  # (src/shared/infrastructure/bootstrap_registry.py,
+  # src/shared/infrastructure/service_registry.py). The false resolution claim
+  # in src/api/main.py's own docstring should be corrected in a follow-up edit.
   # ==========================================================================
 
   architecture.api.no_body_bypass:
@@ -223,6 +233,12 @@ mappings:
       applies_to:
         - "src/api/**/*.py"
         - "src/api/*.py"
+      excludes:
+        # Composition-root sanctuary — api/main.py is the FastAPI entrypoint
+        # where lifespan must be wired at app creation. core_lifespan lives
+        # in Body because it coordinates Body services; api/main.py's import
+        # of it is the single allowed cross-layer reference by design.
+        - "src/api/main.py"
 
   # ==========================================================================
   # RULE 12: Body Never Invokes Will

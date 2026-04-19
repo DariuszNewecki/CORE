@@ -127,6 +127,16 @@ class AuditorContext:
 
         Optimized via single-pass filesystem scan and pattern memoization —
         the file list is built once per process and reused across all rules.
+
+        Glob semantics:
+        - ``*`` matches any run of characters (fnmatch default, may cross ``/``).
+        - ``**`` is intended to mean "zero or more intermediate directories".
+          Raw ``fnmatch`` does not honour the *zero* case: e.g.
+          ``fnmatch('src/api/main.py', 'src/api/**/*.py')`` is ``False``.
+          ``_include_matches`` compensates by also matching against the
+          ``**/``- and ``/**``-collapsed forms of the pattern, so a rule
+          scoped ``src/api/**/*.py`` now also matches ``src/api/main.py``.
+          Non-``**`` patterns behave identically to raw fnmatch.
         """
         include_list = sorted(list(include))
         exclude_list = sorted(list(exclude or []))
@@ -180,11 +190,31 @@ class AuditorContext:
                 return True
             return False
 
+        def _include_matches(rel_posix: str, pattern: str) -> bool:
+            """
+            Match ``rel_posix`` against ``pattern`` with correct ``**``
+            zero-directory semantics.
+
+            For patterns without ``**``, behaviour is identical to
+            ``fnmatch.fnmatch``. For patterns containing ``**/`` or ``/**``,
+            the ``**/``- and ``/**``-collapsed forms are also tried, which
+            restores the zero-intermediate-directory case.
+            """
+            if fnmatch.fnmatch(rel_posix, pattern):
+                return True
+            if "**/" in pattern:
+                if fnmatch.fnmatch(rel_posix, pattern.replace("**/", "")):
+                    return True
+            if "/**" in pattern:
+                if fnmatch.fnmatch(rel_posix, pattern.replace("/**", "")):
+                    return True
+            return False
+
         matched: set[Path] = set()
         for inc_pattern in include_list:
             for p in self._file_list_cache:
                 rel_posix = self._rel_path_map[p]
-                if fnmatch.fnmatch(rel_posix, inc_pattern):
+                if _include_matches(rel_posix, inc_pattern):
                     if not _is_excluded(rel_posix):
                         matched.add(p)
 

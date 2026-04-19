@@ -154,7 +154,7 @@ async def define_single_symbol(
 
         model = PromptModel.load("symbol_definer_capability_definer")
         agent = await context_service.cognitive_service.aget_client_for_role(
-            "CodeReviewer"
+            model.manifest.role
         )
         response = await model.invoke(
             context={

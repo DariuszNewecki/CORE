@@ -152,7 +152,13 @@ class KnowledgeGraphBuilder:
             try:
                 if str(abs_file_path).startswith(str(Path(domain_path).resolve())):
                     return domain_name
-            except Exception:
+            except Exception as e:
+                logger.debug(
+                    "Domain map resolution failed for %s against %s: %s",
+                    abs_file_path,
+                    domain_path,
+                    e,
+                )
                 continue
 
         return "unknown"
@@ -173,8 +179,13 @@ class KnowledgeGraphBuilder:
         call_visitor = FunctionCallVisitor()
         try:
             call_visitor.visit(node)
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug(
+                "FunctionCallVisitor failed on %s::%s — skipping call extraction: %s",
+                rel_path.as_posix(),
+                name,
+                e,
+            )
 
         symbol_data: dict[str, Any] = {
             "uuid": symbol_path_key,

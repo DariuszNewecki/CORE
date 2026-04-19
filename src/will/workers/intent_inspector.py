@@ -257,7 +257,7 @@ class IntentInspector(Worker):
         try:
             prompt_model = PromptModel.load("intent_inspector_coherence")
             client = await self._core_context.cognitive_service.aget_client_for_role(
-                "LocalReasoner"
+                prompt_model.manifest.role
             )
         except Exception as e:
             logger.error("IntentInspector: cannot load coherence PromptModel — %s", e)
@@ -332,7 +332,7 @@ class IntentInspector(Worker):
         try:
             prompt_model = PromptModel.load("intent_inspector_alignment")
             client = await self._core_context.cognitive_service.aget_client_for_role(
-                "LocalReasoner"
+                prompt_model.manifest.role
             )
         except Exception as e:
             logger.error("IntentInspector: cannot load alignment PromptModel — %s", e)

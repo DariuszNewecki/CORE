@@ -108,7 +108,7 @@ async def remediate_clarity_v2(
         try:
             # 4. PHASE: GENERATE (Will Layer)
             coder = await context.cognitive_service.aget_client_for_role(
-                "Coder", high_reasoning=use_expert
+                model.manifest.role, high_reasoning=use_expert
             )
 
             context_dict = {

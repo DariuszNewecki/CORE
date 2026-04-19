@@ -84,13 +84,13 @@ class PromptArtifactWriter(Worker):
 
         logger.info("PromptArtifactWriter: %d extractions to process.", len(findings))
 
-        client = await self._core_context.cognitive_service.aget_client_for_role(
-            "Architect"
-        )
-
         from shared.ai.prompt_model import PromptModel
 
         model = PromptModel.load("prompt_artifact_generator")
+
+        client = await self._core_context.cognitive_service.aget_client_for_role(
+            model.manifest.role
+        )
         file_handler = self._core_context.file_handler
 
         written = 0

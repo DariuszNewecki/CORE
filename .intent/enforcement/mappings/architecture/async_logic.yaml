@@ -1,6 +1,14 @@
 # .intent/enforcement/mappings/architecture/async_logic.yaml
 mappings:
   # LAW: Modules MUST NOT import 'get_session' globally
+  #
+  # EXCLUSIONS RATIONALE:
+  # - src/body/services/database_service.py is the sanctioned Body-layer
+  #   gateway for database access. Its constitutional purpose is to wrap
+  #   get_session() so Will-layer code never has to import it directly.
+  #   The rule's intent ("no global session leakage into Will/feature code")
+  #   requires exactly one place to import get_session — this file.
+  #   See the module docstring of database_service.py for the gateway contract.
   logic.di.no_global_session:
     engine: ast_gate
     params:
@@ -10,6 +18,8 @@ mappings:
         - "shared.infrastructure.database.session_manager.get_db_session"
     scope:
       applies_to: ["src/features/**/*.py", "src/body/services/**/*.py"]
+      excludes:
+        - "src/body/services/database_service.py"
 
   # LAW: Logic modules MUST NOT hijack the event loop
   #

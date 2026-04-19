@@ -135,11 +135,11 @@ class CoderAgent:
         """Reflexive repair with v2.4 drift detection and v2.5 refusal logging."""
         logger.warning("Reflex: Sensory pain detected. Initiating repair.")
 
-        client = await self.cognitive_service.aget_client_for_role(
-            "Coder", high_reasoning=True
-        )
-
         model = PromptModel.load("coder_repair")
+
+        client = await self.cognitive_service.aget_client_for_role(
+            model.manifest.role, high_reasoning=True
+        )
         response = await model.invoke(
             context={
                 "goal": goal,
