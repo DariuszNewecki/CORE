@@ -9,6 +9,10 @@
 # - planning.conceptual_only: llm_gate → passive_gate
 #   Same rationale. The params-only check runs in base_planner.py on every plan.
 # - planning.file_path_validation and planning.trace_mandatory: unchanged (deterministic).
+#
+# LAW HYGIENE 2026-04-19: Removed stale "src/will/agents/specification_agent.py"
+# from planning.trace_mandatory scope — that file does not exist in the codebase
+# and the reference had no other callers. No behavior change, pure cleanup.
 
 mappings:
   # 1. LAW: Planner must not generate code.
@@ -20,8 +24,8 @@ mappings:
     params:
       enforced_by: "will.agents.base_planner.parse_and_validate_plan"
       enforcement_note: >
-        Runtime check raises PlanExecutionError if ExecutionTask.params.code is not None.
-        LLM gate removed (P1.3): LLM failure must not block planning.
+        Runtime check raises PlanExecutionError if ExecutionTask.params.code is
+        not None. LLM gate removed (P1.3): LLM failure must not block planning.
 
   # 2. LAW: Plans must be conceptual only.
   # ENFORCEMENT: Deterministic check in base_planner.parse_and_validate_plan().
@@ -31,8 +35,8 @@ mappings:
     params:
       enforced_by: "will.agents.base_planner.parse_and_validate_plan"
       enforcement_note: >
-        Runtime check scans ExecutionTask.params dict for code patterns.
-        Step field is explicitly excluded. LLM gate removed (P1.3).
+        Runtime check scans ExecutionTask.params dict for code patterns. Step
+        field is explicitly excluded. LLM gate removed (P1.3).
 
   # 3. LAW: Paths must be valid.
   # Regex Gate (deterministic) — unchanged.
@@ -60,4 +64,3 @@ mappings:
     scope:
       applies_to:
         - "src/will/agents/planner_agent.py"
-        - "src/will/agents/specification_agent.py"

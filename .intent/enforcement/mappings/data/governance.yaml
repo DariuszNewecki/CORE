@@ -1,13 +1,35 @@
 # .intent/enforcement/mappings/data/governance.yaml
 mappings:
   # LAW: Operational knowledge MUST NOT be hardcoded
+  #
+  # WIDENED 2026-04-19: applies_to changed from
+  #   ["src/features/**/*.py", "src/body/services/**/*.py"]
+  # to
+  #   ["src/**/*.py"]  (with standard test excludes)
+  #
+  # The previous scope was the migration fossil of an older layout: src/features/
+  # no longer exists (restructured into src/body/self_healing, src/body/introspection,
+  # src/will/self_healing, src/shared/self_healing), and the narrow directory list
+  # was weak ground for a codebase-wide statement. The rule's statement is:
+  #   "Operational knowledge MUST NOT be hardcoded in files when a database
+  #    representation exists."
+  # — which is naturally any-file, not directory-specific.
+  #
+  # Target names (LLM_MODELS, AGENT_ROLES, SYSTEM_DOMAINS) are specific enough
+  # (three uppercase module-level constants) that false-positive risk on a
+  # codebase-wide scope is effectively zero. Verified by scripted scan before
+  # widening — no current assignments to these names anywhere in src/.
   data.ssot.database_primacy:
     engine: ast_gate
     params:
       check_type: forbidden_assignments
       targets: [ "LLM_MODELS", "AGENT_ROLES", "SYSTEM_DOMAINS" ]
     scope:
-      applies_to: [ "src/features/**/*.py", "src/body/services/**/*.py" ]
+      applies_to:
+        - "src/**/*.py"
+      excludes:
+        - "tests/**"
+        - "src/**/test_*.py"
 
   # LAW: Source code, logs, and prompts MUST NOT contain raw secrets
   #

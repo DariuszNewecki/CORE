@@ -90,6 +90,15 @@
     "details": {}
   },
   {
+    "check_id": "architecture.api.no_body_bypass",
+    "severity": "warning",
+    "message": "/opt/dev/CORE/src/api/main.py:18 - Forbidden import: 'from body.infrastructure.lifespan import core_lifespan' (matches constitutional boundary rule: body)",
+    "file_path": "src/api/main.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
     "check_id": "workflow.mypy_check",
     "severity": "info",
     "message": "Quality Gate mypy_check failed: src/will/test_generation/test_extractor.py:60: error: Argument 1 to \"_is_fixture\" of \"TestCodeExtractor\" has incompatible type \"FunctionDef | AsyncFunctionDef\"; expected \"FunctionDef\"  [arg-type]",

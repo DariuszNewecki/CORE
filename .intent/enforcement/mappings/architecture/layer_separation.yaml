@@ -156,6 +156,12 @@ mappings:
 
   # ==========================================================================
   # RULE 9: API Never Bypasses Layers - Database
+  # SCOPE FIX 2026-04-19: Added "src/api/*.py" alongside "src/api/**/*.py".
+  # Python fnmatch (used by AuditorContext.get_files) does NOT treat "**" as
+  # recursive-directory-match — it requires at least one intermediate dir.
+  # So "src/api/**/*.py" matched src/api/v1/*.py but silently missed top-level
+  # src/api/main.py, src/api/errors.py, src/api/dependencies.py. Exclusion
+  # pattern updated to match.
   # ==========================================================================
 
   architecture.api.no_direct_database_access:
@@ -168,9 +174,11 @@ mappings:
     scope:
       applies_to:
         - "src/api/**/*.py"
+        - "src/api/*.py"
       excludes:
         # FastAPI dependency injection is acceptable
         - "src/api/**/dependencies.py"
+        - "src/api/dependencies.py"
 
   # ==========================================================================
   # RULE 10: API Routes Through Will (Advisory - uses knowledge_gate)
@@ -187,6 +195,21 @@ mappings:
 
   # ==========================================================================
   # RULE 11: API Doesn't Bypass to Body
+  # EXTENDED 2026-04-19: Widened forbidden list from "body.services" only
+  # to all of Body. The prior narrow filter was silently worked around by
+  # moving imports from body.services to body.infrastructure —
+  # see src/api/main.py docstring claiming "Resolves architecture.api.no_body_bypass
+  # violation" while still importing from body.infrastructure.lifespan. That
+  # workaround defeated the narrow filter without removing the bypass.
+  # The widened form matches the pattern already used by Rule 3
+  # (architecture.mind.no_body_invocation) and Rule 15
+  # (architecture.shared.no_layer_imports).
+  #
+  # SCOPE FIX 2026-04-19: Added "src/api/*.py" alongside "src/api/**/*.py".
+  # Python fnmatch (used by AuditorContext.get_files) does NOT treat "**" as
+  # recursive-directory-match — it requires at least one intermediate dir.
+  # So "src/api/**/*.py" matched src/api/v1/*.py but silently missed top-level
+  # src/api/main.py (the file this rule most needs to catch).
   # ==========================================================================
 
   architecture.api.no_body_bypass:
@@ -194,11 +217,12 @@ mappings:
     params:
       check_type: import_boundary
       forbidden:
-        - "src.body.services"
-        - "body.services"
+        - "src.body"
+        - "body"
     scope:
       applies_to:
         - "src/api/**/*.py"
+        - "src/api/*.py"
 
   # ==========================================================================
   # RULE 12: Body Never Invokes Will

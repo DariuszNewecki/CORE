@@ -2,6 +2,11 @@
 #
 # Enforces constitutional infrastructure primitive access boundaries.
 # Implements hard gates that prevent architectural drift at import time.
+#
+# LAW HYGIENE 2026-04-19: Removed stale "core.*" forbidden patterns across
+# all four rules. These referenced a src/core/ top-level namespace that
+# was migrated out years ago and no longer exists. No behavior change
+# (no files matched), pure law clarity.
 
 mappings:
   # ==========================================================================
@@ -17,7 +22,6 @@ mappings:
       check_type: import_boundary
       forbidden:
         - "shared.infrastructure.database.session_manager.get_session"
-        - "core.infrastructure.db.get_session"
         - "sqlalchemy.ext.asyncio.AsyncSession"
     scope:
       applies_to:
@@ -46,7 +50,6 @@ mappings:
       check_type: import_boundary
       forbidden:
         - "shared.config.Settings"
-        - "core.infrastructure.config.Settings"
         - "shared.config.settings"
     scope:
       applies_to:
@@ -76,8 +79,6 @@ mappings:
     params:
       check_type: import_boundary
       forbidden:
-        - "core.body.services.file_handler.FileHandler"
-        - "body.services.file_handler.FileHandler"
         - "shared.infrastructure.storage.file_handler.FileHandler"
     scope:
       applies_to:
@@ -102,7 +103,6 @@ mappings:
       check_type: import_boundary
       forbidden:
         - "shared.infrastructure.llm.client"
-        - "core.infrastructure.llm"
         - "will.agents"
     scope:
       applies_to:
