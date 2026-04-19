@@ -71,7 +71,36 @@ async def execute_rule(
                             file_path=str(file_path.relative_to(context.repo_path)),
                         )
                     )
-        except Exception:
+        except Exception as e:
+            # HARDENING P0.1 (per-file): Engine crash on a single file →
+            # ENFORCEMENT_FAILURE finding. A crashing per-file check is NOT
+            # a passing check. Silent continue would make this rule
+            # indistinguishable from a clean pass for this file.
+            logger.error(
+                "ENFORCEMENT_FAILURE: Rule %s crashed on file %s: %s",
+                rule.rule_id,
+                file_path,
+                e,
+                exc_info=True,
+            )
+            findings.append(
+                AuditFinding(
+                    check_id=f"{rule.rule_id}.enforcement_failure",
+                    severity=AuditSeverity.ERROR,
+                    message=(
+                        f"ENFORCEMENT_FAILURE: Rule crashed on {file_path}: {e}. "
+                        f"Compliance status UNKNOWN — treat as non-compliant until fixed."
+                    ),
+                    file_path=str(file_path.relative_to(context.repo_path)),
+                    context={
+                        "finding_type": "ENFORCEMENT_FAILURE",
+                        "engine": rule.engine,
+                        "policy_id": rule.policy_id,
+                        "exception_type": type(e).__name__,
+                        "exception_message": str(e),
+                    },
+                )
+            )
             continue
 
     return findings
