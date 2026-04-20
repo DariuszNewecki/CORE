@@ -250,35 +250,41 @@ class ModularityChecker:
     def check_needs_split(
         self, file_path: Path, params: dict[str, Any]
     ) -> list[dict[str, Any]]:
-        """Flag files that are too long but have few concerns — candidates for splitting."""
+        """Flag files that are too long but carry few responsibility signals — candidates for splitting.
+
+        Aligned with the rule statement in .intent/rules/code/modularity.json:
+        "single coherent responsibility" is measured by
+        _detect_responsibilities (content-based), the same signal
+        check_refactor_score uses for its responsibility term. See
+        ADR-006 (.specs/decisions/ADR-006-align-needs-split-with-statement.md).
+        """
         max_lines = int(params.get("max_lines", 400))
 
         try:
             content = file_path.read_text(encoding="utf-8")
-            tree = ast.parse(content)
 
             loc = len(content.splitlines())
             if loc <= max_lines:
                 return []
 
-            imports = self._extract_imports(tree)
-            concerns = self._identify_concerns(imports)
+            responsibilities = self._detect_responsibilities(content)
 
-            if len(concerns) <= 2:
+            if len(responsibilities) <= 2:
                 return [
                     {
                         "rule_id": "modularity.needs_split",
                         "severity": "warning",
                         "message": (
                             f"File has {loc} lines (limit {max_lines}) with only "
-                            f"{len(concerns)} concern(s) — consider splitting"
+                            f"{len(responsibilities)} responsibility signal(s) — "
+                            f"consider splitting"
                         ),
                         "file": str(file_path),
                         "details": {
                             "lines_of_code": loc,
                             "max_lines": max_lines,
-                            "concern_count": len(concerns),
-                            "concerns": concerns,
+                            "responsibility_count": len(responsibilities),
+                            "responsibilities": responsibilities,
                         },
                     }
                 ]
