@@ -23,6 +23,7 @@ from mind.governance.constitutional_auditor_dynamic import (
     run_dynamic_rules,
 )
 from mind.logic.engines.registry import EngineRegistry
+from shared.infrastructure.intent.audit_verdict import load_audit_verdict_policy
 from shared.logger import getLogger
 from shared.models import AuditFinding, AuditSeverity
 
@@ -123,18 +124,34 @@ class ConstitutionalAuditor:
         stats: dict,
         crashed_rule_ids: set[str],
     ) -> AuditVerdict:
-        """Determine audit verdict with truthfulness guarantees."""
-        if crashed_rule_ids:
+        """Determine audit verdict with truthfulness guarantees.
+
+        Policy is governed by .intent/enforcement/config/audit_verdict.yaml
+        and loaded via shared.infrastructure.intent.audit_verdict. A
+        missing or corrupt policy forces DEGRADED per ADR-005 §3 — the
+        loader's error sentinel MUST NOT be treated as a passable state.
+        """
+        policy = load_audit_verdict_policy()
+        if policy.get("_error"):
+            logger.error(
+                "Audit policy unavailable (%s) — returning DEGRADED per ADR-005 §3",
+                policy.get("reason", "unknown"),
+            )
             return AuditVerdict.DEGRADED
 
+        if "any_crashed_rules" in policy["degraded_on"] and crashed_rule_ids:
+            return AuditVerdict.DEGRADED
+
+        fail_sevs = {AuditSeverity[name] for name in policy["fail_severities"]}
+        ignored_types = set(policy["ignored_finding_types"])
+
         has_blocking_violations = any(
-            (f.severity if hasattr(f, "severity") else AuditSeverity.INFO)
-            == AuditSeverity.ERROR
+            (f.severity if hasattr(f, "severity") else AuditSeverity.INFO) in fail_sevs
             for f in findings
             if not (
                 hasattr(f, "context")
                 and isinstance(f.context, dict)
-                and f.context.get("finding_type") == "ENFORCEMENT_FAILURE"
+                and f.context.get("finding_type") in ignored_types
             )
         )
 
