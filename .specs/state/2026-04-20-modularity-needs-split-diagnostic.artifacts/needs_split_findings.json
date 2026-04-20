@@ -1,0 +1,290 @@
+[
+  {
+    "check_id": "modularity.needs_split",
+    "severity": "warning",
+    "message": "File has 416 lines (limit 400) with only 2 concern(s) — consider splitting",
+    "file_path": "src/body/atomic/executor.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "modularity.needs_split",
+    "severity": "warning",
+    "message": "File has 417 lines (limit 400) with only 0 concern(s) — consider splitting",
+    "file_path": "src/body/atomic/fix_actions.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "modularity.needs_split",
+    "severity": "warning",
+    "message": "File has 408 lines (limit 400) with only 1 concern(s) — consider splitting",
+    "file_path": "src/body/atomic/modularity_fix.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "modularity.needs_split",
+    "severity": "warning",
+    "message": "File has 479 lines (limit 400) with only 1 concern(s) — consider splitting",
+    "file_path": "src/body/atomic/modularity_splitter.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "modularity.needs_split",
+    "severity": "warning",
+    "message": "File has 578 lines (limit 400) with only 2 concern(s) — consider splitting",
+    "file_path": "src/body/atomic/sync_actions.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "modularity.needs_split",
+    "severity": "warning",
+    "message": "File has 428 lines (limit 400) with only 1 concern(s) — consider splitting",
+    "file_path": "src/body/evaluators/atomic_actions_evaluator.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "modularity.needs_split",
+    "severity": "warning",
+    "message": "File has 658 lines (limit 400) with only 2 concern(s) — consider splitting",
+    "file_path": "src/body/services/blackboard_service.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "modularity.needs_split",
+    "severity": "warning",
+    "message": "File has 426 lines (limit 400) with only 0 concern(s) — consider splitting",
+    "file_path": "src/body/services/constitutional_validator.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "modularity.needs_split",
+    "severity": "warning",
+    "message": "File has 566 lines (limit 400) with only 2 concern(s) — consider splitting",
+    "file_path": "src/body/services/crawl_service/main_module.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "modularity.needs_split",
+    "severity": "warning",
+    "message": "File has 508 lines (limit 400) with only 2 concern(s) — consider splitting",
+    "file_path": "src/body/workers/call_site_rewriter.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "modularity.needs_split",
+    "severity": "warning",
+    "message": "File has 779 lines (limit 400) with only 2 concern(s) — consider splitting",
+    "file_path": "src/cli/resources/runtime/health.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "modularity.needs_split",
+    "severity": "warning",
+    "message": "File has 499 lines (limit 400) with only 0 concern(s) — consider splitting",
+    "file_path": "src/mind/governance/authority_package_builder.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "modularity.needs_split",
+    "severity": "warning",
+    "message": "File has 432 lines (limit 400) with only 2 concern(s) — consider splitting",
+    "file_path": "src/mind/logic/engines/knowledge_gate.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "modularity.needs_split",
+    "severity": "warning",
+    "message": "File has 590 lines (limit 400) with only 1 concern(s) — consider splitting",
+    "file_path": "src/shared/ai/prompt_model.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "modularity.needs_split",
+    "severity": "warning",
+    "message": "File has 449 lines (limit 400) with only 0 concern(s) — consider splitting",
+    "file_path": "src/shared/infrastructure/clients/qdrant_client.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "modularity.needs_split",
+    "severity": "warning",
+    "message": "File has 742 lines (limit 400) with only 0 concern(s) — consider splitting",
+    "file_path": "src/shared/infrastructure/context/builder.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "modularity.needs_split",
+    "severity": "warning",
+    "message": "File has 658 lines (limit 400) with only 1 concern(s) — consider splitting",
+    "file_path": "src/shared/infrastructure/intent/intent_repository.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "modularity.needs_split",
+    "severity": "warning",
+    "message": "File has 403 lines (limit 400) with only 1 concern(s) — consider splitting",
+    "file_path": "src/shared/path_resolver.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "modularity.needs_split",
+    "severity": "warning",
+    "message": "File has 417 lines (limit 400) with only 2 concern(s) — consider splitting",
+    "file_path": "src/will/agents/strategic_auditor/agent.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "modularity.needs_split",
+    "severity": "warning",
+    "message": "File has 583 lines (limit 400) with only 1 concern(s) — consider splitting",
+    "file_path": "src/will/agents/strategic_auditor/context_gatherer.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "modularity.needs_split",
+    "severity": "warning",
+    "message": "File has 422 lines (limit 400) with only 0 concern(s) — consider splitting",
+    "file_path": "src/will/autonomy/proposal.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "modularity.needs_split",
+    "severity": "warning",
+    "message": "File has 638 lines (limit 400) with only 2 concern(s) — consider splitting",
+    "file_path": "src/will/autonomy/proposal_executor.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "modularity.needs_split",
+    "severity": "warning",
+    "message": "File has 441 lines (limit 400) with only 0 concern(s) — consider splitting",
+    "file_path": "src/will/interpreters/request_interpreter.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "modularity.needs_split",
+    "severity": "warning",
+    "message": "File has 480 lines (limit 400) with only 1 concern(s) — consider splitting",
+    "file_path": "src/will/phases/code_generation_phase.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "modularity.needs_split",
+    "severity": "warning",
+    "message": "File has 599 lines (limit 400) with only 0 concern(s) — consider splitting",
+    "file_path": "src/will/self_healing/remediation_interpretation/file_role_detector.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "modularity.needs_split",
+    "severity": "warning",
+    "message": "File has 421 lines (limit 400) with only 0 concern(s) — consider splitting",
+    "file_path": "src/will/self_healing/remediation_interpretation/responsibility_extractor.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "modularity.needs_split",
+    "severity": "warning",
+    "message": "File has 467 lines (limit 400) with only 0 concern(s) — consider splitting",
+    "file_path": "src/will/strategists/fix_strategist.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "modularity.needs_split",
+    "severity": "warning",
+    "message": "File has 434 lines (limit 400) with only 0 concern(s) — consider splitting",
+    "file_path": "src/will/workers/audit_violation_sensor.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "modularity.needs_split",
+    "severity": "warning",
+    "message": "File has 555 lines (limit 400) with only 1 concern(s) — consider splitting",
+    "file_path": "src/will/workers/intent_inspector.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "modularity.needs_split",
+    "severity": "warning",
+    "message": "File has 412 lines (limit 400) with only 0 concern(s) — consider splitting",
+    "file_path": "src/will/workers/test_remediator.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "modularity.needs_split",
+    "severity": "warning",
+    "message": "File has 503 lines (limit 400) with only 0 concern(s) — consider splitting",
+    "file_path": "src/will/workers/violation_remediator.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  },
+  {
+    "check_id": "modularity.needs_split",
+    "severity": "warning",
+    "message": "File has 503 lines (limit 400) with only 0 concern(s) — consider splitting",
+    "file_path": "src/will/workers/violation_remediator_body/worker.py",
+    "line_number": null,
+    "context": {},
+    "details": {}
+  }
+]

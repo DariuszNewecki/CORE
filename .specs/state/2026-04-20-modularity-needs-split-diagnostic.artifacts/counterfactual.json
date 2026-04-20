@@ -1,0 +1,426 @@
+[
+  {
+    "file": "src/shared/path_resolver.py",
+    "loc": 403,
+    "concerns": [
+      "file_io"
+    ],
+    "responsibilities": [
+      "io_operations",
+      "validation"
+    ],
+    "concern_count": 1,
+    "responsibility_count": 2
+  },
+  {
+    "file": "src/mind/governance/authority_package_builder.py",
+    "loc": 499,
+    "concerns": [],
+    "responsibilities": [
+      "data_access",
+      "network",
+      "orchestration",
+      "validation"
+    ],
+    "concern_count": 0,
+    "responsibility_count": 4
+  },
+  {
+    "file": "src/mind/logic/engines/knowledge_gate.py",
+    "loc": 432,
+    "concerns": [
+      "database",
+      "file_io"
+    ],
+    "responsibilities": [
+      "data_access",
+      "io_operations",
+      "network",
+      "orchestration"
+    ],
+    "concern_count": 2,
+    "responsibility_count": 4
+  },
+  {
+    "file": "src/cli/resources/runtime/health.py",
+    "loc": 779,
+    "concerns": [
+      "cli",
+      "database"
+    ],
+    "responsibilities": [
+      "data_access",
+      "network",
+      "orchestration",
+      "presentation"
+    ],
+    "concern_count": 2,
+    "responsibility_count": 4
+  },
+  {
+    "file": "src/body/workers/call_site_rewriter.py",
+    "loc": 508,
+    "concerns": [
+      "database",
+      "file_io"
+    ],
+    "responsibilities": [
+      "data_access",
+      "io_operations",
+      "network",
+      "orchestration"
+    ],
+    "concern_count": 2,
+    "responsibility_count": 4
+  },
+  {
+    "file": "src/body/atomic/executor.py",
+    "loc": 416,
+    "concerns": [
+      "database",
+      "file_io"
+    ],
+    "responsibilities": [
+      "data_access",
+      "network",
+      "orchestration"
+    ],
+    "concern_count": 2,
+    "responsibility_count": 3
+  },
+  {
+    "file": "src/body/atomic/fix_actions.py",
+    "loc": 417,
+    "concerns": [],
+    "responsibilities": [
+      "io_operations",
+      "network",
+      "orchestration"
+    ],
+    "concern_count": 0,
+    "responsibility_count": 3
+  },
+  {
+    "file": "src/body/atomic/sync_actions.py",
+    "loc": 578,
+    "concerns": [
+      "database",
+      "file_io"
+    ],
+    "responsibilities": [
+      "data_access",
+      "io_operations",
+      "network"
+    ],
+    "concern_count": 2,
+    "responsibility_count": 3
+  },
+  {
+    "file": "src/body/atomic/modularity_fix.py",
+    "loc": 408,
+    "concerns": [
+      "file_io"
+    ],
+    "responsibilities": [
+      "data_access",
+      "io_operations",
+      "network"
+    ],
+    "concern_count": 1,
+    "responsibility_count": 3
+  },
+  {
+    "file": "src/body/atomic/modularity_splitter.py",
+    "loc": 479,
+    "concerns": [
+      "file_io"
+    ],
+    "responsibilities": [
+      "data_access",
+      "io_operations",
+      "network"
+    ],
+    "concern_count": 1,
+    "responsibility_count": 3
+  },
+  {
+    "file": "src/body/services/constitutional_validator.py",
+    "loc": 426,
+    "concerns": [],
+    "responsibilities": [
+      "data_access",
+      "network"
+    ],
+    "concern_count": 0,
+    "responsibility_count": 2
+  },
+  {
+    "file": "src/body/services/blackboard_service.py",
+    "loc": 658,
+    "concerns": [
+      "database",
+      "file_io"
+    ],
+    "responsibilities": [
+      "data_access",
+      "orchestration"
+    ],
+    "concern_count": 2,
+    "responsibility_count": 2
+  },
+  {
+    "file": "src/body/evaluators/atomic_actions_evaluator.py",
+    "loc": 428,
+    "concerns": [
+      "file_io"
+    ],
+    "responsibilities": [
+      "data_access",
+      "io_operations"
+    ],
+    "concern_count": 1,
+    "responsibility_count": 2
+  },
+  {
+    "file": "src/body/services/crawl_service/main_module.py",
+    "loc": 566,
+    "concerns": [
+      "database",
+      "file_io"
+    ],
+    "responsibilities": [
+      "data_access",
+      "io_operations",
+      "network",
+      "orchestration"
+    ],
+    "concern_count": 2,
+    "responsibility_count": 4
+  },
+  {
+    "file": "src/shared/ai/prompt_model.py",
+    "loc": 590,
+    "concerns": [
+      "file_io"
+    ],
+    "responsibilities": [
+      "data_access",
+      "io_operations",
+      "network",
+      "validation"
+    ],
+    "concern_count": 1,
+    "responsibility_count": 4
+  },
+  {
+    "file": "src/shared/infrastructure/intent/intent_repository.py",
+    "loc": 658,
+    "concerns": [
+      "file_io"
+    ],
+    "responsibilities": [
+      "io_operations",
+      "network",
+      "validation"
+    ],
+    "concern_count": 1,
+    "responsibility_count": 3
+  },
+  {
+    "file": "src/shared/infrastructure/clients/qdrant_client.py",
+    "loc": 449,
+    "concerns": [],
+    "responsibilities": [
+      "data_access",
+      "network",
+      "validation"
+    ],
+    "concern_count": 0,
+    "responsibility_count": 3
+  },
+  {
+    "file": "src/shared/infrastructure/context/builder.py",
+    "loc": 742,
+    "concerns": [],
+    "responsibilities": [
+      "data_access",
+      "io_operations",
+      "network"
+    ],
+    "concern_count": 0,
+    "responsibility_count": 3
+  },
+  {
+    "file": "src/will/autonomy/proposal_executor.py",
+    "loc": 638,
+    "concerns": [
+      "database",
+      "file_io"
+    ],
+    "responsibilities": [
+      "data_access",
+      "network",
+      "orchestration"
+    ],
+    "concern_count": 2,
+    "responsibility_count": 3
+  },
+  {
+    "file": "src/will/autonomy/proposal.py",
+    "loc": 422,
+    "concerns": [],
+    "responsibilities": [
+      "business_logic",
+      "network",
+      "validation"
+    ],
+    "concern_count": 0,
+    "responsibility_count": 3
+  },
+  {
+    "file": "src/will/workers/test_remediator.py",
+    "loc": 412,
+    "concerns": [],
+    "responsibilities": [
+      "data_access",
+      "network"
+    ],
+    "concern_count": 0,
+    "responsibility_count": 2
+  },
+  {
+    "file": "src/will/workers/intent_inspector.py",
+    "loc": 555,
+    "concerns": [
+      "file_io"
+    ],
+    "responsibilities": [
+      "data_access",
+      "io_operations",
+      "network",
+      "orchestration"
+    ],
+    "concern_count": 1,
+    "responsibility_count": 4
+  },
+  {
+    "file": "src/will/workers/violation_remediator.py",
+    "loc": 503,
+    "concerns": [],
+    "responsibilities": [
+      "data_access",
+      "network"
+    ],
+    "concern_count": 0,
+    "responsibility_count": 2
+  },
+  {
+    "file": "src/will/workers/audit_violation_sensor.py",
+    "loc": 434,
+    "concerns": [],
+    "responsibilities": [
+      "network"
+    ],
+    "concern_count": 0,
+    "responsibility_count": 1
+  },
+  {
+    "file": "src/will/strategists/fix_strategist.py",
+    "loc": 467,
+    "concerns": [],
+    "responsibilities": [
+      "data_access",
+      "network"
+    ],
+    "concern_count": 0,
+    "responsibility_count": 2
+  },
+  {
+    "file": "src/will/interpreters/request_interpreter.py",
+    "loc": 441,
+    "concerns": [],
+    "responsibilities": [
+      "data_access",
+      "network"
+    ],
+    "concern_count": 0,
+    "responsibility_count": 2
+  },
+  {
+    "file": "src/will/phases/code_generation_phase.py",
+    "loc": 480,
+    "concerns": [
+      "file_io"
+    ],
+    "responsibilities": [
+      "data_access",
+      "io_operations",
+      "network"
+    ],
+    "concern_count": 1,
+    "responsibility_count": 3
+  },
+  {
+    "file": "src/will/self_healing/remediation_interpretation/responsibility_extractor.py",
+    "loc": 421,
+    "concerns": [],
+    "responsibilities": [
+      "data_access",
+      "network"
+    ],
+    "concern_count": 0,
+    "responsibility_count": 2
+  },
+  {
+    "file": "src/will/self_healing/remediation_interpretation/file_role_detector.py",
+    "loc": 599,
+    "concerns": [],
+    "responsibilities": [
+      "data_access",
+      "io_operations",
+      "network"
+    ],
+    "concern_count": 0,
+    "responsibility_count": 3
+  },
+  {
+    "file": "src/will/workers/violation_remediator_body/worker.py",
+    "loc": 503,
+    "concerns": [],
+    "responsibilities": [
+      "business_logic",
+      "io_operations",
+      "network"
+    ],
+    "concern_count": 0,
+    "responsibility_count": 3
+  },
+  {
+    "file": "src/will/agents/strategic_auditor/agent.py",
+    "loc": 417,
+    "concerns": [
+      "database",
+      "file_io"
+    ],
+    "responsibilities": [
+      "data_access",
+      "network"
+    ],
+    "concern_count": 2,
+    "responsibility_count": 2
+  },
+  {
+    "file": "src/will/agents/strategic_auditor/context_gatherer.py",
+    "loc": 583,
+    "concerns": [
+      "database"
+    ],
+    "responsibilities": [
+      "data_access",
+      "network",
+      "orchestration"
+    ],
+    "concern_count": 1,
+    "responsibility_count": 3
+  }
+]

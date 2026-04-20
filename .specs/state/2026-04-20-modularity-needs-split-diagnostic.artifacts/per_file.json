@@ -1,0 +1,970 @@
+[
+  {
+    "file": "src/body/atomic/executor.py",
+    "loc": 416,
+    "imports_internal": [
+      "body.atomic.registry",
+      "shared.action_types",
+      "shared.atomic_action",
+      "shared.governance_token",
+      "shared.logger",
+      "shared.context",
+      "shared.infrastructure.intent.intent_repository"
+    ],
+    "imports_external": [
+      "__future__",
+      "inspect",
+      "json",
+      "time",
+      "typing",
+      "sqlalchemy"
+    ],
+    "concerns": [
+      "database",
+      "file_io"
+    ],
+    "responsibilities": [
+      "data_access",
+      "network",
+      "orchestration"
+    ],
+    "class_count": 1,
+    "dominant_class_lines": 319,
+    "category": "CLASSIFIER-BLIND"
+  },
+  {
+    "file": "src/body/atomic/fix_actions.py",
+    "loc": 417,
+    "imports_internal": [
+      "body.atomic.registry",
+      "shared.action_types",
+      "shared.atomic_action",
+      "shared.logger",
+      "shared.context",
+      "body.self_healing.code_style_service",
+      "shared.utils.subprocess_utils",
+      "cli.commands.fix.code_style",
+      "cli.commands.fix.metadata",
+      "cli.commands.fix.metadata",
+      "cli.commands.fix_logging",
+      "body.self_healing.placeholder_fixer_service",
+      "body.evaluators.atomic_actions_evaluator",
+      "cli.commands.fix.atomic_actions",
+      "body.self_healing.docstring_service"
+    ],
+    "imports_external": [
+      "__future__",
+      "time",
+      "typing"
+    ],
+    "concerns": [],
+    "responsibilities": [
+      "io_operations",
+      "network",
+      "orchestration"
+    ],
+    "class_count": 0,
+    "dominant_class_lines": null,
+    "category": "CLASSIFIER-BLIND"
+  },
+  {
+    "file": "src/body/atomic/modularity_fix.py",
+    "loc": 408,
+    "imports_internal": [
+      "body.atomic.registry",
+      "shared.action_types",
+      "shared.atomic_action",
+      "shared.logger",
+      "shared.context",
+      "body.atomic.modularity_splitter",
+      "body.atomic.split_plan",
+      "body.validators.logic_conservation_validator",
+      "shared.models.prompt_model"
+    ],
+    "imports_external": [
+      "__future__",
+      "time",
+      "typing",
+      "pathlib",
+      "ast",
+      "ast"
+    ],
+    "concerns": [
+      "file_io"
+    ],
+    "responsibilities": [
+      "data_access",
+      "io_operations",
+      "network"
+    ],
+    "class_count": 0,
+    "dominant_class_lines": null,
+    "category": "CLASSIFIER-BLIND"
+  },
+  {
+    "file": "src/body/atomic/modularity_splitter.py",
+    "loc": 479,
+    "imports_internal": [
+      "body.atomic.import_resolver",
+      "body.atomic.split_plan",
+      "shared.logger"
+    ],
+    "imports_external": [
+      "__future__",
+      "ast",
+      "dataclasses",
+      "pathlib"
+    ],
+    "concerns": [
+      "file_io"
+    ],
+    "responsibilities": [
+      "data_access",
+      "io_operations",
+      "network"
+    ],
+    "class_count": 2,
+    "dominant_class_lines": 440,
+    "category": "CLASSIFIER-BLIND"
+  },
+  {
+    "file": "src/body/atomic/sync_actions.py",
+    "loc": 578,
+    "imports_internal": [
+      "body.atomic.registry",
+      "body.introspection.sync_service",
+      "shared.action_types",
+      "shared.atomic_action",
+      "shared.context",
+      "shared.infrastructure.database.session_manager",
+      "shared.infrastructure.vector.adapters.constitutional_adapter",
+      "shared.logger",
+      "shared.universal",
+      "shared.infrastructure.bootstrap_registry",
+      "shared.infrastructure.clients.qdrant_client",
+      "shared.infrastructure.vector.cognitive_adapter",
+      "shared.infrastructure.vector.vector_index_service",
+      "shared.infrastructure.vector.adapters.specs_adapter"
+    ],
+    "imports_external": [
+      "__future__",
+      "time",
+      "pathlib",
+      "typing",
+      "ast",
+      "ast",
+      "qdrant_client"
+    ],
+    "concerns": [
+      "database",
+      "file_io"
+    ],
+    "responsibilities": [
+      "data_access",
+      "io_operations",
+      "network"
+    ],
+    "class_count": 0,
+    "dominant_class_lines": null,
+    "category": "CLASSIFIER-BLIND"
+  },
+  {
+    "file": "src/body/services/crawl_service/main_module.py",
+    "loc": 566,
+    "imports_internal": [
+      "shared.logger",
+      "body.services.service_registry",
+      "body.services.service_registry",
+      "body.services.service_registry",
+      "body.services.service_registry",
+      "body.services.service_registry",
+      "body.services.service_registry",
+      "body.services.service_registry",
+      "body.services.service_registry",
+      "body.services.service_registry",
+      "body.services.service_registry",
+      "body.services.service_registry"
+    ],
+    "imports_external": [
+      "__future__",
+      "ast",
+      "uuid",
+      "pathlib",
+      "typing",
+      "sqlalchemy",
+      "symbol_processing"
+    ],
+    "concerns": [
+      "database",
+      "file_io"
+    ],
+    "responsibilities": [
+      "data_access",
+      "io_operations",
+      "network",
+      "orchestration"
+    ],
+    "class_count": 1,
+    "dominant_class_lines": 514,
+    "category": "CLASSIFIER-BLIND"
+  },
+  {
+    "file": "src/body/workers/call_site_rewriter.py",
+    "loc": 508,
+    "imports_internal": [
+      "shared.ai.response_parser",
+      "shared.logger",
+      "shared.workers.base",
+      "shared.infrastructure.database.session_manager",
+      "shared.infrastructure.database.session_manager",
+      "body.services.crate_processing_service",
+      "shared.ai.prompt_model",
+      "body.services.crate_processing_service",
+      "shared.infrastructure.database.session_manager"
+    ],
+    "imports_external": [
+      "__future__",
+      "json",
+      "re",
+      "collections",
+      "datetime",
+      "typing",
+      "sqlalchemy",
+      "sqlalchemy",
+      "sqlalchemy"
+    ],
+    "concerns": [
+      "database",
+      "file_io"
+    ],
+    "responsibilities": [
+      "data_access",
+      "io_operations",
+      "network",
+      "orchestration"
+    ],
+    "class_count": 1,
+    "dominant_class_lines": 426,
+    "category": "CLASSIFIER-BLIND"
+  },
+  {
+    "file": "src/cli/resources/runtime/health.py",
+    "loc": 779,
+    "imports_internal": [
+      "cli.utils",
+      "shared.infrastructure.database.session_manager",
+      "shared.logger"
+    ],
+    "imports_external": [
+      "__future__",
+      "datetime",
+      "typing",
+      "typer",
+      "rich.columns",
+      "rich.console",
+      "rich.panel",
+      "rich.table",
+      "sqlalchemy"
+    ],
+    "concerns": [
+      "cli",
+      "database"
+    ],
+    "responsibilities": [
+      "data_access",
+      "network",
+      "orchestration",
+      "presentation"
+    ],
+    "class_count": 0,
+    "dominant_class_lines": null,
+    "category": "CLASSIFIER-BLIND"
+  },
+  {
+    "file": "src/mind/governance/authority_package_builder.py",
+    "loc": 499,
+    "imports_internal": [
+      "shared.logger",
+      "mind.governance.assumption_extractor",
+      "will.interpreters.request_interpreter",
+      "mind.governance.policy_rule"
+    ],
+    "imports_external": [
+      "__future__",
+      "dataclasses",
+      "typing"
+    ],
+    "concerns": [],
+    "responsibilities": [
+      "data_access",
+      "network",
+      "orchestration",
+      "validation"
+    ],
+    "class_count": 4,
+    "dominant_class_lines": 332,
+    "category": "CLASSIFIER-BLIND"
+  },
+  {
+    "file": "src/mind/logic/engines/knowledge_gate.py",
+    "loc": 432,
+    "imports_internal": [
+      "mind.logic.engines.base",
+      "shared.logger",
+      "shared.models",
+      "mind.governance.audit_context"
+    ],
+    "imports_external": [
+      "__future__",
+      "ast",
+      "fnmatch",
+      "collections",
+      "pathlib",
+      "typing",
+      "sqlalchemy"
+    ],
+    "concerns": [
+      "database",
+      "file_io"
+    ],
+    "responsibilities": [
+      "data_access",
+      "io_operations",
+      "network",
+      "orchestration"
+    ],
+    "class_count": 1,
+    "dominant_class_lines": 399,
+    "category": "CLASSIFIER-BLIND"
+  },
+  {
+    "file": "src/shared/ai/prompt_model.py",
+    "loc": 590,
+    "imports_internal": [
+      "shared.logger",
+      "shared.ai.constitutional_envelope",
+      "shared.config"
+    ],
+    "imports_external": [
+      "__future__",
+      "json",
+      "dataclasses",
+      "pathlib",
+      "typing",
+      "yaml"
+    ],
+    "concerns": [
+      "file_io"
+    ],
+    "responsibilities": [
+      "data_access",
+      "io_operations",
+      "network",
+      "validation"
+    ],
+    "class_count": 3,
+    "dominant_class_lines": 436,
+    "category": "CLASSIFIER-BLIND"
+  },
+  {
+    "file": "src/shared/infrastructure/clients/qdrant_client.py",
+    "loc": 449,
+    "imports_internal": [
+      "shared.config",
+      "shared.logger",
+      "shared.models",
+      "shared.time"
+    ],
+    "imports_external": [
+      "__future__",
+      "uuid",
+      "collections.abc",
+      "typing",
+      "qdrant_client",
+      "qdrant_client.http"
+    ],
+    "concerns": [],
+    "responsibilities": [
+      "data_access",
+      "network",
+      "validation"
+    ],
+    "class_count": 3,
+    "dominant_class_lines": 394,
+    "category": "CLASSIFIER-BLIND"
+  },
+  {
+    "file": "src/shared/infrastructure/context/builder.py",
+    "loc": 742,
+    "imports_internal": [
+      "shared.config",
+      "shared.infrastructure.intent.intent_repository",
+      "shared.infrastructure.knowledge.knowledge_service",
+      "shared.logger",
+      "shared.infrastructure.context.limb_workspace"
+    ],
+    "imports_external": [
+      "__future__",
+      "ast",
+      "uuid",
+      "datetime",
+      "typing",
+      "models",
+      "serializers",
+      "providers.ast",
+      "providers.db",
+      "providers.vectors"
+    ],
+    "concerns": [],
+    "responsibilities": [
+      "data_access",
+      "io_operations",
+      "network"
+    ],
+    "class_count": 2,
+    "dominant_class_lines": 606,
+    "category": "CLASSIFIER-BLIND"
+  },
+  {
+    "file": "src/shared/infrastructure/intent/intent_repository.py",
+    "loc": 658,
+    "imports_internal": [
+      "shared.config",
+      "shared.infrastructure.intent.errors",
+      "shared.infrastructure.intent.intent_validator",
+      "shared.logger",
+      "shared.processors.yaml_processor"
+    ],
+    "imports_external": [
+      "__future__",
+      "json",
+      "collections.abc",
+      "dataclasses",
+      "pathlib",
+      "threading",
+      "typing"
+    ],
+    "concerns": [
+      "file_io"
+    ],
+    "responsibilities": [
+      "io_operations",
+      "network",
+      "validation"
+    ],
+    "class_count": 3,
+    "dominant_class_lines": 593,
+    "category": "CLASSIFIER-BLIND"
+  },
+  {
+    "file": "src/will/agents/strategic_auditor/context_gatherer.py",
+    "loc": 583,
+    "imports_internal": [
+      "shared.logger",
+      "shared.context",
+      "will.orchestration.cognitive_service",
+      "mind.governance.audit_context",
+      "mind.governance.auditor",
+      "shared.infrastructure.intent.intent_repository"
+    ],
+    "imports_external": [
+      "__future__",
+      "math",
+      "collections",
+      "datetime",
+      "typing",
+      "sqlalchemy.ext.asyncio",
+      "sqlalchemy",
+      "sqlalchemy",
+      "sqlalchemy"
+    ],
+    "concerns": [
+      "database"
+    ],
+    "responsibilities": [
+      "data_access",
+      "network",
+      "orchestration"
+    ],
+    "class_count": 1,
+    "dominant_class_lines": 525,
+    "category": "CLASSIFIER-BLIND"
+  },
+  {
+    "file": "src/will/autonomy/proposal.py",
+    "loc": 422,
+    "imports_internal": [
+      "body.atomic.registry",
+      "shared.logger"
+    ],
+    "imports_external": [
+      "__future__",
+      "dataclasses",
+      "datetime",
+      "enum",
+      "typing",
+      "uuid"
+    ],
+    "concerns": [],
+    "responsibilities": [
+      "business_logic",
+      "network",
+      "validation"
+    ],
+    "class_count": 5,
+    "dominant_class_lines": 293,
+    "category": "CLASSIFIER-BLIND"
+  },
+  {
+    "file": "src/will/autonomy/proposal_executor.py",
+    "loc": 638,
+    "imports_internal": [
+      "body.atomic.executor",
+      "body.services.service_registry",
+      "shared.logger",
+      "will.autonomy.proposal",
+      "will.autonomy.proposal_repository",
+      "will.autonomy.proposal_state_manager"
+    ],
+    "imports_external": [
+      "__future__",
+      "asyncio",
+      "json",
+      "time",
+      "typing",
+      "sqlalchemy"
+    ],
+    "concerns": [
+      "database",
+      "file_io"
+    ],
+    "responsibilities": [
+      "data_access",
+      "network",
+      "orchestration"
+    ],
+    "class_count": 1,
+    "dominant_class_lines": 604,
+    "category": "CLASSIFIER-BLIND"
+  },
+  {
+    "file": "src/will/phases/code_generation_phase.py",
+    "loc": 480,
+    "imports_internal": [
+      "body.atomic.modularity_splitter",
+      "body.atomic.split_plan",
+      "body.services.file_service",
+      "shared.ai.prompt_model",
+      "shared.infrastructure.context.limb_workspace",
+      "shared.infrastructure.context.service",
+      "shared.logger",
+      "shared.models.workflow_models",
+      "will.orchestration.decision_tracer",
+      "will.test_generation.sandbox",
+      "shared.context",
+      "will.agents.coder_agent",
+      "will.orchestration.workflow_orchestrator",
+      "will.agents.coder_agent",
+      "will.orchestration.prompt_pipeline"
+    ],
+    "imports_external": [
+      "__future__",
+      "ast",
+      "json",
+      "time",
+      "dataclasses",
+      "typing",
+      "code_generation.artifact_saver",
+      "code_generation.code_sensor",
+      "code_generation.file_path_extractor",
+      "code_generation.work_directory_manager"
+    ],
+    "concerns": [
+      "file_io"
+    ],
+    "responsibilities": [
+      "data_access",
+      "io_operations",
+      "network"
+    ],
+    "class_count": 1,
+    "dominant_class_lines": 431,
+    "category": "CLASSIFIER-BLIND"
+  },
+  {
+    "file": "src/will/self_healing/remediation_interpretation/file_role_detector.py",
+    "loc": 599,
+    "imports_internal": [
+      "will.self_healing.remediation_interpretation.models"
+    ],
+    "imports_external": [
+      "__future__",
+      "ast",
+      "collections.abc"
+    ],
+    "concerns": [],
+    "responsibilities": [
+      "data_access",
+      "io_operations",
+      "network"
+    ],
+    "class_count": 1,
+    "dominant_class_lines": 585,
+    "category": "CLASSIFIER-BLIND"
+  },
+  {
+    "file": "src/will/workers/intent_inspector.py",
+    "loc": 555,
+    "imports_internal": [
+      "shared.ai.prompt_model",
+      "shared.logger",
+      "shared.workers.base"
+    ],
+    "imports_external": [
+      "__future__",
+      "asyncio",
+      "pathlib",
+      "typing",
+      "yaml"
+    ],
+    "concerns": [
+      "file_io"
+    ],
+    "responsibilities": [
+      "data_access",
+      "io_operations",
+      "network",
+      "orchestration"
+    ],
+    "class_count": 1,
+    "dominant_class_lines": 472,
+    "category": "CLASSIFIER-BLIND"
+  },
+  {
+    "file": "src/will/workers/violation_remediator_body/worker.py",
+    "loc": 503,
+    "imports_internal": [
+      "shared.logger",
+      "shared.workers.base",
+      "will.self_healing.remediation_interpretation.service",
+      "body.services.crate_processing_service"
+    ],
+    "imports_external": [
+      "__future__",
+      "uuid",
+      "typing",
+      "blackboard",
+      "ceremony",
+      "context",
+      "llm",
+      "models"
+    ],
+    "concerns": [],
+    "responsibilities": [
+      "business_logic",
+      "io_operations",
+      "network"
+    ],
+    "class_count": 1,
+    "dominant_class_lines": 428,
+    "category": "CLASSIFIER-BLIND"
+  },
+  {
+    "file": "src/body/evaluators/atomic_actions_evaluator.py",
+    "loc": 428,
+    "imports_internal": [
+      "shared.component_primitive",
+      "shared.logger"
+    ],
+    "imports_external": [
+      "__future__",
+      "ast",
+      "time",
+      "dataclasses",
+      "pathlib",
+      "typing",
+      "base_evaluator"
+    ],
+    "concerns": [
+      "file_io"
+    ],
+    "responsibilities": [
+      "data_access",
+      "io_operations"
+    ],
+    "class_count": 2,
+    "dominant_class_lines": 349,
+    "category": "DOMINANT-CLASS"
+  },
+  {
+    "file": "src/body/services/constitutional_validator.py",
+    "loc": 426,
+    "imports_internal": [
+      "shared.infrastructure.intent.intent_repository",
+      "shared.logger"
+    ],
+    "imports_external": [
+      "__future__",
+      "dataclasses",
+      "enum",
+      "functools",
+      "typing",
+      "fnmatch"
+    ],
+    "concerns": [],
+    "responsibilities": [
+      "data_access",
+      "network"
+    ],
+    "class_count": 4,
+    "dominant_class_lines": 288,
+    "category": "DOMINANT-CLASS"
+  },
+  {
+    "file": "src/shared/path_resolver.py",
+    "loc": 403,
+    "imports_internal": [
+      "shared.logger",
+      "shared.models.validation_result"
+    ],
+    "imports_external": [
+      "__future__",
+      "pathlib",
+      "typing"
+    ],
+    "concerns": [
+      "file_io"
+    ],
+    "responsibilities": [
+      "io_operations",
+      "validation"
+    ],
+    "class_count": 1,
+    "dominant_class_lines": 367,
+    "category": "DOMINANT-CLASS"
+  },
+  {
+    "file": "src/will/agents/strategic_auditor/agent.py",
+    "loc": 417,
+    "imports_internal": [
+      "shared.ai.prompt_model",
+      "shared.infrastructure.repositories.task_repository",
+      "shared.logger",
+      "will.agents.strategic_auditor.context_gatherer",
+      "will.agents.strategic_auditor.models",
+      "will.agents.traced_agent_mixin",
+      "will.orchestration.decision_tracer",
+      "shared.context",
+      "will.orchestration.cognitive_service",
+      "will.autonomy.autonomous_developer"
+    ],
+    "imports_external": [
+      "__future__",
+      "json",
+      "uuid",
+      "datetime",
+      "typing",
+      "sqlalchemy.ext.asyncio",
+      "json"
+    ],
+    "concerns": [
+      "database",
+      "file_io"
+    ],
+    "responsibilities": [
+      "data_access",
+      "network"
+    ],
+    "class_count": 1,
+    "dominant_class_lines": 355,
+    "category": "DOMINANT-CLASS"
+  },
+  {
+    "file": "src/will/self_healing/remediation_interpretation/responsibility_extractor.py",
+    "loc": 421,
+    "imports_internal": [
+      "will.self_healing.remediation_interpretation.models"
+    ],
+    "imports_external": [
+      "__future__",
+      "typing"
+    ],
+    "concerns": [],
+    "responsibilities": [
+      "data_access",
+      "network"
+    ],
+    "class_count": 1,
+    "dominant_class_lines": 411,
+    "category": "DOMINANT-CLASS"
+  },
+  {
+    "file": "src/will/strategists/fix_strategist.py",
+    "loc": 467,
+    "imports_internal": [
+      "shared.component_primitive",
+      "shared.logger",
+      "will.orchestration.decision_tracer",
+      "will.strategists.base_strategist"
+    ],
+    "imports_external": [
+      "__future__",
+      "time",
+      "typing"
+    ],
+    "concerns": [],
+    "responsibilities": [
+      "data_access",
+      "network"
+    ],
+    "class_count": 1,
+    "dominant_class_lines": 430,
+    "category": "DOMINANT-CLASS"
+  },
+  {
+    "file": "src/body/services/blackboard_service.py",
+    "loc": 658,
+    "imports_internal": [
+      "shared.logger",
+      "body.services.service_registry",
+      "body.services.service_registry",
+      "body.services.service_registry",
+      "body.services.service_registry",
+      "body.services.service_registry",
+      "body.services.service_registry",
+      "body.services.service_registry",
+      "body.services.service_registry",
+      "body.services.service_registry",
+      "body.services.service_registry",
+      "body.services.service_registry",
+      "body.services.service_registry",
+      "body.services.service_registry",
+      "body.services.service_registry",
+      "body.services.service_registry"
+    ],
+    "imports_external": [
+      "__future__",
+      "json",
+      "uuid",
+      "typing",
+      "sqlalchemy"
+    ],
+    "concerns": [
+      "database",
+      "file_io"
+    ],
+    "responsibilities": [
+      "data_access",
+      "orchestration"
+    ],
+    "class_count": 1,
+    "dominant_class_lines": 620,
+    "category": "INTERNAL-MODULE-NO-SIGNAL"
+  },
+  {
+    "file": "src/will/workers/audit_violation_sensor.py",
+    "loc": 434,
+    "imports_internal": [
+      "shared.logger",
+      "shared.workers.base",
+      "shared.infrastructure.intent.intent_repository",
+      "body.services.service_registry",
+      "mind.governance.filtered_audit"
+    ],
+    "imports_external": [
+      "__future__",
+      "typing"
+    ],
+    "concerns": [],
+    "responsibilities": [
+      "network"
+    ],
+    "class_count": 1,
+    "dominant_class_lines": 361,
+    "category": "INTERNAL-MODULE-NO-SIGNAL"
+  },
+  {
+    "file": "src/will/workers/test_remediator.py",
+    "loc": 412,
+    "imports_internal": [
+      "shared.logger",
+      "shared.workers.base",
+      "will.autonomy.proposal",
+      "body.services.service_registry",
+      "body.services.service_registry",
+      "will.autonomy.proposal_repository",
+      "body.services.service_registry",
+      "will.autonomy.proposal_repository",
+      "body.services.service_registry",
+      "body.services.service_registry"
+    ],
+    "imports_external": [
+      "__future__",
+      "typing"
+    ],
+    "concerns": [],
+    "responsibilities": [
+      "data_access",
+      "network"
+    ],
+    "class_count": 1,
+    "dominant_class_lines": 337,
+    "category": "INTERNAL-MODULE-NO-SIGNAL"
+  },
+  {
+    "file": "src/will/workers/violation_remediator.py",
+    "loc": 503,
+    "imports_internal": [
+      "shared.logger",
+      "shared.workers.base",
+      "will.autonomy.proposal",
+      "body.autonomy.audit_analyzer",
+      "shared.path_resolver",
+      "body.services.service_registry",
+      "body.services.service_registry",
+      "will.autonomy.proposal_repository",
+      "body.services.service_registry",
+      "will.autonomy.proposal_repository",
+      "body.services.service_registry",
+      "body.services.service_registry",
+      "body.services.service_registry"
+    ],
+    "imports_external": [
+      "__future__",
+      "typing"
+    ],
+    "concerns": [],
+    "responsibilities": [
+      "data_access",
+      "network"
+    ],
+    "class_count": 1,
+    "dominant_class_lines": 434,
+    "category": "INTERNAL-MODULE-NO-SIGNAL"
+  },
+  {
+    "file": "src/will/interpreters/request_interpreter.py",
+    "loc": 441,
+    "imports_internal": [
+      "shared.component_primitive",
+      "shared.logger"
+    ],
+    "imports_external": [
+      "__future__",
+      "re",
+      "dataclasses",
+      "enum",
+      "typing",
+      "time",
+      "time"
+    ],
+    "concerns": [],
+    "responsibilities": [
+      "data_access",
+      "network"
+    ],
+    "class_count": 5,
+    "dominant_class_lines": null,
+    "category": "UNCATEGORIZED"
+  }
+]
