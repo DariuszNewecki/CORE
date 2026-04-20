@@ -31,7 +31,7 @@ class AuditCheckMetadata:
                 name="Import Grouping",
                 category="style",
                 fix_hint="core-admin fix.import-groups",
-                default_severity=AuditSeverity.LOW,
+                default_severity=AuditSeverity.INFO,
             )
     """
 
