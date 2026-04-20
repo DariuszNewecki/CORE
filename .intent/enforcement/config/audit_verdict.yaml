@@ -1,0 +1,36 @@
+# Audit verdict policy — severity-to-verdict mapping for ConstitutionalAuditor.
+#
+# Authority:   policy
+# Phase:       audit
+# Rule ref:    .intent/phases/audit.yaml (declare_pass_fail permitted action)
+# ADR:         ADR-005 (.specs/decisions/ADR-005-govern-audit-verdict-policy.md)
+# Loader:      src/shared/infrastructure/intent/audit_verdict.py
+#
+# This file is the governance authority over audit verdict semantics.
+# Changing verdict semantics is a .intent/ edit, not a src/ edit.
+#
+# Missing-or-corrupt handling: the loader returns an error sentinel that
+# callers must treat as DEGRADED. The loader does NOT fall back to
+# hardcoded defaults. A missing verdict-policy file is itself an
+# instrument failure — compliance cannot be decided when the rule for
+# deciding it is absent. See ADR-005 §3.
+
+# Severities that trigger FAIL when any finding carries them (after the
+# ignored_finding_types carve-out). Vocabulary is the AuditSeverity enum
+# in src/shared/models/audit_models.py: ERROR | WARNING | INFO.
+fail_severities:
+  - ERROR
+
+# Finding types excluded from the FAIL trigger.
+# ENFORCEMENT_FAILURE findings are emitted with severity=ERROR by
+# rule_executor.py and constitutional_auditor_dynamic.py when rules crash.
+# They drive DEGRADED via crashed_rule_ids, not FAIL. This carve-out
+# preserves the invariant that "infrastructure broken" (unknown
+# compliance) is distinguishable from "code broken" (known non-compliance).
+ignored_finding_types:
+  - ENFORCEMENT_FAILURE
+
+# Preconditions that force DEGRADED regardless of finding severities.
+# any_crashed_rules → crashed_rule_ids set is non-empty.
+degraded_on:
+  - any_crashed_rules
