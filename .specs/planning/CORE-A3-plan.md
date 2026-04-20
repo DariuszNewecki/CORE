@@ -2,7 +2,7 @@
 
 **Status:** Active
 **Owner:** Darek (Dariusz Newecki)
-**Last updated:** 2026-04-18
+**Last updated:** 2026-04-20
 **Definition:** The daemon runs continuously, the Blackboard clears, the codebase converges, and every action is visible.
 
 ---
@@ -23,186 +23,73 @@ In A3, CORE's daemon finds problems in its own codebase, proposes fixes, execute
 
 ---
 
-## Current State (2026-04-18)
+## Current State (2026-04-20 — reconnaissance verified)
 
 | Item | Status |
 |------|--------|
-| Audit | PASSED — 3 findings (all INFO), 0 blocking, 0 unmapped |
-| Coverage | 121 declared, 121 executed, 100% effective |
-| Active workers | 15 (7 sensors + ViolationExecutor + ViolationRemediator + ProposalConsumer + BlackboardAuditor + WorkerAuditor + TestCoverageSensor + TestRunnerSensor + TestRemediatorWorker) |
-| RemediationMap | 14 ACTIVE, 5 PENDING entries |
-| Stream B (test writing) | ✅ Complete — TestCoverageSensor + TestRunnerSensor + TestRemediatorWorker + `build.tests` wired. First autonomous test committed. |
-| `build.tests` context gap | 🔄 CoderAgent generates without source context — ContextBuilder wiring pending |
-| Worker registry | Clean — 12 active, 23 abandoned |
-| Blackboard | Converging — 2 open legitimate findings, system healthy |
-| Constitutional boundaries | ✅ Clean — shared/ boundary audit complete via ADR-002 |
+| Audit | PASS — 39 findings (37 WARNING, 2 INFO), 0 crashed, 1 unmapped (`governance.artifact_mutation.traceable`) |
+| Audit finding concentration | 32 of 39 are `modularity.needs_split` — single-class concentration, not diverse violations |
+| Coverage | 120 declared, 119 executed (5 stubs skipped), 100% rule execution; 99.0% effective |
+| Worker registry | 15 active, 20 abandoned (Phase 4 cleanup item) |
+| Daemon | **Inactive** — last Blackboard activity 2026-04-18 14:26. Autonomous loop not running at time of snapshot |
+| RemediationMap | 14 ACTIVE, 5 PENDING (top-level rule entries) |
+| ADR inventory | ADR-001 through ADR-004 accepted and landed |
+| Stream B (test writing) | ✅ Complete — TestCoverageSensor + TestRunnerSensor + TestRemediatorWorker + `build.tests` wired |
+| `build.tests` context gap | ✅ Resolved — ADR-003 + ADR-004 landed 2026-04-19 (commits `a0f68287`, `8a1556e4`) |
+| Constitutional boundaries | ✅ Clean — ADR-002 shared/ boundary audit complete |
 | Governor dashboard | ✅ Redesigned — two-column layout, full-width Convergence row |
-| `.specs/` layer | ✅ Established and fully wired into vector layer |
-| Context build layer constraints | ✅ Implemented — layer-specific, noise-filtered |
+| `.specs/` layer | ✅ Established and wired into vector layer |
+| `.specs/META/` schemas | ❌ Absent — governance hygiene gap |
 | Vector layer | ✅ `core_specs` collection live — 549 items from 53 documents |
 | Semantic search | ✅ All three collections queryable — `core_policies`, `core-patterns`, `core_specs` |
-| Context build evidence | ✅ Pulls from all three collections — papers surface alongside rules |
-| Functional requirements | ✅ First system-level document authored — `CORE-What-It-Does.md` |
-| Proposal Path | ✅ Fully daemonized — ViolationRemediator + ProposalConsumer active |
-| Worker heartbeat | ✅ Fixed — registry last_heartbeat updates on every post_heartbeat() call |
-| Documentation | ✅ All docs updated — README, 7 docs pages, CONTRIBUTING.md, vocabulary.md |
+| Proposal Path | ✅ Fully daemonized — ViolationRemediator + ProposalConsumer active when daemon runs |
 | `style.formatter_required` | ✅ Fully wired — sensor detects, Remediator proposes, Consumer executes, git commits |
 
-**Current sensor coverage (52 rules, 0 findings on clean codebase):**
-- `audit_sensor_purity` — 9 rules ✅
-- `audit_sensor_architecture` — 33 rules ✅
-- `audit_sensor_logic` — 2 rules ✅
-- `audit_sensor_modularity` — 3 rules ✅
-- `audit_sensor_layout` — 1 rule ✅
-- `audit_sensor_style` — 2 rules ✅
-- `audit_sensor_linkage` — 2 rules ✅
+**Sensor coverage (119 executed rules, 39 findings on current codebase):**
+- `audit_sensor_purity` — live (2 `purity.no_ast_duplication` findings)
+- `audit_sensor_architecture` — live
+- `audit_sensor_logic` — live
+- `audit_sensor_modularity` — live (32 `modularity.needs_split` findings — single-class dominance)
+- `audit_sensor_layout` — live
+- `audit_sensor_style` — live
+- `audit_sensor_linkage` — live
 
-**Session 2026-04-18 changes:**
-
-*Shared/ boundary cleanup (architectural discipline):*
-- Complete boundary audit against three-criterion admission test (layer-independent, serves multiple layers, no governance logic)
-- **Constitutional violations resolved architecturally, not through rule exceptions:**
-  - CLI utilities moved: `shared/cli_utils/` → `cli/utils/` (113/114 single-layer usage)
-  - Remediation planning moved: `shared/self_healing/remediation_interpretation/` → `will/` (cognitive work)
-  - Workers consolidated: `body/workers/violation_remediator/` → `will/workers/violation_remediator_body/` (resolved obs-8.6)
-  - Governance constants extracted: `ai/constitutional_envelope.py` hardcoded constants → `.intent/enforcement/constitutional_envelope.yaml`
-  - Subprocess governance: `ceremony.py` raw `subprocess.run` → constitutional `subprocess_utils.run_command_async()`
-- **Empirical verification:** `intent_repository.py` placement confirmed correct (mind=2, body=6, will=5, cli=4 importers)
-- **System health maintained:** Audit PASSED throughout, findings reduced 6 → 3 (all INFO), daemon healthy
-- **Decision record:** ADR-002 created documenting all architectural decisions
-
-**Session 2026-04-17 changes:**
-
-*Morning (documentation + activation):*
-- All documentation updated to reflect current state:
-  - `README.md` — A3 current, `.specs/` layer, rule counts, dashboard link
-  - `docs/autonomy-ladder.md` — A3 marked ✅ ← current
-  - `docs/how-it-works.md` — `.specs/` layer added, rule counts corrected
-  - `docs/getting-started.md` — vector sync step, dashboard command added
-  - `docs/cli-reference.md` — dashboard, vectors query, workers blackboard added
-  - `docs/index.md` — CORE-What-It-Does.md as first read
-  - `docs/contributing.md` — `.specs/` added, A3 status corrected
-  - `docs/vocabulary.md` — 42 dead `.intent/papers/` links fixed → `.specs/papers/`
-  - `CONTRIBUTING.md` — `.specs/` added alongside `.intent/`
-- Governor dashboard redesigned — two-column layout
-- Worker re-evaluation — 4 workers activated: `blackboard_auditor`, `worker_auditor`,
-  `violation_remediator`, `proposal_consumer_worker`
-- Worker heartbeat fix — `_post_entry()` in `base.py` updates `worker_registry.last_heartbeat`
-
-*Afternoon (style.formatter_required end-to-end):*
-- `RuffFormatCheck` added to `workflow_gate` engine
-  - `src/mind/logic/engines/workflow_gate/checks/ruff_format.py`
-  - Registered in `checks/__init__.py` and `engine.py`
-  - `verify_context()` fixed to emit per-file AuditFindings with real file paths
-- `style.formatter_required` rule corrected — Black → ruff-format, `check` block added
-- Enforcement mapping added: `.intent/enforcement/mappings/style/formatter.yaml`
-- `workflow.ruff_format_check` added to remediation map → `fix.format`
-- `governance_paths.yaml` map_path corrected to actual file location
-- `fix.format` action fixed — now accepts `file_path` parameter
-- `format_code()` in `code_style_service.py` updated — Black replaced with ruff-format
-- `ViolationRemediatorWorker` fixed — `f["id"]` → `f.get("id") or f.get("entry_id")`
-- **Full autonomous loop proven end-to-end:**
-  Sensor detects → Blackboard → Remediator creates proposal → Consumer executes →
-  `fix.format` runs → git commit authored by CORE
+**Verdict semantics (unresolved):** Audit returns PASS despite 37 WARNING findings. The verdict threshold is not formally documented; current observed behaviour is that WARNING alone does not fail the verdict. Pinning this down is a prerequisite for meaningful convergence metrics.
 
 ---
 
 ## A3 Phases
 
 ### Phase 0 — Clean Slate ✅
-**Goal:** Known-good starting point before activating anything.
-
-**Steps:**
-1. Stop daemon: `systemctl --user stop core-daemon`
-2. Wipe Blackboard and proposals (SQL below)
-3. Run `core-admin code audit` — confirm PASSED baseline
-4. Commit checkpoint to git
-
-**SQL — wipe Blackboard and proposals:**
-```sql
--- Run on lira: psql -U core_db -d core -h 192.168.20.23
-TRUNCATE core.blackboard_entries RESTART IDENTITY CASCADE;
-TRUNCATE core.autonomous_proposals RESTART IDENTITY CASCADE;
-```
-
-> ⚠️ `core.proposals` is the legacy table (file-level proposals). The autonomous loop
-> uses `core.autonomous_proposals`. Always truncate the correct table.
-
-**Success signal:** Daemon stopped, DB clean, audit passes.
-
----
+Known-good starting point before activating anything.
 
 ### Phase 1 — Single Loop, Proven Convergence ✅
-**Goal:** One sensor + one remediator running end to end, findings resolving.
-
-**Success signal:** ✅ Purity sensor finds 0 actionable violations. Blackboard empty.
-
----
+Purity sensor loop, Blackboard empty.
 
 ### Phase 2 — Expand Sensors ✅
-**Goal:** All audit sensors running, loop still converging.
+All seven audit sensors active.
 
-**Activated in order:**
-1. `audit_sensor_architecture` — 33/33 rules ✅
-2. `audit_sensor_logic` — 2/2 rules ✅
-3. `audit_sensor_modularity` — 3/3 rules ✅
-4. `audit_sensor_layout` — 1/1 rules ✅
-5. `audit_sensor_style` — 2/2 rules ✅
-6. `audit_sensor_linkage` — 2/2 rules ✅
+### Phase 3 — Capability Gaps 🔄
+**Status:** Stream A (ViolationExecutor) complete. Stream B (test writing) complete — ADR-003 + ADR-004 closed the structural gap. Stream C (delegation) infrastructure complete.
 
-**Success signal:** ✅ All seven sensors active. 52 rules executed. 0 findings. Blackboard clean.
+Remaining Phase 3 work:
+1. **Activate the daemon.** Currently inactive. Autonomous loop cannot converge if the loop does not run.
+2. **WorkerAuditor finding resolution on recovery** — `worker.silent` findings persist after workers recover.
+3. **Sensor-fixer coherence validation** — no mechanism to detect when sensor detection contradicts fixer correction for the same rule.
 
----
+### Phase 4 — CLI Health ⬜
+Not started.
 
-### Phase 3 — Capability Gaps
-**Goal:** Findings that can't be auto-remediated get correctly delegated.
-
-**Status:** All three streams complete. ViolationExecutor fully proven end-to-end.
-Proposal Path fully daemonized. `style.formatter_required` autonomous loop proven.
-Shared/ boundary cleanup complete. Stream B test-writing wired — first autonomous test
-written (quality fix pending: CoderAgent needs source context before generating tests).
-
-**Three workstreams:**
-
-**A — ViolationExecutor end-to-end** ✅ Complete
-
-**C — Human delegation protocol** ✅ Infrastructure complete
-
-**B — Test writing** ✅ Complete
-"Wire test-writing AtomicAction" → done. TestCoverageSensor + TestRunnerSensor +
-TestRemediatorWorker + `build.tests` wired. First autonomous test written
-(`tests/will/workers/blackboard_auditor/test_generated.py` — hallucinated, quality fix pending).
-
----
-
-### Phase 4 — CLI Health
-**Goal:** All commands working, legacy removed, URS written for each command.
-
-**Command surface:** `src/cli/resources/` — 93 files across 14 directories.
-**Full command tree:** 18 command groups, 82 commands total.
-
-**Steps:**
-1. Inventory — Claude Code reads every command file, categorises as: working / broken / legacy
-2. For each broken command — daemon proposes fix, human approves
-3. For each legacy command — human decides keep/remove, daemon executes
-4. URS generation pass — one URS per command group
-5. Smoke test: `core-admin --help` — every command listed runs without error
+**Command surface:** `src/cli/resources/` — 93 files across 14 command groups, 82 commands total.
 
 **Known Phase 4 bugs:**
-- `core-admin check rule` cannot find rules that exist in `.intent/rules/`
-- `core-admin workers` has no cleanup command — ghost registry entries require raw SQL
+- `core-admin check rule` does not exist as a command (brief documentation drift — the command was never implemented or was removed without plan update)
+- `core-admin workers` has no cleanup command — ghost registry entries (20 abandoned rows currently) require raw SQL
 - `core-admin runtime health` shows abandoned workers — filter needed
-- `core-admin vectors sync` has no `--force` flag — collection delete required when
-  payload structure changes without content changing (dedup uses content hash only)
+- `core-admin vectors sync` has no `--force` flag — collection delete required when payload structure changes without content changing
 
-**Success signal:** Clean `--help` output, no dead commands, no legacy stubs, URS for every command group.
-
----
-
-### Phase 5 — Visibility
-**Goal:** `tail -f` tells a story anyone can follow.
-
-**Success signal:** Any observer understands what CORE is doing without explanation.
+### Phase 5 — Visibility ⬜
+Not started.
 
 ---
 
@@ -212,8 +99,8 @@ TestRemediatorWorker + `build.tests` wired. First autonomous test written
 |-------|--------|--------|
 | 0 — Clean slate | Audit passes, DB clean | ✅ Complete |
 | 1 — Single loop | Purity loop runs unattended | ✅ Complete |
-| 2 — All sensors | All sensors active, converging | ✅ Complete — 52 rules, 7 sensors, 0 findings |
-| 3 — Capability gaps | No orphaned findings, tests growing | 🔄 Active — Stream B complete, `build.tests` context gap remaining |
+| 2 — All sensors | All sensors active, converging | ✅ Complete — 7 sensors, 119 rules executed |
+| 3 — Capability gaps | No orphaned findings, daemon live | 🔄 Stream B closed via ADR-003/004; daemon inactive |
 | 4 — CLI health | All commands work, legacy gone, URS written | ⬜ Not started |
 | 5 — Visibility | Demo-ready, `tail -f` tells the story | ⬜ Not started |
 
@@ -223,30 +110,45 @@ TestRemediatorWorker + `build.tests` wired. First autonomous test written
 
 | Blocker | Phase | Notes |
 |---------|-------|-------|
-| build.tests context gap | 3 | CoderAgent generates tests without source context — hallucinated API. Fix: call ContextBuilder (`RemediationInterpretationService.build_reasoning_brief_dict`) before CoderAgent in `build_tests_action.py`. Same pattern as `ViolationRemediator._plan_file()`. This is an intelligence gap, not a constitutional violation — belongs here, not in `.intent/rules/`. |
-| End-to-end Proposal Path verification | 3 | Loop proven with `fix.format`; needs verification across all mapped rules |
-| WorkerAuditor does not resolve findings on recovery | 3+ | `worker.silent` findings persist after workers recover — needs fix |
+| Daemon inactive | 3 | Reconnaissance 2026-04-20 shows last Blackboard activity 2026-04-18 14:26. Autonomous loop not observably converging. Cause not diagnosed — could be deliberate stop, crashed worker, systemd state, or missing `systemctl --user start core-daemon`. Resolution prerequisite for all other Phase 3 work |
+| Verdict-threshold documentation | 3+ | `PASS` is returned with 37 WARNINGs. Threshold semantics not written down. Blocks honest convergence reporting |
+| `modularity.needs_split` single-class concentration | 3+ | 32 of 39 findings are one check_id with identical shape ("File has N lines with only 2 concern(s)"). Either the check is producing systematic false positives, the threshold (400 lines) is miscalibrated, or there is genuine modularity debt. Needs diagnosis before remediation |
+| `audit_runs` DB write gap | 4+ | `core-admin code audit` does not persist results to DB — dashboard Panel 4 shows "never"; manual audit and daemon audit are separate systems |
+| WorkerAuditor does not resolve findings on recovery | 3+ | `worker.silent` findings persist after workers recover |
 | Sensor-fixer coherence validation | 3+ | No mechanism to detect when sensor detection contradicts fixer correction for the same rule |
 | OptimizerWorker | 3+ | Not yet designed — manual candidate review until then |
-| `core-admin check rule` lookup bug | 4 | Cannot find rules that exist in `.intent/rules/` |
-| `core-admin workers` missing cleanup command | 4 | Ghost registry entries require raw SQL |
-| `core-admin runtime health` worker filter | 4 | Shows abandoned workers — needs status filter |
-| `core-admin vectors sync` missing `--force` flag | 4 | Collection delete required to force payload re-index when content hash unchanged |
-| `.specs/META/` | — | Schema for `.specs/` artifacts not yet authored |
-| `audit_runs` write gap | 4+ | `core-admin code audit` does not persist results to DB — dashboard Panel 4 shows "never"; manual audit and daemon audit are separate systems |
+| `.specs/META/` schemas absent | Hygiene | `.intent/META/` has 10 schemas. `.specs/` has zero. No machine-checkable shape for papers, URS, ADRs, handoffs, plans, investigations |
+
+**Open remediation items (2026-04-20 audit):**
+
+| Severity | Check | Count | Class |
+|----------|-------|-------|-------|
+| WARNING | `modularity.needs_split` | 32 | Single-class concentration — diagnose before remediate |
+| WARNING | `autonomy.tracing.mandatory` | 2 | `self_healing_agent.py`, `tagger_agent.py` — sensing workers that may legitimately not need tracer; selector design question |
+| WARNING | `purity.no_ast_duplication` | 2 | `IntentRepository.resolve_rel` ↔ `SpecsRepository.resolve_rel` — pre-existing structural |
+| WARNING | `governance.dangerous_execution_primitives` | 1 | `src/body/services/cim/scanners.py:55` (`subprocess.check_output`) — governor decision pending |
+| WARNING | `workflow.mypy_check` | 1 | Not previously tracked |
+| WARNING | `workflow.security_check` | 1 | Not previously tracked |
+| INFO | (various) | 2 | — |
 
 **Resolved blockers:**
 
 | Blocker | Notes |
 |---------|-------|
-| ~~ViolationExecutor ceremony `'id'` bug~~ | ✅ Fixed 2026-04-18 — BlackboardService contract enforced (`finding["id"]` everywhere). `entry_id` was a local variable name confused with dict key. |
-| ~~Stream B test-writing not wired~~ | ✅ Complete 2026-04-18 — TestCoverageSensor + TestRunnerSensor + TestRemediatorWorker + `build.tests`. First autonomous test committed. |
-| ~~Shared/ boundary violations~~ | ✅ Resolved 2026-04-18 — ADR-002: constitutional moves (CLI utilities → cli/, remediation planning → will/, workers consolidation, subprocess governance, constitutional constants extraction) |
-| ~~`style.formatter_required` — deferred, no engine check~~ | ✅ Fully wired 2026-04-17 — RuffFormatCheck, enforcement mapping, remediation map, fix.format fixed, autonomous loop proven end-to-end |
-| ~~Proposal Path workers not daemonized~~ | ✅ Fixed 2026-04-17 — violation_remediator + proposal_consumer_worker activated |
-| ~~Worker heartbeat not updating registry~~ | ✅ Fixed 2026-04-17 — base.py _post_entry() updates worker_registry on heartbeat |
-| ~~BlackboardAuditor and WorkerAuditor not active~~ | ✅ Fixed 2026-04-17 — both activated |
-| ~~Documentation stale — A2 marked current, .specs/ absent~~ | ✅ Fixed 2026-04-17 — all docs updated |
+| ~~`build.tests` context gap — CoderAgent generates without source context~~ | ✅ Resolved 2026-04-19 — commits `a0f68287` (Gap 2+3 change-set) and `8a1556e4` (ADR-003 task_type field + ADR-004 phase map in `.intent/`). Verified: dry-run against `src/shared/time.py` produces tests with real symbols |
+| ~~`src/shared/infrastructure/context/cli.py` vestigial CLI~~ | ✅ Deleted 2026-04-19 in same change-set as ADR-004 |
+| ~~Phase map hardcoded in `src/` (three-way drift)~~ | ✅ Governed in `.intent/enforcement/config/task_type_phases.yaml` per ADR-004 |
+| ~~fnmatch include-pattern asymmetry in `AuditorContext.get_files`~~ | ✅ Compensated via `_include_matches` helper, commit `8e9325fb` (2026-04-18). Live verification 2026-04-20: top-level files under `src/will/agents/` now matched by `src/will/agents/**/*.py` scope |
+| ~~`_expr_is_intent_related` missing `Call` handling~~ | ✅ `ast.Call` branch present in current code with both `Path(tainted)` wrapping and attribute-chain propagation. Commit SHA not recovered; shape verified live |
+| ~~`autonomy.tracing.mandatory` silent non-firing~~ | ✅ Premise falsified by `state/tracing_mandatory_diagnostic_2026-04-20.md`. Rule fires, produces 2 findings today. The handoffs carrying this claim are superseded |
+| ~~ViolationExecutor `'id'`/`entry_id` bug~~ | ✅ Fixed 2026-04-18 |
+| ~~Stream B test-writing not wired~~ | ✅ Complete 2026-04-18 |
+| ~~Shared/ boundary violations~~ | ✅ Resolved 2026-04-18 — ADR-002 |
+| ~~`style.formatter_required` — deferred, no engine check~~ | ✅ Fully wired 2026-04-17 |
+| ~~Proposal Path workers not daemonized~~ | ✅ Fixed 2026-04-17 |
+| ~~Worker heartbeat not updating registry~~ | ✅ Fixed 2026-04-17 |
+| ~~BlackboardAuditor and WorkerAuditor not active~~ | ✅ Fixed 2026-04-17 |
+| ~~Documentation stale — A2 marked current, .specs/ absent~~ | ✅ Fixed 2026-04-17 |
 | ~~Blackboard hygiene bug (2 failure modes)~~ | ✅ Fixed 2026-04-16 |
 | ~~`.specs/` invisible to vector layer~~ | ✅ Fixed 2026-04-16 |
 | ~~Context build evidence missing constitutional papers~~ | ✅ Fixed 2026-04-16 |
@@ -254,85 +156,61 @@ TestRemediatorWorker + `build.tests` wired. First autonomous test written
 | ~~Context build layer constraints noise~~ | ✅ Fixed 2026-04-16 |
 | ~~`core-admin vectors query` missing specs collection~~ | ✅ Fixed 2026-04-16 |
 | ~~Rich Panel rendering bug in build.py~~ | ✅ Fixed 2026-04-16 |
-| ~~Context build missing constitutional layer constraints~~ | ✅ Fixed 2026-04-16 |
-| ~~`architecture.mind.no_body_invocation` status unknown~~ | ✅ Resolved 2026-04-16 |
 | ~~Stale Blackboard entries (2)~~ | ✅ Purged 2026-04-16 |
 | ~~No functional requirements document~~ | ✅ `CORE-What-It-Does.md` authored 2026-04-16 |
-| ~~Ghost worker registry entries (23)~~ | ✅ Marked abandoned via SQL — 2026-04-15 |
+| ~~Ghost worker registry entries (23)~~ | ✅ Marked abandoned via SQL — 2026-04-15. Note: 20 abandoned rows present today, accumulating since |
 | ~~`.intent/` contains non-operational documents~~ | ✅ `.specs/` layer established — 2026-04-15 |
-| ~~No requirements layer~~ | ✅ `.specs/requirements/` established — 2026-04-15 |
-| ~~Sensor coverage gaps~~ | ✅ layout, style, linkage sensors added |
-| ~~`purity.forbidden_placeholders` naming mismatch~~ | ✅ Fixed |
-| ~~`check_import_order` relative import bug~~ | ✅ Fixed |
-| ~~ViolationExecutor dry_run result posting~~ | ✅ Fixed |
-| ~~ViolationExecutor end-to-end live test~~ | ✅ Proven |
-| ~~Stream C delegation transition missing~~ | ✅ Resolved |
-| ~~`fix.modularity` class-methods gap~~ | ✅ Resolved |
 | ~~Orphan classifier (92 findings)~~ | ✅ Dissolved — 0 real orphans |
-| ~~Proposals dry-run bug~~ | ✅ Fixed |
-| ~~`execute_batch` consequence logging gap~~ | ✅ Fixed |
 
 ---
 
 ## Architectural Decisions Made
 
-### 2026-04-15 — `.specs/` layer established
-**Decision:** Non-operational documents move out of `.intent/` into `.specs/`.
-**Test:** Does CORE read this file at runtime to make a governance decision? If no → `.specs/`.
-**Structure:**
-```
-.specs/
-├── CORE-CHARTER.md       ← founding declaration
-├── META/                 ← schema for .specs/ itself
-├── northstar/            ← why CORE exists (including CORE-What-It-Does.md)
-├── papers/               ← architectural reasoning
-├── requirements/         ← URS documents
-├── decisions/            ← ADRs
-└── planning/             ← roadmaps, operational plans
-```
+### ADR-001 (2026-04-15) — `.specs/` layer established
+Non-operational documents move out of `.intent/` into `.specs/`.
 
-### 2026-04-15 — Dashboard reads daemon state only
-**Decision:** `core-admin runtime dashboard` reads the autonomous loop's DB state.
-Manual audit output is irrelevant. The daemon's sensors are the continuous audit.
+### ADR-002 (2026-04-18) — Shared layer boundary enforcement
+All shared/ boundary violations resolved through architectural moves, not rule exceptions. Established "Policy in `.intent/`, mechanism in `src/`" principle.
 
-### 2026-04-15 — Panel 5 is Autonomous Reach, not governance coverage
-**Decision:** Panel 5 answers "how much can the daemon fix without human help?"
-Sources: Blackboard abandoned findings, dry-run candidates, ViolationExecutor in-flight.
+### ADR-003 (2026-04-19) — `task_type` as first-class field on `ExecutionTask`
+Test generation correctly routes through `audit` phase rather than `execution`. `build_tests_action` sets `task_type="test_generation"`; `CodeGenerator._build_context_package` passes it through.
 
-### 2026-04-16 — Context build emits layer constraints from path, not role inference
-**Decision:** Constitutional layer derived from file path alone (`src/mind/` → mind).
-Deterministic and authoritative. Layer constraints appear before all other sections.
+### ADR-004 (2026-04-19) — Govern task_type → phase mapping in `.intent/`
+Three-way drift (service, CLI, vestigial file) collapsed to single source at `.intent/enforcement/config/task_type_phases.yaml`. Vestigial `src/shared/infrastructure/context/cli.py` retired in same change-set.
 
-### 2026-04-16 — `.specs/` is a first-class vector collection
-**Decision:** `.specs/` documents vectorized into `core_specs`, queried by context build
-alongside `core_policies` and `core-patterns`. Reasoning layer must be semantically searchable.
+### Undocumented-as-ADR decisions (backfill candidates)
+The following decisions were made in code and in session handoffs but not captured as ADRs. Each is a candidate for retrospective ADR authoring:
 
-### 2026-04-16 — Functional requirements layer established
-**Decision:** `CORE-What-It-Does.md` is the entry point for new readers before architecture.
+- 2026-04-15 — Dashboard reads daemon state only
+- 2026-04-15 — Panel 5 is Autonomous Reach, not governance coverage
+- 2026-04-16 — Context build emits layer constraints from path, not role inference
+- 2026-04-16 — `.specs/` is a first-class vector collection
+- 2026-04-17 — Dashboard two-column layout
+- 2026-04-17 — Worker heartbeat updates registry in base class
+- 2026-04-17 — ruff-format is the formatting authority, not Black
+- 2026-04-17 — `workflow.ruff_format_check` is the Blackboard check_id for formatting
 
-### 2026-04-17 — Dashboard two-column layout
-**Decision:** Convergence Direction full-width (primary signal), remaining panels in
-two-column rows. Scales naturally when new panels are added.
+---
 
-### 2026-04-17 — Worker heartbeat updates registry in base class
-**Decision:** `_post_entry()` in `base.py` updates `worker_registry.last_heartbeat`
-when `entry_type == 'heartbeat'`. Single fix point — all workers benefit automatically.
+## Intent Layer Hygiene — proposed (not executed this session)
 
-### 2026-04-17 — ruff-format is the formatting authority, not Black
-**Decision:** `style.formatter_required` enforces ruff-format (commit-gate hook in
-`.pre-commit-config.yaml`). Black is `stages: [manual]` only and is not the authority.
-`fix.format` action and `format_code()` updated to invoke ruff-format.
+`.specs/` has grown organically over five weeks and its layout no longer reflects clean genre separation. Proposal captured here for a later session.
 
-### 2026-04-17 — workflow.ruff_format_check is the Blackboard check_id for formatting
-**Decision:** The check_id posted to the Blackboard by `workflow_gate` engine is
-`workflow.ruff_format_check`. The remediation map must key on this, not `style.formatter_required`.
-Both keys map to `fix.format` for forward compatibility.
+**Current state of `.specs/`:**
+- `META/` exists but is empty (0 schemas)
+- `state/` mixes three genres: periodic snapshots (`CORE-state-2026-04-18.md`), dated investigations (`nested_scope_audit_2026-04-19.md`, `tracing_mandatory_diagnostic_2026-04-20.md`, `reconnaissance_2026-04-20.md`), and external-facing whitepapers (`Prior Art and the End-to-End Gap.md`)
+- Naming is inconsistent: `northstar/CORE - What It Does.md` (spaces, hyphens), `northstar/core_northstar.md` (snake_case lowercase), `state/Prior Art and the End-to-End Gap.md` (spaces, title case, no date), `state/CORE-state-2026-04-18.md` (hyphen date), `state/nested_scope_audit_2026-04-19.md` (underscore date)
 
-### 2026-04-18 — Shared layer boundary enforcement (ADR-002)
-**Decision:** All shared/ boundary violations resolved through architectural moves, not rule exceptions. Constitutional violations require constitutional fixes.
-**Key moves:** CLI utilities to cli/ layer, remediation planning to will/ layer, governance constants extracted to .intent/, subprocess routing through constitutional infrastructure.
-**Verification:** Empirical import analysis, obs-8.6 resolution (two-worker separation pattern), audit health maintained throughout.
-**Rationale:** "Governance mappings live in .intent/, never hardcoded in src/" — policy decisions belong in constitutional layer, mechanisms belong in implementation layer.
+**Proposed reorganization:**
+- `state/` keeps only periodic state snapshots (`CORE-state-YYYY-MM-DD.md`)
+- `state/investigations/` holds dated one-off analyses (nested-scope audit, tracing diagnostic, reconnaissance)
+- `whitepapers/` (new) holds external-facing positioning documents (Prior Art whitepaper, any future competitive framing)
+- `META/` gains minimum-viable schemas for: paper, ADR, URS, handoff, plan, state snapshot, investigation, whitepaper (eight schemas)
+- Naming convention: `kebab-case` for multi-word filenames; date prefix `YYYY-MM-DD-` for dated artifacts; no spaces anywhere
+
+**Execution cost:** one session. Moves are `git mv`; schemas are authored per minimum-viable shape. The current session's citations at `state/tracing_mandatory_diagnostic_2026-04-20.md` and `state/reconnaissance_2026-04-20.md` become `state/investigations/2026-04-20-tracing-mandatory-diagnostic.md` and `state/investigations/2026-04-20-reconnaissance.md` — one find-replace edit in this plan when the reorg runs.
+
+**Not executed this session.** Captured here so the idea does not drift out of context.
 
 ---
 
@@ -343,12 +221,15 @@ Both keys map to `fix.format` for forward compatibility.
 systemctl --user start core-daemon
 systemctl --user stop core-daemon
 systemctl --user restart core-daemon
+systemctl --user is-active core-daemon
 journalctl --user -u core-daemon -f
 
 # Audit
 core-admin code audit
-core-admin check rule --rule <rule_id> --verbose
 core-admin constitution validate
+# NOTE: 'core-admin check rule --rule X --verbose' is documented in prior plans but
+# does not exist in the current CLI. Command name may have been removed without
+# plan update. Treated as Phase 4 documentation-drift item.
 
 # Blackboard
 core-admin workers blackboard
@@ -356,10 +237,8 @@ core-admin workers blackboard --status open
 core-admin workers blackboard --filter "audit.violation"
 core-admin workers purge --status <status> --rule <subject_prefix> --before <hours> --write
 
-# Runtime (plumbing view)
+# Runtime
 core-admin runtime health
-
-# Governor dashboard (five-panel state view)
 core-admin runtime dashboard
 core-admin runtime dashboard --plain
 watch -n 30 core-admin runtime dashboard
@@ -372,19 +251,18 @@ core-admin context build --file <target_file> --task code_modification --goal "<
 
 # Proposals
 core-admin proposals list
+core-admin proposals list --full-ids
 
 # Vectors
 core-admin vectors sync --write
 core-admin vectors query "<query>" --collection policies|patterns|specs --limit <n>
-# Force re-index when payload changed without content change (no --force flag yet):
-# python3 -c "import asyncio; from shared.infrastructure.clients.qdrant_client import QdrantService; asyncio.run(QdrantService().client.delete_collection('core_specs'))" 2>/dev/null
-# core-admin vectors sync --write
 
 # Sync
 poetry run core-admin dev sync --write
 
 # DB (only when no core-admin command covers the need)
-psql -U core_db -d core -h 192.168.20.23
+# Connection requires PGPASSWORD env var or ~/.pgpass; no-password invocation fails.
+PGPASSWORD=core_db psql -U core_db -d core -h 192.168.20.23
 
 # Ghost worker cleanup (no core-admin command yet — Phase 4 item)
 # UPDATE core.worker_registry SET status = 'abandoned'
@@ -453,6 +331,9 @@ src/        ← implementation → core-code
 infra/      ← infrastructure (DB migrations, SQL schema)
 ```
 
+**Module path notes:**
+- `AuditorContext` lives at `src/mind/governance/audit_context.py`, not `src/mind/logic/engines/ast_gate/base.py`. Several prior documents cite the wrong path; they are superseded.
+
 **Vector collections:**
 ```
 core_specs      ← .specs/ markdown documents (549 items, 53 files)
@@ -469,20 +350,18 @@ core-code       ← src/ code symbols
 Current A3 phase: [0/1/2/3/4/5]
 Last session: [what was done]
 Current blocker: [what is blocking progress]
-Blackboard state: [clean / N open findings]
-Active workers: [list or "all sensors active"]
+Audit state: [verdict, total findings, distribution by check_id]
+Daemon state: [active/inactive, last Blackboard activity]
+Active workers: [count]
 Next step: [specific action]
 ```
 
 ---
 
 Current A3 phase: 3
-Last session: 2026-04-18 (end of day). Stream B complete. First autonomous test
-  written. ViolationExecutor `'id'` bug fixed. `action_executor` guard added to
-  `build_tests_action.py`. `proposals list --full-ids` added. Two governance rules
-  added then correctly removed (intelligence gap, not constitutional violation).
-Current blocker: `build.tests` context gap — CoderAgent needs source context before
-  generating tests.
-Blackboard state: converging — Stream B loop active, `test.missing` findings cycling
-Active workers: 15
-Next step: Wire ContextBuilder into `build_tests_action.py` before CoderAgent invocation.
+Last session: 2026-04-20 — Engine-integrity triad investigation concluded. Three of four named engine issues falsified (fnmatch, Call-handling, silent rule); one remains (existence-not-coverage in `required_calls`) but is non-blocking. `.specs/` documentation drift corrected via Block A. Reconnaissance captured in `state/reconnaissance_2026-04-20.md`.
+Current blocker: Daemon inactive since 2026-04-18 14:26. No autonomous convergence has occurred in ~36 hours at time of snapshot.
+Audit state: PASS, 39 findings (37 WARNING, 2 INFO). 32 of 39 are `modularity.needs_split` (single-class concentration — needs diagnosis).
+Daemon state: inactive.
+Active workers: 15 registered active; 20 abandoned rows in `core.worker_registry`.
+Next step: (a) decide whether to activate daemon and address finding concentration, or (b) begin Block B (state/ reorganization + META schemas), or (c) diagnose verdict-threshold semantics. Open question for next session.
