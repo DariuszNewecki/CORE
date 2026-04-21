@@ -165,6 +165,44 @@ class ModularityChecker:
                     concerns.add(concern)
         return sorted(concerns)
 
+    # ID: c4ac4ecd-5913-4631-9aad-239eeaa38e6c
+    def _find_dominant_class(
+        self, tree: ast.AST, loc: int
+    ) -> tuple[str | None, int, float]:
+        """
+        Identify the top-level class that dominates the file, if any.
+
+        Returns (name, lines, ratio) for the top-level ClassDef with the
+        most methods (FunctionDef + AsyncFunctionDef in body). Returns
+        (None, 0, 0.0) when no top-level class has methods or when loc
+        is zero.
+
+        Method-count ranking matches the heuristic in
+        _extract_class_methods_context used by the fix.modularity action —
+        the closest downstream consumer of this signal.
+        """
+        best_name: str | None = None
+        best_method_count = 0
+        best_lines = 0
+        for node in ast.iter_child_nodes(tree):
+            if not isinstance(node, ast.ClassDef):
+                continue
+            method_count = sum(
+                1
+                for m in node.body
+                if isinstance(m, (ast.FunctionDef, ast.AsyncFunctionDef))
+            )
+            if method_count <= 0 or method_count <= best_method_count:
+                continue
+            end_lineno = node.end_lineno or node.lineno
+            best_name = node.name
+            best_method_count = method_count
+            best_lines = end_lineno - node.lineno + 1
+        if best_name is None:
+            return None, 0, 0.0
+        ratio = best_lines / loc if loc else 0.0
+        return best_name, best_lines, ratio
+
     # --- THE MASTER SCORE LOGIC ---
 
     # ID: 0a9433fe-9b18-4f46-8171-6eb1df60d60e
@@ -269,7 +307,12 @@ class ModularityChecker:
 
             responsibilities = self._detect_responsibilities(content)
 
-            if len(responsibilities) <= 2:
+            tree = ast.parse(content)
+            dominant_name, dominant_lines, dominant_ratio = self._find_dominant_class(
+                tree, loc
+            )
+
+            if len(responsibilities) <= 2 and dominant_lines <= max_lines:
                 return [
                     {
                         "rule_id": "modularity.needs_split",
@@ -285,6 +328,9 @@ class ModularityChecker:
                             "max_lines": max_lines,
                             "responsibility_count": len(responsibilities),
                             "responsibilities": responsibilities,
+                            "dominant_class_name": dominant_name,
+                            "dominant_class_lines": dominant_lines,
+                            "dominant_class_ratio": dominant_ratio,
                         },
                     }
                 ]
@@ -292,6 +338,45 @@ class ModularityChecker:
 
         except Exception as e:
             logger.error("Needs-split check failed for %s: %s", file_path, e)
+            return []
+
+    # ID: 385e0723-46ee-49b7-88a6-d0e81c00b671
+    def check_class_too_large(
+        self, file_path: Path, params: dict[str, Any]
+    ) -> list[dict[str, Any]]:
+        """Flag files whose dominant top-level class exceeds the line limit."""
+        max_lines = int(params.get("max_lines", 400))
+
+        try:
+            content = file_path.read_text(encoding="utf-8")
+            tree = ast.parse(content)
+            loc = len(content.splitlines())
+            name, class_lines, class_ratio = self._find_dominant_class(tree, loc)
+
+            if class_lines > max_lines:
+                return [
+                    {
+                        "rule_id": "modularity.class_too_large",
+                        "severity": "warning",
+                        "message": (
+                            f"Class {name!r} occupies {class_lines} lines "
+                            f"(limit {max_lines}) — class-level refactor required, "
+                            f"not automatable"
+                        ),
+                        "file": str(file_path),
+                        "details": {
+                            "lines_of_code": loc,
+                            "max_lines": max_lines,
+                            "dominant_class_name": name,
+                            "dominant_class_lines": class_lines,
+                            "dominant_class_ratio": class_ratio,
+                        },
+                    }
+                ]
+            return []
+
+        except Exception as e:
+            logger.error("Class-too-large check failed for %s: %s", file_path, e)
             return []
 
     # ID: e7415876-4981-4c11-b91e-05eb175948e1
