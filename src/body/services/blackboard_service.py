@@ -434,12 +434,29 @@ class BlackboardService:
     # ID: 3d4e5f6a-7b8c-9d0e-1f2a-3b4c5d6e7f8a
     async def resolve_entries(self, entry_ids: list[str]) -> int:
         """
-        Mark each entry in *entry_ids* as resolved, provided it is still open.
-        All updates run inside a single transaction.  Returns the count of rows
-        actually updated (entries already resolved or missing are not counted).
+        Mark each entry in *entry_ids* as resolved, provided it is still in
+        a non-terminal status ('open' or 'claimed').
+
+        Historically the WHERE clause filtered status = 'open' only, which
+        silently no-op'd the claim→resolve path used by workers that claim
+        findings before acting on them. This left every such caller leaking
+        claims — the entries_resolved counters in their reports were always
+        zero because the UPDATE never matched.
+
+        The predicate now accepts either 'open' or 'claimed' so two caller
+        patterns are both correct:
+          - fetch_open_findings → resolve_entries  (TestRunnerSensor)
+          - claim_violation_findings → ... → resolve_entries
+              (ViolationRemediatorWorker, TestRemediatorWorker)
+
+        All updates run inside a single transaction. Returns the count of
+        rows actually updated (entries already terminalized or missing are
+        not counted).
 
         Covers:
           - ViolationRemediatorWorker._resolve_entries
+          - TestRemediatorWorker._resolve_entries
+          - TestRunnerSensor (direct)
         """
         from body.services.service_registry import ServiceRegistry
 
@@ -453,7 +470,7 @@ class BlackboardService:
                             UPDATE core.blackboard_entries
                             SET status = 'resolved', updated_at = now()
                             WHERE id = cast(:entry_id as uuid)
-                              AND status = 'open'
+                              AND status IN ('open', 'claimed')
                             """
                         ),
                         {"entry_id": entry_id},
