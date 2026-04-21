@@ -14,6 +14,19 @@ mappings:
       applies_to: ["src/**/*.py"]
       excludes: ["tests/**", "scripts/**", "**/__init__.py"]
 
+  # LAW: Files whose dominant top-level class exceeds the line limit SHOULD be
+  # reviewed by a human. Mechanical redistribution cannot resolve these —
+  # the problem lives inside the class (see ADR-007).
+  modularity.class_too_large:
+    engine: ast_gate
+    params:
+      check_type: modularity
+      check_method: check_class_too_large
+      max_lines: 400
+    scope:
+      applies_to: ["src/**/*.py"]
+      excludes: ["tests/**", "scripts/**", "**/__init__.py"]
+
   # LAW: Files mixing distinct architectural disciplines MUST be refactored
   # Blocking — requires human judgment before any autonomous action
   modularity.needs_refactor:
