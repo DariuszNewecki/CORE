@@ -83,6 +83,23 @@ _ACTIVE_STATUSES: frozenset[ProposalStatus] = frozenset(
 )
 
 
+def _entry_id(finding: dict[str, Any]) -> str:
+    """
+    Extract the blackboard-entry id from a finding dict.
+
+    Findings arriving from BlackboardService carry either an 'id' or an
+    'entry_id' key depending on the serialization path; both are accepted.
+    Raises ValueError if neither is present — findings without a resolvable
+    id cannot be acted on by this worker and represent a contract violation
+    from the service layer. Fail loud at extraction rather than passing None
+    down to the SQL layer where the error is less legible.
+    """
+    value = finding.get("id") or finding.get("entry_id")
+    if value is None:
+        raise ValueError(f"Finding has neither 'id' nor 'entry_id': {finding!r}")
+    return str(value)
+
+
 # ID: b4c5d6e7-f8a9-0123-bcde-f12345678904
 class ViolationRemediatorWorker(Worker):
     """
@@ -175,7 +192,7 @@ class ViolationRemediatorWorker(Worker):
         entries_released_after_failure: int = 0
 
         for action_id, findings in action_groups.items():
-            entry_ids = [f.get("id") or f.get("entry_id") for f in findings]
+            entry_ids = [_entry_id(f) for f in findings]
 
             if action_id in active_action_ids:
                 # Dedup: an active proposal already represents this action group.
@@ -337,7 +354,7 @@ class ViolationRemediatorWorker(Worker):
             if remediation_map.get(rule):
                 mappable.append(finding)
             else:
-                unmappable_ids.append(finding.get("id") or finding.get("entry_id"))
+                unmappable_ids.append(_entry_id(finding))
 
         # Immediately release unmappable findings so they don't stay claimed.
         if unmappable_ids:
@@ -535,7 +552,7 @@ class ViolationRemediatorWorker(Worker):
         if not findings:
             return 0
 
-        entry_ids = [f.get("id") or f.get("entry_id") for f in findings]
+        entry_ids = [_entry_id(f) for f in findings]
         return await self._release_entries(entry_ids)
 
     # ID: c1d2e3f4-a5b6-7890-cdef-789012345670
@@ -549,7 +566,7 @@ class ViolationRemediatorWorker(Worker):
 
         from body.services.service_registry import service_registry
 
-        entry_ids = [f.get("id") or f.get("entry_id") for f in findings]
+        entry_ids = [_entry_id(f) for f in findings]
         try:
             blackboard_service = await service_registry.get_blackboard_service()
             return await blackboard_service.mark_indeterminate(entry_ids)
