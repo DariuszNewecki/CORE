@@ -11,6 +11,10 @@ services:
     volumes:
       - qdrant-data:/qdrant/storage # Use a named volume for persistence
     restart: always
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
 
   # Define the named volumes for data persistence
 volumes:
