@@ -279,7 +279,9 @@ class BlackboardService:
                     text(
                         """
                         UPDATE core.blackboard_entries
-                        SET status = 'claimed', updated_at = now()
+                        SET status = 'claimed',
+                            claimed_at = now(),
+                            updated_at = now()
                         WHERE id IN (
                             SELECT id FROM core.blackboard_entries
                             WHERE entry_type = 'finding'
@@ -338,6 +340,7 @@ class BlackboardService:
                         UPDATE core.blackboard_entries
                         SET status = 'claimed',
                             claimed_by = :claimed_by,
+                            claimed_at = now(),
                             updated_at = now()
                         WHERE id IN (
                             SELECT id FROM core.blackboard_entries
@@ -560,6 +563,7 @@ class BlackboardService:
             UPDATE core.blackboard_entries
             SET status = 'claimed',
                 claimed_by = cast(:claimed_by as uuid),
+                claimed_at = now(),
                 updated_at = now()
             WHERE id IN (SELECT id FROM to_claim)
             RETURNING id, subject, payload
