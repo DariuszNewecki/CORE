@@ -1,0 +1,175 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "core.specs.handoff.schema.json",
+    "title": "CORE Session Handoff (minimum-viable)",
+    "description": "Schema for YAML front-matter of session handoff documents in .specs/planning/. Handoffs are markdown files with a YAML front-matter block; this schema validates the front-matter. The prose body is unconstrained. Filename convention: handoff-YYYY-MM-DD.md, optionally handoff-YYYY-MM-DD-<suffix>.md for multiple sessions in one day (e.g. handoff-2026-04-20-evening.md). Effective 2026-04-21 forward: handoffs dated before this are grandfathered — they have no front-matter and are not expected to validate against this schema.",
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+        "kind": {
+            "type": "string",
+            "const": "handoff"
+        },
+        "date": {
+            "type": "string",
+            "format": "date",
+            "description": "ISO 8601 date (YYYY-MM-DD). Must match the date component of the filename."
+        },
+        "session_focus": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 512,
+            "description": "One-sentence statement of what the session was for. Not a summary of what happened — a scoping claim the prose body then accounts against."
+        },
+        "session_length": {
+            "type": "string",
+            "maxLength": 64,
+            "description": "Optional human-readable duration (e.g. '~2 hours', 'one long thread')."
+        },
+        "a3_phase": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 5,
+            "description": "Current A3 phase per .specs/planning/CORE-A3-plan.md."
+        },
+        "gate_status": {
+            "type": "object",
+            "additionalProperties": false,
+            "description": "Status of each A3 Gate at session close. Introduced 2026-04-21; optional for back-compatibility with pre-dated handoffs.",
+            "properties": {
+                "G1": { "$ref": "#/$defs/gate_state" },
+                "G2": { "$ref": "#/$defs/gate_state" },
+                "G3": { "$ref": "#/$defs/gate_state" },
+                "G4": { "$ref": "#/$defs/gate_state" }
+            },
+            "required": ["G1", "G2", "G3", "G4"]
+        },
+        "audit_state_at_close": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["verdict", "total_findings"],
+            "properties": {
+                "verdict": {
+                    "type": "string",
+                    "enum": ["PASS", "FAIL"]
+                },
+                "total_findings": {
+                    "type": "integer",
+                    "minimum": 0
+                },
+                "breakdown": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "integer",
+                        "minimum": 0
+                    },
+                    "description": "Map of severity -> count (e.g. {WARNING: 37, INFO: 2, ERROR: 0})."
+                },
+                "top_check_ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": ["check_id", "count"],
+                        "properties": {
+                            "check_id": { "type": "string", "minLength": 3 },
+                            "count": { "type": "integer", "minimum": 1 }
+                        }
+                    },
+                    "description": "Optional — highlight dominant check_ids (useful when one class concentrates findings, e.g. 32 modularity.needs_split of 39 total)."
+                }
+            }
+        },
+        "daemon_state": {
+            "type": "string",
+            "enum": ["active", "inactive"]
+        },
+        "daemon_last_activity": {
+            "anyOf": [
+                { "type": "string", "format": "date-time" },
+                { "type": "null" }
+            ],
+            "description": "ISO 8601 datetime of last Blackboard activity, or null if not recorded."
+        },
+        "active_workers": {
+            "type": "integer",
+            "minimum": 0
+        },
+        "abandoned_workers": {
+            "type": "integer",
+            "minimum": 0
+        },
+        "current_blocker": {
+            "type": "string",
+            "maxLength": 1024,
+            "description": "Short statement of the single most important thing blocking progress at session close. Use 'None immediate.' when no blocker applies."
+        },
+        "next_step": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 1024
+        },
+        "supersedes": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+                "type": "string",
+                "pattern": "^handoff-[0-9]{4}-[0-9]{2}-[0-9]{2}(-[a-z0-9-]+)?\\.md$"
+            },
+            "description": "Filenames of earlier handoffs whose framing this handoff invalidates. Documentation-drift discipline: superseding is explicit, not implicit."
+        },
+        "superseded_by": {
+            "type": "string",
+            "pattern": "^handoff-[0-9]{4}-[0-9]{2}-[0-9]{2}(-[a-z0-9-]+)?\\.md$",
+            "description": "Filename of a later handoff that invalidated this one's framing. Added retroactively; pairs with 'supersedes' on the successor."
+        }
+    },
+    "required": [
+        "kind",
+        "date",
+        "session_focus",
+        "audit_state_at_close",
+        "daemon_state",
+        "next_step"
+    ],
+    "$defs": {
+        "gate_state": {
+            "type": "string",
+            "enum": [
+                "cleared",
+                "in_progress",
+                "not_started"
+            ],
+            "description": "Minimum-viable tri-state. Gate-specific language ('not demonstrated' for G1, 'not reached' for G2, 'not built' for G3) lives in the prose body, not the schema."
+        }
+    },
+    "examples": [
+        {
+            "kind": "handoff",
+            "date": "2026-04-21",
+            "session_focus": "Add A3 Gates framing to the A3 plan.",
+            "session_length": "~one thread",
+            "a3_phase": 3,
+            "gate_status": {
+                "G1": "not_started",
+                "G2": "not_started",
+                "G3": "not_started",
+                "G4": "in_progress"
+            },
+            "audit_state_at_close": {
+                "verdict": "PASS",
+                "total_findings": 39,
+                "breakdown": { "WARNING": 37, "INFO": 2 },
+                "top_check_ids": [
+                    { "check_id": "modularity.needs_split", "count": 32 }
+                ]
+            },
+            "daemon_state": "inactive",
+            "daemon_last_activity": "2026-04-18T14:26:00Z",
+            "active_workers": 15,
+            "abandoned_workers": 20,
+            "current_blocker": "Daemon inactive; modularity.needs_split concentration not diagnosed; G1 unproven.",
+            "next_step": "Option B — diagnose modularity.needs_split concentration before reactivating daemon."
+        }
+    ]
+}

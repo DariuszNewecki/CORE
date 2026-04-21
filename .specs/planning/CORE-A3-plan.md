@@ -2,7 +2,7 @@
 
 **Status:** Active
 **Owner:** Darek (Dariusz Newecki)
-**Last updated:** 2026-04-20
+**Last updated:** 2026-04-21
 **Definition:** The daemon runs continuously, the Blackboard clears, the codebase converges, and every action is visible.
 
 ---
@@ -23,6 +23,21 @@ In A3, CORE's daemon finds problems in its own codebase, proposes fixes, execute
 
 ---
 
+## A3 Gates
+
+A3 is a state. These four gates define the state. A3 is claimable when all four are cleared and held, not before.
+
+| Gate | What it means | Status |
+|------|---------------|--------|
+| **G1 — Loop closure** | An autonomous fix lands end-to-end on a non-synthetic example: finding detected → proposal created → proposal approved → execution succeeded → re-audit confirms resolution. Single clean run is the minimum. | ⚠️ Not yet demonstrated. Stream B is structurally complete (ADR-003/004 closed the context gap) but the daemon has been inactive since 2026-04-18 14:26. No autonomous round-trip has been observed on the current codebase. |
+| **G2 — Convergence** | Sustained state where rate of finding resolution exceeds rate of finding creation. Per the Convergence Principle, this is the fundamental operational metric — it is what makes "governed autonomy" truthful rather than aspirational. | ⚠️ Not reached. 39 findings open; 32 are a single check_id with identical shape (`modularity.needs_split`) not converging under any current mechanism. Verdict-threshold semantics undocumented — PASS is returned with 37 WARNINGs, so the convergence signal is ambiguous at the metric layer as well. |
+| **G3 — Consequence chain** | Finding → Proposal → Approval → Execution → File changes → New findings is continuously materialized as a queryable causality chain. Required for regulated environments, autonomous debugging, and for a non-programmer governor to trust the system without reading code. | ⚠️ Not built. Individual links exist (proposals table, Blackboard history, audit JSON, git). The chain is not materialized as a single queryable graph. This is the "two-log problem" named in prior sessions — legal traceability, not bookkeeping. |
+| **G4 — Governance in `.intent/`** | No enforcement logic, path mappings, policy thresholds, or governance decisions live in `src/`. All of it lives in `.intent/` (or, for human-intent documents, `.specs/`). This is the claim that makes the "non-programmer governor" role coherent. | 🔄 In progress. ADR-004 (task_type phase map in YAML) was a direct advance. Leaks worth naming: path mappings embedded in Stream B sensor/action code; `action_executor` usage unguarded in some Body workers. Each leak is a future "can't change behavior without a code commit." |
+
+**Gate coupling:** G1 cannot be *proved* without G3 (you can't demonstrate the loop closed without the chain). G2 cannot be *measured* without G1 (no resolution rate without autonomous resolution). G4 is orthogonal but load-bearing: it is the reason a non-programmer can operate the system, and without it the other three gates describe a system that still requires its author.
+
+---
+
 ## Current State (2026-04-20 — reconnaissance verified)
 
 | Item | Status |
@@ -32,6 +47,7 @@ In A3, CORE's daemon finds problems in its own codebase, proposes fixes, execute
 | Coverage | 120 declared, 119 executed (5 stubs skipped), 100% rule execution; 99.0% effective |
 | Worker registry | 15 active, 20 abandoned (Phase 4 cleanup item) |
 | Daemon | **Inactive** — last Blackboard activity 2026-04-18 14:26. Autonomous loop not running at time of snapshot |
+| Autonomous loop closure (G1 end-to-end proof) | ⚠️ Not demonstrated — Stream B structurally complete but no autonomous round-trip observed on current codebase |
 | RemediationMap | 14 ACTIVE, 5 PENDING (top-level rule entries) |
 | ADR inventory | ADR-001 through ADR-004 accepted and landed |
 | Stream B (test writing) | ✅ Complete — TestCoverageSensor + TestRunnerSensor + TestRemediatorWorker + `build.tests` wired |
@@ -54,7 +70,7 @@ In A3, CORE's daemon finds problems in its own codebase, proposes fixes, execute
 - `audit_sensor_style` — live
 - `audit_sensor_linkage` — live
 
-**Verdict semantics (unresolved):** Audit returns PASS despite 37 WARNING findings. The verdict threshold is not formally documented; current observed behaviour is that WARNING alone does not fail the verdict. Pinning this down is a prerequisite for meaningful convergence metrics.
+**Verdict semantics (unresolved):** Audit returns PASS despite 37 WARNING findings. The verdict threshold is not formally documented; current observed behaviour is that WARNING alone does not fail the verdict. Pinning this down is a prerequisite for meaningful convergence metrics (G2).
 
 ---
 
@@ -70,12 +86,17 @@ Purity sensor loop, Blackboard empty.
 All seven audit sensors active.
 
 ### Phase 3 — Capability Gaps 🔄
-**Status:** Stream A (ViolationExecutor) complete. Stream B (test writing) complete — ADR-003 + ADR-004 closed the structural gap. Stream C (delegation) infrastructure complete.
+
+**Framing:** Phase 3 is the **trust-hardening phase** — the machinery producing the verdict is being qualified. It is not yet autonomy-operation. See "A3 Gates" above for what closing Phase 3 means in concrete terms: G1 and portions of G3/G4 close here.
+
+**Status:** Stream A (ViolationExecutor) complete. Stream B (test writing) structurally complete — ADR-003 + ADR-004 closed the context gap; end-to-end autonomous round-trip not yet observed. Stream C (delegation) infrastructure complete.
 
 Remaining Phase 3 work:
-1. **Activate the daemon.** Currently inactive. Autonomous loop cannot converge if the loop does not run.
-2. **WorkerAuditor finding resolution on recovery** — `worker.silent` findings persist after workers recover.
-3. **Sensor-fixer coherence validation** — no mechanism to detect when sensor detection contradicts fixer correction for the same rule.
+1. **Activate the daemon.** Currently inactive. Autonomous loop cannot converge if the loop does not run. Blocks G1.
+2. **Diagnose `modularity.needs_split` concentration.** 32 of 39 findings are one check_id with identical shape. Either threshold is miscalibrated, the "concerns" heuristic is noisy, or there is genuine modularity debt. Blocks meaningful G2 measurement.
+3. **Demonstrate first autonomous round-trip on a non-synthetic finding.** Stream B is wired; it has not yet been *observed* closing the loop end-to-end on the live codebase. This is the G1 proof.
+4. **WorkerAuditor finding resolution on recovery** — `worker.silent` findings persist after workers recover.
+5. **Sensor-fixer coherence validation** — no mechanism to detect when sensor detection contradicts fixer correction for the same rule.
 
 ### Phase 4 — CLI Health ⬜
 Not started.
@@ -89,7 +110,7 @@ Not started.
 - `core-admin vectors sync` has no `--force` flag — collection delete required when payload structure changes without content changing
 
 ### Phase 5 — Visibility ⬜
-Not started.
+Not started. **G3 closes here** — consequence chain materialization is a Phase 5 artifact.
 
 ---
 
@@ -100,19 +121,21 @@ Not started.
 | 0 — Clean slate | Audit passes, DB clean | ✅ Complete |
 | 1 — Single loop | Purity loop runs unattended | ✅ Complete |
 | 2 — All sensors | All sensors active, converging | ✅ Complete — 7 sensors, 119 rules executed |
-| 3 — Capability gaps | No orphaned findings, daemon live | 🔄 Stream B closed via ADR-003/004; daemon inactive |
+| 3 — Capability gaps | Trust-hardened; G1 demonstrated; daemon live | 🔄 Stream B closed via ADR-003/004; daemon inactive; G1 not yet demonstrated |
 | 4 — CLI health | All commands work, legacy gone, URS written | ⬜ Not started |
-| 5 — Visibility | Demo-ready, `tail -f` tells the story | ⬜ Not started |
+| 5 — Visibility | Demo-ready, `tail -f` tells the story, G3 chain queryable | ⬜ Not started |
 
 ---
 
 ## Known Blockers
 
-| Blocker | Phase | Notes |
-|---------|-------|-------|
-| Daemon inactive | 3 | Reconnaissance 2026-04-20 shows last Blackboard activity 2026-04-18 14:26. Autonomous loop not observably converging. Cause not diagnosed — could be deliberate stop, crashed worker, systemd state, or missing `systemctl --user start core-daemon`. Resolution prerequisite for all other Phase 3 work |
-| Verdict-threshold documentation | 3+ | `PASS` is returned with 37 WARNINGs. Threshold semantics not written down. Blocks honest convergence reporting |
-| `modularity.needs_split` single-class concentration | 3+ | 32 of 39 findings are one check_id with identical shape ("File has N lines with only 2 concern(s)"). Either the check is producing systematic false positives, the threshold (400 lines) is miscalibrated, or there is genuine modularity debt. Needs diagnosis before remediation |
+| Blocker | Phase / Gate | Notes |
+|---------|--------------|-------|
+| Daemon inactive | 3 / G1 | Reconnaissance 2026-04-20 shows last Blackboard activity 2026-04-18 14:26. Autonomous loop not observably converging. Cause not diagnosed — could be deliberate stop, crashed worker, systemd state, or missing `systemctl --user start core-daemon`. Resolution prerequisite for all other Phase 3 work |
+| Verdict-threshold documentation | 3+ / G2 | `PASS` is returned with 37 WARNINGs. Threshold semantics not written down. Blocks honest convergence reporting |
+| `modularity.needs_split` single-class concentration | 3+ / G2 | 32 of 39 findings are one check_id with identical shape ("File has N lines with only 2 concern(s)"). Either the check is producing systematic false positives, the threshold (400 lines) is miscalibrated, or there is genuine modularity debt. Needs diagnosis before remediation |
+| Consequence chain not materialized | 5 / G3 | Finding → Proposal → Approval → Execution → File changes → New findings exists as disjoint tables/logs. Not queryable as a single causality graph. Legal traceability and autonomous debugging both depend on this |
+| Governance leaks in `src/` | 3+ / G4 | Path mappings in Stream B sensor/action code; unguarded `action_executor` usage in some Body workers. Each is a future "behavior change requires code commit." Full audit of leaks not yet produced |
 | `audit_runs` DB write gap | 4+ | `core-admin code audit` does not persist results to DB — dashboard Panel 4 shows "never"; manual audit and daemon audit are separate systems |
 | WorkerAuditor does not resolve findings on recovery | 3+ | `worker.silent` findings persist after workers recover |
 | Sensor-fixer coherence validation | 3+ | No mechanism to detect when sensor detection contradicts fixer correction for the same rule |
@@ -348,6 +371,7 @@ core-code       ← src/ code symbols
 
 ```
 Current A3 phase: [0/1/2/3/4/5]
+Gate status: [G1/G2/G3/G4 — any that moved this session]
 Last session: [what was done]
 Current blocker: [what is blocking progress]
 Audit state: [verdict, total findings, distribution by check_id]
@@ -358,10 +382,11 @@ Next step: [specific action]
 
 ---
 
-Current A3 phase: 3
-Last session: 2026-04-20 — Engine-integrity triad investigation concluded. Three of four named engine issues falsified (fnmatch, Call-handling, silent rule); one remains (existence-not-coverage in `required_calls`) but is non-blocking. `.specs/` documentation drift corrected via Block A. Reconnaissance captured in `state/reconnaissance_2026-04-20.md`.
-Current blocker: Daemon inactive since 2026-04-18 14:26. No autonomous convergence has occurred in ~36 hours at time of snapshot.
-Audit state: PASS, 39 findings (37 WARNING, 2 INFO). 32 of 39 are `modularity.needs_split` (single-class concentration — needs diagnosis).
+Current A3 phase: 3 (trust-hardening)
+Gate status: G1 not demonstrated, G2 not reached, G3 not built, G4 in progress.
+Last session: 2026-04-21 — A3 Gates section added to plan. Phase 3 explicitly framed as trust-hardening (not autonomy-operation). Known Blockers re-indexed against gates. No src/ or .intent/ writes.
+Current blocker: Daemon inactive since 2026-04-18 14:26. `modularity.needs_split` single-class concentration (32/39) not diagnosed. No autonomous round-trip observed on current codebase (G1 unproven).
+Audit state: PASS, 39 findings (37 WARNING, 2 INFO). 32 `modularity.needs_split`, 2 `autonomy.tracing.mandatory`, 2 `purity.no_ast_duplication`, 1 `governance.dangerous_execution_primitives`, 1 `workflow.mypy_check`, 1 `workflow.security_check`.
 Daemon state: inactive.
 Active workers: 15 registered active; 20 abandoned rows in `core.worker_registry`.
-Next step: (a) decide whether to activate daemon and address finding concentration, or (b) begin Block B (state/ reorganization + META schemas), or (c) diagnose verdict-threshold semantics. Open question for next session.
+Next step: Option B (diagnose `modularity.needs_split` concentration before reactivating daemon). Alternatives: Option A (activate daemon first, observe behaviour), Option C (Block B `.specs/` reorganization + META schemas).

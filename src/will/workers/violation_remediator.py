@@ -36,6 +36,23 @@ Design constraints:
 - One proposal per action ID (not one per finding)
 - Safe proposals (approval_required=False) are created in APPROVED status
   so ProposalConsumerWorker can pick them up immediately
+
+Resolve-path semantics (mandate: "mark each consumed Blackboard entry as
+resolved"):
+- Proposal created successfully     → findings resolved
+- Active proposal already exists    → findings resolved (subsumed by the
+                                       in-flight proposal; the mandate's
+                                       "consumed" covers routing-to-proposal,
+                                       not only proposal-creation)
+- Proposal creation failed          → findings released back to open so the
+                                       next run can retry cleanly
+- Finding unmappable                → already released (see _load_open_findings)
+- Finding marked DELEGATE           → marked indeterminate (human decision)
+
+TODO(two-log): resolution of dedup-skipped findings does not currently carry
+a payload pointer to the subsuming proposal. When the consequence-logging
+work lands, link resolved-by-proposal here so the causality chain
+(finding → proposal → execution) is traceable end-to-end.
 """
 
 from __future__ import annotations
@@ -104,7 +121,7 @@ class ViolationRemediatorWorker(Worker):
         2. Group by action (via .intent/ remediation map)
         3. Deduplicate against active proposals
         4. Create proposals for new action groups
-        5. Mark consumed Blackboard entries resolved
+        5. Mark consumed Blackboard entries resolved (or released on failure)
         6. Post blackboard report
         """
         # 1. Load open findings
@@ -150,36 +167,57 @@ class ViolationRemediatorWorker(Worker):
         # 3. Deduplicate against active proposals
         active_action_ids = await self._get_active_proposal_action_ids()
 
-        # 4. Create proposals + 5. Mark entries resolved
+        # 4. Create proposals + 5. Mark entries resolved / released
         proposals_created: list[str] = []
         proposals_skipped: list[str] = []
         entries_resolved: int = 0
+        entries_resolved_dedup: int = 0
+        entries_released_after_failure: int = 0
 
         for action_id, findings in action_groups.items():
+            entry_ids = [f.get("id") or f.get("entry_id") for f in findings]
+
             if action_id in active_action_ids:
-                logger.info(
-                    "ViolationRemediatorWorker: skipping '%s' — active proposal exists",
-                    action_id,
-                )
+                # Dedup: an active proposal already represents this action group.
+                # Findings are subsumed — the mandate's "consumed" applies
+                # (routing-to-proposal, not only proposal-creation). Resolve so
+                # they don't leak as stuck claims on every subsequent run.
+                resolved = await self._resolve_entries(entry_ids)
+                entries_resolved_dedup += resolved
                 proposals_skipped.append(action_id)
+                logger.info(
+                    "ViolationRemediatorWorker: skipping '%s' — active proposal "
+                    "exists; resolved %d subsumed finding(s)",
+                    action_id,
+                    resolved,
+                )
                 continue
 
             proposal_id = await self._create_proposal(action_id, findings)
 
             if proposal_id:
                 proposals_created.append(action_id)
-                # Mark all findings for this action as resolved
-                resolved = await self._resolve_entries(
-                    [f.get("id") or f.get("entry_id") for f in findings]
-                )
+                resolved = await self._resolve_entries(entry_ids)
                 entries_resolved += resolved
                 logger.info(
-                    "ViolationRemediatorWorker: created proposal '%s' for action '%s' "
-                    "(%d findings, %d entries resolved)",
+                    "ViolationRemediatorWorker: created proposal '%s' for action "
+                    "'%s' (%d findings, %d entries resolved)",
                     proposal_id,
                     action_id,
                     len(findings),
                     resolved,
+                )
+            else:
+                # Proposal creation failed (validation or persist error).
+                # Release the claimed findings so the next run can retry
+                # instead of leaving them stuck at claimed.
+                released = await self._release_entries(entry_ids)
+                entries_released_after_failure += released
+                logger.warning(
+                    "ViolationRemediatorWorker: proposal for '%s' not created; "
+                    "released %d finding(s) back to open",
+                    action_id,
+                    released,
                 )
 
         # 5b. Release unmappable findings back to open so they don't stay claimed
@@ -220,7 +258,10 @@ class ViolationRemediatorWorker(Worker):
                 "proposals_created": len(proposals_created),
                 "proposals_skipped_dedup": len(proposals_skipped),
                 "entries_resolved": entries_resolved,
+                "entries_resolved_dedup": entries_resolved_dedup,
+                "entries_released_after_failure": entries_released_after_failure,
                 "entries_released": entries_released,
+                "entries_delegated": entries_delegated,
                 "created_actions": proposals_created,
                 "skipped_actions": proposals_skipped,
                 "unmappable_rules": list(
@@ -243,10 +284,13 @@ class ViolationRemediatorWorker(Worker):
 
         logger.info(
             "ViolationRemediatorWorker: done — %d proposals created, "
-            "%d skipped (dedup), %d unmappable findings",
+            "%d skipped (dedup, %d subsumed entries resolved), "
+            "%d unmappable findings, %d entries released after failure",
             len(proposals_created),
             len(proposals_skipped),
+            entries_resolved_dedup,
             len(unmappable),
+            entries_released_after_failure,
         )
 
     # -------------------------------------------------------------------------
@@ -450,6 +494,9 @@ class ViolationRemediatorWorker(Worker):
         Mark Blackboard entries as resolved.
         Returns count of entries successfully resolved.
         """
+        if not entry_ids:
+            return 0
+
         from body.services.service_registry import service_registry
 
         try:
@@ -457,6 +504,25 @@ class ViolationRemediatorWorker(Worker):
             return await blackboard_service.resolve_entries(entry_ids)
         except Exception as e:
             logger.error("ViolationRemediatorWorker: failed to resolve entries: %s", e)
+            return 0
+
+    # ID: d2e3f4a5-b6c7-8901-defa-890123456781
+    async def _release_entries(self, entry_ids: list[str]) -> int:
+        """
+        Release claimed Blackboard entries back to open by id.
+        Used when proposal creation fails and findings need to be retry-eligible
+        on the next run. Returns count of entries successfully released.
+        """
+        if not entry_ids:
+            return 0
+
+        from body.services.service_registry import service_registry
+
+        try:
+            blackboard_service = await service_registry.get_blackboard_service()
+            return await blackboard_service.release_claimed_entries(entry_ids)
+        except Exception as e:
+            logger.error("ViolationRemediatorWorker: failed to release entries: %s", e)
             return 0
 
     # ID: b0c1d2e3-f4a5-6789-bcde-678901234569
@@ -469,17 +535,8 @@ class ViolationRemediatorWorker(Worker):
         if not findings:
             return 0
 
-        from body.services.service_registry import service_registry
-
         entry_ids = [f.get("id") or f.get("entry_id") for f in findings]
-        try:
-            blackboard_service = await service_registry.get_blackboard_service()
-            return await blackboard_service.release_claimed_entries(entry_ids)
-        except Exception as e:
-            logger.error(
-                "ViolationRemediatorWorker: failed to release unmappable entries: %s", e
-            )
-            return 0
+        return await self._release_entries(entry_ids)
 
     # ID: c1d2e3f4-a5b6-7890-cdef-789012345670
     async def _mark_delegated(self, findings: list[dict[str, Any]]) -> int:
