@@ -4,7 +4,7 @@
     "metadata": {
         "id": "rules.code.modularity",
         "title": "Code Modularity Rules",
-        "version": "1.0.0",
+        "version": "1.1.0",
         "authority": "constitution",
         "phase": "audit",
         "status": "active"
@@ -17,6 +17,14 @@
             "authority": "policy",
             "phase": "audit",
             "rationale": "Files that are too long but internally coherent are a modularization problem. They are automatable — the system can propose and execute splits without human judgment because no discipline boundaries are crossed."
+        },
+        {
+            "id": "modularity.class_too_large",
+            "statement": "A source file in which a single top-level class exceeds the file-size line limit SHOULD be reviewed by a human before remediation. Autonomous mechanical redistribution is not permitted for this class of finding.",
+            "enforcement": "reporting",
+            "authority": "policy",
+            "phase": "audit",
+            "rationale": "A class that by itself exceeds the file's line budget cannot be resolved by module-level extraction — the problem lives inside the class. The correct response (domain-warranted bigness, extract collaborators, compose over inherit, split into a subpackage with preserved invariants) requires a human judgment about what the class is for. The system cannot make this determination and must not preempt it with mechanical action."
         },
         {
             "id": "modularity.needs_refactor",
