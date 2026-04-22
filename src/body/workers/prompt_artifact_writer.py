@@ -280,7 +280,13 @@ class PromptArtifactWriter(Worker):
                 text(
                     """
                     UPDATE core.blackboard_entries
-                    SET status = :status
+                    SET status = :status,
+                        resolved_at = CASE
+                            WHEN :status IN ('resolved', 'abandoned', 'indeterminate')
+                                THEN now()
+                            ELSE resolved_at
+                        END,
+                        updated_at = now()
                     WHERE id = :id
                     """
                 ),

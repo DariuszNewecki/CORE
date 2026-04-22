@@ -128,7 +128,9 @@ class BlackboardService:
                     text(
                         """
                         UPDATE core.blackboard_entries
-                        SET status = 'resolved', updated_at = now()
+                        SET status = 'resolved',
+                            resolved_at = now(),
+                            updated_at = now()
                         WHERE entry_type = 'finding'
                           AND subject LIKE 'audit.remediation.dry_run::'
                                             || :namespace_prefix || '%'
@@ -471,7 +473,9 @@ class BlackboardService:
                         text(
                             """
                             UPDATE core.blackboard_entries
-                            SET status = 'resolved', updated_at = now()
+                            SET status = 'resolved',
+                                resolved_at = now(),
+                                updated_at = now()
                             WHERE id = cast(:entry_id as uuid)
                               AND status IN ('open', 'claimed')
                             """
@@ -611,7 +615,9 @@ class BlackboardService:
                         text(
                             """
                             UPDATE core.blackboard_entries
-                            SET status = 'abandoned', updated_at = now()
+                            SET status = 'abandoned',
+                                resolved_at = now(),
+                                updated_at = now()
                             WHERE id = cast(:entry_id as uuid)
                               AND status = 'claimed'
                             """
@@ -645,6 +651,7 @@ class BlackboardService:
                             """
                             UPDATE core.blackboard_entries
                             SET status = 'indeterminate',
+                                resolved_at = now(),
                                 updated_at = now()
                             WHERE id = cast(:entry_id as uuid)
                               AND status = 'claimed'

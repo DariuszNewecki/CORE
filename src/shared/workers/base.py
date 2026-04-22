@@ -322,9 +322,10 @@ class Worker(ABC):
                     text(
                         """
                         insert into core.blackboard_entries
-                            (id, worker_uuid, entry_type, phase, status, subject, payload)
+                            (id, worker_uuid, entry_type, phase, status, subject, payload, resolved_at)
                         values
-                            (:id, :worker_uuid, :entry_type, :phase, :status, :subject, cast(:payload as jsonb))
+                            (:id, :worker_uuid, :entry_type, :phase, :status, :subject, cast(:payload as jsonb),
+                             case when :status in ('resolved', 'abandoned', 'indeterminate') then now() else null end)
                     """
                     ),
                     {
