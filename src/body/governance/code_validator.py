@@ -16,6 +16,7 @@ from pathlib import Path
 
 from mind.governance.enforcement_loader import EnforcementMappingLoader
 from mind.governance.violation_report import ViolationReport
+from mind.logic.engines.base import normalize_violation
 from mind.logic.engines.registry import EngineRegistry
 from shared.logger import getLogger
 from shared.models.constitutional_validation import ConstitutionalValidationResult
@@ -83,7 +84,13 @@ class CodeValidator:
             result = await engine.verify(Path(target_path), {**params, "code": code})
 
             if not result.ok:
-                for msg in result.violations:
+                for v in result.violations:
+                    # ViolationReport does not carry structured details today.
+                    # Discard `details` here intentionally; the structural
+                    # signal is preserved upstream in AuditFinding.context
+                    # via rule_executor. Normalization is required because
+                    # EngineResult.violations now accepts str | dict.
+                    msg, _ = normalize_violation(v)
                     violations.append(
                         ViolationReport(
                             rule_name=rule_id,

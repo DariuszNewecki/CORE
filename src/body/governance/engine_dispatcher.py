@@ -11,6 +11,7 @@ from pathlib import Path
 
 from mind.governance.policy_rule import PolicyRule
 from mind.governance.violation_report import ViolationReport
+from mind.logic.engines.base import normalize_violation
 from mind.logic.engines.registry import EngineRegistry
 from shared.logger import getLogger
 
@@ -86,12 +87,18 @@ class EngineDispatcher:
 
             # Convert engine violations to ViolationReports
             if not result.ok:
-                for violation_msg in result.violations:
+                for v in result.violations:
+                    # ViolationReport does not carry structured details today.
+                    # Discard `details` here intentionally; the structural
+                    # signal is preserved upstream in AuditFinding.context
+                    # via rule_executor. Normalization is required because
+                    # EngineResult.violations now accepts str | dict.
+                    msg, _ = normalize_violation(v)
                     violations.append(
                         ViolationReport(
                             rule_name=rule.name,
                             path=path_str,
-                            message=f"{rule.description}: {violation_msg}",
+                            message=f"{rule.description}: {msg}",
                             severity=rule.severity,
                             suggested_fix="",
                             source_policy=rule.source_policy,

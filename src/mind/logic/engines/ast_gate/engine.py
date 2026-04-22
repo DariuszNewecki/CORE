@@ -100,7 +100,7 @@ class ASTGateEngine(BaseEngine):
             except Exception as e:
                 return EngineResult(False, f"Parse Error: {e}", [], self.engine_id)
 
-        violations: list[str] = []
+        violations: list[str | dict[str, Any]] = []
 
         # 3. DISPATCH LOGIC: Exhaustive implementation of _SUPPORTED_CHECK_TYPES
 
@@ -167,11 +167,15 @@ class ASTGateEngine(BaseEngine):
             )
 
         elif check_type == "modularity":
-            # Modularity checks return dicts with messages
+            # Modularity checks return dicts carrying structured detail
+            # (dominant_class_name, dominant_class_lines, dominant_class_ratio,
+            # responsibility_count, responsibilities, etc.). Propagate the
+            # full dict shape so downstream consumers can populate
+            # AuditFinding.context via base.normalize_violation().
             method_name = params.get("check_method", "check_refactor_score")
             method = getattr(self._modularity_checker, method_name)
             findings = method(file_path, params)
-            violations.extend([f["message"] for f in findings])
+            violations.extend(findings)
 
         elif check_type == "direct_intent_access":
             violations.extend(

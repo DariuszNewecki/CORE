@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from mind.logic.engines.base import normalize_violation
 from shared.logger import getLogger
 from shared.models import AuditFinding, AuditSeverity
 
@@ -62,13 +63,19 @@ async def execute_rule(
             params_with_context = {**rule.params, "_context": context}
             result = await engine.verify(file_path, params_with_context)
             if not result.ok:
-                for msg in result.violations:
+                for v in result.violations:
+                    # Normalize whether engine emitted a bare string or a
+                    # structured dict. Details (when present) flow into
+                    # AuditFinding.context, which as_dict() aliases back
+                    # to "details" in the JSON report.
+                    msg, details = normalize_violation(v)
                     findings.append(
                         AuditFinding(
                             check_id=rule.rule_id,
                             severity=severity,
                             message=msg,
                             file_path=str(file_path.relative_to(context.repo_path)),
+                            context=details,
                         )
                     )
         except Exception as e:
