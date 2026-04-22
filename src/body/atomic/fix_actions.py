@@ -241,7 +241,7 @@ async def action_fix_logging(
     description="Replace FUTURE/PENDING placeholders",
     category=ActionCategory.FIX,
     policies=["rules/code/purity"],
-    impact_level="moderate",
+    impact_level="safe",
     remediates=["caps.no_placeholder_text"],
 )
 @atomic_action(
