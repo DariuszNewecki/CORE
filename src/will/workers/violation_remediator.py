@@ -49,7 +49,7 @@ resolved"):
 - Finding unmappable                → already released (see _load_open_findings)
 - Finding marked DELEGATE           → marked indeterminate (human decision)
 
-TODO(two-log): resolution of dedup-skipped findings does not currently carry
+FUTURE(two-log): resolution of dedup-skipped findings does not currently carry
 a payload pointer to the subsuming proposal. When the consequence-logging
 work lands, link resolved-by-proposal here so the causality chain
 (finding → proposal → execution) is traceable end-to-end.
