@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import Any
 
 from body.governance.intent_guard import get_intent_guard
+from mind.governance.violation_report import ConstitutionalViolationError
 from shared.config import settings
 from shared.logger import getLogger
 from shared.path_resolver import PathResolver
@@ -220,16 +221,23 @@ class FileHandler:
         return candidate
 
     def _guard_paths(self, rel_paths: list[str], impact: str | None = None) -> None:
+        """Run a transaction's paths through IntentGuard, raising on rejection.
+
+        Raises:
+            ConstitutionalViolationError: Subclass of ``ValueError``. Carries
+                the full structured ``list[ViolationReport]`` so downstream
+                handlers can persist ``rule_name`` / ``path`` /
+                ``source_policy`` into ``ActionResult.data`` →
+                ``proposal.execution_results``. Existing ``except ValueError``
+                and ``except Exception`` handlers continue to catch this
+                unchanged; ``str(exc)`` preserves the legacy
+                ``"Blocked by IntentGuard: {msg}"`` one-liner verbatim.
+        """
         cleaned: list[str] = [str(p).lstrip("./") for p in rel_paths]
         result = self._guard.check_transaction(cleaned, impact=impact)
         if result.is_valid:
             return
-        msg = (
-            result.violations[0].message
-            if result.violations
-            else "Blocked by IntentGuard."
-        )
-        raise ValueError(f"Blocked by IntentGuard: {msg}")
+        raise ConstitutionalViolationError(result.violations)
 
     def _atomic_write_text(self, abs_path: Path, content: str) -> None:
         abs_path.parent.mkdir(parents=True, exist_ok=True)

@@ -17,9 +17,10 @@ from __future__ import annotations
 
 import time
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from body.atomic.registry import ActionCategory, register_action
+from mind.governance.violation_report import ConstitutionalViolationError
 from shared.action_types import ActionImpact, ActionResult
 from shared.atomic_action import atomic_action
 from shared.logger import getLogger
@@ -29,6 +30,21 @@ if TYPE_CHECKING:
     from shared.context import CoreContext
 
 logger = getLogger(__name__)
+
+
+def _error_data(exc: Exception, **extra: Any) -> dict[str, Any]:
+    """Build ActionResult.data for an exception, preserving structure when available.
+
+    ConstitutionalViolationError carries the full list[ViolationReport] that
+    IntentGuard produced; we serialize it via to_dict() so rule_name, path,
+    and source_policy survive the persistence hop into proposal.execution_results.
+    Any other exception type degrades cleanly to the legacy flat {"error": str(e)}
+    shape, so this helper is safe to adopt per-action without coordinated changes
+    elsewhere.
+    """
+    if isinstance(exc, ConstitutionalViolationError):
+        return {**exc.to_dict(), **extra}
+    return {"error": str(exc), **extra}
 
 
 @register_action(
@@ -269,12 +285,10 @@ async def action_fix_placeholders(
        compatibility with ``cli.commands.fix_placeholders`` but emits a
        warning so any remaining unbounded autonomous callers are visible.
 
-    The historical whole-``src/`` sweep was the proximate cause of a churn
-    loop: even when a finding targeted a single file, the sweep tried to
-    write to every matching ``*.py`` in the tree, which tripped IntentGuard
-    on unrelated paths (e.g. ``src/cli/resources/*`` matching
-    ``cli.resource_first``) and failed the proposal before it ever reached
-    the finding's actual target.
+    On IntentGuard rejection the handler uses ``_error_data`` to persist the
+    structured ``ConstitutionalViolationError.to_dict()`` payload — ``rule_name``,
+    ``path``, ``source_policy`` survive into ``proposal.execution_results``
+    instead of collapsing to a flat error string.
     """
     start = time.time()
     from body.self_healing.placeholder_fixer_service import (
@@ -349,7 +363,7 @@ async def action_fix_placeholders(
             return ActionResult(
                 action_id="fix.placeholders",
                 ok=False,
-                data={"error": str(e), "file_path": str(file_path)},
+                data=_error_data(e, file_path=str(file_path)),
                 duration_sec=time.time() - start,
             )
 
@@ -381,7 +395,7 @@ async def action_fix_placeholders(
         return ActionResult(
             action_id="fix.placeholders",
             ok=False,
-            data={"error": str(e), "mode": "sweep"},
+            data=_error_data(e, mode="sweep"),
             duration_sec=time.time() - start,
         )
 
