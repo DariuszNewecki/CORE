@@ -68,7 +68,7 @@ class ConstitutionalViolationError(ValueError):
         detail = primary.message if primary else "constitutional rule violated"
         super().__init__(f"Blocked by IntentGuard: {detail}")
 
-    # ID: bb7ea640-fae1-4688-9a5d-38bd52b8ec10
+    # ID: 6128fc60-8e9c-43f2-a70c-1238bb2bfb2e
     def to_dict(self) -> dict[str, Any]:
         """Serialize to a JSON-safe dict for persistence into execution_results.
 
@@ -94,3 +94,28 @@ class ConstitutionalViolationError(ValueError):
                 for v in self.violations
             ],
         }
+
+
+# ID: 70680aa6-c1c9-4d7e-9906-46f8225133cb
+def extract_error_data(exc: Exception, **extra: Any) -> dict[str, Any]:
+    """Build an ``ActionResult.data`` error payload from an exception.
+
+    When ``exc`` is a ``ConstitutionalViolationError``, the structured
+    ``to_dict()`` payload is used — ``rule_name``, ``path``,
+    ``source_policy``, and the full violations list survive into
+    ``proposal.execution_results``. Any other exception type degrades
+    cleanly to the legacy flat ``{"error": str(exc)}`` shape, so adopters
+    don't need to know about specific exception subclasses.
+
+    Kwargs in ``extra`` are merged into the returned dict for caller-supplied
+    context (e.g. ``extract_error_data(e, file_path=target_rel)``). Caller
+    keys override helper keys on conflict.
+
+    This helper is the single adoption point for the entire system: any
+    exception catcher that wants structured persistence of constitutional
+    violations without per-subclass isinstance chains imports this function
+    and passes the caught exception through it.
+    """
+    if isinstance(exc, ConstitutionalViolationError):
+        return {**exc.to_dict(), **extra}
+    return {"error": str(exc), **extra}

@@ -22,6 +22,7 @@ from sqlalchemy import text
 
 from body.atomic.executor import ActionExecutor
 from body.services.service_registry import service_registry
+from mind.governance.violation_report import extract_error_data
 from shared.logger import getLogger
 from will.autonomy.proposal import ProposalStatus
 from will.autonomy.proposal_repository import ProposalRepository
@@ -174,7 +175,7 @@ class ProposalExecutor:
                     action_results[action_id] = {
                         "ok": False,
                         "duration_sec": action_duration,
-                        "data": {"error": str(e), "error_type": type(e).__name__},
+                        "data": extract_error_data(e, error_type=type(e).__name__),
                         "order": action.order,
                     }
 
