@@ -99,7 +99,7 @@ class FileHandler:
         content: str,
         impact: str | None = None,
     ) -> FileOpResult:
-        rel_path = rel_path.strip().lstrip("./")
+        rel_path = rel_path.strip().removeprefix("./")
 
         # 1. THE GUARD: Constitutional boundary check (Path access)
         self._guard_paths([rel_path], impact=impact)
@@ -124,7 +124,7 @@ class FileHandler:
 
     # ID: 9170fbe6-887f-4793-9e54-e1124b568dad
     def write_runtime_bytes(self, rel_path: str, content: bytes) -> FileOpResult:
-        rel_path = rel_path.strip().lstrip("./")
+        rel_path = rel_path.strip().removeprefix("./")
         self._guard_paths([rel_path])
         abs_path = self._resolve_repo_path(rel_path)
         self._atomic_write_bytes(abs_path, content)
@@ -132,7 +132,7 @@ class FileHandler:
 
     # ID: 9e9e41dc-9dc2-451b-940f-15199f23d548
     def write_runtime_json(self, rel_path: str, payload: Any) -> FileOpResult:
-        rel_path = rel_path.strip().lstrip("./")
+        rel_path = rel_path.strip().removeprefix("./")
         self._guard_paths([rel_path])
         abs_path = self._resolve_repo_path(rel_path)
         self._atomic_write_text(abs_path, json.dumps(payload, indent=2))
@@ -140,7 +140,7 @@ class FileHandler:
 
     # ID: 84aa153b-1651-4ca8-abf3-f15a57fe6b80
     def add_pending_write(self, prompt: str, suggested_path: str, code: str) -> str:
-        suggested_path = suggested_path.strip().lstrip("./")
+        suggested_path = suggested_path.strip().removeprefix("./")
         self._guard_paths([suggested_path])
         payload = {"prompt": prompt, "suggested_path": suggested_path, "code": code}
         fname = f"pw-{abs(hash(suggested_path + prompt))}.json"
@@ -150,7 +150,7 @@ class FileHandler:
 
     # ID: 5c958c3b-d6bb-4c30-ad37-5b1abcaac762
     def ensure_dir(self, rel_dir: str) -> FileOpResult:
-        rel_dir = rel_dir.strip().strip("/").lstrip("./")
+        rel_dir = rel_dir.strip().removeprefix("./").strip("/")
         self._guard_paths([rel_dir + "/"])
         abs_dir = self._resolve_repo_path(rel_dir)
         abs_dir.mkdir(parents=True, exist_ok=True)
@@ -158,7 +158,7 @@ class FileHandler:
 
     # ID: 5f626d7b-5ce4-46c8-adc6-6228eef7c41a
     def remove_file(self, rel_path: str) -> FileOpResult:
-        rel_path = rel_path.strip().lstrip("./")
+        rel_path = rel_path.strip().removeprefix("./")
         self._guard_paths([rel_path])
         abs_path = self._resolve_repo_path(rel_path)
         abs_path.unlink(missing_ok=True)
@@ -166,7 +166,7 @@ class FileHandler:
 
     # ID: 443bb5d6-306d-4d03-ab69-762cc14b1eb3
     def remove_tree(self, rel_dir: str) -> FileOpResult:
-        rel_dir = rel_dir.strip().strip("/").lstrip("./")
+        rel_dir = rel_dir.strip().removeprefix("./").strip("/")
         self._guard_paths([rel_dir + "/"])
         abs_dir = self._resolve_repo_path(rel_dir)
         if abs_dir.exists():
@@ -175,8 +175,8 @@ class FileHandler:
 
     # ID: c05980dd-b125-49a3-9e9b-0a0c4e1e33b9
     def copy_tree(self, rel_src_dir: str, rel_dst_dir: str) -> FileOpResult:
-        rel_src_dir = rel_src_dir.strip().strip("/").lstrip("./")
-        rel_dst_dir = rel_dst_dir.strip().strip("/").lstrip("./")
+        rel_src_dir = rel_src_dir.strip().removeprefix("./").strip("/")
+        rel_dst_dir = rel_dst_dir.strip().removeprefix("./").strip("/")
         self._guard_paths([rel_src_dir + "/", rel_dst_dir + "/"])
         abs_src = self._resolve_repo_path(rel_src_dir)
         abs_dst = self._resolve_repo_path(rel_dst_dir)
@@ -191,7 +191,7 @@ class FileHandler:
         rel_dst_dir: str,
         exclude_top_level: Iterable[str] = ("var", ".git", "__pycache__", ".venv"),
     ) -> FileOpResult:
-        rel_dst_dir = rel_dst_dir.strip().strip("/").lstrip("./")
+        rel_dst_dir = rel_dst_dir.strip().removeprefix("./").strip("/")
         self._guard_paths([rel_dst_dir + "/"])
         abs_dst = self._resolve_repo_path(rel_dst_dir)
         if abs_dst.exists():
@@ -214,7 +214,16 @@ class FileHandler:
     # ---------------------------------------------------------------------
 
     def _resolve_repo_path(self, rel_path: str) -> Path:
-        rel_path = str(rel_path).lstrip("./")
+        """Resolve a repo-relative path to an absolute path, refusing escapes.
+
+        Uses ``removeprefix("./")`` (prefix strip) rather than ``lstrip("./")``
+        (character-set strip). The latter silently coerces adversarial or
+        confused inputs — ``../evil`` → ``evil``, ``.intent/foo`` →
+        ``intent/foo`` — defeating both the ``is_relative_to`` escape-boundary
+        check below and IntentGuard's tier-1 hard invariant on ``.intent/``
+        writes.
+        """
+        rel_path = str(rel_path).removeprefix("./")
         candidate = (self.repo_path / rel_path).resolve()
         if not candidate.is_relative_to(self.repo_path):
             raise ValueError(f"Attempted to escape repository boundary: {rel_path}")
@@ -222,6 +231,12 @@ class FileHandler:
 
     def _guard_paths(self, rel_paths: list[str], impact: str | None = None) -> None:
         """Run a transaction's paths through IntentGuard, raising on rejection.
+
+        Uses ``removeprefix("./")`` rather than ``lstrip("./")`` so that
+        ``.intent/…`` paths retain their leading dot and correctly trigger
+        IntentGuard's tier-1 hard invariant — ``lstrip("./")`` strips the
+        leading ``.`` as a character-set member and silently redirects the
+        write target.
 
         Raises:
             ConstitutionalViolationError: Subclass of ``ValueError``. Carries
@@ -233,7 +248,7 @@ class FileHandler:
                 unchanged; ``str(exc)`` preserves the legacy
                 ``"Blocked by IntentGuard: {msg}"`` one-liner verbatim.
         """
-        cleaned: list[str] = [str(p).lstrip("./") for p in rel_paths]
+        cleaned: list[str] = [str(p).removeprefix("./") for p in rel_paths]
         result = self._guard.check_transaction(cleaned, impact=impact)
         if result.is_valid:
             return
