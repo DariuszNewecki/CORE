@@ -223,7 +223,7 @@ To understand what CORE is for before reading its implementation, start here:
 
 ## Project Status
 
-**Current Release:** v2.2.2
+**Current Release:** v2.2.2 — Self-Compliance & Hygiene Edition
 
 Active work: A3 Governed Autonomy — the daemon runs continuously, finds constitutional violations in its own codebase, proposes fixes, executes approved changes, and verifies the result. The governor's role is to define intent, review proposals that require architectural judgment, and approve constitutional changes.
 
