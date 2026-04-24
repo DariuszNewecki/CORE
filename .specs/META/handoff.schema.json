@@ -2,7 +2,7 @@
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "$id": "core.specs.handoff.schema.json",
     "title": "CORE Session Handoff (minimum-viable)",
-    "description": "Schema for YAML front-matter of session handoff documents in .specs/planning/. Handoffs are markdown files with a YAML front-matter block; this schema validates the front-matter. The prose body is unconstrained. Filename convention: handoff-YYYY-MM-DD.md, optionally handoff-YYYY-MM-DD-<suffix>.md for multiple sessions in one day (e.g. handoff-2026-04-20-evening.md). Effective 2026-04-21 forward: handoffs dated before this are grandfathered — they have no front-matter and are not expected to validate against this schema.",
+    "description": "Schema for YAML front-matter of session handoff documents in .specs/planning/. Handoffs are markdown files with a YAML front-matter block; this schema validates the front-matter. The prose body is unconstrained.\n\nFilename convention: handoff-YYYY-MM-DD.md, optionally handoff-YYYY-MM-DD-<suffix>.md for multiple sessions in one day (e.g. handoff-2026-04-20-evening.md).\n\nFile layout convention (mandatory, not machine-checked by this schema): the first line of every handoff file MUST be an HTML path comment of the form `<!-- path: .specs/planning/<filename> -->`, matching the path-identity convention used throughout .intent/papers/ and the header-line convention in src/. The YAML front-matter block (`---` fences) follows on the next line. This line exists so that the handoff file self-identifies its canonical location when extracted into context exports or viewed out of repository context — same rationale as the `# src/foo.py` header on Python source files. Enforcement is external to this schema (context-build tooling, pre-commit hook, or auditor rule); the schema documents the convention as authoritative.\n\nEffective 2026-04-21 forward: handoffs dated before this are grandfathered — they have no front-matter and no path comment, and are not expected to validate against this schema.",
     "type": "object",
     "additionalProperties": false,
     "properties": {
@@ -145,6 +145,7 @@
     },
     "examples": [
         {
+            "description": "Example file layout. The schema validates the YAML front-matter object only; the path comment on line 1 and the fences around the front-matter are file-level conventions not representable in a JSON example. For illustration, a handoff file at .specs/planning/handoff-2026-04-21.md begins:\n\n    <!-- path: .specs/planning/handoff-2026-04-21.md -->\n    ---\n    kind: handoff\n    date: 2026-04-21\n    session_focus: Add A3 Gates framing to the A3 plan.\n    ...\n    ---\n\n    <prose body>\n\nThe YAML object between the fences is what validates against this schema; the example object below is that YAML deserialized.",
             "kind": "handoff",
             "date": "2026-04-21",
             "session_focus": "Add A3 Gates framing to the A3 plan.",

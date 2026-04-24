@@ -9,7 +9,7 @@ Responsibility (from .intent/workers/violation_remediator.yaml):
   Consume open audit violation findings from the Blackboard, look up the
   remediating action from .intent/enforcement/mappings/remediation/auto_remediation.yaml
   (via _load_remediation_map), create one Proposal per unique action group,
-  and mark each consumed Blackboard entry as resolved.
+  and defer each consumed Blackboard entry to the created Proposal.
 
 The autonomous audit loop this closes:
 
@@ -20,39 +20,52 @@ The autonomous audit loop this closes:
       reads open findings from Blackboard
       looks up action via remediation map from .intent/
       creates Proposal (one per action group)
-      marks finding resolved
+      transitions findings to 'deferred_to_proposal' with proposal_id
           ↓
   ProposalConsumerWorker
       executes APPROVED proposals via ProposalExecutor
+          ↓  (on proposal failure)
+      ProposalStateManager.mark_failed revives deferred findings
           ↓
   AuditViolationSensor runs again
-      confirms violation gone or re-opens
+      confirms violation gone or finds revived findings still open
 
 Design constraints:
 - No LLM calls
 - No direct file writes
 - Never creates a proposal if an active one exists for the same action
-- Marks Blackboard entries resolved AFTER proposal is persisted (not before)
+- Defers Blackboard entries to proposal AFTER the proposal is persisted (not before)
 - One proposal per action ID (not one per finding)
 - Safe proposals (approval_required=False) are created in APPROVED status
   so ProposalConsumerWorker can pick them up immediately
 
-Resolve-path semantics (mandate: "mark each consumed Blackboard entry as
-resolved"):
-- Proposal created successfully     → findings resolved
+Per-path terminal-state semantics (ADR-010):
+
+- Proposal created successfully     → findings deferred_to_proposal with
+                                       proposal_id in payload. §7/§7a of
+                                       CORE-Finding.md: on proposal failure
+                                       these findings are revived to open
+                                       by ProposalStateManager.mark_failed.
 - Active proposal already exists    → findings resolved (subsumed by the
                                        in-flight proposal; the mandate's
                                        "consumed" covers routing-to-proposal,
-                                       not only proposal-creation)
+                                       not only proposal-creation).
+                                       Dedup-subsumed findings are NOT
+                                       linked to the subsuming proposal —
+                                       this is a deliberate ADR-010
+                                       decision, see the "Alternatives
+                                       Considered" section there.
 - Proposal creation failed          → findings released back to open so the
-                                       next run can retry cleanly
-- Finding unmappable                → already released (see _load_open_findings)
-- Finding marked DELEGATE           → marked indeterminate (human decision)
+                                       next run can retry cleanly.
+- Finding unmappable                → already released (see _load_open_findings).
+- Finding marked DELEGATE           → marked indeterminate (human decision).
 
-FUTURE(two-log): resolution of dedup-skipped findings does not currently carry
-a payload pointer to the subsuming proposal. When the consequence-logging
-work lands, link resolved-by-proposal here so the causality chain
-(finding → proposal → execution) is traceable end-to-end.
+FUTURE(two-log): the dedup-subsume path does NOT carry a payload pointer
+to the subsuming proposal. The primary path (deferred_to_proposal with
+proposal_id) is linked as of ADR-010; the dedup path is not, and
+reconciling it would require a second finding→proposal relationship
+shape the paper does not currently define. When the full consequence-
+logging work lands, revisit dedup linkage.
 """
 
 from __future__ import annotations
@@ -107,7 +120,9 @@ class ViolationRemediatorWorker(Worker):
 
     Reads open audit.violation findings, maps each rule to a remediation
     action via .intent/ remediation map, groups by action, deduplicates
-    against active proposals, creates proposals, marks entries resolved.
+    against active proposals, creates proposals, transitions the
+    consumed entries to 'deferred_to_proposal' with the proposal_id
+    stored in their payload (per CORE-Finding.md §7).
 
     Safe proposals (approval_required=False) are created in APPROVED status
     so ProposalConsumerWorker can execute them without a separate approval step.
@@ -138,7 +153,10 @@ class ViolationRemediatorWorker(Worker):
         2. Group by action (via .intent/ remediation map)
         3. Deduplicate against active proposals
         4. Create proposals for new action groups
-        5. Mark consumed Blackboard entries resolved (or released on failure)
+        5. Transition consumed Blackboard entries:
+             - happy path:    deferred_to_proposal (with proposal_id)
+             - dedup-subsume: resolved
+             - create-failed: released back to open
         6. Post blackboard report
         """
         # 1. Load open findings
@@ -184,10 +202,10 @@ class ViolationRemediatorWorker(Worker):
         # 3. Deduplicate against active proposals
         active_action_ids = await self._get_active_proposal_action_ids()
 
-        # 4. Create proposals + 5. Mark entries resolved / released
+        # 4. Create proposals + 5. Transition entries per ADR-010 semantics.
         proposals_created: list[str] = []
         proposals_skipped: list[str] = []
-        entries_resolved: int = 0
+        entries_deferred: int = 0
         entries_resolved_dedup: int = 0
         entries_released_after_failure: int = 0
 
@@ -199,6 +217,10 @@ class ViolationRemediatorWorker(Worker):
                 # Findings are subsumed — the mandate's "consumed" applies
                 # (routing-to-proposal, not only proposal-creation). Resolve so
                 # they don't leak as stuck claims on every subsequent run.
+                # NB: not deferred_to_proposal — the subsuming proposal was
+                # created by an earlier wave and does not track these
+                # subsumed duplicates in its scope (ADR-010 Alternatives
+                # Considered).
                 resolved = await self._resolve_entries(entry_ids)
                 entries_resolved_dedup += resolved
                 proposals_skipped.append(action_id)
@@ -214,15 +236,20 @@ class ViolationRemediatorWorker(Worker):
 
             if proposal_id:
                 proposals_created.append(action_id)
-                resolved = await self._resolve_entries(entry_ids)
-                entries_resolved += resolved
+                # ADR-010 / CORE-Finding.md §7: on successful proposal
+                # creation, transition findings to 'deferred_to_proposal'
+                # and store proposal_id in their payload. The §7a revival
+                # contract in ProposalStateManager.mark_failed depends on
+                # this linkage.
+                deferred = await self._defer_to_proposal(entry_ids, proposal_id)
+                entries_deferred += deferred
                 logger.info(
                     "ViolationRemediatorWorker: created proposal '%s' for action "
-                    "'%s' (%d findings, %d entries resolved)",
+                    "'%s' (%d findings, %d entries deferred to proposal)",
                     proposal_id,
                     action_id,
                     len(findings),
-                    resolved,
+                    deferred,
                 )
             else:
                 # Proposal creation failed (validation or persist error).
@@ -265,7 +292,14 @@ class ViolationRemediatorWorker(Worker):
                 finding.get("id") or finding.get("entry_id"),
             )
 
-        # 6. Post blackboard report
+        # 6. Post blackboard report.
+        # Report-shape note (ADR-010): the happy-path counter is now
+        # 'entries_deferred'. The legacy 'entries_resolved' key is removed
+        # rather than kept-as-zero, because 'entries_resolved: 0' was a
+        # known diagnostic signal for the silent claim-leak bug and
+        # preserving it as a structural zero would create a false positive
+        # for that diagnostic. Consumers that read the old key will fail
+        # loudly — the correct signal of the contract change.
         await self.post_report(
             subject="violation_remediator.completed",
             payload={
@@ -274,7 +308,7 @@ class ViolationRemediatorWorker(Worker):
                 "action_groups": len(action_groups),
                 "proposals_created": len(proposals_created),
                 "proposals_skipped_dedup": len(proposals_skipped),
-                "entries_resolved": entries_resolved,
+                "entries_deferred": entries_deferred,
                 "entries_resolved_dedup": entries_resolved_dedup,
                 "entries_released_after_failure": entries_released_after_failure,
                 "entries_released": entries_released,
@@ -300,10 +334,11 @@ class ViolationRemediatorWorker(Worker):
         )
 
         logger.info(
-            "ViolationRemediatorWorker: done — %d proposals created, "
-            "%d skipped (dedup, %d subsumed entries resolved), "
-            "%d unmappable findings, %d entries released after failure",
+            "ViolationRemediatorWorker: done — %d proposals created "
+            "(%d entries deferred), %d skipped (dedup, %d subsumed entries "
+            "resolved), %d unmappable findings, %d entries released after failure",
             len(proposals_created),
+            entries_deferred,
             len(proposals_skipped),
             entries_resolved_dedup,
             len(unmappable),
@@ -509,6 +544,14 @@ class ViolationRemediatorWorker(Worker):
     async def _resolve_entries(self, entry_ids: list[str]) -> int:
         """
         Mark Blackboard entries as resolved.
+
+        ADR-010: as of this version, _resolve_entries is called ONLY from
+        the dedup-subsume branch of run() — subsumed findings close as
+        'resolved' because they are not linked to the subsuming proposal's
+        lifecycle. The happy path (successful proposal creation) uses
+        _defer_to_proposal instead so the §7/§7a Finding→Proposal contract
+        is preserved.
+
         Returns count of entries successfully resolved.
         """
         if not entry_ids:
@@ -521,6 +564,41 @@ class ViolationRemediatorWorker(Worker):
             return await blackboard_service.resolve_entries(entry_ids)
         except Exception as e:
             logger.error("ViolationRemediatorWorker: failed to resolve entries: %s", e)
+            return 0
+
+    # ID: 2f8b4e71-c950-4a6d-b3e8-7f1a5c2d906e
+    async def _defer_to_proposal(self, entry_ids: list[str], proposal_id: str) -> int:
+        """
+        Transition Blackboard entries to 'deferred_to_proposal' and store
+        the proposal_id in each entry's payload.
+
+        This is the happy-path terminal transition for findings consumed
+        into a newly-created proposal. See CORE-Finding.md §7 row 4 and
+        ADR-010.
+
+        Returns count of entries successfully deferred. Fail-soft: if the
+        service call raises, logs the error and returns 0 rather than
+        propagating — matches the existing pattern of _resolve_entries
+        and _release_entries. The caller's `proposals_created` list is
+        already populated by the time this runs, so a revival-layer
+        failure here does not reverse the proposal creation.
+        """
+        if not entry_ids:
+            return 0
+
+        from body.services.service_registry import service_registry
+
+        try:
+            blackboard_service = await service_registry.get_blackboard_service()
+            return await blackboard_service.defer_entries_to_proposal(
+                entry_ids, proposal_id
+            )
+        except Exception as e:
+            logger.error(
+                "ViolationRemediatorWorker: failed to defer entries to proposal %s: %s",
+                proposal_id,
+                e,
+            )
             return 0
 
     # ID: d2e3f4a5-b6c7-8901-defa-890123456781

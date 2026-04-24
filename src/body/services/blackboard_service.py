@@ -85,7 +85,10 @@ class BlackboardService:
         if an abandoned entry for the same subject already exists.
 
         Status exclusion: 'resolved' only.
-        All other statuses (open, claimed, indeterminate, abandoned) are included.
+        All other statuses (open, claimed, deferred_to_proposal, indeterminate,
+        abandoned) are included — subjects in any of those states are
+        considered "already represented on the blackboard" and must not be
+        re-posted by a sensor.
 
         Covers:
           - AuditViolationSensor._fetch_existing_subjects
@@ -128,9 +131,7 @@ class BlackboardService:
                     text(
                         """
                         UPDATE core.blackboard_entries
-                        SET status = 'resolved',
-                            resolved_at = now(),
-                            updated_at = now()
+                        SET status = 'resolved', updated_at = now()
                         WHERE entry_type = 'finding'
                           AND subject LIKE 'audit.remediation.dry_run::'
                                             || :namespace_prefix || '%'
@@ -452,14 +453,21 @@ class BlackboardService:
         patterns are both correct:
           - fetch_open_findings → resolve_entries  (TestRunnerSensor)
           - claim_violation_findings → ... → resolve_entries
-              (ViolationRemediatorWorker, TestRemediatorWorker)
+              (ViolationRemediatorWorker dedup-subsume path, TestRemediatorWorker)
 
         All updates run inside a single transaction. Returns the count of
         rows actually updated (entries already terminalized or missing are
         not counted).
 
+        Scope note: as of ADR-010, the ViolationRemediatorWorker happy path
+        (proposal created successfully) no longer calls this method. That
+        path now calls defer_entries_to_proposal so the Finding→Proposal
+        linkage §7/§7a of CORE-Finding.md specifies is preserved. This
+        method remains in use by the dedup-subsume path and by
+        TestRemediatorWorker / TestRunnerSensor.
+
         Covers:
-          - ViolationRemediatorWorker._resolve_entries
+          - ViolationRemediatorWorker._resolve_entries (dedup branch only)
           - TestRemediatorWorker._resolve_entries
           - TestRunnerSensor (direct)
         """
@@ -473,9 +481,7 @@ class BlackboardService:
                         text(
                             """
                             UPDATE core.blackboard_entries
-                            SET status = 'resolved',
-                                resolved_at = now(),
-                                updated_at = now()
+                            SET status = 'resolved', updated_at = now()
                             WHERE id = cast(:entry_id as uuid)
                               AND status IN ('open', 'claimed')
                             """
@@ -615,9 +621,7 @@ class BlackboardService:
                         text(
                             """
                             UPDATE core.blackboard_entries
-                            SET status = 'abandoned',
-                                resolved_at = now(),
-                                updated_at = now()
+                            SET status = 'abandoned', updated_at = now()
                             WHERE id = cast(:entry_id as uuid)
                               AND status = 'claimed'
                             """
@@ -651,7 +655,6 @@ class BlackboardService:
                             """
                             UPDATE core.blackboard_entries
                             SET status = 'indeterminate',
-                                resolved_at = now(),
                                 updated_at = now()
                             WHERE id = cast(:entry_id as uuid)
                               AND status = 'claimed'
@@ -684,3 +687,180 @@ class BlackboardService:
                 {"status": status, "id": entry_id},
             )
             await session.commit()
+
+    # ------------------------------------------------------------------
+    # Finding ↔ Proposal contract (CORE-Finding.md §7 / §7a, ADR-010)
+    # ------------------------------------------------------------------
+
+    # ID: 7f2a3c51-b9d0-48e4-9d2b-4a6f1e8c0b52
+    async def defer_entries_to_proposal(
+        self, entry_ids: list[str], proposal_id: str
+    ) -> int:
+        """
+        Transition findings to 'deferred_to_proposal' terminal status and
+        write the proposal_id into each finding's payload.
+
+        Implements CORE-Finding.md §7 row 4:
+          > The rule has an active RemediationMap entry. A Proposal has been
+          > created. The `proposal_id` field in the payload MUST be set to
+          > the created Proposal's ID.
+
+        Only transitions entries currently in 'open' or 'claimed' — matches
+        the predicate used by resolve_entries. Entries in any other status
+        are left untouched and not counted.
+
+        Sets resolved_at because 'deferred_to_proposal' is terminal per
+        the blackboard_entry_status enum declaration in
+        .intent/META/enums.json.
+
+        Payload merge uses the 'payload = payload || jsonb_build_object(...)'
+        idiom already established elsewhere in this service. If an earlier
+        proposal_id was written (e.g. in unusual retry flows), this call
+        overwrites it with the current value — last-writer-wins, which
+        matches the semantic "this finding is now linked to THIS proposal."
+
+        Returns the count of rows actually updated.
+
+        Covers:
+          - ViolationRemediatorWorker._defer_to_proposal
+        """
+        if not entry_ids:
+            return 0
+
+        from body.services.service_registry import ServiceRegistry
+
+        deferred_count = 0
+        async with ServiceRegistry.session() as session:
+            async with session.begin():
+                for entry_id in entry_ids:
+                    result = await session.execute(
+                        text(
+                            """
+                            UPDATE core.blackboard_entries
+                            SET status = 'deferred_to_proposal',
+                                resolved_at = now(),
+                                updated_at = now(),
+                                payload = payload || jsonb_build_object(
+                                    'proposal_id', cast(:proposal_id as text)
+                                )
+                            WHERE id = cast(:entry_id as uuid)
+                              AND status IN ('open', 'claimed')
+                            """
+                        ),
+                        {"entry_id": entry_id, "proposal_id": proposal_id},
+                    )
+                    deferred_count += result.rowcount
+        return deferred_count
+
+    # ID: e1c4b8a7-6f03-4d29-b8a2-9c5d7e0f3a14
+    async def revive_findings_for_failed_proposal(
+        self, proposal_id: str, failure_reason: str
+    ) -> dict[str, Any]:
+        """
+        Restore findings that were deferred to a now-failed proposal back
+        to 'open' status, and post a revival report.
+
+        Implements CORE-Finding.md §7a:
+          > When a Proposal reaches `failed` status, [...]:
+          >   1. Query all Findings whose payload `proposal_id` matches the
+          >      failed Proposal's ID.
+          >   2. For each such Finding, set `status = 'open'`, `claimed_by =
+          >      NULL`, `claimed_at = NULL`.
+          >   3. Post a `report` entry recording the revival: the Proposal
+          >      ID, the count of revived Findings, and the failure reason.
+
+        The UPDATE filter restricts to status = 'deferred_to_proposal'. This
+        protects against retry races and against findings that drifted to
+        some other status (abandoned, indeterminate) for unrelated reasons
+        — only findings still parked on this proposal's deferral are
+        revived. resolved_at is cleared so the row's terminal-state marker
+        matches its new non-terminal status (ADR-010 hygiene rule, tracking
+        the Option A+ convention from 2026-04-22).
+
+        The revival UPDATE and the revival report INSERT run in a single
+        transaction. The caller's own transaction (the proposal-state
+        UPDATE in ProposalStateManager.mark_failed) has already committed
+        by the time this method runs — see ADR-010 Layer 3 note on why
+        revival is eventually-consistent rather than atomic with proposal
+        failure.
+
+        Returns:
+          {"revived_count": int, "revived_finding_ids": list[str]}
+
+        The caller MUST NOT rely on this method raising on partial failure.
+        If the revival query matches zero rows, this returns {"revived_count":
+        0, "revived_finding_ids": []} — a legitimate outcome when the failed
+        proposal had no findings deferred to it (e.g. proposals created by
+        paths other than ViolationRemediatorWorker).
+        """
+        from body.services.service_registry import ServiceRegistry
+
+        revival_report_id = uuid.uuid4()
+        revived_ids: list[str] = []
+
+        async with ServiceRegistry.session() as session:
+            async with session.begin():
+                # Step 1+2 of §7a: query-and-reset in one UPDATE ... RETURNING.
+                update_result = await session.execute(
+                    text(
+                        """
+                        UPDATE core.blackboard_entries
+                        SET status = 'open',
+                            claimed_by = NULL,
+                            claimed_at = NULL,
+                            resolved_at = NULL,
+                            updated_at = now()
+                        WHERE entry_type = 'finding'
+                          AND status = 'deferred_to_proposal'
+                          AND payload->>'proposal_id' = :proposal_id
+                        RETURNING id
+                        """
+                    ),
+                    {"proposal_id": proposal_id},
+                )
+                revived_ids = [str(row[0]) for row in update_result.fetchall()]
+
+                # Step 3 of §7a: revival report. Posted unconditionally,
+                # including the revived_count=0 case, so the audit trail
+                # records that mark_failed ran revival for this proposal
+                # and the answer was "nothing to revive."
+                await session.execute(
+                    text(
+                        """
+                        INSERT INTO core.blackboard_entries
+                            (id, entry_type, subject, payload, status, created_at)
+                        VALUES (
+                            :id,
+                            'report',
+                            :subject,
+                            cast(:payload as jsonb),
+                            'resolved',
+                            now()
+                        )
+                        """
+                    ),
+                    {
+                        "id": revival_report_id,
+                        "subject": f"proposal.failure.revival::{proposal_id}",
+                        "payload": json.dumps(
+                            {
+                                "proposal_id": proposal_id,
+                                "failure_reason": failure_reason,
+                                "revived_count": len(revived_ids),
+                                "revived_finding_ids": revived_ids,
+                            }
+                        ),
+                    },
+                )
+
+        logger.info(
+            "Revived %d finding(s) for failed proposal %s (reason: %s)",
+            len(revived_ids),
+            proposal_id,
+            failure_reason,
+        )
+
+        return {
+            "revived_count": len(revived_ids),
+            "revived_finding_ids": revived_ids,
+        }
