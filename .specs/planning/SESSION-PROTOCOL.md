@@ -35,7 +35,7 @@ The audience is the governor and any architect instance (human or Claude) openin
 | GitHub Releases | Capability milestones ("Band X closed" or "vN.N.N") | On band closure or major milestone |
 | Git commit history | The authoritative record of what changed and when | Generated as sessions run |
 
-What is no longer kept: long-form handoff documents under `.specs/planning/handoff-*.md`. The existing archive (pre-this-protocol) remains as historical record; no new ones are produced. Session activity is reconstructible from Git history, GitHub Issue events, and GitHub Releases — no separate session log is maintained.
+What is no longer kept: long-form handoff documents under `.specs/state/handoffs/handoff-*.md`. The existing archive (pre-this-protocol) remains as historical record; no new ones are produced. Session activity is reconstructible from Git history, GitHub Issue events, and GitHub Releases — no separate session log is maintained.
 
 ---
 
