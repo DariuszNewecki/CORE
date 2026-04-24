@@ -10,7 +10,7 @@ This action bridges audit findings to the CallSiteRewriter worker by:
 3. Triggering the rewriter to fix the hardcoded strings
 
 The action does not write to the blackboard itself — ADR-011 requires
-that all blackboard INSERTs flow through Worker attribution. The calling
+that all blackboard writes flow through Worker attribution. The calling
 Worker (ProposalConsumerWorker) posts the finding described in
 ActionResult.data["finding_to_post"].
 """
@@ -55,11 +55,11 @@ async def remediate_cognitive_role(
     Prepare prompt.artifact finding data for the calling Worker to post.
 
     This action is called by the proposal system when violations are found.
-    It does NOT write to the blackboard itself — per ADR-011, every INSERT
-    into core.blackboard_entries must flow through Worker attribution.
-    The action constructs the finding shape (subject + payload) and returns
-    it in ActionResult.data["finding_to_post"]; ProposalConsumerWorker
-    posts via self.post_finding() as part of its post-execution handling.
+    It does NOT write to the blackboard itself — per ADR-011, all blackboard
+    writes must flow through Worker attribution. The action constructs the
+    finding shape (subject + payload) and returns it in
+    ActionResult.data["finding_to_post"]; ProposalConsumerWorker posts via
+    self.post_finding() as part of its post-execution handling.
 
     Args:
         file_path: Path to the file containing the violation
