@@ -1,0 +1,22 @@
+{
+    "$schema": "META/rule_document.schema.json",
+    "kind": "rule_document",
+    "metadata": {
+        "id": "rules.architecture.blackboard",
+        "title": "Blackboard Attribution: Worker-Only Inserts",
+        "version": "1.0.0",
+        "authority": "policy",
+        "phase": "audit",
+        "status": "active"
+    },
+    "rules": [
+        {
+            "id": "architecture.blackboard.worker_only_inserts",
+            "statement": "INSERT operations against core.blackboard_entries MUST originate from the Worker base class at src/shared/workers/base.py. Services, atomic actions, and other non-Worker code MUST route blackboard posting through self.post_finding(), self.post_report(), or self.post_heartbeat(). UPDATE operations on already-attributed rows are unaffected.",
+            "enforcement": "blocking",
+            "authority": "policy",
+            "phase": "audit",
+            "rationale": "The worker_uuid NOT NULL constraint on core.blackboard_entries requires every row to be attributable to a registered Worker. Raw-SQL INSERTs from non-Worker sites bypass the base class's _post_entry method, which fills attribution fields from Worker identity. ADR-011 codifies this principle; this rule enforces it at audit time."
+        }
+    ]
+}

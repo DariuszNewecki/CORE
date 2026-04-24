@@ -1,0 +1,31 @@
+# .intent/enforcement/mappings/architecture/blackboard.yaml
+# Enforcement mappings for Blackboard Attribution governance
+# Rule document: .intent/rules/architecture/blackboard.json
+# Codifies: ADR-011 (Workers own blackboard attribution; services do not post)
+
+mappings:
+
+  architecture.blackboard.worker_only_inserts:
+    engine: regex_gate
+    params:
+      forbidden_patterns:
+        # Case-insensitive via inline (?i) flag — SQL is case-insensitive by
+        # convention and the codebase mixes "INSERT INTO" / "insert into"
+        # against the same table. \s+ covers any whitespace between tokens
+        # (including newlines inside multi-line SQL strings). (?:core\.)?
+        # allows both schema-qualified and bare forms; the table is
+        # authoritatively in schema `core` but we match either to catch
+        # drift.
+        - "(?i)INSERT\\s+INTO\\s+(?:core\\.)?blackboard_entries"
+    scope:
+      applies_to:
+        - "src/**/*.py"
+      excludes:
+        # The single legitimate INSERT site: Worker base class's _post_entry
+        # method. This is the canonical attribution-preserving path; every
+        # post_finding / post_report / post_heartbeat call in Worker
+        # subclasses routes here.
+        - "src/shared/workers/base.py"
+        # Standard exclusions matching the conventions of other mapping files.
+        - "tests/**/*.py"
+        - "**/__init__.py"
