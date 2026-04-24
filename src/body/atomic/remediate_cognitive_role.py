@@ -5,13 +5,18 @@ Atomic action for remediating ai.cognitive_role.no_hardcoded_string violations.
 
 This action bridges audit findings to the CallSiteRewriter worker by:
 1. Taking audit.violation findings for cognitive role rules
-2. Converting them to prompt.artifact findings
+2. Preparing prompt.artifact finding data for the calling Worker to post
+   via self.post_finding()
 3. Triggering the rewriter to fix the hardcoded strings
+
+The action does not write to the blackboard itself — ADR-011 requires
+that all blackboard INSERTs flow through Worker attribution. The calling
+Worker (ProposalConsumerWorker) posts the finding described in
+ActionResult.data["finding_to_post"].
 """
 
 from __future__ import annotations
 
-import json
 from typing import Any
 
 from body.atomic.registry import ActionCategory, register_action
@@ -31,7 +36,7 @@ logger = getLogger(__name__)
         "autonomy.tracing.mandatory",
     ],
     impact_level="moderate",  # Changes code but with canary protection
-    requires_db=True,  # Needs DB to post to blackboard
+    requires_db=False,  # Action no longer touches the DB; caller posts the finding
     requires_vectors=False,
     remediates=[
         "ai.cognitive_role.no_hardcoded_string",
@@ -47,10 +52,14 @@ async def remediate_cognitive_role(
     **kwargs: Any,
 ) -> ActionResult:
     """
-    Remediate hardcoded cognitive role strings by posting prompt.artifact findings.
+    Prepare prompt.artifact finding data for the calling Worker to post.
 
     This action is called by the proposal system when violations are found.
-    It creates findings that the CallSiteRewriter will pick up and fix.
+    It does NOT write to the blackboard itself — per ADR-011, every INSERT
+    into core.blackboard_entries must flow through Worker attribution.
+    The action constructs the finding shape (subject + payload) and returns
+    it in ActionResult.data["finding_to_post"]; ProposalConsumerWorker
+    posts via self.post_finding() as part of its post-execution handling.
 
     Args:
         file_path: Path to the file containing the violation
@@ -60,73 +69,31 @@ async def remediate_cognitive_role(
         **kwargs: Additional parameters
 
     Returns:
-        ActionResult with success/failure status
+        ActionResult with finding_to_post in data for the caller to post.
     """
     if not file_path:
         return ActionResult.failure(
             message="Missing required parameter: file_path", data={"rule": rule}
         )
 
-    try:
-        from sqlalchemy import text
+    payload = {
+        "file_path": file_path,
+        "line_number": line_number,
+        "artifact_name": "cognitive_role_string",
+        "rule": rule,
+        "prompt_text": prompt_text,
+        "input_vars": [],  # No input vars for this type
+        "severity": "error",
+    }
 
-        from body.services.service_registry import service_registry
-
-        # Post a prompt.artifact finding for CallSiteRewriter to claim
-        async with service_registry.session() as session:
-            # Create the payload that CallSiteRewriter expects
-            payload = {
-                "file_path": file_path,
-                "line_number": line_number,
-                "artifact_name": "cognitive_role_string",
-                "rule": rule,
-                "prompt_text": prompt_text,
-                "input_vars": [],  # No input vars for this type
-                "severity": "error",
-            }
-
-            # Insert into blackboard as prompt.artifact
-            result = await session.execute(
-                text(
-                    """
-                    INSERT INTO core.blackboard_entries
-                    (entry_type, subject, payload, status, created_at)
-                    VALUES (
-                        'finding',
-                        :subject,
-                        :payload,
-                        'open',
-                        now()
-                    )
-                    RETURNING id
-                """
-                ),
-                {
-                    "subject": f"prompt.artifact::{file_path}",
-                    "payload": json.dumps(payload),
-                },
-            )
-            await session.commit()
-
-            entry_id = result.scalar_one()
-
-        logger.info(
-            "Created prompt.artifact finding %s for %s (rule: %s)",
-            entry_id,
-            file_path,
-            rule,
-        )
-
-        return ActionResult.success(
-            message=f"Created remediation finding for {file_path}",
-            data={"entry_id": str(entry_id), "file_path": file_path, "rule": rule},
-        )
-
-    except Exception as e:
-        logger.error(
-            "Failed to remediate cognitive role violation: %s", e, exc_info=True
-        )
-        return ActionResult.failure(
-            message=f"Failed to create remediation finding: {e}",
-            data={"file_path": file_path, "rule": rule},
-        )
+    return ActionResult.success(
+        message=f"Prepared prompt.artifact finding for {file_path}",
+        data={
+            "finding_to_post": {
+                "subject": f"prompt.artifact::{file_path}",
+                "payload": payload,
+            },
+            "file_path": file_path,
+            "rule": rule,
+        },
+    )

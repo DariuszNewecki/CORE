@@ -114,6 +114,44 @@ class ProposalConsumerWorker(Worker):
                         result["actions_executed"],
                         result["duration_sec"],
                     )
+                    # Post any finding_to_post entries declared by atomic actions.
+                    # ADR-011: attribution flows through Worker.post_finding, not
+                    # through raw SQL in the action body. Actions return
+                    # finding_to_post in ActionResult.data; the Worker posts here.
+                    # Runs before the changed_files loop so a downstream worker
+                    # reacting to the posted finding sees it before any
+                    # test.run_required entries for the same file.
+                    action_results = result.get("action_results", {}) or {}
+                    for aid, ar in action_results.items():
+                        if not ar.get("ok"):
+                            continue
+                        ar_data = ar.get("data") or {}
+                        finding_to_post = ar_data.get("finding_to_post")
+                        if not finding_to_post:
+                            continue
+                        subject = finding_to_post.get("subject")
+                        payload = finding_to_post.get("payload")
+                        if not subject or payload is None:
+                            logger.warning(
+                                "Malformed finding_to_post from action %s "
+                                "(missing subject/payload): %r",
+                                aid,
+                                finding_to_post,
+                            )
+                            continue
+                        try:
+                            await self.post_finding(subject=subject, payload=payload)
+                            logger.info(
+                                "ProposalConsumerWorker: posted finding %s from action %s",
+                                subject,
+                                aid,
+                            )
+                        except Exception as post_err:
+                            logger.warning(
+                                "Could not post finding_to_post from action %s: %s",
+                                aid,
+                                post_err,
+                            )
                     # Post test.run_required for each changed source file.
                     # Attribution flows through the Worker base class — self.post_finding
                     # uses self._worker_uuid and self._phase, satisfying the
