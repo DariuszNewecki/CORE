@@ -114,6 +114,30 @@ class ProposalConsumerWorker(Worker):
                         result["actions_executed"],
                         result["duration_sec"],
                     )
+                    # Post test.run_required for each changed source file.
+                    # Attribution flows through the Worker base class — self.post_finding
+                    # uses self._worker_uuid and self._phase, satisfying the
+                    # blackboard_entries NOT NULL constraint that ProposalExecutor
+                    # could not satisfy on its own.
+                    changed_files = result.get("changed_files", []) or []
+                    post_execution_sha = result.get("post_execution_sha")
+                    for path in changed_files:
+                        if path.startswith("src/") and path.endswith(".py"):
+                            try:
+                                await self.post_finding(
+                                    subject=f"test.run_required::{path}",
+                                    payload={
+                                        "source_file": path,
+                                        "proposal_id": proposal_id,
+                                        "post_execution_sha": post_execution_sha,
+                                    },
+                                )
+                            except Exception as test_req_err:
+                                logger.warning(
+                                    "Could not post test.run_required for proposal %s: %s",
+                                    proposal_id,
+                                    test_req_err,
+                                )
                 else:
                     failed += 1
                     logger.warning(
