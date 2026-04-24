@@ -2,7 +2,7 @@
 
 **Status:** Active
 **Owner:** Darek (Dariusz Newecki)
-**Last updated:** 2026-04-21
+**Last updated:** 2026-04-24
 **Definition:** The daemon runs continuously, the Blackboard clears, the codebase converges, and every action is visible.
 
 ---
@@ -29,48 +29,32 @@ A3 is a state. These four gates define the state. A3 is claimable when all four 
 
 | Gate | What it means | Status |
 |------|---------------|--------|
-| **G1 — Loop closure** | An autonomous fix lands end-to-end on a non-synthetic example: finding detected → proposal created → proposal approved → execution succeeded → re-audit confirms resolution. Single clean run is the minimum. | ⚠️ Not yet demonstrated. Stream B is structurally complete (ADR-003/004 closed the context gap) but the daemon has been inactive since 2026-04-18 14:26. No autonomous round-trip has been observed on the current codebase. |
-| **G2 — Convergence** | Sustained state where rate of finding resolution exceeds rate of finding creation. Per the Convergence Principle, this is the fundamental operational metric — it is what makes "governed autonomy" truthful rather than aspirational. | ⚠️ Not reached. 39 findings open; 32 are a single check_id with identical shape (`modularity.needs_split`) not converging under any current mechanism. Verdict-threshold semantics undocumented — PASS is returned with 37 WARNINGs, so the convergence signal is ambiguous at the metric layer as well. |
-| **G3 — Consequence chain** | Finding → Proposal → Approval → Execution → File changes → New findings is continuously materialized as a queryable causality chain. Required for regulated environments, autonomous debugging, and for a non-programmer governor to trust the system without reading code. | ⚠️ Not built. Individual links exist (proposals table, Blackboard history, audit JSON, git). The chain is not materialized as a single queryable graph. This is the "two-log problem" named in prior sessions — legal traceability, not bookkeeping. |
-| **G4 — Governance in `.intent/`** | No enforcement logic, path mappings, policy thresholds, or governance decisions live in `src/`. All of it lives in `.intent/` (or, for human-intent documents, `.specs/`). This is the claim that makes the "non-programmer governor" role coherent. | 🔄 In progress. ADR-004 (task_type phase map in YAML) was a direct advance. Leaks worth naming: path mappings embedded in Stream B sensor/action code; `action_executor` usage unguarded in some Body workers. Each leak is a future "can't change behavior without a code commit." |
+| **G1 — Loop closure** | An autonomous fix lands end-to-end on a non-synthetic example: finding detected → proposal created → proposal approved → execution succeeded → re-audit confirms resolution. Single clean run is the minimum. | ⚠️ Not yet demonstrated on the live codebase. Stream B is structurally complete. Daemon is active (as of 2026-04-24 session 4) but an end-to-end autonomous round-trip has not yet been observed post-restart. |
+| **G2 — Convergence** | Sustained state where rate of finding resolution exceeds rate of finding creation. Per the Convergence Principle, this is the fundamental operational metric — it is what makes "governed autonomy" truthful rather than aspirational. | ⚠️ Not reached. 31 findings open as of 2026-04-24. Verdict-threshold semantics undocumented (tracked as issue #108) — PASS is returned with WARNING-dominant finding sets, so the convergence signal is ambiguous at the metric layer. |
+| **G3 — Consequence chain** | Finding → Proposal → Approval → Execution → File changes → New findings is continuously materialized as a queryable causality chain. Required for regulated environments, autonomous debugging, and for a non-programmer governor to trust the system without reading code. | ⚠️ Not built. Individual links exist (proposals table, Blackboard history, audit JSON, git). The chain is not materialized as a single queryable graph. This is the "two-log problem" — legal traceability, not bookkeeping. Tracked as issue #110; Band B is the strategic arc. |
+| **G4 — Governance in `.intent/`** | No enforcement logic, path mappings, policy thresholds, or governance decisions live in `src/`. All of it lives in `.intent/` (or, for human-intent documents, `.specs/`). This is the claim that makes the "non-programmer governor" role coherent. | 🔄 In progress. ADR-004 (task_type phase map in YAML) and ADR-005 (audit verdict policy in YAML) were direct advances. Leaks worth naming: path mappings embedded in Stream B sensor/action code; `action_executor` usage unguarded in some Body workers. Tracked as issue #111. |
 
 **Gate coupling:** G1 cannot be *proved* without G3 (you can't demonstrate the loop closed without the chain). G2 cannot be *measured* without G1 (no resolution rate without autonomous resolution). G4 is orthogonal but load-bearing: it is the reason a non-programmer can operate the system, and without it the other three gates describe a system that still requires its author.
 
 ---
 
-## Current State (2026-04-20 — reconnaissance verified)
+## Current State (2026-04-24)
 
 | Item | Status |
 |------|--------|
-| Audit | PASS — 39 findings (37 WARNING, 2 INFO), 0 crashed, 1 unmapped (`governance.artifact_mutation.traceable`) |
-| Audit finding concentration | 32 of 39 are `modularity.needs_split` — single-class concentration, not diverse violations |
-| Coverage | 120 declared, 119 executed (5 stubs skipped), 100% rule execution; 99.0% effective |
-| Worker registry | 15 active, 20 abandoned (Phase 4 cleanup item) |
-| Daemon | **Inactive** — last Blackboard activity 2026-04-18 14:26. Autonomous loop not running at time of snapshot |
-| Autonomous loop closure (G1 end-to-end proof) | ⚠️ Not demonstrated — Stream B structurally complete but no autonomous round-trip observed on current codebase |
-| RemediationMap | 14 ACTIVE, 5 PENDING (top-level rule entries) |
-| ADR inventory | ADR-001 through ADR-004 accepted and landed |
-| Stream B (test writing) | ✅ Complete — TestCoverageSensor + TestRunnerSensor + TestRemediatorWorker + `build.tests` wired |
-| `build.tests` context gap | ✅ Resolved — ADR-003 + ADR-004 landed 2026-04-19 (commits `a0f68287`, `8a1556e4`) |
-| Constitutional boundaries | ✅ Clean — ADR-002 shared/ boundary audit complete |
-| Governor dashboard | ✅ Redesigned — two-column layout, full-width Convergence row |
-| `.specs/` layer | ✅ Established and wired into vector layer |
-| `.specs/META/` schemas | ❌ Absent — governance hygiene gap |
-| Vector layer | ✅ `core_specs` collection live — 549 items from 53 documents |
-| Semantic search | ✅ All three collections queryable — `core_policies`, `core-patterns`, `core_specs` |
-| Proposal Path | ✅ Fully daemonized — ViolationRemediator + ProposalConsumer active when daemon runs |
-| `style.formatter_required` | ✅ Fully wired — sensor detects, Remediator proposes, Consumer executes, git commits |
+| Audit | PASS — 31 findings, WARNING-dominant, duration 55s |
+| Daemon | Active — runtime verification of restarted state underway |
+| Worker registry | 15 active |
+| Bands | Band A closed (attribution); Bands B, C, D, E open |
+| GitHub issue migration | 35 open issues across three batches (#107–141); Known Blockers, handoff residue, Population C all migrated |
+| Autonomy status hub | Pinned issue #106 — current A2, working toward A3 |
+| ADR inventory | ADR-001 through ADR-011 accepted and landed |
+| Handoff archive | Moved to `.specs/state/handoffs/` per SESSION-PROTOCOL.md §2 |
+| Session protocol | SESSION-PROTOCOL.md active at `.specs/planning/SESSION-PROTOCOL.md` |
 
-**Sensor coverage (119 executed rules, 39 findings on current codebase):**
-- `audit_sensor_purity` — live (2 `purity.no_ast_duplication` findings)
-- `audit_sensor_architecture` — live
-- `audit_sensor_logic` — live
-- `audit_sensor_modularity` — live (32 `modularity.needs_split` findings — single-class dominance)
-- `audit_sensor_layout` — live
-- `audit_sensor_style` — live
-- `audit_sensor_linkage` — live
+**Active audit finding classes (2026-04-24 tail sample):** `modularity.needs_split`, `modularity.class_too_large`, `governance.dangerous_execution_primitives`, `autonomy.tracing.mandatory`. All WARNING; no ERROR findings observed.
 
-**Verdict semantics (unresolved):** Audit returns PASS despite 37 WARNING findings. The verdict threshold is not formally documented; current observed behaviour is that WARNING alone does not fail the verdict. Pinning this down is a prerequisite for meaningful convergence metrics (G2).
+**Verdict semantics:** Still unresolved at the documentation layer (issue #108). ADR-005 governs the policy *file*; ADR-005's codified behavior is what currently gates audit verdicts.
 
 ---
 
@@ -89,28 +73,17 @@ All seven audit sensors active.
 
 **Framing:** Phase 3 is the **trust-hardening phase** — the machinery producing the verdict is being qualified. It is not yet autonomy-operation. See "A3 Gates" above for what closing Phase 3 means in concrete terms: G1 and portions of G3/G4 close here.
 
-**Status:** Stream A (ViolationExecutor) complete. Stream B (test writing) structurally complete — ADR-003 + ADR-004 closed the context gap; end-to-end autonomous round-trip not yet observed. Stream C (delegation) infrastructure complete.
+**Status:** Stream A (ViolationExecutor) complete. Stream B (test writing) structurally complete. Stream C (delegation) infrastructure complete. Band A (attribution) closed 2026-04-24 via ADR-011.
 
-Remaining Phase 3 work:
-1. **Activate the daemon.** Currently inactive. Autonomous loop cannot converge if the loop does not run. Blocks G1.
-2. **Diagnose `modularity.needs_split` concentration.** 32 of 39 findings are one check_id with identical shape. Either threshold is miscalibrated, the "concerns" heuristic is noisy, or there is genuine modularity debt. Blocks meaningful G2 measurement.
-3. **Demonstrate first autonomous round-trip on a non-synthetic finding.** Stream B is wired; it has not yet been *observed* closing the loop end-to-end on the live codebase. This is the G1 proof.
-4. **WorkerAuditor finding resolution on recovery** — `worker.silent` findings persist after workers recover.
-5. **Sensor-fixer coherence validation** — no mechanism to detect when sensor detection contradicts fixer correction for the same rule.
+Remaining Phase 3 work is tracked on GitHub under Band D — Engine Integrity. Live list:
+https://github.com/DariuszNewecki/CORE/milestone/16
 
 ### Phase 4 — CLI Health ⬜
-Not started.
-
-**Command surface:** `src/cli/resources/` — 93 files across 14 command groups, 82 commands total.
-
-**Known Phase 4 bugs:**
-- `core-admin check rule` does not exist as a command (brief documentation drift — the command was never implemented or was removed without plan update)
-- `core-admin workers` has no cleanup command — ghost registry entries (20 abandoned rows currently) require raw SQL
-- `core-admin runtime health` shows abandoned workers — filter needed
-- `core-admin vectors sync` has no `--force` flag — collection delete required when payload structure changes without content changing
+Not started. Tracked items (e.g. ghost registry cleanup, `core-admin` command gaps) captured as GitHub issues.
 
 ### Phase 5 — Visibility ⬜
-Not started. **G3 closes here** — consequence chain materialization is a Phase 5 artifact.
+Not started. **G3 closes here** — consequence chain materialization is a Phase 5 artifact. Tracked on GitHub under Band B — Consequence Chain:
+https://github.com/DariuszNewecki/CORE/milestone/14
 
 ---
 
@@ -120,70 +93,63 @@ Not started. **G3 closes here** — consequence chain materialization is a Phase
 |-------|--------|--------|
 | 0 — Clean slate | Audit passes, DB clean | ✅ Complete |
 | 1 — Single loop | Purity loop runs unattended | ✅ Complete |
-| 2 — All sensors | All sensors active, converging | ✅ Complete — 7 sensors, 119 rules executed |
-| 3 — Capability gaps | Trust-hardened; G1 demonstrated; daemon live | 🔄 Stream B closed via ADR-003/004; daemon inactive; G1 not yet demonstrated |
+| 2 — All sensors | All sensors active, converging | ✅ Complete |
+| 3 — Capability gaps | Trust-hardened; G1 demonstrated; daemon live | 🔄 Daemon active; Band A closed; G1 not yet demonstrated on live codebase; remaining work tracked under Band D |
 | 4 — CLI health | All commands work, legacy gone, URS written | ⬜ Not started |
-| 5 — Visibility | Demo-ready, `tail -f` tells the story, G3 chain queryable | ⬜ Not started |
+| 5 — Visibility | Demo-ready, `tail -f` tells the story, G3 chain queryable | ⬜ Not started; Band B carries G3 |
 
 ---
 
 ## Known Blockers
 
-| Blocker | Phase / Gate | Notes |
-|---------|--------------|-------|
-| Daemon inactive | 3 / G1 | Reconnaissance 2026-04-20 shows last Blackboard activity 2026-04-18 14:26. Autonomous loop not observably converging. Cause not diagnosed — could be deliberate stop, crashed worker, systemd state, or missing `systemctl --user start core-daemon`. Resolution prerequisite for all other Phase 3 work |
-| Verdict-threshold documentation | 3+ / G2 | `PASS` is returned with 37 WARNINGs. Threshold semantics not written down. Blocks honest convergence reporting |
-| `modularity.needs_split` single-class concentration | 3+ / G2 | 32 of 39 findings are one check_id with identical shape ("File has N lines with only 2 concern(s)"). Either the check is producing systematic false positives, the threshold (400 lines) is miscalibrated, or there is genuine modularity debt. Needs diagnosis before remediation |
-| Consequence chain not materialized | 5 / G3 | Finding → Proposal → Approval → Execution → File changes → New findings exists as disjoint tables/logs. Not queryable as a single causality graph. Legal traceability and autonomous debugging both depend on this |
-| Governance leaks in `src/` | 3+ / G4 | Path mappings in Stream B sensor/action code; unguarded `action_executor` usage in some Body workers. Each is a future "behavior change requires code commit." Full audit of leaks not yet produced |
-| `audit_runs` DB write gap | 4+ | `core-admin code audit` does not persist results to DB — dashboard Panel 4 shows "never"; manual audit and daemon audit are separate systems |
-| WorkerAuditor does not resolve findings on recovery | 3+ | `worker.silent` findings persist after workers recover |
-| Sensor-fixer coherence validation | 3+ | No mechanism to detect when sensor detection contradicts fixer correction for the same rule |
-| OptimizerWorker | 3+ | Not yet designed — manual candidate review until then |
-| `.specs/META/` schemas absent | Hygiene | `.intent/META/` has 10 schemas. `.specs/` has zero. No machine-checkable shape for papers, URS, ADRs, handoffs, plans, investigations |
+Operational tracking moved to GitHub under band milestones as of 2026-04-24. The Known Blockers table previously held in this document is superseded by:
 
-**Open remediation items (2026-04-20 audit):**
+- **Band A — Attribution** (closed): https://github.com/DariuszNewecki/CORE/milestone/13
+- **Band B — Consequence Chain**: https://github.com/DariuszNewecki/CORE/milestone/14
+- **Band C — Historical Debt**: https://github.com/DariuszNewecki/CORE/milestone/15
+- **Band D — Engine Integrity**: https://github.com/DariuszNewecki/CORE/milestone/16
+- **Band E — Outward-Facing**: https://github.com/DariuszNewecki/CORE/milestone/17
 
-| Severity | Check | Count | Class |
-|----------|-------|-------|-------|
-| WARNING | `modularity.needs_split` | 32 | Single-class concentration — diagnose before remediate |
-| WARNING | `autonomy.tracing.mandatory` | 2 | `self_healing_agent.py`, `tagger_agent.py` — sensing workers that may legitimately not need tracer; selector design question |
-| WARNING | `purity.no_ast_duplication` | 2 | `IntentRepository.resolve_rel` ↔ `SpecsRepository.resolve_rel` — pre-existing structural |
-| WARNING | `governance.dangerous_execution_primitives` | 1 | `src/body/services/cim/scanners.py:55` (`subprocess.check_output`) — governor decision pending |
-| WARNING | `workflow.mypy_check` | 1 | Not previously tracked |
-| WARNING | `workflow.security_check` | 1 | Not previously tracked |
-| INFO | (various) | 2 | — |
+All issues opened under SESSION-PROTOCOL.md §6 template. Closure criteria live on each issue. Priority filter: `priority:high` labels mark items blocking a band from closing.
 
-**Resolved blockers:**
+---
+
+## Resolved Blockers
+
+Historical record of blockers resolved. New resolutions land here at session close per SESSION-PROTOCOL.md §5 Step 3.
 
 | Blocker | Notes |
 |---------|-------|
-| ~~`build.tests` context gap — CoderAgent generates without source context~~ | ✅ Resolved 2026-04-19 — commits `a0f68287` (Gap 2+3 change-set) and `8a1556e4` (ADR-003 task_type field + ADR-004 phase map in `.intent/`). Verified: dry-run against `src/shared/time.py` produces tests with real symbols |
-| ~~`src/shared/infrastructure/context/cli.py` vestigial CLI~~ | ✅ Deleted 2026-04-19 in same change-set as ADR-004 |
-| ~~Phase map hardcoded in `src/` (three-way drift)~~ | ✅ Governed in `.intent/enforcement/config/task_type_phases.yaml` per ADR-004 |
-| ~~fnmatch include-pattern asymmetry in `AuditorContext.get_files`~~ | ✅ Compensated via `_include_matches` helper, commit `8e9325fb` (2026-04-18). Live verification 2026-04-20: top-level files under `src/will/agents/` now matched by `src/will/agents/**/*.py` scope |
-| ~~`_expr_is_intent_related` missing `Call` handling~~ | ✅ `ast.Call` branch present in current code with both `Path(tainted)` wrapping and attribute-chain propagation. Commit SHA not recovered; shape verified live |
-| ~~`autonomy.tracing.mandatory` silent non-firing~~ | ✅ Premise falsified by `state/tracing_mandatory_diagnostic_2026-04-20.md`. Rule fires, produces 2 findings today. The handoffs carrying this claim are superseded |
-| ~~ViolationExecutor `'id'`/`entry_id` bug~~ | ✅ Fixed 2026-04-18 |
-| ~~Stream B test-writing not wired~~ | ✅ Complete 2026-04-18 |
-| ~~Shared/ boundary violations~~ | ✅ Resolved 2026-04-18 — ADR-002 |
-| ~~`style.formatter_required` — deferred, no engine check~~ | ✅ Fully wired 2026-04-17 |
-| ~~Proposal Path workers not daemonized~~ | ✅ Fixed 2026-04-17 |
-| ~~Worker heartbeat not updating registry~~ | ✅ Fixed 2026-04-17 |
-| ~~BlackboardAuditor and WorkerAuditor not active~~ | ✅ Fixed 2026-04-17 |
-| ~~Documentation stale — A2 marked current, .specs/ absent~~ | ✅ Fixed 2026-04-17 |
-| ~~Blackboard hygiene bug (2 failure modes)~~ | ✅ Fixed 2026-04-16 |
-| ~~`.specs/` invisible to vector layer~~ | ✅ Fixed 2026-04-16 |
-| ~~Context build evidence missing constitutional papers~~ | ✅ Fixed 2026-04-16 |
-| ~~`intent_alignment.py` northstar broken~~ | ✅ Fixed 2026-04-16 |
-| ~~Context build layer constraints noise~~ | ✅ Fixed 2026-04-16 |
-| ~~`core-admin vectors query` missing specs collection~~ | ✅ Fixed 2026-04-16 |
-| ~~Rich Panel rendering bug in build.py~~ | ✅ Fixed 2026-04-16 |
-| ~~Stale Blackboard entries (2)~~ | ✅ Purged 2026-04-16 |
-| ~~No functional requirements document~~ | ✅ `CORE-What-It-Does.md` authored 2026-04-16 |
-| ~~Ghost worker registry entries (23)~~ | ✅ Marked abandoned via SQL — 2026-04-15. Note: 20 abandoned rows present today, accumulating since |
-| ~~`.intent/` contains non-operational documents~~ | ✅ `.specs/` layer established — 2026-04-15 |
-| ~~Orphan classifier (92 findings)~~ | ✅ Dissolved — 0 real orphans |
+| ~~Attribution principle unwired in `src/`~~ | ✅ Resolved 2026-04-24 — ADR-011 authored; two refactors closed the violations (commits `8738595d`, `794a4480`); enforcement rule `architecture.blackboard.worker_only_inserts` active at blocking severity. Band A closed. |
+| ~~Finding → Proposal contract unwired (§7 + §7a)~~ | ✅ Resolved 2026-04-24 — ADR-010 authored; three-layer contract closed (commit `62a84ff7`). Runtime verification of revival path remains passive (issue #122). |
+| ~~`build.tests` context gap — CoderAgent generates without source context~~ | ✅ Resolved 2026-04-19 — commits `a0f68287`, `8a1556e4` (ADR-003 + ADR-004). |
+| ~~`src/shared/infrastructure/context/cli.py` vestigial CLI~~ | ✅ Deleted 2026-04-19. |
+| ~~Phase map hardcoded in `src/` (three-way drift)~~ | ✅ Governed via ADR-004 in `.intent/enforcement/config/task_type_phases.yaml`. |
+| ~~Audit verdict policy hardcoded in `src/`~~ | ✅ Governed 2026-04-20 via ADR-005 in `.intent/enforcement/config/audit_verdict.yaml`. |
+| ~~`modularity.needs_split` implementation misaligned with statement~~ | ✅ Corrected 2026-04-20 via ADR-006 — mechanism replaced from import-based proxy to content-pattern responsibility detection. |
+| ~~fnmatch include-pattern asymmetry in `AuditorContext.get_files`~~ | ✅ Compensated via `_include_matches` helper, commit `8e9325fb` (2026-04-18). Verified 2026-04-20. |
+| ~~`_expr_is_intent_related` missing `Call` handling~~ | ✅ `ast.Call` branch present; shape verified live 2026-04-20. |
+| ~~`autonomy.tracing.mandatory` silent non-firing~~ | ✅ Premise falsified 2026-04-20 — rule fires. Handoffs carrying the claim superseded. |
+| ~~ViolationExecutor `'id'`/`entry_id` bug~~ | ✅ Fixed 2026-04-18. |
+| ~~Stream B test-writing not wired~~ | ✅ Complete 2026-04-18. |
+| ~~Shared/ boundary violations~~ | ✅ Resolved 2026-04-18 — ADR-002. |
+| ~~`style.formatter_required` — deferred, no engine check~~ | ✅ Fully wired 2026-04-17. |
+| ~~Proposal Path workers not daemonized~~ | ✅ Fixed 2026-04-17. |
+| ~~Worker heartbeat not updating registry~~ | ✅ Fixed 2026-04-17. |
+| ~~BlackboardAuditor and WorkerAuditor not active~~ | ✅ Fixed 2026-04-17. |
+| ~~Documentation stale — A2 marked current, `.specs/` absent~~ | ✅ Fixed 2026-04-17. |
+| ~~Blackboard hygiene bug (2 failure modes)~~ | ✅ Fixed 2026-04-16. |
+| ~~`.specs/` invisible to vector layer~~ | ✅ Fixed 2026-04-16. |
+| ~~Context build evidence missing constitutional papers~~ | ✅ Fixed 2026-04-16. |
+| ~~`intent_alignment.py` northstar broken~~ | ✅ Fixed 2026-04-16. |
+| ~~Context build layer constraints noise~~ | ✅ Fixed 2026-04-16. |
+| ~~`core-admin vectors query` missing specs collection~~ | ✅ Fixed 2026-04-16. |
+| ~~Rich Panel rendering bug in build.py~~ | ✅ Fixed 2026-04-16. |
+| ~~Stale Blackboard entries (2)~~ | ✅ Purged 2026-04-16. |
+| ~~No functional requirements document~~ | ✅ `CORE-What-It-Does.md` authored 2026-04-16. |
+| ~~Ghost worker registry entries (23)~~ | ✅ Marked abandoned via SQL — 2026-04-15. |
+| ~~`.intent/` contains non-operational documents~~ | ✅ `.specs/` layer established — 2026-04-15 — ADR-001. |
+| ~~Orphan classifier (92 findings)~~ | ✅ Dissolved — 0 real orphans. |
 
 ---
 
@@ -201,39 +167,42 @@ Test generation correctly routes through `audit` phase rather than `execution`. 
 ### ADR-004 (2026-04-19) — Govern task_type → phase mapping in `.intent/`
 Three-way drift (service, CLI, vestigial file) collapsed to single source at `.intent/enforcement/config/task_type_phases.yaml`. Vestigial `src/shared/infrastructure/context/cli.py` retired in same change-set.
 
-### Undocumented-as-ADR decisions (backfill candidates)
-The following decisions were made in code and in session handoffs but not captured as ADRs. Each is a candidate for retrospective ADR authoring:
+### ADR-005 (2026-04-20) — Govern audit verdict policy in `.intent/`
+Severity→verdict mapping, carve-out list, and DEGRADED preconditions codified as data at `.intent/enforcement/config/audit_verdict.yaml`. Governed loader at `src/shared/infrastructure/intent/audit_verdict.py` mirrors the ADR-004 `task_type_phases.py` pattern. `_determine_verdict` retrofitted to branch on the loaded policy.
 
-- 2026-04-15 — Dashboard reads daemon state only
-- 2026-04-15 — Panel 5 is Autonomous Reach, not governance coverage
-- 2026-04-16 — Context build emits layer constraints from path, not role inference
-- 2026-04-16 — `.specs/` is a first-class vector collection
-- 2026-04-17 — Dashboard two-column layout
-- 2026-04-17 — Worker heartbeat updates registry in base class
-- 2026-04-17 — ruff-format is the formatting authority, not Black
-- 2026-04-17 — `workflow.ruff_format_check` is the Blackboard check_id for formatting
+### ADR-006 (2026-04-20) — Align `modularity.needs_split` implementation with its statement
+Rule statement is law, implementation is mechanism; when they disagree, the mechanism is corrected. `_identify_concerns(imports)` replaced with `_detect_responsibilities(...)` so the check measures "single coherent responsibility" (content-pattern-based) rather than "narrow external domain-library exposure" (import-based proxy).
+
+### ADR-007 (2026-04-21) — `modularity.class_too_large` rule split from `modularity.needs_split`
+`modularity.class_too_large` introduced as a distinct rule in `.intent/rules/code/modularity.json`. Sensor layer routes via a deterministic structural test using two sensor methods, matching the 1-rule-to-1-method pattern. Separates the automatable module-redistribution case from the non-automatable dominant-class case.
+
+### ADR-008 (2026-04-22, parked) — Constitutionalize `impact_level`
+Documents the governance-in-code inversion where `impact_level` (auto-approve vs. requires-human) is declared in `@register_action` decorators rather than in `.intent/`. Parked — not session-scale. No implementation committed.
+
+### ADR-009 (2026-04-24) — CLI-depth block transient — passive instrumentation over active probe
+No `cli.*` rule or YAML mapping modified; no active reproduction of the transient attempted. Passive instrumentation already in place (commit `cf2ea63c` persists full `ConstitutionalViolationError.to_dict()` attribution into `action_results.violations[]`) captures any recurrence — `rule_name`, `path`, `source_policy` — without live introspection.
+
+### ADR-010 (2026-04-24) — Wire the §7 + §7a Finding/Proposal contract
+All three gaps closed in one coordinated change: correct terminal status (`deferred_to_proposal`), forward link added (`proposal_id` in finding payload), revival implemented on proposal failure. `BlackboardService` gains `defer_entries_to_proposal`; worker resolve path fixed; `ProposalStateManager` implements the §7a revival query.
+
+### ADR-011 (2026-04-24) — Workers own blackboard attribution; services do not post
+Every INSERT into `core.blackboard_entries` must originate from a registered Worker via base-class `post_finding` / `post_report` / `post_heartbeat` / `_post_entry`. Services may UPDATE (state transitions) but never INSERT. Architectural cut: INSERT creates attribution (Worker-only); UPDATE transitions pre-attributed rows (anyone). Enforcement rule `architecture.blackboard.worker_only_inserts` active at blocking severity. Band A closed.
 
 ---
 
-## Intent Layer Hygiene — proposed (not executed this session)
+## Intent Layer Hygiene — proposed (not executed)
 
-`.specs/` has grown organically over five weeks and its layout no longer reflects clean genre separation. Proposal captured here for a later session.
-
-**Current state of `.specs/`:**
-- `META/` exists but is empty (0 schemas)
-- `state/` mixes three genres: periodic snapshots (`CORE-state-2026-04-18.md`), dated investigations (`nested_scope_audit_2026-04-19.md`, `tracing_mandatory_diagnostic_2026-04-20.md`, `reconnaissance_2026-04-20.md`), and external-facing whitepapers (`Prior Art and the End-to-End Gap.md`)
-- Naming is inconsistent: `northstar/CORE - What It Does.md` (spaces, hyphens), `northstar/core_northstar.md` (snake_case lowercase), `state/Prior Art and the End-to-End Gap.md` (spaces, title case, no date), `state/CORE-state-2026-04-18.md` (hyphen date), `state/nested_scope_audit_2026-04-19.md` (underscore date)
+`.specs/` has grown organically. Proposal captured here for a later session.
 
 **Proposed reorganization:**
 - `state/` keeps only periodic state snapshots (`CORE-state-YYYY-MM-DD.md`)
-- `state/investigations/` holds dated one-off analyses (nested-scope audit, tracing diagnostic, reconnaissance)
-- `whitepapers/` (new) holds external-facing positioning documents (Prior Art whitepaper, any future competitive framing)
-- `META/` gains minimum-viable schemas for: paper, ADR, URS, handoff, plan, state snapshot, investigation, whitepaper (eight schemas)
+- `state/investigations/` holds dated one-off analyses
+- `state/handoffs/` holds the handoff archive (done 2026-04-24)
+- `whitepapers/` (new) holds external-facing positioning documents
+- `META/` gains minimum-viable schemas for: paper, ADR, URS, handoff, plan, state snapshot, investigation, whitepaper (tracked as issue #116)
 - Naming convention: `kebab-case` for multi-word filenames; date prefix `YYYY-MM-DD-` for dated artifacts; no spaces anywhere
 
-**Execution cost:** one session. Moves are `git mv`; schemas are authored per minimum-viable shape. The current session's citations at `state/tracing_mandatory_diagnostic_2026-04-20.md` and `state/reconnaissance_2026-04-20.md` become `state/investigations/2026-04-20-tracing-mandatory-diagnostic.md` and `state/investigations/2026-04-20-reconnaissance.md` — one find-replace edit in this plan when the reorg runs.
-
-**Not executed this session.** Captured here so the idea does not drift out of context.
+**Execution cost:** one session.
 
 ---
 
@@ -250,9 +219,6 @@ journalctl --user -u core-daemon -f
 # Audit
 core-admin code audit
 core-admin constitution validate
-# NOTE: 'core-admin check rule --rule X --verbose' is documented in prior plans but
-# does not exist in the current CLI. Command name may have been removed without
-# plan update. Treated as Phase 4 documentation-drift item.
 
 # Blackboard
 core-admin workers blackboard
@@ -284,12 +250,8 @@ core-admin vectors query "<query>" --collection policies|patterns|specs --limit 
 poetry run core-admin dev sync --write
 
 # DB (only when no core-admin command covers the need)
-# Connection requires PGPASSWORD env var or ~/.pgpass; no-password invocation fails.
+# Connection requires PGPASSWORD env var or ~/.pgpass.
 PGPASSWORD=core_db psql -U core_db -d core -h 192.168.20.23
-
-# Ghost worker cleanup (no core-admin command yet — Phase 4 item)
-# UPDATE core.worker_registry SET status = 'abandoned'
-# WHERE status = 'active' AND last_heartbeat < NOW() - INTERVAL '24 hours';
 ```
 
 ---
@@ -355,11 +317,11 @@ infra/      ← infrastructure (DB migrations, SQL schema)
 ```
 
 **Module path notes:**
-- `AuditorContext` lives at `src/mind/governance/audit_context.py`, not `src/mind/logic/engines/ast_gate/base.py`. Several prior documents cite the wrong path; they are superseded.
+- `AuditorContext` lives at `src/mind/governance/audit_context.py`.
 
 **Vector collections:**
 ```
-core_specs      ← .specs/ markdown documents (549 items, 53 files)
+core_specs      ← .specs/ markdown documents
 core_policies   ← .intent/ governance policies and rules
 core-patterns   ← .intent/ architecture patterns
 core-code       ← src/ code symbols
@@ -369,24 +331,26 @@ core-code       ← src/ code symbols
 
 ## Session Handoff Template
 
+Per SESSION-PROTOCOL.md, session handoff lives in GitHub (issues, milestones, releases, commits) rather than in long-form markdown. This template is retained for quick orientation only:
+
 ```
 Current A3 phase: [0/1/2/3/4/5]
 Gate status: [G1/G2/G3/G4 — any that moved this session]
 Last session: [what was done]
-Current blocker: [what is blocking progress]
-Audit state: [verdict, total findings, distribution by check_id]
-Daemon state: [active/inactive, last Blackboard activity]
+Current band: [A closed / B/C/D/E in progress — what's queued]
+Audit state: [verdict, finding count]
+Daemon state: [active/inactive]
 Active workers: [count]
-Next step: [specific action]
+Next step: [specific action or issue #N]
 ```
 
 ---
 
 Current A3 phase: 3 (trust-hardening)
-Gate status: G1 not demonstrated, G2 not reached, G3 not built, G4 in progress.
-Last session: 2026-04-21 — A3 Gates section added to plan. Phase 3 explicitly framed as trust-hardening (not autonomy-operation). Known Blockers re-indexed against gates. No src/ or .intent/ writes.
-Current blocker: Daemon inactive since 2026-04-18 14:26. `modularity.needs_split` single-class concentration (32/39) not diagnosed. No autonomous round-trip observed on current codebase (G1 unproven).
-Audit state: PASS, 39 findings (37 WARNING, 2 INFO). 32 `modularity.needs_split`, 2 `autonomy.tracing.mandatory`, 2 `purity.no_ast_duplication`, 1 `governance.dangerous_execution_primitives`, 1 `workflow.mypy_check`, 1 `workflow.security_check`.
-Daemon state: inactive.
-Active workers: 15 registered active; 20 abandoned rows in `core.worker_registry`.
-Next step: Option B (diagnose `modularity.needs_split` concentration before reactivating daemon). Alternatives: Option A (activate daemon first, observe behaviour), Option C (Block B `.specs/` reorganization + META schemas).
+Gate status: G1 not yet demonstrated on live codebase, G2 not reached, G3 not built (Band B), G4 in progress (ADR-005 added).
+Last session: 2026-04-24 — Band A closed via ADR-011 and enforcement rule; ADR-009, ADR-010, ADR-011 landed. GitHub migration: 25 labels, 5 band milestones, 35 issues opened across three batches (#107–141); autonomy status hub pinned at #106; handoff archive relocated to `.specs/state/handoffs/`; SESSION-PROTOCOL.md committed; `.gitignore` hygiene fixes.
+Current band: Band A closed. Band D carries most remaining Phase 3 work. Band B carries G3 (consequence chain) — strategic arc, not yet started.
+Audit state: PASS, 31 findings, WARNING-dominant.
+Daemon state: active.
+Active workers: 15.
+Next step: Session-open at next session per SESSION-PROTOCOL.md §3 — state scan, GitHub scan, pick a lead. Candidate issues are visible under band milestones at https://github.com/DariuszNewecki/CORE/milestones.
