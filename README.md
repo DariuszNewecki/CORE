@@ -5,6 +5,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Release](https://img.shields.io/badge/Release-v2.2.2-blue)](https://github.com/DariuszNewecki/CORE/releases)
 [![Docs](https://img.shields.io/badge/Docs-online-green)](https://dariusznewecki.github.io/CORE/)
+[![Autonomy](https://img.shields.io/badge/Autonomy-A2-blue)](https://github.com/DariuszNewecki/CORE/issues/106)
 
 ---
 
