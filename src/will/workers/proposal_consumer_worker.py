@@ -183,6 +183,51 @@ class ProposalConsumerWorker(Worker):
                         proposal_id,
                         result.get("error", "unknown"),
                     )
+                    # §7a orchestration: mark_failed has already run inside
+                    # executor.execute() and transitioned the proposal row.
+                    # Worker now revives any findings that were deferred to
+                    # this proposal (UPDATE-only service call) and posts the
+                    # revival report with Worker attribution (ADR-011).
+                    reason = result.get("failure_reason") or "proposal execution failed"
+                    try:
+                        from body.services.service_registry import service_registry
+
+                        bb_service = await service_registry.get_blackboard_service()
+                        revival = await bb_service.revive_findings_for_failed_proposal(
+                            proposal_id=proposal_id,
+                            failure_reason=reason,
+                        )
+                    except Exception as revive_err:
+                        logger.warning(
+                            "Revival query failed for proposal %s: %s",
+                            proposal_id,
+                            revive_err,
+                        )
+                        revival = None
+
+                    if revival and revival.get("revived_count", 0) > 0:
+                        try:
+                            await self.post_report(
+                                subject=f"proposal.failure.revival::{proposal_id}",
+                                payload={
+                                    "proposal_id": revival["proposal_id"],
+                                    "failure_reason": revival["failure_reason"],
+                                    "revived_count": revival["revived_count"],
+                                    "revived_subjects": revival["revived_subjects"],
+                                },
+                            )
+                            logger.info(
+                                "ProposalConsumerWorker: posted revival report for "
+                                "proposal %s (%d findings revived)",
+                                proposal_id,
+                                revival["revived_count"],
+                            )
+                        except Exception as post_err:
+                            logger.warning(
+                                "Failed to post revival report for proposal %s: %s",
+                                proposal_id,
+                                post_err,
+                            )
 
                 results.append(
                     {

@@ -102,34 +102,23 @@ class ProposalStateManager:
         reason: str,
         results: dict[str, Any] | None = None,
     ) -> None:
-        """Mark proposal as failed with reason and execution results, and
-        revive any Findings that were deferred to this proposal.
+        """Mark proposal as failed with reason and execution results.
 
-        The method performs two sequential operations:
+        UPDATE-only: transitions the proposal row on
+        core.autonomous_proposals to 'failed' status.
 
-          1. Proposal state UPDATE on core.autonomous_proposals (same
-             session, same transaction as the caller's existing context).
-          2. Revival of deferred findings via
-             BlackboardService.revive_findings_for_failed_proposal.
-             Service-owned session/transaction; runs after the proposal
-             state commit.
-
-        Eventual consistency, not atomicity — see ADR-010 Layer 3. The
-        revival call is idempotent: on a retry it finds the findings
-        already 'open' and no-ops, producing a revived_count=0 report.
-
-        Revival failure does not propagate. If the blackboard service
-        raises, the proposal is still marked failed (which is the
-        load-bearing state transition the caller relies on); the revival
-        failure is logged loudly so operators can reconcile manually. This
-        matches the non-blocking audit-log pattern elsewhere in the
-        codebase (e.g. ActionExecutor._audit_log).
+        Revival of deferred findings and posting of the §7a revival report
+        are the calling Worker's orchestration responsibility per ADR-011.
+        The Worker detects ok=False from ProposalExecutor, invokes the
+        blackboard service's revival method (also UPDATE-only), and posts
+        the revival report via self.post_report() so the entry carries
+        Worker attribution. This method no longer invokes the blackboard
+        service directly.
         """
         from shared.infrastructure.database.models.autonomous_proposals import (
             AutonomousProposal,
         )
 
-        # 1. Proposal state transition — caller's session, caller's transaction.
         stmt = (
             update(AutonomousProposal)
             .where(AutonomousProposal.proposal_id == proposal_id)
@@ -143,33 +132,6 @@ class ProposalStateManager:
         await self._session.execute(stmt)
         await self._session.commit()
         logger.error("Marked proposal as failed: %s - %s", proposal_id, reason)
-
-        # 2. Finding revival — service-owned session, after proposal commit.
-        # Implements CORE-Finding.md §7a. If BlackboardService is unavailable
-        # or raises, the proposal stays marked failed; revival is logged as
-        # unresolved so operators can reconcile.
-        try:
-            from body.services.service_registry import service_registry
-
-            blackboard_service = await service_registry.get_blackboard_service()
-            revival = await blackboard_service.revive_findings_for_failed_proposal(
-                proposal_id=proposal_id,
-                failure_reason=reason,
-            )
-            logger.info(
-                "Proposal %s failure revival: %d finding(s) revived",
-                proposal_id,
-                revival["revived_count"],
-            )
-        except Exception as revival_err:
-            logger.error(
-                "Non-blocking revival failure for proposal %s: %s. "
-                "Proposal remains marked failed. Findings deferred to this "
-                "proposal may require manual reconciliation.",
-                proposal_id,
-                revival_err,
-                exc_info=True,
-            )
 
     # -------------------------
     # Approval State Transitions

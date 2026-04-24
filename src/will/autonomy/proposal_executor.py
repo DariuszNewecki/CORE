@@ -108,6 +108,7 @@ class ProposalExecutor:
 
             changed_files: list[str] = []
             post_execution_sha: str | None = None
+            failure_reason: str | None = None
 
             # 4. Execute actions in order
             action_results: dict[str, Any] = {}
@@ -278,6 +279,7 @@ class ProposalExecutor:
                         aid for aid, res in action_results.items() if not res["ok"]
                     ]
                     reason = f"Actions failed: {', '.join(failed_actions)}"
+                    failure_reason = reason
                     await state_manager.mark_failed(
                         proposal.proposal_id, reason=reason, results=action_results
                     )
@@ -317,6 +319,7 @@ class ProposalExecutor:
                 "action_results": action_results,
                 "changed_files": changed_files,
                 "post_execution_sha": post_execution_sha,
+                "failure_reason": failure_reason,
                 "duration_sec": total_duration,
             }
 
@@ -378,6 +381,7 @@ class ProposalExecutor:
 
                     changed_files: list[str] = []
                     post_execution_sha: str | None = None
+                    failure_reason: str | None = None
 
                     action_results: dict[str, Any] = {}
                     all_ok = True
@@ -507,6 +511,7 @@ class ProposalExecutor:
                                 if not res["ok"]
                             ]
                             reason = f"Actions failed: {', '.join(failed_actions)}"
+                            failure_reason = reason
                             await state_manager.mark_failed(
                                 proposal.proposal_id,
                                 reason=reason,
@@ -528,6 +533,7 @@ class ProposalExecutor:
                         "action_results": action_results,
                         "changed_files": changed_files,
                         "post_execution_sha": post_execution_sha,
+                        "failure_reason": failure_reason,
                         "duration_sec": time.time() - single_start,
                     }
 

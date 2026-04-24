@@ -762,19 +762,17 @@ class BlackboardService:
     # ID: e1c4b8a7-6f03-4d29-b8a2-9c5d7e0f3a14
     async def revive_findings_for_failed_proposal(
         self, proposal_id: str, failure_reason: str
-    ) -> dict[str, Any]:
+    ) -> dict[str, Any] | None:
         """
         Restore findings that were deferred to a now-failed proposal back
-        to 'open' status, and post a revival report.
+        to 'open' status, and return the revival outcome.
 
-        Implements CORE-Finding.md §7a:
-          > When a Proposal reaches `failed` status, [...]:
-          >   1. Query all Findings whose payload `proposal_id` matches the
-          >      failed Proposal's ID.
-          >   2. For each such Finding, set `status = 'open'`, `claimed_by =
-          >      NULL`, `claimed_at = NULL`.
-          >   3. Post a `report` entry recording the revival: the Proposal
-          >      ID, the count of revived Findings, and the failure reason.
+        Implements CORE-Finding.md §7a steps 1-2 (state transition only).
+        §7a step 3 (posting a `report` entry recording the revival) is the
+        calling Worker's responsibility per ADR-011 — this method is
+        UPDATE-only. The Worker consumes this method's return value and
+        posts the revival report via self.post_report() so the entry
+        carries Worker attribution.
 
         The UPDATE filter restricts to status = 'deferred_to_proposal'. This
         protects against retry races and against findings that drifted to
@@ -784,30 +782,29 @@ class BlackboardService:
         matches its new non-terminal status (ADR-010 hygiene rule, tracking
         the Option A+ convention from 2026-04-22).
 
-        The revival UPDATE and the revival report INSERT run in a single
-        transaction. The caller's own transaction (the proposal-state
-        UPDATE in ProposalStateManager.mark_failed) has already committed
-        by the time this method runs — see ADR-010 Layer 3 note on why
-        revival is eventually-consistent rather than atomic with proposal
-        failure.
-
         Returns:
-          {"revived_count": int, "revived_finding_ids": list[str]}
+          None if no findings were revived (revived_count == 0) — nothing
+          to report.
+          dict with keys ``proposal_id``, ``failure_reason``,
+          ``revived_count``, ``revived_finding_ids``, ``revived_subjects``
+          when one or more rows were revived. Both id and subject lists
+          are returned — IDs for precise downstream queries, subjects for
+          human-readable audit trails in the revival report payload.
 
         The caller MUST NOT rely on this method raising on partial failure.
-        If the revival query matches zero rows, this returns {"revived_count":
-        0, "revived_finding_ids": []} — a legitimate outcome when the failed
-        proposal had no findings deferred to it (e.g. proposals created by
-        paths other than ViolationRemediatorWorker).
+        Zero rows revived is a legitimate outcome when the failed proposal
+        had no findings deferred to it (e.g. proposals created by paths
+        other than ViolationRemediatorWorker); the caller receives None
+        and skips posting a revival report.
         """
         from body.services.service_registry import ServiceRegistry
 
-        revival_report_id = uuid.uuid4()
-        revived_ids: list[str] = []
-
         async with ServiceRegistry.session() as session:
             async with session.begin():
-                # Step 1+2 of §7a: query-and-reset in one UPDATE ... RETURNING.
+                # §7a steps 1+2: query-and-reset in one UPDATE ... RETURNING.
+                # RETURNING id, subject so the Worker can persist both in
+                # the revival report payload (IDs for queries, subjects for
+                # audit trails).
                 update_result = await session.execute(
                     text(
                         """
@@ -820,45 +817,14 @@ class BlackboardService:
                         WHERE entry_type = 'finding'
                           AND status = 'deferred_to_proposal'
                           AND payload->>'proposal_id' = :proposal_id
-                        RETURNING id
+                        RETURNING id, subject
                         """
                     ),
                     {"proposal_id": proposal_id},
                 )
-                revived_ids = [str(row[0]) for row in update_result.fetchall()]
-
-                # Step 3 of §7a: revival report. Posted unconditionally,
-                # including the revived_count=0 case, so the audit trail
-                # records that mark_failed ran revival for this proposal
-                # and the answer was "nothing to revive."
-                await session.execute(
-                    text(
-                        """
-                        INSERT INTO core.blackboard_entries
-                            (id, entry_type, subject, payload, status, created_at)
-                        VALUES (
-                            :id,
-                            'report',
-                            :subject,
-                            cast(:payload as jsonb),
-                            'resolved',
-                            now()
-                        )
-                        """
-                    ),
-                    {
-                        "id": revival_report_id,
-                        "subject": f"proposal.failure.revival::{proposal_id}",
-                        "payload": json.dumps(
-                            {
-                                "proposal_id": proposal_id,
-                                "failure_reason": failure_reason,
-                                "revived_count": len(revived_ids),
-                                "revived_finding_ids": revived_ids,
-                            }
-                        ),
-                    },
-                )
+                rows = update_result.fetchall()
+                revived_ids = [str(row[0]) for row in rows]
+                revived_subjects = [str(row[1]) for row in rows]
 
         logger.info(
             "Revived %d finding(s) for failed proposal %s (reason: %s)",
@@ -867,7 +833,13 @@ class BlackboardService:
             failure_reason,
         )
 
+        if not revived_ids:
+            return None
+
         return {
+            "proposal_id": proposal_id,
+            "failure_reason": failure_reason,
             "revived_count": len(revived_ids),
             "revived_finding_ids": revived_ids,
+            "revived_subjects": revived_subjects,
         }
