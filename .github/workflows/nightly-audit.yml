@@ -45,7 +45,7 @@ jobs:
             const title = "❌ Nightly Constitutional Audit failed";
             const body = "The nightly audit failed. Please check CI logs for details.\n\n- Workflow: ${{ github.workflow }}\n- Run ID: ${{ github.run_id }}";
             const { data: issues } = await github.rest.issues.listForRepo({
-              owner: context.repo.owner, repo: context.repo.repo, state: "open", labels: "ci,audit"
+              owner: context.repo.owner, repo: context.repo.repo, state: "open", labels: "type:ci,audit"
             });
             const existing = issues.find(i => i.title === title);
             if (existing) {
@@ -53,7 +53,7 @@ jobs:
             } else {
               await github.rest.issues.create({
                 owner: context.repo.owner, repo: context.repo.repo,
-                title, body, labels: ["ci","audit"]
+                title, body, labels: ["type:ci","audit"]
               });
             }
 
@@ -65,7 +65,7 @@ jobs:
           script: |
             const title = "❌ Nightly Constitutional Audit failed";
             const { data: issues } = await github.rest.issues.listForRepo({
-              owner: context.repo.owner, repo: context.repo.repo, state: "open", labels: "ci,audit"
+              owner: context.repo.owner, repo: context.repo.repo, state: "open", labels: "type:ci,audit"
             });
             const existing = issues.find(i => i.title === title);
             if (existing) {
