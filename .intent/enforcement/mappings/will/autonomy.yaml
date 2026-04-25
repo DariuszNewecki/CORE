@@ -15,6 +15,18 @@ mappings:
 
   # LAW: Every autonomous decision MUST produce a trace
   # Check: Ensures Agents initialize or call the DecisionTracer
+  #
+  # KNOWN SELECTOR LIMITATION (tracked: GH issue — selector redesign):
+  # The current selector `name_regex: "Agent$"` is structurally wrong.
+  # It produces false positives on sensing-only Workers whose class names
+  # end in "Agent" but which do not make traceable decisions, and false
+  # negatives on decision-making classes whose names do not end in
+  # "Agent" (e.g. StrategicAuditor, PlanExecutor, ResourceSelector,
+  # CognitiveOrchestrator). The structurally correct selector is
+  # `inherits from TracedAgentMixin`, which requires engine work in the
+  # ast_gate generic_primitive selector to support inheritance-based
+  # selection. Until that lands, individual false positives are exempted
+  # by file path with rationale below.
   autonomy.tracing.mandatory:
     engine: ast_gate
     params:
@@ -29,6 +41,12 @@ mappings:
       excludes:
         - "src/will/agents/**/__init__.py" # re-export modules, no class definitions
         - "src/will/agents/**/factory.py" # factory functions, not agent classes
+        # SelfHealingAgent is a sensing-only Worker (subclass of Worker, not
+        # TracedAgentMixin). It scans src/ for missing # ID: tags and posts
+        # findings to the blackboard — pure deterministic AST work, no
+        # decisions to trace. False positive of the name-based selector;
+        # excluded until the structural-selector redesign lands.
+        - "src/will/agents/self_healing_agent.py"
 
   # LAW: Planning MUST include a check against Quality Assurance policy
   autonomy.reasoning.policy_alignment:

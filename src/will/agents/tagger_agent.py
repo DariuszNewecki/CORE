@@ -186,6 +186,33 @@ class CapabilityTaggerAgent:
             )
             parsed = json.loads(self._strip_markdown(response))
             suggestion = parsed.get("suggested_capability")
+
+            # DECISION TRACING: record the LLM-driven capability suggestion.
+            # Satisfies autonomy.tracing.mandatory by recording the agent's
+            # core decision — what capability name to suggest for an
+            # orphaned symbol — at the point the LLM response is parsed.
+            self.tracer.record(
+                agent="CapabilityTaggerAgent",
+                decision_type="capability_suggestion",
+                rationale=(
+                    f"LLM produced suggestion for orphaned symbol "
+                    f"{symbol.get('name')!r} in {symbol_info.get('file')!r}"
+                ),
+                chosen_action=(
+                    f"Suggest capability: {suggestion!r}"
+                    if suggestion
+                    else "Reject — LLM returned no suggestion"
+                ),
+                alternatives=existing_capabilities[:5],
+                context={
+                    "symbol_uuid": symbol.get("uuid"),
+                    "symbol_name": symbol.get("name"),
+                    "file": symbol_info.get("file"),
+                    "domain": symbol_info.get("domain"),
+                },
+                confidence=0.8 if suggestion else 0.0,
+            )
+
             if not suggestion:
                 return None
             return {
