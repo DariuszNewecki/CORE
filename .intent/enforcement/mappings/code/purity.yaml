@@ -90,6 +90,18 @@ mappings:
         - "src/**/*.py"
       excludes:
         - "tests/**/*.py"
+        # IntentRepository (.intent/ gateway) and SpecsRepository (.specs/
+        # gateway) implement parallel sanctuaries for two distinct roots.
+        # Their `resolve_rel` and `root` methods are intentionally identical
+        # — the parallelism is structural, not accidental. Refactoring to a
+        # shared base would either move .intent/ access logic outside the
+        # `architecture.intent.non_gateway_no_direct_resolution` sanctuary
+        # excludes (which cover `src/shared/infrastructure/intent/**`), or
+        # place a generically-named base inside the intent sanctuary purely
+        # to preserve constitutional locality. Neither trade is worth the
+        # cleanup of two parallel methods.
+        - "src/shared/infrastructure/intent/intent_repository.py"
+        - "src/shared/infrastructure/specs/specs_repository.py"
 
   # 8. LAW: Code SHOULD NOT contain semantic duplicates
   purity.no_semantic_duplication:

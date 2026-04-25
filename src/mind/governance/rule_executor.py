@@ -48,7 +48,10 @@ async def execute_rule(
     if rule.is_context_level:
         if hasattr(engine, "verify_context"):
             severity = _map_enforcement_to_severity(rule.enforcement)
-            engine_findings = await engine.verify_context(context, rule.params)
+            engine_findings = await engine.verify_context(
+                context,
+                {**rule.params, "_scope_excludes": rule.exclusions},
+            )
             for f in engine_findings:
                 f.severity = severity
             findings.extend(engine_findings)

@@ -20,6 +20,10 @@ from typing import TYPE_CHECKING, Any
 
 from sqlalchemy import text
 
+from mind.logic.engines._knowledge_gate_duplication import (
+    _check_ast_duplication,
+    _check_semantic_duplication,
+)
 from mind.logic.engines.base import BaseEngine, EngineResult
 from shared.logger import getLogger
 from shared.models import AuditFinding, AuditSeverity
@@ -90,9 +94,9 @@ class KnowledgeGateEngine(BaseEngine):
         if check_type == "capability_assignment":
             return self._check_capability_assignment(context, params)
         elif check_type == "ast_duplication":
-            return self._check_ast_duplication(context, params)
+            return _check_ast_duplication(context, params)
         elif check_type == "semantic_duplication":
-            return await self._check_semantic_duplication(context, params)
+            return await _check_semantic_duplication(context, params)
         elif check_type == "duplicate_ids":
             return self._check_duplicate_ids(context, params)
         elif check_type == "table_has_records":
@@ -216,37 +220,6 @@ class KnowledgeGateEngine(BaseEngine):
                         line_number=symbol_data.get("line_number"),
                     )
                 )
-        return findings
-
-    def _check_ast_duplication(
-        self, context: AuditorContext, params: dict[str, Any]
-    ) -> list[AuditFinding]:
-        findings: list[AuditFinding] = []
-        if not context.symbols_map:
-            return findings
-        fingerprint_groups = defaultdict(list)
-        for symbol_data in context.symbols_map.values():
-            if "test" in symbol_data.get("module", ""):
-                continue
-            fp = symbol_data.get("fingerprint")
-            if fp:
-                fingerprint_groups[fp].append(symbol_data)
-        for symbols in fingerprint_groups.values():
-            if len(symbols) > 1:
-                for i, data_a in enumerate(symbols):
-                    for data_b in symbols[i + 1 :]:
-                        findings.append(
-                            self._create_duplication_finding(data_a, data_b, 1.0, "ast")
-                        )
-        return findings
-
-    async def _check_semantic_duplication(
-        self, context: AuditorContext, params: dict[str, Any]
-    ) -> list[AuditFinding]:
-        findings: list[AuditFinding] = []
-        qdrant = getattr(context, "qdrant_service", None)
-        if not context.symbols_map or not qdrant:
-            return findings
         return findings
 
     # ID: kg-orphan-check
@@ -408,25 +381,3 @@ class KnowledgeGateEngine(BaseEngine):
         )
 
         return findings
-
-    def _create_duplication_finding(self, a, b, score, dtype) -> AuditFinding:
-        name_a = a.get("qualname") or a.get("name") or "?"
-        name_b = b.get("qualname") or b.get("name") or "?"
-        module_a = a.get("module", "")
-        file_path = a.get("file_path") or (
-            "src/" + module_a.replace(".", "/") + ".py" if module_a else None
-        )
-        return AuditFinding(
-            check_id=f"purity.no_{dtype}_duplication",
-            severity=AuditSeverity.WARNING,
-            message=f"{dtype.upper()} duplication: '{name_a}' duplicates '{name_b}' (score={score:.2f})",
-            file_path=file_path,
-            context={
-                "symbol_a": name_a,
-                "symbol_b": name_b,
-                "module_a": module_a,
-                "module_b": b.get("module", ""),
-                "similarity": score,
-                "type": dtype,
-            },
-        )
