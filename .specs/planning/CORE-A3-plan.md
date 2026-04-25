@@ -127,7 +127,6 @@ Historical record of blockers resolved. New resolutions land here at session clo
 | ~~Phase map hardcoded in `src/` (three-way drift)~~ | ✅ Governed via ADR-004 in `.intent/enforcement/config/task_type_phases.yaml`. |
 | ~~Audit verdict policy hardcoded in `src/`~~ | ✅ Governed 2026-04-20 via ADR-005 in `.intent/enforcement/config/audit_verdict.yaml`. |
 | ~~`modularity.needs_split` implementation misaligned with statement~~ | ✅ Corrected 2026-04-20 via ADR-006 — mechanism replaced from import-based proxy to content-pattern responsibility detection. |
-| ~~fnmatch include-pattern asymmetry in `AuditorContext.get_files`~~ | ✅ Compensated via `_include_matches` helper, commit `8e9325fb` (2026-04-18). Verified 2026-04-20. |
 | ~~`_expr_is_intent_related` missing `Call` handling~~ | ✅ `ast.Call` branch present; shape verified live 2026-04-20. |
 | ~~`autonomy.tracing.mandatory` silent non-firing~~ | ✅ Premise falsified 2026-04-20 — rule fires. Handoffs carrying the claim superseded. |
 | ~~ViolationExecutor `'id'`/`entry_id` bug~~ | ✅ Fixed 2026-04-18. |
@@ -187,6 +186,9 @@ All three gaps closed in one coordinated change: correct terminal status (`defer
 
 ### ADR-011 (2026-04-24) — Workers own blackboard attribution; services do not post
 Every INSERT into `core.blackboard_entries` must originate from a registered Worker via base-class `post_finding` / `post_report` / `post_heartbeat` / `_post_entry`. Services may UPDATE (state transitions) but never INSERT. Architectural cut: INSERT creates attribution (Worker-only); UPDATE transitions pre-attributed rows (anyone). Enforcement rule `architecture.blackboard.worker_only_inserts` active at blocking severity. Band A closed.
+
+### ADR-012 (2026-04-25) — Centralize globstar pattern matching via `pathspec`
+Eight `Path.match` call sites across `src/` carry Python 3.12's `**`-as-single-segment quirk; three are silent under-enforcement at security-sensitive sites (redactor, FileNavigator). Adopt `pathspec`'s `GitWildMatchPattern` as the standard primitive; introduce `src/shared/utils/glob_match.py` as the single entry point; migrate seven raw call sites and rewrite forbid-pattern strings to gitignore semantics. `AuditorContext` is out of scope — its hand-rolled `_include_matches`/`_is_excluded` compensation works correctly today and migrates separately under retargeted Issue #117 (real landing SHA `f634e521`, not `8e9325fb` as the plan previously claimed).
 
 ---
 
