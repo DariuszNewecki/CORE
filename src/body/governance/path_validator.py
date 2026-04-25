@@ -13,6 +13,7 @@ from mind.governance.policy_rule import PolicyRule
 from mind.governance.violation_report import ViolationReport
 from shared.logger import getLogger
 from shared.models.constitutional_validation import ConstitutionalValidationResult
+from shared.utils.glob_match import matches_glob
 
 
 logger = getLogger(__name__)
@@ -183,4 +184,4 @@ class PathValidator:
     def _matches_pattern(path: str, pattern: str) -> bool:
         if not pattern:
             return False
-        return Path(path).match(pattern)
+        return matches_glob(path, pattern)
