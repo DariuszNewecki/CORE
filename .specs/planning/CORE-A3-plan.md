@@ -2,7 +2,7 @@
 
 **Status:** Active
 **Owner:** Darek (Dariusz Newecki)
-**Last updated:** 2026-04-24
+**Last updated:** 2026-04-25
 **Definition:** The daemon runs continuously, the Blackboard clears, the codebase converges, and every action is visible.
 
 ---
@@ -96,7 +96,7 @@ https://github.com/DariuszNewecki/CORE/milestone/14
 | 2 — All sensors | All sensors active, converging | ✅ Complete |
 | 3 — Capability gaps | Trust-hardened; G1 demonstrated; daemon live | 🔄 Daemon active; Band A closed; G1 not yet demonstrated on live codebase; remaining work tracked under Band D |
 | 4 — CLI health | All commands work, legacy gone, URS written | ⬜ Not started |
-| 5 — Visibility | Demo-ready, `tail -f` tells the story, G3 chain queryable | ⬜ Not started; Band B carries G3 |
+| 5 — Visibility | Demo-ready, `tail -f` tells the story, G3 chain queryable | ⬜ Not started; Band B carries G3 — 5 issues open (1 epic + 4 children); decomposition committed `acf56a6b` 2026-04-25 |
 
 ---
 
@@ -120,6 +120,7 @@ Historical record of blockers resolved. New resolutions land here at session clo
 
 | Blocker | Notes |
 |---------|-------|
+| ~~Daemon inactive — autonomous loop not converging~~ | ✅ Resolved 2026-04-25 — root cause identified as clean shutdown via `systemctl stop` on 2026-04-18 16:26:35 (exit 0; not a crash). Daemon restarted 2026-04-24 13:18; 24h verification confirmed 12,199 blackboard entries, 729 cycle completions, 15 active workers heartbeating. #107 closed with verification scan; G1 round-trip evidence gap split out as #144. |
 | ~~Attribution principle unwired in `src/`~~ | ✅ Resolved 2026-04-24 — ADR-011 authored; two refactors closed the violations (commits `8738595d`, `794a4480`); enforcement rule `architecture.blackboard.worker_only_inserts` active at blocking severity. Band A closed. |
 | ~~Finding → Proposal contract unwired (§7 + §7a)~~ | ✅ Resolved 2026-04-24 — ADR-010 authored; three-layer contract closed (commit `62a84ff7`). Runtime verification of revival path remains passive (issue #122). |
 | ~~`build.tests` context gap — CoderAgent generates without source context~~ | ✅ Resolved 2026-04-19 — commits `a0f68287`, `8a1556e4` (ADR-003 + ADR-004). |
