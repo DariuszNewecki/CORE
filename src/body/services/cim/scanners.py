@@ -9,10 +9,10 @@ Path classification utilities live in cim_path_utils.py.
 from __future__ import annotations
 
 import ast
-import subprocess
 from collections import defaultdict
 from pathlib import Path
 
+from shared.infrastructure.git_service import GitService
 from shared.logger import getLogger
 
 from .cim_constants import (
@@ -43,26 +43,35 @@ logger = getLogger(__name__)
 
 # ID: 3a31edb2-d190-4333-91e3-c87aa4a0010a
 def scan_git_metadata(repo_root: Path) -> RepoInfo:
-    """Extract git metadata if present."""
+    """Extract git metadata if present.
+
+    Routes all git operations through GitService — the constitutional
+    sanctuary for subprocess-based git access — so this module does not
+    need its own subprocess exemption from
+    governance.dangerous_execution_primitives.
+
+    Each git call is wrapped: missing remote, detached HEAD, or empty
+    repo are treated as 'metadata not available' rather than errors.
+    """
     root_str = str(repo_root.resolve())
     git_dir = repo_root / ".git"
 
     if not git_dir.exists():
         return RepoInfo(root_path=root_str)
 
-    def _git(*args) -> str | None:
+    git = GitService(repo_root)
+
+    def _safe(call) -> str | None:
         try:
-            return subprocess.check_output(
-                ["git", *args], cwd=repo_root, text=True, stderr=subprocess.DEVNULL
-            ).strip()
-        except subprocess.CalledProcessError:
+            return call()
+        except RuntimeError:
             return None
 
     return RepoInfo(
         root_path=root_str,
-        git_remote=_git("remote", "get-url", "origin"),
-        git_branch=_git("rev-parse", "--abbrev-ref", "HEAD"),
-        git_commit=_git("rev-parse", "HEAD"),
+        git_remote=_safe(lambda: git.get_remote_url()),
+        git_branch=_safe(lambda: git.get_current_branch()),
+        git_commit=_safe(lambda: git.get_current_commit()),
     )
 
 

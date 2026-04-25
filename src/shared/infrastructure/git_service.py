@@ -64,6 +64,27 @@ class GitService:
         """Returns the hash of the current HEAD commit."""
         return self._run_command(["rev-parse", "HEAD"])
 
+    # ID: e7a5c19d-2f48-4b6c-9d3a-1f0b4e8c5d72
+    def get_current_branch(self) -> str:
+        """
+        Returns the current branch name (e.g. 'main').
+
+        Raises RuntimeError on failure — for example, when HEAD is detached
+        or the repository has no commits yet. Callers that treat git
+        metadata as optional should wrap this call.
+        """
+        return self._run_command(["rev-parse", "--abbrev-ref", "HEAD"])
+
+    # ID: f8b6d2ae-3059-4c7d-ae4b-208c5f9d6e83
+    def get_remote_url(self, remote: str = "origin") -> str:
+        """
+        Returns the configured URL for the given remote (default 'origin').
+
+        Raises RuntimeError if the remote is not configured. Callers that
+        treat the remote URL as optional should wrap this call.
+        """
+        return self._run_command(["remote", "get-url", remote])
+
     # ID: 62355f31-f9eb-4ac1-984e-eea556b29f31
     def get_staged_files(self) -> list[str]:
         """Returns a list of files that are currently staged for commit."""
