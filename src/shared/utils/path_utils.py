@@ -16,9 +16,11 @@ Consolidates common patterns from:
 
 from __future__ import annotations
 
+import warnings
 from pathlib import Path
 
 from shared.logger import getLogger
+from shared.utils.glob_match import matches_any_glob, matches_glob
 
 
 logger = getLogger(__name__)
@@ -126,24 +128,34 @@ def matches_glob_pattern(path: str | Path, pattern: str) -> bool:
     """
     Check if path matches glob pattern.
 
+    .. deprecated::
+        Use ``shared.utils.glob_match.matches_glob`` directly. This shim
+        is retained for one release cycle per ADR-012 §2 and delegates
+        to the canonical helper. The previous implementation used
+        ``Path.match``, which on Python 3.12 silently under-enforced
+        ``**`` patterns; the docstring example below is correct under
+        the delegated implementation but was empirically false under
+        the previous ``Path.match`` body.
+
     Args:
         path: File path (string or Path object)
         pattern: Glob pattern (e.g., 'src/**/*.py', '*.yaml')
 
     Returns:
-        True if path matches pattern
+        True if path matches pattern under gitignore semantics.
 
     Example:
         matches_glob_pattern('src/main.py', 'src/**/*.py')  # True
         matches_glob_pattern('tests/test.py', 'src/**/*.py')  # False
     """
-    if not pattern:
-        return False
-
-    if isinstance(path, str):
-        path = Path(path)
-
-    return path.match(pattern)
+    warnings.warn(
+        "matches_glob_pattern is deprecated; use "
+        "shared.utils.glob_match.matches_glob directly. "
+        "Removed per ADR-012 after one release cycle.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
+    return matches_glob(path, pattern)
 
 
 # ID: 175cbfee-3c49-4280-be81-457e2f17660b
@@ -151,12 +163,17 @@ def matches_any_pattern(path: str | Path, patterns: list[str]) -> bool:
     """
     Check if path matches any of multiple patterns.
 
+    .. deprecated::
+        Use ``shared.utils.glob_match.matches_any_glob`` directly. This
+        shim is retained for one release cycle per ADR-012 §2 and
+        delegates to the canonical helper.
+
     Args:
-        path: File path to check
+        path: File path (string or Path object)
         patterns: List of glob patterns
 
     Returns:
-        True if path matches at least one pattern
+        True if path matches at least one pattern under gitignore semantics.
 
     Example:
         matches_any_pattern(
@@ -164,7 +181,14 @@ def matches_any_pattern(path: str | Path, patterns: list[str]) -> bool:
             ['src/**/*.py', 'tests/**/*.py']
         )  # True
     """
-    return any(matches_glob_pattern(path, pattern) for pattern in patterns)
+    warnings.warn(
+        "matches_any_pattern is deprecated; use "
+        "shared.utils.glob_match.matches_any_glob directly. "
+        "Removed per ADR-012 after one release cycle.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
+    return matches_any_glob(path, patterns)
 
 
 # ID: 4f468352-328a-499c-9062-bb6e38b2af7f

@@ -6,8 +6,9 @@ from __future__ import annotations
 
 import copy
 from dataclasses import dataclass, field
-from pathlib import Path
 from typing import Any
+
+from shared.utils.glob_match import matches_any_glob
 
 
 @dataclass
@@ -49,8 +50,7 @@ DEFAULT_FORBIDDEN_PATHS = [
 
 
 def _should_remove_path(path: str, forbidden_globs: list[str]) -> bool:
-    p = Path(path)
-    return any(p.match(glob) for glob in forbidden_globs)
+    return matches_any_glob(path, forbidden_globs)
 
 
 # ID: 2ba5eab5-8e98-4093-9395-6d6fa01db53e

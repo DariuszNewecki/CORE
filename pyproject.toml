@@ -66,6 +66,7 @@ networkx = "^3.3"
 
 # Utilities
 filelock = "^3.13.0"
+pathspec = "^0.12"
 
 # Dependency Injection
 dependency-injector = "^4.42.0"
