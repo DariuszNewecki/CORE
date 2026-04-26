@@ -1,7 +1,7 @@
 # src/shared/infrastructure/database/models/governance.py
 """
 Governance Layer models for CORE v2.2 Schema.
-Section 2: Proposals, Audits, Constitutional Violations - The Constitution.
+Section 2: Audits and Constitutional Violations.
 """
 
 from __future__ import annotations
@@ -24,38 +24,6 @@ from sqlalchemy import (
 from sqlalchemy.dialects.postgresql import UUID as pgUUID
 
 from .knowledge import Base
-
-
-# ID: 96906bd9-4298-460e-93b1-5f6b742938ea
-class Proposal(Base):
-    __tablename__: ClassVar[str] = "proposals"
-    __table_args__: ClassVar[dict] = {"schema": "core"}
-
-    id = Column(BigInteger, primary_key=True)
-    target_path = Column(Text, nullable=False)
-    content_sha256 = Column(Text, nullable=False)
-    justification = Column(Text, nullable=False)
-    risk_tier = Column(Text, server_default="low")
-    is_critical = Column(Boolean, nullable=False, server_default="false")
-    status = Column(Text, nullable=False, server_default="open")
-    created_at = Column(
-        DateTime(timezone=True), nullable=False, server_default=func.now()
-    )
-    created_by = Column(Text, nullable=False)
-
-
-# ID: 38b3e437-91cf-479d-adb5-33900948936b
-class ProposalSignature(Base):
-    __tablename__: ClassVar[str] = "proposal_signatures"
-    __table_args__: ClassVar[dict] = {"schema": "core"}
-
-    proposal_id = Column(BigInteger, ForeignKey("core.proposals.id"), primary_key=True)
-    approver_identity = Column(Text, primary_key=True)
-    signature_base64 = Column(Text, nullable=False)
-    signed_at = Column(
-        DateTime(timezone=True), nullable=False, server_default=func.now()
-    )
-    is_valid = Column(Boolean, nullable=False, server_default="true")
 
 
 # ID: ea32fc95-90ef-4735-86c0-f09ebc280a5f
