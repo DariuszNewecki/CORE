@@ -188,3 +188,7 @@ This paper does not define:
 - the ConsumerWorker's execution strategy
 - consequence logging
 - rollback procedures
+
+> **Schema note (2026-04-26):** `core.autonomous_proposals` holds the live
+> proposal record. The name `core.proposals` is reserved for a future rename
+> when the "autonomous" qualifier becomes redundant. See ADR-013.
