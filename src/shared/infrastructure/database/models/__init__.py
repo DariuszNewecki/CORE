@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from .autonomous_proposals import AutonomousProposal
 from .decision_traces import DecisionTrace
-from .governance import AuditRun, ConstitutionalViolation, Proposal, ProposalSignature
+from .governance import AuditRun, ConstitutionalViolation
 from .knowledge import Base, Capability, Domain, Symbol, SymbolCapabilityLink
 from .learning import AgentDecision, AgentMemory, Feedback
 from .operations import Action, CognitiveRole, LlmResource, Task
@@ -46,9 +46,6 @@ __all__ = [
     "LlmResource",
     "Migration",
     "Northstar",
-    # Governance Layer (Constitution)
-    "Proposal",
-    "ProposalSignature",
     "RetrievalFeedback",
     "RuntimeService",
     "RuntimeSetting",
