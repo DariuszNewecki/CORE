@@ -23,10 +23,11 @@ Constitutional standing:
   - approval:      true
   - src/ writes:   ONLY via ActionExecutor("crate.create") -> Canary -> apply
 
-Design rationale (no ProposalService):
-  ProposalService is for A3 autonomous proposals with unknown scope.
-  This worker is human-triggered, scope is fully pre-audited (known
-  violations), and canary provides the safety gate. Git is the rollback.
+Design rationale (does not use the A3 ProposalService):
+  The A3 ProposalService (src/will/autonomy/proposal_service.py) is for
+  autonomous proposals with unknown scope. This worker is human-triggered,
+  scope is fully pre-audited (known violations), and canary provides the
+  safety gate. Git is the rollback.
 
 Constitutional alignment:
   - ai.cognitive_role.no_hardcoded_string: Externalized role strings to constants

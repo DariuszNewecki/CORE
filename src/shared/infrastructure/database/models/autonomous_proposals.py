@@ -2,8 +2,7 @@
 """
 A3 Autonomous Proposal System models.
 
-Separate from core.proposals (which handles constitutional file replacements).
-This table stores registry-based action plans for autonomous execution.
+Stores registry-based action plans for autonomous execution.
 """
 
 from __future__ import annotations
@@ -24,8 +23,6 @@ class AutonomousProposal(Base):
     A3 Autonomous Proposal - Registry-based action plan.
 
     Stores autonomous proposals that reference actions from action_registry.
-    Completely separate from the old core.proposals table which handles
-    constitutional file replacement proposals with cryptographic signatures.
     """
 
     __tablename__: ClassVar[str] = "autonomous_proposals"
