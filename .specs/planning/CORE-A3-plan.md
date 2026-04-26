@@ -30,7 +30,7 @@ A3 is a state. These four gates define the state. A3 is claimable when all four 
 | Gate | What it means | Status |
 |------|---------------|--------|
 | **G1 — Loop closure** | An autonomous fix lands end-to-end on a non-synthetic example: finding detected → proposal created → proposal approved → execution succeeded → re-audit confirms resolution. Single clean run is the minimum. | ✅ Demonstrated 2026-04-26 — `core.autonomous_proposals` shows 24 completed round-trips since daemon restart (2026-04-24 13:18). Route: draft → executing → completed via the proposal-consequence path; `approval_required=false` on `fix.format` correctly bypasses the pending/approved lane. Issue #144 closed. Loop-productivity follow-ups tracked as #152 (build.tests drafts not converting) and #153 (5.4× failure-to-completion ratio). |
-| **G2 — Convergence** | Sustained state where rate of finding resolution exceeds rate of finding creation. Per the Convergence Principle, this is the fundamental operational metric — it is what makes "governed autonomy" truthful rather than aspirational. | ⚠️ Not reached. Issue #153 (2026-04-26) reports autonomous proposal failure rate at 5.4× completions — net-negative at steady state. Verdict-threshold semantics still undocumented (issue #108) — PASS is returned with WARNING-dominant finding sets, so the convergence signal is ambiguous at the metric layer. |
+| **G2 — Convergence** | Sustained state where rate of finding resolution exceeds rate of finding creation. Per the Convergence Principle, this is the fundamental operational metric — it is what makes "governed autonomy" truthful rather than aspirational. | ⚠️ Not reached. Issue #153 (2026-04-26) reports autonomous proposal failure rate at 5.4× completions — net-negative at steady state. |
 | **G3 — Consequence chain** | Finding → Proposal → Approval → Execution → File changes → New findings is continuously materialized as a queryable causality chain. Required for regulated environments, autonomous debugging, and for a non-programmer governor to trust the system without reading code. | ⚠️ Not built. Individual links exist (proposals table, Blackboard history, audit JSON, git). The chain is not materialized as a single queryable graph. This is the "two-log problem" — legal traceability, not bookkeeping. Tracked as issue #110; Band B is the strategic arc. |
 | **G4 — Governance in `.intent/`** | No enforcement logic, path mappings, policy thresholds, or governance decisions live in `src/`. All of it lives in `.intent/` (or, for human-intent documents, `.specs/`). This is the claim that makes the "non-programmer governor" role coherent. | 🔄 In progress. ADR-004 (task_type phase map in YAML) and ADR-005 (audit verdict policy in YAML) were direct advances. Leaks worth naming: path mappings embedded in Stream B sensor/action code; `action_executor` usage unguarded in some Body workers. Tracked as issue #111. |
 
@@ -54,7 +54,7 @@ A3 is a state. These four gates define the state. A3 is claimable when all four 
 
 **Active audit finding classes (2026-04-24 tail sample):** `modularity.needs_split`, `modularity.class_too_large`, `governance.dangerous_execution_primitives`, `autonomy.tracing.mandatory`. All WARNING; no ERROR findings observed.
 
-**Verdict semantics:** Still unresolved at the documentation layer (issue #108). ADR-005 governs the policy *file*; ADR-005's codified behavior is what currently gates audit verdicts.
+**Verdict semantics:** Documented at the policy file as of 2026-04-26 (issue #108 closed). PASS = no ERROR findings, FAIL = ERROR present, DEGRADED = instrument failure. WARNINGs are queued self-remediation work, not blockers — by design during development.
 
 ---
 
@@ -120,6 +120,7 @@ Historical record of blockers resolved. New resolutions land here at session clo
 
 | Blocker | Notes |
 |---------|-------|
+| ~~Verdict-threshold semantics undocumented~~ | ✅ Resolved 2026-04-26 — `audit_verdict.yaml` header expanded to document what each verdict state guarantees and why WARNING accumulation during development is by design, not pathology. No policy change. Issue #108 closed. |
 | ~~Path.match `**` semantics cause silent under-enforcement~~ | ✅ Resolved 2026-04-26 via ADR-012 — eight `Path.match` call sites migrated to `pathspec` `GitWildMatchPattern`; three silent under-enforcement sites (redactor, FileNavigator) eliminated. Commits `3b470d13`, `9371a790`, `74060e1e`, `1b6da2e7`. Issue #121 closed. |
 | ~~G1 first autonomous round-trip not evidenced~~ | ✅ Resolved 2026-04-26 — 24 completed round-trips on the proposal-consequence path verified in `core.autonomous_proposals` since 2026-04-24 13:18 restart. Issue #144 closed (`stateReason: COMPLETED`). Loop-productivity follow-ups split out as #152 (build.tests drafts stuck) and #153 (5.4× failure-to-completion ratio). |
 | ~~Audit JSON serializer flattens `details` to `{}`~~ | ✅ Resolved 2026-04-26 — issue #126 closed. |
