@@ -22,11 +22,41 @@ from shared.path_resolver import PathResolver
 
 logger = getLogger(__name__)
 
-# Engine types that perform code-analysis audits (not write-permission gates)
-# Engine types that perform content analysis — these require file content and
-# belong in the audit phase, not the write gate (which only has a path).
+# Engine types that MUST NOT be evaluated by check_transaction at write time.
+#
+# Two distinct categories share this property:
+#
+# 1. Content-analysis engines (need file content, only available at audit phase):
+#       ast_gate, glob_gate, knowledge_gate, llm_gate, regex_gate
+#
+# 2. Passive-marker engines (no write-time check exists; enforcement happens
+#    elsewhere — at runtime, at parse time, at decoration, or by code review):
+#       runtime_check        → enforced by audit_cli_registry() at self-check
+#       python_runtime       → enforced by Python at module import
+#       dataclass_validation → enforced by Pydantic __post_init__
+#       type_system          → enforced by Python enum type-checking
+#       advisory             → enforced by code review (by design)
+#       runtime_metric       → tracked, not enforced
+#
+# Evaluating either category here produces false positives: the rule has no
+# applicable check, and check_transaction would emit the rule's statement as
+# a block reason. See issue #142 — fix.placeholders failures (128/129 of all
+# autonomous failures, 2026-04-22 → 2026-04-23) traced to runtime_check rules
+# being treated as write-time gates.
 _AUDIT_ENGINES = frozenset(
-    {"ast_gate", "glob_gate", "knowledge_gate", "llm_gate", "regex_gate"}
+    {
+        "ast_gate",
+        "glob_gate",
+        "knowledge_gate",
+        "llm_gate",
+        "regex_gate",
+        "runtime_check",
+        "python_runtime",
+        "dataclass_validation",
+        "type_system",
+        "advisory",
+        "runtime_metric",
+    }
 )
 
 # Severity value assigned to constitutional-authority violations.
@@ -307,8 +337,9 @@ class IntentGuard:
             except ValueError:
                 continue
 
-            # Skip content-analysis engines — they require file content, which
-            # check_transaction does not have. These rules run during audit phase only.
+            # Skip engines that have no write-time check — either content-analysis
+            # engines (need file content) or passive-marker engines (enforced at
+            # runtime, parse time, decoration, or by code review). See _AUDIT_ENGINES.
             if rule.engine in _audit_engines_set():
                 continue
 
