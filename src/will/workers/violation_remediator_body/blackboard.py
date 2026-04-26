@@ -62,8 +62,15 @@ class BlackboardMixin:
         findings: list[dict[str, Any]],
         reason: str,
     ) -> None:
-        """Post a failure finding to the blackboard."""
-        await self.post_finding(
+        """Post a failure record to the blackboard.
+
+        Uses post_report (entry_type='report') rather than post_finding
+        (entry_type='finding') because a failed remediation is an
+        informational record, not an actionable work item. Posting as a
+        finding caused orphaned open entries that no worker ever claimed,
+        accumulating as convergence debt.
+        """
+        await self.post_report(
             subject=f"{_FAILED_SUBJECT}::{file_path}",
             payload={
                 "file_path": file_path,
