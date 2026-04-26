@@ -2,7 +2,7 @@
 
 **Status:** Active
 **Owner:** Darek (Dariusz Newecki)
-**Last updated:** 2026-04-25
+**Last updated:** 2026-04-26
 **Definition:** The daemon runs continuously, the Blackboard clears, the codebase converges, and every action is visible.
 
 ---
@@ -46,9 +46,9 @@ A3 is a state. These four gates define the state. A3 is claimable when all four 
 | Daemon | Active — runtime verification of restarted state underway |
 | Worker registry | 15 active |
 | Bands | Band A closed (attribution); Bands B, C, D, E open |
-| GitHub issue migration | 35 open issues across three batches (#107–141); Known Blockers, handoff residue, Population C all migrated |
+| GitHub issue migration | 47 open issues (35 from the 2026-04-24 migration #107–141, plus issues opened in subsequent sessions); Known Blockers, handoff residue, Population C all migrated |
 | Autonomy status hub | Pinned issue #106 — current A2, working toward A3 |
-| ADR inventory | ADR-001 through ADR-011 accepted and landed |
+| ADR inventory | ADR-001 through ADR-013 accepted and landed |
 | Handoff archive | Moved to `.specs/state/handoffs/` per SESSION-PROTOCOL.md §2 |
 | Session protocol | SESSION-PROTOCOL.md active at `.specs/planning/SESSION-PROTOCOL.md` |
 
@@ -120,6 +120,7 @@ Historical record of blockers resolved. New resolutions land here at session clo
 
 | Blocker | Notes |
 |---------|-------|
+| ~~`core.proposals` legacy table — schema drift causing tooling confusion~~ | ✅ Resolved 2026-04-26 — ADR-013. Legacy table (0 rows, never provisioned), ORM models, file-based CLI path, and all reference strings removed. `core.autonomous_proposals` is now the sole proposal table. Table name `core.proposals` reserved for future rename. Commits 107887b9–db5d31e2. |
 | ~~Daemon inactive — autonomous loop not converging~~ | ✅ Resolved 2026-04-25 — root cause identified as clean shutdown via `systemctl stop` on 2026-04-18 16:26:35 (exit 0; not a crash). Daemon restarted 2026-04-24 13:18; 24h verification confirmed 12,199 blackboard entries, 729 cycle completions, 15 active workers heartbeating. #107 closed with verification scan; G1 round-trip evidence gap split out as #144. |
 | ~~Attribution principle unwired in `src/`~~ | ✅ Resolved 2026-04-24 — ADR-011 authored; two refactors closed the violations (commits `8738595d`, `794a4480`); enforcement rule `architecture.blackboard.worker_only_inserts` active at blocking severity. Band A closed. |
 | ~~Finding → Proposal contract unwired (§7 + §7a)~~ | ✅ Resolved 2026-04-24 — ADR-010 authored; three-layer contract closed (commit `62a84ff7`). Runtime verification of revival path remains passive (issue #122). |
@@ -190,6 +191,15 @@ Every INSERT into `core.blackboard_entries` must originate from a registered Wor
 
 ### ADR-012 (2026-04-25) — Centralize globstar pattern matching via `pathspec`
 Eight `Path.match` call sites across `src/` carry Python 3.12's `**`-as-single-segment quirk; three are silent under-enforcement at security-sensitive sites (redactor, FileNavigator). Adopt `pathspec`'s `GitWildMatchPattern` as the standard primitive; introduce `src/shared/utils/glob_match.py` as the single entry point; migrate seven raw call sites and rewrite forbid-pattern strings to gitignore semantics. `AuditorContext` is out of scope — its hand-rolled `_include_matches`/`_is_excluded` compensation works correctly today and migrates separately under retargeted Issue #117 (real landing SHA `f634e521`, not `8e9325fb` as the plan previously claimed).
+
+### ADR-013 (2026-04-26) — Retire core.proposals; reserve name for core.autonomous_proposals
+`core.proposals` (constitutional file-replacement table with cryptographic
+signing) retired. Never provisioned in production — 0 rows, no active
+writers, signing infrastructure never created. All proposal activity runs
+through `core.autonomous_proposals`. Table name `core.proposals` reserved:
+when "autonomous" becomes redundant (all proposals are autonomous),
+`core.autonomous_proposals` renames to `core.proposals`. Eliminates the
+two-table confusion that produced issue #144.
 
 ---
 
