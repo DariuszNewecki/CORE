@@ -26,6 +26,7 @@ from shared.logger import getLogger
 from shared.models import CheckResult
 from shared.path_utils import get_repo_root
 from shared.processors.yaml_processor import strict_yaml_processor
+from shared.utils.glob_match import matches_any_glob
 
 
 logger = getLogger(__name__)
@@ -161,17 +162,8 @@ class MicroProposalExecutor:
         # Normalize to repo-relative for evaluation
         rel = self._normalize_to_repo_rel(file_path)
 
-        # Lightweight glob-style matching using Path.match semantics
-        rel_path = Path(rel)
-
-        def _matches_any(patterns: list[str]) -> bool:
-            for pat in patterns:
-                # Path.match treats patterns as relative and supports ** on POSIX style
-                if rel_path.match(pat):
-                    return True
-            return False
-
-        if forbidden_patterns and _matches_any(forbidden_patterns):
+        # Glob matching uses gitignore semantics via shared helper (ADR-012)
+        if forbidden_patterns and matches_any_glob(rel, forbidden_patterns):
             return CheckResult(
                 policy_id=self.policy.get("policy_id", "micro_proposal_policy"),
                 rule_id="safe_paths",
@@ -179,7 +171,7 @@ class MicroProposalExecutor:
                 message=f"File path '{rel}' matches a forbidden pattern",
                 path=rel,
             )
-        if allowed_patterns and not _matches_any(allowed_patterns):
+        if allowed_patterns and not matches_any_glob(rel, allowed_patterns):
             return CheckResult(
                 policy_id=self.policy.get("policy_id", "micro_proposal_policy"),
                 rule_id="safe_paths",

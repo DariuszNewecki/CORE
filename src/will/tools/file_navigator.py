@@ -17,18 +17,20 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from shared.logger import getLogger
+from shared.utils.glob_match import matches_glob
 
 
 logger = getLogger(__name__)
 
-# Constitutionally forbidden patterns for read access
+# Forbidden patterns evaluated under gitignore semantics (ADR-012 §5).
+# Leading "**/" anchors at any depth; ".intent/keys/**" is root-anchored.
 FORBIDDEN_PATTERNS = [
-    ".env",
-    "*.key",
-    ".git/*",
-    "__pycache__",
-    ".intent/keys/*",
-    "secrets/*",
+    "**/.env",
+    "**/*.key",
+    "**/.git/**",
+    "**/__pycache__/**",
+    ".intent/keys/**",
+    "**/secrets/**",
 ]
 
 
@@ -85,11 +87,9 @@ class FileNavigator:
                 f"Access denied: Path '{rel_path}' is outside repository root."
             )
 
-        # Check 2: Forbidden patterns
+        # Check 2: Forbidden patterns (gitignore semantics via glob_match — ADR-012)
         for pattern in FORBIDDEN_PATTERNS:
-            if full_path.match(pattern) or any(
-                p.match(pattern) for p in full_path.parents
-            ):
+            if matches_glob(clean_path, pattern):
                 raise ValueError(
                     f"Access denied: Path '{rel_path}' is restricted by policy."
                 )
