@@ -9,11 +9,52 @@
 # This file is the governance authority over audit verdict semantics.
 # Changing verdict semantics is a .intent/ edit, not a src/ edit.
 #
-# Missing-or-corrupt handling: the loader returns an error sentinel that
-# callers must treat as DEGRADED. The loader does NOT fall back to
-# hardcoded defaults. A missing verdict-policy file is itself an
-# instrument failure — compliance cannot be decided when the rule for
-# deciding it is absent. See ADR-005 §3.
+# ─────────────────────────────────────────────────────────────────────
+# What each verdict guarantees
+# ─────────────────────────────────────────────────────────────────────
+#
+# PASS      No ERROR-severity findings (after the ignored_finding_types
+#           carve-out), no crashed rules, policy loaded. The codebase
+#           is operational. WARNING-severity findings MAY be present;
+#           they represent queued self-remediation work, not blockers.
+#
+# FAIL      At least one finding with a severity in fail_severities,
+#           and not in ignored_finding_types. A new problem has been
+#           introduced — code is known non-compliant.
+#
+# DEGRADED  The audit instrument itself failed: the verdict policy is
+#           missing/corrupt, or one or more rules crashed during
+#           evaluation. Compliance is unknown, not known-bad. DEGRADED
+#           must never be silently treated as PASS — see ADR-005 §3.
+#
+# ─────────────────────────────────────────────────────────────────────
+# Why WARNINGs do not gate PASS
+# ─────────────────────────────────────────────────────────────────────
+#
+# CORE is a feedback control system whose job is to clean itself up
+# while running. WARNING-severity findings are the work queue that
+# autonomous remediation consumes — accumulation during development is
+# expected, not pathological. ERRORs are reserved for newly-introduced
+# problems that block operation.
+#
+# The Convergence Principle (rate of resolution exceeds rate of
+# creation) is a trajectory property measured across audits over time.
+# It is deliberately NOT encoded in the single-audit verdict, because
+# that would require CORE to already be converged in order to claim
+# it is operational — backwards for a system bootstrapping toward that
+# state. If a future operational posture requires a stricter verdict
+# (WARNING ceiling, trend gate, finding-class allowlist), that is a
+# new ADR, not a silent edit here.
+#
+# ─────────────────────────────────────────────────────────────────────
+# Missing-or-corrupt handling
+# ─────────────────────────────────────────────────────────────────────
+#
+# The loader returns an error sentinel that callers must treat as
+# DEGRADED. The loader does NOT fall back to hardcoded defaults. A
+# missing verdict-policy file is itself an instrument failure —
+# compliance cannot be decided when the rule for deciding it is
+# absent. See ADR-005 §3.
 
 # Severities that trigger FAIL when any finding carries them (after the
 # ignored_finding_types carve-out). Vocabulary is the AuditSeverity enum
