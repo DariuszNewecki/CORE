@@ -38,7 +38,7 @@ logger = getLogger(__name__)
     description="Generate a test file for a source file using CoderAgent",
     category=ActionCategory.BUILD,
     policies=["rules/code/purity"],
-    impact_level="moderate",
+    impact_level="safe",
     remediates=["test.failure", "test.missing"],
 )
 @atomic_action(
