@@ -1,0 +1,35 @@
+$schema: "META/worker.schema.json"
+kind: worker
+
+metadata:
+  id: workers.vector_sync_worker
+  title: Vector Sync Worker
+  version: "1.0.0"
+  authority: policy
+  status: active
+
+identity:
+  uuid: "e5f6a7b8-c9d0-4e1f-9a2b-3c4d5e6f7a81"
+  class: acting
+
+mandate:
+  responsibility: >
+    Keeps Qdrant code embeddings current by executing sync.vectors.code on a
+    fixed schedule. Deterministic — no LLM beyond the embedding call delegated
+    to the atomic action. Posts a completion report on success and a finding on
+    failure. Always posts a heartbeat.
+  phase: execution
+  permitted_tools:
+    - sync.vectors.code
+  approval_required: false
+  scope:
+    domains:
+      - knowledge
+      - semantic
+  schedule:
+    max_interval: 600
+
+implementation:
+  module: will.workers.vector_sync_worker
+  class: VectorSyncWorker
+  requires_core_context: true

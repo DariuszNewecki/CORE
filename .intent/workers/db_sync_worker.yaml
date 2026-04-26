@@ -1,0 +1,34 @@
+$schema: "META/worker.schema.json"
+kind: worker
+
+metadata:
+  id: workers.db_sync_worker
+  title: DB Sync Worker
+  version: "1.0.1"
+  authority: policy
+  status: active
+
+identity:
+  uuid: "d4e5f6a7-b8c9-4d0e-8f1a-2b3c4d5e6f70"
+  class: acting
+
+mandate:
+  responsibility: >
+    Keeps the PostgreSQL knowledge graph current by executing sync.db on a fixed
+    schedule. Deterministic — no LLM. Posts a completion report on success and a
+    finding on failure. Always posts a heartbeat.
+  phase: execution
+  permitted_tools:
+    - sync.db
+  approval_required: false
+  scope:
+    domains:
+      - knowledge
+      - compliance
+  schedule:
+    max_interval: 300
+
+implementation:
+  module: will.workers.db_sync_worker
+  class: DbSyncWorker
+  requires_core_context: true
