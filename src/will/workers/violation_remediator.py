@@ -452,6 +452,7 @@ class ViolationRemediatorWorker(Worker):
         """
         from body.services.service_registry import service_registry
         from will.autonomy.proposal_repository import ProposalRepository
+        from will.autonomy.proposal_state_manager import ProposalStateManager
 
         affected_files: list[str] = sorted(
             {
@@ -498,24 +499,9 @@ class ViolationRemediatorWorker(Worker):
         # stuck at False regardless of actual risk level.
         proposal.compute_risk()
 
-        # Skip the DRAFT→PENDING→APPROVED ceremony for proposals that don't need
-        # human sign-off. ProposalConsumerWorker only picks up APPROVED proposals,
-        # so anything left in DRAFT would never execute.
-        if not proposal.approval_required:
-            proposal.status = ProposalStatus.APPROVED
-            logger.info(
-                "ViolationRemediatorWorker: proposal for '%s' auto-approved "
-                "(risk=%s, approval_required=False)",
-                action_id,
-                proposal.risk.overall_risk if proposal.risk else "unknown",
-            )
-        else:
-            logger.info(
-                "ViolationRemediatorWorker: proposal for '%s' requires human approval "
-                "(risk=%s) — created in DRAFT",
-                action_id,
-                proposal.risk.overall_risk if proposal.risk else "unknown",
-            )
+        # status remains DRAFT here; the auto-approval path below routes
+        # through ProposalStateManager.approve() so approval_authority is
+        # recorded on the row (URS NFR.5; ADR-015 D6).
 
         is_valid, errors = proposal.validate()
         if not is_valid:
@@ -530,6 +516,28 @@ class ViolationRemediatorWorker(Worker):
             async with service_registry.session() as session:
                 repo = ProposalRepository(session)
                 proposal_id = await repo.create(proposal)
+
+                if not proposal.approval_required:
+                    state_manager = ProposalStateManager(session)
+                    await state_manager.approve(
+                        proposal_id,
+                        approved_by="autonomous_self_promote",
+                        approval_authority="risk_classification.safe_auto_approval",
+                    )
+                    logger.info(
+                        "ViolationRemediatorWorker: proposal for '%s' auto-approved "
+                        "(risk=%s, approval_required=False)",
+                        action_id,
+                        proposal.risk.overall_risk if proposal.risk else "unknown",
+                    )
+                else:
+                    logger.info(
+                        "ViolationRemediatorWorker: proposal for '%s' requires human approval "
+                        "(risk=%s) — created in DRAFT",
+                        action_id,
+                        proposal.risk.overall_risk if proposal.risk else "unknown",
+                    )
+
                 await session.commit()
             return proposal_id
         except Exception as e:

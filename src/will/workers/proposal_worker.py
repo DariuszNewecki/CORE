@@ -173,11 +173,26 @@ class AutonomousProposalWorker(Worker):
 
             if write:
                 from body.services.service_registry import service_registry
+                from will.autonomy.proposal import ProposalStatus
                 from will.autonomy.proposal_repository import ProposalRepository
+                from will.autonomy.proposal_state_manager import ProposalStateManager
 
                 async with service_registry.session() as session:
                     repo = ProposalRepository(session)
-                    await repo.create(proposal)
+                    proposal_id = await repo.create(proposal)
+
+                    if not proposal.approval_required:
+                        state_manager = ProposalStateManager(session)
+                        await state_manager.approve(
+                            proposal_id,
+                            approved_by="autonomous_self_promote",
+                            approval_authority="risk_classification.safe_auto_approval",
+                        )
+                        persisted_status = ProposalStatus.APPROVED.value
+                    else:
+                        persisted_status = proposal.status.value
+
+                    await session.commit()
 
                 await self.post_report(
                     subject="proposal_worker.proposal_submitted",
@@ -186,7 +201,7 @@ class AutonomousProposalWorker(Worker):
                         "goal": goal,
                         "workflow_type": workflow_type,
                         "check_id": group["check_id"],
-                        "status": proposal.status.value,
+                        "status": persisted_status,
                         "approval_required": proposal.approval_required,
                     },
                 )
@@ -194,7 +209,7 @@ class AutonomousProposalWorker(Worker):
                     "Proposal submitted: %s → '%s' (status=%s, approval_required=%s)",
                     proposal.proposal_id,
                     goal,
-                    proposal.status.value,
+                    persisted_status,
                     proposal.approval_required,
                 )
             else:
@@ -277,8 +292,8 @@ def _build_proposal(
 
     proposal.compute_risk()
 
-    if not proposal.approval_required:
-        proposal.status = ProposalStatus.APPROVED
+    # status remains DRAFT; persistence-side approve() handles
+    # the auto-approval path (see caller).
 
     return proposal
 
