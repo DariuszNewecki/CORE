@@ -4,7 +4,7 @@
 
 **Status:** Active
 **Owner:** Darek (Dariusz Newecki)
-**Last updated:** 2026-04-27 (ADR-015 committed; six children unblocked)
+**Last updated:** 2026-04-27 (#146 + #165 closed end-to-end; four children remain)
 **Scope:** Materialize the Finding → Proposal → Approval → Execution → File changes → New findings causality chain as a queryable graph.
 **Closes:** G3 (Phase 5).
 
@@ -32,31 +32,33 @@ Three downstream consequences make this a Band-defining gap rather than a qualit
 | Edge | Persisted? | Attributed? | Read-path? |
 |---|---|---|---|
 | 1. Finding → Proposal | partial | partial (asymmetric) | partial (reverse only via finding payload) |
-| 2. Proposal → Approval | partial (columns exist, rarely populated) | partial (no rule/authority) | yes (when populated) |
+| 2. Proposal → Approval | **yes (forward path)** ✅ | **yes (forward path)** ✅ | **yes (forward path)** ✅ |
 | 3. Approval → Execution claim | partial (status only) | no (no claimer attribution) | no |
 | 4. Execution → AtomicAction dispatch | yes (in-row jsonb) | partial (per-row, not cross-row) | yes per proposal; no cross-proposal |
 | 5. Execution → File changes | yes | yes (freeform commit-message + DB) | yes (brittle: orphan commits, prefix-only) |
 | 6. File changes → New findings | yes (finding row) | **no** | **no** |
 
-Two cross-cutting patterns dominate: asymmetric attribution (link on one side only) and schema-without-population (columns exist but aren't written by the autonomous path).
+**Edge 2 update (2026-04-27):** closed for the forward path by #146 + #165 landing. Approval attribution (`approved_by`, `approved_at`, `approval_authority`) is now non-omittable on every newly-approved proposal, enforced at both the application write-path (ProposalStateManager.approve raises ValueError on falsy/unknown authority) and the structural layer (DB CHECK constraint). The 159 historical pre-2026-04-27 rows remain NULL on these columns per ADR-015 D7 (ALCOA "Complete" — no synthesized backfill).
+
+Two cross-cutting patterns dominate the remaining open edges: asymmetric attribution (link on one side only) and schema-without-population (columns exist but aren't written by the autonomous path).
 
 ---
 
 ## 3. Existing milestone state
 
-**Milestone 14 — Band B — Consequence Chain.** Seven issues open as of 2026-04-27:
+**Milestone 14 — Band B — Consequence Chain.** Five issues open as of 2026-04-27 (down from seven; #146 and #165 closed today).
 
 | Issue | Edge | Title | Notes |
 |---|---|---|---|
 | #110 | epic | Consequence chain not materialized (two-log problem) | Strategic container. Closure criteria in body. |
 | #145 | 1 | Populate finding_ids on autonomously-drafted proposals | Closes proposal-side asymmetry; unblocks `proposal_consequences.findings_resolved`. |
-| #146 | 2 | Route autonomous approval through ProposalStateManager | Populates `approved_by`/`approved_at` on the auto-approved path. |
+| ~~#146~~ | ~~2~~ | ~~Route autonomous approval through ProposalStateManager~~ | **Closed 2026-04-27.** Verification artifact: proposal_id `ac118b56-a47e-4839-9812-7834d6f18feb` on core. |
 | #147 | 3 | Record claimed_by worker_uuid on autonomous_proposals execution claim | Mirrors blackboard `claimed_by` pattern onto proposals. |
 | #148 | 6 | Sensor cause attribution — thread proposal/commit context onto new findings | Closes the weakest edge end-to-end. |
 | #164 | 1 | Subsume-path findings resolve without attribution to subsuming proposal | Required by URS NFR.4 (ALCOA+ "Complete" / WHO TRS 1033 §11.11). |
-| #165 | 2 | Record approval_authority on autonomous_proposals; enforce non-omittable at write path | Required by URS Q2.A and NFR.5 (Part 11 §11.50 + §11.10(g)). |
+| ~~#165~~ | ~~2~~ | ~~Record approval_authority on autonomous_proposals; enforce non-omittable at write path~~ | **Closed 2026-04-27.** Verification artifact: same proposal_id; Q2.A returns `risk_classification.safe_auto_approval`. |
 
-The six children cover edges **1, 2, 3, 6**. Edge 4 ("yes per proposal; no cross-proposal") is an analytical convenience, not a chain integrity gap, and is not load-bearing for G3. Edge 5 brittleness is partially tracked outside Band B at issue #124 (autonomous commit-message fidelity).
+The four remaining children cover edges **1, 3, 6**. Edge 4 ("yes per proposal; no cross-proposal") is an analytical convenience, not a chain integrity gap, and is not load-bearing for G3. Edge 5 brittleness is partially tracked outside Band B at issue #124 (autonomous commit-message fidelity).
 
 ---
 
@@ -75,7 +77,7 @@ What the existing milestone does **not** cover, and which of those gaps need new
 These two issues are Band B blockers, not optional adjuncts. They are listed here separately because they entered the milestone after URS revision, not as part of the original four children.
 
 - **#164 — Subsume-path attribution.** Required by URS NFR.4. Findings resolved on the dedup/subsume path must carry the subsuming proposal's `proposal_id` in their payload. Closure criteria on issue body.
-- **#165 — Approval authority.** Required by URS Q2.A and NFR.5. Every approved proposal carries an `approval_authority` value, write-path enforced. Closure criteria on issue body.
+- ~~#165 — Approval authority.~~ **Closed 2026-04-27.** See §3 row.
 
 ### 4.3 Proposed but not yet opened
 
@@ -99,65 +101,4 @@ These two issues are Band B blockers, not optional adjuncts. They are listed her
 
 ## 5. Sequencing
 
-Strict ordering for the gating artifacts; the six children may run in parallel after the ADR lands.
-
-```
-A. URS                           ✅ committed 2026-04-27
-   |
-   v
-B. ADR-015                       ✅ committed 2026-04-27
-   |
-   +---+---+---+---+---+---+
-   |   |   |   |   |   |   |
-   v   v   v   v   v   v   v
-  #145 #146 #147 #148 #164 #165   (parallel; #146 + #165 land together
-                                    per ADR-015 D6; #148 has soft
-                                    dependency on #145 for the
-                                    proposal_id thread)
-   |
-   v
-C. Backfill                      (after #145 lands; scope bounded by
-                                  ADR-015 D7 — findings_resolved only,
-                                  authorized_by_rules permanently empty
-                                  for pre-ADR rows)
-   |
-   v
-Verification: G3 closure         (queryable causality chain end-to-end;
-                                  closes epic #110)
-```
-
-E (#124 confirmation) happens at session-open as a one-turn read, not as a sequencing node.
-
----
-
-## 6. Closure criteria for Band B
-
-Band B closes (G3 cleared) when **all** of the following hold:
-
-1. URS (artifact A) committed and reviewed. ✅
-2. ADR-015 (artifact B) accepted. ✅
-3. Issues #145, #146, #147, #148, #164, #165 closed with verification queries demonstrating the edge they fixed.
-4. The URS query patterns run end-to-end against live data — specifically Q1.F, Q1.R, Q2.F, Q2.R, Q2.A, Q3.F, Q3.R, Q5.F, Q5.R, Q6.F, Q6.R, E2E.F, E2E.R as defined in `.specs/requirements/URS-consequence-chain.md` §3.
-5. CONV.1 returns a sustained resolution_ratio ≥ 1.0 over a representative window (URS §3 CONV.1, §5 acceptance criterion 3).
-6. NFR.5 enforcement verified: write-path rejects `status='approved'` without `approval_authority` (URS §5 acceptance criterion 4).
-7. A representative chain trace from a recent autonomous round-trip is captured as a verification artifact (markdown under `.specs/state/`) and referenced from the epic close (URS NFR.3).
-8. A3 plan-doc updated: G3 row moved to "Demonstrated"; Band B milestone closed; Resolved Blockers row added.
-
-Backfill (C) is not a Band B blocker — it is governance debt addressed during the band but allowed to slip past closure if needed.
-
----
-
-## 7. What this plan does not do
-
-- It does not specify the chain's schema. That is ADR-015's job.
-- It does not specify query syntax. That is the URS's job.
-- It does not order work inside individual child issues. Each child carries its own scope and acceptance criteria in the GitHub issue body.
-- It does not address the broader two-log framing in Daniel's sense (consequence log extending to human-induced actions outside CORE's perimeter). That framing motivated the gap; closing the *internal* chain (this plan) is the prerequisite for any later work on the *external* chain.
-
----
-
-## 8. Next action
-
-ADR-015 D6 binds #146 and #165 into a single change-set (splitting them violates URS NFR.5 in the gap). This is the highest-coordination of the six children and the natural starting implementation. Each of the other four (#145, #147, #148, #164) is independently scoped per its issue body and ADR-015's named Change sites.
-
-Header line of the plan-doc gets bumped to "Last updated: 2026-04-27 (ADR-015 committed; six children unblocked)" at session close.
+Strict ordering for the gating artifacts; the remaining four children may run in parallel.
