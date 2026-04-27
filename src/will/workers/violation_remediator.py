@@ -469,6 +469,14 @@ class ViolationRemediatorWorker(Worker):
             }
         )
 
+        # finding_ids mirrors the entry_ids subsequently passed to
+        # _defer_to_proposal in run(), making the proposal→finding read
+        # path symmetric with the finding→proposal write path. Consumed
+        # by ProposalExecutor when emitting consequence-log entries
+        # (proposal_executor.py:265-266). ADR-015 D7: forward-only —
+        # historical proposals predating this field are not backfilled.
+        finding_ids = [_entry_id(f) for f in findings]
+
         proposal = Proposal(
             goal=(
                 f"Autonomous remediation: {action_id} "
@@ -490,6 +498,7 @@ class ViolationRemediatorWorker(Worker):
                 "source": "blackboard_findings",
                 "rules": rules,
                 "affected_files_count": len(affected_files),
+                "finding_ids": finding_ids,
             },
         )
 
