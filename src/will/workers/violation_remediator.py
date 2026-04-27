@@ -46,15 +46,21 @@ Per-path terminal-state semantics (ADR-010):
                                        CORE-Finding.md: on proposal failure
                                        these findings are revived to open
                                        by ProposalStateManager.mark_failed.
-- Active proposal already exists    → findings resolved (subsumed by the
-                                       in-flight proposal; the mandate's
-                                       "consumed" covers routing-to-proposal,
-                                       not only proposal-creation).
-                                       Dedup-subsumed findings are NOT
-                                       linked to the subsuming proposal —
-                                       this is a deliberate ADR-010
-                                       decision, see the "Alternatives
-                                       Considered" section there.
+- Active proposal already exists    → findings resolved with the
+                                       subsuming proposal_id stored in
+                                       payload (subsumed by the in-flight
+                                       proposal; the mandate's "consumed"
+                                       covers routing-to-proposal, not
+                                       only proposal-creation). Status is
+                                       still 'resolved' — not
+                                       'deferred_to_proposal' — because
+                                       the subsuming proposal does not
+                                       track these duplicates in its
+                                       scope, so the §7a revival contract
+                                       does not apply (ADR-010
+                                       Alternatives Considered). The
+                                       payload pointer is the audit
+                                       linkage (URS Q1.F / ADR-015 D4).
 - Proposal creation failed          → findings released back to open so the
                                        next run can retry cleanly.
 - Finding unmappable                → already released (see _load_open_findings).
@@ -66,6 +72,7 @@ proposal_id) is linked as of ADR-010; the dedup path is not, and
 reconciling it would require a second finding→proposal relationship
 shape the paper does not currently define. When the full consequence-
 logging work lands, revisit dedup linkage.
+CLOSED: the dedup-subsume payload-pointer gap above is closed by ADR-015 D4.
 """
 
 from __future__ import annotations
@@ -200,9 +207,9 @@ class ViolationRemediatorWorker(Worker):
                 )
 
         # 3. Deduplicate against active proposals
-        active_action_ids = await self._get_active_proposal_action_ids()
+        active_proposal_ids = await self._get_active_proposal_id_by_action()
 
-        # 4. Create proposals + 5. Transition entries per ADR-010 semantics.
+        # 4. Create proposals + 5. Transition entries per ADR-010 / ADR-015 D4.
         proposals_created: list[str] = []
         proposals_skipped: list[str] = []
         entries_deferred: int = 0
@@ -212,22 +219,26 @@ class ViolationRemediatorWorker(Worker):
         for action_id, findings in action_groups.items():
             entry_ids = [_entry_id(f) for f in findings]
 
-            if action_id in active_action_ids:
-                # Dedup: an active proposal already represents this action group.
-                # Findings are subsumed — the mandate's "consumed" applies
-                # (routing-to-proposal, not only proposal-creation). Resolve so
-                # they don't leak as stuck claims on every subsequent run.
-                # NB: not deferred_to_proposal — the subsuming proposal was
-                # created by an earlier wave and does not track these
-                # subsumed duplicates in its scope (ADR-010 Alternatives
-                # Considered).
-                resolved = await self._resolve_entries(entry_ids)
+            subsuming_proposal_id = active_proposal_ids.get(action_id)
+            if subsuming_proposal_id:
+                # Dedup: an active proposal already represents this action
+                # group. Findings are subsumed — the mandate's "consumed"
+                # applies (routing-to-proposal, not only proposal-creation).
+                # Status is 'resolved' — not 'deferred_to_proposal' —
+                # because the subsuming proposal does not track these
+                # duplicates in its scope, so the §7a revival contract
+                # does not apply (ADR-010 Alternatives Considered). The
+                # subsuming proposal_id is recorded in payload as the
+                # audit linkage (URS Q1.F / ADR-015 D4).
+                resolved = await self._resolve_entries(entry_ids, subsuming_proposal_id)
                 entries_resolved_dedup += resolved
                 proposals_skipped.append(action_id)
                 logger.info(
                     "ViolationRemediatorWorker: skipping '%s' — active proposal "
-                    "exists; resolved %d subsumed finding(s)",
+                    "%s exists; resolved %d subsumed finding(s) with proposal_id "
+                    "linkage",
                     action_id,
+                    subsuming_proposal_id,
                     resolved,
                 )
                 continue
@@ -412,16 +423,26 @@ class ViolationRemediatorWorker(Worker):
 
         return mappable
 
-    # ID: e7f8a9b0-c1d2-3456-efab-345678901236
-    async def _get_active_proposal_action_ids(self) -> set[str]:
+    # ID: 8a7c5e91-2b4f-4d63-9e07-1a3c5d8b2f04
+    async def _get_active_proposal_id_by_action(self) -> dict[str, str]:
         """
-        Return action IDs that already have an active proposal.
-        Fail open — if unavailable, proceed without dedup.
+        Return a mapping of action_id → proposal_id for actions that
+        already have an active proposal. The dedup-subsume path needs
+        the proposal_id (not just the action_id) to record the linkage
+        in the subsumed finding's payload — URS Q1.F / ADR-015 D4.
+
+        When multiple active proposals share an action_id, the earliest
+        by Proposal.created_at wins. The earliest proposal is the
+        original anchor whose existence caused subsequent dedup-subsume
+        decisions, so subsumed findings attribute to it.
+
+        Fail-open: on exception returns an empty dict so the worker
+        proceeds without dedup rather than blocking remediation.
         """
         from body.services.service_registry import service_registry
         from will.autonomy.proposal_repository import ProposalRepository
 
-        active: set[str] = set()
+        candidates: list[tuple[str, str, Any]] = []
         try:
             async with service_registry.session() as session:
                 repo = ProposalRepository(session)
@@ -429,14 +450,28 @@ class ViolationRemediatorWorker(Worker):
                     proposals = await repo.list_by_status(status, limit=200)
                     for proposal in proposals:
                         for action in proposal.actions:
-                            active.add(action.action_id)
+                            candidates.append(
+                                (
+                                    action.action_id,
+                                    proposal.proposal_id,
+                                    proposal.created_at,
+                                )
+                            )
         except Exception as e:
             logger.warning(
                 "ViolationRemediatorWorker: could not load active proposals (%s). "
                 "Proceeding without deduplication.",
                 e,
             )
-        return active
+            return {}
+
+        # Earliest-wins: ascending sort by created_at then setdefault keeps
+        # the first seen — the original anchor proposal for that action.
+        candidates.sort(key=lambda t: t[2])
+        result: dict[str, str] = {}
+        for action_id, proposal_id, _created_at in candidates:
+            result.setdefault(action_id, proposal_id)
+        return result
 
     # ID: f8a9b0c1-d2e3-4567-fabc-456789012347
     async def _create_proposal(
@@ -558,17 +593,21 @@ class ViolationRemediatorWorker(Worker):
             return None
 
     # ID: a9b0c1d2-e3f4-5678-abcd-567890123458
-    async def _resolve_entries(self, entry_ids: list[str]) -> int:
+    async def _resolve_entries(self, entry_ids: list[str], proposal_id: str) -> int:
         """
-        Mark Blackboard entries as resolved.
+        Mark subsumed Blackboard entries as resolved with the subsuming
+        proposal_id stored in payload.
 
-        ADR-010: as of this version, _resolve_entries is called ONLY from
-        the dedup-subsume branch of run() — subsumed findings close as
-        'resolved' because they are not linked to the subsuming proposal's
-        lifecycle. The happy path (successful proposal creation) uses
-        _defer_to_proposal instead so the §7/§7a Finding→Proposal contract
-        is preserved.
+        Called only from the dedup-subsume branch of run() — subsumed
+        findings close as 'resolved' (not 'deferred_to_proposal') because
+        the subsuming proposal does not track them in its scope, so the
+        §7/§7a revival contract does not apply. The proposal_id payload
+        pointer is the audit linkage per URS Q1.F / ADR-015 D4. The
+        happy path (successful proposal creation) uses _defer_to_proposal
+        instead so its Finding→Proposal contract is preserved.
 
+        Routes to BlackboardService.resolve_entries_for_proposal — the
+        dedicated mirror of defer_entries_to_proposal for this path.
         Returns count of entries successfully resolved.
         """
         if not entry_ids:
@@ -578,7 +617,9 @@ class ViolationRemediatorWorker(Worker):
 
         try:
             blackboard_service = await service_registry.get_blackboard_service()
-            return await blackboard_service.resolve_entries(entry_ids)
+            return await blackboard_service.resolve_entries_for_proposal(
+                entry_ids, proposal_id
+            )
         except Exception as e:
             logger.error("ViolationRemediatorWorker: failed to resolve entries: %s", e)
             return 0

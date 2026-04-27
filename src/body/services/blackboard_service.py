@@ -454,22 +454,22 @@ class BlackboardService:
         The predicate now accepts either 'open' or 'claimed' so two caller
         patterns are both correct:
           - fetch_open_findings → resolve_entries  (TestRunnerSensor)
-          - claim_violation_findings → ... → resolve_entries
-              (ViolationRemediatorWorker dedup-subsume path, TestRemediatorWorker)
+          - claim_open_findings → ... → resolve_entries (TestRemediatorWorker)
 
         All updates run inside a single transaction. Returns the count of
         rows actually updated (entries already terminalized or missing are
         not counted).
 
-        Scope note: as of ADR-010, the ViolationRemediatorWorker happy path
-        (proposal created successfully) no longer calls this method. That
-        path now calls defer_entries_to_proposal so the Finding→Proposal
-        linkage §7/§7a of CORE-Finding.md specifies is preserved. This
-        method remains in use by the dedup-subsume path and by
-        TestRemediatorWorker / TestRunnerSensor.
+        Scope note: as of ADR-015 D4, neither ViolationRemediatorWorker
+        path calls this method. The happy path uses defer_entries_to_proposal
+        so the §7/§7a CORE-Finding.md Finding→Proposal linkage is
+        preserved; the dedup-subsume path uses resolve_entries_for_proposal
+        so the subsuming proposal_id is recorded in payload (URS Q1.F).
+        This bare-resolve method remains in use by TestRemediatorWorker
+        and TestRunnerSensor — callers that legitimately have no
+        proposal_id to record.
 
         Covers:
-          - ViolationRemediatorWorker._resolve_entries (dedup branch only)
           - TestRemediatorWorker._resolve_entries
           - TestRunnerSensor (direct)
         """
@@ -774,6 +774,64 @@ class BlackboardService:
                     )
                     deferred_count += result.rowcount
         return deferred_count
+
+    # ID: 5e2d8f1a-94c3-4b07-a8f2-3c7e9b1d6a45
+    async def resolve_entries_for_proposal(
+        self, entry_ids: list[str], proposal_id: str
+    ) -> int:
+        """
+        Mark each entry in *entry_ids* as resolved AND store the subsuming
+        *proposal_id* in its payload. Mirror of defer_entries_to_proposal,
+        but with terminal status 'resolved' instead of 'deferred_to_proposal'.
+
+        Used by ViolationRemediatorWorker's dedup-subsume path: when a
+        finding is subsumed by an already-active proposal, it closes as
+        'resolved' (the subsuming proposal does not track it in its scope,
+        so the §7a revival path does not apply), but the payload pointer
+        to the subsuming proposal_id makes the linkage auditable per URS
+        Q1.F and ADR-015 D4.
+
+        Bare resolve_entries (no proposal_id) remains in use by
+        TestRemediatorWorker and TestRunnerSensor — those callers do not
+        carry a proposal_id at the resolve site and should not be forced
+        to invent one.
+
+        Predicate matches resolve_entries and defer_entries_to_proposal:
+        only entries currently in 'open' or 'claimed' transition; rows
+        already terminalized or missing are not counted. All updates run
+        inside a single transaction. Returns the count of rows actually
+        updated.
+
+        Covers:
+          - ViolationRemediatorWorker._resolve_entries (dedup-subsume path)
+        """
+        if not entry_ids:
+            return 0
+
+        from body.services.service_registry import ServiceRegistry
+
+        resolved_count = 0
+        async with ServiceRegistry.session() as session:
+            async with session.begin():
+                for entry_id in entry_ids:
+                    result = await session.execute(
+                        text(
+                            """
+                            UPDATE core.blackboard_entries
+                            SET status = 'resolved',
+                                resolved_at = now(),
+                                updated_at = now(),
+                                payload = payload || jsonb_build_object(
+                                    'proposal_id', cast(:proposal_id as text)
+                                )
+                            WHERE id = cast(:entry_id as uuid)
+                              AND status IN ('open', 'claimed')
+                            """
+                        ),
+                        {"entry_id": entry_id, "proposal_id": proposal_id},
+                    )
+                    resolved_count += result.rowcount
+        return resolved_count
 
     # ID: e1c4b8a7-6f03-4d29-b8a2-9c5d7e0f3a14
     async def revive_findings_for_failed_proposal(
