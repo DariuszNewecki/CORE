@@ -2,7 +2,7 @@
 
 **Status:** Active
 **Owner:** Darek (Dariusz Newecki)
-**Last updated:** 2026-04-26
+**Last updated:** 2026-04-27
 **Definition:** The daemon runs continuously, the Blackboard clears, the codebase converges, and every action is visible.
 
 ---
@@ -31,26 +31,27 @@ A3 is a state. These four gates define the state. A3 is claimable when all four 
 |------|---------------|--------|
 | **G1 — Loop closure** | An autonomous fix lands end-to-end on a non-synthetic example: finding detected → proposal created → proposal approved → execution succeeded → re-audit confirms resolution. Single clean run is the minimum. | ✅ Demonstrated 2026-04-26 — `core.autonomous_proposals` shows 3 completed round-trips since daemon restart (2026-04-24 13:18) and 24 completed lifetime. Route: draft → executing → completed via the proposal-consequence path; `approval_required=false` on `fix.format` correctly bypasses the pending/approved lane. Issue #144 closed. Loop-productivity follow-ups: #152 resolved via ADR-014 (commit 2d78231a) — build.tests proposals were stuck pre-execution due to approval-gate misplacement, not failure; #153's 5.4× failure-to-completion framing falsified by 2026-04-26 diagnostic (0 failures observed in window). |
 | **G2 — Convergence** | Sustained state where rate of finding resolution exceeds rate of finding creation. Per the Convergence Principle, this is the fundamental operational metric — it is what makes "governed autonomy" truthful rather than aspirational. | ⚠️ Not yet measurable. Diagnostic 2026-04-26 (#152) showed queue stagnation, not failure: 0 failures, 10 build.tests stuck pre-execution, 3 fix.format completions in the post-restart window. ADR-014 reclassifies build.tests as `safe` to unblock the queue; G2 rate becomes observable post-reclassification. |
-| **G3 — Consequence chain** | Finding → Proposal → Approval → Execution → File changes → New findings is continuously materialized as a queryable causality chain. Required for regulated environments, autonomous debugging, and for a non-programmer governor to trust the system without reading code. | ⚠️ Not built. Individual links exist (proposals table, Blackboard history, audit JSON, git). The chain is not materialized as a single queryable graph. This is the "two-log problem" — legal traceability, not bookkeeping. Tracked as issue #110; Band B is the strategic arc. |
+| **G3 — Consequence chain** | Finding → Proposal → Approval → Execution → File changes → New findings is continuously materialized as a queryable causality chain. Required for regulated environments, autonomous debugging, and for a non-programmer governor to trust the system without reading code. | 🔄 Started 2026-04-27. Strategic arc decomposed: plan, URS, ADR-015 committed; six child issues (#145, #146, #147, #148, #164, #165) on Milestone 14 with closure criteria tied to URS query patterns. Implementation pending. |
 | **G4 — Governance in `.intent/`** | No enforcement logic, path mappings, policy thresholds, or governance decisions live in `src/`. All of it lives in `.intent/` (or, for human-intent documents, `.specs/`). This is the claim that makes the "non-programmer governor" role coherent. | 🔄 In progress. ADR-004 (task_type phase map in YAML) and ADR-005 (audit verdict policy in YAML) were direct advances. Leaks worth naming: path mappings embedded in Stream B sensor/action code; `action_executor` usage unguarded in some Body workers; `impact_level` declared in `@register_action` decorators (ADR-008 parked, debt acknowledged in ADR-014). Tracked as issue #111. |
 
 **Gate coupling:** G1 cannot be *proved* without G3 (you can't demonstrate the loop closed without the chain). G2 cannot be *measured* without G1 (no resolution rate without autonomous resolution). G4 is orthogonal but load-bearing: it is the reason a non-programmer can operate the system, and without it the other three gates describe a system that still requires its author.
 
 ---
 
-## Current State (2026-04-24)
+## Current State (2026-04-27)
 
 | Item | Status |
 |------|--------|
-| Audit | PASS — 31 findings, WARNING-dominant, duration 55s |
-| Daemon | Active — runtime verification of restarted state underway |
+| Audit | PASS — 31 findings, WARNING-dominant, duration 55s (last verified 2026-04-24) |
+| Daemon | Active (last verified 2026-04-24 runtime check) |
 | Worker registry | 15 active |
-| Bands | Band A closed (attribution); Bands B, C, D, E open |
-| GitHub issue migration | 47 open issues (35 from the 2026-04-24 migration #107–141, plus issues opened in subsequent sessions); Known Blockers, handoff residue, Population C all migrated |
+| Bands | Band A closed (attribution); Band B decomposed and unblocked for implementation; Bands C, D, E open |
+| GitHub issue migration | 49 open issues (35 from the 2026-04-24 migration #107–141, plus issues opened in subsequent sessions; #164 and #165 added 2026-04-27) |
 | Autonomy status hub | Pinned issue #106 — current A2, working toward A3 |
-| ADR inventory | ADR-001 through ADR-014 accepted and landed |
+| ADR inventory | ADR-001 through ADR-015 accepted and landed |
 | Handoff archive | Moved to `.specs/state/handoffs/` per SESSION-PROTOCOL.md §2 |
 | Session protocol | SESSION-PROTOCOL.md active at `.specs/planning/SESSION-PROTOCOL.md` |
+| Interaction contract | INTERACTION-CONTRACT.md active at `.specs/planning/INTERACTION-CONTRACT.md` |
 
 **Active audit finding classes (2026-04-24 tail sample):** `modularity.needs_split`, `modularity.class_too_large`, `governance.dangerous_execution_primitives`, `autonomy.tracing.mandatory`. All WARNING; no ERROR findings observed.
 
@@ -81,8 +82,8 @@ https://github.com/DariuszNewecki/CORE/milestone/16
 ### Phase 4 — CLI Health ⬜
 Not started. Tracked items (e.g. ghost registry cleanup, `core-admin` command gaps) captured as GitHub issues.
 
-### Phase 5 — Visibility ⬜
-Not started. **G3 closes here** — consequence chain materialization is a Phase 5 artifact. Tracked on GitHub under Band B — Consequence Chain:
+### Phase 5 — Visibility 🔄
+Started 2026-04-27. **G3 closes here** — consequence chain materialization is a Phase 5 artifact. Tracked on GitHub under Band B — Consequence Chain:
 https://github.com/DariuszNewecki/CORE/milestone/14
 
 ---
@@ -96,7 +97,7 @@ https://github.com/DariuszNewecki/CORE/milestone/14
 | 2 — All sensors | All sensors active, converging | ✅ Complete |
 | 3 — Capability gaps | Trust-hardened; G1 demonstrated; daemon live | 🔄 Daemon active; Band A closed; G1 demonstrated 2026-04-26 (#144 closed); G2 not yet measurable; #152 resolved via ADR-014 (commit 2d78231a); #153 framing falsified (0 failures observed); remaining work tracked under Band D |
 | 4 — CLI health | All commands work, legacy gone, URS written | ⬜ Not started |
-| 5 — Visibility | Demo-ready, `tail -f` tells the story, G3 chain queryable | ⬜ Not started; Band B carries G3 — 5 issues open (1 epic + 4 children); decomposition committed `acf56a6b` 2026-04-25 |
+| 5 — Visibility | Demo-ready, `tail -f` tells the story, G3 chain queryable | 🔄 Started 2026-04-27; URS + ADR-015 committed; 7 issues on Band B (1 epic + 6 children — #145, #146, #147, #148, #164, #165); implementation pending |
 
 ---
 
@@ -210,6 +211,9 @@ two-table confusion that produced issue #144.
 
 ### ADR-014 (2026-04-26) — Development-phase priority: loop liveness before artifact quality
 Establishes the priority order during CORE's development phase: loop liveness > productivity > quality (sequential, not parallel). A loop that produces zero outputs has zero resolution rate; quality is observable only on a moving system. First application: reclassifies `build.tests` from `impact_level="moderate"` to `impact_level="safe"` (commit `2d78231a` in `src/body/atomic/build_tests_action.py`). Diagnostic finding: the pre-generation approval gate that the moderate classification triggered had no artifact to inspect — LLM generation happens at `executing`, not `draft`. Three commit-time gates (Conservation, IntentGuard, Canary) and TestRunnerSensor remain. Revisit triggers concrete (measured hallucination rate, signal contamination, deployment-phase change, ADR-008 unpark). G4 leak via ADR-008 acknowledged as known debt.
+
+### ADR-015 (2026-04-27) — Consequence chain attribution: write paths and storage shapes
+Decides write paths and storage shapes for the six Band B child issues (#145, #146, #147, #148, #164, #165) as seven coordinated sub-decisions. D1: `finding_ids` as jsonb key in `constitutional_constraints` (forced by existing reader). D2: `approval_authority` as new column with forward-only CHECK (NFR.5 needs structural enforcement). D3: `claimed_by uuid` as new column on proposals (mirrors blackboard pattern). D4: subsume-path writes `proposal_id` into payload (mirrors `_defer_to_proposal`). D5: sensor cause attribution heuristic via `proposal_consequences` lookup at post time. D6: `ProposalStateManager.approve()` signature carries `approval_authority`; closes #146 and #165 in one change-set. D7: forward-only enforcement; no historical backfill of `approval_authority` (ALCOA "Complete" preserves originals). Each sub-decision names its Change sites with file:line references. Authored against the URS (industry defaults from 21 CFR Part 11 §§11.10/11.50 and ALCOA+).
 
 ---
 
@@ -369,11 +373,11 @@ Next step: [specific action or issue #N]
 
 ---
 
-Current A3 phase: 3 (trust-hardening)
-Gate status: G1 demonstrated (3 in-window completions, 24 lifetime); G2 not yet measurable — measurable post-ADR-014; G3 not built (Band B); G4 in progress (ADR-005 added; ADR-014 acknowledges ADR-008 debt).
-Last session: 2026-04-26 — ADR-014 authored and accepted (development-phase priority: loop liveness before artifact quality); `build.tests` reclassified `moderate` → `safe` (commit `2d78231a`); issue #152 resolved (10 stuck drafts diagnosed as approval-gate misplacement, not failure); issue #153's 5.4× failure-to-completion framing falsified by diagnostic (0 failures observed in window); plan-doc G1 row corrected (24 was lifetime, not since-restart).
-Current band: Band A closed. Band D carries most remaining Phase 3 work. Band B carries G3 (consequence chain) — strategic arc, not yet started.
-Audit state: PASS, 31 findings, WARNING-dominant.
-Daemon state: active.
+Current A3 phase: 3 (trust-hardening); Phase 5 started 2026-04-27.
+Gate status: G1 demonstrated; G2 not yet measurable; G3 work started 2026-04-27 (URS + ADR-015 committed; six children scoped); G4 in progress.
+Last session: 2026-04-27 — Band B / consequence-chain (G3) decomposition landed. Plan committed (`.specs/planning/BAND-B-consequence-chain-plan.md`). URS committed (`.specs/requirements/URS-consequence-chain.md`) — adopts industry defaults from 21 CFR Part 11 §§11.10/11.50 and ALCOA+. ADR-015 committed (`.specs/decisions/ADR-015-consequence-chain-attribution.md`) — seven coordinated sub-decisions (D1–D7) for the six children's write paths and storage shapes. Two new milestone-14 issues opened: #164 (subsume-path attribution per URS NFR.4) and #165 (approval_authority per URS Q2.A and NFR.5). Build.tests verification from prior session's "next step" deferred this session.
+Current band: Band A closed. Band D carries most remaining Phase 3 work. Band B decomposed and unblocked — six children plus epic #110 — implementation pending.
+Audit state: PASS, 31 findings, WARNING-dominant (last verified 2026-04-24).
+Daemon state: active (last verified 2026-04-24).
 Active workers: 15.
-Next step: Session-open at next session per SESSION-PROTOCOL.md §3 — verify build.tests proposals execute end-to-end now that the approval gate is cleared (the 10 stuck drafts likely remain stuck since `approval_required` is set at create time; observe behavior on the next newly-created build.tests proposal). Sample generated tests for hallucination per ADR-014 quality follow-on.
+Next step: Session-open at next session per SESSION-PROTOCOL.md §3. Two implementation paths now available, both scoped by ADR-015: (a) #146 + #165 as a single change-set per ADR-015 D6 — write-path enforcement of approval_authority — highest-coordination of the six and natural starting point; (b) the four remaining children (#145, #147, #148, #164) independently per their issue bodies. Build.tests verification from prior session's "next step" also still pending.

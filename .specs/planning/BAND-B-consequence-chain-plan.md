@@ -4,7 +4,7 @@
 
 **Status:** Active
 **Owner:** Darek (Dariusz Newecki)
-**Last updated:** 2026-04-27 (revised after URS commit; #164 and #165 opened)
+**Last updated:** 2026-04-27 (ADR-015 committed; six children unblocked)
 **Scope:** Materialize the Finding → Proposal → Approval → Execution → File changes → New findings causality chain as a queryable graph.
 **Closes:** G3 (Phase 5).
 
@@ -68,11 +68,7 @@ What the existing milestone does **not** cover, and which of those gaps need new
 
 **A. URS for the chain.** ✅ **Committed 2026-04-27** at `.specs/requirements/URS-consequence-chain.md`. Adopts industry defaults (Part 11 §11.50, ALCOA+ Complete) for two scope decisions that surfaced during drafting; those decisions produced #164 and #165.
 
-**B. ADR for the chain design.** Six issues each carry a small design decision (which column, which table, which write path). One umbrella ADR captures the cross-cutting design choice: are we adding edges to existing tables, materializing a separate causality table, or both? Without this, each child issue re-decides the same question and the six implementations may be inconsistent.
-
-- **Artifact:** `.specs/decisions/ADR-015-consequence-chain-design.md`
-- **Decision required from evidence:** which write path each edge takes; whether the read paths the URS specifies can be satisfied by the existing schema's population gaps alone, or require new structure.
-- **Inputs to the ADR:** the URS (artifact A), the investigation's edge table, and the live schema as inspected during ADR drafting. No pre-decided default.
+**B. ADR for the chain design.** ✅ **Committed 2026-04-27** at `.specs/decisions/ADR-015-consequence-chain-attribution.md`. Decides write paths and storage shapes for the six children as seven coordinated sub-decisions (D1–D7). Forward-only enforcement; historical rows preserved per ALCOA "Complete." Implementation work for each child is now scoped against specific Change sites named in the ADR.
 
 ### 4.2 Required by URS — opened 2026-04-27
 
@@ -109,17 +105,21 @@ Strict ordering for the gating artifacts; the six children may run in parallel a
 A. URS                           ✅ committed 2026-04-27
    |
    v
-B. ADR-015                       (gates implementation)
+B. ADR-015                       ✅ committed 2026-04-27
    |
    +---+---+---+---+---+---+
    |   |   |   |   |   |   |
    v   v   v   v   v   v   v
-  #145 #146 #147 #148 #164 #165   (parallel; #148 has soft dependency on #145
-                                    for the proposal_id thread)
+  #145 #146 #147 #148 #164 #165   (parallel; #146 + #165 land together
+                                    per ADR-015 D6; #148 has soft
+                                    dependency on #145 for the
+                                    proposal_id thread)
    |
    v
-C. Backfill                      (after #145 lands, since the population
-                                  shape it back-fills must be settled first)
+C. Backfill                      (after #145 lands; scope bounded by
+                                  ADR-015 D7 — findings_resolved only,
+                                  authorized_by_rules permanently empty
+                                  for pre-ADR rows)
    |
    v
 Verification: G3 closure         (queryable causality chain end-to-end;
@@ -135,7 +135,7 @@ E (#124 confirmation) happens at session-open as a one-turn read, not as a seque
 Band B closes (G3 cleared) when **all** of the following hold:
 
 1. URS (artifact A) committed and reviewed. ✅
-2. ADR-015 (artifact B) accepted.
+2. ADR-015 (artifact B) accepted. ✅
 3. Issues #145, #146, #147, #148, #164, #165 closed with verification queries demonstrating the edge they fixed.
 4. The URS query patterns run end-to-end against live data — specifically Q1.F, Q1.R, Q2.F, Q2.R, Q2.A, Q3.F, Q3.R, Q5.F, Q5.R, Q6.F, Q6.R, E2E.F, E2E.R as defined in `.specs/requirements/URS-consequence-chain.md` §3.
 5. CONV.1 returns a sustained resolution_ratio ≥ 1.0 over a representative window (URS §3 CONV.1, §5 acceptance criterion 3).
@@ -158,4 +158,6 @@ Backfill (C) is not a Band B blocker — it is governance debt addressed during 
 
 ## 8. Next action
 
-Author ADR-015 (artifact B). Inputs: the committed URS, the investigation edge table, and the live schema as inspected during ADR drafting. Decides write paths and storage shapes for the six children's combined effect. No pre-decided default; evidence-driven.
+ADR-015 D6 binds #146 and #165 into a single change-set (splitting them violates URS NFR.5 in the gap). This is the highest-coordination of the six children and the natural starting implementation. Each of the other four (#145, #147, #148, #164) is independently scoped per its issue body and ADR-015's named Change sites.
+
+Header line of the plan-doc gets bumped to "Last updated: 2026-04-27 (ADR-015 committed; six children unblocked)" at session close.
