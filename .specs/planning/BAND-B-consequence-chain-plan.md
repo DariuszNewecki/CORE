@@ -4,7 +4,7 @@
 
 **Status:** Active
 **Owner:** Darek (Dariusz Newecki)
-**Last updated:** 2026-04-27
+**Last updated:** 2026-04-27 (revised after URS commit; #164 and #165 opened)
 **Scope:** Materialize the Finding → Proposal → Approval → Execution → File changes → New findings causality chain as a queryable graph.
 **Closes:** G3 (Phase 5).
 
@@ -44,7 +44,7 @@ Two cross-cutting patterns dominate: asymmetric attribution (link on one side on
 
 ## 3. Existing milestone state
 
-**Milestone 14 — Band B — Consequence Chain.** Five issues open as of 2026-04-26:
+**Milestone 14 — Band B — Consequence Chain.** Seven issues open as of 2026-04-27:
 
 | Issue | Edge | Title | Notes |
 |---|---|---|---|
@@ -53,8 +53,10 @@ Two cross-cutting patterns dominate: asymmetric attribution (link on one side on
 | #146 | 2 | Route autonomous approval through ProposalStateManager | Populates `approved_by`/`approved_at` on the auto-approved path. |
 | #147 | 3 | Record claimed_by worker_uuid on autonomous_proposals execution claim | Mirrors blackboard `claimed_by` pattern onto proposals. |
 | #148 | 6 | Sensor cause attribution — thread proposal/commit context onto new findings | Closes the weakest edge end-to-end. |
+| #164 | 1 | Subsume-path findings resolve without attribution to subsuming proposal | Required by URS NFR.4 (ALCOA+ "Complete" / WHO TRS 1033 §11.11). |
+| #165 | 2 | Record approval_authority on autonomous_proposals; enforce non-omittable at write path | Required by URS Q2.A and NFR.5 (Part 11 §11.50 + §11.10(g)). |
 
-The four children cover edges **1, 2, 3, 6**. Edge 4 ("yes per proposal; no cross-proposal") is an analytical convenience, not a chain integrity gap, and is not load-bearing for G3. Edge 5 brittleness is partially tracked outside Band B at issue #124 (autonomous commit-message fidelity).
+The six children cover edges **1, 2, 3, 6**. Edge 4 ("yes per proposal; no cross-proposal") is an analytical convenience, not a chain integrity gap, and is not load-bearing for G3. Edge 5 brittleness is partially tracked outside Band B at issue #124 (autonomous commit-message fidelity).
 
 ---
 
@@ -64,65 +66,60 @@ What the existing milestone does **not** cover, and which of those gaps need new
 
 ### 4.1 Required before implementation
 
-**A. URS for the chain.** Implementation cannot start without a written contract for what queries the chain must answer. The four children are mechanical fixes; the URS is what makes them coherent as a set rather than four independent patches. Required because two of the three downstream consequences (G2 measurement, governor supervision) are query-shaped, not write-shaped — the URS is what asserts the read path is in scope.
+**A. URS for the chain.** ✅ **Committed 2026-04-27** at `.specs/requirements/URS-consequence-chain.md`. Adopts industry defaults (Part 11 §11.50, ALCOA+ Complete) for two scope decisions that surfaced during drafting; those decisions produced #164 and #165.
 
-- **Artifact:** `.specs/requirements/URS-consequence-chain.md`
-- **Owner:** governor (architect drafts).
-- **Length:** short. Half a page of query specifications, one page of acceptance criteria.
-
-**B. ADR for the chain design.** Five issues each carry a small design decision (which column, which table, which write path). One umbrella ADR captures the cross-cutting design choice: are we adding edges to existing tables, materializing a separate causality table, or both? Without this, each child issue re-decides the same question and the four implementations may be inconsistent.
+**B. ADR for the chain design.** Six issues each carry a small design decision (which column, which table, which write path). One umbrella ADR captures the cross-cutting design choice: are we adding edges to existing tables, materializing a separate causality table, or both? Without this, each child issue re-decides the same question and the six implementations may be inconsistent.
 
 - **Artifact:** `.specs/decisions/ADR-015-consequence-chain-design.md`
 - **Decision required from evidence:** which write path each edge takes; whether the read paths the URS specifies can be satisfied by the existing schema's population gaps alone, or require new structure.
 - **Inputs to the ADR:** the URS (artifact A), the investigation's edge table, and the live schema as inspected during ADR drafting. No pre-decided default.
 
-### 4.2 Open as issues now (additions to Milestone 14)
+### 4.2 Required by URS — opened 2026-04-27
 
-**C. Backfill of historical proposal_consequences.** 22 completed proposals exist with empty `findings_resolved` and empty `authorized_by_rules`. Some are reconstructable from finding payloads (finding payload still holds `proposal_id` for the deferred-to-proposal path). Not all are recoverable. Backfill is best-effort, separate from forward fixes, and should not block #145.
+These two issues are Band B blockers, not optional adjuncts. They are listed here separately because they entered the milestone after URS revision, not as part of the original four children.
 
-- **Proposed issue:** "Backfill historical proposal_consequences from finding payloads"
-- **Labels:** `type:task`, `priority:medium`, `governance-debt`, milestone 14.
+- **#164 — Subsume-path attribution.** Required by URS NFR.4. Findings resolved on the dedup/subsume path must carry the subsuming proposal's `proposal_id` in their payload. Closure criteria on issue body.
+- **#165 — Approval authority.** Required by URS Q2.A and NFR.5. Every approved proposal carries an `approval_authority` value, write-path enforced. Closure criteria on issue body.
 
-**D. Subsume-path attribution.** Investigation §"Explicit unverifieds" flags `_resolve_entries` (`violation_remediator.py:544`): findings resolved on the dedup/subsume path are marked `resolved` without recording the subsuming proposal id. This is a partial Edge-1 break the four children do not address.
+### 4.3 Proposed but not yet opened
 
-- **Proposed issue:** "Subsume-path findings resolve without attribution to the subsuming proposal"
-- **Labels:** `type:task`, `priority:medium`, `governance-debt`, milestone 14.
+- **C. Backfill of historical proposal_consequences.** 22 completed proposals exist with empty `findings_resolved` and empty `authorized_by_rules`. Some are reconstructable from finding payloads. Backfill is best-effort, separate from forward fixes, and should not block #145.
+  - Proposed title: "Backfill historical proposal_consequences from finding payloads"
+  - Proposed labels: `type:task`, `priority:medium`, `governance-debt`, milestone 14.
+  - Sequencing: opens after #145 lands (the population shape it back-fills must be settled first).
 
-**E. Edge 5 brittleness — confirmation against #124.** The investigation names two failure modes (orphan commits and 8-char prefix collisions) and references #124. Worth a one-turn check: does #124's closure criteria cover both modes, or only commit-message fidelity? If only the latter, a sibling issue is warranted.
+- **E. Edge 5 brittleness — confirmation against #124.** The investigation names two failure modes (orphan commits and 8-char prefix collisions) and references #124. Worth a one-turn check: does #124's closure criteria cover both modes, or only commit-message fidelity? If only the latter, a sibling issue is warranted.
+  - Action: read #124 body, confirm or open sibling.
 
-- **Action:** read #124 body, confirm or open sibling.
-
-### 4.3 Out of scope for Band B
+### 4.4 Out of scope for Band B
 
 - **Edge 4 cross-proposal queries.** Analytical, not load-bearing for G3.
 - **`core.audit_findings` table population.** That table is empty in the autonomous path because the daemon does not invoke the CLI ingest; sensors post directly to the blackboard. Not a chain gap — a different surface.
 - **Cognitive-task schema (`core.proposals`, `core.tasks`, `core.actions`).** Retired by ADR-013; `core.proposal_signatures` was not named in ADR-013 — confirm it's covered or open a follow-up.
+- **Non-proposal resolution causes** (file deleted, rule retired, scope changed). Captured in URS §6 as a follow-up after Band B closes if CONV.1 shows distortion.
 - **Dev.to article.** Band E. Deferred until G3 closes.
 
 ---
 
 ## 5. Sequencing
 
-Strict ordering for the gating artifacts; the four children may run in parallel after the ADR lands.
+Strict ordering for the gating artifacts; the six children may run in parallel after the ADR lands.
 
 ```
-A. URS                           (gates everything)
+A. URS                           ✅ committed 2026-04-27
    |
    v
 B. ADR-015                       (gates implementation)
    |
-   +---+---+---+---+
-   |   |   |   |   |
-   v   v   v   v   v
-  #146 #147 #145 #148    (parallel; #148 has soft dependency on #145
-                          for the proposal_id thread)
+   +---+---+---+---+---+---+
+   |   |   |   |   |   |   |
+   v   v   v   v   v   v   v
+  #145 #146 #147 #148 #164 #165   (parallel; #148 has soft dependency on #145
+                                    for the proposal_id thread)
    |
    v
 C. Backfill                      (after #145 lands, since the population
                                   shape it back-fills must be settled first)
-   |
-   v
-D. Subsume-path                  (independent; can run any time)
    |
    v
 Verification: G3 closure         (queryable causality chain end-to-end;
@@ -137,16 +134,16 @@ E (#124 confirmation) happens at session-open as a one-turn read, not as a seque
 
 Band B closes (G3 cleared) when **all** of the following hold:
 
-1. URS (artifact A) committed and reviewed.
+1. URS (artifact A) committed and reviewed. ✅
 2. ADR-015 (artifact B) accepted.
-3. Issues #145, #146, #147, #148 closed with verification queries demonstrating the edge they fixed.
-4. The two query patterns from the URS run end-to-end against live data:
-   - Forward: "given a finding, list every consequence" — single query, no application-side joining.
-   - Reverse: "given a file change at SHA X, list the finding that caused it and the rule that authorized the change" — single query.
-5. A representative chain trace from a recent autonomous round-trip is captured as a verification artifact (markdown under `.specs/state/`) and referenced from the epic close.
-6. A3 plan-doc updated: G3 row moved to "Demonstrated"; Band B milestone closed; Resolved Blockers row added.
+3. Issues #145, #146, #147, #148, #164, #165 closed with verification queries demonstrating the edge they fixed.
+4. The URS query patterns run end-to-end against live data — specifically Q1.F, Q1.R, Q2.F, Q2.R, Q2.A, Q3.F, Q3.R, Q5.F, Q5.R, Q6.F, Q6.R, E2E.F, E2E.R as defined in `.specs/requirements/URS-consequence-chain.md` §3.
+5. CONV.1 returns a sustained resolution_ratio ≥ 1.0 over a representative window (URS §3 CONV.1, §5 acceptance criterion 3).
+6. NFR.5 enforcement verified: write-path rejects `status='approved'` without `approval_authority` (URS §5 acceptance criterion 4).
+7. A representative chain trace from a recent autonomous round-trip is captured as a verification artifact (markdown under `.specs/state/`) and referenced from the epic close (URS NFR.3).
+8. A3 plan-doc updated: G3 row moved to "Demonstrated"; Band B milestone closed; Resolved Blockers row added.
 
-Backfill (C) and subsume-path (D) are not Band B blockers — they are governance debt addressed during the band but allowed to slip past closure if needed.
+Backfill (C) is not a Band B blocker — it is governance debt addressed during the band but allowed to slip past closure if needed.
 
 ---
 
@@ -161,4 +158,4 @@ Backfill (C) and subsume-path (D) are not Band B blockers — they are governanc
 
 ## 8. Next action
 
-Author URS (artifact A). Draft target ~one page; reviewed against the investigation's edge table and the closure criteria above before ADR-015 begins.
+Author ADR-015 (artifact B). Inputs: the committed URS, the investigation edge table, and the live schema as inspected during ADR drafting. Decides write paths and storage shapes for the six children's combined effect. No pre-decided default; evidence-driven.
