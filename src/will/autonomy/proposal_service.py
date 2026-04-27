@@ -107,9 +107,23 @@ class ProposalService:
         await self._state_manager.mark_failed(proposal_id, reason)
 
     # ID: b2d228b9-fe0a-436a-9fec-1d4f590e337e
-    async def approve(self, proposal_id: str, approved_by: str) -> None:
-        """Approve proposal."""
-        await self._state_manager.approve(proposal_id, approved_by)
+    async def approve(
+        self,
+        proposal_id: str,
+        approved_by: str,
+        approval_authority: str,
+    ) -> None:
+        """Approve proposal.
+
+        approval_authority is non-omittable per URS NFR.5; forwarded to
+        ProposalStateManager.approve which validates against the
+        proposal_approval_authority closed set.
+
+        Commits the session after the state-manager call, since
+        ProposalStateManager.approve no longer commits internally.
+        """
+        await self._state_manager.approve(proposal_id, approved_by, approval_authority)
+        await self._session.commit()
 
     # ID: ca316432-a09e-4af3-9a63-82a39b08ebb2
     async def reject(self, proposal_id: str, reason: str) -> None:

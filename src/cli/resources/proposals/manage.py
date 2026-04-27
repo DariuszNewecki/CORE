@@ -36,14 +36,26 @@ async def approve_proposal(
     ctx: typer.Context,
     proposal_id: str = typer.Argument(...),
     by: str = typer.Option("cli_admin", "--by", help="Approver identity."),
+    authority: str = typer.Option(
+        "human.cli_operator",
+        "--authority",
+        help="Authority under which approval is granted (URS NFR.5).",
+    ),
 ) -> None:
     """Authorize a pending proposal for execution."""
     from will.autonomy.proposal_state_manager import ProposalStateManager
 
     async with service_registry.session() as session:
-        await ProposalStateManager(session).approve(proposal_id, approved_by=by)
+        await ProposalStateManager(session).approve(
+            proposal_id, approved_by=by, approval_authority=authority
+        )
         await session.commit()
-    logger.info("[green]✅ Proposal %s APPROVED by %s.[/green]", proposal_id, by)
+    logger.info(
+        "[green]✅ Proposal %s APPROVED by %s under %s.[/green]",
+        proposal_id,
+        by,
+        authority,
+    )
 
 
 @core_command(dangerous=True, confirmation=True)

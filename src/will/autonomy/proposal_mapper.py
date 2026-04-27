@@ -70,6 +70,7 @@ class ProposalMapper:
             approval_required=proposal.approval_required,
             approved_by=proposal.approved_by,
             approved_at=proposal.approved_at,
+            approval_authority=proposal.approval_authority,
             failure_reason=proposal.failure_reason,
         )
 
@@ -113,6 +114,7 @@ class ProposalMapper:
             "approved_at": (
                 db_proposal.approved_at.isoformat() if db_proposal.approved_at else None
             ),
+            "approval_authority": db_proposal.approval_authority,
             "failure_reason": db_proposal.failure_reason,
         }
         return Proposal.from_dict(data)
@@ -158,4 +160,5 @@ class ProposalMapper:
         db_proposal.approval_required = proposal.approval_required
         db_proposal.approved_by = proposal.approved_by
         db_proposal.approved_at = proposal.approved_at
+        db_proposal.approval_authority = proposal.approval_authority
         db_proposal.failure_reason = proposal.failure_reason

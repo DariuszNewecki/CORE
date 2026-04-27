@@ -193,6 +193,9 @@ class Proposal:
     approved_at: datetime | None = None
     """When it was approved"""
 
+    approval_authority: str | None = None
+    """Authority under which approval was granted (URS Q2.A, NFR.5)."""
+
     # Failure tracking
     failure_reason: str | None = None
     """Why execution failed (if applicable)"""
@@ -343,6 +346,7 @@ class Proposal:
             "approval_required": self.approval_required,
             "approved_by": self.approved_by,
             "approved_at": self.approved_at.isoformat() if self.approved_at else None,
+            "approval_authority": self.approval_authority,
             "failure_reason": self.failure_reason,
         }
 
@@ -418,5 +422,6 @@ class Proposal:
                 if data.get("approved_at")
                 else None
             ),
+            approval_authority=data.get("approval_authority"),
             failure_reason=data.get("failure_reason"),
         )

@@ -70,6 +70,7 @@ class AutonomousProposal(Base):
     approval_required = Column(Boolean, nullable=False, server_default="false")
     approved_by = Column(Text)
     approved_at = Column(DateTime(timezone=True))
+    approval_authority = Column(Text)
 
     # Failure tracking
     failure_reason = Column(Text)

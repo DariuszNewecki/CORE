@@ -29,6 +29,16 @@ from will.autonomy.proposal import ProposalStatus
 logger = getLogger(__name__)
 
 
+ALLOWED_APPROVAL_AUTHORITIES: frozenset[str] = frozenset(
+    {
+        "risk_classification.safe_auto_approval",
+        "human.cli_operator",
+    }
+)
+"""Closed set per .intent/META/enums.json proposal_approval_authority.
+Mirrored here for write-path validation; .intent/ is the canonical surface."""
+
+
 # ID: 5a6b7c8d-9e0f-1a2b-3c4d-5e6f7a8b9c0d
 class ProposalStateManager:
     """
@@ -138,8 +148,44 @@ class ProposalStateManager:
     # -------------------------
 
     # ID: befa870d-148c-4f53-9c31-614380e93673
-    async def approve(self, proposal_id: str, approved_by: str) -> None:
-        """Approve proposal for execution."""
+    async def approve(
+        self,
+        proposal_id: str,
+        approved_by: str,
+        approval_authority: str,
+    ) -> None:
+        """Approve proposal for execution.
+
+        approval_authority is non-omittable per URS NFR.5: a proposal cannot
+        transition to status='approved' without recording the authority under
+        which approval was granted (21 CFR Part 11 §11.50 "meaning of
+        signature"; ALCOA+ "Attributable" extends "who" to include role).
+        Validation happens at the write path, before any database operation.
+
+        Args:
+            proposal_id: Public proposal id.
+            approved_by: Identity of the approver (worker tag, operator name).
+            approval_authority: Structured reference to the rule or role that
+                authorized approval. Must be one of
+                ALLOWED_APPROVAL_AUTHORITIES; mirrors the
+                proposal_approval_authority enum in .intent/META/enums.json.
+
+        Raises:
+            ValueError: If approval_authority is falsy or not in the closed set.
+        """
+        if not approval_authority:
+            raise ValueError(
+                "approval_authority is non-omittable per URS NFR.5; "
+                "approve() must receive a value from the proposal_approval_authority "
+                "closed set."
+            )
+        if approval_authority not in ALLOWED_APPROVAL_AUTHORITIES:
+            raise ValueError(
+                f"approval_authority {approval_authority!r} is not in the "
+                f"allowed set {sorted(ALLOWED_APPROVAL_AUTHORITIES)!r} "
+                "(per .intent/META/enums.json proposal_approval_authority)."
+            )
+
         from shared.infrastructure.database.models.autonomous_proposals import (
             AutonomousProposal,
         )
@@ -151,11 +197,17 @@ class ProposalStateManager:
                 status=ProposalStatus.APPROVED.value,
                 approved_by=approved_by,
                 approved_at=datetime.now(UTC),
+                approval_authority=approval_authority,
             )
         )
         await self._session.execute(stmt)
-        await self._session.commit()
-        logger.info("Approved proposal: %s by %s", proposal_id, approved_by)
+        # Caller controls transactional scope (matches update_fields convention).
+        logger.info(
+            "Approved proposal: %s by %s under %s",
+            proposal_id,
+            approved_by,
+            approval_authority,
+        )
 
     # ID: dbdfc785-73e1-47c5-a886-3a2435c8dc95
     async def reject(self, proposal_id: str, reason: str) -> None:
