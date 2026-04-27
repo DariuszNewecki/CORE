@@ -122,6 +122,15 @@
       ]
     },
 
+    "proposal_approval_authority": {
+      "description": "Closed set of authority values for the approval_authority column on core.autonomous_proposals. Identifies the rule or role under which a proposal was approved. Non-omittable when status transitions to approved, executing, or completed (per URS NFR.5; URS Q2.A; ADR-015 D6). risk_classification.safe_auto_approval is the autonomous self-promote authority, used when compute_risk() classifies the proposal as safe and approval_required is False. human.cli_operator is the authority for approvals issued via the core-admin proposals approve CLI.",
+      "type": "string",
+      "enum": [
+        "risk_classification.safe_auto_approval",
+        "human.cli_operator"
+      ]
+    },
+
     "dry_run_scope": {
       "description": "Disambiguates the three distinct dry-run modes in CORE. evaluation_only means the rule was checked but no fix was generated. fix_generated means a fix was produced but not applied. finding_suppressed means the finding is tagged for exclusion from remediation pipelines.",
       "type": "string",
