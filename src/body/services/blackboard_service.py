@@ -679,6 +679,16 @@ class BlackboardService:
 
         Covers:
           - PromptExtractorWorker._mark_finding
+
+        Sets resolved_at on transition to a terminal status (resolved, abandoned,
+        indeterminate), matching the hygiene rule established by commit 59ff25be
+        and the pattern used by the direct-SQL _mark_findings / _mark_finding
+        paths. Without this clause, callers routing through this method
+        (ProposalConsumerWorker._mark_finding, ViolationRemediator._mark_finding)
+        produced terminal rows with NULL resolved_at, distorting any query that
+        uses resolved_at as a temporal filter. Discovered 2026-04-27 during
+        Band B verification sweep: 26/26 abandoned rows post-59ff25be carried
+        NULL resolved_at, all attributable to this path.
         """
         from body.services.service_registry import ServiceRegistry
 
@@ -687,7 +697,13 @@ class BlackboardService:
                 text(
                     """
                     UPDATE core.blackboard_entries
-                    SET status = :status, updated_at = now()
+                    SET status = :status,
+                        resolved_at = CASE
+                            WHEN :status IN ('resolved', 'abandoned', 'indeterminate')
+                                THEN now()
+                            ELSE resolved_at
+                        END,
+                        updated_at = now()
                     WHERE id = :id
                     """
                 ),
