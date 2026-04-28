@@ -16,6 +16,7 @@ from __future__ import annotations
 import asyncio
 import time
 from typing import Any
+from uuid import UUID
 
 from body.atomic.executor import ActionExecutor
 from body.services.service_registry import service_registry
@@ -48,6 +49,7 @@ class ProposalExecutor:
     async def execute(
         self,
         proposal_id: str,
+        claimed_by: UUID,
         write: bool = False,
     ) -> dict[str, Any]:
         start_time = time.time()
@@ -87,11 +89,25 @@ class ProposalExecutor:
                     "duration_sec": time.time() - start_time,
                 }
 
-            # 3. Mark as executing (only if write=True)
+            # 3. Mark as executing via claim.proposal atomic action (only if write=True)
             if write:
                 state_manager = ProposalStateManager(session)
-                await state_manager.mark_executing(proposal.proposal_id)
-                logger.info("Marked proposal as executing: %s", proposal.proposal_id)
+                claim_result = await self.action_executor.execute(
+                    "claim.proposal",
+                    proposal_id=proposal.proposal_id,
+                    claimed_by=claimed_by,
+                    write=write,
+                )
+                if not claim_result.ok:
+                    return {
+                        "ok": False,
+                        "error": (
+                            f"claim.proposal failed: "
+                            f"{claim_result.data.get('error', 'rowcount=0')}"
+                        ),
+                        "proposal_id": proposal.proposal_id,
+                        "duration_sec": time.time() - start_time,
+                    }
             else:
                 logger.info("DRY-RUN mode - not updating proposal status")
 
@@ -327,6 +343,7 @@ class ProposalExecutor:
     async def execute_batch(
         self,
         proposal_ids: list[str],
+        claimed_by: UUID,
         write: bool = False,
     ) -> dict[str, Any]:
         start_time = time.time()
@@ -364,7 +381,23 @@ class ProposalExecutor:
 
                     if write:
                         state_manager = ProposalStateManager(session)
-                        await state_manager.mark_executing(proposal.proposal_id)
+                        claim_result = await self.action_executor.execute(
+                            "claim.proposal",
+                            proposal_id=proposal.proposal_id,
+                            claimed_by=claimed_by,
+                            write=write,
+                        )
+                        if not claim_result.ok:
+                            results[proposal_id] = {
+                                "ok": False,
+                                "error": (
+                                    f"claim.proposal failed: "
+                                    f"{claim_result.data.get('error', 'rowcount=0')}"
+                                ),
+                                "proposal_id": proposal.proposal_id,
+                                "duration_sec": time.time() - single_start,
+                            }
+                            continue
 
                     pre_execution_sha = None
                     if self.core_context.git_service:

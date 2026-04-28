@@ -1,4 +1,7 @@
 # src/cli/resources/proposals/manage.py
+from typing import Final
+from uuid import UUID
+
 from shared.logger import getLogger
 
 
@@ -14,6 +17,13 @@ from will.autonomy.proposal_repository import ProposalRepository
 
 
 console = Console()
+
+# CLI claimer sentinel (ADR-017 D4) — humans running CLI commands aren't autonomous
+# workers, so a stable sentinel UUID identifies them collectively and makes
+# CLI-claimed proposals queryable: SELECT * FROM core.autonomous_proposals WHERE
+# claimed_by = '00000000-0000-0000-0000-000000000001'. Mirrors the ADR-015 D6 /
+# NFR.5 approval_authority='human.cli_operator' pattern at the claim layer.
+CLI_CLAIMER_UUID: Final[UUID] = UUID("00000000-0000-0000-0000-000000000001")
 
 
 @core_command(dangerous=False)
@@ -73,7 +83,7 @@ async def execute_proposal(
     if not write:
         logger.info("[yellow]💡 Dry-run: simulating execution steps...[/yellow]\n")
     executor = ProposalExecutor(ctx.obj)
-    result = await executor.execute(proposal_id, write=write)
+    result = await executor.execute(proposal_id, CLI_CLAIMER_UUID, write=write)
     if result["ok"]:
         logger.info(
             "\n[bold green]✅ Execution Successful: %s[/bold green]", proposal_id

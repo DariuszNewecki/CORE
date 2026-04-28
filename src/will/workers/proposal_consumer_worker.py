@@ -103,7 +103,9 @@ class ProposalConsumerWorker(Worker):
             )
 
             try:
-                result = await executor.execute(proposal_id, write=True)
+                result = await executor.execute(
+                    proposal_id, self.worker_uuid, write=True
+                )
 
                 if result["ok"]:
                     succeeded += 1
