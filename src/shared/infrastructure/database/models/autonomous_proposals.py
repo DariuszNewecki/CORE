@@ -61,6 +61,7 @@ class AutonomousProposal(Base):
     validation_results = Column(JSONB, nullable=False, server_default="{}")
 
     # Execution tracking
+    claimed_by = Column(pgUUID(as_uuid=True))
     execution_started_at = Column(DateTime(timezone=True))
     execution_completed_at = Column(DateTime(timezone=True))
     execution_results = Column(JSONB, nullable=False, server_default="{}")
