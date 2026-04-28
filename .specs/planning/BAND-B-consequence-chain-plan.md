@@ -4,7 +4,7 @@
 
 **Status:** Active
 **Owner:** Darek (Dariusz Newecki)
-**Last updated:** 2026-04-27 (#146 + #165 closed end-to-end; #135 closed; Edge 5 sibling opened; four Edge 1/3/6 children remain)
+**Last updated:** 2026-04-28 (#147 closed end-to-end via commits 6ee9c7c5 + 2136ffb6; ADR-017 shipped; Edge 3 closed)
 **Scope:** Materialize the Finding → Proposal → Approval → Execution → File changes → New findings causality chain as a queryable graph.
 **Closes:** G3 (Phase 5).
 
@@ -33,12 +33,14 @@ Three downstream consequences make this a Band-defining gap rather than a qualit
 |---|---|---|---|
 | 1. Finding → Proposal | partial | partial (asymmetric) | partial (reverse only via finding payload) |
 | 2. Proposal → Approval | **yes (forward path)** ✅ | **yes (forward path)** ✅ | **yes (forward path)** ✅ |
-| 3. Approval → Execution claim | partial (status only) | no (no claimer attribution) | no |
+| 3. Approval → Execution claim | **yes** ✅ | **yes** ✅ | **yes** ✅ |
 | 4. Execution → AtomicAction dispatch | yes (in-row jsonb) | partial (per-row, not cross-row) | yes per proposal; no cross-proposal |
 | 5. Execution → File changes | yes | yes (freeform commit-message + DB) | yes (brittle: orphan commits, prefix-only) |
 | 6. File changes → New findings | yes (finding row) | **no** | **no** |
 
 **Edge 2 update (2026-04-27):** closed for the forward path by #146 + #165 landing. Approval attribution (`approved_by`, `approved_at`, `approval_authority`) is now non-omittable on every newly-approved proposal, enforced at both the application write-path (ProposalStateManager.approve raises ValueError on falsy/unknown authority) and the structural layer (DB CHECK constraint). The 159 historical pre-2026-04-27 rows remain NULL on these columns per ADR-015 D7 (ALCOA "Complete" — no synthesized backfill).
+
+**Edge 3 update (2026-04-28):** closed by #147 + ADR-017 (commits 6ee9c7c5 + 2136ffb6). Approval→execution claim attribution is now non-omittable on every newly-claimed proposal, populated via the `claim.proposal` atomic action. Autonomous workers thread `self.worker_uuid`; CLI claims thread `CLI_CLAIMER_UUID = '00000000-0000-0000-0000-000000000001'` per ADR-017 D4 (mirrors ADR-015 D6 / NFR.5 `approval_authority='human.cli_operator'` pattern at the claim layer). The `ProposalStateManager.mark_executing` method removed; bounded inconsistency with the remaining mark_completed/mark_failed/approve/reject methods documented in ADR-017 D2 with stated path forward (#169 — dedicated `proposal_lifecycle.json` policy).
 
 Two cross-cutting patterns dominate the remaining open edges: asymmetric attribution (link on one side only) and schema-without-population (columns exist but aren't written by the autonomous path).
 
@@ -50,7 +52,7 @@ Two cross-cutting patterns dominate the remaining open edges: asymmetric attribu
 
 Operational issue tracking lives on GitHub: https://github.com/DariuszNewecki/CORE/milestone/14
 
-**Summary as of 2026-04-27:** seven issues at session-open; two closed earlier in the day (#146, #165 — Edge 2 forward-path attribution); one sibling opened this session for Edge 5 brittleness (orphan commits + 8-char prefix collisions); five Band B issues now remain (one epic + four children covering edges 1, 3, 6) plus the new Edge 5 sibling. Edge 4 ("yes per proposal; no cross-proposal") is an analytical convenience, not a chain integrity gap, and is not load-bearing for G3. Edge 5 brittleness is tracked across two issues: #124 (commit-message fidelity, Band D — different scope) and the new sibling on Band B (orphan commits + prefix collisions).
+**Summary as of 2026-04-28:** Following the close of #147 (Edge 3 closed end-to-end via ADR-017 in commits 6ee9c7c5 + 2136ffb6), Band B's remaining surface is the epic, the Edge 6 child (#148 — sensor cause attribution), and the Edge 5 sibling (#166 — orphan-commit and 8-char prefix-collision brittleness). Edge 4 ("yes per proposal; no cross-proposal") remains an analytical convenience, not a chain integrity gap, and is not load-bearing for G3. Edge 5 brittleness is tracked across two issues: #124 (commit-message fidelity, Band D — different scope) and #166 (orphan commits + prefix collisions, Band B).
 
 For the live issue list, current labels, and closing comments with verification artifacts, query GitHub directly. The milestone page is the authoritative surface; restating it here would go stale immediately.
 
@@ -64,7 +66,7 @@ What the existing milestone does **not** cover, and which of those gaps need new
 
 **A. URS for the chain.** ✅ Committed at `.specs/requirements/URS-consequence-chain.md`. Adopts industry defaults (Part 11 §11.50, ALCOA+ Complete) for two scope decisions that surfaced during drafting.
 
-**B. ADR for the chain design.** ✅ Committed at `.specs/decisions/ADR-015-consequence-chain-attribution.md`. Decides write paths and storage shapes for the children as seven coordinated sub-decisions (D1–D7). Forward-only enforcement; historical rows preserved per ALCOA "Complete." Implementation work for each child is scoped against specific Change sites named in the ADR. D2/D6/D7 implemented end-to-end 2026-04-27.
+**B. ADR for the chain design.** ✅ Committed at `.specs/decisions/ADR-015-consequence-chain-attribution.md`. Decides write paths and storage shapes for the children as seven coordinated sub-decisions (D1–D7). Forward-only enforcement; historical rows preserved per ALCOA "Complete." Implementation work for each child is scoped against specific Change sites named in the ADR. D2/D6/D7 implemented end-to-end 2026-04-27. D3 column-shape preserved and populated via ADR-017 (`claim.proposal` atomic action) on 2026-04-28.
 
 ### 4.2 Proposed but not yet opened
 
@@ -98,9 +100,9 @@ B. ADR-015                       ✅ committed 2026-04-27
    +---+---+---+---+---+---+
    |   |   |   |   |   |   |
    v   v   v   v   v   v   v
-   Edge 1   Edge 2 (forward)   Edge 3   Edge 5 (sibling)   Edge 6
-   (open)   ✅ closed 2026-04-27 (open) (open)             (open)
-   |
+   Edge 1   Edge 2 (forward)        Edge 3                  Edge 5 (sibling)   Edge 6
+   (open)   ✅ closed 2026-04-27    ✅ closed 2026-04-28     (open)             (open)
+   |                                (ADR-017)
    v
 C. Backfill                      (after Edge 1 lands; scope bounded by
                                   ADR-015 D7 — findings_resolved only,
@@ -122,11 +124,11 @@ Band B closes (G3 cleared) when **all** of the following hold:
 
 1. URS (artifact A) committed and reviewed. ✅
 2. ADR-015 (artifact B) accepted. ✅
-3. All Band B child issues on milestone 14 closed with verification queries demonstrating the edge they fixed. **Partial: Edge 2 forward-path closed 2026-04-27; Edges 1, 3, 5 (sibling), 6 remain.**
-4. The URS query patterns run end-to-end against live data — specifically Q1.F, Q1.R, Q2.F, Q2.R, Q2.A, Q3.F, Q3.R, Q5.F, Q5.R, Q6.F, Q6.R, E2E.F, E2E.R as defined in `.specs/requirements/URS-consequence-chain.md` §3. **Partial: Q2.A and Q2.F demonstrable end-to-end; others depend on remaining children.**
+3. All Band B child issues on milestone 14 closed with verification queries demonstrating the edge they fixed. **Partial: Edge 2 forward-path closed 2026-04-27; Edge 3 closed 2026-04-28; Edges 1, 5 (sibling), 6 remain.**
+4. The URS query patterns run end-to-end against live data — specifically Q1.F, Q1.R, Q2.F, Q2.R, Q2.A, Q3.F, Q3.R, Q5.F, Q5.R, Q6.F, Q6.R, E2E.F, E2E.R as defined in `.specs/requirements/URS-consequence-chain.md` §3. **Partial: Q2.A, Q2.F, Q3.F, Q3.R demonstrable end-to-end (Q3 verified 2026-04-28); others depend on remaining children.**
 5. CONV.1 returns a sustained resolution_ratio ≥ 1.0 over a representative window (URS §3 CONV.1, §5 acceptance criterion 3). **Pending — observation criterion; daemon must run with all remaining children landed. `resolved_at` hygiene confirmed via #135 fix on 2026-04-27.**
 6. NFR.5 enforcement verified: write-path rejects `status='approved'` without `approval_authority` (URS §5 acceptance criterion 4). ✅ Verified 2026-04-27 — application layer (ValueError on falsy/unknown) and structural layer (DB CHECK) both exercised by the test surface committed in this band's work.
-7. A representative chain trace from a recent autonomous round-trip is referenced from the closing comment of the relevant issue (mirrors SESSION-PROTOCOL.md's GitHub-as-record posture). ✅ Demonstrated 2026-04-27 for Edge 2 — verification artifact `proposal_id ac118b56-a47e-4839-9812-7834d6f18feb` on core, full lifecycle approved → executing → failed with attribution preserved through `mark_failed`. Each remaining child's closing comment carries its own end-to-end trace at closure.
+7. A representative chain trace from a recent autonomous round-trip is referenced from the closing comment of the relevant issue (mirrors SESSION-PROTOCOL.md's GitHub-as-record posture). ✅ Demonstrated 2026-04-27 for Edge 2 — verification artifact `proposal_id ac118b56-a47e-4839-9812-7834d6f18feb` on core, full lifecycle approved → executing → failed with attribution preserved through `mark_failed`. ✅ Demonstrated 2026-04-28 for Edge 3 — six post-restart proposals on `core.autonomous_proposals` carry non-NULL `claimed_by = c1d2e3f4-a5b6-7890-cdef-123456789abc` (proposal_consumer_worker UUID), populated via the `claim.proposal` atomic action. Each remaining child's closing comment carries its own end-to-end trace at closure.
 8. A3 plan-doc updated: G3 row reflects sustained closure; Band B milestone closed on GitHub. **Pending — partial Band B progress reflected in this revision; full migration of G3 row to "Demonstrated" awaits remaining children.**
 
 Backfill (C) is not a Band B blocker — it is governance debt addressed during the band but allowed to slip past closure if needed.
@@ -145,4 +147,4 @@ Backfill (C) is not a Band B blocker — it is governance debt addressed during 
 
 ## 8. Next action
 
-Edges 1, 3, 6 remain (four child issues), plus the Edge 5 sibling opened 2026-04-27. The four Edge 1/3/6 children are independently scoped per their issue bodies and ADR-015's named Change sites; no further coordination binds them like ADR-015 D6 bound the Edge 2 pair. The Edge 5 sibling is governance-shaped (ADR before code) and runs in parallel. Lead selection is a session-open decision per SESSION-PROTOCOL.md §3 Step 5.
+Edge 6 (#148 — sensor cause attribution) and Edge 5 sibling (#166 — orphan-commit + prefix-collision brittleness) remain as Band B work. Edge 1's residual children are tracked on the milestone; query GitHub for the live state. The Edge 5 sibling is governance-shaped (ADR before code) and runs in parallel with Edge 6. Lead selection is a session-open decision per SESSION-PROTOCOL.md §3 Step 5.
