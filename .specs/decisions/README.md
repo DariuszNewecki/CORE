@@ -145,8 +145,8 @@ All worker declarations live in `.intent/workers/*.yaml`. The daemon (`src/will/
 | `violation_remediator` | Will — claims mapped findings, creates proposals |
 | `violation_executor` | Will — claims unmapped findings, surfaces candidates |
 | `proposal_consumer_worker` | Executes approved proposals |
-| `blackboard_auditor` | Monitors Blackboard SLA health |
-| `worker_auditor` | Monitors worker liveness |
+| `blackboard_shop_manager` | Monitors Blackboard SLA health |
+| `worker_shop_manager` | Monitors worker liveness |
 
 **16 paused workers:**
 
@@ -279,9 +279,9 @@ ProposalConsumer
   → pick up APPROVED proposals → execute via ProposalExecutor
 AuditViolationSensor
   → re-sense — finding either resolves or re-posts
-BlackboardAuditor
+BlackboardShopManager
   → monitor Blackboard SLA health
-WorkerAuditor
+WorkerShopManager
   → monitor worker liveness
 ```
 

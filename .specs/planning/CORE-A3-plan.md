@@ -241,9 +241,9 @@ ProposalConsumerWorker                 ← daemonized
     → executes APPROVED proposals via ProposalExecutor
 AuditViolationSensor
     → confirms finding resolved or re-posts
-BlackboardAuditor                      ← active
+BlackboardShopManager                      ← active
     → monitors Blackboard SLA health
-WorkerAuditor                          ← active
+WorkerShopManager                          ← active
     → monitors worker liveness
 ```
 
