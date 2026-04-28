@@ -19,7 +19,6 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 from typing import Any
-from uuid import UUID
 
 from sqlalchemy import update
 
@@ -56,15 +55,11 @@ class ProposalStateManager:
     # -------------------------
 
     # ID: 51be5977-1729-407c-9c47-018a565d56c4
-    async def mark_executing(self, proposal_id: str, claimed_by: UUID) -> None:
+    async def mark_executing(self, proposal_id: str) -> None:
         """Mark proposal as currently executing.
 
         Guards against concurrent execution by requiring status = 'approved' in
         the WHERE clause. Raises RuntimeError if 0 rows updated (already claimed).
-
-        claimed_by is the worker_uuid of the claiming worker, persisted on the
-        proposal row in the same UPDATE that sets status='executing' and
-        execution_started_at, per ADR-015 D3 / URS Q3.F.
         """
         from shared.infrastructure.database.models.autonomous_proposals import (
             AutonomousProposal,
@@ -79,7 +74,6 @@ class ProposalStateManager:
             .values(
                 status=ProposalStatus.EXECUTING.value,
                 execution_started_at=datetime.now(UTC),
-                claimed_by=claimed_by,
             )
         )
         result = await self._session.execute(stmt)

@@ -17,7 +17,6 @@ from __future__ import annotations
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from typing import Any
-from uuid import UUID
 
 from sqlalchemy import text
 
@@ -41,7 +40,7 @@ class ProposalService:
     Usage:
         async with ProposalService.open() as service:
             proposal = await service.get("id")
-            await service.mark_executing("id", worker_uuid)
+            await service.mark_executing("id")
     """
 
     def __init__(self, session: Any):
@@ -93,9 +92,9 @@ class ProposalService:
     # -------------------------
 
     # ID: 01f23465-3c5e-43b9-94b3-8634e449be6a
-    async def mark_executing(self, proposal_id: str, claimed_by: UUID) -> None:
+    async def mark_executing(self, proposal_id: str) -> None:
         """Mark proposal as executing."""
-        await self._state_manager.mark_executing(proposal_id, claimed_by)
+        await self._state_manager.mark_executing(proposal_id)
 
     # ID: bc89da1a-1a65-4982-8e45-1e85d5bea7c6
     async def mark_completed(self, proposal_id: str, results: dict[str, Any]) -> None:
@@ -150,7 +149,7 @@ class ProposalService:
 
     # ID: a2a541cc-520e-4795-a406-c9caf7806a25
     async def execute_workflow(
-        self, proposal_id: str, executor_func: Any, claimed_by: UUID
+        self, proposal_id: str, executor_func: Any
     ) -> dict[str, Any]:
         """
         Execute full workflow with state tracking.
@@ -162,7 +161,7 @@ class ProposalService:
         Returns:
             Execution results
         """
-        await self.mark_executing(proposal_id, claimed_by)
+        await self.mark_executing(proposal_id)
         try:
             results = await executor_func()
             await self.mark_completed(proposal_id, results)

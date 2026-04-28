@@ -14,6 +14,7 @@ from body.atomic import (
     fix_actions,
     metadata_ops,
     modularity_fix,
+    proposal_lifecycle_actions,
     sync_actions,
 )
 from body.atomic.build_tests_action import action_build_tests

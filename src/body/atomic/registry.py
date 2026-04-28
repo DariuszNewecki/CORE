@@ -38,6 +38,7 @@ class ActionCategory(str, Enum):
     SYNC = "sync"  # State synchronization
     CHECK = "check"  # Validation/audit
     BUILD = "build"  # Construction
+    STATE = "state"  # State machine transitions
 
 
 @dataclass
