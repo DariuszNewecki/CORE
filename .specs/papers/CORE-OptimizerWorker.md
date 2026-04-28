@@ -32,14 +32,15 @@ the same rule violation.
 
 ## 3. Why It Does Not Exist Yet
 
-ViolationExecutor itself is not yet implemented. The OptimizerWorker
-depends on ViolationExecutor producing candidate patterns at scale.
-Designing the OptimizerWorker before ViolationExecutor produces data
-would be premature.
+ViolationExecutor is implemented and active. The OptimizerWorker depends
+on ViolationExecutor producing candidate patterns *at scale* — enough
+accumulated discovery data that pattern recognition has substrate to
+work on. Designing the OptimizerWorker before that data exists would
+be premature.
 
 The graduation path is therefore currently manual:
 
-1. ViolationExecutor (once implemented) surfaces a candidate fix.
+1. ViolationExecutor surfaces a candidate fix.
 2. The human architect observes the pattern.
 3. The human authors an AtomicAction and adds it to the RemediationMap.
 
@@ -71,6 +72,7 @@ This paper does not define:
 Those are design decisions for when this component is ready to be built.
 
 The rollback archive written by ViolationExecutor to `var/mind/rollbacks/`
-has no constitutional contract until ViolationExecutor is implemented.
-Its format, retention, and recovery procedure are deferred to the
-ViolationExecutor implementation milestone.
+has no constitutional contract in this paper. Its format, retention, and
+recovery procedure belong to ViolationExecutor's governance, not to
+OptimizerWorker's. The OptimizerWorker's contract for reading rollback
+data, if any, is deferred to the OptimizerWorker design milestone.
