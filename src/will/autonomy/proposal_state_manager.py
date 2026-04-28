@@ -9,7 +9,7 @@ CONSTITUTIONAL ALIGNMENT:
 - Uses repository for persistence
 
 Handles state transitions:
-- mark_executing, mark_completed, mark_failed
+- mark_completed, mark_failed
 - approve, reject
 
 Extracted from ProposalRepository to separate state management concerns.
@@ -53,37 +53,6 @@ class ProposalStateManager:
     # -------------------------
     # Execution State Transitions
     # -------------------------
-
-    # ID: 51be5977-1729-407c-9c47-018a565d56c4
-    async def mark_executing(self, proposal_id: str) -> None:
-        """Mark proposal as currently executing.
-
-        Guards against concurrent execution by requiring status = 'approved' in
-        the WHERE clause. Raises RuntimeError if 0 rows updated (already claimed).
-        """
-        from shared.infrastructure.database.models.autonomous_proposals import (
-            AutonomousProposal,
-        )
-
-        stmt = (
-            update(AutonomousProposal)
-            .where(
-                AutonomousProposal.proposal_id == proposal_id,
-                AutonomousProposal.status == ProposalStatus.APPROVED.value,
-            )
-            .values(
-                status=ProposalStatus.EXECUTING.value,
-                execution_started_at=datetime.now(UTC),
-            )
-        )
-        result = await self._session.execute(stmt)
-        if result.rowcount == 0:
-            await self._session.rollback()
-            raise RuntimeError(
-                f"Proposal {proposal_id} was already claimed or not in approved status"
-            )
-        await self._session.commit()
-        logger.info("Marked proposal as executing: %s", proposal_id)
 
     # ID: 360b7769-23e8-416d-875b-45e8d3c8194c
     async def mark_completed(self, proposal_id: str, results: dict[str, Any]) -> None:

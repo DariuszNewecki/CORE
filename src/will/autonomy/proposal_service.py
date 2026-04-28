@@ -40,7 +40,7 @@ class ProposalService:
     Usage:
         async with ProposalService.open() as service:
             proposal = await service.get("id")
-            await service.mark_executing("id")
+            await service.mark_completed("id", results)
     """
 
     def __init__(self, session: Any):
@@ -90,11 +90,6 @@ class ProposalService:
     # -------------------------
     # State Transitions (delegate to state manager)
     # -------------------------
-
-    # ID: 01f23465-3c5e-43b9-94b3-8634e449be6a
-    async def mark_executing(self, proposal_id: str) -> None:
-        """Mark proposal as executing."""
-        await self._state_manager.mark_executing(proposal_id)
 
     # ID: bc89da1a-1a65-4982-8e45-1e85d5bea7c6
     async def mark_completed(self, proposal_id: str, results: dict[str, Any]) -> None:
@@ -146,29 +141,6 @@ class ProposalService:
         if not proposal:
             raise ValueError(f"Proposal not found: {proposal_id}")
         return proposal
-
-    # ID: a2a541cc-520e-4795-a406-c9caf7806a25
-    async def execute_workflow(
-        self, proposal_id: str, executor_func: Any
-    ) -> dict[str, Any]:
-        """
-        Execute full workflow with state tracking.
-
-        Args:
-            proposal_id: Proposal to execute
-            executor_func: Async function that executes actions
-
-        Returns:
-            Execution results
-        """
-        await self.mark_executing(proposal_id)
-        try:
-            results = await executor_func()
-            await self.mark_completed(proposal_id, results)
-            return results
-        except Exception as e:
-            await self.mark_failed(proposal_id, str(e))
-            raise
 
     # -------------------------
     # Blast Radius / Scope
