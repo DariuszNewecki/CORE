@@ -25,7 +25,7 @@ from shared.logger import getLogger
 
 logger = getLogger(__name__)
 
-# SLA tiers in seconds — must stay in sync with blackboard_auditor constants.
+# SLA tiers in seconds — must stay in sync with blackboard_shop_manager constants.
 _SLA: dict[str, int] = {
     "heartbeat": 600,
     "finding": 3600,
@@ -55,7 +55,7 @@ class BlackboardService:
 
         Covers:
           - AuditViolationSensor._fetch_existing_subjects
-          - BlackboardAuditor._fetch_existing_findings
+          - BlackboardShopManager._fetch_existing_findings
           - IntentInspector._fetch_existing_subjects
         """
         from body.services.service_registry import ServiceRegistry
@@ -179,7 +179,7 @@ class BlackboardService:
         Excludes self-referential stale-finding and silent-worker subjects.
 
         Covers:
-          - BlackboardAuditor._fetch_stale_entries
+          - BlackboardShopManager._fetch_stale_entries
         """
         from body.services.service_registry import ServiceRegistry
 
@@ -243,7 +243,7 @@ class BlackboardService:
         Count total non-terminal blackboard entries.
 
         Covers:
-          - BlackboardAuditor._count_active_entries
+          - BlackboardShopManager._count_active_entries
         """
         from body.services.service_registry import ServiceRegistry
 

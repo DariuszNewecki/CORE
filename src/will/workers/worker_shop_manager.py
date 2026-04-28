@@ -1,24 +1,24 @@
-# src/will/workers/worker_auditor.py
-# ID: will.workers.worker_auditor
+# src/will/workers/worker_shop_manager.py
+# ID: will.workers.worker_shop_manager
 """
-WorkerAuditor - Worker Liveness Governance Worker.
+WorkerShopManager - Worker Liveness Supervisory Worker.
 
 Responsibility: Detect workers that have missed their declared heartbeat
 schedule and post a finding to the Blackboard for each silent or abandoned
 worker.
 
 Constitutional standing:
-- Declaration:      .intent/workers/worker_auditor.yaml
-- Class:            governance
+- Declaration:      .intent/workers/worker_shop_manager.yaml
+- Class:            supervision
 - Phase:            audit
 - Permitted tools:  none — deterministic DB reads only
 - Approval:         false — findings are observations only
 - Schedule:         max_interval=120s, glide_off=12s (10% default)
 
-Self-scheduling: WorkerAuditor manages its own asyncio loop via run_loop().
+Self-scheduling: WorkerShopManager manages its own asyncio loop via run_loop().
 Sanctuary starts run_loop() once on bootstrap.
 
-LAYER: will/workers — governance worker. Reads worker_registry, reads
+LAYER: will/workers — supervisory worker. Reads worker_registry, reads
 .intent/workers/ declarations for scheduled workers. Writes to Blackboard
 only. No LLM. No file writes.
 """
@@ -59,7 +59,7 @@ def _sanitize(value: str) -> str:
 
 
 # ID: c3e4f5a6-b7c8-4d9e-0f1a-2b3c4d5e6f7a
-class WorkerAuditor(Worker):
+class WorkerShopManager(Worker):
     """
     Governance worker. Reads worker_registry, computes per-worker liveness
     thresholds from .intent/ declarations, and posts a finding for each
@@ -69,7 +69,7 @@ class WorkerAuditor(Worker):
     flagged as silent unless the previous finding is resolved.
     """
 
-    declaration_name = "worker_auditor"
+    declaration_name = "worker_shop_manager"
 
     def __init__(self) -> None:
         super().__init__()
@@ -92,7 +92,7 @@ class WorkerAuditor(Worker):
         max_interval seconds. Sanctuary calls this once on bootstrap.
         """
         logger.info(
-            "WorkerAuditor: starting loop (max_interval=%ds, glide_off=%ds)",
+            "WorkerShopManager: starting loop (max_interval=%ds, glide_off=%ds)",
             self._max_interval,
             self._glide_off,
         )
@@ -102,16 +102,16 @@ class WorkerAuditor(Worker):
             try:
                 await self.run()
             except Exception as exc:
-                logger.error("WorkerAuditor: cycle failed: %s", exc, exc_info=True)
+                logger.error("WorkerShopManager: cycle failed: %s", exc, exc_info=True)
                 try:
                     await self._post_entry(
                         entry_type="report",
-                        subject="worker_auditor.cycle_error",
+                        subject="worker_shop_manager.cycle_error",
                         payload={"error": _sanitize(str(exc))},
                         status="abandoned",
                     )
                 except Exception:
-                    logger.exception("WorkerAuditor: failed to post error report")
+                    logger.exception("WorkerShopManager: failed to post error report")
 
             await asyncio.sleep(self._max_interval)
 
@@ -153,7 +153,7 @@ class WorkerAuditor(Worker):
                 subject = f"{_FINDING_SUBJECT}::{worker_uuid}"
                 if subject in existing:
                     logger.debug(
-                        "WorkerAuditor: %s already flagged, skipping.", worker_name
+                        "WorkerShopManager: %s already flagged, skipping.", worker_name
                     )
                     continue
 
@@ -169,21 +169,21 @@ class WorkerAuditor(Worker):
                 )
                 flagged += 1
                 logger.warning(
-                    "WorkerAuditor: %s silent for %ds (threshold=%ds)",
+                    "WorkerShopManager: %s silent for %ds (threshold=%ds)",
                     worker_name,
                     seconds_silent,
                     threshold,
                 )
 
         await self.post_report(
-            subject="worker_auditor.run.complete",
+            subject="worker_shop_manager.run.complete",
             payload={
                 "workers_checked": len(workers),
                 "flagged": flagged,
             },
         )
         logger.info(
-            "WorkerAuditor: cycle complete — checked=%d flagged=%d",
+            "WorkerShopManager: cycle complete — checked=%d flagged=%d",
             len(workers),
             flagged,
         )
@@ -225,7 +225,7 @@ class WorkerAuditor(Worker):
                     thresholds[title] = max_interval + glide_off
             except Exception as exc:
                 logger.warning(
-                    "WorkerAuditor: could not read %s: %s", yaml_path.name, exc
+                    "WorkerShopManager: could not read %s: %s", yaml_path.name, exc
                 )
 
         return thresholds

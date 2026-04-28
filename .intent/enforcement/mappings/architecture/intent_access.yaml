@@ -16,7 +16,7 @@ mappings:
         - "src/body/services/intent_schema_validator.py"
         - "src/mind/governance/meta_validator.py"
         - "src/cli/commands/daemon.py"
-        - "src/will/workers/worker_auditor.py"
+        - "src/will/workers/worker_shop_manager.py"
         - "tests/**/*.py"
 
   # ADVISORY DECLARATIONS — architectural guidance, not engine-checkable.

@@ -2,15 +2,15 @@ $schema: "META/worker.schema.json"
 kind: worker
 
 metadata:
-  id: workers.worker_auditor
-  title: Worker Auditor
+  id: workers.worker_shop_manager
+  title: Worker ShopManager
   version: "1.0.0"
   authority: policy
   status: active
 
 identity:
   uuid: "c3e4f5a6-b7c8-4d9e-0f1a-2b3c4d5e6f7a"
-  class: governance
+  class: supervision
 
 mandate:
   responsibility: >
@@ -26,6 +26,6 @@ mandate:
     max_interval: 120
 
 implementation:
-  module: will.workers.worker_auditor
-  class: WorkerAuditor
+  module: will.workers.worker_shop_manager
+  class: WorkerShopManager
   requires_core_context: false

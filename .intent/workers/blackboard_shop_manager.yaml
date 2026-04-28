@@ -2,15 +2,15 @@ $schema: "META/worker.schema.json"
 kind: worker
 
 metadata:
-  id: workers.blackboard_auditor
-  title: Blackboard Auditor
+  id: workers.blackboard_shop_manager
+  title: Blackboard ShopManager
   version: "1.0.0"
   authority: policy
   status: active
 
 identity:
   uuid: "d4e5f6a7-c8d9-4e0f-1a2b-3c4d5e6f7a8b"
-  class: governance
+  class: supervision
 
 mandate:
   responsibility: >
@@ -26,6 +26,6 @@ mandate:
     max_interval: 120
 
 implementation:
-  module: will.workers.blackboard_auditor
-  class: BlackboardAuditor
+  module: will.workers.blackboard_shop_manager
+  class: BlackboardShopManager
   requires_core_context: false

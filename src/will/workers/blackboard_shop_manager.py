@@ -1,15 +1,15 @@
-# src/will/workers/blackboard_auditor.py
-# ID: will.workers.blackboard_auditor
+# src/will/workers/blackboard_shop_manager.py
+# ID: will.workers.blackboard_shop_manager
 """
-BlackboardAuditor - Blackboard Health Governance Worker.
+BlackboardShopManager - Blackboard Health Supervisory Worker.
 
 Responsibility: Detect Blackboard entries that have exceeded their
 constitutional SLA and post a finding for each stale unclaimed or
 unresolved entry.
 
 Constitutional standing:
-- Declaration:      .intent/workers/blackboard_auditor.yaml
-- Class:            governance
+- Declaration:      .intent/workers/blackboard_shop_manager.yaml
+- Class:            supervision
 - Phase:            audit
 - Permitted tools:  none — deterministic DB reads only
 - Approval:         false — findings are observations only
@@ -22,10 +22,10 @@ SLA tiers (seconds):
 - proposal entries:   1800  (30 minutes)
 - default:            3600  (1 hour)
 
-Self-scheduling: BlackboardAuditor manages its own asyncio loop via
+Self-scheduling: BlackboardShopManager manages its own asyncio loop via
 run_loop(). Sanctuary starts run_loop() once on bootstrap.
 
-LAYER: will/workers — governance worker. Reads Blackboard only.
+LAYER: will/workers — supervisory worker. Reads Blackboard only.
 Writes findings to Blackboard. No LLM. No file writes.
 """
 
@@ -53,7 +53,7 @@ _SLA_DEFAULT = 3600
 
 
 # ID: d4e5f6a7-c8d9-4e0f-1a2b-3c4d5e6f7a8b
-class BlackboardAuditor(Worker):
+class BlackboardShopManager(Worker):
     """
     Governance worker. Scans the Blackboard for entries that have
     exceeded their constitutional SLA and posts a finding for each.
@@ -62,7 +62,7 @@ class BlackboardAuditor(Worker):
     already flagged unless the previous finding is resolved.
     """
 
-    declaration_name = "blackboard_auditor"
+    declaration_name = "blackboard_shop_manager"
 
     def __init__(self) -> None:
         super().__init__()
@@ -83,7 +83,7 @@ class BlackboardAuditor(Worker):
         max_interval seconds. Sanctuary calls this once on bootstrap.
         """
         logger.info(
-            "BlackboardAuditor: starting loop (max_interval=%ds, glide_off=%ds)",
+            "BlackboardShopManager: starting loop (max_interval=%ds, glide_off=%ds)",
             self._max_interval,
             self._glide_off,
         )
@@ -93,16 +93,20 @@ class BlackboardAuditor(Worker):
             try:
                 await self.run()
             except Exception as exc:
-                logger.error("BlackboardAuditor: cycle failed: %s", exc, exc_info=True)
+                logger.error(
+                    "BlackboardShopManager: cycle failed: %s", exc, exc_info=True
+                )
                 try:
                     await self._post_entry(
                         entry_type="report",
-                        subject="blackboard_auditor.cycle_error",
+                        subject="blackboard_shop_manager.cycle_error",
                         payload={"error": str(exc)},
                         status="abandoned",
                     )
                 except Exception:
-                    logger.exception("BlackboardAuditor: failed to post error report")
+                    logger.exception(
+                        "BlackboardShopManager: failed to post error report"
+                    )
 
             await asyncio.sleep(self._max_interval)
 
@@ -131,7 +135,7 @@ class BlackboardAuditor(Worker):
 
             if subject in existing:
                 logger.debug(
-                    "BlackboardAuditor: entry %s already flagged, skipping.",
+                    "BlackboardShopManager: entry %s already flagged, skipping.",
                     entry_id,
                 )
                 continue
@@ -150,7 +154,7 @@ class BlackboardAuditor(Worker):
             )
             flagged += 1
             logger.warning(
-                "BlackboardAuditor: entry %s (%s/%s) stale for %ds (sla=%ds)",
+                "BlackboardShopManager: entry %s (%s/%s) stale for %ds (sla=%ds)",
                 entry_id,
                 entry["entry_type"],
                 entry["subject"],
@@ -159,13 +163,13 @@ class BlackboardAuditor(Worker):
             )
 
         await self.post_report(
-            subject="blackboard_auditor.run.complete",
+            subject="blackboard_shop_manager.run.complete",
             payload={
                 "entries_checked": await self._count_active_entries(),
                 "flagged": flagged,
             },
         )
-        logger.info("BlackboardAuditor: cycle complete — flagged=%d", flagged)
+        logger.info("BlackboardShopManager: cycle complete — flagged=%d", flagged)
 
     # -------------------------------------------------------------------------
     # DB reads — delegated to BlackboardService

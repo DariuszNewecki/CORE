@@ -267,7 +267,7 @@ class PathResolver:
     def workers_dir(self) -> Path:
         """
         Canonical path to .intent/workers/ declarations.
-        Replaces: Path(".intent/workers") in WorkerAuditor.
+        Replaces: Path(".intent/workers") in WorkerShopManager.
         """
         return self._intent_root / "workers"
 

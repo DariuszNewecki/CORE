@@ -23,4 +23,4 @@ excluded_filenames:
 # Scope limiter — if non-empty, only these files are scanned.
 # Remove or leave empty to scan the full source_root.
 include_files:
-  - "src/will/workers/blackboard_auditor.py"
+  - "src/will/workers/blackboard_shop_manager.py"

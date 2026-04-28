@@ -3,9 +3,9 @@
 WorkerRegistryService - Data-access layer for core.worker_registry.
 
 Covers:
-  - WorkerAuditor._fetch_registered_workers
+  - WorkerShopManager._fetch_registered_workers
 
-Note: WorkerAuditor._fetch_existing_findings queries core.blackboard_entries
+Note: WorkerShopManager._fetch_existing_findings queries core.blackboard_entries
 and is already covered by BlackboardService.fetch_open_finding_subjects_by_prefix().
 """
 
@@ -25,7 +25,7 @@ logger = getLogger(__name__)
 class WorkerRegistryService:
     """
     Body layer service. Exposes named methods for core.worker_registry
-    queries used by WorkerAuditor.
+    queries used by WorkerShopManager.
     """
 
     # ID: 8ac6e97e-9597-49af-a285-de8da66bda4b
@@ -35,7 +35,7 @@ class WorkerRegistryService:
         ordered by silence duration descending.
 
         Covers:
-          - WorkerAuditor._fetch_registered_workers
+          - WorkerShopManager._fetch_registered_workers
         """
         from body.services.service_registry import ServiceRegistry
 
