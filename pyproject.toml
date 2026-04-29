@@ -178,7 +178,7 @@ ignore = [
 force-single-line = false
 lines-after-imports = 2
 lines-between-types = 0
-known-first-party = ["api", "body", "features", "mind", "services", "shared", "will"]
+known-first-party = ["api", "body", "mind", "shared", "will"]
 section-order = ["future", "standard-library", "third-party", "first-party", "local-folder"]
 
 [tool.ruff.lint.per-file-ignores]
@@ -229,10 +229,6 @@ warn_return_any = false
 disallow_untyped_defs = false
 
 [[tool.mypy.overrides]]
-module = "src.features.*"
-ignore_errors = true
-
-[[tool.mypy.overrides]]
 module = "src.will.tools.*"
 ignore_errors = true
 
@@ -247,12 +243,6 @@ source = ["src"]
 relative_files = true
 parallel = true
 omit = [
-    "src/features/self_healing/*",
-    "src/features/autonomy/*",
-    "src/mind/governance/checks/*",
-    "src/features/maintenance/*",
-    "src/features/project_lifecycle/*",
-    "src/features/introspection/*",
     "tests/*",
 ]
 
