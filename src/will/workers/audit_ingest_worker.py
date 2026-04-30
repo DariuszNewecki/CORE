@@ -40,7 +40,7 @@ _FINDING_SUBJECT = "ai.prompt.model_required"
 _LINE_RE = re.compile(r"Line (\d+):")
 
 
-# ID: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+# ID: bfbdf0ac-487a-4b1b-a9a5-df61a94e12eb
 class AuditIngestWorker(Worker):
     """
     Sensing worker. Runs the constitutional auditor scoped to
