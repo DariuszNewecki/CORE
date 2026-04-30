@@ -45,6 +45,15 @@ class VectorizationPhase:
         phase = self.reporter.start_phase("Vectorization")
         write = not self.dry_run
 
+        # Ensure action_executor is available on the context.
+        # action_executor is monkey-patched at CLI bootstrap time but is not
+        # guaranteed to exist when CoreContext is injected by the daemon.
+        # Pattern mirrors violation_executor.py and proposal_executor.py.
+        if not hasattr(self.core_context, "action_executor"):
+            from body.atomic.executor import ActionExecutor
+
+            self.core_context.action_executor = ActionExecutor(self.core_context)
+
         await self._sync_constitutional_vectors(phase, write)
         await self._sync_code_vectors(phase, write)
 

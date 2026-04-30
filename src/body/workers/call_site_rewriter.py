@@ -74,7 +74,7 @@ class CallSiteRewriter(Worker):
     Acting worker. Groups open prompt.artifact findings by file, rewrites
     each file through the full Crate/Canary ceremony, and commits the result.
 
-    One Crate per file — all violations in a file are fixed in a single
+    One Crate per file — all violations in a single
     LLM invocation to preserve coherence and minimise API cost.
     """
 
@@ -304,6 +304,15 @@ class CallSiteRewriter(Worker):
         not CrateCreationService directly.
         """
         try:
+            # Ensure action_executor is available on the context.
+            # action_executor is monkey-patched at CLI bootstrap time but is not
+            # guaranteed to exist when CoreContext is injected by the daemon.
+            # Pattern mirrors violation_executor.py and proposal_executor.py.
+            if not hasattr(self._ctx, "action_executor"):
+                from body.atomic.executor import ActionExecutor
+
+                self._ctx.action_executor = ActionExecutor(self._ctx)
+
             result = await self._ctx.action_executor.execute(
                 "crate.create",
                 write=True,
