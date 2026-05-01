@@ -515,23 +515,20 @@ def _build_panels(data: dict[str, Any]) -> list[Panel]:
     panels: list[Panel] = []
 
     # --- Panel 1: Convergence Direction ---
+    # The 24h create-vs-resolve flow comparison is not a usable convergence
+    # metric: per-cycle sensor churn (notably audit.violation, ~42/hour with
+    # sub-5-minute lifetimes) dominates both counters and produces
+    # phase-dependent noise rather than a feedback-control signal. Diagnosed
+    # in #161; the panel is retained as a placeholder until a churn-resistant
+    # convergence metric grounded in open-set trajectory is designed.
     try:
         c = data["convergence"]
         created, resolved, total_open = c["created"], c["resolved"], c["total_open"]
-        if resolved > created:
-            signal = "green"
-            direction = "converging"
-        elif created > resolved:
-            signal = "red"
-            direction = "diverging"
-        else:
-            signal = "blue"
-            direction = "stable"
         panels.append(
             _make_panel(
                 "Convergence Direction",
-                signal,
-                f"Net direction: {direction}",
+                "grey",
+                "Net direction: not-yet-meaningful (see #161)",
                 [
                     ("Created (24h)", str(created)),
                     ("Resolved (24h)", str(resolved)),
@@ -718,19 +715,15 @@ def _render_dashboard_plain(data: dict[str, Any]) -> None:
     logger.info("=== CORE Governor Dashboard ===\n")
 
     # Panel 1: Convergence
+    # See _build_panels for rationale — direction comparison is not a
+    # usable metric until a churn-resistant convergence signal is
+    # designed (#161).
     try:
         c = data["convergence"]
-        created, resolved = c["created"], c["resolved"]
-        if resolved > created:
-            direction = "converging"
-        elif created > resolved:
-            direction = "diverging"
-        else:
-            direction = "stable"
         logger.info("-- Convergence Direction --")
-        logger.info("  created_24h:  %s", created)
-        logger.info("  resolved_24h: %s", resolved)
-        logger.info("  direction:    %s", direction)
+        logger.info("  created_24h:  %s", c["created"])
+        logger.info("  resolved_24h: %s", c["resolved"])
+        logger.info("  direction:    not-yet-meaningful (see #161)")
         logger.info("  total_open:   %s", c["total_open"])
     except Exception:
         logger.info("-- Convergence Direction: UNKNOWN --")
