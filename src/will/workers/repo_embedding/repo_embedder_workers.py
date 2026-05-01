@@ -9,7 +9,6 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from shared.infrastructure.clients.qdrant_client import QdrantService
 from shared.logger import getLogger
 from shared.workers.base import Worker
 
@@ -53,8 +52,6 @@ class RepoEmbedderWorker(Worker):
         Never raises — exceptions are caught, logged, and posted to Blackboard.
         """
         from body.services.service_registry import service_registry
-        from shared.infrastructure.clients.qdrant_client import QdrantService
-        from will.orchestration.cognitive_service import CognitiveService
 
         logger.info(
             "RepoEmbedderWorker: starting loop (max_interval=%ds, glide_off=%ds)",
@@ -64,14 +61,7 @@ class RepoEmbedderWorker(Worker):
 
         # Self-initialize CognitiveService if not injected (daemon context)
         if self._cognitive_service is None:
-            qdrant = QdrantService()
-            cognitive = CognitiveService(
-                repo_path=self._repo_root,
-                qdrant_service=qdrant,
-            )
-            async with service_registry.session() as init_session:
-                await cognitive.initialize(init_session)
-            self._cognitive_service = cognitive
+            self._cognitive_service = await service_registry.get_cognitive_service()
 
         await self._register()
 
@@ -99,7 +89,7 @@ class RepoEmbedderWorker(Worker):
 
         logger.info("RepoEmbedderWorker: starting embedding pass")
 
-        qdrant = QdrantService()
+        qdrant = await service_registry.get_qdrant_service()
         cognitive = self._cognitive_service
 
         stats = {"processed": 0, "chunks_total": 0, "errors": 0}
