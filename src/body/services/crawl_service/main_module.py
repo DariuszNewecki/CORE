@@ -218,14 +218,19 @@ class CrawlService:
                     """
                     INSERT INTO core.repo_artifacts
                         (id, file_path, artifact_type, content_hash,
-                         qdrant_collection, last_crawled_at, crawl_run_id)
+                         qdrant_collection, chunk_count, last_crawled_at, crawl_run_id)
                     VALUES
                         (gen_random_uuid(), :file_path, :artifact_type, :content_hash,
-                         :qdrant_collection, now(), cast(:crawl_run_id as uuid))
+                         :qdrant_collection, 0, now(), cast(:crawl_run_id as uuid))
                     ON CONFLICT (file_path) DO UPDATE SET
                         content_hash      = EXCLUDED.content_hash,
                         artifact_type     = EXCLUDED.artifact_type,
                         qdrant_collection = EXCLUDED.qdrant_collection,
+                        chunk_count       = CASE
+                            WHEN repo_artifacts.content_hash != EXCLUDED.content_hash
+                            THEN 0
+                            ELSE repo_artifacts.chunk_count
+                        END,
                         last_crawled_at   = EXCLUDED.last_crawled_at,
                         crawl_run_id      = EXCLUDED.crawl_run_id
                     """
