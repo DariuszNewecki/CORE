@@ -4,14 +4,19 @@ kind: worker
 metadata:
   id: workers.repo_crawler
   title: Repo Crawler
-  version: "0.1.0"
+  version: "1.0.0"
   authority: policy
-  status: paused
+  status: active
   rationale: >
-    Paused together with repo_embedder. The repository self-model pipeline
-    (crawler → embedder) has not been activated as part of the operational
-    loop. Implementation is complete; activation is a governor decision
-    when semantic search and call-graph capabilities are needed.
+    Activated per ADR-018 as the structural-self-model producer in the
+    decomposed autonomous path. Walks the repository, registers artifacts
+    in core.repo_artifacts, extracts AST call-graph edges into
+    core.symbol_calls, and cross-references non-Python artifacts in
+    core.artifact_symbol_links. Sets repo_artifacts.chunk_count = 0 on
+    content_hash change — the explicit work-queue signal consumed by
+    RepoEmbedderWorker (ADR-018 D4). Cadence aligned with the prior
+    composite wrapper (vector_sync_worker, deprecated under ADR-018 D1)
+    for operational continuity.
 
 identity:
   uuid: "f1a2b3c4-d5e6-7890-abcd-ef1234567891"
@@ -43,7 +48,7 @@ mandate:
       - governance
   approval_required: false
   schedule:
-    max_interval: 86400
+    max_interval: 600
 
 implementation:
   module: will.workers.repo_crawler

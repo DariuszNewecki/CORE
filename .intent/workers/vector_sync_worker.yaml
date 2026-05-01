@@ -4,9 +4,19 @@ kind: worker
 metadata:
   id: workers.vector_sync_worker
   title: Vector Sync Worker
-  version: "1.0.0"
+  version: "1.1.0"
   authority: policy
-  status: active
+  status: deprecated
+  rationale: >
+    Deprecated per ADR-018. The autonomous repository-to-vectors path is
+    now handled by the decomposed pair repo_crawler + repo_embedder, which
+    use repo_artifacts.chunk_count as an explicit work queue, decouple
+    failure domains (Postgres vs. Qdrant + LLM), and post finer-grained
+    blackboard reports (repo.crawl.complete + repo.embed.complete instead
+    of one composite sync.vectors.code.complete). The atomic action
+    sync.vectors.code is preserved unchanged for the manual
+    `core-admin dev sync --write` CLI path. Class file retained; the
+    daemon loader does not schedule deprecated workers.
 
 identity:
   uuid: "e5f6a7b8-c9d0-4e1f-9a2b-3c4d5e6f7a81"

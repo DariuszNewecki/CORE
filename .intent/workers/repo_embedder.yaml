@@ -4,14 +4,21 @@ kind: worker
 metadata:
   id: workers.repo_embedder
   title: Repo Embedder
-  version: "0.2.0"
+  version: "1.0.0"
   authority: policy
-  status: paused
+  status: active
   rationale: >
-    Paused together with repo_crawler. RepoEmbedderWorker consumes
-    core.repo_artifacts records populated by RepoCrawlerWorker; without
-    repo_crawler running there is nothing to embed. Both workers are held
-    pending activation of the repository self-model pipeline.
+    Activated per ADR-018 as the embedding consumer in the decomposed
+    autonomous path. Consumes repo_artifacts entries where chunk_count = 0
+    (the explicit work-queue contract documented in ADR-018 D4, populated
+    by RepoCrawlerWorker on content change), chunks each artifact by type,
+    embeds the chunks, and upserts them into the appropriate Qdrant
+    collection. Module path corrected from will.workers.repo_embedder to
+    will.workers.repo_embedding to match the package on disk (ADR-018
+    D3a). Registry singleton invariant restored in the worker class
+    (ADR-018 D3b) — RepoEmbedderWorker routes Qdrant and Cognitive
+    service access through service_registry rather than direct
+    construction.
 
 identity:
   uuid: "a2b3c4d5-e6f7-8901-bcde-f12345678902"
@@ -42,10 +49,10 @@ mandate:
       - semantic
   approval_required: false
   schedule:
-    max_interval: 43200
+    max_interval: 600
     batch_size: 50
 
 implementation:
-  module: will.workers.repo_embedder
+  module: will.workers.repo_embedding
   class: RepoEmbedderWorker
   requires_core_context: false
