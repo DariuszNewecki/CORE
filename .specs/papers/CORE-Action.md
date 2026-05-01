@@ -1,4 +1,4 @@
-<!-- path: .intent/papers/CORE-Action.md -->
+<!-- path: .specs/papers/CORE-Action.md -->
 
 # CORE — The Action
 

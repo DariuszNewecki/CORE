@@ -1,4 +1,4 @@
-<!-- path: .intent/papers/CORE-Rule-Authoring-Discipline.md -->
+<!-- path: .specs/papers/CORE-Rule-Authoring-Discipline.md -->
 
 # CORE Rule Authoring Discipline
 

@@ -7,6 +7,13 @@ metadata:
   version: "0.1.0"
   authority: policy
   status: paused
+  rationale: >
+    Tail of the prompt governance remediation pipeline:
+    audit_ingest_worker → prompt_extractor_worker → prompt_artifact_writer → call_site_rewriter.
+    Claims prompt.artifact findings and rewrites call sites via full Crate/Canary
+    ceremony. Paused pending activation of the make_request_async() →
+    PromptModel.invoke() migration campaign. Implementation is complete;
+    approval_required: true ensures human sign-off before any src/ writes.
 
 identity:
   uuid: "d4e5f6a7-b8c9-0123-defa-234567890123"

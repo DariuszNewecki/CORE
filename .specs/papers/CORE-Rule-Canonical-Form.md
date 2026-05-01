@@ -1,4 +1,4 @@
-<!-- path: .intent/papers/CORE-Rule-Canonical-Form.md -->
+<!-- path: .specs/papers/CORE-Rule-Canonical-Form.md -->
 
 # CORE Rule Canonical Form
 

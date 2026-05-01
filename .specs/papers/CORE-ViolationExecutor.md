@@ -1,4 +1,4 @@
-<!-- path: .intent/papers/CORE-ViolationExecutor.md -->
+<!-- path: .specs/papers/CORE-ViolationExecutor.md -->
 
 # CORE — ViolationExecutor
 

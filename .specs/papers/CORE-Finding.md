@@ -1,4 +1,4 @@
-<!-- path: .intent/papers/CORE-Finding.md -->
+<!-- path: .specs/papers/CORE-Finding.md -->
 
 # CORE — The Finding
 

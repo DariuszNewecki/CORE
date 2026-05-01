@@ -7,6 +7,12 @@ metadata:
   version: "0.1.0"
   authority: policy
   status: paused
+  rationale: >
+    Third stage of the prompt governance remediation pipeline:
+    audit_ingest_worker → prompt_extractor_worker → prompt_artifact_writer → call_site_rewriter.
+    Paused pending activation of the make_request_async() → PromptModel.invoke()
+    migration campaign. Implementation in body.workers.prompt_artifact_writer
+    may be incomplete — verify before activating.
 
 identity:
   uuid: "c3d4e5f6-a7b8-9012-cdef-123456789012"

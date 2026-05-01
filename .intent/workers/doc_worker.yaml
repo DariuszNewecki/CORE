@@ -7,6 +7,10 @@ metadata:
   version: "0.1.0"
   authority: policy
   status: paused
+  rationale: >
+    Paused because llm.local (Ollama) is not in active use for reasoning tasks.
+    DocWorker invokes LocalCoder via cognitive_service for docstring generation.
+    Activate when Ollama reasoning models are operational alongside embeddings.
 
 identity:
   uuid: "8d1e536d-846f-4635-8955-2fdef4b72e6a"

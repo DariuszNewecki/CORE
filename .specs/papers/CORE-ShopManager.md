@@ -1,4 +1,4 @@
-<!-- path: .intent/papers/CORE-ShopManager.md -->
+<!-- path: .specs/papers/CORE-ShopManager.md -->
 
 # CORE — ShopManager
 

@@ -1,4 +1,4 @@
-<!-- path: .intent/papers/CORE-ViolationSensor.md -->
+<!-- path: .specs/papers/CORE-ViolationSensor.md -->
 
 # CORE — ViolationSensor
 

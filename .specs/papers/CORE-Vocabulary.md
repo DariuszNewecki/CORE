@@ -1,4 +1,4 @@
-<!-- path: .intent/papers/CORE-Vocabulary.md -->
+<!-- path: .specs/papers/CORE-Vocabulary.md -->
 
 # CORE — Vocabulary
 

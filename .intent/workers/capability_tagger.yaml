@@ -7,6 +7,10 @@ metadata:
   version: "1.0.0"
   authority: policy
   status: paused
+  rationale: >
+    Paused because llm.local (Ollama) is not in active use for reasoning tasks.
+    CapabilityTaggerAgent requires local LLM inference for capability suggestions.
+    Activate when Ollama reasoning models are operational alongside embeddings.
 
 identity:
   uuid: "e1f2a3b4-c5d6-7890-efab-cd1234567890"

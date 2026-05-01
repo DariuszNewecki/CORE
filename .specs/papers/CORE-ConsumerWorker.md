@@ -1,4 +1,4 @@
-<!-- path: .intent/papers/CORE-ConsumerWorker.md -->
+<!-- path: .specs/papers/CORE-ConsumerWorker.md -->
 
 # CORE — ConsumerWorker
 

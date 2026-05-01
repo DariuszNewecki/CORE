@@ -7,6 +7,11 @@ metadata:
   version: "0.2.0"
   authority: policy
   status: paused
+  rationale: >
+    Paused together with repo_crawler. RepoEmbedderWorker consumes
+    core.repo_artifacts records populated by RepoCrawlerWorker; without
+    repo_crawler running there is nothing to embed. Both workers are held
+    pending activation of the repository self-model pipeline.
 
 identity:
   uuid: "a2b3c4d5-e6f7-8901-bcde-f12345678902"

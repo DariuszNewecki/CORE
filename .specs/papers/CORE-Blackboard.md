@@ -1,4 +1,4 @@
-<!-- path: .intent/papers/CORE-Blackboard.md -->
+<!-- path: .specs/papers/CORE-Blackboard.md -->
 
 # CORE — The Blackboard
 

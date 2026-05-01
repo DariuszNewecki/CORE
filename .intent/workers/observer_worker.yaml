@@ -7,6 +7,11 @@ metadata:
   version: "1.0.0"
   authority: policy
   status: paused
+  rationale: >
+    Implementation is complete. Paused pending daemon activation.
+    No LLM dependency — pure deterministic DB reads. Feeds core.system_health_log
+    which is consumed by core-admin admin health. Activate when the daemon is
+    running stably and continuous health trend visibility is needed.
 
 identity:
   uuid: "a7f3c2e1-b4d5-4e6f-8a9b-0c1d2e3f4a5b"
@@ -17,15 +22,15 @@ mandate:
     Observe system state across all constitutional domains and post a
     structured situation report to the Blackboard and system_health_log.
   phase: audit
-  approval_required: false
+  permitted_tools: []
   scope:
     domains:
       - governance
       - compliance
-      - documentation
-      - symbols
+  approval_required: false
   schedule:
     max_interval: 300
+    glide_off: 30
 
 implementation:
   module: will.workers.observer_worker

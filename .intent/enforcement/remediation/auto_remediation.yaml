@@ -129,14 +129,6 @@ mappings:
       Format file with ruff-format. Deterministic, fully reversible.
     status: ACTIVE
 
-  workflow.ruff_format_check:
-    action: fix.format
-    confidence: 0.92
-    risk: low
-    description: >
-      Format file with ruff-format. Deterministic, fully reversible.
-    status: ACTIVE
-
   purity.docstrings.required:
     action: fix.docstrings
     confidence: 0.90
@@ -145,7 +137,7 @@ mappings:
       Add missing docstrings to public functions and classes.
     status: ACTIVE
 
-  architecture.atomic_actions.must_return_action_result:
+  atomic_actions.must_return_action_result:
     action: fix.atomic_actions
     confidence: 0.90
     risk: low

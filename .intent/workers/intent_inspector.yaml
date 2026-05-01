@@ -7,6 +7,12 @@ metadata:
   version: "0.1.0"
   authority: policy
   status: paused
+  rationale: >
+    Paused because llm.local (Ollama) is not in active use for reasoning tasks.
+    Coherence and alignment passes invoke qwen2.5:7b via cognitive_service.
+    The structural pass (pure Python) could run standalone but the worker
+    is held until all three passes can operate together.
+    Activate when Ollama reasoning models are operational alongside embeddings.
 
 identity:
   uuid: "f1e2d3c4-b5a6-7890-fedc-ba9876543210"

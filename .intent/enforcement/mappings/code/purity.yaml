@@ -47,9 +47,6 @@ mappings:
         - "tests/**/*.py"
 
   # 4. LAW: Public symbols MUST have docstrings
-  # CONSTITUTIONAL FIX: Removed the 'returns_type' shim that caused 440 errors.
-  # We use the LLM gate here because verifying docstring presence and quality
-  # is a semantic reasoning task.
   purity.docstrings.required:
     engine: llm_gate
     params:
@@ -59,27 +56,7 @@ mappings:
         - "src/will/**/*.py"
         - "src/body/**/*.py"
 
-  # 5. LAW: Public functions and methods MUST have unique UUID identifiers
-  # (Duplicate of purity.stable_id_anchor to satisfy linkage.json requirements)
-  linkage.assign_ids:
-    engine: ast_gate
-    params:
-      check_type: id_anchor
-    scope:
-      applies_to:
-        - "src/**/*.py"
-      excludes:
-        - "**/__init__.py"
-        - "tests/**/*.py"
-
-  # 6. LAW: Symbol identifiers MUST be globally unique across the codebase
-  # Check type: knowledge_gate (Cross-Substrate Database Query)
-  linkage.duplicate_ids:
-    engine: knowledge_gate
-    params:
-      check_type: duplicate_ids
-
-  # 7. LAW: Code MUST NOT contain exact AST duplicates
+  # 5. LAW: Code MUST NOT contain exact AST duplicates
   purity.no_ast_duplication:
     engine: knowledge_gate
     params:
@@ -90,20 +67,10 @@ mappings:
         - "src/**/*.py"
       excludes:
         - "tests/**/*.py"
-        # IntentRepository (.intent/ gateway) and SpecsRepository (.specs/
-        # gateway) implement parallel sanctuaries for two distinct roots.
-        # Their `resolve_rel` and `root` methods are intentionally identical
-        # — the parallelism is structural, not accidental. Refactoring to a
-        # shared base would either move .intent/ access logic outside the
-        # `architecture.intent.non_gateway_no_direct_resolution` sanctuary
-        # excludes (which cover `src/shared/infrastructure/intent/**`), or
-        # place a generically-named base inside the intent sanctuary purely
-        # to preserve constitutional locality. Neither trade is worth the
-        # cleanup of two parallel methods.
         - "src/shared/infrastructure/intent/intent_repository.py"
         - "src/shared/infrastructure/specs/specs_repository.py"
 
-  # 8. LAW: Code SHOULD NOT contain semantic duplicates
+  # 6. LAW: Code SHOULD NOT contain semantic duplicates
   purity.no_semantic_duplication:
     engine: knowledge_gate
     params:
@@ -131,35 +98,21 @@ mappings:
       tool: "vulture"
       confidence: 80
 
-  # 9. LAW: Production source files MUST be reachable from a declared entry point.
-  # Check type: knowledge_gate (Import graph traversal)
-  # Rationale: vulture detects unused symbols but cannot detect unreachable files.
-  # This check traverses the import graph from entry points and flags orphan files.
-  #
-  # DYNAMIC PLUGIN DIRECTORIES (loaded via pkgutil.iter_modules / importlib):
-  #   - src/mind/logic/engines/   → EngineRegistry (mind/logic/engines/registry.py)
-  #   - src/mind/governance/checks/ → check_registry.py
-  #   - src/will/workers/         → cli/resources/workers/run.py
-  #   - src/will/phases/          → will/orchestration/phase_registry.py
-  #   - src/body/services/        → body/services/service_registry.py
-  # These are convention-loaded at runtime — not reachable via static import graph.
+  # 7. LAW: Production source files MUST be reachable from a declared entry point.
   purity.no_orphan_files:
     engine: knowledge_gate
     params:
       check_type: orphan_file_check
       entry_points:
-        # Static entry points
         - "src/cli/"
         - "src/body/atomic/"
         - "src/main.py"
         - "src/api/main.py"
-        # Dynamic plugin directories — loaded by registry scan, not static imports
         - "src/mind/logic/engines/"
         - "src/mind/governance/checks/"
         - "src/will/workers/"
         - "src/will/phases/"
         - "src/body/services/"
-        # Will layer — supporting infrastructure
         - "src/will/self_healing/"
         - "src/will/test_generation/"
         - "src/will/strategists/"
@@ -169,12 +122,10 @@ mappings:
         - "src/will/cli_logic/"
         - "src/will/autonomy/"
         - "src/will/orchestration/"
-        # Body layer — supporting infrastructure
         - "src/body/self_healing/"
         - "src/body/project_lifecycle/"
         - "src/body/maintenance/scripts/"
         - "src/body/invokers/"
-        # Shared infrastructure — engine room, always live
         - "src/shared/infrastructure/"
       excludes:
         - "src/**/__init__.py"
@@ -187,7 +138,6 @@ mappings:
         - "src/body/evaluators/**"
         - "src/body/governance/**"
         - "src/body/introspection/**"
-        # Individual files — indirect loading, investigate separately
         - "src/shared/cli_types.py"
         - "src/shared/models/pattern_graph.py"
         - "src/shared/utils/header_tools.py"

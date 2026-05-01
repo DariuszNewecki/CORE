@@ -1,4 +1,4 @@
-<!-- path: .intent/papers/CORE-Workflow-Papers-First.md -->
+<!-- path: .specs/papers/CORE-Workflow-Papers-First.md -->
 
 # CORE Workflow: Papers First, Then Code
 

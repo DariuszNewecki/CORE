@@ -1,4 +1,4 @@
-<!-- path: .intent/papers/CORE-Gate.md -->
+<!-- path: .specs/papers/CORE-Gate.md -->
 
 # CORE — Gates
 

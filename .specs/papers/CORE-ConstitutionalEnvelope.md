@@ -1,4 +1,4 @@
-<!-- path: .intent/papers/CORE-ConstitutionalEnvelope.md -->
+<!-- path: .specs/papers/CORE-ConstitutionalEnvelope.md -->
 
 # CORE — The Constitutional Envelope
 

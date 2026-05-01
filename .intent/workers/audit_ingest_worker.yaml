@@ -7,6 +7,12 @@ metadata:
   version: "0.1.0"
   authority: policy
   status: paused
+  rationale: >
+    Head of the prompt governance remediation pipeline:
+    audit_ingest_worker → prompt_extractor_worker → prompt_artifact_writer → call_site_rewriter.
+    Paused pending activation of the make_request_async() → PromptModel.invoke()
+    migration campaign. No ai.* namespace sensor exists; this worker is the
+    sole entry point for ai.prompt.model_required findings.
 
 identity:
   uuid: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"

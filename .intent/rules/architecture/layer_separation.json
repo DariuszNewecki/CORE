@@ -4,7 +4,7 @@
     "metadata": {
         "id": "rules.architecture.layer_separation",
         "title": "Mind/Body/Will Layer Separation",
-        "version": "0.2.0",
+        "version": "0.3.0",
         "authority": "constitution",
         "phase": "audit",
         "status": "active"
@@ -129,6 +129,14 @@
             "authority": "constitution",
             "phase": "audit",
             "rationale": "Shared provides utilities. Utilities are tools, not decision-makers."
+        },
+        {
+            "id": "architecture.shared.no_layer_imports",
+            "statement": "Shared infrastructure components (src/shared/**/*.py) MUST NOT import from src/mind/, src/body/, or src/will/.",
+            "enforcement": "blocking",
+            "authority": "constitution",
+            "phase": "audit",
+            "rationale": "Shared is layer-independent substrate. A shared module that imports from a layer fails the constitutional admission test (CORE-Mind-Body-Will-Separation.md §7.2 Test 1) and belongs in that layer, not in shared/. This rule makes the admission test mechanically enforceable. Added 2026-03-28 as a blocking AST gate, replacing previously advisory-only governance."
         }
     ]
 }

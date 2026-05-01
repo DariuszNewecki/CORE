@@ -60,6 +60,20 @@ mappings:
         # Self-healing modules MUST route writes through FileHandler
         # Violations will be detected and must be fixed in P3
 
+  # 3. Artifact mutations must be traceable via FileHandler.
+  # Advisory — automated detection not feasible for SHOULD-level requirement
+  # without high false-positive risk. Verified by code review and FileHandler
+  # usage convention.
+  governance.artifact_mutation.traceable:
+    engine: advisory
+    params:
+      note: >
+        System artifacts, logs, and reports SHOULD be generated via FileHandler
+        to ensure audit traceability. Enforced by architectural convention and
+        code review. The SHOULD-level enforcement and diversity of write paths
+        make automated detection impractical without unacceptable false-positive
+        risk.
+
   governance.no_governance_bypass:
     engine: ast_gate
     params:

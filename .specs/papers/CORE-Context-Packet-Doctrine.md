@@ -1,4 +1,4 @@
-<!-- path: .intent/papers/CORE-Context-Packet-Doctrine.md -->
+<!-- path: .specs/papers/CORE-Context-Packet-Doctrine.md -->
 
 # CORE: Context Packet Doctrine
 

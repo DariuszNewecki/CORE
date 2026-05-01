@@ -1,4 +1,4 @@
-<!-- path: .intent/papers/CORE-Evidence-as-Input.md -->
+<!-- path: .specs/papers/CORE-Evidence-as-Input.md -->
 
 # CORE — Evidence as Input
 

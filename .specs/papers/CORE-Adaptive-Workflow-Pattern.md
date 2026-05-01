@@ -1,4 +1,4 @@
-<!-- path: .intent/papers/CORE-Adaptive-Workflow-Pattern.md -->
+<!-- path: .specs/papers/CORE-Adaptive-Workflow-Pattern.md -->
 
 # CORE: V2 Adaptive Workflow Pattern
 

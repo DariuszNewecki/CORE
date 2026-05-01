@@ -1,4 +1,4 @@
-<!-- path: .intent/papers/CORE-The-Octopus-UNIX-Synthesis.md -->
+<!-- path: .specs/papers/CORE-The-Octopus-UNIX-Synthesis.md -->
 
 # CORE-PAPER-004: The Octopus-UNIX Synthesis
 

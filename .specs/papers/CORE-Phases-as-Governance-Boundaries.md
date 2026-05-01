@@ -1,4 +1,4 @@
-<!-- path: .intent/papers/CORE-Phases-as-Governance-Boundaries.md -->
+<!-- path: .specs/papers/CORE-Phases-as-Governance-Boundaries.md -->
 
 # CORE: Phases as Governance Boundaries
 

@@ -7,6 +7,12 @@ metadata:
   version: "1.0.0"
   authority: policy
   status: paused
+  rationale: >
+    Superseded by audit_sensor_linkage. This worker posted linkage.assign_ids
+    findings via a bespoke AST scan; audit_sensor_linkage covers the same
+    rule through the standard constitutional audit loop (AuditViolationSensor
+    scoped to the linkage.* namespace). Running both produces duplicate
+    blackboard findings for the same violations.
 
 identity:
   uuid: "a3f7c2d1-b4e8-4f91-9c2a-7d5e6b8f0a3c"
@@ -25,12 +31,9 @@ mandate:
       - "src/**/*.py"
     domains:
       - compliance
-      - linkage
   approval_required: false
-  schedule:
-    max_interval: 3600
 
 implementation:
-  module: will.agents.self_healing_agent
+  module: will.workers.self_healing_agent
   class: SelfHealingAgent
   requires_core_context: true

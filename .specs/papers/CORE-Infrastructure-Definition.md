@@ -1,4 +1,4 @@
-<!-- path: .intent/papers/CORE-Infrastructure-Definition.md -->
+<!-- path: .specs/papers/CORE-Infrastructure-Definition.md -->
 
 # CORE: Infrastructure Definition and Authority Boundaries
 

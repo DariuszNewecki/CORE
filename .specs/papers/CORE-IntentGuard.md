@@ -1,4 +1,4 @@
-<!-- path: .intent/papers/CORE-IntentGuard.md -->
+<!-- path: .specs/papers/CORE-IntentGuard.md -->
 
 # CORE — IntentGuard
 

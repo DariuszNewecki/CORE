@@ -6,26 +6,6 @@
 
 mappings:
   # =========================================================================
-  # PERIMETER: No shadow layers outside Mind/Body/Will/shared/api
-  # =========================================================================
-  architecture.layer_exclusivity:
-    engine: glob_gate
-    params:
-      check_type: allowed_top_level_dirs
-      allowed:
-        - "src/mind/**"
-        - "src/body/**"
-        - "src/will/**"
-        - "src/shared/**"
-        - "src/api/**"
-        - "src/cli/**"
-    scope:
-      applies_to:
-        - "src/**/*.py"
-      excludes:
-        - "src/__init__.py"
-
-  # =========================================================================
   # STRUCTURAL: Module-level async engine prohibition
   # =========================================================================
   architecture.no_module_async_engine:

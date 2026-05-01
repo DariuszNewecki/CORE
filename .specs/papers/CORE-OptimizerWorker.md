@@ -1,4 +1,4 @@
-<!-- path: .intent/papers/CORE-OptimizerWorker.md -->
+<!-- path: .specs/papers/CORE-OptimizerWorker.md -->
 
 # CORE — OptimizerWorker
 

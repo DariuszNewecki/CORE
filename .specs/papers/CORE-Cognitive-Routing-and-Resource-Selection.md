@@ -1,4 +1,4 @@
-<!-- path: .intent/papers/CORE-Cognitive-Routing-and-Resource-Selection.md -->
+<!-- path: .specs/papers/CORE-Cognitive-Routing-and-Resource-Selection.md -->
 
 # CORE Cognitive Routing and Resource Selection
 

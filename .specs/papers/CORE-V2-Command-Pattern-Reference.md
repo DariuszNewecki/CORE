@@ -1,4 +1,4 @@
-<!-- path: .intent/papers/CORE-V2-Command-Pattern-Reference.md -->
+<!-- path: .specs/papers/CORE-V2-Command-Pattern-Reference.md -->
 
 # V2 Command Pattern Reference
 

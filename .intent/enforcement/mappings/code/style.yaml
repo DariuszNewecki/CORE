@@ -1,7 +1,6 @@
 # .intent/enforcement/mappings/code/style.yaml
 #
-# Enforces code style rules: import order.
-# style.formatter_required is declared in rules but sensor deferred.
+# Enforces code style rules: import order and formatting.
 
 mappings:
   style.import_order:
@@ -16,3 +15,15 @@ mappings:
       excludes:
         - "tests/**/*.py"
         - "scripts/**/*.py"
+
+  style.formatter_required:
+    engine: workflow_gate
+    params:
+      check_type: ruff_format_check
+      exclude: "^(scripts|dev-scripts)/"
+    scope:
+      applies_to:
+        - "src/**/*.py"
+      excludes:
+        - "scripts/**"
+        - "dev-scripts/**"

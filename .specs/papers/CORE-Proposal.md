@@ -1,4 +1,4 @@
-<!-- path: .intent/papers/CORE-Proposal.md -->
+<!-- path: .specs/papers/CORE-Proposal.md -->
 
 # CORE — The Proposal
 

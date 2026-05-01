@@ -4,7 +4,7 @@
     "metadata": {
         "id": "rules.will.autonomy",
         "title": "Autonomous Lane Control",
-        "version": "1.4.0",
+        "version": "1.5.0",
         "authority": "policy",
         "phase": "runtime",
         "status": "active"
@@ -37,6 +37,17 @@
             "authority": "policy",
             "phase": "runtime",
             "enforcement": "blocking"
+        },
+        {
+            "id": "autonomy.reasoning.policy_alignment",
+            "statement": "The PlannerAgent MUST explicitly reference its governing quality assurance policy.",
+            "authority": "policy",
+            "phase": "runtime",
+            "enforcement": "reporting",
+            "scope": {
+                "paths": ["src/will/agents/planner_agent.py"],
+                "notes": "Scoped to PlannerAgent only — the sole autonomous component responsible for policy-aligned planning decisions."
+            }
         }
     ]
 }

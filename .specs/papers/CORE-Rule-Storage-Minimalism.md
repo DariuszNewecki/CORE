@@ -1,4 +1,4 @@
-<!-- path: .intent/papers/CORE-Rule-Storage-Minimalism.md -->
+<!-- path: .specs/papers/CORE-Rule-Storage-Minimalism.md -->
 
 # CORE Rule Storage Minimalism
 

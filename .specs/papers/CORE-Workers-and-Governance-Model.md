@@ -1,4 +1,4 @@
-<!-- path: .intent/papers/CORE-Workers-and-Governance-Model.md -->
+<!-- path: .specs/papers/CORE-Workers-and-Governance-Model.md -->
 
 # CORE — Workers, Supervision, and the Blackboard
 

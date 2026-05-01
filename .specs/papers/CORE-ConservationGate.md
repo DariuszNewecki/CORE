@@ -1,4 +1,4 @@
-<!-- path: .intent/papers/CORE-ConservationGate.md -->
+<!-- path: .specs/papers/CORE-ConservationGate.md -->
 
 # CORE — The ConservationGate
 

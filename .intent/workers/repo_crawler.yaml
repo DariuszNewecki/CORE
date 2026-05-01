@@ -7,6 +7,11 @@ metadata:
   version: "0.1.0"
   authority: policy
   status: paused
+  rationale: >
+    Paused together with repo_embedder. The repository self-model pipeline
+    (crawler → embedder) has not been activated as part of the operational
+    loop. Implementation is complete; activation is a governor decision
+    when semantic search and call-graph capabilities are needed.
 
 identity:
   uuid: "f1a2b3c4-d5e6-7890-abcd-ef1234567891"
@@ -31,6 +36,7 @@ mandate:
       - "var/prompts/**"
       - "reports/**"
       - ".intent/**"
+      - ".specs/**"
       - "infra/**"
     domains:
       - knowledge

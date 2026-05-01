@@ -1,4 +1,4 @@
-<!-- path: .intent/papers/CORE-Remediation.md -->
+<!-- path: .specs/papers/CORE-Remediation.md -->
 
 # CORE — Remediation
 

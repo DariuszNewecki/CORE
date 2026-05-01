@@ -5,6 +5,28 @@
 
 mappings:
   # ==========================================================================
+  # RULE 0: Perimeter — No shadow layers outside Mind/Body/Will/shared/api
+  # Moved from core_safety.yaml — rule definition lives in layer_separation.json
+  # ==========================================================================
+
+  architecture.layer_exclusivity:
+    engine: glob_gate
+    params:
+      check_type: allowed_top_level_dirs
+      allowed:
+        - "src/mind/**"
+        - "src/body/**"
+        - "src/will/**"
+        - "src/shared/**"
+        - "src/api/**"
+        - "src/cli/**"
+    scope:
+      applies_to:
+        - "src/**/*.py"
+      excludes:
+        - "src/__init__.py"
+
+  # ==========================================================================
   # RULE 1: Mind Never Executes - Database Access
   # ==========================================================================
 
@@ -126,9 +148,9 @@ mappings:
       # (Body layer), inject into ProposalExecutor via constructor.
       # Tracking: consequence_log_body_extraction (pending)
 
-      # ==========================================================================
-      # RULE 7: Will Delegates Filesystem Operations
-      # ==========================================================================
+  # ==========================================================================
+  # RULE 7: Will Delegates Filesystem Operations
+  # ==========================================================================
 
   architecture.will.no_filesystem_operations:
     engine: ast_gate
@@ -157,11 +179,6 @@ mappings:
   # ==========================================================================
   # RULE 9: API Never Bypasses Layers - Database
   # SCOPE FIX 2026-04-19: Added "src/api/*.py" alongside "src/api/**/*.py".
-  # Python fnmatch (used by AuditorContext.get_files) does NOT treat "**" as
-  # recursive-directory-match — it requires at least one intermediate dir.
-  # So "src/api/**/*.py" matched src/api/v1/*.py but silently missed top-level
-  # src/api/main.py, src/api/errors.py, src/api/dependencies.py. Exclusion
-  # pattern updated to match.
   # ==========================================================================
 
   architecture.api.no_direct_database_access:
@@ -196,30 +213,9 @@ mappings:
   # ==========================================================================
   # RULE 11: API Doesn't Bypass to Body
   # EXTENDED 2026-04-19: Widened forbidden list from "body.services" only
-  # to all of Body. The prior narrow filter was silently worked around by
-  # moving imports from body.services to body.infrastructure —
-  # see src/api/main.py docstring claiming "Resolves architecture.api.no_body_bypass
-  # violation" while still importing from body.infrastructure.lifespan. That
-  # workaround defeated the narrow filter without removing the bypass.
-  # The widened form matches the pattern already used by Rule 3
-  # (architecture.mind.no_body_invocation) and Rule 15
-  # (architecture.shared.no_layer_imports).
-  #
+  # to all of Body.
   # SCOPE FIX 2026-04-19: Added "src/api/*.py" alongside "src/api/**/*.py".
-  # Python fnmatch (used by AuditorContext.get_files) does NOT treat "**" as
-  # recursive-directory-match — it requires at least one intermediate dir.
-  # So "src/api/**/*.py" matched src/api/v1/*.py but silently missed top-level
-  # src/api/main.py (the file this rule most needs to catch).
-  #
   # COMPOSITION-ROOT EXEMPTION 2026-04-19: Added src/api/main.py to excludes.
-  # FastAPI requires `lifespan` to be declared at app creation; core_lifespan
-  # coordinates Body services (ServiceRegistry, bootstrap, health gate, service
-  # warm-up, knowledge-graph load). Composition roots wire layers together by
-  # architectural design — they are not bypasses. This exemption is analogous
-  # to the bootstrap sanctuary already granted under Rule 15
-  # (src/shared/infrastructure/bootstrap_registry.py,
-  # src/shared/infrastructure/service_registry.py). The false resolution claim
-  # in src/api/main.py's own docstring should be corrected in a follow-up edit.
   # ==========================================================================
 
   architecture.api.no_body_bypass:
@@ -242,9 +238,7 @@ mappings:
 
   # ==========================================================================
   # RULE 12: Body Never Invokes Will
-  # EXTENDED 2026-03-28: Added will.workers and will.self_healing —
-  # external audit found 4 production violations invisible because these
-  # namespaces were absent from the forbidden list (Finding 1.2).
+  # EXTENDED 2026-03-28: Added will.workers and will.self_healing.
   # ==========================================================================
 
   architecture.layers.no_body_to_will:
@@ -279,7 +273,6 @@ mappings:
 
   # ==========================================================================
   # RULE 14: Shared Never Makes Strategic Decisions (Advisory - knowledge_gate)
-  # Strategic decisions require LLM judgment — cannot be mechanically detected.
   # ==========================================================================
 
   architecture.shared.no_strategic_decisions:

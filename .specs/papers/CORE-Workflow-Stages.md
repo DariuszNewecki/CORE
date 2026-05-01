@@ -1,4 +1,4 @@
-<!-- path: .intent/papers/CORE-Workflow-Stages.md -->
+<!-- path: .specs/papers/CORE-Workflow-Stages.md -->
 
 # CORE: Workflow Stages
 

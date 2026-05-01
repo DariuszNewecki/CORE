@@ -1,4 +1,4 @@
-<!-- path: .intent/papers/CORE-Crate.md -->
+<!-- path: .specs/papers/CORE-Crate.md -->
 
 # CORE — The Crate
 

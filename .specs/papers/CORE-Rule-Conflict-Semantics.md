@@ -1,4 +1,4 @@
-<!-- path: .intent/papers/CORE-Rule-Conflict-Semantics.md -->
+<!-- path: .specs/papers/CORE-Rule-Conflict-Semantics.md -->
 
 # CORE Rule Conflict Semantics
 

@@ -1,4 +1,4 @@
-<!-- path: .intent/papers/CORE-Canary.md -->
+<!-- path: .specs/papers/CORE-Canary.md -->
 
 # CORE — The Canary
 

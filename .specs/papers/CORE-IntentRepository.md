@@ -1,4 +1,4 @@
-<!-- path: .intent/papers/CORE-IntentRepository.md -->
+<!-- path: .specs/papers/CORE-IntentRepository.md -->
 
 # CORE — The IntentRepository
 

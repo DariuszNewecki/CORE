@@ -1,4 +1,4 @@
-<!-- path: .intent/papers/CORE-Emergency-and-Exception-Stance.md -->
+<!-- path: .specs/papers/CORE-Emergency-and-Exception-Stance.md -->
 
 # CORE — Emergency and Exception Stance
 

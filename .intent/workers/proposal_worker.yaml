@@ -7,6 +7,11 @@ metadata:
   version: "1.2.0"
   authority: policy
   status: paused
+  rationale: >
+    Superseded by the ViolationRemediatorWorker + ProposalConsumerWorker pipeline.
+    This worker used LLM reasoning to generate proposals from audit findings;
+    the current pipeline achieves the same outcome deterministically via
+    auto_remediation.yaml mappings, without LLM overhead or reasoning risk.
 
 identity:
   uuid: "46d4fb89-4bd4-4c68-9086-a39e0563bb01"

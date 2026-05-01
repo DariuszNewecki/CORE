@@ -1,4 +1,4 @@
-<!-- path: .intent/papers/CORE-Deliberate-Non-Goals.md -->
+<!-- path: .specs/papers/CORE-Deliberate-Non-Goals.md -->
 
 # CORE: Deliberate Non-Goals
 

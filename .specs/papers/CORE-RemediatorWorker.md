@@ -1,4 +1,4 @@
-<!-- path: .intent/papers/CORE-RemediatorWorker.md -->
+<!-- path: .specs/papers/CORE-RemediatorWorker.md -->
 
 # CORE — RemediatorWorker
 
