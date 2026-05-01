@@ -127,8 +127,27 @@ async def action_build_tests(
         context_service = None
         try:
             context_service = core_context.context_service
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug("ContextService not available via property: %s", e)
+
+        if context_service is None:
+            try:
+                from shared.infrastructure.context.service import ContextService
+
+                context_service = ContextService(
+                    project_root=str(repo_root),
+                    session_factory=core_context.registry.session,
+                    qdrant_client=None,
+                    cognitive_service=None,
+                )
+                logger.info(
+                    "build.tests: constructed ContextService via registry JIT fallback"
+                )
+            except Exception as e:
+                logger.warning(
+                    "build.tests: failed to construct ContextService via registry: %s",
+                    e,
+                )
 
         CoderAgent = _ServiceLoader.import_class("will.agents.coder_agent.CoderAgent")
         coder_agent = CoderAgent(
