@@ -1,0 +1,35 @@
+$schema: "META/worker.schema.json"
+kind: worker
+
+metadata:
+  id: workers.commit_reachability_auditor
+  title: Commit Reachability Auditor
+  version: "1.0.0"
+  authority: policy
+  status: active
+
+identity:
+  uuid: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+  class: sensing
+
+mandate:
+  responsibility: >
+    Reads post_execution_sha values from core.proposal_consequences and
+    verifies each commit is reachable from a git branch via git branch
+    --contains. On detecting an orphan, posts a blackboard finding with
+    subject governance.edge5.orphan_sha::{proposal_id}. Does not modify
+    the DB record — detection only, per ADR-019 D1.
+  phase: audit
+  permitted_tools: []
+  approval_required: false
+  scope:
+    domains:
+      - governance
+      - compliance
+  schedule:
+    max_interval: 3600
+
+implementation:
+  module: will.workers.commit_reachability_auditor
+  class: CommitReachabilityAuditor
+  requires_core_context: true

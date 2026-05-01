@@ -216,7 +216,7 @@ class ProposalExecutor:
                     if self.core_context.git_service:
                         try:
                             self.core_context.git_service.commit(
-                                f"fix({proposal.proposal_id[:8]}): {proposal.goal}"
+                                f"fix({proposal.proposal_id[:16]}): {proposal.goal}"
                             )
                             logger.info(
                                 "Git commit created for proposal %s",
@@ -466,7 +466,7 @@ class ProposalExecutor:
                             if self.core_context.git_service:
                                 try:
                                     self.core_context.git_service.commit(
-                                        f"fix({proposal.proposal_id[:8]}): {proposal.goal}"
+                                        f"fix({proposal.proposal_id[:16]}): {proposal.goal}"
                                     )
                                 except Exception as git_err:
                                     logger.warning(

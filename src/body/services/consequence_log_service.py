@@ -144,3 +144,26 @@ class ConsequenceLogService:
             "causing_proposal_id": row.proposal_id,
             "causing_commit_sha": row.post_execution_sha,
         }
+
+    # ID: e6c7d8f9-0a1b-4c3d-9e4f-5a6b7c8d9e0f
+    async def get_all_shas(self) -> list[tuple[str, str]]:
+        """
+        Return all (proposal_id, post_execution_sha) pairs from
+        core.proposal_consequences where post_execution_sha is not null.
+
+        Used by CommitReachabilityAuditor (ADR-019 D1) to verify commit
+        reachability without querying git history from a Will worker directly.
+        """
+        from body.services.service_registry import ServiceRegistry
+
+        async with ServiceRegistry.session() as session:
+            result = await session.execute(
+                text(
+                    "SELECT proposal_id, post_execution_sha "
+                    "FROM core.proposal_consequences "
+                    "WHERE post_execution_sha IS NOT NULL"
+                )
+            )
+            return [
+                (row.proposal_id, row.post_execution_sha) for row in result.fetchall()
+            ]
