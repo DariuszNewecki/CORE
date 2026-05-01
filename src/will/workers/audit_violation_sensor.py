@@ -37,8 +37,16 @@ Filtering contract:
   Enforcement mapping file paths (containing "/" and ending in ".yaml"/".json")
   are auditor internals leaking into the finding — they are dropped.
 
+Cause attribution (ADR-015 D5):
+- For each posted finding, the sensor consults ConsequenceLogService for the
+  most recent proposal that touched the same file_path within a recency
+  window. On match, the payload carries causing_proposal_id and
+  causing_commit_sha; on no match, those keys are None and cause_attribution
+  is the explicit string "untracked" (URS Q6 / issue #148 acceptance).
+
 LAYER: will/workers — sensing worker. Receives CoreContext via constructor
-injection. No file writes. No LLM. Pure perception.
+injection. No file writes. No LLM. Pure perception. DB access is delegated
+to Body services via the service registry — no direct session import.
 """
 
 from __future__ import annotations
@@ -193,6 +201,13 @@ class AuditViolationSensor(Worker):
         # violation when the sensor restarts with a new UUID.
         existing = await self._fetch_existing_subjects()
 
+        # ADR-015 D5: heuristic cause attribution via Body's ConsequenceLogService.
+        # Resolved once before the loop; lookback is sensor-config-tunable.
+        consequence_svc = (
+            await self._core_context.registry.get_consequence_log_service()
+        )
+        lookback = getattr(self, "_config", {}).get("cause_lookback_seconds", 3600)
+
         posted = 0
         skipped = 0
 
@@ -207,6 +222,10 @@ class AuditViolationSensor(Worker):
                 )
                 continue
 
+            cause = await consequence_svc.find_cause_for_file(
+                v["file_path"], lookback_seconds=lookback
+            )
+
             await self.post_finding(
                 subject=subject,
                 payload={
@@ -218,6 +237,11 @@ class AuditViolationSensor(Worker):
                     "severity": v["severity"],
                     "dry_run": self._dry_run,
                     "status": "unprocessed",
+                    "causing_proposal_id": cause["causing_proposal_id"],
+                    "causing_commit_sha": cause["causing_commit_sha"],
+                    "cause_attribution": (
+                        "heuristic" if cause["causing_proposal_id"] else "untracked"
+                    ),
                 },
             )
             posted += 1

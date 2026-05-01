@@ -87,3 +87,60 @@ class ConsequenceLogService:
             len(files_changed),
             post_execution_sha,
         )
+
+    # ID: b3f4a8c2-7e5d-4f91-9a2b-6c8d4e1f7a3c
+    async def find_cause_for_file(
+        self,
+        file_path: str,
+        lookback_seconds: int = 3600,
+    ) -> dict[str, str | None]:
+        """
+        Heuristic lookup: most recent proposal that touched ``file_path`` within window.
+
+        Returns the proposal_id and post_execution_sha of the most recent
+        ``core.proposal_consequences`` row whose ``files_changed`` jsonb
+        contains a ``{"path": file_path}`` object AND whose ``recorded_at`` is
+        within ``lookback_seconds`` of NOW().
+
+        Implements ADR-015 D5 (sensor cause attribution via proposal_consequences
+        lookup) for the URS Q6.F / Q6.R read paths. The match is a heuristic —
+        multiple recent proposals can touch the same file; most-recent wins.
+
+        Args:
+            file_path: Repo-relative file path as written into ``files_changed``
+                       (e.g. "src/will/workers/audit_violation_sensor.py").
+            lookback_seconds: Recency window. Defaults to 3600 (one hour).
+
+        Returns:
+            ``{"causing_proposal_id": str, "causing_commit_sha": str | None}``
+            on match; both keys ``None`` when no row matches the file/window.
+            ``causing_commit_sha`` may be ``None`` even on match (the column
+            is nullable in ``core.proposal_consequences``).
+        """
+        from body.services.service_registry import ServiceRegistry
+
+        async with ServiceRegistry.session() as session:
+            result = await session.execute(
+                text(
+                    "SELECT proposal_id, post_execution_sha "
+                    "FROM core.proposal_consequences "
+                    "WHERE files_changed @> jsonb_build_array("
+                    "jsonb_build_object('path', :file_path)) "
+                    "AND recorded_at >= NOW() - "
+                    "make_interval(secs => :lookback_seconds) "
+                    "ORDER BY recorded_at DESC LIMIT 1"
+                ),
+                {
+                    "file_path": file_path,
+                    "lookback_seconds": lookback_seconds,
+                },
+            )
+            row = result.first()
+
+        if row is None:
+            return {"causing_proposal_id": None, "causing_commit_sha": None}
+
+        return {
+            "causing_proposal_id": row.proposal_id,
+            "causing_commit_sha": row.post_execution_sha,
+        }
