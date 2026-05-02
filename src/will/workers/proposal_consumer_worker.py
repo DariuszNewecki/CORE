@@ -291,6 +291,66 @@ class ProposalConsumerWorker(Worker):
                     e,
                     exc_info=True,
                 )
+                # mark_failed so proposal does not strand in 'executing'.
+                # If the exception fired before claim.proposal, the proposal
+                # is still APPROVED; marking it FAILED prevents indefinite
+                # retry of a systematically broken proposal.
+                try:
+                    from body.services.service_registry import service_registry
+                    from will.autonomy.proposal_state_manager import (
+                        ProposalStateManager,
+                    )
+
+                    async with service_registry.session() as session:
+                        state_manager = ProposalStateManager(session)
+                        await state_manager.mark_failed(proposal_id, str(e))
+                except Exception as mark_err:
+                    logger.error(
+                        "ProposalConsumerWorker: failed to mark proposal '%s' as failed: %s",
+                        proposal_id,
+                        mark_err,
+                    )
+                # §7a revival — mirror the ok=False branch above.
+                try:
+                    from body.services.service_registry import service_registry
+
+                    bb_service = await service_registry.get_blackboard_service()
+                    revival = await bb_service.revive_findings_for_failed_proposal(
+                        proposal_id=proposal_id,
+                        failure_reason=str(e),
+                    )
+                except Exception as revive_err:
+                    logger.warning(
+                        "Revival query failed for proposal %s: %s",
+                        proposal_id,
+                        revive_err,
+                    )
+                    revival = None
+
+                if revival and revival.get("revived_count", 0) > 0:
+                    try:
+                        await self.post_report(
+                            subject=f"proposal.failure.revival::{proposal_id}",
+                            payload={
+                                "proposal_id": revival["proposal_id"],
+                                "failure_reason": revival["failure_reason"],
+                                "revived_count": revival["revived_count"],
+                                "revived_subjects": revival["revived_subjects"],
+                            },
+                        )
+                        logger.info(
+                            "ProposalConsumerWorker: posted revival report for "
+                            "proposal %s (%d findings revived)",
+                            proposal_id,
+                            revival["revived_count"],
+                        )
+                    except Exception as post_err:
+                        logger.warning(
+                            "Failed to post revival report for proposal %s: %s",
+                            proposal_id,
+                            post_err,
+                        )
+
                 results.append(
                     {
                         "proposal_id": proposal_id,
