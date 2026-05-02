@@ -430,6 +430,14 @@ class ProposalExecutor:
         claimed_by: UUID,
         write: bool = False,
     ) -> dict[str, Any]:
+        """
+        DORMANT — no production callers as of 2026-05-02. Preserved as an
+        intentional batch-processing design feature. When activated, the
+        calling worker must add §7a revival orchestration per ADR-011:
+        revive_findings_for_failed_proposal + post revival report via
+        self.post_report() for each failed proposal. Do not wire a caller
+        without adding that orchestration.
+        """
         start_time = time.time()
         results: dict[str, Any] = {}
 
