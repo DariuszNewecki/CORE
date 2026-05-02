@@ -1,0 +1,43 @@
+# .intent/enforcement/config/autonomy_dirty_tree.yaml
+#
+# Autonomous remediation working-tree policy.
+#
+# Authority:   policy
+# Phase:       execution
+# ADR:         ADR-021 (.specs/decisions/ADR-021-scoped-autonomous-git-operations.md)
+# Loader:      src/shared/infrastructure/intent/autonomy_dirty_tree.py
+# Consumer:    src/will/autonomy/proposal_executor.py (pre-claim collision check)
+#
+# This file decides what the autonomous daemon does when the human
+# architect has unstaged changes in the working tree at the moment a
+# proposal is about to execute.
+#
+# ─────────────────────────────────────────────────────────────────────
+# Modes
+# ─────────────────────────────────────────────────────────────────────
+#
+# intersection_only  Yield only when the dirty-tree paths intersect
+#                    proposal.scope.files. Disjoint dirty trees are
+#                    safe — the daemon proceeds and operates exclusively
+#                    inside its declared scope (per ADR-021 D2/D3, both
+#                    rollback and commit are scope-bounded). This is
+#                    the development-phase posture per ADR-014: loop
+#                    liveness is preserved while the data-loss hazard
+#                    is eliminated.
+#
+# any_dirty          Yield on any non-empty status_porcelain output.
+#                    The daemon refuses to run while the architect has
+#                    work in flight, regardless of scope. Stricter
+#                    guarantee at the cost of liveness. The
+#                    post-stabilization posture per ADR-021 D6.
+#
+# ─────────────────────────────────────────────────────────────────────
+# Missing-or-corrupt handling
+# ─────────────────────────────────────────────────────────────────────
+#
+# The loader returns an error sentinel on missing/corrupt config. The
+# caller (ProposalExecutor) MUST treat the sentinel as mode=any_dirty
+# — the conservative mode. A safety policy that cannot be loaded must
+# fail toward halt, never toward proceed.
+
+mode: intersection_only
