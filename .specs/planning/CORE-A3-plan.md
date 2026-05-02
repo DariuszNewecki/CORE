@@ -31,8 +31,8 @@ A3 is a state. These four gates define the state. A3 is claimable when all four 
 |------|---------------|--------|
 | **G1 — Loop closure** | An autonomous fix lands end-to-end on a non-synthetic example: finding detected → proposal created → proposal approved → execution succeeded → re-audit confirms resolution. Single clean run is the minimum. | ✅ Demonstrated — completed round-trips observed live on `core.autonomous_proposals` via the proposal-consequence path; `approval_required=false` on safe actions correctly bypasses the pending/approved lane. |
 | **G2 — Convergence** | Sustained state where rate of finding resolution exceeds rate of finding creation. Per the Convergence Principle, this is the fundamental operational metric — it is what makes "governed autonomy" truthful rather than aspirational. | ⚠️ Not yet measurable. Queue stagnation (not failure) was the prior state; reclassification under ADR-014 unblocked the queue, making G2 rate observable in principle. `resolved_at` hygiene confirmed 2026-04-27 (#135 closed) — the temporal column CONV.1 depends on is now reliable. Sustained measurement pending. |
-| **G3 — Consequence chain** | Finding → Proposal → Approval → Execution → File changes → New findings is continuously materialized as a queryable causality chain. Required for regulated environments, autonomous debugging, and for a non-programmer governor to trust the system without reading code. | ✅ Closed 2026-05-01. All six edges delivered. Edge 1 (finding↔proposal linkage), Edge 2 (approval attribution), Edge 3 (claim attribution via ADR-017), Edge 5 (orphan detection + prefix widening via ADR-019, commit 61f9671b), Edge 6 (sensor cause attribution via ADR-015 D5, commit 0aeb7e90). URS Q1–Q6 read paths implemented. Epic #110 closed; Band B milestone 14 closed. |
-| **G4 — Governance in `.intent/`** | No enforcement logic, path mappings, policy thresholds, or governance decisions live in `src/`. All of it lives in `.intent/` (or, for human-intent documents, `.specs/`). This is the claim that makes the "non-programmer governor" role coherent. | 🔄 In progress. ADR-004 (task_type phase map) and ADR-005 (audit verdict policy) were direct advances. Known leaks: path mappings embedded in some sensor/action code; `action_executor` usage unguarded in some Body workers; `impact_level` in `@register_action` decorators (ADR-008 parked, debt acknowledged in ADR-014). |
+| **G3 — Consequence chain** | Finding → Proposal → Approval → Execution → File changes → New findings is continuously materialized as a queryable causality chain. Required for regulated environments, autonomous debugging, and for a non-programmer governor to trust the system without reading code. | ✅ Closed 2026-05-01. All six edges delivered. Epic #110 closed; Band B milestone 14 closed. |
+| **G4 — Governance in `.intent/`** | No enforcement logic, path mappings, policy thresholds, or governance decisions live in `src/`. All of it lives in `.intent/` (or, for human-intent documents, `.specs/`). This is the claim that makes the "non-programmer governor" role coherent. | 🔄 In progress. Known leaks: path mappings embedded in some sensor/action code; `action_executor` usage unguarded in some Body workers; `impact_level` in `@register_action` decorators (ADR-008 parked, debt in ADR-014). |
 
 **Gate coupling:** G1 cannot be *proved* without G3 (you can't demonstrate the loop closed without the chain). G2 cannot be *measured* without G1 (no resolution rate without autonomous resolution). G4 is orthogonal but load-bearing: it is the reason a non-programmer can operate the system, and without it the other three gates describe a system that still requires its author.
 
@@ -51,7 +51,7 @@ All seven audit sensors active.
 
 ### Phase 3 — Capability Gaps 🔄
 
-**Framing:** Phase 3 is the **trust-hardening phase** — the machinery producing the verdict is being qualified. It is not yet autonomy-operation. See "A3 Gates" above for what closing Phase 3 means in concrete terms: G1 and portions of G3/G4 close here.
+**Framing:** Phase 3 is the **trust-hardening phase** — the machinery producing the verdict is being qualified. G1 and portions of G3/G4 close here.
 
 **Status:** Stream A (ViolationExecutor) complete. Stream B (test writing) structurally complete. Stream C (delegation) infrastructure complete. Band A (attribution) closed via ADR-011.
 
@@ -76,92 +76,35 @@ Operational work tracking lives entirely on GitHub. Bands are strategic grouping
 - **Band D — Engine Integrity**: https://github.com/DariuszNewecki/CORE/milestone/16
 - **Band E — Outward-Facing**: https://github.com/DariuszNewecki/CORE/milestone/17
 
-All issues opened under SESSION-PROTOCOL.md §6 template. `priority:high` labels mark items blocking a band from closing. Resolution dates and verification artifacts live on the closing comment of each issue, not in this document.
-
 ---
 
 ## Architectural Decisions Made
 
-This section is the only place in this plan-doc that enumerates work-products, because ADRs are the durable rationale layer — issues come and go, ADRs are the reasoning we commit to.
+Full rationale lives in each ADR file under `.specs/decisions/`. This table is the index.
 
-### ADR-001 (2026-04-15) — `.specs/` layer established
-Non-operational documents move out of `.intent/` into `.specs/`.
-
-### ADR-002 (2026-04-18) — Shared layer boundary enforcement
-All shared/ boundary violations resolved through architectural moves, not rule exceptions. Established "Policy in `.intent/`, mechanism in `src/`" principle.
-
-### ADR-003 (2026-04-19) — `task_type` as first-class field on `ExecutionTask`
-Test generation correctly routes through `audit` phase rather than `execution`. `build_tests_action` sets `task_type="test_generation"`; `CodeGenerator._build_context_package` passes it through.
-
-### ADR-004 (2026-04-19) — Govern task_type → phase mapping in `.intent/`
-Three-way drift (service, CLI, vestigial file) collapsed to single source at `.intent/enforcement/config/task_type_phases.yaml`. Vestigial `src/shared/infrastructure/context/cli.py` retired in same change-set.
-
-### ADR-005 (2026-04-20) — Govern audit verdict policy in `.intent/`
-Severity→verdict mapping, carve-out list, and DEGRADED preconditions codified as data at `.intent/enforcement/config/audit_verdict.yaml`. Governed loader at `src/shared/infrastructure/intent/audit_verdict.py` mirrors the ADR-004 `task_type_phases.py` pattern.
-
-### ADR-006 (2026-04-20) — Align `modularity.needs_split` implementation with its statement
-Rule statement is law, implementation is mechanism; when they disagree, the mechanism is corrected. `_identify_concerns(imports)` replaced with `_detect_responsibilities(...)` so the check measures "single coherent responsibility" (content-pattern-based) rather than "narrow external domain-library exposure" (import-based proxy).
-
-### ADR-007 (2026-04-21) — `modularity.class_too_large` rule split from `modularity.needs_split`
-`modularity.class_too_large` introduced as a distinct rule. Sensor layer routes via a deterministic structural test using two sensor methods, matching the 1-rule-to-1-method pattern. Separates the automatable module-redistribution case from the non-automatable dominant-class case.
-
-### ADR-008 (2026-04-22, parked) — Constitutionalize `impact_level`
-Documents the governance-in-code inversion where `impact_level` (auto-approve vs. requires-human) is declared in `@register_action` decorators rather than in `.intent/`. Parked — not session-scale. ADR-014 makes a `src/`-side reclassification under this debt; the `safe` value migrates with the rest when ADR-008 is unparked.
-
-### ADR-009 (2026-04-24) — CLI-depth block transient — passive instrumentation over active probe
-No `cli.*` rule or YAML mapping modified; no active reproduction of the transient attempted. Passive instrumentation in place persists full `ConstitutionalViolationError.to_dict()` attribution into `action_results.violations[]`, capturing any recurrence — `rule_name`, `path`, `source_policy` — without live introspection.
-
-### ADR-010 (2026-04-24) — Wire the §7 + §7a Finding/Proposal contract
-All three gaps closed in one coordinated change: correct terminal status (`deferred_to_proposal`), forward link added (`proposal_id` in finding payload), revival implemented on proposal failure. `BlackboardService` gains `defer_entries_to_proposal`; worker resolve path fixed; `ProposalStateManager` implements the §7a revival query.
-
-### ADR-011 (2026-04-24) — Workers own blackboard attribution; services do not post
-Every INSERT into `core.blackboard_entries` must originate from a registered Worker via base-class `post_finding` / `post_report` / `post_heartbeat` / `_post_entry`. Services may UPDATE (state transitions) but never INSERT. Architectural cut: INSERT creates attribution (Worker-only); UPDATE transitions pre-attributed rows (anyone). Enforcement rule `architecture.blackboard.worker_only_inserts` active at blocking severity. Band A closed.
-
-### ADR-012 (2026-04-25) — Centralize globstar pattern matching via `pathspec`
-Eight `Path.match` call sites carried Python 3.12's `**`-as-single-segment quirk; three were silent under-enforcement at security-sensitive sites (redactor, FileNavigator). Adopted `pathspec`'s `GitWildMatchPattern` as the standard primitive; introduced `src/shared/utils/glob_match.py` as the single entry point; migrated raw call sites and rewrote forbid-pattern strings to gitignore semantics.
-
-### ADR-013 (2026-04-26) — Retire core.proposals; reserve name for core.autonomous_proposals
-`core.proposals` (constitutional file-replacement table with cryptographic signing) retired. Never provisioned in production — 0 rows, no active writers, signing infrastructure never created. All proposal activity runs through `core.autonomous_proposals`. Table name `core.proposals` reserved: when "autonomous" becomes redundant (all proposals are autonomous), `core.autonomous_proposals` renames to `core.proposals`.
-
-### ADR-014 (2026-04-26) — Development-phase priority: loop liveness before artifact quality
-Establishes the priority order during CORE's development phase: loop liveness > productivity > quality (sequential, not parallel). A loop that produces zero outputs has zero resolution rate; quality is observable only on a moving system. First application: reclassifies `build.tests` from `impact_level="moderate"` to `impact_level="safe"`. Diagnostic finding: the pre-generation approval gate that the moderate classification triggered had no artifact to inspect — LLM generation happens at `executing`, not `draft`. Three commit-time gates (Conservation, IntentGuard, Canary) and TestRunnerSensor remain. Revisit triggers concrete (measured hallucination rate, signal contamination, deployment-phase change, ADR-008 unpark). G4 leak via ADR-008 acknowledged as known debt.
-
-### ADR-015 (2026-04-27) — Consequence chain attribution: write paths and storage shapes
-Decides write paths and storage shapes for the Band B consequence-chain work as seven coordinated sub-decisions (D1–D7). D1: `finding_ids` as jsonb key in `constitutional_constraints`. D2: `approval_authority` as new column with forward-only CHECK. D3: `claimed_by uuid` as new column on proposals. D4: subsume-path writes `proposal_id` into payload. D5: sensor cause attribution heuristic via `proposal_consequences` lookup at post time. D6: `ProposalStateManager.approve()` signature carries `approval_authority`. D7: forward-only enforcement; no historical backfill (ALCOA "Complete" preserves originals). Each sub-decision names its Change sites with file:line references. Authored against the URS (industry defaults from 21 CFR Part 11 §§11.10/11.50 and ALCOA+). All sub-decisions implemented by 2026-05-01.
-
-### ADR-016 (2026-04-27) — Test environment architecture
-Designs CORE's test environment as four coordinated sub-decisions: schema authority is the SQLAlchemy model registry (D1); `core_test` is ephemeral per pytest session via drop+create+`create_all` (D2); per-test isolation via `TRUNCATE CASCADE` — transactional rollback rejected as structurally impossible because workers commit in their own sessions (D3); CI uses GitHub Actions Postgres service container (D4). Retires the stale `db_schema_live.sql` dump, the broken `reset_test_db.sh`, and the `_ensure_blackboard_table` workaround. Forces but does not answer the production-migration story (separate ADR required). Recon baseline: `.specs/state/2026-04-27-test-environment-recon.md`.
-
-### ADR-017 (2026-04-28) — `claim.proposal` as atomic action
-Decides that proposal claim (the approved → executing transition) is performed by a constitutional atomic action rather than a service method, satisfying URS Q3.F (forward) and Q3.R (reverse). Five sub-decisions: D1 — `claim.proposal` action with `category=STATE`, `policies=["rules/will/autonomy"]` (transitional ref to be replaced by a dedicated `proposal_lifecycle.json` policy per #169); D2 — `ProposalStateManager.mark_executing` and the `ProposalService.mark_executing` wrapper removed; bounded inconsistency with the remaining mark_completed/mark_failed/approve/reject methods documented; D3 — `ProposalExecutor.execute()` and `execute_batch()` invoke `claim.proposal` via `ActionExecutor`, threading `claimed_by: UUID`; D4 — CLI sentinel UUID `00000000-0000-0000-0000-000000000001` (`CLI_CLAIMER_UUID`) identifies CLI-class claims as distinct from autonomous worker claims, mirroring the ADR-015 D6 / NFR.5 `approval_authority='human.cli_operator'` pattern at the claim layer; D5 — preserves ADR-015 D3's `claimed_by uuid` column shape; write-path wording amended to "atomic action sets the column" rather than "state manager sets the column." Implementation 2026-04-28 in commits 6ee9c7c5 + 2136ffb6.
-
-### ADR-018 (2026-05-01) — Decomposed crawler/embedder supersedes vector_sync_worker on the autonomous path
-The autonomous repository-to-vectors path moves from a single composite worker (`vector_sync_worker` wrapping the `sync.vectors.code` atomic action) to a decomposed pair: `repo_crawler` writes structural facts (artifacts, call-graph edges, symbol cross-references) and enqueues by setting `repo_artifacts.chunk_count = 0` on hash change; `repo_embedder` dequeues via `WHERE chunk_count = 0`, chunks, embeds, and upserts to the appropriate Qdrant collection. Atomic action `sync.vectors.code` is preserved unchanged for the manual `core-admin dev sync --write` CLI path. Five sub-decisions: D1 — `vector_sync_worker` deprecated; D2 — `repo_crawler` activated at 600s; D3 — `repo_embedder` activated at 600s, conditional on D3a (YAML module path corrected from `will.workers.repo_embedder` to `will.workers.repo_embedding` to match the package on disk) and D3b (registry singleton invariant restored — Qdrant + Cognitive routed through `service_registry` rather than direct construction); D4 — `repo_artifacts.chunk_count` documented as the explicit work-queue contract between the two workers; D5 — `class: sensing` taxonomy preserved on both workers, replacing the wrapper's `class: acting` mismatch. Prerequisite bug fix landed in same session: `upsert_artifact` chunk_count reset on hash change, mirroring `upsert_python_artifact` — without this, non-Python artifacts updated after first embedding silently dropped from re-embedding via the embedder's `WHERE chunk_count = 0` filter. Empirical verification 2026-05-01: zero artifacts at `chunk_count = 0` post-activation; ~1,640 artifacts embedded across six Qdrant collections. Contributes to G3 via finer-grained blackboard events (`repo.crawl.complete` + `repo.embed.complete` rather than one composite `sync.vectors.code.complete`) and to G4 via correct constitutional class declarations matching the actual work performed. Three out-of-scope hazards filed as #178 (WAL churn on no-change reruns), #179 (partial-but-completed crawl runs and missing janitor for stuck-`running` rows), #180 (stale `infra/sql/db_schema_live.sql`).
-
-### ADR-019 (2026-05-01) — Edge 5 git-boundary attribution posture
-Decides posture for two silent Edge 5 failure modes identified in the consequence-chain investigation. D1: orphan-commit detection via `CommitReachabilityAuditor` (new sensing worker, hourly, posts `governance.edge5.orphan_sha::{proposal_id}` findings); DB record preserved per ALCOA "Original"; no automatic remediation. D2: commit-message prefix widened from `proposal_id[:8]` to `proposal_id[:16]` (64 bits) at both execute sites in `src/will/autonomy/proposal_executor.py`; forward-only, historical commits immutable. D3: `core.proposal_consequences.post_execution_sha` declared the authoritative machine-readable Edge 5 link; commit-message prefix is a human-readable convenience only. Confirmed orphan instance `0b359369` → `211c2dd2` preserved as-is and documented. Implementation 2026-05-01 in commit 61f9671b. Closes #166; contributes to Band B closure.
-
-### ADR-020 (2026-05-02) — Worker liveness derived from heartbeat, not from registry status
-`core.worker_registry.status` is dropped — the schema's declared `active | stopped | abandoned` state machine had no transition logic and only `'active'` was ever written, while `last_heartbeat` reliably reflected supervision reality. Four sub-decisions: D1 — `last_heartbeat` is the canonical liveness signal, with per-worker thresholds derived from `.intent/workers/*.yaml` `mandate.schedule.max_interval + glide_off`; D2 — `status` column dropped via forward-only SQL migration; the 20 historical `'abandoned'` rows are absorbed by the migration with no separate cleanup. D3 — `WorkerRegistryService` gains `fetch_alive_workers(threshold_sec)` and `fetch_stale_workers(threshold_sec)` to centralize the threshold-based check; readers that previously filtered `WHERE status='active'` migrate to one of these. D4 — per-worker thresholds remain owned by their `.intent/workers/*.yaml` declarations, unchanged. Names the failure mode from `papers/CORE-Authority-Without-Registries.md` §1: a registry value that became a de-facto source of truth (the dashboard read it) while drifting from the actual law (heartbeats). Closes #184.
-
-### ADR-021 (2026-05-02) — Scoped autonomous git operations
-The autonomous daemon's `git checkout -- .` rollback and `add -A` commit both operated repo-wide, silently eating or scooping unrelated working-tree changes when the architect had unstaged work in flight. Six sub-decisions: D1 — `GitService` gains `restore_paths(paths)` and `commit_paths(paths, message)` primitives; D2 — `ProposalExecutor.execute()` rollback scoped to `proposal.scope.files`; D3 — both `execute()` and `execute_batch()` success-path commits scoped to `proposal.scope.files`; D4 — `execute_batch()` gains the missing scoped rollback that `execute()` already had (sibling concern to #167, surfaced and closed in the same change-set); D5 — pre-claim scope-collision check yields the proposal back to `approved` (placement is pre-claim because per ADR-017 D2 the claim transition has no inverse), with mode declared in `.intent/enforcement/config/autonomy_dirty_tree.yaml` and the worker — not the executor — posting the `autonomy.yielded.scope_collision::*` finding per ADR-011; D6 — forward path to "any dirty halts" (full C, post-stabilization) is a single YAML mode flip. Stance is C-light during development phase per ADR-014. Closes #167.
-
----
-
-## Intent Layer Hygiene — proposed (not executed)
-
-`.specs/` has grown organically. Proposal captured here for a later session.
-
-**Proposed reorganization:**
-- `state/` keeps only periodic state snapshots (`CORE-state-YYYY-MM-DD.md`)
-- `state/investigations/` holds dated one-off analyses
-- `state/handoffs/` holds the handoff archive
-- `whitepapers/` (new) holds external-facing positioning documents
-- `META/` gains minimum-viable schemas for: paper, ADR, URS, handoff, plan, state snapshot, investigation, whitepaper
-- Naming convention: `kebab-case` for multi-word filenames; date prefix `YYYY-MM-DD-` for dated artifacts; no spaces anywhere
-
-**Execution cost:** one session.
+| ADR | Date | Title | One-line decision |
+|-----|------|--------|-------------------|
+| ADR-001 | 2026-04-15 | `.specs/` layer established | Non-operational documents move out of `.intent/` into `.specs/`. |
+| ADR-002 | 2026-04-18 | Shared layer boundary enforcement | All shared/ violations resolved by architectural moves, not rule exceptions. |
+| ADR-003 | 2026-04-19 | `task_type` as first-class field on `ExecutionTask` | Test generation routes through `audit` phase; `build_tests_action` sets `task_type="test_generation"`. |
+| ADR-004 | 2026-04-19 | Govern task_type → phase mapping in `.intent/` | Three-way drift collapsed to `.intent/enforcement/config/task_type_phases.yaml`. |
+| ADR-005 | 2026-04-20 | Govern audit verdict policy in `.intent/` | Severity→verdict mapping codified at `.intent/enforcement/config/audit_verdict.yaml`. |
+| ADR-006 | 2026-04-20 | Align `modularity.needs_split` with its statement | Rule statement is law; implementation corrected to measure responsibility, not import proxy. |
+| ADR-007 | 2026-04-21 | `modularity.class_too_large` split from `modularity.needs_split` | Separate rule for dominant-class case (non-automatable); 1-rule-to-1-method pattern. |
+| ADR-008 | 2026-04-22 *(parked)* | Constitutionalize `impact_level` | `impact_level` in `@register_action` decorators is a G4 leak; migration deferred. |
+| ADR-009 | 2026-04-24 | CLI-depth block transient — passive instrumentation | No rule modified; full `ConstitutionalViolationError` attribution persisted into `action_results`. |
+| ADR-010 | 2026-04-24 | Wire the §7 + §7a Finding/Proposal contract | Correct terminal status, forward link, and revival implemented in one coordinated change. |
+| ADR-011 | 2026-04-24 | Workers own blackboard attribution; services do not post | Every INSERT into `blackboard_entries` must originate from a Worker. Band A closed. |
+| ADR-012 | 2026-04-25 | Centralize globstar matching via `pathspec` | Eight `Path.match` sites migrated to `src/shared/utils/glob_match.py` using `GitWildMatchPattern`. |
+| ADR-013 | 2026-04-26 | Retire `core.proposals`; reserve name for `core.autonomous_proposals` | `core.proposals` retired (0 rows, no writers); name reserved for when "autonomous" becomes redundant. |
+| ADR-014 | 2026-04-26 | Development-phase priority: loop liveness before artifact quality | Priority order: liveness > productivity > quality. First application: `build.tests` reclassified to `safe`. |
+| ADR-015 | 2026-04-27 | Consequence chain attribution: write paths and storage shapes | Seven sub-decisions (D1–D7) covering finding_ids, approval_authority, claimed_by, and sensor attribution. |
+| ADR-016 | 2026-04-27 | Test environment architecture | Schema authority = SQLAlchemy models; `core_test` ephemeral; isolation via `TRUNCATE CASCADE`. |
+| ADR-017 | 2026-04-28 | `claim.proposal` as atomic action | approved→executing transition via constitutional action; `mark_executing` removed from state manager. |
+| ADR-018 | 2026-05-01 | Decomposed crawler/embedder supersedes vector_sync_worker | Autonomous path split into `repo_crawler` + `repo_embedder`; `sync.vectors.code` kept for CLI. |
+| ADR-019 | 2026-05-01 | Edge 5 git-boundary attribution posture | Orphan-commit detection via `CommitReachabilityAuditor`; prefix widened to 16 chars. |
+| ADR-020 | 2026-05-02 | Worker liveness derived from heartbeat, not registry status | `status` column dropped; `last_heartbeat` + per-worker thresholds are canonical liveness. |
+| ADR-021 | 2026-05-02 | Scoped autonomous git operations | `commit_paths` + `restore_paths` primitives; scope-collision yield pre-claim; C-light during dev phase. |
 
 ---
 
@@ -209,7 +152,6 @@ core-admin vectors query "<query>" --collection policies|patterns|specs --limit 
 poetry run core-admin dev sync --write
 
 # DB (only when no core-admin command covers the need)
-# Connection requires PGPASSWORD env var or ~/.pgpass.
 PGPASSWORD=core_db psql -U core_db -d core -h 192.168.20.23
 ```
 
@@ -252,11 +194,11 @@ ProposalConsumerWorker                 ← daemonized
     → executes APPROVED proposals via ProposalExecutor
 AuditViolationSensor
     → confirms finding resolved or re-posts
-BlackboardShopManager                      ← active
+BlackboardShopManager                  ← active
     → monitors Blackboard SLA health
-WorkerShopManager                          ← active
+WorkerShopManager                      ← active
     → monitors worker liveness
-CommitReachabilityAuditor                  ← active (hourly)
+CommitReachabilityAuditor              ← active (hourly)
     → detects orphan post_execution_sha commits
 ```
 
