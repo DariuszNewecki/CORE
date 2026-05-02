@@ -72,6 +72,26 @@ def _worker_colour(status: str, last_heartbeat: datetime | None) -> str:
     return "red"
 
 
+def _displayed_status(status: str, last_heartbeat: datetime | None) -> str:
+    """Status label adjusted for heartbeat freshness.
+
+    Workers registered as `active` whose last heartbeat is older than
+    10 minutes (the silent-worker threshold used by health_log_service)
+    are rendered as `stale`. The DB column is unchanged; this is a display
+    correction only.
+    """
+    if status != "active":
+        return status
+    if last_heartbeat is None:
+        return "stale"
+    if last_heartbeat.tzinfo is None:
+        last_heartbeat = last_heartbeat.replace(tzinfo=UTC)
+    age_s = (datetime.now(UTC) - last_heartbeat).total_seconds()
+    if age_s >= 600:
+        return "stale"
+    return status
+
+
 @runtime_app.command("health")
 @async_command
 # ID: 38e31fa3-0c8c-4721-aeaa-57562292cf9f
@@ -146,11 +166,12 @@ def _render_rich(workers, bb_summary, bb_recent, health, crawl, blast) -> None:
     t.add_column("Last Heartbeat")
     for w in workers:
         c = _worker_colour(w.status, w.last_heartbeat)
+        displayed = _displayed_status(w.status, w.last_heartbeat)
         t.add_row(
             w.worker_name,
             w.worker_class,
             w.phase,
-            f"[{c}]{w.status}[/{c}]",
+            f"[{c}]{displayed}[/{c}]",
             _age(w.last_heartbeat),
         )
     console.print(t)
@@ -219,10 +240,11 @@ def _render_plain(workers, bb_summary, bb_recent, health, crawl, blast) -> None:
     logger.info("=== CORE Runtime Health ===\n")
     logger.info("-- Workers --")
     for w in workers:
+        displayed = _displayed_status(w.status, w.last_heartbeat)
         logger.info(
             "  %s %s %s",
             w.worker_name.ljust(30),
-            w.status.ljust(10),
+            displayed.ljust(10),
             _age(w.last_heartbeat),
         )
     if health:
