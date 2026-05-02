@@ -42,24 +42,30 @@ What is no longer kept: long-form handoff documents under `.specs/state/handoffs
 
 ## 3. Session opening
 
-Six steps. Reads first, commits nothing.
+Seven steps. Reads first, commits nothing.
 
 **Step 1 — Contract load.** The architect loads `.specs/planning/INTERACTION-CONTRACT.md` before any state scan. A fresh architect instance that has not loaded this document is not yet operational — the governor is owed the load before being asked anything substantive. This step is the architect's responsibility; the governor verifies it has happened by observing the architect's first turn.
 
-**Step 2 — System state scan.** Run `core-admin code audit` and record the verdict and finding count. Check `systemctl --user status core-daemon` for daemon liveness. If either is unexpectedly off baseline, that observation precedes any lead selection.
+**Step 2 — Context fetch.** The architect fetches the two Drive context packets via `Google Drive:read_file_content`:
+- `context_tree.txt` (ID: `1ga2oCvyUJPr4i-McSjmlhVcgU8zx9KpO`) — fetch first; small filtered directory tree for structural navigation.
+- `context_core.txt` (ID: `1Wgeadp79Ax0MvLO-kyySq0BIS6MX8Bhj`) — full code/governance/specs snapshot; stored locally and grepped as needed during the session.
 
-**Step 3 — GitHub state scan.** Open the repository's Issues tab filtered by relevant state labels. Default filter set:
+Both files are produced on lira by `make context` and reflect the state of the repo at last sync. If they are absent or stale, the governor runs `make context` before proceeding. The architect does not ask the governor to upload or paste code; the Drive fetch is the delivery mechanism.
+
+**Step 3 — System state scan.** Run `core-admin code audit` and record the verdict and finding count. Check `systemctl --user status core-daemon` for daemon liveness. If either is unexpectedly off baseline, that observation precedes any lead selection.
+
+**Step 4 — GitHub state scan.** Open the repository's Issues tab filtered by relevant state labels. Default filter set:
 - `status:verification-pending` — has anything passively verified since last session?
 - `status:blocked` — has a blocker upstream of something resolved?
 - Open issues on the current band's milestone — what's queued?
 
 Close anything that has resolved. Do this first because closures free up pick candidates.
 
-**Step 4 — Candidate list.** From remaining open issues, identify 2-4 candidates for the session's lead. Preference order: items surfaced last session, items `priority:high`, items on the currently-advancing band's milestone.
+**Step 5 — Candidate list.** From remaining open issues, identify 2-4 candidates for the session's lead. Preference order: items surfaced last session, items `priority:high`, items on the currently-advancing band's milestone.
 
-**Step 5 — Pick one lead.** The governor picks. The architect can propose and argue, but the pick is the governor's. Name it explicitly and state the expected session outcome in one sentence.
+**Step 6 — Pick one lead.** The governor picks. The architect can propose and argue, but the pick is the governor's. Name it explicitly and state the expected session outcome in one sentence.
 
-**Step 6 — Commit to the lead.** Once chosen, stop evaluating candidates. The parked list is a feature, not a backlog to clear. Newly-surfaced items during the session become new issues, not new leads.
+**Step 7 — Commit to the lead.** Once chosen, stop evaluating candidates. The parked list is a feature, not a backlog to clear. Newly-surfaced items during the session become new issues, not new leads.
 
 ---
 
@@ -125,11 +131,13 @@ This document is governance text. Changes go through the governor directly — n
 This document does not specify:
 - The interaction contract between governor and architect during active work — see `.specs/planning/INTERACTION-CONTRACT.md`.
 - Coding or designing workflows beyond the session-open/session-close bookends.
-- Issue-label semantics (see the label catalog on GitHub; each label carries its governing description).
+- Issue-label semantics (see the label catalog on GitHub; each label carries its own description).
 - Band definitions or strategic scope (see `CORE-A3-plan.md`).
 
 ---
 
-*This protocol was established as part of the Band A closure session (2026-04-24) when the previous `handoff-*.md` pattern reached structural strain. It is expected to evolve as operational experience with the GitHub-tracking split accumulates.*
+*This protocol was established as part of the Band A closure session (2026-04-26) when the previous `handoff-*.md` pattern reached structural strain. It is expected to evolve as operational experience with the GitHub-tracking split accumulates.*
 
 *Revised 2026-04-26: §3 gained Step 1 (Contract load) and the original five steps renumbered to 2–6; §4 rewritten to reference `.specs/planning/INTERACTION-CONTRACT.md` rather than externalize the contract; §8 updated to point at the same document.*
+
+*Revised 2026-05-02: §3 gained Step 2 (Context fetch) and the remaining steps renumbered to 3–7. Step 2 documents the Google Drive context packet delivery mechanism (`context_tree.txt` + `context_core.txt`) and the `make context` command that produces them.*

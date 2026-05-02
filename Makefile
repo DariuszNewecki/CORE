@@ -34,7 +34,7 @@ DAEMON_LOG  := var/log/core-daemon.log
   dupes traces refusals cli-tree clean nuke \
   docs vectorize integrate \
   migrate export-db sync-knowledge \
-  patterns state
+  patterns state context
 
 # ---- Help (auto-documented) --------------------------------------------------
 help: ## Show this help message
@@ -233,6 +233,13 @@ integrate: ## Finalize changes and integrate into system
 docs: ## Generate capability documentation
 	@echo "📚 Generating capability documentation..."
 	$(CORE_ADMIN) project docs
+
+# ---- Context (LLM session packets) ------------------------------------------
+context: ## Build context packets and sync to Google Drive
+	@echo "📦 Building context packets (code + tree)..."
+	@$(POETRY) run python infra/scripts/dev/context_builder.py
+	@echo "☁️  Syncing to Google Drive..."
+	@$(POETRY) run python infra/scripts/dev/gdrive_sync.py
 
 # ---- Clean -------------------------------------------------------------------
 clean: ## Remove temporary files and caches
