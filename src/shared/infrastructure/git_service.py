@@ -142,6 +142,59 @@ class GitService:
             self._run_command(["add", "-A"])
             self._run_command(["commit", "-m", message])
 
+    # ID: d4e5f6a7-b8c9-0123-4567-89abcdef0123
+    def restore_paths(self, paths: list[str]) -> None:
+        """
+        Reverts the working-tree state of the given tracked paths to HEAD.
+
+        Used by ProposalExecutor's failure branches per ADR-021 D2/D4.
+        Untracked paths in the input are silently dropped (consistent with
+        `git checkout -- <pathspec>` semantics).
+        """
+        if not paths:
+            logger.debug("GitService.restore_paths: no paths to restore")
+            return
+
+        ls_output = self._run_command(["ls-files", "--", *paths])
+        tracked = [line for line in ls_output.splitlines() if line]
+
+        if not tracked:
+            logger.info(
+                "GitService.restore_paths: no tracked paths in input (count_input=%d)",
+                len(paths),
+            )
+            return
+
+        self._run_command(["checkout", "--", *tracked])
+        logger.info("GitService.restore_paths: reverted %d paths", len(tracked))
+
+    # ID: e5f6a7b8-c9d0-1234-5678-9abcdef01234
+    def commit_paths(self, paths: list[str], message: str) -> None:
+        """
+        Stages and commits exactly the given paths.
+
+        Used by ProposalExecutor's success branches per ADR-021 D3. Mirrors
+        the two-pass retry pattern in `commit` for pre-commit hook
+        auto-modifications.
+        """
+        if not paths:
+            raise ValueError(
+                "commit_paths requires at least one path; an autonomous "
+                "proposal that resolved to no files is malformed"
+            )
+
+        self._run_command(["add", "--", *paths])
+        try:
+            self._run_command(["commit", "-m", message])
+        except RuntimeError as first_err:
+            logger.info(
+                "GitService.commit_paths: first commit attempt failed — "
+                "re-staging after pre-commit hook modifications and retrying: %s",
+                first_err,
+            )
+            self._run_command(["add", "--", *paths])
+            self._run_command(["commit", "-m", message])
+
     # ID: a1b2c3d4-e5f6-7890-abcd-ef1234567892
     def get_recent_commits(self, n: int = 10) -> list[str]:
         """
