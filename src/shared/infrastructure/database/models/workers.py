@@ -52,9 +52,6 @@ class WorkerRegistry(Base):
     last_heartbeat: Mapped[Any] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )
-    status: Mapped[str] = mapped_column(
-        Text, nullable=False, server_default="active"
-    )  # active | stopped | abandoned
 
 
 # ID: c2d3e4f5-a6b7-8901-cdef-234567890123

@@ -81,8 +81,7 @@ class HealthLogService:
                 text(
                     """
                     SELECT COUNT(*) FROM core.worker_registry
-                    WHERE status = 'active'
-                      AND last_heartbeat < now() - interval '10 minutes'
+                    WHERE last_heartbeat < now() - interval '10 minutes'
                     """
                 )
             )

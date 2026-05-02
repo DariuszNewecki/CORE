@@ -164,7 +164,6 @@ class WorkerShopManager(Worker):
                         "worker_uuid": worker_uuid,
                         "seconds_silent": seconds_silent,
                         "threshold": threshold,
-                        "status": worker["status"],
                     },
                 )
                 flagged += 1

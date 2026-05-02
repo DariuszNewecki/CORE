@@ -57,9 +57,9 @@ def _age(ts: datetime | None) -> str:
     return f"{s // 86400}d ago"
 
 
-def _worker_colour(status: str, last_heartbeat: datetime | None) -> str:
-    if status != "active":
-        return "red"
+def _worker_colour(last_heartbeat: datetime | None) -> str:
+    """Liveness colour derived from heartbeat age. Per ADR-020,
+    last_heartbeat is the canonical liveness signal."""
     if last_heartbeat is None:
         return "yellow"
     if last_heartbeat.tzinfo is None:
@@ -72,16 +72,11 @@ def _worker_colour(status: str, last_heartbeat: datetime | None) -> str:
     return "red"
 
 
-def _displayed_status(status: str, last_heartbeat: datetime | None) -> str:
-    """Status label adjusted for heartbeat freshness.
-
-    Workers registered as `active` whose last heartbeat is older than
-    10 minutes (the silent-worker threshold used by health_log_service)
-    are rendered as `stale`. The DB column is unchanged; this is a display
-    correction only.
+def _liveness_label(last_heartbeat: datetime | None) -> str:
+    """Liveness label derived from heartbeat freshness. Per ADR-020,
+    a worker is alive iff its last heartbeat is within the silent-worker
+    threshold (10 minutes, matching health_log_service.silent_workers).
     """
-    if status != "active":
-        return status
     if last_heartbeat is None:
         return "stale"
     if last_heartbeat.tzinfo is None:
@@ -89,7 +84,7 @@ def _displayed_status(status: str, last_heartbeat: datetime | None) -> str:
     age_s = (datetime.now(UTC) - last_heartbeat).total_seconds()
     if age_s >= 600:
         return "stale"
-    return status
+    return "alive"
 
 
 @runtime_app.command("health")
@@ -110,7 +105,7 @@ async def health_cmd(
         workers = (
             await session.execute(
                 text(
-                    "\n            SELECT worker_name, worker_class, phase, status, last_heartbeat\n            FROM core.worker_registry\n            ORDER BY last_heartbeat DESC NULLS LAST\n            "
+                    "\n            SELECT worker_name, worker_class, phase, last_heartbeat\n            FROM core.worker_registry\n            ORDER BY last_heartbeat DESC NULLS LAST\n            "
                 )
             )
         ).fetchall()
@@ -162,16 +157,16 @@ def _render_rich(workers, bb_summary, bb_recent, health, crawl, blast) -> None:
     t.add_column("Name")
     t.add_column("Class")
     t.add_column("Phase")
-    t.add_column("Status")
+    t.add_column("Liveness")
     t.add_column("Last Heartbeat")
     for w in workers:
-        c = _worker_colour(w.status, w.last_heartbeat)
-        displayed = _displayed_status(w.status, w.last_heartbeat)
+        c = _worker_colour(w.last_heartbeat)
+        label = _liveness_label(w.last_heartbeat)
         t.add_row(
             w.worker_name,
             w.worker_class,
             w.phase,
-            f"[{c}]{displayed}[/{c}]",
+            f"[{c}]{label}[/{c}]",
             _age(w.last_heartbeat),
         )
     console.print(t)
@@ -240,11 +235,11 @@ def _render_plain(workers, bb_summary, bb_recent, health, crawl, blast) -> None:
     logger.info("=== CORE Runtime Health ===\n")
     logger.info("-- Workers --")
     for w in workers:
-        displayed = _displayed_status(w.status, w.last_heartbeat)
+        label = _liveness_label(w.last_heartbeat)
         logger.info(
             "  %s %s %s",
             w.worker_name.ljust(30),
-            displayed.ljust(10),
+            label.ljust(10),
             _age(w.last_heartbeat),
         )
     if health:
@@ -400,7 +395,6 @@ async def _query_dashboard_data(session: Any) -> dict[str, Any]:
             text("""
             SELECT worker_name, last_heartbeat
             FROM core.worker_registry
-            WHERE status = 'active'
             ORDER BY last_heartbeat ASC NULLS FIRST
             """),
         )
@@ -516,7 +510,6 @@ async def _query_dashboard_data(session: Any) -> dict[str, Any]:
             AND claimed_by = (
                 SELECT worker_uuid FROM core.worker_registry
                 WHERE worker_name = 'Violation Executor'
-                AND status = 'active'
                 LIMIT 1
             )
             """),

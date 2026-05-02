@@ -273,11 +273,10 @@ class Worker(ABC):
                     text(
                         """
                         insert into core.worker_registry
-                            (worker_uuid, worker_name, worker_class, phase, status, last_heartbeat)
+                            (worker_uuid, worker_name, worker_class, phase, last_heartbeat)
                         values
-                            (:worker_uuid, :worker_name, :worker_class, :phase, 'active', now())
+                            (:worker_uuid, :worker_name, :worker_class, :phase, now())
                         on conflict (worker_uuid) do update set
-                            status = 'active',
                             last_heartbeat = now()
                     """
                     ),
@@ -344,7 +343,7 @@ class Worker(ABC):
                         text(
                             """
                             update core.worker_registry
-                            set last_heartbeat = now(), status = 'active'
+                            set last_heartbeat = now()
                             where worker_uuid = :worker_uuid
                         """
                         ),
