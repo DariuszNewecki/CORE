@@ -86,6 +86,7 @@ class RepoCrawlerWorker(Worker):
     # ID: b2c3d4e5-f6a7-8901-bcde-f12345678903
     async def run(self) -> None:
         """Crawl repository — delegate to CrawlService.run_crawl."""
+        await self.post_heartbeat()
         from body.services.service_registry import service_registry
 
         logger.info("RepoCrawlerWorker: starting crawl pass")

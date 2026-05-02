@@ -85,6 +85,7 @@ class RepoEmbedderWorker(Worker):
     # ID: b3c4d5e6-f7a8-9b0c-2345-678901abcdef
     async def run(self) -> None:
         """Embed a batch of unprocessed repo artifacts."""
+        await self.post_heartbeat()
         from body.services.service_registry import service_registry
 
         logger.info("RepoEmbedderWorker: starting embedding pass")
@@ -99,7 +100,6 @@ class RepoEmbedderWorker(Worker):
 
         if not artifacts:
             logger.info("RepoEmbedderWorker: nothing to embed, all artifacts current")
-            await self.post_heartbeat()
             return
 
         for artifact in artifacts:
