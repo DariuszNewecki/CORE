@@ -21,6 +21,9 @@ from uuid import UUID
 from body.atomic.executor import ActionExecutor
 from body.services.service_registry import service_registry
 from mind.governance.violation_report import extract_error_data
+from shared.infrastructure.intent.autonomy_dirty_tree import (
+    load_autonomy_dirty_tree_policy,
+)
 from shared.logger import getLogger
 from will.autonomy.proposal import ProposalStatus
 from will.autonomy.proposal_repository import ProposalRepository
@@ -44,6 +47,74 @@ class ProposalExecutor:
         self.core_context = core_context
         self.action_executor = ActionExecutor(core_context)
         logger.debug("ProposalExecutor initialized")
+
+    async def _check_scope_collision(self, proposal) -> dict | None:
+        """
+        Pre-claim scope-collision check per ADR-021 D5.
+
+        Returns a yield result dict if the dirty working tree intersects
+        proposal.scope.files (or, under any_dirty mode, if the working
+        tree is dirty at all). Returns None if it is safe to proceed.
+
+        Mode is read from .intent/enforcement/config/autonomy_dirty_tree.yaml.
+        On loader sentinel, treats mode as any_dirty (conservative halt).
+        """
+        if self.core_context.git_service is None:
+            return None
+
+        policy = load_autonomy_dirty_tree_policy()
+        if policy.get("_error"):
+            logger.warning(
+                "autonomy_dirty_tree policy unavailable (%s) — defaulting to any_dirty",
+                policy.get("reason"),
+            )
+            mode = "any_dirty"
+        else:
+            mode = policy["mode"]
+
+        try:
+            porcelain = self.core_context.git_service.status_porcelain()
+        except RuntimeError as status_err:
+            logger.warning(
+                "Could not read working-tree status — proceeding cautiously: %s",
+                status_err,
+            )
+            return None
+
+        dirty_paths: set[str] = set()
+        for line in porcelain.splitlines():
+            if len(line) < 4:
+                continue
+            path = line[3:]
+            if " -> " in path:
+                path = path.split(" -> ", 1)[1]
+            if path:
+                dirty_paths.add(path)
+
+        if not dirty_paths:
+            return None
+
+        scope_files = set(proposal.scope.files)
+        intersection = dirty_paths & scope_files
+
+        if mode == "any_dirty" or intersection:
+            colliding = (
+                sorted(intersection)
+                if mode == "intersection_only"
+                else sorted(dirty_paths)
+            )
+            return {
+                "ok": False,
+                "yielded": True,
+                "yield_reason": "scope_collision"
+                if mode == "intersection_only"
+                else "any_dirty",
+                "colliding_paths": colliding,
+                "proposal_id": proposal.proposal_id,
+                "duration_sec": 0.0,
+            }
+
+        return None
 
     # ID: 5bb8175a-6a30-4548-8597-977a43fcb0b7
     async def execute(
@@ -88,6 +159,17 @@ class ProposalExecutor:
                     "status": proposal.status.value,
                     "duration_sec": time.time() - start_time,
                 }
+
+            # Pre-claim scope-collision check (ADR-021 D5)
+            collision = await self._check_scope_collision(proposal)
+            if collision is not None:
+                logger.info(
+                    "Proposal %s yielded pre-claim: %s (colliding=%d)",
+                    proposal.proposal_id,
+                    collision["yield_reason"],
+                    len(collision["colliding_paths"]),
+                )
+                return collision
 
             # 3. Mark as executing via claim.proposal atomic action (only if write=True)
             if write:
@@ -215,8 +297,9 @@ class ProposalExecutor:
                     # happened, we don't unwind it over a commit failure.
                     if self.core_context.git_service:
                         try:
-                            self.core_context.git_service.commit(
-                                f"fix({proposal.proposal_id[:16]}): {proposal.goal}"
+                            self.core_context.git_service.commit_paths(
+                                proposal.scope.files,
+                                f"fix({proposal.proposal_id[:16]}): {proposal.goal}",
                             )
                             logger.info(
                                 "Git commit created for proposal %s",
@@ -305,11 +388,12 @@ class ProposalExecutor:
                     # Restore the working tree to pre-execution state.
                     if self.core_context.git_service and pre_execution_sha is not None:
                         try:
-                            self.core_context.git_service._run_command(
-                                ["checkout", "--", "."]
+                            self.core_context.git_service.restore_paths(
+                                proposal.scope.files
                             )
                             logger.info(
-                                "Rolled back working tree to pre-execution state (%s)",
+                                "Reverted scope files to pre-execution state (count=%d, sha=%s)",
+                                len(proposal.scope.files),
                                 pre_execution_sha,
                             )
                         except Exception as rollback_err:
@@ -377,6 +461,18 @@ class ProposalExecutor:
                             "status": proposal.status.value,
                             "duration_sec": time.time() - single_start,
                         }
+                        continue
+
+                    # Pre-claim scope-collision check (ADR-021 D5)
+                    collision = await self._check_scope_collision(proposal)
+                    if collision is not None:
+                        logger.info(
+                            "Proposal %s yielded pre-claim: %s (colliding=%d)",
+                            proposal.proposal_id,
+                            collision["yield_reason"],
+                            len(collision["colliding_paths"]),
+                        )
+                        results[proposal_id] = collision
                         continue
 
                     if write:
@@ -465,8 +561,9 @@ class ProposalExecutor:
                             # semantics as single execute: log warning, don't unwind.
                             if self.core_context.git_service:
                                 try:
-                                    self.core_context.git_service.commit(
-                                        f"fix({proposal.proposal_id[:16]}): {proposal.goal}"
+                                    self.core_context.git_service.commit_paths(
+                                        proposal.scope.files,
+                                        f"fix({proposal.proposal_id[:16]}): {proposal.goal}",
                                     )
                                 except Exception as git_err:
                                     logger.warning(
@@ -550,6 +647,26 @@ class ProposalExecutor:
                                 reason=reason,
                                 results=action_results,
                             )
+                            if (
+                                self.core_context.git_service
+                                and pre_execution_sha is not None
+                            ):
+                                try:
+                                    self.core_context.git_service.restore_paths(
+                                        proposal.scope.files
+                                    )
+                                    logger.info(
+                                        "Reverted scope files for batch proposal %s (count=%d, sha=%s)",
+                                        proposal.proposal_id,
+                                        len(proposal.scope.files),
+                                        pre_execution_sha,
+                                    )
+                                except Exception as rollback_err:
+                                    logger.warning(
+                                        "Rollback failed for batch proposal %s: %s",
+                                        proposal.proposal_id,
+                                        rollback_err,
+                                    )
 
                     results[proposal_id] = {
                         "ok": all_ok,
