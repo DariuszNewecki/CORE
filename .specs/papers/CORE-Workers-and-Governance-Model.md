@@ -142,15 +142,16 @@ optional. A Worker that cannot register has no constitutional standing
 and must not proceed.
 
 Registration records: `worker_uuid`, `worker_name`, `worker_class`,
-`phase`, `status=active`, `last_heartbeat=now()`.
+`phase`, `last_heartbeat=now()`. Per ADR-020, the registry no longer
+carries a `status` column; worker liveness is derived from `last_heartbeat`
+against per-worker SLAs declared in `.intent/workers/*.yaml`.
 
 **Worker UUID on restart:** A Worker's `worker_uuid` is permanent and
 declared in `.intent/workers/`. It does not change between daemon
 restarts. If the Worker UUID already exists in the registry, registration
-updates `status=active` and `last_heartbeat` — it does not create a new
-UUID. This means all Blackboard entries, Proposals, and deduplication
-records created by prior daemon generations remain associated with the
-same UUID across restarts.
+updates `last_heartbeat` — it does not create a new UUID. This means all
+Blackboard entries, Proposals, and deduplication records created by prior
+daemon generations remain associated with the same UUID across restarts.
 
 Deduplication of Findings is therefore scoped globally by subject, not
 by worker_uuid. The sensing Worker's UUID is irrelevant to dedup — what
