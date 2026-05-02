@@ -90,6 +90,7 @@ class ProposalConsumerWorker(Worker):
 
         succeeded = 0
         failed = 0
+        yielded = 0
         results = []
 
         for proposal in proposals:
@@ -106,6 +107,44 @@ class ProposalConsumerWorker(Worker):
                 result = await executor.execute(
                     proposal_id, self.worker_uuid, write=True
                 )
+
+                if result.get("yielded"):
+                    yielded += 1
+                    colliding = result.get("colliding_paths", []) or []
+                    yield_reason = result.get("yield_reason", "scope_collision")
+                    logger.info(
+                        "ProposalConsumerWorker: proposal '%s' yielded — %s (colliding=%d)",
+                        proposal_id,
+                        yield_reason,
+                        len(colliding),
+                    )
+                    try:
+                        await self.post_finding(
+                            subject=f"autonomy.yielded.scope_collision::{proposal_id}",
+                            payload={
+                                "proposal_id": proposal_id,
+                                "goal": goal,
+                                "yield_reason": yield_reason,
+                                "colliding_paths": colliding,
+                            },
+                        )
+                    except Exception as post_err:
+                        logger.warning(
+                            "Could not post yield finding for proposal %s: %s",
+                            proposal_id,
+                            post_err,
+                        )
+                    results.append(
+                        {
+                            "proposal_id": proposal_id,
+                            "goal": goal,
+                            "ok": False,
+                            "yielded": True,
+                            "yield_reason": yield_reason,
+                            "colliding_paths": colliding,
+                        }
+                    )
+                    continue
 
                 if result["ok"]:
                     succeeded += 1
@@ -267,15 +306,17 @@ class ProposalConsumerWorker(Worker):
                 "executed": len(results),
                 "succeeded": succeeded,
                 "failed": failed,
+                "yielded": yielded,
                 "results": results,
-                "message": f"{succeeded} proposals executed, {failed} failed.",
+                "message": f"{succeeded} proposals executed, {failed} failed, {yielded} yielded.",
             },
         )
 
         logger.info(
-            "ProposalConsumerWorker: %d succeeded, %d failed.",
+            "ProposalConsumerWorker: %d succeeded, %d failed, %d yielded.",
             succeeded,
             failed,
+            yielded,
         )
 
     # -------------------------------------------------------------------------
