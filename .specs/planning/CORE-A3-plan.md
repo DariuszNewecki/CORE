@@ -2,7 +2,7 @@
 
 **Status:** Active
 **Owner:** Darek (Dariusz Newecki)
-**Last updated:** 2026-05-01
+**Last updated:** 2026-05-02
 **Definition:** The daemon runs continuously, the Blackboard clears, the codebase converges, and every action is visible.
 
 ---
@@ -140,6 +140,12 @@ The autonomous repository-to-vectors path moves from a single composite worker (
 
 ### ADR-019 (2026-05-01) — Edge 5 git-boundary attribution posture
 Decides posture for two silent Edge 5 failure modes identified in the consequence-chain investigation. D1: orphan-commit detection via `CommitReachabilityAuditor` (new sensing worker, hourly, posts `governance.edge5.orphan_sha::{proposal_id}` findings); DB record preserved per ALCOA "Original"; no automatic remediation. D2: commit-message prefix widened from `proposal_id[:8]` to `proposal_id[:16]` (64 bits) at both execute sites in `src/will/autonomy/proposal_executor.py`; forward-only, historical commits immutable. D3: `core.proposal_consequences.post_execution_sha` declared the authoritative machine-readable Edge 5 link; commit-message prefix is a human-readable convenience only. Confirmed orphan instance `0b359369` → `211c2dd2` preserved as-is and documented. Implementation 2026-05-01 in commit 61f9671b. Closes #166; contributes to Band B closure.
+
+### ADR-020 (2026-05-02) — Worker liveness derived from heartbeat, not from registry status
+`core.worker_registry.status` is dropped — the schema's declared `active | stopped | abandoned` state machine had no transition logic and only `'active'` was ever written, while `last_heartbeat` reliably reflected supervision reality. Four sub-decisions: D1 — `last_heartbeat` is the canonical liveness signal, with per-worker thresholds derived from `.intent/workers/*.yaml` `mandate.schedule.max_interval + glide_off`; D2 — `status` column dropped via forward-only SQL migration; the 20 historical `'abandoned'` rows are absorbed by the migration with no separate cleanup. D3 — `WorkerRegistryService` gains `fetch_alive_workers(threshold_sec)` and `fetch_stale_workers(threshold_sec)` to centralize the threshold-based check; readers that previously filtered `WHERE status='active'` migrate to one of these. D4 — per-worker thresholds remain owned by their `.intent/workers/*.yaml` declarations, unchanged. Names the failure mode from `papers/CORE-Authority-Without-Registries.md` §1: a registry value that became a de-facto source of truth (the dashboard read it) while drifting from the actual law (heartbeats). Closes #184.
+
+### ADR-021 (2026-05-02) — Scoped autonomous git operations
+The autonomous daemon's `git checkout -- .` rollback and `add -A` commit both operated repo-wide, silently eating or scooping unrelated working-tree changes when the architect had unstaged work in flight. Six sub-decisions: D1 — `GitService` gains `restore_paths(paths)` and `commit_paths(paths, message)` primitives; D2 — `ProposalExecutor.execute()` rollback scoped to `proposal.scope.files`; D3 — both `execute()` and `execute_batch()` success-path commits scoped to `proposal.scope.files`; D4 — `execute_batch()` gains the missing scoped rollback that `execute()` already had (sibling concern to #167, surfaced and closed in the same change-set); D5 — pre-claim scope-collision check yields the proposal back to `approved` (placement is pre-claim because per ADR-017 D2 the claim transition has no inverse), with mode declared in `.intent/enforcement/config/autonomy_dirty_tree.yaml` and the worker — not the executor — posting the `autonomy.yielded.scope_collision::*` finding per ADR-011; D6 — forward path to "any dirty halts" (full C, post-stabilization) is a single YAML mode flip. Stance is C-light during development phase per ADR-014. Closes #167.
 
 ---
 
