@@ -327,6 +327,15 @@ async def action_fix_modularity(
             e,
             plan_raw[:500] if plan_raw else "(empty)",
         )
+        err_str = str(e)
+        if err_str.startswith("llm_declined:"):
+            reason = err_str[len("llm_declined:") :].strip()
+            return ActionResult(
+                action_id="fix.modularity",
+                ok=False,
+                data={"error": "llm_declined", "reason": reason, "file": rel_path},
+                duration_sec=time.time() - start,
+            )
         return ActionResult(
             action_id="fix.modularity",
             ok=False,
