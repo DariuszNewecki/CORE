@@ -36,6 +36,32 @@ class ModuleSpec:
     is_class_split: bool = False
 
 
+def _parse_confidence(value: object) -> float:
+    """Coerce LLM confidence output to float.
+
+    Accepts numeric values directly. Maps common categorical strings
+    ("high", "medium", "low") to representative floats. Unknown strings
+    and unparseable values default to 0.0 so the confidence gate
+    rejects them rather than crashing.
+    """
+    _CATEGORICAL: dict[str, float] = {
+        "high": 0.9,
+        "medium": 0.7,
+        "low": 0.4,
+    }
+    if isinstance(value, int | float):
+        return float(value)
+    if isinstance(value, str):
+        normalised = value.strip().lower()
+        if normalised in _CATEGORICAL:
+            return _CATEGORICAL[normalised]
+        try:
+            return float(normalised)
+        except ValueError:
+            return 0.0
+    return 0.0
+
+
 @dataclass
 # ID: 4b9defe6-3c2c-4840-ae20-c460f77c550f
 class SplitPlan:
@@ -117,7 +143,7 @@ class SplitPlan:
         plan = cls(
             source_file=str(data.get("source_file", "")),
             new_package_name=str(data.get("new_package_name", "")),
-            confidence=float(data.get("confidence", 0.0)),
+            confidence=_parse_confidence(data.get("confidence", 0.0)),
             modules=modules,
         )
         plan.validate()
