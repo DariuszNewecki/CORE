@@ -2,7 +2,7 @@
 
 **Status:** Active
 **Owner:** Darek (Dariusz Newecki)
-**Last updated:** 2026-05-02
+**Last updated:** 2026-05-03
 **Definition:** The daemon runs continuously, the Blackboard clears, the codebase converges, and every action is visible.
 
 ---
@@ -95,7 +95,7 @@ Full rationale lives in each ADR file under `.specs/decisions/`. This table is t
 | ADR-009 | 2026-04-24 | CLI-depth block transient — passive instrumentation | No rule modified; full `ConstitutionalViolationError` attribution persisted into `action_results`. |
 | ADR-010 | 2026-04-24 | Wire the §7 + §7a Finding/Proposal contract | Correct terminal status, forward link, and revival implemented in one coordinated change. |
 | ADR-011 | 2026-04-24 | Workers own blackboard attribution; services do not post | Every INSERT into `blackboard_entries` must originate from a Worker. Band A closed. |
-| ADR-012 | 2026-04-25 | Centralize globstar matching via `pathspec` | Eight `Path.match` sites migrated to `src/shared/utils/glob_match.py` using `GitWildMatchPattern`. |
+| ADR-012 | 2026-04-25 | Centralize globstar matching via `pathspec` | Eight `Path.match` sites migrated to `src/shared/utils/glob_match.py` using `GitWildMatchPattern`. §6 addendum 2026-05-03: path input contract (normalize leading `./` and `/`); all 7 in-scope sites confirmed migrated; Issue #143 closed. |
 | ADR-013 | 2026-04-26 | Retire `core.proposals`; reserve name for `core.autonomous_proposals` | `core.proposals` retired (0 rows, no writers); name reserved for when "autonomous" becomes redundant. |
 | ADR-014 | 2026-04-26 | Development-phase priority: loop liveness before artifact quality | Priority order: liveness > productivity > quality. First application: `build.tests` reclassified to `safe`. |
 | ADR-015 | 2026-04-27 | Consequence chain attribution: write paths and storage shapes | Seven sub-decisions (D1–D7) covering finding_ids, approval_authority, claimed_by, and sensor attribution. |
