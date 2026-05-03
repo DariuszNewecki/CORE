@@ -238,8 +238,8 @@ docs: ## Generate capability documentation
 context: ## Build context packets and sync to Google Drive
 	@echo "📦 Building context packets (code + tree)..."
 	@$(POETRY) run python infra/scripts/dev/context_builder.py
-	@echo "☁️  Syncing to Google Drive..."
-	@$(POETRY) run python infra/scripts/dev/gdrive_sync.py
+#	@echo "☁️  Syncing to Google Drive..."
+#	@$(POETRY) run python infra/scripts/dev/gdrive_sync.py
 
 # ---- Clean -------------------------------------------------------------------
 clean: ## Remove temporary files and caches
