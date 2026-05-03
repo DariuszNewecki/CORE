@@ -18,6 +18,7 @@ from shared.infrastructure.intent.intent_repository import get_intent_repository
 from shared.logger import getLogger
 from shared.models.constitutional_validation import ConstitutionalValidationResult
 from shared.path_resolver import PathResolver
+from shared.utils.glob_match import matches_glob
 
 
 logger = getLogger(__name__)
@@ -331,10 +332,7 @@ class IntentGuard:
             if not rule.pattern:
                 continue
 
-            try:
-                if not Path(path_str).match(rule.pattern):
-                    continue
-            except ValueError:
+            if not matches_glob(path_str, rule.pattern):
                 continue
 
             # Skip engines that have no write-time check — either content-analysis
