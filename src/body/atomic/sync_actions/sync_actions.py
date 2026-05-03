@@ -1,25 +1,12 @@
-# src/body/atomic/sync_actions.py
-"""
-Atomic Sync Actions - State Synchronization
-
-Each action synchronizes one aspect of system state:
-- Database knowledge graph
-- Vector embeddings
-- Constitutional documents
-
-Actions are independent, composable, and auditable.
-"""
+# sync_actions.py
+"""The three action functions (database sync, code vector sync, constitutional vector sync) remain together as a cohesive group of synchronization actions."""
 
 from __future__ import annotations
 
 import time
-from pathlib import Path
-from typing import Any
 
-from body.atomic.registry import ActionCategory, register_action
 from body.introspection.sync_service import run_sync_with_db
-from shared.action_types import ActionImpact, ActionResult
-from shared.atomic_action import atomic_action
+from shared.action_types import ActionResult
 from shared.context import CoreContext
 from shared.infrastructure.database.session_manager import get_session
 from shared.infrastructure.vector.adapters.constitutional_adapter import (
@@ -30,230 +17,9 @@ from shared.logger import getLogger
 
 logger = getLogger(__name__)
 
-# ---------------------------------------------------------------------------
-# Embedding helpers (mirrors repo_embedder.py module-level helpers;
-# defined here so sync_actions stays within the Body layer)
-# ---------------------------------------------------------------------------
-
-_MAX_CHUNK_CHARS = 1500  # characters per semantic chunk
+from .chunking_helpers import _chunk_file, _embed_and_upsert
 
 
-def _chunk_file(file_path: Path, artifact_type: str) -> list[dict[str, Any]]:
-    """Chunk a file into semantic units. Returns list of {text, metadata} dicts."""
-    content = file_path.read_text(encoding="utf-8", errors="replace")
-    rel_path = str(file_path)
-    if artifact_type == "python":
-        return _chunk_by_symbol(content, rel_path)
-    elif artifact_type in ("doc", "report", "infra"):
-        return _chunk_by_heading(content, rel_path)
-    elif artifact_type == "test":
-        return _chunk_by_function(content, rel_path)
-    elif artifact_type == "prompt":
-        return _chunk_whole(content, rel_path)
-    elif artifact_type == "intent":
-        return _chunk_by_heading(content, rel_path)
-    else:
-        return _chunk_by_heading(content, rel_path)
-
-
-def _chunk_by_symbol(content: str, source: str) -> list[dict[str, Any]]:
-    """Chunk Python source by top-level class and function boundaries using AST."""
-    import ast as _ast
-
-    chunks = []
-    lines = content.splitlines()
-    try:
-        tree = _ast.parse(content)
-    except SyntaxError:
-        return _chunk_by_heading(content, source)
-
-    for node in tree.body:
-        if isinstance(node, (_ast.FunctionDef, _ast.AsyncFunctionDef)):
-            start = node.lineno - 1
-            end = node.end_lineno or (start + 30)
-            text = "\n".join(lines[start:end]).strip()
-            if text:
-                chunks.extend(
-                    _split_large(text, source, node.name, chunk_type="function")
-                )
-        elif isinstance(node, _ast.ClassDef):
-            start = node.lineno - 1
-            end = node.end_lineno or (start + 50)
-            text = "\n".join(lines[start:end]).strip()
-            if text:
-                chunks.extend(_split_large(text, source, node.name, chunk_type="class"))
-
-    if not chunks:
-        return _chunk_whole(content, source)
-    return chunks
-
-
-def _chunk_by_heading(content: str, source: str) -> list[dict[str, Any]]:
-    """Split markdown/YAML by headings or top-level keys."""
-    chunks = []
-    current_heading = "intro"
-    current_text: list[str] = []
-
-    for line in content.splitlines():
-        if line.startswith("#"):
-            if current_text:
-                text = "\n".join(current_text).strip()
-                if text:
-                    chunks.extend(_split_large(text, source, current_heading))
-            current_heading = line.lstrip("#").strip()
-            current_text = [line]
-        else:
-            current_text.append(line)
-
-    if current_text:
-        text = "\n".join(current_text).strip()
-        if text:
-            chunks.extend(_split_large(text, source, current_heading))
-
-    return chunks
-
-
-def _chunk_by_function(content: str, source: str) -> list[dict[str, Any]]:
-    """Split Python test files by test function boundaries."""
-    import ast as _ast
-
-    chunks = []
-    lines = content.splitlines()
-    try:
-        tree = _ast.parse(content)
-    except SyntaxError:
-        return _chunk_by_heading(content, source)
-
-    for node in _ast.walk(tree):
-        if isinstance(node, (_ast.FunctionDef, _ast.AsyncFunctionDef)):
-            if node.name.startswith("test_"):
-                start = node.lineno - 1
-                end = node.end_lineno or (start + 20)
-                text = "\n".join(lines[start:end]).strip()
-                if text:
-                    chunks.append(
-                        {
-                            "text": text,
-                            "metadata": {
-                                "source": source,
-                                "section": node.name,
-                                "chunk_type": "test_function",
-                            },
-                        }
-                    )
-
-    if not chunks:
-        return _chunk_by_heading(content, source)
-    return chunks
-
-
-def _chunk_whole(content: str, source: str) -> list[dict[str, Any]]:
-    """Treat small files as a single chunk."""
-    return _split_large(content.strip(), source, "full")
-
-
-def _split_large(
-    text: str,
-    source: str,
-    section: str,
-    chunk_type: str = "section",
-) -> list[dict[str, Any]]:
-    """Split text that exceeds _MAX_CHUNK_CHARS into overlapping sub-chunks."""
-    if len(text) <= _MAX_CHUNK_CHARS:
-        return [
-            {
-                "text": text,
-                "metadata": {
-                    "source": source,
-                    "section": section,
-                    "chunk_type": chunk_type,
-                },
-            }
-        ]
-    chunks = []
-    step = _MAX_CHUNK_CHARS - 200  # 200-char overlap
-    for i, start in enumerate(range(0, len(text), step)):
-        chunk_text = text[start : start + _MAX_CHUNK_CHARS].strip()
-        if chunk_text:
-            chunks.append(
-                {
-                    "text": chunk_text,
-                    "metadata": {
-                        "source": source,
-                        "section": f"{section}_part{i}",
-                        "chunk_type": chunk_type,
-                    },
-                }
-            )
-    return chunks
-
-
-async def _embed_and_upsert(
-    chunks: list[dict[str, Any]],
-    collection: str,
-    file_path: str,
-    artifact_type: str,
-    qdrant: Any,
-    cognitive: Any,
-) -> int:
-    """Embed chunks and upsert to Qdrant. Returns number of chunks upserted."""
-    from qdrant_client import models as qm
-
-    from shared.universal import get_deterministic_id
-
-    await qdrant.ensure_collection(collection_name=collection)
-
-    points = []
-    for i, chunk in enumerate(chunks):
-        text = chunk["text"]
-        embedding = await cognitive.get_embedding_for_code(text)
-        if embedding is None:
-            continue
-        item_id = f"{file_path}::chunk::{i}"
-        point_id = get_deterministic_id(item_id)
-        payload = {
-            **chunk["metadata"],
-            "item_id": item_id,
-            "artifact_type": artifact_type,
-            "file_path": file_path,
-        }
-        points.append(
-            qm.PointStruct(
-                id=point_id,
-                vector=(
-                    embedding.tolist()
-                    if hasattr(embedding, "tolist")
-                    else list(embedding)
-                ),
-                payload=payload,
-            )
-        )
-
-    if points:
-        await qdrant.upsert_points(collection_name=collection, points=points, wait=True)
-
-    return len(points)
-
-
-# ---------------------------------------------------------------------------
-# Actions
-# ---------------------------------------------------------------------------
-
-
-@register_action(
-    action_id="sync.db",
-    description="Sync code symbols to PostgreSQL knowledge graph",
-    category=ActionCategory.SYNC,
-    policies=["rules/data/governance"],
-    impact_level="moderate",
-    requires_db=True,
-)
-@atomic_action(
-    action_id="sync.db",
-    intent="Atomic action for action_sync_database",
-    impact=ActionImpact.WRITE_CODE,
-    policies=["atomic_actions"],
-)
 # ID: f6789012-3456-789a-bcde-f0123456789a
 async def action_sync_database(
     core_context: CoreContext, write: bool = False
@@ -305,21 +71,6 @@ async def action_sync_database(
         )
 
 
-@register_action(
-    action_id="sync.vectors.code",
-    description="Vectorize code symbols to Qdrant",
-    category=ActionCategory.SYNC,
-    policies=["rules/data/governance"],
-    impact_level="moderate",
-    requires_db=True,
-    requires_vectors=True,
-)
-@atomic_action(
-    action_id="sync.vectors.code",
-    intent="Atomic action for action_sync_code_vectors",
-    impact=ActionImpact.WRITE_CODE,
-    policies=["atomic_actions"],
-)
 # ID: af6a56d0-b2d3-44fe-b6ea-55d6aed3768b
 async def action_sync_code_vectors(
     core_context: CoreContext, write: bool = False, force: bool = False
@@ -451,20 +202,6 @@ async def action_sync_code_vectors(
         )
 
 
-@register_action(
-    action_id="sync.vectors.constitution",
-    description="Vectorize constitutional documents (policies, patterns)",
-    category=ActionCategory.SYNC,
-    policies=["rules/data/governance"],
-    impact_level="safe",
-    requires_vectors=True,
-)
-@atomic_action(
-    action_id="sync.vectors.constitution",
-    intent="Atomic action for action_sync_constitutional_vectors",
-    impact=ActionImpact.WRITE_CODE,
-    policies=["atomic_actions"],
-)
 # ID: b301871b-6205-4300-a76e-65d2ffa56c03
 async def action_sync_constitutional_vectors(
     core_context: CoreContext, write: bool = False
