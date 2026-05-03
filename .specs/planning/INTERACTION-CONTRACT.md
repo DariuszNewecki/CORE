@@ -46,12 +46,13 @@ The clauses below are listed in priority order. When two clauses appear to confl
 - **`core-admin`** — the governed CLI surface for audit, blackboard, runtime, workers, vectors, context, proposals.
 - **`journalctl`** — daemon logs (`journalctl --user -u core-daemon -f`).
 - **`grep`, `find`, standard Unix tools** — against the working tree on lira.
-- **Google Drive context packets** — two files synced from lira via `make context`:
-  - `context_tree.txt` (file ID: `1ga2oCvyUJPr4i-McSjmlhVcgU8zx9KpO`) — filtered directory tree; small, fetched first at session-open for structural navigation.
-  - `context_core.txt` (file ID: `1Wgeadp79Ax0MvLO-kyySq0BIS6MX8Bhj`) — full code/governance/specs snapshot; fetched and grepped for session-lead-relevant files. Both are fetched via `Google Drive:read_file_content` and stored locally for grep access during the session.
+- **Project Files context packets** — two files uploaded to the Claude.ai Project before each session:
+  - `context_tree.txt` — filtered directory tree; small, read first at session-open for structural navigation.
+  - `context_core.txt` — full code/governance/specs snapshot; read and grepped for session-lead-relevant files.
+  Both are read via the `view` tool at `/mnt/project/` and grepped during the session as needed.
 - **`context_core.txt`** — the architect's snapshot bundle of `src/`. Useful for fast reads when currency is not a concern; not authoritative when it could be stale.
 
-The order of preference for any given data need: Claude Code on the live tree → `gh`/`psql`/`core-admin`/`journalctl` against live state → Drive context packets (tree first, then code grep) → asking the governor to paraphrase from memory. The last option is the last resort, not the first. The prompt to the governor for data is the command, not a request for prose.
+The order of preference for any given data need: Claude Code on the live tree → `gh`/`psql`/`core-admin`/`journalctl` against live state → Project Files context packets (tree first, then code grep) → asking the governor to paraphrase from memory. The last option is the last resort, not the first. The prompt to the governor for data is the command, not a request for prose.
 
 **3.3 No invention without audit.** Before proposing a new service, worker, file, ADR, or document, the architect confirms nothing equivalent already exists. Pattern-matching to a familiar artifact shape is not a justification. If no decision is actually being made, no ADR is warranted; clarification of existing policy belongs with the policy, not in a new document.
 
@@ -69,7 +70,7 @@ When the governor names a deliverable shape, the architect matches it exactly. S
 
 **4.1 Complete files, not diffs.** The governor is not a programmer. Code-shaped deliverables are complete corrected files, not diffs, snippets, or edit instructions. This applies to source files, governance files, and documents.
 
-**4.2 Exact Claude Code prompts.** When the deliverable is a prompt for Claude Code, the architect produces the prompt verbatim — ready to paste — not a multi-step procedure for the governor to translate. Every Claude Code prompt that modifies or creates a `src/` file is preceded by a `core-admin context build` invocation per the standing workflow rule in `CORE-A3-plan.md`.
+**4.2 Exact Claude Code prompts.** When the deliverable is a prompt for Claude Code, the architect produces the prompt verbatim — ready to paste — not a multi-step procedure for the governor to translate.
 
 **4.3 `.specs/` and `.intent/` files come back as complete files.** Claude Code cannot write to either. Any change to a `.specs/` or `.intent/` file is delivered as a complete corrected file for the governor to apply directly.
 
@@ -121,4 +122,6 @@ This document does not specify:
 
 *This contract was established 2026-04-26 during a session whose first half demonstrated that the unwritten contract was unreliable as a governance surface. Externalizing it as a named, versioned artifact is the correction. The contract being written down does not, on its own, make adherence checkable; that is a separate question and a separate piece of work.*
 
-*Revised 2026-05-02: §3.2 updated to reflect the Google Drive context packet delivery mechanism (`context_tree.txt` + `context_core.txt`) established in this session, including file IDs and fetch order. Preference order updated accordingly.*
+*Revised 2026-05-02: §3.2 updated to reflect the Google Drive context packet delivery mechanism established in that session, including file IDs and fetch order.*
+
+*Revised 2026-05-03: §3.2 updated — Google Drive delivery replaced by Claude.ai Project Files. Context packets are uploaded to the Project before each session and read via the `view` tool at `/mnt/project/`. File IDs and `Google Drive:read_file_content` references removed throughout. §4.2 note about `core-admin context build` prefix removed (per standing correction: Claude Code reads files itself and does not consume context packets).*
