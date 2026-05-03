@@ -105,24 +105,59 @@ class RiskAssessment:
 # ID: 8c3da43b-b6b2-4392-8720-56f77964076d
 class ProposalAction:
     """
-    A single action within a proposal.
+    A single step within a Proposal.
 
-    References the registry and provides execution parameters.
+    References either an AtomicAction (via action_id) or a Flow (via flow_id).
+    Exactly one of action_id or flow_id must be set. The other must be None.
+
+    Backward compatibility: existing code using ProposalAction(action_id=...)
+    is unchanged. flow_id is a new optional field defaulting to None.
     """
 
-    action_id: str
-    """Action from registry (e.g., 'fix.format')"""
+    action_id: str | None = None
+    """AtomicAction from ActionRegistry (e.g., 'fix.format'). Mutually exclusive with flow_id."""
+
+    flow_id: str | None = None
+    """Flow from FlowRegistry (e.g., 'flow.fix_code'). Mutually exclusive with action_id."""
 
     parameters: dict[str, Any] = field(default_factory=dict)
-    """Action-specific parameters"""
+    """Parameters passed to the action or flow at execution time."""
 
     order: int = 0
-    """Execution order (for sequencing)"""
+    """Execution order within the Proposal (for sequencing)."""
 
+    def __post_init__(self) -> None:
+        """Enforce that exactly one of action_id or flow_id is set."""
+        if self.action_id is None and self.flow_id is None:
+            raise ValueError(
+                "ProposalAction requires exactly one of action_id or flow_id. Both are None."
+            )
+        if self.action_id is not None and self.flow_id is not None:
+            raise ValueError(
+                f"ProposalAction requires exactly one of action_id or flow_id. "
+                f"Both are set: action_id={self.action_id!r}, flow_id={self.flow_id!r}"
+            )
+
+    @property
     # ID: 9accf55a-07f8-43f3-a271-4579205a6323
+    def ref_id(self) -> str:
+        """The action_id or flow_id, whichever is set."""
+        return self.action_id or self.flow_id  # type: ignore[return-value]
+
+    @property
+    def ref_kind(self) -> str:
+        """'action' if action_id is set, 'flow' if flow_id is set."""
+        return "action" if self.action_id is not None else "flow"
+
     def validate_exists(self) -> bool:
-        """Verify action exists in registry."""
-        return action_registry.get(self.action_id) is not None
+        """Verify the referenced action or flow exists in its registry."""
+        if self.action_id is not None:
+            return action_registry.get(self.action_id) is not None
+        if self.flow_id is not None:
+            from body.flows.registry import flow_registry
+
+            return flow_registry.get(self.flow_id) is not None
+        return False
 
 
 @dataclass
@@ -218,10 +253,12 @@ class Proposal:
         if not self.actions:
             errors.append("Proposal must have at least one action")
 
-        # 3. All actions must exist in registry
+        # 3. All actions/flows must exist in their respective registry
         for action in self.actions:
             if not action.validate_exists():
-                errors.append(f"Action not found in registry: {action.action_id}")
+                errors.append(
+                    f"{action.ref_kind.capitalize()} not found in registry: {action.ref_id}"
+                )
 
         # 4. Must have risk assessment
         if self.risk is None:
@@ -245,11 +282,16 @@ class Proposal:
         action_risks = {}
         risk_factors = []
 
-        # Gather action impact levels
+        # Gather impact levels — Actions from ActionRegistry, Flows default to 'moderate'
         for action in self.actions:
-            definition = action_registry.get(action.action_id)
-            if definition:
-                action_risks[action.action_id] = definition.impact_level
+            if action.action_id is not None:
+                definition = action_registry.get(action.action_id)
+                if definition:
+                    action_risks[action.action_id] = definition.impact_level
+            elif action.flow_id is not None:
+                # Flows are composed of multiple actions — treat as moderate risk
+                # until FlowRegistry exposes per-flow impact computation.
+                action_risks[action.flow_id] = "moderate"
 
         # Determine overall risk (highest action risk)
         risk_levels = {"safe": 0, "moderate": 1, "dangerous": 2}
@@ -305,6 +347,7 @@ class Proposal:
             "actions": [
                 {
                     "action_id": a.action_id,
+                    "flow_id": a.flow_id,
                     "parameters": a.parameters,
                     "order": a.order,
                 }
@@ -365,7 +408,8 @@ class Proposal:
         # Parse actions
         actions = [
             ProposalAction(
-                action_id=a["action_id"],
+                action_id=a.get("action_id"),
+                flow_id=a.get("flow_id"),
                 parameters=a.get("parameters", {}),
                 order=a.get("order", 0),
             )
