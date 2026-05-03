@@ -32,7 +32,9 @@ def matches_glob(path: str | Path, pattern: str) -> bool:
     segments including zero; trailing '/' restricts to directories.
 
     Args:
-        path: Path-like object or string. Converted to POSIX form for
+        path: Path-like object or string. path inputs are treated as
+            repo-relative POSIX paths; absolute paths and ./ prefixes
+            are normalized to relative form. Converted to POSIX form for
             consistent matching across platforms.
         pattern: Glob pattern string. Empty patterns return False.
 
@@ -48,6 +50,10 @@ def matches_glob(path: str | Path, pattern: str) -> bool:
         True
         >>> matches_glob("var/secrets/k.txt", "secrets/*")
         False
+        >>> matches_glob("/src/main.py", "src/**/*.py")
+        True
+        >>> matches_glob("./src/main.py", "src/**/*.py")
+        True
     """
     if not pattern:
         return False
@@ -56,6 +62,10 @@ def matches_glob(path: str | Path, pattern: str) -> bool:
         path_str = path.as_posix()
     else:
         path_str = str(path).replace("\\", "/")
+
+    if path_str.startswith("./"):
+        path_str = path_str[2:]
+    path_str = path_str.lstrip("/")
 
     compiled = GitWildMatchPattern(pattern)
     regex = compiled.regex
