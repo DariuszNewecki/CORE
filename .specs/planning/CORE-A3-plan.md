@@ -105,6 +105,7 @@ Full rationale lives in each ADR file under `.specs/decisions/`. This table is t
 | ADR-019 | 2026-05-01 | Edge 5 git-boundary attribution posture | Orphan-commit detection via `CommitReachabilityAuditor`; prefix widened to 16 chars. |
 | ADR-020 | 2026-05-02 | Worker liveness derived from heartbeat, not registry status | `status` column dropped; `last_heartbeat` + per-worker thresholds are canonical liveness. |
 | ADR-021 | 2026-05-02 | Scoped autonomous git operations | `commit_paths` + `restore_paths` primitives; scope-collision yield pre-claim; C-light during dev phase. |
+| ADR-022 | 2026-05-03 | ContextBuilder vector evidence scope | Vector evidence scoped to intent layer; `core-code` intentionally not queried; code-similarity earns its own method when a consumer surfaces. |
 
 ---
 
