@@ -90,7 +90,7 @@ Both `repo_crawler.yaml` and `repo_embedder.yaml` declare `class: sensing`, whic
 
 **No data migration required.** The schema is unchanged. The bug-fix to `upsert_artifact` is already landed. `vector_sync_worker`'s most recent run will have left `repo_artifacts` in a consistent state; the decomposed pair picks up from there with no transition step.
 
-**`vector_sync_worker` history.** Past `sync.vectors.code.complete` reports remain on the blackboard. They are not retroactively renamed.
+**`vector_sync_worker` history.** Past `sync.vectors.code.complete` reports remain on the blackboard. They are not retroactively renamed. *(Superseded — see §8 Postscript.)*
 
 ---
 
@@ -111,7 +111,7 @@ Both `repo_crawler.yaml` and `repo_embedder.yaml` declare `class: sensing`, whic
 - Hazard #2 from the 2026-05-01 investigation: `repo_artifacts.last_crawled_at` and `crawl_run_id` are rewritten on every cycle even when no content changed, producing WAL churn. Not a correctness issue. Tracked as a GitHub issue.
 - Hazard #3: per-file errors in `_crawl_python_file` / `_crawl_artifact_file` are swallowed at WARN; if every file errors, the run still closes `completed`. The schema permits `partial` but the code never writes that value. Additionally, `close_crawl_run_failed` itself has no fallback if it raises mid-handler — `crawl_runs.status='running'` could persist indefinitely, and there is no janitor. Tracked as a GitHub issue.
 - Hazard #4: `infra/sql/db_schema_live.sql` does not contain the `crawl_runs`, `repo_artifacts`, `symbol_calls`, or `artifact_symbol_links` table definitions. The asset is stale; the live DB matches the code. Documentation rot only. Tracked as a GitHub issue.
-- Future cleanup: deletion of `src/will/workers/vector_sync_worker.py` once `deprecated` has held for a meaningful period and no regression has surfaced. Out of scope here.
+- Future cleanup: deletion of `src/will/workers/vector_sync_worker.py` once `deprecated` has held for a meaningful period and no regression has surfaced. Out of scope here. *(Lifted — see §8 Postscript.)*
 - Future ADR on whether `sync.vectors.code` itself should be decomposed (see §4).
 
 ---
@@ -133,3 +133,21 @@ Both `repo_crawler.yaml` and `repo_embedder.yaml` declare `class: sensing`, whic
 - `src/will/workers/repo_embedding/repo_embedder_workers.py` — D3b (registry-bypass fix).
 
 The three `.intent/` files come back to the governor as complete files (Claude Code cannot write `.intent/`). The `src/` change goes through Claude Code with a `core-admin context build` precondition per the standing workflow rule.
+
+---
+
+## 8. Postscript — 2026-05-03
+
+GH #187 (*Retire VectorSyncWorker per ADR-018*) lifted §5's deferral of `src/will/workers/vector_sync_worker.py` deletion. The "meaningful period" of deprecation in practice was two days. The trigger was operational, not structural: #186's heartbeat-emission fix surfaced the inert worker as a stale dashboard entry, which made retirement preferable to continued retention as a warm-spare class file.
+
+Retirement landed in commit `381289e2` and additionally removed:
+
+- `.intent/workers/vector_sync_worker.yaml` — the declaration.
+- `core.worker_registry` row for `worker_uuid = e5f6a7b8-c9d0-4e1f-9a2b-3c4d5e6f7a81`.
+- 1,020 historical `core.blackboard_entries` rows (heartbeats and `sync.vectors.code.complete` reports from 2026-04-26 through 2026-05-01) that referenced the worker_uuid via FK.
+
+The blackboard-row deletion supersedes §3's "Past `sync.vectors.code.complete` reports remain on the blackboard. They are not retroactively renamed." That statement was correct for the deprecation phase, when the `worker_registry` row was retained and the FK had children to anchor. Structural retirement requires deleting the FK children first; preserving 1,020 rows of operational telemetry for a worker whose YAML is being deleted in the same commit pays no rent against legal traceability, which lives in `proposal_consequences` and is unaffected.
+
+The atomic action `sync.vectors.code` is preserved unchanged for the manual `core-admin dev sync --write` CLI path per D1.
+
+This postscript records the supersession of §5's deferral and §3's blackboard-retention clause. ADR-018's `Active` status and decisions D1–D5 are unchanged.
