@@ -139,12 +139,39 @@ class VectorProvider:
             return []
 
     def _format_hit(self, hit: dict[str, Any]) -> dict[str, Any]:
-        """Normalize a Qdrant hit into an evidence item."""
+        """Normalize a Qdrant hit into an evidence item.
+
+        Reads the payload fields written by RepoEmbedderWorker
+        (src/will/workers/repo_embedding/helpers.py): file_path, source,
+        section, chunk_type, item_id, artifact_type. Older field names
+        (source_path, symbol_path, symbol, chunk_id) are kept as fallback
+        reads for any legacy points still in the index.
+
+        ``content`` is intentionally absent from the payload by design — the
+        embedder stores embeddings plus metadata pointing at the file as
+        ground truth, and ContextBuilder._extract_code_for_item hydrates the
+        content from the file at packet build time.
+        """
         payload = hit.get("payload", {}) or {}
 
-        file_path = payload.get("source_path") or payload.get("file_path", "")
-        symbol_path = payload.get("symbol_path") or payload.get("symbol")
-        name = symbol_path or payload.get("chunk_id", "unknown")
+        file_path = (
+            payload.get("file_path")
+            or payload.get("source_path")
+            or payload.get("source", "")
+        )
+
+        # ``section`` is the chunk identifier from the embedder: heading
+        # text for markdown/YAML, symbol name for Python, "full" for
+        # whole-file chunks. Falls back to legacy symbol_path/symbol.
+        section = (
+            payload.get("section")
+            or payload.get("symbol_path")
+            or payload.get("symbol")
+        )
+
+        item_id = payload.get("item_id") or payload.get("chunk_id")
+
+        name = section or item_id or file_path or "unknown"
 
         return {
             "name": name,
@@ -155,9 +182,11 @@ class VectorProvider:
             "signature": payload.get("signature", ""),
             "score": float(hit.get("score", 0.0)),
             "source": "vector_search",
-            "symbol_path": symbol_path,
+            "symbol_path": section,
             "metadata": {
-                "chunk_id": payload.get("chunk_id"),
-                "collection": payload.get("collection"),
+                "chunk_id": item_id,
+                "section": section,
+                "chunk_type": payload.get("chunk_type"),
+                "artifact_type": payload.get("artifact_type"),
             },
         }

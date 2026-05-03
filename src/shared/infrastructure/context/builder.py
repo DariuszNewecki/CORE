@@ -507,7 +507,7 @@ class ContextBuilder:
                     request.goal, top_k=top_k, collection=collection
                 )
             except Exception as e:
-                logger.debug(
+                logger.warning(
                     "Vector search failed for collection %s: %s", collection, e
                 )
                 continue
@@ -627,29 +627,86 @@ class ContextBuilder:
         )
 
     def _extract_code_for_item(self, item: dict[str, Any]) -> dict[str, Any]:
-        path = item.get("path", "")
-        name_raw = item.get("name", "")
-        if not path or not name_raw:
+        """Hydrate ``item['content']`` for an evidence hit.
+
+        Resolution order:
+          1. Trust pre-populated content from the indexer payload.
+          2. Read the file referenced by ``path``.
+          3. For ``.py`` paths, attempt symbol-targeted AST extraction.
+          4. On any AST failure or symbol-not-found, fall back to whole-file
+             content rather than emit an empty packet.
+
+        Designed so the function is meaningful for non-Python content
+        (YAML / JSON / Markdown collections such as ``core_policies``,
+        ``core-patterns``, ``core_specs``) as well as Python code symbols.
+        """
+        # If the indexer already wrote content into the payload, trust it.
+        if item.get("content"):
             return item
 
-        target_name = name_raw.split("::")[-1] if "::" in name_raw else name_raw
+        path = item.get("path", "")
+        if not path:
+            return item
+
         source = self._read_source(path)
         if not source:
+            logger.warning(
+                "Content fallback failed: %s referenced by hit but not readable",
+                path,
+            )
             return item
+
+        # Non-Python files: AST parsing is meaningless. Use raw file text.
+        if not path.endswith(".py"):
+            item["content"] = source
+            item.setdefault("symbol_path", path)
+            return item
+
+        # Python files: try symbol-targeted extraction, fall back to whole file.
+        name_raw = item.get("name", "")
+        target_name: str | None = None
+        if name_raw:
+            target_name = name_raw.split("::")[-1] if "::" in name_raw else name_raw
 
         try:
             tracker = ScopeTracker(source)
             tracker.visit(ast.parse(source))
+        except SyntaxError as e:
+            logger.warning(
+                "AST parse failed for %s: %s; using raw file content as fallback",
+                path,
+                e,
+            )
+            item["content"] = source
+            item.setdefault("symbol_path", path)
+            return item
+        except Exception as e:
+            logger.warning(
+                "AST extraction error for %s: %s; using raw file content as fallback",
+                path,
+                e,
+            )
+            item["content"] = source
+            item.setdefault("symbol_path", path)
+            return item
+
+        if target_name:
             for symbol in tracker.symbols:
                 if symbol["name"] == target_name or symbol["qualname"] == target_name:
                     item["content"] = symbol["code"]
                     item["signature"] = symbol["signature"]
                     item["item_type"] = "code"
                     item["symbol_path"] = symbol["qualname"]
-                    break
-        except Exception as e:
-            logger.debug("Content extraction failed for %s: %s", target_name, e)
+                    return item
+            logger.warning(
+                "Symbol %s not found in %s; using whole-file content as fallback",
+                target_name,
+                path,
+            )
 
+        # No target symbol, or symbol not found: emit whole file rather than empty.
+        item["content"] = source
+        item.setdefault("symbol_path", path)
         return item
 
     def _finalize_evidence(
