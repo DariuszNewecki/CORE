@@ -148,9 +148,7 @@ async def test_resolve_entries_records_subsuming_proposal_id(
             )
     finally:
         await db_session.execute(
-            text(
-                "DELETE FROM core.blackboard_entries WHERE id IN (:id_a, :id_b)"
-            ),
+            text("DELETE FROM core.blackboard_entries WHERE id IN (:id_a, :id_b)"),
             {"id_a": entry_id_a, "id_b": entry_id_b},
         )
         await db_session.commit()

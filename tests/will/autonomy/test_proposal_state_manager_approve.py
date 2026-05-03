@@ -38,9 +38,7 @@ def _draft_row(proposal_id: str) -> AutonomousProposal:
 async def _delete(db_session: AsyncSession, proposal_id: str) -> None:
     await db_session.rollback()
     await db_session.execute(
-        delete(AutonomousProposal).where(
-            AutonomousProposal.proposal_id == proposal_id
-        )
+        delete(AutonomousProposal).where(AutonomousProposal.proposal_id == proposal_id)
     )
     await db_session.commit()
 
@@ -49,9 +47,7 @@ async def _fetch(
     db_session: AsyncSession, proposal_id: str
 ) -> AutonomousProposal | None:
     result = await db_session.execute(
-        select(AutonomousProposal).where(
-            AutonomousProposal.proposal_id == proposal_id
-        )
+        select(AutonomousProposal).where(AutonomousProposal.proposal_id == proposal_id)
     )
     return result.scalar_one_or_none()
 

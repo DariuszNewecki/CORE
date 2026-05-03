@@ -1,0 +1,32 @@
+$schema: "META/flow.schema.json"
+kind: flow
+
+metadata:
+  id: flows.sync_state
+  title: Sync State Flow
+  version: "1.0.0"
+  authority: policy
+  status: active
+
+flow:
+  flow_id: flow.sync_state
+  description: >
+    Synchronise code symbols and semantic vectors to PostgreSQL and Qdrant.
+  policies:
+    - rules/code/purity
+
+  steps:
+    # DB sync is the gate — vectors are skipped if DB fails
+    - ref_id: sync.db
+      kind: action
+      required: true
+
+    # Code vectors require DB to be current
+    - ref_id: sync.vectors.code
+      kind: action
+      required: true
+
+    # Constitutional vectors are independent of code vectors
+    - ref_id: sync.constitutional.vectors
+      kind: action
+      required: false

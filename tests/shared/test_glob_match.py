@@ -60,6 +60,4 @@ def test_matches_any_glob_matches_no_pattern():
 
 
 def test_matches_any_glob_normalizes_leading_slash():
-    assert (
-        matches_any_glob("/var/secrets/k.txt", ["**/.env", "**/secrets/**"]) is True
-    )
+    assert matches_any_glob("/var/secrets/k.txt", ["**/.env", "**/secrets/**"]) is True

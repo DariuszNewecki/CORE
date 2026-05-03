@@ -1,0 +1,49 @@
+$schema: "META/flow.schema.json"
+kind: flow
+
+metadata:
+  id: flows.build_tests
+  title: Build Tests Flow
+  version: "0.1.0"
+  authority: policy
+  status: active
+  rationale: >
+    build.tests is currently misclassified as an AtomicAction. It internally
+    chains CoderAgent invocation, auto-heal, IntentGuard validation, and file
+    write — that is a Flow, not a single operation. This declaration is the
+    target state. Migration requires splitting build.tests into constituent
+    AtomicActions (generate.test, validate.test, write.test). Until that
+    migration is complete, this Flow delegates to the existing build.tests
+    action as its single step. See CORE-Flow.md §7, Violation 1.
+
+flow:
+  flow_id: flow.build_tests
+  description: >
+    Generate, auto-heal, validate and write a test file for a source file.
+  policies:
+    - rules/code/purity
+
+  steps:
+    # Target state: three distinct AtomicActions
+    # - generate.test  (CoderAgent invocation)
+    # - validate.test  (IntentGuard check)
+    # - write.test     (file.create)
+    #
+    # Current state: delegated to build.tests until migration is complete.
+    - ref_id: build.tests
+      kind: action
+      required: true
+
+    # Auto-heal runs on generated output — optional because generated
+    # code may already be compliant
+    - ref_id: fix.imports
+      kind: action
+      required: false
+
+    - ref_id: fix.headers
+      kind: action
+      required: false
+
+    - ref_id: fix.format
+      kind: action
+      required: false

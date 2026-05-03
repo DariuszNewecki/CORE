@@ -1,0 +1,61 @@
+$schema: "META/flow.schema.json"
+kind: flow
+
+metadata:
+  id: flows.fix_code
+  title: Fix Code Flow
+  version: "1.0.0"
+  authority: policy
+  status: active
+
+flow:
+  flow_id: flow.fix_code
+  description: >
+    Apply all code compliance fixes in constitutional prerequisite order.
+  policies:
+    - rules/code/purity
+
+  steps:
+    # Headers before IDs — avoids prepend conflicts
+    - ref_id: fix.headers
+      kind: action
+      required: true
+
+    # IDs must exist before duplicate check and before DB sync
+    - ref_id: fix.ids
+      kind: action
+      required: true
+
+    # Deduplicate only after IDs are assigned
+    - ref_id: fix.duplicate_ids
+      kind: action
+      required: true
+
+    # Import order before formatting
+    - ref_id: fix.imports
+      kind: action
+      required: true
+
+    # Code cleanup before formatting
+    - ref_id: fix.logging
+      kind: action
+      required: true
+
+    - ref_id: fix.placeholders
+      kind: action
+      required: true
+
+    # Structural compliance before formatting
+    - ref_id: fix.atomic_actions
+      kind: action
+      required: true
+
+    # Modularity is optional — high risk, may not apply to every file
+    - ref_id: fix.modularity
+      kind: action
+      required: false
+
+    # Format always last — cleans up after all other fixers
+    - ref_id: fix.format
+      kind: action
+      required: true

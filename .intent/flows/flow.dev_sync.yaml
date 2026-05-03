@@ -1,0 +1,27 @@
+$schema: "META/flow.schema.json"
+kind: flow
+
+metadata:
+  id: flows.dev_sync
+  title: Dev Sync Flow
+  version: "1.0.0"
+  authority: policy
+  status: active
+
+flow:
+  flow_id: flow.dev_sync
+  description: >
+    Complete developer synchronisation — fix all code compliance issues then
+    propagate clean state to PostgreSQL and Qdrant.
+  policies:
+    - rules/code/purity
+
+  steps:
+    # Fix phase must complete before sync — DB requires stable IDs and clean code
+    - ref_id: flow.fix_code
+      kind: flow
+      required: true
+
+    - ref_id: flow.sync_state
+      kind: flow
+      required: true

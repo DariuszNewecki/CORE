@@ -14,6 +14,7 @@ optional_directories:
 
 validated_directories:
   - META
+  - flows
   - rules
   - workers
   - workflows/definitions
@@ -22,8 +23,8 @@ validated_directories:
 notes: >
   Authoritative declaration of the .intent/ directory structure.
   IntentRepository reads this file to determine which directories to scan.
-  Adding a directory here is the constitutional act of making it part of the Mind.
-  No directory outside this list is authoritative for governance purposes.
+  Adding a directory here is the constitutional act of making it part of the
+  Mind. No directory outside this list is authoritative for governance purposes.
   validated_directories declares the subset that the META validator actively
-  checks against JSON schemas. Directories present but not listed here have
-  no schema yet and are excluded from validation until one is written.
+  checks against JSON schemas. Directories present but not listed here have no
+  schema yet and are excluded from validation until one is written.

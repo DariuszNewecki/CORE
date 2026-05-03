@@ -1,0 +1,251 @@
+# src/body/flows/registry.py
+"""
+Flow Registry — loads constitutional Flow declarations from .intent/flows/.
+
+Flows are declared in .intent/flows/*.yaml — the same pattern as Workers
+in .intent/workers/*.yaml. Existence in .intent/flows/ is constitutional
+standing. A Flow not declared there cannot be referenced in a Proposal
+or invoked via FlowExecutor.
+
+Constitutional alignment: CORE-Flow.md
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+from enum import Enum
+from pathlib import Path
+
+import yaml
+
+from shared.logger import getLogger
+
+
+logger = getLogger(__name__)
+
+
+# ID: flow-registry-step-kind
+class StepKind(str, Enum):
+    """Whether a step references an AtomicAction or another Flow."""
+
+    ACTION = "action"
+    FLOW = "flow"
+
+
+@dataclass(frozen=True)
+# ID: flow-registry-flow-step
+class FlowStep:
+    """
+    A single step in a Flow's declared sequence.
+
+    Each step references either an action_id (AtomicAction) or a
+    flow_id (nested Flow). Steps are executed in declaration order.
+    """
+
+    ref_id: str
+    """action_id or flow_id this step resolves to."""
+
+    kind: StepKind
+    """Whether ref_id is an action or a flow."""
+
+    required: bool = True
+    """
+    If True, failure halts the Flow and returns ok=False.
+    If False, failure is recorded but execution continues.
+    """
+
+    params: dict = field(default_factory=dict)
+    """
+    Static parameters passed to this step at execution time.
+    Merged with any runtime params supplied by the caller.
+    Caller params take precedence over static params.
+    """
+
+
+@dataclass
+# ID: flow-registry-flow-definition
+class FlowDefinition:
+    """
+    Constitutional declaration of a Flow, loaded from .intent/flows/*.yaml.
+
+    Existence in the FlowRegistry means the declaration was found in
+    .intent/flows/, parsed, and validated. A Flow not in the registry
+    has no constitutional standing.
+    """
+
+    flow_id: str
+    """Unique dot-notation identifier. e.g. flow.fix_code"""
+
+    description: str
+    """One sentence describing what this Flow does."""
+
+    steps: list[FlowStep]
+    """Ordered sequence of steps. Executed top to bottom."""
+
+    policies: list[str]
+    """Policy IDs governing this Flow."""
+
+    source_path: Path | None = None
+    """The .intent/flows/*.yaml file this definition was loaded from."""
+
+
+# ID: flow-registry-registry
+class FlowRegistry:
+    """
+    Global registry of all constitutional Flows in CORE.
+
+    Loaded from .intent/flows/*.yaml at first access. Mirrors the
+    worker registry loading pattern. FlowExecutor resolves
+    flow_id -> FlowDefinition via this registry.
+    """
+
+    def __init__(self) -> None:
+        self._flows: dict[str, FlowDefinition] = {}
+        self._loaded: bool = False
+
+    # ID: flow-registry-load
+    def load(self, flows_dir: Path) -> None:
+        """
+        Load all Flow declarations from .intent/flows/*.yaml.
+
+        Called once at startup. Subsequent calls are no-ops.
+        Skips files with status != 'active'. Logs warnings for
+        malformed declarations without halting.
+        """
+        if self._loaded:
+            return
+
+        if not flows_dir.exists():
+            logger.warning(
+                "FlowRegistry: .intent/flows/ directory not found at %s — "
+                "no Flows will be available.",
+                flows_dir,
+            )
+            self._loaded = True
+            return
+
+        for yaml_path in sorted(flows_dir.glob("*.yaml")):
+            self._load_file(yaml_path)
+
+        self._loaded = True
+        logger.info(
+            "FlowRegistry: loaded %d flow(s) from %s",
+            len(self._flows),
+            flows_dir,
+        )
+
+    # ID: flow-registry-load-file
+    def _load_file(self, yaml_path: Path) -> None:
+        """Parse and register a single flow declaration file."""
+        try:
+            data = yaml.safe_load(yaml_path.read_text(encoding="utf-8"))
+        except Exception as exc:
+            logger.warning(
+                "FlowRegistry: failed to parse %s: %s — skipped",
+                yaml_path.name,
+                exc,
+            )
+            return
+
+        status = data.get("metadata", {}).get("status", "active")
+        if status != "active":
+            logger.info(
+                "FlowRegistry: skipping %s (status=%s)",
+                yaml_path.name,
+                status,
+            )
+            return
+
+        flow_block = data.get("flow", {})
+        flow_id = flow_block.get("flow_id")
+        description = flow_block.get("description", "").strip()
+        policies = flow_block.get("policies", [])
+        raw_steps = flow_block.get("steps", [])
+
+        if not flow_id:
+            logger.warning(
+                "FlowRegistry: %s missing flow.flow_id — skipped",
+                yaml_path.name,
+            )
+            return
+
+        steps: list[FlowStep] = []
+        for raw in raw_steps:
+            ref_id = raw.get("ref_id")
+            kind_str = raw.get("kind", "action")
+            required = raw.get("required", True)
+            params = raw.get("params", {}) or {}
+
+            if not ref_id:
+                logger.warning(
+                    "FlowRegistry: step in %s missing ref_id — step skipped",
+                    yaml_path.name,
+                )
+                continue
+
+            try:
+                kind = StepKind(kind_str)
+            except ValueError:
+                logger.warning(
+                    "FlowRegistry: unknown step kind '%s' in %s — step skipped",
+                    kind_str,
+                    yaml_path.name,
+                )
+                continue
+
+            steps.append(
+                FlowStep(ref_id=ref_id, kind=kind, required=required, params=params)
+            )
+
+        if not steps:
+            logger.warning(
+                "FlowRegistry: %s has no valid steps — skipped",
+                yaml_path.name,
+            )
+            return
+
+        if flow_id in self._flows:
+            logger.warning(
+                "FlowRegistry: duplicate flow_id '%s' in %s — skipped",
+                flow_id,
+                yaml_path.name,
+            )
+            return
+
+        definition = FlowDefinition(
+            flow_id=flow_id,
+            description=description,
+            steps=steps,
+            policies=policies,
+            source_path=yaml_path,
+        )
+        self._flows[flow_id] = definition
+        logger.debug(
+            "FlowRegistry: registered '%s' (%d steps) from %s",
+            flow_id,
+            len(steps),
+            yaml_path.name,
+        )
+
+    # ID: flow-registry-get
+    def get(self, flow_id: str) -> FlowDefinition | None:
+        """Resolve a flow_id to its FlowDefinition. Returns None if not found."""
+        self._ensure_loaded()
+        return self._flows.get(flow_id)
+
+    # ID: flow-registry-list-all
+    def list_all(self) -> list[FlowDefinition]:
+        """List all registered Flows."""
+        self._ensure_loaded()
+        return list(self._flows.values())
+
+    # ID: flow-registry-ensure-loaded
+    def _ensure_loaded(self) -> None:
+        """Lazy-load from .intent/flows/ if not yet loaded."""
+        if not self._loaded:
+            intent_root = Path(".intent").resolve()
+            self.load(intent_root / "flows")
+
+
+# Global singleton — mirrors action_registry pattern
+flow_registry = FlowRegistry()

@@ -41,9 +41,7 @@ _INSERT_SQL = text(
 async def _delete(db_session: AsyncSession, proposal_id: str) -> None:
     await db_session.rollback()
     await db_session.execute(
-        delete(AutonomousProposal).where(
-            AutonomousProposal.proposal_id == proposal_id
-        )
+        delete(AutonomousProposal).where(AutonomousProposal.proposal_id == proposal_id)
     )
     await db_session.commit()
 
