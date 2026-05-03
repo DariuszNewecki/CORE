@@ -8,8 +8,9 @@ This module is given pre-loaded policies and scans AST nodes for violations.
 from __future__ import annotations
 
 import ast
-from pathlib import Path
 from typing import Any
+
+from shared.utils.glob_match import matches_any_glob
 
 
 Violation = dict[str, Any]
@@ -52,7 +53,7 @@ class PolicyValidator:
                 for p in rule.get("scope", {}).get("exclude", [])
                 if isinstance(p, str)
             ]
-            is_excluded = any(Path(file_path).match(p) for p in exclude_patterns)
+            is_excluded = matches_any_glob(file_path, exclude_patterns)
 
             if is_excluded:
                 continue
