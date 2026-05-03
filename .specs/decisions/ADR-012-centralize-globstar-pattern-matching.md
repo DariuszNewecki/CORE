@@ -78,6 +78,7 @@ Adopting gitignore semantics changes how some existing patterns evaluate. Rewrit
 
 ```python
 # Before                  →  After (gitignore-semantic intent preserved)
+
 ".env"                    →  "**/.env"          # forbid at any depth, not just root
 "*.key"                   →  "**/*.key"         # explicit; current is unanchored already
 ".git/*"                  →  "**/.git/**"       # forbid traversal at any depth
@@ -125,7 +126,7 @@ Other call sites consume patterns from `.intent/enforcement/mappings/*.yaml` (fo
 ### Neutral
 
 - IntentGuard's `rule.pattern` consumer is currently unused for `**` patterns (no rule's `scope[0]` value contains `**`). The IntentGuard migration is structural cleanup, not a behavioral fix.
-- `path_utils.matches_glob_pattern` deprecation period: one release cycle. CORE has no external API consumers, so the cycle is bookkeeping; deletion in the same session is also acceptable.
+- `path_utils.matches_glob_pattern` deprecation period: one release cycle. CORE has no external API consumers, so the cycle is bookmaking; deletion in the same session is also acceptable.
 - Audit count is not expected to change. The hazard direction is at the write/read enforcement layer, not at the audit layer.
 
 ## References
@@ -138,3 +139,54 @@ Other call sites consume patterns from `.intent/enforcement/mappings/*.yaml` (fo
 - `src/shared/utils/path_utils.py:125-167` — broken central helper being replaced
 - 14-case empirical behavior matrix — produced this session, recorded in commit referencing this ADR
 - `pathspec` documentation — `GitWildMatchPattern` semantics (gitignore.5)
+
+## §6 Path input contract (addendum 2026-05-03)
+
+### Context
+
+During the follow-through migration of the five remaining call sites (Issue #143, session 2026-05-03), a test probe surfaced that `matches_glob` rejected absolute-path inputs (e.g. `/src/main.py`) where `Path.match` had accepted them via suffix coincidence. Empirical search confirmed no production caller passes absolute paths today — all migration-site variables are consistently repo-relative (`rel_path`, `path_hint`, `path_str`), and `FileHandler` performs explicit `removeprefix("./")` normalization upstream. However, "no caller does this today" is a contributor-convention guarantee, not a structural one. CORE's character is to encode invariants in the mechanism, not in documentation contributors must remember (precedent: IntentGuard, FileHandler). Pushing this onto a "tests use repo-relative paths only" convention violates that pattern.
+
+### Decision
+
+`matches_glob` normalizes path inputs on entry:
+
+1. Strip leading `./` as a prefix (so `./src/main.py` → `src/main.py`).
+2. Strip any remaining leading `/` characters via `lstrip("/")` (so `/src/main.py` → `src/main.py`, `//src/main.py` → `src/main.py`).
+
+Order matters: `./` is stripped first so that `.//foo` → `/foo` → `foo` rather than `./foo` → `foo` (which is also correct but the two-step is explicit about the intent).
+
+The input contract is documented in the `matches_glob` docstring: *"path inputs are treated as repo-relative POSIX paths; absolute paths and `./` prefixes are normalized to relative form."*
+
+`matches_any_glob` inherits the contract via delegation to `matches_glob`.
+
+### Test coverage added
+
+`tests/shared/test_glob_match.py` (new file, 2026-05-03) — 14 tests covering:
+- Basic repo-relative paths (existing behaviour)
+- `Path` object inputs
+- Leading `/` normalization
+- Leading `./` normalization
+- Multiple leading slashes (`//`)
+- Absolute `Path` object inputs
+- Negative cases preserved after normalization
+- `matches_any_glob` delegation including leading-slash normalization
+
+### Commits
+
+- `matches_glob` normalization + test suite: committed 2026-05-03, refs #143
+
+### Status of remaining migrations (Issue #143)
+
+At the time of this addendum all seven in-scope sites are migrated:
+
+| Site | Status | Commit |
+|---|---|---|
+| `src/shared/infrastructure/context/redactor.py` | ✅ Migrated (original session) | `9371a790` |
+| `src/body/governance/path_validator.py` | ✅ Migrated (original session) | `74060e1e` |
+| `src/body/autonomy/micro_proposal_executor.py` | ✅ Migrated (between sessions) | — |
+| `src/will/tools/file_navigator.py` | ✅ Migrated (between sessions) | — |
+| `src/body/services/validation/validation_policies.py` | ✅ Migrated 2026-05-03 | refs #143 |
+| `src/shared/infrastructure/context/limb_workspace.py` | ✅ Migrated 2026-05-03 | refs #143 |
+| `src/body/governance/intent_guard.py` | ✅ Migrated 2026-05-03 | refs #143 |
+
+Issue #143 closed 2026-05-03.
