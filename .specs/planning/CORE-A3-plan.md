@@ -137,9 +137,6 @@ watch -n 30 core-admin runtime dashboard
 # Workers
 core-admin workers run <declaration_name>
 
-# Context (REQUIRED before every Claude Code prompt that touches src/)
-core-admin context build --file <target_file> --task code_modification --goal "<goal>" --no-cache
-
 # Proposals
 core-admin proposals list
 core-admin proposals list --full-ids
@@ -153,26 +150,6 @@ poetry run core-admin dev sync --write
 
 # DB (only when no core-admin command covers the need)
 PGPASSWORD=core_db psql -U core_db -d core -h 192.168.20.23
-```
-
----
-
-## Standing Workflow Rule — Claude Code Prompts
-
-**Every Claude Code prompt that modifies or creates a `src/` file requires a context build first.**
-
-```
-Before writing any code, run this command and read the output:
-
-core-admin context build \
-  --file <target_file> \
-  --task code_modification \
-  --goal "<what this change does>" \
-  --no-cache
-
-Then read <target_file> in full.
-Then [implementation instruction].
-Return the complete corrected file.
 ```
 
 ---
