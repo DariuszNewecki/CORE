@@ -488,11 +488,13 @@ class ContextBuilder:
         if not self.vectors or not request.goal:
             return evidence
 
-        # Query all three constitutional collections.
-        # core_capabilities is the legacy code-symbol collection.
+        # Vector evidence is scoped to the intent layer (ADR-022).
         # core_policies and core-patterns cover .intent/ governance artifacts.
         # core_specs covers .specs/ human intent documents (papers, northstar,
-        # requirements, ADRs, planning) — added 2026-04-16.
+        # requirements, ADRs, planning).
+        # Code-symbol similarity (collection: core-code) is intentionally not
+        # queried here — see ADR-022. AST and DB evidence cover code structure;
+        # if code-similarity becomes warranted, it earns its own method.
         collections = [
             ("core_policies", 3),
             ("core-patterns", 2),
