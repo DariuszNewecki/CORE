@@ -429,7 +429,7 @@ async def action_fix_modularity(
             duration_sec=time.time() - start,
         )
 
-    # 7. Write files
+    # 7. Write files and delete original monolith
     if write:
         for file_info in files:
             core_context.file_handler.write_runtime_text(
@@ -439,22 +439,35 @@ async def action_fix_modularity(
             "fix.modularity: split complete — %d files written",
             len(files),
         )
+        # Delete original monolith — the package __init__.py re-exports
+        # all symbols so callers resolve without import-path changes.
+        # Mirrors _execute_deterministic_split in the workflow path.
+        if target.exists():
+            target.unlink()
+            logger.info("fix.modularity: deleted original monolith %s", rel_path)
     else:
         logger.info(
-            "fix.modularity: dry-run — would write %d files",
+            "fix.modularity: dry-run — would write %d files, delete %s",
             len(files),
+            rel_path,
         )
+
+    result_data = {
+        "action": "split",
+        "file": rel_path,
+        "modules": len(split_plan.modules),
+        "files_produced": [f["path"] for f in files],
+        "files_count": len(files),
+        "write": write,
+    }
+    if write:
+        result_data["deleted_original"] = rel_path
+    else:
+        result_data["would_delete"] = rel_path
 
     return ActionResult(
         action_id="fix.modularity",
         ok=True,
-        data={
-            "action": "split",
-            "file": rel_path,
-            "modules": len(split_plan.modules),
-            "files_produced": [f["path"] for f in files],
-            "files_count": len(files),
-            "write": write,
-        },
+        data=result_data,
         duration_sec=time.time() - start,
     )

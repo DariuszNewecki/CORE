@@ -16,6 +16,7 @@ from __future__ import annotations
 import json
 import keyword
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any
 
 
@@ -71,6 +72,16 @@ class SplitPlan:
                         f"Symbol '{sym}' appears in more than one module"
                     )
                 seen.add(sym)
+
+        # Package name must match source file stem so callers resolve
+        # through __init__.py without import-path changes.
+        if self.source_file:
+            expected = Path(self.source_file).stem
+            if self.new_package_name != expected:
+                raise SplitPlanError(
+                    f"new_package_name '{self.new_package_name}' must match "
+                    f"source file stem '{expected}' to preserve caller import paths"
+                )
 
     @classmethod
     # ID: 34df5f9e-0309-4fc8-9f46-b2b9d568d307
