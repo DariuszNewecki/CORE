@@ -116,6 +116,16 @@ class ConsequenceLogService:
             on match; both keys ``None`` when no row matches the file/window.
             ``causing_commit_sha`` may be ``None`` even on match (the column
             is nullable in ``core.proposal_consequences``).
+
+        Notes:
+            The two ``::text`` and ``::int`` parameter casts are required.
+            ``jsonb_build_object`` accepts ``"any"`` for its value argument
+            and ``make_interval(secs => ...)`` uses named-argument syntax;
+            under asyncpg's prepared-statement protocol Postgres cannot
+            infer the parameter types at prepare time without explicit
+            casts and raises ``IndeterminateDatatypeError: could not
+            determine data type of parameter $1``. The casts make the
+            types explicit; semantics are unchanged.
         """
         from body.services.service_registry import ServiceRegistry
 
@@ -125,9 +135,9 @@ class ConsequenceLogService:
                     "SELECT proposal_id, post_execution_sha "
                     "FROM core.proposal_consequences "
                     "WHERE files_changed @> jsonb_build_array("
-                    "jsonb_build_object('path', :file_path)) "
+                    "jsonb_build_object('path', :file_path::text)) "
                     "AND recorded_at >= NOW() - "
-                    "make_interval(secs => :lookback_seconds) "
+                    "make_interval(secs => :lookback_seconds::int) "
                     "ORDER BY recorded_at DESC LIMIT 1"
                 ),
                 {
