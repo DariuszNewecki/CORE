@@ -158,7 +158,7 @@ class SystemContextGatherer:
         """
         Gather dimensions 2 and 6.
 
-        Dim 2 (semantic landscape): scroll core_capabilities for code vectors.
+        Dim 2 (semantic landscape): scroll core-code for code vectors.
         Dim 6 (intent drift):       DB query for symbols with intent text +
                                     stored code vector → embed intent on-demand
                                     → cosine distance.
@@ -172,16 +172,16 @@ class SystemContextGatherer:
             )
             return {}, {}
 
-        logger.info("🔮 [Dim 2] Scrolling core_capabilities...")
+        logger.info("🔮 [Dim 2] Scrolling core-code...")
 
         try:
             code_points = await qdrant.scroll_all_points(
                 with_payload=True,
                 with_vectors=False,  # payload only for landscape
-                collection_name="core_capabilities",
+                collection_name="core-code",
             )
         except Exception as e:
-            logger.warning("core_capabilities scroll failed: %s", e)
+            logger.warning("core-code scroll failed: %s", e)
             code_points = []
 
         logger.info("   Found %d code vectors", len(code_points))
