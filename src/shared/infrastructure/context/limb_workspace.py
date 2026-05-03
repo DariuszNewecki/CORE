@@ -17,6 +17,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from shared.logger import getLogger
+from shared.utils.glob_match import matches_glob
 
 
 logger = getLogger(__name__)
@@ -105,7 +106,7 @@ class LimbWorkspace:
             if crate_path.startswith(norm_dir):
                 if pattern == "*.py" and crate_path.endswith(".py"):
                     found_files.add(crate_path)
-                elif pattern == "*" or Path(crate_path).match(pattern):
+                elif pattern == "*" or matches_glob(crate_path, pattern):
                     found_files.add(crate_path)
 
         return sorted(found_files)
