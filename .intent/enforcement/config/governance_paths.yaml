@@ -45,4 +45,4 @@ modularity:
   # human can review the proposed seam before any file is written.
   # Range: 0.0 – 1.0
   # Consumed by: body/atomic/modularity_fix.py:_load_split_confidence_threshold
-  split_confidence_threshold: 0.70
+  split_confidence_threshold: 0.75

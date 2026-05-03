@@ -129,6 +129,10 @@ class SplitPlan:
         if not isinstance(data, dict):
             raise SplitPlanError(f"Expected a JSON object, got {type(data).__name__}")
 
+        if not data.get("can_split", True):
+            reason = str(data.get("reason", "LLM declined to split this file"))
+            raise SplitPlanError(f"llm_declined: {reason}")
+
         modules: list[ModuleSpec] = []
         for entry in data.get("modules", []):
             modules.append(
