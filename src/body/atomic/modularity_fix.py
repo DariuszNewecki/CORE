@@ -343,6 +343,23 @@ async def action_fix_modularity(
             duration_sec=time.time() - start,
         )
 
+    # Override structural fields — the action owns these, not the LLM.
+    # LLM output routinely omits source_file and new_package_name;
+    # trusting the LLM here causes ModularitySplitter to write to the
+    # wrong location. target.stem is the authoritative package name
+    # (enforced by validate() stem check).
+    split_plan.source_file = rel_path
+    split_plan.new_package_name = target.stem
+    try:
+        split_plan.validate()
+    except SplitPlanError as e:
+        return ActionResult(
+            action_id="fix.modularity",
+            ok=False,
+            data={"error": f"plan re-validation failed: {e}", "file": rel_path},
+            duration_sec=time.time() - start,
+        )
+
     logger.info(
         "fix.modularity: %s — split plan validated (%d modules), proceeding",
         rel_path,
