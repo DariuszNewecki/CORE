@@ -26,7 +26,7 @@ The audience is the governor and any architect instance (human or Claude) openin
 | `.specs/requirements/` | URS documents | Updated on major feature arcs |
 | `.specs/META/` | Schemas governing `.specs/` and `.intent/` documents | Updated when conventions change |
 | `.specs/state/` | Investigations and historical snapshots cited by ADRs or papers | Append-only; dated artifacts |
-| `.specs/planning/CORE-A3-plan.md` | Strategic roadmap — bands, phases, known blockers | Updated when a band advances or a blocker resolves |
+| `.specs/planning/CORE-A3-plan.md` | Strategic roadmap — gates, phases, bands, ADR index | Updated when an A3 gate, phase, band, or ADR table entry changes |
 | `.specs/planning/SESSION-PROTOCOL.md` | This document | Revised when the protocol itself changes |
 | `.specs/planning/INTERACTION-CONTRACT.md` | Operating contract between governor and architect | Loaded at session-open Step 1; revised when the contract itself changes |
 | `.intent/` | Runtime governance — constitution, rules, enforcement, workers | Updated as governance evolves |
@@ -85,7 +85,14 @@ Four steps. Most are one-line actions.
 
 **Step 2 — Issues updated.** Close any issues resolved by this session's commits. Confirm labels still accurate on open issues.
 
-**Step 3 — A3 plan maintenance.** If a blocker resolved or a band advanced, edit `CORE-A3-plan.md`: move the resolved row from "Known Blockers" to "Resolved Blockers," update "Milestone Summary," add a row to "Architectural Decisions Made" if an ADR landed.
+**Step 3 — A3 plan maintenance.** If this session changed something the A3 plan tracks, edit `CORE-A3-plan.md`. Triggers and edits:
+- An ADR landed → add a row to "Architectural Decisions Made."
+- A gate status shifted on G1–G4 → update the Status column in "A3 Gates."
+- A phase advanced → update the marker (⬜ / 🔄 / ✅) in "A3 Phases."
+- A band closed → update its line in "Bands."
+- Any of the above → bump "Last updated."
+
+If nothing the A3 plan tracks changed this session, skip this step. Routine issue closures and commits do not require A3 plan edits — those are reconstructible from Git and GitHub.
 
 **Step 4 — Release if warranted.** If a band closed or a major capability milestone landed, cut a GitHub Release with the relevant tag (`vN.N.N` per existing convention). Band closure is the canonical trigger. Release notes are the canonical session summary for bands that ship.
 
@@ -143,3 +150,5 @@ This document does not specify:
 *Revised 2026-05-02: §3 gained Step 2 (Context fetch) and the remaining steps renumbered to 3–7. Step 2 documents the Google Drive context packet delivery mechanism (`context_tree.txt` + `context_core.txt`) and the `make context` command that produces them.*
 
 *Revised 2026-05-03: §3 Step 2 updated — Google Drive delivery replaced by Claude.ai Project Files. Context packets are uploaded to the Project before the session opens and read via the `view` tool at `/mnt/project/`. Step renamed from "Context fetch" to "Context read." Drive file IDs and `Google Drive:read_file_content` references removed. Matches INTERACTION-CONTRACT.md §3.2 revision of the same date.*
+
+*Revised 2026-05-03: §5 Step 3 rewritten. Previous text referenced "Known Blockers," "Resolved Blockers," and "Milestone Summary" sections that the current A3 plan does not contain. New text aligns with the plan's actual section structure (A3 Gates, A3 Phases, Bands, Architectural Decisions Made). §2 row for `CORE-A3-plan.md` correspondingly updated to describe "gates, phases, bands, ADR index" rather than "bands, phases, known blockers."*
