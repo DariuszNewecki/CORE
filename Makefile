@@ -235,11 +235,10 @@ docs: ## Generate capability documentation
 	$(CORE_ADMIN) project docs
 
 # ---- Context (LLM session packets) ------------------------------------------
-context: ## Build context packets and sync to Google Drive
+context: ## Build context packets for upload to Claude.ai Project Files
 	@echo "📦 Building context packets (code + tree)..."
 	@$(POETRY) run python infra/scripts/dev/context_builder.py
-#	@echo "☁️  Syncing to Google Drive..."
-#	@$(POETRY) run python infra/scripts/dev/gdrive_sync.py
+	# Output: context_tree.txt + context_core.txt — upload to Claude.ai Project Files.
 
 # ---- Clean -------------------------------------------------------------------
 clean: ## Remove temporary files and caches
