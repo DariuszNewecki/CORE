@@ -62,7 +62,7 @@ class LimbWorkspace:
         If the limb has moved a file into the crate, this method returns the
         in-flight version.
         """
-        normalized_path = str(rel_path).lstrip("./").replace("\\", "/")
+        normalized_path = str(rel_path).removeprefix("./").replace("\\", "/")
         if normalized_path in self._crate:
             logger.debug("Sensation: Reading from crate: %s", normalized_path)
             return self._crate[normalized_path]
@@ -79,7 +79,7 @@ class LimbWorkspace:
     # ID: 78b4aec9-f6fa-46ee-ae48-14c902acab43
     def exists(self, rel_path: str) -> bool:
         """Check if a file exists in the unified virtual/physical view."""
-        normalized_path = str(rel_path).lstrip("./").replace("\\", "/")
+        normalized_path = str(rel_path).removeprefix("./").replace("\\", "/")
         if normalized_path in self._crate:
             return True
 
@@ -92,7 +92,7 @@ class LimbWorkspace:
 
         Ensures new files created in the crate are visible to the limb.
         """
-        norm_dir = str(directory).lstrip("./").replace("\\", "/")
+        norm_dir = str(directory).removeprefix("./").replace("\\", "/")
         found_files: set[str] = set()
 
         abs_dir = self.repo_root / norm_dir
@@ -123,7 +123,7 @@ class LimbWorkspace:
         Called by the reflex loop when a self-correction occurs.
         """
         for path, content in new_files.items():
-            self._crate[str(path).lstrip("./")] = content
+            self._crate[str(path).removeprefix("./")] = content
         logger.debug(
             "LimbWorkspace updated with %d new proposed files.", len(new_files)
         )
