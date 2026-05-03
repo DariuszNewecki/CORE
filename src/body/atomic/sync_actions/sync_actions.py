@@ -1,3 +1,4 @@
+# src/body/atomic/sync_actions/sync_actions.py
 # sync_actions.py
 """The three action functions (database sync, code vector sync, constitutional vector sync) remain together as a cohesive group of synchronization actions."""
 

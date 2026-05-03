@@ -1,3 +1,4 @@
+# src/body/atomic/sync_actions/chunking_helpers.py
 # chunking_helpers.py
 """Module-level chunking and embedding helpers are standalone utilities used by the vector sync actions; they share no state with the action functions."""
 
