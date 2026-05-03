@@ -19,6 +19,7 @@ from typing import Any
 from uuid import UUID
 
 from body.atomic.executor import ActionExecutor
+from body.flows.executor import FlowExecutor
 from body.services.service_registry import service_registry
 from mind.governance.violation_report import extract_error_data
 from shared.infrastructure.intent.autonomy_dirty_tree import (
@@ -218,45 +219,59 @@ class ProposalExecutor:
 
             for action in sorted_actions:
                 action_start = time.time()
-                action_id = action.action_id
+                ref_id = action.ref_id
+                ref_kind = action.ref_kind
 
                 logger.info(
-                    "Executing action %d/%d: %s",
+                    "Executing %s %d/%d: %s",
+                    ref_kind,
                     action.order + 1,
                     len(sorted_actions),
-                    action_id,
+                    ref_id,
                 )
 
                 try:
                     params = {
                         k: v for k, v in action.parameters.items() if k != "write"
                     }
-                    result = await self.action_executor.execute(
-                        action_id=action_id,
-                        write=write,
-                        **params,
-                    )
+
+                    if ref_kind == "flow":
+                        flow_executor = FlowExecutor(self.core_context)
+                        result = await flow_executor.execute(
+                            flow_id=ref_id,
+                            write=write,
+                            **params,
+                        )
+                    else:
+                        result = await self.action_executor.execute(
+                            action_id=ref_id,
+                            write=write,
+                            **params,
+                        )
 
                     action_duration = time.time() - action_start
 
-                    action_results[action_id] = {
+                    action_results[ref_id] = {
                         "ok": result.ok,
                         "duration_sec": action_duration,
                         "data": result.data,
                         "order": action.order,
+                        "kind": ref_kind,
                     }
 
                     if not result.ok:
                         all_ok = False
                         logger.warning(
-                            "Action %s failed: %s",
-                            action_id,
+                            "%s %s failed: %s",
+                            ref_kind.capitalize(),
+                            ref_id,
                             (result.data or {}).get("error", "Unknown error"),
                         )
                     else:
                         logger.info(
-                            "Action %s completed successfully (%.2fs)",
-                            action_id,
+                            "%s %s completed successfully (%.2fs)",
+                            ref_kind.capitalize(),
+                            ref_id,
                             action_duration,
                         )
 
@@ -265,17 +280,19 @@ class ProposalExecutor:
                     all_ok = False
 
                     logger.error(
-                        "Exception executing %s: %s",
-                        action_id,
+                        "Exception executing %s %s: %s",
+                        ref_kind,
+                        ref_id,
                         e,
                         exc_info=True,
                     )
 
-                    action_results[action_id] = {
+                    action_results[ref_id] = {
                         "ok": False,
                         "duration_sec": action_duration,
                         "data": extract_error_data(e, error_type=type(e).__name__),
                         "order": action.order,
+                        "kind": ref_kind,
                     }
 
             # 5. Update final status
@@ -526,7 +543,8 @@ class ProposalExecutor:
 
                     for action in sorted_actions:
                         action_start = time.time()
-                        action_id = action.action_id
+                        ref_id = action.ref_id
+                        ref_kind = action.ref_kind
 
                         try:
                             params = {
@@ -534,22 +552,37 @@ class ProposalExecutor:
                                 for k, v in action.parameters.items()
                                 if k != "write"
                             }
-                            r = await self.action_executor.execute(
-                                action_id=action_id,
-                                write=write,
-                                **params,
-                            )
-                            action_results[action_id] = {
-                                "ok": r.ok,
+
+                            if ref_kind == "flow":
+                                flow_executor = FlowExecutor(self.core_context)
+                                r = await flow_executor.execute(
+                                    flow_id=ref_id,
+                                    write=write,
+                                    **params,
+                                )
+                                step_ok = r.ok
+                                step_data = r.data
+                            else:
+                                r = await self.action_executor.execute(
+                                    action_id=ref_id,
+                                    write=write,
+                                    **params,
+                                )
+                                step_ok = r.ok
+                                step_data = r.data
+
+                            action_results[ref_id] = {
+                                "ok": step_ok,
                                 "duration_sec": time.time() - action_start,
-                                "data": r.data,
+                                "data": step_data,
                                 "order": action.order,
+                                "kind": ref_kind,
                             }
-                            if not r.ok:
+                            if not step_ok:
                                 all_ok = False
                         except Exception as e:
                             all_ok = False
-                            action_results[action_id] = {
+                            action_results[ref_id] = {
                                 "ok": False,
                                 "duration_sec": time.time() - action_start,
                                 "data": {
@@ -557,6 +590,7 @@ class ProposalExecutor:
                                     "error_type": type(e).__name__,
                                 },
                                 "order": action.order,
+                                "kind": ref_kind,
                             }
 
                     if write:
