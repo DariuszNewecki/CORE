@@ -31,7 +31,7 @@ class VectorProvider:
         self,
         query: str,
         top_k: int = 10,
-        collection: str = "core_capabilities",
+        collection: str = "core-code",
     ) -> list[dict[str, Any]]:
         """Search for semantically similar evidence items from a text query."""
         logger.debug("Searching vectors for query '%s' (top_k=%s)", query, top_k)
@@ -56,7 +56,7 @@ class VectorProvider:
         self,
         embedding: list[float],
         top_k: int = 10,
-        collection: str = "core_capabilities",
+        collection: str = "core-code",
     ) -> list[dict[str, Any]]:
         """Search using a pre-computed embedding against the specified collection."""
         if not self.qdrant:
