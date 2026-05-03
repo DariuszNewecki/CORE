@@ -6,8 +6,10 @@ from __future__ import annotations
 
 import time
 
+from body.atomic.registry import ActionCategory, register_action
 from body.introspection.sync_service import run_sync_with_db
-from shared.action_types import ActionResult
+from shared.action_types import ActionImpact, ActionResult
+from shared.atomic_action import atomic_action
 from shared.context import CoreContext
 from shared.infrastructure.database.session_manager import get_session
 from shared.infrastructure.vector.adapters.constitutional_adapter import (
@@ -21,6 +23,19 @@ logger = getLogger(__name__)
 from .chunking_helpers import _chunk_file, _embed_and_upsert
 
 
+@register_action(
+    action_id="sync.db",
+    description="Synchronize code symbols to PostgreSQL knowledge graph",
+    category=ActionCategory.SYNC,
+    policies=["rules/architecture/blackboard"],
+    impact_level="moderate",
+)
+@atomic_action(
+    action_id="sync.db",
+    intent="Atomic action for sync.db",
+    impact=ActionImpact.WRITE_METADATA,
+    policies=["atomic_actions"],
+)
 # ID: f6789012-3456-789a-bcde-f0123456789a
 async def action_sync_database(
     core_context: CoreContext, write: bool = False
@@ -72,6 +87,19 @@ async def action_sync_database(
         )
 
 
+@register_action(
+    action_id="sync.vectors.code",
+    description="Vectorize codebase artifacts to Qdrant",
+    category=ActionCategory.SYNC,
+    policies=["rules/architecture/blackboard"],
+    impact_level="moderate",
+)
+@atomic_action(
+    action_id="sync.vectors.code",
+    intent="Atomic action for sync.vectors.code",
+    impact=ActionImpact.WRITE_METADATA,
+    policies=["atomic_actions"],
+)
 # ID: af6a56d0-b2d3-44fe-b6ea-55d6aed3768b
 async def action_sync_code_vectors(
     core_context: CoreContext, write: bool = False, force: bool = False
@@ -203,6 +231,19 @@ async def action_sync_code_vectors(
         )
 
 
+@register_action(
+    action_id="sync.vectors.constitution",
+    description="Vectorize constitutional documents to Qdrant",
+    category=ActionCategory.SYNC,
+    policies=["rules/architecture/blackboard"],
+    impact_level="moderate",
+)
+@atomic_action(
+    action_id="sync.vectors.constitution",
+    intent="Atomic action for sync.vectors.constitution",
+    impact=ActionImpact.WRITE_METADATA,
+    policies=["atomic_actions"],
+)
 # ID: b301871b-6205-4300-a76e-65d2ffa56c03
 async def action_sync_constitutional_vectors(
     core_context: CoreContext, write: bool = False

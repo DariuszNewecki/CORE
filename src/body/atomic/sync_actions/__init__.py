@@ -20,5 +20,4 @@ from .sync_actions import (
     action_sync_code_vectors,
     action_sync_constitutional_vectors,
     action_sync_database,
-    logger,
 )
