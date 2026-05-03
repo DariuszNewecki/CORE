@@ -42,6 +42,7 @@ class SplitPlan:
 
     source_file: str
     new_package_name: str
+    confidence: float = 0.0
     modules: list[ModuleSpec] = field(default_factory=list)
 
     # ID: 8e1d4a7b-3c6f-4928-b5d0-2a9e8c1f7b3d
@@ -105,6 +106,7 @@ class SplitPlan:
         plan = cls(
             source_file=str(data.get("source_file", "")),
             new_package_name=str(data.get("new_package_name", "")),
+            confidence=float(data.get("confidence", 0.0)),
             modules=modules,
         )
         plan.validate()

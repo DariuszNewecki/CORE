@@ -36,3 +36,13 @@ audit_findings:
 
   # Path (relative to repo root) where remediation evidence artifacts are written.
   remediation_dir: "var/reports/remediation"
+
+modularity:
+  # Minimum confidence score required in a SplitPlan before fix.modularity
+  # proceeds to split a file. The LLM is expected to return a confidence
+  # field (0.0 – 1.0) alongside the split plan JSON. Plans below this
+  # threshold are rejected with ok=False / reason="low_confidence" so a
+  # human can review the proposed seam before any file is written.
+  # Range: 0.0 – 1.0
+  # Consumed by: body/atomic/modularity_fix.py:_load_split_confidence_threshold
+  split_confidence_threshold: 0.70

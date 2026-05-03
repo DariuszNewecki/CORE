@@ -31,6 +31,36 @@ if TYPE_CHECKING:
 logger = getLogger(__name__)
 
 
+_FALLBACK_SPLIT_CONFIDENCE_THRESHOLD: float = 0.70
+
+
+def _load_split_confidence_threshold(repo_root) -> float:
+    """Load split confidence threshold from governance_paths.yaml via PathResolver.
+
+    Falls back to _FALLBACK_SPLIT_CONFIDENCE_THRESHOLD if the file is missing
+    or the key is absent — never raises.
+    """
+    try:
+        import yaml
+
+        from shared.path_resolver import PathResolver
+
+        path_resolver = PathResolver(repo_root)
+        config_path = path_resolver.governance_config_path
+        if not config_path.exists():
+            return _FALLBACK_SPLIT_CONFIDENCE_THRESHOLD
+        raw = yaml.safe_load(config_path.read_text(encoding="utf-8"))
+        if not isinstance(raw, dict):
+            return _FALLBACK_SPLIT_CONFIDENCE_THRESHOLD
+        return float(
+            raw.get("modularity", {}).get(
+                "split_confidence_threshold", _FALLBACK_SPLIT_CONFIDENCE_THRESHOLD
+            )
+        )
+    except Exception:
+        return _FALLBACK_SPLIT_CONFIDENCE_THRESHOLD
+
+
 def _find_worst_modularity_violator(repo_root):
     """Find the src/ Python file with the most lines. Excludes __init__.py and tests."""
     from pathlib import Path
@@ -134,7 +164,7 @@ def _extract_class_methods_context(source: str) -> str:
             methods = [
                 n
                 for n in cls.body
-                if isinstance(n, (_ast.FunctionDef, _ast.AsyncFunctionDef))
+                if isinstance(n, _ast.FunctionDef | _ast.AsyncFunctionDef)
             ]
             if len(methods) > best_count:
                 best_count = len(methods)
@@ -147,7 +177,7 @@ def _extract_class_methods_context(source: str) -> str:
         method_names = [
             n.name
             for n in dominant.body
-            if isinstance(n, (_ast.FunctionDef, _ast.AsyncFunctionDef))
+            if isinstance(n, _ast.FunctionDef | _ast.AsyncFunctionDef)
         ]
 
         # Collect class-level assignments (Assign and AnnAssign directly in class body)
@@ -309,6 +339,28 @@ async def action_fix_modularity(
         rel_path,
         len(split_plan.modules),
     )
+
+    # 4a. Confidence gate — halt if LLM was insufficiently certain about the seam.
+    confidence_threshold = _load_split_confidence_threshold(repo_root)
+    if split_plan.confidence < confidence_threshold:
+        logger.warning(
+            "fix.modularity: low confidence split plan for %s "
+            "(confidence=%.2f < threshold=%.2f) — aborting",
+            rel_path,
+            split_plan.confidence,
+            confidence_threshold,
+        )
+        return ActionResult(
+            action_id="fix.modularity",
+            ok=False,
+            data={
+                "error": "low_confidence",
+                "confidence": split_plan.confidence,
+                "threshold": confidence_threshold,
+                "file": rel_path,
+            },
+            duration_sec=time.time() - start,
+        )
 
     # 5. Phase 2 — deterministic split via ModularitySplitter
     logger.info(
