@@ -130,6 +130,82 @@ def _find_callers(target_path, repo_root) -> list[str]:
     return callers
 
 
+_DECORATORS_TO_PRESERVE: frozenset[str] = frozenset(
+    {"register_action", "atomic_action"}
+)
+
+
+def _decorator_simple_name(deco) -> str | None:
+    """Return the trailing identifier of a decorator expression, or None.
+
+    Handles ``@name``, ``@name(...)``, ``@mod.name``, ``@mod.name(...)``.
+    """
+    import ast as _ast
+
+    if isinstance(deco, _ast.Name):
+        return deco.id
+    if isinstance(deco, _ast.Attribute):
+        return deco.attr
+    if isinstance(deco, _ast.Call):
+        return _decorator_simple_name(deco.func)
+    return None
+
+
+def _collect_preserved_decorators(source: str) -> dict[str, set[str]]:
+    """Map each decorated symbol → set of preserve-target decorator names.
+
+    Walks the full AST so methods inside classes are covered alongside
+    top-level functions and classes.
+    """
+    import ast as _ast
+
+    try:
+        tree = _ast.parse(source)
+    except SyntaxError:
+        return {}
+    out: dict[str, set[str]] = {}
+    for node in _ast.walk(tree):
+        if not isinstance(
+            node, _ast.FunctionDef | _ast.AsyncFunctionDef | _ast.ClassDef
+        ):
+            continue
+        names = {
+            n
+            for d in node.decorator_list
+            if (n := _decorator_simple_name(d)) is not None
+        }
+        targets = names & _DECORATORS_TO_PRESERVE
+        if targets:
+            out.setdefault(node.name, set()).update(targets)
+    return out
+
+
+def _check_decorator_conservation(
+    original_source: str, produced_files: list[dict]
+) -> list[str]:
+    """Detect registration decorators present in *original_source* but missing
+    from *produced_files*. Returns sorted ``"@deco on symbol"`` strings; empty
+    list means conservation holds. ``__init__.py`` is skipped — re-exports
+    don't carry definitions.
+    """
+    expected = _collect_preserved_decorators(original_source)
+    if not expected:
+        return []
+    found: dict[str, set[str]] = {}
+    for f in produced_files:
+        path = f.get("path", "")
+        if path.endswith("__init__.py"):
+            continue
+        for name, decos in _collect_preserved_decorators(f.get("content", "")).items():
+            found.setdefault(name, set()).update(decos)
+    missing: list[str] = []
+    for sym, decos in expected.items():
+        for d in decos:
+            if d not in found.get(sym, set()):
+                missing.append(f"@{d} on {sym}")
+    return sorted(missing)
+
+
 def _extract_class_methods_context(source: str) -> str:
     """
     Detect the dominant class in a file and extract method/assignment inventory.
@@ -416,6 +492,29 @@ async def action_fix_modularity(
             action_id="fix.modularity",
             ok=False,
             data={"error": "split produced no files", "file": rel_path},
+            duration_sec=time.time() - start,
+        )
+
+    # 5a. Decorator Conservation Gate — fail fast before the LLM-backed
+    # Logic Conservation Gate. Function bodies can be conserved while a
+    # @register_action / @atomic_action decorator is silently dropped,
+    # producing operationally broken output. See issue #211 / Failure 1
+    # in CORE-ModularizationLessons.md.
+    missing_decorators = _check_decorator_conservation(original_content, files)
+    if missing_decorators:
+        logger.error(
+            "fix.modularity: decorator loss detected in %s: %s",
+            rel_path,
+            missing_decorators,
+        )
+        return ActionResult(
+            action_id="fix.modularity",
+            ok=False,
+            data={
+                "error": "decorator_loss_detected",
+                "missing_decorators": missing_decorators,
+                "file": rel_path,
+            },
             duration_sec=time.time() - start,
         )
 

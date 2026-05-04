@@ -465,14 +465,26 @@ class ModularitySplitter:
     def _extract_node_source(self, node: ast.stmt, source_lines: list[str]) -> str:
         """Extract the original source text of *node* including leading comments.
 
+        When *node* carries decorators, extraction starts at the first
+        decorator line so framework-registration decorators
+        (``@register_action``, ``@atomic_action``, …) survive a split.
+        ``node.lineno`` points at the ``def``/``class`` line and would
+        silently drop the decorator block.
+
         Preserves ``# ID:`` anchors that appear on the line before the
-        definition — required by the constitutional symbol-ID rule.
+        definition (above the decorator block when present) — required
+        by the constitutional symbol-ID rule.
         """
-        start = node.lineno - 1  # 0-based
+        decorators: list[ast.expr] = getattr(node, "decorator_list", []) or []
+        if decorators:
+            start = decorators[0].lineno - 1  # 0-based
+        else:
+            start = node.lineno - 1
         end = node.end_lineno if node.end_lineno is not None else node.lineno
 
         # Look backwards for comment lines attached to this definition
-        # (e.g. ``# ID: ...`` or docstring preamble comments).
+        # (e.g. ``# ID: ...`` or docstring preamble comments). With
+        # decorators present, this scans above the decorator block.
         while start > 0 and source_lines[start - 1].strip().startswith("#"):
             start -= 1
 
