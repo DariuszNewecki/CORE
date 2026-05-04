@@ -63,7 +63,7 @@ def print_detailed_info(p: Proposal):
         logger.info("  Approval Required: %s", "Yes" if p.approval_required else "No")
         for factor in p.risk.risk_factors:
             logger.info("    - %s", factor)
-        logger.info()
+        logger.info("")
     logger.info("[bold]Actions (%s):[/bold]", len(p.actions))
     for a in sorted(p.actions, key=lambda x: x.order):
         logger.info("  %s. %s", a.order + 1, a.action_id)
