@@ -145,10 +145,12 @@ class ProposalAction:
         return self.action_id or self.flow_id  # type: ignore[return-value]
 
     @property
+    # ID: cd908d8f-dbf2-4e7c-9e13-b437345b75aa
     def ref_kind(self) -> str:
         """'action' if action_id is set, 'flow' if flow_id is set."""
         return "action" if self.action_id is not None else "flow"
 
+    # ID: 78f087a3-9b56-4903-82d9-13cdb35b55e1
     def validate_exists(self) -> bool:
         """Verify the referenced action or flow exists in its registry."""
         if self.action_id is not None:

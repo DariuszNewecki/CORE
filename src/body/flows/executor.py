@@ -35,6 +35,7 @@ logger = getLogger(__name__)
 
 
 # ID: flow-executor-class
+# ID: ebd9a0de-3e90-4c97-af3a-49847598fda8
 class FlowExecutor:
     """
     Universal execution gateway for constitutional Flows.
@@ -57,6 +58,7 @@ class FlowExecutor:
         self._registry = flow_registry
 
     # ID: flow-executor-execute
+    # ID: 6896dd9d-063b-4c19-86e5-246b28738651
     async def execute(
         self,
         flow_id: str,
