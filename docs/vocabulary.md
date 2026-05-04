@@ -59,7 +59,7 @@ law not intelligence. Every Worker has exactly one job.
 
 A persisted artifact that CORE may load. Has no implicit meaning.
 
-→ [CORE-CONSTITUTION-v0.md](https://github.com/DariuszNewecki/CORE/blob/main/.intent/constitution/CORE-CONSTITUTION-v0.md)
+→ [CORE-CONSTITUTION.md](https://github.com/DariuszNewecki/CORE/blob/main/.intent/constitution/CORE-CONSTITUTION.md)
 
 ---
 
@@ -67,7 +67,7 @@ A persisted artifact that CORE may load. Has no implicit meaning.
 
 An atomic normative statement that evaluates to holds or violates.
 
-→ [CORE-CONSTITUTION-v0.md](https://github.com/DariuszNewecki/CORE/blob/main/.intent/constitution/CORE-CONSTITUTION-v0.md)
+→ [CORE-CONSTITUTION.md](https://github.com/DariuszNewecki/CORE/blob/main/.intent/constitution/CORE-CONSTITUTION.md)
 
 ---
 
@@ -75,7 +75,7 @@ An atomic normative statement that evaluates to holds or violates.
 
 When a Rule is evaluated. Every Rule belongs to exactly one Phase.
 
-→ [CORE-CONSTITUTION-v0.md](https://github.com/DariuszNewecki/CORE/blob/main/.intent/constitution/CORE-CONSTITUTION-v0.md)
+→ [CORE-CONSTITUTION.md](https://github.com/DariuszNewecki/CORE/blob/main/.intent/constitution/CORE-CONSTITUTION.md)
 
 ---
 
@@ -83,7 +83,7 @@ When a Rule is evaluated. Every Rule belongs to exactly one Phase.
 
 Who has the final right to decide. Every Rule has exactly one Authority.
 
-→ [CORE-CONSTITUTION-v0.md](https://github.com/DariuszNewecki/CORE/blob/main/.intent/constitution/CORE-CONSTITUTION-v0.md)
+→ [CORE-CONSTITUTION.md](https://github.com/DariuszNewecki/CORE/blob/main/.intent/constitution/CORE-CONSTITUTION.md)
 
 ---
 
@@ -194,7 +194,7 @@ These are the concrete realizations of the foundational concepts in CORE.
 | Mind | `.intent/` and the governance machinery that reads it. | [CORE-Mind-Body-Will-Separation.md](https://github.com/DariuszNewecki/CORE/blob/main/.specs/papers/CORE-Mind-Body-Will-Separation.md) |
 | Body | The execution surface: atomic actions, gates, file writes. | [CORE-Mind-Body-Will-Separation.md](https://github.com/DariuszNewecki/CORE/blob/main/.specs/papers/CORE-Mind-Body-Will-Separation.md) |
 | Will | The autonomous layer: workers, proposals, the remediation loop. | [CORE-Mind-Body-Will-Separation.md](https://github.com/DariuszNewecki/CORE/blob/main/.specs/papers/CORE-Mind-Body-Will-Separation.md) |
-| Constitution | The supreme law in `.intent/`. Human-authored only. Immutable to CORE at runtime. | [CORE-CONSTITUTION-v0.md](https://github.com/DariuszNewecki/CORE/blob/main/.intent/constitution/CORE-CONSTITUTION-v0.md) |
+| Constitution | The supreme law in `.intent/`. Human-authored only. Immutable to CORE at runtime. | [CORE-CONSTITUTION.md](https://github.com/DariuszNewecki/CORE/blob/main/.intent/constitution/CORE-CONSTITUTION.md) |
 | AtomicAction | A registered, governed, single-purpose implementation of Action. | [CORE-Action.md](https://github.com/DariuszNewecki/CORE/blob/main/.specs/papers/CORE-Action.md) |
 | ActionResult | The structured contract every AtomicAction must return: action_id, ok, data, duration_sec. | [CORE-Action.md](https://github.com/DariuszNewecki/CORE/blob/main/.specs/papers/CORE-Action.md) |
 | ActionExecutor | The Body-layer dispatcher that resolves an action_id to its registered AtomicAction and invokes it. | [CORE-Action.md](https://github.com/DariuszNewecki/CORE/blob/main/.specs/papers/CORE-Action.md) |

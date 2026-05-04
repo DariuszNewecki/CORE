@@ -1,0 +1,30 @@
+{
+    "$schema": "META/rule_document.schema.json",
+    "kind": "rule_document",
+    "metadata": {
+        "id": "rules.governance.vocabulary_registers",
+        "title": "Vocabulary Register Discipline",
+        "version": "1.0.0",
+        "authority": "constitution",
+        "phase": "parse",
+        "status": "active"
+    },
+    "rules": [
+        {
+            "id": "governance.vocabulary_registers.operational_fields_must_be_lowercase",
+            "statement": "Values declared in operational-register fields of .intent/ artifacts MUST match the Operational-register grammar `^[a-z][a-z0-9_]*$`. Operational-register fields include: `authority`, `phase`, `strength`, `enforcement`, `status`, `class`, and `ordering`. A value such as `authority: Policy` (Title Case) or `phase: AUDIT` (UPPER_CASE) imports the wrong register into an Operational-register field and is governance failure.",
+            "enforcement": "blocking",
+            "authority": "constitution",
+            "phase": "parse",
+            "rationale": "Operational-register values are routing keys joined and dispatched on across Python, YAML, JSON, and SQL. A casing mismatch silently breaks loaders that compare case-sensitively, or propagates inconsistent forms through tolerant loaders. Article I \u00a75 of the Constitution declares the three registers; this rule enforces that operational fields stay in the Operational register. See `.specs/papers/CORE-Vocabulary-Registers.md` for the doctrinal source and the full register-assignment table."
+        },
+        {
+            "id": "governance.vocabulary_registers.diagnostic_fields_must_be_uppercase",
+            "statement": "Values declared in diagnostic-register fields of .intent/ artifacts MUST match the Diagnostic-register grammar `^[A-Z][A-Z0-9_]*$`. Diagnostic-register fields include `severity` and verdict-state fields. A value such as `severity: error` (lowercase) or `verdict: pass` imports the wrong register into a Diagnostic-register field and is governance failure.",
+            "enforcement": "blocking",
+            "authority": "constitution",
+            "phase": "parse",
+            "rationale": "Diagnostic-register values inherit the cross-system convention of UPPER_CASE established by logging, monitoring, and alerting frameworks. A lowercase severity value cannot be matched against `AuditSeverity` enum members without a transformation that itself becomes a drift surface. Article I \u00a75 of the Constitution declares the three registers; this rule enforces that diagnostic fields stay in the Diagnostic register. See `.specs/papers/CORE-Vocabulary-Registers.md` for the doctrinal source and the full register-assignment table."
+        }
+    ]
+}

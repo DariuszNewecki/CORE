@@ -65,7 +65,7 @@ Minor versions indicate clarification within the same constitutional intent.
 
 **Constitutional Documents:**
 
-* `constitution/CORE-CONSTITUTION-v0.md`
+* `constitution/CORE-CONSTITUTION.md`
 * Foundational papers under `papers/`
 * `CORE-CHARTER.md`
 

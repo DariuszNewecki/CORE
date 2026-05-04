@@ -72,7 +72,7 @@ No operational rule may contradict constitutional principles.
 
 To understand CORE's governance:
 
-1. `.intent/constitution/CORE-CONSTITUTION-v0.md` - Foundation document
+1. `.intent/constitution/CORE-CONSTITUTION.md` - Foundation document
 2. `.intent/papers/` - Constitutional philosophy:
    * `CORE-Constitutional-Foundations.md`
    * `CORE-Mind-Body-Will-Separation.md`

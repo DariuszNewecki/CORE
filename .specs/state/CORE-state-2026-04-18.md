@@ -48,7 +48,7 @@ src/        838 files   implementation
 ├── workflows/       15   workflow definitions
 ├── META/            10   schemas for .intent/ artifacts
 ├── phases/           6   phase definitions
-├── constitution/     2   CORE-CONSTITUTION-v0.md, CONSTITUTIONAL-WORKFLOWS.md
+├── constitution/     2   CORE-CONSTITUTION.md, CONSTITUTIONAL-WORKFLOWS.md
 └── (taxonomies, cim, CHANGELOG — 3 more)
 
 .specs/      55 files   intent and architectural reasoning
@@ -176,7 +176,7 @@ Coverage ratio: 14 ACTIVE mappings against 121 enforceable rules. **Roughly 88% 
 
 Two constitutional documents:
 
-- `.intent/constitution/CORE-CONSTITUTION-v0.md`
+- `.intent/constitution/CORE-CONSTITUTION.md`
 - `.intent/constitution/CONSTITUTIONAL-WORKFLOWS.md`
 
 ### 4.6 Schemas (META)

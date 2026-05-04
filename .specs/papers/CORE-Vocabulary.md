@@ -28,10 +28,10 @@ Declare it here or remove it.
 | UNIX | One component, one job. Composition is the only legitimate source of complexity. | `.intent/papers/CORE-The-Octopus-UNIX-Synthesis.md` |
 | Octopus | Distributed intelligence, central law. Arms act locally. Brain governs intent. Nervous system is the only channel. | `.intent/papers/CORE-The-Octopus-UNIX-Synthesis.md` |
 | Worker | A constitutional officer with a single declared responsibility, acting under law not intelligence. | `.intent/papers/CORE-Workers-and-Governance-Model.md` |
-| Document | A persisted artifact that CORE may load. Has no implicit meaning. | `.intent/constitution/CORE-CONSTITUTION-v0.md` |
-| Rule | An atomic normative statement that evaluates to holds or violates. | `.intent/constitution/CORE-CONSTITUTION-v0.md` |
-| Phase | When a Rule is evaluated. Every Rule belongs to exactly one Phase. | `.intent/constitution/CORE-CONSTITUTION-v0.md` |
-| Authority | Who has the final right to decide. Every Rule has exactly one Authority. | `.intent/constitution/CORE-CONSTITUTION-v0.md` |
+| Document | A persisted artifact that CORE may load. Has no implicit meaning. | `.intent/constitution/CORE-CONSTITUTION.md` |
+| Rule | An atomic normative statement that evaluates to holds or violates. | `.intent/constitution/CORE-CONSTITUTION.md` |
+| Phase | When a Rule is evaluated. Every Rule belongs to exactly one Phase. | `.intent/constitution/CORE-CONSTITUTION.md` |
+| Authority | Who has the final right to decide. Every Rule has exactly one Authority. | `.intent/constitution/CORE-CONSTITUTION.md` |
 | Evidence | The minimal set of inputs required to evaluate a Rule at a declared Phase. | `.intent/papers/CORE-Evidence-as-Input.md` |
 | Action | A single-purpose unit of work with a declared contract. | `.intent/papers/CORE-Action.md` |
 | Finding | An observation posted to the Blackboard by a sensing Worker. | `.intent/papers/CORE-Finding.md` |
@@ -53,7 +53,7 @@ Declare it here or remove it.
 | Mind | `.intent/` and the governance machinery that reads it. | `.intent/papers/CORE-Mind-Body-Will-Separation.md` |
 | Body | The execution surface: atomic actions, gates, file writes. | `.intent/papers/CORE-Mind-Body-Will-Separation.md` |
 | Will | The autonomous layer: workers, proposals, the remediation loop. | `.intent/papers/CORE-Mind-Body-Will-Separation.md` |
-| Constitution | The supreme law in `.intent/`. Human-authored only. Immutable to CORE at runtime. | `.intent/constitution/CORE-CONSTITUTION-v0.md` |
+| Constitution | The supreme law in `.intent/`. Human-authored only. Immutable to CORE at runtime. | `.intent/constitution/CORE-CONSTITUTION.md` |
 | AtomicAction | A registered, governed, single-purpose implementation of Action. | `.intent/papers/CORE-Action.md` |
 | ActionResult | The structured contract every AtomicAction must return: action_id, ok, data, duration_sec. | `.intent/papers/CORE-Action.md` |
 | ActionExecutor | The Body-layer dispatcher that resolves an action_id to its registered AtomicAction and invokes it. | `.intent/papers/CORE-Action.md` |

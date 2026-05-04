@@ -5,7 +5,7 @@
 **Authority:** Constitution-level (derivative, non-primitive)
 
 **Depends on:**
-* `constitution/CORE-CONSTITUTION-v0.md`
+* `constitution/CORE-CONSTITUTION.md`
 * `papers/CORE-Constitutional-Foundations.md`
 
 ---

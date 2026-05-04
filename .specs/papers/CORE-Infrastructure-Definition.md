@@ -7,7 +7,7 @@
 **Authority:** Constitution-level (derivative from primitives)
 
 **Depends on:**
-* `constitution/CORE-CONSTITUTION-v0.md`
+* `constitution/CORE-CONSTITUTION.md`
 * `papers/CORE-Mind-Body-Will-Separation.md`
 * `papers/CORE-Constitutional-Foundations.md`
 
@@ -342,7 +342,7 @@ Infrastructure violates this paper if it:
 ## 9. Relationship to Other Constitutional Documents
 
 **This Paper Depends On:**
-* `CORE-CONSTITUTION-v0.md`
+* `CORE-CONSTITUTION.md`
 * `CORE-Mind-Body-Will-Separation.md`
 * `CORE-Constitutional-Foundations.md`
 
