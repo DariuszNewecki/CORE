@@ -3,12 +3,17 @@
 """
 Atomic Build Action - Test Generation
 
-Generates a test file for a source file using CoderAgent, then runs
-auto-heal (fix.imports, fix.headers, fix.format) and IntentGuard validation.
+Generates a test file for a source file using CoderAgent and runs
+IntentGuard validation. Auto-heal (fix.imports, fix.headers, fix.format)
+runs as subsequent steps of flow.build_tests, not inside this AtomicAction —
+composing other AtomicActions is a Flow concern, not an Atomic one.
 
 Constitutional Alignment:
-- Boundary: Uses CoreContext for repo_path (no direct settings access)
+- Boundary: Uses CoreContext for repo_path (no direct settings access).
 - Circularity Fix: Feature-level imports are performed inside functions.
+- Atomicity: Does not invoke ActionExecutor.execute() on other actions;
+  auto-heal is delegated to flow.build_tests as subsequent Flow steps.
+  See CORE-Flow.md §7.
 - Remediation: Declares remediates=["test.failure", "test.missing"] so
   ViolationRemediatorWorker can close the autonomous test loop.
 - Path mapping: source_file -> test_file is resolved via
@@ -43,7 +48,7 @@ logger = getLogger(__name__)
 )
 @atomic_action(
     action_id="build.tests",
-    intent="Generate comprehensive tests for a source file via CoderAgent and auto-heal pipeline",
+    intent="Generate comprehensive tests for a source file via CoderAgent",
     impact=ActionImpact.WRITE_CODE,
     policies=["atomic_actions"],
 )
@@ -60,10 +65,14 @@ async def action_build_tests(
     1. Map source_file to test_file path (governed by .intent/)
     2. Initialize CoderAgent (same as interactive_test workflow)
     3. Call coder_agent.generate_or_repair(task, goal)
-    4. Run auto-heal: fix.imports, fix.headers, fix.format
-    5. Run IntentGuard validation on generated code
-    6. If write=True: create the test file via action_create_file
-    7. Return ActionResult
+    4. Run IntentGuard validation on generated code
+    5. If write=True: create the test file via action_create_file
+    6. Return ActionResult
+
+    Auto-heal (fix.imports, fix.headers, fix.format) is NOT invoked from
+    this AtomicAction. It runs as subsequent steps of flow.build_tests
+    after this action returns. Composing AtomicActions inside an
+    AtomicAction is a Flow concern (CORE-Flow.md §7).
     """
     from body.atomic.executor import ActionExecutor
     from body.atomic.file_ops import action_create_file
@@ -173,7 +182,7 @@ async def action_build_tests(
     #    Pointing file_path at the SOURCE file (not the not-yet-existing
     #    test file) is what gives the LLM real symbols to ground tests
     #    in. The test file path is communicated via the goal string and
-    #    is still the write destination in step 7 below.
+    #    is still the write destination in step 6 below.
     task = ExecutionTask(
         step=f"Generate comprehensive pytest tests for module {source_file}",
         action="generate",
@@ -211,21 +220,7 @@ async def action_build_tests(
             duration_sec=time.time() - start,
         )
 
-    # 5. Auto-heal: fix.imports, fix.headers, fix.format
-    action_executor = ActionExecutor(core_context)
-    for fix_action_id in ("fix.imports", "fix.headers", "fix.format"):
-        try:
-            fix_result = await action_executor.execute(fix_action_id, write=write)
-            if not fix_result.ok:
-                logger.warning(
-                    "build.tests: %s returned ok=False: %s",
-                    fix_action_id,
-                    fix_result.data,
-                )
-        except Exception as e:
-            logger.warning("build.tests: %s failed: %s", fix_action_id, e)
-
-    # 6. IntentGuard validation
+    # 5. IntentGuard validation
     try:
         intent_guard = get_intent_guard(repo_path=repo_root)
         validation = intent_guard.validate_generated_code(
@@ -242,7 +237,7 @@ async def action_build_tests(
     except Exception as e:
         logger.warning("build.tests: IntentGuard check failed: %s", e)
 
-    # 7. Write file if requested
+    # 6. Write file if requested
     if write:
         try:
             create_result = await action_create_file(
