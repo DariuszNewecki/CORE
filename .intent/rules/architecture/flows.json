@@ -1,0 +1,62 @@
+{
+    "$schema": "META/rule_document.schema.json",
+    "kind": "rule_document",
+    "metadata": {
+        "id": "rules.architecture.flows",
+        "title": "Flow Primitive: Hierarchy and Boundary Contract",
+        "version": "1.0.0",
+        "authority": "policy",
+        "phase": "load",
+        "status": "active"
+    },
+    "rules": [
+        {
+            "id": "architecture.flows.atomic_action_must_not_compose",
+            "statement": "A function decorated with @atomic_action or @register_action MUST NOT internally invoke other registered AtomicActions via ActionExecutor.execute(). Composition of multiple AtomicActions is the sole responsibility of a Flow, declared in .intent/flows/. An AtomicAction that chains other actions is a Flow misclassified as an AtomicAction.",
+            "enforcement": "blocking",
+            "authority": "policy",
+            "phase": "load",
+            "rationale": "The AtomicAction → Flow → Worker hierarchy is the constitutional execution model. An AtomicAction that composes others violates the single-responsibility invariant, makes the execution graph invisible to governance, and prevents Flows from reasoning about step ordering and required/optional semantics. Identified named violation: build.tests (tracked for migration)."
+        },
+        {
+            "id": "architecture.flows.flow_must_not_post_to_blackboard",
+            "statement": "Code in src/body/flows/ MUST NOT call post_finding(), post_report(), or post_heartbeat(), and MUST NOT execute INSERT or UPDATE operations against core.blackboard_entries. Blackboard authority belongs exclusively to Workers.",
+            "enforcement": "blocking",
+            "authority": "policy",
+            "phase": "load",
+            "rationale": "A Flow has no Blackboard presence — it has no mandate and no worker_uuid. Posting to the Blackboard from a Flow bypasses Worker attribution, violates ADR-011, and makes findings untraceable to a constitutional officer. Flows produce FlowResult; Workers decide what to post from that result."
+        },
+        {
+            "id": "architecture.flows.flow_must_not_create_proposals",
+            "statement": "Code in src/body/flows/ MUST NOT create, submit, or approve Proposal objects. Proposal creation is a Will-layer operation exclusively owned by Workers.",
+            "enforcement": "blocking",
+            "authority": "policy",
+            "phase": "load",
+            "rationale": "A Flow executes a declared step sequence under explicit instruction. A Flow that creates Proposals would be deciding when and why to act — that is Worker responsibility. Conflating the two collapses the Worker/Flow boundary and creates ungoverned autonomy at the composition layer."
+        },
+        {
+            "id": "architecture.flows.flow_must_propagate_write_false",
+            "statement": "FlowExecutor MUST propagate write=False to every step without exception. A step MUST NOT escalate to write=True even if its static params declare write=True. The write flag is caller-supplied and immutable for the duration of a Flow execution.",
+            "enforcement": "blocking",
+            "authority": "policy",
+            "phase": "runtime",
+            "rationale": "write=False is the dry-run guarantee. If any step could escalate write mode, the entire governance surface of dry-run testing collapses. The FlowExecutor is the single enforcement point; it must be unconditional."
+        },
+        {
+            "id": "architecture.flows.flow_declared_in_intent",
+            "statement": "Every Flow referenced by a Proposal or invoked by a Worker MUST be declared in .intent/flows/*.yaml and registered in FlowRegistry. Flows MUST NOT be declared as Python data structures in src/. The .intent/flows/ directory is the sole source of constitutional standing for a Flow.",
+            "enforcement": "blocking",
+            "authority": "policy",
+            "phase": "load",
+            "rationale": "Governance-relevant declarations — step sequences, step ordering, required/optional semantics — are governance decisions, not implementation details. They belong in .intent/, not in src/. A Flow not in .intent/flows/ is invisible to audit, cannot be governed, and cannot be referenced in a Proposal without constitutional standing."
+        },
+        {
+            "id": "architecture.flows.worker_must_not_hardwire_sequence",
+            "statement": "A Worker's run() method MUST NOT contain an explicit ordered sequence of ActionExecutor.execute() calls that could be extracted into a named Flow. Workers invoke Flows by flow_id or invoke single AtomicActions. Hardwired step sequences in Workers are Flows without constitutional standing.",
+            "enforcement": "advisory",
+            "authority": "policy",
+            "phase": "load",
+            "rationale": "A Worker that hardwires its pipeline is carrying work that belongs in a Flow. This makes the pipeline invisible to governance, prevents reuse across Workers, and prevents the FlowExecutor from applying required/optional semantics and write=False propagation. Advisory enforcement until existing Workers are migrated."
+        }
+    ]
+}

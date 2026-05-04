@@ -1,0 +1,126 @@
+# .intent/enforcement/mappings/architecture/flows.yaml
+#
+# Enforcement mappings for Flow primitive constitutional rules.
+# Based on: .intent/rules/architecture/flows.json
+# Constitutional alignment: .specs/papers/CORE-Flow.md
+#
+# The Flow primitive sits between AtomicAction (does one thing) and
+# Worker (constitutional officer). Three rules are engine-checkable
+# via regex or ast. Two require python_runtime documentation.
+# One is advisory pending Worker migration.
+
+mappings:
+
+  # Rule: atomic_action_must_not_compose
+  # An AtomicAction function that calls ActionExecutor.execute() internally
+  # is a Flow misclassified as an AtomicAction.
+  architecture.flows.atomic_action_must_not_compose:
+    engine: regex_gate
+    params:
+      forbidden_patterns:
+        # Detects ActionExecutor.execute() calls inside body/atomic/ files.
+        # A call to self.executor.execute() or ActionExecutor(...).execute()
+        # inside an @atomic_action function is the violation signal.
+        - "action_executor\\.execute\\("
+        - "ActionExecutor\\(.*\\)\\.execute\\("
+    scope:
+      applies_to:
+        - "src/body/atomic/**/*.py"
+      excludes:
+        # The executor itself is the legitimate dispatch site.
+        - "src/body/atomic/executor.py"
+        - "tests/**/*.py"
+        - "**/__init__.py"
+
+  # Rule: flow_must_not_post_to_blackboard
+  # Flows have no Blackboard presence. post_finding / post_report /
+  # post_heartbeat and raw blackboard INSERTs are Worker-only.
+  architecture.flows.flow_must_not_post_to_blackboard:
+    engine: regex_gate
+    params:
+      forbidden_patterns:
+        - "post_finding\\("
+        - "post_report\\("
+        - "post_heartbeat\\("
+        - "(?i)INSERT\\s+INTO\\s+(?:core\\.)?blackboard_entries"
+    scope:
+      applies_to:
+        - "src/body/flows/**/*.py"
+      excludes:
+        - "tests/**/*.py"
+        - "**/__init__.py"
+
+  # Rule: flow_must_not_create_proposals
+  # Proposal creation is a Will-layer operation owned by Workers.
+  architecture.flows.flow_must_not_create_proposals:
+    engine: regex_gate
+    params:
+      forbidden_patterns:
+        - "Proposal\\("
+        - "ProposalAction\\("
+        - "proposal_repository\\.save\\("
+        - "submit_proposal\\("
+    scope:
+      applies_to:
+        - "src/body/flows/**/*.py"
+      excludes:
+        - "tests/**/*.py"
+        - "**/__init__.py"
+
+  # Rule: flow_must_propagate_write_false
+  # FlowExecutor must propagate write=False to every step.
+  # Enforcement is structural — verified at Python runtime in executor.py.
+  architecture.flows.flow_must_propagate_write_false:
+    engine: python_runtime
+    params:
+      check_type: runtime_validation
+      enforcement_location: "body.flows.executor.FlowExecutor._execute_step"
+      note: >
+        write=False is propagated unconditionally in FlowExecutor._execute_step().
+        Any step that receives write=True does so only because the caller passed
+        write=True — not because the step escalated it. Verified by inspection
+        of _execute_action_step and _execute_flow_step signatures.
+    scope:
+      applies_to:
+        - "src/body/flows/executor.py"
+
+  # Rule: flow_declared_in_intent
+  # Every Flow must be declared in .intent/flows/*.yaml.
+  # No Flow declarations are permitted in src/.
+  architecture.flows.flow_declared_in_intent:
+    engine: regex_gate
+    params:
+      forbidden_patterns:
+        # register_flow() calls in src/ indicate a hardcoded declaration.
+        # Legitimate registration happens only in FlowRegistry.load() which
+        # reads from .intent/flows/ — never via direct calls.
+        - "register_flow\\("
+    scope:
+      applies_to:
+        - "src/**/*.py"
+      excludes:
+        # FlowRegistry._load_file() builds FlowDefinition objects — not register_flow calls.
+        # The registry itself is the legitimate loader.
+        - "src/body/flows/registry.py"
+        - "tests/**/*.py"
+        - "**/__init__.py"
+
+  # Rule: worker_must_not_hardwire_sequence
+  # ADVISORY — Workers should delegate step sequences to declared Flows.
+  # Not yet engine-checkable because the pattern (multiple sequential
+  # ActionExecutor.execute calls in run()) requires AST context to
+  # distinguish legitimate single-action dispatch from hardwired pipelines.
+  # Enforced by code review during Worker authoring.
+  architecture.flows.worker_must_not_hardwire_sequence:
+    engine: advisory
+    params:
+      note: >
+        Advisory enforcement. A Worker's run() method that contains an ordered
+        sequence of three or more ActionExecutor.execute() calls is a candidate
+        for Flow extraction. Each such sequence should be declared in
+        .intent/flows/ and invoked via FlowExecutor. Upgrade to ast_gate
+        enforcement once existing Workers are migrated.
+    scope:
+      applies_to:
+        - "src/**/workers/**/*.py"
+        - "src/shared/workers/**/*.py"
