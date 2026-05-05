@@ -2,10 +2,6 @@
 from typing import Final
 from uuid import UUID
 
-from shared.logger import getLogger
-
-
-logger = getLogger(__name__)
 import typer
 from rich.console import Console
 
@@ -35,7 +31,7 @@ async def show_proposal(
     async with service_registry.session() as session:
         proposal = await ProposalRepository(session).get(proposal_id)
     if not proposal:
-        logger.info("[red]Proposal %s not found.[/red]", proposal_id)
+        console.print(f"[red]Proposal {proposal_id} not found.[/red]")
         raise typer.Exit(1)
     print_detailed_info(proposal)
 
@@ -60,11 +56,8 @@ async def approve_proposal(
             proposal_id, approved_by=by, approval_authority=authority
         )
         await session.commit()
-    logger.info(
-        "[green]✅ Proposal %s APPROVED by %s under %s.[/green]",
-        proposal_id,
-        by,
-        authority,
+    console.print(
+        f"[green]✅ Proposal {proposal_id} APPROVED by {by} under {authority}.[/green]"
     )
 
 
@@ -81,15 +74,15 @@ async def execute_proposal(
     Runs the atomic action sequence defined in the proposal.
     """
     if not write:
-        logger.info("[yellow]💡 Dry-run: simulating execution steps...[/yellow]\n")
+        console.print("[yellow]💡 Dry-run: simulating execution steps...[/yellow]\n")
     executor = ProposalExecutor(ctx.obj)
     result = await executor.execute(proposal_id, CLI_CLAIMER_UUID, write=write)
     if result["ok"]:
-        logger.info(
-            "\n[bold green]✅ Execution Successful: %s[/bold green]", proposal_id
+        console.print(
+            f"\n[bold green]✅ Execution Successful: {proposal_id}[/bold green]"
         )
     else:
-        logger.info("\n[bold red]❌ Execution Failed: %s[/bold red]", proposal_id)
+        console.print(f"\n[bold red]❌ Execution Failed: {proposal_id}[/bold red]")
     print_execution_summary(result)
 
 
@@ -105,4 +98,4 @@ async def reject_proposal(
 
     async with service_registry.session() as session:
         await ProposalStateManager(session).reject(proposal_id, reason=reason)
-    logger.info("[yellow]🚫 Proposal %s REJECTED.[/yellow]", proposal_id)
+    console.print(f"[yellow]🚫 Proposal {proposal_id} REJECTED.[/yellow]")
