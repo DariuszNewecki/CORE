@@ -271,6 +271,15 @@ class Proposal:
             if not self.approved_by:
                 errors.append("Dangerous proposals require approval")
 
+        # 6. Must declare at least one file in scope (issue #191).
+        # ADR-021 D5 punted execution-time enforcement; commit_paths raises
+        # ValueError on empty scope.files at the very end of the success
+        # branch and restore_paths silently no-ops on the failure branch.
+        # Reject up-front here so the malformed proposal never reaches the
+        # executor.
+        if not self.scope.files:
+            errors.append("Proposal must declare at least one file in scope.files")
+
         return (len(errors) == 0, errors)
 
     # ID: bd436e51-c283-46cf-bbfe-4d9ae578296c
