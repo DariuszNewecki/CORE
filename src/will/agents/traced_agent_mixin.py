@@ -28,6 +28,6 @@ class TracedAgentMixin:
         return self.tracer.format_trace()
 
     # ID: f4a5b6c7-d8e9-0123-fabc-345678901234
-    def save_decision_trace(self) -> None:
+    async def save_decision_trace(self) -> None:
         """Persist the decision trace to disk via the tracer."""
-        self.tracer.save_trace()
+        await self.tracer.save_trace()

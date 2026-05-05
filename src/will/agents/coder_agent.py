@@ -103,10 +103,13 @@ class CoderAgent:
         previous_code: str | None = None,
     ) -> str:
         """Reflex entry point with v2.5 error handling."""
-        if pain_signal:
-            return await self._repair_code(task, goal, pain_signal, previous_code)
+        try:
+            if pain_signal:
+                return await self._repair_code(task, goal, pain_signal, previous_code)
 
-        return await self._generate_initial(task, goal)
+            return await self._generate_initial(task, goal)
+        finally:
+            await self.tracer.save_trace()
 
     async def _generate_initial(self, task: ExecutionTask, goal: str) -> str:
         """A2 pipeline + v2.5 Refusal Handling."""
