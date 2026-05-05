@@ -21,6 +21,8 @@ from shared.infrastructure.intent.vocabulary_projection import (
     CANONICAL_HEADING,
     VOCABULARY_JSON_REL,
     VOCABULARY_PAPER_REL,
+    VocabularyProjectionError,
+    load_vocabulary_projection,
     locate_canonical_section,
 )
 from shared.logger import getLogger
@@ -270,6 +272,14 @@ async def sync_intent(
     write: bool = typer.Option(
         False, "--write", help="Apply changes to the projection file."
     ),
+    check: bool = typer.Option(
+        False,
+        "--check",
+        help=(
+            "Verify the projection is fresh (CI gate per ADR-023 D6). "
+            "Exits 0 if healthy, 1 if drift or broken. Mutually exclusive with --write."
+        ),
+    ),
 ) -> None:
     """
     Regenerate a .intent/ projection from its canonical source paper.
@@ -282,8 +292,33 @@ async def sync_intent(
         console.print("Supported targets: vocabulary")
         raise typer.Exit(2)
 
+    if check and write:
+        console.print(
+            "[bold red]--check and --write are mutually exclusive.[/bold red]"
+        )
+        raise typer.Exit(2)
+
     core_context: CoreContext = ctx.obj
     repo_root: Path = core_context.git_service.repo_path
+
+    if check:
+        projection = load_vocabulary_projection(repo_root)
+        if isinstance(projection, VocabularyProjectionError):
+            console.print(projection.reason)
+            raise typer.Exit(1)
+        if projection.state == "drift":
+            console.print(
+                "vocabulary.json is stale — source_hash does not match the "
+                "current canonical section.\n"
+                "Run: core-admin intent sync vocabulary --write\n"
+                "Then commit the updated vocabulary.json before merging."
+            )
+            raise typer.Exit(1)
+        console.print(
+            "vocabulary.json is up to date (source_hash matches canonical section)"
+        )
+        return
+
     paper_path = repo_root / VOCABULARY_PAPER_REL
     json_path = repo_root / VOCABULARY_JSON_REL
 

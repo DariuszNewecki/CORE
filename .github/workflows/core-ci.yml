@@ -45,6 +45,9 @@ jobs:
       - name: Install dependencies
         run: poetry install --no-interaction
 
+      - name: Vocabulary freshness check
+        run: poetry run core-admin intent sync vocabulary --check
+
       - name: Lint (ruff/black via CLI)
         run: poetry run core-admin check lint
 
