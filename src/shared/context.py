@@ -59,6 +59,17 @@ class CoreContext:
 
     _context_service: Any = field(default=None, init=False, repr=False)
 
+    # ADR-025: factory used to create an ArchitecturalContextBuilder instance.
+    # Mirrors the context_service_factory triple — wired at the bootstrap
+    # factory site so CoderAgent reaches Priority 1 ("Semantic Architectural
+    # Context") prompt mode for build.tests and any other consumer.
+    context_builder_factory: Callable[[], Any] | None = field(
+        default=None,
+        repr=False,
+    )
+
+    _context_builder: Any = field(default=None, init=False, repr=False)
+
     @property
     # ID: 04a360f4-085c-4e48-a6df-b908fcf40520
     def db_available(self) -> bool:
@@ -83,3 +94,20 @@ class CoreContext:
             self._context_service = self.context_service_factory()
 
         return self._context_service
+
+    @property
+    # ID: 6b8a7ca6-2c75-4072-ba2b-3e1708b5f9bf
+    def context_builder(self) -> Any:
+        """
+        Get or create ArchitecturalContextBuilder instance. ADR-025.
+        """
+        if self._context_builder is None:
+            if self.context_builder_factory is None:
+                raise RuntimeError(
+                    "ArchitecturalContextBuilder factory is not configured on "
+                    "CoreContext. This should be wired in the composition root "
+                    "(CLI/API).",
+                )
+            self._context_builder = self.context_builder_factory()
+
+        return self._context_builder

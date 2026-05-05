@@ -2,7 +2,7 @@
 
 **Status:** Active
 **Owner:** Darek (Dariusz Newecki)
-**Last updated:** 2026-05-04
+**Last updated:** 2026-05-05
 **Definition:** The daemon runs continuously, the Blackboard clears, the codebase converges, and every action is visible.
 
 ---
@@ -107,6 +107,8 @@ Full rationale lives in each ADR file under `.specs/decisions/`. This table is t
 | ADR-021 | 2026-05-02 | Scoped autonomous git operations | `commit_paths` + `restore_paths` primitives; scope-collision yield pre-claim; C-light during dev phase. |
 | ADR-022 | 2026-05-03 | ContextBuilder vector evidence scope | Vector evidence scoped to intent layer; `core-code` intentionally not queried; code-similarity earns its own method when a consumer surfaces. |
 | ADR-023 | 2026-05-04 | Vocabulary canonical store — paper-first, machine projection derived | `CORE-Vocabulary.md` is canonical; `vocabulary.json` is a generated projection with `source_hash`; drift-detection rules + DEGRADED loader + CI gate enforce convergence. |
+| ADR-024 | 2026-05-05 | Local LLM cognitive role assignments — governed evaluation over assumption | Local role-to-model assignments derived from `scripts/eval_ollama.py` qualification, not parameter-count assumption; on aaiMac `qwen2.5-coder:3b` qualifies for LocalCoder/Architect/LocalReasoner/Planner, `qwen2.5:7b` for DocstringWriter, `phi4:14b` retained as spare; production assignments deferred until production hardware is specified. |
+| ADR-025 | 2026-05-05 | ArchitecturalContextBuilder wiring via CoreContext factory | `context_builder_factory` + lazy `@property context_builder` mirrors `context_service` pattern; rejected agent-internal and action-local construction. |
 
 ---
 

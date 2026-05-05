@@ -43,6 +43,51 @@ def _build_context_service() -> ContextService:
     )
 
 
+def _build_context_builder_factory(core_context: CoreContext):
+    """
+    Factory-of-factories for ArchitecturalContextBuilder. ADR-025.
+
+    Returns a zero-arg closure that, when called by CoreContext.context_builder,
+    reads cognitive_service and qdrant_service from the supplied core_context
+    and assembles a fully-wired ArchitecturalContextBuilder. Both services
+    must be populated on core_context by the time the closure is invoked
+    (the daemon lifespan does this; CLI commands that need Priority 1 mode
+    must do the same). Missing deps surface as a non-RuntimeError exception
+    so action_build_tests' JIT-fallback can catch and proceed with None.
+    """
+
+    def _factory():
+        from will.tools.architectural_context_builder import (
+            ArchitecturalContextBuilder,
+        )
+        from will.tools.module_anchor_generator import ModuleAnchorGenerator
+        from will.tools.policy_vectorizer import PolicyVectorizer
+
+        cognitive = core_context.cognitive_service
+        qdrant = core_context.qdrant_service
+        if cognitive is None or qdrant is None:
+            raise ValueError(
+                "context_builder factory requires cognitive_service and "
+                "qdrant_service to be populated on CoreContext; got "
+                f"cognitive_service={cognitive!r}, qdrant_service={qdrant!r}",
+            )
+
+        repo_root = settings.REPO_PATH
+        builder_path_resolver = PathResolver.from_repo(
+            repo_root=repo_root,
+            intent_root=settings.MIND,
+        )
+        return ArchitecturalContextBuilder(
+            policy_vectorizer=PolicyVectorizer(repo_root, cognitive, qdrant),
+            anchor_generator=ModuleAnchorGenerator(repo_root, cognitive, qdrant),
+            path_resolver=builder_path_resolver,
+            cognitive_service=cognitive,
+            qdrant_service=qdrant,
+        )
+
+    return _factory
+
+
 # ID: 140caea1-4d7b-4b80-ad31-80d0d2dc2a90
 def create_core_context(service_registry) -> CoreContext:
     """
@@ -80,7 +125,9 @@ def create_core_context(service_registry) -> CoreContext:
     core_context.path_resolver = path_resolver
     core_context.action_executor = ActionExecutor(core_context)
 
-    # 6. Attach the factory
+    # 6. Attach the factories
     core_context.context_service_factory = _build_context_service
+    # ADR-025
+    core_context.context_builder_factory = _build_context_builder_factory(core_context)
 
     return core_context

@@ -35,6 +35,7 @@ if TYPE_CHECKING:
     from mind.governance.audit_context import AuditorContext
     from shared.infrastructure.context.limb_workspace import LimbWorkspace
     from shared.infrastructure.context.service import ContextService
+    from will.tools.architectural_context_builder import ArchitecturalContextBuilder
 
 logger = getLogger(__name__)
 
@@ -57,12 +58,16 @@ class CoderAgent:
         repo_root: Path,
         context_service: ContextService | None = None,
         workspace: LimbWorkspace | None = None,
+        # ADR-025: pass-through to CodeGenerator so semantic_enabled becomes
+        # True when a builder is wired by the composition root.
+        context_builder: ArchitecturalContextBuilder | None = None,
     ) -> None:
         self.cognitive_service = cognitive_service
         self.executor = executor
         self.prompt_pipeline = prompt_pipeline
         self.auditor_context = auditor_context
         self.context_service = context_service
+        self.context_builder = context_builder
         self.workspace = workspace
 
         self.repo_root = Path(repo_root).resolve()
@@ -86,6 +91,7 @@ class CoderAgent:
             prompt_pipeline=prompt_pipeline,
             tracer=self.tracer,
             context_service=context_service,
+            context_builder=context_builder,
         )
 
     # ID: 6a1fa37d-fa07-40be-bdcc-2741cd608c9c

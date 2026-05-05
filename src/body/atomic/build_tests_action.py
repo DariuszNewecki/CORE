@@ -158,6 +158,20 @@ async def action_build_tests(
                     e,
                 )
 
+        # ADR-025: read ArchitecturalContextBuilder via the same JIT-fallback
+        # shape used for context_service above. RuntimeError = factory not
+        # wired in the composition root; any other exception = factory ran
+        # but its dependencies (cognitive_service / qdrant_service on
+        # CoreContext) were not yet populated. Either way we proceed with
+        # context_builder=None — CodeGenerator falls back to Priority 2/3.
+        context_builder = None
+        try:
+            context_builder = core_context.context_builder
+        except RuntimeError as e:
+            logger.warning("build.tests: ContextBuilder factory not configured: %s", e)
+        except Exception as e:
+            logger.warning("build.tests: failed to construct ContextBuilder: %s", e)
+
         CoderAgent = _ServiceLoader.import_class("will.agents.coder_agent.CoderAgent")
         coder_agent = CoderAgent(
             cognitive_service=cognitive_service,
@@ -166,6 +180,7 @@ async def action_build_tests(
             auditor_context=auditor_context,
             repo_root=repo_root,
             context_service=context_service,
+            context_builder=context_builder,
         )
     except Exception as e:
         logger.error("build.tests: failed to initialize CoderAgent: %s", e)
