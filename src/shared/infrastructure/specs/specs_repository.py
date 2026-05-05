@@ -25,6 +25,7 @@ from threading import Lock
 
 from shared.config import settings
 from shared.infrastructure.intent.errors import GovernanceError
+from shared.infrastructure.rooted_repository import RootedRepository
 from shared.logger import getLogger
 
 
@@ -32,7 +33,7 @@ logger = getLogger(__name__)
 
 
 # ID: e8c9b81f-dfe9-49d7-948d-35191e9fb0ba
-class SpecsRepository:
+class SpecsRepository(RootedRepository):
     """
     The canonical read-only repository for .specs — CORE's human intent layer.
 
@@ -42,28 +43,12 @@ class SpecsRepository:
     - Boundary-enforced: all paths are resolved against the specs root and
       rejected if they escape it.
     - No governance indexing: .specs/ contains markdown, not policies or rules.
+    - root + resolve_rel come from RootedRepository (issue #128 dedup).
     """
 
     # ID: 95a0b383-9a00-4b4d-8a0e-4938d0c3e435
     def __init__(self) -> None:
         self._root: Path = settings.SPECS.resolve()
-
-    @property
-    # ID: df92b220-3949-4523-b78f-91fa76f43728
-    def root(self) -> Path:
-        return self._root
-
-    # ID: 21da0aa6-70d0-40da-93e9-5ac9ef724d37
-    def resolve_rel(self, rel: str | Path) -> Path:
-        rel_path = Path(rel)
-        if rel_path.is_absolute():
-            raise GovernanceError(f"Absolute paths are not allowed: {rel_path}")
-
-        resolved = (self._root / rel_path).resolve()
-        if self._root not in resolved.parents and resolved != self._root:
-            raise GovernanceError(f"Path traversal detected: {rel_path}")
-
-        return resolved
 
     # ID: 10d45a45-e898-4cc1-b954-6bec364cf818
     def load_text(self, rel: str | Path) -> str:

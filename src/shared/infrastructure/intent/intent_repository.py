@@ -26,6 +26,7 @@ from typing import Any
 from shared.config import settings
 from shared.infrastructure.intent.errors import GovernanceError
 from shared.infrastructure.intent.intent_validator import validate_intent_tree
+from shared.infrastructure.rooted_repository import RootedRepository
 from shared.logger import getLogger
 from shared.processors.yaml_processor import strict_yaml_processor
 
@@ -50,7 +51,7 @@ class RuleRef:
 
 
 # ID: 698141bd-6440-4ffa-950b-a547ecee4699
-class IntentRepository:
+class IntentRepository(RootedRepository):
     """
     The canonical read-only repository for .intent.
 
@@ -59,6 +60,7 @@ class IntentRepository:
     - All parsing is deterministic.
     - No write operations are exposed.
     - Active directory list is read from META/intent_tree.yaml — never hardcoded.
+    - root + resolve_rel come from RootedRepository (issue #128 dedup).
     """
 
     _INDEX_LOCK = Lock()
@@ -83,23 +85,6 @@ class IntentRepository:
     # ID: ab9383d3-df49-4565-856b-c3d8846b405d
     def initialize(self) -> None:
         self._ensure_index()
-
-    @property
-    # ID: 67602e26-cc2b-42ab-8bf4-f756cb4dcde7
-    def root(self) -> Path:
-        return self._root
-
-    # ID: 5337424a-4386-4fd2-acda-842f37a6e8d4
-    def resolve_rel(self, rel: str | Path) -> Path:
-        rel_path = Path(rel)
-        if rel_path.is_absolute():
-            raise GovernanceError(f"Absolute paths are not allowed: {rel_path}")
-
-        resolved = (self._root / rel_path).resolve()
-        if self._root not in resolved.parents and resolved != self._root:
-            raise GovernanceError(f"Path traversal detected: {rel_path}")
-
-        return resolved
 
     # ID: 57f50f3a-fc99-4e47-9ddf-24da5f105863
     def load_document(self, path: Path) -> dict[str, Any]:
