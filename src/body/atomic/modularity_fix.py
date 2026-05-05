@@ -26,7 +26,10 @@ from shared.logger import getLogger
 
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from shared.context import CoreContext
+    from shared.infrastructure.storage.file_handler import FileHandler
 
 logger = getLogger(__name__)
 
@@ -63,8 +66,6 @@ def _load_split_confidence_threshold(repo_root) -> float:
 
 def _find_worst_modularity_violator(repo_root):
     """Find the src/ Python file with the most lines. Excludes __init__.py and tests."""
-    from pathlib import Path
-
     skip_dirs = {"tests", "__pycache__", ".venv", "venv", ".git", "work", "var"}
     src_root = repo_root / "src"
     if not src_root.exists():
@@ -178,6 +179,56 @@ def _collect_preserved_decorators(source: str) -> dict[str, set[str]]:
         if targets:
             out.setdefault(node.name, set()).update(targets)
     return out
+
+
+def _invalidate_split_pycache(
+    target: Path, file_handler: FileHandler, repo_root: Path
+) -> list[Path]:
+    """Remove stale .pyc artefacts left behind by a fix.modularity split.
+
+    After step 7 writes the new package files and unlinks the original
+    monolith, two regions can carry a .pyc that the daemon would otherwise
+    serve on restart:
+
+      - ``target.parent/__pycache__/<target.stem>.cpython-*.pyc`` —
+        cached bytecode of the deleted monolith.
+      - ``target.parent/<target.stem>`` (the new package directory) —
+        nested ``__pycache__`` directories that may exist from a
+        previous failed run.
+
+    Mutations route through ``FileHandler.remove_file`` /
+    ``FileHandler.remove_tree`` so the deletion is governed
+    (architecture.governance_basics.logic_mutation_governed) and
+    boundary-checked. Returns the absolute paths actually removed, for
+    caller logging.
+
+    See issue #212 / Failure 2 in CORE-ModularityLessons.md.
+    """
+    removed: list[Path] = []
+
+    old_pycache = target.parent / "__pycache__"
+    if old_pycache.is_dir():
+        for stale in old_pycache.glob(f"{target.stem}.cpython-*.pyc"):
+            try:
+                rel = stale.relative_to(repo_root)
+            except ValueError:
+                continue
+            file_handler.remove_file(str(rel))
+            removed.append(stale)
+
+    new_package_dir = target.parent / target.stem
+    if new_package_dir.is_dir():
+        for pycache_dir in new_package_dir.rglob("__pycache__"):
+            if not pycache_dir.is_dir():
+                continue
+            try:
+                rel = pycache_dir.relative_to(repo_root)
+            except ValueError:
+                continue
+            file_handler.remove_tree(str(rel))
+            removed.append(pycache_dir)
+
+    return removed
 
 
 def _check_decorator_conservation(
@@ -570,6 +621,22 @@ async def action_fix_modularity(
         if target.exists():
             target.unlink()
             logger.info("fix.modularity: deleted original monolith %s", rel_path)
+
+        # Issue #212 / Failure 2: invalidate stale .pyc so the daemon does
+        # not serve the old monolith's bytecode (or stale bytecode under
+        # the new package dir from previous failed runs) after restart.
+        for invalidated in _invalidate_split_pycache(
+            target, core_context.file_handler, repo_root
+        ):
+            try:
+                logger.info(
+                    "fix.modularity: invalidated stale bytecode %s",
+                    invalidated.relative_to(repo_root),
+                )
+            except ValueError:
+                logger.info(
+                    "fix.modularity: invalidated stale bytecode %s", invalidated
+                )
     else:
         logger.info(
             "fix.modularity: dry-run — would write %d files, delete %s",
