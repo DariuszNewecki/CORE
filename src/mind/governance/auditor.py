@@ -142,6 +142,9 @@ class ConstitutionalAuditor:
         if "any_crashed_rules" in policy["degraded_on"] and crashed_rule_ids:
             return AuditVerdict.DEGRADED
 
+        if "stats_error" in policy["degraded_on"] and stats.get("stats_error"):
+            return AuditVerdict.DEGRADED
+
         fail_sevs = {AuditSeverity[name] for name in policy["fail_severities"]}
         ignored_types = set(policy["ignored_finding_types"])
 

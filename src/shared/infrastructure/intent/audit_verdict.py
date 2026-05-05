@@ -40,7 +40,7 @@ from shared.models.audit_models import AuditSeverity
 logger = getLogger(__name__)
 
 
-_KNOWN_PRECONDITIONS: frozenset[str] = frozenset({"any_crashed_rules"})
+_KNOWN_PRECONDITIONS: frozenset[str] = frozenset({"any_crashed_rules", "stats_error"})
 
 _REQUIRED_LIST_KEYS: tuple[str, ...] = (
     "fail_severities",

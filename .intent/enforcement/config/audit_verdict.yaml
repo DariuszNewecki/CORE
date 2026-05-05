@@ -23,9 +23,10 @@
 #           introduced — code is known non-compliant.
 #
 # DEGRADED  The audit instrument itself failed: the verdict policy is
-#           missing/corrupt, or one or more rules crashed during
-#           evaluation. Compliance is unknown, not known-bad. DEGRADED
-#           must never be silently treated as PASS — see ADR-005 §3.
+#           missing/corrupt, one or more rules crashed during
+#           evaluation, or execution statistics could not be computed.
+#           Compliance is unknown, not known-bad. DEGRADED must never
+#           be silently treated as PASS — see ADR-005 §3.
 #
 # ─────────────────────────────────────────────────────────────────────
 # Why WARNINGs do not gate PASS
@@ -73,5 +74,12 @@ ignored_finding_types:
 
 # Preconditions that force DEGRADED regardless of finding severities.
 # any_crashed_rules → crashed_rule_ids set is non-empty.
+# stats_error       → get_dynamic_execution_stats() threw internally;
+#                     execution coverage is unknown. A zeroed stats
+#                     panel does not mean zero rules ran — it means
+#                     the stats computation itself failed. Compliance
+#                     status cannot be asserted when coverage is
+#                     unquantifiable.
 degraded_on:
   - any_crashed_rules
+  - stats_error
