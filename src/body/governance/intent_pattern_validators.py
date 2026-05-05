@@ -151,3 +151,47 @@ class PatternValidators:
             )
 
         return violations
+
+    @classmethod
+    # ID: 88f6ecff-74fe-469c-aa00-7fea3a8e1831
+    def validate(
+        cls,
+        code: str,
+        pattern_id: str,
+        component_type: str,
+        target_path: str = "",
+    ) -> list[ViolationReport]:
+        """Dispatch to the appropriate per-pattern validator by ``pattern_id``.
+
+        Issue #210: prior IntentGuard call invoked a method that did not
+        exist, raising AttributeError that was silently swallowed by a
+        broad except in build.tests. This classmethod is the canonical
+        entry point.
+
+        Returns an empty list when ``pattern_id`` does not correspond to
+        any per-pattern validator (e.g. ``"test_file"``). That is a
+        deliberate "no validator applies" signal — not a failure — and is
+        logged at INFO so the gap remains observable. Real validator
+        failures must surface as exceptions or violations from the
+        per-pattern validator itself, never as a silent empty list.
+
+        ``component_type`` is accepted for API stability with the existing
+        IntentGuard call shape but is currently unused — reserved for
+        future per-component-type dispatch.
+        """
+        dispatch = {
+            "inspect": cls.validate_inspect_pattern,
+            "action": cls.validate_action_pattern,
+            "check": cls.validate_check_pattern,
+            "run": cls.validate_run_pattern,
+        }
+        validator = dispatch.get(pattern_id)
+        if validator is None:
+            logger.info(
+                "PatternValidators: no validator for pattern_id=%r "
+                "(component_type=%r) — returning empty violations",
+                pattern_id,
+                component_type,
+            )
+            return []
+        return validator(code, target_path)

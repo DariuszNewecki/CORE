@@ -33,9 +33,83 @@ from shared.logger import getLogger
 
 
 if TYPE_CHECKING:
+    from body.governance.intent_guard import IntentGuard
     from shared.context import CoreContext
 
 logger = getLogger(__name__)
+
+
+# ID: faf222be-b3ab-43ca-b38d-97e1139d2f92
+def _run_intent_guard_check(
+    intent_guard: IntentGuard,
+    generated_code: str,
+    test_file: str,
+    start: float,
+) -> ActionResult | None:
+    """Run IntentGuard validation on generated test code, fail-loud on errors.
+
+    Issue #210: prior implementation wrapped this in a broad ``except
+    Exception`` that swallowed both:
+      - the AttributeError raised by ``PatternValidators.validate`` (no
+        such method existed before this fix), and
+      - any genuine validator failure on real generated code.
+
+    Either was logged as a WARNING and the action proceeded as if the
+    check had passed. This helper inverts that posture: a validator
+    exception OR ``is_valid=False`` causes ``build.tests`` to return
+    ``ok=False`` with the violations attached. The deliberate
+    "no-validator-for-this-pattern_id" case (e.g. ``test_file``) returns
+    an empty-violations result from PatternValidators — that is success,
+    not failure, and yields ``None`` here so the caller proceeds.
+
+    Returns:
+        ``None`` if validation passed (caller proceeds to write).
+        An ``ActionResult`` with ``ok=False`` if validation raised or
+        produced violations.
+    """
+    try:
+        validation = intent_guard.validate_generated_code(
+            code=generated_code,
+            pattern_id="test_file",
+            component_type="test",
+            target_path=test_file,
+        )
+    except Exception as e:
+        logger.error("build.tests: IntentGuard validation raised: %s", e, exc_info=True)
+        return ActionResult(
+            action_id="build.tests",
+            ok=False,
+            data={
+                "error": f"IntentGuard validation failed: {e}",
+                "test_file": test_file,
+            },
+            duration_sec=time.time() - start,
+        )
+
+    if not validation.is_valid:
+        logger.error(
+            "build.tests: IntentGuard found %d violation(s) in generated code",
+            len(validation.violations),
+        )
+        return ActionResult(
+            action_id="build.tests",
+            ok=False,
+            data={
+                "error": "intent_guard_violations",
+                "violations": [
+                    {
+                        "rule_name": getattr(v, "rule_name", "unknown"),
+                        "message": getattr(v, "message", ""),
+                        "severity": getattr(v, "severity", "error"),
+                    }
+                    for v in validation.violations
+                ],
+                "test_file": test_file,
+            },
+            duration_sec=time.time() - start,
+        )
+
+    return None
 
 
 @register_action(
@@ -235,22 +309,13 @@ async def action_build_tests(
             duration_sec=time.time() - start,
         )
 
-    # 5. IntentGuard validation
-    try:
-        intent_guard = get_intent_guard(repo_path=repo_root)
-        validation = intent_guard.validate_generated_code(
-            code=generated_code,
-            pattern_id="test_file",
-            component_type="test",
-            target_path=test_file,
-        )
-        if not validation.ok:
-            logger.warning(
-                "build.tests: IntentGuard flagged generated code: %s",
-                validation.data if hasattr(validation, "data") else validation,
-            )
-    except Exception as e:
-        logger.warning("build.tests: IntentGuard check failed: %s", e)
+    # 5. IntentGuard validation — fail loud (issue #210).
+    intent_guard = get_intent_guard(repo_path=repo_root)
+    validation_failure = _run_intent_guard_check(
+        intent_guard, generated_code, test_file, start
+    )
+    if validation_failure is not None:
+        return validation_failure
 
     # 6. Write file if requested
     if write:
