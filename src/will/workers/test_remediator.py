@@ -22,7 +22,7 @@ The autonomous test loop this participates in:
       reads open findings from Blackboard
       groups findings by source_file
       creates one Proposal per source_file (deduped per source_file)
-      marks findings resolved
+      defers findings to the proposal (CORE-Finding.md §7 / ADR-010)
           ↓
   ProposalConsumerWorker
       executes APPROVED proposals via ProposalExecutor
@@ -37,8 +37,10 @@ Design constraints:
   different source files are valid and must not block each other
 - Never creates a second proposal for a source_file that already has an
   active 'build.tests' proposal
-- Marks Blackboard entries resolved AFTER the proposal for their source_file
-  is persisted (not before)
+- Defers Blackboard entries to the proposal AFTER the proposal for their
+  source_file is persisted (not before). The §7a revival path in
+  ProposalStateManager.mark_failed depends on this Finding→Proposal
+  linkage being recorded in payload.
 """
 
 from __future__ import annotations
@@ -100,9 +102,9 @@ class TestRemediatorWorker(Worker):
         1. Claim open test.missing + test.failure findings from Blackboard
         2. Group findings by payload["source_file"]
         3. For each group: check per-source_file dedup against active
-           build.tests proposals; create a proposal and resolve that
-           group's findings on success, or release that group's findings
-           on dedup skip
+           build.tests proposals; create a proposal and defer that
+           group's findings to it on success, or release that group's
+           findings on dedup skip
         4. Post blackboard report
         """
         open_findings = await self._load_open_findings()
@@ -131,7 +133,7 @@ class TestRemediatorWorker(Worker):
 
         proposals_created: list[str] = []
         source_files_skipped: list[str] = []
-        entries_resolved: int = 0
+        entries_deferred: int = 0
         entries_released: int = 0
 
         for source_file, findings in by_source.items():
@@ -150,16 +152,23 @@ class TestRemediatorWorker(Worker):
 
             if proposal_id:
                 proposals_created.append(source_file)
-                resolved = await self._resolve_entries([f["id"] for f in findings])
-                entries_resolved += resolved
+                # ADR-010 / CORE-Finding.md §7: on successful proposal
+                # creation, transition findings to 'deferred_to_proposal'
+                # and store proposal_id in their payload. The §7a revival
+                # contract in ProposalStateManager.mark_failed depends on
+                # this linkage.
+                deferred = await self._defer_to_proposal(
+                    [f["id"] for f in findings], proposal_id
+                )
+                entries_deferred += deferred
                 logger.info(
                     "TestRemediatorWorker: created proposal '%s' for action '%s' "
-                    "source_file='%s' (%d findings, %d entries resolved)",
+                    "source_file='%s' (%d findings, %d entries deferred to proposal)",
                     proposal_id,
                     _TARGET_ACTION_ID,
                     source_file,
                     len(findings),
-                    resolved,
+                    deferred,
                 )
 
         await self.post_report(
@@ -169,7 +178,7 @@ class TestRemediatorWorker(Worker):
                 "source_files": len(by_source),
                 "proposals_created": len(proposals_created),
                 "source_files_skipped_dedup": len(source_files_skipped),
-                "entries_resolved": entries_resolved,
+                "entries_deferred": entries_deferred,
                 "entries_released": entries_released,
                 "created_for_source_files": proposals_created,
                 "skipped_source_files": source_files_skipped,
@@ -178,12 +187,12 @@ class TestRemediatorWorker(Worker):
 
         logger.info(
             "TestRemediatorWorker: done — %d proposals created across %d "
-            "source file group(s), %d skipped (dedup), %d entries resolved, "
+            "source file group(s), %d skipped (dedup), %d entries deferred, "
             "%d entries released",
             len(proposals_created),
             len(by_source),
             len(source_files_skipped),
-            entries_resolved,
+            entries_deferred,
             entries_released,
         )
 
@@ -388,21 +397,40 @@ class TestRemediatorWorker(Worker):
             )
             return None
 
-    async def _resolve_entries(self, entry_ids: list[str]) -> int:
+    # ID: 0337c11c-7b70-4106-9e1f-3610556ed25c
+    async def _defer_to_proposal(self, entry_ids: list[str], proposal_id: str) -> int:
         """
-        Mark Blackboard entries as resolved.
-        Returns count of entries successfully resolved.
-        """
-        from body.services.service_registry import service_registry
+        Transition Blackboard entries to 'deferred_to_proposal' and store
+        the proposal_id in each entry's payload.
 
+        Happy-path terminal transition for findings consumed into a newly-
+        created build.tests proposal. Mirrors ViolationRemediatorWorker's
+        contract (CORE-Finding.md §7 row 4, ADR-010); the §7a revival
+        path in ProposalStateManager.mark_failed depends on this linkage.
+
+        Returns count of entries successfully deferred. Fail-soft: if the
+        service call raises, logs the error and returns 0 rather than
+        propagating — matches the existing pattern of _release_entries.
+        The caller's `proposals_created` list is already populated by the
+        time this runs, so a revival-layer failure here does not reverse
+        the proposal creation.
+        """
         if not entry_ids:
             return 0
 
+        from body.services.service_registry import service_registry
+
         try:
             blackboard_service = await service_registry.get_blackboard_service()
-            return await blackboard_service.resolve_entries(entry_ids)
+            return await blackboard_service.defer_entries_to_proposal(
+                entry_ids, proposal_id
+            )
         except Exception as e:
-            logger.error("TestRemediatorWorker: failed to resolve entries: %s", e)
+            logger.error(
+                "TestRemediatorWorker: failed to defer entries to proposal %s: %s",
+                proposal_id,
+                e,
+            )
             return 0
 
     async def _release_entries(self, entry_ids: list[str]) -> int:
