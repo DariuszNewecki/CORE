@@ -11,15 +11,6 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 
-# Warm the body.atomic package before importing the view module. Loading
-# `cli.logic.autonomy.views` cold pulls `will.autonomy.proposal`, which
-# pulls `body.atomic.registry` via `body.atomic/__init__.py`, which in
-# turn pulls `body.atomic.proposal_lifecycle_actions` — a back-reference
-# to `will.autonomy.proposal` that triggers a partially-initialized-module
-# ImportError. Importing body.atomic up front breaks the cycle. The CLI
-# binary side-steps this naturally because action registration runs before
-# any view import; tests don't have that luxury.
-import body.atomic  # noqa: F401  (import-for-side-effect)
 from cli.logic.autonomy.views import print_detailed_info
 from will.autonomy.proposal import (
     Proposal,

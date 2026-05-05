@@ -14,10 +14,6 @@ from __future__ import annotations
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
-# body.atomic must finish loading before will.agents pulls in
-# will.autonomy.proposal — pre-existing body.atomic ↔ will.autonomy
-# circular import surfaces during isolated collection otherwise.
-import body.atomic  # noqa: F401  -- import-order side effect, not a usage
 from will.agents.coder_agent import CoderAgent
 
 

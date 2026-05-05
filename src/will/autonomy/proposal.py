@@ -23,7 +23,6 @@ from enum import Enum
 from typing import Any
 from uuid import uuid4
 
-from body.atomic.registry import action_registry
 from shared.logger import getLogger
 
 
@@ -154,6 +153,8 @@ class ProposalAction:
     def validate_exists(self) -> bool:
         """Verify the referenced action or flow exists in its registry."""
         if self.action_id is not None:
+            from body.atomic.registry import action_registry
+
             return action_registry.get(self.action_id) is not None
         if self.flow_id is not None:
             from body.flows.registry import flow_registry
@@ -290,6 +291,8 @@ class Proposal:
         Returns:
             RiskAssessment with overall risk and factors
         """
+        from body.atomic.registry import action_registry
+
         action_risks = {}
         risk_factors = []
 

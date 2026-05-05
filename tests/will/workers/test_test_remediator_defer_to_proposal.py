@@ -21,12 +21,6 @@ import pytest
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-# body.atomic is imported first to force it to load fully before
-# will.workers.test_remediator pulls in will.autonomy.proposal — otherwise the
-# body.atomic ↔ will.autonomy circular import (pre-existing) leaves
-# ProposalStatus undefined at collection time. The same workaround is implicit
-# in tests that run after another file has already loaded body.atomic.
-import body.atomic  # noqa: F401  -- import-order side effect, not a usage
 from body.services.service_registry import service_registry
 from shared.infrastructure.database.models.workers import BlackboardEntry
 from shared.infrastructure.database.session_manager import get_session
