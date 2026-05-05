@@ -87,7 +87,7 @@ async def test_approve_rejects_falsy_authority(
     await db_session.commit()
 
     try:
-        with pytest.raises(ValueError, match="NFR.5"):
+        with pytest.raises(ValueError, match=r"NFR\.5"):
             await ProposalStateManager(db_session).approve(
                 proposal_id,
                 approved_by="autonomous_self_promote",

@@ -4,16 +4,13 @@ Tests all public symbols: perform_parallel_actions, lock_action, wait_action,
 AtomicActionExecutor, SyncActionRegistry.
 """
 
+from unittest.mock import Mock
+
 import pytest
-from typing import Any, Dict, List, Optional
-from unittest.mock import Mock, patch
 
 from src.body.atomic.sync_actions import (
-    perform_parallel_actions,
     lock_action,
-    wait_action,
-    AtomicActionExecutor,
-    SyncActionRegistry,
+    perform_parallel_actions,
 )
 
 

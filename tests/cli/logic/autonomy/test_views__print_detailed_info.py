@@ -20,9 +20,8 @@ from datetime import UTC, datetime
 # binary side-steps this naturally because action registration runs before
 # any view import; tests don't have that luxury.
 import body.atomic  # noqa: F401  (import-for-side-effect)
-
-from cli.logic.autonomy.views import print_detailed_info  # noqa: E402
-from will.autonomy.proposal import (  # noqa: E402
+from cli.logic.autonomy.views import print_detailed_info
+from will.autonomy.proposal import (
     Proposal,
     ProposalAction,
     ProposalScope,
