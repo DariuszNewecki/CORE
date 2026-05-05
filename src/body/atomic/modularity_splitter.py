@@ -15,6 +15,7 @@ Constitutional note:
 from __future__ import annotations
 
 import ast
+from collections.abc import Iterable
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -24,6 +25,24 @@ from shared.logger import getLogger
 
 
 logger = getLogger(__name__)
+
+
+# Issue #213 / Failure 5 in CORE-ModularityLessons.md.
+# Names that are public-by-syntax (no leading underscore) but private-by-
+# convention. They must not be re-exported from a split package's
+# __init__.py — doing so leaks implementation details (e.g. each module's
+# logger instance) into the package's public API surface.
+_PRIVATE_BY_CONVENTION: frozenset[str] = frozenset({"logger", "log", "_logger", "_log"})
+
+
+def _filter_public_reexports(names: Iterable[str]) -> list[str]:
+    """Drop underscore-prefixed and convention-private names from a re-export
+    symbol list. Used at every __init__.py emission site so both passes apply
+    the same predicate. See issue #213.
+    """
+    return [
+        n for n in names if not n.startswith("_") and n not in _PRIVATE_BY_CONVENTION
+    ]
 
 
 @dataclass
@@ -229,9 +248,15 @@ class ModularitySplitter:
             target = package_path / f"{mod.module_name}.py"
             result.files.append((target, content))
 
-            # __init__.py re-export line for plan symbols
-            symbols_csv = ", ".join(mod.symbols)
-            init_lines.append(f"from .{mod.module_name} import {symbols_csv}")
+            # __init__.py re-export line for plan symbols (issue #213:
+            # filter underscore-prefixed and convention-private names; skip
+            # the line entirely if filtering empties the symbol set,
+            # otherwise we'd emit malformed `from .mod import` syntax).
+            public_symbols = _filter_public_reexports(mod.symbols)
+            if public_symbols:
+                init_lines.append(
+                    f"from .{mod.module_name} import {', '.join(public_symbols)}"
+                )
 
             # Track module-level assigns referenced by this module's symbols
             refs = self._collect_all_refs(top_level, mod.symbols)
@@ -243,13 +268,18 @@ class ModularitySplitter:
                 ):
                     assign_to_first_module[assign_name] = mod.module_name
 
-        # Re-export public module-level assignments in __init__.py
+        # Re-export public module-level assignments in __init__.py (issue
+        # #213: same convention-private filter as plan-symbol pass; skip
+        # empty groups so we never emit a malformed `from .X import` line).
         reexport_by_module: dict[str, list[str]] = {}
         for name, mod_name in assign_to_first_module.items():
-            if not name.startswith("_"):
-                reexport_by_module.setdefault(mod_name, []).append(name)
+            if name.startswith("_") or name in _PRIVATE_BY_CONVENTION:
+                continue
+            reexport_by_module.setdefault(mod_name, []).append(name)
 
         for mod_name, names in sorted(reexport_by_module.items()):
+            if not names:
+                continue
             init_lines.append(f"from .{mod_name} import {', '.join(sorted(names))}")
 
         init_lines.append("")  # trailing newline
