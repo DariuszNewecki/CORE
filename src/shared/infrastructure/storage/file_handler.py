@@ -19,6 +19,7 @@ from mind.governance.violation_report import ConstitutionalViolationError
 from shared.config import settings
 from shared.logger import getLogger
 from shared.path_resolver import PathResolver
+from shared.utils.common_knowledge import ensure_trailing_newline
 
 
 logger = getLogger(__name__)
@@ -116,6 +117,8 @@ class FileHandler:
             # (Note: Uniqueness check is DELEGATED to Feature layer Step 2)
             if "src/" in rel_path:
                 content = self._ensure_id_anchors(content)
+
+        content = ensure_trailing_newline(content)
 
         # 4. THE EXECUTION: Atomic write
         abs_path = self._resolve_repo_path(rel_path)
