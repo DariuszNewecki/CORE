@@ -57,3 +57,18 @@ class SecretNotFoundError(SecretsError):
     def __init__(self, key: str):
         super().__init__(f"Secret not found: {key}")
         self.key = key
+
+
+# ID: 7e3c1a8f-4d92-4b6a-9c5d-1f8b2e6a3d04
+class GovernanceInstrumentError(CoreException):
+    """
+    Raised when a governance instrument (e.g. the vocabulary projection)
+    is in BROKEN state and execution must halt rather than proceed without
+    it. Per ADR-023 D4, callers should treat this as a controlled stop —
+    re-queue or mark work as blocked, not failed.
+    """
+
+    def __init__(self, instrument: str, reason: str):
+        super().__init__(f"Governance instrument '{instrument}' is degraded: {reason}")
+        self.instrument = instrument
+        self.reason = reason

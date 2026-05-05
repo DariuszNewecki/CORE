@@ -1,0 +1,46 @@
+{
+    "$schema": "META/rule_document.schema.json",
+    "kind": "rule_document",
+    "metadata": {
+        "id": "rules.governance.vocabulary_canonical_store",
+        "title": "Vocabulary Canonical Store Integrity",
+        "version": "1.0.0",
+        "authority": "constitution",
+        "phase": "audit",
+        "status": "active"
+    },
+    "rules": [
+        {
+            "id": "governance.vocabulary.projection_must_match_canonical",
+            "statement": "The vocabulary projection at .intent/META/vocabulary.json MUST be consistent with the canonical section of .specs/papers/CORE-Vocabulary.md at all times. Specifically: (1) every term in the canonical section must have a matching entry in the projection; (2) every entry in the projection must correspond to a term in the canonical section; (3) the projection's source_hash must equal the SHA-256 of the canonical section text, fence-to-fence inclusive. Any of these three conditions failing is a drift violation.",
+            "enforcement": "blocking",
+            "authority": "constitution",
+            "phase": "audit",
+            "rationale": "vocabulary.json is a generated projection of CORE-Vocabulary.md's canonical section. If the projection diverges from its source, the runtime vocabulary loader is operating on stale or incorrect term definitions — the very drift this ADR-023 mechanism exists to prevent. Drift in the constitutional vocabulary mechanism is the worst class of drift CORE can experience. The DEGRADED runtime mode (ADR-023 D4) covers instrument failure; this rule covers content drift while the instrument works. Engine implementation and enforcement mapping are wired as part of ADR-023 Part 3/4 implementation. Until then this rule is declared-only."
+        },
+        {
+            "id": "governance.vocabulary.canonical_format_must_validate",
+            "statement": "The canonical section of .specs/papers/CORE-Vocabulary.md MUST conform to the grammar declared in ADR-023 D2: delimited by a single '## Canonical Vocabulary (Machine Section)' heading, containing exactly one markdown table, with required columns term | definition | not | authoritative_paper in that order, all required cells non-empty, and no nested tables, inline images, or HTML tags inside cells.",
+            "enforcement": "blocking",
+            "authority": "constitution",
+            "phase": "audit",
+            "rationale": "The canonical section grammar is the contract between human authors and the regen command. A malformed canonical section causes the regen to fail or produce incorrect output, propagating corruption into vocabulary.json and potentially triggering DEGRADED mode. This rule is the upstream guard that fails fast on authoring errors before they reach the regen step. Engine implementation and enforcement mapping are wired as part of ADR-023 Part 3/4 implementation. Until then this rule is declared-only."
+        },
+        {
+            "id": "governance.vocabulary.authoritative_source_must_be_paper",
+            "statement": "Every term entry in .specs/papers/CORE-Vocabulary.md's canonical section and in .intent/META/vocabulary.json MUST declare an authoritative_paper value that resolves to an existing file within the governed tree (.specs/ or .intent/). Additionally, the authoritative_paper value for each term in the projection MUST exactly match the canonical section's value for the same term. A path that does not resolve to an existing file, or a mismatch between projection and canonical section for the same term, is a violation.",
+            "enforcement": "blocking",
+            "authority": "constitution",
+            "phase": "audit",
+            "rationale": "The authoritative_paper field is the traceability link from a canonical term definition back to its constitutional source paper. A path that does not resolve to an existing file is a dangling reference — the term has no authoritative source CORE can consult. A mismatch between the projection and canonical section values would indicate manual JSON tampering that survived regen. Both conditions undermine the constitutional weight of the vocabulary. Path validity is existence-based, not prefix-based: .intent/constitution/ and .specs/northstar/ are first-class governed locations per the governor's clarification of ADR-023 D5.3. Engine implementation and enforcement mapping are wired as part of ADR-023 Part 3/4 implementation. Until then this rule is declared-only."
+        },
+        {
+            "id": "governance.vocabulary.no_direct_json_import",
+            "statement": "No src/ module other than src/shared/infrastructure/intent/vocabulary_projection.py MAY read .intent/META/vocabulary.json directly, whether by import, open(), json.load(), or any other file access mechanism. All vocabulary term access MUST go through the sanctioned loader.",
+            "enforcement": "blocking",
+            "authority": "constitution",
+            "phase": "audit",
+            "rationale": "vocabulary.json is a generated projection artifact. Code that reads it directly bypasses the loader's healthy/drift/broken state management (ADR-023 D4): it will silently consume stale or drifted data without triggering DEGRADED mode. The sanctioned loader at vocabulary_projection.py is the only code path that performs hash verification and emits the drift_detected flag. Direct file access also creates coupling to the artifact's location and format that belongs exclusively to the loader. Engine implementation and enforcement mapping are wired as part of ADR-023 Part 3/4 implementation. Until then this rule is declared-only."
+        }
+    ]
+}

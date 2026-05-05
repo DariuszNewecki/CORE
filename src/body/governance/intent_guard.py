@@ -15,6 +15,10 @@ from mind.governance.policy_rule import PolicyRule
 from mind.governance.rule_extractor import extract_executable_rules
 from mind.governance.violation_report import ViolationReport
 from shared.infrastructure.intent.intent_repository import get_intent_repository
+from shared.infrastructure.intent.vocabulary_projection import (
+    VocabularyProjectionError,
+    load_vocabulary_projection,
+)
 from shared.logger import getLogger
 from shared.models.constitutional_validation import ConstitutionalValidationResult
 from shared.path_resolver import PathResolver
@@ -199,7 +203,38 @@ class IntentGuard:
         │ authority="policy", error    │ Only when strict_mode  │
         │ authority="policy", warning  │ Never                  │
         └──────────────────────────────┴────────────────────────┘
+
+        DEGRADED pre-check (ADR-023 D4): if the vocabulary projection is
+        BROKEN, governance evaluation cannot run — block all writes and
+        return a single instrument-degraded violation. This preserves the
+        invariant that governance evaluation is only possible when the
+        governance instrument is healthy.
         """
+        projection = load_vocabulary_projection(self.repo_path)
+        if isinstance(projection, VocabularyProjectionError):
+            logger.error(
+                "🛑 Governance DEGRADED: vocabulary projection broken — %s",
+                projection.reason,
+            )
+            return ConstitutionalValidationResult(
+                is_valid=False,
+                violations=[
+                    ViolationReport(
+                        rule_name="governance.instrument_degraded",
+                        path=", ".join(proposed_paths) if proposed_paths else "<n/a>",
+                        message=(
+                            "Governance vocabulary projection is broken; "
+                            f"writes are blocked until restored. Reason: {projection.reason}. "
+                            "Run `core-admin intent sync vocabulary --write` to repair."
+                        ),
+                        severity="error",
+                        suggested_fix="Repair .intent/META/vocabulary.json via the regen command.",
+                        source_policy="constitution",
+                    )
+                ],
+                source="IntentGuard",
+            )
+
         violations: list[ViolationReport] = []
         has_hard_invariant_violation = False
 

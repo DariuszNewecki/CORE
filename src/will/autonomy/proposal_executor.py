@@ -22,8 +22,13 @@ from body.atomic.executor import ActionExecutor
 from body.flows.executor import FlowExecutor
 from body.services.service_registry import service_registry
 from mind.governance.violation_report import extract_error_data
+from shared.exceptions import GovernanceInstrumentError
 from shared.infrastructure.intent.autonomy_dirty_tree import (
     load_autonomy_dirty_tree_policy,
+)
+from shared.infrastructure.intent.vocabulary_projection import (
+    VocabularyProjectionError,
+    load_vocabulary_projection,
 )
 from shared.logger import getLogger
 from will.autonomy.proposal import ProposalStatus
@@ -125,6 +130,16 @@ class ProposalExecutor:
         write: bool = False,
     ) -> dict[str, Any]:
         start_time = time.time()
+
+        # DEGRADED pre-check (ADR-023 D4): refuse to execute proposals while
+        # the vocabulary projection is broken. Caller (ProposalConsumerWorker)
+        # should treat this as blocked, not failed — re-queue when restored.
+        projection = load_vocabulary_projection()
+        if isinstance(projection, VocabularyProjectionError):
+            raise GovernanceInstrumentError(
+                instrument="vocabulary_projection",
+                reason=projection.reason,
+            )
 
         async with service_registry.session() as session:
             repo = ProposalRepository(session)

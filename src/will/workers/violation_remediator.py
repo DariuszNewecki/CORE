@@ -79,6 +79,10 @@ from __future__ import annotations
 
 from typing import Any
 
+from shared.infrastructure.intent.vocabulary_projection import (
+    VocabularyProjectionError,
+    load_vocabulary_projection,
+)
 from shared.logger import getLogger
 from shared.workers.base import Worker
 from will.autonomy.proposal import (
@@ -166,6 +170,26 @@ class ViolationRemediatorWorker(Worker):
              - create-failed: released back to open
         6. Post blackboard report
         """
+        # DEGRADED pre-check (ADR-023 D4): if the vocabulary projection is
+        # broken, refuse to claim findings this cycle. Post a single
+        # governance.instrument_degraded finding so the condition is
+        # visible on the Blackboard and an operator can act on it.
+        projection = load_vocabulary_projection()
+        if isinstance(projection, VocabularyProjectionError):
+            logger.error(
+                "ViolationRemediatorWorker: skipping cycle — vocabulary projection broken: %s",
+                projection.reason,
+            )
+            await self.post_finding(
+                "governance.instrument_degraded",
+                {
+                    "instrument": "vocabulary_projection",
+                    "reason": projection.reason,
+                    "worker": self.declaration_name,
+                },
+            )
+            return
+
         # 1. Load open findings
         open_findings = await self._load_open_findings()
 
