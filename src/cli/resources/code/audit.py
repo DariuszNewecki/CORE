@@ -12,11 +12,12 @@ from __future__ import annotations
 
 import json
 import time
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import typer
 from rich.console import Console
+from sqlalchemy import text
 
 from body.services.file_service import FileService
 from body.services.service_registry import service_registry
@@ -33,12 +34,14 @@ from mind.governance.audit_report_writer import build_auto_ignored_markdown
 from mind.governance.auditor import ConstitutionalAuditor
 from mind.governance.filtered_audit import run_filtered_audit
 from shared.activity_logging import activity_run
+from shared.logger import getLogger
 from shared.models import AuditFinding, AuditSeverity
 
 from .hub import app
 
 
 console = Console()
+logger = getLogger(__name__)
 
 FINDINGS_FILE = "reports/audit_findings.json"
 EVIDENCE_FILE = "reports/audit/latest_audit.json"
@@ -157,6 +160,57 @@ async def audit_command(
                 "verdict": verdict_str,
             }
             file_service.write_file(EVIDENCE_FILE, json.dumps(evidence, indent=2))
+
+            # Persist run to core.audit_runs (best-effort; never aborts the
+            # CLI on failure). Dashboard Panel 4 reads this table — without
+            # the row it shows "never". Skipped for filtered runs (--rule /
+            # --policy) since those are partial, not full audit runs.
+            try:
+                sha = core_context.git_service.get_current_commit()[:40]
+            except Exception:
+                sha = ""
+
+            now_utc = datetime.now(UTC)
+            audit_run_started_at = now_utc - timedelta(seconds=duration)
+            audit_run_finished_at = now_utc
+
+            try:
+                async with service_registry.session() as audit_runs_session:
+                    async with audit_runs_session.begin():
+                        result = await audit_runs_session.execute(
+                            text(
+                                """
+                                INSERT INTO core.audit_runs (
+                                    source, commit_sha, score, passed,
+                                    violations_found, started_at, finished_at
+                                )
+                                VALUES (
+                                    :source, :sha, :score, :passed,
+                                    :violations_found, :started_at, :finished_at
+                                )
+                                RETURNING id
+                                """
+                            ),
+                            dict(
+                                source="manual",
+                                sha=sha,
+                                score=None,
+                                passed=results["passed"],
+                                violations_found=len(processed_findings),
+                                started_at=audit_run_started_at,
+                                finished_at=audit_run_finished_at,
+                            ),
+                        )
+                        audit_run_id = result.scalar_one()
+                logger.debug(
+                    "audit_command: persisted core.audit_runs row id=%s",
+                    audit_run_id,
+                )
+            except Exception as exc:
+                logger.warning(
+                    "audit_command: failed to persist core.audit_runs row: %s",
+                    exc,
+                )
 
     # 3. Presentation
     raw_stats = results.get("stats", {})
