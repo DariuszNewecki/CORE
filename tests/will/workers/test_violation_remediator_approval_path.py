@@ -50,7 +50,7 @@ async def test_worker_persists_with_authority(db_session: AsyncSession) -> None:
         }
     ]
 
-    proposal_id = await worker._create_proposal("fix.format", findings)
+    proposal_id = await worker._create_proposal("fix.format", "action", findings)
     assert proposal_id is not None, (
         "_create_proposal returned None — proposal was not persisted"
     )

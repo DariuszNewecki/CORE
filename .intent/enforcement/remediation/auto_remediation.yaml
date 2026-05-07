@@ -31,11 +31,20 @@
 #   Only entries >= 0.80 will produce proposals.
 #   PENDING entries are documented for roadmap visibility only.
 #
+# FLOW ENTRIES:
+#   Entries may use 'flow' instead of 'action' to dispatch through FlowExecutor.
+#   Flow-based proposals always have approval_required=True (compute_risk()
+#   classifies flows as "moderate"). Human approval is required before execution.
+#
 # ACTION IDs MUST match exactly what is registered in body/atomic/.
 # Registered actions (as of 2026-04-05):
 #   fix.atomic_actions, fix.docstrings, fix.duplicate_ids, fix.format,
 #   fix.headers, fix.ids, fix.imports, fix.logging, fix.modularity,
 #   fix.placeholders
+#
+# FLOW IDs MUST match exactly what is registered in body/flows/registry.
+# Registered flows (as of 2026-05-05):
+#   flow.build_tests, flow.fix_code, flow.dev_sync, flow.sync_state
 
 mappings:
   # ===========================================================================
@@ -56,8 +65,8 @@ mappings:
     confidence: 0.90
     risk: low
     description: >
-      Regenerate fresh UUIDs for any duplicate # ID: comment tags.
-      Safe: only rewrites comment lines, never touches logic.
+      Regenerate fresh UUIDs for any duplicate # ID: comment tags. Safe: only
+      rewrites comment lines, never touches logic.
     status: ACTIVE
 
   purity.no_todo_placeholders:
@@ -74,8 +83,8 @@ mappings:
     confidence: 0.91
     risk: low
     description: >
-      Insert # ID: UUID comment above public functions and methods that lack one.
-      Pure AST, no LLM, fully deterministic.
+      Insert # ID: UUID comment above public functions and methods that lack
+      one. Pure AST, no LLM, fully deterministic.
     status: ACTIVE
 
   logic.logging.standard_only:
@@ -83,8 +92,8 @@ mappings:
     confidence: 0.92
     risk: low
     description: >
-      Replace print() and console.print() with logger calls.
-      Deterministic AST transformation, no reasoning required.
+      Replace print() and console.print() with logger calls. Deterministic AST
+      transformation, no reasoning required.
     status: ACTIVE
 
   architecture.channels.logger_not_presentation:
@@ -101,8 +110,8 @@ mappings:
     confidence: 0.90
     risk: low
     description: >
-      Terminal rendering (Rich, print) in logic layer must be replaced
-      with logger calls. Deterministic AST fix.
+      Terminal rendering (Rich, print) in logic layer must be replaced with
+      logger calls. Deterministic AST fix.
     status: ACTIVE
 
   purity.stable_id_anchor:
@@ -157,9 +166,36 @@ mappings:
     risk: high
     description: >
       Files exceeding line limit with single coherent responsibility are split
-      using two-phase LLM analysis. Phase 1 (Architect) finds the seam.
-      Phase 2 (RefactoringArchitect) executes. Logic Conservation Gate
-      validates before any write. Defers automatically on low/medium confidence.
+      using two-phase LLM analysis. Phase 1 (Architect) finds the seam. Phase 2
+      (RefactoringArchitect) executes. Logic Conservation Gate validates before
+      any write. Defers automatically on low/medium confidence.
+    status: ACTIVE
+
+  # ===========================================================================
+  # TIER 2b: ACTIVE — flow-based (confidence >= 0.85)
+  # Dispatched via FlowExecutor. Proposals require human approval before
+  # execution (compute_risk() classifies flows as "moderate" universally).
+  # ===========================================================================
+
+  test.missing:
+    flow: flow.build_tests
+    confidence: 0.85
+    risk: high
+    description: >
+      Source file has no corresponding test file. Dispatches flow.build_tests
+      which runs: build.tests (CoderAgent generates test), then fix.imports,
+      fix.headers, fix.format as optional auto-heal steps. Human approval
+      required before execution.
+    status: ACTIVE
+
+  test.failure:
+    flow: flow.build_tests
+    confidence: 0.85
+    risk: high
+    description: >
+      Existing test file has failures. Dispatches flow.build_tests to regenerate
+      the test file, then apply fix.imports, fix.headers, fix.format as optional
+      auto-heal steps. Human approval required before execution.
     status: ACTIVE
 
   # ===========================================================================

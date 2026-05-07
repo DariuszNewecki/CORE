@@ -68,7 +68,12 @@ def _load_remediation_map(path_resolver: PathResolver) -> dict[str, dict[str, An
     Load the remediation map via PathResolver.
 
     Path is resolved from PathResolver.remediation_map_path — never hardcoded.
-    Returns a dict of {check_id: {action, confidence, risk, description}}.
+    Each entry must declare exactly one of 'action' (AtomicAction id) or
+    'flow' (Flow id). The validated dict carries both 'ref_id' and 'ref_kind'
+    so callers can construct the appropriate ProposalAction without
+    re-discriminating.
+    Returns a dict of
+      {check_id: {action, flow, ref_id, ref_kind, confidence, risk, description, status}}.
     Fails gracefully — returns empty dict if file missing or malformed.
     """
     map_path = path_resolver.remediation_map_path
@@ -101,17 +106,36 @@ def _load_remediation_map(path_resolver: PathResolver) -> dict[str, dict[str, An
                 "Remediation map: skipping malformed entry for '%s'", check_id
             )
             continue
-        if "action" not in entry:
+
+        has_action = entry.get("action") is not None
+        has_flow = entry.get("flow") is not None
+        if has_action and has_flow:
             logger.warning(
-                "Remediation map: entry '%s' missing 'action' field — skipped", check_id
+                "Remediation map: entry '%s' declares both 'action' and 'flow' — "
+                "skipped (must declare exactly one)",
+                check_id,
+            )
+            continue
+        if not has_action and not has_flow:
+            logger.warning(
+                "Remediation map: entry '%s' missing both 'action' and 'flow' — "
+                "skipped (must declare exactly one)",
+                check_id,
             )
             continue
         # Skip PENDING entries explicitly (status field in auto_remediation.yaml)
         if entry.get("status") == "PENDING":
             logger.debug("Remediation map: skipping PENDING entry '%s'", check_id)
             continue
+
+        ref_id = entry["action"] if has_action else entry["flow"]
+        ref_kind = "action" if has_action else "flow"
+
         validated[check_id] = {
-            "action": entry["action"],
+            "action": entry.get("action"),
+            "flow": entry.get("flow"),
+            "ref_id": ref_id,
+            "ref_kind": ref_kind,
             "confidence": float(entry.get("confidence", 0.0)),
             "risk": entry.get("risk", "medium"),
             "description": entry.get("description", ""),

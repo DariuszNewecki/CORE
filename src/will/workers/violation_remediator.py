@@ -203,10 +203,11 @@ class ViolationRemediatorWorker(Worker):
             len(open_findings),
         )
 
-        # 2. Group by action using .intent/ remediation map
+        # 2. Group by ref_id (action or flow) using .intent/ remediation map
         remediation_map = self._get_remediation_map()
 
         action_groups: dict[str, list[dict[str, Any]]] = {}
+        ref_kinds: dict[str, str] = {}
         unmappable: list[dict[str, Any]] = []
         delegate: list[dict[str, Any]] = []
 
@@ -220,9 +221,10 @@ class ViolationRemediatorWorker(Worker):
                 finding["_map_entry"] = entry
                 delegate.append(finding)
             elif entry:
-                action_id = entry["action"]
-                action_groups.setdefault(action_id, [])
-                action_groups[action_id].append(finding)
+                ref_id = entry["ref_id"]
+                action_groups.setdefault(ref_id, [])
+                action_groups[ref_id].append(finding)
+                ref_kinds[ref_id] = entry["ref_kind"]
             else:
                 unmappable.append(finding)
                 logger.debug(
@@ -240,10 +242,11 @@ class ViolationRemediatorWorker(Worker):
         entries_resolved_dedup: int = 0
         entries_released_after_failure: int = 0
 
-        for action_id, findings in action_groups.items():
+        for ref_id, findings in action_groups.items():
+            ref_kind = ref_kinds[ref_id]
             entry_ids = [_entry_id(f) for f in findings]
 
-            subsuming_proposal_id = active_proposal_ids.get(action_id)
+            subsuming_proposal_id = active_proposal_ids.get(ref_id)
             if subsuming_proposal_id:
                 # Dedup: an active proposal already represents this action
                 # group. Findings are subsumed — the mandate's "consumed"
@@ -256,21 +259,21 @@ class ViolationRemediatorWorker(Worker):
                 # audit linkage (URS Q1.F / ADR-015 D4).
                 resolved = await self._resolve_entries(entry_ids, subsuming_proposal_id)
                 entries_resolved_dedup += resolved
-                proposals_skipped.append(action_id)
+                proposals_skipped.append(ref_id)
                 logger.info(
                     "ViolationRemediatorWorker: skipping '%s' — active proposal "
                     "%s exists; resolved %d subsumed finding(s) with proposal_id "
                     "linkage",
-                    action_id,
+                    ref_id,
                     subsuming_proposal_id,
                     resolved,
                 )
                 continue
 
-            proposal_id = await self._create_proposal(action_id, findings)
+            proposal_id = await self._create_proposal(ref_id, ref_kind, findings)
 
             if proposal_id:
-                proposals_created.append(action_id)
+                proposals_created.append(ref_id)
                 # ADR-010 / CORE-Finding.md §7: on successful proposal
                 # creation, transition findings to 'deferred_to_proposal'
                 # and store proposal_id in their payload. The §7a revival
@@ -279,10 +282,11 @@ class ViolationRemediatorWorker(Worker):
                 deferred = await self._defer_to_proposal(entry_ids, proposal_id)
                 entries_deferred += deferred
                 logger.info(
-                    "ViolationRemediatorWorker: created proposal '%s' for action "
+                    "ViolationRemediatorWorker: created proposal '%s' for %s "
                     "'%s' (%d findings, %d entries deferred to proposal)",
                     proposal_id,
-                    action_id,
+                    ref_kind,
+                    ref_id,
                     len(findings),
                     deferred,
                 )
@@ -295,7 +299,7 @@ class ViolationRemediatorWorker(Worker):
                 logger.warning(
                     "ViolationRemediatorWorker: proposal for '%s' not created; "
                     "released %d finding(s) back to open",
-                    action_id,
+                    ref_id,
                     released,
                 )
 
@@ -450,12 +454,14 @@ class ViolationRemediatorWorker(Worker):
     # ID: 8a7c5e91-2b4f-4d63-9e07-1a3c5d8b2f04
     async def _get_active_proposal_id_by_action(self) -> dict[str, str]:
         """
-        Return a mapping of action_id → proposal_id for actions that
-        already have an active proposal. The dedup-subsume path needs
-        the proposal_id (not just the action_id) to record the linkage
+        Return a mapping of ref_id → proposal_id for ProposalActions that
+        already have an active proposal. ref_id is action_id for atomic-
+        action proposals and flow_id for flow-based proposals — keying on
+        ProposalAction.ref_id covers both kinds. The dedup-subsume path
+        needs the proposal_id (not just the ref_id) to record the linkage
         in the subsumed finding's payload — URS Q1.F / ADR-015 D4.
 
-        When multiple active proposals share an action_id, the earliest
+        When multiple active proposals share a ref_id, the earliest
         by Proposal.created_at wins. The earliest proposal is the
         original anchor whose existence caused subsequent dedup-subsume
         decisions, so subsumed findings attribute to it.
@@ -476,7 +482,7 @@ class ViolationRemediatorWorker(Worker):
                         for action in proposal.actions:
                             candidates.append(
                                 (
-                                    action.action_id,
+                                    action.ref_id,
                                     proposal.proposal_id,
                                     proposal.created_at,
                                 )
@@ -490,20 +496,26 @@ class ViolationRemediatorWorker(Worker):
             return {}
 
         # Earliest-wins: ascending sort by created_at then setdefault keeps
-        # the first seen — the original anchor proposal for that action.
+        # the first seen — the original anchor proposal for that ref_id.
         candidates.sort(key=lambda t: t[2])
         result: dict[str, str] = {}
-        for action_id, proposal_id, _created_at in candidates:
-            result.setdefault(action_id, proposal_id)
+        for ref_id, proposal_id, _created_at in candidates:
+            result.setdefault(ref_id, proposal_id)
         return result
 
     # ID: f8a9b0c1-d2e3-4567-fabc-456789012347
     async def _create_proposal(
         self,
-        action_id: str,
+        ref_id: str,
+        ref_kind: str,
         findings: list[dict[str, Any]],
     ) -> str | None:
-        """Create and persist a Proposal for the given action and findings.
+        """Create and persist a Proposal for the given remediation reference.
+
+        ref_kind selects the ProposalAction shape: "action" produces
+        ProposalAction(action_id=ref_id, ...) and "flow" produces
+        ProposalAction(flow_id=ref_id, ...). The two are mutually exclusive
+        per ProposalAction.__post_init__.
 
         Safe proposals (approval_required=False) are created in APPROVED status
         so ProposalConsumerWorker can execute them without a separate approval step.
@@ -536,21 +548,22 @@ class ViolationRemediatorWorker(Worker):
         # historical proposals predating this field are not backfilled.
         finding_ids = [_entry_id(f) for f in findings]
 
+        proposal_action = ProposalAction(
+            action_id=ref_id if ref_kind == "action" else None,
+            flow_id=ref_id if ref_kind == "flow" else None,
+            parameters={
+                "write": True,
+                "file_path": affected_files[0] if affected_files else None,
+            },
+            order=0,
+        )
+
         proposal = Proposal(
             goal=(
-                f"Autonomous remediation: {action_id} "
+                f"Autonomous remediation: {ref_id} "
                 f"({len(findings)} violation(s) — rules: {', '.join(rules)})"
             ),
-            actions=[
-                ProposalAction(
-                    action_id=action_id,
-                    parameters={
-                        "write": True,
-                        "file_path": affected_files[0] if affected_files else None,
-                    },
-                    order=0,
-                )
-            ],
+            actions=[proposal_action],
             scope=ProposalScope(files=affected_files),
             created_by="violation_remediator_worker",
             constitutional_constraints={
@@ -575,7 +588,7 @@ class ViolationRemediatorWorker(Worker):
         if not is_valid:
             logger.warning(
                 "ViolationRemediatorWorker: proposal for '%s' failed validation: %s",
-                action_id,
+                ref_id,
                 errors,
             )
             return None
@@ -595,14 +608,14 @@ class ViolationRemediatorWorker(Worker):
                     logger.info(
                         "ViolationRemediatorWorker: proposal for '%s' auto-approved "
                         "(risk=%s, approval_required=False)",
-                        action_id,
+                        ref_id,
                         proposal.risk.overall_risk if proposal.risk else "unknown",
                     )
                 else:
                     logger.info(
                         "ViolationRemediatorWorker: proposal for '%s' requires human approval "
                         "(risk=%s) — created in DRAFT",
-                        action_id,
+                        ref_id,
                         proposal.risk.overall_risk if proposal.risk else "unknown",
                     )
 
@@ -611,7 +624,7 @@ class ViolationRemediatorWorker(Worker):
         except Exception as e:
             logger.error(
                 "ViolationRemediatorWorker: failed to persist proposal for '%s': %s",
-                action_id,
+                ref_id,
                 e,
             )
             return None
