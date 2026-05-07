@@ -2,7 +2,7 @@
 
 **Status:** Active
 **Owner:** Darek (Dariusz Newecki)
-**Last updated:** 2026-05-05
+**Last updated:** 2026-05-07
 **Definition:** The daemon runs continuously, the Blackboard clears, the codebase converges, and every action is visible.
 
 ---
@@ -110,6 +110,7 @@ Full rationale lives in each ADR file under `.specs/decisions/`. This table is t
 | ADR-024 | 2026-05-05 | Local LLM cognitive role assignments — governed evaluation over assumption | Local role-to-model assignments derived from `scripts/eval_ollama.py` qualification, not parameter-count assumption; on aaiMac `qwen2.5-coder:3b` qualifies for LocalCoder/Architect/LocalReasoner/Planner, `qwen2.5:7b` for DocstringWriter, `phi4:14b` retained as spare; production assignments deferred until production hardware is specified. |
 | ADR-025 | 2026-05-05 | ArchitecturalContextBuilder wiring via CoreContext factory | `context_builder_factory` + lazy `@property context_builder` mirrors `context_service` pattern; rejected agent-internal and action-local construction. |
 | ADR-026 | 2026-05-05 | Validate proposal.scope.files non-emptiness | scope.files non-empty enforced at Proposal.validate() with validation-error-to-caller; files-only over broader scope union; resolves ADR-021 D5. |
+| ADR-027 | 2026-05-07 | Sensor-fixer coherence detection via consequence chain query | `CoherenceSensorWorker` queries `core.proposal_consequences` periodically; posts `coherence.incoherence::` findings when a fixer ran but the sensor re-detected the same `check_id + file_path`; DELEGATE class (no autonomous remediation). |
 
 ---
 
@@ -182,6 +183,8 @@ WorkerShopManager                      ← active
     → monitors worker liveness
 CommitReachabilityAuditor              ← active (hourly)
     → detects orphan post_execution_sha commits
+CoherenceSensorWorker                  ← active (every 10 min)
+    → detects sensor-fixer incoherence via consequence chain query
 ```
 
 **Two remediation paths:**
