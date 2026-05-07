@@ -127,7 +127,8 @@ class WorkerShopManager(Worker):
         2. Load per-worker schedules from .intent/
         3. Fetch registered workers from DB
         4. For each worker exceeding threshold: post finding (deduplicated)
-        5. Post completion report
+        5. Resolve open findings whose worker has resumed heartbeating
+        6. Post completion report
         """
         from body.services.service_registry import service_registry
 
@@ -138,6 +139,7 @@ class WorkerShopManager(Worker):
         existing = await self._fetch_existing_findings(service_registry)
 
         flagged = 0
+        flagged_subjects: set[str] = set()
         for worker in workers:
             # Sanitize worker_name — registry may contain non-ASCII characters
             # from YAML titles (e.g. em dashes). SQL_ASCII encoding rejects them.
@@ -151,6 +153,7 @@ class WorkerShopManager(Worker):
 
             if seconds_silent > threshold:
                 subject = f"{_FINDING_SUBJECT}::{worker_uuid}"
+                flagged_subjects.add(subject)
                 if subject in existing:
                     logger.debug(
                         "WorkerShopManager: %s already flagged, skipping.", worker_name
@@ -174,17 +177,32 @@ class WorkerShopManager(Worker):
                     threshold,
                 )
 
+        # Resolution pass — any open worker.silent finding whose subject is
+        # no longer over threshold means the worker has resumed heartbeating.
+        svc = await service_registry.get_blackboard_service()
+        resolved = 0
+        for subject, entry_id in existing.items():
+            if subject not in flagged_subjects:
+                await svc.resolve_entries([entry_id])
+                resolved += 1
+                logger.info(
+                    "WorkerShopManager: %s recovered — resolving open finding",
+                    subject,
+                )
+
         await self.post_report(
             subject="worker_shop_manager.run.complete",
             payload={
                 "workers_checked": len(workers),
                 "flagged": flagged,
+                "resolved": resolved,
             },
         )
         logger.info(
-            "WorkerShopManager: cycle complete — checked=%d flagged=%d",
+            "WorkerShopManager: cycle complete — checked=%d flagged=%d resolved=%d",
             len(workers),
             flagged,
+            resolved,
         )
 
     # -------------------------------------------------------------------------
@@ -238,7 +256,13 @@ class WorkerShopManager(Worker):
         svc = await registry.get_worker_registry_service()
         return await svc.fetch_registered_workers()
 
-    async def _fetch_existing_findings(self, registry: Any) -> set[str]:
-        """Return subjects of open worker.silent findings to avoid duplicates."""
+    async def _fetch_existing_findings(self, registry: Any) -> dict[str, str]:
+        """
+        Return mapping of subject → entry_id for open worker.silent findings.
+
+        The entry_id is needed so the resolution pass in run() can call
+        resolve_entries() on findings whose worker has recovered.
+        """
         svc = await registry.get_blackboard_service()
-        return await svc.fetch_open_finding_subjects_by_prefix(f"{_FINDING_SUBJECT}::%")
+        rows = await svc.fetch_open_findings(prefix=f"{_FINDING_SUBJECT}::%", limit=200)
+        return {row["subject"]: row["id"] for row in rows}
