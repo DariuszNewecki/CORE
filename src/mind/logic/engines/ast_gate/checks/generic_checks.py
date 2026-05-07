@@ -17,6 +17,121 @@ from typing import Any
 from mind.logic.engines.ast_gate.base import ASTHelpers
 
 
+_NESTED_DEFS = (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)
+_COMPOUND_STMTS = (
+    ast.If,
+    ast.For,
+    ast.While,
+    ast.Try,
+    ast.With,
+    ast.AsyncFor,
+    ast.AsyncWith,
+)
+
+
+def _iter_sub_bodies(stmt: ast.AST):
+    """Yield the sub-statement lists of a compound statement in source order."""
+    if isinstance(stmt, ast.If):
+        yield stmt.body
+        yield stmt.orelse
+    elif isinstance(stmt, (ast.For, ast.AsyncFor, ast.While)):
+        yield stmt.body
+        yield stmt.orelse
+    elif isinstance(stmt, ast.Try):
+        yield stmt.body
+        for handler in stmt.handlers:
+            yield handler.body
+        yield stmt.orelse
+        yield stmt.finalbody
+    elif isinstance(stmt, (ast.With, ast.AsyncWith)):
+        yield stmt.body
+
+
+def _has_explicit_return(stmts: list[ast.stmt]) -> bool:
+    """True if any ast.Return appears in stmts, recursing into compound
+    statements but NOT into nested function/class definitions."""
+    for stmt in stmts:
+        if isinstance(stmt, _NESTED_DEFS):
+            continue
+        if isinstance(stmt, ast.Return):
+            return True
+        if isinstance(stmt, _COMPOUND_STMTS):
+            for sub_body in _iter_sub_bodies(stmt):
+                if _has_explicit_return(sub_body):
+                    return True
+    return False
+
+
+def _stmts_missing_calls(
+    stmts: list[ast.stmt],
+    required: set[str],
+    seen: set[str],
+    _is_top: bool = True,
+) -> set[str]:
+    """Path-sensitive walk over stmts. Returns the set of required calls
+    missing on at least one function-exit path reachable from this point.
+
+    `seen` is the set of required calls already observed on the path
+    leading into stmts. Calls discovered inside a compound's sub-body are
+    NOT propagated back to the parent's `seen` because the sub-body may
+    not execute (an `if` branch, an empty loop, an unraised exception).
+
+    `_is_top` is True only at the function-body root: end-of-stmts there
+    is the implicit `return None` (a real function exit) and contributes
+    `required - seen` to the missing set. For sub-body recursion
+    (`_is_top=False`), end-of-stmts means control flows past the compound
+    back to the parent — not a function exit — so the empty set is
+    returned and the parent continues with its own `seen` unchanged.
+    """
+    seen = set(seen)
+    for stmt in stmts:
+        if isinstance(stmt, _NESTED_DEFS):
+            continue
+        if isinstance(stmt, ast.Return):
+            return required - seen
+        if isinstance(stmt, _COMPOUND_STMTS):
+            sub_missing: set[str] = set()
+            for sub_body in _iter_sub_bodies(stmt):
+                sub_missing |= _stmts_missing_calls(
+                    sub_body, required, seen, _is_top=False
+                )
+            if sub_missing:
+                return sub_missing
+        else:
+            for sub_node in ast.walk(stmt):
+                if isinstance(sub_node, ast.Call):
+                    name = ASTHelpers.full_attr_name(sub_node.func)
+                    if name in required:
+                        seen.add(name)
+    if _is_top:
+        return required - seen
+    return set()
+
+
+def _check_required_calls_coverage(node: ast.AST, required_calls: set[str]) -> set[str]:
+    """Path-sensitive coverage check for required calls.
+
+    When `node` has no explicit return statements anywhere in its body
+    (excluding nested defs), the function has only one exit (implicit
+    fall-through), so existence on any line implies coverage and we
+    fall back to ast.walk over the whole node — preserving prior
+    semantics for that class of function.
+
+    Otherwise, walks `node.body` in execution order and returns the set
+    of required calls missing on at least one function-exit path.
+    """
+    body = getattr(node, "body", [])
+    if not _has_explicit_return(body):
+        found: set[str] = set()
+        for sub_node in ast.walk(node):
+            if isinstance(sub_node, ast.Call):
+                name = ASTHelpers.full_attr_name(sub_node.func)
+                if name:
+                    found.add(name)
+        return required_calls - found
+    return _stmts_missing_calls(body, required_calls, set())
+
+
 # ID: cf804085-ee18-4126-a16b-7b447793f3f9
 class GenericASTChecks:
     @staticmethod
@@ -74,19 +189,19 @@ class GenericASTChecks:
                     if name in forbidden:
                         return f"contains forbidden call '{name}()' on line {sub_node.lineno}"
 
-        # 3. required_calls
+        # 3. required_calls — path-sensitive when the function has explicit
+        # returns; falls back to existence-only ast.walk for fall-through-only
+        # bodies (one exit, so existence equals coverage).
         if check_type == "required_calls":
             required = set(requirement.get("calls", []))
-            found_calls = set()
-
-            for sub_node in ast.walk(node):
-                if isinstance(sub_node, ast.Call):
-                    name = ASTHelpers.full_attr_name(sub_node.func)
-                    if name:
-                        found_calls.add(name)
-
-            missing = sorted(list(required - found_calls))
-            if missing:
+            body = getattr(node, "body", [])
+            missing_set = _check_required_calls_coverage(node, required)
+            if missing_set:
+                missing = sorted(missing_set)
+                if _has_explicit_return(body):
+                    return (
+                        f"missing mandatory call(s) on some return path: " f"{missing}"
+                    )
                 return f"missing mandatory call(s): {missing}"
 
         # 4. Primitive: forbidden_imports (e.g. no 'rich' or 'click')
