@@ -11,3 +11,9 @@ production_writes_delta_percent: 10 # MEDIUM if production writes increase >10%
 
 # Hotspot thresholds
 hotspot_mutation_count: 15 # LOW if new hotspot has >15 mutations
+
+# Coherence sensor (ADR-027)
+# How far back to look for executed proposals when detecting sensor-fixer
+# incoherence. Default: 2 hours. Set higher on slow machines where multiple
+# audit cycles may elapse before a proposal executes.
+coherence_lookback_seconds: 7200

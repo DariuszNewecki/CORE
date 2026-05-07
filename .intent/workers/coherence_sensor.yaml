@@ -1,0 +1,41 @@
+$schema: "META/worker.schema.json"
+kind: worker
+
+metadata:
+  id: workers.coherence_sensor
+  title: Coherence Sensor
+  version: "1.0.0"
+  authority: policy
+  status: active
+  rationale: >
+    Detects sensor-fixer incoherence: a fixer ran successfully for a violation
+    but the sensor re-detected the same check_id + file_path on a subsequent
+    cycle. Incoherence causes silent churn — proposals execute, violations
+    persist. ADR-027.
+
+identity:
+  uuid: "e1f2a3b4-c5d6-4e7f-8a9b-0c1d2e3f4a5b"
+  class: sensing
+
+mandate:
+  responsibility: >
+    Queries core.proposal_consequences for recently executed proposals and
+    checks whether the same check_id + file_path was re-detected in
+    core.blackboard_entries after execution. Posts a
+    coherence.incoherence::<check_id>::<file_hash> finding when detected.
+    Deduplicates — does not re-post an already-open incoherence finding. Does
+    not modify any proposal or finding. Detection only, per ADR-027 D1.
+  phase: audit
+  permitted_tools: []
+  approval_required: false
+  scope:
+    domains:
+      - governance
+      - compliance
+  schedule:
+    max_interval: 600
+
+implementation:
+  module: will.workers.coherence_sensor
+  class: CoherenceSensorWorker
+  requires_core_context: false
