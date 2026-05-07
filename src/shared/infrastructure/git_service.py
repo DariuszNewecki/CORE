@@ -110,7 +110,16 @@ class GitService:
 
     # ID: db520983-cdb8-4b99-a1d9-60467128b6dc
     def add_all(self) -> None:
-        """Stages all changes, including untracked files."""
+        """Stages all changes, including untracked files.
+
+        Intended for manual/CLI callers (governor-driven flows) that
+        legitimately want to capture every working-tree change.
+        Autonomous workers must NOT use this — they must use
+        ``add(path)`` or ``commit_paths(paths, message)`` so their
+        commits are scoped to declared files and cannot accidentally
+        sweep in unrelated working-tree changes (debug edits, partial
+        WIP, other workers' artifacts).
+        """
         self._run_command(["add", "-A"])
 
     # ID: 823668c8-17fc-4472-9d37-b22735b8d018
@@ -123,10 +132,19 @@ class GitService:
         """
         Commits all changes with the provided message.
 
-        Stages all changes before committing. If the first commit attempt fails
-        because a pre-commit hook modified files (hooks exit non-zero and rewrite
-        staged content), stages again and retries once. This is the standard
-        two-pass pattern required when pre-commit hooks auto-fix files.
+        Stages all changes (``git add -A``) before committing. If the first
+        commit attempt fails because a pre-commit hook modified files (hooks
+        exit non-zero and rewrite staged content), stages again and retries
+        once. This is the standard two-pass pattern required when pre-commit
+        hooks auto-fix files.
+
+        Intended for manual/CLI callers (governor-driven flows) that
+        legitimately want to capture every working-tree change in a single
+        commit. Autonomous workers must NOT use this — they must use
+        ``commit_paths(paths, message)`` so their commits are scoped to
+        declared files and cannot accidentally sweep in unrelated
+        working-tree changes (debug edits, partial WIP, other workers'
+        artifacts).
         """
         self._run_command(["add", "-A"])
         try:

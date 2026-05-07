@@ -233,10 +233,13 @@ class CallSiteRewriter(Worker):
             await self._post_failed(file_path, findings, f"Apply failed: {e}")
             return False
 
-        # 9. Git commit
+        # 9. Git commit — scope to this file only. Autonomous workers
+        # must use commit_paths() so unrelated working-tree changes are
+        # never swept into a worker's commit.
         try:
-            self._ctx.git_service.commit(
-                f"fix(prompt-model): rewrite direct LLM calls in {file_path}"
+            self._ctx.git_service.commit_paths(
+                [file_path],
+                f"fix(prompt-model): rewrite direct LLM calls in {file_path}",
             )
         except RuntimeError as e:
             # Non-fatal — file is already applied

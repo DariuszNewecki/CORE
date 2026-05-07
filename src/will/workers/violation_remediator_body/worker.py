@@ -461,9 +461,13 @@ class ViolationRemediator(
         # Commit MUST succeed before findings are marked resolved.
         # A failed commit means the repo and the blackboard would disagree
         # about whether the fix is live. That is a data integrity failure.
+        # Scope the commit to this file only — autonomous workers must
+        # use commit_paths() so unrelated working-tree changes are never
+        # swept into a worker's commit.
         try:
-            self._ctx.git_service.commit(
-                f"fix({self._target_rule}): autonomous remediation in {file_path}"
+            self._ctx.git_service.commit_paths(
+                [file_path],
+                f"fix({self._target_rule}): autonomous remediation in {file_path}",
             )
         except RuntimeError as exc:
             logger.error(
