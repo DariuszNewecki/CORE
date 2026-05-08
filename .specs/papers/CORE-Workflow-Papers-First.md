@@ -9,9 +9,9 @@
 ## Rule
 
 Any operation that **writes or modifies** files under `src/**` or `tests/**`
-MUST cite an approved paper under `.intent/papers/**` as evidence **before** the change is executed.
+MUST cite an approved paper under `.specs/papers/**` as evidence **before** the change is executed.
 
-"Cite" means the execution record contains a `paper_ref` that matches an existing file path under `.intent/papers/`.
+"Cite" means the execution record contains a `paper_ref` that matches an existing file path under `.specs/papers/`.
 
 If `paper_ref` is missing, invalid, or points to a non-existent file, the operation is invalid and MUST be blocked.
 

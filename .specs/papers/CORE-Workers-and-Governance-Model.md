@@ -3,7 +3,7 @@
 # CORE — Workers, Supervision, and the Blackboard
 
 **Status:** Constitutional Paper
-**Location:** `.intent/papers/CORE-Workers-and-Governance-Model.md`
+**Location:** `.specs/papers/CORE-Workers-and-Governance-Model.md`
 **Scope:** Autonomous entity model, supervision, coordination
 
 ---

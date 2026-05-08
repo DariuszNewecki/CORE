@@ -6,7 +6,7 @@
 **Authority:** Policy (derivative, non-amending)
 **Scope:** All execution composition in CORE
 **Depends on:**
-- `.intent/papers/CORE-Action.md`
+- `.specs/papers/CORE-Action.md`
 - `.specs/papers/CORE-Mind-Body-Will-Separation.md`
 - `.specs/papers/CORE-Workers.md`
 
