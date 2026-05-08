@@ -25,6 +25,27 @@ if TYPE_CHECKING:
     from mind.governance.audit_context import AuditorContext
 
 
+def _resolve_symbol_path(sym: dict[str, Any]) -> str | None:
+    """Return the symbol's file_path, falling back to a path synthesized
+    from its `module` dotted name when file_path is missing or None.
+
+    Knowledge-graph symbols frequently lack file_path but always carry a
+    module name. Filtering by path therefore requires this synthesis —
+    without it, exclude patterns silently no-op against None/empty values
+    (issue #150). Centralized here so capability-assignment, ast-duplication,
+    and the duplication-finding factory share one source of truth.
+
+    Returns None when neither file_path nor module is available.
+    """
+    fp = sym.get("file_path")
+    if fp:
+        return fp
+    module = sym.get("module") or ""
+    if not module:
+        return None
+    return "src/" + module.replace(".", "/") + ".py"
+
+
 def _check_ast_duplication(
     context: AuditorContext, params: dict[str, Any]
 ) -> list[AuditFinding]:
@@ -41,12 +62,9 @@ def _check_ast_duplication(
     def _is_excluded(sym: dict) -> bool:
         if not exclude_patterns:
             return False
-        fp = sym.get("file_path")
+        fp = _resolve_symbol_path(sym)
         if not fp:
-            module = sym.get("module", "")
-            if not module:
-                return False
-            fp = "src/" + module.replace(".", "/") + ".py"
+            return False
         return any(fnmatch.fnmatch(fp, pat) for pat in exclude_patterns)
 
     fingerprint_groups = defaultdict(list)
@@ -82,9 +100,7 @@ def _create_duplication_finding(a, b, score, dtype) -> AuditFinding:
     name_a = a.get("qualname") or a.get("name") or "?"
     name_b = b.get("qualname") or b.get("name") or "?"
     module_a = a.get("module", "")
-    file_path = a.get("file_path") or (
-        "src/" + module_a.replace(".", "/") + ".py" if module_a else None
-    )
+    file_path = _resolve_symbol_path(a)
     return AuditFinding(
         check_id=f"purity.no_{dtype}_duplication",
         severity=AuditSeverity.WARNING,

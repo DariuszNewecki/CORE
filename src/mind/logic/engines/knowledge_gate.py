@@ -23,6 +23,7 @@ from sqlalchemy import text
 from mind.logic.engines._knowledge_gate_duplication import (
     _check_ast_duplication,
     _check_semantic_duplication,
+    _resolve_symbol_path,
 )
 from mind.logic.engines.base import BaseEngine, EngineResult
 from shared.logger import getLogger
@@ -202,13 +203,14 @@ class KnowledgeGateEngine(BaseEngine):
         self, context: AuditorContext, params: dict[str, Any]
     ) -> list[AuditFinding]:
         findings: list[AuditFinding] = []
-        exclude_patterns = params.get("exclude_patterns", ["tests/", "scripts/"])
+        exclude_patterns = params.get("exclude_patterns", ["*tests/*", "*scripts/*"])
         for symbol_data in context.symbols_map.values():
             if not symbol_data.get("is_public") or symbol_data.get(
                 "name", ""
             ).startswith("_"):
                 continue
-            if any(p in symbol_data.get("file_path", "") for p in exclude_patterns):
+            fp = _resolve_symbol_path(symbol_data)
+            if fp and any(fnmatch.fnmatch(fp, pat) for pat in exclude_patterns):
                 continue
             if symbol_data.get("key") == "unassigned":
                 findings.append(
