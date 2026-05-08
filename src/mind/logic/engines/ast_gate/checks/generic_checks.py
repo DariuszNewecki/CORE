@@ -151,6 +151,15 @@ class GenericASTChecks:
                     return True
             return False
 
+        if "inherits_from" in selector:
+            if not isinstance(node, ast.ClassDef):
+                return False
+            target = selector["inherits_from"]
+            for base in node.bases:
+                if ASTHelpers.full_attr_name(base) == target:
+                    return True
+            return False
+
         if "name_regex" in selector:
             # getattr returns None when the attribute exists but is None
             # (ast.ExceptHandler without "as" binding, ast.MatchStar/MatchAs
