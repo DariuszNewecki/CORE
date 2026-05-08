@@ -203,6 +203,19 @@ mappings:
   # Documented for roadmap visibility only. Will not be dispatched.
   # ===========================================================================
 
+  modularity.class_too_large:
+    action: fix.modularity
+    confidence: 0.40
+    risk: high
+    description: >
+      PENDING: Class-level refactors require human architectural decision —
+      non-automatable per ADR-007. Explicitly mapped here to prevent
+      ViolationExecutorWorker from claiming these findings as unmapped.
+      ADR-007 assumed absence-from-map implied human-only routing, but
+      ViolationExecutor's unmapped-claim path breaks that assumption.
+      Human review required before any autonomous action.
+    status: PENDING
+
   modularity.needs_refactor:
     action: fix.modularity
     confidence: 0.40
