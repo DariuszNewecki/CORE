@@ -17,7 +17,7 @@ from api.v1.development_routes import DevelopmentGoal
 def test_development_goal_instantiation():
     """Test basic instantiation with a valid goal string."""
     goal_text = "Learn Pytest"
-    dev_goal = DevelopmentGoal(goal=goal_text)
+    dev_goal = DevelopmentGoal(goal=goal_text, workflow_type="refactor_modularity")
     assert dev_goal.goal == goal_text
 
 
@@ -35,18 +35,18 @@ def test_development_goal_goal_must_be_string():
 
 def test_development_goal_empty_string_allowed():
     """Test that an empty string is a valid goal value."""
-    dev_goal = DevelopmentGoal(goal="")
+    dev_goal = DevelopmentGoal(goal="", workflow_type="refactor_modularity")
     assert dev_goal.goal == ""
 
 
 def test_development_goal_whitespace_string_allowed():
     """Test that a whitespace-only string is a valid goal value."""
-    dev_goal = DevelopmentGoal(goal="   \t  ")
+    dev_goal = DevelopmentGoal(goal="   \t  ", workflow_type="refactor_modularity")
     assert dev_goal.goal == "   \t  "
 
 
 def test_development_goal_special_characters():
     """Test that strings with special characters and Unicode are valid."""
     goal_text = "Learn API design & deployment (backend) … and more!"
-    dev_goal = DevelopmentGoal(goal=goal_text)
+    dev_goal = DevelopmentGoal(goal=goal_text, workflow_type="refactor_modularity")
     assert dev_goal.goal == goal_text
