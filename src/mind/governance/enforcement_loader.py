@@ -151,14 +151,19 @@ class EnforcementMappingLoader:
                 if preset_name in self._presets:
                     strategy["scope"] = self._presets[preset_name]
                 else:
-                    logger.warning(
-                        "Unknown preset reference '%s' in rule %s (file: %s)",
+                    logger.error(
+                        "Unknown preset reference '%s' in rule %s (file: %s) — "
+                        "rule will match nothing rather than silently widen to all "
+                        "of src/",
                         preset_name,
                         rule_id,
                         path,
                     )
-                    # Fallback to safe default
-                    strategy["scope"] = {"applies_to": ["src/**/*.py"]}
+                    # Empty applies_to → rule matches nothing. Silent widening to
+                    # src/**/*.py was the bug behind issue #158: a single typo in a
+                    # !ref preset name turned an arbitrarily-scoped rule into a
+                    # repo-wide one.
+                    strategy["scope"] = {"applies_to": []}
 
         logger.debug("Loaded %d mappings from %s", len(mappings), path.name)
         return mappings
@@ -176,18 +181,30 @@ class EnforcementMappingLoader:
         preset_file = self.enforcement_dir / "presets" / f"{preset_name}.yaml"
 
         if not preset_file.exists():
-            logger.warning("Preset file not found: %s", preset_file)
-            # Return safe default
-            return {"name": preset_name, "applies_to": ["src/**/*.py"]}
+            logger.error(
+                "Preset '%s' file not found: %s — preset will resolve to an empty "
+                "scope rather than silently widen to all of src/",
+                preset_name,
+                preset_file,
+            )
+            # Empty applies_to → rules using this preset match nothing. See #158
+            # for why "safe default" of src/**/*.py was unsafe.
+            return {"name": preset_name, "applies_to": []}
 
         try:
             preset = strict_yaml_processor.load_strict(preset_file)
             logger.debug("Loaded preset: %s", preset_name)
             return preset
         except Exception as e:
-            logger.error("Failed to load preset %s: %s", preset_name, e)
-            # Return safe default
-            return {"name": preset_name, "applies_to": ["src/**/*.py"]}
+            logger.error(
+                "Failed to load preset '%s' from %s: %s — preset will resolve to "
+                "an empty scope rather than silently widen to all of src/",
+                preset_name,
+                preset_file,
+                e,
+            )
+            # Empty applies_to (#158).
+            return {"name": preset_name, "applies_to": []}
 
     # ID: 681251eb-0ab4-4fc4-bc90-376a98e54e6f
     def list_all_mapped_rules(self) -> list[str]:

@@ -120,11 +120,24 @@ def extract_executable_rules(
             # Extract scope from enforcement mapping
             scope_data = strategy.get("scope", {})
             if isinstance(scope_data, dict):
-                scope = scope_data.get("applies_to", ["src/**/*.py"])
+                if "applies_to" not in scope_data:
+                    logger.warning(
+                        "Rule %s scope is missing 'applies_to' — rule will match "
+                        "nothing rather than silently widen to all of src/ (#158)",
+                        rule_id,
+                    )
+                scope = scope_data.get("applies_to", [])
                 exclusions = scope_data.get("excludes", [])
             else:
-                # Fallback for simple scope definitions
-                scope = ["src/**/*.py"]
+                # Non-dict scope_data is malformed — match nothing instead of
+                # widening repo-wide (#158).
+                logger.warning(
+                    "Rule %s has non-dict scope %r — rule will match nothing "
+                    "rather than silently widen to all of src/ (#158)",
+                    rule_id,
+                    type(scope_data).__name__,
+                )
+                scope = []
                 exclusions = []
 
             # Ensure scope and exclusions are lists
