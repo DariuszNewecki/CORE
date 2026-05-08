@@ -1,145 +1,154 @@
-mappings:
-  # 1. LAW: Production code MUST NOT contain 'TODO', 'FIXME', or 'TBD'
-  # Check type: regex_gate (Deterministic String Match)
-  purity.no_todo_placeholders:
-    engine: regex_gate
-    params:
-      forbidden_patterns:
-        - "\\bTODO\\b"
-        - "\\bFIXME\\b"
-        - "\\bTBD\\b"
-    scope:
-      applies_to:
-        - "src/**/*.py"
-      excludes:
-        - "tests/**/*.py"
-        - "scripts/**/*.py"
+  mappings:
+    # 1. LAW: Production code MUST NOT contain 'TODO', 'FIXME', or 'TBD'
+    # Check type: regex_gate (Deterministic String Match)
+    purity.no_todo_placeholders:
+      engine: regex_gate
+      params:
+        forbidden_patterns:
+          - "\\bTODO\\b"
+          - "\\bFIXME\\b"
+          - "\\bTBD\\b"
+      scope:
+        applies_to:
+          - "src/**/*.py"
+        excludes:
+          - "tests/**/*.py"
+          - "scripts/**/*.py"
 
-  # 2. LAW: Every public symbol MUST have a stable '# ID:' anchor
-  # Check type: ast_gate (Context-Aware definition lookup)
-  purity.stable_id_anchor:
-    engine: ast_gate
-    params:
-      check_type: id_anchor
-    scope:
-      applies_to:
-        - "src/**/*.py"
-      excludes:
-        - "**/__init__.py"
-        - "tests/**/*.py"
-        - "scripts/**/*.py"
+    # 2. LAW: Every public symbol MUST have a stable '# ID:' anchor
+    # Check type: ast_gate (Context-Aware definition lookup)
+    purity.stable_id_anchor:
+      engine: ast_gate
+      params:
+        check_type: id_anchor
+      scope:
+        applies_to:
+          - "src/**/*.py"
+        excludes:
+          - "**/__init__.py"
+          - "tests/**/*.py"
+          - "scripts/**/*.py"
 
-  # 3. LAW: Metadata belongs in the DB, not the code (@capability, @owner)
-  # Check type: ast_gate (Decorator inspection)
-  purity.no_metadata_decorators:
-    engine: ast_gate
-    params:
-      check_type: forbidden_decorators
-      forbidden:
-        - "capability"
-        - "meta"
-        - "owner"
-        - "domain"
-    scope:
-      applies_to:
-        - "src/**/*.py"
-      excludes:
-        - "tests/**/*.py"
+    # 3. LAW: Metadata belongs in the DB, not the code (@capability, @owner)
+    # Check type: ast_gate (Decorator inspection)
+    purity.no_metadata_decorators:
+      engine: ast_gate
+      params:
+        check_type: forbidden_decorators
+        forbidden:
+          - "capability"
+          - "meta"
+          - "owner"
+          - "domain"
+      scope:
+        applies_to:
+          - "src/**/*.py"
+        excludes:
+          - "tests/**/*.py"
 
-  # 4. LAW: Public symbols MUST have docstrings
-  purity.docstrings.required:
-    engine: llm_gate
-    params:
-      instruction: "Verify that all public functions and classes have a docstring. Return a violation if a docstring is missing or is just a placeholder like 'TODO'."
-    scope:
-      applies_to:
-        - "src/will/**/*.py"
-        - "src/body/**/*.py"
+    # 4. LAW: Public symbols MUST have docstrings
+    purity.docstrings.required:
+      engine: llm_gate
+      params:
+        instruction: "Verify that all public functions and classes have a docstring. Return a violation if a docstring is missing or is just a placeholder like 'TODO'."
+      scope:
+        applies_to:
+          - "src/will/**/*.py"
+          - "src/body/**/*.py"
 
-  # 5. LAW: Code MUST NOT contain exact AST duplicates
-  purity.no_ast_duplication:
-    engine: knowledge_gate
-    params:
-      check_type: ast_duplication
-      threshold: 1.0
-    scope:
-      applies_to:
-        - "src/**/*.py"
-      excludes:
-        - "tests/**/*.py"
-        - "src/shared/infrastructure/intent/intent_repository.py"
-        - "src/shared/infrastructure/specs/specs_repository.py"
+    # 5. LAW: Code MUST NOT contain exact AST duplicates
+    purity.no_ast_duplication:
+      engine: knowledge_gate
+      params:
+        check_type: ast_duplication
+        threshold: 1.0
+      scope:
+        applies_to:
+          - "src/**/*.py"
+        excludes:
+          - "tests/**/*.py"
+          - "src/shared/infrastructure/intent/intent_repository.py"
+          - "src/shared/infrastructure/specs/specs_repository.py"
 
-  # 6. LAW: Code SHOULD NOT contain semantic duplicates
-  purity.no_semantic_duplication:
-    engine: knowledge_gate
-    params:
-      check_type: semantic_duplication
-      threshold: 0.85
-    scope:
-      applies_to:
-        - "src/**/*.py"
-      excludes:
-        - "tests/**/*.py"
+    # 6. LAW: Code SHOULD NOT contain semantic duplicates
+    purity.no_semantic_duplication:
+      engine: knowledge_gate
+      params:
+        check_type: semantic_duplication
+        threshold: 0.85
+      scope:
+        applies_to:
+          - "src/**/*.py"
+        excludes:
+          - "tests/**/*.py"
 
-  purity.logic_conservation:
-    engine: llm_gate
-    params:
-      instruction: >
-        Compare the proposed refactor to the original code.
-        Verify that no significant domain logic has been deleted.
-        If the code size shrunk by more than 50%, ensure it was due to
-        de-duplication, not logic removal.
+    purity.logic_conservation:
+      engine: llm_gate
+      params:
+        instruction: >
+          Compare the proposed refactor to the original code.
+          Verify that no significant domain logic has been deleted.
+          If the code size shrunk by more than 50%, ensure it was due to
+          de-duplication, not logic removal.
+      scope:
+        applies_to:
+          - "src/**/*.py"
 
-  purity.no_dead_code:
-    engine: workflow_gate
-    params:
-      check_type: dead_code_check
-      tool: "vulture"
-      confidence: 80
+    purity.no_dead_code:
+      engine: workflow_gate
+      params:
+        check_type: dead_code_check
+        tool: "vulture"
+        confidence: 80
+      scope:
+        applies_to:
+          - "src/**/*.py"
 
-  # 7. LAW: Production source files MUST be reachable from a declared entry point.
-  purity.no_orphan_files:
-    engine: knowledge_gate
-    params:
-      check_type: orphan_file_check
-      entry_points:
-        - "src/cli/"
-        - "src/body/atomic/"
-        - "src/main.py"
-        - "src/api/main.py"
-        - "src/mind/logic/engines/"
-        - "src/mind/governance/checks/"
-        - "src/will/workers/"
-        - "src/will/phases/"
-        - "src/body/services/"
-        - "src/will/self_healing/"
-        - "src/will/test_generation/"
-        - "src/will/strategists/"
-        - "src/will/tools/"
-        - "src/will/agents/"
-        - "src/will/workflows/"
-        - "src/will/cli_logic/"
-        - "src/will/autonomy/"
-        - "src/will/orchestration/"
-        - "src/body/self_healing/"
-        - "src/body/project_lifecycle/"
-        - "src/body/maintenance/scripts/"
-        - "src/body/invokers/"
-        - "src/shared/infrastructure/"
-      excludes:
-        - "src/**/__init__.py"
-        - "src/**/__main__.py"
-        - "src/**/conftest.py"
-        - "scripts/**/*.py"
-        - "src/api/**"
-        - "src/body/analyzers/**"
-        - "src/body/autonomy/**"
-        - "src/body/evaluators/**"
-        - "src/body/governance/**"
-        - "src/body/introspection/**"
-        - "src/shared/cli_types.py"
-        - "src/shared/models/pattern_graph.py"
-        - "src/shared/utils/header_tools.py"
-        - "src/shared/utils/path_utils.py"
-        - "src/mind/governance/micro_proposal_validator.py"
+    # 7. LAW: Production source files MUST be reachable from a declared entry point.
+    purity.no_orphan_files:
+      engine: knowledge_gate
+      params:
+        check_type: orphan_file_check
+        entry_points:
+          - "src/cli/"
+          - "src/body/atomic/"
+          - "src/main.py"
+          - "src/api/main.py"
+          - "src/mind/logic/engines/"
+          - "src/mind/governance/checks/"
+          - "src/will/workers/"
+          - "src/will/phases/"
+          - "src/body/services/"
+          - "src/will/self_healing/"
+          - "src/will/test_generation/"
+          - "src/will/strategists/"
+          - "src/will/tools/"
+          - "src/will/agents/"
+          - "src/will/workflows/"
+          - "src/will/cli_logic/"
+          - "src/will/autonomy/"
+          - "src/will/orchestration/"
+          - "src/body/self_healing/"
+          - "src/body/project_lifecycle/"
+          - "src/body/maintenance/scripts/"
+          - "src/body/invokers/"
+          - "src/shared/infrastructure/"
+        excludes:
+          - "src/**/__init__.py"
+          - "src/**/__main__.py"
+          - "src/**/conftest.py"
+          - "scripts/**/*.py"
+          - "src/api/**"
+          - "src/body/analyzers/**"
+          - "src/body/autonomy/**"
+          - "src/body/evaluators/**"
+          - "src/body/governance/**"
+          - "src/body/introspection/**"
+          - "src/shared/cli_types.py"
+          - "src/shared/models/pattern_graph.py"
+          - "src/shared/utils/header_tools.py"
+          - "src/shared/utils/path_utils.py"
+          - "src/mind/governance/micro_proposal_validator.py"
+      scope:
+        applies_to:
+          - "src/**/*.py"

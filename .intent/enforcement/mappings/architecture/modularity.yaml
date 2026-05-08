@@ -1,13 +1,16 @@
-# Architecture modularity enforcement mappings
-# Design principle — UNIX philosophy evaluation
+  # Architecture modularity enforcement mappings
+  # Design principle — UNIX philosophy evaluation
 
-mappings:
-  # LAW: Maintain UNIX philosophy
-  # Advisory — evaluated by LLM for architectural simplicity
-  modularity.unix_philosophy:
-    engine: llm_gate
-    params:
-      instruction: >
-        Evaluate if this module follows the UNIX philosophy: 'Do one thing and do it well.'
-        Flag if the module is becoming a 'God Object' that handles too many unrelated concerns.
-      rationale: "Constitutional requirement for architectural simplicity."
+  mappings:
+    # LAW: Maintain UNIX philosophy
+    # Advisory — evaluated by LLM for architectural simplicity
+    modularity.unix_philosophy:
+      engine: llm_gate
+      params:
+        instruction: >
+          Evaluate if this module follows the UNIX philosophy: 'Do one thing and do it well.'
+          Flag if the module is becoming a 'God Object' that handles too many unrelated concerns.
+        rationale: "Constitutional requirement for architectural simplicity."
+      scope:
+        applies_to:
+          - "src/**/*.py"

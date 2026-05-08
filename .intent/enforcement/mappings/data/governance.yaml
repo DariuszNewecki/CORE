@@ -1,81 +1,84 @@
-# .intent/enforcement/mappings/data/governance.yaml
-mappings:
-  # LAW: Operational knowledge MUST NOT be hardcoded
-  #
-  # WIDENED 2026-04-19: applies_to changed from
-  #   ["src/features/**/*.py", "src/body/services/**/*.py"]
-  # to
-  #   ["src/**/*.py"]  (with standard test excludes)
-  #
-  # The previous scope was the migration fossil of an older layout: src/features/
-  # no longer exists (restructured into src/body/self_healing, src/body/introspection,
-  # src/will/self_healing, src/shared/self_healing), and the narrow directory list
-  # was weak ground for a codebase-wide statement. The rule's statement is:
-  #   "Operational knowledge MUST NOT be hardcoded in files when a database
-  #    representation exists."
-  # — which is naturally any-file, not directory-specific.
-  #
-  # Target names (LLM_MODELS, AGENT_ROLES, SYSTEM_DOMAINS) are specific enough
-  # (three uppercase module-level constants) that false-positive risk on a
-  # codebase-wide scope is effectively zero. Verified by scripted scan before
-  # widening — no current assignments to these names anywhere in src/.
-  data.ssot.database_primacy:
-    engine: ast_gate
-    params:
-      check_type: forbidden_assignments
-      targets: [ "LLM_MODELS", "AGENT_ROLES", "SYSTEM_DOMAINS" ]
-    scope:
-      applies_to:
-        - "src/**/*.py"
-      excludes:
-        - "tests/**"
-        - "src/**/test_*.py"
+ # .intent/enforcement/mappings/data/governance.yaml
+  mappings:
+    # LAW: Operational knowledge MUST NOT be hardcoded
+    #
+    # WIDENED 2026-04-19: applies_to changed from
+    #   ["src/features/**/*.py", "src/body/services/**/*.py"]
+    # to
+    #   ["src/**/*.py"]  (with standard test excludes)
+    #
+    # The previous scope was the migration fossil of an older layout: src/features/
+    # no longer exists (restructured into src/body/self_healing, src/body/introspection,
+    # src/will/self_healing, src/shared/self_healing), and the narrow directory list
+    # was weak ground for a codebase-wide statement. The rule's statement is:
+    #   "Operational knowledge MUST NOT be hardcoded in files when a database
+    #    representation exists."
+    # — which is naturally any-file, not directory-specific.
+    #
+    # Target names (LLM_MODELS, AGENT_ROLES, SYSTEM_DOMAINS) are specific enough
+    # (three uppercase module-level constants) that false-positive risk on a
+    # codebase-wide scope is effectively zero. Verified by scripted scan before
+    # widening — no current assignments to these names anywhere in src/.
+    data.ssot.database_primacy:
+      engine: ast_gate
+      params:
+        check_type: forbidden_assignments
+        targets: [ "LLM_MODELS", "AGENT_ROLES", "SYSTEM_DOMAINS" ]
+      scope:
+        applies_to:
+          - "src/**/*.py"
+        excludes:
+          - "tests/**"
+          - "src/**/test_*.py"
 
-  # LAW: Source code, logs, and prompts MUST NOT contain raw secrets
-  #
-  # Patterns widened 2026-04-18 to better match the rule statement:
-  # "Source code, logs, and prompts MUST NOT contain raw secret values or API keys."
-  #
-  # Previous coverage was narrow (OpenAI-style + one Google-style prefix + uppercase PASSWORD).
-  # Added: common token shapes (GitHub, Slack, AWS), private key markers, and case-insensitive
-  # structural patterns for common secret variable names. Each added pattern was tested against
-  # the entire src/ tree before addition — all produce zero false positives on current code.
-  data.security.no_raw_secrets:
-    engine: regex_gate
-    params:
-      forbidden_patterns:
-        # Original patterns — retained as-is.
-        - "(sk-[a-zA-Z0-9]{32,})" # OpenAI-style / Anthropic (sk-ant-*) / Stripe sk_live_*
-        - "AI[a-zA-Z0-9]{32,}" # Google AI Studio keys start with AIza*
-        - "PASSWORD\\s*=\\s*['\"][^'\"]+['\"]" # Original uppercase PASSWORD = "..."
+    # LAW: Source code, logs, and prompts MUST NOT contain raw secrets
+    #
+    # Patterns widened 2026-04-18 to better match the rule statement:
+    # "Source code, logs, and prompts MUST NOT contain raw secret values or API keys."
+    #
+    # Previous coverage was narrow (OpenAI-style + one Google-style prefix + uppercase PASSWORD).
+    # Added: common token shapes (GitHub, Slack, AWS), private key markers, and case-insensitive
+    # structural patterns for common secret variable names. Each added pattern was tested against
+    # the entire src/ tree before addition — all produce zero false positives on current code.
+    data.security.no_raw_secrets:
+      engine: regex_gate
+      params:
+        forbidden_patterns:
+          # Original patterns — retained as-is.
+          - "(sk-[a-zA-Z0-9]{32,})" # OpenAI-style / Anthropic (sk-ant-*) / Stripe sk_live_*
+          - "AI[a-zA-Z0-9]{32,}" # Google AI Studio keys start with AIza*
+          - "PASSWORD\\s*=\\s*['\"][^'\"]+['\"]" # Original uppercase PASSWORD = "..."
 
-        # GitHub tokens — all four flavours plus fine-grained PATs.
-        - "ghp_[a-zA-Z0-9]{36}" # GitHub Personal Access Token (classic)
-        - "ghs_[a-zA-Z0-9]{36}" # GitHub server-to-server token
-        - "gho_[a-zA-Z0-9]{36}" # GitHub OAuth access token
-        - "ghu_[a-zA-Z0-9]{36}" # GitHub user-to-server token
-        - "github_pat_[a-zA-Z0-9_]{22,}" # GitHub fine-grained Personal Access Token
+          # GitHub tokens — all four flavours plus fine-grained PATs.
+          - "ghp_[a-zA-Z0-9]{36}" # GitHub Personal Access Token (classic)
+          - "ghs_[a-zA-Z0-9]{36}" # GitHub server-to-server token
+          - "gho_[a-zA-Z0-9]{36}" # GitHub OAuth access token
+          - "ghu_[a-zA-Z0-9]{36}" # GitHub user-to-server token
+          - "github_pat_[a-zA-Z0-9_]{22,}" # GitHub fine-grained Personal Access Token
 
-        # Slack tokens — bot, user, workspace-app, refresh.
-        - "xox[bapr]-[0-9]+-[0-9]+-[a-zA-Z0-9]+"
+          # Slack tokens — bot, user, workspace-app, refresh.
+          - "xox[bapr]-[0-9]+-[0-9]+-[a-zA-Z0-9]+"
 
-        # AWS access keys (long-term and temporary).
-        - "AKIA[0-9A-Z]{16}"
-        - "ASIA[0-9A-Z]{16}"
+          # AWS access keys (long-term and temporary).
+          - "AKIA[0-9A-Z]{16}"
+          - "ASIA[0-9A-Z]{16}"
 
-        # Private key markers — covers RSA, EC, DSA, OPENSSH, and generic PEM.
-        - "-----BEGIN (?:RSA |EC |DSA |OPENSSH )?PRIVATE KEY-----"
+          # Private key markers — covers RSA, EC, DSA, OPENSSH, and generic PEM.
+          - "-----BEGIN (?:RSA |EC |DSA |OPENSSH )?PRIVATE KEY-----"
 
-        # Case-insensitive structural patterns for common secret assignments.
-        # Requires 8+ char string value to reduce false positives on short test
-        # values. Matches only quoted string literals assigned to these names.
-        - "(?i)(password|api_key|secret_key)\\s*=\\s*['\"][^'\"]{8,}['\"]"
-    scope:
-      applies_to: [ "src/**/*.py", "var/logs/*.jsonl" ]
+          # Case-insensitive structural patterns for common secret assignments.
+          # Requires 8+ char string value to reduce false positives on short test
+          # values. Matches only quoted string literals assigned to these names.
+          - "(?i)(password|api_key|secret_key)\\s*=\\s*['\"][^'\"]{8,}['\"]"
+      scope:
+        applies_to: [ "src/**/*.py", "var/logs/*.jsonl" ]
 
-  # LAW: Every symbol in DB must have a vector in memory
-  data.integrity.vector_sync:
-    engine: knowledge_gate
-    params:
-      check_type: table_has_records
-      table: "core.symbol_vector_links"
+    # LAW: Every symbol in DB must have a vector in memory
+    data.integrity.vector_sync:
+      engine: knowledge_gate
+      params:
+        check_type: table_has_records
+        table: "core.symbol_vector_links"
+      scope:
+        applies_to:
+          - "src/**/*.py"

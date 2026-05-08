@@ -1,15 +1,24 @@
-mappings:
-  quality.type_safety:
-    engine: workflow_gate
-    params:
-      check_type: mypy_check
+  mappings:
+    quality.type_safety:
+      engine: workflow_gate
+      params:
+        check_type: mypy_check
+      scope:
+        applies_to:
+          - "src/**/*.py"
 
-  quality.security_audit:
-    engine: workflow_gate
-    params:
-      check_type: security_check
+    quality.security_audit:
+      engine: workflow_gate
+      params:
+        check_type: security_check
+      scope:
+        applies_to:
+          - "pyproject.toml"
 
-  quality.test_integrity:
-    engine: workflow_gate
-    params:
-      check_type: pytest_check
+    quality.test_integrity:
+      engine: workflow_gate
+      params:
+        check_type: pytest_check
+      scope:
+        applies_to:
+          - "tests/**/*.py"

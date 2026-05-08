@@ -1,0 +1,50 @@
+  {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "core.intent.enforcement_mapping.schema.json",
+      "title": "CORE Enforcement Mapping Entry",
+      "description": "Schema for each entry under `mappings:` in any .intent/enforcement/mappings/**/*.yaml file. An entry pairs a rule_id (the dict key) with the enforcement strategy that resolves it. A non-empty `scope.applies_to` glob list is mandatory — without it, the loader silently widened scope to all of src/**/*.py and over-applied rules across unrelated layers (issue #158).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+          "engine",
+          "scope"
+      ],
+      "properties": {
+          "engine": {
+              "type": "string",
+              "minLength": 1,
+              "description": "The execution engine that resolves this rule. Examples: ast_gate, regex_gate, knowledge_gate, llm_gate, glob_gate, workflow_gate, passive_gate, advisory."
+          },
+          "params": {
+              "type": "object",
+              "description": "Engine-specific parameters. Shape is determined by the engine and is not constrained by this schema."
+          },
+          "scope": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                  "applies_to"
+              ],
+              "description": "Defines which files this rule examines. Required so that rule extraction never falls back to a repo-wide default (issue #158).",
+              "properties": {
+                  "applies_to": {
+                      "type": "array",
+                      "minItems": 1,
+                      "items": {
+                          "type": "string",
+                          "minLength": 1
+                      },
+                      "description": "Glob patterns (relative to repo root) for files this rule applies to. At least one pattern is required; an empty list is rejected as a misconfiguration."
+                  },
+                  "excludes": {
+                      "type": "array",
+                      "items": {
+                          "type": "string",
+                          "minLength": 1
+                      },
+                      "description": "Optional glob patterns to exclude from applies_to."
+                  }
+              }
+          }
+      }
+  }
