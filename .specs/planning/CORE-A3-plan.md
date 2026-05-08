@@ -112,7 +112,8 @@ Full rationale lives in each ADR file under `.specs/decisions/`. This table is t
 | ADR-026 | 2026-05-05 | Validate proposal.scope.files non-emptiness | scope.files non-empty enforced at Proposal.validate() with validation-error-to-caller; files-only over broader scope union; resolves ADR-021 D5. |
 | ADR-027 | 2026-05-07 | Sensor-fixer coherence detection via consequence chain query | `CoherenceSensorWorker` queries `core.proposal_consequences` periodically; posts `coherence.incoherence::` findings when a fixer ran but the sensor re-detected the same `check_id + file_path`; DELEGATE class (no autonomous remediation). |
 | ADR-028 | 2026-05-08 | Describe rules; don't quote forbidden syntax | Rule documentation must paraphrase what is forbidden — never reproduce the exact pattern the rule detects. |
-| ADR-029 | 2026-05-08 | Explicitly map non-automatable rules in RemediationMap | ADR-007 assumed absence-from-map meant human-only routing; ViolationExecutorWorker's unmapped-claim path breaks that assumption. Non-automatable rules must be explicitly mapped as PENDING (confidence < 0.50) to exclude them from the ViolationExecutor fallback. First application: `modularity.class_too_large`. |
+| ADR-029 | 2026-05-08 | Explicitly map non-automatable rules in RemediationMap | Absence-from-map is not a valid human-only signal; non-automatable rules must carry an explicit PENDING entry in `auto_remediation.yaml`. First application: `modularity.class_too_large`. |
+| ADR-030 | 2026-05-08 | Daemon stale-code detection posture | Detect-and-DEGRADE on `src/` drift; self-restart rejected. CORE surfaces the condition, governor restarts with intent. |
 
 ---
 
