@@ -2,8 +2,10 @@
 -- PostgreSQL database dump
 --
 
--- Dumped from database version 16.8 (Ubuntu 16.8-0ubuntu0.24.04.1)
--- Dumped by pg_dump version 16.8 (Ubuntu 16.8-0ubuntu0.24.04.1)
+\restrict wHxVhw1QcWqbCpqQhz1d6KWrf54aUi0loGa53bOTDNrEIg7HStRYy3yS3apd8lP
+
+-- Dumped from database version 16.13 (Ubuntu 16.13-0ubuntu0.24.04.1)
+-- Dumped by pg_dump version 16.13 (Ubuntu 16.13-0ubuntu0.24.04.1)
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -74,6 +76,34 @@ FROM core.symbols s, core.decorator_registry dr
 WHERE s.symbol_path = ''body.cli.check:audit''
   AND dr.decorator_name = ''core_command'';
 ';
+
+
+--
+-- Name: btree_gist; Type: EXTENSION; Schema: -; Owner: -
+--
+
+CREATE EXTENSION IF NOT EXISTS btree_gist WITH SCHEMA public;
+
+
+--
+-- Name: EXTENSION btree_gist; Type: COMMENT; Schema: -; Owner:
+--
+
+COMMENT ON EXTENSION btree_gist IS 'support for indexing common datatypes in GiST';
+
+
+--
+-- Name: pgcrypto; Type: EXTENSION; Schema: -; Owner: -
+--
+
+CREATE EXTENSION IF NOT EXISTS pgcrypto WITH SCHEMA public;
+
+
+--
+-- Name: EXTENSION pgcrypto; Type: COMMENT; Schema: -; Owner:
+--
+
+COMMENT ON EXTENSION pgcrypto IS 'cryptographic functions';
 
 
 --
@@ -445,7 +475,7 @@ SET default_tablespace = '';
 SET default_table_access_method = heap;
 
 --
--- Name: _backup_symbol_vector_links; Type: TABLE; Schema: core; Owner: lira_user
+-- Name: _backup_symbol_vector_links; Type: TABLE; Schema: core; Owner: core_db
 --
 
 CREATE TABLE core._backup_symbol_vector_links (
@@ -457,10 +487,10 @@ CREATE TABLE core._backup_symbol_vector_links (
 );
 
 
-ALTER TABLE core._backup_symbol_vector_links OWNER TO lira_user;
+ALTER TABLE core._backup_symbol_vector_links OWNER TO core_db;
 
 --
--- Name: _backup_symbols; Type: TABLE; Schema: core; Owner: lira_user
+-- Name: _backup_symbols; Type: TABLE; Schema: core; Owner: core_db
 --
 
 CREATE TABLE core._backup_symbols (
@@ -487,7 +517,7 @@ CREATE TABLE core._backup_symbols (
 );
 
 
-ALTER TABLE core._backup_symbols OWNER TO lira_user;
+ALTER TABLE core._backup_symbols OWNER TO core_db;
 
 --
 -- Name: _migrations; Type: TABLE; Schema: core; Owner: core_db
@@ -502,7 +532,7 @@ CREATE TABLE core._migrations (
 ALTER TABLE core._migrations OWNER TO core_db;
 
 --
--- Name: _staging_core_symbols; Type: TABLE; Schema: core; Owner: lira_user
+-- Name: _staging_core_symbols; Type: TABLE; Schema: core; Owner: core_db
 --
 
 CREATE TABLE core._staging_core_symbols (
@@ -514,10 +544,10 @@ CREATE TABLE core._staging_core_symbols (
 );
 
 
-ALTER TABLE core._staging_core_symbols OWNER TO lira_user;
+ALTER TABLE core._staging_core_symbols OWNER TO core_db;
 
 --
--- Name: action_results; Type: TABLE; Schema: core; Owner: lira_user
+-- Name: action_results; Type: TABLE; Schema: core; Owner: core_db
 --
 
 CREATE TABLE core.action_results (
@@ -533,10 +563,10 @@ CREATE TABLE core.action_results (
 );
 
 
-ALTER TABLE core.action_results OWNER TO lira_user;
+ALTER TABLE core.action_results OWNER TO core_db;
 
 --
--- Name: actions; Type: TABLE; Schema: core; Owner: lira_user
+-- Name: actions; Type: TABLE; Schema: core; Owner: core_db
 --
 
 CREATE TABLE core.actions (
@@ -555,10 +585,10 @@ CREATE TABLE core.actions (
 );
 
 
-ALTER TABLE core.actions OWNER TO lira_user;
+ALTER TABLE core.actions OWNER TO core_db;
 
 --
--- Name: agent_decisions; Type: TABLE; Schema: core; Owner: lira_user
+-- Name: agent_decisions; Type: TABLE; Schema: core; Owner: core_db
 --
 
 CREATE TABLE core.agent_decisions (
@@ -575,10 +605,10 @@ CREATE TABLE core.agent_decisions (
 );
 
 
-ALTER TABLE core.agent_decisions OWNER TO lira_user;
+ALTER TABLE core.agent_decisions OWNER TO core_db;
 
 --
--- Name: agent_memory; Type: TABLE; Schema: core; Owner: lira_user
+-- Name: agent_memory; Type: TABLE; Schema: core; Owner: core_db
 --
 
 CREATE TABLE core.agent_memory (
@@ -595,10 +625,75 @@ CREATE TABLE core.agent_memory (
 );
 
 
-ALTER TABLE core.agent_memory OWNER TO lira_user;
+ALTER TABLE core.agent_memory OWNER TO core_db;
 
 --
--- Name: audit_runs; Type: TABLE; Schema: core; Owner: lira_user
+-- Name: artifact_symbol_links; Type: TABLE; Schema: core; Owner: core_db
+--
+
+CREATE TABLE core.artifact_symbol_links (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    artifact_id uuid NOT NULL,
+    symbol_id uuid NOT NULL,
+    link_kind text NOT NULL,
+    confidence core.probability DEFAULT 1.0 NOT NULL,
+    source text NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT artifact_symbol_links_kind_check CHECK ((link_kind = ANY (ARRAY['documents'::text, 'tests'::text, 'references'::text, 'configures'::text, 'governs'::text]))),
+    CONSTRAINT artifact_symbol_links_source_check CHECK ((source = ANY (ARRAY['ast_import'::text, 'name_match'::text, 'llm_inferred'::text, 'manual'::text])))
+);
+
+
+ALTER TABLE core.artifact_symbol_links OWNER TO core_db;
+
+--
+-- Name: TABLE artifact_symbol_links; Type: COMMENT; Schema: core; Owner: core_db
+--
+
+COMMENT ON TABLE core.artifact_symbol_links IS 'Cross-reference between repo artifacts (docs, tests, prompts, intent) and symbols. Primary query surface for: "what docs cover this symbol?", "what tests exercise this capability?", "which policies govern this module?". ProposalService uses this to compute documentation and test blast-radius alongside structural blast-radius.';
+
+
+--
+-- Name: COLUMN artifact_symbol_links.link_kind; Type: COMMENT; Schema: core; Owner: core_db
+--
+
+COMMENT ON COLUMN core.artifact_symbol_links.link_kind IS 'documents: narrative explanation; tests: executable verification; references: mention/import; configures: intent YAML or infra SQL that controls behavior; governs: policy/pattern that applies.';
+
+
+--
+-- Name: COLUMN artifact_symbol_links.confidence; Type: COMMENT; Schema: core; Owner: core_db
+--
+
+COMMENT ON COLUMN core.artifact_symbol_links.confidence IS 'Probability [0,1]. ast_import and name_match are typically 1.0; llm_inferred may be lower.';
+
+
+--
+-- Name: COLUMN artifact_symbol_links.source; Type: COMMENT; Schema: core; Owner: core_db
+--
+
+COMMENT ON COLUMN core.artifact_symbol_links.source IS 'How this link was established. Governs trust level and whether it can be auto-removed on recrawl.';
+
+
+--
+-- Name: audit_findings; Type: TABLE; Schema: core; Owner: core_db
+--
+
+CREATE TABLE core.audit_findings (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    check_id text NOT NULL,
+    severity text NOT NULL,
+    message text NOT NULL,
+    file_path text,
+    line_number integer,
+    context jsonb,
+    created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+ALTER TABLE core.audit_findings OWNER TO core_db;
+
+--
+-- Name: audit_runs; Type: TABLE; Schema: core; Owner: core_db
 --
 
 CREATE TABLE core.audit_runs (
@@ -613,10 +708,10 @@ CREATE TABLE core.audit_runs (
 );
 
 
-ALTER TABLE core.audit_runs OWNER TO lira_user;
+ALTER TABLE core.audit_runs OWNER TO core_db;
 
 --
--- Name: audit_runs_id_seq; Type: SEQUENCE; Schema: core; Owner: lira_user
+-- Name: audit_runs_id_seq; Type: SEQUENCE; Schema: core; Owner: core_db
 --
 
 CREATE SEQUENCE core.audit_runs_id_seq
@@ -627,17 +722,17 @@ CREATE SEQUENCE core.audit_runs_id_seq
     CACHE 1;
 
 
-ALTER SEQUENCE core.audit_runs_id_seq OWNER TO lira_user;
+ALTER SEQUENCE core.audit_runs_id_seq OWNER TO core_db;
 
 --
--- Name: audit_runs_id_seq; Type: SEQUENCE OWNED BY; Schema: core; Owner: lira_user
+-- Name: audit_runs_id_seq; Type: SEQUENCE OWNED BY; Schema: core; Owner: core_db
 --
 
 ALTER SEQUENCE core.audit_runs_id_seq OWNED BY core.audit_runs.id;
 
 
 --
--- Name: autonomous_proposals; Type: TABLE; Schema: core; Owner: lira_user
+-- Name: autonomous_proposals; Type: TABLE; Schema: core; Owner: core_db
 --
 
 CREATE TABLE core.autonomous_proposals (
@@ -662,70 +757,73 @@ CREATE TABLE core.autonomous_proposals (
     failure_reason text,
     version integer DEFAULT 0 NOT NULL,
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    approval_authority text,
+    claimed_by uuid,
+    CONSTRAINT approval_authority_required_when_approved CHECK (((status <> ALL (ARRAY['approved'::text, 'executing'::text, 'completed'::text])) OR (approval_authority IS NOT NULL) OR (created_at < '2026-04-27 00:00:00+00'::timestamp with time zone))),
     CONSTRAINT autonomous_proposals_status_check CHECK ((status = ANY (ARRAY['draft'::text, 'pending'::text, 'approved'::text, 'executing'::text, 'completed'::text, 'failed'::text, 'rejected'::text])))
 );
 
 
-ALTER TABLE core.autonomous_proposals OWNER TO lira_user;
+ALTER TABLE core.autonomous_proposals OWNER TO core_db;
 
 --
--- Name: TABLE autonomous_proposals; Type: COMMENT; Schema: core; Owner: lira_user
+-- Name: TABLE autonomous_proposals; Type: COMMENT; Schema: core; Owner: core_db
 --
 
 COMMENT ON TABLE core.autonomous_proposals IS 'A3 Autonomous Proposals - Registry-based action plans with constitutional governance';
 
 
 --
--- Name: COLUMN autonomous_proposals.proposal_id; Type: COMMENT; Schema: core; Owner: lira_user
+-- Name: COLUMN autonomous_proposals.proposal_id; Type: COMMENT; Schema: core; Owner: core_db
 --
 
 COMMENT ON COLUMN core.autonomous_proposals.proposal_id IS 'Human-readable proposal identifier';
 
 
 --
--- Name: COLUMN autonomous_proposals.goal; Type: COMMENT; Schema: core; Owner: lira_user
+-- Name: COLUMN autonomous_proposals.goal; Type: COMMENT; Schema: core; Owner: core_db
 --
 
 COMMENT ON COLUMN core.autonomous_proposals.goal IS 'Strategic intent - what this proposal aims to achieve';
 
 
 --
--- Name: COLUMN autonomous_proposals.status; Type: COMMENT; Schema: core; Owner: lira_user
+-- Name: COLUMN autonomous_proposals.status; Type: COMMENT; Schema: core; Owner: core_db
 --
 
 COMMENT ON COLUMN core.autonomous_proposals.status IS 'Lifecycle: draft\u2192pending\u2192approved\u2192executing\u2192completed/failed/rejected';
 
 
 --
--- Name: COLUMN autonomous_proposals.actions; Type: COMMENT; Schema: core; Owner: lira_user
+-- Name: COLUMN autonomous_proposals.actions; Type: COMMENT; Schema: core; Owner: core_db
 --
 
 COMMENT ON COLUMN core.autonomous_proposals.actions IS 'Array of actions from action_registry to execute';
 
 
 --
--- Name: COLUMN autonomous_proposals.scope; Type: COMMENT; Schema: core; Owner: lira_user
+-- Name: COLUMN autonomous_proposals.scope; Type: COMMENT; Schema: core; Owner: core_db
 --
 
 COMMENT ON COLUMN core.autonomous_proposals.scope IS 'Files, modules, symbols, and policies affected by this proposal';
 
 
 --
--- Name: COLUMN autonomous_proposals.risk; Type: COMMENT; Schema: core; Owner: lira_user
+-- Name: COLUMN autonomous_proposals.risk; Type: COMMENT; Schema: core; Owner: core_db
 --
 
 COMMENT ON COLUMN core.autonomous_proposals.risk IS 'Risk assessment computed from action impact levels';
 
 
 --
--- Name: COLUMN autonomous_proposals.approval_required; Type: COMMENT; Schema: core; Owner: lira_user
+-- Name: COLUMN autonomous_proposals.approval_required; Type: COMMENT; Schema: core; Owner: core_db
 --
 
 COMMENT ON COLUMN core.autonomous_proposals.approval_required IS 'Whether human approval needed (moderate/dangerous actions)';
 
 
 --
--- Name: blackboard_entries; Type: TABLE; Schema: core; Owner: lira_user
+-- Name: blackboard_entries; Type: TABLE; Schema: core; Owner: core_db
 --
 
 CREATE TABLE core.blackboard_entries (
@@ -744,17 +842,17 @@ CREATE TABLE core.blackboard_entries (
 );
 
 
-ALTER TABLE core.blackboard_entries OWNER TO lira_user;
+ALTER TABLE core.blackboard_entries OWNER TO core_db;
 
 --
--- Name: TABLE blackboard_entries; Type: COMMENT; Schema: core; Owner: lira_user
+-- Name: TABLE blackboard_entries; Type: COMMENT; Schema: core; Owner: core_db
 --
 
 COMMENT ON TABLE core.blackboard_entries IS 'Constitutional coordination ledger. Workers read and write here. Every decision must be recorded \u2014 silence is a constitutional violation.';
 
 
 --
--- Name: capabilities; Type: TABLE; Schema: core; Owner: lira_user
+-- Name: capabilities; Type: TABLE; Schema: core; Owner: core_db
 --
 
 CREATE TABLE core.capabilities (
@@ -777,10 +875,10 @@ CREATE TABLE core.capabilities (
 );
 
 
-ALTER TABLE core.capabilities OWNER TO lira_user;
+ALTER TABLE core.capabilities OWNER TO core_db;
 
 --
--- Name: capability_cli_links; Type: TABLE; Schema: core; Owner: lira_user
+-- Name: capability_cli_links; Type: TABLE; Schema: core; Owner: core_db
 --
 
 CREATE TABLE core.capability_cli_links (
@@ -789,10 +887,10 @@ CREATE TABLE core.capability_cli_links (
 );
 
 
-ALTER TABLE core.capability_cli_links OWNER TO lira_user;
+ALTER TABLE core.capability_cli_links OWNER TO core_db;
 
 --
--- Name: cli_commands; Type: TABLE; Schema: core; Owner: lira_user
+-- Name: cli_commands; Type: TABLE; Schema: core; Owner: core_db
 --
 
 CREATE TABLE core.cli_commands (
@@ -811,59 +909,59 @@ CREATE TABLE core.cli_commands (
 );
 
 
-ALTER TABLE core.cli_commands OWNER TO lira_user;
+ALTER TABLE core.cli_commands OWNER TO core_db;
 
 --
--- Name: COLUMN cli_commands.behavior; Type: COMMENT; Schema: core; Owner: lira_user
+-- Name: COLUMN cli_commands.behavior; Type: COMMENT; Schema: core; Owner: core_db
 --
 
 COMMENT ON COLUMN core.cli_commands.behavior IS 'Command behavior: read, validate, mutate, transform';
 
 
 --
--- Name: COLUMN cli_commands.layer; Type: COMMENT; Schema: core; Owner: lira_user
+-- Name: COLUMN cli_commands.layer; Type: COMMENT; Schema: core; Owner: core_db
 --
 
 COMMENT ON COLUMN core.cli_commands.layer IS 'Architectural layer: mind, body, will';
 
 
 --
--- Name: COLUMN cli_commands.aliases; Type: COMMENT; Schema: core; Owner: lira_user
+-- Name: COLUMN cli_commands.aliases; Type: COMMENT; Schema: core; Owner: core_db
 --
 
 COMMENT ON COLUMN core.cli_commands.aliases IS 'Alternative command names for backwards compatibility';
 
 
 --
--- Name: COLUMN cli_commands.dangerous; Type: COMMENT; Schema: core; Owner: lira_user
+-- Name: COLUMN cli_commands.dangerous; Type: COMMENT; Schema: core; Owner: core_db
 --
 
 COMMENT ON COLUMN core.cli_commands.dangerous IS 'Whether command requires --write flag or confirmation';
 
 
 --
--- Name: COLUMN cli_commands.requires_approval; Type: COMMENT; Schema: core; Owner: lira_user
+-- Name: COLUMN cli_commands.requires_approval; Type: COMMENT; Schema: core; Owner: core_db
 --
 
 COMMENT ON COLUMN core.cli_commands.requires_approval IS 'Whether execution needs autonomy approval';
 
 
 --
--- Name: COLUMN cli_commands.constitutional_constraints; Type: COMMENT; Schema: core; Owner: lira_user
+-- Name: COLUMN cli_commands.constitutional_constraints; Type: COMMENT; Schema: core; Owner: core_db
 --
 
 COMMENT ON COLUMN core.cli_commands.constitutional_constraints IS 'Required policy rules for execution';
 
 
 --
--- Name: COLUMN cli_commands.help_text; Type: COMMENT; Schema: core; Owner: lira_user
+-- Name: COLUMN cli_commands.help_text; Type: COMMENT; Schema: core; Owner: core_db
 --
 
 COMMENT ON COLUMN core.cli_commands.help_text IS 'Extended help text with examples';
 
 
 --
--- Name: cognitive_roles; Type: TABLE; Schema: core; Owner: lira_user
+-- Name: cognitive_roles; Type: TABLE; Schema: core; Owner: core_db
 --
 
 CREATE TABLE core.cognitive_roles (
@@ -879,10 +977,10 @@ CREATE TABLE core.cognitive_roles (
 );
 
 
-ALTER TABLE core.cognitive_roles OWNER TO lira_user;
+ALTER TABLE core.cognitive_roles OWNER TO core_db;
 
 --
--- Name: constitutional_violations; Type: TABLE; Schema: core; Owner: lira_user
+-- Name: constitutional_violations; Type: TABLE; Schema: core; Owner: core_db
 --
 
 CREATE TABLE core.constitutional_violations (
@@ -899,10 +997,10 @@ CREATE TABLE core.constitutional_violations (
 );
 
 
-ALTER TABLE core.constitutional_violations OWNER TO lira_user;
+ALTER TABLE core.constitutional_violations OWNER TO core_db;
 
 --
--- Name: context_packets; Type: TABLE; Schema: core; Owner: lira_user
+-- Name: context_packets; Type: TABLE; Schema: core; Owner: core_db
 --
 
 CREATE TABLE core.context_packets (
@@ -928,122 +1026,158 @@ CREATE TABLE core.context_packets (
 );
 
 
-ALTER TABLE core.context_packets OWNER TO lira_user;
+ALTER TABLE core.context_packets OWNER TO core_db;
 
 --
--- Name: TABLE context_packets; Type: COMMENT; Schema: core; Owner: lira_user
+-- Name: TABLE context_packets; Type: COMMENT; Schema: core; Owner: core_db
 --
 
 COMMENT ON TABLE core.context_packets IS 'Metadata for ContextPackage artifacts created by ContextService';
 
 
 --
--- Name: COLUMN context_packets.packet_id; Type: COMMENT; Schema: core; Owner: lira_user
+-- Name: COLUMN context_packets.packet_id; Type: COMMENT; Schema: core; Owner: core_db
 --
 
 COMMENT ON COLUMN core.context_packets.packet_id IS 'Unique identifier for this packet';
 
 
 --
--- Name: COLUMN context_packets.task_id; Type: COMMENT; Schema: core; Owner: lira_user
+-- Name: COLUMN context_packets.task_id; Type: COMMENT; Schema: core; Owner: core_db
 --
 
 COMMENT ON COLUMN core.context_packets.task_id IS 'Associated task identifier';
 
 
 --
--- Name: COLUMN context_packets.task_type; Type: COMMENT; Schema: core; Owner: lira_user
+-- Name: COLUMN context_packets.task_type; Type: COMMENT; Schema: core; Owner: core_db
 --
 
 COMMENT ON COLUMN core.context_packets.task_type IS 'Type of task (docstring.fix, test.generate, etc.)';
 
 
 --
--- Name: COLUMN context_packets.privacy; Type: COMMENT; Schema: core; Owner: lira_user
+-- Name: COLUMN context_packets.privacy; Type: COMMENT; Schema: core; Owner: core_db
 --
 
 COMMENT ON COLUMN core.context_packets.privacy IS 'Privacy level: local_only or remote_allowed';
 
 
 --
--- Name: COLUMN context_packets.remote_allowed; Type: COMMENT; Schema: core; Owner: lira_user
+-- Name: COLUMN context_packets.remote_allowed; Type: COMMENT; Schema: core; Owner: core_db
 --
 
 COMMENT ON COLUMN core.context_packets.remote_allowed IS 'Whether packet can be sent to remote LLMs';
 
 
 --
--- Name: COLUMN context_packets.packet_hash; Type: COMMENT; Schema: core; Owner: lira_user
+-- Name: COLUMN context_packets.packet_hash; Type: COMMENT; Schema: core; Owner: core_db
 --
 
 COMMENT ON COLUMN core.context_packets.packet_hash IS 'SHA256 hash of packet content for validation';
 
 
 --
--- Name: COLUMN context_packets.cache_key; Type: COMMENT; Schema: core; Owner: lira_user
+-- Name: COLUMN context_packets.cache_key; Type: COMMENT; Schema: core; Owner: core_db
 --
 
 COMMENT ON COLUMN core.context_packets.cache_key IS 'Hash of task spec for cache lookup';
 
 
 --
--- Name: COLUMN context_packets.tokens_est; Type: COMMENT; Schema: core; Owner: lira_user
+-- Name: COLUMN context_packets.tokens_est; Type: COMMENT; Schema: core; Owner: core_db
 --
 
 COMMENT ON COLUMN core.context_packets.tokens_est IS 'Estimated token count for packet';
 
 
 --
--- Name: COLUMN context_packets.size_bytes; Type: COMMENT; Schema: core; Owner: lira_user
+-- Name: COLUMN context_packets.size_bytes; Type: COMMENT; Schema: core; Owner: core_db
 --
 
 COMMENT ON COLUMN core.context_packets.size_bytes IS 'Size of serialized packet in bytes';
 
 
 --
--- Name: COLUMN context_packets.build_ms; Type: COMMENT; Schema: core; Owner: lira_user
+-- Name: COLUMN context_packets.build_ms; Type: COMMENT; Schema: core; Owner: core_db
 --
 
 COMMENT ON COLUMN core.context_packets.build_ms IS 'Time taken to build packet in milliseconds';
 
 
 --
--- Name: COLUMN context_packets.items_count; Type: COMMENT; Schema: core; Owner: lira_user
+-- Name: COLUMN context_packets.items_count; Type: COMMENT; Schema: core; Owner: core_db
 --
 
 COMMENT ON COLUMN core.context_packets.items_count IS 'Number of items in context array';
 
 
 --
--- Name: COLUMN context_packets.redactions_count; Type: COMMENT; Schema: core; Owner: lira_user
+-- Name: COLUMN context_packets.redactions_count; Type: COMMENT; Schema: core; Owner: core_db
 --
 
 COMMENT ON COLUMN core.context_packets.redactions_count IS 'Number of redactions applied';
 
 
 --
--- Name: COLUMN context_packets.path; Type: COMMENT; Schema: core; Owner: lira_user
+-- Name: COLUMN context_packets.path; Type: COMMENT; Schema: core; Owner: core_db
 --
 
 COMMENT ON COLUMN core.context_packets.path IS 'File path to serialized packet YAML';
 
 
 --
--- Name: COLUMN context_packets.metadata; Type: COMMENT; Schema: core; Owner: lira_user
+-- Name: COLUMN context_packets.metadata; Type: COMMENT; Schema: core; Owner: core_db
 --
 
 COMMENT ON COLUMN core.context_packets.metadata IS 'Extensible metadata (provenance, stats, etc.)';
 
 
 --
--- Name: COLUMN context_packets.builder_version; Type: COMMENT; Schema: core; Owner: lira_user
+-- Name: COLUMN context_packets.builder_version; Type: COMMENT; Schema: core; Owner: core_db
 --
 
 COMMENT ON COLUMN core.context_packets.builder_version IS 'Version of ContextBuilder that created packet';
 
 
 --
--- Name: decision_traces; Type: TABLE; Schema: core; Owner: lira_user
+-- Name: crawl_runs; Type: TABLE; Schema: core; Owner: core_db
+--
+
+CREATE TABLE core.crawl_runs (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    triggered_by text NOT NULL,
+    status text DEFAULT 'running'::text NOT NULL,
+    files_scanned integer DEFAULT 0 NOT NULL,
+    files_changed integer DEFAULT 0 NOT NULL,
+    symbols_linked integer DEFAULT 0 NOT NULL,
+    edges_created integer DEFAULT 0 NOT NULL,
+    chunks_upserted integer DEFAULT 0 NOT NULL,
+    error_message text,
+    started_at timestamp with time zone DEFAULT now() NOT NULL,
+    finished_at timestamp with time zone,
+    CONSTRAINT crawl_runs_status_check CHECK ((status = ANY (ARRAY['running'::text, 'completed'::text, 'failed'::text, 'partial'::text])))
+);
+
+
+ALTER TABLE core.crawl_runs OWNER TO core_db;
+
+--
+-- Name: TABLE crawl_runs; Type: COMMENT; Schema: core; Owner: core_db
+--
+
+COMMENT ON TABLE core.crawl_runs IS 'Audit log of RepoCrawler executions. crawl_run_id on symbol_calls and repo_artifacts references this table. Enables incremental crawl (skip unchanged files) and staleness detection.';
+
+
+--
+-- Name: COLUMN crawl_runs.status; Type: COMMENT; Schema: core; Owner: core_db
+--
+
+COMMENT ON COLUMN core.crawl_runs.status IS 'partial: crawl completed but with some file errors; failed: crawl aborted.';
+
+
+--
+-- Name: decision_traces; Type: TABLE; Schema: core; Owner: core_db
 --
 
 CREATE TABLE core.decision_traces (
@@ -1062,87 +1196,87 @@ CREATE TABLE core.decision_traces (
 );
 
 
-ALTER TABLE core.decision_traces OWNER TO lira_user;
+ALTER TABLE core.decision_traces OWNER TO core_db;
 
 --
--- Name: TABLE decision_traces; Type: COMMENT; Schema: core; Owner: lira_user
+-- Name: TABLE decision_traces; Type: COMMENT; Schema: core; Owner: core_db
 --
 
 COMMENT ON TABLE core.decision_traces IS 'Stores decision traces from autonomous operations for debugging and analysis';
 
 
 --
--- Name: COLUMN decision_traces.session_id; Type: COMMENT; Schema: core; Owner: lira_user
+-- Name: COLUMN decision_traces.session_id; Type: COMMENT; Schema: core; Owner: core_db
 --
 
 COMMENT ON COLUMN core.decision_traces.session_id IS 'Unique session identifier from DecisionTracer';
 
 
 --
--- Name: COLUMN decision_traces.agent_name; Type: COMMENT; Schema: core; Owner: lira_user
+-- Name: COLUMN decision_traces.agent_name; Type: COMMENT; Schema: core; Owner: core_db
 --
 
 COMMENT ON COLUMN core.decision_traces.agent_name IS 'Which agent made these decisions (CodeGenerator, Planner, etc.)';
 
 
 --
--- Name: COLUMN decision_traces.goal; Type: COMMENT; Schema: core; Owner: lira_user
+-- Name: COLUMN decision_traces.goal; Type: COMMENT; Schema: core; Owner: core_db
 --
 
 COMMENT ON COLUMN core.decision_traces.goal IS 'High-level goal for this session';
 
 
 --
--- Name: COLUMN decision_traces.decisions; Type: COMMENT; Schema: core; Owner: lira_user
+-- Name: COLUMN decision_traces.decisions; Type: COMMENT; Schema: core; Owner: core_db
 --
 
 COMMENT ON COLUMN core.decision_traces.decisions IS 'Array of all decisions made in this session';
 
 
 --
--- Name: COLUMN decision_traces.decision_count; Type: COMMENT; Schema: core; Owner: lira_user
+-- Name: COLUMN decision_traces.decision_count; Type: COMMENT; Schema: core; Owner: core_db
 --
 
 COMMENT ON COLUMN core.decision_traces.decision_count IS 'Number of decisions in this trace';
 
 
 --
--- Name: COLUMN decision_traces.pattern_stats; Type: COMMENT; Schema: core; Owner: lira_user
+-- Name: COLUMN decision_traces.pattern_stats; Type: COMMENT; Schema: core; Owner: core_db
 --
 
 COMMENT ON COLUMN core.decision_traces.pattern_stats IS 'Frequency of pattern classifications used';
 
 
 --
--- Name: COLUMN decision_traces.has_violations; Type: COMMENT; Schema: core; Owner: lira_user
+-- Name: COLUMN decision_traces.has_violations; Type: COMMENT; Schema: core; Owner: core_db
 --
 
 COMMENT ON COLUMN core.decision_traces.has_violations IS 'Whether any decisions led to violations (true/false/unknown)';
 
 
 --
--- Name: COLUMN decision_traces.violation_count; Type: COMMENT; Schema: core; Owner: lira_user
+-- Name: COLUMN decision_traces.violation_count; Type: COMMENT; Schema: core; Owner: core_db
 --
 
 COMMENT ON COLUMN core.decision_traces.violation_count IS 'Number of violations detected in this session';
 
 
 --
--- Name: COLUMN decision_traces.duration_ms; Type: COMMENT; Schema: core; Owner: lira_user
+-- Name: COLUMN decision_traces.duration_ms; Type: COMMENT; Schema: core; Owner: core_db
 --
 
 COMMENT ON COLUMN core.decision_traces.duration_ms IS 'Total session duration in milliseconds';
 
 
 --
--- Name: COLUMN decision_traces.extra_metadata; Type: COMMENT; Schema: core; Owner: lira_user
+-- Name: COLUMN decision_traces.extra_metadata; Type: COMMENT; Schema: core; Owner: core_db
 --
 
 COMMENT ON COLUMN core.decision_traces.extra_metadata IS 'Additional context-specific metadata';
 
 
 --
--- Name: decorator_inference_rules; Type: TABLE; Schema: core; Owner: lira_user
+-- Name: decorator_inference_rules; Type: TABLE; Schema: core; Owner: core_db
 --
 
 CREATE TABLE core.decorator_inference_rules (
@@ -1162,17 +1296,17 @@ CREATE TABLE core.decorator_inference_rules (
 );
 
 
-ALTER TABLE core.decorator_inference_rules OWNER TO lira_user;
+ALTER TABLE core.decorator_inference_rules OWNER TO core_db;
 
 --
--- Name: TABLE decorator_inference_rules; Type: COMMENT; Schema: core; Owner: lira_user
+-- Name: TABLE decorator_inference_rules; Type: COMMENT; Schema: core; Owner: core_db
 --
 
 COMMENT ON TABLE core.decorator_inference_rules IS 'Rules for automatically inferring which decorators a symbol needs';
 
 
 --
--- Name: COLUMN decorator_inference_rules.conditions; Type: COMMENT; Schema: core; Owner: lira_user
+-- Name: COLUMN decorator_inference_rules.conditions; Type: COMMENT; Schema: core; Owner: core_db
 --
 
 COMMENT ON COLUMN core.decorator_inference_rules.conditions IS 'JSON structure for matching symbols:
@@ -1186,14 +1320,14 @@ COMMENT ON COLUMN core.decorator_inference_rules.conditions IS 'JSON structure f
 
 
 --
--- Name: COLUMN decorator_inference_rules.parameter_inference; Type: COMMENT; Schema: core; Owner: lira_user
+-- Name: COLUMN decorator_inference_rules.parameter_inference; Type: COMMENT; Schema: core; Owner: core_db
 --
 
 COMMENT ON COLUMN core.decorator_inference_rules.parameter_inference IS 'JSON rules for computing parameter values from symbol analysis';
 
 
 --
--- Name: decorator_registry; Type: TABLE; Schema: core; Owner: lira_user
+-- Name: decorator_registry; Type: TABLE; Schema: core; Owner: core_db
 --
 
 CREATE TABLE core.decorator_registry (
@@ -1213,17 +1347,17 @@ CREATE TABLE core.decorator_registry (
 );
 
 
-ALTER TABLE core.decorator_registry OWNER TO lira_user;
+ALTER TABLE core.decorator_registry OWNER TO core_db;
 
 --
--- Name: TABLE decorator_registry; Type: COMMENT; Schema: core; Owner: lira_user
+-- Name: TABLE decorator_registry; Type: COMMENT; Schema: core; Owner: core_db
 --
 
 COMMENT ON TABLE core.decorator_registry IS 'Registry of all constitutionally-approved decorators and their metadata';
 
 
 --
--- Name: domains; Type: TABLE; Schema: core; Owner: lira_user
+-- Name: domains; Type: TABLE; Schema: core; Owner: core_db
 --
 
 CREATE TABLE core.domains (
@@ -1234,10 +1368,10 @@ CREATE TABLE core.domains (
 );
 
 
-ALTER TABLE core.domains OWNER TO lira_user;
+ALTER TABLE core.domains OWNER TO core_db;
 
 --
--- Name: export_digests; Type: TABLE; Schema: core; Owner: lira_user
+-- Name: export_digests; Type: TABLE; Schema: core; Owner: core_db
 --
 
 CREATE TABLE core.export_digests (
@@ -1248,10 +1382,10 @@ CREATE TABLE core.export_digests (
 );
 
 
-ALTER TABLE core.export_digests OWNER TO lira_user;
+ALTER TABLE core.export_digests OWNER TO core_db;
 
 --
--- Name: export_manifests; Type: TABLE; Schema: core; Owner: lira_user
+-- Name: export_manifests; Type: TABLE; Schema: core; Owner: core_db
 --
 
 CREATE TABLE core.export_manifests (
@@ -1263,10 +1397,10 @@ CREATE TABLE core.export_manifests (
 );
 
 
-ALTER TABLE core.export_manifests OWNER TO lira_user;
+ALTER TABLE core.export_manifests OWNER TO core_db;
 
 --
--- Name: feedback; Type: TABLE; Schema: core; Owner: lira_user
+-- Name: feedback; Type: TABLE; Schema: core; Owner: core_db
 --
 
 CREATE TABLE core.feedback (
@@ -1282,10 +1416,10 @@ CREATE TABLE core.feedback (
 );
 
 
-ALTER TABLE core.feedback OWNER TO lira_user;
+ALTER TABLE core.feedback OWNER TO core_db;
 
 --
--- Name: symbol_capability_links; Type: TABLE; Schema: core; Owner: lira_user
+-- Name: symbol_capability_links; Type: TABLE; Schema: core; Owner: core_db
 --
 
 CREATE TABLE core.symbol_capability_links (
@@ -1300,10 +1434,10 @@ CREATE TABLE core.symbol_capability_links (
 );
 
 
-ALTER TABLE core.symbol_capability_links OWNER TO lira_user;
+ALTER TABLE core.symbol_capability_links OWNER TO core_db;
 
 --
--- Name: symbol_vector_links; Type: TABLE; Schema: core; Owner: lira_user
+-- Name: symbol_vector_links; Type: TABLE; Schema: core; Owner: core_db
 --
 
 CREATE TABLE core.symbol_vector_links (
@@ -1315,10 +1449,10 @@ CREATE TABLE core.symbol_vector_links (
 );
 
 
-ALTER TABLE core.symbol_vector_links OWNER TO lira_user;
+ALTER TABLE core.symbol_vector_links OWNER TO core_db;
 
 --
--- Name: symbols; Type: TABLE; Schema: core; Owner: lira_user
+-- Name: symbols; Type: TABLE; Schema: core; Owner: core_db
 --
 
 CREATE TABLE core.symbols (
@@ -1361,17 +1495,17 @@ CREATE TABLE core.symbols (
 );
 
 
-ALTER TABLE core.symbols OWNER TO lira_user;
+ALTER TABLE core.symbols OWNER TO core_db;
 
 --
--- Name: COLUMN symbols.key; Type: COMMENT; Schema: core; Owner: lira_user
+-- Name: COLUMN symbols.key; Type: COMMENT; Schema: core; Owner: core_db
 --
 
 COMMENT ON COLUMN core.symbols.key IS 'Capability label (non-unique). Many symbols may share the same key. This is a transitional convenience field; the SSOT is core.capabilities + core.symbol_capability_links.';
 
 
 --
--- Name: COLUMN symbols.definition_status; Type: COMMENT; Schema: core; Owner: lira_user
+-- Name: COLUMN symbols.definition_status; Type: COMMENT; Schema: core; Owner: core_db
 --
 
 COMMENT ON COLUMN core.symbols.definition_status IS 'pending: symbol discovered but not yet analyzed;
@@ -1408,7 +1542,7 @@ CREATE VIEW core.knowledge_graph AS
 ALTER VIEW core.knowledge_graph OWNER TO lira_user;
 
 --
--- Name: llm_resources; Type: TABLE; Schema: core; Owner: lira_user
+-- Name: llm_resources; Type: TABLE; Schema: core; Owner: core_db
 --
 
 CREATE TABLE core.llm_resources (
@@ -1422,10 +1556,10 @@ CREATE TABLE core.llm_resources (
 );
 
 
-ALTER TABLE core.llm_resources OWNER TO lira_user;
+ALTER TABLE core.llm_resources OWNER TO core_db;
 
 --
--- Name: mv_refresh_log; Type: TABLE; Schema: core; Owner: lira_user
+-- Name: mv_refresh_log; Type: TABLE; Schema: core; Owner: core_db
 --
 
 CREATE TABLE core.mv_refresh_log (
@@ -1438,10 +1572,10 @@ CREATE TABLE core.mv_refresh_log (
 );
 
 
-ALTER TABLE core.mv_refresh_log OWNER TO lira_user;
+ALTER TABLE core.mv_refresh_log OWNER TO core_db;
 
 --
--- Name: northstar; Type: TABLE; Schema: core; Owner: lira_user
+-- Name: northstar; Type: TABLE; Schema: core; Owner: core_db
 --
 
 CREATE TABLE core.northstar (
@@ -1451,10 +1585,10 @@ CREATE TABLE core.northstar (
 );
 
 
-ALTER TABLE core.northstar OWNER TO lira_user;
+ALTER TABLE core.northstar OWNER TO core_db;
 
 --
--- Name: observability_decisions; Type: TABLE; Schema: core; Owner: lira_user
+-- Name: observability_decisions; Type: TABLE; Schema: core; Owner: core_db
 --
 
 CREATE TABLE core.observability_decisions (
@@ -1473,52 +1607,52 @@ CREATE TABLE core.observability_decisions (
 );
 
 
-ALTER TABLE core.observability_decisions OWNER TO lira_user;
+ALTER TABLE core.observability_decisions OWNER TO core_db;
 
 --
--- Name: TABLE observability_decisions; Type: COMMENT; Schema: core; Owner: lira_user
+-- Name: TABLE observability_decisions; Type: COMMENT; Schema: core; Owner: core_db
 --
 
 COMMENT ON TABLE core.observability_decisions IS 'Constitutional audit trail for autonomous AI decisions - permanent record';
 
 
 --
--- Name: COLUMN observability_decisions.decision_id; Type: COMMENT; Schema: core; Owner: lira_user
+-- Name: COLUMN observability_decisions.decision_id; Type: COMMENT; Schema: core; Owner: core_db
 --
 
 COMMENT ON COLUMN core.observability_decisions.decision_id IS 'Unique identifier for this decision';
 
 
 --
--- Name: COLUMN observability_decisions.governing_policies; Type: COMMENT; Schema: core; Owner: lira_user
+-- Name: COLUMN observability_decisions.governing_policies; Type: COMMENT; Schema: core; Owner: core_db
 --
 
 COMMENT ON COLUMN core.observability_decisions.governing_policies IS 'Constitutional policies that constrained this decision';
 
 
 --
--- Name: COLUMN observability_decisions.context_used; Type: COMMENT; Schema: core; Owner: lira_user
+-- Name: COLUMN observability_decisions.context_used; Type: COMMENT; Schema: core; Owner: core_db
 --
 
 COMMENT ON COLUMN core.observability_decisions.context_used IS 'Input context provided to the AI (symbols, patterns, policies)';
 
 
 --
--- Name: COLUMN observability_decisions.reasoning_trace; Type: COMMENT; Schema: core; Owner: lira_user
+-- Name: COLUMN observability_decisions.reasoning_trace; Type: COMMENT; Schema: core; Owner: core_db
 --
 
 COMMENT ON COLUMN core.observability_decisions.reasoning_trace IS 'AI explanation of why it made this decision';
 
 
 --
--- Name: COLUMN observability_decisions.outcome; Type: COMMENT; Schema: core; Owner: lira_user
+-- Name: COLUMN observability_decisions.outcome; Type: COMMENT; Schema: core; Owner: core_db
 --
 
 COMMENT ON COLUMN core.observability_decisions.outcome IS 'Result of executing the decision (validation_result, audit_result, integration_status)';
 
 
 --
--- Name: observability_decisions_id_seq; Type: SEQUENCE; Schema: core; Owner: lira_user
+-- Name: observability_decisions_id_seq; Type: SEQUENCE; Schema: core; Owner: core_db
 --
 
 CREATE SEQUENCE core.observability_decisions_id_seq
@@ -1529,17 +1663,17 @@ CREATE SEQUENCE core.observability_decisions_id_seq
     CACHE 1;
 
 
-ALTER SEQUENCE core.observability_decisions_id_seq OWNER TO lira_user;
+ALTER SEQUENCE core.observability_decisions_id_seq OWNER TO core_db;
 
 --
--- Name: observability_decisions_id_seq; Type: SEQUENCE OWNED BY; Schema: core; Owner: lira_user
+-- Name: observability_decisions_id_seq; Type: SEQUENCE OWNED BY; Schema: core; Owner: core_db
 --
 
 ALTER SEQUENCE core.observability_decisions_id_seq OWNED BY core.observability_decisions.id;
 
 
 --
--- Name: observability_logs; Type: TABLE; Schema: core; Owner: lira_user
+-- Name: observability_logs; Type: TABLE; Schema: core; Owner: core_db
 --
 
 CREATE TABLE core.observability_logs (
@@ -1558,38 +1692,38 @@ CREATE TABLE core.observability_logs (
 );
 
 
-ALTER TABLE core.observability_logs OWNER TO lira_user;
+ALTER TABLE core.observability_logs OWNER TO core_db;
 
 --
--- Name: TABLE observability_logs; Type: COMMENT; Schema: core; Owner: lira_user
+-- Name: TABLE observability_logs; Type: COMMENT; Schema: core; Owner: core_db
 --
 
 COMMENT ON TABLE core.observability_logs IS 'Structured logs from atomic actions - enables tracing, debugging, and pattern analysis';
 
 
 --
--- Name: COLUMN observability_logs.action_id; Type: COMMENT; Schema: core; Owner: lira_user
+-- Name: COLUMN observability_logs.action_id; Type: COMMENT; Schema: core; Owner: core_db
 --
 
 COMMENT ON COLUMN core.observability_logs.action_id IS 'Atomic action identifier (e.g., fix.ids, manage.vectorize)';
 
 
 --
--- Name: COLUMN observability_logs.correlation_id; Type: COMMENT; Schema: core; Owner: lira_user
+-- Name: COLUMN observability_logs.correlation_id; Type: COMMENT; Schema: core; Owner: core_db
 --
 
 COMMENT ON COLUMN core.observability_logs.correlation_id IS 'Links related operations across the system';
 
 
 --
--- Name: COLUMN observability_logs.context; Type: COMMENT; Schema: core; Owner: lira_user
+-- Name: COLUMN observability_logs.context; Type: COMMENT; Schema: core; Owner: core_db
 --
 
 COMMENT ON COLUMN core.observability_logs.context IS 'Operation-specific details (e.g., files_modified, tests_generated)';
 
 
 --
--- Name: observability_logs_id_seq; Type: SEQUENCE; Schema: core; Owner: lira_user
+-- Name: observability_logs_id_seq; Type: SEQUENCE; Schema: core; Owner: core_db
 --
 
 CREATE SEQUENCE core.observability_logs_id_seq
@@ -1600,17 +1734,17 @@ CREATE SEQUENCE core.observability_logs_id_seq
     CACHE 1;
 
 
-ALTER SEQUENCE core.observability_logs_id_seq OWNER TO lira_user;
+ALTER SEQUENCE core.observability_logs_id_seq OWNER TO core_db;
 
 --
--- Name: observability_logs_id_seq; Type: SEQUENCE OWNED BY; Schema: core; Owner: lira_user
+-- Name: observability_logs_id_seq; Type: SEQUENCE OWNED BY; Schema: core; Owner: core_db
 --
 
 ALTER SEQUENCE core.observability_logs_id_seq OWNED BY core.observability_logs.id;
 
 
 --
--- Name: observability_metrics; Type: TABLE; Schema: core; Owner: lira_user
+-- Name: observability_metrics; Type: TABLE; Schema: core; Owner: core_db
 --
 
 CREATE TABLE core.observability_metrics (
@@ -1624,38 +1758,38 @@ CREATE TABLE core.observability_metrics (
 );
 
 
-ALTER TABLE core.observability_metrics OWNER TO lira_user;
+ALTER TABLE core.observability_metrics OWNER TO core_db;
 
 --
--- Name: TABLE observability_metrics; Type: COMMENT; Schema: core; Owner: lira_user
+-- Name: TABLE observability_metrics; Type: COMMENT; Schema: core; Owner: core_db
 --
 
 COMMENT ON TABLE core.observability_metrics IS 'Time-series metrics for system health, performance, and quality tracking';
 
 
 --
--- Name: COLUMN observability_metrics.metric_name; Type: COMMENT; Schema: core; Owner: lira_user
+-- Name: COLUMN observability_metrics.metric_name; Type: COMMENT; Schema: core; Owner: core_db
 --
 
 COMMENT ON COLUMN core.observability_metrics.metric_name IS 'Metric identifier (e.g., action_success_rate, autonomous_generation_success_rate)';
 
 
 --
--- Name: COLUMN observability_metrics.metric_type; Type: COMMENT; Schema: core; Owner: lira_user
+-- Name: COLUMN observability_metrics.metric_type; Type: COMMENT; Schema: core; Owner: core_db
 --
 
 COMMENT ON COLUMN core.observability_metrics.metric_type IS 'Type of metric for correct aggregation';
 
 
 --
--- Name: COLUMN observability_metrics.tags; Type: COMMENT; Schema: core; Owner: lira_user
+-- Name: COLUMN observability_metrics.tags; Type: COMMENT; Schema: core; Owner: core_db
 --
 
 COMMENT ON COLUMN core.observability_metrics.tags IS 'Dimensions for filtering (e.g., {action_id: "fix.ids", environment: "production"})';
 
 
 --
--- Name: observability_metrics_id_seq; Type: SEQUENCE; Schema: core; Owner: lira_user
+-- Name: observability_metrics_id_seq; Type: SEQUENCE; Schema: core; Owner: core_db
 --
 
 CREATE SEQUENCE core.observability_metrics_id_seq
@@ -1666,74 +1800,41 @@ CREATE SEQUENCE core.observability_metrics_id_seq
     CACHE 1;
 
 
-ALTER SEQUENCE core.observability_metrics_id_seq OWNER TO lira_user;
+ALTER SEQUENCE core.observability_metrics_id_seq OWNER TO core_db;
 
 --
--- Name: observability_metrics_id_seq; Type: SEQUENCE OWNED BY; Schema: core; Owner: lira_user
+-- Name: observability_metrics_id_seq; Type: SEQUENCE OWNED BY; Schema: core; Owner: core_db
 --
 
 ALTER SEQUENCE core.observability_metrics_id_seq OWNED BY core.observability_metrics.id;
 
 
 --
--- Name: proposal_signatures; Type: TABLE; Schema: core; Owner: lira_user
+-- Name: proposal_consequences; Type: TABLE; Schema: core; Owner: core_db
 --
 
-CREATE TABLE core.proposal_signatures (
-    proposal_id bigint NOT NULL,
-    approver_identity text NOT NULL,
-    signature_base64 text NOT NULL,
-    signed_at timestamp with time zone DEFAULT now() NOT NULL,
-    is_valid boolean DEFAULT true NOT NULL
+CREATE TABLE core.proposal_consequences (
+    proposal_id text NOT NULL,
+    recorded_at timestamp with time zone DEFAULT now() NOT NULL,
+    pre_execution_sha text,
+    post_execution_sha text,
+    files_changed jsonb DEFAULT '[]'::jsonb NOT NULL,
+    findings_resolved jsonb DEFAULT '[]'::jsonb NOT NULL,
+    authorized_by_rules jsonb DEFAULT '[]'::jsonb NOT NULL
 );
 
 
-ALTER TABLE core.proposal_signatures OWNER TO lira_user;
+ALTER TABLE core.proposal_consequences OWNER TO core_db;
 
 --
--- Name: proposals; Type: TABLE; Schema: core; Owner: lira_user
+-- Name: TABLE proposal_consequences; Type: COMMENT; Schema: core; Owner: core_db
 --
 
-CREATE TABLE core.proposals (
-    id bigint NOT NULL,
-    target_path text NOT NULL,
-    content_sha256 character(64) NOT NULL,
-    justification text NOT NULL,
-    risk_tier text DEFAULT 'low'::text,
-    is_critical boolean DEFAULT false NOT NULL,
-    status text DEFAULT 'open'::text NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    created_by text NOT NULL,
-    CONSTRAINT proposals_risk_tier_check CHECK ((risk_tier = ANY (ARRAY['low'::text, 'medium'::text, 'high'::text]))),
-    CONSTRAINT proposals_status_check CHECK ((status = ANY (ARRAY['open'::text, 'approved'::text, 'rejected'::text, 'superseded'::text])))
-);
-
-
-ALTER TABLE core.proposals OWNER TO lira_user;
-
---
--- Name: proposals_id_seq; Type: SEQUENCE; Schema: core; Owner: lira_user
---
-
-CREATE SEQUENCE core.proposals_id_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
-ALTER SEQUENCE core.proposals_id_seq OWNER TO lira_user;
-
---
--- Name: proposals_id_seq; Type: SEQUENCE OWNED BY; Schema: core; Owner: lira_user
---
-
-ALTER SEQUENCE core.proposals_id_seq OWNED BY core.proposals.id;
+COMMENT ON TABLE core.proposal_consequences IS 'Consequence log: records what each executed proposal actually changed. Closes the causal chain: Finding \u2192 Proposal \u2192 Approval \u2192 Execution \u2192 File Changes.';
 
 
 --
--- Name: refusals; Type: TABLE; Schema: core; Owner: lira_user
+-- Name: refusals; Type: TABLE; Schema: core; Owner: core_db
 --
 
 CREATE TABLE core.refusals (
@@ -1752,87 +1853,150 @@ CREATE TABLE core.refusals (
 );
 
 
-ALTER TABLE core.refusals OWNER TO lira_user;
+ALTER TABLE core.refusals OWNER TO core_db;
 
 --
--- Name: TABLE refusals; Type: COMMENT; Schema: core; Owner: lira_user
+-- Name: TABLE refusals; Type: COMMENT; Schema: core; Owner: core_db
 --
 
 COMMENT ON TABLE core.refusals IS 'Constitutional refusal tracking - stores all refusals as first-class outcomes for audit and analysis';
 
 
 --
--- Name: COLUMN refusals.component_id; Type: COMMENT; Schema: core; Owner: lira_user
+-- Name: COLUMN refusals.component_id; Type: COMMENT; Schema: core; Owner: core_db
 --
 
 COMMENT ON COLUMN core.refusals.component_id IS 'Which component refused (code_generator, planner, etc.)';
 
 
 --
--- Name: COLUMN refusals.phase; Type: COMMENT; Schema: core; Owner: lira_user
+-- Name: COLUMN refusals.phase; Type: COMMENT; Schema: core; Owner: core_db
 --
 
 COMMENT ON COLUMN core.refusals.phase IS 'Component phase where refusal occurred (EXECUTION, PARSE, etc.)';
 
 
 --
--- Name: COLUMN refusals.refusal_type; Type: COMMENT; Schema: core; Owner: lira_user
+-- Name: COLUMN refusals.refusal_type; Type: COMMENT; Schema: core; Owner: core_db
 --
 
 COMMENT ON COLUMN core.refusals.refusal_type IS 'Category: boundary, confidence, contradiction, assumption, capability, extraction, quality';
 
 
 --
--- Name: COLUMN refusals.reason; Type: COMMENT; Schema: core; Owner: lira_user
+-- Name: COLUMN refusals.reason; Type: COMMENT; Schema: core; Owner: core_db
 --
 
 COMMENT ON COLUMN core.refusals.reason IS 'Constitutional reason for refusal (with policy citation)';
 
 
 --
--- Name: COLUMN refusals.suggested_action; Type: COMMENT; Schema: core; Owner: lira_user
+-- Name: COLUMN refusals.suggested_action; Type: COMMENT; Schema: core; Owner: core_db
 --
 
 COMMENT ON COLUMN core.refusals.suggested_action IS 'What user should do to address the refusal';
 
 
 --
--- Name: COLUMN refusals.original_request; Type: COMMENT; Schema: core; Owner: lira_user
+-- Name: COLUMN refusals.original_request; Type: COMMENT; Schema: core; Owner: core_db
 --
 
 COMMENT ON COLUMN core.refusals.original_request IS 'The request that was refused (for audit trail)';
 
 
 --
--- Name: COLUMN refusals.confidence; Type: COMMENT; Schema: core; Owner: lira_user
+-- Name: COLUMN refusals.confidence; Type: COMMENT; Schema: core; Owner: core_db
 --
 
 COMMENT ON COLUMN core.refusals.confidence IS 'Confidence score at time of refusal (often low)';
 
 
 --
--- Name: COLUMN refusals.context_data; Type: COMMENT; Schema: core; Owner: lira_user
+-- Name: COLUMN refusals.context_data; Type: COMMENT; Schema: core; Owner: core_db
 --
 
 COMMENT ON COLUMN core.refusals.context_data IS 'Additional context (boundaries violated, metrics, etc.)';
 
 
 --
--- Name: COLUMN refusals.session_id; Type: COMMENT; Schema: core; Owner: lira_user
+-- Name: COLUMN refusals.session_id; Type: COMMENT; Schema: core; Owner: core_db
 --
 
 COMMENT ON COLUMN core.refusals.session_id IS 'Decision trace session ID if refusal occurred during traced session';
 
 
 --
--- Name: COLUMN refusals.user_id; Type: COMMENT; Schema: core; Owner: lira_user
+-- Name: COLUMN refusals.user_id; Type: COMMENT; Schema: core; Owner: core_db
 --
 
 COMMENT ON COLUMN core.refusals.user_id IS 'User who received the refusal (for UX improvement analysis)';
 
 
 --
--- Name: retrieval_feedback; Type: TABLE; Schema: core; Owner: lira_user
+-- Name: repo_artifacts; Type: TABLE; Schema: core; Owner: core_db
+--
+
+CREATE TABLE core.repo_artifacts (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    file_path text NOT NULL,
+    artifact_type text NOT NULL,
+    qdrant_collection text NOT NULL,
+    content_hash text NOT NULL,
+    chunk_count integer DEFAULT 0 NOT NULL,
+    title text,
+    crawl_run_id uuid NOT NULL,
+    last_crawled_at timestamp with time zone DEFAULT now() NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT repo_artifacts_type_check CHECK ((artifact_type = ANY (ARRAY['doc'::text, 'test'::text, 'prompt'::text, 'report'::text, 'intent'::text, 'infra'::text, 'python'::text])))
+);
+
+
+ALTER TABLE core.repo_artifacts OWNER TO core_db;
+
+--
+-- Name: TABLE repo_artifacts; Type: COMMENT; Schema: core; Owner: core_db
+--
+
+COMMENT ON TABLE core.repo_artifacts IS 'Registry of every non-Python file ingested by the RepoCrawler. One row per file. Qdrant holds semantic chunks; this table holds metadata and change-detection state. Paired with artifact_symbol_links for cross-referencing artifacts to symbols.';
+
+
+--
+-- Name: COLUMN repo_artifacts.file_path; Type: COMMENT; Schema: core; Owner: core_db
+--
+
+COMMENT ON COLUMN core.repo_artifacts.file_path IS 'Repo-relative path. Canonical key. Example: docs/architecture/workers.md';
+
+
+--
+-- Name: COLUMN repo_artifacts.artifact_type; Type: COMMENT; Schema: core; Owner: core_db
+--
+
+COMMENT ON COLUMN core.repo_artifacts.artifact_type IS 'doc: docs/ markdown; test: tests/ Python; prompt: var/prompts/ PromptModel artifacts; report: reports/ audit output; intent: .intent/ YAML/JSON; infra: infra/ SQL/config.';
+
+
+--
+-- Name: COLUMN repo_artifacts.qdrant_collection; Type: COMMENT; Schema: core; Owner: core_db
+--
+
+COMMENT ON COLUMN core.repo_artifacts.qdrant_collection IS 'Which Qdrant collection received the semantic chunks for this file. Maps: doc\u2192core-docs, test\u2192core-tests, prompt\u2192core-prompts, report\u2192core-reports.';
+
+
+--
+-- Name: COLUMN repo_artifacts.content_hash; Type: COMMENT; Schema: core; Owner: core_db
+--
+
+COMMENT ON COLUMN core.repo_artifacts.content_hash IS 'SHA256 of file content. RepoCrawler skips re-embedding when hash is unchanged.';
+
+
+--
+-- Name: COLUMN repo_artifacts.chunk_count; Type: COMMENT; Schema: core; Owner: core_db
+--
+
+COMMENT ON COLUMN core.repo_artifacts.chunk_count IS 'Number of semantic chunks upserted to Qdrant. 0 = file was skipped or empty.';
+
+
+--
+-- Name: retrieval_feedback; Type: TABLE; Schema: core; Owner: core_db
 --
 
 CREATE TABLE core.retrieval_feedback (
@@ -1848,10 +2012,10 @@ CREATE TABLE core.retrieval_feedback (
 );
 
 
-ALTER TABLE core.retrieval_feedback OWNER TO lira_user;
+ALTER TABLE core.retrieval_feedback OWNER TO core_db;
 
 --
--- Name: runtime_services; Type: TABLE; Schema: core; Owner: lira_user
+-- Name: runtime_services; Type: TABLE; Schema: core; Owner: core_db
 --
 
 CREATE TABLE core.runtime_services (
@@ -1861,10 +2025,10 @@ CREATE TABLE core.runtime_services (
 );
 
 
-ALTER TABLE core.runtime_services OWNER TO lira_user;
+ALTER TABLE core.runtime_services OWNER TO core_db;
 
 --
--- Name: runtime_settings; Type: TABLE; Schema: core; Owner: lira_user
+-- Name: runtime_settings; Type: TABLE; Schema: core; Owner: core_db
 --
 
 CREATE TABLE core.runtime_settings (
@@ -1876,24 +2040,24 @@ CREATE TABLE core.runtime_settings (
 );
 
 
-ALTER TABLE core.runtime_settings OWNER TO lira_user;
+ALTER TABLE core.runtime_settings OWNER TO core_db;
 
 --
--- Name: TABLE runtime_settings; Type: COMMENT; Schema: core; Owner: lira_user
+-- Name: TABLE runtime_settings; Type: COMMENT; Schema: core; Owner: core_db
 --
 
 COMMENT ON TABLE core.runtime_settings IS 'Single source of truth for runtime configuration, loaded from .env and managed by `core-admin manage dotenv sync`.';
 
 
 --
--- Name: COLUMN runtime_settings.is_secret; Type: COMMENT; Schema: core; Owner: lira_user
+-- Name: COLUMN runtime_settings.is_secret; Type: COMMENT; Schema: core; Owner: core_db
 --
 
 COMMENT ON COLUMN core.runtime_settings.is_secret IS 'If true, the value should be handled with care.';
 
 
 --
--- Name: semantic_cache; Type: TABLE; Schema: core; Owner: lira_user
+-- Name: semantic_cache; Type: TABLE; Schema: core; Owner: core_db
 --
 
 CREATE TABLE core.semantic_cache (
@@ -1913,10 +2077,74 @@ CREATE TABLE core.semantic_cache (
 );
 
 
-ALTER TABLE core.semantic_cache OWNER TO lira_user;
+ALTER TABLE core.semantic_cache OWNER TO core_db;
 
 --
--- Name: symbol_decorators; Type: TABLE; Schema: core; Owner: lira_user
+-- Name: symbol_calls; Type: TABLE; Schema: core; Owner: core_db
+--
+
+CREATE TABLE core.symbol_calls (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    caller_id uuid NOT NULL,
+    callee_id uuid,
+    callee_raw text NOT NULL,
+    edge_kind text NOT NULL,
+    file_path text NOT NULL,
+    line_number integer,
+    is_cross_layer boolean DEFAULT false NOT NULL,
+    is_external boolean DEFAULT false NOT NULL,
+    crawl_run_id uuid NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT symbol_calls_edge_kind_check CHECK ((edge_kind = ANY (ARRAY['direct_call'::text, 'import'::text, 'inheritance'::text, 'decorator'::text, 'dynamic'::text])))
+);
+
+
+ALTER TABLE core.symbol_calls OWNER TO core_db;
+
+--
+-- Name: TABLE symbol_calls; Type: COMMENT; Schema: core; Owner: core_db
+--
+
+COMMENT ON TABLE core.symbol_calls IS 'Directed call graph edges. Replaces the opaque calls jsonb blob on core.symbols. Enables structural blast-radius computation for autonomous_proposals.scope.';
+
+
+--
+-- Name: COLUMN symbol_calls.callee_id; Type: COMMENT; Schema: core; Owner: core_db
+--
+
+COMMENT ON COLUMN core.symbol_calls.callee_id IS 'NULL when callee is not yet registered in core.symbols (external lib or unresolved import).';
+
+
+--
+-- Name: COLUMN symbol_calls.callee_raw; Type: COMMENT; Schema: core; Owner: core_db
+--
+
+COMMENT ON COLUMN core.symbol_calls.callee_raw IS 'Raw call target string as extracted from AST. Always populated regardless of callee_id resolution.';
+
+
+--
+-- Name: COLUMN symbol_calls.edge_kind; Type: COMMENT; Schema: core; Owner: core_db
+--
+
+COMMENT ON COLUMN core.symbol_calls.edge_kind IS 'direct_call: function/method call; import: module import; inheritance: class base; decorator: applied decorator; dynamic: getattr/runtime dispatch.';
+
+
+--
+-- Name: COLUMN symbol_calls.is_cross_layer; Type: COMMENT; Schema: core; Owner: core_db
+--
+
+COMMENT ON COLUMN core.symbol_calls.is_cross_layer IS 'True when caller and callee belong to different architectural layers (mind/body/will). Cross-layer edges are primary inputs to boundary violation detection.';
+
+
+--
+-- Name: COLUMN symbol_calls.crawl_run_id; Type: COMMENT; Schema: core; Owner: core_db
+--
+
+COMMENT ON COLUMN core.symbol_calls.crawl_run_id IS 'Links edge to the crawler run that produced it. Used for incremental refresh and staleness detection.';
+
+
+--
+-- Name: symbol_decorators; Type: TABLE; Schema: core; Owner: core_db
 --
 
 CREATE TABLE core.symbol_decorators (
@@ -1935,24 +2163,24 @@ CREATE TABLE core.symbol_decorators (
 );
 
 
-ALTER TABLE core.symbol_decorators OWNER TO lira_user;
+ALTER TABLE core.symbol_decorators OWNER TO core_db;
 
 --
--- Name: TABLE symbol_decorators; Type: COMMENT; Schema: core; Owner: lira_user
+-- Name: TABLE symbol_decorators; Type: COMMENT; Schema: core; Owner: core_db
 --
 
 COMMENT ON TABLE core.symbol_decorators IS 'Links symbols to their required decorators with parameters and ordering';
 
 
 --
--- Name: COLUMN symbol_decorators.order_index; Type: COMMENT; Schema: core; Owner: lira_user
+-- Name: COLUMN symbol_decorators.order_index; Type: COMMENT; Schema: core; Owner: core_db
 --
 
 COMMENT ON COLUMN core.symbol_decorators.order_index IS 'Decorator application order: 1 = outermost (applied first), higher = inner';
 
 
 --
--- Name: symbols_audit; Type: TABLE; Schema: core; Owner: lira_user
+-- Name: symbols_audit; Type: TABLE; Schema: core; Owner: core_db
 --
 
 CREATE TABLE core.symbols_audit (
@@ -1966,10 +2194,10 @@ CREATE TABLE core.symbols_audit (
 );
 
 
-ALTER TABLE core.symbols_audit OWNER TO lira_user;
+ALTER TABLE core.symbols_audit OWNER TO core_db;
 
 --
--- Name: symbols_audit_audit_id_seq; Type: SEQUENCE; Schema: core; Owner: lira_user
+-- Name: symbols_audit_audit_id_seq; Type: SEQUENCE; Schema: core; Owner: core_db
 --
 
 CREATE SEQUENCE core.symbols_audit_audit_id_seq
@@ -1980,17 +2208,17 @@ CREATE SEQUENCE core.symbols_audit_audit_id_seq
     CACHE 1;
 
 
-ALTER SEQUENCE core.symbols_audit_audit_id_seq OWNER TO lira_user;
+ALTER SEQUENCE core.symbols_audit_audit_id_seq OWNER TO core_db;
 
 --
--- Name: symbols_audit_audit_id_seq; Type: SEQUENCE OWNED BY; Schema: core; Owner: lira_user
+-- Name: symbols_audit_audit_id_seq; Type: SEQUENCE OWNED BY; Schema: core; Owner: core_db
 --
 
 ALTER SEQUENCE core.symbols_audit_audit_id_seq OWNED BY core.symbols_audit.audit_id;
 
 
 --
--- Name: system_health_log; Type: TABLE; Schema: core; Owner: lira_user
+-- Name: system_health_log; Type: TABLE; Schema: core; Owner: core_db
 --
 
 CREATE TABLE core.system_health_log (
@@ -2004,17 +2232,17 @@ CREATE TABLE core.system_health_log (
 );
 
 
-ALTER TABLE core.system_health_log OWNER TO lira_user;
+ALTER TABLE core.system_health_log OWNER TO core_db;
 
 --
--- Name: TABLE system_health_log; Type: COMMENT; Schema: core; Owner: lira_user
+-- Name: TABLE system_health_log; Type: COMMENT; Schema: core; Owner: core_db
 --
 
 COMMENT ON TABLE core.system_health_log IS 'Append-only strategic memory. One row per Observer run. Never updated.';
 
 
 --
--- Name: tasks; Type: TABLE; Schema: core; Owner: lira_user
+-- Name: tasks; Type: TABLE; Schema: core; Owner: core_db
 --
 
 CREATE TABLE core.tasks (
@@ -2032,7 +2260,6 @@ CREATE TABLE core.tasks (
     context_retrieved_at timestamp with time zone,
     context_tokens_used integer,
     requires_approval boolean DEFAULT false,
-    proposal_id bigint,
     estimated_complexity integer,
     actual_duration_seconds integer,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
@@ -2044,10 +2271,10 @@ CREATE TABLE core.tasks (
 );
 
 
-ALTER TABLE core.tasks OWNER TO lira_user;
+ALTER TABLE core.tasks OWNER TO core_db;
 
 --
--- Name: COLUMN tasks.relevant_symbols; Type: COMMENT; Schema: core; Owner: lira_user
+-- Name: COLUMN tasks.relevant_symbols; Type: COMMENT; Schema: core; Owner: core_db
 --
 
 COMMENT ON COLUMN core.tasks.relevant_symbols IS 'Array of symbol UUIDs retrieved from vector search.
@@ -2228,6 +2455,56 @@ CREATE VIEW core.v_stale_materialized_views AS
 ALTER VIEW core.v_stale_materialized_views OWNER TO lira_user;
 
 --
+-- Name: v_symbol_blast_radius; Type: VIEW; Schema: core; Owner: lira_user
+--
+
+CREATE VIEW core.v_symbol_blast_radius AS
+ WITH RECURSIVE blast(root_id, affected_id, depth) AS (
+         SELECT s_1.id AS root_id,
+            s_1.id AS affected_id,
+            0 AS depth
+           FROM core.symbols s_1
+          WHERE (s_1.state <> 'deprecated'::text)
+        UNION
+         SELECT b.root_id,
+            sc.caller_id AS affected_id,
+            (b.depth + 1)
+           FROM (blast b
+             JOIN core.symbol_calls sc ON ((sc.callee_id = b.affected_id)))
+          WHERE ((b.depth < 5) AND (sc.caller_id IS NOT NULL))
+        ), aggregated AS (
+         SELECT b.root_id AS symbol_id,
+            (count(DISTINCT b.affected_id) - 1) AS affected_symbol_count,
+            array_agg(DISTINCT s2.file_path) FILTER (WHERE ((s2.file_path IS NOT NULL) AND (s2.id <> b.root_id))) AS affected_files,
+            array_agg(DISTINCT s2.module) FILTER (WHERE ((s2.module IS NOT NULL) AND (s2.id <> b.root_id))) AS affected_modules
+           FROM (blast b
+             JOIN core.symbols s2 ON ((s2.id = b.affected_id)))
+          GROUP BY b.root_id
+        ), direct_callers AS (
+         SELECT sc.callee_id AS symbol_id,
+            count(DISTINCT sc.caller_id) AS direct_caller_count
+           FROM core.symbol_calls sc
+          WHERE (sc.caller_id IS NOT NULL)
+          GROUP BY sc.callee_id
+        )
+ SELECT s.id AS symbol_id,
+    s.symbol_path,
+    s.qualname,
+    s.file_path,
+    s.module,
+    COALESCE(dc.direct_caller_count, (0)::bigint) AS direct_caller_count,
+    COALESCE(a.affected_symbol_count, (0)::bigint) AS affected_symbol_count,
+    COALESCE(a.affected_files, ARRAY[]::text[]) AS affected_files,
+    COALESCE(a.affected_modules, ARRAY[]::text[]) AS affected_modules
+   FROM ((core.symbols s
+     LEFT JOIN aggregated a ON ((a.symbol_id = s.id)))
+     LEFT JOIN direct_callers dc ON ((dc.symbol_id = s.id)))
+  WHERE (s.state <> 'deprecated'::text);
+
+
+ALTER VIEW core.v_symbol_blast_radius OWNER TO lira_user;
+
+--
 -- Name: v_symbol_decorator_stack; Type: VIEW; Schema: core; Owner: lira_user
 --
 
@@ -2320,7 +2597,7 @@ CREATE VIEW core.v_verified_coverage AS
 ALTER VIEW core.v_verified_coverage OWNER TO lira_user;
 
 --
--- Name: vector_sync_log; Type: TABLE; Schema: core; Owner: lira_user
+-- Name: vector_sync_log; Type: TABLE; Schema: core; Owner: core_db
 --
 
 CREATE TABLE core.vector_sync_log (
@@ -2337,10 +2614,10 @@ CREATE TABLE core.vector_sync_log (
 );
 
 
-ALTER TABLE core.vector_sync_log OWNER TO lira_user;
+ALTER TABLE core.vector_sync_log OWNER TO core_db;
 
 --
--- Name: vector_sync_log_id_seq; Type: SEQUENCE; Schema: core; Owner: lira_user
+-- Name: vector_sync_log_id_seq; Type: SEQUENCE; Schema: core; Owner: core_db
 --
 
 CREATE SEQUENCE core.vector_sync_log_id_seq
@@ -2351,17 +2628,17 @@ CREATE SEQUENCE core.vector_sync_log_id_seq
     CACHE 1;
 
 
-ALTER SEQUENCE core.vector_sync_log_id_seq OWNER TO lira_user;
+ALTER SEQUENCE core.vector_sync_log_id_seq OWNER TO core_db;
 
 --
--- Name: vector_sync_log_id_seq; Type: SEQUENCE OWNED BY; Schema: core; Owner: lira_user
+-- Name: vector_sync_log_id_seq; Type: SEQUENCE OWNED BY; Schema: core; Owner: core_db
 --
 
 ALTER SEQUENCE core.vector_sync_log_id_seq OWNED BY core.vector_sync_log.id;
 
 
 --
--- Name: worker_registry; Type: TABLE; Schema: core; Owner: lira_user
+-- Name: worker_registry; Type: TABLE; Schema: core; Owner: core_db
 --
 
 CREATE TABLE core.worker_registry (
@@ -2371,64 +2648,56 @@ CREATE TABLE core.worker_registry (
     worker_class text NOT NULL,
     phase text NOT NULL,
     declared_at timestamp with time zone DEFAULT now() NOT NULL,
-    last_heartbeat timestamp with time zone DEFAULT now() NOT NULL,
-    status text DEFAULT 'active'::text NOT NULL
+    last_heartbeat timestamp with time zone DEFAULT now() NOT NULL
 );
 
 
-ALTER TABLE core.worker_registry OWNER TO lira_user;
+ALTER TABLE core.worker_registry OWNER TO core_db;
 
 --
--- Name: TABLE worker_registry; Type: COMMENT; Schema: core; Owner: lira_user
+-- Name: TABLE worker_registry; Type: COMMENT; Schema: core; Owner: core_db
 --
 
 COMMENT ON TABLE core.worker_registry IS 'Constitutional identity register. Workers declare here on startup. Proposals without a valid registration are rejected.';
 
 
 --
--- Name: audit_runs id; Type: DEFAULT; Schema: core; Owner: lira_user
+-- Name: audit_runs id; Type: DEFAULT; Schema: core; Owner: core_db
 --
 
 ALTER TABLE ONLY core.audit_runs ALTER COLUMN id SET DEFAULT nextval('core.audit_runs_id_seq'::regclass);
 
 
 --
--- Name: observability_decisions id; Type: DEFAULT; Schema: core; Owner: lira_user
+-- Name: observability_decisions id; Type: DEFAULT; Schema: core; Owner: core_db
 --
 
 ALTER TABLE ONLY core.observability_decisions ALTER COLUMN id SET DEFAULT nextval('core.observability_decisions_id_seq'::regclass);
 
 
 --
--- Name: observability_logs id; Type: DEFAULT; Schema: core; Owner: lira_user
+-- Name: observability_logs id; Type: DEFAULT; Schema: core; Owner: core_db
 --
 
 ALTER TABLE ONLY core.observability_logs ALTER COLUMN id SET DEFAULT nextval('core.observability_logs_id_seq'::regclass);
 
 
 --
--- Name: observability_metrics id; Type: DEFAULT; Schema: core; Owner: lira_user
+-- Name: observability_metrics id; Type: DEFAULT; Schema: core; Owner: core_db
 --
 
 ALTER TABLE ONLY core.observability_metrics ALTER COLUMN id SET DEFAULT nextval('core.observability_metrics_id_seq'::regclass);
 
 
 --
--- Name: proposals id; Type: DEFAULT; Schema: core; Owner: lira_user
---
-
-ALTER TABLE ONLY core.proposals ALTER COLUMN id SET DEFAULT nextval('core.proposals_id_seq'::regclass);
-
-
---
--- Name: symbols_audit audit_id; Type: DEFAULT; Schema: core; Owner: lira_user
+-- Name: symbols_audit audit_id; Type: DEFAULT; Schema: core; Owner: core_db
 --
 
 ALTER TABLE ONLY core.symbols_audit ALTER COLUMN audit_id SET DEFAULT nextval('core.symbols_audit_audit_id_seq'::regclass);
 
 
 --
--- Name: vector_sync_log id; Type: DEFAULT; Schema: core; Owner: lira_user
+-- Name: vector_sync_log id; Type: DEFAULT; Schema: core; Owner: core_db
 --
 
 ALTER TABLE ONLY core.vector_sync_log ALTER COLUMN id SET DEFAULT nextval('core.vector_sync_log_id_seq'::regclass);
@@ -2443,7 +2712,7 @@ ALTER TABLE ONLY core._migrations
 
 
 --
--- Name: action_results action_results_pkey; Type: CONSTRAINT; Schema: core; Owner: lira_user
+-- Name: action_results action_results_pkey; Type: CONSTRAINT; Schema: core; Owner: core_db
 --
 
 ALTER TABLE ONLY core.action_results
@@ -2451,7 +2720,7 @@ ALTER TABLE ONLY core.action_results
 
 
 --
--- Name: actions actions_pkey; Type: CONSTRAINT; Schema: core; Owner: lira_user
+-- Name: actions actions_pkey; Type: CONSTRAINT; Schema: core; Owner: core_db
 --
 
 ALTER TABLE ONLY core.actions
@@ -2459,7 +2728,7 @@ ALTER TABLE ONLY core.actions
 
 
 --
--- Name: agent_decisions agent_decisions_pkey; Type: CONSTRAINT; Schema: core; Owner: lira_user
+-- Name: agent_decisions agent_decisions_pkey; Type: CONSTRAINT; Schema: core; Owner: core_db
 --
 
 ALTER TABLE ONLY core.agent_decisions
@@ -2467,7 +2736,7 @@ ALTER TABLE ONLY core.agent_decisions
 
 
 --
--- Name: agent_memory agent_memory_pkey; Type: CONSTRAINT; Schema: core; Owner: lira_user
+-- Name: agent_memory agent_memory_pkey; Type: CONSTRAINT; Schema: core; Owner: core_db
 --
 
 ALTER TABLE ONLY core.agent_memory
@@ -2475,7 +2744,31 @@ ALTER TABLE ONLY core.agent_memory
 
 
 --
--- Name: audit_runs audit_runs_pkey; Type: CONSTRAINT; Schema: core; Owner: lira_user
+-- Name: artifact_symbol_links artifact_symbol_links_pkey; Type: CONSTRAINT; Schema: core; Owner: core_db
+--
+
+ALTER TABLE ONLY core.artifact_symbol_links
+    ADD CONSTRAINT artifact_symbol_links_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: artifact_symbol_links artifact_symbol_links_unique; Type: CONSTRAINT; Schema: core; Owner: core_db
+--
+
+ALTER TABLE ONLY core.artifact_symbol_links
+    ADD CONSTRAINT artifact_symbol_links_unique UNIQUE (artifact_id, symbol_id, link_kind);
+
+
+--
+-- Name: audit_findings audit_findings_pkey; Type: CONSTRAINT; Schema: core; Owner: core_db
+--
+
+ALTER TABLE ONLY core.audit_findings
+    ADD CONSTRAINT audit_findings_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: audit_runs audit_runs_pkey; Type: CONSTRAINT; Schema: core; Owner: core_db
 --
 
 ALTER TABLE ONLY core.audit_runs
@@ -2483,7 +2776,7 @@ ALTER TABLE ONLY core.audit_runs
 
 
 --
--- Name: autonomous_proposals autonomous_proposals_pkey; Type: CONSTRAINT; Schema: core; Owner: lira_user
+-- Name: autonomous_proposals autonomous_proposals_pkey; Type: CONSTRAINT; Schema: core; Owner: core_db
 --
 
 ALTER TABLE ONLY core.autonomous_proposals
@@ -2491,7 +2784,7 @@ ALTER TABLE ONLY core.autonomous_proposals
 
 
 --
--- Name: autonomous_proposals autonomous_proposals_proposal_id_key; Type: CONSTRAINT; Schema: core; Owner: lira_user
+-- Name: autonomous_proposals autonomous_proposals_proposal_id_key; Type: CONSTRAINT; Schema: core; Owner: core_db
 --
 
 ALTER TABLE ONLY core.autonomous_proposals
@@ -2499,7 +2792,7 @@ ALTER TABLE ONLY core.autonomous_proposals
 
 
 --
--- Name: blackboard_entries blackboard_entries_pkey; Type: CONSTRAINT; Schema: core; Owner: lira_user
+-- Name: blackboard_entries blackboard_entries_pkey; Type: CONSTRAINT; Schema: core; Owner: core_db
 --
 
 ALTER TABLE ONLY core.blackboard_entries
@@ -2507,7 +2800,7 @@ ALTER TABLE ONLY core.blackboard_entries
 
 
 --
--- Name: capabilities capabilities_domain_name_key; Type: CONSTRAINT; Schema: core; Owner: lira_user
+-- Name: capabilities capabilities_domain_name_key; Type: CONSTRAINT; Schema: core; Owner: core_db
 --
 
 ALTER TABLE ONLY core.capabilities
@@ -2515,7 +2808,7 @@ ALTER TABLE ONLY core.capabilities
 
 
 --
--- Name: capabilities capabilities_pkey; Type: CONSTRAINT; Schema: core; Owner: lira_user
+-- Name: capabilities capabilities_pkey; Type: CONSTRAINT; Schema: core; Owner: core_db
 --
 
 ALTER TABLE ONLY core.capabilities
@@ -2523,7 +2816,7 @@ ALTER TABLE ONLY core.capabilities
 
 
 --
--- Name: capability_cli_links capability_cli_links_pkey; Type: CONSTRAINT; Schema: core; Owner: lira_user
+-- Name: capability_cli_links capability_cli_links_pkey; Type: CONSTRAINT; Schema: core; Owner: core_db
 --
 
 ALTER TABLE ONLY core.capability_cli_links
@@ -2531,7 +2824,7 @@ ALTER TABLE ONLY core.capability_cli_links
 
 
 --
--- Name: cli_commands cli_commands_pkey; Type: CONSTRAINT; Schema: core; Owner: lira_user
+-- Name: cli_commands cli_commands_pkey; Type: CONSTRAINT; Schema: core; Owner: core_db
 --
 
 ALTER TABLE ONLY core.cli_commands
@@ -2539,7 +2832,7 @@ ALTER TABLE ONLY core.cli_commands
 
 
 --
--- Name: cognitive_roles cognitive_roles_pkey; Type: CONSTRAINT; Schema: core; Owner: lira_user
+-- Name: cognitive_roles cognitive_roles_pkey; Type: CONSTRAINT; Schema: core; Owner: core_db
 --
 
 ALTER TABLE ONLY core.cognitive_roles
@@ -2547,7 +2840,7 @@ ALTER TABLE ONLY core.cognitive_roles
 
 
 --
--- Name: constitutional_violations constitutional_violations_pkey; Type: CONSTRAINT; Schema: core; Owner: lira_user
+-- Name: constitutional_violations constitutional_violations_pkey; Type: CONSTRAINT; Schema: core; Owner: core_db
 --
 
 ALTER TABLE ONLY core.constitutional_violations
@@ -2555,7 +2848,7 @@ ALTER TABLE ONLY core.constitutional_violations
 
 
 --
--- Name: context_packets context_packets_pkey; Type: CONSTRAINT; Schema: core; Owner: lira_user
+-- Name: context_packets context_packets_pkey; Type: CONSTRAINT; Schema: core; Owner: core_db
 --
 
 ALTER TABLE ONLY core.context_packets
@@ -2563,7 +2856,15 @@ ALTER TABLE ONLY core.context_packets
 
 
 --
--- Name: decision_traces decision_traces_pkey; Type: CONSTRAINT; Schema: core; Owner: lira_user
+-- Name: crawl_runs crawl_runs_pkey; Type: CONSTRAINT; Schema: core; Owner: core_db
+--
+
+ALTER TABLE ONLY core.crawl_runs
+    ADD CONSTRAINT crawl_runs_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: decision_traces decision_traces_pkey; Type: CONSTRAINT; Schema: core; Owner: core_db
 --
 
 ALTER TABLE ONLY core.decision_traces
@@ -2571,7 +2872,7 @@ ALTER TABLE ONLY core.decision_traces
 
 
 --
--- Name: decorator_inference_rules decorator_inference_rules_pkey; Type: CONSTRAINT; Schema: core; Owner: lira_user
+-- Name: decorator_inference_rules decorator_inference_rules_pkey; Type: CONSTRAINT; Schema: core; Owner: core_db
 --
 
 ALTER TABLE ONLY core.decorator_inference_rules
@@ -2579,7 +2880,7 @@ ALTER TABLE ONLY core.decorator_inference_rules
 
 
 --
--- Name: decorator_inference_rules decorator_inference_rules_rule_name_key; Type: CONSTRAINT; Schema: core; Owner: lira_user
+-- Name: decorator_inference_rules decorator_inference_rules_rule_name_key; Type: CONSTRAINT; Schema: core; Owner: core_db
 --
 
 ALTER TABLE ONLY core.decorator_inference_rules
@@ -2587,7 +2888,7 @@ ALTER TABLE ONLY core.decorator_inference_rules
 
 
 --
--- Name: decorator_registry decorator_registry_decorator_name_key; Type: CONSTRAINT; Schema: core; Owner: lira_user
+-- Name: decorator_registry decorator_registry_decorator_name_key; Type: CONSTRAINT; Schema: core; Owner: core_db
 --
 
 ALTER TABLE ONLY core.decorator_registry
@@ -2595,7 +2896,7 @@ ALTER TABLE ONLY core.decorator_registry
 
 
 --
--- Name: decorator_registry decorator_registry_pkey; Type: CONSTRAINT; Schema: core; Owner: lira_user
+-- Name: decorator_registry decorator_registry_pkey; Type: CONSTRAINT; Schema: core; Owner: core_db
 --
 
 ALTER TABLE ONLY core.decorator_registry
@@ -2603,7 +2904,7 @@ ALTER TABLE ONLY core.decorator_registry
 
 
 --
--- Name: domains domains_pkey; Type: CONSTRAINT; Schema: core; Owner: lira_user
+-- Name: domains domains_pkey; Type: CONSTRAINT; Schema: core; Owner: core_db
 --
 
 ALTER TABLE ONLY core.domains
@@ -2611,7 +2912,7 @@ ALTER TABLE ONLY core.domains
 
 
 --
--- Name: tasks exclude_overlapping_tasks; Type: CONSTRAINT; Schema: core; Owner: lira_user
+-- Name: tasks exclude_overlapping_tasks; Type: CONSTRAINT; Schema: core; Owner: core_db
 --
 
 ALTER TABLE ONLY core.tasks
@@ -2619,7 +2920,7 @@ ALTER TABLE ONLY core.tasks
 
 
 --
--- Name: export_digests export_digests_pkey; Type: CONSTRAINT; Schema: core; Owner: lira_user
+-- Name: export_digests export_digests_pkey; Type: CONSTRAINT; Schema: core; Owner: core_db
 --
 
 ALTER TABLE ONLY core.export_digests
@@ -2627,7 +2928,7 @@ ALTER TABLE ONLY core.export_digests
 
 
 --
--- Name: export_manifests export_manifests_pkey; Type: CONSTRAINT; Schema: core; Owner: lira_user
+-- Name: export_manifests export_manifests_pkey; Type: CONSTRAINT; Schema: core; Owner: core_db
 --
 
 ALTER TABLE ONLY core.export_manifests
@@ -2635,7 +2936,7 @@ ALTER TABLE ONLY core.export_manifests
 
 
 --
--- Name: feedback feedback_pkey; Type: CONSTRAINT; Schema: core; Owner: lira_user
+-- Name: feedback feedback_pkey; Type: CONSTRAINT; Schema: core; Owner: core_db
 --
 
 ALTER TABLE ONLY core.feedback
@@ -2643,7 +2944,7 @@ ALTER TABLE ONLY core.feedback
 
 
 --
--- Name: llm_resources llm_resources_env_prefix_key; Type: CONSTRAINT; Schema: core; Owner: lira_user
+-- Name: llm_resources llm_resources_env_prefix_key; Type: CONSTRAINT; Schema: core; Owner: core_db
 --
 
 ALTER TABLE ONLY core.llm_resources
@@ -2651,7 +2952,7 @@ ALTER TABLE ONLY core.llm_resources
 
 
 --
--- Name: llm_resources llm_resources_pkey; Type: CONSTRAINT; Schema: core; Owner: lira_user
+-- Name: llm_resources llm_resources_pkey; Type: CONSTRAINT; Schema: core; Owner: core_db
 --
 
 ALTER TABLE ONLY core.llm_resources
@@ -2659,7 +2960,7 @@ ALTER TABLE ONLY core.llm_resources
 
 
 --
--- Name: observability_metrics metrics_unique_point; Type: CONSTRAINT; Schema: core; Owner: lira_user
+-- Name: observability_metrics metrics_unique_point; Type: CONSTRAINT; Schema: core; Owner: core_db
 --
 
 ALTER TABLE ONLY core.observability_metrics
@@ -2667,7 +2968,7 @@ ALTER TABLE ONLY core.observability_metrics
 
 
 --
--- Name: mv_refresh_log mv_refresh_log_pkey; Type: CONSTRAINT; Schema: core; Owner: lira_user
+-- Name: mv_refresh_log mv_refresh_log_pkey; Type: CONSTRAINT; Schema: core; Owner: core_db
 --
 
 ALTER TABLE ONLY core.mv_refresh_log
@@ -2675,7 +2976,7 @@ ALTER TABLE ONLY core.mv_refresh_log
 
 
 --
--- Name: northstar northstar_pkey; Type: CONSTRAINT; Schema: core; Owner: lira_user
+-- Name: northstar northstar_pkey; Type: CONSTRAINT; Schema: core; Owner: core_db
 --
 
 ALTER TABLE ONLY core.northstar
@@ -2683,7 +2984,7 @@ ALTER TABLE ONLY core.northstar
 
 
 --
--- Name: observability_decisions observability_decisions_decision_id_key; Type: CONSTRAINT; Schema: core; Owner: lira_user
+-- Name: observability_decisions observability_decisions_decision_id_key; Type: CONSTRAINT; Schema: core; Owner: core_db
 --
 
 ALTER TABLE ONLY core.observability_decisions
@@ -2691,7 +2992,7 @@ ALTER TABLE ONLY core.observability_decisions
 
 
 --
--- Name: observability_decisions observability_decisions_pkey; Type: CONSTRAINT; Schema: core; Owner: lira_user
+-- Name: observability_decisions observability_decisions_pkey; Type: CONSTRAINT; Schema: core; Owner: core_db
 --
 
 ALTER TABLE ONLY core.observability_decisions
@@ -2699,7 +3000,7 @@ ALTER TABLE ONLY core.observability_decisions
 
 
 --
--- Name: observability_logs observability_logs_pkey; Type: CONSTRAINT; Schema: core; Owner: lira_user
+-- Name: observability_logs observability_logs_pkey; Type: CONSTRAINT; Schema: core; Owner: core_db
 --
 
 ALTER TABLE ONLY core.observability_logs
@@ -2707,7 +3008,7 @@ ALTER TABLE ONLY core.observability_logs
 
 
 --
--- Name: observability_metrics observability_metrics_pkey; Type: CONSTRAINT; Schema: core; Owner: lira_user
+-- Name: observability_metrics observability_metrics_pkey; Type: CONSTRAINT; Schema: core; Owner: core_db
 --
 
 ALTER TABLE ONLY core.observability_metrics
@@ -2715,23 +3016,15 @@ ALTER TABLE ONLY core.observability_metrics
 
 
 --
--- Name: proposal_signatures proposal_signatures_pkey; Type: CONSTRAINT; Schema: core; Owner: lira_user
+-- Name: proposal_consequences proposal_consequences_pkey; Type: CONSTRAINT; Schema: core; Owner: core_db
 --
 
-ALTER TABLE ONLY core.proposal_signatures
-    ADD CONSTRAINT proposal_signatures_pkey PRIMARY KEY (proposal_id, approver_identity);
-
-
---
--- Name: proposals proposals_pkey; Type: CONSTRAINT; Schema: core; Owner: lira_user
---
-
-ALTER TABLE ONLY core.proposals
-    ADD CONSTRAINT proposals_pkey PRIMARY KEY (id);
+ALTER TABLE ONLY core.proposal_consequences
+    ADD CONSTRAINT proposal_consequences_pkey PRIMARY KEY (proposal_id);
 
 
 --
--- Name: refusals refusals_pkey; Type: CONSTRAINT; Schema: core; Owner: lira_user
+-- Name: refusals refusals_pkey; Type: CONSTRAINT; Schema: core; Owner: core_db
 --
 
 ALTER TABLE ONLY core.refusals
@@ -2739,7 +3032,23 @@ ALTER TABLE ONLY core.refusals
 
 
 --
--- Name: retrieval_feedback retrieval_feedback_pkey; Type: CONSTRAINT; Schema: core; Owner: lira_user
+-- Name: repo_artifacts repo_artifacts_file_path_unique; Type: CONSTRAINT; Schema: core; Owner: core_db
+--
+
+ALTER TABLE ONLY core.repo_artifacts
+    ADD CONSTRAINT repo_artifacts_file_path_unique UNIQUE (file_path);
+
+
+--
+-- Name: repo_artifacts repo_artifacts_pkey; Type: CONSTRAINT; Schema: core; Owner: core_db
+--
+
+ALTER TABLE ONLY core.repo_artifacts
+    ADD CONSTRAINT repo_artifacts_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: retrieval_feedback retrieval_feedback_pkey; Type: CONSTRAINT; Schema: core; Owner: core_db
 --
 
 ALTER TABLE ONLY core.retrieval_feedback
@@ -2747,7 +3056,7 @@ ALTER TABLE ONLY core.retrieval_feedback
 
 
 --
--- Name: runtime_services runtime_services_implementation_key; Type: CONSTRAINT; Schema: core; Owner: lira_user
+-- Name: runtime_services runtime_services_implementation_key; Type: CONSTRAINT; Schema: core; Owner: core_db
 --
 
 ALTER TABLE ONLY core.runtime_services
@@ -2755,7 +3064,7 @@ ALTER TABLE ONLY core.runtime_services
 
 
 --
--- Name: runtime_services runtime_services_pkey; Type: CONSTRAINT; Schema: core; Owner: lira_user
+-- Name: runtime_services runtime_services_pkey; Type: CONSTRAINT; Schema: core; Owner: core_db
 --
 
 ALTER TABLE ONLY core.runtime_services
@@ -2763,7 +3072,7 @@ ALTER TABLE ONLY core.runtime_services
 
 
 --
--- Name: runtime_settings runtime_settings_pkey; Type: CONSTRAINT; Schema: core; Owner: lira_user
+-- Name: runtime_settings runtime_settings_pkey; Type: CONSTRAINT; Schema: core; Owner: core_db
 --
 
 ALTER TABLE ONLY core.runtime_settings
@@ -2771,7 +3080,7 @@ ALTER TABLE ONLY core.runtime_settings
 
 
 --
--- Name: semantic_cache semantic_cache_pkey; Type: CONSTRAINT; Schema: core; Owner: lira_user
+-- Name: semantic_cache semantic_cache_pkey; Type: CONSTRAINT; Schema: core; Owner: core_db
 --
 
 ALTER TABLE ONLY core.semantic_cache
@@ -2779,7 +3088,7 @@ ALTER TABLE ONLY core.semantic_cache
 
 
 --
--- Name: semantic_cache semantic_cache_query_hash_key; Type: CONSTRAINT; Schema: core; Owner: lira_user
+-- Name: semantic_cache semantic_cache_query_hash_key; Type: CONSTRAINT; Schema: core; Owner: core_db
 --
 
 ALTER TABLE ONLY core.semantic_cache
@@ -2787,7 +3096,15 @@ ALTER TABLE ONLY core.semantic_cache
 
 
 --
--- Name: symbol_capability_links symbol_capability_links_pkey; Type: CONSTRAINT; Schema: core; Owner: lira_user
+-- Name: symbol_calls symbol_calls_pkey; Type: CONSTRAINT; Schema: core; Owner: core_db
+--
+
+ALTER TABLE ONLY core.symbol_calls
+    ADD CONSTRAINT symbol_calls_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: symbol_capability_links symbol_capability_links_pkey; Type: CONSTRAINT; Schema: core; Owner: core_db
 --
 
 ALTER TABLE ONLY core.symbol_capability_links
@@ -2795,7 +3112,7 @@ ALTER TABLE ONLY core.symbol_capability_links
 
 
 --
--- Name: symbol_decorators symbol_decorators_pkey; Type: CONSTRAINT; Schema: core; Owner: lira_user
+-- Name: symbol_decorators symbol_decorators_pkey; Type: CONSTRAINT; Schema: core; Owner: core_db
 --
 
 ALTER TABLE ONLY core.symbol_decorators
@@ -2803,7 +3120,7 @@ ALTER TABLE ONLY core.symbol_decorators
 
 
 --
--- Name: symbol_decorators symbol_decorators_symbol_id_decorator_id_order_index_key; Type: CONSTRAINT; Schema: core; Owner: lira_user
+-- Name: symbol_decorators symbol_decorators_symbol_id_decorator_id_order_index_key; Type: CONSTRAINT; Schema: core; Owner: core_db
 --
 
 ALTER TABLE ONLY core.symbol_decorators
@@ -2811,7 +3128,7 @@ ALTER TABLE ONLY core.symbol_decorators
 
 
 --
--- Name: symbol_vector_links symbol_vector_links_pkey; Type: CONSTRAINT; Schema: core; Owner: lira_user
+-- Name: symbol_vector_links symbol_vector_links_pkey; Type: CONSTRAINT; Schema: core; Owner: core_db
 --
 
 ALTER TABLE ONLY core.symbol_vector_links
@@ -2819,7 +3136,7 @@ ALTER TABLE ONLY core.symbol_vector_links
 
 
 --
--- Name: symbols_audit symbols_audit_pkey; Type: CONSTRAINT; Schema: core; Owner: lira_user
+-- Name: symbols_audit symbols_audit_pkey; Type: CONSTRAINT; Schema: core; Owner: core_db
 --
 
 ALTER TABLE ONLY core.symbols_audit
@@ -2827,7 +3144,7 @@ ALTER TABLE ONLY core.symbols_audit
 
 
 --
--- Name: symbols symbols_pkey; Type: CONSTRAINT; Schema: core; Owner: lira_user
+-- Name: symbols symbols_pkey; Type: CONSTRAINT; Schema: core; Owner: core_db
 --
 
 ALTER TABLE ONLY core.symbols
@@ -2835,7 +3152,7 @@ ALTER TABLE ONLY core.symbols
 
 
 --
--- Name: symbols symbols_symbol_path_key; Type: CONSTRAINT; Schema: core; Owner: lira_user
+-- Name: symbols symbols_symbol_path_key; Type: CONSTRAINT; Schema: core; Owner: core_db
 --
 
 ALTER TABLE ONLY core.symbols
@@ -2843,7 +3160,7 @@ ALTER TABLE ONLY core.symbols
 
 
 --
--- Name: system_health_log system_health_log_pkey; Type: CONSTRAINT; Schema: core; Owner: lira_user
+-- Name: system_health_log system_health_log_pkey; Type: CONSTRAINT; Schema: core; Owner: core_db
 --
 
 ALTER TABLE ONLY core.system_health_log
@@ -2851,7 +3168,7 @@ ALTER TABLE ONLY core.system_health_log
 
 
 --
--- Name: tasks tasks_pkey; Type: CONSTRAINT; Schema: core; Owner: lira_user
+-- Name: tasks tasks_pkey; Type: CONSTRAINT; Schema: core; Owner: core_db
 --
 
 ALTER TABLE ONLY core.tasks
@@ -2859,7 +3176,7 @@ ALTER TABLE ONLY core.tasks
 
 
 --
--- Name: vector_sync_log vector_sync_log_pkey; Type: CONSTRAINT; Schema: core; Owner: lira_user
+-- Name: vector_sync_log vector_sync_log_pkey; Type: CONSTRAINT; Schema: core; Owner: core_db
 --
 
 ALTER TABLE ONLY core.vector_sync_log
@@ -2867,7 +3184,7 @@ ALTER TABLE ONLY core.vector_sync_log
 
 
 --
--- Name: worker_registry worker_registry_pkey; Type: CONSTRAINT; Schema: core; Owner: lira_user
+-- Name: worker_registry worker_registry_pkey; Type: CONSTRAINT; Schema: core; Owner: core_db
 --
 
 ALTER TABLE ONLY core.worker_registry
@@ -2875,7 +3192,7 @@ ALTER TABLE ONLY core.worker_registry
 
 
 --
--- Name: worker_registry worker_registry_worker_uuid_key; Type: CONSTRAINT; Schema: core; Owner: lira_user
+-- Name: worker_registry worker_registry_worker_uuid_key; Type: CONSTRAINT; Schema: core; Owner: core_db
 --
 
 ALTER TABLE ONLY core.worker_registry
@@ -2883,980 +3200,1092 @@ ALTER TABLE ONLY core.worker_registry
 
 
 --
--- Name: idx_action_results_created; Type: INDEX; Schema: core; Owner: lira_user
+-- Name: artifact_symbol_links_artifact_idx; Type: INDEX; Schema: core; Owner: core_db
+--
+
+CREATE INDEX artifact_symbol_links_artifact_idx ON core.artifact_symbol_links USING btree (artifact_id);
+
+
+--
+-- Name: artifact_symbol_links_kind_idx; Type: INDEX; Schema: core; Owner: core_db
+--
+
+CREATE INDEX artifact_symbol_links_kind_idx ON core.artifact_symbol_links USING btree (link_kind);
+
+
+--
+-- Name: artifact_symbol_links_source_idx; Type: INDEX; Schema: core; Owner: core_db
+--
+
+CREATE INDEX artifact_symbol_links_source_idx ON core.artifact_symbol_links USING btree (source);
+
+
+--
+-- Name: artifact_symbol_links_symbol_idx; Type: INDEX; Schema: core; Owner: core_db
+--
+
+CREATE INDEX artifact_symbol_links_symbol_idx ON core.artifact_symbol_links USING btree (symbol_id);
+
+
+--
+-- Name: autonomous_proposals_executing_once; Type: INDEX; Schema: core; Owner: core_db
+--
+
+CREATE UNIQUE INDEX autonomous_proposals_executing_once ON core.autonomous_proposals USING btree (proposal_id) WHERE (status = 'executing'::text);
+
+
+--
+-- Name: crawl_runs_started_idx; Type: INDEX; Schema: core; Owner: core_db
+--
+
+CREATE INDEX crawl_runs_started_idx ON core.crawl_runs USING btree (started_at DESC);
+
+
+--
+-- Name: crawl_runs_status_idx; Type: INDEX; Schema: core; Owner: core_db
+--
+
+CREATE INDEX crawl_runs_status_idx ON core.crawl_runs USING btree (status);
+
+
+--
+-- Name: idx_action_results_created; Type: INDEX; Schema: core; Owner: core_db
 --
 
 CREATE INDEX idx_action_results_created ON core.action_results USING btree (created_at);
 
 
 --
--- Name: idx_action_results_file; Type: INDEX; Schema: core; Owner: lira_user
+-- Name: idx_action_results_file; Type: INDEX; Schema: core; Owner: core_db
 --
 
 CREATE INDEX idx_action_results_file ON core.action_results USING btree (file_path);
 
 
 --
--- Name: idx_action_results_ok; Type: INDEX; Schema: core; Owner: lira_user
+-- Name: idx_action_results_ok; Type: INDEX; Schema: core; Owner: core_db
 --
 
 CREATE INDEX idx_action_results_ok ON core.action_results USING btree (ok);
 
 
 --
--- Name: idx_action_results_type; Type: INDEX; Schema: core; Owner: lira_user
+-- Name: idx_action_results_type; Type: INDEX; Schema: core; Owner: core_db
 --
 
 CREATE INDEX idx_action_results_type ON core.action_results USING btree (action_type);
 
 
 --
--- Name: idx_actions_cognitive_role; Type: INDEX; Schema: core; Owner: lira_user
+-- Name: idx_actions_cognitive_role; Type: INDEX; Schema: core; Owner: core_db
 --
 
 CREATE INDEX idx_actions_cognitive_role ON core.actions USING btree (cognitive_role);
 
 
 --
--- Name: idx_actions_created; Type: INDEX; Schema: core; Owner: lira_user
+-- Name: idx_actions_created; Type: INDEX; Schema: core; Owner: core_db
 --
 
 CREATE INDEX idx_actions_created ON core.actions USING btree (created_at DESC);
 
 
 --
--- Name: idx_actions_payload_gin; Type: INDEX; Schema: core; Owner: lira_user
+-- Name: idx_actions_payload_gin; Type: INDEX; Schema: core; Owner: core_db
 --
 
 CREATE INDEX idx_actions_payload_gin ON core.actions USING gin (payload);
 
 
 --
--- Name: idx_actions_success; Type: INDEX; Schema: core; Owner: lira_user
+-- Name: idx_actions_success; Type: INDEX; Schema: core; Owner: core_db
 --
 
 CREATE INDEX idx_actions_success ON core.actions USING btree (success) WHERE (success = false);
 
 
 --
--- Name: idx_actions_task; Type: INDEX; Schema: core; Owner: lira_user
+-- Name: idx_actions_task; Type: INDEX; Schema: core; Owner: core_db
 --
 
 CREATE INDEX idx_actions_task ON core.actions USING btree (task_id);
 
 
 --
--- Name: idx_actions_task_success_created; Type: INDEX; Schema: core; Owner: lira_user
+-- Name: idx_actions_task_success_created; Type: INDEX; Schema: core; Owner: core_db
 --
 
 CREATE INDEX idx_actions_task_success_created ON core.actions USING btree (task_id, success, created_at DESC);
 
 
 --
--- Name: idx_actions_type; Type: INDEX; Schema: core; Owner: lira_user
+-- Name: idx_actions_type; Type: INDEX; Schema: core; Owner: core_db
 --
 
 CREATE INDEX idx_actions_type ON core.actions USING btree (action_type);
 
 
 --
--- Name: idx_active_tasks; Type: INDEX; Schema: core; Owner: lira_user
+-- Name: idx_active_tasks; Type: INDEX; Schema: core; Owner: core_db
 --
 
 CREATE INDEX idx_active_tasks ON core.tasks USING btree (id) WHERE (status = ANY (ARRAY['pending'::text, 'executing'::text, 'planning'::text]));
 
 
 --
--- Name: idx_agent_memory_related_task_id; Type: INDEX; Schema: core; Owner: lira_user
+-- Name: idx_agent_memory_related_task_id; Type: INDEX; Schema: core; Owner: core_db
 --
 
 CREATE INDEX idx_agent_memory_related_task_id ON core.agent_memory USING btree (related_task_id);
 
 
 --
--- Name: idx_audit_runs_passed; Type: INDEX; Schema: core; Owner: lira_user
+-- Name: idx_audit_findings_check_id; Type: INDEX; Schema: core; Owner: core_db
+--
+
+CREATE INDEX idx_audit_findings_check_id ON core.audit_findings USING btree (check_id);
+
+
+--
+-- Name: idx_audit_findings_created_at; Type: INDEX; Schema: core; Owner: core_db
+--
+
+CREATE INDEX idx_audit_findings_created_at ON core.audit_findings USING btree (created_at DESC);
+
+
+--
+-- Name: idx_audit_findings_severity; Type: INDEX; Schema: core; Owner: core_db
+--
+
+CREATE INDEX idx_audit_findings_severity ON core.audit_findings USING btree (severity);
+
+
+--
+-- Name: idx_audit_runs_passed; Type: INDEX; Schema: core; Owner: core_db
 --
 
 CREATE INDEX idx_audit_runs_passed ON core.audit_runs USING btree (passed, started_at DESC);
 
 
 --
--- Name: idx_blackboard_entry_type; Type: INDEX; Schema: core; Owner: lira_user
+-- Name: idx_blackboard_entry_type; Type: INDEX; Schema: core; Owner: core_db
 --
 
 CREATE INDEX idx_blackboard_entry_type ON core.blackboard_entries USING btree (entry_type);
 
 
 --
--- Name: idx_blackboard_phase_status; Type: INDEX; Schema: core; Owner: lira_user
+-- Name: idx_blackboard_phase_status; Type: INDEX; Schema: core; Owner: core_db
 --
 
 CREATE INDEX idx_blackboard_phase_status ON core.blackboard_entries USING btree (phase, status);
 
 
 --
--- Name: idx_blackboard_status; Type: INDEX; Schema: core; Owner: lira_user
+-- Name: idx_blackboard_status; Type: INDEX; Schema: core; Owner: core_db
 --
 
 CREATE INDEX idx_blackboard_status ON core.blackboard_entries USING btree (status);
 
 
 --
--- Name: idx_blackboard_worker; Type: INDEX; Schema: core; Owner: lira_user
+-- Name: idx_blackboard_worker; Type: INDEX; Schema: core; Owner: core_db
 --
 
 CREATE INDEX idx_blackboard_worker ON core.blackboard_entries USING btree (worker_uuid);
 
 
 --
--- Name: idx_cache_expires; Type: INDEX; Schema: core; Owner: lira_user
+-- Name: idx_cache_expires; Type: INDEX; Schema: core; Owner: core_db
 --
 
 CREATE INDEX idx_cache_expires ON core.semantic_cache USING btree (expires_at) WHERE (expires_at IS NOT NULL);
 
 
 --
--- Name: idx_cache_hash; Type: INDEX; Schema: core; Owner: lira_user
+-- Name: idx_cache_hash; Type: INDEX; Schema: core; Owner: core_db
 --
 
 CREATE INDEX idx_cache_hash ON core.semantic_cache USING btree (query_hash);
 
 
 --
--- Name: idx_cache_hits; Type: INDEX; Schema: core; Owner: lira_user
+-- Name: idx_cache_hits; Type: INDEX; Schema: core; Owner: core_db
 --
 
 CREATE INDEX idx_cache_hits ON core.semantic_cache USING btree (hit_count DESC);
 
 
 --
--- Name: idx_capabilities_dependencies_gin; Type: INDEX; Schema: core; Owner: lira_user
+-- Name: idx_capabilities_dependencies_gin; Type: INDEX; Schema: core; Owner: core_db
 --
 
 CREATE INDEX idx_capabilities_dependencies_gin ON core.capabilities USING gin (dependencies);
 
 
 --
--- Name: idx_capabilities_domain; Type: INDEX; Schema: core; Owner: lira_user
+-- Name: idx_capabilities_domain; Type: INDEX; Schema: core; Owner: core_db
 --
 
 CREATE INDEX idx_capabilities_domain ON core.capabilities USING btree (domain);
 
 
 --
--- Name: idx_capabilities_status; Type: INDEX; Schema: core; Owner: lira_user
+-- Name: idx_capabilities_status; Type: INDEX; Schema: core; Owner: core_db
 --
 
 CREATE INDEX idx_capabilities_status ON core.capabilities USING btree (status);
 
 
 --
--- Name: idx_capabilities_tags_gin; Type: INDEX; Schema: core; Owner: lira_user
+-- Name: idx_capabilities_tags_gin; Type: INDEX; Schema: core; Owner: core_db
 --
 
 CREATE INDEX idx_capabilities_tags_gin ON core.capabilities USING gin (tags);
 
 
 --
--- Name: idx_capability_cli_links_capability_id; Type: INDEX; Schema: core; Owner: lira_user
+-- Name: idx_capability_cli_links_capability_id; Type: INDEX; Schema: core; Owner: core_db
 --
 
 CREATE INDEX idx_capability_cli_links_capability_id ON core.capability_cli_links USING btree (capability_id);
 
 
 --
--- Name: idx_capability_cli_links_cli_command_name; Type: INDEX; Schema: core; Owner: lira_user
+-- Name: idx_capability_cli_links_cli_command_name; Type: INDEX; Schema: core; Owner: core_db
 --
 
 CREATE INDEX idx_capability_cli_links_cli_command_name ON core.capability_cli_links USING btree (cli_command_name);
 
 
 --
--- Name: idx_cli_commands_behavior; Type: INDEX; Schema: core; Owner: lira_user
+-- Name: idx_cli_commands_behavior; Type: INDEX; Schema: core; Owner: core_db
 --
 
 CREATE INDEX idx_cli_commands_behavior ON core.cli_commands USING btree (behavior);
 
 
 --
--- Name: idx_cli_commands_layer; Type: INDEX; Schema: core; Owner: lira_user
+-- Name: idx_cli_commands_layer; Type: INDEX; Schema: core; Owner: core_db
 --
 
 CREATE INDEX idx_cli_commands_layer ON core.cli_commands USING btree (layer);
 
 
 --
--- Name: idx_cognitive_roles_assigned_resource; Type: INDEX; Schema: core; Owner: lira_user
+-- Name: idx_cognitive_roles_assigned_resource; Type: INDEX; Schema: core; Owner: core_db
 --
 
 CREATE INDEX idx_cognitive_roles_assigned_resource ON core.cognitive_roles USING btree (assigned_resource);
 
 
 --
--- Name: idx_cognitive_roles_specialization_gin; Type: INDEX; Schema: core; Owner: lira_user
+-- Name: idx_cognitive_roles_specialization_gin; Type: INDEX; Schema: core; Owner: core_db
 --
 
 CREATE INDEX idx_cognitive_roles_specialization_gin ON core.cognitive_roles USING gin (specialization);
 
 
 --
--- Name: idx_context_packets_cache_key; Type: INDEX; Schema: core; Owner: lira_user
+-- Name: idx_context_packets_cache_key; Type: INDEX; Schema: core; Owner: core_db
 --
 
 CREATE INDEX idx_context_packets_cache_key ON core.context_packets USING btree (cache_key) WHERE (cache_key IS NOT NULL);
 
 
 --
--- Name: idx_context_packets_created_at; Type: INDEX; Schema: core; Owner: lira_user
+-- Name: idx_context_packets_created_at; Type: INDEX; Schema: core; Owner: core_db
 --
 
 CREATE INDEX idx_context_packets_created_at ON core.context_packets USING btree (created_at DESC);
 
 
 --
--- Name: idx_context_packets_metadata; Type: INDEX; Schema: core; Owner: lira_user
+-- Name: idx_context_packets_metadata; Type: INDEX; Schema: core; Owner: core_db
 --
 
 CREATE INDEX idx_context_packets_metadata ON core.context_packets USING gin (metadata);
 
 
 --
--- Name: idx_context_packets_packet_hash; Type: INDEX; Schema: core; Owner: lira_user
+-- Name: idx_context_packets_packet_hash; Type: INDEX; Schema: core; Owner: core_db
 --
 
 CREATE INDEX idx_context_packets_packet_hash ON core.context_packets USING btree (packet_hash);
 
 
 --
--- Name: idx_context_packets_task_id; Type: INDEX; Schema: core; Owner: lira_user
+-- Name: idx_context_packets_task_id; Type: INDEX; Schema: core; Owner: core_db
 --
 
 CREATE INDEX idx_context_packets_task_id ON core.context_packets USING btree (task_id);
 
 
 --
--- Name: idx_context_packets_task_type; Type: INDEX; Schema: core; Owner: lira_user
+-- Name: idx_context_packets_task_type; Type: INDEX; Schema: core; Owner: core_db
 --
 
 CREATE INDEX idx_context_packets_task_type ON core.context_packets USING btree (task_type);
 
 
 --
--- Name: idx_core_capabilities_domain_key_suffix; Type: INDEX; Schema: core; Owner: lira_user
+-- Name: idx_core_capabilities_domain_key_suffix; Type: INDEX; Schema: core; Owner: core_db
 --
 
 CREATE INDEX idx_core_capabilities_domain_key_suffix ON core.capabilities USING btree (domain, key_suffix);
 
 
 --
--- Name: idx_decision_traces_agent_name; Type: INDEX; Schema: core; Owner: lira_user
+-- Name: idx_decision_traces_agent_name; Type: INDEX; Schema: core; Owner: core_db
 --
 
 CREATE INDEX idx_decision_traces_agent_name ON core.decision_traces USING btree (agent_name);
 
 
 --
--- Name: idx_decision_traces_created_at; Type: INDEX; Schema: core; Owner: lira_user
+-- Name: idx_decision_traces_created_at; Type: INDEX; Schema: core; Owner: core_db
 --
 
 CREATE INDEX idx_decision_traces_created_at ON core.decision_traces USING btree (created_at DESC);
 
 
 --
--- Name: idx_decision_traces_decision_count; Type: INDEX; Schema: core; Owner: lira_user
+-- Name: idx_decision_traces_decision_count; Type: INDEX; Schema: core; Owner: core_db
 --
 
 CREATE INDEX idx_decision_traces_decision_count ON core.decision_traces USING btree (decision_count);
 
 
 --
--- Name: idx_decision_traces_has_violations; Type: INDEX; Schema: core; Owner: lira_user
+-- Name: idx_decision_traces_has_violations; Type: INDEX; Schema: core; Owner: core_db
 --
 
 CREATE INDEX idx_decision_traces_has_violations ON core.decision_traces USING btree (has_violations) WHERE (has_violations IS NOT NULL);
 
 
 --
--- Name: idx_decision_traces_session_id; Type: INDEX; Schema: core; Owner: lira_user
+-- Name: idx_decision_traces_session_id; Type: INDEX; Schema: core; Owner: core_db
 --
 
 CREATE INDEX idx_decision_traces_session_id ON core.decision_traces USING btree (session_id);
 
 
 --
--- Name: idx_decisions_confidence; Type: INDEX; Schema: core; Owner: lira_user
+-- Name: idx_decisions_confidence; Type: INDEX; Schema: core; Owner: core_db
 --
 
 CREATE INDEX idx_decisions_confidence ON core.agent_decisions USING btree (confidence);
 
 
 --
--- Name: idx_decisions_task; Type: INDEX; Schema: core; Owner: lira_user
+-- Name: idx_decisions_task; Type: INDEX; Schema: core; Owner: core_db
 --
 
 CREATE INDEX idx_decisions_task ON core.agent_decisions USING btree (task_id);
 
 
 --
--- Name: idx_decorator_inference_rules_conditions_gin; Type: INDEX; Schema: core; Owner: lira_user
+-- Name: idx_decorator_inference_rules_conditions_gin; Type: INDEX; Schema: core; Owner: core_db
 --
 
 CREATE INDEX idx_decorator_inference_rules_conditions_gin ON core.decorator_inference_rules USING gin (conditions);
 
 
 --
--- Name: idx_decorator_inference_rules_parameter_inference_gin; Type: INDEX; Schema: core; Owner: lira_user
+-- Name: idx_decorator_inference_rules_parameter_inference_gin; Type: INDEX; Schema: core; Owner: core_db
 --
 
 CREATE INDEX idx_decorator_inference_rules_parameter_inference_gin ON core.decorator_inference_rules USING gin (parameter_inference);
 
 
 --
--- Name: idx_decorator_registry_active; Type: INDEX; Schema: core; Owner: lira_user
+-- Name: idx_decorator_registry_active; Type: INDEX; Schema: core; Owner: core_db
 --
 
 CREATE INDEX idx_decorator_registry_active ON core.decorator_registry USING btree (is_active) WHERE (is_active = true);
 
 
 --
--- Name: idx_decorator_registry_category; Type: INDEX; Schema: core; Owner: lira_user
+-- Name: idx_decorator_registry_category; Type: INDEX; Schema: core; Owner: core_db
 --
 
 CREATE INDEX idx_decorator_registry_category ON core.decorator_registry USING btree (category);
 
 
 --
--- Name: idx_export_digests_manifest_id; Type: INDEX; Schema: core; Owner: lira_user
+-- Name: idx_export_digests_manifest_id; Type: INDEX; Schema: core; Owner: core_db
 --
 
 CREATE INDEX idx_export_digests_manifest_id ON core.export_digests USING btree (manifest_id);
 
 
 --
--- Name: idx_feedback_action_id; Type: INDEX; Schema: core; Owner: lira_user
+-- Name: idx_feedback_action_id; Type: INDEX; Schema: core; Owner: core_db
 --
 
 CREATE INDEX idx_feedback_action_id ON core.feedback USING btree (action_id);
 
 
 --
--- Name: idx_feedback_applied; Type: INDEX; Schema: core; Owner: lira_user
+-- Name: idx_feedback_applied; Type: INDEX; Schema: core; Owner: core_db
 --
 
 CREATE INDEX idx_feedback_applied ON core.feedback USING btree (applied) WHERE (applied = false);
 
 
 --
--- Name: idx_feedback_task; Type: INDEX; Schema: core; Owner: lira_user
+-- Name: idx_feedback_task; Type: INDEX; Schema: core; Owner: core_db
 --
 
 CREATE INDEX idx_feedback_task ON core.feedback USING btree (task_id);
 
 
 --
--- Name: idx_inference_rules_decorator; Type: INDEX; Schema: core; Owner: lira_user
+-- Name: idx_inference_rules_decorator; Type: INDEX; Schema: core; Owner: core_db
 --
 
 CREATE INDEX idx_inference_rules_decorator ON core.decorator_inference_rules USING btree (decorator_id);
 
 
 --
--- Name: idx_inference_rules_priority; Type: INDEX; Schema: core; Owner: lira_user
+-- Name: idx_inference_rules_priority; Type: INDEX; Schema: core; Owner: core_db
 --
 
 CREATE INDEX idx_inference_rules_priority ON core.decorator_inference_rules USING btree (priority) WHERE (is_active = true);
 
 
 --
--- Name: idx_links_capability; Type: INDEX; Schema: core; Owner: lira_user
+-- Name: idx_links_capability; Type: INDEX; Schema: core; Owner: core_db
 --
 
 CREATE INDEX idx_links_capability ON core.symbol_capability_links USING btree (capability_id);
 
 
 --
--- Name: idx_links_verified; Type: INDEX; Schema: core; Owner: lira_user
+-- Name: idx_links_verified; Type: INDEX; Schema: core; Owner: core_db
 --
 
 CREATE INDEX idx_links_verified ON core.symbol_capability_links USING btree (verified);
 
 
 --
--- Name: idx_memory_expires; Type: INDEX; Schema: core; Owner: lira_user
+-- Name: idx_memory_expires; Type: INDEX; Schema: core; Owner: core_db
 --
 
 CREATE INDEX idx_memory_expires ON core.agent_memory USING btree (expires_at) WHERE (expires_at IS NOT NULL);
 
 
 --
--- Name: idx_memory_relevance; Type: INDEX; Schema: core; Owner: lira_user
+-- Name: idx_memory_relevance; Type: INDEX; Schema: core; Owner: core_db
 --
 
 CREATE INDEX idx_memory_relevance ON core.agent_memory USING btree (relevance_score DESC);
 
 
 --
--- Name: idx_memory_role_type; Type: INDEX; Schema: core; Owner: lira_user
+-- Name: idx_memory_role_type; Type: INDEX; Schema: core; Owner: core_db
 --
 
 CREATE INDEX idx_memory_role_type ON core.agent_memory USING btree (cognitive_role, memory_type);
 
 
 --
--- Name: idx_observability_decisions_context_gin; Type: INDEX; Schema: core; Owner: lira_user
+-- Name: idx_observability_decisions_context_gin; Type: INDEX; Schema: core; Owner: core_db
 --
 
 CREATE INDEX idx_observability_decisions_context_gin ON core.observability_decisions USING gin (context_used);
 
 
 --
--- Name: idx_observability_decisions_correlation_id; Type: INDEX; Schema: core; Owner: lira_user
+-- Name: idx_observability_decisions_correlation_id; Type: INDEX; Schema: core; Owner: core_db
 --
 
 CREATE INDEX idx_observability_decisions_correlation_id ON core.observability_decisions USING btree (correlation_id);
 
 
 --
--- Name: idx_observability_decisions_decision_id; Type: INDEX; Schema: core; Owner: lira_user
+-- Name: idx_observability_decisions_decision_id; Type: INDEX; Schema: core; Owner: core_db
 --
 
 CREATE INDEX idx_observability_decisions_decision_id ON core.observability_decisions USING btree (decision_id);
 
 
 --
--- Name: idx_observability_decisions_outcome_gin; Type: INDEX; Schema: core; Owner: lira_user
+-- Name: idx_observability_decisions_outcome_gin; Type: INDEX; Schema: core; Owner: core_db
 --
 
 CREATE INDEX idx_observability_decisions_outcome_gin ON core.observability_decisions USING gin (outcome);
 
 
 --
--- Name: idx_observability_decisions_policies_gin; Type: INDEX; Schema: core; Owner: lira_user
+-- Name: idx_observability_decisions_policies_gin; Type: INDEX; Schema: core; Owner: core_db
 --
 
 CREATE INDEX idx_observability_decisions_policies_gin ON core.observability_decisions USING gin (governing_policies);
 
 
 --
--- Name: idx_observability_decisions_timestamp; Type: INDEX; Schema: core; Owner: lira_user
+-- Name: idx_observability_decisions_timestamp; Type: INDEX; Schema: core; Owner: core_db
 --
 
 CREATE INDEX idx_observability_decisions_timestamp ON core.observability_decisions USING btree ("timestamp" DESC);
 
 
 --
--- Name: idx_observability_decisions_type; Type: INDEX; Schema: core; Owner: lira_user
+-- Name: idx_observability_decisions_type; Type: INDEX; Schema: core; Owner: core_db
 --
 
 CREATE INDEX idx_observability_decisions_type ON core.observability_decisions USING btree (decision_type);
 
 
 --
--- Name: idx_observability_logs_action_id; Type: INDEX; Schema: core; Owner: lira_user
+-- Name: idx_observability_logs_action_id; Type: INDEX; Schema: core; Owner: core_db
 --
 
 CREATE INDEX idx_observability_logs_action_id ON core.observability_logs USING btree (action_id);
 
 
 --
--- Name: idx_observability_logs_context_gin; Type: INDEX; Schema: core; Owner: lira_user
+-- Name: idx_observability_logs_context_gin; Type: INDEX; Schema: core; Owner: core_db
 --
 
 CREATE INDEX idx_observability_logs_context_gin ON core.observability_logs USING gin (context);
 
 
 --
--- Name: idx_observability_logs_correlation_action; Type: INDEX; Schema: core; Owner: lira_user
+-- Name: idx_observability_logs_correlation_action; Type: INDEX; Schema: core; Owner: core_db
 --
 
 CREATE INDEX idx_observability_logs_correlation_action ON core.observability_logs USING btree (correlation_id, action_id, "timestamp" DESC);
 
 
 --
--- Name: idx_observability_logs_correlation_id; Type: INDEX; Schema: core; Owner: lira_user
+-- Name: idx_observability_logs_correlation_id; Type: INDEX; Schema: core; Owner: core_db
 --
 
 CREATE INDEX idx_observability_logs_correlation_id ON core.observability_logs USING btree (correlation_id);
 
 
 --
--- Name: idx_observability_logs_outcome; Type: INDEX; Schema: core; Owner: lira_user
+-- Name: idx_observability_logs_outcome; Type: INDEX; Schema: core; Owner: core_db
 --
 
 CREATE INDEX idx_observability_logs_outcome ON core.observability_logs USING btree (outcome) WHERE ((outcome)::text <> 'success'::text);
 
 
 --
--- Name: idx_observability_logs_recent_failures; Type: INDEX; Schema: core; Owner: lira_user
+-- Name: idx_observability_logs_recent_failures; Type: INDEX; Schema: core; Owner: core_db
 --
 
 CREATE INDEX idx_observability_logs_recent_failures ON core.observability_logs USING btree ("timestamp", action_id, message) WHERE ((outcome)::text = 'failure'::text);
 
 
 --
--- Name: idx_observability_logs_timestamp; Type: INDEX; Schema: core; Owner: lira_user
+-- Name: idx_observability_logs_timestamp; Type: INDEX; Schema: core; Owner: core_db
 --
 
 CREATE INDEX idx_observability_logs_timestamp ON core.observability_logs USING btree ("timestamp" DESC);
 
 
 --
--- Name: idx_observability_metrics_name; Type: INDEX; Schema: core; Owner: lira_user
+-- Name: idx_observability_metrics_name; Type: INDEX; Schema: core; Owner: core_db
 --
 
 CREATE INDEX idx_observability_metrics_name ON core.observability_metrics USING btree (metric_name);
 
 
 --
--- Name: idx_observability_metrics_name_timestamp; Type: INDEX; Schema: core; Owner: lira_user
+-- Name: idx_observability_metrics_name_timestamp; Type: INDEX; Schema: core; Owner: core_db
 --
 
 CREATE INDEX idx_observability_metrics_name_timestamp ON core.observability_metrics USING btree (metric_name, "timestamp" DESC);
 
 
 --
--- Name: idx_observability_metrics_tags_gin; Type: INDEX; Schema: core; Owner: lira_user
+-- Name: idx_observability_metrics_tags_gin; Type: INDEX; Schema: core; Owner: core_db
 --
 
 CREATE INDEX idx_observability_metrics_tags_gin ON core.observability_metrics USING gin (tags);
 
 
 --
--- Name: idx_observability_metrics_timestamp; Type: INDEX; Schema: core; Owner: lira_user
+-- Name: idx_observability_metrics_timestamp; Type: INDEX; Schema: core; Owner: core_db
 --
 
 CREATE INDEX idx_observability_metrics_timestamp ON core.observability_metrics USING btree ("timestamp" DESC);
 
 
 --
--- Name: idx_proposal_signatures_proposal_id; Type: INDEX; Schema: core; Owner: lira_user
---
-
-CREATE INDEX idx_proposal_signatures_proposal_id ON core.proposal_signatures USING btree (proposal_id);
-
-
---
--- Name: idx_refusals_component_id; Type: INDEX; Schema: core; Owner: lira_user
+-- Name: idx_refusals_component_id; Type: INDEX; Schema: core; Owner: core_db
 --
 
 CREATE INDEX idx_refusals_component_id ON core.refusals USING btree (component_id);
 
 
 --
--- Name: idx_refusals_created_at; Type: INDEX; Schema: core; Owner: lira_user
+-- Name: idx_refusals_created_at; Type: INDEX; Schema: core; Owner: core_db
 --
 
 CREATE INDEX idx_refusals_created_at ON core.refusals USING btree (created_at DESC);
 
 
 --
--- Name: idx_refusals_phase; Type: INDEX; Schema: core; Owner: lira_user
+-- Name: idx_refusals_phase; Type: INDEX; Schema: core; Owner: core_db
 --
 
 CREATE INDEX idx_refusals_phase ON core.refusals USING btree (phase);
 
 
 --
--- Name: idx_refusals_session_id; Type: INDEX; Schema: core; Owner: lira_user
+-- Name: idx_refusals_session_id; Type: INDEX; Schema: core; Owner: core_db
 --
 
 CREATE INDEX idx_refusals_session_id ON core.refusals USING btree (session_id) WHERE (session_id IS NOT NULL);
 
 
 --
--- Name: idx_refusals_type; Type: INDEX; Schema: core; Owner: lira_user
+-- Name: idx_refusals_type; Type: INDEX; Schema: core; Owner: core_db
 --
 
 CREATE INDEX idx_refusals_type ON core.refusals USING btree (refusal_type);
 
 
 --
--- Name: idx_refusals_user_id; Type: INDEX; Schema: core; Owner: lira_user
+-- Name: idx_refusals_user_id; Type: INDEX; Schema: core; Owner: core_db
 --
 
 CREATE INDEX idx_refusals_user_id ON core.refusals USING btree (user_id) WHERE (user_id IS NOT NULL);
 
 
 --
--- Name: idx_retrieval_quality; Type: INDEX; Schema: core; Owner: lira_user
+-- Name: idx_retrieval_quality; Type: INDEX; Schema: core; Owner: core_db
 --
 
 CREATE INDEX idx_retrieval_quality ON core.retrieval_feedback USING btree (retrieval_quality);
 
 
 --
--- Name: idx_retrieval_symbols; Type: INDEX; Schema: core; Owner: lira_user
+-- Name: idx_retrieval_symbols; Type: INDEX; Schema: core; Owner: core_db
 --
 
 CREATE INDEX idx_retrieval_symbols ON core.retrieval_feedback USING gin (retrieved_symbols);
 
 
 --
--- Name: idx_retrieval_task; Type: INDEX; Schema: core; Owner: lira_user
+-- Name: idx_retrieval_task; Type: INDEX; Schema: core; Owner: core_db
 --
 
 CREATE INDEX idx_retrieval_task ON core.retrieval_feedback USING btree (task_id);
 
 
 --
--- Name: idx_retrieval_used; Type: INDEX; Schema: core; Owner: lira_user
+-- Name: idx_retrieval_used; Type: INDEX; Schema: core; Owner: core_db
 --
 
 CREATE INDEX idx_retrieval_used ON core.retrieval_feedback USING gin (actually_used_symbols);
 
 
 --
--- Name: idx_symbol_capability_links_symbol_id; Type: INDEX; Schema: core; Owner: lira_user
+-- Name: idx_symbol_capability_links_symbol_id; Type: INDEX; Schema: core; Owner: core_db
 --
 
 CREATE INDEX idx_symbol_capability_links_symbol_id ON core.symbol_capability_links USING btree (symbol_id);
 
 
 --
--- Name: idx_symbol_decorators_active; Type: INDEX; Schema: core; Owner: lira_user
+-- Name: idx_symbol_decorators_active; Type: INDEX; Schema: core; Owner: core_db
 --
 
 CREATE INDEX idx_symbol_decorators_active ON core.symbol_decorators USING btree (is_active) WHERE (is_active = true);
 
 
 --
--- Name: idx_symbol_decorators_decorator; Type: INDEX; Schema: core; Owner: lira_user
+-- Name: idx_symbol_decorators_decorator; Type: INDEX; Schema: core; Owner: core_db
 --
 
 CREATE INDEX idx_symbol_decorators_decorator ON core.symbol_decorators USING btree (decorator_id);
 
 
 --
--- Name: idx_symbol_decorators_order; Type: INDEX; Schema: core; Owner: lira_user
+-- Name: idx_symbol_decorators_order; Type: INDEX; Schema: core; Owner: core_db
 --
 
 CREATE INDEX idx_symbol_decorators_order ON core.symbol_decorators USING btree (symbol_id, order_index);
 
 
 --
--- Name: idx_symbol_decorators_symbol; Type: INDEX; Schema: core; Owner: lira_user
+-- Name: idx_symbol_decorators_symbol; Type: INDEX; Schema: core; Owner: core_db
 --
 
 CREATE INDEX idx_symbol_decorators_symbol ON core.symbol_decorators USING btree (symbol_id);
 
 
 --
--- Name: idx_symbol_vector_links_symbol_id; Type: INDEX; Schema: core; Owner: lira_user
+-- Name: idx_symbol_vector_links_symbol_id; Type: INDEX; Schema: core; Owner: core_db
 --
 
 CREATE INDEX idx_symbol_vector_links_symbol_id ON core.symbol_vector_links USING btree (symbol_id);
 
 
 --
--- Name: idx_symbol_vector_links_vector_id; Type: INDEX; Schema: core; Owner: lira_user
+-- Name: idx_symbol_vector_links_vector_id; Type: INDEX; Schema: core; Owner: core_db
 --
 
 CREATE INDEX idx_symbol_vector_links_vector_id ON core.symbol_vector_links USING btree (vector_id);
 
 
 --
--- Name: idx_symbols_calls_gin; Type: INDEX; Schema: core; Owner: lira_user
+-- Name: idx_symbols_calls_gin; Type: INDEX; Schema: core; Owner: core_db
 --
 
 CREATE INDEX idx_symbols_calls_gin ON core.symbols USING gin (calls);
 
 
 --
--- Name: idx_symbols_fingerprint; Type: INDEX; Schema: core; Owner: lira_user
+-- Name: idx_symbols_fingerprint; Type: INDEX; Schema: core; Owner: core_db
 --
 
 CREATE INDEX idx_symbols_fingerprint ON core.symbols USING btree (fingerprint);
 
 
 --
--- Name: idx_symbols_health; Type: INDEX; Schema: core; Owner: lira_user
+-- Name: idx_symbols_health; Type: INDEX; Schema: core; Owner: core_db
 --
 
 CREATE INDEX idx_symbols_health ON core.symbols USING btree (health_status);
 
 
 --
--- Name: idx_symbols_health_state_domain; Type: INDEX; Schema: core; Owner: lira_user
+-- Name: idx_symbols_health_state_domain; Type: INDEX; Schema: core; Owner: core_db
 --
 
 CREATE INDEX idx_symbols_health_state_domain ON core.symbols USING btree (health_status, state, domain);
 
 
 --
--- Name: idx_symbols_kind; Type: INDEX; Schema: core; Owner: lira_user
+-- Name: idx_symbols_kind; Type: INDEX; Schema: core; Owner: core_db
 --
 
 CREATE INDEX idx_symbols_kind ON core.symbols USING btree (kind);
 
 
 --
--- Name: idx_symbols_module; Type: INDEX; Schema: core; Owner: lira_user
+-- Name: idx_symbols_module; Type: INDEX; Schema: core; Owner: core_db
 --
 
 CREATE INDEX idx_symbols_module ON core.symbols USING btree (module);
 
 
 --
--- Name: idx_symbols_module_kind_state; Type: INDEX; Schema: core; Owner: lira_user
+-- Name: idx_symbols_module_kind_state; Type: INDEX; Schema: core; Owner: core_db
 --
 
 CREATE INDEX idx_symbols_module_kind_state ON core.symbols USING btree (module, kind) WHERE (state <> 'deprecated'::text);
 
 
 --
--- Name: idx_symbols_public_active; Type: INDEX; Schema: core; Owner: lira_user
+-- Name: idx_symbols_public_active; Type: INDEX; Schema: core; Owner: core_db
 --
 
 CREATE INDEX idx_symbols_public_active ON core.symbols USING btree (id, symbol_path) WHERE ((is_public = true) AND (state <> 'deprecated'::text));
 
 
 --
--- Name: idx_symbols_qualname; Type: INDEX; Schema: core; Owner: lira_user
+-- Name: idx_symbols_qualname; Type: INDEX; Schema: core; Owner: core_db
 --
 
 CREATE INDEX idx_symbols_qualname ON core.symbols USING btree (qualname);
 
 
 --
--- Name: idx_symbols_state; Type: INDEX; Schema: core; Owner: lira_user
+-- Name: idx_symbols_state; Type: INDEX; Schema: core; Owner: core_db
 --
 
 CREATE INDEX idx_symbols_state ON core.symbols USING btree (state);
 
 
 --
--- Name: idx_system_health_log_observed_at; Type: INDEX; Schema: core; Owner: lira_user
+-- Name: idx_system_health_log_observed_at; Type: INDEX; Schema: core; Owner: core_db
 --
 
 CREATE INDEX idx_system_health_log_observed_at ON core.system_health_log USING btree (observed_at DESC);
 
 
 --
--- Name: idx_tasks_context_gin; Type: INDEX; Schema: core; Owner: lira_user
+-- Name: idx_tasks_context_gin; Type: INDEX; Schema: core; Owner: core_db
 --
 
 CREATE INDEX idx_tasks_context_gin ON core.tasks USING gin (context);
 
 
 --
--- Name: idx_tasks_created; Type: INDEX; Schema: core; Owner: lira_user
+-- Name: idx_tasks_created; Type: INDEX; Schema: core; Owner: core_db
 --
 
 CREATE INDEX idx_tasks_created ON core.tasks USING btree (created_at DESC);
 
 
 --
--- Name: idx_tasks_parent; Type: INDEX; Schema: core; Owner: lira_user
+-- Name: idx_tasks_parent; Type: INDEX; Schema: core; Owner: core_db
 --
 
 CREATE INDEX idx_tasks_parent ON core.tasks USING btree (parent_task_id);
 
 
 --
--- Name: idx_tasks_plan_gin; Type: INDEX; Schema: core; Owner: lira_user
+-- Name: idx_tasks_plan_gin; Type: INDEX; Schema: core; Owner: core_db
 --
 
 CREATE INDEX idx_tasks_plan_gin ON core.tasks USING gin (plan);
 
 
 --
--- Name: idx_tasks_proposal_id; Type: INDEX; Schema: core; Owner: lira_user
---
-
-CREATE INDEX idx_tasks_proposal_id ON core.tasks USING btree (proposal_id);
-
-
---
--- Name: idx_tasks_relevant_symbols; Type: INDEX; Schema: core; Owner: lira_user
+-- Name: idx_tasks_relevant_symbols; Type: INDEX; Schema: core; Owner: core_db
 --
 
 CREATE INDEX idx_tasks_relevant_symbols ON core.tasks USING gin (relevant_symbols);
 
 
 --
--- Name: idx_tasks_role; Type: INDEX; Schema: core; Owner: lira_user
+-- Name: idx_tasks_role; Type: INDEX; Schema: core; Owner: core_db
 --
 
 CREATE INDEX idx_tasks_role ON core.tasks USING btree (assigned_role);
 
 
 --
--- Name: idx_tasks_status; Type: INDEX; Schema: core; Owner: lira_user
+-- Name: idx_tasks_status; Type: INDEX; Schema: core; Owner: core_db
 --
 
 CREATE INDEX idx_tasks_status ON core.tasks USING btree (status) WHERE (status = ANY (ARRAY['pending'::text, 'executing'::text, 'blocked'::text]));
 
 
 --
--- Name: idx_tasks_status_created_at; Type: INDEX; Schema: core; Owner: lira_user
+-- Name: idx_tasks_status_created_at; Type: INDEX; Schema: core; Owner: core_db
 --
 
 CREATE INDEX idx_tasks_status_created_at ON core.tasks USING btree (status, created_at DESC);
 
 
 --
--- Name: idx_vector_sync_collection; Type: INDEX; Schema: core; Owner: lira_user
+-- Name: idx_vector_sync_collection; Type: INDEX; Schema: core; Owner: core_db
 --
 
 CREATE INDEX idx_vector_sync_collection ON core.vector_sync_log USING btree (qdrant_collection);
 
 
 --
--- Name: idx_vector_sync_failed; Type: INDEX; Schema: core; Owner: lira_user
+-- Name: idx_vector_sync_failed; Type: INDEX; Schema: core; Owner: core_db
 --
 
 CREATE INDEX idx_vector_sync_failed ON core.vector_sync_log USING btree (success, synced_at) WHERE (success = false);
 
 
 --
--- Name: idx_vector_sync_symbols; Type: INDEX; Schema: core; Owner: lira_user
+-- Name: idx_vector_sync_symbols; Type: INDEX; Schema: core; Owner: core_db
 --
 
 CREATE INDEX idx_vector_sync_symbols ON core.vector_sync_log USING gin (symbol_ids);
 
 
 --
--- Name: idx_violations_symbol; Type: INDEX; Schema: core; Owner: lira_user
+-- Name: idx_violations_symbol; Type: INDEX; Schema: core; Owner: core_db
 --
 
 CREATE INDEX idx_violations_symbol ON core.constitutional_violations USING btree (symbol_id);
 
 
 --
--- Name: idx_violations_task; Type: INDEX; Schema: core; Owner: lira_user
+-- Name: idx_violations_task; Type: INDEX; Schema: core; Owner: core_db
 --
 
 CREATE INDEX idx_violations_task ON core.constitutional_violations USING btree (task_id);
 
 
 --
--- Name: idx_violations_unresolved; Type: INDEX; Schema: core; Owner: lira_user
+-- Name: idx_violations_unresolved; Type: INDEX; Schema: core; Owner: core_db
 --
 
 CREATE INDEX idx_violations_unresolved ON core.constitutional_violations USING btree (severity, detected_at) WHERE (resolved_at IS NULL);
 
 
 --
--- Name: idx_worker_registry_status; Type: INDEX; Schema: core; Owner: lira_user
---
-
-CREATE INDEX idx_worker_registry_status ON core.worker_registry USING btree (status);
-
-
---
--- Name: idx_worker_registry_uuid; Type: INDEX; Schema: core; Owner: lira_user
+-- Name: idx_worker_registry_uuid; Type: INDEX; Schema: core; Owner: core_db
 --
 
 CREATE INDEX idx_worker_registry_uuid ON core.worker_registry USING btree (worker_uuid);
 
 
 --
--- Name: ix_autonomous_proposals_created_at; Type: INDEX; Schema: core; Owner: lira_user
+-- Name: ix_autonomous_proposals_created_at; Type: INDEX; Schema: core; Owner: core_db
 --
 
 CREATE INDEX ix_autonomous_proposals_created_at ON core.autonomous_proposals USING btree (created_at DESC);
 
 
 --
--- Name: ix_autonomous_proposals_created_by; Type: INDEX; Schema: core; Owner: lira_user
+-- Name: ix_autonomous_proposals_created_by; Type: INDEX; Schema: core; Owner: core_db
 --
 
 CREATE INDEX ix_autonomous_proposals_created_by ON core.autonomous_proposals USING btree (created_by);
 
 
 --
--- Name: ix_autonomous_proposals_pending_approval; Type: INDEX; Schema: core; Owner: lira_user
+-- Name: ix_autonomous_proposals_pending_approval; Type: INDEX; Schema: core; Owner: core_db
 --
 
 CREATE INDEX ix_autonomous_proposals_pending_approval ON core.autonomous_proposals USING btree (status, approval_required) WHERE ((status = 'pending'::text) AND (approval_required = true));
 
 
 --
--- Name: ix_autonomous_proposals_proposal_id; Type: INDEX; Schema: core; Owner: lira_user
+-- Name: ix_autonomous_proposals_proposal_id; Type: INDEX; Schema: core; Owner: core_db
 --
 
 CREATE INDEX ix_autonomous_proposals_proposal_id ON core.autonomous_proposals USING btree (proposal_id);
 
 
 --
--- Name: ix_autonomous_proposals_status; Type: INDEX; Schema: core; Owner: lira_user
+-- Name: ix_autonomous_proposals_status; Type: INDEX; Schema: core; Owner: core_db
 --
 
 CREATE INDEX ix_autonomous_proposals_status ON core.autonomous_proposals USING btree (status);
 
 
 --
--- Name: public_core_symbols_staging_symbol_path_idx; Type: INDEX; Schema: core; Owner: lira_user
+-- Name: public_core_symbols_staging_symbol_path_idx; Type: INDEX; Schema: core; Owner: core_db
 --
 
 CREATE INDEX public_core_symbols_staging_symbol_path_idx ON core._staging_core_symbols USING btree (symbol_path);
 
 
 --
--- Name: symbols trg_audit_symbols; Type: TRIGGER; Schema: core; Owner: lira_user
+-- Name: repo_artifacts_collection_idx; Type: INDEX; Schema: core; Owner: core_db
+--
+
+CREATE INDEX repo_artifacts_collection_idx ON core.repo_artifacts USING btree (qdrant_collection);
+
+
+--
+-- Name: repo_artifacts_crawl_idx; Type: INDEX; Schema: core; Owner: core_db
+--
+
+CREATE INDEX repo_artifacts_crawl_idx ON core.repo_artifacts USING btree (crawl_run_id);
+
+
+--
+-- Name: repo_artifacts_hash_idx; Type: INDEX; Schema: core; Owner: core_db
+--
+
+CREATE INDEX repo_artifacts_hash_idx ON core.repo_artifacts USING btree (content_hash);
+
+
+--
+-- Name: repo_artifacts_type_idx; Type: INDEX; Schema: core; Owner: core_db
+--
+
+CREATE INDEX repo_artifacts_type_idx ON core.repo_artifacts USING btree (artifact_type);
+
+
+--
+-- Name: symbol_calls_callee_idx; Type: INDEX; Schema: core; Owner: core_db
+--
+
+CREATE INDEX symbol_calls_callee_idx ON core.symbol_calls USING btree (callee_id);
+
+
+--
+-- Name: symbol_calls_caller_idx; Type: INDEX; Schema: core; Owner: core_db
+--
+
+CREATE INDEX symbol_calls_caller_idx ON core.symbol_calls USING btree (caller_id);
+
+
+--
+-- Name: symbol_calls_crawl_idx; Type: INDEX; Schema: core; Owner: core_db
+--
+
+CREATE INDEX symbol_calls_crawl_idx ON core.symbol_calls USING btree (crawl_run_id);
+
+
+--
+-- Name: symbol_calls_cross_layer; Type: INDEX; Schema: core; Owner: core_db
+--
+
+CREATE INDEX symbol_calls_cross_layer ON core.symbol_calls USING btree (is_cross_layer) WHERE (is_cross_layer = true);
+
+
+--
+-- Name: symbol_calls_kind_idx; Type: INDEX; Schema: core; Owner: core_db
+--
+
+CREATE INDEX symbol_calls_kind_idx ON core.symbol_calls USING btree (edge_kind);
+
+
+--
+-- Name: symbols trg_audit_symbols; Type: TRIGGER; Schema: core; Owner: core_db
 --
 
 CREATE TRIGGER trg_audit_symbols AFTER INSERT OR DELETE OR UPDATE ON core.symbols FOR EACH ROW EXECUTE FUNCTION core.audit_symbols_changes();
 
 
 --
--- Name: blackboard_entries trg_blackboard_updated_at; Type: TRIGGER; Schema: core; Owner: lira_user
---
-
-CREATE TRIGGER trg_blackboard_updated_at BEFORE UPDATE ON core.blackboard_entries FOR EACH ROW EXECUTE FUNCTION core.touch_blackboard_updated_at();
-
-
---
--- Name: autonomous_proposals trg_autonomous_proposals_updated_at; Type: TRIGGER; Schema: core; Owner: lira_user
+-- Name: autonomous_proposals trg_autonomous_proposals_updated_at; Type: TRIGGER; Schema: core; Owner: core_db
 --
 
 CREATE TRIGGER trg_autonomous_proposals_updated_at BEFORE UPDATE ON core.autonomous_proposals FOR EACH ROW EXECUTE FUNCTION core.set_updated_at();
 
 
 --
--- Name: capabilities trg_capabilities_updated_at; Type: TRIGGER; Schema: core; Owner: lira_user
+-- Name: blackboard_entries trg_blackboard_updated_at; Type: TRIGGER; Schema: core; Owner: core_db
+--
+
+CREATE TRIGGER trg_blackboard_updated_at BEFORE UPDATE ON core.blackboard_entries FOR EACH ROW EXECUTE FUNCTION core.touch_blackboard_updated_at();
+
+
+--
+-- Name: capabilities trg_capabilities_updated_at; Type: TRIGGER; Schema: core; Owner: core_db
 --
 
 CREATE TRIGGER trg_capabilities_updated_at BEFORE UPDATE ON core.capabilities FOR EACH ROW EXECUTE FUNCTION core.set_updated_at();
 
 
 --
--- Name: decorator_inference_rules trg_decorator_inference_rules_updated_at; Type: TRIGGER; Schema: core; Owner: lira_user
+-- Name: decorator_inference_rules trg_decorator_inference_rules_updated_at; Type: TRIGGER; Schema: core; Owner: core_db
 --
 
 CREATE TRIGGER trg_decorator_inference_rules_updated_at BEFORE UPDATE ON core.decorator_inference_rules FOR EACH ROW EXECUTE FUNCTION core.set_updated_at();
 
 
 --
--- Name: decorator_registry trg_decorator_registry_updated_at; Type: TRIGGER; Schema: core; Owner: lira_user
+-- Name: decorator_registry trg_decorator_registry_updated_at; Type: TRIGGER; Schema: core; Owner: core_db
 --
 
 CREATE TRIGGER trg_decorator_registry_updated_at BEFORE UPDATE ON core.decorator_registry FOR EACH ROW EXECUTE FUNCTION core.set_updated_at();
 
 
 --
--- Name: symbol_decorators trg_symbol_decorators_updated_at; Type: TRIGGER; Schema: core; Owner: lira_user
+-- Name: symbol_decorators trg_symbol_decorators_updated_at; Type: TRIGGER; Schema: core; Owner: core_db
 --
 
 CREATE TRIGGER trg_symbol_decorators_updated_at BEFORE UPDATE ON core.symbol_decorators FOR EACH ROW EXECUTE FUNCTION core.set_updated_at();
 
 
 --
--- Name: symbols trg_symbols_updated_at; Type: TRIGGER; Schema: core; Owner: lira_user
+-- Name: symbols trg_symbols_updated_at; Type: TRIGGER; Schema: core; Owner: core_db
 --
 
 CREATE TRIGGER trg_symbols_updated_at BEFORE UPDATE ON core.symbols FOR EACH ROW EXECUTE FUNCTION core.set_updated_at();
 
 
 --
--- Name: tasks trg_validate_tasks_symbols; Type: TRIGGER; Schema: core; Owner: lira_user
+-- Name: tasks trg_validate_tasks_symbols; Type: TRIGGER; Schema: core; Owner: core_db
 --
 
 CREATE TRIGGER trg_validate_tasks_symbols BEFORE INSERT OR UPDATE ON core.tasks FOR EACH ROW EXECUTE FUNCTION core.validate_symbol_array();
 
 
 --
--- Name: actions actions_task_id_fkey; Type: FK CONSTRAINT; Schema: core; Owner: lira_user
+-- Name: actions actions_task_id_fkey; Type: FK CONSTRAINT; Schema: core; Owner: core_db
 --
 
 ALTER TABLE ONLY core.actions
@@ -3864,7 +4293,7 @@ ALTER TABLE ONLY core.actions
 
 
 --
--- Name: agent_decisions agent_decisions_task_id_fkey; Type: FK CONSTRAINT; Schema: core; Owner: lira_user
+-- Name: agent_decisions agent_decisions_task_id_fkey; Type: FK CONSTRAINT; Schema: core; Owner: core_db
 --
 
 ALTER TABLE ONLY core.agent_decisions
@@ -3872,7 +4301,7 @@ ALTER TABLE ONLY core.agent_decisions
 
 
 --
--- Name: agent_memory agent_memory_related_task_id_fkey; Type: FK CONSTRAINT; Schema: core; Owner: lira_user
+-- Name: agent_memory agent_memory_related_task_id_fkey; Type: FK CONSTRAINT; Schema: core; Owner: core_db
 --
 
 ALTER TABLE ONLY core.agent_memory
@@ -3880,7 +4309,23 @@ ALTER TABLE ONLY core.agent_memory
 
 
 --
--- Name: blackboard_entries blackboard_entries_worker_uuid_fkey; Type: FK CONSTRAINT; Schema: core; Owner: lira_user
+-- Name: artifact_symbol_links artifact_symbol_links_artifact_fk; Type: FK CONSTRAINT; Schema: core; Owner: core_db
+--
+
+ALTER TABLE ONLY core.artifact_symbol_links
+    ADD CONSTRAINT artifact_symbol_links_artifact_fk FOREIGN KEY (artifact_id) REFERENCES core.repo_artifacts(id) ON DELETE CASCADE;
+
+
+--
+-- Name: artifact_symbol_links artifact_symbol_links_symbol_fk; Type: FK CONSTRAINT; Schema: core; Owner: core_db
+--
+
+ALTER TABLE ONLY core.artifact_symbol_links
+    ADD CONSTRAINT artifact_symbol_links_symbol_fk FOREIGN KEY (symbol_id) REFERENCES core.symbols(id) ON DELETE CASCADE;
+
+
+--
+-- Name: blackboard_entries blackboard_entries_worker_uuid_fkey; Type: FK CONSTRAINT; Schema: core; Owner: core_db
 --
 
 ALTER TABLE ONLY core.blackboard_entries
@@ -3888,7 +4333,7 @@ ALTER TABLE ONLY core.blackboard_entries
 
 
 --
--- Name: capabilities capabilities_domain_fkey; Type: FK CONSTRAINT; Schema: core; Owner: lira_user
+-- Name: capabilities capabilities_domain_fkey; Type: FK CONSTRAINT; Schema: core; Owner: core_db
 --
 
 ALTER TABLE ONLY core.capabilities
@@ -3896,7 +4341,7 @@ ALTER TABLE ONLY core.capabilities
 
 
 --
--- Name: capability_cli_links capability_cli_links_capability_id_fkey; Type: FK CONSTRAINT; Schema: core; Owner: lira_user
+-- Name: capability_cli_links capability_cli_links_capability_id_fkey; Type: FK CONSTRAINT; Schema: core; Owner: core_db
 --
 
 ALTER TABLE ONLY core.capability_cli_links
@@ -3904,7 +4349,7 @@ ALTER TABLE ONLY core.capability_cli_links
 
 
 --
--- Name: capability_cli_links capability_cli_links_cli_command_name_fkey; Type: FK CONSTRAINT; Schema: core; Owner: lira_user
+-- Name: capability_cli_links capability_cli_links_cli_command_name_fkey; Type: FK CONSTRAINT; Schema: core; Owner: core_db
 --
 
 ALTER TABLE ONLY core.capability_cli_links
@@ -3912,7 +4357,7 @@ ALTER TABLE ONLY core.capability_cli_links
 
 
 --
--- Name: cognitive_roles cognitive_roles_assigned_resource_fkey; Type: FK CONSTRAINT; Schema: core; Owner: lira_user
+-- Name: cognitive_roles cognitive_roles_assigned_resource_fkey; Type: FK CONSTRAINT; Schema: core; Owner: core_db
 --
 
 ALTER TABLE ONLY core.cognitive_roles
@@ -3920,7 +4365,7 @@ ALTER TABLE ONLY core.cognitive_roles
 
 
 --
--- Name: constitutional_violations constitutional_violations_symbol_id_fkey; Type: FK CONSTRAINT; Schema: core; Owner: lira_user
+-- Name: constitutional_violations constitutional_violations_symbol_id_fkey; Type: FK CONSTRAINT; Schema: core; Owner: core_db
 --
 
 ALTER TABLE ONLY core.constitutional_violations
@@ -3928,7 +4373,7 @@ ALTER TABLE ONLY core.constitutional_violations
 
 
 --
--- Name: constitutional_violations constitutional_violations_task_id_fkey; Type: FK CONSTRAINT; Schema: core; Owner: lira_user
+-- Name: constitutional_violations constitutional_violations_task_id_fkey; Type: FK CONSTRAINT; Schema: core; Owner: core_db
 --
 
 ALTER TABLE ONLY core.constitutional_violations
@@ -3936,7 +4381,7 @@ ALTER TABLE ONLY core.constitutional_violations
 
 
 --
--- Name: decorator_inference_rules decorator_inference_rules_decorator_id_fkey; Type: FK CONSTRAINT; Schema: core; Owner: lira_user
+-- Name: decorator_inference_rules decorator_inference_rules_decorator_id_fkey; Type: FK CONSTRAINT; Schema: core; Owner: core_db
 --
 
 ALTER TABLE ONLY core.decorator_inference_rules
@@ -3944,7 +4389,7 @@ ALTER TABLE ONLY core.decorator_inference_rules
 
 
 --
--- Name: export_digests export_digests_manifest_id_fkey; Type: FK CONSTRAINT; Schema: core; Owner: lira_user
+-- Name: export_digests export_digests_manifest_id_fkey; Type: FK CONSTRAINT; Schema: core; Owner: core_db
 --
 
 ALTER TABLE ONLY core.export_digests
@@ -3952,7 +4397,7 @@ ALTER TABLE ONLY core.export_digests
 
 
 --
--- Name: feedback feedback_action_id_fkey; Type: FK CONSTRAINT; Schema: core; Owner: lira_user
+-- Name: feedback feedback_action_id_fkey; Type: FK CONSTRAINT; Schema: core; Owner: core_db
 --
 
 ALTER TABLE ONLY core.feedback
@@ -3960,7 +4405,7 @@ ALTER TABLE ONLY core.feedback
 
 
 --
--- Name: feedback feedback_task_id_fkey; Type: FK CONSTRAINT; Schema: core; Owner: lira_user
+-- Name: feedback feedback_task_id_fkey; Type: FK CONSTRAINT; Schema: core; Owner: core_db
 --
 
 ALTER TABLE ONLY core.feedback
@@ -3968,7 +4413,7 @@ ALTER TABLE ONLY core.feedback
 
 
 --
--- Name: actions fk_actions_cognitive_role; Type: FK CONSTRAINT; Schema: core; Owner: lira_user
+-- Name: actions fk_actions_cognitive_role; Type: FK CONSTRAINT; Schema: core; Owner: core_db
 --
 
 ALTER TABLE ONLY core.actions
@@ -3976,7 +4421,7 @@ ALTER TABLE ONLY core.actions
 
 
 --
--- Name: symbols fk_symbols_domain; Type: FK CONSTRAINT; Schema: core; Owner: lira_user
+-- Name: symbols fk_symbols_domain; Type: FK CONSTRAINT; Schema: core; Owner: core_db
 --
 
 ALTER TABLE ONLY core.symbols
@@ -3984,23 +4429,15 @@ ALTER TABLE ONLY core.symbols
 
 
 --
--- Name: tasks fk_tasks_proposal; Type: FK CONSTRAINT; Schema: core; Owner: lira_user
+-- Name: proposal_consequences proposal_consequences_proposal_id_fkey; Type: FK CONSTRAINT; Schema: core; Owner: core_db
 --
 
-ALTER TABLE ONLY core.tasks
-    ADD CONSTRAINT fk_tasks_proposal FOREIGN KEY (proposal_id) REFERENCES core.proposals(id);
-
-
---
--- Name: proposal_signatures proposal_signatures_proposal_id_fkey; Type: FK CONSTRAINT; Schema: core; Owner: lira_user
---
-
-ALTER TABLE ONLY core.proposal_signatures
-    ADD CONSTRAINT proposal_signatures_proposal_id_fkey FOREIGN KEY (proposal_id) REFERENCES core.proposals(id) ON DELETE CASCADE;
+ALTER TABLE ONLY core.proposal_consequences
+    ADD CONSTRAINT proposal_consequences_proposal_id_fkey FOREIGN KEY (proposal_id) REFERENCES core.autonomous_proposals(proposal_id);
 
 
 --
--- Name: retrieval_feedback retrieval_feedback_task_id_fkey; Type: FK CONSTRAINT; Schema: core; Owner: lira_user
+-- Name: retrieval_feedback retrieval_feedback_task_id_fkey; Type: FK CONSTRAINT; Schema: core; Owner: core_db
 --
 
 ALTER TABLE ONLY core.retrieval_feedback
@@ -4008,7 +4445,23 @@ ALTER TABLE ONLY core.retrieval_feedback
 
 
 --
--- Name: symbol_capability_links symbol_capability_links_capability_id_fkey; Type: FK CONSTRAINT; Schema: core; Owner: lira_user
+-- Name: symbol_calls symbol_calls_callee_fk; Type: FK CONSTRAINT; Schema: core; Owner: core_db
+--
+
+ALTER TABLE ONLY core.symbol_calls
+    ADD CONSTRAINT symbol_calls_callee_fk FOREIGN KEY (callee_id) REFERENCES core.symbols(id) ON DELETE SET NULL;
+
+
+--
+-- Name: symbol_calls symbol_calls_caller_fk; Type: FK CONSTRAINT; Schema: core; Owner: core_db
+--
+
+ALTER TABLE ONLY core.symbol_calls
+    ADD CONSTRAINT symbol_calls_caller_fk FOREIGN KEY (caller_id) REFERENCES core.symbols(id) ON DELETE CASCADE;
+
+
+--
+-- Name: symbol_capability_links symbol_capability_links_capability_id_fkey; Type: FK CONSTRAINT; Schema: core; Owner: core_db
 --
 
 ALTER TABLE ONLY core.symbol_capability_links
@@ -4016,7 +4469,7 @@ ALTER TABLE ONLY core.symbol_capability_links
 
 
 --
--- Name: symbol_capability_links symbol_capability_links_symbol_id_fkey; Type: FK CONSTRAINT; Schema: core; Owner: lira_user
+-- Name: symbol_capability_links symbol_capability_links_symbol_id_fkey; Type: FK CONSTRAINT; Schema: core; Owner: core_db
 --
 
 ALTER TABLE ONLY core.symbol_capability_links
@@ -4024,7 +4477,7 @@ ALTER TABLE ONLY core.symbol_capability_links
 
 
 --
--- Name: symbol_decorators symbol_decorators_decorator_id_fkey; Type: FK CONSTRAINT; Schema: core; Owner: lira_user
+-- Name: symbol_decorators symbol_decorators_decorator_id_fkey; Type: FK CONSTRAINT; Schema: core; Owner: core_db
 --
 
 ALTER TABLE ONLY core.symbol_decorators
@@ -4032,7 +4485,7 @@ ALTER TABLE ONLY core.symbol_decorators
 
 
 --
--- Name: symbol_decorators symbol_decorators_symbol_id_fkey; Type: FK CONSTRAINT; Schema: core; Owner: lira_user
+-- Name: symbol_decorators symbol_decorators_symbol_id_fkey; Type: FK CONSTRAINT; Schema: core; Owner: core_db
 --
 
 ALTER TABLE ONLY core.symbol_decorators
@@ -4040,7 +4493,7 @@ ALTER TABLE ONLY core.symbol_decorators
 
 
 --
--- Name: symbol_vector_links symbol_vector_links_symbol_id_fkey; Type: FK CONSTRAINT; Schema: core; Owner: lira_user
+-- Name: symbol_vector_links symbol_vector_links_symbol_id_fkey; Type: FK CONSTRAINT; Schema: core; Owner: core_db
 --
 
 ALTER TABLE ONLY core.symbol_vector_links
@@ -4048,7 +4501,7 @@ ALTER TABLE ONLY core.symbol_vector_links
 
 
 --
--- Name: tasks tasks_assigned_role_fkey; Type: FK CONSTRAINT; Schema: core; Owner: lira_user
+-- Name: tasks tasks_assigned_role_fkey; Type: FK CONSTRAINT; Schema: core; Owner: core_db
 --
 
 ALTER TABLE ONLY core.tasks
@@ -4056,7 +4509,7 @@ ALTER TABLE ONLY core.tasks
 
 
 --
--- Name: tasks tasks_parent_task_id_fkey; Type: FK CONSTRAINT; Schema: core; Owner: lira_user
+-- Name: tasks tasks_parent_task_id_fkey; Type: FK CONSTRAINT; Schema: core; Owner: core_db
 --
 
 ALTER TABLE ONLY core.tasks
@@ -4064,31 +4517,31 @@ ALTER TABLE ONLY core.tasks
 
 
 --
--- Name: tasks tasks_proposal_id_fkey; Type: FK CONSTRAINT; Schema: core; Owner: lira_user
---
-
-ALTER TABLE ONLY core.tasks
-    ADD CONSTRAINT tasks_proposal_id_fkey FOREIGN KEY (proposal_id) REFERENCES core.proposals(id);
-
-
---
--- Name: runtime_settings; Type: ROW SECURITY; Schema: core; Owner: lira_user
+-- Name: runtime_settings; Type: ROW SECURITY; Schema: core; Owner: core_db
 --
 
 ALTER TABLE core.runtime_settings ENABLE ROW LEVEL SECURITY;
 
 --
--- Name: runtime_settings settings_read_policy; Type: POLICY; Schema: core; Owner: lira_user
+-- Name: runtime_settings settings_read_policy; Type: POLICY; Schema: core; Owner: core_db
 --
 
 CREATE POLICY settings_read_policy ON core.runtime_settings FOR SELECT USING (((NOT is_secret) OR (CURRENT_USER = ANY (ARRAY['postgres'::name, 'admin'::name, 'core_db'::name]))));
 
 
 --
--- Name: runtime_settings settings_write_policy; Type: POLICY; Schema: core; Owner: lira_user
+-- Name: runtime_settings settings_write_policy; Type: POLICY; Schema: core; Owner: core_db
 --
 
 CREATE POLICY settings_write_policy ON core.runtime_settings USING ((CURRENT_USER = ANY (ARRAY['postgres'::name, 'admin'::name, 'core_db'::name])));
+
+
+--
+-- Name: SCHEMA public; Type: ACL; Schema: -; Owner: pg_database_owner
+--
+
+GRANT ALL ON SCHEMA public TO lira_user;
+GRANT ALL ON SCHEMA public TO core;
 
 
 --
@@ -4204,219 +4657,213 @@ GRANT ALL ON FUNCTION core.validate_symbol_array() TO core_db;
 
 
 --
--- Name: TABLE _backup_symbol_vector_links; Type: ACL; Schema: core; Owner: lira_user
+-- Name: TABLE _backup_symbol_vector_links; Type: ACL; Schema: core; Owner: core_db
 --
 
 GRANT ALL ON TABLE core._backup_symbol_vector_links TO core;
-GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE core._backup_symbol_vector_links TO core_db;
 
 
 --
--- Name: TABLE _backup_symbols; Type: ACL; Schema: core; Owner: lira_user
+-- Name: TABLE _backup_symbols; Type: ACL; Schema: core; Owner: core_db
 --
 
 GRANT ALL ON TABLE core._backup_symbols TO core;
-GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE core._backup_symbols TO core_db;
 
 
 --
--- Name: TABLE _staging_core_symbols; Type: ACL; Schema: core; Owner: lira_user
+-- Name: TABLE _staging_core_symbols; Type: ACL; Schema: core; Owner: core_db
 --
 
 GRANT ALL ON TABLE core._staging_core_symbols TO core;
-GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE core._staging_core_symbols TO core_db;
 
 
 --
--- Name: TABLE action_results; Type: ACL; Schema: core; Owner: lira_user
+-- Name: TABLE action_results; Type: ACL; Schema: core; Owner: core_db
 --
 
 GRANT ALL ON TABLE core.action_results TO core;
-GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE core.action_results TO core_db;
 
 
 --
--- Name: TABLE actions; Type: ACL; Schema: core; Owner: lira_user
+-- Name: TABLE actions; Type: ACL; Schema: core; Owner: core_db
 --
 
 GRANT ALL ON TABLE core.actions TO core;
-GRANT ALL ON TABLE core.actions TO core_db;
 
 
 --
--- Name: TABLE agent_decisions; Type: ACL; Schema: core; Owner: lira_user
+-- Name: TABLE agent_decisions; Type: ACL; Schema: core; Owner: core_db
 --
 
 GRANT ALL ON TABLE core.agent_decisions TO core;
-GRANT ALL ON TABLE core.agent_decisions TO core_db;
 
 
 --
--- Name: TABLE agent_memory; Type: ACL; Schema: core; Owner: lira_user
+-- Name: TABLE agent_memory; Type: ACL; Schema: core; Owner: core_db
 --
 
 GRANT ALL ON TABLE core.agent_memory TO core;
-GRANT ALL ON TABLE core.agent_memory TO core_db;
 
 
 --
--- Name: TABLE audit_runs; Type: ACL; Schema: core; Owner: lira_user
+-- Name: TABLE artifact_symbol_links; Type: ACL; Schema: core; Owner: core_db
+--
+
+GRANT ALL ON TABLE core.artifact_symbol_links TO core;
+
+
+--
+-- Name: TABLE audit_findings; Type: ACL; Schema: core; Owner: core_db
+--
+
+GRANT ALL ON TABLE core.audit_findings TO core;
+
+
+--
+-- Name: TABLE audit_runs; Type: ACL; Schema: core; Owner: core_db
 --
 
 GRANT ALL ON TABLE core.audit_runs TO core;
-GRANT ALL ON TABLE core.audit_runs TO core_db;
 
 
 --
--- Name: SEQUENCE audit_runs_id_seq; Type: ACL; Schema: core; Owner: lira_user
+-- Name: SEQUENCE audit_runs_id_seq; Type: ACL; Schema: core; Owner: core_db
 --
 
 GRANT ALL ON SEQUENCE core.audit_runs_id_seq TO core;
-GRANT ALL ON SEQUENCE core.audit_runs_id_seq TO core_db;
 
 
 --
--- Name: TABLE autonomous_proposals; Type: ACL; Schema: core; Owner: lira_user
+-- Name: TABLE autonomous_proposals; Type: ACL; Schema: core; Owner: core_db
 --
 
 GRANT ALL ON TABLE core.autonomous_proposals TO core;
-GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE core.autonomous_proposals TO core_db;
 
 
 --
--- Name: TABLE blackboard_entries; Type: ACL; Schema: core; Owner: lira_user
+-- Name: TABLE blackboard_entries; Type: ACL; Schema: core; Owner: core_db
 --
 
 GRANT ALL ON TABLE core.blackboard_entries TO core;
-GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE core.blackboard_entries TO core_db;
 
 
 --
--- Name: TABLE capabilities; Type: ACL; Schema: core; Owner: lira_user
+-- Name: TABLE capabilities; Type: ACL; Schema: core; Owner: core_db
 --
 
 GRANT ALL ON TABLE core.capabilities TO core;
-GRANT ALL ON TABLE core.capabilities TO core_db;
 
 
 --
--- Name: TABLE capability_cli_links; Type: ACL; Schema: core; Owner: lira_user
+-- Name: TABLE capability_cli_links; Type: ACL; Schema: core; Owner: core_db
 --
 
 GRANT ALL ON TABLE core.capability_cli_links TO core;
-GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE core.capability_cli_links TO core_db;
 
 
 --
--- Name: TABLE cli_commands; Type: ACL; Schema: core; Owner: lira_user
+-- Name: TABLE cli_commands; Type: ACL; Schema: core; Owner: core_db
 --
 
 GRANT ALL ON TABLE core.cli_commands TO core;
-GRANT ALL ON TABLE core.cli_commands TO core_db;
 
 
 --
--- Name: TABLE cognitive_roles; Type: ACL; Schema: core; Owner: lira_user
+-- Name: TABLE cognitive_roles; Type: ACL; Schema: core; Owner: core_db
 --
 
 GRANT ALL ON TABLE core.cognitive_roles TO core;
-GRANT ALL ON TABLE core.cognitive_roles TO core_db;
 
 
 --
--- Name: TABLE constitutional_violations; Type: ACL; Schema: core; Owner: lira_user
+-- Name: TABLE constitutional_violations; Type: ACL; Schema: core; Owner: core_db
 --
 
 GRANT ALL ON TABLE core.constitutional_violations TO core;
-GRANT ALL ON TABLE core.constitutional_violations TO core_db;
 
 
 --
--- Name: TABLE context_packets; Type: ACL; Schema: core; Owner: lira_user
+-- Name: TABLE context_packets; Type: ACL; Schema: core; Owner: core_db
 --
 
 GRANT ALL ON TABLE core.context_packets TO core;
-GRANT ALL ON TABLE core.context_packets TO core_db;
 
 
 --
--- Name: TABLE decision_traces; Type: ACL; Schema: core; Owner: lira_user
+-- Name: TABLE crawl_runs; Type: ACL; Schema: core; Owner: core_db
+--
+
+GRANT ALL ON TABLE core.crawl_runs TO core;
+
+
+--
+-- Name: TABLE decision_traces; Type: ACL; Schema: core; Owner: core_db
 --
 
 GRANT ALL ON TABLE core.decision_traces TO core;
-GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE core.decision_traces TO core_db;
 
 
 --
--- Name: TABLE decorator_inference_rules; Type: ACL; Schema: core; Owner: lira_user
+-- Name: TABLE decorator_inference_rules; Type: ACL; Schema: core; Owner: core_db
 --
 
 GRANT ALL ON TABLE core.decorator_inference_rules TO core;
-GRANT ALL ON TABLE core.decorator_inference_rules TO core_db;
 
 
 --
--- Name: TABLE decorator_registry; Type: ACL; Schema: core; Owner: lira_user
+-- Name: TABLE decorator_registry; Type: ACL; Schema: core; Owner: core_db
 --
 
 GRANT ALL ON TABLE core.decorator_registry TO core;
-GRANT ALL ON TABLE core.decorator_registry TO core_db;
 
 
 --
--- Name: TABLE domains; Type: ACL; Schema: core; Owner: lira_user
+-- Name: TABLE domains; Type: ACL; Schema: core; Owner: core_db
 --
 
 GRANT ALL ON TABLE core.domains TO core;
-GRANT ALL ON TABLE core.domains TO core_db;
 
 
 --
--- Name: TABLE export_digests; Type: ACL; Schema: core; Owner: lira_user
+-- Name: TABLE export_digests; Type: ACL; Schema: core; Owner: core_db
 --
 
 GRANT ALL ON TABLE core.export_digests TO core;
-GRANT ALL ON TABLE core.export_digests TO core_db;
 
 
 --
--- Name: TABLE export_manifests; Type: ACL; Schema: core; Owner: lira_user
+-- Name: TABLE export_manifests; Type: ACL; Schema: core; Owner: core_db
 --
 
 GRANT ALL ON TABLE core.export_manifests TO core;
-GRANT ALL ON TABLE core.export_manifests TO core_db;
 
 
 --
--- Name: TABLE feedback; Type: ACL; Schema: core; Owner: lira_user
+-- Name: TABLE feedback; Type: ACL; Schema: core; Owner: core_db
 --
 
 GRANT ALL ON TABLE core.feedback TO core;
-GRANT ALL ON TABLE core.feedback TO core_db;
 
 
 --
--- Name: TABLE symbol_capability_links; Type: ACL; Schema: core; Owner: lira_user
+-- Name: TABLE symbol_capability_links; Type: ACL; Schema: core; Owner: core_db
 --
 
 GRANT ALL ON TABLE core.symbol_capability_links TO core;
-GRANT ALL ON TABLE core.symbol_capability_links TO core_db;
 
 
 --
--- Name: TABLE symbol_vector_links; Type: ACL; Schema: core; Owner: lira_user
+-- Name: TABLE symbol_vector_links; Type: ACL; Schema: core; Owner: core_db
 --
 
 GRANT ALL ON TABLE core.symbol_vector_links TO core;
-GRANT ALL ON TABLE core.symbol_vector_links TO core_db;
 
 
 --
--- Name: TABLE symbols; Type: ACL; Schema: core; Owner: lira_user
+-- Name: TABLE symbols; Type: ACL; Schema: core; Owner: core_db
 --
 
 GRANT ALL ON TABLE core.symbols TO core;
-GRANT ALL ON TABLE core.symbols TO core_db;
 
 
 --
@@ -4428,179 +4875,157 @@ GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE core.knowledge_graph TO core_db;
 
 
 --
--- Name: TABLE llm_resources; Type: ACL; Schema: core; Owner: lira_user
+-- Name: TABLE llm_resources; Type: ACL; Schema: core; Owner: core_db
 --
 
 GRANT ALL ON TABLE core.llm_resources TO core;
-GRANT ALL ON TABLE core.llm_resources TO core_db;
 
 
 --
--- Name: TABLE mv_refresh_log; Type: ACL; Schema: core; Owner: lira_user
+-- Name: TABLE mv_refresh_log; Type: ACL; Schema: core; Owner: core_db
 --
 
 GRANT ALL ON TABLE core.mv_refresh_log TO core;
-GRANT ALL ON TABLE core.mv_refresh_log TO core_db;
 
 
 --
--- Name: TABLE northstar; Type: ACL; Schema: core; Owner: lira_user
+-- Name: TABLE northstar; Type: ACL; Schema: core; Owner: core_db
 --
 
 GRANT ALL ON TABLE core.northstar TO core;
-GRANT ALL ON TABLE core.northstar TO core_db;
 
 
 --
--- Name: TABLE observability_decisions; Type: ACL; Schema: core; Owner: lira_user
+-- Name: TABLE observability_decisions; Type: ACL; Schema: core; Owner: core_db
 --
 
 GRANT ALL ON TABLE core.observability_decisions TO core;
-GRANT ALL ON TABLE core.observability_decisions TO core_db;
 
 
 --
--- Name: SEQUENCE observability_decisions_id_seq; Type: ACL; Schema: core; Owner: lira_user
+-- Name: SEQUENCE observability_decisions_id_seq; Type: ACL; Schema: core; Owner: core_db
 --
 
 GRANT ALL ON SEQUENCE core.observability_decisions_id_seq TO core;
-GRANT ALL ON SEQUENCE core.observability_decisions_id_seq TO core_db;
 
 
 --
--- Name: TABLE observability_logs; Type: ACL; Schema: core; Owner: lira_user
+-- Name: TABLE observability_logs; Type: ACL; Schema: core; Owner: core_db
 --
 
 GRANT ALL ON TABLE core.observability_logs TO core;
-GRANT ALL ON TABLE core.observability_logs TO core_db;
 
 
 --
--- Name: SEQUENCE observability_logs_id_seq; Type: ACL; Schema: core; Owner: lira_user
+-- Name: SEQUENCE observability_logs_id_seq; Type: ACL; Schema: core; Owner: core_db
 --
 
 GRANT ALL ON SEQUENCE core.observability_logs_id_seq TO core;
-GRANT ALL ON SEQUENCE core.observability_logs_id_seq TO core_db;
 
 
 --
--- Name: TABLE observability_metrics; Type: ACL; Schema: core; Owner: lira_user
+-- Name: TABLE observability_metrics; Type: ACL; Schema: core; Owner: core_db
 --
 
 GRANT ALL ON TABLE core.observability_metrics TO core;
-GRANT ALL ON TABLE core.observability_metrics TO core_db;
 
 
 --
--- Name: SEQUENCE observability_metrics_id_seq; Type: ACL; Schema: core; Owner: lira_user
+-- Name: SEQUENCE observability_metrics_id_seq; Type: ACL; Schema: core; Owner: core_db
 --
 
 GRANT ALL ON SEQUENCE core.observability_metrics_id_seq TO core;
-GRANT ALL ON SEQUENCE core.observability_metrics_id_seq TO core_db;
 
 
 --
--- Name: TABLE proposal_signatures; Type: ACL; Schema: core; Owner: lira_user
+-- Name: TABLE proposal_consequences; Type: ACL; Schema: core; Owner: core_db
 --
 
-GRANT ALL ON TABLE core.proposal_signatures TO core;
-GRANT ALL ON TABLE core.proposal_signatures TO core_db;
-
-
---
--- Name: TABLE proposals; Type: ACL; Schema: core; Owner: lira_user
---
-
-GRANT ALL ON TABLE core.proposals TO core;
-GRANT ALL ON TABLE core.proposals TO core_db;
+GRANT ALL ON TABLE core.proposal_consequences TO core;
 
 
 --
--- Name: SEQUENCE proposals_id_seq; Type: ACL; Schema: core; Owner: lira_user
---
-
-GRANT ALL ON SEQUENCE core.proposals_id_seq TO core;
-GRANT ALL ON SEQUENCE core.proposals_id_seq TO core_db;
-
-
---
--- Name: TABLE refusals; Type: ACL; Schema: core; Owner: lira_user
+-- Name: TABLE refusals; Type: ACL; Schema: core; Owner: core_db
 --
 
 GRANT ALL ON TABLE core.refusals TO core;
-GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE core.refusals TO core_db;
 
 
 --
--- Name: TABLE retrieval_feedback; Type: ACL; Schema: core; Owner: lira_user
+-- Name: TABLE repo_artifacts; Type: ACL; Schema: core; Owner: core_db
+--
+
+GRANT ALL ON TABLE core.repo_artifacts TO core;
+
+
+--
+-- Name: TABLE retrieval_feedback; Type: ACL; Schema: core; Owner: core_db
 --
 
 GRANT ALL ON TABLE core.retrieval_feedback TO core;
-GRANT ALL ON TABLE core.retrieval_feedback TO core_db;
 
 
 --
--- Name: TABLE runtime_services; Type: ACL; Schema: core; Owner: lira_user
+-- Name: TABLE runtime_services; Type: ACL; Schema: core; Owner: core_db
 --
 
 GRANT ALL ON TABLE core.runtime_services TO core;
-GRANT ALL ON TABLE core.runtime_services TO core_db;
 
 
 --
--- Name: TABLE runtime_settings; Type: ACL; Schema: core; Owner: lira_user
+-- Name: TABLE runtime_settings; Type: ACL; Schema: core; Owner: core_db
 --
 
 GRANT ALL ON TABLE core.runtime_settings TO core;
-GRANT ALL ON TABLE core.runtime_settings TO core_db;
 
 
 --
--- Name: TABLE semantic_cache; Type: ACL; Schema: core; Owner: lira_user
+-- Name: TABLE semantic_cache; Type: ACL; Schema: core; Owner: core_db
 --
 
 GRANT ALL ON TABLE core.semantic_cache TO core;
-GRANT ALL ON TABLE core.semantic_cache TO core_db;
 
 
 --
--- Name: TABLE symbol_decorators; Type: ACL; Schema: core; Owner: lira_user
+-- Name: TABLE symbol_calls; Type: ACL; Schema: core; Owner: core_db
+--
+
+GRANT ALL ON TABLE core.symbol_calls TO core;
+
+
+--
+-- Name: TABLE symbol_decorators; Type: ACL; Schema: core; Owner: core_db
 --
 
 GRANT ALL ON TABLE core.symbol_decorators TO core;
-GRANT ALL ON TABLE core.symbol_decorators TO core_db;
 
 
 --
--- Name: TABLE symbols_audit; Type: ACL; Schema: core; Owner: lira_user
+-- Name: TABLE symbols_audit; Type: ACL; Schema: core; Owner: core_db
 --
 
 GRANT ALL ON TABLE core.symbols_audit TO core;
-GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE core.symbols_audit TO core_db;
 
 
 --
--- Name: SEQUENCE symbols_audit_audit_id_seq; Type: ACL; Schema: core; Owner: lira_user
+-- Name: SEQUENCE symbols_audit_audit_id_seq; Type: ACL; Schema: core; Owner: core_db
 --
 
 GRANT ALL ON SEQUENCE core.symbols_audit_audit_id_seq TO core;
-GRANT ALL ON SEQUENCE core.symbols_audit_audit_id_seq TO core_db;
 
 
 --
--- Name: TABLE system_health_log; Type: ACL; Schema: core; Owner: lira_user
+-- Name: TABLE system_health_log; Type: ACL; Schema: core; Owner: core_db
 --
 
 GRANT ALL ON TABLE core.system_health_log TO core;
-GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE core.system_health_log TO core_db;
 
 
 --
--- Name: TABLE tasks; Type: ACL; Schema: core; Owner: lira_user
+-- Name: TABLE tasks; Type: ACL; Schema: core; Owner: core_db
 --
 
 GRANT ALL ON TABLE core.tasks TO core;
-GRANT ALL ON TABLE core.tasks TO core_db;
 
 
 --
@@ -4660,6 +5085,14 @@ GRANT ALL ON TABLE core.v_stale_materialized_views TO core_db;
 
 
 --
+-- Name: TABLE v_symbol_blast_radius; Type: ACL; Schema: core; Owner: lira_user
+--
+
+GRANT ALL ON TABLE core.v_symbol_blast_radius TO core;
+GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE core.v_symbol_blast_radius TO core_db;
+
+
+--
 -- Name: TABLE v_symbol_decorator_stack; Type: ACL; Schema: core; Owner: lira_user
 --
 
@@ -4692,30 +5125,25 @@ GRANT ALL ON TABLE core.v_verified_coverage TO core_db;
 
 
 --
--- Name: TABLE vector_sync_log; Type: ACL; Schema: core; Owner: lira_user
+-- Name: TABLE vector_sync_log; Type: ACL; Schema: core; Owner: core_db
 --
 
 GRANT ALL ON TABLE core.vector_sync_log TO core;
-GRANT ALL ON TABLE core.vector_sync_log TO core_db;
 
 
 --
--- Name: SEQUENCE vector_sync_log_id_seq; Type: ACL; Schema: core; Owner: lira_user
+-- Name: SEQUENCE vector_sync_log_id_seq; Type: ACL; Schema: core; Owner: core_db
 --
 
 GRANT ALL ON SEQUENCE core.vector_sync_log_id_seq TO core;
-GRANT ALL ON SEQUENCE core.vector_sync_log_id_seq TO core_db;
 
 
 --
--- Name: TABLE worker_registry; Type: ACL; Schema: core; Owner: lira_user
+-- Name: TABLE worker_registry; Type: ACL; Schema: core; Owner: core_db
 --
 
 GRANT ALL ON TABLE core.worker_registry TO core;
-GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE core.worker_registry TO core_db;
 
-
-CREATE UNIQUE INDEX autonomous_proposals_executing_once ON core.autonomous_proposals USING btree (proposal_id) WHERE ((status)::text = 'executing'::text);
 
 --
 -- Name: DEFAULT PRIVILEGES FOR SEQUENCES; Type: DEFAULT ACL; Schema: core; Owner: lira_user
@@ -4746,28 +5174,21 @@ ALTER DEFAULT PRIVILEGES FOR ROLE lira_user IN SCHEMA core GRANT SELECT,INSERT,D
 
 
 --
+-- Name: DEFAULT PRIVILEGES FOR SEQUENCES; Type: DEFAULT ACL; Schema: -; Owner: lira_user
+--
+
+ALTER DEFAULT PRIVILEGES FOR ROLE lira_user GRANT ALL ON SEQUENCES TO core;
+
+
+--
+-- Name: DEFAULT PRIVILEGES FOR TABLES; Type: DEFAULT ACL; Schema: -; Owner: lira_user
+--
+
+ALTER DEFAULT PRIVILEGES FOR ROLE lira_user GRANT ALL ON TABLES TO core;
+
+
+--
 -- PostgreSQL database dump complete
 --
-CREATE TABLE core.proposal_consequences (
-    -- One row per executed proposal. proposal_id is both PK and FK.
-    proposal_id          TEXT PRIMARY KEY REFERENCES core.autonomous_proposals(proposal_id),
 
-    recorded_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-
-    -- Git causality chain
-    pre_execution_sha    TEXT,
-    post_execution_sha   TEXT,
-
-    -- What changed (array of {path, before_hash, after_hash})
-    files_changed        JSONB NOT NULL DEFAULT '[]',
-
-    -- Which finding IDs this execution resolved (first approximation: from proposal scope)
-    findings_resolved    JSONB NOT NULL DEFAULT '[]',
-
-    -- Which constitutional rules authorized this execution (from proposal scope.policies)
-    authorized_by_rules  JSONB NOT NULL DEFAULT '[]'
-);
-
-COMMENT ON TABLE core.proposal_consequences IS
-    'Consequence log: records what each executed proposal actually changed. '
-    'Closes the causal chain: Finding → Proposal → Approval → Execution → File Changes.';
+\unrestrict wHxVhw1QcWqbCpqQhz1d6KWrf54aUi0loGa53bOTDNrEIg7HStRYy3yS3apd8lP
