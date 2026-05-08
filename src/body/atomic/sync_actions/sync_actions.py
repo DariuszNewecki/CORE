@@ -28,7 +28,6 @@ from .chunking_helpers import _chunk_file, _embed_and_upsert
     description="Synchronize code symbols to PostgreSQL knowledge graph",
     category=ActionCategory.SYNC,
     policies=["rules/architecture/blackboard"],
-    impact_level="moderate",
 )
 @atomic_action(
     action_id="sync.db",
@@ -92,7 +91,6 @@ async def action_sync_database(
     description="Vectorize codebase artifacts to Qdrant",
     category=ActionCategory.SYNC,
     policies=["rules/architecture/blackboard"],
-    impact_level="moderate",
 )
 @atomic_action(
     action_id="sync.vectors.code",
@@ -236,7 +234,6 @@ async def action_sync_code_vectors(
     description="Vectorize constitutional documents to Qdrant",
     category=ActionCategory.SYNC,
     policies=["rules/architecture/blackboard"],
-    impact_level="moderate",
 )
 @atomic_action(
     action_id="sync.vectors.constitution",

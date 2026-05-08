@@ -1,0 +1,43 @@
+# .intent/enforcement/config/action_risk.yaml
+# Authority: policy
+# Phase: n/a (configuration, not a runtime phase)
+# Status: active
+#
+# PURPOSE:
+#   Single source of truth for action impact classification.
+#   Governs which actions auto-execute (safe) versus which require
+#   human approval (moderate) or are blocked unless explicitly
+#   authorized (dangerous).
+#
+#   Consumed by src/body/atomic/executor.py via the helper
+#   shared.infrastructure.intent.action_risk.
+#
+# RULE: impact_level for every registered action MUST be declared
+#   here. No impact_level literals permitted in @register_action
+#   decorators in src/. See ADR-008.
+#
+# VALUES: safe | moderate | dangerous
+
+actions:
+  build.tests: safe
+  check.imports: safe
+  claim.proposal: safe
+  crate.create: safe
+  file.create: moderate
+  file.edit: moderate
+  file.read: safe
+  file.tag_metadata: safe
+  fix.atomic_actions: moderate
+  fix.docstrings: moderate
+  fix.duplicate_ids: moderate
+  fix.format: safe
+  fix.headers: safe
+  fix.ids: safe
+  fix.imports: safe
+  fix.logging: safe
+  fix.modularity: moderate
+  fix.placeholders: safe
+  remediate.cognitive_role: moderate
+  sync.db: moderate
+  sync.vectors.code: moderate
+  sync.vectors.constitution: moderate

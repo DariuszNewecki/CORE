@@ -35,7 +35,6 @@ logger = getLogger(__name__)
         "governance.dangerous_execution_primitives",
         "autonomy.tracing.mandatory",
     ],
-    impact_level="moderate",  # Changes code but with canary protection
     requires_db=False,  # Action no longer touches the DB; caller posts the finding
     requires_vectors=False,
     remediates=[

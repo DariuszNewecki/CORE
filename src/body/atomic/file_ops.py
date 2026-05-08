@@ -28,7 +28,6 @@ logger = getLogger(__name__)
     description="Create a new file with validated content",
     category=ActionCategory.BUILD,
     policies=["rules/architecture/atomic_actions"],
-    impact_level="moderate",
 )
 @atomic_action(
     action_id="file.create",
@@ -99,7 +98,6 @@ async def action_create_file(
     description="Modify an existing file with validated code",
     category=ActionCategory.FIX,
     policies=["rules/architecture/atomic_actions"],
-    impact_level="moderate",
 )
 @atomic_action(
     action_id="file.edit",
@@ -120,7 +118,6 @@ async def action_edit_file(
     description="Read content from a file safely",
     category=ActionCategory.CHECK,
     policies=["rules/data/governance"],
-    impact_level="safe",
 )
 @atomic_action(
     action_id="file.read",

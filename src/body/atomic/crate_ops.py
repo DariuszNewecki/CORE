@@ -26,7 +26,6 @@ logger = getLogger(__name__)
     description="Package generated code into an Intent Crate for canary validation",
     category=ActionCategory.BUILD,
     policies=["rules/architecture/atomic_actions"],
-    impact_level="safe",
 )
 @atomic_action(
     action_id="crate.create",

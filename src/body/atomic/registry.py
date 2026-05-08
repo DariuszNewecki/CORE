@@ -30,6 +30,13 @@ from shared.logger import getLogger
 logger = getLogger(__name__)
 
 
+# ID: 9e2f7a1c-4b8d-4e6f-a3c2-1d5b8f0a4e9c
+class ConstitutionalError(RuntimeError):
+    """Raised when the action registry violates a constitutional invariant."""
+
+    pass
+
+
 # ID: 6166d4ed-db63-4363-95c3-504ef1b9a3e0
 class ActionCategory(str, Enum):
     """Constitutional action categories."""
@@ -67,11 +74,17 @@ class ActionDefinition:
     policies: list[str]
     """Policy IDs that govern this action"""
 
-    impact_level: str
-    """Impact level: 'safe', 'moderate', 'dangerous'"""
-
     executor: Callable[..., Awaitable[ActionResult]]
     """Async function that executes the action"""
+
+    impact_level: str = ""
+    """
+    Impact level: 'safe', 'moderate', 'dangerous'.
+
+    Defaults to "" — overlaid at executor init from
+    .intent/enforcement/config/action_risk.yaml via
+    ActionRegistry.apply_risk_config(). Never authored in code.
+    """
 
     requires_db: bool = False
     """Whether this action requires database access"""
@@ -158,6 +171,29 @@ class ActionRegistry:
         """List all registered actions."""
         return list(self._actions.values())
 
+    # ID: 7f1e3a8c-2b9d-4f6e-a5c1-3b7e9d2f4a6b
+    def apply_risk_config(self, mapping: dict[str, str]) -> None:
+        """
+        Overlay impact_level on every registered action from the policy
+        mapping loaded from .intent/enforcement/config/action_risk.yaml.
+
+        Raises ConstitutionalError if any registered action_id is absent
+        from the mapping — every action must have a governed
+        classification.
+        """
+        missing: list[str] = [
+            action_id for action_id in self._actions if action_id not in mapping
+        ]
+        if missing:
+            raise ConstitutionalError(
+                f"action_risk policy is missing impact_level for "
+                f"registered actions: {sorted(missing)}. "
+                f"Add them to .intent/enforcement/config/action_risk.yaml."
+            )
+
+        for action_id, definition in self._actions.items():
+            definition.impact_level = mapping[action_id]
+
 
 # Global singleton registry
 action_registry = ActionRegistry()
@@ -231,7 +267,6 @@ def register_action(
     description: str,
     category: ActionCategory,
     policies: list[str],
-    impact_level: str = "safe",
     requires_db: bool = False,
     requires_vectors: bool = False,
     remediates: list[str] | None = None,
@@ -243,6 +278,11 @@ def register_action(
     This decorator enforces .intent/rules/architecture/atomic_actions.json at
     module import time. Functions that violate constitutional rules will cause
     the module import to fail with a TypeError.
+
+    Impact level is NOT a parameter here. It is governed externally via
+    .intent/enforcement/config/action_risk.yaml and overlaid onto each
+    ActionDefinition at executor init by ActionRegistry.apply_risk_config().
+    See ADR-008.
 
     Args:
         remediates: List of audit check_ids this action can fix autonomously.
@@ -263,7 +303,6 @@ def register_action(
             description=description,
             category=category,
             policies=policies,
-            impact_level=impact_level,
             executor=func,
             requires_db=requires_db,
             requires_vectors=requires_vectors,

@@ -52,7 +52,6 @@ def _error_data(exc: Exception, **extra: Any) -> dict[str, Any]:
     description="Format code with ruff format and ruff check",
     category=ActionCategory.FIX,
     policies=["rules/code/purity"],
-    impact_level="safe",
     remediates=["style.formatter_required"],
 )
 @atomic_action(
@@ -91,7 +90,6 @@ async def action_format_code(
     description="Sort and group imports according to PEP 8 / Constitutional standards",
     category=ActionCategory.FIX,
     policies=["rules/code/purity"],
-    impact_level="safe",
     remediates=["style.import_order", "style.no_unused_imports"],
 )
 @atomic_action(
@@ -135,7 +133,6 @@ async def action_fix_imports(write: bool = False) -> ActionResult:
     description="Fix file headers to match constitutional standards",
     category=ActionCategory.FIX,
     policies=["rules/code/purity"],
-    impact_level="safe",
     remediates=["layout.src_module_header"],
 )
 @atomic_action(
@@ -159,7 +156,6 @@ async def action_fix_headers(
     description="Add missing ID tags to functions and classes",
     category=ActionCategory.FIX,
     policies=["rules/code/purity"],
-    impact_level="safe",
     remediates=["purity.stable_id_anchor", "linkage.assign_ids"],
 )
 @atomic_action(
@@ -183,7 +179,6 @@ async def action_fix_ids(
     description="Resolve duplicate UUID collisions across source files",
     category=ActionCategory.FIX,
     policies=["rules/code/linkage"],
-    impact_level="moderate",
     remediates=["linkage.duplicate_ids"],
 )
 @atomic_action(
@@ -207,7 +202,6 @@ async def action_fix_duplicate_ids(
     description="Replace print statements with proper logging",
     category=ActionCategory.FIX,
     policies=["rules/code/purity"],
-    impact_level="safe",
     remediates=["logic.logging.standard_only"],
 )
 @atomic_action(
@@ -258,7 +252,6 @@ async def action_fix_logging(
     description="Replace FUTURE/PENDING placeholders",
     category=ActionCategory.FIX,
     policies=["rules/code/purity"],
-    impact_level="safe",
     remediates=["caps.no_placeholder_text"],
 )
 @atomic_action(
@@ -278,7 +271,7 @@ async def action_fix_placeholders(
     1. Targeted (autonomous loop): caller supplies ``file_path`` in kwargs
        (ViolationRemediatorWorker threads this through ``ProposalAction.parameters``).
        The action operates on exactly that file. This matches the action's
-       ``impact_level="safe"`` classification — bounded scope per invocation.
+       ``"safe"`` classification — bounded scope per invocation.
 
     2. Sweep (legacy CLI): no ``file_path`` supplied. The action walks every
        ``*.py`` under ``src/``. This mode is preserved for backwards
@@ -405,7 +398,6 @@ async def action_fix_placeholders(
     description="Fix atomic actions pattern violations",
     category=ActionCategory.FIX,
     policies=["rules/architecture/atomic_actions"],
-    impact_level="moderate",
     remediates=["architecture.atomic_actions.must_return_action_result"],
 )
 @atomic_action(
@@ -499,7 +491,6 @@ async def action_fix_atomic_actions(
     description="Generate and inject missing docstrings using AI",
     category=ActionCategory.FIX,
     policies=["rules/code/purity"],
-    impact_level="moderate",
     remediates=["purity.docstrings.required"],
 )
 @atomic_action(

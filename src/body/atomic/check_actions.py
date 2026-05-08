@@ -43,7 +43,6 @@ _TARGET = "src/"
     description="Verify all import statements resolve to existing modules",
     category=ActionCategory.CHECK,
     policies=["rules/code/imports"],
-    impact_level="safe",
 )
 @atomic_action(
     action_id="check.imports",

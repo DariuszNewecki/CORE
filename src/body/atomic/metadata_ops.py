@@ -36,7 +36,6 @@ logger = getLogger(__name__)
     "Proves semantic preservation via normalized AST comparison.",
     category=ActionCategory.FIX,
     policies=["rules/code/metadata_mutations"],
-    impact_level="safe",
 )
 @atomic_action(
     action_id="file.tag_metadata",

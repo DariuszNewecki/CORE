@@ -31,6 +31,7 @@ from body.atomic.registry import ActionCategory, ActionDefinition, action_regist
 from shared.action_types import ActionImpact, ActionResult
 from shared.atomic_action import atomic_action
 from shared.governance_token import authorize_execution
+from shared.infrastructure.intent.action_risk import load_action_risk
 from shared.logger import _current_run_id, getLogger
 
 
@@ -123,6 +124,13 @@ class ActionExecutor:
 
         self.core_context = core_context
         self.registry = action_registry
+
+        # Overlay impact_level from .intent/enforcement/config/action_risk.yaml
+        # onto every registered ActionDefinition. @register_action no longer
+        # accepts impact_level — it is governed externally. See ADR-008.
+        risk_mapping = load_action_risk()
+        self.registry.apply_risk_config(risk_mapping)
+
         logger.debug("ActionExecutor initialized")
 
     # ID: executor_execute

@@ -340,7 +340,6 @@ def _extract_class_methods_context(source: str) -> str:
     description="Split a file that violates modularity rules using two-phase LLM analysis",
     category=ActionCategory.FIX,
     policies=["rules/architecture/modularity"],
-    impact_level="moderate",
     remediates=[
         "architecture.max_file_size",
         "modularity.refactor_score_threshold",

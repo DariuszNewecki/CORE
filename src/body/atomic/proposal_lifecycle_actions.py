@@ -38,7 +38,6 @@ logger = getLogger(__name__)
     ),
     category=ActionCategory.STATE,
     policies=["rules/will/autonomy"],
-    impact_level="safe",
     requires_db=True,
     remediates=[],
 )
