@@ -75,7 +75,8 @@ def core_command(
                 )
                 raise typer.Exit(1)
             write = bool(cast(dict[str, Any], kwargs).get("write", False))
-            if dangerous and (not write):
+            check = bool(cast(dict[str, Any], kwargs).get("check", False))
+            if dangerous and (not write) and (not check):
                 logger.info(
                     "[bold yellow]⚠️  DRY RUN MODE[/bold yellow]\n   No changes will be made. Use [cyan]--write[/cyan] to apply.\n"
                 )
