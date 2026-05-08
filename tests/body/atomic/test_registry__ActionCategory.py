@@ -33,6 +33,7 @@ def test_action_category_iteration():
         ActionCategory.SYNC,
         ActionCategory.CHECK,
         ActionCategory.BUILD,
+        ActionCategory.STATE,
     ]
     assert categories == expected
 
@@ -43,6 +44,7 @@ def test_action_category_comparison_to_string():
     assert ActionCategory.SYNC == "sync"
     assert ActionCategory.CHECK == "check"
     assert ActionCategory.BUILD == "build"
+    assert ActionCategory.STATE == "state"
     # Ensure reverse comparison also works
     assert "fix" == ActionCategory.FIX
 
