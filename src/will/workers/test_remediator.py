@@ -86,6 +86,8 @@ class TestRemediatorWorker(Worker):
     other.
     """
 
+    __test__ = False
+
     declaration_name = "test_remediator"
 
     def __init__(

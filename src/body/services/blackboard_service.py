@@ -451,10 +451,9 @@ class BlackboardService:
         claims — the entries_resolved counters in their reports were always
         zero because the UPDATE never matched.
 
-        The predicate now accepts either 'open' or 'claimed' so two caller
-        patterns are both correct:
+        The predicate now accepts either 'open' or 'claimed' so the caller
+        pattern is:
           - fetch_open_findings → resolve_entries  (TestRunnerSensor)
-          - claim_open_findings → ... → resolve_entries (TestRemediatorWorker)
 
         All updates run inside a single transaction. Returns the count of
         rows actually updated (entries already terminalized or missing are
@@ -465,12 +464,10 @@ class BlackboardService:
         so the §7/§7a CORE-Finding.md Finding→Proposal linkage is
         preserved; the dedup-subsume path uses resolve_entries_for_proposal
         so the subsuming proposal_id is recorded in payload (URS Q1.F).
-        This bare-resolve method remains in use by TestRemediatorWorker
-        and TestRunnerSensor — callers that legitimately have no
-        proposal_id to record.
+        This bare-resolve method remains in use by TestRunnerSensor —
+        a caller that legitimately has no proposal_id to record.
 
         Covers:
-          - TestRemediatorWorker._resolve_entries
           - TestRunnerSensor (direct)
         """
         from body.services.service_registry import ServiceRegistry
