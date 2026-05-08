@@ -4,7 +4,7 @@
     "metadata": {
         "id": "rules.architecture.atomic_actions",
         "title": "Atomic Actions Pattern Contract",
-        "version": "0.1.0",
+        "version": "0.2.0",
         "authority": "policy",
         "phase": "load",
         "status": "active"
@@ -49,6 +49,14 @@
             "authority": "policy",
             "phase": "load",
             "rationale": "Naming ambiguity between 'fix imports (sort)' and 'fix imports (validate)' creates a false sense of safety. A dev-sync run that includes fix.imports and reports ok=True MUST NOT imply that all imports are valid — only that they are sorted. This rule eliminates that ambiguity constitutionally."
+        },
+        {
+            "id": "atomic_actions.impact_level_must_be_governed",
+            "statement": "Action impact classification MUST be declared in .intent/enforcement/config/action_risk.yaml, keyed by action_id. Embedding impact classification directly inside action registration calls in src/ is PROHIBITED.",
+            "enforcement": "blocking",
+            "authority": "policy",
+            "phase": "load",
+            "rationale": "Impact level determines whether an action requires human approval or auto-executes — a governance decision that belongs in .intent/, not in src/. Centralizing it in action_risk.yaml makes reclassification an auditable constitutional edit rather than a code change. See ADR-008."
         }
     ]
 }

@@ -7,13 +7,15 @@
 # or execution-time) rather than by a static analysis engine. The
 # python_runtime engine documents where enforcement occurs in code.
 #
-# The advisory entry at the bottom is a naming boundary declaration —
+# The advisory entry is a naming boundary declaration —
 # it grants no automated check but removes the rule from declared_only.
+#
+# The regex_gate entry enforces the governed-impact-level invariant
+# statically at audit time.
 
 mappings:
   # Rule: atomic_actions.must_return_action_result
   # Enforcement: Registration-time validation in registry.py
-  # This mapping tells the system that enforcement happens in Python code at module load time
   atomic_actions.must_return_action_result:
     engine: python_runtime
     params:
@@ -73,3 +75,20 @@ mappings:
     scope:
       applies_to:
         - "src/body/atomic/**/*.py"
+
+  # Rule: atomic_actions.impact_level_must_be_governed
+  # Enforcement: Static audit-time detection via regex scan.
+  # Complements Python-level enforcement (TypeError at import, ConstitutionalError
+  # at executor init) with an earlier audit-time signal.
+  atomic_actions.impact_level_must_be_governed:
+    engine: regex_gate
+    params:
+      forbidden_patterns:
+        - "impact_level\\s*="
+    scope:
+      applies_to:
+        - "src/body/atomic/**/*.py"
+      excludes:
+        - "tests/**/*.py"
+        - "src/body/atomic/registry.py"
+        - "src/body/atomic/executor.py"
