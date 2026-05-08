@@ -131,14 +131,23 @@ def test_underscore_and_convention_private_filtered_at_both_passes(
             rhs = line.split(" import ", 1)[1]
             imported_names.update(tok.strip() for tok in rhs.split(","))
 
-    for forbidden in ("logger", "log", "_logger", "_log", "_private_helper", "_PRIVATE"):
+    for forbidden in (
+        "logger",
+        "log",
+        "_logger",
+        "_log",
+        "_private_helper",
+        "_PRIVATE",
+    ):
         assert forbidden not in imported_names, (
             f"{forbidden!r} leaked into __init__.py re-exports: {imported_names}"
         )
 
     assert "public_alpha" in imported_names
     assert "public_beta" in imported_names
-    assert "PUBLIC" in imported_names, "non-private module-level constant must re-export"
+    assert "PUBLIC" in imported_names, (
+        "non-private module-level constant must re-export"
+    )
 
 
 # ID: 26f35d0c-523b-4be0-85f4-04bd41c2e84d

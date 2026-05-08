@@ -36,7 +36,7 @@ async def show_proposal(
     print_detailed_info(proposal)
 
 
-@core_command(dangerous=True)
+@core_command(dangerous=False)
 # ID: f2e065f7-c253-4c33-ae0d-5374ffdb8e23
 async def approve_proposal(
     ctx: typer.Context,
@@ -86,7 +86,7 @@ async def execute_proposal(
     print_execution_summary(result)
 
 
-@core_command(dangerous=True)
+@core_command(dangerous=False)
 # ID: 4ac3cfc1-feae-440c-b02f-4c57a6a1147d
 async def reject_proposal(
     ctx: typer.Context,
