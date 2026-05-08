@@ -25,6 +25,7 @@ from body.services.service_registry import service_registry
 from shared.infrastructure.database.models.workers import BlackboardEntry
 from shared.infrastructure.database.session_manager import get_session
 from will.workers.test_remediator import TestRemediatorWorker
+from will.workers.test_remediator._operations import _defer_to_proposal
 
 
 @pytest.fixture(autouse=True)
@@ -111,7 +112,7 @@ async def test_defer_to_proposal_records_proposal_id_and_transitions_status(
     await db_session.commit()
 
     try:
-        deferred_count = await worker._defer_to_proposal(
+        deferred_count = await _defer_to_proposal(
             [str(entry_id_a), str(entry_id_b)], proposal_id
         )
         assert deferred_count == 2, (
