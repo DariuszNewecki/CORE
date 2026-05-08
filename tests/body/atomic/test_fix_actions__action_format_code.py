@@ -16,7 +16,7 @@ from body.atomic.fix_actions import action_format_code
 @pytest.mark.asyncio
 async def test_action_format_code_basic():
     """Test basic formatting without writing."""
-    with patch("body.atomic.fix_actions.format_code") as mock_format:
+    with patch("body.self_healing.code_style_service.format_code") as mock_format:
         with patch("body.atomic.fix_actions.time.time") as mock_time:
             mock_time.side_effect = [100.0, 100.5]
             result = await action_format_code(write=False)
@@ -30,7 +30,7 @@ async def test_action_format_code_basic():
 @pytest.mark.asyncio
 async def test_action_format_code_with_write():
     """Test formatting with write=True."""
-    with patch("body.atomic.fix_actions.format_code") as mock_format:
+    with patch("body.self_healing.code_style_service.format_code") as mock_format:
         with patch("body.atomic.fix_actions.time.time") as mock_time:
             mock_time.side_effect = [200.0, 200.75]
             result = await action_format_code(write=True)
@@ -44,7 +44,7 @@ async def test_action_format_code_with_write():
 @pytest.mark.asyncio
 async def test_action_format_code_explicit_false():
     """Test with explicit write=False parameter."""
-    with patch("body.atomic.fix_actions.format_code") as mock_format:
+    with patch("body.self_healing.code_style_service.format_code") as mock_format:
         with patch("body.atomic.fix_actions.time.time") as mock_time:
             mock_time.side_effect = [300.0, 300.25]
             result = await action_format_code(write=False)
@@ -55,7 +55,7 @@ async def test_action_format_code_explicit_false():
 @pytest.mark.asyncio
 async def test_action_format_code_duration_calculation():
     """Verify duration calculation is correct."""
-    with patch("body.atomic.fix_actions.format_code"):
+    with patch("body.self_healing.code_style_service.format_code"):
         with patch("body.atomic.fix_actions.time.time") as mock_time:
             mock_time.side_effect = [500.0, 502.5]
             result = await action_format_code(write=False)
@@ -65,7 +65,7 @@ async def test_action_format_code_duration_calculation():
 @pytest.mark.asyncio
 async def test_action_format_code_always_true_formatted():
     """Verify formatted is always True in data."""
-    with patch("body.atomic.fix_actions.format_code"):
+    with patch("body.self_healing.code_style_service.format_code"):
         with patch("body.atomic.fix_actions.time.time") as mock_time:
             mock_time.side_effect = [0.0, 1.0]
             result = await action_format_code(write=False)
@@ -75,7 +75,7 @@ async def test_action_format_code_always_true_formatted():
 @pytest.mark.asyncio
 async def test_action_format_code_format_code_called():
     """Verify format_code() is always called exactly once."""
-    with patch("body.atomic.fix_actions.format_code") as mock_format:
+    with patch("body.self_healing.code_style_service.format_code") as mock_format:
         with patch("body.atomic.fix_actions.time.time") as mock_time:
             mock_time.side_effect = [0.0, 1.0]
             await action_format_code(write=False)
