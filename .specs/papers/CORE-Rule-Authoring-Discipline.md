@@ -1,5 +1,4 @@
 <!-- path: .specs/papers/CORE-Rule-Authoring-Discipline.md -->
-
 # CORE Rule Authoring Discipline
 
 **Status:** Constitutional Companion Paper
@@ -189,6 +188,28 @@ Rules MUST NOT:
 * instruct tooling
 
 The Rule is the law, not its explanation.
+
+---
+
+## Documentation Hygiene
+
+String-matching rules scan all files within their declared scope, including
+docstrings, comments, and prose in `.specs/`. A docstring that reproduces
+the exact pattern a rule forbids will be caught as a violation by that rule.
+
+**Documentation in scope of a string-matching rule MUST describe what is
+forbidden by paraphrase, not by reproduction of the forbidden pattern.**
+
+This applies to rule statements, rationale prose, docstrings, ADRs, and
+comments in any in-scope file. The obligation is to convey the meaning
+without triggering the detector.
+
+*Example:* A rule forbidding direct writes to the blackboard attribution table
+must be explained in docstrings as "only Workers may write new entries to the
+attribution table" — not by reproducing the exact forbidden call or SQL form.
+
+See ADR-028 for the incident that established this convention and for
+worked examples.
 
 ---
 
