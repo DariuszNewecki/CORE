@@ -1,7 +1,7 @@
 <!-- path: .specs/decisions/ADR-010-finding-proposal-contract.md -->
 # ADR-010: Wire the §7+§7a Finding/Proposal contract
 
-**Status:** Accepted
+**Status:** Accepted (Layer 3 revised — see Addendum, 2026-04-24)
 **Date:** 2026-04-24
 **Authors:** Darek (Dariusz Newecki)
 
@@ -64,7 +64,7 @@ WHERE entry_type = 'finding'
 RETURNING id
 ```
 
-Returns the list of revived finding IDs. Caller (state manager) uses the count and list for the revival report.
+Returns the list of revived finding IDs. Caller uses the count and list for the revival report.
 
 ### Layer 2 — Transition point: `src/will/workers/violation_remediator.py`
 
@@ -81,30 +81,32 @@ with a call to a new `_defer_to_proposal(entry_ids, proposal_id)` helper that de
 
 The dedup branch at line 110115 stays as `_resolve_entries`. Semantics: dedup-subsumed findings are terminally closed because an active proposal already exists; they are not linked to that proposal's lifecycle from their own row, and attempting to link them retroactively introduces a second class of finding→proposal relationship the paper does not define. The first-wave findings that produced the active proposal are the ones carrying the link; subsumed duplicates are historical noise and close as `resolved`.
 
-### Layer 3 — Revival: `src/will/autonomy/proposal_state_manager.py`
+### Layer 3 — Revival: `src/will/workers/proposal_consumer_worker.py`
 
-Extend `ProposalStateManager.mark_failed` to call `BlackboardService.revive_findings_for_failed_proposal(proposal_id)` after the `UPDATE core.autonomous_proposals` statement commits. Post a blackboard `report` entry with subject `proposal.failure.revival` and payload `{proposal_id, reason, revived_finding_ids, revived_count}`.
+*This section supersedes the original Layer 3 decision, which placed revival in `ProposalStateManager.mark_failed`. See Addendum for the reversal rationale.*
 
-Revival runs after the proposal-state commit, not within the same transaction. Rationale: the proposal-state UPDATE is ORM-scoped to the injected session; the revival UPDATE is service-scoped and manages its own session. Merging into one transaction would require threading the session through BlackboardService for this one call, breaking the service's current interface contract (services own their sessions). Separate transactions are acceptable because revival is idempotent — a retry will find the findings already `open` and no-op. The revival report is the audit trail if reconciliation is ever needed.
+`ProposalConsumerWorker.run()` orchestrates the full §7a sequence after a proposal failure:
 
-Called-from-every-path coverage:
-- `src/will/autonomy/proposal_executor.py` line 83698 (single-proposal actions-failed branch) — ✓
-- `src/will/autonomy/proposal_executor.py` line 83964 (batch-proposal actions-failed branch) — ✓
-- `src/will/autonomy/proposal_repository.py` line 84461 (exception handler in `execute_workflow`) — ✓
+1. Detect `ok=False` from `ProposalExecutor.execute()` (or catch executor exception).
+2. Call `ProposalStateManager.mark_failed(proposal_id, reason)` — UPDATE-only, transitions the proposal row.
+3. Call `BlackboardService.revive_findings_for_failed_proposal(proposal_id)` — UPDATE-only, resets deferred findings to `open`.
+4. Call `self.post_report(subject=f"proposal.failure.revival::{proposal_id}", payload=...)` — Worker-attributed blackboard report recording the revival.
 
-All three routes commit to `ProposalStateManager.mark_failed`. Placement in the state manager gives revival on every route without duplication.
+Both the `ok=False` branch and the exception handler in `ProposalConsumerWorker.run()` carry this sequence so revival fires on every failure path that flows through the worker.
 
 ## Alternatives Considered
 
 **Revival-only (the 2026-04-22 framing).** Implement §7a in `mark_failed` without touching the transition status or adding `proposal_id` to the payload. Rejected: there is nothing to query. A `payload->>'proposal_id' = :proposal_id` filter against findings that never carry `proposal_id` returns empty forever. The revival logic would compile and run and do nothing. Also would not close the observed 276-row success-path churn.
 
-**Worker-side revival in `ProposalConsumerWorker.run()`.** The §7a paper text names this worker explicitly. Rejected: `mark_failed` has three call sites (single-proposal executor, batch-proposal executor, `execute_workflow` exception handler), only one of which flows through `ProposalConsumerWorker`. Putting revival in the worker requires duplicating it at the other two sites or accepting that those failure paths leak governance debt. State-manager placement covers all three from one location. The paper's assignment of the obligation to "ProposalConsumerWorker" reads as specification of *what must happen when a proposal fails*, not a binding architectural location; the state manager is the layer where "proposal has failed" is actually observed. A follow-up to the paper to match the code is cleaner than fragmenting the revival logic across three call sites.
+**Worker-side revival in `ProposalConsumerWorker.run()`.** Initially rejected in this ADR's original form (see Addendum). Subsequently adopted in the same session's Session 4 refactor, on two grounds: (1) ADR-011 attribution principle — `post_report()` for the revival report must originate from a Worker, not a service; `ProposalStateManager` has no Worker identity and cannot satisfy the attribution constraint; (2) the three call sites originally cited as the rejection rationale were found to be dead or dormant (see Addendum). This alternative is the shipped implementation.
+
+**State-manager placement in `ProposalStateManager.mark_failed`.** The original Layer 3 decision in this ADR. Reversed in Session 4 refactor — see Addendum.
 
 **Store finding IDs on the proposal (proposal → findings) instead of `proposal_id` on the finding.** Rejected for three reasons. First, the paper explicitly specifies the direction (finding payload carries `proposal_id`). Second, the query pattern required by §7a — "findings whose `proposal_id` matches a failed proposal" — is cleanly expressed against a JSONB index on `payload->>'proposal_id'`; the reverse requires unwinding an array on every revival. Third, findings can be revived; if a revived finding later gets consumed by a new proposal, the payload's `proposal_id` cleanly updates to the new one, whereas an array on the proposal side would need to track which findings it "still owns."
 
 **Mark `deferred_to_proposal` without clearing `resolved_at` on revival.** Rejected: `resolved_at` semantics from the 2026-04-22 Option A+ work (terminal-state hygiene) require the column to mirror the current status — set on terminal transitions, null on active statuses. Leaving `resolved_at` populated on a revived-to-`open` row is the same class of inconsistency Option A+ was specifically tightened to prevent.
 
-**Coupling revival into the same transaction as the proposal-state UPDATE.** Rejected as covered in Layer 3 above. Breaks the service-owns-session contract. Idempotent revival + audit-log report is sufficient.
+**Coupling revival into the same transaction as the proposal-state UPDATE.** Rejected. Breaks the service-owns-session contract. Idempotent revival + audit-log report is sufficient.
 
 ## Consequences
 
@@ -113,7 +115,7 @@ All three routes commit to `ProposalStateManager.mark_failed`. Placement in the 
 - The paper↔code gap the handoff named for Option B is closed for both the failure path (Gap 3) and the success-but-ineffective path (Gaps 1 and 2), matching the empirical evidence from the pre-check rather than a narrower theoretical subset.
 - The churn pattern documented on 2026-04-22 (285 resolved findings for one subject) is structurally prevented: subsequent rounds find the subject in the dedup's active set via `deferred_to_proposal`, and stop re-posting.
 - The finding's payload gains a cryptographic-strength forward link (`proposal_id` UUID) — the first time CORE's blackboard has had a direct finding→proposal trace. This closes part of the two-log problem for the subset of proposals that originate from findings.
-- Revival is placed at the single convergence point (`ProposalStateManager.mark_failed`) that every proposal-failure route already flows through. No duplication.
+- Revival is placed in `ProposalConsumerWorker` — the constitutional Worker responsible for proposal lifecycle — with Worker attribution on the revival report per ADR-011.
 - The `violation_remediator.completed` report gains `entries_deferred`, making the finding→proposal handoff visible in blackboard audit without a schema change.
 
 **Negative:**
@@ -121,7 +123,7 @@ All three routes commit to `ProposalStateManager.mark_failed`. Placement in the 
 - A new terminal status value enters active use in the runtime. Any code path that filters blackboard entries by status must be audited for correct handling of `deferred_to_proposal`. The dedup query (line 17956) is the load-bearing case and is already correct; other filter sites are not enumerated in this ADR.
 - Revival is eventually-consistent across two transactions (proposal-state commit, then blackboard-revival commit). A crash between the two leaves findings stranded at `deferred_to_proposal` while the proposal is `failed`. Mitigation: the revival is idempotent and can be re-triggered by a maintenance command; the hazard is named here rather than buried in code.
 - Pre-existing `resolved` rows from before this change carry no `proposal_id` and cannot be reconciled. Pre-change churn findings stay in history as they are. No backfill.
-- The `ProposalConsumerWorker.run()` exception branch (line 107600) does not call `mark_failed` — an unhandled executor exception leaves the proposal stuck at `executing` and revival never fires. This is a pre-existing bug, not introduced by this ADR, but the new revival path makes its consequences more visible. Named as a follow-up in References.
+- `core-admin proposals execute <id>` (CLI direct execution path) does not flow through `ProposalConsumerWorker` and therefore does not trigger revival on failure. This is accepted: governor-direct execution is an explicit override action; the governor is expected to manage consequences manually. Not a loop-integrity gap.
 
 **Neutral:**
 
@@ -129,17 +131,28 @@ All three routes commit to `ProposalStateManager.mark_failed`. Placement in the 
 - The revival report (subject `proposal.failure.revival`) is a new `report` entry shape on the blackboard. Consumers of blackboard reports that filter by subject are unaffected; consumers that scan all reports gain one new subject string to tolerate.
 - No `.intent/` change. `deferred_to_proposal` is already declared in `.intent/META/enums.json`; `fetch_active_finding_subjects_by_prefix`'s dedup semantics already tolerate it.
 
+## Addendum — 2026-04-24 Session 4 reversal
+
+The original Layer 3 decision placed revival in `ProposalStateManager.mark_failed`. This was reversed later in the same session for two reasons.
+
+**Reason 1 — ADR-011 attribution principle.** §7a step 3 requires posting a blackboard `report` entry recording the revival. `post_report()` is a Worker base-class method that fills `worker_uuid` and `phase` from the Worker's own identity. `ProposalStateManager` is a service — it has no Worker identity, no `worker_uuid`, and no `post_report()` method. Placing the revival report post inside `mark_failed` would require either (a) threading a Worker identity through the service signature, which violates the service/Worker boundary ADR-011 codifies, or (b) using a raw-SQL INSERT without attribution, which violates the `NOT NULL` constraint on `core.blackboard_entries.worker_uuid`. Neither is acceptable. The revival report MUST be posted by a Worker. `ProposalConsumerWorker` is the correct site.
+
+**Reason 2 — Dead/dormant call sites.** The original rejection cited three `mark_failed` call sites: single-proposal executor, batch-proposal executor, and `execute_workflow` exception handler. Post-refactor audit confirmed: `execute_batch` failure branch is dormant (no production callers); `ProposalService.mark_failed` and `ProposalService.execute_workflow` are dead (no callers). All three are documented in the Session 4 refactor commit as ADR-011-compliant-by-parking. The three-call-site coverage argument does not hold against the live production topology.
+
+**Current implementation (post-reversal):** Revival lives in `ProposalConsumerWorker.run()` — both the `ok=False` branch and the exception handler carry the full `mark_failed → revive_findings_for_failed_proposal → post_report` sequence. `ProposalStateManager.mark_failed` is UPDATE-only and does not touch the blackboard.
+
+**Accepted residual gap:** The CLI `core-admin proposals execute <id>` path calls `ProposalExecutor` directly without flowing through `ProposalConsumerWorker`. Failures on this path call `mark_failed` but do not trigger revival. This is accepted: CLI execution is a governor-direct override action, not a loop-mode operation. Governors are expected to manage consequences of direct CLI execution manually.
+
 ## References
 
 - `.specs/papers/CORE-Finding.md` §7 (terminal transitions table, `deferred_to_proposal` row) and §7a (revival obligation).
 - `.intent/META/enums.json` — `blackboard_entry_status` enum including `deferred_to_proposal`.
-- `src/body/services/blackboard_service.py` — existing methods `resolve_entries` (line 18292), `release_claimed_entries` (line 18339), `update_entry_status` (line 18513); payload-merge SQL pattern (line 25387). Targets for extension: new `defer_entries_to_proposal` and `revive_findings_for_failed_proposal`.
-- `src/will/workers/violation_remediator.py` — `ViolationRemediatorWorker.run` (line 110047), `_create_proposal` (line 110320), `_resolve_entries` (line 110422). Target for modification: line 110128-110131 transition point.
-- `src/will/autonomy/proposal_state_manager.py` — `mark_failed` (line 84659). Target for extension.
-- `src/will/autonomy/proposal_executor.py` — `mark_failed` call sites (line 83698, 83964).
-- `src/will/autonomy/proposal_repository.py` — `mark_failed` call site (line 84461, `execute_workflow` exception handler).
+- `src/body/services/blackboard_service.py` — `defer_entries_to_proposal` and `revive_findings_for_failed_proposal` (UPDATE-only methods).
+- `src/will/workers/violation_remediator.py` — `_defer_to_proposal` transition point.
+- `src/will/workers/proposal_consumer_worker.py` — revival orchestration in `run()` (both ok=False and exception branches).
+- `src/will/autonomy/proposal_state_manager.py` — `mark_failed` (UPDATE-only post-reversal).
+- ADR-011 — Worker attribution for blackboard entries. The attribution constraint is the primary reason for the Layer 3 reversal.
 - ADR-008 — `impact_level` parking. Precedent for "paper has a contract, code implements a narrower reality, ADR documents the decision about closing vs parking."
 - ADR-009 — CLI-depth block passive instrumentation. Precedent for grounding a decision in live diagnostic evidence.
-- Pre-check evidence, 2026-04-24: empirical query results showing 285 historical resolved findings on one subject and zero fix.placeholders activity in the current daemon's lifetime. Drives the "success-path churn, not just failure-path revival" reframe.
-- Follow-up (separate session): `ProposalConsumerWorker.run()` exception branch at line 107600 does not call `mark_failed`. Unhandled executor exceptions leave proposals stuck at `executing`. Revival never fires for this path. Not introduced by this ADR; made more visible by it. Warrants its own fix.
+- Pre-check evidence, 2026-04-24: empirical query results showing 285 historical resolved findings on one subject and zero fix.placeholders activity in the current daemon's lifetime.
 - Follow-up (separate session): retroactive audit of pre-ADR-010 `resolved` findings for rules with remediation-map entries. Reconciliation is not mechanical (no `proposal_id` in payload for historical rows); human review if needed.
