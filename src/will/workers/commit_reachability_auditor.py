@@ -51,6 +51,13 @@ class CommitReachabilityAuditor(Worker):
     async def run(self) -> None:
         await self.post_heartbeat()
 
+        from body.services.service_registry import service_registry
+
+        blackboard_service = await service_registry.get_blackboard_service()
+        existing = await blackboard_service.fetch_open_finding_subjects_by_prefix(
+            "governance.edge5.orphan_sha::%"
+        )
+
         consequence_svc = (
             await self._core_context.registry.get_consequence_log_service()
         )
@@ -60,6 +67,7 @@ class CommitReachabilityAuditor(Worker):
 
         checked = 0
         orphans = 0
+        suppressed = 0
 
         for proposal_id, sha in pairs:
             checked += 1
@@ -75,13 +83,21 @@ class CommitReachabilityAuditor(Worker):
             stdout, _ = await proc.communicate()
             if not stdout.decode().strip():
                 orphans += 1
+                subject = f"governance.edge5.orphan_sha::{proposal_id}"
+                if subject in existing:
+                    suppressed += 1
+                    logger.debug(
+                        "CommitReachabilityAuditor: %s already open, skipping.",
+                        subject,
+                    )
+                    continue
                 logger.warning(
                     "CommitReachabilityAuditor: orphan SHA %s for proposal %s",
                     sha,
                     proposal_id,
                 )
                 await self.post_finding(
-                    subject=f"governance.edge5.orphan_sha::{proposal_id}",
+                    subject=subject,
                     payload={
                         "proposal_id": proposal_id,
                         "orphan_sha": sha,
@@ -97,7 +113,8 @@ class CommitReachabilityAuditor(Worker):
             },
         )
         logger.info(
-            "CommitReachabilityAuditor: checked=%d orphans=%d",
+            "CommitReachabilityAuditor: checked=%d orphans=%d suppressed=%d",
             checked,
             orphans,
+            suppressed,
         )
