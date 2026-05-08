@@ -86,8 +86,12 @@ async def workers_run_cmd(
     worker_class = getattr(module, class_name)
     if needs_context:
         worker = worker_class(core_context=core_context)
+        if not worker.declaration_name:
+            worker.declaration_name = worker_name
     else:
         worker = worker_class(cognitive_service=core_context.cognitive_service)
+        if not worker.declaration_name:
+            worker.declaration_name = worker_name
     logger.info("[bold green]Starting worker: %s[/bold green]", worker_name)
     await worker.start()
     logger.info("[bold green]Worker %s completed.[/bold green]", worker_name)

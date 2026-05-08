@@ -41,10 +41,10 @@ class CommitReachabilityAuditor(Worker):
     Runs hourly (schedule.max_interval: 3600 in YAML).
     """
 
-    declaration_name = ""
+    declaration_name = "commit_reachability_auditor"
 
-    def __init__(self, core_context: Any, declaration_name: str) -> None:
-        super().__init__(declaration_name=declaration_name)
+    def __init__(self, core_context: Any) -> None:
+        super().__init__()
         self._core_context = core_context
 
     # ID: d5b6c7e8-9f0a-4b2c-8d3e-4f5a6b7c8d9e
