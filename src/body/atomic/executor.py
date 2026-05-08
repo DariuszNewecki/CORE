@@ -119,6 +119,8 @@ class ActionExecutor:
         Args:
             core_context: CoreContext with all services
         """
+        import body.atomic  # noqa: F401 — triggers action registration
+
         self.core_context = core_context
         self.registry = action_registry
         logger.debug("ActionExecutor initialized")
