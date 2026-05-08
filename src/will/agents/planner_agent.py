@@ -176,6 +176,16 @@ class PlannerAgent:
                     if attempt == self.max_retries - 1:
                         raise
 
+        self.tracer.record(
+            agent=self.__class__.__name__,
+            decision_type="task_execution",
+            rationale=(
+                "Exhausted retries without producing a response; returning empty plan"
+            ),
+            chosen_action="Returned empty plan after exhausted retries",
+            context={"goal": goal, "steps": 0, "attempts": self.max_retries},
+            confidence=0.0,
+        )
         return []
 
     # ID: b3e7f1a2-5c9d-4e8f-a2b6-c8d1e4f7a3b9

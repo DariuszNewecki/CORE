@@ -199,9 +199,7 @@ class GenericASTChecks:
             if missing_set:
                 missing = sorted(missing_set)
                 if _has_explicit_return(body):
-                    return (
-                        f"missing mandatory call(s) on some return path: " f"{missing}"
-                    )
+                    return f"missing mandatory call(s) on some return path: {missing}"
                 return f"missing mandatory call(s): {missing}"
 
         # 4. Primitive: forbidden_imports (e.g. no 'rich' or 'click')
