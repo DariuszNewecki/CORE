@@ -11,13 +11,15 @@ from unittest.mock import AsyncMock, Mock, patch
 import pytest
 
 from body.atomic.sync_actions import action_sync_constitutional_vectors
+from shared.governance_token import authorize_execution
 
 
 @pytest.mark.asyncio
 async def test_action_sync_constitutional_vectors_dry_run():
     """Test dry-run mode returns skipped ActionResult."""
     mock_context = Mock()
-    result = await action_sync_constitutional_vectors(mock_context, write=False)
+    with authorize_execution("sync.vectors.constitution"):
+        result = await action_sync_constitutional_vectors(mock_context, write=False)
     assert result.action_id == "sync.vectors.constitution"
     assert result.ok
     assert result.data["dry_run"]
@@ -33,7 +35,8 @@ async def test_action_sync_constitutional_vectors_no_cognitive_service():
     mock_context.cognitive_service = None
     mock_context.registry = Mock()
     mock_context.registry.get_cognitive_service = AsyncMock(return_value=None)
-    result = await action_sync_constitutional_vectors(mock_context, write=True)
+    with authorize_execution("sync.vectors.constitution"):
+        result = await action_sync_constitutional_vectors(mock_context, write=True)
     assert result.action_id == "sync.vectors.constitution"
     assert result.ok
     assert result.data["status"] == "skipped"
@@ -46,13 +49,16 @@ async def test_action_sync_constitutional_vectors_embedding_service_unavailable(
     """Test when embedding service test fails."""
     mock_context = Mock()
     mock_cognitive = AsyncMock()
-    mock_cognitive.get_embedding_for_code = AsyncMock(return_value=None)
+    mock_cognitive.get_embedding_for_code = AsyncMock(
+        side_effect=RuntimeError("Service down")
+    )
     mock_context.cognitive_service = mock_cognitive
-    result = await action_sync_constitutional_vectors(mock_context, write=True)
+    with authorize_execution("sync.vectors.constitution"):
+        result = await action_sync_constitutional_vectors(mock_context, write=True)
     assert result.action_id == "sync.vectors.constitution"
     assert result.ok
     assert result.data["status"] == "skipped"
-    assert result.data["reason"] == "embedding_service_unavailable"
+    assert result.data["reason"].startswith("embedding_service_unavailable")
     assert isinstance(result.duration_sec, float)
 
 
@@ -66,9 +72,11 @@ async def test_action_sync_constitutional_vectors_exception_handling():
     mock_adapter = Mock()
     mock_adapter.policies_to_items = Mock(side_effect=RuntimeError("Test error"))
     with patch(
-        "body.atomic.sync_actions.ConstitutionalAdapter", return_value=mock_adapter
+        "body.atomic.sync_actions.sync_actions.ConstitutionalAdapter",
+        return_value=mock_adapter,
     ):
-        result = await action_sync_constitutional_vectors(mock_context, write=True)
+        with authorize_execution("sync.vectors.constitution"):
+            result = await action_sync_constitutional_vectors(mock_context, write=True)
     assert result.action_id == "sync.vectors.constitution"
     assert not result.ok
     assert "error" in result.data

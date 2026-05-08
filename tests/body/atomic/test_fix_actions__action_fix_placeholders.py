@@ -14,6 +14,7 @@ from unittest.mock import Mock
 import pytest
 
 from body.atomic.fix_actions import action_fix_placeholders
+from shared.governance_token import authorize_execution
 
 
 @pytest.mark.asyncio
@@ -30,12 +31,13 @@ async def test_action_fix_placeholders_no_changes_dry_run():
         src_dir.mkdir()
         test_file = src_dir / "test.py"
         test_file.write_text("print('Hello World')", encoding="utf-8")
-        result = await action_fix_placeholders(mock_context, write=False)
+        with authorize_execution("fix.placeholders"):
+            result = await action_fix_placeholders(mock_context, write=False)
         assert result.action_id == "fix.placeholders"
         assert result.ok is True
         assert result.data["files_affected"] == 0
         assert result.data["written"] is False
-        assert result.data["dry_run"] is True
+        assert result.data["mode"] == "sweep"
         assert isinstance(result.duration_sec, float)
         assert result.duration_sec >= 0
 
@@ -58,12 +60,13 @@ async def test_action_fix_placeholders_with_changes_dry_run():
         test_file2 = src_dir / "module" / "test2.py"
         test_file2.parent.mkdir()
         test_file2.write_text("# FIXME: This needs work…", encoding="utf-8")
-        result = await action_fix_placeholders(mock_context, write=False)
+        with authorize_execution("fix.placeholders"):
+            result = await action_fix_placeholders(mock_context, write=False)
         assert result.action_id == "fix.placeholders"
         assert result.ok is True
         assert result.data["files_affected"] == 2
         assert result.data["written"] is False
-        assert result.data["dry_run"] is True
+        assert result.data["mode"] == "sweep"
         assert test_file.read_text(encoding="utf-8") == content
 
 
@@ -84,12 +87,13 @@ async def test_action_fix_placeholders_with_changes_and_write():
         test_file = src_dir / "test.py"
         original_content = "# TODO: Fix this…"
         test_file.write_text(original_content, encoding="utf-8")
-        result = await action_fix_placeholders(mock_context, write=True)
+        with authorize_execution("fix.placeholders"):
+            result = await action_fix_placeholders(mock_context, write=True)
         assert result.action_id == "fix.placeholders"
         assert result.ok is True
         assert result.data["files_affected"] == 1
         assert result.data["written"] is True
-        assert result.data["dry_run"] is False
+        assert result.data["mode"] == "sweep"
         mock_context.file_handler.write_runtime_text.assert_called_once()
 
 
@@ -103,7 +107,8 @@ async def test_action_fix_placeholders_no_src_directory():
     with tempfile.TemporaryDirectory() as tmpdir:
         repo_path = Path(tmpdir)
         mock_git_service.repo_path = repo_path
-        result = await action_fix_placeholders(mock_context, write=False)
+        with authorize_execution("fix.placeholders"):
+            result = await action_fix_placeholders(mock_context, write=False)
         assert result.action_id == "fix.placeholders"
         assert result.ok is True
         assert result.data["files_affected"] == 0
@@ -124,7 +129,8 @@ async def test_action_fix_placeholders_empty_src_directory():
         src_dir.mkdir()
         (src_dir / "README.txt").write_text("Read me")
         (src_dir / "data.json").write_text("{}")
-        result = await action_fix_placeholders(mock_context, write=False)
+        with authorize_execution("fix.placeholders"):
+            result = await action_fix_placeholders(mock_context, write=False)
         assert result.action_id == "fix.placeholders"
         assert result.ok is True
         assert result.data["files_affected"] == 0
@@ -144,7 +150,8 @@ async def test_action_fix_placeholders_error_handling():
         src_dir.mkdir()
         bad_file = src_dir / "bad.py"
         bad_file.mkdir()
-        result = await action_fix_placeholders(mock_context, write=False)
+        with authorize_execution("fix.placeholders"):
+            result = await action_fix_placeholders(mock_context, write=False)
         assert result.action_id == "fix.placeholders"
         assert result.ok is False
         assert "error" in result.data
@@ -175,7 +182,8 @@ async def test_action_fix_placeholders_mixed_content():
         file3.write_text(
             "\n# FIXME: This is broken…\nclass Broken:\n    pass\n", encoding="utf-8"
         )
-        result = await action_fix_placeholders(mock_context, write=False)
+        with authorize_execution("fix.placeholders"):
+            result = await action_fix_placeholders(mock_context, write=False)
         assert result.action_id == "fix.placeholders"
         assert result.ok is True
         assert result.data["files_affected"] == 2
@@ -196,7 +204,8 @@ async def test_action_fix_placeholders_explicit_parameters():
         src_dir.mkdir()
         test_file = src_dir / "test.py"
         test_file.write_text("# TODO: Something…", encoding="utf-8")
-        result = await action_fix_placeholders(core_context=mock_context, write=True)
+        with authorize_execution("fix.placeholders"):
+            result = await action_fix_placeholders(core_context=mock_context, write=True)
         assert result.action_id == "fix.placeholders"
         assert result.ok is True
         assert result.data["written"] is True
@@ -217,7 +226,8 @@ async def test_action_fix_placeholders_duration_measurement():
         test_file = src_dir / "test.py"
         test_file.write_text("print('test')", encoding="utf-8")
         start_time = time.time()
-        result = await action_fix_placeholders(mock_context, write=False)
+        with authorize_execution("fix.placeholders"):
+            result = await action_fix_placeholders(mock_context, write=False)
         end_time = time.time()
         assert result.action_id == "fix.placeholders"
         assert result.ok is True
