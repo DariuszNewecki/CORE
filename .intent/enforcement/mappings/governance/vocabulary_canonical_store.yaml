@@ -1,0 +1,94 @@
+# .intent/enforcement/mappings/governance/vocabulary_canonical_store.yaml
+#
+# Enforcement mapping for governance.vocabulary_canonical_store rules.
+# Declared under ADR-023 (Vocabulary Canonical Store).
+#
+# Rules 1-3 require artifact_gate engine with vocabulary-specific check_types.
+# Engine implementation is pending ADR-023 Part 3/4 delivery; until then
+# these entries close the enforcement triangle structurally while the engine
+# is built. Rule 4 is enforceable now via regex_gate.
+#
+# No auto_remediation entries: vocabulary drift and import violations
+# require human-authored correction, not text substitution.
+
+mappings:
+  # RULE: governance.vocabulary.projection_must_match_canonical
+  # Verifies that vocabulary.json is consistent with the canonical section of
+  # CORE-Vocabulary.md: every term present in both directions, source_hash
+  # matching the SHA-256 of the canonical section fence-to-fence.
+  governance.vocabulary.projection_must_match_canonical:
+    engine: artifact_gate
+    params:
+      check_type: vocabulary_projection_consistency
+    scope:
+      applies_to:
+        - ".intent/META/vocabulary.json"
+        - ".specs/papers/CORE-Vocabulary.md"
+    severity: ERROR
+    message: >
+      vocabulary.json has drifted from the canonical section of CORE-Vocabulary.md.
+      The projection must be regenerated so that terms, definitions, and source_hash
+      are consistent with the canonical source. Run the regen command to restore
+      consistency. See: .intent/rules/governance/vocabulary_canonical_store.json
+
+  # RULE: governance.vocabulary.canonical_format_must_validate
+  # Verifies that the canonical section of CORE-Vocabulary.md conforms to the
+  # grammar declared in ADR-023 D2: correct heading, single markdown table,
+  # required columns in order, all cells non-empty, no nested structures.
+  governance.vocabulary.canonical_format_must_validate:
+    engine: artifact_gate
+    params:
+      check_type: vocabulary_canonical_format
+    scope:
+      applies_to:
+        - ".specs/papers/CORE-Vocabulary.md"
+    severity: ERROR
+    message: >
+      The canonical section of CORE-Vocabulary.md does not conform to the
+      grammar declared in ADR-023. Check that the section is delimited by the
+      correct heading, contains exactly one markdown table, uses the required
+      column order, has no empty cells, and contains no nested structures or
+      inline HTML. Correct the authoring error before regenerating the projection.
+      See: .intent/rules/governance/vocabulary_canonical_store.json
+
+  # RULE: governance.vocabulary.authoritative_source_must_be_paper
+  # Verifies that every authoritative_paper value in the canonical section and
+  # in vocabulary.json resolves to an existing file within the governed tree,
+  # and that the values match between projection and canonical section.
+  governance.vocabulary.authoritative_source_must_be_paper:
+    engine: artifact_gate
+    params:
+      check_type: vocabulary_authoritative_paths
+    scope:
+      applies_to:
+        - ".intent/META/vocabulary.json"
+        - ".specs/papers/CORE-Vocabulary.md"
+    severity: ERROR
+    message: >
+      One or more vocabulary terms declare an authoritative_paper path that does
+      not resolve to an existing file in the governed tree, or the path in the
+      projection does not match the canonical section for the same term. Correct
+      the authoritative_paper value to point to an existing .specs/ or .intent/
+      file. Do not regenerate until the authoring error is fixed.
+      See: .intent/rules/governance/vocabulary_canonical_store.json
+
+  # RULE: governance.vocabulary.no_direct_json_import
+  # Ensures no src/ module other than the sanctioned loader reads vocabulary.json
+  # directly via any file access mechanism. All vocabulary access must route
+  # through the loader so that hash verification and DEGRADED mode are enforced.
+  governance.vocabulary.no_direct_json_import:
+    engine: regex_gate
+    params:
+      pattern: "vocabulary\\.json"
+      match_means: violation
+      message: >
+        A src/ module is accessing vocabulary.json directly. All vocabulary term
+        access must route through src/shared/infrastructure/intent/vocabulary_projection.py.
+        Direct file access bypasses hash verification and DEGRADED mode detection.
+        See: .intent/rules/governance/vocabulary_canonical_store.json
+    scope:
+      applies_to:
+        - "src/**/*.py"
+      excludes:
+        - "src/shared/infrastructure/intent/vocabulary_projection.py"
+        - "tests/**"

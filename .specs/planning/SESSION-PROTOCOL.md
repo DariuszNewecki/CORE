@@ -30,6 +30,7 @@ The audience is the governor and any architect instance (human or Claude) openin
 | `.specs/planning/SESSION-PROTOCOL.md` | This document | Revised when the protocol itself changes |
 | `.specs/planning/INTERACTION-CONTRACT.md` | Operating contract between governor and architect | Loaded at session-open Step 1; revised when the contract itself changes |
 | `.intent/` | Runtime governance — constitution, rules, enforcement, workers | Updated as governance evolves |
+| `.intent/CHANGELOG.md` | Constitutional version history — anchors each ADR to the governance change it represents | Updated every time an ADR lands |
 | GitHub Issues | Parked items, hazards, open questions, verification-pending, governance-debt | Opened and closed every session |
 | GitHub Milestones | One per band (A through E); the strategic progress surface | Updated as issues close |
 | GitHub Discussions | Architectural questions needing broader input | Opt-in |
@@ -85,14 +86,19 @@ Four steps. Most are one-line actions.
 
 **Step 2 — Issues updated.** Close any issues resolved by this session's commits. Confirm labels still accurate on open issues.
 
-**Step 3 — A3 plan maintenance.** If this session changed something the A3 plan tracks, edit `CORE-A3-plan.md`. Triggers and edits:
+**Step 3 — Documentation maintenance.** Two obligations, both triggered by an ADR landing. If no ADR landed this session, check only whether A3 plan structural changes occurred (gate, phase, band).
+
+*A3 plan (`CORE-A3-plan.md`):*
 - An ADR landed → add a row to "Architectural Decisions Made."
 - A gate status shifted on G1–G4 → update the Status column in "A3 Gates."
 - A phase advanced → update the marker (⬜ / 🔄 / ✅) in "A3 Phases."
 - A band closed → update its line in "Bands."
 - Any of the above → bump "Last updated."
 
-If nothing the A3 plan tracks changed this session, skip this step. Routine issue closures and commits do not require A3 plan edits — those are reconstructible from Git and GitHub.
+*Constitutional CHANGELOG (`.intent/CHANGELOG.md`):*
+- An ADR landed → add an entry anchoring the ADR to the governance change it represents: what rule, mapping, worker declaration, or enforcement policy changed and why. This is mandatory. An ADR without a CHANGELOG entry leaves the constitutional version history incomplete.
+
+If nothing the A3 plan or CHANGELOG tracks changed this session, skip this step. Routine issue closures and commits do not require edits to either document.
 
 **Step 4 — Release if warranted.** If a band closed or a major capability milestone landed, cut a GitHub Release with the relevant tag (`vN.N.N` per existing convention). Band closure is the canonical trigger. Release notes are the canonical session summary for bands that ship.
 
@@ -152,3 +158,5 @@ This document does not specify:
 *Revised 2026-05-03: §3 Step 2 updated — Google Drive delivery replaced by Claude.ai Project Files. Context packets are uploaded to the Project before the session opens and read via the `view` tool at `/mnt/project/`. Step renamed from "Context fetch" to "Context read." Drive file IDs and `Google Drive:read_file_content` references removed. Matches INTERACTION-CONTRACT.md §3.2 revision of the same date.*
 
 *Revised 2026-05-03: §5 Step 3 rewritten. Previous text referenced "Known Blockers," "Resolved Blockers," and "Milestone Summary" sections that the current A3 plan does not contain. New text aligns with the plan's actual section structure (A3 Gates, A3 Phases, Bands, Architectural Decisions Made). §2 row for `CORE-A3-plan.md` correspondingly updated to describe "gates, phases, bands, ADR index" rather than "bands, phases, known blockers."*
+
+*Revised 2026-05-08: §5 Step 3 renamed from "A3 plan maintenance" to "Documentation maintenance" and expanded to cover two obligations. Constitutional CHANGELOG (`.intent/CHANGELOG.md`) added as a mandatory session-close target whenever an ADR lands. §2 table gained a row for `.intent/CHANGELOG.md` clarifying its role and update cadence.*

@@ -198,9 +198,64 @@ No scope expansion occurred.
 
 ---
 
+## v0.3 — Vocabulary Governance Enforcement Triangle
+
+**Status:** Clarifying amendment (non-primitive)
+
+**Intent:**
+
+This version closes the constitutional coherence findings N-01 and N-02
+surfaced by the 2026-05-08 audit. ADR-023 (Vocabulary Canonical Store)
+authored six vocabulary governance rule_ids across two rule files but did
+not ship the corresponding enforcement mappings. The rules were declared
+law but had no enforcement path — an incomplete triangle. This amendment
+completes the triangle by delivering both mapping files.
+
+No primitives were added.
+No scope expansion occurred.
+
+### Added
+
+* **`mappings/governance/vocabulary_canonical_store.yaml`** (ADR-023, finding N-01)
+
+  * Closes the enforcement triangle for four rule_ids:
+    `governance.vocabulary.projection_must_match_canonical`,
+    `governance.vocabulary.canonical_format_must_validate`,
+    `governance.vocabulary.authoritative_source_must_be_paper`,
+    `governance.vocabulary.no_direct_json_import`
+  * Rules 1-3 use `artifact_gate` engine with vocabulary-specific check_types;
+    engine implementation is pending ADR-023 Part 3/4 delivery
+  * Rule 4 (`no_direct_json_import`) is immediately enforceable via `regex_gate`
+    on `src/`, excluding the sanctioned loader
+
+* **`mappings/governance/vocabulary_registers.yaml`** (finding N-02)
+
+  * Closes the enforcement triangle for two rule_ids:
+    `governance.vocabulary_registers.operational_fields_must_be_lowercase`,
+    `governance.vocabulary_registers.diagnostic_fields_must_be_uppercase`
+  * Both rules use `python_runtime` engine with `register_casing_validation`
+    check_type; structured YAML/JSON field parsing required
+  * Scope: all `.intent/` YAML and JSON files, excluding `.intent/META/`
+
+### Not Changed
+
+* Primitive set
+* Authority hierarchy
+* Phase definitions
+* Enforcement strengths
+* Non-goals and scope boundaries
+
+### Tracked Follow-Ups
+
+* ADR-023 Part 3/4 — implement `artifact_gate` vocabulary check_types to
+  activate enforcement for rules 1-3 of vocabulary_canonical_store
+* `python_runtime` `register_casing_validation` check_type implementation
+  required to activate vocabulary_registers enforcement
+
+---
+
 ## Notes
 
 * This changelog intentionally avoids implementation detail
 * No legacy compatibility is implied
 * Silence on future versions is intentional
-  n
