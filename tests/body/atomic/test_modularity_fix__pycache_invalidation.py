@@ -16,11 +16,41 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
+import pytest
+
 from body.atomic.modularity_fix import _invalidate_split_pycache
+from body.governance import intent_guard as _ig_module
 from shared.infrastructure.storage.file_handler import FileHandler
 
 
 _PY_TAG = f"cpython-{sys.version_info.major}{sys.version_info.minor}"
+
+
+@pytest.fixture(autouse=True)
+def _bypass_vocabulary_projection_check(monkeypatch):
+    """Bypass IntentGuard's DEGRADED pre-check for the vocabulary projection.
+
+    IntentGuard.check_transaction unconditionally calls
+    ``load_vocabulary_projection(self.repo_path)`` and treats a
+    ``VocabularyProjectionError`` as cause to block all writes. When
+    FileHandler is constructed against a tempdir, the guard's bound repo_path
+    is that tempdir — which has no ``.intent/META/vocabulary.json``, so the
+    pre-check fires and blocks the test's legitimate ``__pycache__`` removal.
+
+    The unit under test (``_invalidate_split_pycache``) is not exercising
+    governance, so we patch the projection loader to return a non-error
+    sentinel. The reset of the IntentGuard singleton ensures the patch takes
+    effect on a freshly-constructed guard, not a stale cached one.
+    """
+    from unittest.mock import Mock
+
+    _ig_module._INTENT_GUARD = None
+    monkeypatch.setattr(
+        "body.governance.intent_guard.load_vocabulary_projection",
+        lambda *args, **kwargs: Mock(),
+    )
+    yield
+    _ig_module._INTENT_GUARD = None
 
 
 # ID: be3c686e-8c64-4372-9d51-38f0a3d58bd0
