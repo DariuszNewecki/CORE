@@ -1,65 +1,71 @@
-mappings:
-  # LAW: Agents MUST NOT modify files outside their assigned lane
-  autonomy.lanes.boundary_enforcement:
-    engine: glob_gate
-    params:
-      check_type: path_restriction
-      # Only allow agents to modify non-core directories autonomously
-      patterns:
-        - "src/body/cli/logic/**"
-        - "src/features/introspection/**"
-        - "src/features/self_healing/**"
-      action: "warn"
-    scope:
-      applies_to: ["src/will/agents/**/*.py"]
+  mappings:
+    # LAW: Agents MUST NOT modify files outside their assigned lane
+    autonomy.lanes.boundary_enforcement:
+      engine: glob_gate
+      params:
+        check_type: path_restriction
+        # Only allow agents to modify non-core directories autonomously
+        patterns:
+          - "src/body/cli/logic/**"
+          - "src/features/introspection/**"
+          - "src/features/self_healing/**"
+        action: "warn"
+      scope:
+        applies_to: ["src/will/agents/**/*.py"]
 
-  # LAW: Every autonomous decision MUST produce a trace
-  # Check: Ensures TracedAgentMixin subclasses call self.tracer.record
-  autonomy.tracing.mandatory:
-    engine: ast_gate
-    params:
-      check_type: generic_primitive
-      selector:
-        inherits_from: TracedAgentMixin
-      requirement:
-        check_type: required_calls
-        calls: ["self.tracer.record"]
-    scope:
-      applies_to: ["src/will/agents/**/*.py"]
-      excludes:
-        - "src/will/agents/**/__init__.py" # re-export modules, no class definitions
-        - "src/will/agents/**/factory.py" # factory functions, not agent classes
+    # LAW: Every autonomous decision MUST produce a trace
+    # Check: Ensures TracedAgentMixin subclasses call self.tracer.record
+    autonomy.tracing.mandatory:
+      engine: ast_gate
+      params:
+        check_type: generic_primitive
+        selector:
+          inherits_from: TracedAgentMixin
+        requirement:
+          check_type: required_calls
+          calls: ["self.tracer.record"]
+      scope:
+        applies_to: ["src/will/agents/**/*.py"]
+        excludes:
+          - "src/will/agents/**/__init__.py" # re-export modules, no class definitions
+          - "src/will/agents/**/factory.py" # factory functions, not agent classes
 
-  # LAW: Planning MUST include a check against Quality Assurance policy
-  autonomy.reasoning.policy_alignment:
-    engine: regex_gate
-    params:
-      # Verifies the PlannerAgent explicitly mentions its governing policy
-      required_patterns:
-        - "quality_assurance"
-    scope:
-      applies_to: ["src/will/agents/planner_agent.py"]
+    # LAW: Planning MUST include a check against Quality Assurance policy
+    autonomy.reasoning.policy_alignment:
+      engine: regex_gate
+      params:
+        # Verifies the PlannerAgent explicitly mentions its governing policy
+        required_patterns:
+          - "quality_assurance"
+      scope:
+        applies_to: ["src/will/agents/planner_agent.py"]
 
-  # LAW: ConservationGate MUST reject code below 0.50 preservation ratio
-  # ENFORCEMENT: Runtime check in ConservationGate — not statically checkable.
-  # Threshold is read from this rule's declaration at runtime.
-  autonomy.conservation.min_preservation_ratio:
-    engine: passive_gate
-    params:
-      enforced_by: "body.services.conservation_gate.ConservationGate"
-      enforcement_note: >
-        Runtime check — ConservationGate computes logical token preservation
-        ratio and rejects proposals below 0.50 unless deletions_authorized=True.
-        Cannot be checked statically; enforced on every LLM-produced code proposal.
+    # LAW: ConservationGate MUST reject code below 0.50 preservation ratio
+    # ENFORCEMENT: Runtime check in ConservationGate — not statically checkable.
+    # Threshold is read from this rule's declaration at runtime.
+    autonomy.conservation.min_preservation_ratio:
+      engine: passive_gate
+      params:
+        enforced_by: "body.validators.logic_conservation_validator.LogicConservationValidator"
+        enforcement_note: >
+          Runtime check — ConservationGate computes logical token preservation
+          ratio and rejects proposals below 0.50 unless deletions_authorized=True.
+          Cannot be checked statically; enforced on every LLM-produced code proposal.
+      scope:
+        applies_to:
+          - "src/body/validators/logic_conservation_validator.py"
 
-  # LAW: RemediationMap MUST NOT dispatch entries below confidence 0.80
-  # ENFORCEMENT: Runtime check in RemediatorWorker — not statically checkable.
-  # Threshold is read from governance_paths.yaml at runtime.
-  autonomy.remediation.min_confidence_floor:
-    engine: passive_gate
-    params:
-      enforced_by: "body.autonomy.audit_analyzer.AuditAnalyzer"
-      enforcement_note: >
-        Runtime check — AuditAnalyzer filters remediation map entries below
-        min_confidence (0.80, declared in governance_paths.yaml). Cannot be
-        checked statically; enforced on every RemediatorWorker run.
+    # LAW: RemediationMap MUST NOT dispatch entries below confidence 0.80
+    # ENFORCEMENT: Runtime check in RemediatorWorker — not statically checkable.
+    # Threshold is read from governance_paths.yaml at runtime.
+    autonomy.remediation.min_confidence_floor:
+      engine: passive_gate
+      params:
+        enforced_by: "body.autonomy.audit_analyzer.AuditAnalyzer"
+        enforcement_note: >
+          Runtime check — AuditAnalyzer filters remediation map entries below
+          min_confidence (0.80, declared in governance_paths.yaml). Cannot be
+          checked statically; enforced on every RemediatorWorker run.
+      scope:
+        applies_to:
+          - "src/body/autonomy/audit_analyzer.py"
