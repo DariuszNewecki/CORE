@@ -2,7 +2,7 @@
 
 **Status:** Active
 **Owner:** Darek (Dariusz Newecki)
-**Last updated:** 2026-05-08
+**Last updated:** 2026-05-09
 **Definition:** The daemon runs continuously, the Blackboard clears, the codebase converges, and every action is visible.
 
 ---
@@ -70,11 +70,13 @@ G3 closed 2026-05-01. Consequence chain materialized end-to-end. Band B mileston
 
 Operational work tracking lives entirely on GitHub. Bands are strategic groupings; closure criteria live on each milestone.
 
+**Current focus: Band D.** G2 demonstration is the immediate objective — proving sustained convergence is what makes the "governed autonomy" claim real. Bands C and E are deferred until G2 is demonstrated; no work should be picked from them in the interim.
+
 - **Band A — Attribution** (closed): https://github.com/DariuszNewecki/CORE/milestone/13
 - **Band B — Consequence Chain** (closed): https://github.com/DariuszNewecki/CORE/milestone/14
-- **Band C — Historical Debt**: https://github.com/DariuszNewecki/CORE/milestone/15
-- **Band D — Engine Integrity**: https://github.com/DariuszNewecki/CORE/milestone/16
-- **Band E — Outward-Facing**: https://github.com/DariuszNewecki/CORE/milestone/17
+- **Band C — Historical Debt** (deferred): https://github.com/DariuszNewecki/CORE/milestone/15
+- **Band D — Engine Integrity** (active): https://github.com/DariuszNewecki/CORE/milestone/16
+- **Band E — Outward-Facing** (deferred): https://github.com/DariuszNewecki/CORE/milestone/17
 
 ---
 
