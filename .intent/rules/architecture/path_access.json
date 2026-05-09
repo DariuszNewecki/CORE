@@ -1,0 +1,22 @@
+{
+    "$schema": "META/rule_document.schema.json",
+    "kind": "rule_document",
+    "metadata": {
+        "id": "rules.architecture.path_access",
+        "title": "Runtime Path Access Boundaries",
+        "version": "1.0.0",
+        "authority": "constitution",
+        "phase": "audit",
+        "status": "active"
+    },
+    "rules": [
+        {
+            "id": "architecture.path_access.no_hardcoded_runtime_dirs",
+            "statement": "Runtime output directory names (logs, reports) MUST NOT appear as string literals in path construction expressions in src/. All runtime path resolution MUST route through PathResolver or FileHandler.",
+            "authority": "constitution",
+            "phase": "audit",
+            "enforcement": "blocking",
+            "rationale": "PathResolver declares var/logs/ and var/reports/ as canonical. Direct string construction of runtime directory names bypasses this abstraction, making the path layer ungoverned and preventing autonomous remediation of directory layout changes."
+        }
+    ]
+}

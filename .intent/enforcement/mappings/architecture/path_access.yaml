@@ -1,0 +1,29 @@
+# .intent/enforcement/mappings/architecture/path_access.yaml
+#
+# Enforces canonical runtime path resolution through PathResolver.
+# Companion to governance.artifact_mutation.traceable (advisory).
+# See ADR-031.
+
+mappings:
+  architecture.path_access.no_hardcoded_runtime_dirs:
+    engine: regex_gate
+    params:
+      check_type: pattern_match
+      patterns:
+        - '["''](?:reports|logs)/'
+        - '["'']reports["'']'
+        - '["'']logs["'']'
+      message: >
+        Runtime directory name hardcoded as string literal. Route through
+        PathResolver (src/shared/path_resolver.py) or FileHandler instead.
+        See ADR-031.
+    scope:
+      applies_to:
+        - "src/**/*.py"
+      excludes:
+        # Canonical surfaces — these ARE the abstraction
+        - "src/shared/path_resolver.py"
+        - "src/shared/infrastructure/storage/file_handler.py"
+        - "src/shared/infrastructure/storage/file_provider.py"
+        # Tests construct paths against tmp_path directly
+        - "tests/**/*.py"
