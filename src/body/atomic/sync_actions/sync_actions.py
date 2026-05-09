@@ -144,7 +144,7 @@ async def action_sync_code_vectors(
         logger.info("sync.vectors.code: Phase 2 — ArtifactService embed loop")
         qdrant = QdrantService()
 
-        max_passes = 500
+        max_passes = 5
         for pass_num in range(1, max_passes + 1):
             pending = await artifact_svc.count_pending_artifacts()
             if pending == 0:
@@ -170,7 +170,11 @@ async def action_sync_code_vectors(
 
                 full_path = repo_root / file_path_str
                 if not full_path.exists():
-                    logger.warning("sync.vectors.code: file missing: %s", file_path_str)
+                    logger.warning(
+                        "sync.vectors.code: file missing, marking permanently skipped: %s",
+                        file_path_str,
+                    )
+                    await artifact_svc.mark_artifact_empty(artifact_id)
                     continue
 
                 try:

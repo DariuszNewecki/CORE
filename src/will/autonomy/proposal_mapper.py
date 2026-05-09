@@ -40,7 +40,12 @@ class ProposalMapper:
             goal=proposal.goal,
             status=proposal.status.value,
             actions=[
-                {"action_id": a.action_id, "parameters": a.parameters, "order": a.order}
+                {
+                    "action_id": a.action_id,
+                    "flow_id": a.flow_id,
+                    "parameters": a.parameters,
+                    "order": a.order,
+                }
                 for a in proposal.actions
             ],
             scope={
@@ -132,7 +137,12 @@ class ProposalMapper:
         db_proposal.goal = proposal.goal
         db_proposal.status = proposal.status.value
         db_proposal.actions = [
-            {"action_id": a.action_id, "parameters": a.parameters, "order": a.order}
+            {
+                "action_id": a.action_id,
+                "flow_id": a.flow_id,
+                "parameters": a.parameters,
+                "order": a.order,
+            }
             for a in proposal.actions
         ]
         db_proposal.scope = {

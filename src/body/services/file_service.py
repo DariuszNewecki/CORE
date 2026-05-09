@@ -19,6 +19,7 @@ from pathlib import Path
 
 from shared.infrastructure.storage.file_handler import FileHandler, FileOpResult
 from shared.logger import getLogger
+from shared.path_resolver import PathResolver
 
 
 logger = getLogger(__name__)
@@ -45,7 +46,7 @@ class FileService:
             repo_path: Repository root path
         """
         self.repo_path = repo_path
-        self.reports_dir = repo_path / "reports"
+        self.reports_dir = PathResolver.from_repo(repo_path).reports_dir
 
         # Create FileHandler instance for all operations
         self._file_handler = FileHandler(str(repo_path))
@@ -60,8 +61,8 @@ class FileService:
         """
         Write a report file to the reports directory.
         """
-        rel_path = f"reports/{filename}"
-        self._file_handler.ensure_dir("reports")
+        rel_path = self.reports_dir.relative_to(self.repo_path) / filename
+        self._file_handler.ensure_dir(str(self.reports_dir.relative_to(self.repo_path)))
         self._file_handler.write_runtime_text(rel_path, content)
         file_path = self.repo_path / rel_path
         logger.debug("Wrote report file: %s", file_path)
@@ -99,7 +100,7 @@ class FileService:
         CRITICAL FIX: Uses write_runtime_text() which is FileHandler's actual method
 
         Args:
-            rel_path: Repository-relative path (e.g., "reports/audit.json")
+            rel_path: Repository-relative path to the target file
             content: Text content to write
 
         Returns:

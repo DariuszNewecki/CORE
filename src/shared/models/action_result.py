@@ -21,7 +21,7 @@ from sqlalchemy.dialects.postgresql import UUID as pgUUID
 from shared.infrastructure.database.models.knowledge import Base
 
 
-# ID: 8a9b0c1d-2e3f-4a5b-6c7d-8e9f0a1b2c3d
+# ID: 588cecb7-f308-4ba0-b09e-b1122155b088
 class ActionResult(Base):
     """
     Records the outcome of CORE operations for workflow gating and audit trails.

@@ -19,7 +19,11 @@ async def test_action_format_code_basic():
     """Test basic formatting without writing."""
     with patch("body.self_healing.code_style_service.format_code") as mock_format:
         with patch("body.atomic.fix_actions.time.time") as mock_time:
-            mock_time.side_effect = [99.0, 100.0, 100.5]  # [0]: consumed by wrapper's logger.debug LogRecord; [1]: action start; [2]: action end
+            mock_time.side_effect = [
+                99.0,
+                100.0,
+                100.5,
+            ]  # [0]: consumed by wrapper's logger.debug LogRecord; [1]: action start; [2]: action end
             with authorize_execution("format.code"):
                 result = await action_format_code(write=False)
             mock_format.assert_called_once()

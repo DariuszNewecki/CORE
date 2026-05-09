@@ -15,6 +15,7 @@ Constitutional Alignment:
 
 from __future__ import annotations
 
+import re
 import time
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -30,6 +31,10 @@ if TYPE_CHECKING:
     from shared.context import CoreContext
 
 logger = getLogger(__name__)
+
+_RUNTIME_DIR_PATTERN = re.compile(
+    r"""["'](?:reports|logs)/|["']reports["']|["']logs["']"""
+)
 
 
 def _error_data(exc: Exception, **extra: Any) -> dict[str, Any]:
@@ -522,3 +527,331 @@ async def action_fix_docstrings(
         data={"write": write},
         duration_sec=time.time() - start,
     )
+
+
+_PATH_RESOLVER_PROPS: dict[str, str] = {"reports": "reports_dir", "logs": "logs_dir"}
+
+
+def _is_target_constant(node: Any) -> bool:
+    import ast as _ast
+
+    return (
+        isinstance(node, _ast.Constant)
+        and isinstance(node.value, str)
+        and node.value in _PATH_RESOLVER_PROPS
+    )
+
+
+def _has_target_descendant(node: Any) -> bool:
+    """True if `node` or any descendant BinOp has a matching constant operand.
+
+    Used to skip outer BinOps in chained expressions (e.g. ``X / "reports" /
+    "sub"``): only the innermost matching BinOp is rewritten so replacements
+    don't overlap on the original source.
+    """
+    import ast as _ast
+
+    for sub in _ast.walk(node):
+        if isinstance(sub, _ast.BinOp) and isinstance(sub.op, _ast.Div):
+            if _is_target_constant(sub.left) or _is_target_constant(sub.right):
+                return True
+    return False
+
+
+def _insert_path_resolver_import(source: str) -> str:
+    """Insert ``from shared.path_resolver import PathResolver`` into the module.
+
+    Idempotent — returns `source` unchanged if the import is already present.
+    Inserts after the last top-level Import/ImportFrom; falls back to after
+    a module docstring if no imports exist.
+    """
+    import ast as _ast
+
+    import_line = "from shared.path_resolver import PathResolver"
+    if import_line in source:
+        return source
+
+    try:
+        import asttokens as _asttokens
+
+        atok = _asttokens.ASTTokens(source, parse=True)
+    except (SyntaxError, ImportError):
+        return source
+    tree = atok.tree
+
+    last_import = None
+    for node in tree.body:
+        if isinstance(node, (_ast.Import, _ast.ImportFrom)):
+            last_import = node
+
+    if last_import is not None:
+        _, end = atok.get_text_range(last_import)
+        return source[:end] + "\n" + import_line + source[end:]
+
+    # No imports: insert after module docstring if present, else at top.
+    insert_at = 0
+    if (
+        tree.body
+        and isinstance(tree.body[0], _ast.Expr)
+        and isinstance(tree.body[0].value, _ast.Constant)
+        and isinstance(tree.body[0].value.value, str)
+    ):
+        _, insert_at = atok.get_text_range(tree.body[0])
+
+    return source[:insert_at] + "\n\n" + import_line + "\n" + source[insert_at:]
+
+
+def _transform_path_resolver(source: str) -> tuple[str, int]:
+    """Deterministic AST rewrite of hardcoded runtime dir literals.
+
+    Walks the source for ``BinOp(op=Div)`` nodes where one operand is a
+    ``Constant("reports")`` or ``Constant("logs")``. Each leaf match is
+    replaced with ``PathResolver.from_repo(<other operand>).<dir>`` where
+    ``<dir>`` is ``reports_dir`` or ``logs_dir`` respectively. Outer BinOps
+    that contain a deeper match are skipped (leaf-only strategy) so source
+    edits never overlap. Chained expressions such as
+    ``X / "reports" / "subdir"`` are handled by the leaf rewrite alone —
+    the outer ``/ "subdir"`` segment is preserved verbatim because asttokens
+    only edits the inner BinOp's source range.
+
+    Returns ``(new_source, replacement_count)``. If the source fails to
+    parse, returns ``(source, 0)``.
+    """
+    import ast as _ast
+
+    try:
+        import asttokens as _asttokens
+
+        atok = _asttokens.ASTTokens(source, parse=True)
+    except (SyntaxError, ImportError):
+        return source, 0
+    tree = atok.tree
+
+    replacements: list[tuple[int, int, str]] = []
+    for node in _ast.walk(tree):
+        if not (isinstance(node, _ast.BinOp) and isinstance(node.op, _ast.Div)):
+            continue
+        if _is_target_constant(node.right):
+            target, other = node.right, node.left
+        elif _is_target_constant(node.left):
+            target, other = node.left, node.right
+        else:
+            continue
+        if _has_target_descendant(other):
+            continue
+        prop_name = _PATH_RESOLVER_PROPS[target.value]
+        other_text = atok.get_text(other)
+        replacement_text = f"PathResolver.from_repo({other_text}).{prop_name}"
+        start, end = atok.get_text_range(node)
+        replacements.append((start, end, replacement_text))
+
+    if not replacements:
+        return source, 0
+
+    replacements.sort(key=lambda r: r[0], reverse=True)
+    new_source = source
+    for start, end, text in replacements:
+        new_source = new_source[:start] + text + new_source[end:]
+
+    new_source = _insert_path_resolver_import(new_source)
+    return new_source, len(replacements)
+
+
+@register_action(
+    action_id="fix.path_resolver",
+    description="Rewrite hardcoded runtime directory literals to PathResolver accesses",
+    category=ActionCategory.FIX,
+    policies=["rules/architecture/path_access"],
+    remediates=["architecture.path_access.no_hardcoded_runtime_dirs"],
+)
+@atomic_action(
+    action_id="fix.path_resolver",
+    intent="Rewrite hardcoded 'reports'/'logs' path construction to PathResolver",
+    impact=ActionImpact.WRITE_CODE,
+    policies=["atomic_actions"],
+)
+# ID: f5c8e2a4-9b7d-4a1e-b0f3-6c2d4e8a9b15
+async def action_fix_path_resolver(
+    core_context: CoreContext, write: bool = False, **kwargs
+) -> ActionResult:
+    """Rewrite hardcoded runtime directory string literals to use PathResolver.
+
+    Two invocation modes (mirrors action_fix_placeholders):
+
+    1. Targeted (autonomous loop): caller supplies ``file_path`` in kwargs.
+       The action operates on exactly that file. Bounded scope per
+       invocation — matches the action's per-file impact contract.
+
+    2. Sweep (CLI / debugging): no ``file_path`` supplied. The action walks
+       every ``*.py`` under ``src/`` containing a "reports" / "logs"
+       literal that the rule's regex flags, and rewrites each.
+
+    The rewrite is fully deterministic — no LLM call. ``_transform_path_resolver``
+    parses the file with ``ast``/``asttokens`` and replaces leaf
+    ``BinOp(op=Div)`` nodes whose operand is ``Constant("reports")`` or
+    ``Constant("logs")`` with ``PathResolver.from_repo(<other>).<dir>``.
+    The required ``from shared.path_resolver import PathResolver`` is
+    inserted into the file's imports if not already present.
+
+    Dry-run (``write=False``): returns a unified diff in ``data["diff"]``.
+    """
+    import difflib
+
+    start = time.time()
+    repo_root: Path = core_context.git_service.repo_path
+    file_path = kwargs.get("file_path")
+
+    def _build_diff(original: str, rewritten: str, rel: str) -> str:
+        return "".join(
+            difflib.unified_diff(
+                original.splitlines(keepends=True),
+                rewritten.splitlines(keepends=True),
+                fromfile=f"a/{rel}",
+                tofile=f"b/{rel}",
+                n=3,
+            )
+        )
+
+    # ---- Targeted mode ------------------------------------------------------
+    if file_path:
+        try:
+            target_rel = str(file_path).lstrip("./")
+            target_abs = (repo_root / target_rel).resolve()
+
+            src_root = (repo_root / "src").resolve()
+            try:
+                target_abs.relative_to(src_root)
+            except ValueError:
+                return ActionResult(
+                    action_id="fix.path_resolver",
+                    ok=False,
+                    data={
+                        "error": f"Target outside src/ scope: {target_rel}",
+                        "file_path": target_rel,
+                    },
+                    duration_sec=time.time() - start,
+                )
+
+            if not target_abs.is_file() or target_abs.suffix != ".py":
+                return ActionResult(
+                    action_id="fix.path_resolver",
+                    ok=False,
+                    data={
+                        "error": f"Target is not a .py file: {target_rel}",
+                        "file_path": target_rel,
+                    },
+                    duration_sec=time.time() - start,
+                )
+
+            original = target_abs.read_text(encoding="utf-8")
+
+            if not _RUNTIME_DIR_PATTERN.search(original):
+                return ActionResult(
+                    action_id="fix.path_resolver",
+                    ok=True,
+                    data={
+                        "files_affected": 0,
+                        "written": False,
+                        "file_path": target_rel,
+                        "note": "no path_access literals matched",
+                    },
+                    duration_sec=time.time() - start,
+                )
+
+            rewritten, n_replacements = _transform_path_resolver(original)
+
+            if n_replacements == 0 or rewritten == original:
+                return ActionResult(
+                    action_id="fix.path_resolver",
+                    ok=True,
+                    data={
+                        "files_affected": 0,
+                        "written": False,
+                        "file_path": target_rel,
+                        "note": (
+                            "regex matched but no AST-level path-construction "
+                            "BinOp/Div sites — likely string literal in a "
+                            "non-path-construction context (e.g. exclude list, "
+                            "docstring example)"
+                        ),
+                    },
+                    duration_sec=time.time() - start,
+                )
+
+            if write:
+                core_context.file_handler.write_runtime_text(target_rel, rewritten)
+
+            return ActionResult(
+                action_id="fix.path_resolver",
+                ok=True,
+                data={
+                    "files_affected": 1,
+                    "replacements": n_replacements,
+                    "written": write,
+                    "file_path": target_rel,
+                    "diff": _build_diff(original, rewritten, target_rel),
+                },
+                duration_sec=time.time() - start,
+            )
+        except Exception as e:
+            return ActionResult(
+                action_id="fix.path_resolver",
+                ok=False,
+                data=_error_data(e, file_path=str(file_path)),
+                duration_sec=time.time() - start,
+            )
+
+    # ---- Sweep mode ---------------------------------------------------------
+    logger.warning(
+        "fix.path_resolver invoked in sweep mode (no file_path). "
+        "This mode is reserved for CLI callers; autonomous callers MUST "
+        "supply file_path to stay within their declared impact scope."
+    )
+
+    files_modified = 0
+    total_replacements = 0
+    files_failed = 0
+    files_skipped_no_match = 0
+
+    try:
+        src_dir = repo_root / "src"
+        for py_file in src_dir.rglob("*.py"):
+            try:
+                content = py_file.read_text(encoding="utf-8")
+                if not _RUNTIME_DIR_PATTERN.search(content):
+                    files_skipped_no_match += 1
+                    continue
+
+                rewritten, n_replacements = _transform_path_resolver(content)
+                if n_replacements == 0 or rewritten == content:
+                    continue
+
+                rel_path = str(py_file.relative_to(repo_root))
+                if write:
+                    core_context.file_handler.write_runtime_text(rel_path, rewritten)
+                files_modified += 1
+                total_replacements += n_replacements
+            except Exception as e:
+                logger.warning("fix.path_resolver: failed on %s: %s", py_file, e)
+                files_failed += 1
+
+        return ActionResult(
+            action_id="fix.path_resolver",
+            ok=files_failed == 0,
+            data={
+                "files_affected": files_modified,
+                "replacements": total_replacements,
+                "files_failed": files_failed,
+                "files_skipped_no_match": files_skipped_no_match,
+                "written": write,
+                "mode": "sweep",
+            },
+            duration_sec=time.time() - start,
+        )
+    except Exception as e:
+        return ActionResult(
+            action_id="fix.path_resolver",
+            ok=False,
+            data=_error_data(e, mode="sweep"),
+            duration_sec=time.time() - start,
+        )

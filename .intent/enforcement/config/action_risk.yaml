@@ -36,6 +36,7 @@ actions:
   fix.imports: safe
   fix.logging: safe
   fix.modularity: moderate
+  fix.path_resolver: moderate
   fix.placeholders: safe
   remediate.cognitive_role: moderate
   sync.db: moderate

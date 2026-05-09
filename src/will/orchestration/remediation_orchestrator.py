@@ -161,7 +161,7 @@ class RemediationOrchestrator:
             compliant_files=compliant,
         )
 
-    # ID: b3c4d5e6-f7a8-9b0c-1d2e-3f4a5b6c7d8e
+    # ID: 79e49dd2-5885-4bde-ade2-51bf7614f67b
     async def remediate_missing_headers_async(self) -> RemediationResult:
         """
         ORCHESTRATION: Decide to remediate headers and coordinate execution.

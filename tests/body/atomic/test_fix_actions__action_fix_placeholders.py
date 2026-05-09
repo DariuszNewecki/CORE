@@ -205,7 +205,9 @@ async def test_action_fix_placeholders_explicit_parameters():
         test_file = src_dir / "test.py"
         test_file.write_text("# TODO: Something…", encoding="utf-8")
         with authorize_execution("fix.placeholders"):
-            result = await action_fix_placeholders(core_context=mock_context, write=True)
+            result = await action_fix_placeholders(
+                core_context=mock_context, write=True
+            )
         assert result.action_id == "fix.placeholders"
         assert result.ok is True
         assert result.data["written"] is True

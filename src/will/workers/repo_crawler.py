@@ -52,7 +52,7 @@ class RepoCrawlerWorker(Worker):
             "glide_off", max(int(self._max_interval * 0.10), 10)
         )
 
-    # ID: a1b2c3d4-e5f6-7890-abcd-ef1234567892
+    # ID: ec3e046d-7df4-4e47-b34b-973f8bbe617f
     async def run_loop(self) -> None:
         """
         Continuous self-scheduling loop. Runs one crawl pass per

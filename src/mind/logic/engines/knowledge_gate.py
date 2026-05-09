@@ -224,7 +224,7 @@ class KnowledgeGateEngine(BaseEngine):
                 )
         return findings
 
-    # ID: kg-orphan-check
+    # ID: fd5a8798-4e91-46e4-8a30-f9ae98479a12
     def _check_orphan_files(
         self, context: AuditorContext, params: dict[str, Any]
     ) -> list[AuditFinding]:

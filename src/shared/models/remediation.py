@@ -19,7 +19,7 @@ from dataclasses import dataclass
 
 
 @dataclass
-# ID: dc64f3c1-b122-4032-ac7c-acf00f43f6d6
+# ID: e95c4f15-4da6-4020-8cbf-fb0c86319d6a
 class AutoFixablePattern:
     """
     Maps an audit check_id pattern to an autonomous action handler.

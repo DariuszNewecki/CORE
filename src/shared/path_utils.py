@@ -22,7 +22,7 @@ def copy_tree(src: Path, dst: Path, exclude: list[str] | None = None):
     Recursively copies a directory tree, skipping specified directory names.
     """
     if exclude is None:
-        exclude = [".git", ".venv", "venv", "__pycache__", "work", "reports"]
+        exclude = [".git", ".venv", "venv", "__pycache__", "work", "var"]
 
     dst.mkdir(parents=True, exist_ok=True)
     for item in src.iterdir():

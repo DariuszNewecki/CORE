@@ -24,10 +24,13 @@ These replace all hardcoded Path("...") constants in Body and Will layers.
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any, ClassVar
+from typing import TYPE_CHECKING, Any, ClassVar
 
 from shared.logger import getLogger
-from shared.models.validation_result import ValidationResult
+
+
+if TYPE_CHECKING:
+    from shared.models.validation_result import ValidationResult
 
 
 logger = getLogger(__name__)
@@ -283,6 +286,8 @@ class PathResolver:
         Returns:
             ValidationResult with ok=True if all required dirs exist.
         """
+        from shared.models.validation_result import ValidationResult
+
         required_dirs: list[tuple[Path, str]] = [
             (self.var_dir, "var/"),
             (self.workflows_dir, "var/workflows/"),

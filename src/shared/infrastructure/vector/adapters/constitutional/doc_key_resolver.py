@@ -24,7 +24,7 @@ from shared.logger import getLogger
 logger = getLogger(__name__)
 
 
-# ID: 1a2b3c4d-5e6f-7890-abcd-ef1234567890
+# ID: 1e47df73-5f3c-4621-a0f4-a415e013a77e
 def _get_known_roots(intent_root: Path) -> list[str]:
     """
     Derive known .intent/ roots from META/intent_tree.yaml.

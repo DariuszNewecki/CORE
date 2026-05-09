@@ -45,7 +45,7 @@ _CONSERVATION_THRESHOLD: float = 0.50
 _AUTHORISATION_FLAG: str = "deletions_authorized"
 
 
-# ID: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+# ID: f58b68e3-8529-46f8-8616-c62c62561f87
 class LogicConservationValidator(BaseEvaluator):
     """
     AUDIT phase validator.
@@ -64,7 +64,7 @@ class LogicConservationValidator(BaseEvaluator):
     """
 
     @property
-    # ID: b2c3d4e5-f6a7-8901-bcde-f12345678901
+    # ID: a0012898-939f-4278-a89c-cef011dc33f9
     def component_id(self) -> str:
         return "logic_conservation_validator"
 

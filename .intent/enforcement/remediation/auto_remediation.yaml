@@ -238,6 +238,17 @@ mappings:
       before any autonomous action. Blocking rule — human review required.
     status: PENDING
 
+  architecture.path_access.no_hardcoded_runtime_dirs:
+    action: fix.path_resolver
+    confidence: 0.85
+    risk: high
+    description: >
+      Hardcoded runtime directory name in path construction. Route through
+      PathResolver or FileHandler. Deterministic AST rewrite — each site
+      replaces a string literal with a PathResolver property access. Human
+      approval required before execution. See ADR-031, #272.
+    status: ACTIVE
+
   architecture.constitution_read_only:
     action: fix.layer_violation
     confidence: 0.40

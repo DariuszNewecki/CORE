@@ -225,7 +225,7 @@ class GitService:
         except RuntimeError:
             return []
 
-    # ID: b2c3d4e5-f6a7-8901-bcde-f12345678902
+    # ID: ff02b770-4928-4a10-9358-c6df84ff091f
     def get_diff_stat(self, base: str = "HEAD~5", target: str = "HEAD") -> str:
         """
         Returns the diffstat between two refs.

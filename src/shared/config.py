@@ -25,6 +25,7 @@ from shared.logger import getLogger
 if TYPE_CHECKING:
     from shared.path_resolver import PathResolver
 
+
 logger = getLogger(__name__)
 
 # Calculation: src/shared/config.py -> shared -> src -> root
@@ -63,7 +64,14 @@ class Settings(BaseSettings):
 
     # --- Standard Infrastructure Paths ---
     KEY_STORAGE_DIR: Path = REPO_ROOT / ".intent" / "keys"
-    CORE_ACTION_LOG_PATH: Path = REPO_ROOT / "logs" / "actions.jsonl"
+    CORE_ACTION_LOG_PATH: Path = Field(
+        default_factory=lambda: __import__(
+            "shared.path_resolver", fromlist=["PathResolver"]
+        )
+        .PathResolver.from_repo(REPO_ROOT)
+        .logs_dir
+        / "actions.jsonl"
+    )
 
     # --- Infrastructure Attributes ---
     DATABASE_URL: str = Field(..., validation_alias="DATABASE_URL")

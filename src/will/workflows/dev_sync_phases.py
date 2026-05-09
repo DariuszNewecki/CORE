@@ -121,7 +121,7 @@ class DevSyncPhases:
     # PHASE 4: DATABASE SYNC
     # =========================================================================
 
-    # ID: 7c8d9e0f-1a2b-3c4d-5e6f-7a8b9c0d1e2f
+    # ID: 9fa69ddd-924c-4b77-91fa-ea82e225508b
     async def run_database_sync(self) -> None:
         """Execute database synchronization phase."""
         await self.database_sync.execute()
