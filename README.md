@@ -3,7 +3,7 @@
 > **Executable constitutional governance for AI-assisted software development.**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Release](https://img.shields.io/badge/Release-v2.2.2-blue)](https://github.com/DariuszNewecki/CORE/releases)
+[![Release](https://img.shields.io/badge/Release-v2.4.0-blue)](https://github.com/DariuszNewecki/CORE/releases)
 [![Docs](https://img.shields.io/badge/Docs-online-green)](https://dariusznewecki.github.io/CORE/)
 [![Autonomy](https://img.shields.io/badge/Autonomy-A2-blue)](https://github.com/DariuszNewecki/CORE/issues/106)
 
@@ -166,7 +166,7 @@ Enforcement strengths: **Blocking** · **Reporting** · **Advisory**
 
 Deterministic when possible. LLM only when necessary.
 
-120 rules across 126 policies. 121 executable.
+121 rules across 126 policies. 121 executable.
 
 ---
 
@@ -224,7 +224,7 @@ To understand what CORE is for before reading its implementation, start here:
 
 ## Project Status
 
-**Current Release:** v2.2.2 — Self-Compliance & Hygiene Edition
+**Current Release:** v2.4.0 — Consequence Chain
 
 Active work: A3 Governed Autonomy — the daemon runs continuously, finds constitutional violations in its own codebase, proposes fixes, executes approved changes, and verifies the result. The governor's role is to define intent, review proposals that require architectural judgment, and approve constitutional changes.
 
