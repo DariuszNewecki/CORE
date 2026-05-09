@@ -254,6 +254,154 @@ No scope expansion occurred.
 
 ---
 
+## v0.4 — Autonomous Loop Integrity
+
+**Status:** Clarifying amendment (non-primitive)
+
+**Intent:**
+
+This version hardens the autonomous loop across five ADRs landed between
+2026-05-01 and 2026-05-05. Together they replace the deprecated indexing
+worker, establish heartbeat as the sole liveness authority, scope git
+operations to declared proposal files, and add two sensing workers that
+make loop failures observable. Each change closes a known gap between what
+the loop claims to do and what it can be verified to have done.
+
+No primitives were added.
+No scope expansion occurred.
+
+### Added
+
+* **`repo_crawler` + `repo_embedder` as the canonical autonomous indexing path** (ADR-018)
+
+  * `vector_sync_worker` deprecated and removed; superseded by the crawler/embedder pair
+  * `core.repo_artifacts.chunk_count` declared the inter-worker queue contract:
+    0 = needs embedding, -1 = permanently empty, >0 = embedded
+  * `sync.vectors.code` atomic action preserved for CLI-driven sync
+  * Worker declarations updated: `repo_crawler.yaml`, `repo_embedder.yaml` (active);
+    `vector_sync_worker.yaml` removed
+
+* **`CommitReachabilityAuditor` worker and Edge 5 attribution posture** (ADR-019)
+
+  * New worker declaration: `.intent/workers/commit_reachability_auditor.yaml`
+  * Detects orphan `post_execution_sha` values and posts findings without modifying state
+  * New Blackboard subject namespace: `governance.edge5.orphan_sha::*`
+  * `post_execution_sha` declared the authoritative Edge 5 link in the consequence chain
+  * Autonomous commit prefix widened from 8 to 16 characters (forward-only change)
+
+* **Heartbeat-only liveness contract** (ADR-020)
+
+  * `core.worker_registry.status` column dropped; three-state machine retired
+  * `last_heartbeat` against per-worker `max_interval` + `glide_off` is the sole
+    sanctioned liveness signal
+  * Predicate centralized in `WorkerRegistryService`
+  * Per-worker interval thresholds remain declared in `.intent/workers/*.yaml`
+
+* **Scoped autonomous git operations** (ADR-021)
+
+  * New enforcement policy: `.intent/enforcement/config/autonomy_dirty_tree.yaml`
+    (mode: `intersection_only`)
+  * Autonomous commit and rollback operate only on `proposal.scope.files`;
+    no collateral writes permitted
+  * Pre-claim scope-collision check yields the proposal when the architect's working
+    tree intersects declared scope
+  * New Blackboard subject namespace: `autonomy.yielded.scope_collision::*`
+
+* **`CoherenceSensorWorker` and sensor-fixer coherence detection** (ADR-027)
+
+  * New worker declaration: `.intent/workers/coherence_sensor.yaml` (active, 10-min cycle)
+  * Queries `proposal_consequences` ⨝ `blackboard_entries` to detect re-posted findings
+    after their fixer's `recorded_at`
+  * Identity: `check_id` + `file_path` pair; deduplicates against open coherence findings
+  * New threshold-config key: `coherence.lookback_seconds` in `.intent/cim/thresholds.yaml`
+  * New Blackboard subject namespace: `coherence.incoherence::*`
+  * Explicitly DELEGATE-class: no autonomous remediation; requires human architectural judgment
+
+### Not Changed
+
+* Primitive set
+* Authority hierarchy
+* Phase definitions
+* Enforcement strengths
+* Non-goals and scope boundaries
+
+---
+
+## v0.5 — Governance Authoring Discipline
+
+**Status:** Clarifying amendment (non-primitive)
+
+**Intent:**
+
+This version establishes four meta-governance rules: how cognitive role
+assignments must be qualified before deployment, how rule documentation
+must be written to avoid false positives, how non-automatable rules must
+be explicitly mapped, and what posture the daemon takes when its own
+source code has drifted from what is loaded. Together these close the gap
+between governance artifacts that declare intent and governance artifacts
+that enforce it reliably.
+
+No primitives were added.
+No scope expansion occurred.
+
+### Added
+
+* **Governed evaluation for local LLM cognitive role assignments** (ADR-024)
+
+  * `scripts/eval_ollama.py` declared a governed artifact; scorer changes require
+    ADR amendment
+  * Role-to-model assignments must be derived from evidentiary qualification,
+    not parameter-count assumption
+  * Development assignments on aaiMac derived from qualification run:
+    `qwen2.5-coder:3b` for LocalCoder/Architect/LocalReasoner/Planner;
+    `qwen2.5:7b` for DocstringWriter; `phi4:14b` retained as spare
+  * Production assignments deferred until qualification against production hardware
+
+* **Rule documentation must paraphrase forbidden patterns** (ADR-028)
+
+  * Rule statements, rationale prose, in-scope docstrings, comments, and ADRs
+    must describe what is forbidden without reproducing the exact syntax the
+    detection engine would match
+  * Prevents string-matching engines from false-positiving on their own
+    documentation and governance text
+  * Applies to all new rule authoring and to existing violations as audits surface them
+  * Authoring discipline added to `CORE-Rule-Authoring-Discipline.md`
+
+* **Non-automatable rules must carry an explicit PENDING entry in RemediationMap** (ADR-029)
+
+  * Absence from `auto_remediation.yaml` is not a valid signal that a finding
+    requires human handling; absence routes findings into the LLM fallback path
+  * Every non-automatable rule must declare a PENDING entry with `confidence < 0.50`
+  * First application: `modularity.class_too_large` mapped with `confidence: 0.0`
+  * Corrects routing semantics between ViolationRemediatorWorker and
+    ViolationExecutorWorker
+
+* **Daemon stale-code detection posture** (ADR-030)
+
+  * On detecting drift between on-disk `src/` and loaded-module SHA, the daemon
+    DEGRADEs, suspends autonomous execution, posts `governance.stale_daemon`
+    Blackboard finding, and surfaces the condition on the runtime dashboard
+  * Re-posts at elevated priority after a configurable escalation window (default 30 min)
+  * Daemon never self-restarts after a `src/` change; governor restarts deliberately
+  * New Blackboard subject: `governance.stale_daemon`
+  * New finding subject and DEGRADE-mode policy declared; implementation pending
+
+### Not Changed
+
+* Primitive set
+* Authority hierarchy
+* Phase definitions
+* Enforcement strengths
+* Non-goals and scope boundaries
+
+### Tracked Follow-Ups
+
+* ADR-030 — drift-detection mechanism in the daemon not yet implemented;
+  `governance.stale_daemon` finding subject and escalation policy declared ahead
+  of implementation
+
+---
+
 ## Notes
 
 * This changelog intentionally avoids implementation detail
