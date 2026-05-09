@@ -23,12 +23,18 @@
 #
 # HANDLER STATUS KEY:
 #   ACTIVE   → action confirmed in atomic action registry
+#   DELEGATE → non-automatable; ViolationRemediatorWorker routes to governor
+#              inbox as an indeterminate finding requiring human decision.
+#              Confidence set below MIN_CONFIDENCE (0.80); included in the
+#              active map so ViolationExecutorWorker cannot claim it as unmapped.
 #   PENDING  → action does not yet exist in registry; confidence set below
-#              MIN_CONFIDENCE (0.80) to prevent dispatch until implemented
+#              MIN_CONFIDENCE (0.80) to prevent dispatch until implemented.
+#              Excluded from the active map entirely (loader skips PENDING).
 #
 # NOTE ON MIN_CONFIDENCE:
 #   ViolationRemediatorWorker uses this map directly.
 #   Only entries >= 0.80 will produce proposals.
+#   DELEGATE entries are routed to the governor inbox, not proposals.
 #   PENDING entries are documented for roadmap visibility only.
 #
 # FLOW ENTRIES:
@@ -199,8 +205,11 @@ mappings:
     status: ACTIVE
 
   # ===========================================================================
-  # TIER 3: PENDING — action implementation required
-  # Documented for roadmap visibility only. Will not be dispatched.
+  # TIER 3a: DELEGATE — human routing required
+  # Non-automatable violations. ViolationRemediatorWorker routes these to the
+  # governor inbox as indeterminate findings. Confidence below MIN_CONFIDENCE
+  # (0.80) to prevent proposal dispatch. Included in active map so
+  # ViolationExecutorWorker cannot claim them as unmapped (ADR-029).
   # ===========================================================================
 
   modularity.class_too_large:
@@ -208,13 +217,17 @@ mappings:
     confidence: 0.40
     risk: high
     description: >
-      PENDING: Class-level refactors require human architectural decision —
-      non-automatable per ADR-007. Explicitly mapped here to prevent
-      ViolationExecutorWorker from claiming these findings as unmapped.
-      ADR-007 assumed absence-from-map implied human-only routing, but
-      ViolationExecutor's unmapped-claim path breaks that assumption.
-      Human review required before any autonomous action.
-    status: PENDING
+      Class-level refactors require human architectural decision —
+      non-automatable per ADR-007. Routed to governor inbox as DELEGATE.
+      Explicitly mapped to prevent ViolationExecutorWorker from claiming
+      these findings as unmapped. Human review required before any action.
+    status: DELEGATE
+
+  # ===========================================================================
+  # TIER 3b: PENDING — action implementation required
+  # Documented for roadmap visibility only. Will not be dispatched.
+  # Excluded from the active map at loader time (loader skips PENDING).
+  # ===========================================================================
 
   modularity.needs_refactor:
     action: fix.modularity
