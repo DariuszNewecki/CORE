@@ -27,6 +27,7 @@ No writes to .intent/ or src/ under any circumstances.
 from __future__ import annotations
 
 import asyncio
+import json
 from pathlib import Path
 from typing import Any
 
@@ -129,7 +130,8 @@ class IntentInspector(Worker):
         # same "missing $schema" warning every cycle for files that will never
         # resolve automatically (e.g. config files, workflow stages).
         existing_structural = await self._fetch_existing_subjects(_SUBJECT_STRUCTURAL)
-        structural_findings = self._pass_structural(documents)
+        valid_statuses = self._load_valid_worker_statuses(intent_root)
+        structural_findings = self._pass_structural(documents, valid_statuses)
         structural_posted = 0
         structural_skipped = 0
         for finding in structural_findings:
@@ -180,10 +182,18 @@ class IntentInspector(Worker):
     # -------------------------------------------------------------------------
 
     # ID: b2c3d4e5-f6a7-8901-bcde-222222222222
-    def _pass_structural(self, documents: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    def _pass_structural(
+        self,
+        documents: list[dict[str, Any]],
+        valid_statuses: set[str] | None,
+    ) -> list[dict[str, Any]]:
         """
         Check every loaded document for required fields and non-empty values.
         Returns a list of finding payloads (no blackboard I/O here).
+
+        valid_statuses is the set of permitted metadata.status values derived
+        from .intent/META/enums.json. None means the enum could not be loaded;
+        status validation is skipped in that case to avoid false positives.
         """
         findings = []
 
@@ -225,12 +235,15 @@ class IntentInspector(Worker):
                     elif isinstance(val, str) and not val.strip():
                         issues.append(f"whitespace-only metadata.{field}")
 
-            # Status must be known
-            status = (
-                (metadata.get("status") or "") if isinstance(metadata, dict) else ""
-            )
-            if status and status not in ("active", "draft", "deprecated"):
-                issues.append(f"unknown metadata.status value: '{status}'")
+            # Status must be known. Allowed values come from
+            # .intent/META/enums.json (worker_status enum). Skipped when
+            # the enum could not be loaded.
+            if valid_statuses is not None:
+                status = (
+                    (metadata.get("status") or "") if isinstance(metadata, dict) else ""
+                )
+                if status and status not in valid_statuses:
+                    issues.append(f"unknown metadata.status value: '{status}'")
 
             if issues:
                 findings.append(
@@ -424,6 +437,37 @@ class IntentInspector(Worker):
                 )
 
         return documents
+
+    # ID: 3c4d5e6f-7a8b-4c9d-9e0f-1a2b3c4d5e6f
+    def _load_valid_worker_statuses(self, intent_root: Path) -> set[str] | None:
+        """
+        Load the permitted metadata.status values from .intent/META/enums.json.
+
+        Returns the enum set on success, or None when the file is missing,
+        malformed, or definitions.worker_status.enum is absent or empty.
+        Logs a warning on failure; the structural pass skips status validation
+        when None is returned rather than crashing or accepting any value.
+        """
+        enums_path = intent_root / "META" / "enums.json"
+        try:
+            data = json.loads(enums_path.read_text(encoding="utf-8"))
+            values = data["definitions"]["worker_status"]["enum"]
+        except (OSError, json.JSONDecodeError, KeyError, TypeError) as exc:
+            logger.warning(
+                "IntentInspector: cannot derive worker_status enum from %s — %s; "
+                "skipping metadata.status validation",
+                enums_path,
+                exc,
+            )
+            return None
+        if not isinstance(values, list) or not values:
+            logger.warning(
+                "IntentInspector: worker_status.enum at %s is empty or malformed; "
+                "skipping metadata.status validation",
+                enums_path,
+            )
+            return None
+        return set(values)
 
     # ID: a7b8c9d0-e1f2-3a4b-5c6d-777777777777
     def _build_alignment_manifest(self, documents: list[dict[str, Any]]) -> str:
