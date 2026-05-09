@@ -203,6 +203,7 @@ class BlackboardService:
                         END AS sla_seconds
                     FROM core.blackboard_entries
                     WHERE status NOT IN ('resolved', 'abandoned')
+                      AND entry_type IN ('finding', 'proposal')
                       AND subject NOT LIKE 'blackboard.entry_stale::%'
                       AND subject NOT LIKE 'worker.silent::%'
                       AND EXTRACT(EPOCH FROM (now() - created_at)) >
