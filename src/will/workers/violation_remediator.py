@@ -548,22 +548,38 @@ class ViolationRemediatorWorker(Worker):
         # historical proposals predating this field are not backfilled.
         finding_ids = [_entry_id(f) for f in findings]
 
-        proposal_action = ProposalAction(
-            action_id=ref_id if ref_kind == "action" else None,
-            flow_id=ref_id if ref_kind == "flow" else None,
-            parameters={
-                "write": True,
-                "file_path": affected_files[0] if affected_files else None,
-            },
-            order=0,
-        )
+        if affected_files:
+            proposal_actions = [
+                ProposalAction(
+                    action_id=ref_id if ref_kind == "action" else None,
+                    flow_id=ref_id if ref_kind == "flow" else None,
+                    parameters={
+                        "write": True,
+                        "file_path": file_path,
+                    },
+                    order=order,
+                )
+                for order, file_path in enumerate(affected_files)
+            ]
+        else:
+            proposal_actions = [
+                ProposalAction(
+                    action_id=ref_id if ref_kind == "action" else None,
+                    flow_id=ref_id if ref_kind == "flow" else None,
+                    parameters={
+                        "write": True,
+                        "file_path": None,
+                    },
+                    order=0,
+                )
+            ]
 
         proposal = Proposal(
             goal=(
                 f"Autonomous remediation: {ref_id} "
                 f"({len(findings)} violation(s) — rules: {', '.join(rules)})"
             ),
-            actions=[proposal_action],
+            actions=proposal_actions,
             scope=ProposalScope(files=affected_files),
             created_by="violation_remediator_worker",
             constitutional_constraints={
