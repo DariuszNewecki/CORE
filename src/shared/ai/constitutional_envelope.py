@@ -1,5 +1,4 @@
 # src/shared/ai/constitutional_envelope.py
-# ID: ce-core-001
 """
 ConstitutionalEnvelope — automatic law injection for every LLM call.
 
@@ -136,7 +135,7 @@ def _include_enforcement_levels() -> frozenset[str]:
 # ---------------------------------------------------------------------------
 
 
-# ID: ce-core-002
+# ID: 27a8130a-d170-4610-b8fe-6a6806c9d007
 def _resolve_layers(target_files: list[str]) -> set[str]:
     """
     Derive the set of architectural layers touched by target_files.
@@ -158,7 +157,7 @@ def _resolve_layers(target_files: list[str]) -> set[str]:
     return layers
 
 
-# ID: ce-core-003
+# ID: 46e767e4-5e45-4f75-bf3d-60811d262030
 def _rule_category(policy_name: str) -> str:
     """
     Extract the top-level category from a policy_name.
@@ -168,7 +167,7 @@ def _rule_category(policy_name: str) -> str:
     return policy_name.split("/")[0] if policy_name else ""
 
 
-# ID: ce-core-004
+# ID: 2d46e3ce-1222-4eb2-95a4-c35caef6dffe
 def _is_relevant(rule_entry: dict[str, Any], layers: set[str]) -> bool:
     """
     Decide whether a rule applies to the given task scope.
@@ -198,7 +197,7 @@ def _is_relevant(rule_entry: dict[str, Any], layers: set[str]) -> bool:
     return False
 
 
-# ID: ce-core-005
+# ID: c43e5ddc-c0b8-4fb6-87f5-c69ab9a09a96
 def _format_envelope(rules: list[dict[str, Any]], layers: set[str]) -> str:
     """
     Render the constitutional constraints block for injection into system prompt.
@@ -247,7 +246,6 @@ def _format_envelope(rules: list[dict[str, Any]], layers: set[str]) -> str:
 # ---------------------------------------------------------------------------
 
 
-# ID: ce-core-006
 # ID: 91053934-daa1-4409-9d14-ae69ba6f69f0
 class ConstitutionalEnvelope:
     """
@@ -267,7 +265,6 @@ class ConstitutionalEnvelope:
         self.rule_count = rule_count
         self.layers = layers
 
-    # ID: ce-core-007
     @classmethod
     # ID: 409ad4cd-d001-4613-972f-9488a5d7f0e7
     def build(cls, target_files: list[str]) -> ConstitutionalEnvelope:
@@ -337,7 +334,6 @@ class ConstitutionalEnvelope:
 
         return cls(text=text, rule_count=len(deduped), layers=layers)
 
-    # ID: ce-core-008
     @classmethod
     # ID: 105403a7-ebdd-45a0-9971-bd0b9a4432c1
     def empty(cls) -> ConstitutionalEnvelope:

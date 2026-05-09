@@ -1,5 +1,4 @@
 # src/shared/infrastructure/database/models/workers.py
-# ID: model.workers
 """
 Worker Registry and Blackboard models.
 

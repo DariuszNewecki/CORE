@@ -1,5 +1,4 @@
 # src/mind/logic/engines/workflow_gate/checks/import_resolution.py
-# ID: __REPLACE_WITH_UUID__
 
 """
 Import resolution workflow check.
@@ -24,7 +23,6 @@ from shared.logger import getLogger
 logger = getLogger(__name__)
 
 
-# ID: __REPLACE_WITH_UUID__
 # ID: f758fd53-d1cd-4be0-a073-ccc866096cdc
 class ImportResolutionCheck(WorkflowCheck):
     """
@@ -37,7 +35,6 @@ class ImportResolutionCheck(WorkflowCheck):
 
     check_type = "import_resolution_check"
 
-    # ID: __REPLACE_WITH_UUID__
     # ID: 7820a1df-315a-4acf-818e-90956535bf72
     async def verify(self, file_path: Path | None, params: dict[str, Any]) -> list[str]:
         """

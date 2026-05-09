@@ -1,5 +1,4 @@
 # src/shared/ai/prompt_model.py
-# ID: pm-core-001
 
 """
 PromptModel — the sole governed surface for AI invocations in CORE.
@@ -90,7 +89,6 @@ class PromptModelManifest:
 
 
 @dataclass
-# ID: pm-core-003
 # ID: 6fe4bcb7-6c81-4635-95e2-fcb146a82fc2
 class PromptModelArtifact:
     """
@@ -112,7 +110,6 @@ class PromptModelArtifact:
 # ---------------------------------------------------------------------------
 
 
-# ID: pm-core-004
 # ID: f931206c-808c-42a2-9ec3-e832636ca065
 class PromptModel:
     """
@@ -137,7 +134,6 @@ class PromptModel:
         # Constitutional rules for the 'body' layer are automatically injected.
     """
 
-    # ID: pm-core-005
     @classmethod
     # ID: d24a1c7f-2165-4fb4-8a7f-181c0a2743f3
     def load(cls, name: str, prompts_root: Path | None = None) -> PromptModel:
@@ -224,13 +220,11 @@ class PromptModel:
         return instance
 
     @property
-    # ID: pm-core-manifest-accessor
     # ID: 47a38e06-401d-4fdf-ba5e-96854fa5f940
     def manifest(self) -> PromptModelManifest:
         """Convenience accessor — returns the manifest from the loaded artifact."""
         return self._artifact.manifest
 
-    # ID: pm-core-006
     # ID: 4fb47d41-9cf8-4389-b981-850edad5398a
     async def invoke(
         self,
@@ -318,7 +312,6 @@ class PromptModel:
     # Private helpers
     # ---------------------------------------------------------------------------
 
-    # ID: pm-core-007
     @staticmethod
     def _parse_manifest(raw: dict[str, Any], name: str) -> PromptModelManifest:
         """Parse and validate raw YAML manifest dict into PromptModelManifest."""
@@ -407,7 +400,6 @@ class PromptModel:
             scope_layers=list(scope_block.get("layers", [])),
         )
 
-    # ID: pm-core-008
     @staticmethod
     def _validate_inputs(
         context: dict[str, Any],
@@ -420,7 +412,6 @@ class PromptModel:
                 f"PromptModel '{manifest.id}': missing required inputs: {missing}"
             )
 
-    # ID: pm-core-008b
     @staticmethod
     def _build_response_format(
         manifest: PromptModelManifest,
@@ -444,7 +435,6 @@ class PromptModel:
 
         return None
 
-    # ID: pm-core-009
     @staticmethod
     def _build_system_prompt(
         artifact: PromptModelArtifact,
@@ -503,7 +493,6 @@ class PromptModel:
 
         return "\n".join(parts)
 
-    # ID: pm-core-010
     @staticmethod
     def _validate_output(response: str, manifest: PromptModelManifest) -> str:
         """

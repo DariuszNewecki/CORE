@@ -1,5 +1,4 @@
 # src/will/workers/violation_remediator.py
-# ID: workers.violation_remediator
 """
 ViolationRemediatorWorker - Closes the autonomous audit loop.
 

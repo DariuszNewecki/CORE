@@ -1,5 +1,4 @@
 # src/shared/infrastructure/intent/test_coverage_paths.py
-# ID: shared.infrastructure.intent.test_coverage_paths
 """
 Source-to-test path mapping helper.
 

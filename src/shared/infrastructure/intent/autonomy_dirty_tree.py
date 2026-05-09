@@ -1,5 +1,4 @@
 # src/shared/infrastructure/intent/autonomy_dirty_tree.py
-# ID: shared.infrastructure.intent.autonomy_dirty_tree
 """
 Autonomy dirty-tree policy loader.
 

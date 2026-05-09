@@ -1,5 +1,4 @@
 # src/shared/workers/base.py
-# ID: will.workers.base
 """
 Worker Base Class - Constitutional Autonomous Entity.
 

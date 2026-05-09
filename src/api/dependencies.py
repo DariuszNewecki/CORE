@@ -19,7 +19,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from shared.infrastructure.database.session_manager import get_db_session, get_session
 
 
-# ID: api-deps-session-provider
 # ID: 5b9f734c-5a1c-4278-9853-b0b841b08510
 async def get_api_session() -> AsyncGenerator[AsyncSession, None]:
     """
@@ -29,7 +28,6 @@ async def get_api_session() -> AsyncGenerator[AsyncSession, None]:
         yield session
 
 
-# ID: api-deps-background-session
 # ID: 4b37e11c-2859-4e76-9d1b-e68c3050eed1
 async def open_background_session() -> AsyncGenerator[AsyncSession, None]:
     """

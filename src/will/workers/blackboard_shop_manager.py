@@ -1,5 +1,4 @@
 # src/will/workers/blackboard_shop_manager.py
-# ID: will.workers.blackboard_shop_manager
 """
 BlackboardShopManager - Blackboard Health Supervisory Worker.
 

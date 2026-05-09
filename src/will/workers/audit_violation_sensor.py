@@ -1,5 +1,4 @@
 # src/will/workers/audit_violation_sensor.py
-# ID: will.workers.audit_violation_sensor
 """
 AuditViolationSensor - Constitutional Compliance Sensing Worker.
 

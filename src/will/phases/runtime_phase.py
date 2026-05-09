@@ -38,7 +38,6 @@ _WORKFLOW_ROUTING: dict[str, list[str]] = {
 }
 
 
-# ID: runtime-phase-composite
 # ID: 69556bba-c5d1-48a1-91eb-5fc9f1bb8543
 class RuntimePhase:
     """

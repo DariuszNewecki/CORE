@@ -1,5 +1,4 @@
 # src/shared/models/prompt_model.py
-# ID: pm-core-001
 
 """
 PromptModel — the sole governed surface for AI invocations in CORE.
@@ -46,7 +45,6 @@ _DEFAULT_MAX_TOKENS = 4096
 _DEFAULT_MAX_LENGTH = 4096
 
 
-# ID: pm-manifest-001
 @dataclasses.dataclass(frozen=True)
 # ID: 11108bdb-2bc2-4fc2-8c6a-d6c7d0a628d5
 class PromptModelManifest:
@@ -87,7 +85,6 @@ class PromptModelManifest:
         )
 
 
-# ID: pm-core-002
 # ID: c6243c0b-2e59-465c-92e0-28fa0ea3eac7
 class PromptModelValidationError(Exception):
     """
@@ -99,7 +96,6 @@ class PromptModelValidationError(Exception):
     """
 
 
-# ID: pm-core-003
 # ID: bf8abbad-432d-48c0-93b6-a5f8aee3c30e
 class PromptModel:
     """

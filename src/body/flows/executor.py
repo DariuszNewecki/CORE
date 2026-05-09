@@ -34,7 +34,6 @@ if TYPE_CHECKING:
 logger = getLogger(__name__)
 
 
-# ID: flow-executor-class
 # ID: ebd9a0de-3e90-4c97-af3a-49847598fda8
 class FlowExecutor:
     """
@@ -57,7 +56,6 @@ class FlowExecutor:
         self._core_context = core_context
         self._registry = flow_registry
 
-    # ID: flow-executor-execute
     # ID: 6896dd9d-063b-4c19-86e5-246b28738651
     async def execute(
         self,
@@ -146,7 +144,7 @@ class FlowExecutor:
             duration_sec=duration,
         )
 
-    # ID: flow-executor-execute-step
+    # ID: 5ead0cc7-b5bc-4c9c-8d23-242ebf238e24
     async def _execute_step(
         self,
         step: FlowStep,
@@ -187,7 +185,7 @@ class FlowExecutor:
                 kind=str(step.kind),
             )
 
-    # ID: flow-executor-execute-action-step
+    # ID: cb8eea14-5b0e-4d2b-bcb6-ebd45ab9d14f
     async def _execute_action_step(
         self,
         step: FlowStep,
@@ -228,7 +226,7 @@ class FlowExecutor:
                 kind="action",
             )
 
-    # ID: flow-executor-execute-flow-step
+    # ID: 28e9c338-d7ad-49a5-95de-e91edb324989
     async def _execute_flow_step(
         self,
         step: FlowStep,

@@ -1,5 +1,4 @@
 # src/will/workers/violation_executor.py
-# ID: will.workers.violation_executor
 """
 ViolationExecutorWorker - Discovery path for unmapped rules.
 

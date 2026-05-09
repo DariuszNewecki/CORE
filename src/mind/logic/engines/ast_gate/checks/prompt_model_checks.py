@@ -19,7 +19,6 @@ from typing import Any
 from mind.logic.engines.ast_gate.base import ASTHelpers
 
 
-# ID: pm-checks-001
 # ID: cd452337-4e1a-48a4-97e6-b47599a5496a
 class PromptModelChecks:
     """
@@ -31,7 +30,6 @@ class PromptModelChecks:
     """
 
     @staticmethod
-    # ID: pm-checks-002
     # ID: e9d22c46-36ea-4ca8-bd72-d58e787c4068
     def check_prompt_model_required(
         tree: ast.AST,

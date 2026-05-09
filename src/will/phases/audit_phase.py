@@ -48,7 +48,6 @@ _WORKFLOW_ROUTING: dict[str, list[str]] = {
 }
 
 
-# ID: audit-phase-composite
 # ID: cc4b82ff-08c4-4b52-8fd8-73270e8724fd
 class AuditPhase:
     """

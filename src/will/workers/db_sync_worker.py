@@ -1,5 +1,4 @@
 # src/will/workers/db_sync_worker.py
-# ID: will.workers.db_sync_worker
 """
 DbSyncWorker - PostgreSQL Knowledge-Graph Sync Worker.
 

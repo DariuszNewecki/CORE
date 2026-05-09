@@ -1,5 +1,4 @@
 # src/will/workers/test_runner_sensor.py
-# ID: will.workers.test_runner_sensor
 """
 TestRunnerSensor - Post-Execution Test Verification Worker.
 

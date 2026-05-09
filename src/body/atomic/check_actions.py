@@ -1,5 +1,4 @@
 # src/body/atomic/check_actions.py
-# ID: atomic.check_actions
 """
 Atomic Check Actions - Constitutional Validation
 

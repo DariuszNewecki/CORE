@@ -1,5 +1,4 @@
 # src/will/workers/proposal_consumer_worker.py
-# ID: will.workers.proposal_consumer_worker
 """
 ProposalConsumerWorker - A3 Autonomous Proposal Execution Worker.
 
@@ -37,7 +36,7 @@ logger = getLogger(__name__)
 _CLAIM_LIMIT = 5  # Conservative — each proposal may touch multiple files
 
 
-# ID: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+# ID: aeb11b94-471b-4caf-a84f-faa28f0f40fd
 class ProposalConsumerWorker(Worker):
     """
     Acting worker. Polls for APPROVED proposals and executes them via
@@ -58,7 +57,7 @@ class ProposalConsumerWorker(Worker):
         super().__init__(declaration_name=declaration_name)
         self._ctx = core_context
 
-    # ID: b2c3d4e5-f6a7-8901-bcde-f12345678901
+    # ID: 362177ba-db94-496f-8f04-60074ec6014b
     async def run(self) -> None:
         """
         Poll for APPROVED proposals and execute them.

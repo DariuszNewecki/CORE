@@ -1,5 +1,4 @@
 # src/will/workers/doc_worker.py
-# ID: will.workers.doc_worker
 """
 DocWorker - Constitutional Documentation Sensing Worker.
 
@@ -42,7 +41,7 @@ _EXCLUDED_MODULE_PREFIXES = (
 )
 
 
-# ID: e5f6a7b8-c9d0-1e2f-3a4b-5c6d7e8f9012
+# ID: bce5bf66-5edc-45da-96ff-da175927ce1d
 class DocWorker(Worker):
     """
     Sensing worker. Detects symbols missing intent, generates accurate

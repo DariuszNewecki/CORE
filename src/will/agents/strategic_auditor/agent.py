@@ -58,7 +58,6 @@ def _resolve_workflow_type(value: str) -> str:
     return "full_feature_development"
 
 
-# ID: sa-strategic-auditor
 # ID: 752c04d3-2c98-4847-a256-1271ef60f6c4
 class StrategicAuditor(TracedAgentMixin):
     """
@@ -78,7 +77,6 @@ class StrategicAuditor(TracedAgentMixin):
         self._cognitive = cognitive_service
         self.tracer = DecisionTracer(context.path_resolver)
 
-    # ID: sa-run
     # ID: 694a9c0f-327b-45a8-873c-e318ce467335
     async def run(
         self,
@@ -133,7 +131,7 @@ class StrategicAuditor(TracedAgentMixin):
 
         return campaign
 
-    # ID: sa-reason
+    # ID: f07d7afc-cf61-425f-8adb-45581e566923
     async def _reason(self, system_context: dict[str, Any]) -> StrategicCampaign:
         """Send system context to LLM and parse the strategic campaign."""
         import json as _json
@@ -237,7 +235,7 @@ class StrategicAuditor(TracedAgentMixin):
             escalation_count=len(escalations),
         )
 
-    # ID: sa-persist
+    # ID: caca6ca5-bc71-4a2f-8204-8064cafae324
     async def _persist_campaign(
         self, session: AsyncSession, campaign: StrategicCampaign
     ) -> None:
@@ -298,7 +296,7 @@ class StrategicAuditor(TracedAgentMixin):
             campaign.escalation_count,
         )
 
-    # ID: sa-execute-autonomous
+    # ID: 69296627-b6ce-44d7-88e7-cd47d02517aa
     async def _execute_autonomous_tasks(
         self, session: AsyncSession, campaign: StrategicCampaign
     ) -> None:
@@ -334,7 +332,7 @@ class StrategicAuditor(TracedAgentMixin):
             )
             logger.info("    ? %s %s", "✅" if success else "❌", message)
 
-    # ID: sa-log-summary
+    # ID: eb28a664-23c1-4b84-84b8-e67ed158b364
     def _log_summary(self, campaign: StrategicCampaign) -> None:
         """Print human-readable campaign summary to console."""
         logger.info("")
@@ -378,7 +376,6 @@ class StrategicAuditor(TracedAgentMixin):
         logger.info("Campaign ID: %s", campaign.campaign_id)
         logger.info("=" * 70)
 
-    # ID: sa-format-machine
     # ID: 25cb5939-6994-4188-8ae5-4125da222cb8
     def format_machine(self, campaign: StrategicCampaign) -> dict[str, Any]:
         """Machine-readable campaign representation for LLM consumption or API."""

@@ -54,7 +54,6 @@ def _cosine_similarity(a: list[float], b: list[float]) -> float:
 # ---------------------------------------------------------------------------
 
 
-# ID: sa-context-gatherer
 # ID: 92a68530-9125-4393-8407-9c06c1333486
 class SystemContextGatherer:
     """
@@ -68,7 +67,6 @@ class SystemContextGatherer:
         self._ctx = context
         self._cognitive = cognitive_service
 
-    # ID: sa-gather-all
     # ID: 0a1b56cc-6a69-4425-bf2e-3b23a10b8f69
     async def gather(self, session: AsyncSession) -> dict[str, Any]:
         """Gather all six dimensions of system state."""
@@ -99,7 +97,7 @@ class SystemContextGatherer:
     # Dimension 1: Constitutional Health
     # -------------------------------------------------------------------------
 
-    # ID: sa-gather-constitutional-health
+    # ID: 7f9009c1-3314-4178-a3e7-a459d89bb1cc
     async def _gather_constitutional_health(
         self, session: AsyncSession
     ) -> list[dict[str, Any]]:
@@ -150,7 +148,7 @@ class SystemContextGatherer:
     # Dimension 2 + 6: Semantic Landscape & Intent Drift (single Qdrant scroll)
     # -------------------------------------------------------------------------
 
-    # ID: sa-gather-vector-dimensions
+    # ID: ccbbd73a-f52f-4021-a3be-4dddda9d328e
     async def _gather_vector_dimensions(
         self,
         session: AsyncSession,
@@ -190,7 +188,7 @@ class SystemContextGatherer:
         intent_drift = await self._compute_intent_drift(session, qdrant)
         return semantic_landscape, intent_drift
 
-    # ID: sa-compute-intent-drift
+    # ID: 2d9c9bec-4526-4f14-81a8-b95df611a260
     async def _compute_intent_drift(
         self,
         session: AsyncSession,
@@ -308,7 +306,7 @@ class SystemContextGatherer:
             ),
         }
 
-    # ID: sa-build-semantic-landscape
+    # ID: 84c7f5af-71f7-4cac-b2f2-84ede46ca631
     def _build_semantic_landscape(self, all_points: list) -> dict[str, Any]:
         """
         What concepts is CORE built from? (Dimension 2)
@@ -368,7 +366,7 @@ class SystemContextGatherer:
     # Dimension 3: Knowledge Gaps
     # -------------------------------------------------------------------------
 
-    # ID: sa-gather-knowledge-gaps
+    # ID: e0a7f13b-45ab-494a-8c6c-59e52d7fabfe
     async def _gather_knowledge_gaps(self, session: AsyncSession) -> dict[str, Any]:
         """
         Where is CORE blind to itself? (Dimension 3)
@@ -454,7 +452,7 @@ class SystemContextGatherer:
     # Dimension 4: Structural Health
     # -------------------------------------------------------------------------
 
-    # ID: sa-gather-structural-health
+    # ID: 88da309e-b3b7-4f99-a462-3bc5be65bf9c
     async def _gather_structural_health(self, session: AsyncSession) -> dict[str, Any]:
         """
         What does CORE contain? (Dimension 4)
@@ -524,7 +522,7 @@ class SystemContextGatherer:
     # Dimension 5: Change Context
     # -------------------------------------------------------------------------
 
-    # ID: sa-gather-change-context
+    # ID: 56a69daf-78a6-423d-9217-51e407c177f2
     def _gather_change_context(self, n_commits: int = 15) -> dict[str, Any]:
         """
         What is CORE becoming? (Dimension 5)
@@ -565,7 +563,7 @@ class SystemContextGatherer:
     # Constitution Summary (supporting data for the LLM)
     # -------------------------------------------------------------------------
 
-    # ID: sa-gather-constitution-summary
+    # ID: f5bdd0ce-63f8-4f26-b846-5ec50a3b2e07
     def _gather_constitution_summary(self) -> dict[str, Any]:
         """Read constitutional structure from .intent/ via IntentRepository."""
         from shared.infrastructure.intent.intent_repository import get_intent_repository

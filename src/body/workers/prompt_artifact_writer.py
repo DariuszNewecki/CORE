@@ -1,5 +1,4 @@
 # src/body/workers/prompt_artifact_writer.py
-# ID: body.workers.prompt_artifact_writer
 """
 PromptArtifactWriter - Constitutional Compliance Acting Worker.
 
@@ -39,7 +38,7 @@ _NON_ASCII_RE = re.compile(r"[^\x09\x0A\x0D\x20-\x7E]")
 _CLAIM_LIMIT = 25
 
 
-# ID: c3d4e5f6-a7b8-9012-cdef-123456789012
+# ID: facf4728-e072-41e5-8464-6440b7c27554
 class PromptArtifactWriter(Worker):
     """
     Acting worker. Claims open prompt.extraction findings from the blackboard,
@@ -61,7 +60,7 @@ class PromptArtifactWriter(Worker):
         super().__init__()
         self._core_context = core_context
 
-    # ID: d4e5f6a7-b8c9-0123-defa-234567890123
+    # ID: 8e7827db-4478-47f0-b458-c8879c76b8e4
     async def run(self) -> None:
         """
         Claim open extraction findings, generate PromptModel artifacts via

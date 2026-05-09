@@ -1,5 +1,4 @@
 # src/will/workers/proposal_worker.py
-# ID: will.workers.proposal_worker
 
 """
 AutonomousProposalWorker — A3 bridge between sensing and action.
@@ -51,7 +50,6 @@ _WORKFLOW_ACTIONS: dict[str, list[str]] = {
 }
 
 
-# ID: will.workers.proposal_worker.AutonomousProposalWorker
 # ID: 46d4fb89-4bd4-4c68-9086-a39e0563bb01
 class AutonomousProposalWorker(Worker):
     """
@@ -83,7 +81,6 @@ class AutonomousProposalWorker(Worker):
         # Config comes from the YAML declaration — stable, no external injection needed.
         self._config: dict[str, Any] = self._declaration.get("config", {})
 
-    # ID: will.workers.proposal_worker.run
     # ID: af0a5bb4-659d-4166-a0df-665f8186634a
     async def run(self) -> None:
         """Main entry point called by the Daemon scheduler."""

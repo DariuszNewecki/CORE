@@ -1,5 +1,4 @@
 # src/body/atomic/remediate_cognitive_role.py
-# ID: actions.remediate_cognitive_role
 """
 Atomic action for remediating ai.cognitive_role.no_hardcoded_string violations.
 

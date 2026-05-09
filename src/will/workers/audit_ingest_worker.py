@@ -1,5 +1,4 @@
 # src/will/workers/audit_ingest_worker.py
-# ID: will.workers.audit_ingest_worker
 """
 AuditIngestWorker - Constitutional Compliance Sensing Worker.
 
@@ -62,7 +61,7 @@ class AuditIngestWorker(Worker):
         super().__init__()
         self._core_context = core_context
 
-    # ID: b2c3d4e5-f6a7-8901-bcde-f12345678901
+    # ID: 101d7dc5-c889-4b28-bd47-0e4dcc1047cd
     async def run(self) -> None:
         """
         Run the constitutional auditor, filter findings for the target rule,

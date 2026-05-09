@@ -1,5 +1,4 @@
 # src/will/workers/test_coverage_sensor.py
-# ID: will.workers.test_coverage_sensor
 """
 TestCoverageSensor - Test Coverage Gap Sensing Worker.
 

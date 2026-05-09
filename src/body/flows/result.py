@@ -15,7 +15,6 @@ from typing import Any
 
 
 @dataclass
-# ID: flow-result-step-result
 # ID: 9553ab38-2830-4211-ba47-080671561054
 class StepResult:
     """
@@ -46,7 +45,6 @@ class StepResult:
 
 
 @dataclass
-# ID: flow-result-flow-result
 # ID: cbce2e91-8400-4e8a-ad1c-ff613bb4f771
 class FlowResult:
     """
@@ -77,7 +75,6 @@ class FlowResult:
     """Total wall-clock duration of the entire Flow."""
 
     @property
-    # ID: flow-result-data
     # ID: adf4ae60-a0b2-4253-9f9d-8d5ab97e375c
     def data(self) -> dict[str, Any]:
         """
@@ -104,14 +101,12 @@ class FlowResult:
         }
 
     @property
-    # ID: flow-result-failed-steps
     # ID: 14d32876-6fa9-490b-b5b4-7ab07c4b6445
     def failed_steps(self) -> list[StepResult]:
         """All steps that returned ok=False, required or not."""
         return [s for s in self.steps if not s.ok]
 
     @property
-    # ID: flow-result-failed-required-steps
     # ID: eaa00ab0-9388-42df-858a-6631cfb5d653
     def failed_required_steps(self) -> list[StepResult]:
         """Required steps that returned ok=False — these caused ok=False on the Flow."""

@@ -1,5 +1,4 @@
 # src/will/phases/canary_validation_phase.py
-# ID: will.phases.canary_validation_phase
 
 """
 Canary Validation Phase Implementation

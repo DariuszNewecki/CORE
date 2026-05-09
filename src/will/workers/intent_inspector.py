@@ -1,5 +1,4 @@
 # src/will/workers/intent_inspector.py
-# ID: will.workers.intent_inspector
 """
 IntentInspector - Constitutional Quality Sensing Worker.
 

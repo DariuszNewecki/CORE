@@ -1,5 +1,4 @@
 # src/shared/infrastructure/intent/task_type_phases.py
-# ID: shared.infrastructure.intent.task_type_phases
 """
 Task-type to governance-phase mapping helper.
 

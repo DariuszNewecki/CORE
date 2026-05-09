@@ -1,5 +1,4 @@
 # src/shared/ai/response_parser.py
-# ID: shared.ai.response_parser
 
 """
 response_parser — shared utility for parsing LLM responses.

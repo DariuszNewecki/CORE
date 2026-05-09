@@ -1,5 +1,4 @@
 # src/body/workers/doc_writer.py
-# ID: body.workers.doc_writer
 """
 DocWriter - Constitutional Documentation Acting Worker.
 

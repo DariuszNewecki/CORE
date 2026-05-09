@@ -1,5 +1,4 @@
 # src/cli/commands/daemon.py
-# ID: will.commands.daemon
 """
 Daemon Command - Background Worker Lifecycle Management.
 
@@ -137,7 +136,7 @@ def _instantiate_worker(
     return None
 
 
-# ID: c2d3e4f5-a6b7-8c9d-0e1f-2a3b4c5d6e7f
+# ID: ea1f2f3a-280e-4d88-a120-4b310a2ef31f
 async def _run_daemon() -> None:
     """
     Async entry point. Discovers all active workers from .intent/workers/,

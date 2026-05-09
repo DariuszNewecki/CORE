@@ -1,5 +1,4 @@
 # src/shared/infrastructure/intent/action_risk.py
-# ID: shared.infrastructure.intent.action_risk
 """
 Action-id to impact-level mapping helper.
 

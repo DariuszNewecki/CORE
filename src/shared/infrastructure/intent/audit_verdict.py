@@ -1,5 +1,4 @@
 # src/shared/infrastructure/intent/audit_verdict.py
-# ID: shared.infrastructure.intent.audit_verdict
 """
 Audit verdict policy loader.
 

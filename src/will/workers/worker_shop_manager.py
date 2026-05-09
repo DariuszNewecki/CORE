@@ -1,5 +1,4 @@
 # src/will/workers/worker_shop_manager.py
-# ID: will.workers.worker_shop_manager
 """
 WorkerShopManager - Worker Liveness Supervisory Worker.
 

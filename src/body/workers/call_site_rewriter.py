@@ -1,5 +1,4 @@
 # src/body/workers/call_site_rewriter.py
-# ID: body.workers.call_site_rewriter
 """
 CallSiteRewriter - Constitutional Compliance Acting Worker.
 

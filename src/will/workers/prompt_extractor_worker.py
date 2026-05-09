@@ -1,5 +1,4 @@
 # src/will/workers/prompt_extractor_worker.py
-# ID: will.workers.prompt_extractor_worker
 """
 PromptExtractorWorker - Constitutional Compliance Sensing Worker.
 
@@ -40,7 +39,7 @@ _CONTEXT_LINES = 40
 _CLAIM_LIMIT = 25
 
 
-# ID: b2c3d4e5-f6a7-8901-bcde-f12345678901
+# ID: 717bbc3b-80ca-48a1-b253-baa659a75fde
 class PromptExtractorWorker(Worker):
     """
     Sensing worker. Claims open ai.prompt.model_required findings from the
@@ -66,7 +65,7 @@ class PromptExtractorWorker(Worker):
         super().__init__()
         self._core_context = core_context
 
-    # ID: c3d4e5f6-a7b8-9012-cdef-123456789012
+    # ID: efdb0fef-91fa-4bcb-8eb9-b3dcf6aa9e5f
     async def run(self) -> None:
         """
         Claim unprocessed violation findings, extract prompts via LLM,

@@ -24,7 +24,6 @@ from shared.logger import getLogger
 logger = getLogger(__name__)
 
 
-# ID: flow-registry-step-kind
 # ID: 25e5756f-76ef-4c18-be17-5a98814d8e32
 class StepKind(str, Enum):
     """Whether a step references an AtomicAction or another Flow."""
@@ -34,7 +33,6 @@ class StepKind(str, Enum):
 
 
 @dataclass(frozen=True)
-# ID: flow-registry-flow-step
 # ID: 502f3080-f3e3-4b2c-909f-a1b25e9465b8
 class FlowStep:
     """
@@ -65,7 +63,6 @@ class FlowStep:
 
 
 @dataclass
-# ID: flow-registry-flow-definition
 # ID: 61668ef8-6327-45e6-9789-f1c738d2d410
 class FlowDefinition:
     """
@@ -92,7 +89,6 @@ class FlowDefinition:
     """The .intent/flows/*.yaml file this definition was loaded from."""
 
 
-# ID: flow-registry-registry
 # ID: a7feea5d-3278-4808-8655-3c72940e1eea
 class FlowRegistry:
     """
@@ -107,7 +103,6 @@ class FlowRegistry:
         self._flows: dict[str, FlowDefinition] = {}
         self._loaded: bool = False
 
-    # ID: flow-registry-load
     # ID: b09a007b-1a44-426f-a028-fcb2d524a0c0
     def load(self, flows_dir: Path) -> None:
         """
@@ -139,7 +134,7 @@ class FlowRegistry:
             flows_dir,
         )
 
-    # ID: flow-registry-load-file
+    # ID: a5974a87-eb95-4bef-bab1-e516b2b8faf5
     def _load_file(self, yaml_path: Path) -> None:
         """Parse and register a single flow declaration file."""
         try:
@@ -232,21 +227,19 @@ class FlowRegistry:
             yaml_path.name,
         )
 
-    # ID: flow-registry-get
     # ID: 4e4b68bd-978f-45f7-8b2e-62de5d97b1dc
     def get(self, flow_id: str) -> FlowDefinition | None:
         """Resolve a flow_id to its FlowDefinition. Returns None if not found."""
         self._ensure_loaded()
         return self._flows.get(flow_id)
 
-    # ID: flow-registry-list-all
     # ID: 6815a5ef-14d3-44cb-a555-657020b2398b
     def list_all(self) -> list[FlowDefinition]:
         """List all registered Flows."""
         self._ensure_loaded()
         return list(self._flows.values())
 
-    # ID: flow-registry-ensure-loaded
+    # ID: 2d422ecb-e161-4250-b2a3-5b09999d0f7a
     def _ensure_loaded(self) -> None:
         """Lazy-load from .intent/flows/ if not yet loaded."""
         if not self._loaded:

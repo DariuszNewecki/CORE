@@ -12,7 +12,6 @@ from dataclasses import dataclass, field
 from datetime import datetime
 
 
-# ID: sa-root-cause-cluster
 @dataclass
 # ID: 2ebdd1a6-3c94-4b49-8d61-00f8ed2ba976
 class RootCauseCluster:
@@ -39,7 +38,6 @@ class RootCauseCluster:
     """low / medium / high — how much does fixing this improve CORE?"""
 
 
-# ID: sa-campaign
 @dataclass
 # ID: 75de5708-f567-46e4-a350-bfadc21c6e19
 class StrategicCampaign:

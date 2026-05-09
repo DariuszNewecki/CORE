@@ -1,5 +1,4 @@
 # src/will/workers/test_remediator/__init__.py
-# ID: workers.test_remediator
 """
 TestRemediator package.
 

@@ -1,5 +1,4 @@
 # src/will/workers/observer_worker.py
-# ID: will.workers.observer_worker
 """
 ObserverWorker - System State Sensing Worker.
 

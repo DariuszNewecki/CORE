@@ -1,5 +1,4 @@
 # src/will/workers/violation_remediator_body/worker.py
-# ID: will.workers.violation_remediator_body
 """
 ViolationRemediator - Constitutional Compliance Acting Worker.
 
@@ -118,7 +117,6 @@ class ViolationRemediator(
         if caller_uuid is not None:
             self._worker_uuid = caller_uuid
 
-    # ID: vr-run-001
     # ID: 83141abe-9611-497f-a14c-29c5cf04d305
     async def run(self) -> None:
         """

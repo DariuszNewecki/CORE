@@ -52,7 +52,6 @@ _REQUIRED_INPUT_SUBFIELDS = {"required"}
 _REQUIRED_OUTPUT_SUBFIELDS = {"format"}
 
 
-# ID: artifact-gate-engine-001
 # ID: 69841a82-0920-480c-94cb-d5e4b6cb50dd
 class ArtifactGateEngine(BaseEngine):
     """
@@ -64,7 +63,6 @@ class ArtifactGateEngine(BaseEngine):
 
     engine_id = "artifact_gate"
 
-    # ID: artifact-gate-engine-002
     # ID: 46226873-bc5a-4258-b3c8-476b0cfc878a
     async def verify(self, file_path: Path, params: dict[str, Any]) -> EngineResult:
         """
@@ -121,7 +119,7 @@ class ArtifactGateEngine(BaseEngine):
     # Checks
     # -------------------------------------------------------------------------
 
-    # ID: artifact-gate-engine-003
+    # ID: 48ae4ead-2944-4c5a-8c8f-1423aad53497
     def _check_required_fields(
         self, file_path: Path, manifest: dict[str, Any]
     ) -> EngineResult:
@@ -153,7 +151,7 @@ class ArtifactGateEngine(BaseEngine):
 
         return self._result(file_path, violations, "required_fields")
 
-    # ID: artifact-gate-engine-004
+    # ID: 33aaf189-b193-4fd9-bf4f-951098928e29
     def _check_no_provider_leak(
         self, file_path: Path, manifest: dict[str, Any]
     ) -> EngineResult:
@@ -177,7 +175,7 @@ class ArtifactGateEngine(BaseEngine):
 
         return self._result(file_path, violations, "no_provider_leak")
 
-    # ID: artifact-gate-engine-005
+    # ID: b984e44a-819b-4bc7-a0d9-e4272757002c
     def _check_role_abstraction(
         self, file_path: Path, manifest: dict[str, Any]
     ) -> EngineResult:
