@@ -405,6 +405,28 @@ class ProposalExecutor:
                             cons_err,
                         )
 
+                    # Success-side mirror of §7a revival: flip findings
+                    # deferred to this proposal to 'resolved'. Failure of
+                    # the resolution step must not unwind completion.
+                    try:
+                        bb_service = await service_registry.get_blackboard_service()
+                        resolution = await bb_service.resolve_deferred_entries_for_completed_proposal(
+                            proposal.proposal_id
+                        )
+                        if resolution and resolution.get("resolved_count", 0) > 0:
+                            logger.info(
+                                "ProposalExecutor: resolved %d deferred finding(s) "
+                                "for completed proposal %s",
+                                resolution["resolved_count"],
+                                proposal.proposal_id,
+                            )
+                    except Exception as resolve_err:
+                        logger.warning(
+                            "Failed to resolve deferred findings for proposal %s: %s",
+                            proposal.proposal_id,
+                            resolve_err,
+                        )
+
                 else:
                     failed_actions = [
                         aid for aid, res in action_results.items() if not res["ok"]

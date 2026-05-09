@@ -914,3 +914,75 @@ class BlackboardService:
             "revived_finding_ids": revived_ids,
             "revived_subjects": revived_subjects,
         }
+
+    # ID: 90c7c05a-a380-4d5a-9b1e-a911c3ed5d02
+    async def resolve_deferred_entries_for_completed_proposal(
+        self, proposal_id: str
+    ) -> dict[str, Any] | None:
+        """
+        Mark findings deferred to a now-completed proposal as 'resolved'
+        and return the resolution outcome.
+
+        Success-side mirror of revive_findings_for_failed_proposal: flips
+        every finding whose payload.proposal_id matches *proposal_id* and
+        is still parked in 'deferred_to_proposal' to terminal 'resolved'
+        status, closing the §7-style finding↔proposal lifecycle.
+
+        The UPDATE filter restricts to status = 'deferred_to_proposal' so
+        findings that drifted elsewhere (abandoned, manually overridden)
+        are not retroactively re-terminalized. resolved_at is set per the
+        ADR-010 hygiene rule for terminal-state rows.
+
+        Unlike the failure-revival counterpart this method does not post
+        a downstream report: no new entry is created (only existing rows
+        are flipped), so the ADR-011 Worker-attribution rule does not
+        apply. The caller (ProposalExecutor) is therefore not required
+        to be a Worker subclass.
+
+        Returns:
+          None if no findings were resolved (resolved_count == 0) —
+          nothing to report.
+          dict with keys ``proposal_id``, ``resolved_count``,
+          ``resolved_finding_ids``, ``resolved_subjects`` when one or
+          more rows were resolved. Both id and subject lists are
+          returned — IDs for precise downstream queries, subjects for
+          human-readable audit trails.
+        """
+        from body.services.service_registry import ServiceRegistry
+
+        async with ServiceRegistry.session() as session:
+            async with session.begin():
+                update_result = await session.execute(
+                    text(
+                        """
+                        UPDATE core.blackboard_entries
+                        SET status = 'resolved',
+                            resolved_at = now(),
+                            updated_at = now()
+                        WHERE entry_type = 'finding'
+                          AND status = 'deferred_to_proposal'
+                          AND payload->>'proposal_id' = :proposal_id
+                        RETURNING id, subject
+                        """
+                    ),
+                    {"proposal_id": proposal_id},
+                )
+                rows = update_result.fetchall()
+                resolved_ids = [str(row[0]) for row in rows]
+                resolved_subjects = [str(row[1]) for row in rows]
+
+        logger.info(
+            "Resolved %d deferred finding(s) for completed proposal %s",
+            len(resolved_ids),
+            proposal_id,
+        )
+
+        if not resolved_ids:
+            return None
+
+        return {
+            "proposal_id": proposal_id,
+            "resolved_count": len(resolved_ids),
+            "resolved_finding_ids": resolved_ids,
+            "resolved_subjects": resolved_subjects,
+        }
