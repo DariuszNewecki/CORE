@@ -57,7 +57,7 @@ async def workers_blackboard_cmd(
     params: dict[str, object] = {}
     if filter:
         clauses.append("subject LIKE :subject_prefix")
-        params["subject_prefix"] = f"{filter}%"
+        params["subject_prefix"] = f"%{filter}%"
     if status:
         clauses.append("status = :status")
         params["status"] = status
