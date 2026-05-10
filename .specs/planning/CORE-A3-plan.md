@@ -122,6 +122,7 @@ Full rationale lives in each ADR file under `.specs/decisions/`. This table is t
 | ADR-032 | 2026-05-10 | Tighten `no_hardcoded_runtime_dirs` regex to path-construction context | Removed broad bare-string patterns; replaced with path-division-context pattern — 15 false positives eliminated, 25 true violations confirmed. |
 | ADR-032+ | 2026-05-10 | Band D infrastructure hardening | #273 approve rowcount, #274 Unicode sanitization, #275 execution_results key collision, #270 FileService resolve, #276 fix.path_resolver Form 1 — all closed. |
 | ADR-033 | 2026-05-10 | Flow→step parameter routing contract | `consumes: tuple[str, ...] \| None` added to `FlowStep`; `FlowExecutor._execute_step` filters caller params to declared keys only; CORE-Flow.md §6 extended with Parameter Routing subsection. Closes #216, unblocks #215. |
+| ADR-034 | 2026-05-10 | OptimizerWorker formal deferral | OptimizerWorker implementation deferred until VE accumulates ≥20 discovery candidates across ≥5 rule namespaces; review trigger codified; F-18 closed; #115 retained as implementation epic. |
 
 ---
 

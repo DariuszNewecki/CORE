@@ -458,6 +458,19 @@ Daemon restarted to pick up the new mapping.
 
 ---
 
+## ADR-034 — 2026-05-10
+
+OptimizerWorker formally deferred. Constitutional coherence finding F-18
+(2026-04-28 audit) closed. Deferral locked as a dated constitutional
+decision rather than a paper status line. Review triggers: ≥20 VE-discovered
+action candidates across ≥5 rule namespaces, or 12 months elapsed from
+2026-05-10. `CORE-OptimizerWorker.md` §3 status transitions to "Formally
+Deferred (ADR-034)". GitHub #115 retained as the implementation epic;
+#246 closed.
+Files: `.specs/decisions/ADR-034-optimizer-worker-formal-deferral.md`.
+
+---
+
 ## Notes
 
 * This changelog intentionally avoids implementation detail
