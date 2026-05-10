@@ -59,7 +59,14 @@ class HealthLogService:
                     """
                     SELECT COUNT(*) FROM core.blackboard_entries
                     WHERE entry_type = 'finding'
-                      AND status NOT IN ('resolved', 'abandoned')
+                      AND status NOT IN (
+                          'resolved',
+                          'abandoned',
+                          'suppressed',
+                          'dry_run_complete',
+                          'deferred_to_proposal',
+                          'indeterminate'
+                      )
                     """
                 )
             )
@@ -69,7 +76,14 @@ class HealthLogService:
                 text(
                     """
                     SELECT COUNT(*) FROM core.blackboard_entries
-                    WHERE status NOT IN ('resolved', 'abandoned')
+                    WHERE status NOT IN (
+                          'resolved',
+                          'abandoned',
+                          'suppressed',
+                          'dry_run_complete',
+                          'deferred_to_proposal',
+                          'indeterminate'
+                      )
                       AND created_at < now() - make_interval(secs => :threshold)
                     """
                 ),

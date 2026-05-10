@@ -72,7 +72,14 @@ class BlackboardService:
                     SELECT subject FROM core.blackboard_entries
                     WHERE entry_type = 'finding'
                       AND subject LIKE :prefix
-                      AND status NOT IN ('resolved', 'abandoned', 'suppressed')
+                      AND status NOT IN (
+                          'resolved',
+                          'abandoned',
+                          'suppressed',
+                          'dry_run_complete',
+                          'deferred_to_proposal',
+                          'indeterminate'
+                      )
                     """
                 ),
                 {"prefix": prefix},
@@ -177,7 +184,14 @@ class BlackboardService:
                     WHERE worker_uuid = :worker_uuid
                       AND entry_type = 'finding'
                       AND subject LIKE :prefix
-                      AND status NOT IN ('resolved', 'abandoned', 'suppressed')
+                      AND status NOT IN (
+                          'resolved',
+                          'abandoned',
+                          'suppressed',
+                          'dry_run_complete',
+                          'deferred_to_proposal',
+                          'indeterminate'
+                      )
                     """
                 ),
                 {"worker_uuid": worker_uuid, "prefix": prefix},
@@ -286,7 +300,14 @@ class BlackboardService:
                 text(
                     """
                     SELECT COUNT(*) FROM core.blackboard_entries
-                    WHERE status NOT IN ('resolved', 'abandoned', 'suppressed')
+                    WHERE status NOT IN (
+                        'resolved',
+                        'abandoned',
+                        'suppressed',
+                        'dry_run_complete',
+                        'deferred_to_proposal',
+                        'indeterminate'
+                    )
                     """
                 )
             )

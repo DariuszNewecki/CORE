@@ -62,7 +62,14 @@ _INCOHERENCE_QUERY = text(
         AND f_new.entry_type  = 'finding'
         AND f_new.created_at  > pc.recorded_at
         AND f_new.id          != f_old.id
-        AND f_new.status NOT IN ('resolved', 'abandoned')
+        AND f_new.status NOT IN (
+            'resolved',
+            'abandoned',
+            'suppressed',
+            'dry_run_complete',
+            'deferred_to_proposal',
+            'indeterminate'
+        )
     WHERE pc.recorded_at > NOW() - (:lookback * INTERVAL '1 second')
       AND pc.findings_resolved IS NOT NULL
       AND jsonb_array_length(pc.findings_resolved) > 0
