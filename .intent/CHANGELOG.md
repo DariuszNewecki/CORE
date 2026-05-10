@@ -415,12 +415,6 @@ Files: `.intent/enforcement/mappings/architecture/path_access.yaml`,
 
 ---
 
-## Notes
-
-* This changelog intentionally avoids implementation detail
-* No legacy compatibility is implied
-* Silence on future versions is intentional
-
 ## [ADR-023 Part 3/4] — 2026-05-10
 
 Rules `governance.vocabulary.projection_must_match_canonical`,
@@ -431,3 +425,41 @@ from declared-only to enforcing. `artifact_gate` engine now implements
 `vocabulary_authoritative_paths` check_types. All three fire correctly on
 known-violation fixtures. Governed-root check uses `.specs/` + `.intent/`
 per the rule file statement (wider than D5's original `.specs/papers/`).
+
+---
+
+## ADR-033 — 2026-05-10
+
+Flow→step parameter routing contract. `FlowStep` gains `consumes:
+tuple[str, ...] | None` — None (absent from YAML) means no caller
+params forwarded to this step; a tuple is an explicit whitelist of
+forwarded keys. `FlowExecutor._execute_step` replaces the unconditional
+caller-param merge with a filtered merge gated on `step.consumes`.
+Static `step.params` always pass through regardless. `FlowRegistry._load_file`
+parses the `consumes` key from YAML step declarations. `CORE-Flow.md §6`
+gains a Parameter Routing subsection stating the contract.
+Files: `src/body/flows/registry.py`, `src/body/flows/executor.py`,
+`.specs/papers/CORE-Flow.md`, `.specs/decisions/ADR-033-flow-step-parameter-routing-contract.md`.
+
+---
+
+## 2026-05-10 — proposals show logger→console; workflow.ruff_format_check mapped
+
+`src/cli/logic/autonomy/views.py`: `print_detailed_info` and
+`print_execution_summary` replaced `logger.info()` with `console.print()`
+throughout. Rich markup now renders correctly in terminal output. Unused
+`logger` removed; import order corrected.
+
+`.intent/enforcement/remediation/auto_remediation.yaml`: added
+`workflow.ruff_format_check → fix.format` (Tier 1, confidence 0.92, risk low).
+Gap surfaced when the views.py fix introduced a ruff formatting finding that
+the daemon could not route autonomously — the rule ID had no map entry.
+Daemon restarted to pick up the new mapping.
+
+---
+
+## Notes
+
+* This changelog intentionally avoids implementation detail
+* No legacy compatibility is implied
+* Silence on future versions is intentional

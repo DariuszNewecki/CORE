@@ -32,7 +32,7 @@ A3 is a state. These four gates define the state. A3 is claimable when all four 
 | **G1 — Loop closure** | An autonomous fix lands end-to-end on a non-synthetic example: finding detected → proposal created → proposal approved → execution succeeded → re-audit confirms resolution. Single clean run is the minimum. | ✅ Demonstrated — completed round-trips observed live on `core.autonomous_proposals` via the proposal-consequence path; `approval_required=false` on safe actions correctly bypasses the pending/approved lane. |
 | **G2 — Convergence** | Sustained state where rate of finding resolution exceeds rate of finding creation. Per the Convergence Principle, this is the fundamental operational metric — it is what makes "governed autonomy" truthful rather than aspirational. | ⚠️ Measurement unblocked (2026-05-09). Blackboard noise cleared, consequence chain completion path fixed (#260). Sustained convergence window pending — observation across multiple days required. #161 direction label suppressed pending multi-day window. |
 | **G3 — Consequence chain** | Finding → Proposal → Approval → Execution → File changes → New findings is continuously materialized as a queryable causality chain. Required for regulated environments, autonomous debugging, and for a non-programmer governor to trust the system without reading code. | ✅ Closed 2026-05-01. All six edges delivered. Epic #110 closed; Band B milestone 14 closed. |
-| **G4 — Governance in `.intent/`** | No enforcement logic, path mappings, policy thresholds, or governance decisions live in `src/`. All of it lives in `.intent/` (or, for human-intent documents, `.specs/`). This is the claim that makes the "non-programmer governor" role coherent. | 🔄 In progress. Known leaks: path mappings embedded in some sensor/action code; `action_executor` usage unguarded in some Body workers; `impact_level` in `@register_action` decorators (ADR-008 parked, debt in ADR-014). ADR-031 (2026-05-09): hardcoded runtime directory paths (`logs/`, `reports/`) discovered as fourth G4 leak category; rule `architecture.path_access.no_hardcoded_runtime_dirs` authored (regex_gate, blocking); leverage roots (config.py, file_service.py, path_utils.py) manually fixed; `fix.path_resolver` atomic action built (deterministic AST transformer, no LLM) and mapped in `auto_remediation.yaml`; proposal #98aed243 executed; fix.path_resolver action delivered; no_hardcoded_runtime_dirs now at 0 violations (2026-05-10); ProposalMapper `flow_id` serialization bug fixed. |
+| **G4 — Governance in `.intent/`** | No enforcement logic, path mappings, policy thresholds, or governance decisions live in `src/`. All of it lives in `.intent/` (or, for human-intent documents, `.specs/`). This is the claim that makes the "non-programmer governor" role coherent. | 🔄 In progress. Known resolved leaks (2026-05-10): path mappings in sensor/action code now route through governed helper (`shared.infrastructure.intent.test_coverage_paths`); hardcoded runtime directory paths at 0 violations (ADR-031/032); flow parameter routing contract governed via `FlowStep.consumes` (ADR-033); `action_executor` JIT guards in `vectorization_phase.py` and `call_site_rewriter.py` are dead code — bootstrap already injects `action_executor` at composition root (ADR-025). Remaining known leak: `impact_level` in `@register_action` decorators (ADR-008 parked, debt in ADR-014). |
 
 **Gate coupling:** G1 cannot be *proved* without G3 (you can't demonstrate the loop closed without the chain). G2 cannot be *measured* without G1 (no resolution rate without autonomous resolution). G4 is orthogonal but load-bearing: it is the reason a non-programmer can operate the system, and without it the other three gates describe a system that still requires its author.
 
@@ -58,8 +58,10 @@ All seven audit sensors active.
 Remaining Phase 3 work tracked on GitHub under Band D — Engine Integrity:
 https://github.com/DariuszNewecki/CORE/milestone/16
 
-### Phase 4 — CLI Health ⬜
-Not started. Tracked items captured as GitHub issues.
+Band D is nearly complete. One open issue remains: #277 (pre-commit hook). All other Band D items closed as of 2026-05-10.
+
+### Phase 4 — CLI Health 🔄
+First item active: `proposals show` logger bug — `src/cli/logic/autonomy/views.py` uses `logger.info()` with Rich markup throughout `print_detailed_info` and `print_execution_summary`; a `Console` is imported but unused for these calls. Fix: route output through the existing `Console` instance; strip markup from logger calls.
 
 ### Phase 5 — Visibility ✅
 G3 closed 2026-05-01. Consequence chain materialized end-to-end. Band B milestone 14 closed.
@@ -119,6 +121,7 @@ Full rationale lives in each ADR file under `.specs/decisions/`. This table is t
 | ADR-031 | 2026-05-09 | No hardcoded runtime directory paths | Runtime output dirs (`logs/`, `reports/`) must resolve through PathResolver; direct string literal construction in `src/` is a blocking violation. 40 findings surfaced; leverage roots at #268. |
 | ADR-032 | 2026-05-10 | Tighten `no_hardcoded_runtime_dirs` regex to path-construction context | Removed broad bare-string patterns; replaced with path-division-context pattern — 15 false positives eliminated, 25 true violations confirmed. |
 | ADR-032+ | 2026-05-10 | Band D infrastructure hardening | #273 approve rowcount, #274 Unicode sanitization, #275 execution_results key collision, #270 FileService resolve, #276 fix.path_resolver Form 1 — all closed. |
+| ADR-033 | 2026-05-10 | Flow→step parameter routing contract | `consumes: tuple[str, ...] \| None` added to `FlowStep`; `FlowExecutor._execute_step` filters caller params to declared keys only; CORE-Flow.md §6 extended with Parameter Routing subsection. Closes #216, unblocks #215. |
 
 ---
 
