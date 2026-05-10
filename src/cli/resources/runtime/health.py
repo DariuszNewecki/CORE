@@ -344,10 +344,77 @@ async def _query_dashboard_data(session: Any) -> dict[str, Any]:
             {"cutoff": cutoff_24h},
         )
     ).fetchone()
+
+    # Trajectory metric (#261): compare current open_findings against the
+    # value from ~6 hours ago using the existing system_health_log series.
+    # Backlog-trend, not flow-noise — converges/diverges if the open set
+    # is shrinking/growing across the window.
+    trajectory_lookback_hours = 6
+    log_count_row = (
+        await session.execute(
+            text("SELECT COUNT(*) AS cnt FROM core.system_health_log"),
+        )
+    ).fetchone()
+    log_count = log_count_row.cnt if log_count_row else 0
+
+    trajectory: dict[str, Any]
+    if log_count >= 2:
+        current_row = (
+            await session.execute(
+                text("""
+                SELECT observed_at, open_findings
+                FROM core.system_health_log
+                ORDER BY observed_at DESC
+                LIMIT 1
+                """),
+            )
+        ).fetchone()
+        prior_row = (
+            await session.execute(
+                text("""
+                SELECT observed_at, open_findings
+                FROM core.system_health_log
+                ORDER BY ABS(
+                    EXTRACT(EPOCH FROM (
+                        observed_at - (now() - make_interval(hours => :hours))
+                    ))
+                )
+                LIMIT 1
+                """),
+                {"hours": trajectory_lookback_hours},
+            )
+        ).fetchone()
+        current_open = current_row.open_findings
+        prior_open = prior_row.open_findings
+        delta = current_open - prior_open
+        if delta < 0:
+            direction = "converging"
+        elif delta > 0:
+            direction = "diverging"
+        else:
+            direction = "stable"
+        trajectory = {
+            "current": current_open,
+            "prior": prior_open,
+            "delta": delta,
+            "lookback_hours": trajectory_lookback_hours,
+            "direction": direction,
+        }
+    else:
+        # 0 or 1 rows in the health log — no usable backlog comparison yet.
+        trajectory = {
+            "current": None,
+            "prior": None,
+            "delta": None,
+            "lookback_hours": trajectory_lookback_hours,
+            "direction": "insufficient-data",
+        }
+
     data["convergence"] = {
         "created": row.created_24h if row else 0,
         "resolved": row.resolved_24h if row else 0,
         "total_open": row.total_open if row else 0,
+        "trajectory": trajectory,
     }
 
     # --- Panel 2: Governor Inbox ---
@@ -530,25 +597,37 @@ def _build_panels(data: dict[str, Any]) -> list[Panel]:
     panels: list[Panel] = []
 
     # --- Panel 1: Convergence Direction ---
-    # The 24h create-vs-resolve flow comparison is not a usable convergence
-    # metric: per-cycle sensor churn (notably audit.violation, ~42/hour with
-    # sub-5-minute lifetimes) dominates both counters and produces
-    # phase-dependent noise rather than a feedback-control signal. Diagnosed
-    # in #161; the panel is retained as a placeholder until a churn-resistant
-    # convergence metric grounded in open-set trajectory is designed.
+    # Backlog-trend metric: compares current total open findings against the
+    # value from ~lookback_hours ago in the system_health_log series.
+    # Shrinking open set = converging; growing = diverging; unchanged = stable.
     try:
-        c = data["convergence"]
-        created, resolved, total_open = c["created"], c["resolved"], c["total_open"]
+        traj = data["convergence"]["trajectory"]
+        direction = traj["direction"]
+        current = traj["current"]
+        prior = traj["prior"]
+        delta = traj["delta"]
+        lookback = traj["lookback_hours"]
+
+        direction_meta = {
+            "converging": ("green", "Converging ↓"),
+            "diverging": ("red", "Diverging ↑"),
+            "stable": ("amber", "Stable →"),
+            "insufficient-data": ("grey", "Insufficient data"),
+        }
+        signal, headline = direction_meta.get(direction, ("grey", "Insufficient data"))
+
         panels.append(
             _make_panel(
                 "Convergence Direction",
-                "grey",
-                "Net direction: not-yet-meaningful (see #161)",
+                signal,
+                headline,
                 [
-                    ("Created (24h)", str(created)),
-                    ("Resolved (24h)", str(resolved)),
-                    ("Net", f"{resolved - created:+d}"),
-                    ("Total open findings", str(total_open)),
+                    ("Open now", str(current) if current is not None else "—"),
+                    (
+                        f"Open {lookback}h ago",
+                        str(prior) if prior is not None else "—",
+                    ),
+                    ("Delta", f"{delta:+d}" if delta is not None else "—"),
                 ],
             )
         )
@@ -729,17 +808,35 @@ def _render_dashboard_rich(data: dict[str, Any]) -> None:
 def _render_dashboard_plain(data: dict[str, Any]) -> None:
     logger.info("=== CORE Governor Dashboard ===\n")
 
-    # Panel 1: Convergence
-    # See _build_panels for rationale — direction comparison is not a
-    # usable metric until a churn-resistant convergence signal is
-    # designed (#161).
+    # Panel 1: Convergence — backlog trajectory over the lookback window.
     try:
-        c = data["convergence"]
+        traj = data["convergence"]["trajectory"]
+        direction_label = {
+            "converging": "Converging (↓)",
+            "diverging": "Diverging (↑)",
+            "stable": "Stable (→)",
+            "insufficient-data": "Insufficient data",
+        }.get(traj["direction"], "Insufficient data")
+
+        current = traj["current"]
+        prior = traj["prior"]
+        delta = traj["delta"]
+        lookback = traj["lookback_hours"]
+
         logger.info("-- Convergence Direction --")
-        logger.info("  created_24h:  %s", c["created"])
-        logger.info("  resolved_24h: %s", c["resolved"])
-        logger.info("  direction:    not-yet-meaningful (see #161)")
-        logger.info("  total_open:   %s", c["total_open"])
+        logger.info("  direction:        %s", direction_label)
+        logger.info(
+            "  open_now:         %s", str(current) if current is not None else "—"
+        )
+        logger.info(
+            "  open_%dh_ago:      %s",
+            lookback,
+            str(prior) if prior is not None else "—",
+        )
+        logger.info(
+            "  delta:            %s",
+            f"{delta:+d}" if delta is not None else "—",
+        )
     except Exception:
         logger.info("-- Convergence Direction: UNKNOWN --")
 
