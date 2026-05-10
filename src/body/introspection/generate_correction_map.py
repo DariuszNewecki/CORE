@@ -21,6 +21,7 @@ import yaml
 from shared.exceptions import CoreError
 from shared.infrastructure.storage.file_handler import FileHandler
 from shared.logger import getLogger
+from shared.path_resolver import PathResolver
 
 
 logger = getLogger(__name__)
@@ -33,13 +34,20 @@ class GenerateCorrectionMapError(CoreError):
 
 # ID: 58cc1c15-5bd9-401e-9bf2-8b64d1550631
 def generate_maps(
-    input_path: Path | str = Path("reports/proposed_domains.json"),
-    output: Path | str = Path("reports/aliases.yaml"),
+    input_path: Path | str | None = None,
+    output: Path | str | None = None,
     repo_root: Path | None = None,
 ) -> None:
     """
     Generates an alias map from clustering results to a YAML file via FileHandler.
     """
+    if repo_root is None:
+        raise ValueError("repo_root is required")
+    path_resolver = PathResolver.from_repo(repo_root)
+    if input_path is None:
+        input_path = path_resolver.reports_dir / "proposed_domains.json"
+    if output is None:
+        output = path_resolver.reports_dir / "aliases.yaml"
     input_path = Path(input_path)
     output_path = Path(output)
 
@@ -56,8 +64,6 @@ def generate_maps(
     alias_map = {"aliases": proposed_domains}
     content_str = yaml.dump(alias_map, indent=2, sort_keys=True)
 
-    if repo_root is None:
-        raise ValueError("repo_root is required")
     file_handler = FileHandler(str(repo_root))
 
     try:

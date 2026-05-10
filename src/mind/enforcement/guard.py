@@ -12,6 +12,7 @@ from typing import Any
 import yaml
 
 from shared.logger import getLogger
+from shared.path_resolver import PathResolver
 
 
 logger = getLogger(__name__)
@@ -40,12 +41,17 @@ def _ux_defaults(root: Path, explicit: Path | None) -> dict[str, Any]:
     """Extracts and returns UX-related default values from the manifest."""
     raw = _load_raw_manifest(root, explicit)
     ux = raw.get("operator_experience", {}).get("guard", {}).get("drift", {})
+    default_evidence_path = str(
+        (PathResolver.from_repo(root).reports_dir / "drift_report.json").relative_to(
+            root
+        )
+    )
     return {
         "default_format": ux.get("default_format", "json"),
         "default_fail_on": ux.get("default_fail_on", "any"),
         "strict_default": bool(ux.get("strict_default", False)),
         "evidence_json": bool(ux.get("evidence_json", True)),
-        "evidence_path": ux.get("evidence_path", "reports/drift_report.json"),
+        "evidence_path": ux.get("evidence_path", default_evidence_path),
         "labels": ux.get(
             "labels",
             {

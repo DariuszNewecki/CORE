@@ -11,6 +11,8 @@ Registers the top-level 'db' command group for managing the CORE operational dat
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import typer
 import yaml
 from sqlalchemy import text
@@ -23,6 +25,7 @@ from shared.infrastructure.repositories.db.migration_service import (
 )
 from shared.infrastructure.storage.file_handler import FileHandler
 from shared.logger import getLogger
+from shared.path_resolver import PathResolver
 
 from .sync_domains import sync_domains
 
@@ -62,7 +65,7 @@ async def _export_domains(file_handler: FileHandler):
     )
 
 
-async def _export_vector_metadata(file_handler: FileHandler):
+async def _export_vector_metadata(file_handler: FileHandler, repo_root: Path):
     """Fetches vector metadata from the DB and writes it to a report."""
     logger.info("Exporting vector metadata from database to YAML...")
     async with get_session() as session:
@@ -81,7 +84,12 @@ async def _export_vector_metadata(file_handler: FileHandler):
             vector_data.append(row_dict)
 
     content_str = yaml.dump(vector_data, indent=2, sort_keys=False)
-    rel_path = "reports/vector_metadata_export.yaml"
+    rel_path = str(
+        (
+            PathResolver.from_repo(repo_root).reports_dir
+            / "vector_metadata_export.yaml"
+        ).relative_to(repo_root)
+    )
 
     file_handler.write_runtime_text(rel_path, content_str)
 
@@ -105,7 +113,7 @@ async def export_data(ctx: typer.Context) -> None:
     file_handler = FileHandler(str(core_context.git_service.repo_path))
 
     await _export_domains(file_handler)
-    await _export_vector_metadata(file_handler)
+    await _export_vector_metadata(file_handler, core_context.git_service.repo_path)
     logger.info("Export complete.")
 
 

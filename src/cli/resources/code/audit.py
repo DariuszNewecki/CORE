@@ -36,17 +36,13 @@ from mind.governance.filtered_audit import run_filtered_audit
 from shared.activity_logging import activity_run
 from shared.logger import getLogger
 from shared.models import AuditFinding, AuditSeverity
+from shared.path_resolver import PathResolver
 
 from .hub import app
 
 
 console = Console()
 logger = getLogger(__name__)
-
-FINDINGS_FILE = "reports/audit_findings.json"
-EVIDENCE_FILE = "reports/audit/latest_audit.json"
-IGNORED_REPORT_MD = "reports/audit_auto_ignored.md"
-IGNORED_REPORT_JSON = "reports/audit_auto_ignored.json"
 
 
 def _to_audit_finding(raw: dict | AuditFinding) -> AuditFinding:
@@ -89,8 +85,25 @@ async def audit_command(
     """Run the constitutional self-audit."""
     min_severity = parse_min_severity(severity)
     core_context = ctx.obj
-    file_service = FileService(core_context.git_service.repo_path)
-    file_service.ensure_dir("reports/audit")
+    repo_root = core_context.git_service.repo_path
+    path_resolver = PathResolver.from_repo(repo_root)
+    findings_file = str(
+        (path_resolver.reports_dir / "audit_findings.json").relative_to(repo_root)
+    )
+    evidence_file = str(
+        (path_resolver.reports_dir / "audit" / "latest_audit.json").relative_to(
+            repo_root
+        )
+    )
+    ignored_report_md = str(
+        (path_resolver.reports_dir / "audit_auto_ignored.md").relative_to(repo_root)
+    )
+    ignored_report_json = str(
+        (path_resolver.reports_dir / "audit_auto_ignored.json").relative_to(repo_root)
+    )
+    audit_subdir = str((path_resolver.reports_dir / "audit").relative_to(repo_root))
+    file_service = FileService(repo_root)
+    file_service.ensure_dir(audit_subdir)
 
     with activity_run("constitutional_audit") as run:
         async with service_registry.session() as session:
@@ -139,14 +152,14 @@ async def audit_command(
         if not (rule or policy):
             # Write Main Findings
             file_service.write_file(
-                FINDINGS_FILE, json.dumps(processed_findings, indent=2)
+                findings_file, json.dumps(processed_findings, indent=2)
             )
 
             # Write Ignored Reports (Body uses Mind's string builder)
             md_content = build_auto_ignored_markdown(timestamp_str, ignored_data)
-            file_service.write_file(IGNORED_REPORT_MD, md_content)
+            file_service.write_file(ignored_report_md, md_content)
             file_service.write_runtime_json(
-                IGNORED_REPORT_JSON,
+                ignored_report_json,
                 {"generated_at": timestamp_str, "items": ignored_data},
             )
 
@@ -159,7 +172,7 @@ async def audit_command(
                 "executed_rules": sorted(list(results["executed_rule_ids"])),
                 "verdict": verdict_str,
             }
-            file_service.write_file(EVIDENCE_FILE, json.dumps(evidence, indent=2))
+            file_service.write_file(evidence_file, json.dumps(evidence, indent=2))
 
             # Persist run to core.audit_runs (best-effort; never aborts the
             # CLI on failure). Dashboard Panel 4 reads this table — without

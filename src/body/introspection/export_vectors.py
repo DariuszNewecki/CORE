@@ -18,6 +18,7 @@ from qdrant_client.http import models as qm
 # REFACTORED: Removed direct settings import
 from shared.exceptions import CoreError
 from shared.logger import getLogger
+from shared.path_resolver import PathResolver
 
 
 if TYPE_CHECKING:
@@ -108,9 +109,14 @@ async def _async_export(
 
 # ID: 9d8d50b8-b533-4169-b21f-839a06db1f46
 async def export_vectors(
-    context: CoreContext, output: Path | str = Path("reports/vectors_export.jsonl")
+    context: CoreContext, output: Path | str | None = None
 ) -> None:
     """Exports all vectors from Qdrant to a JSONL file via governed services."""
+    if output is None:
+        output = (
+            PathResolver.from_repo(context.git_service.repo_path).reports_dir
+            / "vectors_export.jsonl"
+        )
     output_path = Path(output)
     if not getattr(context, "qdrant_service", None) or not getattr(
         context, "file_handler", None

@@ -16,6 +16,7 @@ from typing import Any
 from mind.governance.audit_context import AuditorContext
 from mind.governance.enforcement_loader import EnforcementMappingLoader
 from mind.logic.engines.ast_gate import ASTGateEngine
+from shared.path_resolver import PathResolver
 
 
 def _extract_rules_from_policy(content: dict[str, Any]) -> list[dict[str, Any]]:
@@ -108,7 +109,9 @@ def generate_coverage_map(repo_root: Path) -> dict[str, Any]:
     """
     Generates the coverage map by joining JSON Rules with YAML Mappings.
     """
-    evidence_file = repo_root / "reports/audit/latest_audit.json"
+    evidence_file = (
+        PathResolver.from_repo(repo_root).reports_dir / "audit" / "latest_audit.json"
+    )
     if not evidence_file.exists():
         executed_ids = set()
     else:
@@ -200,7 +203,11 @@ def generate_coverage_map(repo_root: Path) -> dict[str, Any]:
 
 # ID: de089263-22f0-4548-996f-27bb2f4a2dd2
 def ensure_coverage_map(repo_root: Path, file_handler: Any) -> Path:
-    map_path = repo_root / "reports/governance/enforcement_coverage_map.json"
+    map_path = (
+        PathResolver.from_repo(repo_root).reports_dir
+        / "governance"
+        / "enforcement_coverage_map.json"
+    )
 
     # Force regeneration to reflect recent V2.3 mapping updates
     data = generate_coverage_map(repo_root)

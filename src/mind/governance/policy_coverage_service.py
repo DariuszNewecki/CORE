@@ -61,7 +61,7 @@ class PolicyCoverageService:
     def __init__(self, path_resolver: PathResolver):
         self._paths = path_resolver
         self.repo_root: Path = self._paths.repo_root
-        self.evidence_path = self.repo_root / "reports/audit/latest_audit.json"
+        self.evidence_path = self._paths.reports_dir / "audit" / "latest_audit.json"
 
         # Load evidence of what actually ran
         self.executed_rules = self._load_audit_evidence()
