@@ -45,12 +45,15 @@ class FileService:
         Args:
             repo_path: Repository root path
         """
-        self.repo_path = repo_path
-        self.reports_dir = PathResolver.from_repo(repo_path).reports_dir
+        # Resolve up front so relative_to() against PathResolver-derived paths
+        # (which resolve internally) cannot raise ValueError on symlinked or
+        # otherwise unresolved input. See #270.
+        self.repo_path = Path(repo_path).resolve()
+        self.reports_dir = PathResolver.from_repo(self.repo_path).reports_dir
 
         # Create FileHandler instance for all operations
-        self._file_handler = FileHandler(str(repo_path))
-        logger.debug("FileService initialized for %s", repo_path)
+        self._file_handler = FileHandler(str(self.repo_path))
+        logger.debug("FileService initialized for %s", self.repo_path)
 
     # ========================================================================
     # EXISTING METHODS (kept for backward compatibility)
