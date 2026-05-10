@@ -5,7 +5,6 @@ Uses local LLM intelligence to safely remove unused variables and functions
 identified by the Vulture static analyser.
 
 V2.7 FIX:
-- Removed hardcoded: repo_root / "reports" / "audit_findings.json"
 - Evidence path now resolved via PathResolver.audit_findings_path.
 """
 

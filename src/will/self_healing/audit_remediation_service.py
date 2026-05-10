@@ -12,7 +12,6 @@ Constitutional alignment:
 
 V2.7 FIX:
 - _default_findings_path() now uses PathResolver.audit_findings_processed_path.
-- Removed hardcoded: self.repo_root / "reports" / "audit_findings.processed.json"
 """
 
 from __future__ import annotations
@@ -147,10 +146,7 @@ class AuditRemediationService:
 
     # ID: e8a9b0c1-d2e3-4567-efab-888888888888
     def _default_findings_path(self) -> Path:
-        """
-        Returns the canonical processed findings path via PathResolver.
-        Replaces: self.repo_root / "reports" / "audit_findings.processed.json"
-        """
+        """Return the canonical processed findings path via PathResolver."""
         return self._path_resolver.audit_findings_processed_path
 
     # ID: f9b0c1d2-e3f4-5678-fabc-999999999999

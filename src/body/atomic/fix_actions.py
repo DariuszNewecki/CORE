@@ -545,9 +545,8 @@ def _is_target_constant(node: Any) -> bool:
 def _has_target_descendant(node: Any) -> bool:
     """True if `node` or any descendant BinOp has a matching constant operand.
 
-    Used to skip outer BinOps in chained expressions (e.g. ``X / "reports" /
-    "sub"``): only the innermost matching BinOp is rewritten so replacements
-    don't overlap on the original source.
+    Used to skip outer BinOps in chained path-division expressions where the
+    runtime directory name appears as an intermediate operand.
     """
     import ast as _ast
 
@@ -644,10 +643,9 @@ def _transform_path_resolver(source: str) -> tuple[str, int]:
     replaced with ``PathResolver.from_repo(<other operand>).<dir>`` where
     ``<dir>`` is ``reports_dir`` or ``logs_dir`` respectively. Outer BinOps
     that contain a deeper match are skipped (leaf-only strategy) so source
-    edits never overlap. Chained expressions such as
-    ``X / "reports" / "subdir"`` are handled by the leaf rewrite alone —
-    the outer ``/ "subdir"`` segment is preserved verbatim because asttokens
-    only edits the inner BinOp's source range.
+    edits never overlap. Chained path-division expressions with a runtime
+    directory name as an intermediate operand are handled by the leaf
+    rewrite alone.
 
     Returns ``(new_source, replacement_count)``. If the source fails to
     parse, returns ``(source, 0)``.
@@ -701,7 +699,7 @@ def _transform_path_resolver(source: str) -> tuple[str, int]:
 )
 @atomic_action(
     action_id="fix.path_resolver",
-    intent="Rewrite hardcoded 'reports'/'logs' path construction to PathResolver",
+    intent="Rewrite hardcoded runtime directory path construction to PathResolver",
     impact=ActionImpact.WRITE_CODE,
     policies=["atomic_actions"],
 )
@@ -718,8 +716,8 @@ async def action_fix_path_resolver(
        invocation — matches the action's per-file impact contract.
 
     2. Sweep (CLI / debugging): no ``file_path`` supplied. The action walks
-       every ``*.py`` under ``src/`` containing a "reports" / "logs"
-       literal that the rule's regex flags, and rewrites each.
+       every ``*.py`` under ``src/`` containing a runtime directory path literal
+       that the rule's regex flags, and rewrites each.
 
     The rewrite is fully deterministic — no LLM call. ``_transform_path_resolver``
     parses the file with ``ast``/``asttokens`` and replaces leaf
