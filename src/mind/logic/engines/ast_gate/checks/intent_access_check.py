@@ -72,9 +72,12 @@ class IntentAccessCheck:
         findings: list[str] = []
         tainted_names: set[str] = set()
 
+        # Pass 1 — collect tainted variables across plain, annotated, and
+        # augmented assignments. The growing tainted_names set is threaded
+        # through so multi-hop derivations propagate (issue #119, gap 1).
         for node in ast.walk(tree):
-            if isinstance(node, ast.Assign):
-                tainted_names |= cls._collect_tainted_assignments(node)
+            if isinstance(node, (ast.Assign, ast.AnnAssign, ast.AugAssign)):
+                tainted_names |= cls._collect_tainted_assignments(node, tainted_names)
 
         for node in ast.walk(tree):
             if isinstance(node, ast.Call):
@@ -83,13 +86,56 @@ class IntentAccessCheck:
         return findings
 
     @classmethod
-    def _collect_tainted_assignments(cls, node: ast.Assign) -> set[str]:
-        """Track variables that are assigned from .intent-related expressions."""
-        if not cls._expr_is_intent_related(node.value):
+    def _collect_tainted_assignments(
+        cls,
+        node: ast.Assign | ast.AnnAssign | ast.AugAssign,
+        tainted_names: set[str],
+    ) -> set[str]:
+        """Track variables that are assigned from .intent-related expressions.
+
+        Handles plain (``x = ...``), annotated (``x: T = ...``), and augmented
+        (``x /= ...``) assignments. ``tainted_names`` is threaded in from the
+        caller so multi-hop chains propagate — a variable derived from a
+        previously-tainted name is itself tainted.
+
+        Single-pass accumulation: ast.walk visits sibling statements in
+        source order, which is sufficient for the common case where the
+        derivation appears on consecutive lines. Multi-hop chains where the
+        intermediate assignment appears AFTER the usage in source order are
+        not detected — known limit of intraprocedural single-pass analysis
+        (issue #119, gap 4).
+
+        For augmented assignments, the target is also kept tainted when the
+        target name was already tainted before this statement (e.g.
+        ``path /= "subdir"`` after ``path = self.intent_root`` — value alone
+        is not intent-related, but the assignment must not silently
+        un-taint the variable).
+        """
+        # Bare type annotation with no RHS — nothing to propagate.
+        if isinstance(node, ast.AnnAssign) and node.value is None:
+            return set()
+
+        if isinstance(node, ast.Assign):
+            target_nodes: list[ast.AST] = list(node.targets)
+        else:
+            target_nodes = [node.target]
+
+        value_is_intent = cls._expr_is_intent_related(node.value, tainted_names)
+
+        # Augmented assignment never un-taints: if any target name was
+        # already in the tainted set, keep it there even when value is clean.
+        target_already_tainted = False
+        if isinstance(node, ast.AugAssign):
+            existing: set[str] = set()
+            for tgt in target_nodes:
+                existing |= cls._extract_target_names(tgt)
+            target_already_tainted = bool(existing & tainted_names)
+
+        if not value_is_intent and not target_already_tainted:
             return set()
 
         tainted: set[str] = set()
-        for target in node.targets:
+        for target in target_nodes:
             tainted |= cls._extract_target_names(target)
         return tainted
 
