@@ -293,7 +293,7 @@ class NaturalLanguageInterpreter(RequestInterpreter):
         targets.extend(re.findall(file_pattern, message))
 
         # Python class names (CamelCase)
-        class_pattern = r"\b([A-Z][a-zA-Z0-9]+(?:[A-Z][a-zA-Z0-9]+)+)\b"
+        class_pattern = r"\b([A-Z][a-z0-9]{1,40}(?:[A-Z][a-z0-9]{1,40})+)\b"
         targets.extend(re.findall(class_pattern, message))
 
         return list(set(targets))  # Deduplicate
