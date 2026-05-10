@@ -46,3 +46,12 @@ modularity:
   # Range: 0.0 – 1.0
   # Consumed by: body/atomic/modularity_fix.py:_load_split_confidence_threshold
   split_confidence_threshold: 0.75
+
+vectors:
+  # Maximum number of embedding passes the sync.vectors.code action will
+  # attempt before logging a warning and stopping. One pass processes a
+  # batch of pending artifacts; multiple passes handle large repos or
+  # partial failures within a single batch.
+  # Range: integer >= 1
+  # Consumed by: body/atomic/sync_actions/sync_actions.py
+  max_embedding_passes: 5

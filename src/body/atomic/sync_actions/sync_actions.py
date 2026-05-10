@@ -23,6 +23,36 @@ logger = getLogger(__name__)
 from .chunking_helpers import _chunk_file, _embed_and_upsert
 
 
+_FALLBACK_MAX_EMBEDDING_PASSES: int = 5
+
+
+def _load_max_embedding_passes(repo_root) -> int:
+    """Load max embedding passes from governance_paths.yaml via PathResolver.
+
+    Falls back to _FALLBACK_MAX_EMBEDDING_PASSES if the file is missing
+    or the key is absent — never raises.
+    """
+    try:
+        import yaml
+
+        from shared.path_resolver import PathResolver
+
+        path_resolver = PathResolver(repo_root)
+        config_path = path_resolver.governance_config_path
+        if not config_path.exists():
+            return _FALLBACK_MAX_EMBEDDING_PASSES
+        raw = yaml.safe_load(config_path.read_text(encoding="utf-8"))
+        if not isinstance(raw, dict):
+            return _FALLBACK_MAX_EMBEDDING_PASSES
+        return int(
+            raw.get("vectors", {}).get(
+                "max_embedding_passes", _FALLBACK_MAX_EMBEDDING_PASSES
+            )
+        )
+    except Exception:
+        return _FALLBACK_MAX_EMBEDDING_PASSES
+
+
 @register_action(
     action_id="sync.db",
     description="Synchronize code symbols to PostgreSQL knowledge graph",
@@ -144,7 +174,7 @@ async def action_sync_code_vectors(
         logger.info("sync.vectors.code: Phase 2 — ArtifactService embed loop")
         qdrant = QdrantService()
 
-        max_passes = 5
+        max_passes = _load_max_embedding_passes(repo_root)
         for pass_num in range(1, max_passes + 1):
             pending = await artifact_svc.count_pending_artifacts()
             if pending == 0:
