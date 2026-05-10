@@ -61,6 +61,16 @@ class FlowStep:
     Caller params take precedence over static params.
     """
 
+    consumes: tuple[str, ...] | None = None
+    """
+    Whitelist of caller-param keys this step is allowed to receive.
+
+    None (or absent) = no caller params are forwarded to this step;
+    only static ``params`` apply. A tuple of key names = only those keys
+    are forwarded from the caller; everything else is dropped. Static
+    ``params`` always pass through regardless of this field.
+    """
+
 
 @dataclass
 # ID: 61668ef8-6327-45e6-9789-f1c738d2d410
@@ -175,6 +185,8 @@ class FlowRegistry:
             kind_str = raw.get("kind", "action")
             required = raw.get("required", True)
             params = raw.get("params", {}) or {}
+            raw_consumes = raw.get("consumes")
+            consumes = tuple(raw_consumes) if raw_consumes is not None else None
 
             if not ref_id:
                 logger.warning(
@@ -194,7 +206,13 @@ class FlowRegistry:
                 continue
 
             steps.append(
-                FlowStep(ref_id=ref_id, kind=kind, required=required, params=params)
+                FlowStep(
+                    ref_id=ref_id,
+                    kind=kind,
+                    required=required,
+                    params=params,
+                    consumes=consumes,
+                )
             )
 
         if not steps:

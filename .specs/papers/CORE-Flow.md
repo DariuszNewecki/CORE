@@ -139,6 +139,48 @@ Every Flow returns a `FlowResult`:
 | `steps` | list | Ordered list of `ActionResult` or `FlowResult` per step. |
 | `duration_sec` | float | Total wall-clock duration of the Flow. |
 
+### Parameter Routing
+
+A caller may supply runtime parameters when invoking a Flow:
+
+```python
+result = await flow_executor.execute("flow.build_tests", write=True, source_file="src/foo.py")
+```
+
+Each step declares the caller parameters it consumes via the `consumes`
+field in its YAML declaration. `FlowExecutor` forwards only declared
+keys to that step. Undeclared caller parameters are dropped at the
+`FlowExecutor` boundary and never reach `ActionExecutor`.
+
+A step with no `consumes` declaration (or `consumes: []`) receives no
+caller parameters — only its static `params` are passed.
+
+Static `step.params` always pass through regardless of `consumes`.
+
+This contract ensures parameter routing is auditable from the flow YAML
+without inspecting Python action signatures.
+
+Example step declaration:
+
+```yaml
+steps:
+  - ref_id: build.tests
+    kind: action
+    required: true
+    consumes: [source_file]   # receives caller source_file
+    params: {}
+
+  - ref_id: fix.imports
+    kind: action
+    required: false
+    consumes: [source_file]   # receives caller source_file
+    params: {}
+```
+
+`core_context` injection is not governed by this contract. It is a
+system parameter injected by `ActionExecutor._prepare_params` via
+signature inspection and is always available to actions that declare it.
+
 ---
 
 ## 7. Named Constitutional Violations
