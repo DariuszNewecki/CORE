@@ -402,6 +402,38 @@ No scope expansion occurred.
 
 ---
 
+## ADR-008 — 2026-05-08
+
+Action impact classification externalized from `src/` to `.intent/`. The
+field that determines whether a proposal requires human approval or
+auto-approves was previously declared as a literal inside `@register_action`
+decorators in `src/body/atomic/*.py` — a governance decision carried in
+source code. This amendment moves it to its constitutional home.
+
+`@register_action` no longer accepts an `impact_level` parameter. The
+parameter was stripped from the decorator signature and from all 22 call
+sites across 10 action files. Classification is now declared exclusively
+in `.intent/enforcement/config/action_risk.yaml` (keyed by `action_id`,
+values: `safe | moderate | dangerous`) and overlaid onto registered
+`ActionDefinition` instances at `ActionExecutor` init time via
+`ActionRegistry.apply_risk_config()`. Any `action_id` absent from the
+mapping raises `ConstitutionalError` at startup, preventing silent
+misconfiguration. The loader lives at
+`src/shared/infrastructure/intent/action_risk.py`.
+
+Rule `atomic_actions.impact_level_must_be_governed` enforces the
+constraint: no `impact_level` literals may appear in decorator call sites
+in `src/`. Verified 2026-05-10: 7/7 checks pass; `action_risk.yaml` in
+perfect 1:1 parity with the registered action set (23 entries); audit
+reports 0 findings on this rule. G4 gate closed.
+
+Files: `.intent/enforcement/config/action_risk.yaml`,
+`src/shared/infrastructure/intent/action_risk.py`,
+`src/body/atomic/registry.py`, `src/body/atomic/executor.py`,
+10 action files (22 decorator sites). Commit ae07f839.
+
+---
+
 ## ADR-032 — 2026-05-10
 
 Rule `architecture.path_access.no_hardcoded_runtime_dirs` regex tightened.
