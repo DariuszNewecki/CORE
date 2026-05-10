@@ -23,6 +23,7 @@ from typing import Any
 from sqlalchemy import update
 
 from shared.logger import getLogger
+from shared.workers.base import _sanitize_payload
 from will.autonomy.proposal import ProposalStatus
 
 
@@ -67,7 +68,7 @@ class ProposalStateManager:
             .values(
                 status=ProposalStatus.COMPLETED.value,
                 execution_completed_at=datetime.now(UTC),
-                execution_results=results,
+                execution_results=_sanitize_payload(results),
             )
         )
         await self._session.execute(stmt)
@@ -104,8 +105,8 @@ class ProposalStateManager:
             .values(
                 status=ProposalStatus.FAILED.value,
                 execution_completed_at=datetime.now(UTC),
-                failure_reason=reason,
-                execution_results=results or {},
+                failure_reason=_sanitize_payload(reason),
+                execution_results=_sanitize_payload(results or {}),
             )
         )
         await self._session.execute(stmt)
