@@ -53,6 +53,11 @@ class BlackboardService:
         Return subjects of non-terminal finding entries whose subject matches
         *prefix* (SQL LIKE pattern — caller supplies the trailing wildcard).
 
+        'suppressed' is treated as terminal and excluded — suppressed entries
+        are not "open" by any definition. (See #263 for the suppressed/abandoned
+        split: only ``fetch_active_finding_subjects_by_prefix`` keeps suppressed
+        in its result set, because dedup-vs-permanent-skip is its purpose.)
+
         Covers:
           - AuditViolationSensor._fetch_existing_subjects
           - BlackboardShopManager._fetch_existing_findings
@@ -67,7 +72,7 @@ class BlackboardService:
                     SELECT subject FROM core.blackboard_entries
                     WHERE entry_type = 'finding'
                       AND subject LIKE :prefix
-                      AND status NOT IN ('resolved', 'abandoned')
+                      AND status NOT IN ('resolved', 'abandoned', 'suppressed')
                     """
                 ),
                 {"prefix": prefix},
@@ -78,17 +83,22 @@ class BlackboardService:
     async def fetch_active_finding_subjects_by_prefix(self, prefix: str) -> set[str]:
         """
         Return subjects of finding entries whose subject matches *prefix*
-        that are NOT yet resolved.
+        that should be treated as "still on the board" for sensor dedup.
 
-        Includes abandoned entries — unlike fetch_open_finding_subjects_by_prefix.
-        Use this for sensor deduplication: a finding should not be re-posted
-        if an abandoned entry for the same subject already exists.
+        Sensor-dedup contract (see #263 for the rationale):
 
-        Status exclusion: 'resolved' only.
-        All other statuses (open, claimed, deferred_to_proposal, indeterminate,
-        abandoned) are included — subjects in any of those states are
-        considered "already represented on the blackboard" and must not be
-        re-posted by a sensor.
+        - 'resolved' is excluded: the issue is closed; the sensor MAY re-post
+          if it re-detects the same subject (re-emergence is meaningful).
+        - 'abandoned' is excluded: workers gave up on this entry without
+          resolving the underlying issue, so a fresh detection deserves a
+          fresh entry — re-emit is correct.
+        - 'suppressed' is INTENTIONALLY KEPT in the result set: it is the
+          governor's deliberate "do not surface this again" signal. Its
+          subject must remain in the dedup set so sensors skip it
+          permanently.
+        - All non-terminal statuses (open, claimed, deferred_to_proposal,
+          indeterminate) are included — those subjects are still being
+          worked and a sensor must not pile on duplicates.
 
         Covers:
           - AuditViolationSensor._fetch_existing_subjects
@@ -102,7 +112,7 @@ class BlackboardService:
                     SELECT subject FROM core.blackboard_entries
                     WHERE entry_type = 'finding'
                       AND subject LIKE :prefix
-                      AND status NOT IN ('resolved')
+                      AND status NOT IN ('resolved', 'abandoned')
                     """
                 ),
                 {"prefix": prefix},
@@ -152,6 +162,8 @@ class BlackboardService:
         Return subjects of non-terminal finding entries posted by *worker_uuid*
         whose subject matches *prefix*.
 
+        'suppressed' is treated as terminal and excluded — see #263.
+
         Covers:
           - AuditIngestWorker._fetch_existing_subjects
         """
@@ -165,7 +177,7 @@ class BlackboardService:
                     WHERE worker_uuid = :worker_uuid
                       AND entry_type = 'finding'
                       AND subject LIKE :prefix
-                      AND status NOT IN ('resolved', 'abandoned')
+                      AND status NOT IN ('resolved', 'abandoned', 'suppressed')
                     """
                 ),
                 {"worker_uuid": worker_uuid, "prefix": prefix},
@@ -202,7 +214,7 @@ class BlackboardService:
                             ELSE CAST(:sla_default AS INT)
                         END AS sla_seconds
                     FROM core.blackboard_entries
-                    WHERE status NOT IN ('resolved', 'abandoned')
+                    WHERE status NOT IN ('resolved', 'abandoned', 'suppressed')
                       AND entry_type IN ('finding', 'proposal')
                       AND subject NOT LIKE 'blackboard.entry_stale::%'
                       AND subject NOT LIKE 'worker.silent::%'
@@ -253,7 +265,7 @@ class BlackboardService:
                 text(
                     """
                     SELECT COUNT(*) FROM core.blackboard_entries
-                    WHERE status NOT IN ('resolved', 'abandoned')
+                    WHERE status NOT IN ('resolved', 'abandoned', 'suppressed')
                     """
                 )
             )
@@ -679,14 +691,15 @@ class BlackboardService:
           - PromptExtractorWorker._mark_finding
 
         Sets resolved_at on transition to a terminal status (resolved, abandoned,
-        indeterminate), matching the hygiene rule established by commit 59ff25be
-        and the pattern used by the direct-SQL _mark_findings / _mark_finding
-        paths. Without this clause, callers routing through this method
-        (ProposalConsumerWorker._mark_finding, ViolationRemediator._mark_finding)
-        produced terminal rows with NULL resolved_at, distorting any query that
-        uses resolved_at as a temporal filter. Discovered 2026-04-27 during
-        Band B verification sweep: 26/26 abandoned rows post-59ff25be carried
-        NULL resolved_at, all attributable to this path.
+        indeterminate, suppressed), matching the hygiene rule established by
+        commit 59ff25be and the pattern used by the direct-SQL _mark_findings /
+        _mark_finding paths. Without this clause, callers routing through this
+        method (ProposalConsumerWorker._mark_finding,
+        ViolationRemediator._mark_finding) produced terminal rows with NULL
+        resolved_at, distorting any query that uses resolved_at as a temporal
+        filter. Discovered 2026-04-27 during Band B verification sweep: 26/26
+        abandoned rows post-59ff25be carried NULL resolved_at, all attributable
+        to this path. 'suppressed' joined the terminal set per #263.
         """
         from body.services.service_registry import ServiceRegistry
 
@@ -697,7 +710,7 @@ class BlackboardService:
                     UPDATE core.blackboard_entries
                     SET status = :status,
                         resolved_at = CASE
-                            WHEN :status IN ('resolved', 'abandoned', 'indeterminate')
+                            WHEN :status IN ('resolved', 'abandoned', 'indeterminate', 'suppressed')
                                 THEN now()
                             ELSE resolved_at
                         END,
