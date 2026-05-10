@@ -266,7 +266,7 @@ class ProposalExecutor:
 
                     action_duration = time.time() - action_start
 
-                    action_results[ref_id] = {
+                    action_results[f"{ref_id}:{action.order}"] = {
                         "ok": result.ok,
                         "duration_sec": action_duration,
                         "data": result.data,
@@ -302,7 +302,7 @@ class ProposalExecutor:
                         exc_info=True,
                     )
 
-                    action_results[ref_id] = {
+                    action_results[f"{ref_id}:{action.order}"] = {
                         "ok": False,
                         "duration_sec": action_duration,
                         "data": extract_error_data(e, error_type=type(e).__name__),
@@ -608,7 +608,7 @@ class ProposalExecutor:
                                 step_ok = r.ok
                                 step_data = r.data
 
-                            action_results[ref_id] = {
+                            action_results[f"{ref_id}:{action.order}"] = {
                                 "ok": step_ok,
                                 "duration_sec": time.time() - action_start,
                                 "data": step_data,
@@ -619,7 +619,7 @@ class ProposalExecutor:
                                 all_ok = False
                         except Exception as e:
                             all_ok = False
-                            action_results[ref_id] = {
+                            action_results[f"{ref_id}:{action.order}"] = {
                                 "ok": False,
                                 "duration_sec": time.time() - action_start,
                                 "data": {
