@@ -562,8 +562,10 @@ def _insert_path_resolver_import(source: str) -> str:
     """Insert ``from shared.path_resolver import PathResolver`` into the module.
 
     Idempotent — returns `source` unchanged if the import is already present.
-    Inserts after the last top-level Import/ImportFrom; falls back to after
-    a module docstring if no imports exist.
+    Inserts in alphabetically correct position within the existing first-party
+    import block (CORE roots: api, body, cli, mind, shared, will). Falls back
+    to appending after the last top-level Import/ImportFrom, or after a module
+    docstring if no imports exist.
     """
     import ast as _ast
 
@@ -579,6 +581,39 @@ def _insert_path_resolver_import(source: str) -> str:
         return source
     tree = atok.tree
 
+    new_module = "shared.path_resolver"
+    first_party_roots = {"api", "body", "cli", "mind", "shared", "will"}
+
+    # Absolute first-party ImportFrom siblings — same isort group as the new
+    # import. Relative imports (level > 0) are excluded; they form a separate
+    # group below first-party.
+    siblings: list[Any] = []
+    for node in tree.body:
+        if (
+            isinstance(node, _ast.ImportFrom)
+            and node.module
+            and node.level == 0
+            and node.module.split(".")[0] in first_party_roots
+        ):
+            siblings.append(node)
+
+    if siblings:
+        insert_after = None
+        insert_before = None
+        for node in siblings:
+            if node.module < new_module:
+                insert_after = node
+            else:
+                insert_before = node
+                break
+        if insert_after is not None:
+            _, end = atok.get_text_range(insert_after)
+            return source[:end] + "\n" + import_line + source[end:]
+        if insert_before is not None:
+            start, _ = atok.get_text_range(insert_before)
+            return source[:start] + import_line + "\n" + source[start:]
+
+    # No first-party siblings — fall back to appending after the last import.
     last_import = None
     for node in tree.body:
         if isinstance(node, (_ast.Import, _ast.ImportFrom)):
