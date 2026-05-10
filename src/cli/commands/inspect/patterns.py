@@ -21,6 +21,7 @@ from rich.table import Table
 from cli.utils import core_command
 from shared.context import CoreContext
 from shared.models.command_meta import CommandBehavior, CommandLayer, command_meta
+from shared.path_resolver import PathResolver
 
 
 console = Console()
@@ -62,7 +63,10 @@ def patterns_cmd(
     """
     logger.info("\n[bold blue]🔍 Pattern Classification Analysis[/bold blue]\n")
     core_context: CoreContext = ctx.obj
-    decisions_dir = core_context.git_service.repo_path / "reports" / "decisions"
+    decisions_dir = (
+        PathResolver.from_repo(core_context.git_service.repo_path).reports_dir
+        / "decisions"
+    )
     if not decisions_dir.exists():
         logger.info(
             "[yellow]No decision traces found. Run a development task first.[/yellow]"

@@ -2,7 +2,7 @@
 #
 # Enforces canonical runtime path resolution through PathResolver.
 # Companion to governance.artifact_mutation.traceable (advisory).
-# See ADR-031.
+# See ADR-031, ADR-032.
 
 mappings:
   architecture.path_access.no_hardcoded_runtime_dirs:
@@ -11,12 +11,11 @@ mappings:
       check_type: pattern_match
       patterns:
         - '["''](?:reports|logs)/'
-        - '["'']reports["'']'
-        - '["'']logs["'']'
+        - '/\s*["''](?:reports|logs)["'']'
       message: >
-        Runtime directory name hardcoded as string literal. Route through
+        Runtime directory name used in path construction expression. Route through
         PathResolver (src/shared/path_resolver.py) or FileHandler instead.
-        See ADR-031.
+        See ADR-031, ADR-032.
     scope:
       applies_to:
         - "src/**/*.py"

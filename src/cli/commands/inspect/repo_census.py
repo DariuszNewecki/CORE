@@ -20,6 +20,7 @@ from body.services.cim.history import CensusHistory
 from body.services.cim.policy import PolicyEvaluator
 from cli.utils import core_command
 from shared.logger import getLogger
+from shared.path_resolver import PathResolver
 
 
 if TYPE_CHECKING:
@@ -130,7 +131,9 @@ def repo_census_cmd(
             baseline_name = "previous"
         diff = diff_engine.compute_diff(baseline_census, census, baseline_name)
         evaluation = policy_eval.evaluate(diff)
-        diff_report_path = out / "reports" / "cim_diff_latest.json"
+        diff_report_path = (
+            PathResolver.from_repo(out).reports_dir / "cim_diff_latest.json"
+        )
         diff_report_path.parent.mkdir(parents=True, exist_ok=True)
         with diff_report_path.open("w", encoding="utf-8") as f:
             json.dump(

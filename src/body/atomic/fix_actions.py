@@ -33,7 +33,7 @@ if TYPE_CHECKING:
 logger = getLogger(__name__)
 
 _RUNTIME_DIR_PATTERN = re.compile(
-    r"""["'](?:reports|logs)/|["']reports["']|["']logs["']"""
+    r"""["'](?:reports|logs)/|/\s*["'](?:reports|logs)["']"""
 )
 
 

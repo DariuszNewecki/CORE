@@ -16,11 +16,14 @@ from pathlib import Path
 import typer
 
 from shared.models import AuditFinding, AuditSeverity
+from shared.path_resolver import PathResolver
 from shared.path_utils import get_repo_root
 
 
 # Evidence artifact written by legacy governance auditor
-LEGACY_AUDIT_EVIDENCE_PATH = get_repo_root() / "reports" / "audit" / "latest_audit.json"
+LEGACY_AUDIT_EVIDENCE_PATH = (
+    PathResolver.from_repo(get_repo_root()).reports_dir / "audit" / "latest_audit.json"
+)
 
 
 # ID: a9b8c7d6-e5f4-3a2b-1c0d-9e8f7a6b5c4d

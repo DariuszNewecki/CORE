@@ -402,6 +402,19 @@ No scope expansion occurred.
 
 ---
 
+## ADR-032 — 2026-05-10
+
+Rule `architecture.path_access.no_hardcoded_runtime_dirs` regex tightened.
+Removed two broad bare-string patterns (`["']reports["']`, `["']logs["']`) that
+matched any string literal. Replaced with one path-construction-context pattern
+(`/\s*["'](?:reports|logs)["']`) that matches only the path-division operator form.
+`_RUNTIME_DIR_PATTERN` in `src/body/atomic/fix_actions.py` updated in lockstep.
+False-positive count: ~35 removed. True violation count: 25 confirmed.
+Files: `.intent/enforcement/mappings/architecture/path_access.yaml`,
+`src/body/atomic/fix_actions.py`.
+
+---
+
 ## Notes
 
 * This changelog intentionally avoids implementation detail

@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Any
 
 from shared.logger import getLogger
+from shared.path_resolver import PathResolver
 
 from .engine import generate_coverage_map
 
@@ -27,7 +28,7 @@ class GovernanceTraceabilityService:
 
     def __init__(self, repo_root: Path):
         self.repo_root = repo_root
-        self.report_dir = repo_root / "reports" / "governance"
+        self.report_dir = PathResolver.from_repo(repo_root).reports_dir / "governance"
         self.report_dir.mkdir(parents=True, exist_ok=True)
 
     # ID: d5e39414-301c-4f9a-8381-52caea6bd50e

@@ -14,6 +14,7 @@ from body.self_healing.remediation_models import RemediationResult
 from body.services.file_service import FileService
 from mind.governance.audit_context import AuditorContext
 from shared.logger import getLogger
+from shared.path_resolver import PathResolver
 
 
 logger = getLogger(__name__)
@@ -52,7 +53,10 @@ class RemediationEvidenceWriter:
             findings_after_count = len(findings_after)
             improvement = findings_before_count - findings_after_count
             passed = improvement > 0
-            audit_path = self.repo_root / "reports" / "audit_findings.json"
+            audit_path = (
+                PathResolver.from_repo(self.repo_root).reports_dir
+                / "audit_findings.json"
+            )
 
             logger.info(
                 "Validation complete: %d → %d findings (delta=%d, passed=%s)",
@@ -77,7 +81,9 @@ class RemediationEvidenceWriter:
         Returns:
             Path where evidence was written.
         """
-        remediation_dir = self.repo_root / "reports" / "remediation"
+        remediation_dir = (
+            PathResolver.from_repo(self.repo_root).reports_dir / "remediation"
+        )
         remediation_dir.mkdir(parents=True, exist_ok=True)
 
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
