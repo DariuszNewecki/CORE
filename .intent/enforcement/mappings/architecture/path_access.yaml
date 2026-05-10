@@ -26,3 +26,7 @@ mappings:
         - "src/shared/infrastructure/storage/file_provider.py"
         # Tests construct paths against tmp_path directly
         - "tests/**/*.py"
+        # Glob/exclude pattern strings — not path construction expressions
+        - "src/mind/governance/audit_context.py"
+        - "src/body/services/crawl_service/main_module.py"
+        - "src/body/introspection/symbol_index_builder.py"
