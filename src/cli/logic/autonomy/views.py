@@ -3,10 +3,6 @@
 
 from __future__ import annotations
 
-from shared.logger import getLogger
-
-
-logger = getLogger(__name__)
 from rich.console import Console
 from rich.table import Table
 
@@ -52,54 +48,54 @@ def render_list_table(proposals: list[Proposal], title: str) -> Table:
 
 # ID: 94d02f4b-3d3a-4fd5-8332-132eb7980974
 def print_detailed_info(p: Proposal):
-    logger.info("\n[bold cyan]Proposal: %s[/bold cyan]\n", p.proposal_id)
-    logger.info("[bold]Goal:[/bold] %s", p.goal)
-    logger.info("[bold]Status:[/bold] %s", p.status.value)
-    logger.info("[bold]Created:[/bold] %s", p.created_at)
-    logger.info("[bold]Created By:[/bold] %s\n", p.created_by)
+    console.print(f"\n[bold cyan]Proposal: {p.proposal_id}[/bold cyan]\n")
+    console.print(f"[bold]Goal:[/bold] {p.goal}")
+    console.print(f"[bold]Status:[/bold] {p.status.value}")
+    console.print(f"[bold]Created:[/bold] {p.created_at}")
+    console.print(f"[bold]Created By:[/bold] {p.created_by}\n")
     if p.risk:
-        logger.info("[bold]Risk Assessment:[/bold]")
-        logger.info("  Overall: %s", p.risk.overall_risk)
-        logger.info("  Approval Required: %s", "Yes" if p.approval_required else "No")
+        console.print("[bold]Risk Assessment:[/bold]")
+        console.print(f"  Overall: {p.risk.overall_risk}")
+        console.print(f"  Approval Required: {'Yes' if p.approval_required else 'No'}")
         for factor in p.risk.risk_factors:
-            logger.info("    - %s", factor)
-        logger.info("")
-    logger.info("[bold]Actions (%s):[/bold]", len(p.actions))
+            console.print(f"    - {factor}")
+        console.print("")
+    console.print(f"[bold]Actions ({len(p.actions)}):[/bold]")
     for a in sorted(p.actions, key=lambda x: x.order):
-        logger.info("  %s. %s", a.order + 1, a.action_id)
+        console.print(f"  {a.order + 1}. {a.action_id}")
         if a.parameters:
-            logger.info("     Parameters: %s", a.parameters)
+            console.print(f"     Parameters: {a.parameters}")
     if p.scope.files or p.scope.modules:
-        logger.info("\n[bold]Scope:[/bold]")
+        console.print("\n[bold]Scope:[/bold]")
         if p.scope.files:
-            logger.info("  Files: %s", len(p.scope.files))
+            console.print(f"  Files: {len(p.scope.files)}")
         if p.scope.modules:
-            logger.info("  Modules: %s", ", ".join(p.scope.modules))
+            console.print(f"  Modules: {', '.join(p.scope.modules)}")
     if p.execution_started_at:
-        logger.info("\n[bold]Execution:[/bold]")
-        logger.info("  Started: %s", p.execution_started_at)
+        console.print("\n[bold]Execution:[/bold]")
+        console.print(f"  Started: {p.execution_started_at}")
         if p.execution_completed_at:
             dur = (p.execution_completed_at - p.execution_started_at).total_seconds()
-            logger.info("  Completed: %s", p.execution_completed_at)
-            logger.info("  Duration: %ss", dur)
+            console.print(f"  Completed: {p.execution_completed_at}")
+            console.print(f"  Duration: {dur}s")
     if p.failure_reason:
-        logger.info("\n[red]Failure Reason: %s[/red]", p.failure_reason)
+        console.print(f"\n[red]Failure Reason: {p.failure_reason}[/red]")
 
 
 # ID: a649ba15-71d8-46ee-b4cd-9888207ed45d
 def print_execution_summary(result: dict):
     if not result.get("ok") and "actions_executed" not in result:
         # Early-exit result from executor (proposal not approved, not found, etc.)
-        logger.info("Error: %s", result.get("error", "Unknown error"))
+        console.print(f"Error: {result.get('error', 'Unknown error')}")
         return
-    logger.info("Actions executed: %s", result.get("actions_executed", 0))
-    logger.info("Succeeded: %s", result.get("actions_succeeded", 0))
-    logger.info("Failed: %s", result.get("actions_failed", 0))
-    logger.info("Duration: %ss\n", result.get("duration_sec", 0))
-    logger.info("[bold]Action Results:[/bold]")
+    console.print(f"Actions executed: {result.get('actions_executed', 0)}")
+    console.print(f"Succeeded: {result.get('actions_succeeded', 0)}")
+    console.print(f"Failed: {result.get('actions_failed', 0)}")
+    console.print(f"Duration: {result.get('duration_sec', 0)}s\n")
+    console.print("[bold]Action Results:[/bold]")
     for action_id, res in result.get("action_results", {}).items():
         mark = "[green]✓[/green]" if res["ok"] else "[red]✗[/red]"
-        logger.info("  %s %s: %ss", mark, action_id, res["duration_sec"])
+        console.print(f"  {mark} {action_id}: {res['duration_sec']}s")
         if not res["ok"]:
             err = res.get("data", {}).get("error", "Unknown error")
-            logger.info("      [red]%s[/red]", err)
+            console.print(f"      [red]{err}[/red]")
