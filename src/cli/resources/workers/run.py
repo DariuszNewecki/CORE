@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any
 
 import typer
 import yaml
@@ -84,14 +85,57 @@ async def workers_run_cmd(
         await core_context.cognitive_service.initialize(session)
     module = importlib.import_module(module_path)
     worker_class = getattr(module, class_name)
+
+    # Replicate the daemon's constructor-kwargs build (see _run_daemon in
+    # cli/commands/daemon.py) so parameterised workers — those declaring
+    # mandate.scope.rule_namespace or implementation.params — receive the
+    # same arguments they get under the daemon. Without this, sensors like
+    # AuditViolationSensor TypeError on missing rule_namespace (#262).
+    kwargs: dict[str, Any] = {"declaration_name": worker_name}
+    rule_namespace = (
+        declaration.get("mandate", {}).get("scope", {}).get("rule_namespace", "")
+    )
+    if rule_namespace:
+        kwargs["rule_namespace"] = rule_namespace
+
+    extra_params = impl.get("params") or {}
+    if extra_params:
+        protected = {
+            "declaration_name",
+            "rule_namespace",
+            "core_context",
+            "cognitive_service",
+        }
+        clashes = set(extra_params) & protected
+        if clashes:
+            logger.warning(
+                "Worker '%s' implementation.params contains protected keys "
+                "%s — they will be ignored.",
+                worker_name,
+                clashes,
+            )
+            extra_params = {k: v for k, v in extra_params.items() if k not in protected}
+        kwargs.update(extra_params)
+
+    cog_svc = core_context.cognitive_service
+
+    # Single fallback to bare instantiation handles legacy workers whose
+    # __init__ takes no args and rely on a class-level declaration_name
+    # (e.g. ObserverWorker). Anything more elaborate belongs in the daemon's
+    # _instantiate_worker, not the CLI run path.
     if needs_context:
-        worker = worker_class(core_context=core_context)
-        if not worker.declaration_name:
-            worker.declaration_name = worker_name
+        try:
+            worker = worker_class(core_context=core_context, **kwargs)
+        except TypeError:
+            worker = worker_class(core_context=core_context)
     else:
-        worker = worker_class(cognitive_service=core_context.cognitive_service)
-        if not worker.declaration_name:
-            worker.declaration_name = worker_name
+        try:
+            worker = worker_class(cognitive_service=cog_svc, **kwargs)
+        except TypeError:
+            worker = worker_class()
+
+    if not worker.declaration_name:
+        worker.declaration_name = worker_name
     logger.info("[bold green]Starting worker: %s[/bold green]", worker_name)
     await worker.start()
     logger.info("[bold green]Worker %s completed.[/bold green]", worker_name)
