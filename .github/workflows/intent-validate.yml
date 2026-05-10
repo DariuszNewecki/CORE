@@ -6,6 +6,9 @@ on:
   pull_request:
     paths: [".intent/**"]
 
+permissions:
+  contents: read
+
 jobs:
   validate-intent-policies:
     runs-on: ubuntu-latest
