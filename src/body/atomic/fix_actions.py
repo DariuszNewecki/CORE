@@ -542,17 +542,40 @@ def _is_target_constant(node: Any) -> bool:
     )
 
 
+def _is_embedded_target_constant(node: Any) -> tuple[bool, str, str]:
+    """Detect a Constant str whose value starts with ``reports/`` or ``logs/``.
+
+    Returns ``(matched, prop_name, remainder)`` where ``prop_name`` is the
+    matching PathResolver property (``reports_dir``/``logs_dir``) and
+    ``remainder`` is the substring after the prefix-and-slash. ``remainder``
+    may be empty for bare cases where only the prefix-and-slash is present.
+    """
+    import ast as _ast
+
+    if not (isinstance(node, _ast.Constant) and isinstance(node.value, str)):
+        return False, "", ""
+    for prefix, prop_name in _PATH_RESOLVER_PROPS.items():
+        head = f"{prefix}/"
+        if node.value.startswith(head):
+            return True, prop_name, node.value[len(head) :]
+    return False, "", ""
+
+
 def _has_target_descendant(node: Any) -> bool:
     """True if `node` or any descendant BinOp has a matching constant operand.
 
     Used to skip outer BinOps in chained path-division expressions where the
-    runtime directory name appears as an intermediate operand.
+    runtime directory name appears as an intermediate operand. Detects both
+    leaf-target forms and embedded-target forms (where the runtime directory
+    name is the prefix of a longer Constant) so nested rewrites do not overlap.
     """
     import ast as _ast
 
     for sub in _ast.walk(node):
         if isinstance(sub, _ast.BinOp) and isinstance(sub.op, _ast.Div):
             if _is_target_constant(sub.left) or _is_target_constant(sub.right):
+                return True
+            if _is_embedded_target_constant(sub.right)[0]:
                 return True
     return False
 
@@ -664,17 +687,30 @@ def _transform_path_resolver(source: str) -> tuple[str, int]:
     for node in _ast.walk(tree):
         if not (isinstance(node, _ast.BinOp) and isinstance(node.op, _ast.Div)):
             continue
+
+        # Form 0 — leaf target: runtime directory name as a standalone Constant operand.
         if _is_target_constant(node.right):
             target, other = node.right, node.left
+            prop_name = _PATH_RESOLVER_PROPS[target.value]
+            remainder = ""
         elif _is_target_constant(node.left):
             target, other = node.left, node.right
+            prop_name = _PATH_RESOLVER_PROPS[target.value]
+            remainder = ""
         else:
-            continue
+            # Form 1 — embedded target: runtime directory name as the prefix of
+            # a longer Constant on the right operand.
+            matched, prop_name, remainder = _is_embedded_target_constant(node.right)
+            if not matched:
+                continue
+            other = node.left
+
         if _has_target_descendant(other):
             continue
-        prop_name = _PATH_RESOLVER_PROPS[target.value]
+
         other_text = atok.get_text(other)
-        replacement_text = f"PathResolver.from_repo({other_text}).{prop_name}"
+        base = f"PathResolver.from_repo({other_text}).{prop_name}"
+        replacement_text = f'{base} / "{remainder}"' if remainder else base
         start, end = atok.get_text_range(node)
         replacements.append((start, end, replacement_text))
 
