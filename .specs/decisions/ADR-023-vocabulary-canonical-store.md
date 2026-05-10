@@ -219,3 +219,44 @@ Rejected. Adding a `family: governance | capability | enum | audit` field to eac
 - ADR-005 + `.intent/enforcement/config/audit_verdict.yaml` — precedent for tri-state verdict and instrument-failure handling
 - GitHub issue #214 — the diagnosis whose investigation surfaced this ADR's context
 - Follow-up: `CORE-Specification-as-Source.md` (parked) — ratifies the compilation framing established by precedent here
+
+---
+
+## Implementation addendum — Part 3/4 (2026-05-10)
+
+**Scope:** Engine check_type implementation for the three `artifact_gate` vocabulary rules declared in D5. Parts 1/2 delivered the loader (D4), rules, mapping, and regen command.
+
+### What changed
+
+`src/mind/logic/engines/artifact_gate.py` extended with three new check_types dispatched from `verify()`:
+
+**`vocabulary_projection_consistency`**
+Implements D5 rule 1. Loads the projection via `load_vocabulary_projection()`, parses the canonical section from `CORE-Vocabulary.md` via `locate_canonical_section()` + markdown table parsing. Reports violations for: term present in canonical section but absent from projection; term present in projection but absent from canonical section; `source_hash` stored in projection does not equal `compute_canonical_section_hash()` over the current canonical section.
+
+**`vocabulary_canonical_format`**
+Implements D5 rule 2. Reads `CORE-Vocabulary.md` and validates the canonical section against the D2 grammar: exactly one canonical heading, exactly one markdown table (one separator row), required column order (`term | definition | not | authoritative_paper`), no empty required cells, no HTML tags or inline images in cells.
+
+**`vocabulary_authoritative_paths`**
+Implements D5 rule 3. Parses `authoritative_paper` values from both the canonical section and the projection. Violations for: empty path, path not starting with a governed root (`.specs/` or `.intent/`), path not resolving to an existing file under the repo root, and mismatch between canonical section and projection values for the same term.
+
+**Governed roots:** `.specs/` and `.intent/` — per the governor's clarification of D5.3 recorded in the rule statement (`vocabulary_canonical_store.json`), which widened D5's original `.specs/papers/` restriction to the full governed tree. The engine implements the rule statement as authoritative.
+
+### Structural change in `verify()`
+
+Vocabulary check_types are dispatched **before** the `yaml.safe_load()` call that handles prompt-model checks. The YAML parse is only reached for prompt-model check_types (`required_fields`, `no_provider_leak`, `role_abstraction`). This is required because vocabulary files are JSON and Markdown, not YAML.
+
+### Repo root location
+
+The engine locates repo root by walking `file_path.resolve().parents` until finding a directory that contains both `.intent/` and `.specs/` subdirectories. All helpers from `vocabulary_projection.py` receive this root as `repo_root`.
+
+### Helpers shared with vocabulary_projection.py
+
+The engine imports `locate_canonical_section`, `compute_canonical_section_hash`, `load_vocabulary_projection`, `VocabularyProjection`, `VocabularyProjectionError`, `VOCABULARY_PAPER_REL`, and `VOCABULARY_JSON_REL` from `shared.infrastructure.intent.vocabulary_projection`. No logic is duplicated.
+
+### Test coverage
+
+`tests/engines/test_artifact_gate_vocabulary.py` — six tests (one violation + one clean per check_type). Each violation test creates a minimal repo fixture under `tmp_path`, injects one known violation, calls `engine.verify()`, and asserts `ok=False` with at least one violation entry. Clean tests assert `ok=True`. No DB fixtures required.
+
+### Issue closed
+
+GitHub issue #253 closed by this implementation.
