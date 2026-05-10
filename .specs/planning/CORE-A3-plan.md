@@ -2,7 +2,7 @@
 
 **Status:** Active
 **Owner:** Darek (Dariusz Newecki)
-**Last updated:** 2026-05-09
+**Last updated:** 2026-05-10
 **Definition:** The daemon runs continuously, the Blackboard clears, the codebase converges, and every action is visible.
 
 ---
@@ -117,6 +117,7 @@ Full rationale lives in each ADR file under `.specs/decisions/`. This table is t
 | ADR-029 | 2026-05-08 | Explicitly map non-automatable rules in RemediationMap | Absence-from-map is not a valid human-only signal; non-automatable rules must carry an explicit PENDING entry in `auto_remediation.yaml`. First application: `modularity.class_too_large`. |
 | ADR-030 | 2026-05-08 | Daemon stale-code detection posture | Detect-and-DEGRADE on `src/` drift; self-restart rejected. CORE surfaces the condition, governor restarts with intent. |
 | ADR-031 | 2026-05-09 | No hardcoded runtime directory paths | Runtime output dirs (`logs/`, `reports/`) must resolve through PathResolver; direct string literal construction in `src/` is a blocking violation. 40 findings surfaced; leverage roots at #268. |
+| ADR-032 | 2026-05-10 | Tighten `no_hardcoded_runtime_dirs` regex to path-construction context | Removed broad bare-string patterns; replaced with path-division-context pattern — 15 false positives eliminated, 25 true violations confirmed. |
 
 ---
 
