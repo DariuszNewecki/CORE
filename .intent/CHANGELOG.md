@@ -420,3 +420,14 @@ Files: `.intent/enforcement/mappings/architecture/path_access.yaml`,
 * This changelog intentionally avoids implementation detail
 * No legacy compatibility is implied
 * Silence on future versions is intentional
+
+## [ADR-023 Part 3/4] — 2026-05-10
+
+Rules `governance.vocabulary.projection_must_match_canonical`,
+`governance.vocabulary.canonical_format_must_validate`, and
+`governance.vocabulary.authoritative_source_must_be_paper` transition
+from declared-only to enforcing. `artifact_gate` engine now implements
+`vocabulary_projection_consistency`, `vocabulary_canonical_format`, and
+`vocabulary_authoritative_paths` check_types. All three fire correctly on
+known-violation fixtures. Governed-root check uses `.specs/` + `.intent/`
+per the rule file statement (wider than D5's original `.specs/papers/`).
