@@ -118,6 +118,7 @@ Full rationale lives in each ADR file under `.specs/decisions/`. This table is t
 | ADR-030 | 2026-05-08 | Daemon stale-code detection posture | Detect-and-DEGRADE on `src/` drift; self-restart rejected. CORE surfaces the condition, governor restarts with intent. |
 | ADR-031 | 2026-05-09 | No hardcoded runtime directory paths | Runtime output dirs (`logs/`, `reports/`) must resolve through PathResolver; direct string literal construction in `src/` is a blocking violation. 40 findings surfaced; leverage roots at #268. |
 | ADR-032 | 2026-05-10 | Tighten `no_hardcoded_runtime_dirs` regex to path-construction context | Removed broad bare-string patterns; replaced with path-division-context pattern — 15 false positives eliminated, 25 true violations confirmed. |
+| ADR-032+ | 2026-05-10 | Band D infrastructure hardening | #273 approve rowcount, #274 Unicode sanitization, #275 execution_results key collision, #270 FileService resolve, #276 fix.path_resolver Form 1 — all closed. |
 
 ---
 
