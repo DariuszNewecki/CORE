@@ -188,6 +188,20 @@ class BlackboardService:
     async def fetch_stale_entries(self) -> list[dict[str, Any]]:
         """
         Return blackboard entries whose age exceeds their constitutional SLA tier.
+
+        Stale detection is for non-terminal stuck entries only. Every declared
+        terminal status is excluded because terminal entries cannot be acted
+        on further and must not trigger stale alerts. Per the canonical
+        ``blackboard_entry_status`` enum (.intent/META/enums.json), the
+        terminal set is:
+
+          * resolved
+          * abandoned
+          * suppressed             (#263)
+          * dry_run_complete       (#265 — historical; no new writers)
+          * deferred_to_proposal
+          * indeterminate
+
         Excludes self-referential stale-finding and silent-worker subjects.
 
         Covers:
@@ -214,7 +228,14 @@ class BlackboardService:
                             ELSE CAST(:sla_default AS INT)
                         END AS sla_seconds
                     FROM core.blackboard_entries
-                    WHERE status NOT IN ('resolved', 'abandoned', 'suppressed')
+                    WHERE status NOT IN (
+                            'resolved',
+                            'abandoned',
+                            'suppressed',
+                            'dry_run_complete',
+                            'deferred_to_proposal',
+                            'indeterminate'
+                          )
                       AND entry_type IN ('finding', 'proposal')
                       AND subject NOT LIKE 'blackboard.entry_stale::%'
                       AND subject NOT LIKE 'worker.silent::%'

@@ -21,8 +21,13 @@ Dry-run safety chain:
   - write=False -> Crate is created (packed) but NOT applied
   - write=False -> Canary runs on the Crate (validates without applying)
   - write=False -> No git commit
-  - write=False -> Blackboard entry posted as status='dry_run_complete'
-                   with full proposed fix for human review
+  - write=False -> Dry-run candidate report posted to the Blackboard with
+                   full proposed fix for human review; source findings are
+                   marked 'abandoned' (the violation persists, no fix applied,
+                   sensors must be free to re-detect it). Per #263, abandoned
+                   is re-emittable; per #265, dry_run_complete is no longer
+                   used as a finding status because it was never excluded
+                   from staleness detection.
   - write=True  -> Full ceremony: apply + commit
 
 Failure discipline:
@@ -432,7 +437,13 @@ class ViolationRemediator(
                     ),
                 },
             )
-            await self._mark_findings(findings, "dry_run_complete")
+            # Source findings are marked 'abandoned', not 'dry_run_complete':
+            # the dry-run candidate report (posted above) carries all the fix
+            # information; the source findings represent a violation that was
+            # NOT fixed, so sensors must be free to re-detect on the next
+            # cycle. Per #265 (and aligned with #263 — abandoned is the
+            # re-emittable terminal status).
+            await self._mark_findings(findings, "abandoned")
             logger.info(
                 "ViolationRemediator: [DRY-RUN] %s - canary passed, fix ready.",
                 file_path,
