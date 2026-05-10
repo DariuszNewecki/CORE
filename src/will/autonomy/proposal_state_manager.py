@@ -22,6 +22,7 @@ from typing import Any
 
 from sqlalchemy import update
 
+from shared.exceptions import CoreError
 from shared.logger import getLogger
 from shared.workers.base import _sanitize_payload
 from will.autonomy.proposal import ProposalStatus
@@ -38,6 +39,17 @@ ALLOWED_APPROVAL_AUTHORITIES: frozenset[str] = frozenset(
 )
 """Closed set per .intent/META/enums.json proposal_approval_authority.
 Mirrored here for write-path validation; .intent/ is the canonical surface."""
+
+
+# ID: 59b43e1f-0d5e-4424-b9cc-1fdfaa22d1e3
+class ProposalNotFoundError(CoreError):
+    """Raised when an approve/reject UPDATE matches zero rows.
+
+    Indicates either the proposal_id does not exist or the row is not in a
+    state where the requested transition can land. Distinguishes silent
+    no-op from successful state change so callers and operators get a clear
+    failure signal instead of a false-success banner.
+    """
 
 
 # ID: 5a6b7c8d-9e0f-1a2b-3c4d-5e6f7a8b9c0d
@@ -170,7 +182,11 @@ class ProposalStateManager:
                 approval_authority=approval_authority,
             )
         )
-        await self._session.execute(stmt)
+        result = await self._session.execute(stmt)
+        if result.rowcount == 0:
+            raise ProposalNotFoundError(
+                f"Proposal not found or not in an approvable state: {proposal_id!r}"
+            )
         # Caller controls transactional scope (matches update_fields convention).
         logger.info(
             "Approved proposal: %s by %s under %s",
@@ -194,7 +210,11 @@ class ProposalStateManager:
                 failure_reason=reason,
             )
         )
-        await self._session.execute(stmt)
+        result = await self._session.execute(stmt)
+        if result.rowcount == 0:
+            raise ProposalNotFoundError(
+                f"Proposal not found or not in a rejectable state: {proposal_id!r}"
+            )
         await self._session.commit()
         logger.info("Rejected proposal: %s - %s", proposal_id, reason)
 

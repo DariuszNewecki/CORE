@@ -18,7 +18,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from shared.infrastructure.database.models.autonomous_proposals import (
     AutonomousProposal,
 )
-from will.autonomy.proposal_state_manager import ProposalStateManager
+from will.autonomy.proposal_state_manager import (
+    ProposalNotFoundError,
+    ProposalStateManager,
+)
 
 
 def _draft_row(proposal_id: str) -> AutonomousProposal:
@@ -126,3 +129,29 @@ async def test_approve_rejects_unknown_authority(db_session: AsyncSession) -> No
         assert row.status == "draft"
     finally:
         await _delete(db_session, proposal_id)
+
+
+async def test_approve_unknown_uuid_raises_not_found(
+    db_session: AsyncSession,
+) -> None:
+    """approve() raises ProposalNotFoundError when UPDATE matches 0 rows (#273)."""
+    bogus_id = f"does-not-exist-{uuid.uuid4().hex}"
+
+    with pytest.raises(ProposalNotFoundError) as excinfo:
+        await ProposalStateManager(db_session).approve(
+            bogus_id,
+            approved_by="cli_admin",
+            approval_authority="human.cli_operator",
+        )
+    assert bogus_id in str(excinfo.value)
+
+
+async def test_reject_unknown_uuid_raises_not_found(
+    db_session: AsyncSession,
+) -> None:
+    """reject() raises ProposalNotFoundError when UPDATE matches 0 rows (#273)."""
+    bogus_id = f"does-not-exist-{uuid.uuid4().hex}"
+
+    with pytest.raises(ProposalNotFoundError) as excinfo:
+        await ProposalStateManager(db_session).reject(bogus_id, reason="test rejection")
+    assert bogus_id in str(excinfo.value)
