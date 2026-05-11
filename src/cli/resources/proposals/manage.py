@@ -98,4 +98,24 @@ async def reject_proposal(
 
     async with service_registry.session() as session:
         await ProposalStateManager(session).reject(proposal_id, reason=reason)
+
+    # ADR-010 §7a / closes #286: revival is symmetric with mark_failed —
+    # findings parked at deferred_to_proposal must flip back to open or
+    # they strand permanently (the audit sensor re-emits, but a manual
+    # reject leaves the original deferred entries unreachable). The §7a
+    # revival report (worker-attribution) is omitted on the CLI path —
+    # operator attribution lives in the proposal row's failure_reason and
+    # rejected status; mirrors approve_proposal which posts no
+    # blackboard report either.
+    bb_service = await service_registry.get_blackboard_service()
+    revival = await bb_service.revive_findings_for_failed_proposal(
+        proposal_id=proposal_id,
+        failure_reason=f"rejected by CLI operator: {reason}",
+    )
+
     console.print(f"[yellow]🚫 Proposal {proposal_id} REJECTED.[/yellow]")
+    if revival:
+        console.print(
+            f"[cyan]   Revived {revival['revived_count']} deferred finding(s) "
+            f"back to open.[/cyan]"
+        )
