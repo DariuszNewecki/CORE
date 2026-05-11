@@ -229,9 +229,18 @@ class ViolationRemediatorWorker(Worker):
                 delegate.append(finding)
             elif entry:
                 ref_id = entry["ref_id"]
-                file_path = finding["payload"].get("file_path") or None
-                action_groups.setdefault((ref_id, file_path), []).append(finding)
-                ref_kinds[ref_id] = entry["ref_kind"]
+                ref_kind = entry["ref_kind"]
+                # ADR-037: flows are codebase-wide operations; per-file
+                # file_path is a category mismatch. All findings sharing a
+                # flow ref bundle into one proposal (key file_path = None).
+                # Atomic actions remain per-file per ADR-035 D1.
+                if ref_kind == "flow":
+                    key = (ref_id, None)
+                else:
+                    file_path = finding["payload"].get("file_path") or None
+                    key = (ref_id, file_path)
+                action_groups.setdefault(key, []).append(finding)
+                ref_kinds[ref_id] = ref_kind
             else:
                 unmappable.append(finding)
                 logger.debug(
