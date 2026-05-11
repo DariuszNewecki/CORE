@@ -77,16 +77,24 @@ class GovernanceInstrumentError(CoreException):
 # ID: 8a3c5d2e-1b4f-4e92-9d8c-7f6a5b4c3d2e
 class ProviderQuotaExhausted(CoreException):
     """
-    Raised when every LLM resource in a fallback chain has returned a
-    quota/billing status code (402 Payment Required, 429 Too Many
-    Requests) and no further fallback is available.
+    Raised when every LLM resource in a fallback chain has been
+    disqualified — either by an HTTP quota/billing status (402, 429) or
+    by a provisioning failure (missing config in the database) — and no
+    further fallback is available.
 
     Distinct from a generic LLM failure: callers may treat this as a
-    governor-attention condition (refill credits, raise quota) rather
-    than as a transient error to retry.
+    governor-attention condition (refill credits, fix resource config,
+    or unassign a broken role) rather than as a transient error to
+    retry.
+
+    ``tried_resources`` carries one ``(resource_name, reason)`` tuple
+    per attempt. ``reason`` is a short string tag: ``"402"`` / ``"429"``
+    for HTTP statuses, ``"provisioning_error"`` for resources whose
+    client could not be built (typically missing ``api_url`` /
+    ``model_name`` in ``runtime_settings``).
     """
 
-    def __init__(self, tried_resources: list[tuple[str, int]]):
+    def __init__(self, tried_resources: list[tuple[str, str]]):
         self.tried_resources = tried_resources
-        summary = ", ".join(f"{name}={status}" for name, status in tried_resources)
-        super().__init__(f"All LLM resources exhausted (quota/billing): {summary}")
+        summary = ", ".join(f"{name}={reason}" for name, reason in tried_resources)
+        super().__init__(f"All LLM resources exhausted: {summary}")

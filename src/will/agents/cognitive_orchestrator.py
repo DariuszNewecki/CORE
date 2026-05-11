@@ -18,11 +18,11 @@ Part of Mind-Body-Will architecture:
 from __future__ import annotations
 
 from collections.abc import Awaitable, Callable
+from functools import partial
 from pathlib import Path
 
 from body.services.mind_state_service import MindStateService
 from shared.infrastructure.database.models import CognitiveRole, LlmResource
-from shared.infrastructure.llm.client import LLMClient
 from shared.infrastructure.llm.client_registry import LLMClientRegistry
 from shared.infrastructure.llm.fallback_client import FallbackAwareLLMClient
 from shared.logger import getLogger
@@ -79,12 +79,15 @@ class CognitiveOrchestrator:
     # ID: a16f98de-17d6-4787-9d94-ab4bf63bc96f
     async def get_client_for_role(self, role_name: str) -> FallbackAwareLLMClient:
         """
-        Will: choose qualified resources, then obtain a client for each
-        from the registry (Body) and return a fallback-aware wrapper.
+        Will: choose qualified resources, then return a fallback-aware
+        wrapper that constructs each client lazily through the registry
+        (Body) only when the call actually reaches that position.
 
-        Per #293: the wrapper transparently fails over to the next
-        qualified resource on quota/billing status codes (402, 429).
-        Callers see a duck-compatible client surface and need no change.
+        Per #293: the wrapper transparently fails over on quota/billing
+        statuses (402, 429). Per the #293 follow-up: it also fails over
+        on per-resource provisioning errors (ValueError from missing
+        config) so one misconfigured row in ``llm_resources`` cannot
+        poison an entire role.
         """
         if not self._loaded:
             await self.initialize()
@@ -95,14 +98,16 @@ class CognitiveOrchestrator:
         if not ordered:
             raise RuntimeError(f"No resource found for role '{role_name}'")
 
-        clients: list[LLMClient] = [
-            await self._client_registry.get_or_create_client(
-                resource, self._provider_factory
+        factories = [
+            partial(
+                self._client_registry.get_or_create_client,
+                resource,
+                self._provider_factory,
             )
             for resource in ordered
         ]
 
         return FallbackAwareLLMClient(
-            clients=clients,
+            client_factories=factories,
             resource_names=[r.name for r in ordered],
         )
