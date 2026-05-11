@@ -178,7 +178,7 @@ class ModularityChecker:
         is zero.
 
         Method-count ranking matches the heuristic in
-        _extract_class_methods_context used by the fix.modularity action —
+        _extract_symbol_inventory used by the fix.modularity action —
         the closest downstream consumer of this signal.
         """
         best_name: str | None = None

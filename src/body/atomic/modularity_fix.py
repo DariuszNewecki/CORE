@@ -17,6 +17,7 @@ Constitutional Alignment:
 from __future__ import annotations
 
 import time
+from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
 from body.atomic.registry import ActionCategory, register_action
@@ -28,6 +29,7 @@ from shared.logger import getLogger
 if TYPE_CHECKING:
     from pathlib import Path
 
+    from body.atomic.split_plan import SplitPlan
     from shared.context import CoreContext
     from shared.infrastructure.storage.file_handler import FileHandler
 
@@ -257,82 +259,177 @@ def _check_decorator_conservation(
     return sorted(missing)
 
 
-def _extract_class_methods_context(source: str) -> str:
+@dataclass
+class _SymbolInventory:
+    """AST-extracted classification of a file's symbol surface.
+
+    Locally-defined names are valid split candidates; imported names are
+    re-exports and must never appear in a plan. Issue #296: prior to this
+    classification the LLM was free-associating over the raw file text and
+    routinely placed imported or invented symbols in plans, costing a full
+    retry cycle each time.
     """
-    Detect the dominant class in a file and extract method/assignment inventory.
 
-    A class is dominant if it has the most methods among all top-level classes
-    and that count is at least 3. This mirrors the heuristic used by
-    ModularitySplitter (dominant = largest class when method count exceeds
-    half of plan symbols), adapted for pre-plan context where we use a
-    fixed threshold of 3 methods instead.
+    classes: list[str] = field(default_factory=list)
+    functions: list[str] = field(default_factory=list)
+    constants: list[str] = field(default_factory=list)
+    dominant_class: str | None = None
+    dominant_methods: list[str] = field(default_factory=list)
+    dominant_class_assigns: list[str] = field(default_factory=list)
+    imported: list[tuple[str, str]] = field(default_factory=list)
 
-    Returns a formatted string listing the class name, all method names,
-    and class-level assignments, or a sentinel string if no dominant class
-    is found.
+    def defined_top_level_names(self) -> set[str]:
+        return set(self.classes) | set(self.functions) | set(self.constants)
 
-    This gives the LLM a precise symbol list so it only needs to reason
-    about grouping — not discover symbols by reading the full file.
+    def defined_class_member_names(self) -> set[str]:
+        return set(self.dominant_methods) | set(self.dominant_class_assigns)
+
+    def imported_lookup(self) -> dict[str, str]:
+        return {name: source for name, source in self.imported}
+
+    def render_for_prompt(self) -> str:
+        if not (
+            self.classes or self.functions or self.constants or self.dominant_methods
+        ):
+            return "(file could not be parsed — no symbols available)"
+
+        lines: list[str] = ["Defined here:"]
+        if self.classes:
+            lines.append(f"  Classes:    {self.classes}")
+        if self.functions:
+            lines.append(f"  Functions:  {self.functions}")
+        if self.constants:
+            lines.append(f"  Constants:  {self.constants}")
+        if self.dominant_class and self.dominant_methods:
+            lines.append(
+                f"  Methods of dominant class '{self.dominant_class}' "
+                f"({len(self.dominant_methods)}):"
+            )
+            for m in self.dominant_methods:
+                lines.append(f"    - {m}")
+            if self.dominant_class_assigns:
+                lines.append("  Class-level assignments:")
+                for a in self.dominant_class_assigns:
+                    lines.append(f"    - {a}")
+
+        if self.imported:
+            lines.append("")
+            lines.append(
+                "Imported (NOT valid split candidates — these are "
+                "re-exports, not definitions):"
+            )
+            for name, source in self.imported:
+                lines.append(f"  - {name} (from {source})")
+
+        return "\n".join(lines)
+
+
+def _extract_symbol_inventory(source: str) -> _SymbolInventory:
+    """Classify every top-level symbol in *source* by origin.
+
+    Walks the AST once and returns a structured inventory. Used twice by
+    fix.modularity: once to constrain the LLM prompt to locally-defined
+    candidates, and once after the LLM returns to reject any plan symbol
+    that resolves to an import or to nothing at all. The dominant-class
+    heuristic (≥3 methods on the largest top-level ClassDef) mirrors the
+    one in ModularitySplitter so prompt and splitter agree on what counts
+    as a class split.
+
+    An empty inventory is returned on SyntaxError; downstream gates will
+    catch the resulting validation failure.
     """
     import ast as _ast
 
+    inv = _SymbolInventory()
     try:
         tree = _ast.parse(source)
-        class_defs = [
-            n for n in _ast.iter_child_nodes(tree) if isinstance(n, _ast.ClassDef)
-        ]
-        if not class_defs:
-            return "(not a single-class file)"
+    except SyntaxError:
+        return inv
 
-        # Find the class with the most methods
-        best = None
+    class_defs: list[_ast.ClassDef] = []
+    for node in _ast.iter_child_nodes(tree):
+        if isinstance(node, _ast.ClassDef):
+            class_defs.append(node)
+            inv.classes.append(node.name)
+        elif isinstance(node, _ast.FunctionDef | _ast.AsyncFunctionDef):
+            inv.functions.append(node.name)
+        elif isinstance(node, _ast.AnnAssign) and isinstance(node.target, _ast.Name):
+            inv.constants.append(node.target.id)
+        elif isinstance(node, _ast.Assign):
+            for target in node.targets:
+                if isinstance(target, _ast.Name):
+                    inv.constants.append(target.id)
+        elif isinstance(node, _ast.Import):
+            for alias in node.names:
+                bound = alias.asname or alias.name.split(".")[0]
+                inv.imported.append((bound, alias.name))
+        elif isinstance(node, _ast.ImportFrom):
+            source_mod = ("." * (node.level or 0)) + (node.module or "")
+            for alias in node.names:
+                if alias.name == "*":
+                    continue
+                bound = alias.asname or alias.name
+                inv.imported.append((bound, source_mod))
+
+    if class_defs:
+        best: _ast.ClassDef | None = None
         best_count = 0
         for cls in class_defs:
             methods = [
-                n
-                for n in cls.body
-                if isinstance(n, _ast.FunctionDef | _ast.AsyncFunctionDef)
+                m
+                for m in cls.body
+                if isinstance(m, _ast.FunctionDef | _ast.AsyncFunctionDef)
             ]
             if len(methods) > best_count:
                 best_count = len(methods)
                 best = cls
 
-        if best is None or best_count < 3:
-            return "(not a single-class file)"
+        if best is not None and best_count >= 3:
+            inv.dominant_class = best.name
+            for member in best.body:
+                if isinstance(member, _ast.FunctionDef | _ast.AsyncFunctionDef):
+                    inv.dominant_methods.append(member.name)
+                elif isinstance(member, _ast.AnnAssign) and isinstance(
+                    member.target, _ast.Name
+                ):
+                    inv.dominant_class_assigns.append(member.target.id)
+                elif isinstance(member, _ast.Assign):
+                    for target in member.targets:
+                        if isinstance(target, _ast.Name):
+                            inv.dominant_class_assigns.append(target.id)
 
-        dominant = best
-        method_names = [
-            n.name
-            for n in dominant.body
-            if isinstance(n, _ast.FunctionDef | _ast.AsyncFunctionDef)
-        ]
+    return inv
 
-        # Collect class-level assignments (Assign and AnnAssign directly in class body)
-        assignment_names = []
-        for n in dominant.body:
-            if isinstance(n, _ast.AnnAssign) and isinstance(n.target, _ast.Name):
-                assignment_names.append(n.target.id)
-            elif isinstance(n, _ast.Assign):
-                for target in n.targets:
-                    if isinstance(target, _ast.Name):
-                        assignment_names.append(target.id)
 
-        result = (
-            f"Dominant class: {dominant.name}\n"
-            f"Methods ({len(method_names)}):\n"
-            + "\n".join(f"  - {m}" for m in method_names)
-        )
+def _validate_plan_against_inventory(
+    plan: SplitPlan, inv: _SymbolInventory
+) -> tuple[list[str], list[str]]:
+    """Check every plan symbol resolves to a locally-defined name.
 
-        if assignment_names:
-            result += (
-                f"\nClass-level assignments ({len(assignment_names)}):\n"
-                + "\n".join(f"  - {a}" for a in assignment_names)
-            )
+    Returns ``(imported_offenders, unknown_offenders)``. The first list
+    holds symbols the LLM proposed that are actually imported (rendered as
+    ``"name (from source_module)"``); the second holds names that exist
+    nowhere in the file. Empty pair means the plan is internally
+    consistent with the inventory.
+    """
+    imported_map = inv.imported_lookup()
+    top_level_set = inv.defined_top_level_names()
+    class_member_set = inv.defined_class_member_names()
 
-        return result
-    except Exception:
-        pass
-    return "(not a single-class file)"
+    imported_offenders: list[str] = []
+    unknown_offenders: list[str] = []
+
+    for mod in plan.modules:
+        valid_set = class_member_set if mod.is_class_split else top_level_set
+        for sym in mod.symbols:
+            if sym in valid_set:
+                continue
+            if sym in imported_map:
+                imported_offenders.append(f"{sym} (from {imported_map[sym]})")
+            else:
+                unknown_offenders.append(sym)
+
+    return imported_offenders, unknown_offenders
 
 
 @register_action(
@@ -412,10 +509,13 @@ async def action_fix_modularity(
         len(callers),
     )
 
-    # 2. Extract class method inventory deterministically from AST.
-    # For single-dominant-class files this gives the LLM a precise symbol
-    # list so it only needs to reason about grouping, not discover symbols.
-    class_methods_context = _extract_class_methods_context(original_content)
+    # 2. Classify every symbol in the file by origin (defined here vs
+    # imported) from the AST. The rendered form goes into the LLM prompt
+    # so the model only chooses split candidates from locally-defined
+    # names; the structured form is re-checked after the LLM returns.
+    # Issue #296: prior to this, the LLM saw raw file content and routinely
+    # placed imported or invented symbols in plans.
+    symbol_inventory = _extract_symbol_inventory(original_content)
 
     # 3. Phase 1 — find the seam via LLM
     try:
@@ -432,7 +532,7 @@ async def action_fix_modularity(
                 "line_count": str(line_count),
                 "content": original_content,
                 "callers": "\n".join(callers) if callers else "(none)",
-                "class_methods": class_methods_context,
+                "symbol_inventory": symbol_inventory.render_for_prompt(),
             },
         )
     except Exception as e:
@@ -492,7 +592,36 @@ async def action_fix_modularity(
         len(split_plan.modules),
     )
 
-    # 4a. Confidence gate — halt if LLM was insufficiently certain about the seam.
+    # 4a. Inventory gate (issue #296) — every plan symbol must be locally
+    # defined in the source file. Imported names (re-exports) and invented
+    # names would otherwise reach the splitter as a generic "Symbols not
+    # found in source AST" error after the LLM call has already been paid
+    # for; catch them here with a precise message so retries don't keep
+    # burning cycles on the same misclassification.
+    imported_offenders, unknown_offenders = _validate_plan_against_inventory(
+        split_plan, symbol_inventory
+    )
+    if imported_offenders or unknown_offenders:
+        logger.error(
+            "fix.modularity: plan references non-local symbols in %s "
+            "(imported=%s, unknown=%s)",
+            rel_path,
+            imported_offenders,
+            unknown_offenders,
+        )
+        return ActionResult(
+            action_id="fix.modularity",
+            ok=False,
+            data={
+                "error": "plan references non-local symbols",
+                "imported_in_plan": imported_offenders,
+                "unknown_in_plan": unknown_offenders,
+                "file": rel_path,
+            },
+            duration_sec=time.time() - start,
+        )
+
+    # 4b. Confidence gate — halt if LLM was insufficiently certain about the seam.
     confidence_threshold = _load_split_confidence_threshold(repo_root)
     if split_plan.confidence < confidence_threshold:
         logger.warning(
