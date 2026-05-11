@@ -6,10 +6,6 @@ Provides a high-level overview of recent Body actions and failures.
 
 from __future__ import annotations
 
-from shared.logger import getLogger
-
-
-logger = getLogger(__name__)
 import typer
 from rich.console import Console
 from rich.panel import Panel
@@ -46,7 +42,7 @@ async def admin_summary_cmd(
     """
     core_context = ctx.obj
     service = LimbStatusService(session_factory=core_context.registry.session)
-    logger.info(
+    console.print(
         "\n[bold cyan]🧬 Sensation: Aggregating Limb Health Summary...[/bold cyan]\n"
     )
     health = await service.get_recent_limb_health(limit=limit)
@@ -54,7 +50,7 @@ async def admin_summary_cmd(
     status_text = f"Limb State  : [bold {status_color}]{health['status']}[/bold {status_color}]\nScan Depth  : {health['total_checked']} actions\nPain Signals: {health['failure_count']} detected"
     console.print(Panel(status_text, title="Operational Sensation", expand=False))
     if health["issues"]:
-        logger.info(
+        console.print(
             "\n[bold red]🚨 Detected Pain Signals (Recent Failures):[/bold red]"
         )
         table = Table(show_header=True, header_style="bold red")
@@ -63,9 +59,9 @@ async def admin_summary_cmd(
         table.add_column("Time", style="dim", justify="right")
         for issue in health["issues"]:
             table.add_row(issue["action"], issue["error"], str(issue["time"])[:19])
-        logger.info(table)
+        console.print(table)
     else:
-        logger.info(
+        console.print(
             "\n[bold green]✅ System Harmony: No recent pain signals detected in the ledger.[/bold green]"
         )
     console.print()

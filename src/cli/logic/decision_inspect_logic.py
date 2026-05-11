@@ -28,14 +28,14 @@ async def show_session_trace_logic(
     """Deep inspection of a single session."""
     trace = await repo.get_by_session_id(session_id)
     if not trace:
-        logger.info("[yellow]No trace found for session: %s[/yellow]", session_id)
+        console.print(f"[yellow]No trace found for session: {session_id}[/yellow]")
         return
-    logger.info("\n[bold cyan]Session: %s[/bold cyan]", trace.session_id)
+    console.print(f"\n[bold cyan]Session: {trace.session_id}[/bold cyan]")
     logger.info("Agent: %s | Decisions: %s", trace.agent_name, trace.decision_count)
     if details:
         for i, d in enumerate(trace.decisions or [], 1):
-            logger.info(
-                "\n[cyan]%s. %s - %s[/cyan]", i, d.get("agent"), d.get("decision_type")
+            console.print(
+                f"\n[cyan]{i}. {d.get('agent')} - {d.get('decision_type')}[/cyan]"
             )
             logger.info("   Rationale: %s", d.get("rationale"))
 
@@ -49,7 +49,7 @@ async def list_recent_traces_logic(
         limit=limit, agent_name=agent, failures_only=failures_only
     )
     if not traces:
-        logger.info("[yellow]No traces found.[/yellow]")
+        console.print("[yellow]No traces found.[/yellow]")
         return
     table = Table(title=f"Recent Decision Traces ({len(traces)})")
     table.add_column("Session", style="cyan")
@@ -59,4 +59,4 @@ async def list_recent_traces_logic(
     for t in traces:
         status = "❌ Violations" if t.has_violations == "true" else "✅ Clean"
         table.add_row(t.session_id[:12], t.agent_name, str(t.decision_count), status)
-    logger.info(table)
+    console.print(table)
