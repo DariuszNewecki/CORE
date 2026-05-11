@@ -67,16 +67,19 @@ class ProposalMapper:
             ),
             created_at=proposal.created_at,
             created_by=proposal.created_by,
-            validation_checks=proposal.validation_checks,
-            validation_results=proposal.validation_results,
+            # ADR-032+/#274 (#291): every JSONB write on this path runs
+            # through _sanitize_payload — the parent fix 830cc798 covered
+            # only execution_results; validation_checks / validation_results
+            # / constitutional_constraints carry the same SQL_ASCII risk
+            # because audit messages routinely contain em-dashes.
+            validation_checks=_sanitize_payload(proposal.validation_checks),
+            validation_results=_sanitize_payload(proposal.validation_results),
             execution_started_at=proposal.execution_started_at,
             execution_completed_at=proposal.execution_completed_at,
-            # ADR-032+/#274: SQL_ASCII DB rejects Unicode escape sequences in
-            # JSONB. mark_completed/mark_failed sanitize on their UPDATE path;
-            # this mapper write path needs the same sanitization to avoid
-            # asyncpg.UntranslatableCharacterError on rows persisted here.
             execution_results=_sanitize_payload(proposal.execution_results),
-            constitutional_constraints=proposal.constitutional_constraints,
+            constitutional_constraints=_sanitize_payload(
+                proposal.constitutional_constraints
+            ),
             approval_required=proposal.approval_required,
             approved_by=proposal.approved_by,
             approved_at=proposal.approved_at,
@@ -166,14 +169,17 @@ class ProposalMapper:
             if proposal.risk
             else None
         )
-        db_proposal.validation_checks = proposal.validation_checks
-        db_proposal.validation_results = proposal.validation_results
+        # ADR-032+/#274 (#291): mirror to_db_model — every JSONB write on
+        # this UPDATE path runs through _sanitize_payload so session.flush()
+        # can't carry non-ASCII into SQL_ASCII JSONB.
+        db_proposal.validation_checks = _sanitize_payload(proposal.validation_checks)
+        db_proposal.validation_results = _sanitize_payload(proposal.validation_results)
         db_proposal.execution_started_at = proposal.execution_started_at
         db_proposal.execution_completed_at = proposal.execution_completed_at
-        # ADR-032+/#274: see to_db_model — sanitize on the mapper write path so
-        # session.flush() can't carry non-ASCII into SQL_ASCII JSONB.
         db_proposal.execution_results = _sanitize_payload(proposal.execution_results)
-        db_proposal.constitutional_constraints = proposal.constitutional_constraints
+        db_proposal.constitutional_constraints = _sanitize_payload(
+            proposal.constitutional_constraints
+        )
         db_proposal.approval_required = proposal.approval_required
         db_proposal.approved_by = proposal.approved_by
         db_proposal.approved_at = proposal.approved_at
