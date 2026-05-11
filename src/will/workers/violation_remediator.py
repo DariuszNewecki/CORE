@@ -7,8 +7,9 @@ Constitutional role: acting worker, remediation phase.
 Responsibility (from .intent/workers/violation_remediator.yaml):
   Consume open audit violation findings from the Blackboard, look up the
   remediating action from .intent/enforcement/mappings/remediation/auto_remediation.yaml
-  (via _load_remediation_map), create one Proposal per unique action group,
-  and defer each consumed Blackboard entry to the created Proposal.
+  (via _load_remediation_map), create one Proposal per (action, file) unit
+  per ADR-035 D1, and defer each consumed Blackboard entry to the created
+  Proposal.
 
 The autonomous audit loop this closes:
 
@@ -18,7 +19,7 @@ The autonomous audit loop this closes:
   ViolationRemediatorWorker (acting)  ← THIS WORKER
       reads open findings from Blackboard
       looks up action via remediation map from .intent/
-      creates Proposal (one per action group)
+      creates Proposal (one per (action, file) unit — ADR-035 D1)
       transitions findings to 'deferred_to_proposal' with proposal_id
           ↓
   ProposalConsumerWorker
@@ -32,9 +33,11 @@ The autonomous audit loop this closes:
 Design constraints:
 - No LLM calls
 - No direct file writes
-- Never creates a proposal if an active one exists for the same action
+- Never creates a proposal if an active one exists for the same
+  (action, file) unit — dedup keyed per ADR-035 D2
 - Defers Blackboard entries to proposal AFTER the proposal is persisted (not before)
-- One proposal per action ID (not one per finding)
+- One proposal per (action, file) — scope.files is exactly one file per
+  ADR-035 D1 (closes #284)
 - Safe proposals (approval_required=False) are created in APPROVED status
   so ProposalConsumerWorker can pick them up immediately
 
@@ -129,8 +132,9 @@ class ViolationRemediatorWorker(Worker):
     Acting worker that converts Blackboard violation findings into proposals.
 
     Reads open audit.violation findings, maps each rule to a remediation
-    action via .intent/ remediation map, groups by action, deduplicates
-    against active proposals, creates proposals, transitions the
+    action via .intent/ remediation map, groups by (action, file) per
+    ADR-035 D1, deduplicates against active proposals on the same
+    (action, file) unit, creates per-finding proposals, transitions the
     consumed entries to 'deferred_to_proposal' with the proposal_id
     stored in their payload (per CORE-Finding.md §7).
 
@@ -160,9 +164,9 @@ class ViolationRemediatorWorker(Worker):
         """
         Core work unit:
         1. Load open violation findings from Blackboard
-        2. Group by action (via .intent/ remediation map)
-        3. Deduplicate against active proposals
-        4. Create proposals for new action groups
+        2. Group by (action, file_path) per ADR-035 D1
+        3. Deduplicate against active proposals on the same (action, file)
+        4. Create one proposal per (action, file) unit
         5. Transition consumed Blackboard entries:
              - happy path:    deferred_to_proposal (with proposal_id)
              - dedup-subsume: resolved
@@ -202,10 +206,14 @@ class ViolationRemediatorWorker(Worker):
             len(open_findings),
         )
 
-        # 2. Group by ref_id (action or flow) using .intent/ remediation map
+        # 2. Group by (ref_id, file_path) — one proposal per (action, file)
+        # per ADR-035 D1. Each group's scope.files is exactly one file. In
+        # the typical case each list holds a single finding; multiple
+        # findings sharing the same (ref_id, file_path) in a single cycle
+        # all defer to the same proposal so no claimed finding is stranded.
         remediation_map = self._get_remediation_map()
 
-        action_groups: dict[str, list[dict[str, Any]]] = {}
+        action_groups: dict[tuple[str, str | None], list[dict[str, Any]]] = {}
         ref_kinds: dict[str, str] = {}
         unmappable: list[dict[str, Any]] = []
         delegate: list[dict[str, Any]] = []
@@ -221,8 +229,8 @@ class ViolationRemediatorWorker(Worker):
                 delegate.append(finding)
             elif entry:
                 ref_id = entry["ref_id"]
-                action_groups.setdefault(ref_id, [])
-                action_groups[ref_id].append(finding)
+                file_path = finding["payload"].get("file_path") or None
+                action_groups.setdefault((ref_id, file_path), []).append(finding)
                 ref_kinds[ref_id] = entry["ref_kind"]
             else:
                 unmappable.append(finding)
@@ -231,8 +239,10 @@ class ViolationRemediatorWorker(Worker):
                     rule,
                 )
 
-        # 3. Deduplicate against active proposals
-        active_proposal_ids = await self._get_active_proposal_id_by_action()
+        # 3. Deduplicate against active proposals — keyed by (ref_id, file_path)
+        # per ADR-035 D2. A proposal active for (fix.modularity, src/a.py)
+        # does not subsume a finding for (fix.modularity, src/b.py).
+        active_proposal_ids = await self._get_active_proposal_id_by_action_file()
 
         # 4. Create proposals + 5. Transition entries per ADR-010 / ADR-015 D4.
         proposals_created: list[str] = []
@@ -241,29 +251,31 @@ class ViolationRemediatorWorker(Worker):
         entries_resolved_dedup: int = 0
         entries_released_after_failure: int = 0
 
-        for ref_id, findings in action_groups.items():
+        for (ref_id, file_path), findings in action_groups.items():
             ref_kind = ref_kinds[ref_id]
             entry_ids = [_entry_id(f) for f in findings]
+            group_label = f"{ref_id}::{file_path or '<no-file>'}"
 
-            subsuming_proposal_id = active_proposal_ids.get(ref_id)
+            subsuming_proposal_id = active_proposal_ids.get((ref_id, file_path))
             if subsuming_proposal_id:
-                # Dedup: an active proposal already represents this action
-                # group. Findings are subsumed — the mandate's "consumed"
-                # applies (routing-to-proposal, not only proposal-creation).
-                # Status is 'resolved' — not 'deferred_to_proposal' —
-                # because the subsuming proposal does not track these
-                # duplicates in its scope, so the §7a revival contract
-                # does not apply (ADR-010 Alternatives Considered). The
-                # subsuming proposal_id is recorded in payload as the
-                # audit linkage (URS Q1.F / ADR-015 D4).
+                # Dedup: an active proposal already represents this
+                # (action, file) unit. Findings are subsumed — the
+                # mandate's "consumed" applies (routing-to-proposal, not
+                # only proposal-creation). Status is 'resolved' — not
+                # 'deferred_to_proposal' — because the subsuming proposal
+                # does not track these duplicates in its scope, so the
+                # §7a revival contract does not apply (ADR-010
+                # Alternatives Considered). The subsuming proposal_id is
+                # recorded in payload as the audit linkage
+                # (URS Q1.F / ADR-015 D4).
                 resolved = await self._resolve_entries(entry_ids, subsuming_proposal_id)
                 entries_resolved_dedup += resolved
-                proposals_skipped.append(ref_id)
+                proposals_skipped.append(group_label)
                 logger.info(
                     "ViolationRemediatorWorker: skipping '%s' — active proposal "
                     "%s exists; resolved %d subsumed finding(s) with proposal_id "
                     "linkage",
-                    ref_id,
+                    group_label,
                     subsuming_proposal_id,
                     resolved,
                 )
@@ -272,7 +284,7 @@ class ViolationRemediatorWorker(Worker):
             proposal_id = await self._create_proposal(ref_id, ref_kind, findings)
 
             if proposal_id:
-                proposals_created.append(ref_id)
+                proposals_created.append(group_label)
                 # ADR-010 / CORE-Finding.md §7: on successful proposal
                 # creation, transition findings to 'deferred_to_proposal'
                 # and store proposal_id in their payload. The §7a revival
@@ -285,7 +297,7 @@ class ViolationRemediatorWorker(Worker):
                     "'%s' (%d findings, %d entries deferred to proposal)",
                     proposal_id,
                     ref_kind,
-                    ref_id,
+                    group_label,
                     len(findings),
                     deferred,
                 )
@@ -298,7 +310,7 @@ class ViolationRemediatorWorker(Worker):
                 logger.warning(
                     "ViolationRemediatorWorker: proposal for '%s' not created; "
                     "released %d finding(s) back to open",
-                    ref_id,
+                    group_label,
                     released,
                 )
 
@@ -451,19 +463,29 @@ class ViolationRemediatorWorker(Worker):
         return mappable
 
     # ID: 8a7c5e91-2b4f-4d63-9e07-1a3c5d8b2f04
-    async def _get_active_proposal_id_by_action(self) -> dict[str, str]:
+    async def _get_active_proposal_id_by_action_file(
+        self,
+    ) -> dict[tuple[str, str | None], str]:
         """
-        Return a mapping of ref_id → proposal_id for ProposalActions that
-        already have an active proposal. ref_id is action_id for atomic-
-        action proposals and flow_id for flow-based proposals — keying on
-        ProposalAction.ref_id covers both kinds. The dedup-subsume path
-        needs the proposal_id (not just the ref_id) to record the linkage
-        in the subsumed finding's payload — URS Q1.F / ADR-015 D4.
+        Return a mapping of (ref_id, file_path) → proposal_id for
+        ProposalActions that already have an active proposal — ADR-035 D2.
 
-        When multiple active proposals share a ref_id, the earliest
-        by Proposal.created_at wins. The earliest proposal is the
-        original anchor whose existence caused subsequent dedup-subsume
-        decisions, so subsumed findings attribute to it.
+        Per-finding scoping (ADR-035 D1) makes the dedup unit (ref_id,
+        file_path), not ref_id alone. ref_id is action.action_id for
+        atomic-action proposals or action.flow_id for flow-based proposals.
+        file_path lives on action.parameters. The dedup-subsume path needs
+        the proposal_id (not just the ref_id) to record the linkage in the
+        subsumed finding's payload — URS Q1.F / ADR-015 D4.
+
+        Historical batch proposals (pre-ADR-035) with multiple
+        ProposalActions across different file_paths are handled correctly:
+        each action contributes its own (ref_id, file_path) entry, so a
+        new finding for any one of those files subsumes under the historical
+        batch proposal.
+
+        When multiple active proposals share a (ref_id, file_path), the
+        earliest by Proposal.created_at wins — the original anchor whose
+        existence caused subsequent dedup-subsume decisions.
 
         Fail-open: on exception returns an empty dict so the worker
         proceeds without dedup rather than blocking remediation.
@@ -471,7 +493,7 @@ class ViolationRemediatorWorker(Worker):
         from body.services.service_registry import service_registry
         from will.autonomy.proposal_repository import ProposalRepository
 
-        candidates: list[tuple[str, str, Any]] = []
+        candidates: list[tuple[tuple[str, str | None], str, Any]] = []
         try:
             async with service_registry.session() as session:
                 repo = ProposalRepository(session)
@@ -479,9 +501,14 @@ class ViolationRemediatorWorker(Worker):
                     proposals = await repo.list_by_status(status, limit=200)
                     for proposal in proposals:
                         for action in proposal.actions:
+                            action_file_path = (
+                                action.parameters.get("file_path")
+                                if action.parameters
+                                else None
+                            )
                             candidates.append(
                                 (
-                                    action.ref_id,
+                                    (action.ref_id, action_file_path),
                                     proposal.proposal_id,
                                     proposal.created_at,
                                 )
@@ -495,11 +522,11 @@ class ViolationRemediatorWorker(Worker):
             return {}
 
         # Earliest-wins: ascending sort by created_at then setdefault keeps
-        # the first seen — the original anchor proposal for that ref_id.
+        # the first seen — the original anchor proposal for that key.
         candidates.sort(key=lambda t: t[2])
-        result: dict[str, str] = {}
-        for ref_id, proposal_id, _created_at in candidates:
-            result.setdefault(ref_id, proposal_id)
+        result: dict[tuple[str, str | None], str] = {}
+        for key, proposal_id, _created_at in candidates:
+            result.setdefault(key, proposal_id)
         return result
 
     # ID: f8a9b0c1-d2e3-4567-fabc-456789012347
