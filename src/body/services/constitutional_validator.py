@@ -82,80 +82,24 @@ class ConstitutionalValidator:
         self._prohibited_actions: set[str] = set()
         self._risk_by_path: dict[str, RiskTier] = {}
         self._risk_by_action: dict[str, RiskTier] = {}
-        self._load_rules()
+        self._populate_indices()
 
-    def _load_rules(self):
-        """Load all constitutional rules from .intent/rules/ via IntentRepository."""
-        logger.info("📜 Loading constitutional governance rules...")
+    def _populate_indices(self) -> None:
+        """Replace this validator's indices with a fresh load from .intent/.
 
-        # Initialize repository indexing
-        self.intent_repo.initialize()
+        Lazy import of the loader avoids a circular dependency: the loader
+        module needs to import RiskTier from this module, so this module
+        cannot import the loader at top level.
+        """
+        from body.services.constitutional_rule_loader import load_governance_indices
 
-        # Access the internal rule index directly
-        if not self.intent_repo._rule_index:
-            logger.warning("No rules indexed in IntentRepository")
-            return
-
-        for rule_id, rule_ref in self.intent_repo._rule_index.items():
-            try:
-                # RuleRef has: rule_id, policy_id, source_path, content
-                rule = rule_ref.content
-                self._rules[rule_id] = rule
-                self._process_rule(rule_id, rule)
-            except Exception as e:
-                logger.warning("Failed to load rule %s: %s", rule_id, e)
-                continue
-
-        logger.info("✅ Loaded %s constitutional rules", len(self._rules))
-        logger.info("   📊 Critical paths: %s", len(self._critical_paths))
-        logger.info("   📊 Autonomous actions: %s", len(self._autonomous_actions))
-        logger.info("   📊 Prohibited actions: %s", len(self._prohibited_actions))
-        logger.info("   📊 Path risk mappings: %s", len(self._risk_by_path))
-        logger.info("   📊 Action risk mappings: %s", len(self._risk_by_action))
-
-    def _process_rule(self, rule_id: str, rule: dict[str, Any]):
-        """Extract governance information from a rule."""
-        statement = rule.get("statement", "")
-        enforcement = rule.get("enforcement", "advisory")
-
-        # Extract critical paths (blocking enforcement on .intent/)
-        if ".intent" in statement and enforcement == "blocking":
-            self._critical_paths.add(".intent/**")
-
-        # Extract autonomous permissions based on rule statements
-        if "MUST NOT" in statement or "forbidden" in statement.lower():
-            # Extract prohibited actions from rule statement
-            if "eval" in statement or "exec" in statement:
-                self._prohibited_actions.add("execute_code")
-            if "database" in statement.lower() and "Mind" in statement:
-                self._prohibited_actions.add("database_access_from_mind")
-
-        # Classify risk based on enforcement strength and authority
-        authority = rule.get("authority", "policy")
-        if enforcement == "blocking" and authority == "constitution":
-            # Constitutional blocking rules are CRITICAL
-            if "path" in rule or "scope" in rule:
-                scope = rule.get("scope", [])
-                if isinstance(scope, dict):
-                    scope = scope.get("applies_to", [])
-                for pattern in scope if isinstance(scope, list) else [scope]:
-                    if pattern:
-                        self._risk_by_path[pattern] = RiskTier.CRITICAL
-        elif enforcement == "blocking":
-            # Regular blocking rules are ELEVATED
-            scope = rule.get("scope", [])
-            if isinstance(scope, dict):
-                scope = scope.get("applies_to", [])
-            for pattern in scope if isinstance(scope, list) else [scope]:
-                if pattern:
-                    self._risk_by_path[pattern] = RiskTier.ELEVATED
-
-        # Actions mentioned in advisory rules are ROUTINE if allowed
-        if enforcement == "advisory" and "MAY" in statement:
-            # Extract action name from rule_id or statement
-            if "." in rule_id:
-                action = rule_id.split(".")[-1]
-                self._autonomous_actions.add(action)
+        indices = load_governance_indices(self.intent_repo)
+        self._rules = indices.rules
+        self._critical_paths = indices.critical_paths
+        self._autonomous_actions = indices.autonomous_actions
+        self._prohibited_actions = indices.prohibited_actions
+        self._risk_by_path = indices.risk_by_path
+        self._risk_by_action = indices.risk_by_action
 
     # ID: 93e97860-42f9-4605-94f8-1987bcf5343b
     def reload_constitution(self):
@@ -163,18 +107,11 @@ class ConstitutionalValidator:
         Reload rules from IntentRepository.
         Called by human operators after editing .intent/rules/.
         """
-        self._rules.clear()
-        self._critical_paths.clear()
-        self._autonomous_actions.clear()
-        self._prohibited_actions.clear()
-        self._risk_by_path.clear()
-        self._risk_by_action.clear()
-
         # Clear LRU caches
         self.is_path_critical.cache_clear()
         self.classify_risk.cache_clear()
 
-        self._load_rules()
+        self._populate_indices()
         logger.info("🔄 Constitution reloaded from .intent/rules/")
 
     @lru_cache(maxsize=1024)
