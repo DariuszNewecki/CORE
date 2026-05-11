@@ -21,6 +21,14 @@ Constitutional standing:
 
 LAYER: will/workers — acting worker. Receives CoreContext via constructor.
 All src/ writes delegated to ProposalExecutor → ActionExecutor → Crate → Canary.
+
+The post-execution side-effects (forwarding action findings_to_post,
+emitting test.run_required, posting scope-collision yields) live in
+proposal_consumer_effects.py. The §7a revival contract (revive deferred
+findings + post revival report when a proposal terminates
+non-successfully) lives in proposal_consumer_revival.py. The dispatch
+shell below stays focused on polling, executor invocation, and run
+accounting.
 """
 
 from __future__ import annotations
@@ -29,6 +37,14 @@ from typing import Any
 
 from shared.logger import getLogger
 from shared.workers.base import Worker
+from will.workers.proposal_consumer_effects import (
+    apply_success_effects,
+    apply_yield_effects,
+)
+from will.workers.proposal_consumer_revival import (
+    mark_proposal_failed,
+    revive_and_report,
+)
 
 
 logger = getLogger(__name__)
@@ -63,7 +79,8 @@ class ProposalConsumerWorker(Worker):
         Poll for APPROVED proposals and execute them.
 
         1. Load approved proposals (up to _CLAIM_LIMIT)
-        2. For each: execute via ProposalExecutor(write=True)
+        2. For each: execute via ProposalExecutor(write=True) and route
+           the outcome to the appropriate post-execution collaborator
         3. Post blackboard report with results
         """
         await self.post_heartbeat()
@@ -90,7 +107,7 @@ class ProposalConsumerWorker(Worker):
         succeeded = 0
         failed = 0
         yielded = 0
-        results = []
+        results: list[dict[str, Any]] = []
 
         for proposal in proposals:
             proposal_id = proposal["proposal_id"]
@@ -112,27 +129,13 @@ class ProposalConsumerWorker(Worker):
                     colliding = result.get("colliding_paths", []) or []
                     yield_reason = result.get("yield_reason", "scope_collision")
                     logger.info(
-                        "ProposalConsumerWorker: proposal '%s' yielded — %s (colliding=%d)",
+                        "ProposalConsumerWorker: proposal '%s' yielded — %s "
+                        "(colliding=%d)",
                         proposal_id,
                         yield_reason,
                         len(colliding),
                     )
-                    try:
-                        await self.post_finding(
-                            subject=f"autonomy.yielded.scope_collision::{proposal_id}",
-                            payload={
-                                "proposal_id": proposal_id,
-                                "goal": goal,
-                                "yield_reason": yield_reason,
-                                "colliding_paths": colliding,
-                            },
-                        )
-                    except Exception as post_err:
-                        logger.warning(
-                            "Could not post yield finding for proposal %s: %s",
-                            proposal_id,
-                            post_err,
-                        )
+                    await apply_yield_effects(self, proposal_id, goal, result)
                     results.append(
                         {
                             "proposal_id": proposal_id,
@@ -154,68 +157,7 @@ class ProposalConsumerWorker(Worker):
                         result["actions_executed"],
                         result["duration_sec"],
                     )
-                    # Post any finding_to_post entries declared by atomic actions.
-                    # ADR-011: attribution flows through Worker.post_finding, not
-                    # through raw SQL in the action body. Actions return
-                    # finding_to_post in ActionResult.data; the Worker posts here.
-                    # Runs before the changed_files loop so a downstream worker
-                    # reacting to the posted finding sees it before any
-                    # test.run_required entries for the same file.
-                    action_results = result.get("action_results", {}) or {}
-                    for aid, ar in action_results.items():
-                        if not ar.get("ok"):
-                            continue
-                        ar_data = ar.get("data") or {}
-                        finding_to_post = ar_data.get("finding_to_post")
-                        if not finding_to_post:
-                            continue
-                        subject = finding_to_post.get("subject")
-                        payload = finding_to_post.get("payload")
-                        if not subject or payload is None:
-                            logger.warning(
-                                "Malformed finding_to_post from action %s "
-                                "(missing subject/payload): %r",
-                                aid,
-                                finding_to_post,
-                            )
-                            continue
-                        try:
-                            await self.post_finding(subject=subject, payload=payload)
-                            logger.info(
-                                "ProposalConsumerWorker: posted finding %s from action %s",
-                                subject,
-                                aid,
-                            )
-                        except Exception as post_err:
-                            logger.warning(
-                                "Could not post finding_to_post from action %s: %s",
-                                aid,
-                                post_err,
-                            )
-                    # Post test.run_required for each changed source file.
-                    # Attribution flows through the Worker base class — self.post_finding
-                    # uses self._worker_uuid and self._phase, satisfying the
-                    # blackboard_entries NOT NULL constraint that ProposalExecutor
-                    # could not satisfy on its own.
-                    changed_files = result.get("changed_files", []) or []
-                    post_execution_sha = result.get("post_execution_sha")
-                    for path in changed_files:
-                        if path.startswith("src/") and path.endswith(".py"):
-                            try:
-                                await self.post_finding(
-                                    subject=f"test.run_required::{path}",
-                                    payload={
-                                        "source_file": path,
-                                        "proposal_id": proposal_id,
-                                        "post_execution_sha": post_execution_sha,
-                                    },
-                                )
-                            except Exception as test_req_err:
-                                logger.warning(
-                                    "Could not post test.run_required for proposal %s: %s",
-                                    proposal_id,
-                                    test_req_err,
-                                )
+                    await apply_success_effects(self, proposal_id, result)
                 else:
                     failed += 1
                     logger.warning(
@@ -225,49 +167,11 @@ class ProposalConsumerWorker(Worker):
                     )
                     # §7a orchestration: mark_failed has already run inside
                     # executor.execute() and transitioned the proposal row.
-                    # Worker now revives any findings that were deferred to
-                    # this proposal (UPDATE-only service call) and posts the
-                    # revival report with Worker attribution (ADR-011).
+                    # Revival + revival report posted via the collaborator
+                    # (UPDATE-only service call + Worker-attributed post per
+                    # ADR-011).
                     reason = result.get("failure_reason") or "proposal execution failed"
-                    try:
-                        from body.services.service_registry import service_registry
-
-                        bb_service = await service_registry.get_blackboard_service()
-                        revival = await bb_service.revive_findings_for_failed_proposal(
-                            proposal_id=proposal_id,
-                            failure_reason=reason,
-                        )
-                    except Exception as revive_err:
-                        logger.warning(
-                            "Revival query failed for proposal %s: %s",
-                            proposal_id,
-                            revive_err,
-                        )
-                        revival = None
-
-                    if revival and revival.get("revived_count", 0) > 0:
-                        try:
-                            await self.post_report(
-                                subject=f"proposal.failure.revival::{proposal_id}",
-                                payload={
-                                    "proposal_id": revival["proposal_id"],
-                                    "failure_reason": revival["failure_reason"],
-                                    "revived_count": revival["revived_count"],
-                                    "revived_subjects": revival["revived_subjects"],
-                                },
-                            )
-                            logger.info(
-                                "ProposalConsumerWorker: posted revival report for "
-                                "proposal %s (%d findings revived)",
-                                proposal_id,
-                                revival["revived_count"],
-                            )
-                        except Exception as post_err:
-                            logger.warning(
-                                "Failed to post revival report for proposal %s: %s",
-                                proposal_id,
-                                post_err,
-                            )
+                    await revive_and_report(self, proposal_id, reason)
 
                 results.append(
                     {
@@ -290,65 +194,11 @@ class ProposalConsumerWorker(Worker):
                     e,
                     exc_info=True,
                 )
-                # mark_failed so proposal does not strand in 'executing'.
-                # If the exception fired before claim.proposal, the proposal
-                # is still APPROVED; marking it FAILED prevents indefinite
-                # retry of a systematically broken proposal.
-                try:
-                    from body.services.service_registry import service_registry
-                    from will.autonomy.proposal_state_manager import (
-                        ProposalStateManager,
-                    )
-
-                    async with service_registry.session() as session:
-                        state_manager = ProposalStateManager(session)
-                        await state_manager.mark_failed(proposal_id, str(e))
-                except Exception as mark_err:
-                    logger.error(
-                        "ProposalConsumerWorker: failed to mark proposal '%s' as failed: %s",
-                        proposal_id,
-                        mark_err,
-                    )
-                # §7a revival — mirror the ok=False branch above.
-                try:
-                    from body.services.service_registry import service_registry
-
-                    bb_service = await service_registry.get_blackboard_service()
-                    revival = await bb_service.revive_findings_for_failed_proposal(
-                        proposal_id=proposal_id,
-                        failure_reason=str(e),
-                    )
-                except Exception as revive_err:
-                    logger.warning(
-                        "Revival query failed for proposal %s: %s",
-                        proposal_id,
-                        revive_err,
-                    )
-                    revival = None
-
-                if revival and revival.get("revived_count", 0) > 0:
-                    try:
-                        await self.post_report(
-                            subject=f"proposal.failure.revival::{proposal_id}",
-                            payload={
-                                "proposal_id": revival["proposal_id"],
-                                "failure_reason": revival["failure_reason"],
-                                "revived_count": revival["revived_count"],
-                                "revived_subjects": revival["revived_subjects"],
-                            },
-                        )
-                        logger.info(
-                            "ProposalConsumerWorker: posted revival report for "
-                            "proposal %s (%d findings revived)",
-                            proposal_id,
-                            revival["revived_count"],
-                        )
-                    except Exception as post_err:
-                        logger.warning(
-                            "Failed to post revival report for proposal %s: %s",
-                            proposal_id,
-                            post_err,
-                        )
+                # The executor raised before its internal mark_failed could
+                # run, so we transition the row ourselves and then run the
+                # same revival sequence as the ok=False branch.
+                await mark_proposal_failed(proposal_id, str(e))
+                await revive_and_report(self, proposal_id, str(e))
 
                 results.append(
                     {
@@ -367,7 +217,10 @@ class ProposalConsumerWorker(Worker):
                 "failed": failed,
                 "yielded": yielded,
                 "results": results,
-                "message": f"{succeeded} proposals executed, {failed} failed, {yielded} yielded.",
+                "message": (
+                    f"{succeeded} proposals executed, {failed} failed, "
+                    f"{yielded} yielded."
+                ),
             },
         )
 
