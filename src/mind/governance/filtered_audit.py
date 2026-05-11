@@ -222,7 +222,7 @@ async def run_filtered_audit(
     }
 
     logger.info(
-        "Filtered audit complete: %d/%d rules executed, %d findings" "%s",
+        "Filtered audit complete: %d/%d rules executed, %d findings%s",
         stats["executed_rules"],
         stats["filtered_rules"],
         stats["total_findings"],
