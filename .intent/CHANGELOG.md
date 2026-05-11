@@ -568,6 +568,49 @@ Files: `src/will/workers/violation_remediator.py`,
 
 ---
 
+## ADR-038 — 2026-05-11
+
+Circuit-breaker on repeated proposal failures. The autonomous remediation
+loop previously had no upper bound on how many times the same systematic
+failure could repeat: `mark_failed` → `revive_and_report` → re-claim →
+new proposal with byte-identical contents, indefinitely. The 2026-05-10
+dashboard observation of 128 identical `fix.placeholders` failures on
+one file is the conserved instance — per the Convergence Principle, a
+loop that amplifies failures rather than resolving them cannot converge.
+
+`ViolationRemediatorWorker.run()` now consults the failed-proposal tail
+between dedup and `_create_proposal`. When the most recent N
+(`threshold_n`, default 5) failed proposals for the same
+`(ref_id, file_path)` carry the same canonical error signature, the
+circuit trips: no new proposal is minted, the cycle's findings are
+marked DELEGATE via the existing `_mark_delegated` path, and a
+`governance.circuit_breaker_tripped` finding is posted to the
+blackboard for governor triage (mirrors the
+`governance.instrument_degraded` hazard pattern).
+
+Identity is `(ref_id, file_path, error_signature)` — counting
+`(ref_id, file_path)` alone over-trips on flaky infrastructure. The
+signature is built by stripping volatile substrings (ISO timestamps,
+UUIDs, duration suffixes, pids) from `failure_reason` and truncating
+to `signature_window_chars` (default 200), so two failures with the
+same root cause but different incidental noise compare equal.
+Threshold and signature parameters live in `.intent/`, not `src/`,
+honoring the precedent set by ADR-031 / #282.
+
+Reset is implicit by the consecutive-identical rule: a successful
+proposal between failures resets the count. Explicit governor override
+via a `core-admin proposals reset-circuit` CLI is left as a follow-up
+to be added when the breaker first trips in production. Closes #281.
+
+Files: `.intent/enforcement/config/circuit_breaker.yaml`
+(threshold_n=5, signature_window_chars=200, max_lookback=25, four
+volatile-pattern regexes — iso_timestamp, uuid, duration_seconds, pid),
+`src/will/workers/circuit_breaker.py`,
+`src/will/workers/violation_remediator.py`,
+`.specs/decisions/ADR-038-circuit-breaker-on-repeated-proposal-failures.md`.
+
+---
+
 ## Notes
 
 * This changelog intentionally avoids implementation detail
