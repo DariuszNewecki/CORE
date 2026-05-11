@@ -54,27 +54,14 @@ from typing import Any
 
 from shared.logger import getLogger
 from shared.workers.base import Worker
+from will.workers.audit_violation_filter import filter_actionable_violations
+from will.workers.audit_violation_normalizer import normalize_audit_findings
 
 
 logger = getLogger(__name__)
 
 # Blackboard subject prefix for findings posted by this worker
 _FINDING_SUBJECT = "audit.violation"
-
-# File path values produced by the auditor for project-scope or unresolvable
-# findings. The remediator cannot open these as source files — skip them.
-_SENTINEL_FILE_PATHS: frozenset[str] = frozenset(
-    {
-        "System",
-        "system",
-        "DB",
-        "db",
-        "unknown",
-        "none",
-        "None",
-        "",
-    }
-)
 
 
 # ID: 7199fd0e-a8ed-40e6-b7f1-5718d6b79ae4
@@ -146,8 +133,10 @@ class AuditViolationSensor(Worker):
             rule_ids,
         )
 
-        raw_violations = await self._run_audit(rule_ids)
-        violations = self._filter_violations(raw_violations)
+        raw_violations = await normalize_audit_findings(
+            self._core_context, self._rule_namespace, rule_ids
+        )
+        violations = filter_actionable_violations(raw_violations)
 
         filtered_out = len(raw_violations) - len(violations)
         if filtered_out:
@@ -302,140 +291,6 @@ class AuditViolationSensor(Worker):
                 e,
             )
             return []
-
-    async def _run_audit(self, rule_ids: list[str]) -> list[dict[str, Any]]:
-        """
-        Run a filtered constitutional audit for the resolved rule IDs and
-        return normalized violation dicts.
-        """
-        from body.services.service_registry import service_registry
-        from mind.governance.filtered_audit import run_filtered_audit
-
-        auditor_context = self._core_context.auditor_context
-
-        async with service_registry.session() as session:
-            auditor_context.db_session = session
-            await auditor_context.load_knowledge_graph()
-            raw_findings, _, _ = await run_filtered_audit(
-                auditor_context, rule_ids=rule_ids
-            )
-            auditor_context.db_session = None
-
-        violations = []
-        for finding in raw_findings:
-            if isinstance(finding, dict):
-                file_path = finding.get("file_path")
-                message = finding.get("message", "")
-                severity = str(finding.get("severity", "warning"))
-                line_number = finding.get("line_number")
-                rule_id = finding.get("check_id", self._rule_namespace)
-                ctx = finding.get("context", {})
-            else:
-                file_path = getattr(finding, "file_path", None)
-                message = getattr(finding, "message", "")
-                severity = str(getattr(finding, "severity", "warning"))
-                line_number = getattr(finding, "line_number", None)
-                rule_id = getattr(finding, "check_id", self._rule_namespace)
-                ctx = getattr(finding, "context", {}) or {}
-
-            if not file_path:
-                symbol_a = ctx.get("symbol_a", "")
-                file_path = (
-                    ctx.get("file_path") or ctx.get("file") or ctx.get("module_path")
-                )
-                if not file_path and symbol_a:
-                    symbols_map = getattr(
-                        self._core_context.auditor_context, "symbols_map", {}
-                    )
-                    for sym_path, sym_data in symbols_map.items():
-                        qualname = sym_data.get("qualname", "") or sym_data.get(
-                            "name", ""
-                        )
-                        if qualname == symbol_a or sym_path.endswith(f".{symbol_a}"):
-                            module = sym_data.get("module", "")
-                            if module:
-                                file_path = "src/" + module.replace(".", "/") + ".py"
-                            break
-
-                if not file_path:
-                    file_path = f"__symbol_pair__{ctx.get('symbol_a', 'unknown')}"
-
-            violations.append(
-                {
-                    "file_path": file_path,
-                    "line_number": line_number,
-                    "message": message,
-                    "severity": severity,
-                    "rule_id": rule_id,
-                    "context": ctx,
-                }
-            )
-
-        return violations
-
-    def _filter_violations(
-        self, violations: list[dict[str, Any]]
-    ) -> list[dict[str, Any]]:
-        """
-        Remove violations that cannot be acted on by the remediator.
-
-        Two categories are dropped:
-
-        1. Sentinel file paths — the auditor could not resolve a real source
-           file. These are project-scope or symbol-pair findings. The
-           remediator cannot open "System" or "__symbol_pair__foo" as a file.
-
-        2. Malformed rule IDs — the auditor returned an enforcement mapping
-           file path as check_id (e.g. "enforcement/mappings/arch/foo.yaml").
-           This is an auditor internal leaking into the finding. The remediator
-           cannot map a file path to a fix strategy, and it creates misleading
-           subjects on the blackboard.
-        """
-        actionable = []
-        for v in violations:
-            file_path = str(v.get("file_path") or "")
-            rule_id = str(v.get("rule_id") or "")
-
-            # Drop sentinel file paths
-            if file_path in _SENTINEL_FILE_PATHS:
-                logger.debug(
-                    "AuditViolationSensor: dropping sentinel file_path=%r rule=%r",
-                    file_path,
-                    rule_id,
-                )
-                continue
-
-            if file_path.startswith("__symbol_pair__"):
-                logger.debug(
-                    "AuditViolationSensor: dropping symbol-pair file_path=%r rule=%r",
-                    file_path,
-                    rule_id,
-                )
-                continue
-
-            # Drop findings where the file path is not a Python source file
-            if not file_path.endswith(".py"):
-                logger.debug(
-                    "AuditViolationSensor: dropping non-Python file_path=%r rule=%r",
-                    file_path,
-                    rule_id,
-                )
-                continue
-
-            # Drop malformed rule IDs — file paths leaked from the auditor engine.
-            # A real rule ID never contains "/" (e.g. "purity.no_dead_code").
-            # Enforcement mapping paths do (e.g. "enforcement/mappings/arch/foo.yaml").
-            if "/" in rule_id:
-                logger.debug(
-                    "AuditViolationSensor: dropping malformed rule_id=%r file=%r",
-                    rule_id,
-                    file_path,
-                )
-                continue
-
-            actionable.append(v)
-
-        return actionable
 
     async def _fetch_existing_subjects(self) -> set[str]:
         """
