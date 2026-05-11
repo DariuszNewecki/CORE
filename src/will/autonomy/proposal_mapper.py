@@ -15,6 +15,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from shared.workers.base import _sanitize_payload
 from will.autonomy.proposal import Proposal
 
 
@@ -70,7 +71,11 @@ class ProposalMapper:
             validation_results=proposal.validation_results,
             execution_started_at=proposal.execution_started_at,
             execution_completed_at=proposal.execution_completed_at,
-            execution_results=proposal.execution_results,
+            # ADR-032+/#274: SQL_ASCII DB rejects Unicode escape sequences in
+            # JSONB. mark_completed/mark_failed sanitize on their UPDATE path;
+            # this mapper write path needs the same sanitization to avoid
+            # asyncpg.UntranslatableCharacterError on rows persisted here.
+            execution_results=_sanitize_payload(proposal.execution_results),
             constitutional_constraints=proposal.constitutional_constraints,
             approval_required=proposal.approval_required,
             approved_by=proposal.approved_by,
@@ -165,7 +170,9 @@ class ProposalMapper:
         db_proposal.validation_results = proposal.validation_results
         db_proposal.execution_started_at = proposal.execution_started_at
         db_proposal.execution_completed_at = proposal.execution_completed_at
-        db_proposal.execution_results = proposal.execution_results
+        # ADR-032+/#274: see to_db_model — sanitize on the mapper write path so
+        # session.flush() can't carry non-ASCII into SQL_ASCII JSONB.
+        db_proposal.execution_results = _sanitize_payload(proposal.execution_results)
         db_proposal.constitutional_constraints = proposal.constitutional_constraints
         db_proposal.approval_required = proposal.approval_required
         db_proposal.approved_by = proposal.approved_by
