@@ -519,6 +519,25 @@ Files: `src/will/workers/violation_remediator.py`. Commit 53272ce1.
 
 ---
 
+## ADR-036 — 2026-05-11
+
+PathResolver excluded from `modularity.needs_split`. The 2026-05-11 SRP
+sweep landed six file splits (ProposalConsumerWorker, StrategicAuditor,
+AtomicActionsEvaluator, ConstitutionalValidator, RequestInterpreter,
+AuditViolationSensor). The seventh and final candidate, `path_resolver.py`,
+analysis established as a catalog class with one responsibility — the rule
+fired on volume (408 lines, 30+ trivial property getters), not on lumped
+concerns. Splitting would have added a mixin for 8 lines over the limit
+without improving clarity. The correct response is an exclusion, not a
+split. Removal condition is documented: this exclusion is revisited when
+the file acquires a second genuine concern. `modularity.needs_split`:
+7 → 0 occurrences.
+Files: `.intent/enforcement/mappings/code/modularity.yaml`,
+`.specs/decisions/ADR-036-path-resolver-excluded-from-needs-split.md`.
+Commit 0b68328c.
+
+---
+
 ## Notes
 
 * This changelog intentionally avoids implementation detail
