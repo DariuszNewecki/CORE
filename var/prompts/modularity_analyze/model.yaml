@@ -33,12 +33,17 @@ output:
           True if a clean seam exists. False if the file is long
           but genuinely cohesive and should not be split.
       confidence:
-        type: string
-        enum: [high, medium, low]
+        type: number
+        minimum: 0.0
+        maximum: 1.0
         description: >
-          high   = seam is obvious, naming is clean, no shared state.
-          medium = seam exists but there is coupling to untangle.
-          low    = no clean seam found.
+          Confidence in the proposed seam on a 0.0-1.0 scale.
+          0.90+ = obvious seam, clean naming, no shared state.
+          0.75  = seam exists with minor coupling that is easy to resolve.
+          0.60  = seam exists but symbols are coupled in ways needing untangling.
+          0.40  = borderline; concepts are real but separation adds friction.
+          0.20  = no clean seam; splitting would make the code worse.
+          The action's confidence gate (default 0.75) rejects plans below threshold.
       reason:
         type: string
         description: >

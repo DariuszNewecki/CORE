@@ -37,29 +37,30 @@ class ModuleSpec:
 
 
 def _parse_confidence(value: object) -> float:
-    """Coerce LLM confidence output to float.
+    """Coerce LLM confidence output to a float in [0.0, 1.0].
 
-    Accepts numeric values directly. Maps common categorical strings
-    ("high", "medium", "low") to representative floats. Unknown strings
-    and unparseable values default to 0.0 so the confidence gate
-    rejects them rather than crashing.
+    Accepts numeric values directly and numeric strings via float coercion.
+    Out-of-range numbers, unparseable strings, bools, and other types default
+    to 0.0 so the confidence gate rejects them rather than crashing. The
+    legacy high/medium/low categorical mapping was removed — the prompt
+    schema now requires a float (issue #296 follow-up).
     """
-    _CATEGORICAL: dict[str, float] = {
-        "high": 0.9,
-        "medium": 0.7,
-        "low": 0.4,
-    }
+    if isinstance(value, bool):
+        # bool is a subclass of int — reject explicitly to avoid silent
+        # True -> 1.0 coercion sneaking past the gate.
+        return 0.0
     if isinstance(value, int | float):
-        return float(value)
-    if isinstance(value, str):
-        normalised = value.strip().lower()
-        if normalised in _CATEGORICAL:
-            return _CATEGORICAL[normalised]
+        f = float(value)
+    elif isinstance(value, str):
         try:
-            return float(normalised)
+            f = float(value.strip())
         except ValueError:
             return 0.0
-    return 0.0
+    else:
+        return 0.0
+    if not (0.0 <= f <= 1.0):
+        return 0.0
+    return f
 
 
 @dataclass

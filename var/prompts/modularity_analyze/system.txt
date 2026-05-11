@@ -12,10 +12,16 @@ Rules you must follow:
 1. A file that is long but genuinely cohesive must NOT be split.
    "Long" is not a reason. "Doing two unrelated things" is a reason.
 
-2. Confidence reflects your certainty about the seam:
-   - high:   the concepts are obvious, naming is clean, symbols share no state
-   - medium: a seam exists but symbols are coupled in ways that need untangling
-   - low:    no clean seam found, or splitting would create more problems
+2. Confidence is a float in [0.0, 1.0] expressing your certainty that the
+   proposed seam is correct. Anchors:
+   - 0.90+ : seam is obvious; module names are clean; symbols share no state
+   - 0.75  : seam exists with minor coupling that is easy to resolve
+   - 0.60  : seam exists but symbols are coupled in ways that need untangling
+   - 0.40  : borderline; concepts are real but separation adds friction
+   - 0.20  : no clean seam; splitting would make the code worse
+   Pick the number that best fits the file — you are not restricted to these
+   anchors. The action's auto-execute threshold is 0.75; anything below is
+   sent for human review rather than auto-applied.
 
 3. Every symbol in the file must appear in exactly one part.
    No symbol may be lost. No symbol may appear twice.
@@ -81,7 +87,7 @@ Your response must use exactly this JSON schema:
 
 {{
   "can_split": true or false,
-  "confidence": "high", "medium", or "low",
+  "confidence": 0.85,
   "reason": "one sentence explaining the seam or why no seam exists",
   "modules": [
     {{

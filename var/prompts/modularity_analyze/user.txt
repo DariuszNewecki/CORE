@@ -34,7 +34,7 @@ Your response must use exactly this JSON schema:
 
 {{
   "can_split": true or false,
-  "confidence": "high", "medium", or "low",
+  "confidence": 0.85,
   "reason": "one sentence explaining the seam or why no seam exists",
   "modules": [
     {{
