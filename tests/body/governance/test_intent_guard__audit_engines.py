@@ -110,9 +110,7 @@ def test_content_analysis_engine_remains_in_audit_set(engine: str) -> None:
 # ---- Skip behaviour: _check_against_rules honours the set ----------------
 
 
-@pytest.mark.parametrize(
-    "engine", PASSIVE_MARKER_ENGINES + CONTENT_ANALYSIS_ENGINES
-)
+@pytest.mark.parametrize("engine", PASSIVE_MARKER_ENGINES + CONTENT_ANALYSIS_ENGINES)
 def test_rule_with_audit_engine_produces_no_write_time_violation(
     engine: str,
 ) -> None:

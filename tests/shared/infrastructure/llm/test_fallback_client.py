@@ -149,9 +149,7 @@ async def test_embedding_and_system_prompt_methods_also_fall_back() -> None:
         resource_names=["p", "s"],
     )
 
-    assert (
-        await wrapper.make_request_with_system_async("prompt", "system") == "sys-ok"
-    )
+    assert await wrapper.make_request_with_system_async("prompt", "system") == "sys-ok"
     assert await wrapper.get_embedding("text") == [0.1, 0.2]
 
 
