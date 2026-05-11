@@ -289,7 +289,7 @@ async def trip(
     except Exception as exc:
         delegated = 0
         logger.error(
-            "circuit_breaker: failed to mark findings DELEGATE for " "(%s, %s, %s): %s",
+            "circuit_breaker: failed to mark findings DELEGATE for (%s, %s, %s): %s",
             ref_kind,
             ref_id,
             file_path,
@@ -314,7 +314,7 @@ async def trip(
         )
     except Exception as exc:
         logger.error(
-            "circuit_breaker: failed to post hazard finding for " "(%s, %s, %s): %s",
+            "circuit_breaker: failed to post hazard finding for (%s, %s, %s): %s",
             ref_kind,
             ref_id,
             file_path,
