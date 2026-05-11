@@ -126,6 +126,7 @@ Full rationale lives in each ADR file under `.specs/decisions/`. This table is t
 | ADR-035 | 2026-05-11 | One finding, one proposal | `ViolationRemediatorWorker` grouping key changed from `action_id` to `(action_id, file_path)`; each proposal scoped to exactly one file. Closes #284. |
 | ADR-036 | 2026-05-11 | PathResolver excluded from `modularity.needs_split` | Catalog class with one responsibility; rule fired on volume, not lumped concerns. Exclusion added to `modularity.yaml` with documented removal condition. `modularity.needs_split` 7 → 0 occurrences after the session's six SRP splits. |
 | ADR-037 | 2026-05-11 | Flow refs exempt from ADR-035 per-file scoping | `ViolationRemediatorWorker.run()` groups flow refs by `(ref_id, None)` (bundling all findings sharing a flow) and atomic action refs by `(ref_id, file_path)` (per-file, unchanged). Categorical exception, not refinement — ADR-035's three governance properties hold for atomic actions, invert for codebase-wide flows. Layer 1 (commit 2a77a9ba) omits file_path from flow proposal parameters; Layer 2 (this ADR) collapses N flow proposals into 1. Layer 3 (whether flows should auto-remediate) open as #290. Commit 0941fd07. |
+| ADR-038 | 2026-05-11 | Circuit-breaker on repeated proposal failures | After N consecutive identical-signature failures for a (ref_id, file_path) pair, ViolationRemediatorWorker skips proposal creation, marks findings DELEGATE, and posts a governance.circuit_breaker_tripped hazard finding. Threshold governed in .intent/enforcement/config/circuit_breaker.yaml. |
 
 ---
 
