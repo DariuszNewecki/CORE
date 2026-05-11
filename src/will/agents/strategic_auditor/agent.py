@@ -1,29 +1,35 @@
 # src/will/agents/strategic_auditor/agent.py
 
 """
-StrategicAuditor ? CORE's self-awareness agent.
+StrategicAuditor — CORE's self-awareness agent.
 
 Reads full system state, reasons about it as a whole, produces a prioritised
 remediation campaign, and executes what is constitutionally permitted.
 
 Constitutional role:
-- Reads everything (audit, DB, .intent/, git) ? never writes to .intent/
+- Reads everything (audit, DB, .intent/, git) — never writes to .intent/
 - Flags anything requiring .intent/ amendment as escalation (requires_approval=True)
 - Executes autonomous tasks via develop_from_goal
+
+This module is the orchestration shell plus human/machine rendering. The
+LLM-driven campaign synthesis lives in reasoning.py; the side effects
+(persistence to the task DB, dispatch to autonomous_developer) live in
+effects.py. SystemContextGatherer (context_gatherer.py) and the dataclasses
+(models.py) are pre-existing collaborators in this package.
 """
 
 from __future__ import annotations
 
-import json
-import uuid
-from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
 
-from shared.ai.prompt_model import PromptModel
-from shared.infrastructure.repositories.task_repository import TaskRepository
 from shared.logger import getLogger
 from will.agents.strategic_auditor.context_gatherer import SystemContextGatherer
-from will.agents.strategic_auditor.models import RootCauseCluster, StrategicCampaign
+from will.agents.strategic_auditor.effects import (
+    execute_autonomous_tasks,
+    persist_campaign,
+)
+from will.agents.strategic_auditor.models import StrategicCampaign
+from will.agents.strategic_auditor.reasoning import synthesize_campaign
 from will.agents.traced_agent_mixin import TracedAgentMixin
 from will.orchestration.decision_tracer import DecisionTracer
 
@@ -36,26 +42,6 @@ if TYPE_CHECKING:
 
 
 logger = getLogger(__name__)
-
-_VALID_WORKFLOW_TYPES = frozenset(
-    {
-        "refactor_modularity",
-        "coverage_remediation",
-        "full_feature_development",
-    }
-)
-
-
-def _resolve_workflow_type(value: str) -> str:
-    """Return value if it is a known workflow type, else the safe default."""
-    if isinstance(value, str) and value.strip() in _VALID_WORKFLOW_TYPES:
-        return value.strip()
-    logger.warning(
-        "Unknown or missing workflow_type '%s' from LLM — "
-        "defaulting to full_feature_development",
-        value,
-    )
-    return "full_feature_development"
 
 
 # ID: 752c04d3-2c98-4847-a256-1271ef60f6c4
@@ -96,19 +82,19 @@ class StrategicAuditor(TracedAgentMixin):
             StrategicCampaign with clusters, escalations, and human report
         """
         logger.info("=" * 70)
-        logger.info("? STRATEGIC AUDIT ? CORE Self-Awareness Cycle")
+        logger.info("STRATEGIC AUDIT — CORE Self-Awareness Cycle")
         logger.info("=" * 70)
 
         gatherer = SystemContextGatherer(self._ctx, self._cognitive)
         system_context = await gatherer.gather(session)
 
-        campaign = await self._reason(system_context)
+        campaign = await synthesize_campaign(self._cognitive, system_context)
 
         if write:
-            await self._persist_campaign(session, campaign)
+            await persist_campaign(session, campaign)
 
         if write and execute_autonomous:
-            await self._execute_autonomous_tasks(session, campaign)
+            await execute_autonomous_tasks(self._ctx, session, campaign)
 
         self._log_summary(campaign)
 
@@ -131,220 +117,19 @@ class StrategicAuditor(TracedAgentMixin):
 
         return campaign
 
-    # ID: f07d7afc-cf61-425f-8adb-45581e566923
-    async def _reason(self, system_context: dict[str, Any]) -> StrategicCampaign:
-        """Send system context to LLM and parse the strategic campaign."""
-        import json as _json
-
-        findings = system_context.get("audit_findings", [])
-
-        # Compact findings by rule (avoid token overflow)
-        findings_by_rule: dict[str, list[str]] = {}
-        for f in findings:
-            rid = f.get("rule_id", "unknown")
-            ffile = f.get("file", "unknown")
-            findings_by_rule.setdefault(rid, []).append(ffile)
-
-        lines = []
-        for rid, files in sorted(findings_by_rule.items()):
-            unique = sorted(set(files))[:5]
-            suffix = f" (+{len(files) - 5} more)" if len(files) > 5 else ""
-            lines.append(
-                f"  [{rid}] in {len(files)} locations: {', '.join(unique)}{suffix}"
-            )
-
-        def _compact(obj: Any, max_chars: int = 1500) -> str:
-            s = _json.dumps(obj, indent=2, default=str)
-            return s[:max_chars] + "..." if len(s) > max_chars else s
-
-        logger.info("? Reasoning about system state (LLM call)...")
-
-        try:
-            model = PromptModel.load("architect_threats_analysis_prompt")
-            client = await self._cognitive.aget_client_for_role(model.manifest.role)
-            response = await model.invoke(
-                context={
-                    "finding_count": len(findings),
-                    "audit_findings_summary": "\n".join(lines[:50]),
-                    "semantic_landscape": _compact(
-                        system_context.get("semantic_landscape", {})
-                    ),
-                    "knowledge_gaps": _compact(
-                        system_context.get("knowledge_gaps", {})
-                    ),
-                    "structural_health": _compact(
-                        system_context.get("structural_health", {})
-                    ),
-                    "change_context": _compact(
-                        system_context.get("change_context", {})
-                    ),
-                    "intent_drift": _compact(system_context.get("intent_drift", {})),
-                    "constitution_summary": _compact(
-                        {
-                            "policy_count": system_context.get(
-                                "constitution_summary", {}
-                            ).get("policy_count", 0),
-                            "policies": system_context.get(
-                                "constitution_summary", {}
-                            ).get("policy_ids", [])[:15],
-                        }
-                    ),
-                },
-                client=client,
-                user_id="StrategicAuditor",
-            )
-            raw = response.strip()
-            if raw.startswith("```"):
-                raw = raw.split("```")[1]
-                if raw.startswith("json"):
-                    raw = raw[4:]
-            data = json.loads(raw.strip())
-        except Exception as e:
-            logger.error("LLM reasoning failed: %s", e)
-            data = {"system_summary": f"Strategic audit failed: {e}", "clusters": []}
-
-        campaign_id = str(uuid.uuid4())
-        clusters, escalations = [], []
-
-        for c in data.get("clusters", []):
-            cluster = RootCauseCluster(
-                cluster_id=c.get("cluster_id", str(uuid.uuid4())[:8]),
-                root_cause=c.get("root_cause", ""),
-                affected_files=c.get("affected_files", []),
-                finding_ids=c.get("finding_ids", []),
-                proposed_fix=c.get("proposed_fix", ""),
-                requires_constitution_change=c.get(
-                    "requires_constitution_change", False
-                ),
-                confidence=float(c.get("confidence", 0.8)),
-                estimated_impact=c.get("estimated_impact", "medium"),
-                workflow_type=_resolve_workflow_type(c.get("workflow_type", "")),
-            )
-            (escalations if cluster.requires_constitution_change else clusters).append(
-                cluster
-            )
-
-        return StrategicCampaign(
-            campaign_id=campaign_id,
-            created_at=datetime.now(UTC),
-            system_summary=data.get("system_summary", ""),
-            clusters=clusters,
-            escalations=escalations,
-            total_findings=len(findings),
-            autonomous_task_count=len(clusters),
-            escalation_count=len(escalations),
-        )
-
-    # ID: caca6ca5-bc71-4a2f-8204-8064cafae324
-    async def _persist_campaign(
-        self, session: AsyncSession, campaign: StrategicCampaign
-    ) -> None:
-        """Store campaign as parent Task + child Tasks in PostgreSQL."""
-        repo = TaskRepository(session)
-
-        parent = await repo.create(
-            intent=f"[StrategicCampaign:{campaign.campaign_id}] {campaign.system_summary[:200]}",
-            assigned_role="StrategicAuditor",
-            status="campaign_ready",
-        )
-        parent.context = {
-            "campaign_id": campaign.campaign_id,
-            "total_findings": campaign.total_findings,
-            "autonomous_tasks": campaign.autonomous_task_count,
-            "escalations": campaign.escalation_count,
-            "system_summary": campaign.system_summary,
-        }
-        await session.commit()
-
-        for cluster in campaign.clusters:
-            child = await repo.create(
-                intent=cluster.proposed_fix,
-                assigned_role="AutonomousDeveloper",
-                status="pending",
-            )
-            child.parent_task_id = parent.id
-            child.requires_approval = False
-            child.context = {
-                "cluster_id": cluster.cluster_id,
-                "root_cause": cluster.root_cause,
-                "affected_files": cluster.affected_files,
-                "finding_ids": cluster.finding_ids,
-                "confidence": cluster.confidence,
-                "estimated_impact": cluster.estimated_impact,
-            }
-
-        for cluster in campaign.escalations:
-            child = await repo.create(
-                intent=f"[ESCALATION] {cluster.proposed_fix}",
-                assigned_role="Human",
-                status="awaiting_approval",
-            )
-            child.parent_task_id = parent.id
-            child.requires_approval = True
-            child.context = {
-                "cluster_id": cluster.cluster_id,
-                "root_cause": cluster.root_cause,
-                "constitutional_amendment_needed": cluster.proposed_fix,
-                "affected_files": cluster.affected_files,
-            }
-
-        await session.commit()
-        logger.info(
-            "? Campaign persisted: parent=%s, %d tasks, %d escalations",
-            parent.id,
-            campaign.autonomous_task_count,
-            campaign.escalation_count,
-        )
-
-    # ID: 69296627-b6ce-44d7-88e7-cd47d02517aa
-    async def _execute_autonomous_tasks(
-        self, session: AsyncSession, campaign: StrategicCampaign
-    ) -> None:
-        """Execute non-escalation clusters via develop_from_goal."""
-        from will.autonomy.autonomous_developer import develop_from_goal
-
-        logger.info(
-            "? Executing %d autonomous tasks...", campaign.autonomous_task_count
-        )
-
-        for i, cluster in enumerate(campaign.clusters, 1):
-            logger.info(
-                "  [%d/%d] %s (impact=%s, confidence=%.2f)",
-                i,
-                campaign.autonomous_task_count,
-                cluster.root_cause[:80],
-                cluster.estimated_impact,
-                cluster.confidence,
-            )
-
-            if cluster.confidence < 0.7:
-                logger.info(
-                    "    ? ??  Skipping (confidence too low ? staged for review)"
-                )
-                continue
-
-            success, message = await develop_from_goal(
-                context=self._ctx,
-                goal=cluster.proposed_fix,
-                workflow_type=cluster.workflow_type,
-                write=True,
-                session=session,
-            )
-            logger.info("    ? %s %s", "✅" if success else "❌", message)
-
     # ID: eb28a664-23c1-4b84-84b8-e67ed158b364
     def _log_summary(self, campaign: StrategicCampaign) -> None:
         """Print human-readable campaign summary to console."""
         logger.info("")
         logger.info("=" * 70)
-        logger.info("? STRATEGIC AUDIT RESULTS")
+        logger.info("STRATEGIC AUDIT RESULTS")
         logger.info("=" * 70)
         logger.info("")
         logger.info("SYSTEM ASSESSMENT:")
         logger.info("%s", campaign.system_summary)
         logger.info("")
         logger.info(
-            "FINDINGS: %d total ? %d root cause clusters ? %d escalations",
+            "FINDINGS: %d total — %d root cause clusters — %d escalations",
             campaign.total_findings,
             campaign.autonomous_task_count,
             campaign.escalation_count,
@@ -366,7 +151,7 @@ class StrategicAuditor(TracedAgentMixin):
         if campaign.escalations:
             logger.info("")
             logger.info(
-                "??  ESCALATIONS (require your review ? .intent/ amendment needed):"
+                "ESCALATIONS (require your review — .intent/ amendment needed):"
             )
             for i, c in enumerate(campaign.escalations, 1):
                 logger.info("  %d. %s", i, c.root_cause)
