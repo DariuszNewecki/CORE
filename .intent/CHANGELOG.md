@@ -503,6 +503,22 @@ Files: `.specs/decisions/ADR-034-optimizer-worker-formal-deferral.md`.
 
 ---
 
+## ADR-035 — 2026-05-11
+
+One finding, one proposal. `ViolationRemediatorWorker` previously grouped
+findings by `action_id`, producing one proposal per action regardless of
+how many files were affected. This forced the governor into all-or-nothing
+approval decisions over independent findings and broke the 1:1 resolution
+of the consequence chain. The grouping key is changed to `(action_id,
+file_path)` so each proposal covers exactly one file. Deduplication,
+the deferred_to_proposal transition, and the §7a revival contract are
+preserved at per-finding resolution. The batch-safe classification for
+homogeneous low-risk actions (e.g. `fix.format`) is deferred to a future
+ADR. Closes #284.
+Files: `src/will/workers/violation_remediator.py`. Commit 53272ce1.
+
+---
+
 ## Notes
 
 * This changelog intentionally avoids implementation detail
