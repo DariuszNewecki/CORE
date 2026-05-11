@@ -8,7 +8,7 @@
 
 from pathlib import Path
 
-from body.evaluators.atomic_actions_evaluator import format_atomic_action_violations
+from body.evaluators.atomic_actions_format import format_atomic_action_violations
 
 
 class TestFormatAtomicActionViolations:

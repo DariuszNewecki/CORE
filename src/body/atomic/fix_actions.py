@@ -416,10 +416,8 @@ async def action_fix_atomic_actions(
     core_context: CoreContext, write: bool = False, **kwargs
 ) -> ActionResult:
     """Fix atomic action patterns."""
-    from body.evaluators.atomic_actions_evaluator import (
-        AtomicActionsEvaluator,
-        AtomicActionViolation,
-    )
+    from body.evaluators.atomic_actions_evaluator import AtomicActionsEvaluator
+    from body.evaluators.atomic_actions_rules import AtomicActionViolation
     from cli.commands.fix.atomic_actions import _fix_file_violations
 
     start_time = time.time()

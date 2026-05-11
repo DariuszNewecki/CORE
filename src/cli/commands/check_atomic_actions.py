@@ -16,11 +16,9 @@ from pathlib import Path
 
 import typer
 
-from body.evaluators.atomic_actions_evaluator import (
-    AtomicActionsEvaluator,
-    AtomicActionViolation,
-    format_atomic_action_violations,
-)
+from body.evaluators.atomic_actions_evaluator import AtomicActionsEvaluator
+from body.evaluators.atomic_actions_format import format_atomic_action_violations
+from body.evaluators.atomic_actions_rules import AtomicActionViolation
 from cli.utils import core_command
 from shared.context import CoreContext
 from shared.logger import getLogger

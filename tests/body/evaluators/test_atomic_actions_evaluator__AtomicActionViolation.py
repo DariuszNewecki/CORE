@@ -7,7 +7,7 @@
 
 from pathlib import Path
 
-from body.evaluators.atomic_actions_evaluator import AtomicActionViolation
+from body.evaluators.atomic_actions_rules import AtomicActionViolation
 
 
 # Detected return type: AtomicActionViolation is a dataclass-like class, not a function
