@@ -278,15 +278,19 @@ class _SymbolInventory:
     dominant_class_assigns: list[str] = field(default_factory=list)
     imported: list[tuple[str, str]] = field(default_factory=list)
 
+    # ID: 1c64dbd5-326a-45a1-adad-598b5d79f4ef
     def defined_top_level_names(self) -> set[str]:
         return set(self.classes) | set(self.functions) | set(self.constants)
 
+    # ID: b5ab6c31-5f6e-4294-b735-4232e4f6ffac
     def defined_class_member_names(self) -> set[str]:
         return set(self.dominant_methods) | set(self.dominant_class_assigns)
 
+    # ID: 2407928f-b671-43f8-b991-e31f9b9f1892
     def imported_lookup(self) -> dict[str, str]:
         return {name: source for name, source in self.imported}
 
+    # ID: be209121-da7a-4a19-9eff-3df1c907d6ec
     def render_for_prompt(self) -> str:
         if not (
             self.classes or self.functions or self.constants or self.dominant_methods
