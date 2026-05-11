@@ -39,6 +39,27 @@ from will.autonomy.proposal_state_manager import ProposalStateManager
 logger = getLogger(__name__)
 
 
+def _files_produced_by(action_results: dict[str, Any]) -> set[str]:
+    """Collect every path actions reported via ``data['files_produced']``.
+
+    Some actions — notably ``fix.modularity`` — write new files outside
+    the proposal's declared ``scope.files``. Each such action lists those
+    paths in its ``ActionResult.data['files_produced']``. The commit step
+    unions this set with the declared scope so new files land in git
+    alongside the scope-declared edits. Issue #297.
+
+    Non-string and empty entries are filtered out defensively so a
+    malformed action result can't corrupt the git-add invocation.
+    """
+    produced: set[str] = set()
+    for result in action_results.values():
+        data = result.get("data") or {}
+        for path in data.get("files_produced") or []:
+            if isinstance(path, str) and path:
+                produced.add(path)
+    return produced
+
+
 # ID: 69e9d2f1-3246-4a09-a5a8-fc0e1e882f47
 class ProposalExecutor:
     """
@@ -324,13 +345,18 @@ class ProposalExecutor:
                         proposal.proposal_id,
                         total_duration,
                     )
-                    # Git commit — git_service.commit() already stages all changes
-                    # via add_all() internally. Failure is advisory: execution already
-                    # happened, we don't unwind it over a commit failure.
+                    # Git commit — stage the declared scope plus anything actions
+                    # reported as produced (#297: fix.modularity writes new package
+                    # files outside scope.files). Failure is advisory: execution
+                    # already happened, we don't unwind it over a commit failure.
                     if self.core_context.git_service:
                         try:
+                            paths_to_commit = sorted(
+                                set(proposal.scope.files)
+                                | _files_produced_by(action_results)
+                            )
                             self.core_context.git_service.commit_paths(
-                                proposal.scope.files,
+                                paths_to_commit,
                                 f"fix({proposal.proposal_id[:16]}): {proposal.goal}",
                             )
                             logger.info(
@@ -638,10 +664,16 @@ class ProposalExecutor:
                             )
                             # Git commit per proposal in batch — same advisory
                             # semantics as single execute: log warning, don't unwind.
+                            # #297: union scope with files_produced so new files
+                            # land in git alongside scope-declared edits.
                             if self.core_context.git_service:
                                 try:
+                                    paths_to_commit = sorted(
+                                        set(proposal.scope.files)
+                                        | _files_produced_by(action_results)
+                                    )
                                     self.core_context.git_service.commit_paths(
-                                        proposal.scope.files,
+                                        paths_to_commit,
                                         f"fix({proposal.proposal_id[:16]}): {proposal.goal}",
                                     )
                                 except Exception as git_err:
