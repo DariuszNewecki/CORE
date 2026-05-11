@@ -54,6 +54,41 @@ class ResourceSelector:
         return best
 
     @staticmethod
+    # ID: d4e7b2a9-3c5f-4862-9d1c-7e8b5a2f4c6d
+    def select_resources_for_role(
+        role_name: str, roles: list[CognitiveRole], resources: list[LlmResource]
+    ) -> list[LlmResource]:
+        """
+        Plural counterpart to ``select_resource_for_role`` — return every
+        qualified resource for the role ordered by ``_score_resource``
+        (lowest cost first), with ``assigned_resource`` at position 0 if
+        present and resolvable by name.
+
+        Used by callers that need a fallback chain rather than a single
+        best match. Returns an empty list if the role is unknown.
+
+        Mirrors the singular function's semantic that an explicit
+        ``assigned_resource`` is honored even if it does not satisfy
+        ``_is_qualified`` — assignment is a deliberate governor override.
+        """
+        role = next((r for r in roles if r.role == role_name), None)
+        if not role:
+            logger.error("Role '%s' not found in Mind", role_name)
+            return []
+
+        qualified = [r for r in resources if ResourceSelector._is_qualified(r, role)]
+        ordered = sorted(qualified, key=ResourceSelector._score_resource)
+
+        if role.assigned_resource:
+            assigned = next(
+                (r for r in resources if r.name == role.assigned_resource), None
+            )
+            if assigned:
+                ordered = [assigned] + [r for r in ordered if r.name != assigned.name]
+
+        return ordered
+
+    @staticmethod
     def _is_qualified(resource: LlmResource, role: CognitiveRole) -> bool:
         """Check if resource capabilities match role requirements."""
         res_caps = (

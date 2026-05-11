@@ -24,6 +24,7 @@ from body.services.mind_state_service import MindStateService
 from shared.infrastructure.database.models import CognitiveRole, LlmResource
 from shared.infrastructure.llm.client import LLMClient
 from shared.infrastructure.llm.client_registry import LLMClientRegistry
+from shared.infrastructure.llm.fallback_client import FallbackAwareLLMClient
 from shared.logger import getLogger
 from will.agents.resource_selector import ResourceSelector
 
@@ -76,17 +77,32 @@ class CognitiveOrchestrator:
         )
 
     # ID: a16f98de-17d6-4787-9d94-ab4bf63bc96f
-    async def get_client_for_role(self, role_name: str) -> LLMClient:
-        """Will: choose resource, then obtain client from registry (Body)."""
+    async def get_client_for_role(self, role_name: str) -> FallbackAwareLLMClient:
+        """
+        Will: choose qualified resources, then obtain a client for each
+        from the registry (Body) and return a fallback-aware wrapper.
+
+        Per #293: the wrapper transparently fails over to the next
+        qualified resource on quota/billing status codes (402, 429).
+        Callers see a duck-compatible client surface and need no change.
+        """
         if not self._loaded:
             await self.initialize()
 
-        resource = ResourceSelector.select_resource_for_role(
+        ordered = ResourceSelector.select_resources_for_role(
             role_name, self._roles, self._resources
         )
-        if not resource:
+        if not ordered:
             raise RuntimeError(f"No resource found for role '{role_name}'")
 
-        return await self._client_registry.get_or_create_client(
-            resource, self._provider_factory
+        clients: list[LLMClient] = [
+            await self._client_registry.get_or_create_client(
+                resource, self._provider_factory
+            )
+            for resource in ordered
+        ]
+
+        return FallbackAwareLLMClient(
+            clients=clients,
+            resource_names=[r.name for r in ordered],
         )

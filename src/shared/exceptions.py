@@ -72,3 +72,21 @@ class GovernanceInstrumentError(CoreException):
         super().__init__(f"Governance instrument '{instrument}' is degraded: {reason}")
         self.instrument = instrument
         self.reason = reason
+
+
+# ID: 8a3c5d2e-1b4f-4e92-9d8c-7f6a5b4c3d2e
+class ProviderQuotaExhausted(CoreException):
+    """
+    Raised when every LLM resource in a fallback chain has returned a
+    quota/billing status code (402 Payment Required, 429 Too Many
+    Requests) and no further fallback is available.
+
+    Distinct from a generic LLM failure: callers may treat this as a
+    governor-attention condition (refill credits, raise quota) rather
+    than as a transient error to retry.
+    """
+
+    def __init__(self, tried_resources: list[tuple[str, int]]):
+        self.tried_resources = tried_resources
+        summary = ", ".join(f"{name}={status}" for name, status in tried_resources)
+        super().__init__(f"All LLM resources exhausted (quota/billing): {summary}")
