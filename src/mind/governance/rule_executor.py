@@ -27,8 +27,26 @@ def _map_enforcement_to_severity(enforcement: str) -> AuditSeverity:
 
 # ID: d28e3c01-6744-4875-8511-0d216a07964a
 async def execute_rule(
-    rule: ExecutableRule, context: AuditorContext
+    rule: ExecutableRule,
+    context: AuditorContext,
+    *,
+    file_filter: frozenset[str] | None = None,
 ) -> list[AuditFinding]:
+    """
+    Execute a single rule and return findings.
+
+    Args:
+        rule: The rule to execute.
+        context: AuditorContext with repo and policy info.
+        file_filter: Optional set of repo-relative POSIX file paths
+            scoping the per-file iteration. When provided (#279), the
+            rule runs only against the intersection of its declared
+            scope and this set; an empty intersection produces no
+            findings (no work). Context-level rules cannot be scoped to
+            a file list and are skipped with a warning when this filter
+            is set — the caller's per-file gate cannot meaningfully
+            constrain a cross-file check.
+    """
     from mind.logic.engines.registry import EngineRegistry
 
     findings: list[AuditFinding] = []
@@ -46,6 +64,19 @@ async def execute_rule(
         ]
 
     if rule.is_context_level:
+        # ADR-279 / #279: --files scopes per-file checks; context-level
+        # rules look at the whole repo and can't be meaningfully filtered
+        # to a subset, so skip with a warning when a file filter is
+        # active. This keeps pre-commit-hook output focused on the
+        # staged file set.
+        if file_filter is not None:
+            logger.info(
+                "Skipping context-level rule %s under --files scope "
+                "(engine=%s; cross-file check cannot be filtered)",
+                rule.rule_id,
+                rule.engine,
+            )
+            return findings
         if hasattr(engine, "verify_context"):
             severity = _map_enforcement_to_severity(rule.enforcement)
             engine_findings = await engine.verify_context(
@@ -58,6 +89,16 @@ async def execute_rule(
         return findings
 
     files = context.get_files(include=rule.scope, exclude=rule.exclusions)
+    if file_filter is not None:
+        # Intersect the rule's scope with the user's --files set. Empty
+        # intersection produces no findings — the rule's scope didn't
+        # cover any of the requested files (e.g. user passed
+        # src/cli/foo.py against a rule scoped to src/api/**).
+        files = [
+            p
+            for p in files
+            if str(p.relative_to(context.repo_path)).replace("\\", "/") in file_filter
+        ]
     severity = _map_enforcement_to_severity(rule.enforcement)
 
     for file_path in files:

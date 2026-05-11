@@ -63,7 +63,48 @@ class RuleFilter:
         return False
 
 
-# ID: 24e155df-a90f-4c36-825f-4446c4f3a142
+# ID: 5872afdb-b32c-48d0-b280-e2403aca3b64
+def normalize_file_filter(
+    files: list[str] | None,
+    repo_path,  # Path-like; quoted to avoid an Iterable hop.
+) -> frozenset[str] | None:
+    """
+    Normalize a CLI --files list to a frozenset of repo-relative POSIX
+    paths suitable for execute_rule's file_filter parameter.
+
+    Accepts repo-relative ('src/foo.py'), './'-prefixed
+    ('./src/foo.py'), and absolute paths. Paths outside the repo are
+    rejected loudly — silently dropping them would mask user error and
+    produce a confusing empty audit.
+
+    Returns None when the input is empty/None — the audit runs without
+    a file filter (full scope).
+    """
+    from pathlib import Path
+
+    if not files:
+        return None
+
+    repo_root = Path(repo_path).resolve()
+    normalized: set[str] = set()
+    for raw in files:
+        candidate = Path(raw)
+        absolute = (
+            candidate if candidate.is_absolute() else (repo_root / candidate).resolve()
+        )
+        try:
+            rel = absolute.relative_to(repo_root)
+        except ValueError as exc:
+            raise ValueError(
+                f"--files path {raw!r} is outside the repository root "
+                f"{repo_root}: {exc}"
+            ) from exc
+        normalized.add(str(rel).replace("\\", "/"))
+
+    return frozenset(normalized)
+
+
+# ID: d5383238-b6d4-48d9-880b-8f48df47d57e
 async def run_filtered_audit(
     context: AuditorContext,
     *,
@@ -71,6 +112,7 @@ async def run_filtered_audit(
     policy_ids: list[str] | None = None,
     rule_patterns: list[str] | None = None,
     executed_rule_ids: set[str] | None = None,
+    files: list[str] | None = None,
 ) -> tuple[list, set[str], dict[str, int]]:
     """
     Execute filtered subset of constitutional rules.
@@ -81,6 +123,10 @@ async def run_filtered_audit(
         policy_ids: Execute all rules from these policies
         rule_patterns: Regex patterns for rule IDs
         executed_rule_ids: Set to track executed rules (optional)
+        files: Optional list of file paths (repo-relative, ./-prefixed,
+            or absolute) scoping per-file rules. Context-level rules
+            skip gracefully when this is set — they cannot be
+            meaningfully scoped to a file list. Closes #279.
 
     Returns:
         tuple(findings, executed_rules, stats)
@@ -90,6 +136,8 @@ async def run_filtered_audit(
 
     if executed_rule_ids is None:
         executed_rule_ids = set()
+
+    file_filter = normalize_file_filter(files, context.repo_path)
 
     # Extract all executable rules from policies
     all_rules = extract_executable_rules(context.policies, context.enforcement_loader)
@@ -119,22 +167,34 @@ async def run_filtered_audit(
                 "filtered_rules": 0,
                 "executed_rules": 0,
                 "total_findings": 0,
+                "skipped_context_level": 0,
             },
         )
 
     logger.info(
-        "Filtered audit: %d rules selected (out of %d total)",
+        "Filtered audit: %d rules selected (out of %d total)%s",
         len(filtered_rules),
         len(all_rules),
+        (
+            f" — file filter active ({len(file_filter)} file(s))"
+            if file_filter is not None
+            else ""
+        ),
     )
 
     # Execute filtered rules
     all_findings = []
     failed_rules = []
+    skipped_context_level: list[str] = []
 
     for rule in filtered_rules:
+        # Track skipped-context-level explicitly for stats / operator
+        # transparency. execute_rule logs the skip; we count it here.
+        if file_filter is not None and rule.is_context_level:
+            skipped_context_level.append(rule.rule_id)
+
         try:
-            findings = await execute_rule(rule, context)
+            findings = await execute_rule(rule, context, file_filter=file_filter)
             all_findings.extend([f.as_dict() for f in findings])
             executed_rule_ids.add(rule.rule_id)
 
@@ -158,13 +218,19 @@ async def run_filtered_audit(
         "executed_rules": len(executed_rule_ids),
         "failed_rules": len(failed_rules),
         "total_findings": len(all_findings),
+        "skipped_context_level": len(skipped_context_level),
     }
 
     logger.info(
-        "Filtered audit complete: %d/%d rules executed, %d findings",
+        "Filtered audit complete: %d/%d rules executed, %d findings" "%s",
         stats["executed_rules"],
         stats["filtered_rules"],
         stats["total_findings"],
+        (
+            f", {len(skipped_context_level)} context-level rule(s) skipped under --files"
+            if skipped_context_level
+            else ""
+        ),
     )
 
     if failed_rules:

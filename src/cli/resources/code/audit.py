@@ -75,6 +75,16 @@ async def audit_command(
     severity: str = typer.Option("warning", "--severity", "-s"),
     rule: list[str] = typer.Option([], "--rule", "-r"),
     policy: list[str] = typer.Option([], "--policy", "-p"),
+    files: list[str] = typer.Option(
+        [],
+        "--files",
+        "-f",
+        help=(
+            "Scope per-file rules to these paths (repo-relative or "
+            "absolute, repeatable). Context-level rules skip with a "
+            "warning. Closes #279 — enables pre-commit-style focused audits."
+        ),
+    ),
     verbose: bool = typer.Option(False, "--verbose", "-v"),
     classify: bool = typer.Option(
         False,
@@ -111,10 +121,17 @@ async def audit_command(
             auditor = ConstitutionalAuditor(core_context.auditor_context)
             start_time = time.perf_counter()
 
-            if rule or policy:
+            # ADR-279 / #279: --files alone (no --rule / --policy) is a
+            # legitimate pre-commit-hook use case — run all rules, scope
+            # to staged files. Routes through the filtered path so the
+            # file_filter reaches execute_rule.
+            if rule or policy or files:
                 await core_context.auditor_context.load_knowledge_graph()
                 raw_findings, executed_ids, stats_dict = await run_filtered_audit(
-                    core_context.auditor_context, rule_ids=rule, policy_ids=policy
+                    core_context.auditor_context,
+                    rule_ids=rule,
+                    policy_ids=policy,
+                    files=files or None,
                 )
                 results = {
                     "findings": raw_findings,
@@ -149,7 +166,11 @@ async def audit_command(
             verdict.value if verdict else ("PASS" if results["passed"] else "FAIL")
         )
 
-        if not (rule or policy):
+        if not (rule or policy or files):
+            # Full-audit artifacts only: filtered runs (--rule, --policy,
+            # --files) are partial and must not overwrite findings.json,
+            # the evidence ledger, or the audit_runs row that the
+            # dashboard reads.
             # Write Main Findings
             file_service.write_file(
                 findings_file, json.dumps(processed_findings, indent=2)

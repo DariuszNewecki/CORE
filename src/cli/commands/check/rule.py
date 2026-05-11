@@ -50,6 +50,16 @@ async def rule_cmd(
     pattern: list[str] = typer.Option(
         [], "--pattern", help="Regex pattern(s) for rule IDs (can be repeated)"
     ),
+    files: list[str] = typer.Option(
+        [],
+        "--files",
+        "-f",
+        help=(
+            "Scope per-file rules to these paths (repo-relative or "
+            "absolute, repeatable). Context-level rules skip with a "
+            "warning. Closes #279."
+        ),
+    ),
     severity: str = typer.Option(
         "warning",
         "--severity",
@@ -84,9 +94,9 @@ async def rule_cmd(
       core-admin check rule --policy code.capabilities --rule linkage.assign_ids
     """
     core_context: CoreContext = ctx.obj
-    if not rule and (not policy) and (not pattern):
+    if not rule and (not policy) and (not pattern) and (not files):
         logger.info(
-            "[red]Error: Must specify at least one filter:[/red]\n  --rule <rule_id>\n  --policy <policy_id>\n  --pattern <regex>\n"
+            "[red]Error: Must specify at least one filter:[/red]\n  --rule <rule_id>\n  --policy <policy_id>\n  --pattern <regex>\n  --files <path> [<path>...]\n"
         )
         logger.info("\nUse --help for examples")
         raise typer.Exit(1)
@@ -98,6 +108,8 @@ async def rule_cmd(
         logger.info("  Policies: %s", ", ".join(policy))
     if pattern:
         logger.info("  Patterns: %s", ", ".join(pattern))
+    if files:
+        logger.info("  Files: %s", ", ".join(files))
     console.print()
     executed_rule_ids: set[str] = set()
     findings_dicts, executed_rules, stats = await run_filtered_audit(
@@ -106,6 +118,7 @@ async def rule_cmd(
         policy_ids=policy or None,
         rule_patterns=pattern or None,
         executed_rule_ids=executed_rule_ids,
+        files=files or None,
     )
     all_findings = convert_finding_dicts_to_models(findings_dicts)
     min_severity = parse_min_severity(severity)
