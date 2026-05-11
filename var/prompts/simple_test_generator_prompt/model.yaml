@@ -1,0 +1,13 @@
+id: simple_test_generator_prompt
+version: "0.1.0"
+role: LocalCoder
+description: Generates pytest unit tests for a given Python function or class.
+input:
+  required:
+    - file_path
+    - symbol_code
+    - module_path
+    - symbol_name
+output:
+  format: raw_text
+success_criteria: Complete, runnable pytest test code with imports, fixtures if needed, and multiple test cases covering happy path and edge cases.

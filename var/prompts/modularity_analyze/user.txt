@@ -1,0 +1,57 @@
+File: {file_path}
+Layer: {layer}
+Lines: {line_count}
+Violations: {violations}
+
+Callers (files that import this file):
+{callers}
+
+Symbol inventory (AST-extracted from this file — authoritative):
+{symbol_inventory}
+
+---
+{content}
+---
+
+Analyze this file. Find the natural seam. Produce your split plan.
+
+Symbol names must match exactly as they appear in the Python source, including leading underscores for private methods and constants.
+
+Plan symbols MUST be drawn exclusively from the "Defined here" section of
+the inventory above. Names listed under "Imported" are re-exports, not
+definitions — putting one in a module's symbols list is always wrong and
+will be rejected. Do not invent symbol names: a name absent from "Defined
+here" is not a valid candidate.
+
+If the inventory names a "dominant class", you may split that class by
+method groups: set is_class_split: true on each module and list method
+names (from the dominant-class section) as symbols. Each method group
+becomes a new class in its own module. The __init__ method must stay
+with the primary orchestration module. Private methods belong to
+whichever module contains the methods that call them most.
+
+Your response must use exactly this JSON schema:
+
+{{
+  "can_split": true or false,
+  "confidence": "high", "medium", or "low",
+  "reason": "one sentence explaining the seam or why no seam exists",
+  "modules": [
+    {{
+      "module_name": "snake_case_module_name",
+      "rationale": "one sentence",
+      "is_class_split": true or false,
+      "symbols": ["ClassName", "_private_method", "public_function", "_CONSTANT"]
+    }}
+  ],
+  "import_updates": [
+    {{
+      "file": "src/path/to/caller.py",
+      "old": "from body.workers.violation_remediator import SymbolA",
+      "new": "from body.workers.violation_remediator_new_module import SymbolA"
+    }}
+  ]
+}}
+
+The key "modules" is mandatory. Never use "parts", "components", or any other key.
+If can_split is false, modules must be an empty list [].

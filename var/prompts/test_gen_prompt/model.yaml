@@ -1,0 +1,12 @@
+id: test_gen_prompt
+version: "0.1.0"
+role: LocalCoder
+description: Generates Python test code for a specified module to achieve a coverage goal
+input:
+  required:
+    - module_path
+    - goal
+    - target_coverage
+output:
+  format: raw_text
+success_criteria: Valid Python test code that imports the target module and includes test cases aligned with the stated goal

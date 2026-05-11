@@ -1,0 +1,10 @@
+id: scaffold_new_application_prompt
+version: "0.1.0"
+role: LocalCoder
+description: Generates a complete file structure and content for a new Python application based on a high-level goal.
+input:
+  required:
+    - goal
+output:
+  format: json
+success_criteria: Valid JSON object with file paths as keys and complete, functional file contents as values, including pyproject.toml and src/main.py.

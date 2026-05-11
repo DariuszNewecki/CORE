@@ -1,0 +1,10 @@
+RULE TO ENFORCE: {instruction}
+RATIONALE: {rationale}
+
+CODE CONTENT:
+---
+{code_content}
+---
+
+Return your finding in STRICT JSON format:
+{ "violation": boolean, "reasoning": "string", "finding": "string or null" }

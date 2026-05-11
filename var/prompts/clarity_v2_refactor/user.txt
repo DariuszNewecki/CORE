@@ -1,0 +1,3 @@
+Analyze the current code and provide refactoring recommendations to reduce complexity by {improvement_ratio}%.
+
+Provide specific techniques and patterns that would achieve this reduction, with concrete examples of how to apply them.

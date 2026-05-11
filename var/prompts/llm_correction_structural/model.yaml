@@ -1,0 +1,22 @@
+id: llm_correction_structural
+version: "1.0.0"
+role: Coder
+description: >
+  Structural/logic correction agent. Fixes validation violations in generated
+  code when deterministic repairs are insufficient. Last-resort correction.
+
+input:
+  required:
+    - file_path
+    - violations_json
+    - code
+    - module_name
+    - import_path
+    - goal
+
+output:
+  format: raw_text
+
+success_criteria: >
+  Returns complete corrected Python code with all violations resolved,
+  syntactically valid, with properly matching docstring quotes.

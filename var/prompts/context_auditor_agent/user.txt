@@ -1,0 +1,4 @@
+CURRENT DOSSIER CONTENT:
+{dossier_summary}
+
+Analyze this dossier and determine if it contains sufficient context for task execution.

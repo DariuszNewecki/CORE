@@ -1,0 +1,24 @@
+id: call_site_rewriter
+version: "1.0.0"
+role: CodeReviewer
+description: >
+  Rewrites a Python source file to replace direct make_request_async() /
+  make_request_with_system_async() calls with governed PromptModel.invoke()
+  calls. Each violation site is replaced with a load of its designated
+  PromptModel artifact and a properly constructed invoke() call.
+
+input:
+  required:
+    - file_path
+    - source_code
+    - violations
+
+output:
+  format: raw_text
+  must_contain:
+    - "PromptModel"
+
+success_criteria: >
+  The returned source compiles, contains no direct make_request_async or
+  make_request_with_system_async calls, and every former violation site
+  loads its designated PromptModel artifact and calls invoke().

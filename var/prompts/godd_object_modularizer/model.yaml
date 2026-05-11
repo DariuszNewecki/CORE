@@ -1,0 +1,10 @@
+id: godd_object_modularizer
+version: "0.1.0"
+role: LocalCoder
+description: Analyzes a file identified as a God Object and generates refactoring recommendations to modularize it into cohesive components.
+input:
+  required:
+    - file_path
+output:
+  format: raw_text
+success_criteria: Provides actionable refactoring plan with specific class/module suggestions, responsibility boundaries, and migration strategy for breaking down the God Object.

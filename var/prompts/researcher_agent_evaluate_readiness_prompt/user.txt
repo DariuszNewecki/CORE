@@ -1,0 +1,18 @@
+GOAL: {goal}
+
+CURRENT CONTEXT:
+{current_context}
+
+TASK:
+Analyze the goal and the provided code. Identify if any dependencies, fixtures (conftest.py), or parent classes are missing.
+
+RESPONSE FORMAT (Strict JSON):
+{{
+  "status": "RESEARCHING" | "READY",
+  "reasoning": "Explain why you are ready or what is missing.",
+  "requests": [
+     {{"tool": "read_file", "path": "path/to/file.py"}},
+     {{"tool": "lookup_symbol", "qualname": "ClassName"}},
+     {{"tool": "search_vectors", "query": "semantic query"}}
+  ]
+}}

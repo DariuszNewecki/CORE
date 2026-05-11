@@ -1,0 +1,9 @@
+FILE PATH:
+{file_path}
+
+VIOLATIONS DETECTED:
+{violation_summary}
+
+CURRENT FILE CONTENT:
+
+{original_source}

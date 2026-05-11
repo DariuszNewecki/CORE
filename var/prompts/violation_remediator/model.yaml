@@ -1,0 +1,42 @@
+id: violation_remediator
+version: "0.4.0"
+role: RemoteCoder
+description: >
+  Produces a corrected version of a Python source file that resolves
+  constitutional audit violations. Receives deterministic architectural
+  context (file role, responsibility clusters, candidate strategies) as
+  advisory evidence to inform the fix. The LLM's obligation is to satisfy
+  the violated rule — the architectural context informs, it does not command.
+  Returns a JSON object with the complete fixed file in the "code" field.
+
+input:
+  required:
+    - file_path
+    - source_code
+    - architectural_context
+    - violations
+    - rule_id
+  optional:
+    - context_package
+
+output:
+  format: raw_text
+  must_contain:
+    - '"code"'
+  must_not_contain:
+    - "TODO"
+    - "FIXME"
+
+model:
+  preference: remote
+  temperature: 0.1
+  max_tokens: 8192
+
+success_criteria: >
+  The returned JSON must contain a "code" field with a complete, syntactically
+  valid Python file that resolves all listed violations, preserves the file's
+  architectural role and constitutional boundaries, preserves externally visible
+  behavior and current contracts, and avoids removing existing logic unless
+  strictly necessary to satisfy the violations. The architectural_context is
+  advisory evidence — the fix must satisfy the rule, not merely execute the
+  suggested strategy.

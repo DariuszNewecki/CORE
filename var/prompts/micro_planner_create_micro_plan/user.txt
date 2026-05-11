@@ -1,0 +1,7 @@
+User Goal:
+{user_goal}
+
+Policy Content:
+{policy_content}
+
+Design a low-risk execution strategy that achieves the user goal while respecting all policy constraints.

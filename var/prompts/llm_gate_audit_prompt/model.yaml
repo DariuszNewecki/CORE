@@ -1,0 +1,16 @@
+id: llm_gate_audit_prompt
+version: "0.1.0"
+role: LocalCoder
+description: Audits code content against constitutional instructions to detect violations and provide structured findings.
+input:
+  required:
+    - instruction
+    - rationale
+    - content
+output:
+  format: json
+  schema:
+    violation: boolean
+    reasoning: string
+    finding: string_or_null
+success_criteria: Returns valid JSON with boolean violation flag, clear reasoning explaining the decision, and specific finding text when violations are detected.

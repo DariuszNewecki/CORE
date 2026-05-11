@@ -1,0 +1,18 @@
+id: single_test_fixer
+version: "1.0.0"
+role: Coder
+description: >
+  Fixes a single failing test. Given the test name, failure type, and
+  test code, returns a corrected version of the test function.
+
+input:
+  required:
+    - test_name
+    - failure_type
+    - test_code
+
+output:
+  format: raw_text
+
+success_criteria: >
+  Returns the corrected test function code.

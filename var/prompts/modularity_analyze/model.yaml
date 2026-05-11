@@ -1,0 +1,107 @@
+id: modularity_analyze
+version: "1.0"
+role: Architect
+description: >
+  Analyzes a source file to find its natural seam for splitting.
+  Produces a structured split plan with confidence level.
+  Does not write any files. Pure reasoning only.
+
+input:
+  required:
+    - file_path
+    - layer
+    - violations
+    - line_count
+    - content
+    - callers
+  optional:
+    - symbol_inventory
+
+output:
+  format: json
+  max_length: 8192
+  json_schema:
+    type: object
+    required:
+      - can_split
+      - confidence
+      - reason
+    properties:
+      can_split:
+        type: boolean
+        description: >
+          True if a clean seam exists. False if the file is long
+          but genuinely cohesive and should not be split.
+      confidence:
+        type: string
+        enum: [high, medium, low]
+        description: >
+          high   = seam is obvious, naming is clean, no shared state.
+          medium = seam exists but there is coupling to untangle.
+          low    = no clean seam found.
+      reason:
+        type: string
+        description: >
+          Plain language explanation of the decision.
+          If can_split is false, explain why the file is cohesive.
+          If can_split is true, name the distinct concepts found.
+      modules:
+        type: array
+        description: >
+          Present only when can_split is true.
+          One entry per resulting module.
+        items:
+          type: object
+          required:
+            - module_name
+            - rationale
+            - is_class_split
+            - symbols
+          properties:
+            module_name:
+              type: string
+              description: >
+                snake_case name for the resulting module file.
+            rationale:
+              type: string
+              description: >
+                One sentence naming what this module is responsible for.
+            is_class_split:
+              type: boolean
+              description: >
+                True if the symbols are class methods being extracted
+                from a parent class. False for top-level symbols.
+            symbols:
+              type: array
+              items:
+                type: string
+              description: >
+                Exact names of all symbols that belong in this module,
+                including leading underscores for private methods.
+      import_updates:
+        type: array
+        description: >
+          Present only when can_split is true.
+          One entry per import line that must change in a caller.
+        items:
+          type: object
+          required:
+            - file
+            - old
+            - new
+          properties:
+            file:
+              type: string
+            old:
+              type: string
+            new:
+              type: string
+
+model:
+  max_tokens: 8192
+  temperature: 0.1
+
+success_criteria: >
+  Returns valid JSON with can_split boolean and confidence level.
+  When can_split is true, modules covers every symbol in the file
+  with no symbol appearing in more than one module.

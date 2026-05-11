@@ -1,0 +1,17 @@
+id: code_peer_review
+version: "1.0.0"
+role: CodeReviewer
+description: >
+  AI peer reviewer. Given source code and a review prompt template,
+  produces actionable review feedback in markdown.
+
+input:
+  required:
+    - final_prompt
+
+output:
+  format: raw_text
+
+success_criteria: >
+  Returns structured markdown review feedback with concrete improvement
+  suggestions for the submitted source file.

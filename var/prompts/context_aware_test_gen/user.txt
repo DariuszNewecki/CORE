@@ -1,0 +1,11 @@
+Generate a pytest test for this Python symbol from {file_path}.
+```python
+{symbol_code}
+```
+Module path: {module_path}
+Requirements:
+Write ONE test function named: test_{symbol_name}
+Import like: from {module_path} import {symbol_name}
+Test the happy path (basic functionality)
+Use mocks for external I/O or DB
+Output ONLY the test function inside a ```python code block

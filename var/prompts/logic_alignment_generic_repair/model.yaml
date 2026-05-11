@@ -1,0 +1,13 @@
+id: logic_alignment_generic_repair
+version: "0.1.0"
+role: LocalCoder
+description: Generates code repairs for logic alignment violations detected in CORE source files.
+input:
+  required:
+    - file_path
+    - error_message
+    - symbol_hints
+    - source_code
+output:
+  format: raw_text
+success_criteria: Returns syntactically valid Python code that resolves the detected violation while preserving existing functionality and adhering to CORE's constitutional principles.

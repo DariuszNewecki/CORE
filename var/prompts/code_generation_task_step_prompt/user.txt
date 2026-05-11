@@ -1,0 +1,5 @@
+Generate code for the following task step:
+
+{task_step}
+
+Provide a complete, working implementation.

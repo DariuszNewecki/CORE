@@ -1,0 +1,12 @@
+id: complexity_reflex_refactor
+version: "0.1.0"
+role: LocalCoder
+description: Refactors code to reduce complexity using a specified strategy
+input:
+  required:
+    - rel_path
+    - strategy
+    - original_code
+output:
+  format: raw_text
+success_criteria: Returns syntactically valid refactored code that demonstrably reduces complexity while preserving functional behavior

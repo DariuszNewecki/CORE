@@ -1,0 +1,10 @@
+Analyze the following Python code snippet. Your task is to generate a 1024-dimensional semantic embedding vector that represents its meaning.
+
+CRITICAL INSTRUCTIONS:
+- Your output MUST be a single, valid JSON array of floating-point numbers.
+- Do NOT include any other text, explanations, or markdown formatting like ```json.
+- The array must contain exactly 1024 numbers.
+
+Source Code:
+```python
+{source_code}

@@ -1,0 +1,12 @@
+id: healer_remove_dead_code
+version: "0.1.0"
+role: LocalCoder
+description: Remove dead code identified by Vulture static analysis from Python source files.
+input:
+  required:
+    - file_rel
+    - msg
+    - source
+output:
+  format: raw_text
+success_criteria: Returns valid Python code with the dead code removed and all other logic preserved exactly.

@@ -1,0 +1,10 @@
+id: src_maintenance_metadata_scribe_service_draft_metadata
+version: "0.1.0"
+role: LocalCoder
+description: Generates draft metadata fields for a maintenance command function following CORE conventions.
+input:
+  required:
+    - function_name
+output:
+  format: json
+success_criteria: Returns valid JSON with canonical_name, behavior, dangerous, and description fields conforming to CORE metadata standards.

@@ -1,0 +1,12 @@
+id: plan_goal
+version: "0.1.0"
+role: Planner
+description: Generate a structured multi-step plan to achieve a specified goal using available actions and reconnaissance data.
+input:
+  required:
+    - goal
+    - action_descriptions_str
+    - reconnaissance_report
+output:
+  format: json
+success_criteria: A valid JSON plan with ordered steps, each specifying an action, parameters, and rationale that collectively achieve the goal.

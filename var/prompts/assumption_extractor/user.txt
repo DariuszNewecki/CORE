@@ -1,0 +1,17 @@
+CONTEXT:
+The user is creating: {task_intent}
+Task type: {task_type}
+
+INCOMPLETE ASPECT:
+The user did not specify: {aspect}
+
+POLICY DOCUMENT:
+{policy_text}
+
+INSTRUCTIONS:
+Find guidance in the policy relevant to "{aspect}"
+Extract the recommended approach
+Cite the EXACT policy clause (rule ID or line reference)
+Rate confidence (0.0-1.0) based on how explicit the policy is
+
+Respond in strict JSON format only.

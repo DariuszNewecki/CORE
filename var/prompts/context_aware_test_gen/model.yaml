@@ -1,0 +1,23 @@
+id: context_aware_test_gen
+version: "1.0.0"
+role: Coder
+description: >
+  Generates a pytest test for a single Python symbol using rich context.
+  Produces one test function targeting the happy path.
+
+input:
+  required:
+    - file_path
+    - symbol_name
+    - symbol_code
+    - module_path
+
+output:
+  format: raw_text
+  must_contain:
+    - "```python"
+
+success_criteria: >
+  Returns a single pytest test function named test_{symbol_name} inside
+  ```python fences. Imports correctly from the module path. Uses mocks
+  for external I/O or DB.

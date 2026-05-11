@@ -1,0 +1,19 @@
+Generate a complete test function for the symbol `{symbol_name}`.
+
+Symbol code:
+{symbol_code}
+
+Testing strategy: {strategy}
+
+Required dependencies: {dependencies}
+
+Similar symbols for reference: {similar_symbols}
+
+File type: {file_type}
+Complexity level: {complexity}
+Database harness available: {has_db_harness}
+
+Context packet:
+{context_packet}
+
+Generate the complete test code now.

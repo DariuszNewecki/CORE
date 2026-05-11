@@ -1,0 +1,28 @@
+id: intent_inspector_alignment
+version: "0.1.0"
+role: LocalReasoner
+description: >
+  Analyse a manifest of all .intent/ documents together and report
+  cross-document conflicts, orphaned declarations, and enforcement rules
+  that reference non-existent workers, files, or roles.
+
+input:
+  required:
+    - intent_manifest
+    - worker_list
+    - document_count
+  optional: []
+
+output:
+  format: raw_text
+  max_length: 6000
+  must_contain: []
+  must_not_contain: []
+
+model:
+  preference: local
+  temperature: 0.2
+
+success_criteria: >
+  Returns a list of FINDING blocks for cross-document issues, or
+  NO_FINDINGS if no alignment problems are detected.

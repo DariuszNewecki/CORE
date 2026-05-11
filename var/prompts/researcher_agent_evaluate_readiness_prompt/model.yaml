@@ -1,0 +1,34 @@
+id: researcher_agent_evaluate_readiness_prompt
+version: "0.1.0"
+role: LocalCoder
+description: Analyzes a goal and code context to determine if research is complete or if additional dependencies, fixtures, or parent classes need investigation.
+
+input:
+  required:
+    - goal
+    - current_context
+
+output:
+  format: json
+  schema:
+    status:
+      type: string
+      enum: [RESEARCHING, READY]
+    reasoning:
+      type: string
+    requests:
+      type: array
+      items:
+        type: object
+        properties:
+          tool:
+            type: string
+            enum: [read_file, lookup_symbol, search_vectors]
+          path:
+            type: string
+          qualname:
+            type: string
+          query:
+            type: string
+
+success_criteria: Returns valid JSON with accurate status determination and actionable tool requests when dependencies are missing.

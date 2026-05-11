@@ -1,0 +1,12 @@
+Inspect the following manifest of all .intent/ documents for cross-document alignment problems.
+
+Total documents scanned: {document_count}
+
+Declared workers:
+{worker_list}
+
+--- MANIFEST START ---
+{intent_manifest}
+--- MANIFEST END ---
+
+Report all cross-document issues using the FINDING format, or output NO_FINDINGS if everything is aligned.

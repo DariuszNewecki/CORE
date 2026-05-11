@@ -1,0 +1,17 @@
+Rewrite the following Python file to replace all direct LLM calls with PromptModel.invoke().
+
+FILE: {file_path}
+
+VIOLATIONS TO FIX:
+{violations}
+
+Each violation entry contains:
+- line_number: the line with the direct call
+- artifact_name: the PromptModel artifact to load (already exists in var/prompts/)
+- prompt_text: the original prompt (for context only — do not copy it inline)
+- input_vars: variables that were interpolated into the prompt
+
+CURRENT SOURCE:
+{source_code}
+
+Return the complete rewritten file. Raw Python only. No markdown. No explanations.

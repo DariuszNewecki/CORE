@@ -1,0 +1,6 @@
+File: {file_path}
+Violation: {error_message}
+Symbol Hints: {symbol_hints}
+Source Code: {source_code}
+
+Generate the repaired code that resolves this violation.

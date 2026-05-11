@@ -1,0 +1,19 @@
+id: llm_correction_syntax
+version: "1.0.0"
+role: Coder
+description: >
+  Syntax-only repair agent. Fixes syntax errors in code while preserving
+  ALL logic and structure. Used when violations are purely syntactic.
+
+input:
+  required:
+    - file_path
+    - violations_json
+    - code
+
+output:
+  format: raw_text
+
+success_criteria: >
+  Returns the corrected Python code with only syntax errors fixed.
+  No logic changes, no restructuring.

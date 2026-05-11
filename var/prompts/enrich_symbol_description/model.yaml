@@ -1,0 +1,11 @@
+id: enrich_symbol_description
+version: "0.1.0"
+role: LocalCoder
+description: Generate enriched documentation for a code symbol by analyzing its implementation
+input:
+  required:
+    - symbol_path
+    - code
+output:
+  format: raw_text
+success_criteria: A clear, concise description of what the symbol does, its purpose, and key behavior

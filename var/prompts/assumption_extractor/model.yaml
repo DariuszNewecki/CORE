@@ -1,0 +1,22 @@
+id: assumption_extractor
+version: "1.0.0"
+role: Architect
+description: >
+  Constitutional Interpretation Engine. Extracts operational guidance
+  from a policy document for a specific incomplete aspect of a task.
+
+input:
+  required:
+    - task_intent
+    - task_type
+    - aspect
+    - policy_text
+
+output:
+  format: json
+  must_contain:
+    - has_guidance
+
+success_criteria: >
+  Returns valid JSON with has_guidance boolean. When true, also includes
+  recommended_value, policy_clause, explanation, and confidence fields.

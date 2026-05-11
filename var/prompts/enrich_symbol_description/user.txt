@@ -1,0 +1,6 @@
+Symbol: {symbol_path}
+
+Code:
+{code}
+
+Generate an enriched description for this symbol.

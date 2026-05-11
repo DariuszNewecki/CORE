@@ -1,0 +1,18 @@
+id: capability_reconciliation_prompt
+version: "0.1.0"
+role: LocalCoder
+description: Analyzes refactored code against original capabilities to produce code modifications and constitutional amendment proposals.
+input:
+  required:
+    - original_capabilities
+    - refactored_code_json
+output:
+  format: json
+  schema:
+    code_modifications:
+      type: object
+      description: File paths mapped to updated code with corrected capability tags
+    constitutional_amendment_proposal:
+      type: object
+      description: Proposals for new capability declarations if refactoring reveals new responsibilities
+success_criteria: Returns valid JSON with actionable code modifications and well-reasoned constitutional amendments when capabilities have genuinely evolved.

@@ -1,0 +1,18 @@
+id: test_generation_test_executor
+version: "0.1.0"
+role: LocalCoder
+description: Generates executable test code for a Python function based on strategy, dependencies, and context.
+input:
+  required:
+    - symbol_name
+    - symbol_code
+    - dependencies
+    - similar_symbols
+    - strategy
+    - file_type
+    - complexity
+    - has_db_harness
+    - context_packet
+output:
+  format: raw_text
+success_criteria: Produces valid, executable Python test code that follows the specified strategy and properly handles all dependencies and context.

@@ -1,0 +1,23 @@
+id: llm_gate
+version: "1.0.0"
+role: CodeReviewer
+description: >
+  Constitutional Auditor. Given a governance rule and a piece of source code,
+  determines whether the code violates the rule. Used exclusively by LLMGateEngine.
+
+input:
+  required:
+    - instruction
+    - rationale
+    - code_content
+
+output:
+  format: json
+  must_contain:
+    - violation
+    - reasoning
+    - finding
+
+success_criteria: >
+  Returns valid JSON with 'violation' boolean, 'reasoning' string,
+  and 'finding' string (or null). No hallucinated structure.

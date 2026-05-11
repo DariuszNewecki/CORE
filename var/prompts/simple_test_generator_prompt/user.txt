@@ -1,0 +1,10 @@
+Generate pytest unit tests for the following Python symbol:
+
+File path: {file_path}
+Module path: {module_path}
+Symbol name: {symbol_name}
+
+Symbol code:
+{symbol_code}
+
+Generate comprehensive test coverage including happy path, edge cases, and error conditions where applicable.

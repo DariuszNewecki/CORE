@@ -1,0 +1,14 @@
+SENSORY FEEDBACK (PAIN SIGNAL)
+The code you generated previously failed in the execution sandbox.
+ERROR: {pain_signal}
+
+MISSION RECAP
+Goal: {goal}
+Task: {task_step}
+
+PREVIOUS CODE
+{previous_code}
+
+INSTRUCTION
+Analyze the error above. Fix the logic to resolve this error.
+Return ONLY the corrected Python code in ```python fences.

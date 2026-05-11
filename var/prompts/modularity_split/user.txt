@@ -1,0 +1,10 @@
+File to split: {file_path}
+Layer: {layer}
+
+SPLIT PLAN:
+{plan}
+
+ORIGINAL FILE CONTENT:
+{content}
+
+Execute the split plan. Produce the complete content of every resulting file.

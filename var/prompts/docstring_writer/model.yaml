@@ -1,0 +1,38 @@
+# var/prompts/docstring_writer/model.yaml
+# PromptModel manifest for the DocstringWriter role.
+# Version: 1.2.0
+
+id: prompt.docstring_writer
+version: "1.2.0"
+role: DocstringWriter
+description: >
+  Generates constitutional Google-style docstrings for CORE Python symbols.
+  Explains intent, not implementation. Includes Args/Returns when applicable.
+
+model:
+  preference: local  # qwen2.5-coder preferred — cost-optimised for bulk pass
+  temperature: 0.2   # low variance: docstrings are deterministic
+  max_tokens: 300    # docstrings are short — cap hard to avoid padding
+
+input:
+  required:
+    - source_code  # the full function/class/method source
+  optional:
+    - symbol_name  # hint for logging (not sent to AI)
+    - file_path    # hint for logging (not sent to AI)
+
+output:
+  format: raw_text
+  max_length: 2500
+  must_contain:
+    - '"""'
+  must_not_contain:
+    - "TODO"
+    - "source_code"  # AI must not echo the placeholder name
+    - "pass"
+
+success_criteria: >
+  Docstring explains what the symbol MEANS and WHY it exists, not what each
+  line does. If the function has parameters, an Args section is present.
+  If the function returns a value, a Returns section is present.
+  Output is ONLY the docstring — no code fences, no preamble, no explanation.

@@ -1,0 +1,10 @@
+id: clarity_v2_refactor
+version: "0.1.0"
+role: LocalCoder
+description: Generates code refactoring suggestions to reduce complexity by a specified percentage
+input:
+  required:
+    - improvement_ratio
+output:
+  format: raw_text
+success_criteria: Provides specific, actionable refactoring suggestions with concrete code examples that would reduce complexity by the target percentage

@@ -1,0 +1,12 @@
+id: body_ui_fix_prompt
+version: "0.1.0"
+role: LocalCoder
+description: Analyzes Body UI contract violations and generates corrected source code that adheres to CORE's Body-first architecture principles.
+input:
+  required:
+    - path
+    - violation_summary
+    - original_source
+output:
+  format: raw_text
+success_criteria: Produces valid Python code that fixes all Body UI violations while preserving functionality and following CORE constitutional patterns.

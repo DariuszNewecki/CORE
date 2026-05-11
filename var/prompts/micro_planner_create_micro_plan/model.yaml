@@ -1,0 +1,11 @@
+id: micro_planner_create_micro_plan
+version: "0.1.0"
+role: Planner
+description: Designs a low-risk execution strategy for achieving a user goal using available policy content
+input:
+  required:
+    - user_goal
+    - policy_content
+output:
+  format: raw_text
+success_criteria: A structured execution strategy that breaks down the goal into actionable steps while respecting policy constraints

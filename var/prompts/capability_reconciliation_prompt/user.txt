@@ -1,0 +1,11 @@
+Original capability declarations:
+{original_capabilities}
+
+Refactored code analysis:
+{refactored_code_json}
+
+Analyze whether this refactoring requires:
+1. Updated capability tags in the code files
+2. New capability declarations in the constitutional registry
+
+Return your analysis as JSON.

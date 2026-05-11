@@ -1,0 +1,23 @@
+id: architect_threats_analysis_prompt
+version: "0.2.0"
+role: Architect
+description: >
+  Analyzes full CORE system state — audit findings, semantic landscape,
+  structural health, and constitutional drift — and produces a prioritised
+  remediation campaign with explicit workflow assignments.
+input:
+  required:
+    - finding_count
+    - audit_findings_summary
+    - semantic_landscape
+    - knowledge_gaps
+    - structural_health
+    - change_context
+    - intent_drift
+    - constitution_summary
+output:
+  format: json
+success_criteria: >
+  Produces a structured campaign with root-cause clusters, each carrying
+  an explicit workflow_type, confidence score, and estimated impact.
+  Clusters requiring constitutional amendment are flagged separately.

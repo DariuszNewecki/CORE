@@ -1,0 +1,48 @@
+id: modularity_split
+version: "1.0"
+role: Architect
+description: >
+  Executes a pre-approved split plan. Produces exact file contents
+  for each resulting file. No reasoning. Pure mechanical execution.
+
+input:
+  required:
+    - file_path
+    - layer
+    - content
+    - plan
+
+output:
+  format: json
+  max_length: 8000
+  json_schema:
+    type: object
+    required:
+      - files
+    properties:
+      files:
+        type: array
+        description: >
+          One entry per file produced by the split.
+          Includes the modified original and all new files.
+        items:
+          type: object
+          required:
+            - path
+            - content
+          properties:
+            path:
+              type: string
+              description: Repo-relative path. e.g. src/body/services/new_file.py
+            content:
+              type: string
+              description: Complete file content. No truncation. No placeholders.
+
+model:
+  max_tokens: 16384
+  temperature: 0.0
+
+success_criteria: >
+  Returns valid JSON with files array covering every path in the split plan.
+  Every symbol from the original file appears in exactly one output file.
+  All # ID: tags are preserved exactly as found in the original.

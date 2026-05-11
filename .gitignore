@@ -46,9 +46,13 @@ ITAM
 
 # -----------------------------------------------------------------------------
 # Runtime state — fully owned by CORE, never versioned
+#   Exception: var/prompts/ is governance content (LLM prompt templates are
+#   authored intent, not runtime output), tracked since #296.
 # -----------------------------------------------------------------------------
 var/*
 !var/.gitkeep
+!var/prompts/
+!var/prompts/**
 
 # -----------------------------------------------------------------------------
 # Autonomous workspace — ephemeral by definition

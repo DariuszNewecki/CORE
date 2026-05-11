@@ -1,0 +1,17 @@
+Goal: {goal}
+
+Available Actions (use ONLY these action IDs):
+{action_descriptions_str}
+
+Context from reconnaissance:
+{reconnaissance_report}
+
+Produce a mutation-only execution plan as a JSON array.
+
+Rules:
+- Each step must use one of the permitted action IDs above
+- params must contain file_path only — no code, no content
+- file_path must be a valid repo-relative path (src/**/*.py or tests/**/*.py)
+- Do NOT include any read, inspect, analyze, or check steps
+- If constitutional rules appear in the context above, ensure no step violates them
+- Return ONLY the JSON array, nothing else

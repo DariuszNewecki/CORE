@@ -1,0 +1,11 @@
+The following code violates the {pattern_id} pattern:
+{current_code}
+
+Pattern Violations:
+{violation_messages}
+
+Pattern Requirements:
+{pattern_requirements}
+
+Please fix the code to comply with the {pattern_id} pattern.
+Return ONLY the corrected Python code.

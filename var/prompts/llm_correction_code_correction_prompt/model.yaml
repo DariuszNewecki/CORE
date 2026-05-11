@@ -1,0 +1,16 @@
+id: llm_correction_code_correction_prompt
+version: "0.1.0"
+role: LocalCoder
+description: Corrects code violations while preserving functionality and module context
+input:
+  required:
+    - file_path
+    - code
+    - violations
+    - module_context
+    - goal
+    - syntax_only
+    - repo_root
+output:
+  format: raw_text
+success_criteria: Returns valid corrected code that resolves all violations while maintaining the original intent and context

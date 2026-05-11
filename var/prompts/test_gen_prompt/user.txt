@@ -1,0 +1,7 @@
+Generate pytest test code for the following module:
+
+Module path: {module_path}
+Test goal: {goal}
+Target coverage: {target_coverage}%
+
+Generate comprehensive test cases that will help achieve the target coverage while fulfilling the test goal.

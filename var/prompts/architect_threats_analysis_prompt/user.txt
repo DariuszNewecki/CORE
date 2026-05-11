@@ -1,0 +1,48 @@
+Analyse the following CORE system state and produce a remediation campaign.
+
+AUDIT FINDINGS ({finding_count} total):
+{audit_findings_summary}
+
+SEMANTIC LANDSCAPE:
+{semantic_landscape}
+
+KNOWLEDGE GAPS:
+{knowledge_gaps}
+
+STRUCTURAL HEALTH:
+{structural_health}
+
+RECENT CHANGES:
+{change_context}
+
+CONSTITUTIONAL DRIFT:
+{intent_drift}
+
+ACTIVE POLICIES:
+{constitution_summary}
+
+Return a JSON object with exactly this structure:
+
+{
+  "system_summary": "One paragraph: current state of CORE, top concerns, overall trajectory.",
+  "clusters": [
+    {
+      "cluster_id": "short-slug",
+      "root_cause": "Single sentence: why do all these findings exist?",
+      "affected_files": ["src/path/to/file.py"],
+      "finding_ids": ["rule_id_1", "rule_id_2"],
+      "proposed_fix": "Concrete, actionable description of what needs to change.",
+      "workflow_type": "refactor_modularity | coverage_remediation | full_feature_development",
+      "requires_constitution_change": false,
+      "confidence": 0.85,
+      "estimated_impact": "low | medium | high"
+    }
+  ]
+}
+
+Rules:
+- requires_constitution_change: true means the fix needs a .intent/ amendment — flag it, do not attempt it autonomously.
+- workflow_type must be one of the three allowed values exactly.
+- confidence is your honest estimate that the proposed_fix will resolve the root_cause (0.0–1.0).
+- Clusters with requires_constitution_change: true still need workflow_type set — use the type that would apply if the amendment were already in place.
+- Return only the JSON object. No markdown fences, no explanation text.

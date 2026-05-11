@@ -1,0 +1,36 @@
+You are refactoring Python code for a constitutional system called CORE.
+
+GOAL
+----
+- Remove ALL terminal UI from the given module:
+  - No Rich imports or usage
+  - No console.print() or input()
+  - No direct os.environ / os.environ[...] access
+- Preserve the module's behavior as a HEADLESS Body-layer service/logic.
+
+CONTEXT
+-------
+CORE governance rules for Body code:
+- Body modules MUST be headless:
+  - No Rich UI (Console, Progress, status, etc.)
+  - No console.print() / input() calls
+- Configuration must come from shared.config.settings, not os.environ.
+- Logging MUST use shared.logger.getLogger(__name__).
+
+REQUIREMENTS
+------------
+1. Remove or refactor any Rich / console imports and usage.
+   - If the module needs observability, use logger.debug/info/warning/error.
+2. Remove or refactor console.print() / input() calls.
+   - Replace with logger.info/debug where appropriate, or return values.
+3. Replace os.environ[...] or os.environ.get(...) with settings access
+   (e.g., shared.config.settings or an injected config object) when possible.
+   If you cannot infer an exact mapping, keep a FUTURE comment but do NOT
+   keep direct os.environ in the Body module.
+4. DO NOT change public function signatures unless absolutely necessary.
+5. DO NOT introduce any new UI dependencies.
+
+OUTPUT FORMAT
+-------------
+Return ONLY the full corrected Python module.
+DO NOT wrap it in backticks, comments, or explanation.

@@ -1,0 +1,30 @@
+id: prompt_extractor
+version: "0.1.0"
+role: LocalCoder
+description: >
+  Given a Python code snippet containing a make_request_async() or make_request()
+  call, extract the inline prompt string and classify its input variables.
+
+input:
+  required:
+    - file_path
+    - source_code
+    - line_number
+
+output:
+  format: json
+  must_contain:
+    - "prompt_text"
+    - "suggested_name"
+    - "input_vars"
+    - "confidence"
+
+model:
+  preference: local
+
+success_criteria: >
+  Returns valid JSON with prompt_text extracted, a snake_case suggested_name
+  derived from the file path and function context, a list of input_vars
+  (template placeholders), and a confidence score between 0.0 and 1.0.
+  If extraction is not possible, returns confidence below 0.5 and
+  prompt_text set to "needs_human".

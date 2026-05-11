@@ -1,0 +1,11 @@
+FILE PATH:
+{path}
+
+VIOLATIONS DETECTED:
+{violation_summary}
+
+CURRENT FILE CONTENT:
+
+{original_source}
+
+Generate the corrected source code that fixes all violations:

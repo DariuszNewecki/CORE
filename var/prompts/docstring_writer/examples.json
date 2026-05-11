@@ -1,0 +1,27 @@
+[
+    {
+        "label": "good",
+        "input": "async def fix_docstrings(context: CoreContext, write: bool) -> None:\n    symbols = await ...\n    for s in symbols:\n        new_doc = await writer_client.make_request_async(...)\n        ...",
+        "output": "\"\"\"Autonomously recovers missing docstrings for undocumented symbols.\n\nScans the knowledge graph for public functions and methods lacking\ndocumentation, generates constitutionally-grounded docstrings via the\nDocstringWriter AI role, and applies them through the governed ActionExecutor.\n\nArgs:\n    context: CoreContext providing cognitive and knowledge services.\n    write: When True, persists generated docstrings to the filesystem.\n           When False, performs a dry-run reporting what would change.\n\"\"\""
+    },
+    {
+        "label": "good",
+        "input": "def get_enforcement_strategy(self, rule_id: str) -> dict[str, Any] | None:\n    if not self._mappings_cache:\n        self.load_all_mappings()\n    return self._mappings_cache.get(rule_id)",
+        "output": "\"\"\"Retrieve the enforcement strategy for a constitutional rule.\n\nLooks up how a given rule should be mechanically enforced — which engine\nto use, what parameters to pass, and which files to scope.\n\nArgs:\n    rule_id: The rule identifier (e.g. 'architecture.max_file_size').\n\nReturns:\n    Enforcement strategy dict containing engine, params, and scope,\n    or None if the rule has no registered implementation mapping.\n\"\"\""
+    },
+    {
+        "label": "bad — describes implementation not intent",
+        "input": "async def fix_docstrings(context: CoreContext, write: bool) -> None:\n    ...",
+        "output": "\"\"\"Loops through symbols, calls AI, writes to file.\"\"\""
+    },
+    {
+        "label": "bad — rephrases the function name",
+        "input": "def get_enforcement_strategy(self, rule_id: str) -> dict | None:\n    ...",
+        "output": "\"\"\"Gets the enforcement strategy for the given rule ID.\"\"\""
+    },
+    {
+        "label": "bad — contains code fence",
+        "input": "def validate_inputs(context: dict, manifest: PromptModelManifest) -> None:\n    ...",
+        "output": "```python\n\"\"\"Validates inputs.\"\"\"\n```"
+    }
+]

@@ -1,0 +1,5 @@
+Design a minimal, working Python application file structure for the following goal:
+
+{goal}
+
+Generate all necessary files including pyproject.toml and src/main.py.

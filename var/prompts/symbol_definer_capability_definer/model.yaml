@@ -1,0 +1,11 @@
+id: symbol_definer_capability_definer
+version: "0.1.0"
+role: LocalCoder
+description: Analyzes code and similar capabilities to suggest an appropriate capability classification for a symbol.
+input:
+  required:
+    - code
+    - similar_capabilities
+output:
+  format: raw_text
+success_criteria: Returns a concise capability name that accurately describes the code's purpose and aligns with similar existing capabilities.

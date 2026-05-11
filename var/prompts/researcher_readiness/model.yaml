@@ -1,0 +1,23 @@
+id: researcher_readiness
+version: "1.0.0"
+role: Planner
+description: >
+  Evaluates whether the current context is sufficient to execute a goal.
+  Identifies missing dependencies, fixtures, or parent classes and
+  requests additional context if needed.
+
+input:
+  required:
+    - goal
+    - current_context
+
+output:
+  format: json
+  must_contain:
+    - status
+    - reasoning
+    - requests
+
+success_criteria: >
+  Returns valid JSON with status ("RESEARCHING" or "READY"),
+  reasoning string, and requests list of tool calls.

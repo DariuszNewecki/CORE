@@ -1,0 +1,10 @@
+{instruction}
+
+{rationale}
+
+CODE CONTENT:
+---
+{content}
+---
+
+Analyze the code content above and return your finding in STRICT JSON format.

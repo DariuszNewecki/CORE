@@ -1,0 +1,20 @@
+id: body_contracts_fixer
+version: "1.0.0"
+role: CodeReviewer
+description: >
+  Refactors a Python module to remove Body-layer contract violations:
+  terminal UI (Rich), console.print(), direct os.environ access.
+  Returns the full corrected module, headless and governance-compliant.
+
+input:
+  required:
+    - file_path
+    - violation_summary
+    - original_source
+
+output:
+  format: raw_text
+
+success_criteria: >
+  Returns the full corrected Python module with all UI and env violations
+  removed. No backticks, no explanation, no wrapping — raw Python only.

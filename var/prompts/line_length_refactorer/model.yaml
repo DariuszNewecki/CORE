@@ -1,0 +1,10 @@
+id: line_length_refactorer
+version: "0.1.0"
+role: LocalCoder
+description: Refactors source code to ensure no lines exceed 100 characters while preserving functionality and readability.
+input:
+  required:
+    - source_code
+output:
+  format: raw_text
+success_criteria: Returns syntactically valid code with all lines under 100 characters, maintaining original logic and improving readability.

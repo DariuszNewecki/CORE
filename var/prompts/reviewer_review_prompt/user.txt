@@ -1,0 +1,9 @@
+Please review the following bundled code content:
+
+{bundled_content}
+
+Provide a comprehensive code review covering:
+- Overall code quality and structure
+- Potential issues or bugs
+- Best practice adherence
+- Specific recommendations for improvement

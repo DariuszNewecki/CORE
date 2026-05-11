@@ -1,0 +1,14 @@
+id: self_correction_engine_correction_prompt
+version: "0.1.0"
+role: Planner
+description: Analyzes code generation failures and produces corrected code with proper write block formatting.
+input:
+  required:
+    - file_path
+    - violations_json
+    - runtime_error
+    - symbol_hints
+    - code
+output:
+  format: raw_text
+success_criteria: Response contains a single write block with the file path and fully corrected code that addresses all violations and runtime errors.
