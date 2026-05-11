@@ -116,7 +116,9 @@ async def _validate_request_async(request: str, verbose: bool = False) -> None:
         from mind.governance.authority_package_builder import AuthorityPackageBuilder
         from mind.governance.rule_conflict_detector import RuleConflictDetector
         from shared.infrastructure.intent.intent_repository import get_intent_repository
-        from will.interpreters.request_interpreter import NaturalLanguageInterpreter
+        from will.interpreters.natural_language_interpreter import (
+            NaturalLanguageInterpreter,
+        )
         from will.tools.policy_vectorizer import PolicyVectorizer
 
         cognitive_service = await service_registry.get_cognitive_service()

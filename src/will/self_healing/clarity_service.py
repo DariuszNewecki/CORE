@@ -19,7 +19,7 @@ from shared.infrastructure.config_service import ConfigService
 from shared.logger import getLogger
 from shared.utils.parsing import extract_python_code_from_response
 from will.deciders.governance_decider import GovernanceDecider  # NEW
-from will.interpreters.request_interpreter import CLIArgsInterpreter  # NEW
+from will.interpreters.cli_args_interpreter import CLIArgsInterpreter  # NEW
 from will.strategists.clarity_strategist import ClarityStrategist
 
 

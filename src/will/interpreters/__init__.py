@@ -30,13 +30,9 @@ Usage:
 
 from __future__ import annotations
 
-from .request_interpreter import (
-    CLIArgsInterpreter,
-    NaturalLanguageInterpreter,
-    RequestInterpreter,
-    TaskStructure,
-    TaskType,
-)
+from .cli_args_interpreter import CLIArgsInterpreter
+from .natural_language_interpreter import NaturalLanguageInterpreter
+from .request_interpreter import RequestInterpreter, TaskStructure, TaskType
 
 
 __all__ = [
