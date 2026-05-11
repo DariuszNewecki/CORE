@@ -2,7 +2,7 @@
 
 **Status:** Active
 **Owner:** Darek (Dariusz Newecki)
-**Last updated:** 2026-05-10
+**Last updated:** 2026-05-11
 **Definition:** The daemon runs continuously, the Blackboard clears, the codebase converges, and every action is visible.
 
 ---
@@ -58,10 +58,10 @@ All seven audit sensors active.
 Remaining Phase 3 work tracked on GitHub under Band D — Engine Integrity:
 https://github.com/DariuszNewecki/CORE/milestone/16
 
-Band D is nearly complete. One open issue remains: #277 (pre-commit hook). All other Band D items closed as of 2026-05-10.
+Band D is nearly complete. Two open issues remain: #277 (pre-commit hook) and #286 (CLI reject revival gap). All other Band D items closed as of 2026-05-11.
 
 ### Phase 4 — CLI Health 🔄
-First item active: `proposals show` logger bug — `src/cli/logic/autonomy/views.py` uses `logger.info()` with Rich markup throughout `print_detailed_info` and `print_execution_summary`; a `Console` is imported but unused for these calls. Fix: route output through the existing `Console` instance; strip markup from logger calls.
+`proposals show` logger bug — ✅ fixed 2026-05-10. Output routed through `Console` instance; Rich markup stripped from logger calls.
 
 ### Phase 5 — Visibility ✅
 G3 closed 2026-05-01. Consequence chain materialized end-to-end. Band B milestone 14 closed.
