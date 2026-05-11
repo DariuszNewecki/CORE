@@ -93,6 +93,11 @@ from will.autonomy.proposal import (
     ProposalScope,
     ProposalStatus,
 )
+from will.workers.circuit_breaker import (
+    load_circuit_breaker_config,
+    recent_consecutive_identical_count,
+    trip,
+)
 
 
 logger = getLogger(__name__)
@@ -254,11 +259,16 @@ class ViolationRemediatorWorker(Worker):
         active_proposal_ids = await self._get_active_proposal_id_by_action_file()
 
         # 4. Create proposals + 5. Transition entries per ADR-010 / ADR-015 D4.
+        # ADR-038: load circuit-breaker config once per cycle.
+        cb_config = load_circuit_breaker_config()
+
         proposals_created: list[str] = []
         proposals_skipped: list[str] = []
+        proposals_circuit_broken: list[str] = []
         entries_deferred: int = 0
         entries_resolved_dedup: int = 0
         entries_released_after_failure: int = 0
+        entries_circuit_broken: int = 0
 
         for (ref_id, file_path), findings in action_groups.items():
             ref_kind = ref_kinds[ref_id]
@@ -288,6 +298,40 @@ class ViolationRemediatorWorker(Worker):
                     subsuming_proposal_id,
                     resolved,
                 )
+                continue
+
+            # ADR-038 / closes #281: circuit-breaker check before proposal
+            # creation. If the most recent N failed proposals for this
+            # (ref_id, file_path) carry the same canonical error
+            # signature, refuse to mint another one. Findings are marked
+            # DELEGATE and a governance.circuit_breaker_tripped finding
+            # is posted for governor triage.
+            (
+                cb_count,
+                cb_signature,
+                cb_last_pid,
+                cb_last_reason,
+            ) = await self._check_circuit_breaker(
+                ref_id=ref_id,
+                ref_kind=ref_kind,
+                file_path=file_path,
+                config=cb_config,
+            )
+            if cb_count >= cb_config.threshold_n:
+                await trip(
+                    worker=self,
+                    ref_id=ref_id,
+                    ref_kind=ref_kind,
+                    file_path=file_path,
+                    findings=findings,
+                    count=cb_count,
+                    signature=cb_signature,
+                    last_proposal_id=cb_last_pid,
+                    last_failure_reason=cb_last_reason,
+                    mark_delegated=self._mark_delegated,
+                )
+                proposals_circuit_broken.append(group_label)
+                entries_circuit_broken += len(entry_ids)
                 continue
 
             proposal_id = await self._create_proposal(ref_id, ref_kind, findings)
@@ -367,13 +411,16 @@ class ViolationRemediatorWorker(Worker):
                 "action_groups": len(action_groups),
                 "proposals_created": len(proposals_created),
                 "proposals_skipped_dedup": len(proposals_skipped),
+                "proposals_circuit_broken": len(proposals_circuit_broken),
                 "entries_deferred": entries_deferred,
                 "entries_resolved_dedup": entries_resolved_dedup,
                 "entries_released_after_failure": entries_released_after_failure,
                 "entries_released": entries_released,
                 "entries_delegated": entries_delegated,
+                "entries_circuit_broken": entries_circuit_broken,
                 "created_actions": proposals_created,
                 "skipped_actions": proposals_skipped,
+                "circuit_broken_actions": proposals_circuit_broken,
                 "unmappable_rules": list(
                     {
                         f["payload"].get("check_id")
@@ -395,11 +442,14 @@ class ViolationRemediatorWorker(Worker):
         logger.info(
             "ViolationRemediatorWorker: done — %d proposals created "
             "(%d entries deferred), %d skipped (dedup, %d subsumed entries "
-            "resolved), %d unmappable findings, %d entries released after failure",
+            "resolved), %d circuit-broken (%d entries delegated), "
+            "%d unmappable findings, %d entries released after failure",
             len(proposals_created),
             entries_deferred,
             len(proposals_skipped),
             entries_resolved_dedup,
+            len(proposals_circuit_broken),
+            entries_circuit_broken,
             len(unmappable),
             entries_released_after_failure,
         )
@@ -786,6 +836,48 @@ class ViolationRemediatorWorker(Worker):
 
         entry_ids = [_entry_id(f) for f in findings]
         return await self._release_entries(entry_ids)
+
+    # ID: e16afa44-6fde-4782-9879-e4953b997e74
+    async def _check_circuit_breaker(
+        self,
+        *,
+        ref_id: str,
+        ref_kind: str,
+        file_path: str | None,
+        config: Any,
+    ) -> tuple[int, str | None, str | None, str | None]:
+        """
+        Query the failed-proposal tail for a (ref_id, file_path) and
+        return the consecutive-identical-signature streak per ADR-038.
+
+        Opens its own short-lived session so the circuit-breaker query
+        does not extend the lifetime of the ProposalRepository session
+        that backs proposal creation. Fail-soft: any DB error returns
+        (0, None, None, None) and proposal creation proceeds — the
+        breaker degrades toward retry rather than toward silent
+        rejection on a transient infra issue.
+        """
+        from body.services.service_registry import service_registry
+
+        try:
+            async with service_registry.session() as session:
+                return await recent_consecutive_identical_count(
+                    session,
+                    ref_id=ref_id,
+                    ref_kind=ref_kind,
+                    file_path=file_path,
+                    config=config,
+                )
+        except Exception as exc:
+            logger.warning(
+                "ViolationRemediatorWorker: circuit-breaker session failed for "
+                "(%s, %s, %s): %s — proceeding without gate.",
+                ref_kind,
+                ref_id,
+                file_path,
+                exc,
+            )
+            return 0, None, None, None
 
     # ID: c1d2e3f4-a5b6-7890-cdef-789012345670
     async def _mark_delegated(self, findings: list[dict[str, Any]]) -> int:
