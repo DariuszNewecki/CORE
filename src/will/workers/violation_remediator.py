@@ -574,15 +574,22 @@ class ViolationRemediatorWorker(Worker):
         # historical proposals predating this field are not backfilled.
         finding_ids = [_entry_id(f) for f in findings]
 
+        # ADR-032+: omit `file_path` from parameters when the ref is a flow.
+        # Flows are codebase-wide operations; per-file file_path is a category
+        # mismatch. ADR-033's parameter-routing filter already discards it at
+        # runtime, but persisting meaningless data here is confusing and
+        # complicates audit queries. Atomic actions keep file_path because
+        # ADR-035 makes (action_id, file_path) the proposal scope unit.
         if affected_files:
             proposal_actions = [
                 ProposalAction(
                     action_id=ref_id if ref_kind == "action" else None,
                     flow_id=ref_id if ref_kind == "flow" else None,
-                    parameters={
-                        "write": True,
-                        "file_path": file_path,
-                    },
+                    parameters=(
+                        {"write": True, "file_path": file_path}
+                        if ref_kind == "action"
+                        else {"write": True}
+                    ),
                     order=order,
                 )
                 for order, file_path in enumerate(affected_files)
@@ -592,10 +599,11 @@ class ViolationRemediatorWorker(Worker):
                 ProposalAction(
                     action_id=ref_id if ref_kind == "action" else None,
                     flow_id=ref_id if ref_kind == "flow" else None,
-                    parameters={
-                        "write": True,
-                        "file_path": None,
-                    },
+                    parameters=(
+                        {"write": True, "file_path": None}
+                        if ref_kind == "action"
+                        else {"write": True}
+                    ),
                     order=0,
                 )
             ]
