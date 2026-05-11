@@ -1,0 +1,118 @@
+import pytest
+from unittest.mock import AsyncMock, MagicMock, patch, PropertyMock
+from typing import Any, Dict, List, Optional, Tuple
+from dataclasses import dataclass
+from datetime import datetime
+
+
+@dataclass
+class MockProposalAction:
+    action_id: Optional[str] = None
+    flow_id: Optional[str] = None
+    parameters: Optional[Dict[str, Any]] = None
+    order: int = 0
+
+    @property
+    def ref_id(self) -> str:
+        return self.action_id or self.flow_id or ""
+
+
+@dataclass
+class MockProposal:
+    proposal_id: str = ""
+    goal: str = ""
+    actions: List[MockProposalAction] = None
+    scope: Any = None
+    created_by: str = ""
+    constitutional_constraints: Dict[str, Any] = None
+    approval_required: bool = False
+    risk: Any = None
+    created_at: datetime = None
+
+    def compute_risk(self) -> None:
+        pass
+
+    def validate(self) -> Tuple[bool, List[str]]:
+        return True, []
+
+
+class TestViolationRemediatorWorker:
+    """Tests for ViolationRemediatorWorker class."""
+
+    @pytest.fixture
+    def mock_core_context(self):
+        """Create a mock core context for testing."""
+        context = MagicMock()
+        context.git_service.repo_path = "/fake/repo"
+        return context
+
+    @pytest.fixture
+    def worker(self, mock_core_context):
+        """Create a ViolationRemediatorWorker instance for testing."""
+        from will.workers.violation_remediator import ViolationRemediatorWorker
+        inst = ViolationRemediatorWorker(
+            core_context=mock_core_context,
+            declaration_name="violation_remediator"
+        )
+        inst._worker_uuid = "test-worker-uuid"
+        return inst
+
+    @pytest.mark.asyncio
+    async def test_run_no_open_findings(self, worker):
+        """Test run method when there are no open findings."""
+        worker._load_open_findings = AsyncMock(return_value=[])
+        worker.post_heartbeat = AsyncMock()
+        worker.post_report = AsyncMock()
+
+        with patch("will.workers.violation_remediator.load_vocabulary_projection") as mock_load:
+            mock_load.return_value = MagicMock()
+            await worker.run()
+
+        worker.post_heartbeat.assert_called_once()
+        worker._load_open_findings.assert_called_once()
+        worker.post_report.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_run_with_vocabulary_projection_error(self, worker):
+        """Test run method when vocabulary projection is broken."""
+        projection_error = MagicMock()
+        projection_error.reason = "Broken projection"
+        worker.post_finding = AsyncMock()
+        worker.post_heartbeat = AsyncMock()
+
+        with patch("will.workers.violation_remediator.load_vocabulary_projection") as mock_load:
+            mock_load.return_value = projection_error
+            await worker.run()
+
+        worker.post_finding.assert_called_once_with(
+            "governance.instrument_degraded",
+            {
+                "instrument": "vocabulary_projection",
+                "reason": "Broken projection",
+                "worker": worker.declaration_name,
+            },
+        )
+        worker._load_open_findings.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_run_with_findings_no_remediation(self, worker):
+        """Test run method when findings have no remediation mapping."""
+        worker._load_open_findings = AsyncMock(return_value=[
+            {
+                "id": "finding-1",
+                "subject": "audit.violation.test",
+                "payload": {
+                    "check_id": "unknown_rule",
+                    "file_path": "src/test.py",
+                },
+            }
+        ])
+        worker._get_remediation_map = MagicMock(return_value={})
+        worker._release_unmappable = AsyncMock(return_value=1)
+        worker._mark_delegated = AsyncMock(return_value=0)
+        worker.post_heartbeat = AsyncMock()
+        worker.post_report = AsyncMock()
+
+        with patch("will.workers.violation_remediator.load_vocabulary_projection") as mock_load:
+            mock_load.return_value = MagicMock()
+            await worker.run()
