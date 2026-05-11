@@ -538,6 +538,36 @@ Commit 0b68328c.
 
 ---
 
+## ADR-037 — 2026-05-11
+
+Flow refs exempt from ADR-035 per-file scoping. `ViolationRemediatorWorker.run()`
+grouping loop now distinguishes flow refs from atomic action refs: flow refs
+key by `(ref_id, None)`, bundling every finding that maps to the same flow into
+a single proposal; atomic action refs continue to key by `(ref_id, file_path)`
+per ADR-035 D1. The exception is **categorical, not a refinement**.
+
+ADR-035's three governance properties — approval granularity at finding
+resolution, consequence chain integrity, UNIX composition — hold for atomic
+actions because each operates on a single file. They invert for flows like
+`flow.fix_code`, which by design run many fixers across the entire `src/`
+tree. A proposal scoped to "`flow.fix_code` on `src/foo.py`" lies to the
+governor about what will be approved — the flow ignores per-file scope and
+walks the whole codebase. ADR-037 restores truthful approval-scope alignment:
+the governor approves one decision per codebase-wide operation, not N decisions
+per file the operation might touch. The consequence chain stays whole at the
+redefined unit (one flow proposal → N findings resolved together, §7a revival
+bundled).
+
+Companion to commit 2a77a9ba (Layer 1: file_path omitted from flow
+ProposalAction parameters). Layer 3 — whether flows should be invoked from
+the auto-remediation pipeline at all — remains an open governance question
+tracked as issue #290.
+
+Files: `src/will/workers/violation_remediator.py`,
+`.specs/decisions/ADR-037-flow-scope-exception.md`. Commit 0941fd07.
+
+---
+
 ## Notes
 
 * This changelog intentionally avoids implementation detail
