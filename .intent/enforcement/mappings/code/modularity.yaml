@@ -12,7 +12,14 @@ mappings:
       max_lines: 400
     scope:
       applies_to: ["src/**/*.py"]
-      excludes: ["tests/**", "scripts/**", "**/__init__.py"]
+      excludes:
+        - "tests/**"
+        - "scripts/**"
+        - "**/__init__.py"
+        # ADR-036: PathResolver is a catalog class (30+ trivial property getters).
+        # Rule fires on volume, not lumped concerns. Excluded pending a genuine
+        # second responsibility emerging.
+        - "src/shared/path_resolver.py"
 
   # LAW: Files whose dominant top-level class exceeds the line limit SHOULD be
   # reviewed by a human. Mechanical redistribution cannot resolve these —
