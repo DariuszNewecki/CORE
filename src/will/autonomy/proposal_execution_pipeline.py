@@ -236,8 +236,7 @@ def commit_proposal_changes(
         logger.info("Git commit created for proposal %s", proposal_id)
     except Exception as git_err:
         logger.warning(
-            "Git commit failed for proposal %s — changes applied "
-            "but not committed: %s",
+            "Git commit failed for proposal %s — changes applied but not committed: %s",
             proposal_id,
             git_err,
         )
