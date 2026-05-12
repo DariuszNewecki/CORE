@@ -17,6 +17,7 @@ from __future__ import annotations
 import hashlib
 from pathlib import Path
 
+from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.infrastructure.specs.specs_repository import (
     SpecsRepository,
     get_specs_repository,
@@ -27,8 +28,8 @@ from shared.models.vector_models import VectorizableItem
 
 logger = getLogger(__name__)
 
+_CFG_CHK = load_operational_config().chunking
 
-_MAX_SINGLE_CHUNK_CHARS = 1500
 _COLLECTION_NAME = "core_specs"
 _DOC_TYPE = "specs"
 _SOURCE = "specs"
@@ -144,7 +145,7 @@ class SpecsAdapter:
         Larger documents are split on "## " headings; preamble before the first
         heading becomes its own chunk labelled with the filename stem.
         """
-        if len(text) <= _MAX_SINGLE_CHUNK_CHARS:
+        if len(text) <= _CFG_CHK.max_chunk_chars:
             return [(filename_section, text)]
 
         sections: list[tuple[str, str]] = []

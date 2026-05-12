@@ -20,14 +20,14 @@ import httpx
 import numpy as np
 
 from shared.config import settings
+from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.logger import getLogger
 from shared.utils.common_knowledge import normalize_text
 
 
 logger = getLogger(__name__)
 
-DEFAULT_CHUNK_SIZE = 512
-DEFAULT_CHUNK_OVERLAP = 50
+_CFG_EMB = load_operational_config().embedding
 
 
 def _require_setting(name: str) -> str:
@@ -104,7 +104,7 @@ class EmbeddingService:
     - POST {LOCAL_EMBEDDING_API_URL}/api/embed with {model, input} (Ollama 0.4+)
     """
 
-    def __init__(self, timeout: float = 30.0) -> None:
+    def __init__(self, timeout: float = _CFG_EMB.utils_request_timeout_sec) -> None:
         self.base = _require_setting("LOCAL_EMBEDDING_API_URL").rstrip("/")
         self.model = _require_setting("LOCAL_EMBEDDING_MODEL_NAME")
         self.timeout = timeout
@@ -158,8 +158,8 @@ def build_embedder_from_env() -> Embeddable:
 async def chunk_and_embed(
     embedder: Embeddable,
     text: str,
-    chunk_size: int = DEFAULT_CHUNK_SIZE,
-    chunk_overlap: int = DEFAULT_CHUNK_OVERLAP,
+    chunk_size: int = _CFG_EMB.chunk_size,
+    chunk_overlap: int = _CFG_EMB.chunk_overlap,
 ) -> np.ndarray:
     """
     Chunks text, gets embeddings for each chunk in parallel, and returns the

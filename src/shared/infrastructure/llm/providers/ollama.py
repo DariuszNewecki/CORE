@@ -21,8 +21,9 @@ GHOST_VECTOR_START = [0.63719, 0.45393, -4.16063]
 _DEFAULT_SYSTEM = "You are a helpful assistant."
 
 # nomic-embed-text supports up to 8192 tokens. At ~3 chars/token for source
-# code, 24000 chars sits safely under the limit for the vast majority of files.
-_EMBEDDING_MAX_CHARS = 20000
+# code, the configured cap (default 20000) sits safely under the limit for
+# the vast majority of files.
+_CFG_EMB = load_operational_config().embedding
 
 
 # ID: 3f78f7ca-33b1-4ac3-a701-30885722e7b1
@@ -133,7 +134,7 @@ class OllamaProvider(AIProvider):
         num_ctx is passed explicitly per-request because Ollama ignores
         num_ctx in the Modelfile for embedding models.
 
-        Input is truncated to _EMBEDDING_MAX_CHARS before sending as a
+        Input is truncated to _CFG_EMB.max_chars before sending as a
         last-resort safety net.
 
         Raises:
@@ -142,13 +143,13 @@ class OllamaProvider(AIProvider):
         """
         endpoint = f"{self.api_url}/api/embed"
 
-        if len(text) > _EMBEDDING_MAX_CHARS:
+        if len(text) > _CFG_EMB.max_chars:
             logger.warning(
                 "Embedding input truncated from %d to %d chars (model context limit).",
                 len(text),
-                _EMBEDDING_MAX_CHARS,
+                _CFG_EMB.max_chars,
             )
-            text = text[:_EMBEDDING_MAX_CHARS]
+            text = text[: _CFG_EMB.max_chars]
 
         payload = {
             "model": self.model_name,

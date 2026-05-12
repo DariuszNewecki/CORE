@@ -7,7 +7,6 @@ Package split from sync_actions.py.
 from __future__ import annotations
 
 from .chunking_helpers import (
-    _MAX_CHUNK_CHARS,
     _chunk_by_function,
     _chunk_by_heading,
     _chunk_by_symbol,

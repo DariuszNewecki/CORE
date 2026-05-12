@@ -15,6 +15,7 @@ to `shared.utils.embedding_utils.EmbeddingService`.
 
 from __future__ import annotations
 
+from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.logger import getLogger
 from shared.utils.embedding_utils import (
     Embeddable,
@@ -25,6 +26,8 @@ from shared.utils.embedding_utils import (
 
 
 logger = getLogger(__name__)
+
+_CFG_EMB = load_operational_config().embedding
 
 
 # ID: 0d57f8d8-c519-421a-834a-1179cef120b9
@@ -42,8 +45,8 @@ class EmbeddingService(Embeddable):
         base_url: str | None = None,
         api_key: str | None = None,
         expected_dim: int | None = None,
-        request_timeout_sec: float = 120.0,
-        connect_timeout_sec: float = 10.0,
+        request_timeout_sec: float = _CFG_EMB.provider_request_timeout_sec,
+        connect_timeout_sec: float = _CFG_EMB.provider_connect_timeout_sec,
         max_retries: int = 4,
     ) -> None:
         # NOTE: model/base_url are intentionally ignored because canonical service reads

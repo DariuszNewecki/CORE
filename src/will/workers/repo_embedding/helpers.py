@@ -7,8 +7,10 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
+from shared.infrastructure.intent.operational_config import load_operational_config
 
-_MAX_CHUNK_CHARS = 1500  # characters per semantic chunk
+
+_CFG_CHK = load_operational_config().chunking
 
 
 def _chunk_file(file_path: Path, artifact_type: str) -> list[dict[str, Any]]:
@@ -160,8 +162,8 @@ def _split_large(
     section: str,
     chunk_type: str = "section",
 ) -> list[dict[str, Any]]:
-    """Split text that exceeds _MAX_CHUNK_CHARS into overlapping sub-chunks."""
-    if len(text) <= _MAX_CHUNK_CHARS:
+    """Split text that exceeds _CFG_CHK.max_chunk_chars into overlapping sub-chunks."""
+    if len(text) <= _CFG_CHK.max_chunk_chars:
         return [
             {
                 "text": text,
@@ -174,9 +176,9 @@ def _split_large(
         ]
 
     chunks = []
-    step = _MAX_CHUNK_CHARS - 200  # 200-char overlap
+    step = _CFG_CHK.max_chunk_chars - 200  # 200-char overlap
     for i, start in enumerate(range(0, len(text), step)):
-        chunk_text = text[start : start + _MAX_CHUNK_CHARS].strip()
+        chunk_text = text[start : start + _CFG_CHK.max_chunk_chars].strip()
         if chunk_text:
             chunks.append(
                 {
