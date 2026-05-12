@@ -29,6 +29,7 @@ from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
 
 from shared.ai.prompt_model import PromptModel
+from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.logger import getLogger
 from will.agents.strategic_auditor.models import RootCauseCluster, StrategicCampaign
 
@@ -38,6 +39,8 @@ if TYPE_CHECKING:
 
 
 logger = getLogger(__name__)
+
+_CFG_SA = load_operational_config().strategic_auditor
 
 _VALID_WORKFLOW_TYPES = frozenset(
     {
@@ -88,7 +91,7 @@ async def synthesize_campaign(
             f"  [{rid}] in {len(files)} locations: {', '.join(unique)}{suffix}"
         )
 
-    def _compact(obj: Any, max_chars: int = 1500) -> str:
+    def _compact(obj: Any, max_chars: int = _CFG_SA.compact_max_chars) -> str:
         s = json.dumps(obj, indent=2, default=str)
         return s[:max_chars] + "..." if len(s) > max_chars else s
 

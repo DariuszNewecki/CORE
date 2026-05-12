@@ -21,6 +21,7 @@ from collections import defaultdict
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
 
+from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.logger import getLogger
 
 
@@ -32,6 +33,8 @@ if TYPE_CHECKING:
 
 
 logger = getLogger(__name__)
+
+_CFG_SA = load_operational_config().strategic_auditor
 
 
 # ---------------------------------------------------------------------------
@@ -193,7 +196,7 @@ class SystemContextGatherer:
         self,
         session: AsyncSession,
         qdrant: Any,
-        sample_limit: int = 100,
+        sample_limit: int = _CFG_SA.sample_limit,
     ) -> dict[str, Any]:
         """
         Dimension 6: Where does meaning diverge from code?
@@ -523,7 +526,9 @@ class SystemContextGatherer:
     # -------------------------------------------------------------------------
 
     # ID: 56a69daf-78a6-423d-9217-51e407c177f2
-    def _gather_change_context(self, n_commits: int = 15) -> dict[str, Any]:
+    def _gather_change_context(
+        self, n_commits: int = _CFG_SA.commit_lookback
+    ) -> dict[str, Any]:
         """
         What is CORE becoming? (Dimension 5)
 

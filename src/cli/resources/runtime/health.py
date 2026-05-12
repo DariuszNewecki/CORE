@@ -31,11 +31,14 @@ from sqlalchemy import text
 
 from cli.utils import async_command
 from shared.infrastructure.database.session_manager import get_session
+from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.logger import getLogger
 
 
 logger = getLogger(__name__)
 console = Console()
+
+_CFG_H = load_operational_config().health
 runtime_app = typer.Typer(
     help="Runtime state and health of the running CORE system.", no_args_is_help=True
 )
@@ -65,9 +68,9 @@ def _worker_colour(last_heartbeat: datetime | None) -> str:
     if last_heartbeat.tzinfo is None:
         last_heartbeat = last_heartbeat.replace(tzinfo=UTC)
     age_s = (datetime.now(UTC) - last_heartbeat).total_seconds()
-    if age_s < 600:
+    if age_s < _CFG_H.worker_alive_threshold_sec:
         return "green"
-    if age_s < 3600:
+    if age_s < _CFG_H.worker_warn_threshold_sec:
         return "yellow"
     return "red"
 
@@ -82,7 +85,7 @@ def _liveness_label(last_heartbeat: datetime | None) -> str:
     if last_heartbeat.tzinfo is None:
         last_heartbeat = last_heartbeat.replace(tzinfo=UTC)
     age_s = (datetime.now(UTC) - last_heartbeat).total_seconds()
-    if age_s >= 600:
+    if age_s >= _CFG_H.worker_alive_threshold_sec:
         return "stale"
     return "alive"
 
@@ -322,10 +325,10 @@ def _make_panel(
 async def _query_dashboard_data(session: Any) -> dict[str, Any]:
     """Run all dashboard queries inside an open session. Returns raw data dict."""
     now = datetime.now(UTC)
-    cutoff_24h = now - timedelta(hours=24)
-    cutoff_60m = now - timedelta(minutes=60)
-    cutoff_30m = now - timedelta(minutes=30)
-    cutoff_10m = now - timedelta(minutes=10)
+    cutoff_24h = now - timedelta(hours=_CFG_H.long_lookback_hours)
+    cutoff_60m = now - timedelta(minutes=_CFG_H.medium_lookback_minutes)
+    cutoff_30m = now - timedelta(minutes=_CFG_H.short_lookback_minutes)
+    cutoff_10m = now - timedelta(minutes=_CFG_H.recent_lookback_minutes)
     today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
 
     data: dict[str, Any] = {}
