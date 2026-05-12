@@ -1,0 +1,347 @@
+# path: .intent/enforcement/config/operational_config.yaml
+#
+# Operational configuration for CORE.
+#
+# All numeric and string values that control runtime behavior live here,
+# per ADR-040. No hardcoded operational values in src/.
+#
+# Sections mirror logical subsystems. Each section is loaded by
+# src/shared/infrastructure/intent/operational_config.py via
+# IntentRepository. Fallback defaults in the loader are the governed
+# fallback when this file is missing or malformed.
+
+# ---------------------------------------------------------------------------
+# LLM
+# ---------------------------------------------------------------------------
+llm:
+  default_max_tokens: 4096
+  default_max_length: 4096
+  http_timeout_sec: 60
+  request_timeout_sec: 300
+  provider_timeout_sec: 180
+
+# ---------------------------------------------------------------------------
+# Embedding
+# ---------------------------------------------------------------------------
+embedding:
+  chunk_size: 512
+  chunk_overlap: 50
+  max_chars: 20000
+  provider_request_timeout_sec: 120.0
+  provider_connect_timeout_sec: 10.0
+  utils_request_timeout_sec: 30.0
+
+# ---------------------------------------------------------------------------
+# Chunking
+# ---------------------------------------------------------------------------
+chunking:
+  max_chunk_chars: 1500
+
+# ---------------------------------------------------------------------------
+# Workers — per-worker claim limits and batch sizes
+# ---------------------------------------------------------------------------
+workers:
+  call_site_rewriter:
+    claim_limit: 50
+  doc_writer:
+    batch_size: 25
+  doc_worker:
+    batch_size: 50
+  prompt_artifact_writer:
+    claim_limit: 25
+  prompt_extractor:
+    claim_limit: 25
+    context_lines: 40
+  capability_tagger:
+    batch_size: 20
+  proposal_consumer:
+    claim_limit: 5
+  violation_executor:
+    claim_limit: 50
+  violation_remediator:
+    claim_limit: 50
+    scan_limit: 200
+    ceremony_timeout_sec: 30
+    semantic_examples_limit: 3
+    min_role_confidence: 0.55
+  worker_shop:
+    glide_off_multiplier: 0.10
+    fallback_threshold_sec: 600
+    findings_scan_limit: 200
+  test_remediator:
+    scan_limit: 200
+  test_runner_sensor:
+    scan_limit: 50
+  intent_inspector:
+    alignment_batch: 20
+  observer:
+    stale_threshold_seconds: 3600
+  coherence_sensor:
+    lookback_seconds: 7200
+
+# ---------------------------------------------------------------------------
+# Blackboard
+# ---------------------------------------------------------------------------
+blackboard:
+  sla_default_seconds: 3600
+
+# ---------------------------------------------------------------------------
+# Health log
+# ---------------------------------------------------------------------------
+health_log:
+  stale_threshold_seconds: 3600
+
+# ---------------------------------------------------------------------------
+# Daemon
+# ---------------------------------------------------------------------------
+daemon:
+  one_shot_interval_sec: 300
+
+# ---------------------------------------------------------------------------
+# Proposals
+# ---------------------------------------------------------------------------
+proposals:
+  list_limit: 100
+  pending_limit: 50
+
+# ---------------------------------------------------------------------------
+# Consequence log
+# ---------------------------------------------------------------------------
+consequence_log:
+  default_lookback_seconds: 3600
+
+# ---------------------------------------------------------------------------
+# Coverage
+# ---------------------------------------------------------------------------
+coverage:
+  gap_threshold_pct: 75.0
+  warn_pct: 75
+  low_bucket_pct: 50
+  gap_list_limit: 10
+  collect_timeout_sec: 120
+  full_run_timeout_sec: 300
+  quality_min_pct: 75
+  watcher_required_pct: 75.0
+  watcher_rescan_hours: 24
+  batch_remediation_threshold_pct: 75.0
+  batch_remediation_partial_success_pct: 50
+  single_file_target_pct: 75.0
+
+# ---------------------------------------------------------------------------
+# Workflow gate — subprocess timeouts
+# ---------------------------------------------------------------------------
+workflow_gate:
+  linter_timeout_sec: 30.0
+  quality_timeout_sec: 60.0
+  ruff_format_timeout_sec: 60.0
+  import_timeout_sec: 60.0
+
+# ---------------------------------------------------------------------------
+# Context builder
+# ---------------------------------------------------------------------------
+context:
+  score_target_file: 100
+  score_target_path: 80
+  score_target_symbol: 120
+  score_has_content: 30
+  vector_top_k: 10
+  db_provider_max_items: 100
+  token_estimate_overhead: 300
+  cache_ttl_hours: 24
+  db_recent_packets_limit: 10
+
+# ---------------------------------------------------------------------------
+# Runtime health display
+# ---------------------------------------------------------------------------
+health:
+  worker_alive_threshold_sec: 600
+  worker_warn_threshold_sec: 3600
+  long_lookback_hours: 24
+  medium_lookback_minutes: 60
+  short_lookback_minutes: 30
+  recent_lookback_minutes: 10
+
+# ---------------------------------------------------------------------------
+# Testing and sandbox
+# ---------------------------------------------------------------------------
+testing:
+  pytest_collection_timeout_sec: 30
+  pytest_execution_timeout_sec: 300
+  sandbox_timeout_sec: 30
+  executor_timeout_sec: 60
+  metrics_timeout_sec: 30
+  simple_gen_timeout_sec: 20.0
+  context_aware_gen_timeout_sec: 15.0
+  runtime_validator_timeout_sec: 60
+  max_failures: 10
+  snippet_max_lines: 20
+
+# ---------------------------------------------------------------------------
+# Strategy selector — scoring weights and thresholds
+# ---------------------------------------------------------------------------
+strategy_selector:
+  min_recommended_score: 15
+  score_role_preferred: 25
+  score_role_discouraged: 25
+  score_generalized_match: 16
+  score_rule_preferred: 12
+  score_rule_discouraged: 12
+  score_size_bonus: 10
+  score_size_penalty: 10
+  score_strong_split: 14
+  large_file_lines: 400
+  small_file_lines: 200
+  strong_split_lines: 450
+
+# ---------------------------------------------------------------------------
+# Analyzers and modularity
+# ---------------------------------------------------------------------------
+analyzers:
+  file_complexity_high_threshold: 15
+  class_methods_high_threshold: 10
+  function_body_high_threshold: 25
+  function_body_low_threshold: 10
+  max_file_lines: 400
+  max_function_lines: 50
+  max_module_lines: 400
+
+# ---------------------------------------------------------------------------
+# Refactor recommendations
+# ---------------------------------------------------------------------------
+refactor:
+  responsibilities_threshold: 20
+  cohesion_threshold: 12
+  coupling_threshold: 10
+  loc_threshold: 400
+
+# ---------------------------------------------------------------------------
+# Clarity and complexity strategists
+# ---------------------------------------------------------------------------
+clarity:
+  structural_complexity: 20
+  structural_lines: 300
+  logic_simplification_threshold: 10
+
+complexity:
+  god_method_threshold: 30
+  extraction_threshold: 15
+
+# ---------------------------------------------------------------------------
+# Parsing heuristics
+# ---------------------------------------------------------------------------
+parsing:
+  min_block_len: 10
+  score_test_fn: 1000
+  score_test_class: 1000
+  score_import: 100
+  score_pytest: 500
+
+# ---------------------------------------------------------------------------
+# Execution and orchestration
+# ---------------------------------------------------------------------------
+execution:
+  task_timeout_sec: 300
+  workflow_timeout_minutes: 30
+  orchestrator_max_steps: 10
+
+# ---------------------------------------------------------------------------
+# Action and pipeline limits
+# ---------------------------------------------------------------------------
+action:
+  max_data_size_bytes: 5242880   # 5 MiB
+
+prompt_pipeline:
+  max_file_size_bytes: 1048576   # 1 MiB
+
+# ---------------------------------------------------------------------------
+# Validator cache
+# ---------------------------------------------------------------------------
+validator:
+  lru_cache_size: 1024
+  lru_cache_size_small: 512
+
+# ---------------------------------------------------------------------------
+# Memory
+# ---------------------------------------------------------------------------
+memory:
+  recency_days: 30
+  episode_retention_days: 30
+  reflection_retention_days: 90
+
+# ---------------------------------------------------------------------------
+# Repositories and DB query defaults
+# ---------------------------------------------------------------------------
+repositories:
+  decision_trace_default_limit: 10
+  decision_trace_max_limit: 100
+  decision_trace_retention_days: 30
+  refusal_default_limit: 20
+  refusal_by_type_limit: 50
+  symbol_definition_default_limit: 500
+  project_def_max_limit: 500
+  project_def_default_limit: 100
+
+# ---------------------------------------------------------------------------
+# Git
+# ---------------------------------------------------------------------------
+git:
+  recent_commits_n: 10
+  changed_files_log_n: 20
+
+# ---------------------------------------------------------------------------
+# Vectors and sync
+# ---------------------------------------------------------------------------
+vectors:
+  index_batch_size: 10
+  scan_limit: 10000
+  report_preview_count: 10
+  policy_vectorizer_batch_size: 10
+
+sync:
+  artifact_embed_batch_size: 10
+  policy_index_batch_size: 10
+  pattern_index_batch_size: 10
+  specs_index_batch_size: 10
+
+# ---------------------------------------------------------------------------
+# Authority package
+# ---------------------------------------------------------------------------
+authority_package:
+  search_limit: 10
+
+# ---------------------------------------------------------------------------
+# Strategic auditor
+# ---------------------------------------------------------------------------
+strategic_auditor:
+  sample_limit: 100
+  commit_lookback: 15
+  compact_max_chars: 1500
+
+# ---------------------------------------------------------------------------
+# Miscellaneous
+# ---------------------------------------------------------------------------
+misc:
+  linelength_max_line_chars: 100
+  enrichment_description_max_chars: 500
+  conversation_max_content_chars: 2000
+  code_snippet_context_lines: 20
+  embedding_search_default_limit: 10
+  retriever_search_limit: 10
+  retriever_context_lines: 20
+  file_navigator_read_max_lines: 200
+  file_navigator_max_read_bytes: 1048576   # 1 MiB
+  knowledge_consolidation_max_lines: 10
+  context_export_http_timeout_sec: 10
+  metadata_max_comment_length: 120
+  census_hotspot_limit: 10
+  clustering_default_n_clusters: 15
+  legacy_scan_display_limit: 10
+  limb_status_recent_limit: 15
+  refusal_inspect_default_limit: 20
+  refusal_inspect_by_type_limit: 20
+  capability_tagging_default_llm_confidence: 0.70
+  knowledge_min_occurrences: 3
+  knowledge_max_lines: 10
+  context_aware_test_context_lines: 40
+  perf_overhead_warning_pct: 50
+  perf_overhead_error_pct: 100
