@@ -26,6 +26,40 @@ from shared.logger import getLogger
 logger = getLogger(__name__)
 
 
+def capture_git_sha(git_service, phase: str, proposal_id: str) -> str | None:
+    """Return the current git HEAD SHA, or None if unavailable.
+
+    Wraps ``git_service.get_current_commit()``. Returns None when
+    *git_service* is None or the call raises. *phase* ("pre" or "post")
+    parametrises the log output:
+
+    - ``"pre"`` logs an INFO line with the captured SHA on success
+      (useful when a later proposal failure needs the working tree
+      restored to this commit).
+    - ``"post"`` is silent on success.
+
+    Failures from either phase are logged at WARNING with the proposal_id
+    and the exception. Fail-soft — proposal execution proceeds with a
+    None SHA, downstream code (compute_changed_files, record_consequence)
+    handles missing SHAs gracefully.
+    """
+    if git_service is None:
+        return None
+    try:
+        sha = git_service.get_current_commit()
+        if phase == "pre":
+            logger.info("Pre-execution HEAD: %s", sha)
+        return sha
+    except Exception as sha_err:
+        logger.warning(
+            "Could not capture %s-execution SHA for %s: %s",
+            phase,
+            proposal_id,
+            sha_err,
+        )
+        return None
+
+
 async def resolve_deferred_findings(proposal_id: str) -> None:
     """Flip findings deferred to *proposal_id* from 'deferred_to_proposal'
     to 'resolved' — the success-side mirror of §7a revival.

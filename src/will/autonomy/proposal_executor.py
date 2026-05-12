@@ -33,6 +33,7 @@ from shared.logger import getLogger
 from will.autonomy.proposal import ProposalStatus
 from will.autonomy.proposal_execution_pipeline import (
     _files_produced_by,
+    capture_git_sha,
     compute_changed_files,
     record_consequence,
     resolve_deferred_findings,
@@ -215,15 +216,11 @@ class ProposalExecutor:
                 logger.info("DRY-RUN mode - not updating proposal status")
 
             # Capture pre-execution HEAD so we can restore the working tree on failure.
-            pre_execution_sha = None
-            if self.core_context.git_service:
-                try:
-                    pre_execution_sha = (
-                        self.core_context.git_service.get_current_commit()
-                    )
-                    logger.info("Pre-execution HEAD: %s", pre_execution_sha)
-                except Exception as sha_err:
-                    logger.warning("Could not capture pre-execution SHA: %s", sha_err)
+            pre_execution_sha = capture_git_sha(
+                self.core_context.git_service,
+                phase="pre",
+                proposal_id=proposal.proposal_id,
+            )
 
             changed_files: list[str] = []
             post_execution_sha: str | None = None
@@ -357,18 +354,11 @@ class ProposalExecutor:
 
                     # -- Consequence recording --
                     # Delegated to ConsequenceLogService (Body layer).
-                    try:
-                        post_execution_sha = (
-                            self.core_context.git_service.get_current_commit()
-                            if self.core_context.git_service
-                            else None
-                        )
-                    except Exception:
-                        post_execution_sha = None
-                        logger.warning(
-                            "Could not capture post-execution SHA for %s",
-                            proposal.proposal_id,
-                        )
+                    post_execution_sha = capture_git_sha(
+                        self.core_context.git_service,
+                        phase="post",
+                        proposal_id=proposal.proposal_id,
+                    )
 
                     changed_files = await compute_changed_files(
                         repo_path=str(self.core_context.git_service.repo_path),
@@ -520,18 +510,11 @@ class ProposalExecutor:
                             }
                             continue
 
-                    pre_execution_sha = None
-                    if self.core_context.git_service:
-                        try:
-                            pre_execution_sha = (
-                                self.core_context.git_service.get_current_commit()
-                            )
-                        except Exception as sha_err:
-                            logger.warning(
-                                "Could not capture pre-execution SHA for batch proposal %s: %s",
-                                proposal.proposal_id,
-                                sha_err,
-                            )
+                    pre_execution_sha = capture_git_sha(
+                        self.core_context.git_service,
+                        phase="pre",
+                        proposal_id=proposal.proposal_id,
+                    )
 
                     changed_files: list[str] = []
                     post_execution_sha: str | None = None
@@ -620,18 +603,11 @@ class ProposalExecutor:
                                         git_err,
                                     )
                             # -- Consequence recording --
-                            try:
-                                post_execution_sha = (
-                                    self.core_context.git_service.get_current_commit()
-                                    if self.core_context.git_service
-                                    else None
-                                )
-                            except Exception:
-                                post_execution_sha = None
-                                logger.warning(
-                                    "Could not capture post-execution SHA for batch proposal %s",
-                                    proposal.proposal_id,
-                                )
+                            post_execution_sha = capture_git_sha(
+                                self.core_context.git_service,
+                                phase="post",
+                                proposal_id=proposal.proposal_id,
+                            )
 
                             changed_files = await compute_changed_files(
                                 repo_path=str(self.core_context.git_service.repo_path),
