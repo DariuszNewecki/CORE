@@ -11,6 +11,11 @@ import json
 import re
 from typing import Any, cast
 
+from shared.infrastructure.intent.operational_config import load_operational_config
+
+
+_CFG = load_operational_config().parsing
+
 
 # ID: 03987fc0-13ec-460a-a399-a89c7289eac6
 def extract_json_from_response(text: str) -> dict[Any, Any] | list[Any] | None:
@@ -154,7 +159,7 @@ def extract_python_code_from_response(text: str) -> str | None:
         if lang and lang.lower() not in ("python", "py", ""):
             continue
 
-        if len(cleaned) > 10 and _is_valid_python_block(cleaned):
+        if len(cleaned) > _CFG.min_block_len and _is_valid_python_block(cleaned):
             candidates.append(cleaned)
 
     if not candidates:
@@ -169,13 +174,13 @@ def extract_python_code_from_response(text: str) -> str | None:
     def score_candidate(code: str) -> float:
         score = 0.0
         if "def test_" in code:
-            score += 1000
+            score += _CFG.score_test_fn
         if "class Test" in code:
-            score += 1000
+            score += _CFG.score_test_class
         if "import " in code or "from " in code:
-            score += 100
+            score += _CFG.score_import
         if "pytest" in code or "unittest" in code:
-            score += 500
+            score += _CFG.score_pytest
         score += min(len(code), 5000) / 10000.0
         return score
 
