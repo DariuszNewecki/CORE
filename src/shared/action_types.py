@@ -14,6 +14,11 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any
 
+from shared.infrastructure.intent.operational_config import load_operational_config
+
+
+_CFG_ACT = load_operational_config().action
+
 
 # ID: 29ed0df5-f34f-4af8-81f1-49207bd75e6e
 class ActionImpact(Enum):
@@ -139,9 +144,6 @@ class ActionResult:
     Enables autonomous agents to chain actions intelligently.
     """
 
-    # Constitutional constant: Maximum allowed payload size (5MB)
-    MAX_DATA_SIZE_BYTES = 5 * 1024 * 1024
-
     def __post_init__(self):
         """Validate ActionResult structure and size constraints."""
         if not isinstance(self.action_id, str) or not self.action_id:
@@ -155,9 +157,9 @@ class ActionResult:
         try:
             # We use JSON serialization as a proxy for data size
             serialized = json.dumps(self.data, default=str)
-            if len(serialized) > self.MAX_DATA_SIZE_BYTES:
+            if len(serialized) > _CFG_ACT.max_data_size_bytes:
                 raise ValueError(
-                    f"ActionResult.data exceeds size limit of {self.MAX_DATA_SIZE_BYTES} bytes "
+                    f"ActionResult.data exceeds size limit of {_CFG_ACT.max_data_size_bytes} bytes "
                     f"(got {len(serialized)} bytes). Action: {self.action_id}"
                 )
         except (TypeError, OverflowError):

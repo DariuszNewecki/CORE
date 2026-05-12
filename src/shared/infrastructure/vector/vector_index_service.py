@@ -16,6 +16,7 @@ from typing import TYPE_CHECKING
 
 from shared.config import settings
 from shared.infrastructure.clients.qdrant_client import QdrantService
+from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.logger import getLogger
 from shared.models.vector_models import IndexResult, VectorizableItem
 from shared.universal import get_deterministic_id
@@ -26,6 +27,8 @@ if TYPE_CHECKING:
     pass
 
 logger = getLogger(__name__)
+
+_CFG_VEC = load_operational_config().vectors
 
 
 # ID: 2ffe6361-bae9-4b98-936c-95cfe52a1d8b
@@ -70,7 +73,7 @@ class VectorIndexService:
     async def index_items(
         self,
         items: list[VectorizableItem],
-        batch_size: int = 10,
+        batch_size: int = _CFG_VEC.index_batch_size,
     ) -> list[IndexResult]:
         if not items:
             raise ValueError("Cannot index empty list of items")

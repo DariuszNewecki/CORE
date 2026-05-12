@@ -11,7 +11,7 @@ Responsible for:
 CONSTITUTIONAL FIX (V2.3.0):
 - Hardened Path Resolution: Prevents Path Traversal attacks (../../etc/passwd).
 - Secret Shield: Explicitly blocks inclusion of .env or hidden files.
-- Resource Limits: Enforces MAX_FILE_SIZE_BYTES.
+- Resource Limits: Enforces the configured per-file size cap (ADR-040).
 """
 
 from __future__ import annotations
@@ -19,13 +19,13 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
+from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.logger import getLogger
 
 
 logger = getLogger(__name__)
 
-# Constitutional Limit: 1MB per included file to prevent context overflow/DoS
-MAX_FILE_SIZE_BYTES = 1 * 1024 * 1024
+_CFG_PP = load_operational_config().prompt_pipeline
 
 # Files that must NEVER be read into the Context Window, even if requested
 FORBIDDEN_PATTERNS = {
@@ -108,7 +108,7 @@ class PromptPipeline:
             return "\n❌ Logic Error: Path validation passed but path is None\n", False
 
         try:
-            if abs_path.stat().st_size > MAX_FILE_SIZE_BYTES:
+            if abs_path.stat().st_size > _CFG_PP.max_file_size_bytes:
                 return (
                     f"\n❌ Could not include {file_path_str}: "
                     f"File size exceeds 1MB limit.\n"

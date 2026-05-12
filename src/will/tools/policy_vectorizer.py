@@ -21,12 +21,16 @@ from pathlib import Path
 from typing import Any
 
 from shared.infrastructure.clients.qdrant_client import QdrantService
+from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.infrastructure.vector.adapters.constitutional_adapter import (
     ConstitutionalAdapter,
 )
 from shared.infrastructure.vector.vector_index_service import VectorIndexService
 from shared.logger import getLogger
 from will.orchestration.cognitive_service import CognitiveService
+
+
+_CFG_VEC = load_operational_config().vectors
 
 
 logger = getLogger(__name__)
@@ -91,7 +95,9 @@ class PolicyVectorizer:
         logger.info("Found %d semantic chunks in .intent/", len(items))
 
         # 3. Execute Indexing (delegated to Body-layer service)
-        results = await service.index_items(items, batch_size=10)
+        results = await service.index_items(
+            items, batch_size=_CFG_VEC.policy_vectorizer_batch_size
+        )
 
         logger.info("=" * 60)
         logger.info("✅ SYNC COMPLETE")

@@ -25,6 +25,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 # REFACTORED: Removed direct settings import
 from shared.infrastructure.clients.qdrant_client import QdrantService
+from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.infrastructure.repositories.vector_link_repository import (
     VectorLinkRepository,
 )
@@ -32,6 +33,8 @@ from shared.logger import getLogger
 
 
 logger = getLogger(__name__)
+
+_CFG_VEC = load_operational_config().vectors
 
 
 async def _fetch_all_qdrant_ids(
@@ -51,7 +54,7 @@ async def _fetch_all_qdrant_ids(
     while True:
         points, offset = await client.scroll(
             collection_name=collection_name,
-            limit=10000,
+            limit=_CFG_VEC.scan_limit,
             with_payload=False,
             with_vectors=False,
             offset=offset,
@@ -120,11 +123,12 @@ async def _prune_orphaned_vectors(
         return 0
     logger.info("Found %s orphaned vector(s) in Qdrant.", len(orphaned_ids))
     if dry_run:
+        preview = _CFG_VEC.report_preview_count
         logger.debug("Would delete from Qdrant")
-        for point_id in orphaned_ids[:10]:
+        for point_id in orphaned_ids[:preview]:
             logger.debug("  - %s", point_id)
-        if len(orphaned_ids) > 10:
-            logger.debug("  - ... and %s more.", len(orphaned_ids) - 10)
+        if len(orphaned_ids) > preview:
+            logger.debug("  - ... and %s more.", len(orphaned_ids) - preview)
         return len(orphaned_ids)
     logger.info("Deleting %s orphaned vector(s) from Qdrant...", len(orphaned_ids))
     await client.delete(
@@ -186,11 +190,12 @@ async def _prune_dangling_links(
         return 0
     logger.info("Found %s dangling link(s) in PostgreSQL.", len(dangling_links))
     if dry_run:
+        preview = _CFG_VEC.report_preview_count
         logger.debug("Would delete from PostgreSQL")
-        for symbol_id, vector_id in dangling_links[:10]:
+        for symbol_id, vector_id in dangling_links[:preview]:
             logger.debug("  - symbol_id=%s, vector_id=%s", symbol_id, vector_id)
-        if len(dangling_links) > 10:
-            logger.debug("  - ... and %s more.", len(dangling_links) - 10)
+        if len(dangling_links) > preview:
+            logger.debug("  - ... and %s more.", len(dangling_links) - preview)
         return len(dangling_links)
 
     logger.info("Deleting %s dangling link(s) from PostgreSQL...", len(dangling_links))

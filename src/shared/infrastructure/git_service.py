@@ -17,10 +17,13 @@ from __future__ import annotations
 import subprocess
 from pathlib import Path
 
+from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.logger import getLogger
 
 
 logger = getLogger(__name__)
+
+_CFG_GIT = load_operational_config().git
 
 
 # ID: 4c70a9c7-ee57-40d7-80af-470c19223c21
@@ -214,7 +217,7 @@ class GitService:
             self._run_command(["commit", "-m", message])
 
     # ID: a1b2c3d4-e5f6-7890-abcd-ef1234567892
-    def get_recent_commits(self, n: int = 10) -> list[str]:
+    def get_recent_commits(self, n: int = _CFG_GIT.recent_commits_n) -> list[str]:
         """
         Returns the last n commit summaries (oneline, no merges).
         Used by SystemContextGatherer for change context (Dimension 5).
@@ -237,7 +240,7 @@ class GitService:
             return ""
 
     # ID: c3d4e5f6-a7b8-9012-cdef-123456789003
-    def get_changed_files_log(self, n: int = 20) -> list[str]:
+    def get_changed_files_log(self, n: int = _CFG_GIT.changed_files_log_n) -> list[str]:
         """
         Returns filenames touched in the last n commits (Python files only).
         Used by SystemContextGatherer for change context (Dimension 5).

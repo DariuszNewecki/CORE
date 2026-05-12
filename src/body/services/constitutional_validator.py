@@ -21,10 +21,13 @@ from functools import lru_cache
 from typing import Any
 
 from shared.infrastructure.intent.intent_repository import get_intent_repository
+from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.logger import getLogger
 
 
 logger = getLogger(__name__)
+
+_CFG_VAL = load_operational_config().validator
 
 
 # ID: 9a021d9a-929d-4047-afaa-dc9787d92d48
@@ -114,7 +117,7 @@ class ConstitutionalValidator:
         self._populate_indices()
         logger.info("🔄 Constitution reloaded from .intent/rules/")
 
-    @lru_cache(maxsize=1024)
+    @lru_cache(maxsize=_CFG_VAL.lru_cache_size)
     # ID: 8ba370b8-7196-488d-9073-bff294a4d64a
     def is_path_critical(self, filepath: str) -> bool:
         """Check if path is critical (requires human approval)."""
@@ -129,13 +132,13 @@ class ConstitutionalValidator:
 
         return False
 
-    @lru_cache(maxsize=1024)
+    @lru_cache(maxsize=_CFG_VAL.lru_cache_size)
     # ID: bc1c3a49-105e-443f-896e-46099ba1c274
     def is_action_autonomous(self, action: str) -> bool:
         """Check if action is allowed for autonomous execution."""
         return action in self._autonomous_actions
 
-    @lru_cache(maxsize=1024)
+    @lru_cache(maxsize=_CFG_VAL.lru_cache_size)
     # ID: 53a1a9ff-03d0-49bf-9857-325b4b94b677
     def is_action_prohibited(self, action: str) -> bool:
         """Check if action is explicitly prohibited."""
@@ -164,7 +167,7 @@ class ConstitutionalValidator:
 
         return violations
 
-    @lru_cache(maxsize=512)
+    @lru_cache(maxsize=_CFG_VAL.lru_cache_size_small)
     # ID: 18fa2148-c919-4799-88ed-13cb61516481
     def classify_risk(self, filepath: str, action: str) -> RiskTier:
         """

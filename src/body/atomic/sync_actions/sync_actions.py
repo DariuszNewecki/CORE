@@ -12,6 +12,7 @@ from shared.action_types import ActionImpact, ActionResult
 from shared.atomic_action import atomic_action
 from shared.context import CoreContext
 from shared.infrastructure.database.session_manager import get_session
+from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.infrastructure.vector.adapters.constitutional_adapter import (
     ConstitutionalAdapter,
 )
@@ -19,6 +20,8 @@ from shared.logger import getLogger
 
 
 logger = getLogger(__name__)
+
+_CFG_SYN = load_operational_config().sync
 
 from .chunking_helpers import _chunk_file, _embed_and_upsert
 
@@ -188,7 +191,9 @@ async def action_sync_code_vectors(
                 pass_num,
                 pending,
             )
-            artifacts = await artifact_svc.fetch_unembedded_artifacts(batch_size=10)
+            artifacts = await artifact_svc.fetch_unembedded_artifacts(
+                batch_size=_CFG_SYN.artifact_embed_batch_size
+            )
             if not artifacts:
                 break
 
@@ -338,7 +343,9 @@ async def action_sync_constitutional_vectors(
             embedder=embedder,
         )
         await policy_service.ensure_collection()
-        policy_results = await policy_service.index_items(policy_items, batch_size=10)
+        policy_results = await policy_service.index_items(
+            policy_items, batch_size=_CFG_SYN.policy_index_batch_size
+        )
 
         # Pattern Sync
         pattern_items = adapter.patterns_to_items()
@@ -349,7 +356,7 @@ async def action_sync_constitutional_vectors(
         )
         await pattern_service.ensure_collection()
         pattern_results = await pattern_service.index_items(
-            pattern_items, batch_size=10
+            pattern_items, batch_size=_CFG_SYN.pattern_index_batch_size
         )
 
         # Specs Sync
@@ -363,7 +370,9 @@ async def action_sync_constitutional_vectors(
             embedder=embedder,
         )
         await specs_service.ensure_collection()
-        specs_results = await specs_service.index_items(specs_items, batch_size=10)
+        specs_results = await specs_service.index_items(
+            specs_items, batch_size=_CFG_SYN.specs_index_batch_size
+        )
 
         return ActionResult(
             action_id="sync.vectors.constitution",
