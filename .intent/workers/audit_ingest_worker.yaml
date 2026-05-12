@@ -15,7 +15,7 @@ metadata:
     sole entry point for ai.prompt.model_required findings.
 
 identity:
-  uuid: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+  uuid: "c70004f6-5aa2-40a1-98b9-b703ea93facf"
   class: sensing
 
 mandate:

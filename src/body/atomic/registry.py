@@ -199,7 +199,7 @@ class ActionRegistry:
 action_registry = ActionRegistry()
 
 
-# ID: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+# ID: a516c041-becf-4f13-b970-b1a2e31631dc
 def _validate_action_signature(func: Callable[..., Awaitable[ActionResult]]) -> None:
     """
     Validate function signature against constitutional requirements.

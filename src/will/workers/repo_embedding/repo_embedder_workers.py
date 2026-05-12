@@ -18,7 +18,7 @@ logger = getLogger(__name__)
 from .helpers import _chunk_file, _embed_and_upsert
 
 
-# ID: a2b3c4d5-e6f7-8901-bcde-f12345678902
+# ID: 1f09a2d8-0307-4172-b1b0-e3f14a918e00
 class RepoEmbedderWorker(Worker):
     """
     Sensing worker. Consumes unembedded repo_artifacts and upserts
