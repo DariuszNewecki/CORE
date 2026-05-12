@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from shared.infrastructure.intent.operational_config import load_operational_config
 from will.self_healing.remediation_interpretation.models import (
     FileRole,
     RemediationStrategy,
@@ -15,10 +16,11 @@ from will.self_healing.remediation_interpretation.strategy_catalog import (
 )
 
 
-# Minimum score for choose_recommended to return a strategy.
-# A strategy scoring below this has insufficient evidence to be recommended.
-# The caller must handle None and surface it for human review.
-_MIN_RECOMMENDED_SCORE = 15
+# Strategy-selector scoring weights and thresholds, governed via
+# .intent/enforcement/config/operational_config.yaml (ADR-040).
+# A strategy scoring below _CFG.min_recommended_score has insufficient
+# evidence to be recommended; the caller must surface that for human review.
+_CFG = load_operational_config().strategy_selector
 
 
 # ID: c33cf1f8-f7a4-4b6f-a8c4-e63c77927392
@@ -98,7 +100,7 @@ class StrategySelector:
 
         Returns None when:
         - candidate_strategies is empty
-        - the top strategy scores below _MIN_RECOMMENDED_SCORE
+        - the top strategy scores below _CFG.min_recommended_score
 
         A None return is a valid governance signal: it means the evidence
         is insufficient to confidently recommend any automated strategy.
@@ -109,7 +111,7 @@ class StrategySelector:
             return None
 
         top = candidate_strategies[0]
-        if top.score < _MIN_RECOMMENDED_SCORE:
+        if top.score < _CFG.min_recommended_score:
             return None
 
         return top
@@ -187,16 +189,16 @@ class StrategySelector:
         role_id = file_role.role_id
 
         if role_id in template.preferred_for_roles:
-            score += 25
+            score += _CFG.score_role_preferred
             evidence.append(f"Preferred for detected role '{role_id}'.")
         elif self._generalized_worker_match(role_id, template.preferred_for_roles):
-            score += 16
+            score += _CFG.score_generalized_match
             evidence.append(
                 f"Preferred for generalized worker role matching '{role_id}'."
             )
 
         if role_id in template.discouraged_for_roles:
-            score -= 25
+            score -= _CFG.score_role_discouraged
             evidence.append(f"Discouraged for detected role '{role_id}'.")
 
         if file_role.layer in {"mind", "will", "body", "shared"}:
@@ -216,10 +218,10 @@ class StrategySelector:
 
         for rule_id in violation_summary:
             if rule_id in template.preferred_for_rules:
-                score += 12
+                score += _CFG.score_rule_preferred
                 evidence.append(f"Preferred for violated rule '{rule_id}'.")
             if rule_id in template.discouraged_for_rules:
-                score -= 12
+                score -= _CFG.score_rule_discouraged
                 evidence.append(f"Discouraged for violated rule '{rule_id}'.")
 
         return score, evidence
@@ -235,20 +237,20 @@ class StrategySelector:
 
         line_count = int(metrics.get("line_count", 0) or 0)
 
-        if line_count > 400 and template.strategy_id in {
+        if line_count > _CFG.large_file_lines and template.strategy_id in {
             "split_module_by_responsibility",
             "extract_service_collaborator",
             "extract_analysis_service",
         }:
-            score += 10
+            score += _CFG.score_size_bonus
             evidence.append(
                 f"File is large ({line_count} lines); structural strategies favored."
             )
 
-        if line_count < 200 and template.strategy_id in {
+        if line_count < _CFG.small_file_lines and template.strategy_id in {
             "split_module_by_responsibility",
         }:
-            score -= 10
+            score -= _CFG.score_size_penalty
             evidence.append(
                 f"File is small ({line_count} lines); split strategy discouraged."
             )
@@ -330,7 +332,7 @@ class StrategySelector:
         line_count = int(metrics.get("line_count", 0) or 0)
         cluster_count = len(responsibility_clusters)
         strong_split_case = (
-            line_count >= 450
+            line_count >= _CFG.strong_split_lines
             and cluster_count >= 4
             and any(item.name == "mixed_surface" for item in responsibility_clusters)
         )
@@ -351,7 +353,7 @@ class StrategySelector:
             strong_split_case
             and template.strategy_id == "split_module_by_responsibility"
         ):
-            score += 14
+            score += _CFG.score_strong_split
             evidence.append("Strong split case detected from size and cluster spread.")
 
         if (
