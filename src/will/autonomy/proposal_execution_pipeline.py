@@ -172,6 +172,38 @@ async def compute_changed_files(
         return []
 
 
+def rollback_proposal(
+    git_service,
+    proposal_id: str,
+    scope_files: list[str],
+    pre_sha: str | None,
+) -> None:
+    """Restore the working tree to pre-execution state after proposal failure.
+
+    Reverts the proposal's declared scope.files via
+    ``git_service.restore_paths``. No-op when *git_service* is None or
+    *pre_sha* is None (nothing to restore to). Fail-soft: a rollback
+    failure is logged at WARNING and swallowed — the proposal is already
+    marked failed regardless.
+    """
+    if git_service is None or pre_sha is None:
+        return
+    try:
+        git_service.restore_paths(scope_files)
+        logger.info(
+            "Reverted scope files for proposal %s (count=%d, sha=%s)",
+            proposal_id,
+            len(scope_files),
+            pre_sha,
+        )
+    except Exception as rollback_err:
+        logger.warning(
+            "Rollback failed for proposal %s: %s",
+            proposal_id,
+            rollback_err,
+        )
+
+
 def commit_proposal_changes(
     git_service,
     proposal_id: str,

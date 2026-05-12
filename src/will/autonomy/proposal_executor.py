@@ -37,6 +37,7 @@ from will.autonomy.proposal_execution_pipeline import (
     compute_changed_files,
     record_consequence,
     resolve_deferred_findings,
+    rollback_proposal,
 )
 from will.autonomy.proposal_repository import ProposalRepository
 from will.autonomy.proposal_state_manager import ProposalStateManager
@@ -374,23 +375,12 @@ class ProposalExecutor:
                     logger.error(
                         "Proposal failed: %s - %s", proposal.proposal_id, reason
                     )
-                    # Restore the working tree to pre-execution state.
-                    if self.core_context.git_service and pre_execution_sha is not None:
-                        try:
-                            self.core_context.git_service.restore_paths(
-                                proposal.scope.files
-                            )
-                            logger.info(
-                                "Reverted scope files to pre-execution state (count=%d, sha=%s)",
-                                len(proposal.scope.files),
-                                pre_execution_sha,
-                            )
-                        except Exception as rollback_err:
-                            logger.warning(
-                                "Rollback failed for proposal %s: %s",
-                                proposal.proposal_id,
-                                rollback_err,
-                            )
+                    rollback_proposal(
+                        git_service=self.core_context.git_service,
+                        proposal_id=proposal.proposal_id,
+                        scope_files=proposal.scope.files,
+                        pre_sha=pre_execution_sha,
+                    )
             else:
                 logger.info("DRY-RUN complete - no status updates")
 
@@ -609,26 +599,12 @@ class ProposalExecutor:
                                 reason=reason,
                                 results=action_results,
                             )
-                            if (
-                                self.core_context.git_service
-                                and pre_execution_sha is not None
-                            ):
-                                try:
-                                    self.core_context.git_service.restore_paths(
-                                        proposal.scope.files
-                                    )
-                                    logger.info(
-                                        "Reverted scope files for batch proposal %s (count=%d, sha=%s)",
-                                        proposal.proposal_id,
-                                        len(proposal.scope.files),
-                                        pre_execution_sha,
-                                    )
-                                except Exception as rollback_err:
-                                    logger.warning(
-                                        "Rollback failed for batch proposal %s: %s",
-                                        proposal.proposal_id,
-                                        rollback_err,
-                                    )
+                            rollback_proposal(
+                                git_service=self.core_context.git_service,
+                                proposal_id=proposal.proposal_id,
+                                scope_files=proposal.scope.files,
+                                pre_sha=pre_execution_sha,
+                            )
 
                     results[proposal_id] = {
                         "ok": all_ok,
