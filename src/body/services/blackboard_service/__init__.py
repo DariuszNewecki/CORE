@@ -6,10 +6,17 @@ Package split from blackboard_service.py.
 
 from __future__ import annotations
 
+from .blackboard_claim_service import BlackboardClaimService
 from .blackboard_proposal_service import BlackboardProposalService
+from .blackboard_query_service import BlackboardQueryService
 from .blackboard_service import BlackboardService
 
 
 # ID: 88382dd0-e47a-4538-88b7-40c050a649f8
-class BlackboardService(BlackboardService, BlackboardProposalService):
+class BlackboardService(
+    BlackboardService,
+    BlackboardProposalService,
+    BlackboardQueryService,
+    BlackboardClaimService,
+):
     pass
