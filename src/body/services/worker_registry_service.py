@@ -28,8 +28,9 @@ class WorkerRegistryService:
     queries used by WorkerShopManager and runtime health readers.
 
     Per ADR-020, worker liveness is derived from last_heartbeat against
-    a threshold; there is no status column. Callers needing a liveness
-    view use fetch_alive_workers / fetch_stale_workers.
+    a threshold; there is no status column. Per ADR-041, callers needing
+    a stale-worker view use fetch_stale_workers_with_schedules, which
+    applies per-worker thresholds and orphan-skip.
     """
 
     # ID: 8ac6e97e-9597-49af-a285-de8da66bda4b
@@ -37,8 +38,8 @@ class WorkerRegistryService:
         """
         Return all registered workers with seconds since last heartbeat,
         ordered by silence duration descending. No liveness filter is
-        applied here — callers wanting alive-only or stale-only sets
-        use fetch_alive_workers / fetch_stale_workers.
+        applied here — callers wanting the stale-only set use
+        fetch_stale_workers_with_schedules (ADR-041).
 
         Covers:
           - WorkerShopManager._fetch_registered_workers
@@ -181,47 +182,3 @@ class WorkerRegistryService:
                         }
                     )
             return stale
-
-    # ID: 8e9f0a1b-2c3d-4e5f-6a7b-8c9d0e1f2a3b
-    async def fetch_stale_workers(self, threshold_sec: int) -> list[dict[str, Any]]:
-        """
-        Return workers whose last_heartbeat exceeds a single global threshold.
-
-        DEPRECATED per ADR-041 — does not honour per-worker schedules and
-        does not skip orphan rows (registry rows whose UUID is not
-        declared by any active .intent/workers/*.yaml). New callers should
-        use fetch_stale_workers_with_schedules. Retained for one commit
-        cycle while migration completes.
-        """
-        from body.services.service_registry import ServiceRegistry
-
-        async with ServiceRegistry.session() as session:
-            result = await session.execute(
-                text(
-                    """
-                    SELECT
-                        worker_uuid,
-                        worker_name,
-                        worker_class,
-                        phase,
-                        last_heartbeat,
-                        EXTRACT(EPOCH FROM (now() - last_heartbeat))::int
-                            AS seconds_silent
-                    FROM core.worker_registry
-                    WHERE last_heartbeat <= now() - make_interval(secs => :threshold)
-                    ORDER BY seconds_silent DESC
-                    """
-                ),
-                {"threshold": threshold_sec},
-            )
-            return [
-                {
-                    "worker_uuid": row[0],
-                    "worker_name": row[1],
-                    "worker_class": row[2],
-                    "phase": row[3],
-                    "last_heartbeat": row[4],
-                    "seconds_silent": row[5] or 0,
-                }
-                for row in result.fetchall()
-            ]
