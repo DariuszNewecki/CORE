@@ -5,7 +5,7 @@
 **Status:** Draft
 **Date:** 2026-05-12
 **Authors:** Darek (Dariusz Newecki)
-**Closes:** TBD (open after governor review)
+**Closes:** #298
 **Relates to:** ADR-030 (Daemon stale-code detection posture)
 
 ---
