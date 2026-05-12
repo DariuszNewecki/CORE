@@ -116,6 +116,18 @@ class AuditorContext:
         """Canonical Mind runtime root."""
         return self.paths.var_dir / "mind"
 
+    # ID: 7d3e8c2a-9f4b-4c1d-8e6a-2b7f9d5c3a1e
+    def invalidate_file_cache(self) -> None:
+        """Clear cached filesystem scan and per-pattern subsets.
+
+        Called at the entry of every audit run so newly-committed files
+        become visible to the next cycle without daemon restart (ADR-039).
+        Within a single run, the rebuilt cache is still shared across rules.
+        """
+        self._file_list_cache = None
+        self._rel_path_map.clear()
+        self._pattern_cache.clear()
+
     # ID: 4a2f2b3d-1a8a-4a1f-9a8e-2b6a0e7d9b3c
     def get_files(
         self,

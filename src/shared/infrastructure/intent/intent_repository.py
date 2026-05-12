@@ -86,6 +86,21 @@ class IntentRepository(RootedRepository):
     def initialize(self) -> None:
         self._ensure_index()
 
+    # ID: 4a91e5f0-2d8c-4b3e-91a7-c5b8d3e9f2a1
+    def reload(self) -> None:
+        """Drop the cached index and rebuild from disk.
+
+        Called once per audit-sensor cycle (ADR-039) so policies and
+        rules added to .intent/ after daemon boot become enforceable
+        without a process restart. Re-emits the "indexed N policies and
+        M rules" log line so cycle-to-cycle drift is visible in journald.
+        """
+        with self._INDEX_LOCK:
+            self._policy_index = None
+            self._rule_index = None
+            self._hierarchy = None
+        self._ensure_index()
+
     # ID: 57f50f3a-fc99-4e47-9ddf-24da5f105863
     def load_document(self, path: Path) -> dict[str, Any]:
         if not path.exists():

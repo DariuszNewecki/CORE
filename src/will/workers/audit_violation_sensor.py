@@ -110,6 +110,28 @@ class AuditViolationSensor(Worker):
         """
         await self.post_heartbeat()
 
+        # ADR-039: refresh governance and filesystem inputs before
+        # resolving rules so content committed since the previous cycle
+        # is visible without daemon restart.
+        from shared.infrastructure.intent.intent_repository import (
+            get_intent_repository,
+        )
+
+        intent_repo = get_intent_repository()
+        intent_repo.reload()
+
+        auditor_context = self._core_context.auditor_context
+        auditor_context.invalidate_file_cache()
+
+        file_count = sum(1 for _ in auditor_context.repo_path.rglob("*.py"))
+        rule_count = len(intent_repo._rule_index or {})
+        logger.info(
+            "audit_sensor_%s: rescanned %d files, %d rules loaded",
+            self._rule_namespace,
+            file_count,
+            rule_count,
+        )
+
         rule_ids = self._resolve_rule_ids()
         if not rule_ids:
             await self.post_report(

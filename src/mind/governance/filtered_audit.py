@@ -137,6 +137,10 @@ async def run_filtered_audit(
     if executed_rule_ids is None:
         executed_rule_ids = set()
 
+    # ADR-039: rebuild the filesystem scan once per audit run so files
+    # committed since the last cycle are visible to every rule.
+    context.invalidate_file_cache()
+
     file_filter = normalize_file_filter(files, context.repo_path)
 
     # Extract all executable rules from policies
