@@ -271,7 +271,7 @@ class StrategySelector:
             "split_module_by_responsibility",
             "extract_service_collaborator",
         }:
-            score += 8
+            score += _CFG.score_cluster_count_bonus
             evidence.append(
                 f"{cluster_count} responsibility clusters detected; "
                 "structural split strategies favored."
@@ -280,7 +280,7 @@ class StrategySelector:
         if cluster_count <= 1 and template.strategy_id in {
             "split_module_by_responsibility",
         }:
-            score -= 8
+            score -= _CFG.score_cluster_count_penalty
             evidence.append("Few clusters detected; split strategy discouraged.")
 
         return score, evidence
@@ -297,7 +297,7 @@ class StrategySelector:
 
         if file_role.role_id in {"repository", "model"}:
             if template.strategy_id == "preserve_role_extract_helpers_only":
-                score += 9
+                score += _CFG.score_constraint_role_bonus
                 evidence.append(
                     f"Conservative role-preserving strategy fits role "
                     f"'{file_role.role_id}'."
@@ -306,7 +306,7 @@ class StrategySelector:
                 "extract_service_collaborator",
                 "extract_analysis_service",
             }:
-                score -= 8
+                score -= _CFG.score_constraint_role_penalty
                 evidence.append(
                     f"Cross-boundary extraction is less suitable for role "
                     f"'{file_role.role_id}'."
@@ -343,7 +343,7 @@ class StrategySelector:
             "extract_helper_functions",
             "extract_private_methods",
         }:
-            score += 8
+            score += _CFG.score_conservatism_bias_bonus
             evidence.append(
                 "Conservative bias applied because evidence for aggressive "
                 "structural split is limited."
@@ -360,7 +360,7 @@ class StrategySelector:
             file_role.role_id in {"worker.sensor", "worker.actor"}
             and template.preserves_contract
         ):
-            score += 5
+            score += _CFG.score_conservatism_structural_bonus
             evidence.append(
                 "Contract-preserving strategy is favorable for worker remediation."
             )

@@ -220,6 +220,12 @@ class StrategySelectorConfig:
     score_size_bonus: int = 10
     score_size_penalty: int = 10
     score_strong_split: int = 14
+    score_cluster_count_bonus: int = 8
+    score_cluster_count_penalty: int = 8
+    score_constraint_role_bonus: int = 9
+    score_constraint_role_penalty: int = 8
+    score_conservatism_bias_bonus: int = 8
+    score_conservatism_structural_bonus: int = 5
     large_file_lines: int = 400
     small_file_lines: int = 200
     strong_split_lines: int = 450
@@ -747,6 +753,14 @@ def _load_strategy_selector(raw: dict[str, Any]) -> StrategySelectorConfig:
         score_size_bonus=_get_int(sec, "score_size_bonus", 10),
         score_size_penalty=_get_int(sec, "score_size_penalty", 10),
         score_strong_split=_get_int(sec, "score_strong_split", 14),
+        score_cluster_count_bonus=_get_int(sec, "score_cluster_count_bonus", 8),
+        score_cluster_count_penalty=_get_int(sec, "score_cluster_count_penalty", 8),
+        score_constraint_role_bonus=_get_int(sec, "score_constraint_role_bonus", 9),
+        score_constraint_role_penalty=_get_int(sec, "score_constraint_role_penalty", 8),
+        score_conservatism_bias_bonus=_get_int(sec, "score_conservatism_bias_bonus", 8),
+        score_conservatism_structural_bonus=_get_int(
+            sec, "score_conservatism_structural_bonus", 5
+        ),
         large_file_lines=_get_int(sec, "large_file_lines", 400),
         small_file_lines=_get_int(sec, "small_file_lines", 200),
         strong_split_lines=_get_int(sec, "strong_split_lines", 450),

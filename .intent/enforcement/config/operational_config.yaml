@@ -189,6 +189,12 @@ strategy_selector:
   score_size_bonus: 10
   score_size_penalty: 10
   score_strong_split: 14
+  score_cluster_count_bonus: 8
+  score_cluster_count_penalty: 8
+  score_constraint_role_bonus: 9
+  score_constraint_role_penalty: 8
+  score_conservatism_bias_bonus: 8
+  score_conservatism_structural_bonus: 5
   large_file_lines: 400
   small_file_lines: 200
   strong_split_lines: 450
