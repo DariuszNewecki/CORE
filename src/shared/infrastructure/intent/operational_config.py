@@ -385,6 +385,8 @@ class MiscConfig:
     context_aware_test_context_lines: int = 40
     perf_overhead_warning_pct: int = 50
     perf_overhead_error_pct: int = 100
+    context_search_display_limit: int = 20
+    proposals_display_limit: int = 20
 
 
 # ---------------------------------------------------------------------------
@@ -957,6 +959,8 @@ def _load_misc(raw: dict[str, Any]) -> MiscConfig:
         ),
         perf_overhead_warning_pct=_get_int(sec, "perf_overhead_warning_pct", 50),
         perf_overhead_error_pct=_get_int(sec, "perf_overhead_error_pct", 100),
+        context_search_display_limit=_get_int(sec, "context_search_display_limit", 20),
+        proposals_display_limit=_get_int(sec, "proposals_display_limit", 20),
     )
 
 

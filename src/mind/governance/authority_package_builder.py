@@ -51,7 +51,7 @@ if TYPE_CHECKING:
 
 logger = getLogger(__name__)
 
-_CFG = load_operational_config().misc
+_CFG = load_operational_config().authority_package
 
 
 @dataclass
@@ -330,7 +330,7 @@ class AuthorityPackageBuilder:
 
         # Semantic search for relevant policies
         policy_hits = await self.policy_vectorizer.search_policies(
-            query=query, limit=_CFG.authority_package_search_limit
+            query=query, limit=_CFG.search_limit
         )
 
         # Convert to PolicyMatch objects

@@ -14,10 +14,11 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any
 
-from shared.infrastructure.intent.operational_config import load_operational_config
 
-
-_CFG_ACT = load_operational_config().action
+# Note: load_operational_config() is imported lazily inside __post_init__ to
+# break a circular dependency: operational_config → shared.logger →
+# shared.action_types → operational_config. Cost is negligible because the
+# loader path memoises through IntentRepository.
 
 
 # ID: 29ed0df5-f34f-4af8-81f1-49207bd75e6e
@@ -157,9 +158,15 @@ class ActionResult:
         try:
             # We use JSON serialization as a proxy for data size
             serialized = json.dumps(self.data, default=str)
-            if len(serialized) > _CFG_ACT.max_data_size_bytes:
+            # Lazy import — see module-level note on the circular dependency.
+            from shared.infrastructure.intent.operational_config import (
+                load_operational_config,
+            )
+
+            max_size = load_operational_config().action.max_data_size_bytes
+            if len(serialized) > max_size:
                 raise ValueError(
-                    f"ActionResult.data exceeds size limit of {_CFG_ACT.max_data_size_bytes} bytes "
+                    f"ActionResult.data exceeds size limit of {max_size} bytes "
                     f"(got {len(serialized)} bytes). Action: {self.action_id}"
                 )
         except (TypeError, OverflowError):
