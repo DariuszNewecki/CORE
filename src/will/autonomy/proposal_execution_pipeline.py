@@ -26,6 +26,7 @@ from shared.logger import getLogger
 logger = getLogger(__name__)
 
 
+# ID: 41e70408-632f-4485-ba5f-23cfb688b53d
 def capture_git_sha(git_service, phase: str, proposal_id: str) -> str | None:
     """Return the current git HEAD SHA, or None if unavailable.
 
@@ -60,6 +61,7 @@ def capture_git_sha(git_service, phase: str, proposal_id: str) -> str | None:
         return None
 
 
+# ID: 4de2ac6b-7733-45eb-81cf-2f2897095459
 async def resolve_deferred_findings(proposal_id: str) -> None:
     """Flip findings deferred to *proposal_id* from 'deferred_to_proposal'
     to 'resolved' — the success-side mirror of §7a revival.
@@ -89,6 +91,7 @@ async def resolve_deferred_findings(proposal_id: str) -> None:
         )
 
 
+# ID: 4095ae72-e22a-48bd-b8a0-41707a5b2bdf
 async def record_consequence(
     proposal_id: str,
     pre_sha: str | None,
@@ -127,6 +130,7 @@ async def record_consequence(
         )
 
 
+# ID: b38dbf84-ec1c-473d-8f42-d8b613e9a4c8
 async def compute_changed_files(
     repo_path: str,
     pre_sha: str | None,
