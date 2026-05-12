@@ -276,8 +276,11 @@ class Worker(ABC):
                         values
                             (:worker_uuid, :worker_name, :worker_class, :phase, now())
                         on conflict (worker_uuid) do update set
+                            worker_name = excluded.worker_name,
+                            worker_class = excluded.worker_class,
+                            phase = excluded.phase,
                             last_heartbeat = now()
-                    """
+"""
                     ),
                     {
                         "worker_uuid": self._worker_uuid,

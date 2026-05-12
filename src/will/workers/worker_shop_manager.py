@@ -76,6 +76,10 @@ class WorkerShopManager(Worker):
         )
         # Cache of per-worker thresholds loaded from .intent/
         self._thresholds: dict[str, int] = {}
+        # Set of UUIDs declared as active in .intent/workers/. Registry rows
+        # whose UUID is not in this set are treated as orphans (left behind
+        # after a worker UUID rotation, paused, or deleted) and skipped.
+        self._active_worker_uuids: set[str] = set()
 
     # -------------------------------------------------------------------------
     # Self-scheduling entry point — called once by Sanctuary
@@ -131,6 +135,7 @@ class WorkerShopManager(Worker):
         await self.post_heartbeat()
 
         self._thresholds = self._load_worker_thresholds()
+        self._active_worker_uuids = self._load_active_worker_uuids()
         workers = await self._fetch_registered_workers(service_registry)
         existing = await self._fetch_existing_findings(service_registry)
 
@@ -142,6 +147,15 @@ class WorkerShopManager(Worker):
             worker_name = _sanitize(worker["worker_name"])
             worker_uuid = str(worker["worker_uuid"])
             seconds_silent = worker["seconds_silent"]
+
+            if worker_uuid not in self._active_worker_uuids:
+                logger.debug(
+                    "WorkerShopManager: skipping orphan registry row "
+                    "%s (%s) — UUID not declared in any active worker YAML",
+                    worker_uuid,
+                    worker_name,
+                )
+                continue
 
             # Match against threshold using sanitized name (thresholds are also
             # loaded from YAML titles which are now sanitized in _load_worker_thresholds)
@@ -244,6 +258,37 @@ class WorkerShopManager(Worker):
                 )
 
         return thresholds
+
+    def _load_active_worker_uuids(self) -> set[str]:
+        """
+        Read .intent/workers/*.yaml and return the set of identity.uuid
+        values for workers declared as status: active.
+
+        Used to filter worker_registry rows: any row whose worker_uuid is
+        not in this set is an orphan (paused worker leftover, deleted
+        worker, or stale row from a prior UUID before rotation) and is
+        skipped by the staleness check.
+        """
+        active_uuids: set[str] = set()
+        intent_workers = Path(".intent/workers")
+
+        if not intent_workers.exists():
+            return active_uuids
+
+        for yaml_path in intent_workers.glob("*.yaml"):
+            try:
+                data = strict_yaml_processor.load_strict(yaml_path)
+                if data.get("metadata", {}).get("status") != "active":
+                    continue
+                uuid = (data.get("identity") or {}).get("uuid", "")
+                if uuid:
+                    active_uuids.add(uuid)
+            except Exception as exc:
+                logger.warning(
+                    "WorkerShopManager: could not read %s: %s", yaml_path.name, exc
+                )
+
+        return active_uuids
 
     # -------------------------------------------------------------------------
     # DB reads
