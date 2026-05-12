@@ -656,6 +656,19 @@ Commit adf59796.
 
 ---
 
+## ADR-040 — 2026-05-12
+
+No hardcoded values in `src/`. Establishes the general principle that
+numeric and string values controlling system behavior at runtime belong
+in `.intent/enforcement/config/`, not in source code. ADR-008 and
+ADR-031 applied this reactively to specific domains; ADR-040 makes it
+constitutional law across the entire `src/` tree. Exclusions: enum
+ordinals, loop/range literals, loader fallback defaults, `tests/**`,
+`infra/**`. Migration and audit rule (`governance.no_hardcoded_values`)
+follow as implementation. Closes #282 ADR step.
+Files: `.specs/decisions/ADR-040-no-hardcoded-values-in-src.md`,
+`.specs/planning/CORE-A3-plan.md`.
+
 ## Notes
 
 * This changelog intentionally avoids implementation detail
