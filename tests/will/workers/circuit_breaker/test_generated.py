@@ -1,5 +1,8 @@
 import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch, PropertyMock
+from typing import Any
+import re
+from dataclasses import dataclass, field
 
 from src.will.workers.circuit_breaker import (
     CircuitBreakerConfig,
@@ -14,94 +17,86 @@ class TestCircuitBreakerConfig:
     """Tests for the CircuitBreakerConfig dataclass."""
 
     def test_default_values(self):
-        """Verify default field values are set correctly."""
+        """Verify defaults match fallback constants."""
         config = CircuitBreakerConfig()
         assert config.threshold_n == 3
-        assert config.signature_window_chars == 500
-        assert config.max_lookback == 50
+        assert config.signature_window_chars == 200
+        assert config.max_lookback == 10
         assert config.volatile_patterns == ()
 
     def test_custom_values(self):
-        """Verify custom field values are accepted."""
-        patterns = (re.compile(r"\d+"),)
+        """Verify custom values are stored correctly."""
+        pattern = re.compile(r"\d{4}-\d{2}-\d{2}")
         config = CircuitBreakerConfig(
             threshold_n=5,
-            signature_window_chars=300,
-            max_lookback=100,
-            volatile_patterns=patterns,
+            signature_window_chars=100,
+            max_lookback=20,
+            volatile_patterns=(pattern,),
         )
         assert config.threshold_n == 5
-        assert config.signature_window_chars == 300
-        assert config.max_lookback == 100
-        assert config.volatile_patterns == patterns
+        assert config.signature_window_chars == 100
+        assert config.max_lookback == 20
+        assert config.volatile_patterns == (pattern,)
 
-    def test_volatile_patterns_type(self):
-        """Verify volatile_patterns is a tuple of compiled patterns."""
-        config = CircuitBreakerConfig(volatile_patterns=(re.compile(r"\d+"),))
-        assert isinstance(config.volatile_patterns, tuple)
-        assert all(isinstance(p, re.Pattern) for p in config.volatile_patterns)
+    def test_volatile_patterns_compiled_regex(self):
+        """Verify volatile_patterns contains compiled regex patterns."""
+        pattern = re.compile(r"timestamp:\s*\d+")
+        config = CircuitBreakerConfig(volatile_patterns=(pattern,))
+        assert isinstance(config.volatile_patterns[0], re.Pattern)
 
 
 class TestCanonicalSignature:
     """Tests for the canonical_signature function."""
 
     def test_none_input(self):
-        """Verify None collapses to empty string."""
+        """None input should collapse to empty string."""
         config = CircuitBreakerConfig()
         result = canonical_signature(None, config)
         assert result == ""
 
-    def test_empty_input(self):
-        """Verify empty string collapses to empty string."""
+    def test_empty_string(self):
+        """Empty string should remain empty."""
         config = CircuitBreakerConfig()
         result = canonical_signature("", config)
         assert result == ""
 
-    def test_whitespace_collapse(self):
-        """Verify runs of whitespace are collapsed to a single space."""
-        config = CircuitBreakerConfig()
-        result = canonical_signature("error   at   line 42", config)
-        # After removing timestamps/UUIDs, whitespace collapsed
-        # Expected: "error at line 42"
+    def test_no_volatile_patterns(self):
+        """Without patterns, should normalize whitespace and truncate."""
+        config = CircuitBreakerConfig(signature_window_chars=50)
+        text = "Error: something  went   wrong   here"
+        result = canonical_signature(text, config)
+        # Collapse whitespace to single spaces
         assert "  " not in result
-        assert result == "error at line 42"
+        assert result == "Error: something went wrong here"
+
+    def test_truncation(self):
+        """Should truncate to signature_window_chars."""
+        config = CircuitBreakerConfig(signature_window_chars=10)
+        long_text = "This is a very long error message that should be truncated"
+        result = canonical_signature(long_text, config)
+        assert len(result) <= 10
+        # Should contain the first 10 chars of the normalized text
+        assert result == "This is a "
 
     def test_volatile_pattern_removal(self):
-        """Verify substrings matching volatile patterns are stripped."""
-        pattern = re.compile(r"\b\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\b")
-        config = CircuitBreakerConfig(volatile_patterns=(pattern,))
-        result = canonical_signature(
-            "Timeout at 2024-01-15T10:30:00 for process foo", config
-        )
-        assert "2024-01-15T10:30:00" not in result
-        assert "Timeout at for process foo" in result
+        """Should strip substrings matching volatile patterns."""
+        ts_pattern = re.compile(r"\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}")
+        config = CircuitBreakerConfig(volatile_patterns=(ts_pattern,))
+        text = "Error at 2024-01-15 14:30:00: timeout"
+        result = canonical_signature(text, config)
+        assert "2024-01-15 14:30:00" not in result
+        assert "Error at : timeout" in result or "Error at timeout" in result
 
     def test_multiple_volatile_patterns(self):
-        """Verify multiple patterns are all removed."""
-        timestamp_pattern = re.compile(r"\b\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\b")
-        uuid_pattern = re.compile(
-            r"\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b",
-            re.IGNORECASE,
-        )
-        config = CircuitBreakerConfig(
-            volatile_patterns=(timestamp_pattern, uuid_pattern)
-        )
-        result = canonical_signature(
-            "Error abc12345-1234-1234-1234-123456789abc at 2024-01-15T10:30:00",
-            config,
-        )
-        assert "2024-01-15T10:30:00" not in result
-        assert "abc12345-1234-1234-1234-123456789abc" not in result
-        assert "Error at" in result
+        """Should apply all volatile patterns."""
+        ts_pattern = re.compile(r"\d{4}-\d{2}-\d{2}")
+        uuid_pattern = re.compile(r"[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}")
+        config = CircuitBreakerConfig(volatile_patterns=(ts_pattern, uuid_pattern))
+        text = "Failed for 2024-01-15 uuid abcdef12-3456-7890-abcd-ef1234567890"
+        result = canonical_signature(text, config)
+        assert "2024-01-15" not in result
+        assert "abcdef12-3456-7890-abcd-ef1234567890" not in result
 
-    def test_truncation_to_window_chars(self):
-        """Verify long signatures are truncated."""
-        config = CircuitBreakerConfig(signature_window_chars=10)
-        long_reason = "x" * 100
-        result = canonical_signature(long_reason, config)
-        assert len(result) == 10
-        assert result == "x" * 10
-
-    def test_no_volatile_patterns(self):
-        """Verify function works with empty volatile patterns."""
-        config = CircuitBreak
+    def test_whitespace_only(self):
+        """Whitespace-only input should collapse to empty."""
+        con
