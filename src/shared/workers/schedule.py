@@ -28,8 +28,8 @@ logger = getLogger(__name__)
 _CFG = load_operational_config().workers.worker_shop
 
 
-# ID: e1c8a4a2-3f7d-4b6e-9c8f-1a2b3c4d5e6f
 @dataclass(frozen=True)
+# ID: f406d128-ea33-49d4-8095-9639089c6201
 class WorkerScheduleState:
     """Per-worker liveness inputs derived from .intent/workers/*.yaml.
 
