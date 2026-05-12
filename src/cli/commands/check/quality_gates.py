@@ -16,6 +16,7 @@ Constitutional Alignment:
 
 from __future__ import annotations
 
+from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.logger import getLogger
 
 
@@ -30,6 +31,8 @@ from cli.utils import core_command
 
 
 console = Console()
+
+_CFG = load_operational_config().coverage
 
 
 @core_command(dangerous=False, requires_context=True)
@@ -66,7 +69,7 @@ def quality_gates_cmd(
     results.append(mypy_result)
     logger.info("[cyan]3/6 Running pytest coverage...[/cyan]")
     coverage_result = _run_check(
-        "pytest --cov=src --cov-report=term-missing --cov-fail-under=75 -q",
+        f"pytest --cov=src --cov-report=term-missing --cov-fail-under={_CFG.quality_min_pct} -q",
         "Test Coverage",
         repo_path,
     )

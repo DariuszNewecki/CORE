@@ -7,10 +7,13 @@ from pathlib import Path
 from typing import Any
 
 from body.self_healing.coverage_analyzer import CoverageAnalyzer
+from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.logger import getLogger
 
 
 logger = getLogger(__name__)
+
+_CFG = load_operational_config().coverage
 
 
 # ID: 3c4d5e6f-7a8b-9c0d-1e2f-3a4b5c6d7e8f
@@ -26,7 +29,7 @@ class GapsAnalyzer:
         return self.analyzer.get_module_coverage()
 
     # ID: 9ac607c3-502e-4cd1-9349-26fe7044d996
-    def find_gaps(self, threshold: float = 75.0) -> dict[str, Any]:
+    def find_gaps(self, threshold: float = _CFG.gap_threshold_pct) -> dict[str, Any]:
         """
         Find modules below coverage threshold.
 
@@ -59,7 +62,7 @@ class GapsAnalyzer:
         # Calculate stats
         total_modules = len(coverage_map)
         below_threshold_count = len(below_threshold)
-        below_50 = sum(1 for cov in coverage_map.values() if cov < 50)
+        below_50 = sum(1 for cov in coverage_map.values() if cov < _CFG.low_bucket_pct)
 
         return {
             "below_threshold": below_threshold,

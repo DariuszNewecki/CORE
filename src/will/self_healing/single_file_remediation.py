@@ -17,12 +17,15 @@ from typing import Any
 from body.quality.coverage_analyzer import CoverageAnalyzer
 from body.services.file_service import FileService
 from mind.governance.audit_context import AuditorContext
+from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.logger import getLogger
 from will.orchestration.cognitive_service import CognitiveService
 from will.self_healing.test_generator import EnhancedTestGenerator
 
 
 logger = getLogger(__name__)
+
+_CFG = load_operational_config().coverage
 
 
 # ID: 840acb0f-7ec4-4f61-bc69-62c9b2fda26d
@@ -100,7 +103,7 @@ class EnhancedSingleFileRemediationService:
                 module_path=str(relative_path),
                 test_file=str(test_file),
                 goal=goal,
-                target_coverage=75.0,
+                target_coverage=_CFG.single_file_target_pct,
                 file_handler=self.file_handler,
                 repo_root=self.repo_root,
             )

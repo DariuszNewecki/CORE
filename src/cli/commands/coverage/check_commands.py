@@ -14,11 +14,14 @@ from rich.table import Table
 
 from cli.utils import core_command
 from shared.context import CoreContext
+from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.logger import getLogger
 
 
 logger = getLogger(__name__)
 console = Console()
+
+_CFG = load_operational_config().coverage
 
 
 # ID: 72963da2-9a25-487b-92ee-0d67a6d1376d
@@ -157,7 +160,7 @@ async def show_coverage_gaps(ctx: typer.Context) -> None:
     try:
         core_context: CoreContext = ctx.obj
         analyzer = GapsAnalyzer(repo_root=core_context.git_service.repo_path)
-        gaps = analyzer.find_gaps(threshold=75.0)
+        gaps = analyzer.find_gaps(threshold=_CFG.gap_threshold_pct)
         if not gaps["sorted_lowest"]:
             logger.info(
                 "[yellow]No coverage data. Run 'poetry run pytest --cov=src' first.[/yellow]"
@@ -167,7 +170,13 @@ async def show_coverage_gaps(ctx: typer.Context) -> None:
         table.add_column("Module", style="cyan")
         table.add_column("Coverage", justify="right")
         for module, coverage in gaps["sorted_lowest"]:
-            color = "red" if coverage < 50 else "yellow" if coverage < 75 else "green"
+            color = (
+                "red"
+                if coverage < _CFG.low_bucket_pct
+                else "yellow"
+                if coverage < _CFG.warn_pct
+                else "green"
+            )
             table.add_row(module, f"[{color}]{coverage:.1f}%[/{color}]")
         logger.info(table)
         stats = gaps["stats"]

@@ -20,12 +20,15 @@ from typing import Any
 
 from mind.logic.engines.workflow_gate.checks.coverage import CoverageMinimumCheck
 from shared.infrastructure.config_service import ConfigService
+from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.logger import getLogger
 from shared.path_resolver import PathResolver
 from will.self_healing.coverage_remediation_service import remediate_coverage
 
 
 logger = getLogger(__name__)
+
+_CFG = load_operational_config().coverage
 
 
 @dataclass(frozen=True)
@@ -163,7 +166,7 @@ class CoverageWatcher:
         last = self.state.get_last_remediation()
         if not last:
             return False
-        return datetime.now() - last < timedelta(hours=24)
+        return datetime.now() - last < timedelta(hours=_CFG.watcher_rescan_hours)
 
     def _parse_violation(self, message: str) -> CoverageViolation:
         """Parses the error message from CoverageMinimumCheck into a data object."""
@@ -176,7 +179,7 @@ class CoverageWatcher:
         return CoverageViolation(
             timestamp=datetime.now(),
             current_coverage=current,
-            required_coverage=75.0,  # Default per policy
+            required_coverage=_CFG.watcher_required_pct,
             message=message,
         )
 

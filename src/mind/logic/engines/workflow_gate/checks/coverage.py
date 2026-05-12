@@ -12,11 +12,14 @@ from pathlib import Path
 from typing import Any
 
 from mind.logic.engines.workflow_gate.base_check import WorkflowCheck
+from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.logger import getLogger
 from shared.path_resolver import PathResolver
 
 
 logger = getLogger(__name__)
+
+_CFG = load_operational_config().coverage
 
 
 # ID: adc559ef-a70e-405a-a93f-52c63ba07e2b
@@ -68,4 +71,4 @@ class CoverageMinimumCheck(WorkflowCheck):
                 )
         except Exception:
             pass
-        return 75.0
+        return _CFG.gap_threshold_pct

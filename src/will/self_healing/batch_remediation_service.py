@@ -15,6 +15,7 @@ from typing import Any
 from body.quality.coverage_analyzer import CoverageAnalyzer
 from mind.governance.audit_context import AuditorContext
 from shared.infrastructure.config_service import ConfigService
+from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.logger import getLogger
 from will.orchestration.cognitive_service import CognitiveService
 from will.self_healing.single_file_remediation import (
@@ -23,6 +24,8 @@ from will.self_healing.single_file_remediation import (
 
 
 logger = getLogger(__name__)
+
+_CFG = load_operational_config().coverage
 
 
 # ID: 6d9e1303-f11b-41c0-8897-d5016854a74d
@@ -75,8 +78,9 @@ class BatchRemediationService:
             return {"status": "no_candidates", "processed": 0, "results": []}
 
         logger.info(
-            "Found %d files below 75%% coverage. Filtering by complexity: %s",
+            "Found %d files below %.1f%% coverage. Filtering by complexity: %s",
             len(candidates),
+            _CFG.batch_remediation_threshold_pct,
             self.max_complexity,
         )
 
@@ -120,7 +124,8 @@ class BatchRemediationService:
         candidates = [
             (self.repo_root / path, percent)
             for path, percent in coverage_data.items()
-            if path.startswith("src/") and percent < 75.0
+            if path.startswith("src/")
+            and percent < _CFG.batch_remediation_threshold_pct
         ]
         candidates.sort(key=lambda x: x[1])
         return candidates

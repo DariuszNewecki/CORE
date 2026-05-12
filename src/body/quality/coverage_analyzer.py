@@ -16,10 +16,13 @@ from pathlib import Path
 from typing import Any
 
 # REFACTORED: Removed direct settings import
+from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.logger import getLogger
 
 
 logger = getLogger(__name__)
+
+_CFG = load_operational_config().coverage
 
 
 # ID: 2b075104-ab91-4ea3-931b-a9be87d56799
@@ -44,7 +47,7 @@ class CoverageAnalyzer:
                 ["poetry", "run", "pytest", "--cov=src", "--cov-report=json", "-q"],
                 cwd=self.repo_path,
                 capture_output=True,
-                timeout=120,
+                timeout=_CFG.collect_timeout_sec,
             )
             coverage_json = self.repo_path / "coverage.json"
             if coverage_json.exists():
@@ -127,7 +130,7 @@ class CoverageAnalyzer:
                 cwd=self.repo_path,
                 capture_output=True,
                 text=True,
-                timeout=300,
+                timeout=_CFG.full_run_timeout_sec,
             )
             coverage_json = self.repo_path / "coverage.json"
             if coverage_json.exists():
