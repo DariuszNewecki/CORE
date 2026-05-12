@@ -12,6 +12,7 @@ Used by: `core-admin inspect refusals` command
 
 from __future__ import annotations
 
+from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.logger import getLogger
 
 
@@ -25,10 +26,12 @@ from body.infrastructure.repositories.refusal_repository import RefusalRepositor
 
 console = Console()
 
+_CFG = load_operational_config().misc
+
 
 # ID: 4b4da583-c2ba-43ad-a249-720128871385
 async def show_recent_refusals(
-    limit: int = 20,
+    limit: int = _CFG.refusal_inspect_default_limit,
     refusal_type: str | None = None,
     component: str | None = None,
     details: bool = False,
@@ -162,7 +165,9 @@ async def show_refusal_statistics(days: int = 7) -> None:
 
 
 # ID: 89e49163-1450-4c3f-85b4-8cdf47b53c37
-async def show_refusals_by_type(refusal_type: str, limit: int = 20) -> None:
+async def show_refusals_by_type(
+    refusal_type: str, limit: int = _CFG.refusal_inspect_by_type_limit
+) -> None:
     """
     Show refusals of a specific type.
 

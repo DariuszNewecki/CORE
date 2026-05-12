@@ -10,11 +10,14 @@ from rich.table import Table
 from body.services.service_registry import service_registry
 from cli.logic.autonomy.views import RISK_COLORS, STATUS_COLORS, render_list_table
 from cli.utils import core_command
+from shared.infrastructure.intent.operational_config import load_operational_config
 from will.autonomy.proposal import ProposalStatus
 from will.autonomy.proposal_repository import ProposalRepository
 
 
 console = Console()
+
+_CFG = load_operational_config().misc
 
 
 @core_command(dangerous=False, requires_context=False)
@@ -23,7 +26,9 @@ async def list_proposals(
     status: str = typer.Option(
         None, "--status", "-s", help="Filter by status (pending, approved, etc.)"
     ),
-    limit: int = typer.Option(20, "--limit", "-n", help="Max results."),
+    limit: int = typer.Option(
+        _CFG.proposals_display_limit, "--limit", "-n", help="Max results."
+    ),
     full_ids: bool = typer.Option(
         False,
         "--full-ids",

@@ -15,7 +15,11 @@ from __future__ import annotations
 import typer
 
 from cli.utils import core_command
+from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.models.command_meta import CommandBehavior, CommandLayer, command_meta
+
+
+_CFG = load_operational_config().misc
 
 
 @command_meta(
@@ -28,7 +32,12 @@ from shared.models.command_meta import CommandBehavior, CommandLayer, command_me
 # ID: e15b2f7c-2784-4056-b3f8-5dc79aba9537
 async def refusals_list_cmd(
     ctx: typer.Context,
-    limit: int = typer.Option(20, "--limit", "-n", help="Maximum records to show"),
+    limit: int = typer.Option(
+        _CFG.refusal_inspect_default_limit,
+        "--limit",
+        "-n",
+        help="Maximum records to show",
+    ),
     refusal_type: str | None = typer.Option(
         None,
         "--type",
@@ -103,7 +112,12 @@ async def refusals_by_type_cmd(
         ...,
         help="Refusal type (boundary, confidence, extraction, quality, assumption, capability)",
     ),
-    limit: int = typer.Option(20, "--limit", "-n", help="Maximum records to show"),
+    limit: int = typer.Option(
+        _CFG.refusal_inspect_by_type_limit,
+        "--limit",
+        "-n",
+        help="Maximum records to show",
+    ),
 ):
     """
     Show refusals of a specific type.

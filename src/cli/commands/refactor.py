@@ -26,6 +26,10 @@ from cli.commands.refactor_support.display import console as refactor_console
 from cli.commands.refactor_support.recommendations import RecommendationEngine
 from cli.utils import core_command
 from shared.context import CoreContext
+from shared.infrastructure.intent.operational_config import load_operational_config
+
+
+_CFG = load_operational_config().misc
 
 
 refactor_app = typer.Typer(
@@ -78,7 +82,9 @@ async def suggest_candidates(
     min_score: float = typer.Option(
         None, "--min-score", help="Filter by score (defaults to Constitution limit)"
     ),
-    limit: int = typer.Option(10, "--limit", help="Number of files to show"),
+    limit: int = typer.Option(
+        _CFG.legacy_scan_display_limit, "--limit", help="Number of files to show"
+    ),
 ) -> None:
     """Rank and suggest files that need refactoring based on current score."""
     core_context: CoreContext = ctx.obj

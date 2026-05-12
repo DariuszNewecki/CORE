@@ -17,10 +17,13 @@ from typing import Any
 
 from sqlalchemy import text
 
+from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.logger import getLogger
 
 
 logger = getLogger(__name__)
+
+_CFG = load_operational_config().misc
 
 
 # ID: 56a20121-fe6c-4747-bd59-4021fd455df6
@@ -36,7 +39,9 @@ class LimbStatusService:
         self.session_factory = session_factory
 
     # ID: 30c15118-63c5-4356-9586-e254a8cb8ff1
-    async def get_recent_limb_health(self, limit: int = 15) -> dict[str, Any]:
+    async def get_recent_limb_health(
+        self, limit: int = _CFG.limb_status_recent_limit
+    ) -> dict[str, Any]:
         """
         Queries the action_results table and groups failing patterns.
         """

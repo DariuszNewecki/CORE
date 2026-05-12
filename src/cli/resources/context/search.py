@@ -20,6 +20,7 @@ from sqlalchemy import text
 
 from body.services.service_registry import service_registry
 from shared.infrastructure.database.session_manager import get_session
+from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.logger import getLogger
 
 from .hub import app
@@ -27,6 +28,8 @@ from .hub import app
 
 logger = getLogger(__name__)
 console = Console()
+
+_CFG = load_operational_config().misc
 
 
 async def _search_async(pattern: str, path: str | None, limit: int) -> None:
@@ -78,7 +81,11 @@ def search(
         ..., help="Code pattern to search (e.g., 'isinstance')"
     ),
     path: str = typer.Option(None, "--path", help="Limit search to specific path"),
-    limit: int = typer.Option(20, "--limit", help="Maximum results to return"),
+    limit: int = typer.Option(
+        _CFG.context_search_display_limit,
+        "--limit",
+        help="Maximum results to return",
+    ),
 ) -> None:
     """
     Search for code patterns directly in the knowledge graph.

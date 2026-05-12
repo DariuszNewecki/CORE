@@ -20,6 +20,11 @@ import re
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from shared.infrastructure.intent.operational_config import load_operational_config
+
+
+_CFG = load_operational_config().misc
+
 
 # ---------------------------------------------------------------------------
 # Marker definitions — the map of what we're hunting
@@ -295,7 +300,7 @@ def _resolve_marker(text: str) -> str | None:
 
 # ID: c5d6e7f8-a9b0-1234-cdef-123456789012
 def get_top_debt_files(
-    result: LegacyScanResult, limit: int = 10
+    result: LegacyScanResult, limit: int = _CFG.legacy_scan_display_limit
 ) -> list[FileLegacySummary]:
     """Return the files with the highest debt load."""
     return result.files_sorted_by_debt[:limit]
