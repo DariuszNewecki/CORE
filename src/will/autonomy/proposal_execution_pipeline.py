@@ -172,6 +172,7 @@ async def compute_changed_files(
         return []
 
 
+# ID: 550df549-9b2c-4adc-bf05-f33bce4defd0
 def rollback_proposal(
     git_service,
     proposal_id: str,
@@ -204,6 +205,7 @@ def rollback_proposal(
         )
 
 
+# ID: a096add6-5be4-4917-b872-061674977646
 def commit_proposal_changes(
     git_service,
     proposal_id: str,
