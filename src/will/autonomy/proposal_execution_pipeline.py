@@ -19,10 +19,49 @@ from __future__ import annotations
 import asyncio
 from typing import Any
 
+from body.services.service_registry import service_registry
 from shared.logger import getLogger
 
 
 logger = getLogger(__name__)
+
+
+async def record_consequence(
+    proposal_id: str,
+    pre_sha: str | None,
+    post_sha: str | None,
+    changed_files: list[str],
+    finding_ids: list[str],
+    policies: list[str],
+) -> None:
+    """Record the consequence log entry for a successfully executed proposal.
+
+    Fail-soft: any exception during the consequence-service call is
+    logged and swallowed. Consequence recording is observational —
+    failure here must not unwind the proposal completion that has
+    already been committed to the proposal-row state.
+
+    *finding_ids* comes from
+    ``proposal.constitutional_constraints['finding_ids']`` (the open
+    findings this proposal was meant to resolve); *policies* comes from
+    ``proposal.scope.policies`` (the rules that authorized the changes).
+    """
+    try:
+        consequence_svc = await service_registry.get_consequence_log_service()
+        await consequence_svc.record(
+            proposal_id=proposal_id,
+            pre_execution_sha=pre_sha,
+            post_execution_sha=post_sha,
+            files_changed=[{"path": p} for p in changed_files],
+            findings_resolved=finding_ids,
+            authorized_by_rules=policies,
+        )
+    except Exception as cons_err:
+        logger.warning(
+            "Failed to record consequence for %s: %s",
+            proposal_id,
+            cons_err,
+        )
 
 
 async def compute_changed_files(

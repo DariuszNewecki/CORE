@@ -34,6 +34,7 @@ from will.autonomy.proposal import ProposalStatus
 from will.autonomy.proposal_execution_pipeline import (
     _files_produced_by,
     compute_changed_files,
+    record_consequence,
 )
 from will.autonomy.proposal_repository import ProposalRepository
 from will.autonomy.proposal_state_manager import ProposalStateManager
@@ -375,26 +376,16 @@ class ProposalExecutor:
                         proposal_id=proposal.proposal_id,
                     )
 
-                    try:
-                        consequence_svc = (
-                            await service_registry.get_consequence_log_service()
-                        )
-                        await consequence_svc.record(
-                            proposal_id=proposal.proposal_id,
-                            pre_execution_sha=pre_execution_sha,
-                            post_execution_sha=post_execution_sha,
-                            files_changed=[{"path": p} for p in changed_files],
-                            findings_resolved=proposal.constitutional_constraints.get(
-                                "finding_ids", []
-                            ),
-                            authorized_by_rules=proposal.scope.policies,
-                        )
-                    except Exception as cons_err:
-                        logger.warning(
-                            "Failed to record consequence for %s: %s",
-                            proposal.proposal_id,
-                            cons_err,
-                        )
+                    await record_consequence(
+                        proposal_id=proposal.proposal_id,
+                        pre_sha=pre_execution_sha,
+                        post_sha=post_execution_sha,
+                        changed_files=changed_files,
+                        finding_ids=proposal.constitutional_constraints.get(
+                            "finding_ids", []
+                        ),
+                        policies=proposal.scope.policies,
+                    )
 
                     # Success-side mirror of §7a revival: flip findings
                     # deferred to this proposal to 'resolved'. Failure of
@@ -668,26 +659,16 @@ class ProposalExecutor:
                                 proposal_id=proposal.proposal_id,
                             )
 
-                            try:
-                                consequence_svc = (
-                                    await service_registry.get_consequence_log_service()
-                                )
-                                await consequence_svc.record(
-                                    proposal_id=proposal.proposal_id,
-                                    pre_execution_sha=pre_execution_sha,
-                                    post_execution_sha=post_execution_sha,
-                                    files_changed=[{"path": p} for p in changed_files],
-                                    findings_resolved=proposal.constitutional_constraints.get(
-                                        "finding_ids", []
-                                    ),
-                                    authorized_by_rules=proposal.scope.policies,
-                                )
-                            except Exception as cons_err:
-                                logger.warning(
-                                    "Failed to record consequence for batch proposal %s: %s",
-                                    proposal.proposal_id,
-                                    cons_err,
-                                )
+                            await record_consequence(
+                                proposal_id=proposal.proposal_id,
+                                pre_sha=pre_execution_sha,
+                                post_sha=post_execution_sha,
+                                changed_files=changed_files,
+                                finding_ids=proposal.constitutional_constraints.get(
+                                    "finding_ids", []
+                                ),
+                                policies=proposal.scope.policies,
+                            )
 
                         else:
                             failed_actions = [
