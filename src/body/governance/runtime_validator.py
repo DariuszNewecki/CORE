@@ -21,11 +21,14 @@ import tempfile
 from pathlib import Path
 
 from body.services.file_service import FileService
+from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.logger import getLogger
 from shared.path_resolver import PathResolver
 
 
 logger = getLogger(__name__)
+
+_CFG = load_operational_config().testing
 
 
 # ID: 282dad34-9366-49a0-91dd-c889a7d6f8da
@@ -39,7 +42,11 @@ class RuntimeValidatorService:
     - Enforces Environment Isolation (The Airlock).
     """
 
-    def __init__(self, path_resolver: PathResolver, test_timeout: int = 60):
+    def __init__(
+        self,
+        path_resolver: PathResolver,
+        test_timeout: int = _CFG.runtime_validator_timeout_sec,
+    ):
         self._paths = path_resolver
         self.repo_root = self._paths.repo_root
         self.test_timeout = test_timeout

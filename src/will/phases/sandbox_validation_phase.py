@@ -9,9 +9,13 @@ from __future__ import annotations
 import time
 from typing import TYPE_CHECKING
 
+from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.logger import getLogger
 from shared.models.workflow_models import PhaseResult
 from will.test_generation.sandbox import PytestSandboxRunner
+
+
+_CFG = load_operational_config().testing
 
 
 if TYPE_CHECKING:
@@ -81,7 +85,9 @@ class SandboxValidationPhase:
 
             # Run in sandbox
             sandbox_result = await self.sandbox.run(
-                code=test_code, symbol_name=symbol_name, timeout_seconds=30
+                code=test_code,
+                symbol_name=symbol_name,
+                timeout_seconds=_CFG.sandbox_timeout_sec,
             )
 
             if sandbox_result.passed:

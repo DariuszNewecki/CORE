@@ -24,6 +24,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from body.services.file_service import FileService
+from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.logger import getLogger
 
 
@@ -32,6 +33,8 @@ if TYPE_CHECKING:
     from shared.infrastructure.context.limb_workspace import LimbWorkspace
 
 logger = getLogger(__name__)
+
+_CFG = load_operational_config().testing
 
 
 @dataclass(frozen=True)
@@ -70,7 +73,7 @@ class PytestSandboxRunner:
         self,
         code: str,
         symbol_name: str,
-        timeout_seconds: int = 30,
+        timeout_seconds: int = _CFG.sandbox_timeout_sec,
         workspace: LimbWorkspace | None = None,  # <--- NEW: Accept the Shadow Truth
     ) -> SandboxResult:
         """

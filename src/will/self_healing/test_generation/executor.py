@@ -9,10 +9,13 @@ import asyncio
 from pathlib import Path
 
 from body.services.file_service import FileService
+from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.logger import getLogger
 
 
 logger = getLogger(__name__)
+
+_CFG = load_operational_config().testing
 
 
 # ID: 4c3f5ca8-a00d-47c8-adc8-a82c10c77afb
@@ -47,7 +50,9 @@ class TestExecutor:
                 stderr=asyncio.subprocess.PIPE,
                 cwd=repo_root,
             )
-            stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=60)
+            stdout, stderr = await asyncio.wait_for(
+                process.communicate(), timeout=_CFG.executor_timeout_sec
+            )
         except Exception as e:
             return {"status": "failed", "error": str(e)}
 

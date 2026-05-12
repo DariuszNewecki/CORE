@@ -6,6 +6,11 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from shared.infrastructure.intent.operational_config import load_operational_config
+
+
+_CFG = load_operational_config().testing
+
 
 # ID: 930e05fb-c828-4995-9bfe-729fde9ff573
 def find_similar_tests(
@@ -35,7 +40,7 @@ def find_similar_tests(
 
 
 # ID: 0f835005-0080-4f59-a4db-4b4e2da92c17
-def extract_snippet(content: str, max_lines: int = 20) -> str:
+def extract_snippet(content: str, max_lines: int = _CFG.snippet_max_lines) -> str:
     lines = content.split("\n")
     for i, line in enumerate(lines):
         if line.strip().startswith("def test_"):

@@ -20,12 +20,15 @@ from typing import Any
 
 from body.services.file_service import FileService
 from shared.ai.prompt_model import PromptModel
+from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.logger import getLogger
 from shared.utils.parsing import extract_python_code_from_response
 from will.orchestration.cognitive_service import CognitiveService
 
 
 logger = getLogger(__name__)
+
+_CFG = load_operational_config().testing
 
 
 # ID: 21623149-488d-43c8-9056-1bf255428dde
@@ -205,11 +208,13 @@ class SimpleTestGenerator:
 
             try:
                 stdout, stderr = await asyncio.wait_for(
-                    proc.communicate(), timeout=20.0
+                    proc.communicate(), timeout=_CFG.simple_gen_timeout_sec
                 )
             except TimeoutError:
                 proc.kill()
-                return False, "Test execution timed out (20s)"
+                return False, (
+                    f"Test execution timed out ({_CFG.simple_gen_timeout_sec:g}s)"
+                )
 
             if proc.returncode == 0:
                 return True, ""

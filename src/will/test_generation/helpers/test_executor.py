@@ -11,6 +11,7 @@ from shared.ai.prompt_model import PromptModel
 from shared.component_primitive import ComponentResult
 from shared.context import CoreContext
 from shared.infrastructure.context.service import ContextService
+from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.logger import getLogger
 from will.test_generation.artifacts import TestGenArtifactStore
 from will.test_generation.helpers.context_extractor import ContextExtractor
@@ -22,6 +23,8 @@ from will.test_generation.validation import GeneratedTestValidator
 
 
 logger = getLogger(__name__)
+
+_CFG = load_operational_config().testing
 
 
 # ID: 695dc6f4-38b5-4124-8b8d-7f4359dfc54c
@@ -174,7 +177,7 @@ class TestExecutor:
 
             # Sandbox is a scoring signal (not a gate)
             sres = await self.sandbox.run(
-                normalized.code, symbol_name, timeout_seconds=30
+                normalized.code, symbol_name, timeout_seconds=_CFG.sandbox_timeout_sec
             )
             self.artifacts.write_sandbox(
                 self.session_dir, symbol_name, sres.passed, sres.error

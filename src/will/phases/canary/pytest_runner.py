@@ -8,11 +8,14 @@ from __future__ import annotations
 
 import asyncio
 
+from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.logger import getLogger
 from shared.path_resolver import PathResolver
 
 
 logger = getLogger(__name__)
+
+_CFG = load_operational_config().testing
 
 
 # ID: a68a1332-b69e-4e01-b1aa-d113fe4ba28b
@@ -22,8 +25,8 @@ class PytestRunner:
     def __init__(
         self,
         path_resolver: PathResolver,
-        collection_timeout: int = 30,
-        execution_timeout: int = 300,
+        collection_timeout: int = _CFG.pytest_collection_timeout_sec,
+        execution_timeout: int = _CFG.pytest_execution_timeout_sec,
     ):
         self._paths = path_resolver
         self.collection_timeout = collection_timeout

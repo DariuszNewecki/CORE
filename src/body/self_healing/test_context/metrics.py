@@ -9,6 +9,11 @@ import json
 import subprocess
 from pathlib import Path
 
+from shared.infrastructure.intent.operational_config import load_operational_config
+
+
+_CFG = load_operational_config().testing
+
 
 # ID: d5f0e7e2-e4aa-442c-8128-4bc8f6a95984
 def get_coverage_data(repo_root: Path, module_path: str) -> dict:
@@ -18,7 +23,7 @@ def get_coverage_data(repo_root: Path, module_path: str) -> dict:
             cwd=repo_root,
             capture_output=True,
             text=True,
-            timeout=30,
+            timeout=_CFG.metrics_timeout_sec,
         )
         cov_file = repo_root / "coverage.json"
         if cov_file.exists():

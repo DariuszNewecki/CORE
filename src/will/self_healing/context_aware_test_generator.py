@@ -19,12 +19,15 @@ from typing import Any
 from body.services.file_service import FileService
 from body.services.service_registry import service_registry
 from shared.ai.prompt_model import PromptModel
+from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.logger import getLogger
 from shared.utils.parsing import extract_python_code_from_response
 from will.orchestration.cognitive_service import CognitiveService
 
 
 logger = getLogger(__name__)
+
+_CFG = load_operational_config().testing
 
 
 # ID: 87134386-7269-4628-a6fb-952bf6f2790e
@@ -228,11 +231,11 @@ class ContextAwareTestGenerator:
 
             try:
                 stdout, stderr = await asyncio.wait_for(
-                    proc.communicate(), timeout=15.0
+                    proc.communicate(), timeout=_CFG.context_aware_gen_timeout_sec
                 )
             except TimeoutError:
                 proc.kill()
-                msg = "Test timed out after 15 seconds"
+                msg = f"Test timed out after {_CFG.context_aware_gen_timeout_sec:g} seconds"
                 await asyncio.to_thread(
                     self._save_failed_test, symbol_name, content, msg
                 )
