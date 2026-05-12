@@ -10,11 +10,14 @@ from __future__ import annotations
 
 from pydantic import BaseModel, Field, field_validator
 
+from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.infrastructure.intent.task_type_phases import allowed_task_types
 
 
 # ADR-004: Vocabulary governed by .intent/enforcement/config/task_type_phases.yaml.
 _ALLOWED_TASK_TYPES: frozenset[str] = allowed_task_types()
+
+_CFG_EXEC = load_operational_config().execution
 
 
 # ID: 1a71c89f-73f0-436b-ad58-f24cfbdec162
@@ -52,7 +55,9 @@ class ExecutionTask(BaseModel):
 class PlannerConfig(BaseModel):
     """Configuration for the Planner and Execution agents."""
 
-    task_timeout: int = Field(default=300, description="Timeout for a single task.")
+    task_timeout: int = Field(
+        default=_CFG_EXEC.task_timeout_sec, description="Timeout for a single task."
+    )
     rollback_on_failure: bool = Field(default=True, description="Rollback on failure.")
     auto_commit: bool = Field(default=True, description="Auto-commit changes.")
 

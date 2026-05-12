@@ -22,10 +22,13 @@ from sqlalchemy import desc, select
 
 from body.services.service_registry import service_registry
 from shared.infrastructure.database.models.refusals import RefusalRecord
+from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.logger import getLogger
 
 
 logger = getLogger(__name__)
+
+_CFG_REPO = load_operational_config().repositories
 
 
 # ID: 1930d0d3-30a5-4902-b6c2-a5125c287ea5
@@ -117,7 +120,7 @@ class RefusalRepository:
     # ID: 22c5bf48-3b45-4817-9dbb-96bcdb3f345d
     async def get_recent(
         self,
-        limit: int = 20,
+        limit: int = _CFG_REPO.refusal_default_limit,
         refusal_type: str | None = None,
         component_id: str | None = None,
     ) -> list[RefusalRecord]:
@@ -186,7 +189,7 @@ class RefusalRepository:
 
     # ID: ae6795f1-32b2-4128-9770-bb71881984d2
     async def get_by_type(
-        self, refusal_type: str, limit: int = 50
+        self, refusal_type: str, limit: int = _CFG_REPO.refusal_by_type_limit
     ) -> list[RefusalRecord]:
         """
         Get refusals by type for analysis.

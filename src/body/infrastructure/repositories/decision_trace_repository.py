@@ -20,10 +20,13 @@ from sqlalchemy import desc, select
 
 from body.services.service_registry import service_registry
 from shared.infrastructure.database.models.decision_traces import DecisionTrace
+from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.logger import getLogger
 
 
 logger = getLogger(__name__)
+
+_CFG_REPO = load_operational_config().repositories
 
 
 # ID: 8d9e0f1a-2b3c-4d5e-6f7a-8b9c0d1e2f3a
@@ -112,7 +115,7 @@ class DecisionTraceRepository:
     # ID: 65b96a8a-de11-428c-9781-3f2455ee0636
     async def get_recent(
         self,
-        limit: int = 10,
+        limit: int = _CFG_REPO.decision_trace_default_limit,
         agent_name: str | None = None,
         failures_only: bool = False,
     ) -> list[DecisionTrace]:
@@ -155,7 +158,7 @@ class DecisionTraceRepository:
     async def get_pattern_stats(
         self,
         pattern_name: str,
-        limit: int = 100,
+        limit: int = _CFG_REPO.decision_trace_max_limit,
     ) -> list[DecisionTrace]:
         stmt = (
             select(DecisionTrace)
@@ -186,7 +189,9 @@ class DecisionTraceRepository:
         return {row.agent_name: row.count for row in result}
 
     # ID: 6e5f9fd8-5b7f-4632-8956-e5303c253088
-    async def delete_old_traces(self, days: int = 30) -> int:
+    async def delete_old_traces(
+        self, days: int = _CFG_REPO.decision_trace_retention_days
+    ) -> int:
         from datetime import timedelta
 
         from sqlalchemy import delete

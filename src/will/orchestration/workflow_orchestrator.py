@@ -16,6 +16,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from shared.infrastructure.intent.intent_repository import get_intent_repository
+from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.logger import getLogger
 from shared.models.workflow_models import PhaseResult, PhaseWorkflowResult
 from shared.path_resolver import PathResolver
@@ -24,6 +25,8 @@ from will.orchestration.phase_registry import PhaseRegistry
 
 
 logger = getLogger(__name__)
+
+_CFG_EXEC = load_operational_config().execution
 
 
 @dataclass
@@ -37,7 +40,7 @@ class WorkflowDefinition:
     success_criteria: dict[str, Any]
     write_required: bool = True
     dangerous: bool = False
-    timeout_minutes: int = 30
+    timeout_minutes: int = _CFG_EXEC.workflow_timeout_minutes
 
 
 @dataclass
@@ -126,7 +129,9 @@ class WorkflowOrchestrator:
             success_criteria=success_criteria,
             write_required=data.get("write_required", True),
             dangerous=data.get("dangerous", False),
-            timeout_minutes=data.get("timeout_minutes", 30),
+            timeout_minutes=data.get(
+                "timeout_minutes", _CFG_EXEC.workflow_timeout_minutes
+            ),
         )
 
     # ID: 754633b1-65fe-4cbb-b83b-c97a06cfac23

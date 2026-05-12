@@ -12,11 +12,14 @@ from sqlalchemy import text
 
 from shared.action_types import ActionImpact, ActionResult
 from shared.atomic_action import atomic_action
+from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.infrastructure.repositories.memory_repository import MemoryRepository
 from shared.logger import getLogger
 
 
 logger = getLogger(__name__)
+
+_CFG_MEM = load_operational_config().memory
 
 
 # ID: f81e034c-23d7-44d5-b7df-58c5a14e06e0
@@ -38,8 +41,8 @@ class MemoryCleanupService:
     # ID: e9fa0b0e-2054-41ab-bd37-277efa5992c6
     async def cleanup_old_memories(
         self,
-        days_to_keep_episodes: int = 30,
-        days_to_keep_reflections: int = 90,
+        days_to_keep_episodes: int = _CFG_MEM.episode_retention_days,
+        days_to_keep_reflections: int = _CFG_MEM.reflection_retention_days,
         dry_run: bool = True,
     ) -> ActionResult:
         """

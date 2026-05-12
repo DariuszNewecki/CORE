@@ -36,10 +36,13 @@ from __future__ import annotations
 from typing import Any
 
 from shared.component_primitive import Component, ComponentResult
+from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.logger import getLogger
 
 
 logger = getLogger(__name__)
+
+_CFG_EXEC = load_operational_config().execution
 
 
 # ID: df9c497f-3746-40e3-b42e-620bf1c07842
@@ -115,7 +118,7 @@ class ProcessOrchestrator:
         self,
         initial_component: Component,
         initial_inputs: dict[str, Any],
-        max_steps: int = 10,
+        max_steps: int = _CFG_EXEC.orchestrator_max_steps,
         confidence_threshold: float = 0.3,
     ) -> ComponentResult:
         """

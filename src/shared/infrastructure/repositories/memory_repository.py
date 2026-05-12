@@ -13,10 +13,13 @@ from datetime import datetime, timedelta
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.logger import getLogger
 
 
 logger = getLogger(__name__)
+
+_CFG_MEM = load_operational_config().memory
 
 
 # ID: 9cf9287b-cc80-4121-a307-bffa7e6b925c
@@ -85,7 +88,7 @@ class MemoryRepository:
         )
 
         # Keep recent reflections even if low confidence (30 days)
-        recent_cutoff = datetime.utcnow() - timedelta(days=30)
+        recent_cutoff = datetime.utcnow() - timedelta(days=_CFG_MEM.recency_days)
 
         result = await self.session.execute(
             reflections_sql,
@@ -119,7 +122,7 @@ class MemoryRepository:
                OR (confidence_score < :min_conf AND created_at < :recent_cutoff)
         """
         )
-        recent_cutoff = datetime.utcnow() - timedelta(days=30)
+        recent_cutoff = datetime.utcnow() - timedelta(days=_CFG_MEM.recency_days)
         result = await self.session.execute(
             sql,
             {

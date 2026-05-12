@@ -11,10 +11,13 @@ from typing import Any
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.logger import getLogger
 
 
 logger = getLogger(__name__)
+
+_CFG_REPO = load_operational_config().repositories
 
 
 # ID: 016d84c9-26b9-466d-b071-84c160f64629
@@ -107,7 +110,9 @@ class SymbolDefinitionRepository:
 
     # ID: aeaaded3-ca5d-4bb4-af7e-414b32e21d45
     async def get_undefined_symbols(
-        self, limit: int = 500, tier_filter: str | None = None
+        self,
+        limit: int = _CFG_REPO.symbol_definition_default_limit,
+        tier_filter: str | None = None,
     ) -> list[dict[str, Any]]:
         """
         Get symbols that need capability definition.
