@@ -1,80 +1,32 @@
 # src/will/workers/violation_remediator.py
 """
-ViolationRemediatorWorker - Closes the autonomous audit loop.
+ViolationRemediatorWorker — closes the autonomous audit loop by converting
+open audit.violation findings into Proposals and transitioning each
+consumed entry to its appropriate terminal state.
 
 Constitutional role: acting worker, remediation phase.
+Declaration:        .intent/workers/violation_remediator.yaml
 
-Responsibility (from .intent/workers/violation_remediator.yaml):
-  Consume open audit violation findings from the Blackboard, look up the
-  remediating action from .intent/enforcement/mappings/remediation/auto_remediation.yaml
-  (via _load_remediation_map), create one Proposal per (action, file) unit
-  per ADR-035 D1, and defer each consumed Blackboard entry to the created
-  Proposal.
+Loop position:
+  AuditViolationSensor → Blackboard
+                       → ViolationRemediatorWorker (THIS)
+                       → Proposal (one per (action, file) — ADR-035 D1)
+                       → ProposalConsumerWorker → ProposalExecutor
+                       → on failure: ProposalStateManager.mark_failed
+                                     revives the deferred findings (§7a)
 
-The autonomous audit loop this closes:
+Design constraints: no LLM, no file writes, dedup against active proposals
+on the (ref_id, file_path) key (ADR-035 D2). Findings are deferred AFTER
+the proposal is persisted. Safe (approval_required=False) proposals are
+created in APPROVED status so the consumer worker can execute without a
+separate approval step.
 
-  AuditViolationSensor (sensing)
-      posts open findings to Blackboard
-          ↓
-  ViolationRemediatorWorker (acting)  ← THIS WORKER
-      reads open findings from Blackboard
-      looks up action via remediation map from .intent/
-      creates Proposal (one per (action, file) unit — ADR-035 D1)
-      transitions findings to 'deferred_to_proposal' with proposal_id
-          ↓
-  ProposalConsumerWorker
-      executes APPROVED proposals via ProposalExecutor
-          ↓  (on proposal failure)
-      ProposalStateManager.mark_failed revives deferred findings
-          ↓
-  AuditViolationSensor runs again
-      confirms violation gone or finds revived findings still open
-
-Design constraints:
-- No LLM calls
-- No direct file writes
-- Never creates a proposal if an active one exists for the same
-  (action, file) unit — dedup keyed per ADR-035 D2
-- Defers Blackboard entries to proposal AFTER the proposal is persisted (not before)
-- One proposal per (action, file) — scope.files is exactly one file per
-  ADR-035 D1 (closes #284)
-- Safe proposals (approval_required=False) are created in APPROVED status
-  so ProposalConsumerWorker can pick them up immediately
-
-Per-path terminal-state semantics (ADR-010):
-
-- Proposal created successfully     → findings deferred_to_proposal with
-                                       proposal_id in payload. §7/§7a of
-                                       CORE-Finding.md: on proposal failure
-                                       these findings are revived to open
-                                       by ProposalStateManager.mark_failed.
-- Active proposal already exists    → findings resolved with the
-                                       subsuming proposal_id stored in
-                                       payload (subsumed by the in-flight
-                                       proposal; the mandate's "consumed"
-                                       covers routing-to-proposal, not
-                                       only proposal-creation). Status is
-                                       still 'resolved' — not
-                                       'deferred_to_proposal' — because
-                                       the subsuming proposal does not
-                                       track these duplicates in its
-                                       scope, so the §7a revival contract
-                                       does not apply (ADR-010
-                                       Alternatives Considered). The
-                                       payload pointer is the audit
-                                       linkage (URS Q1.F / ADR-015 D4).
-- Proposal creation failed          → findings released back to open so the
-                                       next run can retry cleanly.
-- Finding unmappable                → already released (see _load_open_findings).
-- Finding marked DELEGATE           → marked indeterminate (human decision).
-
-FUTURE(two-log): the dedup-subsume path does NOT carry a payload pointer
-to the subsuming proposal. The primary path (deferred_to_proposal with
-proposal_id) is linked as of ADR-010; the dedup path is not, and
-reconciling it would require a second finding→proposal relationship
-shape the paper does not currently define. When the full consequence-
-logging work lands, revisit dedup linkage.
-CLOSED: the dedup-subsume payload-pointer gap above is closed by ADR-015 D4.
+Terminal-state semantics are documented on each collaborator function:
+- Proposal creation and active-proposal indexing — see
+  violation_remediator_proposal.py (ADR-035, ADR-010, ADR-038).
+- Blackboard transitions (resolve / defer / release / release_unmappable /
+  mark_delegated) — see violation_remediator_blackboard.py
+  (ADR-010, ADR-015 D4).
 """
 
 from __future__ import annotations
@@ -87,16 +39,19 @@ from shared.infrastructure.intent.vocabulary_projection import (
 )
 from shared.logger import getLogger
 from shared.workers.base import Worker
-from will.autonomy.proposal import (
-    Proposal,
-    ProposalAction,
-    ProposalScope,
-    ProposalStatus,
+from will.workers.circuit_breaker import load_circuit_breaker_config, trip
+from will.workers.violation_remediator_blackboard import (
+    defer_to_proposal,
+    load_open_findings,
+    mark_delegated,
+    release_entries,
+    release_unmappable,
+    resolve_entries,
 )
-from will.workers.circuit_breaker import (
-    load_circuit_breaker_config,
-    recent_consecutive_identical_count,
-    trip,
+from will.workers.violation_remediator_proposal import (
+    check_circuit_breaker,
+    create_proposal,
+    get_active_proposal_id_by_action_file,
 )
 
 
@@ -104,31 +59,23 @@ logger = getLogger(__name__)
 
 _FINDING_SUBJECT_PREFIX = "audit.violation::"
 
-_ACTIVE_STATUSES: frozenset[ProposalStatus] = frozenset(
-    {
-        ProposalStatus.DRAFT,
-        ProposalStatus.PENDING,
-        ProposalStatus.APPROVED,
-        ProposalStatus.EXECUTING,
-    }
-)
-
 
 def _entry_id(finding: dict[str, Any]) -> str:
-    """
-    Extract the blackboard-entry id from a finding dict.
-
-    Findings arriving from BlackboardService carry either an 'id' or an
-    'entry_id' key depending on the serialization path; both are accepted.
-    Raises ValueError if neither is present — findings without a resolvable
-    id cannot be acted on by this worker and represent a contract violation
-    from the service layer. Fail loud at extraction rather than passing None
-    down to the SQL layer where the error is less legible.
-    """
+    """Extract blackboard entry id ('id' or 'entry_id'); raise on contract violation."""
     value = finding.get("id") or finding.get("entry_id")
     if value is None:
         raise ValueError(f"Finding has neither 'id' nor 'entry_id': {finding!r}")
     return str(value)
+
+
+def _rules_of(findings: list[dict[str, Any]]) -> list[str]:
+    """Deduplicated rule list from findings — used in completion report."""
+    return list(
+        {
+            f["payload"].get("check_id") or f["payload"].get("rule", "unknown")
+            for f in findings
+        }
+    )
 
 
 # ID: b4c5d6e7-f8a9-0123-bcde-f12345678904
@@ -166,22 +113,7 @@ class ViolationRemediatorWorker(Worker):
 
     # ID: c5d6e7f8-a9b0-1234-cdef-123456789014
     async def run(self) -> None:
-        """
-        Core work unit:
-        1. Load open violation findings from Blackboard
-        2. Group by (action, file_path) per ADR-035 D1
-        3. Deduplicate against active proposals on the same (action, file)
-        4. Create one proposal per (action, file) unit
-        5. Transition consumed Blackboard entries:
-             - happy path:    deferred_to_proposal (with proposal_id)
-             - dedup-subsume: resolved
-             - create-failed: released back to open
-        6. Post blackboard report
-        """
-        # DEGRADED pre-check (ADR-023 D4): if the vocabulary projection is
-        # broken, refuse to claim findings this cycle. Post a single
-        # governance.instrument_degraded finding so the condition is
-        # visible on the Blackboard and an operator can act on it.
+        """One audit-loop cycle: load → group → dedup → propose → transition → report."""
         projection = load_vocabulary_projection()
         if isinstance(projection, VocabularyProjectionError):
             logger.error(
@@ -198,7 +130,6 @@ class ViolationRemediatorWorker(Worker):
             )
             return
 
-        # 1. Load open findings
         open_findings = await self._load_open_findings()
 
         if not open_findings:
@@ -211,11 +142,6 @@ class ViolationRemediatorWorker(Worker):
             len(open_findings),
         )
 
-        # 2. Group by (ref_id, file_path) — one proposal per (action, file)
-        # per ADR-035 D1. Each group's scope.files is exactly one file. In
-        # the typical case each list holds a single finding; multiple
-        # findings sharing the same (ref_id, file_path) in a single cycle
-        # all defer to the same proposal so no claimed finding is stranded.
         remediation_map = self._get_remediation_map()
 
         action_groups: dict[tuple[str, str | None], list[dict[str, Any]]] = {}
@@ -235,10 +161,6 @@ class ViolationRemediatorWorker(Worker):
             elif entry:
                 ref_id = entry["ref_id"]
                 ref_kind = entry["ref_kind"]
-                # ADR-037: flows are codebase-wide operations; per-file
-                # file_path is a category mismatch. All findings sharing a
-                # flow ref bundle into one proposal (key file_path = None).
-                # Atomic actions remain per-file per ADR-035 D1.
                 if ref_kind == "flow":
                     key = (ref_id, None)
                 else:
@@ -253,13 +175,7 @@ class ViolationRemediatorWorker(Worker):
                     rule,
                 )
 
-        # 3. Deduplicate against active proposals — keyed by (ref_id, file_path)
-        # per ADR-035 D2. A proposal active for (fix.modularity, src/a.py)
-        # does not subsume a finding for (fix.modularity, src/b.py).
         active_proposal_ids = await self._get_active_proposal_id_by_action_file()
-
-        # 4. Create proposals + 5. Transition entries per ADR-010 / ADR-015 D4.
-        # ADR-038: load circuit-breaker config once per cycle.
         cb_config = load_circuit_breaker_config()
 
         proposals_created: list[str] = []
@@ -277,16 +193,6 @@ class ViolationRemediatorWorker(Worker):
 
             subsuming_proposal_id = active_proposal_ids.get((ref_id, file_path))
             if subsuming_proposal_id:
-                # Dedup: an active proposal already represents this
-                # (action, file) unit. Findings are subsumed — the
-                # mandate's "consumed" applies (routing-to-proposal, not
-                # only proposal-creation). Status is 'resolved' — not
-                # 'deferred_to_proposal' — because the subsuming proposal
-                # does not track these duplicates in its scope, so the
-                # §7a revival contract does not apply (ADR-010
-                # Alternatives Considered). The subsuming proposal_id is
-                # recorded in payload as the audit linkage
-                # (URS Q1.F / ADR-015 D4).
                 resolved = await self._resolve_entries(entry_ids, subsuming_proposal_id)
                 entries_resolved_dedup += resolved
                 proposals_skipped.append(group_label)
@@ -300,12 +206,6 @@ class ViolationRemediatorWorker(Worker):
                 )
                 continue
 
-            # ADR-038 / closes #281: circuit-breaker check before proposal
-            # creation. If the most recent N failed proposals for this
-            # (ref_id, file_path) carry the same canonical error
-            # signature, refuse to mint another one. Findings are marked
-            # DELEGATE and a governance.circuit_breaker_tripped finding
-            # is posted for governor triage.
             (
                 cb_count,
                 cb_signature,
@@ -338,11 +238,6 @@ class ViolationRemediatorWorker(Worker):
 
             if proposal_id:
                 proposals_created.append(group_label)
-                # ADR-010 / CORE-Finding.md §7: on successful proposal
-                # creation, transition findings to 'deferred_to_proposal'
-                # and store proposal_id in their payload. The §7a revival
-                # contract in ProposalStateManager.mark_failed depends on
-                # this linkage.
                 deferred = await self._defer_to_proposal(entry_ids, proposal_id)
                 entries_deferred += deferred
                 logger.info(
@@ -355,9 +250,6 @@ class ViolationRemediatorWorker(Worker):
                     deferred,
                 )
             else:
-                # Proposal creation failed (validation or persist error).
-                # Release the claimed findings so the next run can retry
-                # instead of leaving them stuck at claimed.
                 released = await self._release_entries(entry_ids)
                 entries_released_after_failure += released
                 logger.warning(
@@ -367,7 +259,6 @@ class ViolationRemediatorWorker(Worker):
                     released,
                 )
 
-        # 5b. Release unmappable findings back to open so they don't stay claimed
         entries_released = await self._release_unmappable(unmappable)
         if entries_released:
             logger.info(
@@ -375,7 +266,6 @@ class ViolationRemediatorWorker(Worker):
                 entries_released,
             )
 
-        # 5c. Mark delegated findings as indeterminate — requires human decision
         entries_delegated = await self._mark_delegated(delegate)
         for finding in delegate:
             rule = finding["payload"].get("check_id") or finding["payload"].get(
@@ -395,14 +285,6 @@ class ViolationRemediatorWorker(Worker):
                 finding.get("id") or finding.get("entry_id"),
             )
 
-        # 6. Post blackboard report.
-        # Report-shape note (ADR-010): the happy-path counter is now
-        # 'entries_deferred'. The legacy 'entries_resolved' key is removed
-        # rather than kept-as-zero, because 'entries_resolved: 0' was a
-        # known diagnostic signal for the silent claim-leak bug and
-        # preserving it as a structural zero would create a false positive
-        # for that diagnostic. Consumers that read the old key will fail
-        # loudly — the correct signal of the contract change.
         await self.post_report(
             subject="violation_remediator.completed",
             payload={
@@ -421,21 +303,9 @@ class ViolationRemediatorWorker(Worker):
                 "created_actions": proposals_created,
                 "skipped_actions": proposals_skipped,
                 "circuit_broken_actions": proposals_circuit_broken,
-                "unmappable_rules": list(
-                    {
-                        f["payload"].get("check_id")
-                        or f["payload"].get("rule", "unknown")
-                        for f in unmappable
-                    }
-                ),
+                "unmappable_rules": _rules_of(unmappable),
                 "delegated": len(delegate),
-                "delegated_rules": list(
-                    {
-                        f["payload"].get("check_id")
-                        or f["payload"].get("rule", "unknown")
-                        for f in delegate
-                    }
-                ),
+                "delegated_rules": _rules_of(delegate),
             },
         )
 
@@ -455,387 +325,56 @@ class ViolationRemediatorWorker(Worker):
         )
 
     # -------------------------------------------------------------------------
-    # Private helpers
+    # Private helpers — collaborator-module shims. Kept as bound methods on
+    # the class so tests can patch/call them (worker._create_proposal etc.);
+    # each shim is a one-line delegation to the corresponding free function.
     # -------------------------------------------------------------------------
+
+    async def _blackboard_service(self) -> Any:
+        from body.services.service_registry import service_registry
+
+        return await service_registry.get_blackboard_service()
 
     # ID: d6e7f8a9-b0c1-2345-defa-234567890125
     async def _load_open_findings(self) -> list[dict[str, Any]]:
-        """
-        Query Blackboard for open audit violation findings.
-
-        Claims findings atomically, then immediately filters out any whose
-        check_id/rule has no entry in the .intent/ remediation map.  Unmappable
-        findings are released back to open status so they are not held
-        claimed indefinitely.
-
-        Returns only mappable findings (list of dicts with: id, subject, payload).
-        """
-        from body.services.service_registry import service_registry
-
-        try:
-            blackboard_service = await service_registry.get_blackboard_service()
-            claimed = await blackboard_service.claim_violation_findings(
-                prefix=f"{_FINDING_SUBJECT_PREFIX}%",
-                limit=200,
-                claimed_by=self._worker_uuid,
-            )
-        except Exception as e:
-            logger.error("ViolationRemediatorWorker: failed to load findings: %s", e)
-            return []
-
-        if not claimed:
-            return []
-
-        # Post-claim filter: keep only findings with a known remediation mapping.
-        remediation_map = self._get_remediation_map()
-        mappable: list[dict[str, Any]] = []
-        unmappable_ids: list[str] = []
-
-        for finding in claimed:
-            rule = finding["payload"].get("check_id") or finding["payload"].get(
-                "rule", ""
-            )
-            if remediation_map.get(rule):
-                mappable.append(finding)
-            else:
-                unmappable_ids.append(_entry_id(finding))
-
-        # Immediately release unmappable findings so they don't stay claimed.
-        if unmappable_ids:
-            try:
-                released = await blackboard_service.release_claimed_entries(
-                    unmappable_ids
-                )
-                logger.info(
-                    "ViolationRemediatorWorker: released %d/%d unmappable "
-                    "findings at claim time",
-                    released,
-                    len(unmappable_ids),
-                )
-            except Exception as e:
-                logger.error(
-                    "ViolationRemediatorWorker: failed to release "
-                    "unmappable findings at claim time: %s",
-                    e,
-                )
-
-        return mappable
+        return await load_open_findings(
+            await self._blackboard_service(),
+            prefix=f"{_FINDING_SUBJECT_PREFIX}%",
+            claimed_by=self._worker_uuid,
+            remediation_map=self._get_remediation_map(),
+        )
 
     # ID: 8a7c5e91-2b4f-4d63-9e07-1a3c5d8b2f04
     async def _get_active_proposal_id_by_action_file(
         self,
     ) -> dict[tuple[str, str | None], str]:
-        """
-        Return a mapping of (ref_id, file_path) → proposal_id for
-        ProposalActions that already have an active proposal — ADR-035 D2.
-
-        Per-finding scoping (ADR-035 D1) makes the dedup unit (ref_id,
-        file_path), not ref_id alone. ref_id is action.action_id for
-        atomic-action proposals or action.flow_id for flow-based proposals.
-        file_path lives on action.parameters. The dedup-subsume path needs
-        the proposal_id (not just the ref_id) to record the linkage in the
-        subsumed finding's payload — URS Q1.F / ADR-015 D4.
-
-        Historical batch proposals (pre-ADR-035) with multiple
-        ProposalActions across different file_paths are handled correctly:
-        each action contributes its own (ref_id, file_path) entry, so a
-        new finding for any one of those files subsumes under the historical
-        batch proposal.
-
-        When multiple active proposals share a (ref_id, file_path), the
-        earliest by Proposal.created_at wins — the original anchor whose
-        existence caused subsequent dedup-subsume decisions.
-
-        Fail-open: on exception returns an empty dict so the worker
-        proceeds without dedup rather than blocking remediation.
-        """
-        from body.services.service_registry import service_registry
-        from will.autonomy.proposal_repository import ProposalRepository
-
-        candidates: list[tuple[tuple[str, str | None], str, Any]] = []
-        try:
-            async with service_registry.session() as session:
-                repo = ProposalRepository(session)
-                for status in _ACTIVE_STATUSES:
-                    proposals = await repo.list_by_status(status, limit=200)
-                    for proposal in proposals:
-                        for action in proposal.actions:
-                            action_file_path = (
-                                action.parameters.get("file_path")
-                                if action.parameters
-                                else None
-                            )
-                            candidates.append(
-                                (
-                                    (action.ref_id, action_file_path),
-                                    proposal.proposal_id,
-                                    proposal.created_at,
-                                )
-                            )
-        except Exception as e:
-            logger.warning(
-                "ViolationRemediatorWorker: could not load active proposals (%s). "
-                "Proceeding without deduplication.",
-                e,
-            )
-            return {}
-
-        # Earliest-wins: ascending sort by created_at then setdefault keeps
-        # the first seen — the original anchor proposal for that key.
-        candidates.sort(key=lambda t: t[2])
-        result: dict[tuple[str, str | None], str] = {}
-        for key, proposal_id, _created_at in candidates:
-            result.setdefault(key, proposal_id)
-        return result
+        return await get_active_proposal_id_by_action_file()
 
     # ID: f8a9b0c1-d2e3-4567-fabc-456789012347
     async def _create_proposal(
-        self,
-        ref_id: str,
-        ref_kind: str,
-        findings: list[dict[str, Any]],
+        self, ref_id: str, ref_kind: str, findings: list[dict[str, Any]]
     ) -> str | None:
-        """Create and persist a Proposal for the given remediation reference.
-
-        ref_kind selects the ProposalAction shape: "action" produces
-        ProposalAction(action_id=ref_id, ...) and "flow" produces
-        ProposalAction(flow_id=ref_id, ...). The two are mutually exclusive
-        per ProposalAction.__post_init__.
-
-        Safe proposals (approval_required=False) are created in APPROVED status
-        so ProposalConsumerWorker can execute them without a separate approval step.
-        Proposals requiring human approval are created in DRAFT.
-        """
-        from body.services.service_registry import service_registry
-        from will.autonomy.proposal_repository import ProposalRepository
-        from will.autonomy.proposal_state_manager import ProposalStateManager
-
-        affected_files: list[str] = sorted(
-            {
-                f["payload"].get("file_path", "")
-                for f in findings
-                if f["payload"].get("file_path")
-            }
-        )
-
-        rules = sorted(
-            {
-                f["payload"].get("check_id") or f["payload"].get("rule", "unknown")
-                for f in findings
-            }
-        )
-
-        # finding_ids mirrors the entry_ids subsequently passed to
-        # _defer_to_proposal in run(), making the proposal→finding read
-        # path symmetric with the finding→proposal write path. Consumed
-        # by ProposalExecutor when emitting consequence-log entries
-        # (proposal_executor.py:265-266). ADR-015 D7: forward-only —
-        # historical proposals predating this field are not backfilled.
-        finding_ids = [_entry_id(f) for f in findings]
-
-        # ADR-032+: omit `file_path` from parameters when the ref is a flow.
-        # Flows are codebase-wide operations; per-file file_path is a category
-        # mismatch. ADR-033's parameter-routing filter already discards it at
-        # runtime, but persisting meaningless data here is confusing and
-        # complicates audit queries. Atomic actions keep file_path because
-        # ADR-035 makes (action_id, file_path) the proposal scope unit.
-        if affected_files:
-            proposal_actions = [
-                ProposalAction(
-                    action_id=ref_id if ref_kind == "action" else None,
-                    flow_id=ref_id if ref_kind == "flow" else None,
-                    parameters=(
-                        {"write": True, "file_path": file_path}
-                        if ref_kind == "action"
-                        else {"write": True}
-                    ),
-                    order=order,
-                )
-                for order, file_path in enumerate(affected_files)
-            ]
-        else:
-            proposal_actions = [
-                ProposalAction(
-                    action_id=ref_id if ref_kind == "action" else None,
-                    flow_id=ref_id if ref_kind == "flow" else None,
-                    parameters=(
-                        {"write": True, "file_path": None}
-                        if ref_kind == "action"
-                        else {"write": True}
-                    ),
-                    order=0,
-                )
-            ]
-
-        proposal = Proposal(
-            goal=(
-                f"Autonomous remediation: {ref_id} "
-                f"({len(findings)} violation(s) — rules: {', '.join(rules)})"
-            ),
-            actions=proposal_actions,
-            scope=ProposalScope(files=affected_files),
-            created_by="violation_remediator_worker",
-            constitutional_constraints={
-                "source": "blackboard_findings",
-                "rules": rules,
-                "affected_files_count": len(affected_files),
-                "finding_ids": finding_ids,
-            },
-        )
-
-        # compute_risk() sets approval_required correctly based on CORE's actual
-        # risk model: "safe" / "moderate" / "dangerous". The previous code compared
-        # against "high"/"critical" which don't exist — approval_required was always
-        # stuck at False regardless of actual risk level.
-        proposal.compute_risk()
-
-        # status remains DRAFT here; the auto-approval path below routes
-        # through ProposalStateManager.approve() so approval_authority is
-        # recorded on the row (URS NFR.5; ADR-015 D6).
-
-        is_valid, errors = proposal.validate()
-        if not is_valid:
-            logger.warning(
-                "ViolationRemediatorWorker: proposal for '%s' failed validation: %s",
-                ref_id,
-                errors,
-            )
-            return None
-
-        try:
-            async with service_registry.session() as session:
-                repo = ProposalRepository(session)
-                proposal_id = await repo.create(proposal)
-
-                if not proposal.approval_required:
-                    state_manager = ProposalStateManager(session)
-                    await state_manager.approve(
-                        proposal_id,
-                        approved_by="autonomous_self_promote",
-                        approval_authority="risk_classification.safe_auto_approval",
-                    )
-                    logger.info(
-                        "ViolationRemediatorWorker: proposal for '%s' auto-approved "
-                        "(risk=%s, approval_required=False)",
-                        ref_id,
-                        proposal.risk.overall_risk if proposal.risk else "unknown",
-                    )
-                else:
-                    logger.info(
-                        "ViolationRemediatorWorker: proposal for '%s' requires human approval "
-                        "(risk=%s) — created in DRAFT",
-                        ref_id,
-                        proposal.risk.overall_risk if proposal.risk else "unknown",
-                    )
-
-                await session.commit()
-            return proposal_id
-        except Exception as e:
-            logger.error(
-                "ViolationRemediatorWorker: failed to persist proposal for '%s': %s",
-                ref_id,
-                e,
-            )
-            return None
+        return await create_proposal(ref_id, ref_kind, findings)
 
     # ID: a9b0c1d2-e3f4-5678-abcd-567890123458
     async def _resolve_entries(self, entry_ids: list[str], proposal_id: str) -> int:
-        """
-        Mark subsumed Blackboard entries as resolved with the subsuming
-        proposal_id stored in payload.
-
-        Called only from the dedup-subsume branch of run() — subsumed
-        findings close as 'resolved' (not 'deferred_to_proposal') because
-        the subsuming proposal does not track them in its scope, so the
-        §7/§7a revival contract does not apply. The proposal_id payload
-        pointer is the audit linkage per URS Q1.F / ADR-015 D4. The
-        happy path (successful proposal creation) uses _defer_to_proposal
-        instead so its Finding→Proposal contract is preserved.
-
-        Routes to BlackboardService.resolve_entries_for_proposal — the
-        dedicated mirror of defer_entries_to_proposal for this path.
-        Returns count of entries successfully resolved.
-        """
-        if not entry_ids:
-            return 0
-
-        from body.services.service_registry import service_registry
-
-        try:
-            blackboard_service = await service_registry.get_blackboard_service()
-            return await blackboard_service.resolve_entries_for_proposal(
-                entry_ids, proposal_id
-            )
-        except Exception as e:
-            logger.error("ViolationRemediatorWorker: failed to resolve entries: %s", e)
-            return 0
+        return await resolve_entries(
+            await self._blackboard_service(), entry_ids, proposal_id
+        )
 
     # ID: 2f8b4e71-c950-4a6d-b3e8-7f1a5c2d906e
     async def _defer_to_proposal(self, entry_ids: list[str], proposal_id: str) -> int:
-        """
-        Transition Blackboard entries to 'deferred_to_proposal' and store
-        the proposal_id in each entry's payload.
-
-        This is the happy-path terminal transition for findings consumed
-        into a newly-created proposal. See CORE-Finding.md §7 row 4 and
-        ADR-010.
-
-        Returns count of entries successfully deferred. Fail-soft: if the
-        service call raises, logs the error and returns 0 rather than
-        propagating — matches the existing pattern of _resolve_entries
-        and _release_entries. The caller's `proposals_created` list is
-        already populated by the time this runs, so a revival-layer
-        failure here does not reverse the proposal creation.
-        """
-        if not entry_ids:
-            return 0
-
-        from body.services.service_registry import service_registry
-
-        try:
-            blackboard_service = await service_registry.get_blackboard_service()
-            return await blackboard_service.defer_entries_to_proposal(
-                entry_ids, proposal_id
-            )
-        except Exception as e:
-            logger.error(
-                "ViolationRemediatorWorker: failed to defer entries to proposal %s: %s",
-                proposal_id,
-                e,
-            )
-            return 0
+        return await defer_to_proposal(
+            await self._blackboard_service(), entry_ids, proposal_id
+        )
 
     # ID: d2e3f4a5-b6c7-8901-defa-890123456781
     async def _release_entries(self, entry_ids: list[str]) -> int:
-        """
-        Release claimed Blackboard entries back to open by id.
-        Used when proposal creation fails and findings need to be retry-eligible
-        on the next run. Returns count of entries successfully released.
-        """
-        if not entry_ids:
-            return 0
-
-        from body.services.service_registry import service_registry
-
-        try:
-            blackboard_service = await service_registry.get_blackboard_service()
-            return await blackboard_service.release_claimed_entries(entry_ids)
-        except Exception as e:
-            logger.error("ViolationRemediatorWorker: failed to release entries: %s", e)
-            return 0
+        return await release_entries(await self._blackboard_service(), entry_ids)
 
     # ID: b0c1d2e3-f4a5-6789-bcde-678901234569
     async def _release_unmappable(self, findings: list[dict[str, Any]]) -> int:
-        """
-        Release claimed findings that have no registered remediation action
-        back to open status so another worker or a future registry update
-        can pick them up.
-        """
-        if not findings:
-            return 0
-
-        entry_ids = [_entry_id(f) for f in findings]
-        return await self._release_entries(entry_ids)
+        return await release_unmappable(await self._blackboard_service(), findings)
 
     # ID: e16afa44-6fde-4782-9879-e4953b997e74
     async def _check_circuit_breaker(
@@ -846,56 +385,10 @@ class ViolationRemediatorWorker(Worker):
         file_path: str | None,
         config: Any,
     ) -> tuple[int, str | None, str | None, str | None]:
-        """
-        Query the failed-proposal tail for a (ref_id, file_path) and
-        return the consecutive-identical-signature streak per ADR-038.
-
-        Opens its own short-lived session so the circuit-breaker query
-        does not extend the lifetime of the ProposalRepository session
-        that backs proposal creation. Fail-soft: any DB error returns
-        (0, None, None, None) and proposal creation proceeds — the
-        breaker degrades toward retry rather than toward silent
-        rejection on a transient infra issue.
-        """
-        from body.services.service_registry import service_registry
-
-        try:
-            async with service_registry.session() as session:
-                return await recent_consecutive_identical_count(
-                    session,
-                    ref_id=ref_id,
-                    ref_kind=ref_kind,
-                    file_path=file_path,
-                    config=config,
-                )
-        except Exception as exc:
-            logger.warning(
-                "ViolationRemediatorWorker: circuit-breaker session failed for "
-                "(%s, %s, %s): %s — proceeding without gate.",
-                ref_kind,
-                ref_id,
-                file_path,
-                exc,
-            )
-            return 0, None, None, None
+        return await check_circuit_breaker(
+            ref_id=ref_id, ref_kind=ref_kind, file_path=file_path, config=config
+        )
 
     # ID: c1d2e3f4-a5b6-7890-cdef-789012345670
     async def _mark_delegated(self, findings: list[dict[str, Any]]) -> int:
-        """
-        Mark delegated findings as indeterminate — they require human decision.
-        Returns count of entries successfully marked.
-        """
-        if not findings:
-            return 0
-
-        from body.services.service_registry import service_registry
-
-        entry_ids = [_entry_id(f) for f in findings]
-        try:
-            blackboard_service = await service_registry.get_blackboard_service()
-            return await blackboard_service.mark_indeterminate(entry_ids)
-        except Exception as e:
-            logger.error(
-                "ViolationRemediatorWorker: failed to mark delegated entries: %s", e
-            )
-            return 0
+        return await mark_delegated(await self._blackboard_service(), findings)
