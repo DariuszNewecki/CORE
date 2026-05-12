@@ -61,8 +61,8 @@ _FALLBACK_VOLATILE_PATTERNS: list[dict[str, str]] = [
 ]
 
 
-# ID: 92482883-776b-40c0-b12e-2016aa55d199
 @dataclass(frozen=True)
+# ID: c0fd3c97-b14a-4a77-a1ca-681245394db3
 class CircuitBreakerConfig:
     """Loaded view of circuit_breaker.yaml with compiled regex patterns."""
 
