@@ -13,10 +13,13 @@ from pathlib import Path
 from typing import Any
 
 from mind.logic.engines.workflow_gate.base_check import WorkflowCheck
+from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.logger import getLogger
 
 
 logger = getLogger(__name__)
+
+_CFG = load_operational_config().workflow_gate
 
 
 # ID: 4d2b4ae8-afee-4354-add7-4db563f1d576
@@ -55,14 +58,16 @@ class LinterComplianceCheck(WorkflowCheck):
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
             )
-            stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=30.0)
+            stdout, stderr = await asyncio.wait_for(
+                process.communicate(), timeout=_CFG.linter_timeout_sec
+            )
 
             if process.returncode != 0:
                 output = stdout.decode().strip() or stderr.decode().strip()
                 violations.append(f"Ruff check failed: {output}")
 
         except TimeoutError:
-            violations.append("Ruff check timed out (>30s)")
+            violations.append(f"Ruff check timed out (>{_CFG.linter_timeout_sec:g}s)")
         except FileNotFoundError:
             violations.append(
                 "Ruff not found. Install with: pip install ruff --break-system-packages"
@@ -79,14 +84,16 @@ class LinterComplianceCheck(WorkflowCheck):
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
             )
-            stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=30.0)
+            stdout, stderr = await asyncio.wait_for(
+                process.communicate(), timeout=_CFG.linter_timeout_sec
+            )
 
             if process.returncode != 0:
                 output = stdout.decode().strip() or stderr.decode().strip()
                 violations.append(f"Black format check failed: {output}")
 
         except TimeoutError:
-            violations.append("Black check timed out (>30s)")
+            violations.append(f"Black check timed out (>{_CFG.linter_timeout_sec:g}s)")
         except FileNotFoundError:
             violations.append(
                 "Black not found. Install with: pip install black --break-system-packages"

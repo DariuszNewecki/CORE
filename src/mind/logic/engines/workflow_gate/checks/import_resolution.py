@@ -17,10 +17,13 @@ from pathlib import Path
 from typing import Any
 
 from mind.logic.engines.workflow_gate.base_check import WorkflowCheck
+from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.logger import getLogger
 
 
 logger = getLogger(__name__)
+
+_CFG = load_operational_config().workflow_gate
 
 
 # ID: f758fd53-d1cd-4be0-a073-ccc866096cdc
@@ -62,7 +65,9 @@ class ImportResolutionCheck(WorkflowCheck):
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
             )
-            stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=60.0)
+            stdout, stderr = await asyncio.wait_for(
+                process.communicate(), timeout=_CFG.import_timeout_sec
+            )
 
             if process.returncode != 0:
                 output = stdout.decode().strip()
@@ -81,7 +86,9 @@ class ImportResolutionCheck(WorkflowCheck):
                     violations.append(f"Import resolution check failed: {err}")
 
         except TimeoutError:
-            violations.append("Import resolution check timed out (>60s)")
+            violations.append(
+                f"Import resolution check timed out (>{_CFG.import_timeout_sec:g}s)"
+            )
         except FileNotFoundError:
             violations.append("ruff not found in PATH — cannot check imports")
         except Exception as e:

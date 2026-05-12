@@ -18,10 +18,13 @@ from pathlib import Path
 from typing import Any
 
 from mind.logic.engines.workflow_gate.base_check import WorkflowCheck
+from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.logger import getLogger
 
 
 logger = getLogger(__name__)
+
+_CFG = load_operational_config().workflow_gate
 
 
 # ID: 58a4df52-9edf-475e-b196-781cabfcfbe5
@@ -64,7 +67,9 @@ class RuffFormatCheck(WorkflowCheck):
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
             )
-            stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=60.0)
+            stdout, stderr = await asyncio.wait_for(
+                process.communicate(), timeout=_CFG.ruff_format_timeout_sec
+            )
 
             if process.returncode != 0:
                 output = stdout.decode().strip()
@@ -83,7 +88,9 @@ class RuffFormatCheck(WorkflowCheck):
                     violations.append(f"Ruff format check failed: {err}")
 
         except TimeoutError:
-            violations.append("Ruff format check timed out (>60s)")
+            violations.append(
+                f"Ruff format check timed out (>{_CFG.ruff_format_timeout_sec:g}s)"
+            )
         except FileNotFoundError:
             violations.append("ruff not found in PATH — cannot check formatting")
         except Exception as e:

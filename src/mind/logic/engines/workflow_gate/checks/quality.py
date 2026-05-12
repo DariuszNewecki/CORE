@@ -9,7 +9,11 @@ from pathlib import Path
 from typing import Any
 
 from mind.logic.engines.workflow_gate.base_check import WorkflowCheck
+from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.path_resolver import PathResolver
+
+
+_CFG = load_operational_config().workflow_gate
 
 
 # ID: e56a1a25-9a1e-4938-b6fa-34f7263be922
@@ -31,7 +35,9 @@ class QualityGateCheck(WorkflowCheck):
                 stderr=asyncio.subprocess.PIPE,
                 cwd=str(self._paths.repo_root),
             )
-            stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=60.0)
+            stdout, stderr = await asyncio.wait_for(
+                process.communicate(), timeout=_CFG.quality_timeout_sec
+            )
 
             if process.returncode != 0:
                 output = stdout.decode().strip() or stderr.decode().strip()
