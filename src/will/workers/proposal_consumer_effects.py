@@ -114,17 +114,48 @@ async def apply_yield_effects(
 ) -> None:
     """
     Post the autonomy.yielded.scope_collision finding when ProposalExecutor
-    yields a proposal rather than executing it (typically because another
-    in-flight proposal has overlapping scope).
+    yields a proposal rather than executing it (typically because the
+    working tree is dirty under ADR-021 D5).
 
-    Fail-soft: a posting error is logged and swallowed so the worker's
-    run-loop accounting (yielded += 1) is not disturbed.
+    Idempotent by subject: if an open
+    autonomy.yielded.scope_collision::<proposal_id> finding already exists,
+    skip the post. The yield will be re-attempted on the next consumer
+    tick, so re-posting on every tick produces only duplicate noise (the
+    first finding is sufficient for downstream observation, and is
+    resolved/abandoned when the proposal ultimately completes or fails).
+
+    Fail-soft: lookup or post errors are logged. On lookup failure we fall
+    back to posting — better a duplicate than a silenced yield. The
+    worker's run-loop accounting (yielded += 1) is not disturbed either
+    way.
     """
     colliding = result.get("colliding_paths", []) or []
     yield_reason = result.get("yield_reason", "scope_collision")
+    subject = f"autonomy.yielded.scope_collision::{proposal_id}"
+
+    from body.services.service_registry import service_registry
+
+    try:
+        bb_service = await service_registry.get_blackboard_service()
+        existing = await bb_service.fetch_open_finding_subjects_by_prefix(subject)
+        if subject in existing:
+            logger.info(
+                "ProposalConsumerWorker: yield finding already open for "
+                "proposal %s — skipping duplicate post",
+                proposal_id,
+            )
+            return
+    except Exception as lookup_err:
+        logger.warning(
+            "Yield-finding dedup lookup failed for proposal %s "
+            "(falling back to post): %s",
+            proposal_id,
+            lookup_err,
+        )
+
     try:
         await worker.post_finding(
-            subject=f"autonomy.yielded.scope_collision::{proposal_id}",
+            subject=subject,
             payload={
                 "proposal_id": proposal_id,
                 "goal": goal,
