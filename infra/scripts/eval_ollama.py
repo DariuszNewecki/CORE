@@ -85,6 +85,9 @@ ROLE_PROMPTS: dict[str, list[str]] = {
         "micro_planner_create_micro_plan",
         "plan_goal",
     ],
+    "RemoteCoder": [
+        "code_generation_task_step_prompt",
+    ],
 }
 
 console = Console()
@@ -400,6 +403,58 @@ FIXTURES: dict[str, str] = {
 }
 
 
+# Per-prompt fixture overrides. The global FIXTURES map is shared across
+# prompts; values there must satisfy the lowest-common-denominator template.
+# Some prompts (notably code-generation tasks) need a far more specific,
+# CORE-domain task description to elicit CORE-specific output rather than a
+# generic stub. Override keys here take precedence over FIXTURES for the
+# named prompt only. Keys listed here are also treated as known placeholders
+# by render_user_text — useful when model.yaml under-declares its inputs.
+PER_PROMPT_FIXTURES: dict[str, dict[str, str]] = {
+    "code_generation_task_step_prompt": {
+        # model.yaml declares no input.required; user.txt references
+        # {task_step}. The harness's global "task_step" fixture is the
+        # terse, generic placeholder ("implement_payload_summarizer") that
+        # invites generic-stub output — exactly the ADR-024 anti-pattern
+        # (clarity_v2_refactor failure mode). The override below names a
+        # real CORE file path, real CORE types, and a real CORE rule, so a
+        # competent answer must speak CORE's actual vocabulary.
+        "task_step": (
+            "Implement the body-layer service method "
+            "`HealthLogService.summarize_blackboard_silence(self, entries)` in "
+            "`src/body/services/health_log_service.py`.\n\n"
+            "Behaviour:\n"
+            "- `entries` is a list of dicts; each has keys `worker_uuid` (str), "
+            "`subject` (str), `seconds_silent` (int).\n"
+            "- Group entries by `worker_uuid` and compute per worker: "
+            "{\"max_silent_sec\": int, \"subjects\": list[str]}.\n"
+            "- Return a `ComponentResult` (from `shared.models.component_result`) "
+            "with `ok=True`, `data={\"by_worker\": <mapping>}`, "
+            "`phase=ComponentPhase.EXECUTION` (from "
+            "`shared.models.component_phase`), `component_id=self.component_id`, "
+            "`confidence=1.0`, and `duration_sec` measured via "
+            "`time.perf_counter()`.\n"
+            "- If any entry is missing a required key, return "
+            "`ComponentResult(ok=False, data={\"error\": <message>}, "
+            "phase=ComponentPhase.EXECUTION, component_id=self.component_id)`.\n"
+            "- Place a `# ID: <uuid v4>` comment on the line immediately before "
+            "the method signature, per CORE's symbol-graph convention.\n"
+            "- Body-layer rule `architecture.body.no_settings_access` forbids "
+            "importing from `shared.infrastructure.settings`; any thresholds "
+            "or config must arrive as method parameters or already-injected "
+            "attributes on `self`.\n"
+            "- The module already imports `from collections import defaultdict`, "
+            "`import time`, `from shared.models.component_result import "
+            "ComponentResult`, and `from shared.models.component_phase import "
+            "ComponentPhase`. Do NOT add new imports.\n\n"
+            "Output ONLY the method definition starting with the `# ID:` "
+            "comment and the `def summarize_blackboard_silence(...)` line. "
+            "No prose, no markdown fences."
+        ),
+    },
+}
+
+
 # Prompts whose model.yaml declares fewer inputs than the test would
 # meaningfully need. They are not skipped — they run with what they declare —
 # but their results should be read with caution. Recorded here so the report
@@ -408,6 +463,11 @@ UNDERDOCUMENTED_PROMPTS: dict[str, str] = {
     "clarity_v2_refactor": (
         "requires source_code context not declared in model.yaml — "
         "prompt is undertested with current fixtures."
+    ),
+    "code_generation_task_step_prompt": (
+        "model.yaml declares no input.required and no must_contain; harness "
+        "supplies {task_step} via PER_PROMPT_FIXTURES and treats the response "
+        "as raw code (heuristic match on 'code_generation' in prompt name)."
     ),
 }
 
@@ -458,7 +518,7 @@ class PromptArtifact:
             "coder_", "_refactor", "_refactorer", "llm_correction_",
             "line_length_", "complexity_", "clarity_", "test_gen",
             "single_test_fixer", "simple_test_generator", "violation_remediator",
-            "pattern_correction",
+            "pattern_correction", "code_generation",
         )
         return any(p in self.name for p in code_patterns)
 
@@ -556,7 +616,16 @@ def render_user_text(artifact: PromptArtifact, fixtures: dict[str, str]) -> str:
     # targeted substitution: replace {name} only when name is a known fixture
     # variable (required + optional).
     template = artifact.user_template
-    known: set[str] = set(artifact.required_inputs) | set(artifact.optional_inputs)
+    # Treat every key actually supplied in `fixtures` as a known placeholder.
+    # This covers prompts whose model.yaml under-declares inputs (e.g.,
+    # code_generation_task_step_prompt) but whose user.txt still references
+    # them; per-prompt fixture overlays land in `fixtures` and become
+    # substitutable without needing to amend the artifact.
+    known: set[str] = (
+        set(artifact.required_inputs)
+        | set(artifact.optional_inputs)
+        | set(fixtures.keys())
+    )
 
     def _replace(match: re.Match[str]) -> str:
         var_name = match.group(1)
@@ -973,6 +1042,9 @@ def build_test_cases(
         for v in prompt.optional_inputs:
             if v in FIXTURES:
                 ctx[v] = FIXTURES[v]
+        # Per-prompt overlay (overrides any global fixture, and supplies
+        # keys for prompts whose model.yaml under-declares its inputs).
+        ctx.update(PER_PROMPT_FIXTURES.get(prompt.name, {}))
         eligible.append((prompt, ctx))
     return eligible
 
@@ -1237,7 +1309,37 @@ def main() -> int:
         action="store_true",
         help="Override --only-role-mapped and test every prompt with all required fixtures.",
     )
+    parser.add_argument(
+        "--prompts",
+        nargs="+",
+        default=None,
+        metavar="NAME",
+        help="Restrict the run to the named prompt artifact(s) (directory name "
+             "under var/prompts/). Repeatable.",
+    )
+    parser.add_argument(
+        "--models",
+        nargs="+",
+        default=None,
+        metavar="HANDLE",
+        help="Restrict the run to the named model handle(s) (keys of MODELS). "
+             "Repeatable.",
+    )
     args = parser.parse_args()
+
+    # Apply --models filter in-place so the rest of the harness (which
+    # iterates over the global MODELS dict in several places) honours it.
+    if args.models:
+        unknown = [h for h in args.models if h not in MODELS]
+        if unknown:
+            console.print(
+                f"[red]ERROR[/red] unknown model handle(s): {', '.join(unknown)}. "
+                f"Known: {', '.join(MODELS.keys())}"
+            )
+            return 2
+        filtered = {h: MODELS[h] for h in args.models}
+        MODELS.clear()
+        MODELS.update(filtered)
 
     started_wall = time.perf_counter()
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
@@ -1270,6 +1372,22 @@ def main() -> int:
                 "[yellow]WARN[/yellow] role-mapped prompts not present as PromptModel "
                 f"directories on disk: {', '.join(missing_dirs)}"
             )
+
+    # --prompts narrows the candidate set further.
+    if args.prompts:
+        requested = set(args.prompts)
+        present_names = {p.name for p in all_prompts}
+        unknown = sorted(requested - present_names)
+        if unknown:
+            console.print(
+                "[red]ERROR[/red] unknown prompt name(s) (no matching "
+                f"directory under var/prompts/): {', '.join(unknown)}"
+            )
+            return 2
+        candidates = [p for p in all_prompts if p.name in requested]
+        console.print(
+            f"[cyan]--prompts[/cyan] filter active: {len(candidates)} prompt(s) selected."
+        )
 
     skip_log: list[dict[str, Any]] = []
     eligible = build_test_cases(candidates, skip_log)
