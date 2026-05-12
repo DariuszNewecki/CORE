@@ -115,15 +115,83 @@ class WorkerRegistryService:
                 for row in result.fetchall()
             ]
 
+    # ID: 9a3c1e5d-7b8f-4a0c-9d2e-5f6a7b8c9d0e
+    async def fetch_stale_workers_with_schedules(
+        self,
+        thresholds: dict[str, int],
+        active_uuids: frozenset[str] | set[str],
+        fallback_sec: int,
+    ) -> list[dict[str, Any]]:
+        """
+        Return workers considered stale under per-worker rules (ADR-041 D2).
+
+        For each registered worker:
+          - Skip if its worker_uuid is not in *active_uuids* (orphan-skip,
+            ADR-041 D3). Orphans never produce a "stale" verdict.
+          - Otherwise compare seconds_silent against
+            ``thresholds.get(worker_uuid, fallback_sec)``. Return the row
+            if seconds_silent exceeds the threshold.
+
+        Callers obtain *thresholds* and *active_uuids* from
+        ``shared.workers.schedule.load_worker_schedule_state()`` so the
+        producer (WorkerShopManager) and downstream readers (dashboard,
+        health_log_service) apply identical liveness semantics.
+
+        The variable-threshold-per-row requirement does not map cleanly
+        to a single SQL parameter, so filtering is applied in Python
+        after fetching. Row count is small (one row per registered
+        worker, currently ~20), making post-query filtering appropriate.
+        """
+        from body.services.service_registry import ServiceRegistry
+
+        async with ServiceRegistry.session() as session:
+            result = await session.execute(
+                text(
+                    """
+                    SELECT
+                        worker_uuid,
+                        worker_name,
+                        worker_class,
+                        phase,
+                        last_heartbeat,
+                        EXTRACT(EPOCH FROM (now() - last_heartbeat))::int
+                            AS seconds_silent
+                    FROM core.worker_registry
+                    ORDER BY seconds_silent DESC
+                    """
+                )
+            )
+            stale: list[dict[str, Any]] = []
+            for row in result.fetchall():
+                worker_uuid_str = str(row[0])
+                if worker_uuid_str not in active_uuids:
+                    continue
+                seconds_silent = row[5] or 0
+                threshold = thresholds.get(worker_uuid_str, fallback_sec)
+                if seconds_silent > threshold:
+                    stale.append(
+                        {
+                            "worker_uuid": row[0],
+                            "worker_name": row[1],
+                            "worker_class": row[2],
+                            "phase": row[3],
+                            "last_heartbeat": row[4],
+                            "seconds_silent": seconds_silent,
+                            "threshold": threshold,
+                        }
+                    )
+            return stale
+
     # ID: 8e9f0a1b-2c3d-4e5f-6a7b-8c9d0e1f2a3b
     async def fetch_stale_workers(self, threshold_sec: int) -> list[dict[str, Any]]:
         """
-        Return workers whose last_heartbeat exceeds the threshold.
+        Return workers whose last_heartbeat exceeds a single global threshold.
 
-        Per ADR-020, these are the workers a supervisor or dashboard
-        should treat as not alive. The supervisor (WorkerShopManager)
-        continues to use per-worker SLAs from .intent/workers/*.yaml;
-        this method is for table-wide queries with a single threshold.
+        DEPRECATED per ADR-041 — does not honour per-worker schedules and
+        does not skip orphan rows (registry rows whose UUID is not
+        declared by any active .intent/workers/*.yaml). New callers should
+        use fetch_stale_workers_with_schedules. Retained for one commit
+        cycle while migration completes.
         """
         from body.services.service_registry import ServiceRegistry
 
