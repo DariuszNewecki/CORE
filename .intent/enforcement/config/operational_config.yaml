@@ -345,3 +345,5 @@ misc:
   context_aware_test_context_lines: 40
   perf_overhead_warning_pct: 50
   perf_overhead_error_pct: 100
+  context_search_display_limit: 20
+  proposals_display_limit: 20
