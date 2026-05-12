@@ -10,6 +10,7 @@ import uuid
 from collections import defaultdict
 from pathlib import Path
 
+from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.logger import getLogger
 
 from .models import CensusSummary, MutationHotspot, RepoCensus, RepoCensusMetadata
@@ -25,6 +26,8 @@ from .scanners import (
 
 
 logger = getLogger(__name__)
+
+_CFG = load_operational_config().misc
 
 
 # ID: 0b9a7f04-a0b2-438e-89d1-c0690c8fe2a4
@@ -123,7 +126,9 @@ class CensusService:
                 elif surface.write_zone == "unknown":
                     write_unknown += 1
 
-        hotspots = self._find_mutation_hotspots(mut_surfaces, limit=10)
+        hotspots = self._find_mutation_hotspots(
+            mut_surfaces, limit=_CFG.census_hotspot_limit
+        )
         cli_entrypoints = extract_cli_entrypoints(repo_path)
 
         path_classes: dict[str, int] = defaultdict(int)
@@ -153,7 +158,7 @@ class CensusService:
         )
 
     def _find_mutation_hotspots(
-        self, surfaces: list, limit: int = 10
+        self, surfaces: list, limit: int = _CFG.census_hotspot_limit
     ) -> list[MutationHotspot]:
         """Rank files by mutation surface density."""
         by_file: dict[str, dict] = defaultdict(

@@ -21,6 +21,7 @@ from typing import TYPE_CHECKING
 from body.atomic.registry import ActionCategory, register_action
 from shared.action_types import ActionImpact, ActionResult
 from shared.atomic_action import atomic_action
+from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.logger import getLogger
 
 
@@ -28,6 +29,8 @@ if TYPE_CHECKING:
     from shared.context import CoreContext
 
 logger = getLogger(__name__)
+
+_CFG = load_operational_config().misc
 
 
 @register_action(
@@ -50,7 +53,7 @@ async def action_tag_metadata(
     core_context: CoreContext,
     write: bool = False,
     allowed_operations: list[str] | None = None,
-    max_comment_length: int = 120,
+    max_comment_length: int = _CFG.metadata_max_comment_length,
     **kwargs,
 ) -> ActionResult:
     """

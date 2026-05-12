@@ -41,6 +41,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
+from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.logger import getLogger
 
 
@@ -49,6 +50,8 @@ if TYPE_CHECKING:
     from will.interpreters.request_interpreter import TaskStructure
 
 logger = getLogger(__name__)
+
+_CFG = load_operational_config().misc
 
 
 @dataclass
@@ -327,7 +330,7 @@ class AuthorityPackageBuilder:
 
         # Semantic search for relevant policies
         policy_hits = await self.policy_vectorizer.search_policies(
-            query=query, limit=10
+            query=query, limit=_CFG.authority_package_search_limit
         )
 
         # Convert to PolicyMatch objects

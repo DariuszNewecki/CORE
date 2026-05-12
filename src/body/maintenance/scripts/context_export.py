@@ -21,12 +21,16 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from shared.infrastructure.git_service import GitService
+from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.infrastructure.storage.file_handler import FileHandler
 from shared.logger import getLogger
 from shared.time import now_iso
 
 if TYPE_CHECKING:
     from shared.context import CoreContext
+
+
+_CFG = load_operational_config().misc
 
 
 logger = getLogger(__name__)
@@ -217,7 +221,9 @@ class ContextExporter:
             # Use urllib for standard-lib compliance in scripts
             url = f"{q_url}/collections/{q_col}"
             req = urllib.request.Request(url, headers={"Accept": "application/json"})
-            with urllib.request.urlopen(req, timeout=10) as resp:
+            with urllib.request.urlopen(
+                req, timeout=_CFG.context_export_http_timeout_sec
+            ) as resp:
                 data = json.loads(resp.read().decode("utf-8"))
                 self.fh.write_runtime_json(
                     f"{self.export_rel_dir}/qdrant_info.json", data

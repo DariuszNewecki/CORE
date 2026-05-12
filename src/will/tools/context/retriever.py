@@ -15,6 +15,7 @@ import re
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.logger import getLogger
 
 from .code_snippet_extractor import CodeSnippetExtractor
@@ -27,6 +28,8 @@ if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = getLogger(__name__)
+
+_CFG = load_operational_config().misc
 
 
 # ID: ee1dc1a7-5076-4c65-afe2-3abe6ab52280
@@ -98,7 +101,9 @@ class ContextRetriever:
         This enforces Mind/Body/Will separation at the type level.
         """
         # Search for relevant symbols
-        hits = await self.search.search_by_layer(goal, layer, limit=10)
+        hits = await self.search.search_by_layer(
+            goal, layer, limit=_CFG.retriever_search_limit
+        )
         if not hits:
             return []
 
@@ -144,7 +149,7 @@ class ContextRetriever:
             snippet = await self.snippet_extractor.extract_snippet(
                 file_path=row.file_path,
                 line_number=row.line_number,
-                context_lines=20,
+                context_lines=_CFG.retriever_context_lines,
             )
 
             if snippet is None:

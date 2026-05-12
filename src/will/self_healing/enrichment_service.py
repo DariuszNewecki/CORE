@@ -27,6 +27,7 @@ from sqlalchemy import text
 from shared.ai.prompt_model import PromptModel
 from shared.infrastructure.clients.qdrant_client import QdrantService
 from shared.infrastructure.config_service import ConfigService
+from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.logger import getLogger
 from shared.utils.parallel_processor import ThrottledParallelProcessor
 from shared.utils.parsing import extract_json_from_response
@@ -34,6 +35,8 @@ from will.orchestration.cognitive_service import CognitiveService
 
 
 logger = getLogger(__name__)
+
+_CFG = load_operational_config().misc
 
 # Role used for "core-admin enrich symbols" (DB-driven role -> resource mapping)
 ENRICH_SYMBOLS_ROLE = "LocalCoder"
@@ -131,8 +134,10 @@ async def _enrich_single_symbol(
             description = (response or "").strip().split("\n")[0]
 
         description = description.replace("\n", " ").strip()
-        if len(description) > 500:
-            description = description[:497] + "..."
+        if len(description) > _CFG.enrichment_description_max_chars:
+            description = (
+                description[: _CFG.enrichment_description_max_chars - 3] + "..."
+            )
 
         logger.info("Enriched %s", symbol_path)
         return {"uuid": symbol_id, "description": description}

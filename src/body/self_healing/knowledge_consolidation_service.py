@@ -12,6 +12,7 @@ from pathlib import Path
 
 # --- THIS IS THE FIX ---
 from shared.ast_utility import normalize_ast
+from shared.infrastructure.intent.operational_config import load_operational_config
 
 
 # REFACTORED: Removed direct settings import
@@ -20,11 +21,14 @@ from shared.ast_utility import normalize_ast
 # --- END OF FIX ---
 
 
+_CFG = load_operational_config().misc
+
+
 # ID: e9a1b8c3-d7f4-4b1e-a9d5-f8c3d7f4b1e9
 def find_structurally_similar_helpers(
     repo_root: Path,
-    min_occurrences: int = 3,
-    max_lines: int = 10,
+    min_occurrences: int = _CFG.knowledge_min_occurrences,
+    max_lines: int = _CFG.knowledge_max_lines,
 ) -> dict[str, list[tuple[str, int]]]:
     """
     Scans the 'src/' directory for small, structurally identical public functions.

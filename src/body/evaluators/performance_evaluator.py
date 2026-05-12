@@ -37,10 +37,13 @@ from typing import Any, ClassVar
 
 from body.evaluators.base_evaluator import BaseEvaluator
 from shared.component_primitive import ComponentResult
+from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.logger import getLogger
 
 
 logger = getLogger(__name__)
+
+_CFG = load_operational_config().misc
 
 
 # ID: 5faaa14c-b0d8-4f43-b968-333ae4ccd2ff
@@ -213,7 +216,9 @@ class PerformanceEvaluator(BaseEvaluator):
             overhead_pct = ((actual - threshold) / threshold) * 100
             return {
                 "type": "duration",
-                "severity": "error" if overhead_pct > 50 else "warning",
+                "severity": "error"
+                if overhead_pct > _CFG.perf_overhead_warning_pct
+                else "warning",
                 "message": f"Operation took {actual:.2f}s (threshold: {threshold}s, +{overhead_pct:.0f}%)",
                 "actual": actual,
                 "threshold": threshold,
@@ -230,7 +235,9 @@ class PerformanceEvaluator(BaseEvaluator):
             overhead_pct = ((actual - threshold) / threshold) * 100
             return {
                 "type": "memory",
-                "severity": "error" if overhead_pct > 50 else "warning",
+                "severity": "error"
+                if overhead_pct > _CFG.perf_overhead_warning_pct
+                else "warning",
                 "message": f"Memory usage {actual:.0f}MB (threshold: {threshold}MB, +{overhead_pct:.0f}%)",
                 "actual": actual,
                 "threshold": threshold,
@@ -247,7 +254,9 @@ class PerformanceEvaluator(BaseEvaluator):
             overhead_pct = ((actual - threshold) / threshold) * 100
             return {
                 "type": "io",
-                "severity": "error" if overhead_pct > 100 else "warning",
+                "severity": "error"
+                if overhead_pct > _CFG.perf_overhead_error_pct
+                else "warning",
                 "message": f"I/O operations: {actual} (threshold: {threshold}, +{overhead_pct:.0f}%)",
                 "actual": actual,
                 "threshold": threshold,

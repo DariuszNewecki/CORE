@@ -16,6 +16,7 @@ from mind.governance.audit_context import AuditorContext
 from shared.ai.prompt_model import PromptModel
 from shared.exceptions import CoreError
 from shared.infrastructure.config_service import ConfigService
+from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.logger import getLogger
 from will.orchestration.validation_pipeline import validate_code_async
 
@@ -24,6 +25,8 @@ if TYPE_CHECKING:
     from shared.context import CoreContext
 
 logger = getLogger(__name__)
+
+_CFG = load_operational_config().misc
 
 
 # ID: 6515f0dd-bea7-474e-894c-74c077d12857
@@ -53,8 +56,9 @@ async def _async_fix_line_lengths(
     Mutations are routed through the governed ActionExecutor.
     """
     logger.info(
-        "Scanning %s files for lines longer than 100 characters...",
+        "Scanning %s files for lines longer than %d characters...",
         len(files_to_process),
+        _CFG.linelength_max_line_chars,
     )
 
     repo_root = await _resolve_repo_root(context, config_service)
@@ -72,7 +76,10 @@ async def _async_fix_line_lengths(
         try:
             # Check for actual violations before calling LLM
             content = file_path.read_text(encoding="utf-8")
-            if any(len(line) > 100 for line in content.splitlines()):
+            if any(
+                len(line) > _CFG.linelength_max_line_chars
+                for line in content.splitlines()
+            ):
                 files_with_long_lines.append(file_path)
         except Exception:
             continue

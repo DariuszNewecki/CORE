@@ -16,11 +16,14 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
+from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.logger import getLogger
 from shared.utils.glob_match import matches_glob
 
 
 logger = getLogger(__name__)
+
+_CFG = load_operational_config().misc
 
 # Forbidden patterns evaluated under gitignore semantics (ADR-012 §5).
 # Leading "**/" anchors at any depth; ".intent/keys/**" is root-anchored.
@@ -133,7 +136,9 @@ class FileNavigator:
         return entries
 
     # ID: 38192d86-2eca-4e54-bff0-c1401cbc83e5
-    async def read_file(self, path: str, max_lines: int = 200) -> str:
+    async def read_file(
+        self, path: str, max_lines: int = _CFG.file_navigator_read_max_lines
+    ) -> str:
         """
         Read file content safely.
 
@@ -149,9 +154,13 @@ class FileNavigator:
             raise ValueError(f"Path is not a file: {path}")
 
         try:
-            # Enforce size limit (1MB) before reading
-            if target.stat().st_size > 1024 * 1024:
-                return f"Error: File {path} is too large ({target.stat().st_size} bytes). Max 1MB."
+            # Enforce size limit before reading
+            if target.stat().st_size > _CFG.file_navigator_max_read_bytes:
+                return (
+                    f"Error: File {path} is too large "
+                    f"({target.stat().st_size} bytes). "
+                    f"Max {_CFG.file_navigator_max_read_bytes} bytes."
+                )
 
             content = target.read_text(encoding="utf-8")
             lines = content.splitlines()

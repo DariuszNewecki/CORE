@@ -12,10 +12,13 @@ from __future__ import annotations
 
 from typing import Any
 
+from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.logger import getLogger
 
 
 logger = getLogger(__name__)
+
+_CFG = load_operational_config().misc
 
 
 def _build_llm_prompt(
@@ -103,8 +106,10 @@ def _format_context_items(items: list[dict[str, Any]]) -> str:
             formatted.append(f"Summary: {summary}")
         if content:
             # Truncate very long content
-            if len(content) > 2000:
-                content = content[:2000] + "\n... (truncated)"
+            if len(content) > _CFG.conversation_max_content_chars:
+                content = (
+                    content[: _CFG.conversation_max_content_chars] + "\n... (truncated)"
+                )
             formatted.append(f"Code:\n{content}")
         formatted.append("")  # Blank line between items
 

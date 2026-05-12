@@ -10,6 +10,7 @@ from __future__ import annotations
 import numpy as np
 
 from shared.infrastructure.clients.qdrant_client import QdrantService
+from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.logger import getLogger
 
 
@@ -19,10 +20,13 @@ except ImportError:
     KMeans = None
 logger = getLogger(__name__)
 
+_CFG = load_operational_config().misc
+
 
 # ID: ae8922bb-df0c-4edb-a34f-a7114d70faab
 async def find_semantic_clusters(
-    qdrant_service: QdrantService, n_clusters: int = 15
+    qdrant_service: QdrantService,
+    n_clusters: int = _CFG.clustering_default_n_clusters,
 ) -> list[list[str]]:
     """
     Finds clusters of semantically similar code symbols using K-Means clustering.

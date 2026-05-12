@@ -23,6 +23,7 @@ from typing import Any
 
 from sqlalchemy import text
 
+from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.infrastructure.knowledge.knowledge_service import KnowledgeService
 from shared.logger import getLogger
 from will.agents.tagger_agent import CapabilityTaggerAgent
@@ -32,13 +33,14 @@ from will.orchestration.cognitive_service import CognitiveService
 logger = getLogger(__name__)
 SessionFactory = Callable[[], Any]
 
+_CFG = load_operational_config().misc
+
 # Constitutional holding domain for non-SSOT capability registrations.
 # Anything created here is explicitly "Proposed" and must be governed later.
 HOLDING_DOMAIN = "shared"
 
 # Links created by LLM are proposals until explicitly verified by a governed flow.
 LLM_LINK_SOURCE = "llm-proposed"
-DEFAULT_LLM_CONFIDENCE = 0.70
 
 
 def _split_capability_key(suggested_name: str) -> tuple[str | None, str | None]:
@@ -128,7 +130,11 @@ async def _async_tag_capabilities(
                 if proposed_namespace:
                     tags.append(proposed_namespace)
 
-                confidence = float(new_info.get("confidence", DEFAULT_LLM_CONFIDENCE))
+                confidence = float(
+                    new_info.get(
+                        "confidence", _CFG.capability_tagging_default_llm_confidence
+                    )
+                )
 
                 cap_upsert_sql = text(
                     """

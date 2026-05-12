@@ -9,10 +9,13 @@ from __future__ import annotations
 import asyncio
 from pathlib import Path
 
+from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.logger import getLogger
 
 
 logger = getLogger(__name__)
+
+_CFG = load_operational_config().misc
 
 
 # ID: 7105d901-b084-4a4d-9d8b-4a75ba145e81
@@ -24,7 +27,10 @@ class CodeSnippetExtractor:
 
     # ID: f108f856-22d7-4084-86f0-d83853cf09db
     async def extract_snippet(
-        self, file_path: str, line_number: int, context_lines: int = 20
+        self,
+        file_path: str,
+        line_number: int,
+        context_lines: int = _CFG.code_snippet_context_lines,
     ) -> str | None:
         """
         Extract code snippet from file around a specific line.
