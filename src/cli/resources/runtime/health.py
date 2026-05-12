@@ -29,10 +29,12 @@ from rich.panel import Panel
 from rich.table import Table
 from sqlalchemy import text
 
+from body.services.worker_registry_service import WorkerRegistryService
 from cli.utils import async_command
 from shared.infrastructure.database.session_manager import get_session
 from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.logger import getLogger
+from shared.workers.schedule import load_worker_schedule_state
 
 
 logger = getLogger(__name__)
@@ -459,37 +461,27 @@ async def _query_dashboard_data(session: Any) -> dict[str, Any]:
         "cutoff_24h": cutoff_24h,
     }
 
-    # --- Panel 3: Loop Running ---
-    workers = (
-        await session.execute(
-            text("""
-            SELECT worker_name, last_heartbeat
-            FROM core.worker_registry
-            ORDER BY last_heartbeat ASC NULLS FIRST
-            """),
-        )
-    ).fetchall()
-    stale_workers: list[tuple[str, str]] = []
-    worst_age = "green"
-    for w in workers:
-        hb = w.last_heartbeat
-        if hb is None:
-            stale_workers.append((w.worker_name, "no heartbeat"))
-            worst_age = "red"
-            continue
-        if hb.tzinfo is None:
-            hb = hb.replace(tzinfo=UTC)
-        if hb < cutoff_60m:
-            stale_workers.append((w.worker_name, _age(hb)))
-            worst_age = "red"
-        elif hb < cutoff_10m:
-            stale_workers.append((w.worker_name, _age(hb)))
-            if worst_age != "red":
-                worst_age = "amber"
+    # --- Panel 3: Loop Running (ADR-041 D2/D3/D5) ---
+    # Per-worker thresholds + orphan-skip from the shared loader. Binary
+    # stale/alive: amber tier dropped (ADR-041 D5) because it had no
+    # semantic basis under per-worker thresholds.
+    schedule_state = load_worker_schedule_state()
+    worker_registry_svc = WorkerRegistryService()
+    stale_rows = await worker_registry_svc.fetch_stale_workers_with_schedules(
+        thresholds=schedule_state.thresholds,
+        active_uuids=schedule_state.active_uuids,
+        fallback_sec=schedule_state.fallback_sec,
+    )
+    stale_workers: list[tuple[str, str]] = [
+        (r["worker_name"], _age(r["last_heartbeat"])) for r in stale_rows
+    ]
     data["loop"] = {
-        "active_count": len(workers),
+        # Active count = declared active workers (ADR-041 D3 orphan-skip
+        # applied). Previously this counted every worker_registry row
+        # including orphans, which overstated the live worker count.
+        "active_count": len(schedule_state.active_uuids),
         "stale_workers": stale_workers,
-        "signal": worst_age,
+        "signal": "red" if stale_workers else "green",
     }
 
     # --- Panel 4: Pipeline Moving ---

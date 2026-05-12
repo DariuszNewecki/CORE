@@ -35,17 +35,24 @@ class WorkerScheduleState:
 
     thresholds: maps worker_uuid (string form) → max_interval + glide_off
                 in seconds. Workers without a declared ``schedule`` block
-                do not appear here; callers apply the configured fallback.
+                do not appear here; callers apply *fallback_sec* instead.
 
     active_uuids: the set of worker_uuids declared with ``status: active``.
                   Workers with any other status (paused, missing) are
                   absent. Callers use this for orphan-skip: registry rows
                   whose UUID is not in this set are excluded from
                   liveness reads (ADR-041 D3).
+
+    fallback_sec: canonical liveness threshold for active workers that
+                  declare no ``schedule`` block. Sourced from
+                  ``operational_config.workers.worker_shop.fallback_threshold_sec``
+                  so the producer (WorkerShopManager) and all readers
+                  (dashboard, health_log_service) apply the same fallback.
     """
 
     thresholds: dict[str, int]
     active_uuids: frozenset[str]
+    fallback_sec: int
 
 
 # ID: f2d9b5b3-4a8e-4c7f-9d0a-2b3c4d5e6f7a
@@ -72,7 +79,11 @@ def load_worker_schedule_state() -> WorkerScheduleState:
     intent_workers = Path(".intent/workers")
 
     if not intent_workers.exists():
-        return WorkerScheduleState(thresholds={}, active_uuids=frozenset())
+        return WorkerScheduleState(
+            thresholds={},
+            active_uuids=frozenset(),
+            fallback_sec=_CFG.fallback_threshold_sec,
+        )
 
     for yaml_path in intent_workers.glob("*.yaml"):
         try:
@@ -101,4 +112,5 @@ def load_worker_schedule_state() -> WorkerScheduleState:
     return WorkerScheduleState(
         thresholds=thresholds,
         active_uuids=frozenset(active_uuids),
+        fallback_sec=_CFG.fallback_threshold_sec,
     )

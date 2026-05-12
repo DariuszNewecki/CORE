@@ -14,8 +14,10 @@ from typing import Any
 
 from sqlalchemy import text
 
+from body.services.worker_registry_service import WorkerRegistryService
 from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.logger import getLogger
+from shared.workers.schedule import load_worker_schedule_state
 
 
 logger = getLogger(__name__)
@@ -91,15 +93,17 @@ class HealthLogService:
             )
             stale_entries: int = r.scalar() or 0
 
-            r = await session.execute(
-                text(
-                    """
-                    SELECT COUNT(*) FROM core.worker_registry
-                    WHERE last_heartbeat < now() - interval '10 minutes'
-                    """
-                )
+            # silent_workers per ADR-041 D2/D3: per-worker thresholds from
+            # the shared schedule loader, plus orphan-skip. Same canonical
+            # rule WorkerShopManager and the runtime dashboard apply.
+            schedule_state = load_worker_schedule_state()
+            registry_svc = WorkerRegistryService()
+            silent_rows = await registry_svc.fetch_stale_workers_with_schedules(
+                thresholds=schedule_state.thresholds,
+                active_uuids=schedule_state.active_uuids,
+                fallback_sec=schedule_state.fallback_sec,
             )
-            silent_workers: int = r.scalar() or 0
+            silent_workers: int = len(silent_rows)
 
             r = await session.execute(
                 text(
