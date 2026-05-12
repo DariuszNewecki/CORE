@@ -1,3 +1,4 @@
+# src/body/services/blackboard_service/blackboard_proposal_service.py
 # blackboard_proposal_service.py
 """Proposal-lifecycle methods that implement the finding↔proposal contract per CORE-Finding.md §7/§7a"""
 
