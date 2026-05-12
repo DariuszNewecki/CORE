@@ -26,13 +26,15 @@ from __future__ import annotations
 
 import asyncio
 import re
-from pathlib import Path
 from typing import Any
 
 from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.logger import getLogger
-from shared.processors.yaml_processor import strict_yaml_processor
 from shared.workers.base import Worker
+from shared.workers.schedule import (
+    WorkerScheduleState,
+    load_worker_schedule_state,
+)
 
 
 logger = getLogger(__name__)
@@ -74,12 +76,13 @@ class WorkerShopManager(Worker):
         self._glide_off: int = schedule.get(
             "glide_off", max(int(self._max_interval * _CFG.glide_off_multiplier), 10)
         )
-        # Cache of per-worker thresholds loaded from .intent/
-        self._thresholds: dict[str, int] = {}
-        # Set of UUIDs declared as active in .intent/workers/. Registry rows
-        # whose UUID is not in this set are treated as orphans (left behind
-        # after a worker UUID rotation, paused, or deleted) and skipped.
-        self._active_worker_uuids: set[str] = set()
+        # Per-worker schedule state loaded once per cycle from .intent/workers/.
+        # Sourced via the shared loader (ADR-041 D4) so the dashboard and
+        # health_log_service apply the same per-worker thresholds and the same
+        # orphan-skip rule as this supervisor.
+        self._schedule_state: WorkerScheduleState = WorkerScheduleState(
+            thresholds={}, active_uuids=frozenset()
+        )
 
     # -------------------------------------------------------------------------
     # Self-scheduling entry point — called once by Sanctuary
@@ -134,8 +137,7 @@ class WorkerShopManager(Worker):
 
         await self.post_heartbeat()
 
-        self._thresholds = self._load_worker_thresholds()
-        self._active_worker_uuids = self._load_active_worker_uuids()
+        self._schedule_state = load_worker_schedule_state()
         workers = await self._fetch_registered_workers(service_registry)
         existing = await self._fetch_existing_findings(service_registry)
 
@@ -148,7 +150,7 @@ class WorkerShopManager(Worker):
             worker_uuid = str(worker["worker_uuid"])
             seconds_silent = worker["seconds_silent"]
 
-            if worker_uuid not in self._active_worker_uuids:
+            if worker_uuid not in self._schedule_state.active_uuids:
                 logger.debug(
                     "WorkerShopManager: skipping orphan registry row "
                     "%s (%s) — UUID not declared in any active worker YAML",
@@ -157,9 +159,9 @@ class WorkerShopManager(Worker):
                 )
                 continue
 
-            # Match against threshold using sanitized name (thresholds are also
-            # loaded from YAML titles which are now sanitized in _load_worker_thresholds)
-            threshold = self._thresholds.get(worker_name, _CFG.fallback_threshold_sec)
+            threshold = self._schedule_state.thresholds.get(
+                worker_uuid, _CFG.fallback_threshold_sec
+            )
 
             if seconds_silent > threshold:
                 subject = f"{_FINDING_SUBJECT}::{worker_uuid}"
@@ -214,81 +216,6 @@ class WorkerShopManager(Worker):
             flagged,
             resolved,
         )
-
-    # -------------------------------------------------------------------------
-    # Intent reading — load declared schedules per worker
-    # -------------------------------------------------------------------------
-
-    def _load_worker_thresholds(self) -> dict[str, int]:
-        """
-        Read all .intent/workers/*.yaml declarations and extract
-        max_interval + glide_off per worker title.
-
-        Returns mapping of worker_name (title) → threshold in seconds.
-        Worker titles are sanitized to ASCII to match the sanitized names
-        read from worker_registry during the audit cycle.
-        Workers without schedule declaration use _CFG.fallback_threshold_sec.
-        """
-        thresholds: dict[str, int] = {}
-        intent_workers = Path(".intent/workers")
-
-        if not intent_workers.exists():
-            return thresholds
-
-        for yaml_path in intent_workers.glob("*.yaml"):
-            try:
-                data = strict_yaml_processor.load_strict(yaml_path)
-                raw_title = data.get("metadata", {}).get("title", "")
-                # Sanitize the title to match what will be in worker_registry
-                # after re-registration with the fixed YAML files.
-                title = _sanitize(raw_title)
-                schedule = data.get("mandate", {}).get("schedule")
-                if title and schedule:
-                    max_interval = schedule.get(
-                        "max_interval", _CFG.fallback_threshold_sec
-                    )
-                    glide_off = schedule.get(
-                        "glide_off",
-                        max(int(max_interval * _CFG.glide_off_multiplier), 10),
-                    )
-                    thresholds[title] = max_interval + glide_off
-            except Exception as exc:
-                logger.warning(
-                    "WorkerShopManager: could not read %s: %s", yaml_path.name, exc
-                )
-
-        return thresholds
-
-    def _load_active_worker_uuids(self) -> set[str]:
-        """
-        Read .intent/workers/*.yaml and return the set of identity.uuid
-        values for workers declared as status: active.
-
-        Used to filter worker_registry rows: any row whose worker_uuid is
-        not in this set is an orphan (paused worker leftover, deleted
-        worker, or stale row from a prior UUID before rotation) and is
-        skipped by the staleness check.
-        """
-        active_uuids: set[str] = set()
-        intent_workers = Path(".intent/workers")
-
-        if not intent_workers.exists():
-            return active_uuids
-
-        for yaml_path in intent_workers.glob("*.yaml"):
-            try:
-                data = strict_yaml_processor.load_strict(yaml_path)
-                if data.get("metadata", {}).get("status") != "active":
-                    continue
-                uuid = (data.get("identity") or {}).get("uuid", "")
-                if uuid:
-                    active_uuids.add(uuid)
-            except Exception as exc:
-                logger.warning(
-                    "WorkerShopManager: could not read %s: %s", yaml_path.name, exc
-                )
-
-        return active_uuids
 
     # -------------------------------------------------------------------------
     # DB reads
