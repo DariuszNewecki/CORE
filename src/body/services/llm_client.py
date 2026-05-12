@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import httpx
 
+from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.logger import getLogger
 
 
@@ -19,8 +20,14 @@ class LLMClient:
     """A wrapper for making asynchronous API calls to a specific LLM."""
 
     def __init__(
-        self, api_url: str, api_key: str, model_name: str, http_timeout: int = 60
+        self,
+        api_url: str,
+        api_key: str,
+        model_name: str,
+        http_timeout: int | None = None,
     ):
+        if http_timeout is None:
+            http_timeout = load_operational_config().llm.http_timeout_sec
         self.api_url = api_url
         self.api_key = api_key
         self.model_name = model_name
@@ -32,11 +39,13 @@ class LLMClient:
         self,
         prompt: str,
         system_prompt: str = "You are a helpful assistant.",
-        max_tokens: int = 4096,
+        max_tokens: int | None = None,
     ) -> str:
         """
         Makes an asynchronous request to the configured LLM API.
         """
+        if max_tokens is None:
+            max_tokens = load_operational_config().llm.default_max_tokens
         headers = {
             "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json",

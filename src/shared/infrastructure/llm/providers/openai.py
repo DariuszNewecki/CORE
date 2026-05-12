@@ -10,6 +10,7 @@ from typing import Any
 
 import httpx
 
+from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.logger import getLogger
 
 from .base import AIProvider
@@ -35,7 +36,7 @@ class OpenAIProvider(AIProvider):
         prompt: str,
         user_id: str,
         system_prompt: str = "",
-        max_tokens: int = 4096,
+        max_tokens: int | None = None,
         response_format: dict[str, Any] | None = None,
     ) -> str:
         """
@@ -48,6 +49,7 @@ class OpenAIProvider(AIProvider):
                            system-role message. Falls back to a neutral default
                            when empty.
             max_tokens: Maximum tokens to generate, forwarded directly to the API.
+                        When None, falls back to the operational default.
             response_format: Optional provider-agnostic structured-output contract.
 
                 Supported input shapes from upper layers:
@@ -60,6 +62,8 @@ class OpenAIProvider(AIProvider):
                     - json_schema is forwarded in a conservative compatible shape.
                     - unsupported or malformed values are ignored.
         """
+        if max_tokens is None:
+            max_tokens = load_operational_config().llm.default_max_tokens
         endpoint = f"{self.api_url}/chat/completions"
         effective_system = (
             system_prompt.strip() if system_prompt.strip() else _DEFAULT_SYSTEM

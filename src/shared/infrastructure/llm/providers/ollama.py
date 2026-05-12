@@ -10,6 +10,7 @@ from typing import Any
 
 import httpx
 
+from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.logger import getLogger
 
 from .base import AIProvider
@@ -37,7 +38,7 @@ class OllamaProvider(AIProvider):
         prompt: str,
         user_id: str,
         system_prompt: str = "",
-        max_tokens: int = 4096,
+        max_tokens: int | None = None,
         response_format: dict[str, Any] | None = None,
     ) -> str:
         """
@@ -50,6 +51,7 @@ class OllamaProvider(AIProvider):
                            system-role message. Falls back to a neutral default
                            when empty so the model always receives a system turn.
             max_tokens: Mapped to Ollama's options.num_predict to cap output length.
+                        When None, falls back to the operational default.
             response_format: Optional provider-agnostic structured-output contract.
 
                 Supported:
@@ -63,6 +65,8 @@ class OllamaProvider(AIProvider):
         Returns:
             Raw text content from Ollama's assistant message.
         """
+        if max_tokens is None:
+            max_tokens = load_operational_config().llm.default_max_tokens
         endpoint = f"{self.api_url}/api/chat"
         effective_system = (
             system_prompt.strip() if system_prompt.strip() else _DEFAULT_SYSTEM

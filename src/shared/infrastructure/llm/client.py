@@ -15,6 +15,7 @@ from typing import Any
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.infrastructure.config_service import ConfigService, LLMResourceConfig
+from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.logger import getLogger
 
 from .providers.base import AIProvider
@@ -157,7 +158,7 @@ class LLMClient:
         prompt: str,
         system_prompt: str,
         user_id: str = "core_system",
-        max_tokens: int = 4096,
+        max_tokens: int | None = None,
         response_format: dict[str, Any] | None = None,
     ) -> str:
         """
@@ -172,6 +173,7 @@ class LLMClient:
             system_prompt: Constitutional system prompt loaded from system.txt.
             user_id: Audit identifier for tracing.
             max_tokens: Token budget for this invocation, sourced from model.yaml.
+                When None, falls back to the operational default.
             response_format: Optional provider-agnostic structured-output contract.
                 Supported shapes:
                     {"type": "json_object"}
@@ -180,6 +182,8 @@ class LLMClient:
         Returns:
             Raw string response from the AI provider.
         """
+        if max_tokens is None:
+            max_tokens = load_operational_config().llm.default_max_tokens
         return await self._request_with_retry(
             self.provider.chat_completion,
             prompt,

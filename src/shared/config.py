@@ -90,7 +90,6 @@ class Settings(BaseSettings):
     LOCAL_EMBEDDING_MODEL_NAME: str = "nomic-embed-text"
     EMBED_MODEL_REVISION: str = "2025-09-15"
     CORE_MAX_CONCURRENT_REQUESTS: int = 2
-    LLM_REQUEST_TIMEOUT: int = 300
 
     def __init__(self, **values: Any) -> None:
         # ============================================================

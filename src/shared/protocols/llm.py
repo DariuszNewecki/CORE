@@ -21,5 +21,5 @@ class LLMClientProtocol(Protocol):
         self,
         prompt: str,
         system_prompt: str = "You are a helpful assistant.",
-        max_tokens: int = 4096,
+        max_tokens: int | None = None,
     ) -> str: ...

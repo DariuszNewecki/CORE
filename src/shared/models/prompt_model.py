@@ -36,13 +36,11 @@ from pathlib import Path
 import yaml
 
 from shared.config import settings
+from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.logger import getLogger
 
 
 logger = getLogger(__name__)
-
-_DEFAULT_MAX_TOKENS = 4096
-_DEFAULT_MAX_LENGTH = 4096
 
 
 @dataclasses.dataclass(frozen=True)
@@ -73,12 +71,17 @@ class PromptModelManifest:
         """
         model_block = data.get("model", {})
         output_block = data.get("output", {})
+        llm_cfg = load_operational_config().llm
 
         return cls(
             id=data["id"],
             role=data["role"],
-            model_max_tokens=int(model_block.get("max_tokens", _DEFAULT_MAX_TOKENS)),
-            output_max_length=int(output_block.get("max_length", _DEFAULT_MAX_LENGTH)),
+            model_max_tokens=int(
+                model_block.get("max_tokens", llm_cfg.default_max_tokens)
+            ),
+            output_max_length=int(
+                output_block.get("max_length", llm_cfg.default_max_length)
+            ),
             output_must_contain=output_block.get("must_contain", []),
             output_must_not_contain=output_block.get("must_not_contain", []),
             success_criteria=data.get("success_criteria", "").strip(),

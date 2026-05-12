@@ -11,6 +11,7 @@ from typing import Any
 
 import httpx
 
+from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.logger import getLogger
 
 from .base import AIProvider
@@ -42,7 +43,7 @@ class AnthropicProvider(AIProvider):
         prompt: str,
         user_id: str,
         system_prompt: str = "",
-        max_tokens: int = 4096,
+        max_tokens: int | None = None,
         response_format: dict[str, Any] | None = None,
     ) -> str:
         """
@@ -53,7 +54,8 @@ class AnthropicProvider(AIProvider):
             user_id: Audit identifier (not forwarded — Anthropic API has no user field).
             system_prompt: Constitutional system prompt. Falls back to a neutral
                            default when empty.
-            max_tokens: Maximum tokens to generate.
+            max_tokens: Maximum tokens to generate. When None, falls back to the
+                        operational default.
             response_format: Optional provider-agnostic structured-output contract.
 
                 Currently ignored for Anthropic in this implementation.
@@ -61,6 +63,8 @@ class AnthropicProvider(AIProvider):
                 (typically tool use / constrained interfaces), so unsupported
                 formats safely fall back to standard text generation.
         """
+        if max_tokens is None:
+            max_tokens = load_operational_config().llm.default_max_tokens
         if response_format:
             logger.debug(
                 "AnthropicProvider received response_format type '%s' but will ignore it "

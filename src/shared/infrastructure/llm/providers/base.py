@@ -11,6 +11,8 @@ from typing import Any
 
 import httpx
 
+from shared.infrastructure.intent.operational_config import load_operational_config
+
 
 # ID: 32b9740b-010f-4fd0-8886-f17093aa855f
 class AIProvider(ABC):
@@ -23,8 +25,10 @@ class AIProvider(ABC):
         api_url: str,
         model_name: str,
         api_key: str | None = None,
-        timeout: int = 180,
+        timeout: int | None = None,
     ):
+        if timeout is None:
+            timeout = load_operational_config().llm.provider_timeout_sec
         self.api_url = api_url.rstrip("/")
         self.model_name = model_name
         self.api_key = api_key
@@ -43,7 +47,7 @@ class AIProvider(ABC):
         prompt: str,
         user_id: str,
         system_prompt: str = "",
-        max_tokens: int = 4096,
+        max_tokens: int | None = None,
         response_format: dict[str, Any] | None = None,
     ) -> str:
         """
@@ -55,7 +59,9 @@ class AIProvider(ABC):
             system_prompt: Constitutional system prompt. Empty string uses
                            the provider's built-in default.
             max_tokens: Maximum tokens to generate. Controls response length;
-                        passed directly to the underlying API.
+                        passed directly to the underlying API. When None,
+                        concrete implementations fall back to the operational
+                        default.
             response_format: Optional provider-agnostic structured-output
                              request contract.
 

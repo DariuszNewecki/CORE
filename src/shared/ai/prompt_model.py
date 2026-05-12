@@ -39,6 +39,7 @@ from typing import Any
 
 import yaml
 
+from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.logger import getLogger
 
 
@@ -77,7 +78,9 @@ class PromptModelManifest:
 
     # Model preferences (advisory — CognitiveService resolves actual model)
     model_preference: str = ""  # e.g. "local", "deepseek", "anthropic"
-    model_max_tokens: int = 4096
+    model_max_tokens: int = field(
+        default_factory=lambda: load_operational_config().llm.default_max_tokens
+    )
     temperature: float | None = None
 
     success_criteria: str = ""
@@ -355,7 +358,9 @@ class PromptModel:
                 f"PromptModel '{name}' field 'output.json_schema' must be an object."
             )
 
-        model_max_tokens_raw = model_block.get("max_tokens", 4096)
+        model_max_tokens_raw = model_block.get(
+            "max_tokens", load_operational_config().llm.default_max_tokens
+        )
         try:
             model_max_tokens = int(model_max_tokens_raw)
         except (TypeError, ValueError) as e:
