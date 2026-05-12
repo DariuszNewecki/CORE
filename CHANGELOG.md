@@ -6,6 +6,102 @@ This project follows **Keep a Changelog** and **Semantic Versioning**, but with 
 
 ---
 
+## [2.5.0] — 2026-05-12
+
+### 🎯 Engine Integrity
+
+Band D closed. CORE's governance engine is now constitutionally coherent: no enforcement logic lives in `src/`, no impact classification lives in decorators, no operational threshold lives as a hardcoded literal. The rules that govern autonomous behaviour are declared in `.intent/` and enforced from there.
+
+This release closes the gap between a system that *behaves* constitutionally and one that *is auditable as* constitutional.
+
+#### G4 — Governance in `.intent/` (closed)
+
+**ADR-008 — `impact_level` constitutionalization.**
+The field that determines whether a proposal auto-executes or requires human approval was declared in `@register_action()` Python decorators — governance logic in `src/`. Externalized to `.intent/enforcement/config/action_risk.yaml`, keyed by `action_id`. A loader at `shared.infrastructure.intent.action_risk` overlays the mapping at `ActionExecutor` init time. Any `action_id` absent from the mapping raises `ConstitutionalError` at startup. 23 actions registered; 22 decorator literals removed.
+
+**ADR-040 — Operational config wiring campaign.**
+32 categories of operational thresholds and scoring weights moved from hardcoded `src/` literals to `.intent/enforcement/config/operational_config.yaml`. 23 commits, 122 files touched, 113 `src/` files now importing `load_operational_config`, 48 typed frozen dataclasses backing every section. Enum ordinals, loop bounds, and loader fallback defaults explicitly exempted per ADR-040 exclusion list. Audit verdict held PASS throughout the campaign.
+
+#### G2 — Convergence (closed)
+
+**ADR-038 — Circuit-breaker on repeated proposal failures (#281).**
+The autonomous loop previously had no protection against a systematic error producing unbounded proposal churn. The circuit-breaker trips on repeated failures against the same `(action_id, file)` signature within a configurable lookback window. Thresholds governed via `.intent/`; fallback constants are the fail-safe path only.
+
+#### Path governance
+
+**ADR-031 — No hardcoded runtime directory paths.**
+A blocking `regex_gate` rule prevents any `src/` file from declaring raw `var/` path strings. All runtime path resolution routes through `PathResolver`. The 40 pre-existing findings surfaced by ADR-031 served as the training corpus for autonomous remediation; all resolved.
+
+#### Autonomous loop integrity
+
+- **ADR-033** — Flow→step parameter routing contract. Routing behaviour auditable from YAML without reading Python source.
+- **ADR-035** — One proposal per `(action, file)` at a time. Eliminates parallel-proposal races on the same target.
+- **ADR-036** — PathResolver exclusion from modularity enforcement.
+- **ADR-037** — Flow refs exempt from per-file scoping rules.
+- **ADR-039** — Per-cycle audit-input cache invalidation. Eliminates stale findings surviving across cycles.
+
+#### Gate state after this release
+
+| Gate | Meaning | Status |
+|------|---------|--------|
+| G1 — Loop closure | Round-trip autonomous fix demonstrated | ✅ |
+| G2 — Convergence | Circuit-breaker; resolution rate > creation rate | ✅ closed |
+| G3 — Consequence chain | Causality queryable end-to-end | ✅ |
+| G4 — Governance in `.intent/` | No enforcement logic or thresholds in `src/` | ✅ closed |
+
+Closes milestone 16 (Band D — Engine Integrity), 107 issues.
+
+---
+
+## [2.4.0] — 2026-05-01
+
+### 🎯 Consequence Chain
+
+Band B closed. CORE's autonomous-operation gate G3 (Consequence Chain) is materialized. The Finding → Proposal → Approval → Execution → File changes → New findings causality chain is now queryable end-to-end.
+
+This release closes the operational form of the two-log problem — the gap between what was decided (action log) and what changed because of it (consequence log). Without that chain, autonomous operation cannot be audited, debugged, or trusted in regulated environments.
+
+#### G3 — Consequence Chain (closed)
+
+All six edges of the chain delivered:
+
+- **Edge 1** — Finding ↔ Proposal linkage (`finding_ids` jsonb on `constitutional_constraints`).
+- **Edge 2** — Approval attribution. `approved_by`, `approved_at`, `approval_authority` non-omittable; DB CHECK constraint enforced.
+- **Edge 3** — Claim attribution via `claim.proposal` atomic action (ADR-017). CLI sentinel UUID distinguishes human-driven claims from autonomous worker claims.
+- **Edge 5** — Execution → file changes. Orphan-commit detection via new `CommitReachabilityAuditor`; commit-message proposal-id prefix widened from 8 to 16 chars (ADR-019).
+- **Edge 6** — File changes → new findings. `AuditViolationSensor` threads `causing_proposal_id`, `causing_commit_sha`, `cause_attribution` into every new finding payload.
+
+Hygiene fix: `BlackboardService.update_entry_status` corrected as the fifth terminal-state write site (#135).
+
+#### Decomposed crawler/embedder (ADR-018)
+
+The autonomous repository-to-vectors path moves from a single composite worker to a decomposed pair: `repo_crawler` writes structural facts and enqueues work by zeroing `chunk_count`; `repo_embedder` dequeues, chunks, embeds, and upserts. The manual `core-admin dev sync --write` CLI path is preserved unchanged. ~1,640 artifacts embedded across six Qdrant collections post-activation.
+
+#### Dashboard truthfulness (#173)
+
+`core-admin runtime health` now renders workers with stale heartbeats as `stale`, not `active`. Previously the `_worker_colour` function graded by heartbeat age but the cell text was the raw status column, masking staleness in pipes and screenshots.
+
+#### Gate state after this release
+
+| Gate | Meaning | Status |
+|------|---------|--------|
+| G1 — Loop closure | Round-trip autonomous fix demonstrated | ✅ |
+| G2 — Convergence | Resolution rate > creation rate, sustained | parked |
+| G3 — Consequence chain | Causality queryable end-to-end | ✅ closed |
+| G4 — Governance in `.intent/` | No enforcement logic in `src/` | 🔄 in progress |
+
+Closes epic #110, milestone 14 (Band B — Consequence Chain).
+
+---
+
+## [2.3.0] — 2026-04-17
+
+### 🎯 Governed Attribution
+
+Intermediate release during the Band B campaign. Established the attribution write-path contracts and schema foundations that the consequence chain (v2.4.0) completed. ADR-015 coordination plan landed; sub-issue attribution edges (D1–D7) scoped and tracked.
+
+---
+
 ## [2.2.2] — 2026-02-28
 
 ### 🎯 Self-Compliance & Hygiene Edition
@@ -77,90 +173,22 @@ This release achieves **zero constitutional violations** through systematic modu
 #### DRY Infrastructure
 
 * **constitutional_validation.py** - Standardized validation result models
-  - `ConstitutionalValidationResult`: Rich violation tracking
-  - `ConstitutionalFileValidationResult`: File-specific validation
-  - `ConstitutionalBatchValidationResult`: Aggregate results
-  - Eliminates duplication across IntentSchemaValidator, PathValidator, CodeValidator
-  - Distinct from generic `ValidationResult` (no naming conflicts)
-
 * **path_utils.py** - Reusable file discovery and pattern matching
-  - `iter_files_by_extension()`: Generic file discovery with exclusions
-  - `iter_python_files()`: Python-specific with sensible defaults
-  - `matches_glob_pattern()` / `matches_any_pattern()`: Pattern matching
-  - `safe_relative_to()` / `is_under_directory()`: Path relationships
-  - `ensure_posix_path()`: Cross-platform normalization
-  - Consolidates patterns from IntentSchemaValidator, PathValidator, file scanners
-
 * **policy_resolver.py** - Constitutional path compliance
-  - Migrated from `os.getenv()` to `PathResolver` (constitutional compliance)
-  - Uses `path_utils` for file discovery (eliminates `glob.glob` usage)
-  - No environment variable overrides (constitutional governance)
 
 ### Changed
 
-#### Architecture
-
-* **Single Responsibility Principle** - Enforced across all refactored modules
-  - Repository pattern: Separated CRUD, mapping, state management, facade
-  - Validation pattern: Separated schema, expression, CLI concerns
-  - Governance pattern: Separated conflict detection, path validation, code validation
-  - Service pattern: Separated parsing, proposal writing, reconciliation, orchestration
-
-* **Separation of Concerns** - Clear boundaries established
-  - CRUD operations isolated from business logic
-  - Validation logic separated from CLI presentation
-  - Coordination separated from execution
-  - Parsing separated from orchestration
+* Single Responsibility Principle enforced across all refactored modules
+* Separation of Concerns: clear boundaries between CRUD, validation, coordination, and execution
 
 ### Performance & Metrics
 
-**Before Refactoring**:
-- Constitutional violations: 1 (proposal_repository: 63.6)
-- Technical debt warnings: 13
-- Average responsibilities per file: 4-5
-- Code duplication: Multiple validation patterns
-
-**After Refactoring**:
-- Constitutional violations: 0 ✅
-- Technical debt warnings: 7 (46% reduction)
-- Average responsibilities per file: 1-2
-- Code duplication: Eliminated through shared utilities
-- Total modules created: 17 focused, single-responsibility modules
-
-**Symbol Count**: 1,833 symbols
-- **Remarkably efficient** for 38+ feature domains (~48 symbols/domain)
-- **4.17x more efficient** than industry average (200 symbols/domain typical)
-- Comparable to pytest (200K LOC) but with broader scope
-
-### Why This Matters
-
-**Constitutional Governance**:
-- Zero violations = Full constitutional compliance
-- Modularity enforced through scoring and auditing
-- Automatic quality gates prevent regression
-
-**Code Quality**:
-- Single-responsibility modules easier to test and maintain
-- Clear separation enables parallel development
-- DRY utilities prevent future duplication
-
-**Scalability**:
-- Clean architecture supports A3/A4 autonomy advancement
-- Focused modules reduce cognitive load
-- Reusable utilities accelerate development
-
-### Migration Status
-
-**Completed**: Modularity refactoring, DRY infrastructure, constitutional compliance
-**Stable**: All refactored modules, validation utilities, path utilities
-**Next**: Complete type safety (add mypy --strict), continue A3 advancement
-
-### Notes
-
-* This release achieves **zero constitutional violations** for the first time
-* Refactoring follows **"Big Boys" patterns** (Kubernetes, AWS, OPA architecture)
-* DRY utilities establish **foundation for future validation** and file operations
-* Symbol count (1,833) remains **exceptionally lean** for system complexity
+| Metric | Before | After |
+|--------|--------|-------|
+| Constitutional violations | 1 | 0 ✅ |
+| Technical debt warnings | 13 | 7 (−46%) |
+| Avg responsibilities/file | 4–5 | 1–2 |
+| Total new modules | — | 17 |
 
 ---
 
@@ -170,281 +198,43 @@ This release achieves **zero constitutional violations** through systematic modu
 
 This release establishes the **foundational architecture for autonomous operations at scale**. CORE now has a universal orchestration model that closes all loops, enables self-correction everywhere, and provides the substrate for fully autonomous conversational operation.
 
-This is the **conceptual breakthrough** that makes CORE an operating system for AI-driven development, not just a collection of tools.
-
-### Philosophy Shift
-
-**Before 2.2.0**: Collection of autonomous capabilities with ad-hoc orchestration
-**After 2.2.0**: Universal workflow pattern that composes all operations
-
 ### Added
 
 #### Constitutional Architecture
 
-* **INTERPRET Phase — 6th Constitutional Phase** (2026-01-15)
-  - Elevated intent interpretation to constitutional primitive
-  - First phase in governance pipeline (INTERPRET → PARSE → LOAD → AUDIT → RUNTIME → EXECUTION)
-  - Completes Mind-Body-Will architecture (Will layer now has constitutional entry point)
-  - Dynamic phase discovery from `.intent/phases/*.yaml` (zero hardcoding)
-  - Paper: `.intent/papers/CORE-Phases-as-Governance-Boundaries.md` (updated to 6 phases)
-  - Implementation: `InterpretPhase` v1 (deterministic pattern matching)
-  - Evolution path documented: v1 (deterministic) → v2 (LLM-assisted)
-  - All 3 workflows updated to start with INTERPRET phase
-  - 100% test pass rate (8/8 phase verification + 5/5 workflow inference tests)
-
-* **Dynamic Phase Registry** (2026-01-15)
-  - Phase discovery from constitutional definitions, not hardcoded imports
-  - Constitution → Implementation (proper governance direction)
-  - Minimal hardcoding: single PHASE_IMPLEMENTATIONS registry
-  - Automatic validation that phases have implementations
-  - Clear migration path for stub → real phase implementations
-
-* **Universal Workflow Pattern** (`.intent/papers/CORE-Adaptive-Workflow-Pattern.md`)
-  - Canonical pattern: INTERPRET → ANALYZE → STRATEGIZE → GENERATE → EVALUATE → DECIDE
-  - Constitutional phases: INTERPRET, PARSE, LOAD, AUDIT, RUNTIME, EXECUTION
-  - TERMINATE boundary separates generation from finalization
-  - Conceptual decision points replace magic numbers
+* **INTERPRET Phase — 6th Constitutional Phase**
+* **Dynamic Phase Registry** — phase discovery from constitutional definitions, not hardcoded imports
+* **Universal Workflow Pattern** (`INTERPRET → ANALYZE → STRATEGIZE → GENERATE → EVALUATE → DECIDE`)
 
 #### Component Types Formalized
 
-* **Interpreters** (INTERPRET phase) - Parse intent → canonical task structure
-  - Foundation for conversational interface (`core` CLI)
-  - Natural language and structured input support
-  - *Status: Documented, implementation pending*
-
-* **Analyzers** (PARSE phase) - Extract structural facts without decisions
-  - FileAnalyzer: Classify file types and complexity
-  - SymbolExtractor: Find testable functions and classes
-  - *Existing: 2 implemented, 3 planned*
-
-* **Evaluators** (AUDIT phase) - Assess quality and identify patterns
-  - FailureEvaluator: Test failure pattern recognition
-  - ClarityEvaluator: Cyclomatic complexity measurement
-  - *Existing: 2 implemented, 3 planned*
-
-* **Strategists** (RUNTIME phase) - Make deterministic decisions
-  - TestStrategist: Select test generation strategy with adaptive pivots
-  - ClarityStrategist: Choose refactoring approach
-  - *Existing: 2 implemented, 3 planned*
-
-* **Orchestrators** (RUNTIME phase) - Compose components into adaptive workflows
-  - ProcessOrchestrator: Generic component sequencer
-  - AdaptiveTestGenerator: Test generation with failure recovery (70-80% success)
-  - ClarityServiceV2: Refactoring with recursive self-correction
-  - AutonomousWorkflowOrchestrator: Three-phase development workflow
-  - DevSyncWorkflow: Multi-action fix-sync pipeline
-  - *Existing: 5 operational*
-
-#### Adaptive Workflow Features
-
-* **Self-Correcting Loops** - Pattern-based adaptation
-  - "Did result improved?" - Relative quality assessment
-  - "SOLVED?" - Multi-dimensional quality gate (syntax + tests + constitutional + improvement)
-  - "Continue trying?" - Holistic termination evaluation (time, attempts, confidence, stuck detection)
-
-* **Decision Tracing** - Full audit trail of autonomous decisions
-  - DecisionTracer integration mandatory for strategic choices
-  - Pattern history tracking for learning
-  - Strategy pivot rationale recording
-
-* **Component Discovery** - Runtime introspection
-  - Registry-based (Atomic Actions)
-  - Convention-based (Components)
-  - Service Registry (Infrastructure)
+* Interpreters, Analyzers, Evaluators, Strategists, Orchestrators — all defined with constitutional phase boundaries
+* `ComponentResult` contract — universal return structure with confidence scoring
 
 ### Changed
 
-#### Interface Clarity
-
-* **`core` CLI** - Positioned as primary conversational interface
-  - Natural language → autonomous operation
-  - "Please do X" → CORE figures out how
-  - Foundation for web/API interfaces
-  - *Status: Exists, needs workflow integration*
-
-* **`core-admin` CLI** - Positioned as developer tooling
-  - Direct, explicit control of internals
-  - Surgical tools for maintaining CORE itself
-  - *Status: Stable, needs pattern compliance*
-
-#### Architecture
-
-* **Component Phases** - Strict constitutional boundaries
-  - INTERPRET: Understand user intent (new)
-  - PARSE: Extract structure (formalized)
-  - LOAD: Retrieve data (formalized)
-  - AUDIT: Evaluate quality (formalized)
-  - RUNTIME: Make decisions (formalized)
-  - EXECUTION: Mutate state (existing)
-
-* **ComponentResult Contract** - Universal return structure
-  ```python
-  @dataclass
-  class ComponentResult:
-      component_id: str
-      ok: bool
-      data: dict[str, Any]
-      phase: ComponentPhase
-      confidence: float  # 0.0-1.0 for workflow routing
-      next_suggested: str  # Hint for adaptive workflows
-      metadata: dict[str, Any]
-      duration_sec: float
-  ```
-
-#### Workflow Patterns
-
-* **V1 → V2 Migration Path** - Clear refactoring strategy
-  - Checkers → Evaluators (consistent interface)
-  - Builders → Analyzers (phase boundary compliance)
-  - Legacy workflows → Orchestrator compositions
-  - Procedural code → Component compositions
-
-### Fixed
-
-* **Conceptual Clarity** - Long-term vision documented
-  - Three interfaces (core, core-admin, API/web)
-  - Component lifecycle patterns
-  - Constitutional compliance requirements
-  - Integration points
-
-* **Architectural Gaps** - Identified and prioritized
-  - Missing RequestInterpreter (blocks conversational autonomy)
-  - Insufficient Strategists (incomplete decision coverage)
-  - Insufficient Evaluators (incomplete quality gates)
-
-### Patterns Established
-
-#### Existing V2 Commands
-
-* ✅ `core-admin coverage generate-adaptive` - Test generation with adaptive learning
-* ✅ `core-admin fix clarity` - Clarity refactoring with complexity evaluation
-* 🔄 11 commands pending migration
-
-#### Anti-Patterns Documented
-
-* ❌ Bypassing Evaluators - Accepting LLM output without validation
-* ❌ Direct Mutations - Writing files without ActionExecutor
-* ❌ Missing Tracing - Strategic decisions without DecisionTracer
-* ❌ Fixed Strategies - No adaptation to failure patterns
-* ❌ Implementation-Detail Decisions - Checking counters instead of conceptual questions
-* ❌ Imperative Flow - if/else chains instead of component composition
-* ❌ Missing TERMINATE Boundary - Not separating generation from finalization
-
-### Performance & Metrics
-
-**Component Coverage**:
-- Interpreters: 0/3 needed (critical gap)
-- Analyzers: 2/5 needed
-- Evaluators: 2/5 needed
-- Strategists: 2/5 needed
-- Orchestrators: 5/5 sufficient
-- Atomic Actions: 10+ sufficient
-
-**Command Migration**:
-- Fully Migrated: 0 commands
-- In Progress: 2 commands (15%)
-- Not Started: 11 commands
-
-**Overall Modernization**: ~12% complete
-
-### What This Enables
-
-#### Now
-
-* **Conceptual Foundation** - Universal pattern for all autonomous operations
-* **Component Library** - Reusable, composable building blocks
-* **Self-Correction Model** - Adaptive loops with pattern learning
-* **Clear Path Forward** - Roadmap from here to full autonomy
-
-#### Soon (Next 3-5 Sessions)
-
-* **RequestInterpreter** - Universal entry point for all commands
-* **Complete Strategist Coverage** - Decisions for all operation types
-* **Complete Evaluator Coverage** - Quality gates for all outputs
-* **Pattern Compliance** - All commands follow universal workflow
-
-#### Future (Natural Evolution)
-
-* **Fully Autonomous `core` CLI** - Conversational interface that does what we do in this chat
-* **Web Interface** - Same workflow, different transport
-* **API Integration** - Programmatic access to all capabilities
-* **Self-Replication** - CORE generates CORE.NG from intent (A4)
-
-### Why This Matters
-
-The Universal Workflow Pattern **closes all loops**:
-
-1. **Self-Correction Everywhere** - Not command-specific, universally available
-2. **Constitutional Governance** - Phase boundaries enforced at component level
-3. **Autonomous Composition** - Any operation = component composition
-4. **Traceable Decisions** - Full audit trail of strategic choices
-5. **Scalable Architecture** - Same pattern from simple commands to full autonomy
-
-Without this pattern:
-- AI agents can't self-correct reliably
-- Failures aren't traceable
-- Constitutional governance is ad-hoc
-- Code quality degrades over time
-
-With this pattern:
-- Every operation is self-correcting
-- Every decision is traceable
-- Every mutation is governed
-- Quality improves autonomously
-
-**The workflow closes all loops** - that's why this release is foundational.
-
-### Migration Status
-
-**Stable**: Constitutional governance, Atomic Actions, Component library exists
-**Active**: Pattern compliance migration, Component gap filling
-**Planned**: Full `core` conversational autonomy, Web/API interfaces
-
-### Notes
-
-* This release documents **conceptual architecture**, not feature completeness
-* Migration is **incremental and safe** - old code remains until new is proven
-* Success measured by **pattern compliance**, not feature count
-* Autonomy advancement requires **workflow pattern adoption**, not just capability existence
+* `core` CLI positioned as primary conversational interface
+* `core-admin` CLI positioned as developer tooling
+* Component phases given strict constitutional boundaries
 
 ---
 
-## [2.1.0] — 2025-01 (Released)
+## [2.1.0] — 2025-01
 
 ### 🎯 Consolidation Release — Governance First
 
-This release focused on **stabilisation, credibility, and enforcement depth**, rather than expanding raw capability. It represented the transition from *capability discovery* to *governance consolidation*.
+Stabilisation, credibility, and enforcement depth. Transition from capability discovery to governance consolidation.
 
 ### Added
 
-#### Governance & Enforcement
-
-* Enforcement coverage tracking promoted to **first-class governance signal**
-* Explicit distinction between **declared vs enforced** constitutional rules
-* Coverage regeneration and drift detection for governance audits
-* Progressive disclosure output for enforcement results (CLI-first)
-
-#### Autonomy Discipline
-
-* Formalisation of **A2 Governed Autonomy** (coverage-bounded)
-* Explicit autonomy ladder definitions embedded in documentation
-* Clear separation between *capability existence* and *operational autonomy*
-
-#### Documentation & Communication
-
-* README rewritten for **credibility calibration** and human-friendly tone
-* Clear articulation of *what CORE does not yet do*
-* Alignment between metrics, autonomy claims, and enforcement scope
+* Enforcement coverage tracking as first-class governance signal
+* Explicit distinction between declared vs enforced constitutional rules
+* Formalisation of A2 Governed Autonomy (coverage-bounded)
 
 ### Changed
 
-* Reframed A2 status from "achieved" to **"governed and bounded"**
-* Reduced implicit hype in public-facing descriptions
+* Reframed A2 status from "achieved" to "governed and bounded"
 * Tightened language around autonomy, authority, and responsibility
-
-### Removed
-
-* Implicit assumptions that autonomy == coverage completeness
 
 ---
 
@@ -452,67 +242,16 @@ This release focused on **stabilisation, credibility, and enforcement depth**, r
 
 ### 🎯 Major Milestone: A2 Governed Code Generation (Foundational)
 
-This release marked the **first operational realization of A2 autonomy**: the ability to autonomously generate new code under **constitutional governance**, with semantic awareness and enforced constraints.
-
-This version established the **technical spine** of CORE.
+First operational realization of A2 autonomy: the ability to autonomously generate new code under constitutional governance, with semantic awareness and enforced constraints.
 
 ### Added
 
-#### Governed Code Generation (A2 — Foundational)
-
-* **CoderAgent v1**: Context-aware autonomous code generation (70–80% success)
-* **Semantic Infrastructure**: 500+ symbols vectorized, 60+ module anchors
-* **Context Package System**: Structured, reproducible AI context construction
-* **Semantic Placement**: Deterministic code placement accuracy
-* **Policy Vectorization**: Agents reason semantically over constitutional rules
-* **Architectural Context Builder**: System-wide structural awareness for agents
-* **Module Anchors**: Semantic markers for placement and governance
-
-#### Constitutional Governance
-
-* **Constitutional Audit System**: Continuous validation with violation tracking
-* **Micro-Proposal Loop**: Autonomous remediation proposals (governed)
-* **Policy Coverage Service**: Mapping between rules and code regions
-* **Agent Governance Policies**: Explicit autonomy lanes and prohibitions
-
-#### Infrastructure & Runtime
-
-* **Service Registry**: Deterministic lifecycle and dependency management
-* **PostgreSQL Knowledge Graph**: Symbols and relations as SSOT
-* **Vector Store Integration**: Semantic search over code and policies
-* **Test Isolation**: Dedicated test database and execution paths
-
-### Changed
-
-#### Context & Reasoning
-
-* Migration from ad-hoc string prompts to **structured ContextPackages**
-* Architectural and policy context injected deterministically
-* Improved reasoning traceability and reproducibility
-
-#### Agent Behaviour
-
-* Agents constrained to **explicitly permitted actions only**
-* All AI output subject to constitutional validation
-* Failure paths produce structured diagnostics
-
-#### Quality & Validation
-
-* Test generation improved through semantic awareness
-* Governance checks integrated into standard workflows
-
-### Fixed
-
-* Dependency injection lifecycle inconsistencies
-* Semantic placement drift
-* Database session handling
-* Import, header, and docstring compliance gaps
-
-### Performance Signals (Indicative)
-
-* Code generation success: ~70–80%
-* Semantic placement accuracy: ~100%
-* Knowledge graph growth: 0 → 500+ symbols
+* **CoderAgent v1** — context-aware autonomous code generation (70–80% success)
+* **Semantic Infrastructure** — 500+ symbols vectorized, 60+ module anchors
+* **Constitutional Audit System** — continuous validation with violation tracking
+* **Micro-Proposal Loop** — autonomous remediation proposals (governed)
+* **PostgreSQL Knowledge Graph** — symbols and relations as SSOT
+* **Vector Store Integration** — semantic search over code and policies
 
 ---
 
@@ -520,50 +259,30 @@ This version established the **technical spine** of CORE.
 
 ### 🎯 Major Milestone: A1 Self-Healing Autonomy
 
-Initial public release establishing **governed self-healing** as a first-class capability.
+Initial public release establishing governed self-healing as a first-class capability.
 
 ### Added
 
-#### Self-Healing (A1)
-
-* Autonomous docstring generation
-* Header and metadata compliance
-* Import organisation and formatting
-* Policy-driven repair actions
-
-#### Foundations
-
+* Autonomous docstring generation, header and metadata compliance, import organisation
 * Mind–Body–Will architecture
 * Constitutional governance via `.intent/`
-* Policy-driven validation model
-* Initial agent framework
-
-#### Tooling
-
-* `core-admin` CLI
-* Constitutional audit commands
-* Autonomous repair workflows
+* `core-admin` CLI with constitutional audit commands
 
 ---
 
 ## Autonomy Levels (Reference)
 
-* **A0 — Self-Awareness**: Knowledge graph, symbol discovery
-* **A1 — Self-Healing**: Autonomous compliance and drift repair
-* **A2 — Governed Generation**: Code generation under enforced rules
-* **A3 — Strategic Refactoring**: Multi-file architectural change (planned)
-* **A4 — Self-Replication**: CORE generates CORE.NG from intent (conceptual)
+* **A0 — Self-Awareness**: Knowledge graph, symbol discovery ✅
+* **A1 — Self-Healing**: Autonomous compliance and drift repair ✅
+* **A2 — Governed Generation**: Code generation under enforced rules ✅
+* **A3 — Governed Autonomy**: Daemon finds, proposes, and fixes violations unattended ✅ current
+* **A4 — Self-Replication**: CORE generates CORE.NG from its own understanding of itself 🔮
 
 ---
 
-### Notes
-
-* Autonomy levels describe **operational behavior**, not theoretical capability.
-* Advancement requires **measurable enforcement coverage**, not feature presence.
-* Version 2.2.0 establishes the **architectural foundation** for A3 and beyond.
-
----
-
+[2.5.0]: https://github.com/DariuszNewecki/CORE/compare/v2.4.0...v2.5.0
+[2.4.0]: https://github.com/DariuszNewecki/CORE/compare/v2.3.0...v2.4.0
+[2.3.0]: https://github.com/DariuszNewecki/CORE/compare/v2.2.2...v2.3.0
 [2.2.2]: https://github.com/DariuszNewecki/CORE/compare/v2.2.1...v2.2.2
 [2.2.1]: https://github.com/DariuszNewecki/CORE/compare/v2.2.0...v2.2.1
 [2.2.0]: https://github.com/DariuszNewecki/CORE/compare/v2.1.0...v2.2.0

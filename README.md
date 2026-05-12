@@ -3,9 +3,9 @@
 > **Executable constitutional governance for AI-assisted software development.**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Release](https://img.shields.io/badge/Release-v2.4.0-blue)](https://github.com/DariuszNewecki/CORE/releases)
+[![Release](https://img.shields.io/badge/Release-v2.5.0-blue)](https://github.com/DariuszNewecki/CORE/releases)
 [![Docs](https://img.shields.io/badge/Docs-online-green)](https://dariusznewecki.github.io/CORE/)
-[![Autonomy](https://img.shields.io/badge/Autonomy-A2-blue)](https://github.com/DariuszNewecki/CORE/issues/106)
+[![Autonomy](https://img.shields.io/badge/Autonomy-A3-blue)](https://github.com/DariuszNewecki/CORE/issues/106)
 
 ---
 
@@ -178,7 +178,7 @@ CORE progresses through defined levels. Each adds capability while remaining con
 A0 — Self-Awareness       ✅  Knows what it is and where it lives
 A1 — Self-Healing         ✅  Fixes known structural issues automatically
 A2 — Governed Generation  ✅  Natural language → constitutionally aligned code
-A3 — Governed Autonomy    🎯  Daemon finds, proposes, and fixes violations unattended  ← current
+A3 — Governed Autonomy    ✅  Daemon finds, proposes, and fixes violations unattended  ← current
 A4 — Self-Replication     🔮  Writes CORE.NG from its own understanding of itself
 ```
 
@@ -224,9 +224,18 @@ To understand what CORE is for before reading its implementation, start here:
 
 ## Project Status
 
-**Current Release:** v2.4.0 — Consequence Chain
+**Current Release:** v2.5.0 — Engine Integrity
 
-Active work: A3 Governed Autonomy — the daemon runs continuously, finds constitutional violations in its own codebase, proposes fixes, executes approved changes, and verifies the result. The governor's role is to define intent, review proposals that require architectural judgment, and approve constitutional changes.
+Active work: A3 Governed Autonomy — the daemon runs continuously, finds constitutional violations in its own codebase, proposes fixes, executes approved fixes, and verifies the result. The governor's role is to define intent, review proposals that require architectural judgment, and approve constitutional changes.
+
+All four A3 integrity gates are now closed. No enforcement logic or operational threshold lives in `src/` — governance is declared in `.intent/` and enforced from there. The autonomous loop is circuit-breaker protected; systematic errors surface as signals rather than unbounded churn.
+
+| Gate | Meaning | Status |
+|------|---------|--------|
+| G1 — Loop closure | Round-trip autonomous fix demonstrated | ✅ |
+| G2 — Convergence | Circuit-breaker; resolution rate > creation rate | ✅ |
+| G3 — Consequence chain | Causality queryable end-to-end | ✅ |
+| G4 — Governance in `.intent/` | No enforcement logic or thresholds in `src/` | ✅ |
 
 ---
 

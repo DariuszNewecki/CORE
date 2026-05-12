@@ -30,9 +30,9 @@ A3 is a state. These four gates define the state. A3 is claimable when all four 
 | Gate | What it means | Status |
 |------|---------------|--------|
 | **G1 — Loop closure** | An autonomous fix lands end-to-end on a non-synthetic example: finding detected → proposal created → proposal approved → execution succeeded → re-audit confirms resolution. Single clean run is the minimum. | ✅ Demonstrated — completed round-trips observed live on `core.autonomous_proposals` via the proposal-consequence path; `approval_required=false` on safe actions correctly bypasses the pending/approved lane. |
-| **G2 — Convergence** | Sustained state where rate of finding resolution exceeds rate of finding creation. Per the Convergence Principle, this is the fundamental operational metric — it is what makes "governed autonomy" truthful rather than aspirational. | ⚠️ Measurement unblocked (2026-05-09). Blackboard noise cleared, consequence chain completion path fixed (#260). Sustained convergence window pending — observation across multiple days required. #161 direction label suppressed pending multi-day window. |
+| **G2 — Convergence** | Sustained state where rate of finding resolution exceeds rate of finding creation. Per the Convergence Principle, this is the fundamental operational metric — it is what makes "governed autonomy" truthful rather than aspirational. | ✅ Closed 2026-05-12. Circuit-breaker (ADR-038, #281) ensures systematic errors surface as governance signals rather than unbounded churn. Thresholds governed in `.intent/enforcement/config/circuit_breaker.yaml`. Band D milestone 16 closed. |
 | **G3 — Consequence chain** | Finding → Proposal → Approval → Execution → File changes → New findings is continuously materialized as a queryable causality chain. Required for regulated environments, autonomous debugging, and for a non-programmer governor to trust the system without reading code. | ✅ Closed 2026-05-01. All six edges delivered. Epic #110 closed; Band B milestone 14 closed. |
-| **G4 — Governance in `.intent/`** | No enforcement logic, path mappings, policy thresholds, or governance decisions live in `src/`. All of it lives in `.intent/` (or, for human-intent documents, `.specs/`). This is the claim that makes the "non-programmer governor" role coherent. | ✅ Closed 2026-05-10. All known governance leaks resolved: path mappings route through `shared.infrastructure.intent.test_coverage_paths`; hardcoded runtime directory paths at 0 violations (ADR-031/032); flow parameter routing governed via `FlowStep.consumes` (ADR-033); `action_executor` JIT guards are dead code — bootstrap already injects at composition root (ADR-025); `impact_level` externalized to `.intent/enforcement/config/action_risk.yaml`, `@register_action` no longer accepts the parameter (ADR-008, commit ae07f839). Audit-verified: 7/7 checks pass, 0 `impact_level`-related findings, `action_risk.yaml` in perfect 1:1 parity with registered action set. |
+| **G4 — Governance in `.intent/`** | No enforcement logic, path mappings, policy thresholds, or governance decisions live in `src/`. All of it lives in `.intent/` (or, for human-intent documents, `.specs/`). This is the claim that makes the "non-programmer governor" role coherent. | ✅ Closed 2026-05-10. All known governance leaks resolved: path mappings route through `shared.infrastructure.intent.test_coverage_paths`; hardcoded runtime directory paths at 0 violations (ADR-031/032); flow parameter routing governed via `FlowStep.consumes` (ADR-033); `action_executor` JIT guards are dead code — bootstrap already injects at composition root (ADR-025); `impact_level` externalized to `.intent/enforcement/config/action_risk.yaml`, `@register_action` no longer accepts the parameter (ADR-008, commit ae07f839); 32 operational config sections wired to `.intent/enforcement/config/operational_config.yaml` (ADR-040). Audit-verified: PASS, 20 findings. |
 
 **Gate coupling:** G1 cannot be *proved* without G3 (you can't demonstrate the loop closed without the chain). G2 cannot be *measured* without G1 (no resolution rate without autonomous resolution). G4 is orthogonal but load-bearing: it is the reason a non-programmer can operate the system, and without it the other three gates describe a system that still requires its author.
 
@@ -49,19 +49,14 @@ Purity sensor loop, Blackboard empty.
 ### Phase 2 — Expand Sensors ✅
 All seven audit sensors active.
 
-### Phase 3 — Capability Gaps 🔄
+### Phase 3 — Capability Gaps ✅
 
 **Framing:** Phase 3 is the **trust-hardening phase** — the machinery producing the verdict is being qualified. G1 and portions of G3/G4 close here.
 
-**Status:** Stream A (ViolationExecutor) complete. Stream B (test writing) structurally complete — ContextBuilder wiring confirmed working via ADR-025 (2026-05-05); test stream verified running end-to-end with all `test.missing` findings resolving autonomously. Stream C (delegation) infrastructure complete. Band A (attribution) closed via ADR-011.
+**Status:** Complete. Stream A (ViolationExecutor) complete. Stream B (test writing) complete — ContextBuilder wiring confirmed working via ADR-025; test stream verified running end-to-end. Stream C (delegation) infrastructure complete. Band A (attribution) closed via ADR-011. Band D (Engine Integrity) closed 2026-05-12, milestone 16, 107 issues.
 
-Remaining Phase 3 work tracked on GitHub under Band D — Engine Integrity:
-https://github.com/DariuszNewecki/CORE/milestone/16
-
-Band D is nearly complete. Two open issues remain: #277 (pre-commit hook) and #286 (CLI reject revival gap). All other Band D items closed as of 2026-05-11.
-
-### Phase 4 — CLI Health 🔄
-`proposals show` logger bug — ✅ fixed 2026-05-10. Output routed through `Console` instance; Rich markup stripped from logger calls.
+### Phase 4 — CLI Health ✅
+`proposals show` logger bug — fixed 2026-05-10. Output routed through `Console` instance; Rich markup stripped from logger calls.
 
 ### Phase 5 — Visibility ✅
 G3 closed 2026-05-01. Consequence chain materialized end-to-end. Band B milestone 14 closed.
@@ -72,12 +67,12 @@ G3 closed 2026-05-01. Consequence chain materialized end-to-end. Band B mileston
 
 Operational work tracking lives entirely on GitHub. Bands are strategic groupings; closure criteria live on each milestone.
 
-**Current focus: Band D.** G2 demonstration is the immediate objective — proving sustained convergence is what makes the "governed autonomy" claim real. Bands C and E are deferred until G2 is demonstrated; no work should be picked from them in the interim.
+**All Band D work complete.** All four A3 gates closed. Next focus is Band E (Outward-Facing) or Band C (Historical Debt) — to be sequenced in the next planning session.
 
 - **Band A — Attribution** (closed): https://github.com/DariuszNewecki/CORE/milestone/13
 - **Band B — Consequence Chain** (closed): https://github.com/DariuszNewecki/CORE/milestone/14
 - **Band C — Historical Debt** (deferred): https://github.com/DariuszNewecki/CORE/milestone/15
-- **Band D — Engine Integrity** (active): https://github.com/DariuszNewecki/CORE/milestone/16
+- **Band D — Engine Integrity** (closed): https://github.com/DariuszNewecki/CORE/milestone/16
 - **Band E — Outward-Facing** (deferred): https://github.com/DariuszNewecki/CORE/milestone/17
 
 ---
@@ -111,23 +106,24 @@ Full rationale lives in each ADR file under `.specs/decisions/`. This table is t
 | ADR-021 | 2026-05-02 | Scoped autonomous git operations | `commit_paths` + `restore_paths` primitives; scope-collision yield pre-claim; C-light during dev phase. |
 | ADR-022 | 2026-05-03 | ContextBuilder vector evidence scope | Vector evidence scoped to intent layer; `core-code` intentionally not queried; code-similarity earns its own method when a consumer surfaces. |
 | ADR-023 | 2026-05-04 | Vocabulary canonical store — paper-first, machine projection derived | `CORE-Vocabulary.md` is canonical; `vocabulary.json` is a generated projection with `source_hash`; drift-detection rules + DEGRADED loader + CI gate enforce convergence. |
-| ADR-024 | 2026-05-05 | Local LLM cognitive role assignments — governed evaluation over assumption | Local role-to-model assignments derived from `scripts/eval_ollama.py` qualification, not parameter-count assumption; on aaiMac `qwen2.5-coder:3b` qualifies for LocalCoder/Architect/LocalReasoner/Planner, `qwen2.5:7b` for DocstringWriter, `phi4:14b` retained as spare; production assignments deferred until production hardware is specified. |
+| ADR-024 | 2026-05-05 | Local LLM cognitive role assignments — governed evaluation over assumption | Local role-to-model assignments derived from `scripts/eval_ollama.py` qualification, not parameter-count assumption. |
 | ADR-025 | 2026-05-05 | ArchitecturalContextBuilder wiring via CoreContext factory | `context_builder_factory` + lazy `@property context_builder` mirrors `context_service` pattern; rejected agent-internal and action-local construction. |
-| ADR-026 | 2026-05-05 | Validate proposal.scope.files non-emptiness | scope.files non-empty enforced at Proposal.validate() with validation-error-to-caller; files-only over broader scope union; resolves ADR-021 D5. |
-| ADR-027 | 2026-05-07 | Sensor-fixer coherence detection via consequence chain query | `CoherenceSensorWorker` queries `core.proposal_consequences` periodically; posts `coherence.incoherence::` findings when a fixer ran but the sensor re-detected the same `check_id + file_path`; DELEGATE class (no autonomous remediation). |
+| ADR-026 | 2026-05-05 | Validate proposal.scope.files non-emptiness | scope.files non-empty enforced at Proposal.validate() with validation-error-to-caller; resolves ADR-021 D5. |
+| ADR-027 | 2026-05-07 | Sensor-fixer coherence detection via consequence chain query | `CoherenceSensorWorker` queries `core.proposal_consequences` periodically; posts `coherence.incoherence::` findings; DELEGATE class. |
 | ADR-028 | 2026-05-08 | Describe rules; don't quote forbidden syntax | Rule documentation must paraphrase what is forbidden — never reproduce the exact pattern the rule detects. |
-| ADR-029 | 2026-05-08 | Explicitly map non-automatable rules in RemediationMap | Absence-from-map is not a valid human-only signal; non-automatable rules must carry an explicit PENDING entry in `auto_remediation.yaml`. First application: `modularity.class_too_large`. |
-| ADR-030 | 2026-05-08 | Daemon stale-code detection posture | Detect-and-DEGRADE on `src/` drift; self-restart rejected. CORE surfaces the condition, governor restarts with intent. |
-| ADR-031 | 2026-05-09 | No hardcoded runtime directory paths | Runtime output dirs (`logs/`, `reports/`) must resolve through PathResolver; direct string literal construction in `src/` is a blocking violation. 40 findings surfaced; leverage roots at #268. |
-| ADR-032 | 2026-05-10 | Tighten `no_hardcoded_runtime_dirs` regex to path-construction context | Removed broad bare-string patterns; replaced with path-division-context pattern — 15 false positives eliminated, 25 true violations confirmed. |
+| ADR-029 | 2026-05-08 | Explicitly map non-automatable rules in RemediationMap | Absence-from-map is not a valid human-only signal; non-automatable rules must carry an explicit PENDING entry. First application: `modularity.class_too_large`. |
+| ADR-030 | 2026-05-08 | Daemon stale-code detection posture | Detect-and-DEGRADE on `src/` drift; self-restart rejected. |
+| ADR-031 | 2026-05-09 | No hardcoded runtime directory paths | Runtime output dirs must resolve through PathResolver; direct string literal construction is a blocking violation. 40 findings surfaced; all resolved. |
+| ADR-032 | 2026-05-10 | Tighten `no_hardcoded_runtime_dirs` regex to path-construction context | 15 false positives eliminated, 25 true violations confirmed. |
 | ADR-032+ | 2026-05-10 | Band D infrastructure hardening | #273 approve rowcount, #274 Unicode sanitization, #275 execution_results key collision, #270 FileService resolve, #276 fix.path_resolver Form 1 — all closed. |
-| ADR-033 | 2026-05-10 | Flow→step parameter routing contract | `consumes: tuple[str, ...] \| None` added to `FlowStep`; `FlowExecutor._execute_step` filters caller params to declared keys only; CORE-Flow.md §6 extended with Parameter Routing subsection. Closes #216, unblocks #215. |
-| ADR-034 | 2026-05-10 | OptimizerWorker formal deferral | OptimizerWorker implementation deferred until VE accumulates ≥20 discovery candidates across ≥5 rule namespaces; review trigger codified; F-18 closed; #115 retained as implementation epic. |
-| ADR-035 | 2026-05-11 | One finding, one proposal | `ViolationRemediatorWorker` grouping key changed from `action_id` to `(action_id, file_path)`; each proposal scoped to exactly one file. Closes #284. |
-| ADR-036 | 2026-05-11 | PathResolver excluded from `modularity.needs_split` | Catalog class with one responsibility; rule fired on volume, not lumped concerns. Exclusion added to `modularity.yaml` with documented removal condition. `modularity.needs_split` 7 → 0 occurrences after the session's six SRP splits. |
-| ADR-037 | 2026-05-11 | Flow refs exempt from ADR-035 per-file scoping | `ViolationRemediatorWorker.run()` groups flow refs by `(ref_id, None)` (bundling all findings sharing a flow) and atomic action refs by `(ref_id, file_path)` (per-file, unchanged). Categorical exception, not refinement — ADR-035's three governance properties hold for atomic actions, invert for codebase-wide flows. Layer 1 (commit 2a77a9ba) omits file_path from flow proposal parameters; Layer 2 (this ADR) collapses N flow proposals into 1. Layer 3 (whether flows should auto-remediate) open as #290. Commit 0941fd07. |
-| ADR-038 | 2026-05-11 | Circuit-breaker on repeated proposal failures | After N consecutive identical-signature failures for a (ref_id, file_path) pair, ViolationRemediatorWorker skips proposal creation, marks findings DELEGATE, and posts a governance.circuit_breaker_tripped hazard finding. Threshold governed in .intent/enforcement/config/circuit_breaker.yaml. |
-| ADR-039 | 2026-05-12 | Audit-input cache invalidation | AuditorContext._file_list_cache and IntentRepository are invalidated at the start of every audit run; new files and rules committed after daemon boot are visible to the next sensor cycle without operator action. Closes #298. |
+| ADR-033 | 2026-05-10 | Flow→step parameter routing contract | `consumes: tuple[str, ...] \| None` added to `FlowStep`; routing auditable from YAML. Closes #216, unblocks #215. |
+| ADR-034 | 2026-05-10 | OptimizerWorker formal deferral | Deferred until VE accumulates ≥20 discovery candidates across ≥5 rule namespaces. |
+| ADR-035 | 2026-05-11 | One finding, one proposal | `ViolationRemediatorWorker` grouping key changed to `(action_id, file_path)`; each proposal scoped to one file. Closes #284. |
+| ADR-036 | 2026-05-11 | PathResolver excluded from `modularity.needs_split` | Catalog class with one responsibility; exclusion added to `modularity.yaml` with documented removal condition. |
+| ADR-037 | 2026-05-11 | Flow refs exempt from ADR-035 per-file scoping | Flow proposals grouped by `(ref_id, None)`; atomic actions by `(ref_id, file_path)`. Categorical exception. Commit 0941fd07. |
+| ADR-038 | 2026-05-11 | Circuit-breaker on repeated proposal failures | After N consecutive identical-signature failures, findings marked DELEGATE, hazard finding posted. Threshold governed in `.intent/enforcement/config/circuit_breaker.yaml`. Closes #281. G2 closed. |
+| ADR-039 | 2026-05-12 | Audit-input cache invalidation | `AuditorContext._file_list_cache` and `IntentRepository` invalidated at every audit run start. Closes #298. |
+| ADR-040 | 2026-05-12 | Operational config wiring campaign | 32 operational config sections moved from hardcoded `src/` literals to `.intent/enforcement/config/operational_config.yaml`; 48 typed dataclasses; 113 files importing loader. Closes #282. G4 completed. |
 
 ---
 
