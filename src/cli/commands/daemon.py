@@ -23,6 +23,7 @@ from typing import Any
 import typer
 
 from cli.utils import async_command
+from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.logger import getLogger
 
 
@@ -31,7 +32,7 @@ logger = getLogger(__name__)
 daemon_app = typer.Typer(help="Background worker daemon management.")
 
 # Default interval for one-shot workers that lack run_loop (seconds).
-_ONE_SHOT_INTERVAL = 300
+_CFG = load_operational_config().daemon
 
 
 async def _run_one_shot_loop(worker: Any, stem: str, interval: int) -> None:
@@ -279,7 +280,7 @@ async def _run_daemon() -> None:
                 interval = (
                     declaration.get("mandate", {})
                     .get("schedule", {})
-                    .get("max_interval", _ONE_SHOT_INTERVAL)
+                    .get("max_interval", _CFG.one_shot_interval_sec)
                 )
                 coro = _run_one_shot_loop(worker, stem, interval)
 

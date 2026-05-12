@@ -11,6 +11,7 @@ from __future__ import annotations
 import json
 from typing import Any
 
+from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.logger import getLogger
 
 
@@ -18,7 +19,7 @@ logger = getLogger(__name__)
 
 _SOURCE_SUBJECT = "audit.violation"
 _FAILED_SUBJECT = "audit.remediation.failed"
-_CLAIM_LIMIT = 50
+_CFG = load_operational_config().workers.violation_remediator
 
 
 # ID: 35d0a1e2-de06-43d5-8bab-852f34171cb3
@@ -42,7 +43,7 @@ class BlackboardMixin:
         bb = await self._ctx.registry.get_blackboard_service()
         return await bb.claim_violation_findings(
             prefix=f"{_SOURCE_SUBJECT}::%",
-            limit=_CLAIM_LIMIT,
+            limit=_CFG.claim_limit,
             claimed_by=self._worker_uuid,
         )
 

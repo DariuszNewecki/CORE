@@ -33,6 +33,7 @@ from __future__ import annotations
 import asyncio
 from typing import Any
 
+from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.logger import getLogger
 from shared.workers.base import Worker
 
@@ -48,7 +49,7 @@ _SLA: dict[str, int] = {
     "report": 7200,
     "proposal": 1800,
 }
-_SLA_DEFAULT = 3600
+_CFG = load_operational_config().blackboard
 
 
 # ID: d4e5f6a7-c8d9-4e0f-1a2b-3c4d5e6f7a8b

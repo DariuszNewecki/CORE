@@ -27,13 +27,14 @@ from typing import Any
 from sqlalchemy import text
 
 from shared.infrastructure.database.session_manager import get_session
+from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.logger import getLogger
 from shared.workers.base import Worker
 
 
 logger = getLogger(__name__)
 
-_BATCH_SIZE = 25
+_CFG = load_operational_config().workers.doc_writer
 
 
 # ID: b3c4d5e6-f7a8-9b0c-1d2e-3f4a5b6c7d8e
@@ -130,7 +131,7 @@ class DocWriter(Worker):
                         RETURNING id, payload
                         """
                     ),
-                    {"limit": _BATCH_SIZE},
+                    {"limit": _CFG.batch_size},
                 )
                 return [(row.id, row.payload) for row in result]
 

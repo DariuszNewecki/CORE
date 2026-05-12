@@ -32,6 +32,7 @@ from typing import Any
 
 from sqlalchemy import text
 
+from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.logger import getLogger
 from shared.processors.yaml_processor import strict_yaml_processor
 from shared.workers.base import Worker
@@ -42,7 +43,7 @@ logger = getLogger(__name__)
 _FINDING_SUBJECT = "coherence.incoherence"
 _THRESHOLDS_PATH = Path(".intent/cim/thresholds.yaml")
 _LOOKBACK_KEY = "coherence_lookback_seconds"
-_DEFAULT_LOOKBACK_SECONDS = 7200
+_CFG = load_operational_config().workers.coherence_sensor
 
 _INCOHERENCE_QUERY = text(
     """
@@ -191,13 +192,13 @@ class CoherenceSensorWorker(Worker):
     def _load_lookback_seconds(self) -> int:
         """
         Read coherence_lookback_seconds from .intent/cim/thresholds.yaml.
-        Returns _DEFAULT_LOOKBACK_SECONDS on any load or coercion failure
+        Returns _CFG.lookback_seconds on any load or coercion failure
         so a malformed threshold file does not prevent the cycle from
         running with a sensible default.
         """
         try:
             data = strict_yaml_processor.load_strict(_THRESHOLDS_PATH)
-            value = data.get(_LOOKBACK_KEY, _DEFAULT_LOOKBACK_SECONDS)
+            value = data.get(_LOOKBACK_KEY, _CFG.lookback_seconds)
             return int(value)
         except Exception as exc:
             logger.warning(
@@ -206,6 +207,6 @@ class CoherenceSensorWorker(Worker):
                 _LOOKBACK_KEY,
                 _THRESHOLDS_PATH,
                 exc,
-                _DEFAULT_LOOKBACK_SECONDS,
+                _CFG.lookback_seconds,
             )
-            return _DEFAULT_LOOKBACK_SECONDS
+            return _CFG.lookback_seconds

@@ -8,13 +8,14 @@ No LLM remediation calls. No file writes. No Blackboard writes.
 
 from __future__ import annotations
 
+from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.logger import getLogger
 
 
 logger = getLogger(__name__)
 
 _CODE_COLLECTION = "core-code"
-_SEMANTIC_EXAMPLES_LIMIT = 3
+_CFG = load_operational_config().workers.violation_remediator
 
 
 # ID: 4b9c5641-7688-451c-9b3f-09f2c773098d
@@ -50,7 +51,7 @@ class ContextMixin:
             hits = await qdrant.search(
                 collection=_CODE_COLLECTION,
                 query=violations_summary,
-                limit=_SEMANTIC_EXAMPLES_LIMIT,
+                limit=_CFG.semantic_examples_limit,
             )
             if hits:
                 examples = "\n\n".join(

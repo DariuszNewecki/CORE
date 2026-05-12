@@ -24,6 +24,7 @@ from pathlib import Path
 from typing import Any
 
 from shared.ai.prompt_model import PromptModel
+from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.logger import getLogger
 from shared.workers.base import Worker
 
@@ -31,7 +32,7 @@ from shared.workers.base import Worker
 logger = getLogger(__name__)
 
 # Batch size — symbols processed per run
-_BATCH_SIZE = 50
+_CFG = load_operational_config().workers.doc_worker
 
 # Modules to skip — not documentation targets
 _EXCLUDED_MODULE_PREFIXES = (
@@ -94,7 +95,7 @@ class DocWorker(Worker):
         proposed = 0
         skipped = 0
 
-        for symbol in symbols[:_BATCH_SIZE]:
+        for symbol in symbols[: _CFG.batch_size]:
             if self._is_excluded(symbol["module"]):
                 skipped += 1
                 continue

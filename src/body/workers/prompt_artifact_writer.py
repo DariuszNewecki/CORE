@@ -23,6 +23,7 @@ import re
 from typing import Any
 
 from shared.ai.response_parser import extract_json
+from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.logger import getLogger
 from shared.workers.base import Worker
 
@@ -35,7 +36,7 @@ _ARTIFACT_SUBJECT = "prompt.artifact"
 # Non-ASCII character filter for DB safety (PostgreSQL SQL_ASCII)
 _NON_ASCII_RE = re.compile(r"[^\x09\x0A\x0D\x20-\x7E]")
 
-_CLAIM_LIMIT = 25
+_CFG = load_operational_config().workers.prompt_artifact_writer
 
 
 # ID: facf4728-e072-41e5-8464-6440b7c27554
@@ -247,7 +248,7 @@ class PromptArtifactWriter(Worker):
                         RETURNING id, subject, payload
                         """
                     ),
-                    {"prefix": f"{_SOURCE_SUBJECT}::%", "limit": _CLAIM_LIMIT},
+                    {"prefix": f"{_SOURCE_SUBJECT}::%", "limit": _CFG.claim_limit},
                 )
                 rows = result.fetchall()
 

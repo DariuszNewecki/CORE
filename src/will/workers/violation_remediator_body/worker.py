@@ -53,6 +53,7 @@ from __future__ import annotations
 import uuid
 from typing import Any
 
+from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.logger import getLogger
 from shared.workers.base import Worker
 from will.self_healing.remediation_interpretation.service import (
@@ -73,7 +74,7 @@ _COMPLETE_SUBJECT = "audit.remediation.complete"
 _DRY_RUN_SUBJECT = "audit.remediation.dry_run"
 
 # Minimum role detection confidence required to proceed in write mode.
-_MIN_ROLE_CONFIDENCE_FOR_WRITE = 0.55
+_CFG = load_operational_config().workers.violation_remediator
 
 
 # ID: bb52f62a-45c9-47a4-9ff8-788b0c6ca4f1
@@ -308,12 +309,12 @@ class ViolationRemediator(
         role_confidence = (
             architectural_context.get("file_role", {}).get("confidence", 0.0) or 0.0
         )
-        if self._write and role_confidence < _MIN_ROLE_CONFIDENCE_FOR_WRITE:
+        if self._write and role_confidence < _CFG.min_role_confidence:
             logger.warning(
                 "ViolationRemediator: role confidence %.2f < %.2f for %s "
                 "[indeterminate in write mode — halting]",
                 role_confidence,
-                _MIN_ROLE_CONFIDENCE_FOR_WRITE,
+                _CFG.min_role_confidence,
                 file_path,
             )
             await self._mark_findings(findings, "indeterminate")
@@ -322,7 +323,7 @@ class ViolationRemediator(
                 findings,
                 (
                     f"Role confidence {role_confidence:.2f} below write threshold "
-                    f"{_MIN_ROLE_CONFIDENCE_FOR_WRITE}. Human review required."
+                    f"{_CFG.min_role_confidence}. Human review required."
                 ),
             )
             return None

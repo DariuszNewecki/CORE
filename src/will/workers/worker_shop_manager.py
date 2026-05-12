@@ -29,6 +29,7 @@ import re
 from pathlib import Path
 from typing import Any
 
+from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.logger import getLogger
 from shared.processors.yaml_processor import strict_yaml_processor
 from shared.workers.base import Worker
@@ -38,11 +39,7 @@ logger = getLogger(__name__)
 
 _FINDING_SUBJECT = "worker.silent"
 
-# Default glide_off multiplier — 10% of max_interval
-_GLIDE_OFF_MULTIPLIER = 0.10
-
-# Fallback threshold (seconds) for workers with no schedule declaration
-_FALLBACK_THRESHOLD = 600
+_CFG = load_operational_config().workers.worker_shop
 
 # Strip non-ASCII characters that PostgreSQL SQL_ASCII encoding cannot store.
 # Worker names from .intent/workers/ YAML titles may contain Unicode dashes or
@@ -75,7 +72,7 @@ class WorkerShopManager(Worker):
         schedule = self._declaration.get("mandate", {}).get("schedule", {})
         self._max_interval: int = schedule.get("max_interval", 120)
         self._glide_off: int = schedule.get(
-            "glide_off", max(int(self._max_interval * _GLIDE_OFF_MULTIPLIER), 10)
+            "glide_off", max(int(self._max_interval * _CFG.glide_off_multiplier), 10)
         )
         # Cache of per-worker thresholds loaded from .intent/
         self._thresholds: dict[str, int] = {}
@@ -148,7 +145,7 @@ class WorkerShopManager(Worker):
 
             # Match against threshold using sanitized name (thresholds are also
             # loaded from YAML titles which are now sanitized in _load_worker_thresholds)
-            threshold = self._thresholds.get(worker_name, _FALLBACK_THRESHOLD)
+            threshold = self._thresholds.get(worker_name, _CFG.fallback_threshold_sec)
 
             if seconds_silent > threshold:
                 subject = f"{_FINDING_SUBJECT}::{worker_uuid}"
@@ -216,7 +213,7 @@ class WorkerShopManager(Worker):
         Returns mapping of worker_name (title) → threshold in seconds.
         Worker titles are sanitized to ASCII to match the sanitized names
         read from worker_registry during the audit cycle.
-        Workers without schedule declaration use _FALLBACK_THRESHOLD.
+        Workers without schedule declaration use _CFG.fallback_threshold_sec.
         """
         thresholds: dict[str, int] = {}
         intent_workers = Path(".intent/workers")
@@ -233,10 +230,12 @@ class WorkerShopManager(Worker):
                 title = _sanitize(raw_title)
                 schedule = data.get("mandate", {}).get("schedule")
                 if title and schedule:
-                    max_interval = schedule.get("max_interval", _FALLBACK_THRESHOLD)
+                    max_interval = schedule.get(
+                        "max_interval", _CFG.fallback_threshold_sec
+                    )
                     glide_off = schedule.get(
                         "glide_off",
-                        max(int(max_interval * _GLIDE_OFF_MULTIPLIER), 10),
+                        max(int(max_interval * _CFG.glide_off_multiplier), 10),
                     )
                     thresholds[title] = max_interval + glide_off
             except Exception as exc:

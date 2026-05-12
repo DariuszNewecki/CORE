@@ -45,6 +45,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.logger import getLogger
 from shared.workers.base import Worker
 
@@ -53,7 +54,7 @@ logger = getLogger(__name__)
 
 _FINDING_SUBJECT_PREFIX = "audit.violation::"
 _CANDIDATE_SUBJECT = "audit.remediation.candidate"
-_CLAIM_LIMIT = 50
+_CFG = load_operational_config().workers.violation_executor
 
 
 # ID: ba3704d8-23da-49d2-b67d-7b42f33fce83
@@ -342,7 +343,7 @@ class ViolationExecutorWorker(Worker):
             svc = await service_registry.get_blackboard_service()
             return await svc.claim_unmapped_violation_findings(
                 mapped_rule_ids=mapped_rule_ids,
-                limit=_CLAIM_LIMIT,
+                limit=_CFG.claim_limit,
                 claimed_by=self._worker_uuid,
             )
         except Exception as exc:

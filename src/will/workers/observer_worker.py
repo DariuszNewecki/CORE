@@ -26,6 +26,7 @@ from __future__ import annotations
 import asyncio
 from typing import Any
 
+from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.logger import getLogger
 from shared.workers.base import Worker
 
@@ -36,7 +37,7 @@ logger = getLogger(__name__)
 _REPORT_SUBJECT = "observer.situation_report"
 
 # Seconds an open blackboard entry must be open before counted as stale
-_STALE_THRESHOLD_SECONDS = 3600
+_CFG = load_operational_config().workers.observer
 
 
 # ID: a7f3c2e1-b4d5-4e6f-8a9b-0c1d2e3f4a5b
@@ -139,7 +140,7 @@ class ObserverWorker(Worker):
         from body.services.service_registry import service_registry
 
         svc = await service_registry.get_health_log_service()
-        return await svc.collect_system_state(_STALE_THRESHOLD_SECONDS)
+        return await svc.collect_system_state(_CFG.stale_threshold_seconds)
 
     # -------------------------------------------------------------------------
     # Health log write

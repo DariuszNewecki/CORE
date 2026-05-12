@@ -42,6 +42,7 @@ from datetime import UTC, datetime
 from typing import Any
 
 from shared.ai.response_parser import extract_code
+from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.logger import getLogger
 from shared.workers.base import Worker
 
@@ -54,7 +55,7 @@ _FAILED_SUBJECT = "prompt.rewrite.failed"
 
 _NON_ASCII_RE = re.compile(r"[^\x09\x0A\x0D\x20-\x7E]")
 
-_CLAIM_LIMIT = 50
+_CFG = load_operational_config().workers.call_site_rewriter
 
 # Externalized cognitive roles for constitutional compliance
 # This addresses ai.cognitive_role.no_hardcoded_string violations
@@ -431,7 +432,7 @@ class CallSiteRewriter(Worker):
                         RETURNING id, subject, payload
                         """
                     ),
-                    {"prefix": f"{_SOURCE_SUBJECT}::%", "limit": _CLAIM_LIMIT},
+                    {"prefix": f"{_SOURCE_SUBJECT}::%", "limit": _CFG.claim_limit},
                 )
                 rows = result.fetchall()
 

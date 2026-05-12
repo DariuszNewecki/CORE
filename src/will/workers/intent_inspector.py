@@ -33,6 +33,7 @@ from typing import Any
 import yaml
 
 from shared.ai.prompt_model import PromptModel
+from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.logger import getLogger
 from shared.workers.base import Worker
 
@@ -60,7 +61,7 @@ _REQUIRED_METADATA_FIELDS = ("id", "title", "version", "authority", "status")
 _SKIP_DIRS = {"runtime", "mind_export", "keys", "enforcement"}
 
 # Maximum number of documents fed to the alignment pass in one LLM call
-_ALIGNMENT_BATCH = 20
+_CFG = load_operational_config().workers.intent_inspector
 
 # Tokens the LLM uses to signal a clean pass — no findings to report.
 # Any response that, when stripped and uppercased, equals or starts with one
@@ -355,7 +356,7 @@ class IntentInspector(Worker):
             return 1
 
         # Build a compact manifest of all documents for the LLM
-        llm_docs = documents[:_ALIGNMENT_BATCH]
+        llm_docs = documents[: _CFG.alignment_batch]
         manifest_text = self._build_alignment_manifest(llm_docs)
 
         # List of worker declaration names vs implementation modules for orphan check

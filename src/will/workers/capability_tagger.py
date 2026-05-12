@@ -22,13 +22,14 @@ from __future__ import annotations
 
 from typing import Any
 
+from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.logger import getLogger
 from shared.workers.base import Worker
 
 
 logger = getLogger(__name__)
 
-_BATCH_SIZE = 20
+_CFG = load_operational_config().workers.capability_tagger
 
 
 # ID: e1f2a3b4-c5d6-7890-efab-cd1234567890
@@ -38,7 +39,7 @@ class CapabilityTaggerWorker(Worker):
     uses CapabilityTaggerAgent to generate LLM-powered suggestions,
     and persists the assignments to the database.
 
-    Processes symbols in batches of _BATCH_SIZE per cycle to avoid
+    Processes symbols in batches of _CFG.batch_size per cycle to avoid
     overwhelming the local LLM. Picks up where it left off on the
     next cycle via the key IS NULL condition.
 
@@ -89,7 +90,7 @@ class CapabilityTaggerWorker(Worker):
         logger.info(
             "CapabilityTaggerWorker: %d untagged symbols to process (batch=%d)",
             len(untagged),
-            _BATCH_SIZE,
+            _CFG.batch_size,
         )
 
         tagged = await self._tag_symbols(untagged)
@@ -108,7 +109,7 @@ class CapabilityTaggerWorker(Worker):
         from body.services.service_registry import service_registry
 
         svc = await service_registry.get_symbol_service()
-        return await svc.fetch_untagged_symbols(_BATCH_SIZE)
+        return await svc.fetch_untagged_symbols(_CFG.batch_size)
 
     async def _tag_symbols(self, symbols: list[dict]) -> int:
         """
@@ -125,7 +126,7 @@ class CapabilityTaggerWorker(Worker):
             knowledge_service=knowledge_service,
         )
 
-        suggestions = await agent.suggest_and_apply_tags(limit=_BATCH_SIZE)
+        suggestions = await agent.suggest_and_apply_tags(limit=_CFG.batch_size)
 
         if not suggestions:
             return 0

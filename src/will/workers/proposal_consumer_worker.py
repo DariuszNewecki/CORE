@@ -35,6 +35,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.logger import getLogger
 from shared.workers.base import Worker
 from will.workers.proposal_consumer_effects import (
@@ -49,7 +50,8 @@ from will.workers.proposal_consumer_revival import (
 
 logger = getLogger(__name__)
 
-_CLAIM_LIMIT = 5  # Conservative — each proposal may touch multiple files
+# Conservative — each proposal may touch multiple files
+_CFG = load_operational_config().workers.proposal_consumer
 
 
 # ID: aeb11b94-471b-4caf-a84f-faa28f0f40fd
@@ -78,7 +80,7 @@ class ProposalConsumerWorker(Worker):
         """
         Poll for APPROVED proposals and execute them.
 
-        1. Load approved proposals (up to _CLAIM_LIMIT)
+        1. Load approved proposals (up to _CFG.claim_limit)
         2. For each: execute via ProposalExecutor(write=True) and route
            the outcome to the appropriate post-execution collaborator
         3. Post blackboard report with results
@@ -237,7 +239,7 @@ class ProposalConsumerWorker(Worker):
 
     async def _load_approved_proposals(self) -> list[dict[str, Any]]:
         """
-        Load up to _CLAIM_LIMIT proposals in APPROVED status.
+        Load up to _CFG.claim_limit proposals in APPROVED status.
         Returns minimal dicts: proposal_id, goal.
         """
         from body.services.service_registry import service_registry
@@ -248,7 +250,7 @@ class ProposalConsumerWorker(Worker):
             async with service_registry.session() as session:
                 repo = ProposalRepository(session)
                 proposals = await repo.list_by_status(
-                    ProposalStatus.APPROVED, limit=_CLAIM_LIMIT
+                    ProposalStatus.APPROVED, limit=_CFG.claim_limit
                 )
                 return [
                     {"proposal_id": p.proposal_id, "goal": p.goal} for p in proposals

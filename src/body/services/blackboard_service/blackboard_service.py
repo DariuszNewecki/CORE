@@ -10,6 +10,8 @@ from typing import Any
 
 from sqlalchemy import text
 
+from shared.infrastructure.intent.operational_config import load_operational_config
+
 
 _SLA: dict[str, int] = {
     "heartbeat": 600,
@@ -18,7 +20,7 @@ _SLA: dict[str, int] = {
     "proposal": 1800,
 }
 
-_SLA_DEFAULT = 3600
+_CFG = load_operational_config().blackboard
 
 
 # ID: a3842b9b-9285-49d3-bd7e-4fb8f8cbf6b7
@@ -245,7 +247,7 @@ class BlackboardService:
                     "sla_finding": _SLA["finding"],
                     "sla_report": _SLA["report"],
                     "sla_proposal": _SLA["proposal"],
-                    "sla_default": _SLA_DEFAULT,
+                    "sla_default": _CFG.sla_default_seconds,
                 },
             )
             return [

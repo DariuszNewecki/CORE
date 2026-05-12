@@ -14,13 +14,13 @@ from typing import Any
 
 from sqlalchemy import text
 
+from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.logger import getLogger
 
 
 logger = getLogger(__name__)
 
-# Must stay in sync with ObserverWorker._STALE_THRESHOLD_SECONDS.
-_STALE_THRESHOLD_SECONDS = 3600
+_CFG = load_operational_config().health_log
 
 
 # ID: 1c26b39c-f6d2-4bee-a65c-bb24071ea25c
@@ -35,7 +35,7 @@ class HealthLogService:
 
     # ID: 1661aae5-c77e-4094-b057-4de80858bba9
     async def collect_system_state(
-        self, stale_threshold_seconds: int = _STALE_THRESHOLD_SECONDS
+        self, stale_threshold_seconds: int = _CFG.stale_threshold_seconds
     ) -> dict[str, Any]:
         """
         Run all four system-state count queries in one session and return

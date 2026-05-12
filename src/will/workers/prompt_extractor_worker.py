@@ -24,6 +24,7 @@ import re
 from pathlib import Path
 from typing import Any
 
+from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.logger import getLogger
 from shared.workers.base import Worker
 
@@ -33,10 +34,7 @@ logger = getLogger(__name__)
 _SOURCE_RULE = "ai.prompt.model_required"
 _EXTRACTION_SUBJECT = "prompt.extraction"
 
-# Lines of context around the violation to send to the LLM
-_CONTEXT_LINES = 40
-
-_CLAIM_LIMIT = 25
+_CFG = load_operational_config().workers.prompt_extractor
 
 
 # ID: 717bbc3b-80ca-48a1-b253-baa659a75fde
@@ -199,14 +197,14 @@ class PromptExtractorWorker(Worker):
 
     def _extract_context(self, file_path: Path, line_number: int) -> str:
         """
-        Read the source file and return _CONTEXT_LINES lines centred on
+        Read the source file and return _CFG.context_lines lines centred on
         line_number. Returns the entire file if it is shorter than the window.
         """
         lines = file_path.read_text(encoding="utf-8").splitlines()
         # line_number is 1-based
-        start = max(0, line_number - 1 - (_CONTEXT_LINES // 2))
-        end = min(len(lines), start + _CONTEXT_LINES)
-        start = max(0, end - _CONTEXT_LINES)
+        start = max(0, line_number - 1 - (_CFG.context_lines // 2))
+        end = min(len(lines), start + _CFG.context_lines)
+        start = max(0, end - _CFG.context_lines)
         return "\n".join(lines[start:end])
 
     async def _claim_open_findings(self) -> list[dict[str, Any]]:
@@ -216,7 +214,7 @@ class PromptExtractorWorker(Worker):
         concurrent worker instances.
         """
         svc = await self._core_context.registry.get_blackboard_service()
-        return await svc.claim_open_findings(f"{_SOURCE_RULE}::%", _CLAIM_LIMIT)
+        return await svc.claim_open_findings(f"{_SOURCE_RULE}::%", _CFG.claim_limit)
 
     async def _mark_finding(self, finding_id: str, status: str) -> None:
         """Update the status of a blackboard finding by ID."""
