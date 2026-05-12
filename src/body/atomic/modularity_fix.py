@@ -23,7 +23,11 @@ from typing import TYPE_CHECKING
 from body.atomic.registry import ActionCategory, register_action
 from shared.action_types import ActionImpact, ActionResult
 from shared.atomic_action import atomic_action
+from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.logger import getLogger
+
+
+_CFG_AZ = load_operational_config().analyzers
 
 
 if TYPE_CHECKING:
@@ -81,7 +85,7 @@ def _find_worst_modularity_violator(repo_root):
             continue
         try:
             line_count = len(py_file.read_text(encoding="utf-8").splitlines())
-            if line_count >= 400:
+            if line_count >= _CFG_AZ.max_module_lines:
                 if worst is None or line_count > worst[0]:
                     worst = (line_count, py_file)
         except Exception:

@@ -6,6 +6,11 @@ Generates smart recommendations based on analysis results.
 
 from __future__ import annotations
 
+from shared.infrastructure.intent.operational_config import load_operational_config
+
+
+_CFG_RF = load_operational_config().refactor
+
 
 # ID: 36f3d7ff-4832-419e-863a-7c169e8e5fe1
 class RecommendationEngine:
@@ -23,28 +28,28 @@ class RecommendationEngine:
         breakdown = details["breakdown"]
 
         # Responsibilities recommendation
-        if breakdown["responsibilities"] > 20:
+        if breakdown["responsibilities"] > _CFG_RF.responsibilities_threshold:
             recommendations.append(
                 "[bold]Split Module:[/bold] This file is doing too many things. "
                 "Extract logic into new files."
             )
 
         # Cohesion recommendation
-        if breakdown["cohesion"] > 12:
+        if breakdown["cohesion"] > _CFG_RF.cohesion_threshold:
             recommendations.append(
                 "[bold]Refine Logic:[/bold] Group related functions more tightly "
                 "to improve focus."
             )
 
         # Coupling recommendation
-        if breakdown["coupling"] > 10:
+        if breakdown["coupling"] > _CFG_RF.coupling_threshold:
             recommendations.append(
                 "[bold]Decouple:[/bold] Reduce external imports; use 'shared' "
                 "services instead of direct calls."
             )
 
         # Size recommendation
-        if details.get("lines_of_code", 0) > 400:
+        if details.get("lines_of_code", 0) > _CFG_RF.loc_threshold:
             recommendations.append(
                 "[bold]Reduce Volume:[/bold] File is physically too long. "
                 "Move helpers to 'shared/utils'."

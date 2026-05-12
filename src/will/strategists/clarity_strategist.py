@@ -9,7 +9,11 @@ from __future__ import annotations
 import time
 
 from shared.component_primitive import ComponentResult  # Component, ComponentPhase,
+from shared.infrastructure.intent.operational_config import load_operational_config
 from will.strategists.base_strategist import BaseStrategist
+
+
+_CFG_CL = load_operational_config().clarity
 
 
 # ID: bd9fa9a8-ec7c-45b1-9214-0b4bc4ca651f
@@ -21,12 +25,15 @@ class ClarityStrategist(BaseStrategist):
         start_time = time.time()
 
         # Deterministic Strategy Mapping
-        if complexity_score > 20 or line_count > 300:
+        if (
+            complexity_score > _CFG_CL.structural_complexity
+            or line_count > _CFG_CL.structural_lines
+        ):
             strategy = "structural_decomposition"
             instruction = (
                 "Extract logic into smaller, focused private methods. Reduce nesting."
             )
-        elif complexity_score > 10:
+        elif complexity_score > _CFG_CL.logic_simplification_threshold:
             strategy = "logic_simplification"
             instruction = "Simplify boolean expressions and consolidate redundant conditional branches."
         else:

@@ -21,10 +21,13 @@ from dataclasses import dataclass
 from body.analyzers.base_analyzer import BaseAnalyzer
 from shared.component_primitive import ComponentResult  # Component, ComponentPhase,
 from shared.context import CoreContext
+from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.logger import getLogger
 
 
 logger = getLogger(__name__)
+
+_CFG_AZ = load_operational_config().analyzers
 
 
 @dataclass
@@ -208,7 +211,11 @@ class SymbolExtractor(BaseAnalyzer):
             if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))
         ]
         complexity = (
-            "high" if len(methods) > 10 else "medium" if len(methods) > 3 else "low"
+            "high"
+            if len(methods) > _CFG_AZ.class_methods_high_threshold
+            else "medium"
+            if len(methods) > 3
+            else "low"
         )
 
         return SymbolMetadata(
@@ -235,7 +242,13 @@ class SymbolExtractor(BaseAnalyzer):
         symbol_path = f"{rel_path}::{node.name}"
 
         body_len = len(node.body)
-        complexity = "high" if body_len > 25 else "medium" if body_len > 10 else "low"
+        complexity = (
+            "high"
+            if body_len > _CFG_AZ.function_body_high_threshold
+            else "medium"
+            if body_len > _CFG_AZ.function_body_low_threshold
+            else "low"
+        )
 
         func_type = (
             "async_function" if isinstance(node, ast.AsyncFunctionDef) else "function"

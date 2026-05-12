@@ -10,10 +10,13 @@ from typing import Any
 from body.analyzers.base_analyzer import BaseAnalyzer
 from shared.component_primitive import ComponentResult  # Component, ComponentPhase,
 from shared.context import CoreContext
+from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.logger import getLogger
 
 
 logger = getLogger(__name__)
+
+_CFG_AZ = load_operational_config().analyzers
 
 
 # ID: c9251530-0236-41a9-9630-b305f283277a
@@ -172,7 +175,7 @@ class FileAnalyzer(BaseAnalyzer):
         facts["total_definitions"] = total
 
         # Categorize complexity
-        if total > 15:
+        if total > _CFG_AZ.file_complexity_high_threshold:
             facts["complexity"] = "high"
         elif total > 5:
             facts["complexity"] = "medium"

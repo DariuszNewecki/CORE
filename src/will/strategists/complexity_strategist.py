@@ -11,11 +11,14 @@ import time
 from typing import Any
 
 from shared.component_primitive import ComponentResult  # Component, ComponentPhase,
+from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.logger import getLogger
 from will.strategists.base_strategist import BaseStrategist
 
 
 logger = getLogger(__name__)
+
+_CFG_CX = load_operational_config().complexity
 
 
 # ID: b8b66368-91ae-4600-aff4-252735448376
@@ -29,10 +32,10 @@ class ComplexityStrategist(BaseStrategist):
         start_time = time.time()
 
         # Deterministic Complexity Mapping
-        if complexity_score > 30:
+        if complexity_score > _CFG_CX.god_method_threshold:
             strategy = "structural_fragmentation"
             instruction = "This function is a 'God Method'. Extract logic into at least 3 smaller, private helper methods."
-        elif complexity_score > 15:
+        elif complexity_score > _CFG_CX.extraction_threshold:
             strategy = "component_extraction"
             instruction = "Extract the main conditional logic into a separate strategy class or validator."
         else:

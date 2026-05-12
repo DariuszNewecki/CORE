@@ -6,6 +6,10 @@ from __future__ import annotations
 import ast
 
 from mind.logic.engines.ast_gate.base import ASTHelpers
+from shared.infrastructure.intent.operational_config import load_operational_config
+
+
+_CFG_AZ = load_operational_config().analyzers
 
 
 # ID: 5d744901-7a32-420f-9c62-2b7cf4119c6c
@@ -61,7 +65,7 @@ class NamingChecks:
     @staticmethod
     # ID: 1768504f-6c1c-48de-8401-2d99f775627a
     def check_max_file_lines(
-        tree: ast.AST, file_path: str, limit: int = 400
+        tree: ast.AST, file_path: str, limit: int = _CFG_AZ.max_file_lines
     ) -> list[str]:
         """
         Enforce: Files must not exceed line limits.
@@ -82,7 +86,9 @@ class NamingChecks:
 
     @staticmethod
     # ID: 2e96e106-58e4-4562-9d1a-21b22cd2f2ef
-    def check_max_function_length(tree: ast.AST, limit: int = 50) -> list[str]:
+    def check_max_function_length(
+        tree: ast.AST, limit: int = _CFG_AZ.max_function_lines
+    ) -> list[str]:
         """
         Enforce: Functions must not exceed line limits.
 
