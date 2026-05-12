@@ -1,0 +1,42 @@
+{
+    "$schema": "META/rule_document.schema.json",
+    "kind": "rule_document",
+    "metadata": {
+        "id": "rules.will.proposal_lifecycle",
+        "title": "Proposal Lifecycle Governance",
+        "version": "1.0.0",
+        "authority": "policy",
+        "phase": "runtime",
+        "status": "active"
+    },
+    "rules": [
+        {
+            "id": "proposal_lifecycle.transitions.valid_sequence",
+            "statement": "A Proposal MUST only advance through the status transitions declared in .intent/META/enums.json. The permitted transition graph is: draft to pending or approved; pending to approved or rejected; approved to executing or rejected; executing to completed or failed. Any status assignment outside this graph is a lifecycle violation.",
+            "authority": "policy",
+            "phase": "runtime",
+            "enforcement": "blocking"
+        },
+        {
+            "id": "proposal_lifecycle.approval.authority_required",
+            "statement": "Every transition to the approved status MUST record a non-null approval_authority value from the closed set declared in .intent/META/enums.json under proposal_approval_authority. A transition to approved that omits or supplies an undeclared approval_authority value is constitutionally invalid.",
+            "authority": "policy",
+            "phase": "runtime",
+            "enforcement": "blocking"
+        },
+        {
+            "id": "proposal_lifecycle.claim.authority_required",
+            "statement": "The transition from approved to executing MUST record the identity of the claiming worker or CLI operator in the claimed_by field in the same atomic write that advances the status. A claim that does not supply a recognised claimer identity — a registered Worker UUID or the designated CLI sentinel UUID — MUST be rejected.",
+            "authority": "policy",
+            "phase": "execution",
+            "enforcement": "blocking"
+        },
+        {
+            "id": "proposal_lifecycle.claim.idempotency_guard",
+            "statement": "A claim attempt against a Proposal whose status is already executing, completed, or failed MUST be rejected without mutating state. Concurrent claims on the same Proposal MUST resolve to exactly one successful claimer; all subsequent attempts MUST receive a non-success result without side effects.",
+            "authority": "policy",
+            "phase": "execution",
+            "enforcement": "blocking"
+        }
+    ]
+}

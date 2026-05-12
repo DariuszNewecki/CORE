@@ -1,0 +1,67 @@
+# .intent/enforcement/mappings/will/proposal_lifecycle.yaml
+# Enforcement mappings for rules/will/proposal_lifecycle.json.
+# All rules in this domain are enforced at runtime via ProposalStateManager
+# and the claim.proposal atomic action. passive_gate acknowledges substrate
+# enforcement and keeps rules visible in coverage reports.
+
+mappings:
+  # LAW: Proposals MUST only advance through the permitted transition graph.
+  # ENFORCEMENT: ProposalStateManager validates current→next before any UPDATE.
+  proposal_lifecycle.transitions.valid_sequence:
+    engine: passive_gate
+    params:
+      enforced_by: "will.autonomy.proposal_state_manager.ProposalStateManager"
+      enforcement_note: >
+        Runtime check — ProposalStateManager validates each status transition
+        before issuing any UPDATE. Invalid transitions are rejected before
+        state mutation occurs.
+    scope:
+      applies_to:
+        - "src/will/autonomy/proposal_state_manager.py"
+
+  # LAW: approved transition MUST carry a non-null approval_authority from
+  # the closed enum set.
+  # ENFORCEMENT: DB NOT NULL + CHECK constraint; ProposalStateManager.approve()
+  # validates against ALLOWED_APPROVAL_AUTHORITIES before commit.
+  proposal_lifecycle.approval.authority_required:
+    engine: passive_gate
+    params:
+      enforced_by: "will.autonomy.proposal_state_manager.ProposalStateManager.approve"
+      enforcement_note: >
+        Dual enforcement: DB CHECK constraint rejects out-of-set values at
+        the write boundary; ProposalStateManager.approve() validates against
+        ALLOWED_APPROVAL_AUTHORITIES before the execute call.
+    scope:
+      applies_to:
+        - "src/will/autonomy/proposal_state_manager.py"
+
+  # LAW: approved→executing transition MUST supply a recognised claimer identity.
+  # ENFORCEMENT: claim.proposal atomic action validates claimed_by is non-null
+  # and issues the UPDATE atomically.
+  proposal_lifecycle.claim.authority_required:
+    engine: passive_gate
+    params:
+      enforced_by: "body.atomic.proposal_lifecycle_actions.action_claim_proposal"
+      enforcement_note: >
+        Runtime check — action_claim_proposal validates claimed_by is non-null
+        before issuing the UPDATE. Calling the underlying function outside
+        ActionExecutor.execute raises GovernanceBypassError.
+    scope:
+      applies_to:
+        - "src/body/atomic/proposal_lifecycle_actions.py"
+
+  # LAW: Claim MUST be idempotency-guarded; a second claim on the same
+  # Proposal MUST return non-success without state mutation.
+  # ENFORCEMENT: Partial unique index autonomous_proposals_executing_once;
+  # rowcount=0 check in action_claim_proposal returns ActionResult(ok=False).
+  proposal_lifecycle.claim.idempotency_guard:
+    engine: passive_gate
+    params:
+      enforced_by: "body.atomic.proposal_lifecycle_actions.action_claim_proposal"
+      enforcement_note: >
+        Dual enforcement: partial unique index on core.autonomous_proposals
+        prevents two rows in executing status for the same proposal; action
+        body checks rowcount and returns ActionResult(ok=False) on zero rows.
+    scope:
+      applies_to:
+        - "src/body/atomic/proposal_lifecycle_actions.py"
