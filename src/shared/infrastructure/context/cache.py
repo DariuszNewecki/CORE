@@ -8,12 +8,15 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.logger import getLogger
 
 from .serializers import ContextSerializer
 
 
 logger = getLogger(__name__)
+
+_CFG = load_operational_config().context
 
 
 # ID: 53829663-9f4a-40ff-b425-837b872e5c45
@@ -23,7 +26,7 @@ class ContextCache:
     def __init__(self, cache_dir: str = "work/context_cache") -> None:
         self.cache_dir = Path(cache_dir)
         self.cache_dir.mkdir(parents=True, exist_ok=True)
-        self.ttl_hours = 24
+        self.ttl_hours = _CFG.cache_ttl_hours
 
     # ID: c2612fcd-1454-4d75-9061-ad89275709ae
     def get(self, cache_key: str) -> dict[str, Any] | None:

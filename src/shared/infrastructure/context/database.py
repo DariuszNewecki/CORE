@@ -11,10 +11,13 @@ from typing import Any
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.logger import getLogger
 
 
 logger = getLogger(__name__)
+
+_CFG = load_operational_config().context
 
 
 # ID: 9871ed94-1611-429b-a12b-63eb65417a23
@@ -155,7 +158,9 @@ class ContextDatabase:
             return []
 
     # ID: ddfcb345-a644-4339-8f67-18ac17cc26f5
-    async def get_recent_packets(self, limit: int = 10) -> list[dict[str, Any]]:
+    async def get_recent_packets(
+        self, limit: int = _CFG.db_recent_packets_limit
+    ) -> list[dict[str, Any]]:
         if not self.db:
             return []
 

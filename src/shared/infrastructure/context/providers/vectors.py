@@ -8,10 +8,13 @@ from __future__ import annotations
 
 from typing import Any
 
+from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.logger import getLogger
 
 
 logger = getLogger(__name__)
+
+_CFG = load_operational_config().context
 
 
 # ID: 6e270409-6fa3-4ef2-a42d-a31e923bac52
@@ -30,7 +33,7 @@ class VectorProvider:
     async def search_similar(
         self,
         query: str,
-        top_k: int = 10,
+        top_k: int = _CFG.vector_top_k,
         collection: str = "core-code",
     ) -> list[dict[str, Any]]:
         """Search for semantically similar evidence items from a text query."""
@@ -55,7 +58,7 @@ class VectorProvider:
     async def search_by_embedding(
         self,
         embedding: list[float],
-        top_k: int = 10,
+        top_k: int = _CFG.vector_top_k,
         collection: str = "core-code",
     ) -> list[dict[str, Any]]:
         """Search using a pre-computed embedding against the specified collection."""
@@ -98,7 +101,7 @@ class VectorProvider:
         self,
         symbol_name: str,
         max_distance: float = 0.5,
-        top_k: int = 10,
+        top_k: int = _CFG.vector_top_k,
     ) -> list[dict[str, Any]]:
         """Get semantic neighbors of a symbol."""
         if not self.cognitive_service or not self.qdrant:

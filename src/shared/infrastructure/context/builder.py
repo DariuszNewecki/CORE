@@ -16,6 +16,7 @@ from typing import TYPE_CHECKING, Any
 
 from shared.config import settings
 from shared.infrastructure.intent.intent_repository import get_intent_repository
+from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.infrastructure.knowledge.knowledge_service import KnowledgeService
 from shared.logger import getLogger
 
@@ -31,6 +32,8 @@ if TYPE_CHECKING:
     from .providers.vectors import VectorProvider
 
 logger = getLogger(__name__)
+
+_CFG = load_operational_config().context
 
 
 LAYER_POLICY_IDS: dict[str, list[str]] = {
@@ -762,13 +765,13 @@ class ContextBuilder:
         has_content = bool(item.get("content"))
 
         if path in request.target_files:
-            score += 100
+            score += _CFG.score_target_file
         if path in request.target_paths:
-            score += 80
+            score += _CFG.score_target_path
         if name in request.target_symbols or symbol_path in request.target_symbols:
-            score += 120
+            score += _CFG.score_target_symbol
         if has_content:
-            score += 30
+            score += _CFG.score_has_content
 
         source_bonus = {
             "filesystem": 25,

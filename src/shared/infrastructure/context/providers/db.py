@@ -12,10 +12,13 @@ from typing import Any
 from sqlalchemy import select, text
 
 from shared.infrastructure.database.models import Symbol
+from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.logger import getLogger
 
 
 logger = getLogger(__name__)
+
+_CFG = load_operational_config().context
 
 
 class _SQLRegistry:
@@ -71,7 +74,7 @@ class DBProvider:
     async def fetch_symbols_for_scope(
         self,
         scope: dict[str, Any],
-        max_items: int = 100,
+        max_items: int = _CFG.db_provider_max_items,
     ) -> list[dict[str, Any]]:
         if not self._session_factory:
             return []

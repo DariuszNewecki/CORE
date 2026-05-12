@@ -18,11 +18,14 @@ from typing import Any
 import yaml
 
 from shared.config import settings
+from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.infrastructure.storage.file_handler import FileHandler
 from shared.logger import getLogger
 
 
 logger = getLogger(__name__)
+
+_CFG = load_operational_config().context
 
 
 # ID: 99a31e5a-ce83-437b-a03c-e21343ceeb3c
@@ -122,7 +125,7 @@ class ContextSerializer:
         if phase:
             total += ContextSerializer.estimate_tokens(str(phase))
 
-        total += 300
+        total += _CFG.token_estimate_overhead
         return total
 
 

@@ -17,12 +17,14 @@ import typer
 from rich.console import Console
 from rich.table import Table
 
+from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.logger import getLogger
 
 
 logger = getLogger(__name__)
 console = Console()
 _CACHE_DIR = "work/context_cache"
+_CFG = load_operational_config().context
 
 
 # ID: f58e6b83-332e-4b8a-bcf0-e51069ecfe1e
@@ -126,7 +128,7 @@ def _show_stats() -> None:
         logger.info("[dim]Cache directory does not exist.[/dim]")
         return
     files = list(cache_dir.glob("*.yaml"))
-    ttl_hours = 24
+    ttl_hours = _CFG.cache_ttl_hours
     now = datetime.now(UTC)
     total_size = 0
     expired = 0
