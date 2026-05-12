@@ -83,6 +83,8 @@ def _create_state() -> _DbState:
         settings.DATABASE_URL,
         echo=_engine_echo(),
         future=True,
+        pool_size=settings.DATABASE_POOL_SIZE,
+        max_overflow=settings.DATABASE_POOL_MAX_OVERFLOW,
     )
     factory = async_sessionmaker(
         bind=engine,

@@ -91,6 +91,17 @@ class Settings(BaseSettings):
     EMBED_MODEL_REVISION: str = "2025-09-15"
     CORE_MAX_CONCURRENT_REQUESTS: int = 2
 
+    # Database connection pool sizing. SQLAlchemy defaults (pool_size=5,
+    # max_overflow=10 → 15 max) are too low for the daemon's worker fleet
+    # (21+ workers all hitting the DB at cold start), producing
+    # QueuePool TimeoutError races. PG max_connections=100; these
+    # defaults give 40 max per loop while leaving room for CLI tools and
+    # ad-hoc queries. Override via env if running with more workers.
+    DATABASE_POOL_SIZE: int = Field(20, validation_alias="DATABASE_POOL_SIZE")
+    DATABASE_POOL_MAX_OVERFLOW: int = Field(
+        20, validation_alias="DATABASE_POOL_MAX_OVERFLOW"
+    )
+
     def __init__(self, **values: Any) -> None:
         # ============================================================
         # 1. PRE-FLIGHT DETECTION (Mirror Check)
