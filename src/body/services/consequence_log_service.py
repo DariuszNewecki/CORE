@@ -17,10 +17,13 @@ import json
 
 from sqlalchemy import Integer, String, bindparam, text
 
+from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.logger import getLogger
 
 
 logger = getLogger(__name__)
+
+_CFG_CL = load_operational_config().consequence_log
 
 
 # ID: 27090aa7-2f6b-4261-ad36-9a19e739c2ad
@@ -92,7 +95,7 @@ class ConsequenceLogService:
     async def find_cause_for_file(
         self,
         file_path: str,
-        lookback_seconds: int = 3600,
+        lookback_seconds: int = _CFG_CL.default_lookback_seconds,
     ) -> dict[str, str | None]:
         """
         Heuristic lookup: most recent proposal that touched ``file_path`` within window.

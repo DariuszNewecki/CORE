@@ -21,6 +21,7 @@ from typing import Any
 from sqlalchemy import text
 
 from body.services.service_registry import service_registry
+from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.logger import getLogger
 from will.autonomy.proposal import Proposal, ProposalScope, ProposalStatus
 from will.autonomy.proposal_repository import ProposalRepository
@@ -28,6 +29,8 @@ from will.autonomy.proposal_state_manager import ProposalStateManager
 
 
 logger = getLogger(__name__)
+
+_CFG_PR = load_operational_config().proposals
 
 
 # ID: 1f2e3d4c-5b6a-7890-1234-567890abcdef
@@ -77,13 +80,15 @@ class ProposalService:
 
     # ID: 03c9360e-4bae-4a75-b208-8fe1c0c1d58b
     async def list_by_status(
-        self, status: ProposalStatus, limit: int = 100
+        self, status: ProposalStatus, limit: int = _CFG_PR.list_limit
     ) -> list[Proposal]:
         """List proposals by status."""
         return await self._repository.list_by_status(status, limit)
 
     # ID: f046639e-4ca6-4d4c-9068-e5d27bdd9857
-    async def list_pending_approval(self, limit: int = 50) -> list[Proposal]:
+    async def list_pending_approval(
+        self, limit: int = _CFG_PR.pending_limit
+    ) -> list[Proposal]:
         """List proposals awaiting approval."""
         return await self._repository.list_pending_approval(limit)
 

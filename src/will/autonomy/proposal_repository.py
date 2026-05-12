@@ -16,12 +16,15 @@ from typing import Any
 
 from sqlalchemy import select
 
+from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.logger import getLogger
 from will.autonomy.proposal import Proposal, ProposalStatus
 from will.autonomy.proposal_mapper import ProposalMapper
 
 
 logger = getLogger(__name__)
+
+_CFG_PR = load_operational_config().proposals
 
 
 # ID: 265ff56b-f1a1-45ba-853b-fd4c97d54f72
@@ -77,7 +80,7 @@ class ProposalRepository:
 
     # ID: 190fdc4c-77e9-4d99-986b-7c3a0d302560
     async def list_by_status(
-        self, status: ProposalStatus, limit: int = 100
+        self, status: ProposalStatus, limit: int = _CFG_PR.list_limit
     ) -> list[Proposal]:
         """Queries the database for proposals in a specific lifecycle state."""
         from shared.infrastructure.database.models.autonomous_proposals import (
