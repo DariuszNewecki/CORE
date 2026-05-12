@@ -16,7 +16,54 @@ no file writes outside what the orchestrated atomic actions perform.
 
 from __future__ import annotations
 
+import asyncio
 from typing import Any
+
+from shared.logger import getLogger
+
+
+logger = getLogger(__name__)
+
+
+async def compute_changed_files(
+    repo_path: str,
+    pre_sha: str | None,
+    post_sha: str | None,
+    proposal_id: str,
+) -> list[str]:
+    """Return paths changed between two git SHAs, or [] on missing/failure.
+
+    Runs ``git diff --name-only <pre> <post>`` in *repo_path*. Used by
+    ProposalExecutor to record which files an executed proposal touched
+    so the consequence log captures the actual diff (not just the
+    declared scope.files). Returns [] if either SHA is missing or the
+    subprocess call fails — non-fatal: consequence recording prefers
+    incomplete data over a failed proposal completion.
+
+    *proposal_id* is included for log attribution only.
+    """
+    if not (pre_sha and post_sha):
+        return []
+    try:
+        diff_proc = await asyncio.create_subprocess_exec(
+            "git",
+            "diff",
+            "--name-only",
+            pre_sha,
+            post_sha,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+            cwd=repo_path,
+        )
+        stdout, _ = await diff_proc.communicate()
+        return [f for f in stdout.decode().strip().splitlines() if f]
+    except Exception as diff_err:
+        logger.warning(
+            "Could not determine changed files for %s: %s",
+            proposal_id,
+            diff_err,
+        )
+        return []
 
 
 def _files_produced_by(action_results: dict[str, Any]) -> set[str]:

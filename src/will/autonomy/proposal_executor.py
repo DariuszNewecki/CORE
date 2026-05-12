@@ -13,7 +13,6 @@ CONSTITUTIONAL (current):
 
 from __future__ import annotations
 
-import asyncio
 import time
 from typing import Any
 from uuid import UUID
@@ -32,7 +31,10 @@ from shared.infrastructure.intent.vocabulary_projection import (
 )
 from shared.logger import getLogger
 from will.autonomy.proposal import ProposalStatus
-from will.autonomy.proposal_execution_pipeline import _files_produced_by
+from will.autonomy.proposal_execution_pipeline import (
+    _files_produced_by,
+    compute_changed_files,
+)
 from will.autonomy.proposal_repository import ProposalRepository
 from will.autonomy.proposal_state_manager import ProposalStateManager
 
@@ -366,29 +368,12 @@ class ProposalExecutor:
                             proposal.proposal_id,
                         )
 
-                    changed_files = []
-                    if pre_execution_sha and post_execution_sha:
-                        try:
-                            diff_proc = await asyncio.create_subprocess_exec(
-                                "git",
-                                "diff",
-                                "--name-only",
-                                pre_execution_sha,
-                                post_execution_sha,
-                                stdout=asyncio.subprocess.PIPE,
-                                stderr=asyncio.subprocess.PIPE,
-                                cwd=str(self.core_context.git_service.repo_path),
-                            )
-                            stdout, _ = await diff_proc.communicate()
-                            changed_files = [
-                                f for f in stdout.decode().strip().splitlines() if f
-                            ]
-                        except Exception as diff_err:
-                            logger.warning(
-                                "Could not determine changed files for %s: %s",
-                                proposal.proposal_id,
-                                diff_err,
-                            )
+                    changed_files = await compute_changed_files(
+                        repo_path=str(self.core_context.git_service.repo_path),
+                        pre_sha=pre_execution_sha,
+                        post_sha=post_execution_sha,
+                        proposal_id=proposal.proposal_id,
+                    )
 
                     try:
                         consequence_svc = (
@@ -676,33 +661,12 @@ class ProposalExecutor:
                                     proposal.proposal_id,
                                 )
 
-                            changed_files = []
-                            if pre_execution_sha and post_execution_sha:
-                                try:
-                                    diff_proc = await asyncio.create_subprocess_exec(
-                                        "git",
-                                        "diff",
-                                        "--name-only",
-                                        pre_execution_sha,
-                                        post_execution_sha,
-                                        stdout=asyncio.subprocess.PIPE,
-                                        stderr=asyncio.subprocess.PIPE,
-                                        cwd=str(
-                                            self.core_context.git_service.repo_path
-                                        ),
-                                    )
-                                    stdout, _ = await diff_proc.communicate()
-                                    changed_files = [
-                                        f
-                                        for f in stdout.decode().strip().splitlines()
-                                        if f
-                                    ]
-                                except Exception as diff_err:
-                                    logger.warning(
-                                        "Could not determine changed files for batch proposal %s: %s",
-                                        proposal.proposal_id,
-                                        diff_err,
-                                    )
+                            changed_files = await compute_changed_files(
+                                repo_path=str(self.core_context.git_service.repo_path),
+                                pre_sha=pre_execution_sha,
+                                post_sha=post_execution_sha,
+                                proposal_id=proposal.proposal_id,
+                            )
 
                             try:
                                 consequence_svc = (
