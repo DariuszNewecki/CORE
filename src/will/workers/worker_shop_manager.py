@@ -81,7 +81,9 @@ class WorkerShopManager(Worker):
         # health_log_service apply the same per-worker thresholds and the same
         # orphan-skip rule as this supervisor.
         self._schedule_state: WorkerScheduleState = WorkerScheduleState(
-            thresholds={}, active_uuids=frozenset()
+            thresholds={},
+            active_uuids=frozenset(),
+            fallback_sec=_CFG.fallback_threshold_sec,
         )
 
     # -------------------------------------------------------------------------
