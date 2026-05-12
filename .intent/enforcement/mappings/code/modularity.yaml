@@ -20,6 +20,11 @@ mappings:
         # Rule fires on volume, not lumped concerns. Excluded pending a genuine
         # second responsibility emerging.
         - "src/shared/path_resolver.py"
+        # ADR-040 / #299: operational_config.py is a catalog loader (48 frozen
+        # dataclasses, one responsibility: load one YAML into one config tree).
+        # Rule fires on volume (~1138 lines), not lumped concerns. Excluded pending
+        # a genuine second responsibility emerging.
+        - "src/shared/infrastructure/intent/operational_config.py"
 
   # LAW: Files whose dominant top-level class exceeds the line limit SHOULD be
   # reviewed by a human. Mechanical redistribution cannot resolve these —
