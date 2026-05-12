@@ -446,14 +446,26 @@ fh.write_runtime_text("relative/path.py", content)
 
 ## After making changes
 
-Always run:
-```bash
-core-admin dev sync --write
-```
+CORE syncs the knowledge graph autonomously. `DbSyncWorker`
+(`.intent/workers/db_sync_worker.yaml`) invokes the `sync.db` atomic
+action on a ~5-minute cadence, so a routine code edit reaches the
+PostgreSQL graph and vectors without operator action. Do not push the
+governor to run anything after every edit — trust the worker.
 
-This syncs the code changes to the database (knowledge graph, symbol IDs, vectors).
-Run it after every editing session before committing. The command requires interactive
-confirmation (`y`) — it cannot be piped non-interactively.
+Suggest the governor run `core-admin dev sync --write` manually only when
+one of these conditions holds:
+
+- The code is not yet constitutionally clean (missing IDs, formatting,
+  headers, docstrings, logger conventions). The CLI workflow runs a *fix*
+  phase first; `DbSyncWorker` runs only the sync half.
+- The governor is about to commit and wants a synchronous sync
+  confirmation before doing so.
+- `DbSyncWorker` is stalled — no recent `sync.db.complete` report on the
+  blackboard, or its `last_heartbeat` in `worker_registry` is materially
+  older than its 300-second `max_interval`.
+
+The command requires interactive confirmation (`y`) and cannot be piped —
+only the governor can run it.
 
 ---
 
