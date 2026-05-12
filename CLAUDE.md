@@ -258,14 +258,21 @@ Logic/Will layers must not import `rich.console` directly — use the CLI layer 
 
 Every class and function must have a `# ID: <uuid>` comment on the line immediately
 before the `def` or `class` keyword. This is how the knowledge graph tracks symbols
-across refactors. When you add a new function or class, generate a fresh UUID v4.
+across refactors. When you add a new function or class, generate a fresh UUID v4
+(e.g. `python -c 'import uuid; print(uuid.uuid4())'`).
+
+⚠️ The `xxxxxxxx-…-xxxxxxxxxxxx` placeholders below are **not valid UUIDs** and
+must be replaced before the code is committed. Do NOT copy them verbatim — they
+are intentionally malformed so the symbol-graph parser will reject them if
+pasted by mistake. Worker `identity.uuid` values in `.intent/workers/*.yaml`
+follow the same rule.
 
 ```python
-# ID: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+# ID: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
 class MyNewComponent(BaseAnalyzer):
     ...
 
-    # ID: b2c3d4e5-f6a7-8901-bcde-f12345678901
+    # ID: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
     async def execute(self, **kwargs) -> ComponentResult:
         ...
 ```
