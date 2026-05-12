@@ -611,6 +611,51 @@ volatile-pattern regexes — iso_timestamp, uuid, duration_seconds, pid),
 
 ---
 
+## ADR-039 — 2026-05-12
+
+Audit-input cache invalidation. `AuditorContext` previously memoised
+`_file_list_cache` (the `rglob("*.py")` snapshot) and `_pattern_cache`
+on first use and held them for the process lifetime; `IntentRepository`
+likewise held its policy/rule index until daemon restart. Files and
+rules committed after boot were invisible to the running audit-sensor
+loop. The 2026-05-11 → 2026-05-12 incident is the conserved instance:
+`circuit_breaker.py` landed 21:48 with a `linkage.assign_ids` violation,
+and the daemon ran 54 sensor cycles over ~9 hours reporting "no
+actionable violations" against a snapshot taken before the file existed.
+A 07:04 restart self-healed the violation within 2 min 25 sec.
+
+`AuditorContext.invalidate_file_cache()` clears `_file_list_cache`,
+`_rel_path_map`, and `_pattern_cache`. `run_filtered_audit` and
+`ConstitutionalAuditor.run_full_audit_async` call it at entry, before
+any rule executes — within a single audit run the rebuilt cache is
+still shared across rules. `IntentRepository.reload()` drops the
+policy/rule index under `_INDEX_LOCK` and re-runs `_ensure_index()`,
+re-emitting the "indexed N policies and M rules" log line so
+cycle-to-cycle drift is visible in journald. `AuditViolationSensor.run`
+calls both before `_resolve_rule_ids` and emits one INFO line —
+`audit_sensor_<ns>: rescanned N files, M rules loaded` — so an operator
+can confirm the cycle saw fresh state without reading the rest of the
+log. Drift window is bounded to one sensor interval (600s per
+`.intent/workers/audit_sensor_*.yaml`).
+
+This is the data-drift counterpart to ADR-030's logic-drift posture.
+ADR-030 governs loaded Python module drift and chooses DEGRADE +
+governor restart over self-reload; this ADR governs audit-input data
+drift (file lists scanned from `src/`, rule content loaded from
+`.intent/`) where every successful proposal commit adds content the
+running loop must see — treating it as code reload would halt A3
+autonomous operation after every fix. Closes #298.
+
+Files: `src/mind/governance/audit_context.py`,
+`src/mind/governance/filtered_audit.py`,
+`src/mind/governance/auditor.py`,
+`src/shared/infrastructure/intent/intent_repository.py`,
+`src/will/workers/audit_violation_sensor.py`,
+`.specs/decisions/ADR-039-audit-input-cache-invalidation.md`.
+Commit adf59796.
+
+---
+
 ## Notes
 
 * This changelog intentionally avoids implementation detail
