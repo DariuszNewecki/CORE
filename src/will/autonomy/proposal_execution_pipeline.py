@@ -26,6 +26,35 @@ from shared.logger import getLogger
 logger = getLogger(__name__)
 
 
+async def resolve_deferred_findings(proposal_id: str) -> None:
+    """Flip findings deferred to *proposal_id* from 'deferred_to_proposal'
+    to 'resolved' — the success-side mirror of §7a revival.
+
+    Fail-soft: any error is logged and swallowed. The resolution step
+    happens after a proposal has already been marked completed; failure
+    here must not unwind completion. Logs an INFO when one or more
+    findings are flipped; silent when there were none.
+    """
+    try:
+        bb_service = await service_registry.get_blackboard_service()
+        resolution = await bb_service.resolve_deferred_entries_for_completed_proposal(
+            proposal_id
+        )
+        if resolution and resolution.get("resolved_count", 0) > 0:
+            logger.info(
+                "ProposalExecutor: resolved %d deferred finding(s) "
+                "for completed proposal %s",
+                resolution["resolved_count"],
+                proposal_id,
+            )
+    except Exception as resolve_err:
+        logger.warning(
+            "Failed to resolve deferred findings for proposal %s: %s",
+            proposal_id,
+            resolve_err,
+        )
+
+
 async def record_consequence(
     proposal_id: str,
     pre_sha: str | None,

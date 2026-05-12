@@ -35,6 +35,7 @@ from will.autonomy.proposal_execution_pipeline import (
     _files_produced_by,
     compute_changed_files,
     record_consequence,
+    resolve_deferred_findings,
 )
 from will.autonomy.proposal_repository import ProposalRepository
 from will.autonomy.proposal_state_manager import ProposalStateManager
@@ -387,27 +388,7 @@ class ProposalExecutor:
                         policies=proposal.scope.policies,
                     )
 
-                    # Success-side mirror of §7a revival: flip findings
-                    # deferred to this proposal to 'resolved'. Failure of
-                    # the resolution step must not unwind completion.
-                    try:
-                        bb_service = await service_registry.get_blackboard_service()
-                        resolution = await bb_service.resolve_deferred_entries_for_completed_proposal(
-                            proposal.proposal_id
-                        )
-                        if resolution and resolution.get("resolved_count", 0) > 0:
-                            logger.info(
-                                "ProposalExecutor: resolved %d deferred finding(s) "
-                                "for completed proposal %s",
-                                resolution["resolved_count"],
-                                proposal.proposal_id,
-                            )
-                    except Exception as resolve_err:
-                        logger.warning(
-                            "Failed to resolve deferred findings for proposal %s: %s",
-                            proposal.proposal_id,
-                            resolve_err,
-                        )
+                    await resolve_deferred_findings(proposal.proposal_id)
 
                 else:
                     failed_actions = [
