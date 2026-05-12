@@ -32,8 +32,8 @@ from shared.infrastructure.intent.vocabulary_projection import (
 from shared.logger import getLogger
 from will.autonomy.proposal import ProposalStatus
 from will.autonomy.proposal_execution_pipeline import (
-    _files_produced_by,
     capture_git_sha,
+    commit_proposal_changes,
     compute_changed_files,
     record_consequence,
     resolve_deferred_findings,
@@ -326,31 +326,13 @@ class ProposalExecutor:
                         proposal.proposal_id,
                         total_duration,
                     )
-                    # Git commit — stage the declared scope plus anything actions
-                    # reported as produced (#297: fix.modularity writes new package
-                    # files outside scope.files). Failure is advisory: execution
-                    # already happened, we don't unwind it over a commit failure.
-                    if self.core_context.git_service:
-                        try:
-                            paths_to_commit = sorted(
-                                set(proposal.scope.files)
-                                | _files_produced_by(action_results)
-                            )
-                            self.core_context.git_service.commit_paths(
-                                paths_to_commit,
-                                f"fix({proposal.proposal_id[:16]}): {proposal.goal}",
-                            )
-                            logger.info(
-                                "Git commit created for proposal %s",
-                                proposal.proposal_id,
-                            )
-                        except Exception as git_err:
-                            logger.warning(
-                                "Git commit failed for proposal %s — changes applied "
-                                "but not committed: %s",
-                                proposal.proposal_id,
-                                git_err,
-                            )
+                    commit_proposal_changes(
+                        git_service=self.core_context.git_service,
+                        proposal_id=proposal.proposal_id,
+                        proposal_goal=proposal.goal,
+                        scope_files=proposal.scope.files,
+                        action_results=action_results,
+                    )
 
                     # -- Consequence recording --
                     # Delegated to ConsequenceLogService (Body layer).
@@ -582,26 +564,13 @@ class ProposalExecutor:
                                 proposal.proposal_id,
                                 results=action_results,
                             )
-                            # Git commit per proposal in batch — same advisory
-                            # semantics as single execute: log warning, don't unwind.
-                            # #297: union scope with files_produced so new files
-                            # land in git alongside scope-declared edits.
-                            if self.core_context.git_service:
-                                try:
-                                    paths_to_commit = sorted(
-                                        set(proposal.scope.files)
-                                        | _files_produced_by(action_results)
-                                    )
-                                    self.core_context.git_service.commit_paths(
-                                        paths_to_commit,
-                                        f"fix({proposal.proposal_id[:16]}): {proposal.goal}",
-                                    )
-                                except Exception as git_err:
-                                    logger.warning(
-                                        "Git commit failed for batch proposal %s: %s",
-                                        proposal.proposal_id,
-                                        git_err,
-                                    )
+                            commit_proposal_changes(
+                                git_service=self.core_context.git_service,
+                                proposal_id=proposal.proposal_id,
+                                proposal_goal=proposal.goal,
+                                scope_files=proposal.scope.files,
+                                action_results=action_results,
+                            )
                             # -- Consequence recording --
                             post_execution_sha = capture_git_sha(
                                 self.core_context.git_service,

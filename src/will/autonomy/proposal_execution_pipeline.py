@@ -172,6 +172,45 @@ async def compute_changed_files(
         return []
 
 
+def commit_proposal_changes(
+    git_service,
+    proposal_id: str,
+    proposal_goal: str,
+    scope_files: list[str],
+    action_results: dict[str, Any],
+) -> None:
+    """Commit the proposal's changes to git.
+
+    Stages the declared scope.files plus anything actions reported in
+    ``data['files_produced']`` (issue #297: fix.modularity writes new
+    package files outside scope.files). Commits with message
+    ``fix({proposal_id[:16]}): {goal}``.
+
+    No-op when *git_service* is None.
+
+    Fail-soft: the commit failing is advisory. Execution has already
+    happened and the proposal row is already marked completed; we don't
+    unwind that over a commit failure. Warning is logged, control
+    returns normally.
+    """
+    if git_service is None:
+        return
+    try:
+        paths_to_commit = sorted(set(scope_files) | _files_produced_by(action_results))
+        git_service.commit_paths(
+            paths_to_commit,
+            f"fix({proposal_id[:16]}): {proposal_goal}",
+        )
+        logger.info("Git commit created for proposal %s", proposal_id)
+    except Exception as git_err:
+        logger.warning(
+            "Git commit failed for proposal %s — changes applied "
+            "but not committed: %s",
+            proposal_id,
+            git_err,
+        )
+
+
 def _files_produced_by(action_results: dict[str, Any]) -> set[str]:
     """Collect every path actions reported via ``data['files_produced']``.
 
