@@ -669,6 +669,21 @@ follow as implementation. Closes #282 ADR step.
 Files: `.specs/decisions/ADR-040-no-hardcoded-values-in-src.md`,
 `.specs/planning/CORE-A3-plan.md`.
 
+---
+
+## ADR-040 — 2026-05-12 (implementation complete)
+
+All 32 sections of `.intent/enforcement/config/operational_config.yaml`
+wired across ~106 source files. Module-level constants, default argument
+literals, and inline thresholds replaced with reads from
+`load_operational_config()` following the `circuit_breaker.py` pattern.
+Audit rule (`governance.no_hardcoded_values`) and remediation map entry
+remain as follow-on work. Outstanding: #299 (modularity exemption for
+loader), #300 (4 remaining strategy_selector weights).
+Files: `.intent/enforcement/config/operational_config.yaml`,
+`src/shared/infrastructure/intent/operational_config.py`,
+~106 `src/` files across 13 commits.
+
 ## Notes
 
 * This changelog intentionally avoids implementation detail
