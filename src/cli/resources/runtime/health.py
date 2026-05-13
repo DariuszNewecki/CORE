@@ -62,9 +62,18 @@ def _age(ts: datetime | None) -> str:
     return f"{s // 86400}d ago"
 
 
-def _worker_colour(last_heartbeat: datetime | None) -> str:
+def _worker_colour(
+    last_heartbeat: datetime | None, is_active_declared: bool = True
+) -> str:
     """Liveness colour derived from heartbeat age. Per ADR-020,
-    last_heartbeat is the canonical liveness signal."""
+    last_heartbeat is the canonical liveness signal.
+
+    Workers whose declaration is not status=active (paused, deprecated,
+    or orphan rows whose YAML was removed) are rendered dim — they are
+    not expected to heartbeat, so heartbeat age is irrelevant.
+    """
+    if not is_active_declared:
+        return "dim"
     if last_heartbeat is None:
         return "yellow"
     if last_heartbeat.tzinfo is None:
@@ -77,11 +86,19 @@ def _worker_colour(last_heartbeat: datetime | None) -> str:
     return "red"
 
 
-def _liveness_label(last_heartbeat: datetime | None) -> str:
+def _liveness_label(
+    last_heartbeat: datetime | None, is_active_declared: bool = True
+) -> str:
     """Liveness label derived from heartbeat freshness. Per ADR-020,
     a worker is alive iff its last heartbeat is within the silent-worker
     threshold (10 minutes, matching health_log_service.silent_workers).
+
+    Workers whose declaration is not status=active are labelled
+    ``inactive`` regardless of heartbeat age — heartbeat staleness is
+    expected and not a fault signal.
     """
+    if not is_active_declared:
+        return "inactive"
     if last_heartbeat is None:
         return "stale"
     if last_heartbeat.tzinfo is None:
@@ -106,11 +123,14 @@ async def health_cmd(
     Shows workers, observer snapshot, blackboard pulse,
     recent crawl stats, and blast radius top symbols.
     """
+    schedule_state = load_worker_schedule_state()
+    active_uuids = schedule_state.active_uuids
+
     async with get_session() as session:
         workers = (
             await session.execute(
                 text(
-                    "\n            SELECT worker_name, worker_class, phase, last_heartbeat\n            FROM core.worker_registry\n            ORDER BY last_heartbeat DESC NULLS LAST\n            "
+                    "\n            SELECT worker_name, worker_uuid, worker_class, phase, last_heartbeat\n            FROM core.worker_registry\n            ORDER BY last_heartbeat DESC NULLS LAST\n            "
                 )
             )
         ).fetchall()
@@ -150,12 +170,22 @@ async def health_cmd(
             )
         ).fetchall()
     if plain:
-        _render_plain(workers, bb_summary, bb_recent, health, crawl, blast)
+        _render_plain(
+            workers, bb_summary, bb_recent, health, crawl, blast, active_uuids
+        )
     else:
-        _render_rich(workers, bb_summary, bb_recent, health, crawl, blast)
+        _render_rich(workers, bb_summary, bb_recent, health, crawl, blast, active_uuids)
 
 
-def _render_rich(workers, bb_summary, bb_recent, health, crawl, blast) -> None:
+def _render_rich(
+    workers,
+    bb_summary,
+    bb_recent,
+    health,
+    crawl,
+    blast,
+    active_uuids: frozenset[str],
+) -> None:
     console.rule("[bold cyan]CORE Runtime Health[/bold cyan]")
     console.print("\n[bold]Workers[/bold]")
     t = Table(show_header=True, header_style="bold magenta")
@@ -165,8 +195,9 @@ def _render_rich(workers, bb_summary, bb_recent, health, crawl, blast) -> None:
     t.add_column("Liveness")
     t.add_column("Last Heartbeat")
     for w in workers:
-        c = _worker_colour(w.last_heartbeat)
-        label = _liveness_label(w.last_heartbeat)
+        is_active = str(w.worker_uuid) in active_uuids
+        c = _worker_colour(w.last_heartbeat, is_active)
+        label = _liveness_label(w.last_heartbeat, is_active)
         t.add_row(
             w.worker_name,
             w.worker_class,
@@ -236,11 +267,20 @@ def _render_rich(workers, bb_summary, bb_recent, health, crawl, blast) -> None:
     console.rule()
 
 
-def _render_plain(workers, bb_summary, bb_recent, health, crawl, blast) -> None:
+def _render_plain(
+    workers,
+    bb_summary,
+    bb_recent,
+    health,
+    crawl,
+    blast,
+    active_uuids: frozenset[str],
+) -> None:
     logger.info("=== CORE Runtime Health ===\n")
     logger.info("-- Workers --")
     for w in workers:
-        label = _liveness_label(w.last_heartbeat)
+        is_active = str(w.worker_uuid) in active_uuids
+        label = _liveness_label(w.last_heartbeat, is_active)
         logger.info(
             "  %s %s %s",
             w.worker_name.ljust(30),
