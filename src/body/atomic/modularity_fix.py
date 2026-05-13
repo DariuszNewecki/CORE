@@ -455,7 +455,7 @@ def _validate_plan_against_inventory(
 )
 @atomic_action(
     action_id="fix.modularity",
-    intent="Two-phase split: Architect finds the seam, RefactoringArchitect executes. Logic Conservation Gate guards.",
+    intent="Two-phase split: Architect finds the seam, then Architect executes the plan. Logic Conservation Gate guards.",
     impact=ActionImpact.WRITE_CODE,
     policies=["atomic_actions"],
 )
@@ -472,8 +472,8 @@ async def action_fix_modularity(
     Phase 1 (modularity_analyze): Architect finds the natural seam and
     assigns confidence. Low/medium confidence defers to human session.
 
-    Phase 2 (modularity_split): RefactoringArchitect executes the approved
-    plan mechanically. Logic Conservation Gate validates before any write.
+    Phase 2 (modularity_split): Architect executes the approved plan
+    mechanically. Logic Conservation Gate validates before any write.
     """
     from body.atomic.modularity_splitter import ModularitySplitter
     from body.atomic.split_plan import SplitPlan, SplitPlanError

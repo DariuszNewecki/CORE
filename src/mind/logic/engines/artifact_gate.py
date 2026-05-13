@@ -47,18 +47,19 @@ logger = getLogger(__name__)
 # Providers are infrastructure. They must not appear in model.yaml.
 _KNOWN_PROVIDERS = {"anthropic", "openai", "deepseek", "ollama", "azure", "mistral"}
 
-# Cognitive roles declared in .intent/. Extend as new roles are declared.
+# Cognitive roles defined in core.cognitive_roles (the SSOT). This set is
+# a static validation aid; keep it in sync when roles are added or removed.
 _KNOWN_ROLES = {
-    "LocalCoder",
     "Architect",
-    "Planner",
-    "IntentTranslator",
-    "DocstringWriter",
     "CapabilityTagger",
     "CodeReviewer",
-    "RefactoringArchitect",
-    "GPTArchitect",
+    "Coder",
+    "DocstringWriter",
+    "LocalCoder",
     "LocalReasoner",
+    "Planner",
+    "RemoteCoder",
+    "Vectorizer",
 }
 
 _REQUIRED_TOP_LEVEL = {"id", "version", "role", "success_criteria"}

@@ -1,5 +1,0 @@
-Translate this user input into a structured goal:
-
-{user_input}
-
-Provide a JSON object with the intent, any constraints, and relevant context.
