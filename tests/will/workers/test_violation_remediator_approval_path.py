@@ -4,9 +4,9 @@ approval_authority on the autonomous self-promote path.
 URS Q2.A acceptance criterion (ADR-015 D6): a non-NULL approval_authority
 on an autonomous-path approved proposal is queryable end-to-end.
 
-The other two workers (TestRemediatorWorker, AutonomousProposalWorker) follow
-the same pattern; landing this one integration test proves the refactor for
-the family.
+TestRemediatorWorker follows the same pattern; landing this one integration
+test proves the refactor for the family. (AutonomousProposalWorker was
+retired in favor of ViolationRemediatorWorker + ProposalConsumerWorker.)
 """
 
 from __future__ import annotations

@@ -29,7 +29,6 @@ from shared.logger import getLogger
 
 if TYPE_CHECKING:
     from body.services.artifact_service import ArtifactService
-    from body.services.audit_findings_service import AuditFindingsService
     from body.services.blackboard_service import BlackboardService
     from body.services.consequence_log_service import ConsequenceLogService
     from body.services.crawl_service import CrawlService
@@ -50,7 +49,6 @@ KERNEL_SERVICES: Final[dict[str, str]] = {
     "knowledge_service": "shared.infrastructure.knowledge.knowledge_service.KnowledgeService",
     "auditor": "mind.governance.auditor.ConstitutionalAuditor",
     "artifact_service": "body.services.artifact_service.ArtifactService",
-    "audit_findings_service": "body.services.audit_findings_service.AuditFindingsService",
     "blackboard_service": "body.services.blackboard_service.BlackboardService",
     "consequence_log_service": "body.services.consequence_log_service.ConsequenceLogService",
     "crawl_service": "body.services.crawl_service.CrawlService",
@@ -185,8 +183,6 @@ class ServiceRegistry:
             return await self.get_auditor_context()
         if name == "artifact_service":
             return await self.get_artifact_service()
-        if name == "audit_findings_service":
-            return await self.get_audit_findings_service()
         if name == "blackboard_service":
             return await self.get_blackboard_service()
         if name == "consequence_log_service":
@@ -342,15 +338,6 @@ class ServiceRegistry:
 
                 self._instances["health_log_service"] = HealthLogService()
         return self._instances["health_log_service"]
-
-    # ID: 2f4822e2-fdcb-4b0f-8edd-2d93193d08ef
-    async def get_audit_findings_service(self) -> AuditFindingsService:
-        async with self._lock:
-            if "audit_findings_service" not in self._instances:
-                from body.services.audit_findings_service import AuditFindingsService
-
-                self._instances["audit_findings_service"] = AuditFindingsService()
-        return self._instances["audit_findings_service"]
 
     # ID: 4dd57094-61f1-4f94-aa69-f9d5f54d0701
     async def get_crawl_service(self) -> CrawlService:
