@@ -5,7 +5,7 @@
 **Status:** Canonical
 **Authority:** Policy
 **Scope:** Worker supervision
-**Implementation:** Partial — Worker health (active), Blackboard integrity (active), Proposal pipeline (deferred — see issue #170)
+**Implementation:** Complete — Worker health (active), Blackboard integrity (active), Proposal pipeline (active)
 
 ---
 
@@ -50,31 +50,28 @@ Three supervisory responsibilities, each held by a dedicated ShopManager:
 - Detects entries that have been in `claimed` status beyond SLA.
 - Detects duplicate findings for the same subject.
 
-**Proposal pipeline health** *(Not Yet Implemented — see issue #170)*
+**Proposal pipeline health**
 - Detects Proposals stuck in `approved` status (ConsumerWorker not running).
 - Detects Proposals stuck in `executing` status (execution interrupted).
 - Detects repeated failures for the same action/rule combination.
 
-A seed for condition (a)'s detection logic exists in
-`src/cli/resources/runtime/health.py:439-448` as a manual CLI query. That
-SQL is the starting point for the eventual ProposalPipelineShopManager;
-it is not yet a constitutional carrier because it does not run on a
-schedule, post Blackboard findings, or read its threshold from `.intent/`.
-
-The other two responsibilities (Worker health, Blackboard integrity) are
-implemented and active. Until the proposal-pipeline ShopManager exists,
-the human architect must directly inspect proposal-pipeline state via the
-`core-admin runtime health` CLI command.
+All three conditions are carried by `ProposalPipelineShopManager`, whose
+declaration in `.intent/workers/proposal_pipeline_shop_manager.yaml`
+schedules detection cycles, posts deduplicated Blackboard findings, and
+reads its SLA thresholds from `.intent/enforcement/config/operational_config.yaml`
+(`workers.proposal_pipeline_shop`). Condition (a)'s detection logic
+originated as a manual SQL query in `src/cli/resources/runtime/health.py`
+and was lifted into the worker as part of #170.
 
 ---
 
 ## 3a. Implementation Status
 
-| Responsibility            | Status   | Implementing Worker            |
-| ------------------------- | -------- | ------------------------------ |
-| Worker health & liveness  | active   | `worker_shop_manager`          |
-| Blackboard integrity      | active   | `blackboard_shop_manager`      |
-| Proposal pipeline health  | deferred | `proposal_pipeline_shop_manager` (planned, issue #170) |
+| Responsibility            | Status   | Implementing Worker                |
+| ------------------------- | -------- | ---------------------------------- |
+| Worker health & liveness  | active   | `worker_shop_manager`              |
+| Blackboard integrity      | active   | `blackboard_shop_manager`          |
+| Proposal pipeline health  | active   | `proposal_pipeline_shop_manager`   |
 
 This table is the authoritative implementation map. Drift between this
 table and the contents of `.intent/workers/` is itself a finding the
@@ -155,6 +152,7 @@ This paper does not define:
 - automatic recovery actions beyond claim release (see CORE-Blackboard.md §7a)
 - ShopManager scheduling frequency (declared in worker YAML)
 - the implementation of notification channel integrations beyond log and file
-- the implementation of `proposal_pipeline_shop_manager` — its design,
-  thresholds, and posting contract are deferred to the work tracked in
-  issue #170
+- recovery / unstick logic for stuck or repeatedly-failing proposals —
+  `proposal_pipeline_shop_manager` detects and posts findings only; the
+  remediation path belongs to the existing remediation pipeline or a
+  future remediator and is out of scope here
