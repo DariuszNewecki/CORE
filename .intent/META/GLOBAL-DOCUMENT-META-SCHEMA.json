@@ -18,7 +18,8 @@
         "vocabulary",
         "workflow_definition",
         "workflow_stage",
-        "worker"
+        "worker",
+        "flow"
       ]
     },
     "metadata": {
