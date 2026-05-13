@@ -540,18 +540,19 @@ async def _query_dashboard_data(session: Any) -> dict[str, Any]:
             text("""
             SELECT COUNT(*) AS cnt
             FROM core.autonomous_proposals
-            WHERE status = 'executed' AND execution_completed_at >= :today
+            WHERE status = 'completed' AND execution_completed_at >= :today
             """),
             {"today": today_start},
         )
     ).fetchone()
-    failed_count = (
+    failed_today = (
         await session.execute(
             text("""
             SELECT COUNT(*) AS cnt
             FROM core.autonomous_proposals
-            WHERE status = 'failed'
+            WHERE status = 'failed' AND execution_completed_at >= :today
             """),
+            {"today": today_start},
         )
     ).fetchone()
     stuck_count = (
@@ -575,7 +576,7 @@ async def _query_dashboard_data(session: Any) -> dict[str, Any]:
     data["pipeline"] = {
         "distribution": {r.status: r.cnt for r in proposal_dist},
         "executed_today": executed_today.cnt if executed_today else 0,
-        "failed": failed_count.cnt if failed_count else 0,
+        "failed_today": failed_today.cnt if failed_today else 0,
         "stuck_approved": stuck_count.cnt if stuck_count else 0,
         "last_consequence_ts": last_consequence.last_ts if last_consequence else None,
         "cutoff_60m": cutoff_60m,
@@ -736,10 +737,10 @@ def _build_panels(data: dict[str, Any]) -> list[Panel]:
         p = data["pipeline"]
         dist = p["distribution"]
         executed_today = p["executed_today"]
-        failed = p["failed"]
+        failed_today = p["failed_today"]
         stuck = p["stuck_approved"]
         last_ts = p["last_consequence_ts"]
-        if failed > 0 or stuck > 0:
+        if failed_today > 0 or stuck > 0:
             signal = "red"
         elif executed_today > 0:
             if last_ts is not None:
@@ -755,14 +756,14 @@ def _build_panels(data: dict[str, Any]) -> list[Panel]:
             signal = "amber"
         rows = [(s, str(n)) for s, n in dist.items()]
         rows.append(("Executed today", str(executed_today)))
-        rows.append(("Failed", str(failed)))
+        rows.append(("Failed today", str(failed_today)))
         rows.append(("Stuck (approved > 30m)", str(stuck)))
         rows.append(("Last consequence", _age(p["last_consequence_ts"])))
         panels.append(
             _make_panel(
                 "Pipeline Moving",
                 signal,
-                f"{executed_today} executed today, {failed} failed",
+                f"{executed_today} executed today, {failed_today} failed today",
                 rows,
             )
         )
@@ -902,7 +903,7 @@ def _render_dashboard_plain(data: dict[str, Any]) -> None:
         for status, cnt in p["distribution"].items():
             logger.info("  %s %s", status.ljust(16), cnt)
         logger.info("  executed_today:    %s", p["executed_today"])
-        logger.info("  failed:            %s", p["failed"])
+        logger.info("  failed_today:      %s", p["failed_today"])
         logger.info("  stuck_approved:    %s", p["stuck_approved"])
         logger.info("  last_consequence:  %s", _age(p["last_consequence_ts"]))
     except Exception:
