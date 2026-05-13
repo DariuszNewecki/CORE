@@ -9,7 +9,10 @@ mappings:
     params:
       check_type: modularity
       check_method: check_needs_split
-      max_lines: 400
+      # Per ADR-042: LOC is a pre-selector, not a verdict. Threshold raised
+      # from 400 to 500 to reduce false-positives on algorithm-large and
+      # barely-over-boundary classes.
+      max_lines: 500
     scope:
       applies_to: ["src/**/*.py"]
       excludes:
@@ -18,12 +21,14 @@ mappings:
         - "**/__init__.py"
         # ADR-036: PathResolver is a catalog class (30+ trivial property getters).
         # Rule fires on volume, not lumped concerns. Excluded pending a genuine
-        # second responsibility emerging.
+        # second responsibility emerging. Also registered under
+        # class_too_large.governed_exclusions per ADR-042 D3.
         - "src/shared/path_resolver.py"
         # ADR-040 / #299: operational_config.py is a catalog loader (48 frozen
         # dataclasses, one responsibility: load one YAML into one config tree).
         # Rule fires on volume (~1138 lines), not lumped concerns. Excluded pending
-        # a genuine second responsibility emerging.
+        # a genuine second responsibility emerging. Also registered under
+        # class_too_large.governed_exclusions per ADR-042 D3.
         - "src/shared/infrastructure/intent/operational_config.py"
 
   # LAW: Files whose dominant top-level class exceeds the line limit SHOULD be
@@ -34,10 +39,67 @@ mappings:
     params:
       check_type: modularity
       check_method: check_class_too_large
-      max_lines: 400
+      # Per ADR-042: pre-selector threshold raised from 400 to 500 for
+      # consistency with needs_split. The verdict on whether an oversize
+      # class is genuinely poly-responsibility lives in
+      # modularity.unix_philosophy (llm_gate, currently stubbed — see #306).
+      max_lines: 500
     scope:
       applies_to: ["src/**/*.py"]
       excludes: ["tests/**", "scripts/**", "**/__init__.py"]
+    # ADR-042 D3: per-file exemption register. Each entry documents why a
+    # class exceeds the LOC pre-selector despite single-responsibility
+    # status. Honored by the audit pipeline as if listed under
+    # scope.excludes (file paths merged in rule_extractor). Retired when
+    # modularity.unix_philosophy comes online (ADR-042 D4, #306).
+    governed_exclusions:
+      - file: src/shared/infrastructure/intent/intent_repository.py
+        class: IntentRepository
+        category: facade
+        rationale: >
+          The constitutionally-required single gateway to .intent/.
+          Size reflects the breadth of document types served, not mixed
+          concerns — every method routes one document kind to its
+          loader/validator. Decomposition would introduce parallel
+          gateways and break the "single gateway" rule from CLAUDE.md
+          (rule 6: "The Mind is accessed only through IntentRepository").
+        removal_condition: >
+          A second responsibility emerges within IntentRepository — e.g.
+          it begins making policy decisions, performing side effects
+          beyond load/validate, or owning runtime state.
+      - file: src/will/workers/intent_inspector.py
+        class: IntentInspector
+        category: algorithm
+        rationale: >
+          Three-pass inspection algorithm (alignment, coherence,
+          consistency) whose passes share intermediate state. One
+          consumer. Splitting the passes into independent workers would
+          duplicate the shared-state setup and lose the natural cohesion
+          of "inspect one intent tree once."
+        removal_condition: >
+          The three passes are decomposed into independent workers, each
+          consuming the same intent tree without shared in-process state.
+      - file: src/shared/path_resolver.py
+        class: PathResolver
+        category: catalog
+        rationale: >
+          Catalog of 30+ trivial property getters. Rule fires on volume,
+          not lumped concerns — every property maps one path constant to
+          its resolved location. Per ADR-036.
+        removal_condition: >
+          A second responsibility emerges in PathResolver — e.g. it
+          begins computing derived paths, caching, or performing I/O.
+      - file: src/shared/infrastructure/intent/operational_config.py
+        class: OperationalConfig
+        category: catalog
+        rationale: >
+          Catalog loader of 48 frozen dataclasses, one responsibility:
+          load one YAML into one config tree. Rule fires on volume
+          (~1138 lines), not lumped concerns. Per ADR-040 / #299.
+        removal_condition: >
+          A second responsibility emerges — e.g. the loader begins
+          mutating config at runtime, validating against external
+          sources, or supporting multiple config trees.
 
   # LAW: Files mixing distinct architectural disciplines MUST be refactored
   # Blocking — requires human judgment before any autonomous action

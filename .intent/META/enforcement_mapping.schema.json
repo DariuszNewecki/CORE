@@ -45,6 +45,48 @@
                       "description": "Optional glob patterns to exclude from applies_to."
                   }
               }
+          },
+          "governed_exclusions": {
+              "type": "array",
+              "description": "Per-file exemption register introduced by ADR-042. Each entry documents why a specific file/class is exempt from this rule and what condition would trigger removal of the exemption. The audit pipeline honors each entry's `file` value as if it were listed under scope.excludes; the additional fields are documentation that constitution validate enforces.",
+              "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                      "file",
+                      "class",
+                      "category",
+                      "rationale",
+                      "removal_condition"
+                  ],
+                  "properties": {
+                      "file": {
+                          "type": "string",
+                          "minLength": 1,
+                          "description": "Repo-relative path of the exempted source file."
+                      },
+                      "class": {
+                          "type": "string",
+                          "minLength": 1,
+                          "description": "Name of the exempted top-level class within the file."
+                      },
+                      "category": {
+                          "type": "string",
+                          "enum": ["facade", "algorithm", "catalog"],
+                          "description": "Why the class exceeds the LOC pre-selector despite single-responsibility status. facade: gateway whose size reflects surface breadth. algorithm: cohesive algorithm whose passes share state. catalog: collection of trivial parallel members (e.g. dataclass register or property table)."
+                      },
+                      "rationale": {
+                          "type": "string",
+                          "minLength": 10,
+                          "description": "Why this class fits its declared category and why decomposition would not improve modularity."
+                      },
+                      "removal_condition": {
+                          "type": "string",
+                          "minLength": 10,
+                          "description": "The observable change that retires this exemption — typically the emergence of a second responsibility, or the llm_gate audit path becoming operational (ADR-042 D4)."
+                      }
+                  }
+              }
           }
       }
   }

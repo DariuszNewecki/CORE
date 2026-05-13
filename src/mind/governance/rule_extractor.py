@@ -146,6 +146,34 @@ def extract_executable_rules(
             if isinstance(exclusions, str):
                 exclusions = [exclusions]
 
+            # ADR-042 D3: merge governed_exclusions[].file into the exclusion
+            # list. The governed_exclusions block is a structured register
+            # carrying rationale + category + removal_condition for each
+            # exemption; the audit pipeline honors it by treating the listed
+            # files as if they were in scope.excludes. Per-entry shape is
+            # enforced by enforcement_mapping.schema.json; rule_extractor is
+            # defensive against malformed entries (skip, log) rather than
+            # raising — the schema validator is the canonical gate.
+            governed = strategy.get("governed_exclusions", []) or []
+            if isinstance(governed, list):
+                for entry in governed:
+                    if not isinstance(entry, dict):
+                        logger.warning(
+                            "Rule %s governed_exclusions entry is not a dict: %r",
+                            rule_id,
+                            entry,
+                        )
+                        continue
+                    path = entry.get("file")
+                    if not path:
+                        logger.warning(
+                            "Rule %s governed_exclusions entry missing 'file': %r",
+                            rule_id,
+                            entry,
+                        )
+                        continue
+                    exclusions.append(path)
+
             # Determine if this is a context-level engine
             is_context_level = engine in CONTEXT_LEVEL_ENGINES
 
