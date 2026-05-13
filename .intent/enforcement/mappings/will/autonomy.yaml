@@ -1,4 +1,4 @@
-  mappings:
+mappings:
     # LAW: Agents MUST NOT modify files outside their assigned lane
     autonomy.lanes.boundary_enforcement:
       engine: glob_gate
@@ -41,16 +41,21 @@
         applies_to: ["src/will/agents/planner_agent.py"]
 
     # LAW: ConservationGate MUST reject code below 0.50 preservation ratio
-    # ENFORCEMENT: Runtime check in ConservationGate — not statically checkable.
+    # ENFORCEMENT: Runtime check — not statically checkable.
     # Threshold is read from this rule's declaration at runtime.
     autonomy.conservation.min_preservation_ratio:
       engine: passive_gate
       params:
         enforced_by: "body.validators.logic_conservation_validator.LogicConservationValidator"
         enforcement_note: >
-          Runtime check — ConservationGate computes logical token preservation
-          ratio and rejects proposals below 0.50 unless deletions_authorized=True.
-          Cannot be checked statically; enforced on every LLM-produced code proposal.
+          Runtime check — LogicConservationValidator (body) measures the
+          proposed-code / original-code mass ratio and returns ok=False with
+          verdict=logic_evaporation when below 0.50. GovernanceDecider treats
+          this verdict as a CRITICAL block that no risk tier can override;
+          local callers (e.g. ComplexityRemediationService) honour the same
+          ok=False signal inline. Bypassed only when callers pass
+          deletions_authorized=True. Cannot be checked statically; enforced
+          on every LLM-produced code proposal that routes through either path.
       scope:
         applies_to:
           - "src/body/validators/logic_conservation_validator.py"
