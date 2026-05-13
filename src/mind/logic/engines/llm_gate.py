@@ -116,7 +116,7 @@ class LLMGateEngine(BaseEngine):
                 context={
                     "instruction": instruction,
                     "rationale": rationale,
-                    "code_content": content,
+                    "content": content,
                 },
                 client=self.llm,
                 user_id="llm_gate_engine",
