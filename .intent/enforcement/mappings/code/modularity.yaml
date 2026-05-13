@@ -100,6 +100,53 @@ mappings:
           A second responsibility emerges — e.g. the loader begins
           mutating config at runtime, validating against external
           sources, or supporting multiple config trees.
+      - file: src/shared/infrastructure/context/builder.py
+        class: ContextBuilder
+        category: algorithm
+        rationale: >
+          Single doctrine-aligned context-packet assembly pipeline. The 19
+          methods are sequential stages of one build (request → providers →
+          packet → redactor → validator → serializer) sharing intermediate
+          packet state — header, constitution context, policy context,
+          AST/vector/DB evidence, finalize. Decomposition would split a
+          cohesive algorithm across collaborators and require threading
+          the in-flight packet through every boundary.
+        removal_condition: >
+          The build pipeline acquires a second responsibility beyond packet
+          assembly (e.g. it begins persisting packets, mutating provider
+          state, or owning packet-history lifecycle).
+      - file: src/will/self_healing/remediation_interpretation/file_role_detector.py
+        class: FileRoleDetector
+        category: algorithm
+        rationale: >
+          Deliberately heuristic and deterministic role classifier — 24
+          small predicates (_detect_role_from_path, _looks_like_*,
+          _classify_worker_role, _merge_role_signals, etc.) feeding a
+          single detect() call. No I/O, no LLM, no repo crawling. Each
+          predicate is one signal in one cohesive classification pass.
+          Splitting predicates into separate classes would duplicate the
+          shared AST + path + findings input and lose the natural cohesion
+          of "infer one file's role once."
+        removal_condition: >
+          A second responsibility emerges — e.g. it begins persisting role
+          history, computing roles for multiple files in one pass with
+          cross-file state, or returning more than the role verdict.
+      - file: src/will/agents/strategic_auditor/context_gatherer.py
+        class: SystemContextGatherer
+        category: facade
+        rationale: >
+          Single gateway aggregating the six dimensions of system
+          self-awareness for StrategicAuditor reasoning (constitutional
+          health, semantic landscape, knowledge gaps, structural health,
+          change context, constitution summary). Each _gather_* method
+          covers one dimension; the class is the documented six-dimension
+          contract. One consumer. Decomposition would multiply gateways
+          and force StrategicAuditor to know which sub-gatherer to call.
+        removal_condition: >
+          Either (a) a seventh dimension emerges that does not naturally
+          fit the six-dimension contract, or (b) a second consumer appears
+          that uses only a subset of dimensions — at which point splitting
+          into per-dimension gatherers becomes net cleaner.
 
   # LAW: Files mixing distinct architectural disciplines MUST be refactored
   # Blocking — requires human judgment before any autonomous action
