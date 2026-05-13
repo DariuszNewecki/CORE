@@ -177,6 +177,44 @@ def extract_executable_rules(
             # Determine if this is a context-level engine
             is_context_level = engine in CONTEXT_LEVEL_ENGINES
 
+            # ADR-043 D2: pre-selector dependency list. Parsed defensively
+            # here; canonical type/shape is enforced by
+            # enforcement_mapping.schema.json. Topological ordering and
+            # cross-rule reference validation happen after the loop, once
+            # the full rule set is known.
+            requires_findings_from_raw = (
+                strategy.get("requires_findings_from", []) or []
+            )
+            requires_findings_from: list[str] = []
+            if isinstance(requires_findings_from_raw, list):
+                for entry in requires_findings_from_raw:
+                    if isinstance(entry, str) and entry:
+                        requires_findings_from.append(entry)
+                    else:
+                        logger.warning(
+                            "Rule %s requires_findings_from entry malformed "
+                            "(not a non-empty string): %r — ignoring",
+                            rule_id,
+                            entry,
+                        )
+            else:
+                logger.warning(
+                    "Rule %s requires_findings_from is not a list (got %s) — "
+                    "ignoring",
+                    rule_id,
+                    type(requires_findings_from_raw).__name__,
+                )
+
+            if requires_findings_from and is_context_level:
+                logger.error(
+                    "Rule %s has requires_findings_from but engine %s is "
+                    "context-level — context-level rules cannot use a "
+                    "per-file pre-selector. Clearing requires_findings_from.",
+                    rule_id,
+                    engine,
+                )
+                requires_findings_from = []
+
             # Build executable rule from law + implementation.
             # authority is threaded from the canonical rule so IntentGuard
             # can distinguish "always-block" (constitution) from "advisory"
@@ -191,7 +229,8 @@ def extract_executable_rules(
                 exclusions=exclusions,
                 policy_id=policy_id,
                 is_context_level=is_context_level,
-                authority=canonical_rule["authority"],  # NEW: thread authority through
+                authority=canonical_rule["authority"],
+                requires_findings_from=requires_findings_from,
             )
 
             executable_rules.append(executable_rule)
@@ -220,7 +259,84 @@ def extract_executable_rules(
             + ("..." if len(declared_only_rules) > 5 else ""),
         )
 
-    return executable_rules
+    return _topologically_sort_rules(executable_rules)
+
+
+def _topologically_sort_rules(
+    rules: list[ExecutableRule],
+) -> list[ExecutableRule]:
+    """
+    Order rules so each rule appears after its requires_findings_from
+    preconditions (ADR-043 D2). Original extraction order is preserved
+    among rules with no edges between them — when no rule uses
+    requires_findings_from, this is a no-op.
+
+    References to rules that do not exist in the input set are dropped
+    with a logged warning. Cycles are detected, logged at ERROR, and
+    broken by clearing requires_findings_from on the cycle members so
+    they fall back to their original position without producing empty
+    intersections at runtime.
+    """
+    if not rules:
+        return rules
+
+    position: dict[str, int] = {r.rule_id: i for i, r in enumerate(rules)}
+    by_id: dict[str, ExecutableRule] = {r.rule_id: r for r in rules}
+
+    # Resolve references against the actual rule set. Unknown references
+    # are dropped (with a warning) so they cannot inject phantom edges.
+    in_deps: dict[str, set[str]] = {}
+    for r in rules:
+        valid_preconditions: list[str] = []
+        for pre in r.requires_findings_from:
+            if pre in by_id:
+                valid_preconditions.append(pre)
+            else:
+                logger.warning(
+                    "Rule %s requires_findings_from references unknown rule "
+                    "%s — ignoring this edge",
+                    r.rule_id,
+                    pre,
+                )
+        r.requires_findings_from = valid_preconditions
+        in_deps[r.rule_id] = set(valid_preconditions)
+
+    # Reverse adjacency for Kahn's algorithm.
+    dependents: dict[str, list[str]] = {rid: [] for rid in by_id}
+    for rid, preconditions in in_deps.items():
+        for pre in preconditions:
+            dependents[pre].append(rid)
+
+    in_degree: dict[str, int] = {rid: len(in_deps[rid]) for rid in by_id}
+    sorted_rules: list[ExecutableRule] = []
+    ready: list[str] = [rid for rid in by_id if in_degree[rid] == 0]
+    ready.sort(key=lambda rid: position[rid])
+
+    while ready:
+        rid = ready.pop(0)
+        sorted_rules.append(by_id[rid])
+        for dep_id in dependents[rid]:
+            in_degree[dep_id] -= 1
+            if in_degree[dep_id] == 0:
+                ready.append(dep_id)
+        ready.sort(key=lambda rid: position[rid])
+
+    if len(sorted_rules) < len(rules):
+        placed_ids = {r.rule_id for r in sorted_rules}
+        cycle_members = [r for r in rules if r.rule_id not in placed_ids]
+        logger.error(
+            "Cycle detected in requires_findings_from graph among %d rules: "
+            "%s. Clearing requires_findings_from on the cycle members and "
+            "falling back to original extraction order for them — otherwise "
+            "they would silently produce empty intersections at runtime.",
+            len(cycle_members),
+            [r.rule_id for r in cycle_members],
+        )
+        for r in cycle_members:
+            r.requires_findings_from = []
+            sorted_rules.append(r)
+
+    return sorted_rules
 
 
 __all__ = ["CONTEXT_LEVEL_ENGINES", "extract_executable_rules"]

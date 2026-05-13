@@ -87,6 +87,14 @@
                       }
                   }
               }
+          },
+          "requires_findings_from": {
+              "type": "array",
+              "description": "Pre-selector dependency list introduced by ADR-043 D2. When non-empty, the rule's per-file scope is intersected with the set of files that have findings under the listed rule IDs in the current audit run. Empty intersection produces no work and no findings. Each entry must reference a rule ID declared elsewhere in `.intent/rules/`; cycles across these edges are rejected at rule extraction time. Not permitted on context-level engines (workflow_gate, knowledge_gate) — such rules do not iterate per-file and cannot be narrowed by a file set.",
+              "items": {
+                  "type": "string",
+                  "minLength": 1
+              }
           }
       }
   }

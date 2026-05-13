@@ -41,6 +41,7 @@ async def execute_rule(
     context: AuditorContext,
     *,
     file_filter: frozenset[str] | None = None,
+    prior_findings: list[AuditFinding] | None = None,
 ) -> list[AuditFinding]:
     """
     Execute a single rule and return findings.
@@ -56,6 +57,14 @@ async def execute_rule(
             a file list and are skipped with a warning when this filter
             is set — the caller's per-file gate cannot meaningfully
             constrain a cross-file check.
+        prior_findings: Findings accumulated by earlier rules in the
+            current audit run. Required when this rule declares
+            requires_findings_from (ADR-043 D2): the per-file scope is
+            further narrowed to files that already have findings under
+            the listed rule IDs. None or an empty list when the rule
+            has no preconditions; the audit driver topologically orders
+            rules so preconditions execute first
+            (rule_extractor._topologically_sort_rules).
     """
     from mind.logic.engines.registry import EngineRegistry
 
@@ -137,6 +146,24 @@ async def execute_rule(
             p
             for p in files
             if str(p.relative_to(context.repo_path)).replace("\\", "/") in file_filter
+        ]
+    if rule.requires_findings_from:
+        # ADR-043 D2/D3: pre-selector narrowing. Run only against files
+        # that have findings under the listed precondition rule IDs in
+        # this audit run. Empty intersection produces no work and no
+        # findings — the precondition rule did not fire on any in-scope
+        # file. Aggregate findings with file_path="none" (transient LLM
+        # failure WARNINGs, stub WARNINGs) cannot match a real path and
+        # are filtered out naturally.
+        requires_set = frozenset(rule.requires_findings_from)
+        precondition_files = {
+            f.file_path for f in (prior_findings or []) if f.check_id in requires_set
+        }
+        files = [
+            p
+            for p in files
+            if str(p.relative_to(context.repo_path)).replace("\\", "/")
+            in precondition_files
         ]
     severity = _map_enforcement_to_severity(rule.enforcement)
     transient_llm_failures: list[str] = []

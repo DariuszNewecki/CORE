@@ -87,6 +87,22 @@ class ExecutableRule:
     Defaults to "policy" (the safer, less disruptive tier) when absent.
     """
 
+    requires_findings_from: list[str] = field(default_factory=list)
+    """
+    Pre-selector dependency list (ADR-043 D2).
+
+    When non-empty, the rule's per-file scope is intersected at execution
+    time with the set of files that have findings under any of the listed
+    rule IDs in the current audit run. Empty list means no pre-selection
+    (run against full scope as today).
+
+    Populated by rule_extractor from the enforcement mapping YAML. The
+    audit driver runs rules in topological order over these edges so
+    prior findings are available when a dependent rule executes.
+    Validation (referenced IDs exist, no cycles, not combined with
+    is_context_level=True) happens at extraction time.
+    """
+
     def __repr__(self) -> str:
         """Concise representation for logging."""
         return f"ExecutableRule({self.rule_id}, engine={self.engine}, authority={self.authority})"

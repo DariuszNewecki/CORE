@@ -22,6 +22,7 @@ from shared.logger import getLogger
 if TYPE_CHECKING:
     from mind.governance.audit_context import AuditorContext
     from mind.governance.executable_rule import ExecutableRule
+    from shared.models import AuditFinding
 
 logger = getLogger(__name__)
 
@@ -186,8 +187,13 @@ async def run_filtered_audit(
         ),
     )
 
-    # Execute filtered rules
-    all_findings = []
+    # Execute filtered rules. ADR-043 D3: accumulator carries
+    # AuditFinding objects through the loop so requires_findings_from
+    # narrowing can read check_id and file_path off them; conversion to
+    # dicts is deferred to the return statement so the external contract
+    # is unchanged. Rules are topologically sorted by
+    # extract_executable_rules.
+    all_findings: list[AuditFinding] = []
     failed_rules = []
     skipped_context_level: list[str] = []
 
@@ -198,8 +204,13 @@ async def run_filtered_audit(
             skipped_context_level.append(rule.rule_id)
 
         try:
-            findings = await execute_rule(rule, context, file_filter=file_filter)
-            all_findings.extend([f.as_dict() for f in findings])
+            findings = await execute_rule(
+                rule,
+                context,
+                file_filter=file_filter,
+                prior_findings=all_findings,
+            )
+            all_findings.extend(findings)
             executed_rule_ids.add(rule.rule_id)
 
             logger.debug(
@@ -240,4 +251,4 @@ async def run_filtered_audit(
     if failed_rules:
         logger.warning("Failed rules: %s", ", ".join(failed_rules))
 
-    return all_findings, executed_rule_ids, stats
+    return [f.as_dict() for f in all_findings], executed_rule_ids, stats

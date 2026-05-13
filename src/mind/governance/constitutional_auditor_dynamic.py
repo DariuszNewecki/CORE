@@ -71,7 +71,13 @@ async def run_dynamic_rules(
 
             executed_rule_ids.add(rule.rule_id)
             executed_count += 1
-            findings = await execute_rule(rule, context)
+            # ADR-043 D3: pass the running findings accumulator so rules
+            # with requires_findings_from can narrow their per-file scope
+            # to files already flagged by their preconditions. Rules are
+            # topologically sorted by extract_executable_rules, so
+            # preconditions are guaranteed to be in all_findings before
+            # any dependent rule executes.
+            findings = await execute_rule(rule, context, prior_findings=all_findings)
             all_findings.extend(findings)
 
         except Exception as e:
