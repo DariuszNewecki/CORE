@@ -169,6 +169,42 @@ class AuditViolationSensor(Worker):
                 filtered_out,
             )
 
+        # ADR-045: drain the awaiting_reaudit queue for this namespace.
+        # Subjects of currently-detected violations are the authoritative
+        # set; quarantined findings whose subject is present are released
+        # to 'open', the rest are resolved with system.audit attribution.
+        # Runs after the audit produced this cycle's truth so we can
+        # adjudicate without a second evaluation pass.
+        current_subjects = {
+            f"{_FINDING_SUBJECT}::{v.get('rule_id', self._rule_namespace)}::{v['file_path']}"
+            for v in violations
+        }
+        bb_svc = await self._core_context.registry.get_blackboard_service()
+        reaudit = await bb_svc.adjudicate_awaiting_reaudit_findings(
+            rule_namespace=self._rule_namespace,
+            current_violation_subjects=current_subjects,
+        )
+        reaudit_released = len(reaudit["released_subjects"])
+        reaudit_resolved = len(reaudit["resolved_subjects"])
+        if reaudit_released or reaudit_resolved:
+            logger.info(
+                "AuditViolationSensor[%s]: reaudit drained "
+                "%d released, %d resolved.",
+                self._rule_namespace,
+                reaudit_released,
+                reaudit_resolved,
+            )
+            await self.post_report(
+                subject=f"audit.reaudit.complete::{self._rule_namespace}",
+                payload={
+                    "rule_namespace": self._rule_namespace,
+                    "released_count": reaudit_released,
+                    "resolved_count": reaudit_resolved,
+                    "released_subjects": reaudit["released_subjects"],
+                    "resolved_subjects": reaudit["resolved_subjects"],
+                },
+            )
+
         if not violations:
             await self.post_report(
                 subject="audit_violation_sensor.run.complete",

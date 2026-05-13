@@ -314,6 +314,117 @@ class BlackboardService:
                 )
                 return result.rowcount or 0
 
+    # ID: 77d705b6-bafe-481b-9d73-3bbefdd85470
+    async def adjudicate_awaiting_reaudit_findings(
+        self,
+        rule_namespace: str,
+        current_violation_subjects: set[str],
+    ) -> dict[str, list[str]]:
+        """
+        Drain the awaiting_reaudit queue for this rule namespace (ADR-045).
+
+        Implements the audit sensor's release pass. For each finding
+        currently in 'awaiting_reaudit' whose subject begins with
+        ``audit.violation::<rule_namespace>``, decide based on the current
+        audit cycle's violation set:
+
+        - Subject present in *current_violation_subjects*: transition to
+          'open'. The violation still holds; the remediator should pick
+          it up on its next tick.
+        - Subject absent from *current_violation_subjects*: transition to
+          'resolved'. The audit re-evaluated and the underlying condition
+          has cleared. payload.resolution is stamped with
+          system.audit attribution so the audit trail records why this
+          row closed without operator action.
+
+        The two transitions run in one transaction. Returns lists of
+        released and resolved subjects for the sensor's release-pass
+        report.
+        """
+        from body.services.service_registry import ServiceRegistry
+
+        released_subjects: list[str] = []
+        resolved_subjects: list[str] = []
+
+        subject_prefix = f"audit.violation::{rule_namespace}"
+
+        async with ServiceRegistry.session() as session:
+            async with session.begin():
+                pending = await session.execute(
+                    text(
+                        """
+                        SELECT id, subject
+                        FROM core.blackboard_entries
+                        WHERE entry_type = 'finding'
+                          AND status = 'awaiting_reaudit'
+                          AND (subject = :prefix
+                               OR subject LIKE :prefix || '.%'
+                               OR subject LIKE :prefix || '::%')
+                        FOR UPDATE
+                        """
+                    ),
+                    {"prefix": subject_prefix},
+                )
+                rows = pending.fetchall()
+
+                release_ids: list[str] = []
+                resolve_ids: list[str] = []
+                for row in rows:
+                    entry_id = str(row[0])
+                    subject = str(row[1])
+                    if subject in current_violation_subjects:
+                        release_ids.append(entry_id)
+                        released_subjects.append(subject)
+                    else:
+                        resolve_ids.append(entry_id)
+                        resolved_subjects.append(subject)
+
+                if release_ids:
+                    await session.execute(
+                        text(
+                            """
+                            UPDATE core.blackboard_entries
+                            SET status = 'open',
+                                updated_at = now()
+                            WHERE id = ANY(cast(:ids as uuid[]))
+                              AND status = 'awaiting_reaudit'
+                            """
+                        ),
+                        {"ids": release_ids},
+                    )
+
+                if resolve_ids:
+                    await session.execute(
+                        text(
+                            """
+                            UPDATE core.blackboard_entries
+                            SET status = 'resolved',
+                                resolved_at = now(),
+                                updated_at = now(),
+                                payload = jsonb_set(
+                                    payload,
+                                    '{resolution}',
+                                    jsonb_build_object(
+                                        'reason', 'audit re-evaluation: condition no longer present',
+                                        'resolved_by', 'audit_violation_sensor',
+                                        'resolution_authority', 'system.audit',
+                                        'resolved_at', to_char(now() at time zone 'UTC',
+                                                               'YYYY-MM-DD"T"HH24:MI:SS"Z"')
+                                    ),
+                                    true
+                                )
+                            WHERE id = ANY(cast(:ids as uuid[]))
+                              AND status = 'awaiting_reaudit'
+                            """
+                        ),
+                        {"ids": resolve_ids},
+                    )
+
+        return {
+            "released_subjects": released_subjects,
+            "resolved_subjects": resolved_subjects,
+        }
+
     # ID: 54c114b0-4c6d-484f-8b20-d9ff5fa24caf
     async def update_entry_status(self, entry_id: str, status: str) -> None:
         """

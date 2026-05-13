@@ -34,6 +34,10 @@ class BlackboardQueryService:
         split: only ``fetch_active_finding_subjects_by_prefix`` keeps suppressed
         in its result set, because dedup-vs-permanent-skip is its purpose.)
 
+        'awaiting_reaudit' (ADR-045) is NOT excluded — those rows are
+        non-terminal and represent unresolved work that has not yet been
+        adjudicated by the audit sensor's release pass.
+
         Covers:
           - AuditViolationSensor._fetch_existing_subjects
           - BlackboardShopManager._fetch_existing_findings
@@ -79,9 +83,10 @@ class BlackboardQueryService:
           governor's deliberate "do not surface this again" signal. Its
           subject must remain in the dedup set so sensors skip it
           permanently.
-        - All non-terminal statuses (open, claimed, deferred_to_proposal,
-          indeterminate) are included — those subjects are still being
-          worked and a sensor must not pile on duplicates.
+        - All other statuses (open, claimed, deferred_to_proposal,
+          indeterminate, awaiting_reaudit per ADR-045) are included —
+          those subjects are still on the board (active or quarantined)
+          and a sensor must not pile on duplicates.
 
         Covers:
           - AuditViolationSensor._fetch_existing_subjects

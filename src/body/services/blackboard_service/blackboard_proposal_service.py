@@ -140,7 +140,7 @@ class BlackboardProposalService:
     ) -> dict[str, Any] | None:
         """
         Restore findings that were deferred to a now-failed proposal back
-        to 'open' status, and return the revival outcome.
+        to active status, and return the revival outcome.
 
         Implements CORE-Finding.md §7a steps 1-2 (state transition only).
         §7a step 3 (posting a `report` entry recording the revival) is the
@@ -148,6 +148,19 @@ class BlackboardProposalService:
         UPDATE-only. The Worker consumes this method's return value and
         posts the revival report via self.post_report() so the entry
         carries Worker attribution.
+
+        Revival target is 'awaiting_reaudit', not 'open' (ADR-045). The
+        finding's payload was authored when the violation was originally
+        posted; after a proposal failure or rejection the underlying file
+        may have been refactored, the rule's threshold may have moved, or
+        the governor may judge the finding stale. Routing the finding
+        through awaiting_reaudit gates the remediator's claim queue until
+        AuditViolationSensor's next cycle re-evaluates the rule against
+        the current file state and either releases the finding to 'open'
+        (violation still holds) or resolves it (cleared). The previous
+        immediate-revival-to-'open' behaviour produced a temporal race
+        where the remediator could re-claim a stale finding before the
+        audit sensor's next cycle ran.
 
         The UPDATE filter restricts to status = 'deferred_to_proposal'. This
         protects against retry races and against findings that drifted to
@@ -184,7 +197,7 @@ class BlackboardProposalService:
                     text(
                         """
                         UPDATE core.blackboard_entries
-                        SET status = 'open',
+                        SET status = 'awaiting_reaudit',
                             claimed_by = NULL,
                             claimed_at = NULL,
                             resolved_at = NULL,

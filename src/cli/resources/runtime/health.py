@@ -376,13 +376,18 @@ async def _query_dashboard_data(session: Any) -> dict[str, Any]:
     data: dict[str, Any] = {}
 
     # --- Panel 1: Convergence Direction ---
+    # total_open counts both 'open' and 'awaiting_reaudit' (ADR-045):
+    # the quarantine queue is unresolved work pending sensor adjudication,
+    # not terminal state. Matches the open_findings count in
+    # health_log_service so the dashboard and the trajectory series agree.
     row = (
         await session.execute(
             text("""
             SELECT
                 COUNT(*) FILTER (WHERE created_at >= :cutoff) AS created_24h,
                 COUNT(*) FILTER (WHERE updated_at >= :cutoff AND status = 'resolved') AS resolved_24h,
-                COUNT(*) FILTER (WHERE status = 'open' AND entry_type = 'finding') AS total_open
+                COUNT(*) FILTER (WHERE status IN ('open', 'awaiting_reaudit')
+                                 AND entry_type = 'finding') AS total_open
             FROM core.blackboard_entries
             WHERE entry_type = 'finding'
             """),

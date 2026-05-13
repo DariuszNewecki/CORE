@@ -56,6 +56,11 @@ class HealthLogService:
         from body.services.service_registry import ServiceRegistry
 
         async with ServiceRegistry.session() as session:
+            # Exclusion list, not inclusion: open_findings counts everything
+            # that is NOT terminal/parked. 'awaiting_reaudit' (ADR-045) is
+            # intentionally absent from the exclusion list — those rows
+            # represent unresolved work awaiting sensor adjudication, and
+            # should remain visible in the trajectory.
             r = await session.execute(
                 text(
                     """

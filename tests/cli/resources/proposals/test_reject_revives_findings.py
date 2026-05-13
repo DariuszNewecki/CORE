@@ -9,11 +9,17 @@ unreachable — broken consequence chain.
 The fix mirrors the ProposalConsumerWorker failure path: after the state
 transition, the CLI invokes
 `BlackboardService.revive_findings_for_failed_proposal` so deferred
-findings flip back to `open` with claimed_by/claimed_at/resolved_at
+findings flip back to the active set with claimed_by/claimed_at/resolved_at
 cleared. The §7a revival report (worker-attribution per ADR-011) is
 omitted on the CLI path — operator attribution lives in the proposal
 row's failure_reason and rejected status, mirroring how
 `approve_proposal` posts no report either.
+
+Per ADR-045 the revival target is 'awaiting_reaudit', not 'open'. The
+audit sensor adjudicates each row on its next cycle and either releases
+it to 'open' (violation still holds) or resolves it (cleared). This test
+asserts the post-revival landing state — downstream re-evaluation is
+covered by the sensor's own tests.
 
 This test reproduces the exact two-call sequence from the patched
 `reject_proposal` handler (state_manager.reject + bb_service revival)
@@ -92,9 +98,9 @@ async def test_reject_proposal_revives_deferred_findings(
 ) -> None:
     """Mirrors the patched reject_proposal handler: state transition to
     'rejected' followed by BlackboardService revival. After the sequence,
-    the deferred finding is back at 'open' with claim/resolve markers
-    cleared, and the proposal carries the operator's --reason in
-    failure_reason.
+    the deferred finding is at 'awaiting_reaudit' (ADR-045) with
+    claim/resolve markers cleared, and the proposal carries the
+    operator's --reason in failure_reason.
     """
     await _ensure_blackboard_table(db_session)
 
@@ -166,8 +172,10 @@ async def test_reject_proposal_revives_deferred_findings(
         assert prow[0] == "rejected"
         assert operator_reason in prow[1]
 
-        # Finding row is back to open, with claim/resolve markers cleared
-        # per BlackboardService.revive_findings_for_failed_proposal contract.
+        # Finding row is now at awaiting_reaudit (ADR-045), with
+        # claim/resolve markers cleared per
+        # BlackboardService.revive_findings_for_failed_proposal contract.
+        # The audit sensor adjudicates the row on its next cycle.
         finding_row = await db_session.execute(
             text(
                 "SELECT status, claimed_by, claimed_at, resolved_at "
@@ -177,8 +185,9 @@ async def test_reject_proposal_revives_deferred_findings(
         )
         frow = finding_row.fetchone()
         assert frow is not None
-        assert frow[0] == "open", (
-            f"finding status={frow[0]!r}, expected 'open' after revival"
+        assert frow[0] == "awaiting_reaudit", (
+            f"finding status={frow[0]!r}, "
+            "expected 'awaiting_reaudit' after revival (ADR-045)"
         )
         assert frow[1] is None, "claimed_by should be cleared on revival"
         assert frow[2] is None, "claimed_at should be cleared on revival"
