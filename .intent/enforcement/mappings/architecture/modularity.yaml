@@ -14,3 +14,9 @@
       scope:
         applies_to:
           - "src/**/*.py"
+      # ADR-043 D2 / ADR-042 D1: LOC is a pre-selector, responsibility
+      # count is the verdict. The LLM only verdicts on classes that
+      # modularity.class_too_large has already flagged. Without this,
+      # the rule fans out to ~872 files and saturates the LLM provider.
+      requires_findings_from:
+        - modularity.class_too_large
