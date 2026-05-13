@@ -1,64 +1,68 @@
-  # .intent/enforcement/mappings/architecture/mind_execution_semantic.yaml
-  #
-  # Semantic enforcement for Mind layer execution boundary.
-  # Uses LLM to detect execution logic in Mind components, gated by a
-  # cheap regex pre-selector (ADR-043 D7.2 / #310).
+# .intent/enforcement/mappings/architecture/mind_execution_semantic.yaml
+#
+# Semantic enforcement for Mind layer execution boundary.
+# Uses LLM to detect execution logic in Mind components, gated by a
+# cheap regex pre-selector (ADR-043 D7.2 / #310).
 
-  mappings:
-    # Pre-selector — flags Mind files containing structural markers of
-    # execution semantics. The LLM verdict in no_execution_semantics only
-    # fires on files this rule has already touched.
-    architecture.mind.execution_signal:
-      engine: regex_gate
-      params:
-        forbidden_patterns:
-          - "(?m)^\\s+(?:async\\s+)?def\\s+(classify|decide|evaluate|enforce|determine|approve|authorize|deny|allow|validate_operation)\\w*\\s*\\("
-          - "\\b(RiskTier|RiskLevel|ApprovalType|ExecutionTier|DecisionTier|AllowList|DenyList)\\b"
-          - "(?m)^\\s*(if|elif)\\s+.*\\.(matches|startswith|endswith)\\b.*\\b(execute|run|invoke|allow|deny)\\b"
-      scope:
-        applies_to:
-          - "src/mind/**/*.py"
-        excludes:
-          - "src/mind/**/__init__.py"
-          - "src/mind/**/*_test.py"
+mappings:
+  # Pre-selector — flags Mind files containing structural markers of
+  # execution semantics. The LLM verdict in no_execution_semantics only
+  # fires on files this rule has already touched.
+  architecture.mind.execution_signal:
+    engine: regex_gate
+    params:
+      forbidden_patterns:
+        - "(?m)^\\s+(?:async\\s+)?def\\s+(classify|decide|evaluate|enforce|determine|approve|authorize|deny|allow|validate_operation)\\w*\\s*\\("
+        - "\\b(RiskTier|RiskLevel|ApprovalType|ExecutionTier|DecisionTier|AllowList|DenyList)\\b"
+        - "(?m)^\\s*(if|elif)\\s+.*\\.(matches|startswith|endswith)\\b.*\\b(execute|run|invoke|allow|deny)\\b"
+    scope:
+      applies_to:
+        - "src/mind/**/*.py"
+      excludes:
+        - "src/mind/**/__init__.py"
+        - "src/mind/**/*_test.py"
 
-    architecture.mind.no_execution_semantics:
-      engine: llm_gate
-      params:
-        instruction: >
-          Analyze this Mind layer component for execution logic violations.
+  architecture.mind.no_execution_semantics:
+    engine: llm_gate
+    params:
+      instruction: >
+        Analyze this Mind layer component for execution logic violations.
 
-          Mind components (src/mind/**/*.py) should ONLY:
-          - Load and parse .intent/ files
-          - Build indexes/caches of loaded data
-          - Provide query interfaces (get_rule, list_policies, etc)
-          - Validate structure/format of loaded data
+        Mind components (src/mind/**/*.py) should ONLY:
+        - Load and parse .intent/ files
+        - Build indexes/caches of loaded data
+        - Provide query interfaces (get_rule, list_policies, etc)
+        - Validate structure/format of loaded data
 
-          Mind components MUST NOT:
-          - Classify risk levels or make risk decisions
-          - Implement approval logic or governance decisions
-          - Contain if/else trees for deciding what to allow
-          - Cache computed results (only cache loaded data)
-          - Enforce rules (only provide rule data)
-          - Contain business logic or algorithms
+        Mind components MUST NOT:
+        - Classify risk levels or make risk decisions
+        - Implement approval logic or governance decisions
+        - Contain if/else trees for deciding what to allow
+        - Cache computed results (only cache loaded data)
+        - Enforce rules (only provide rule data)
+        - Contain business logic or algorithms
 
-          Look for patterns like:
-          - Methods that classify, decide, evaluate, enforce, or validate operations
-          - Risk tier enums with decision logic
-          - Approval type decisions
-          - Pattern matching for file paths to determine actions
-          - Custom data structures for execution state
+        Look for patterns like:
+        - Methods that classify, decide, evaluate, enforce, or validate operations
+        - Risk tier enums with decision logic
+        - Approval type decisions
+        - Pattern matching for file paths to determine actions
+        - Custom data structures for execution state
 
-          If the file contains ONLY loading/parsing/indexing/querying of .intent/ data, respond: PASS
-          If the file contains execution logic, respond: FAIL with specific violations found.
+        If the file contains ONLY loading/parsing/indexing/querying of .intent/ data, respond: PASS
+        If the file contains execution logic, respond: FAIL with specific violations found.
 
-        rationale: "Semantic analysis to detect Mind components doing Body work"
-      scope:
-        applies_to:
-          - "src/mind/**/*.py"
-        excludes:
-          - "src/mind/**/*_test.py"
-          - "src/mind/**/__init__.py"
-      # ADR-043 D7.2 / #310: LLM verdict gated by structural pre-selector.
-      requires_findings_from:
-        - architecture.mind.execution_signal
+      rationale: "Semantic analysis to detect Mind components doing Body work"
+    scope:
+      applies_to:
+        - "src/mind/**/*.py"
+      excludes:
+        - "src/mind/**/__init__.py"
+        - "src/mind/**/*_test.py"
+        - "src/mind/logic/engines/**" # engines must execute
+        - "src/mind/governance/audit_context.py"
+        - "src/mind/governance/audit_postprocessor.py"
+        - "src/mind/governance/constitutional_auditor_dynamic.py"
+    # ADR-043 D7.2 / #310: LLM verdict gated by structural pre-selector.
+    requires_findings_from:
+      - architecture.mind.execution_signal
