@@ -1,0 +1,33 @@
+$schema: "META/worker.schema.json"
+kind: worker
+
+metadata:
+  id: workers.proposal_pipeline_shop_manager
+  title: Proposal Pipeline ShopManager
+  version: "1.0.0"
+  authority: policy
+  status: active
+
+identity:
+  uuid: "2942eaa4-c9a7-45b2-ab86-5eda2363b384"
+  class: supervision
+
+mandate:
+  responsibility: >
+    Detect proposal-pipeline pathologies per CORE-ShopManager.md §3.3:
+    proposals stuck in 'approved' or 'executing' beyond SLA, and
+    repeated failures for the same (first action_id, source_check_id).
+    Detection only — recovery is out of scope (issue #170).
+  phase: audit
+  approval_required: false
+  scope:
+    domains:
+      - governance
+      - compliance
+  schedule:
+    max_interval: 300
+
+implementation:
+  module: will.workers.proposal_pipeline_shop_manager
+  class: ProposalPipelineShopManager
+  requires_core_context: false

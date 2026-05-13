@@ -468,6 +468,16 @@ class WorkerShopConfig:
 
 
 @dataclass(frozen=True)
+# ID: db4c3515-9de4-44ee-9bb5-283ef53b87b6
+class WorkerProposalPipelineShopConfig:
+    stuck_approved_sla_sec: int = 1800
+    stuck_executing_sla_sec: int = 900
+    repeated_failure_threshold: int = 3
+    repeated_failure_lookback_sec: int = 86400
+    findings_scan_limit: int = 200
+
+
+@dataclass(frozen=True)
 # ID: 9447633e-e6c3-49e5-8a2b-34570dfb0d74
 class WorkerTestRemediatorConfig:
     scan_limit: int = 200
@@ -524,6 +534,9 @@ class WorkersConfig:
         default_factory=WorkerViolationRemediatorConfig
     )
     worker_shop: WorkerShopConfig = field(default_factory=WorkerShopConfig)
+    proposal_pipeline_shop: WorkerProposalPipelineShopConfig = field(
+        default_factory=WorkerProposalPipelineShopConfig
+    )
     test_remediator: WorkerTestRemediatorConfig = field(
         default_factory=WorkerTestRemediatorConfig
     )
@@ -1050,6 +1063,33 @@ def _load_workers(raw: dict[str, Any]) -> WorkersConfig:
             ),
             findings_scan_limit=_get_int(
                 _section(workers, "worker_shop"), "findings_scan_limit", 200
+            ),
+        ),
+        proposal_pipeline_shop=WorkerProposalPipelineShopConfig(
+            stuck_approved_sla_sec=_get_int(
+                _section(workers, "proposal_pipeline_shop"),
+                "stuck_approved_sla_sec",
+                1800,
+            ),
+            stuck_executing_sla_sec=_get_int(
+                _section(workers, "proposal_pipeline_shop"),
+                "stuck_executing_sla_sec",
+                900,
+            ),
+            repeated_failure_threshold=_get_int(
+                _section(workers, "proposal_pipeline_shop"),
+                "repeated_failure_threshold",
+                3,
+            ),
+            repeated_failure_lookback_sec=_get_int(
+                _section(workers, "proposal_pipeline_shop"),
+                "repeated_failure_lookback_sec",
+                86400,
+            ),
+            findings_scan_limit=_get_int(
+                _section(workers, "proposal_pipeline_shop"),
+                "findings_scan_limit",
+                200,
             ),
         ),
         test_remediator=WorkerTestRemediatorConfig(

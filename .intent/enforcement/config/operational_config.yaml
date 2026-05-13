@@ -68,6 +68,21 @@ workers:
     glide_off_multiplier: 0.10
     fallback_threshold_sec: 600
     findings_scan_limit: 200
+  proposal_pipeline_shop:
+    # Stuck-approved SLA: ConsumerWorker is expected to claim and execute
+    # approved proposals within this window. Older approved rows are
+    # posted as proposal.stuck_approved::{proposal_id}.
+    stuck_approved_sla_sec: 1800
+    # Stuck-executing SLA: execution should not exceed this window.
+    # Older executing rows are posted as
+    # proposal.stuck_executing::{proposal_id}.
+    stuck_executing_sla_sec: 900
+    # Repeated-failure detection: a (first action_id, source_check_id)
+    # pair failing this many times within the lookback window posts
+    # proposal.repeated_failure::{action_id}::{rule_id}.
+    repeated_failure_threshold: 3
+    repeated_failure_lookback_sec: 86400
+    findings_scan_limit: 200
   test_remediator:
     scan_limit: 200
   test_runner_sensor:

@@ -34,6 +34,7 @@ if TYPE_CHECKING:
     from body.services.crawl_service import CrawlService
     from body.services.doc_service import DocService
     from body.services.health_log_service import HealthLogService
+    from body.services.proposal_supervision_service import ProposalSupervisionService
     from body.services.symbol_service import SymbolService
     from body.services.worker_registry_service import WorkerRegistryService
     from mind.governance.audit_context import AuditorContext
@@ -54,6 +55,7 @@ KERNEL_SERVICES: Final[dict[str, str]] = {
     "crawl_service": "body.services.crawl_service.CrawlService",
     "doc_service": "body.services.doc_service.DocService",
     "health_log_service": "body.services.health_log_service.HealthLogService",
+    "proposal_supervision_service": "body.services.proposal_supervision_service.ProposalSupervisionService",
     "symbol_service": "body.services.symbol_service.SymbolService",
     "worker_registry_service": "body.services.worker_registry_service.WorkerRegistryService",
 }
@@ -193,6 +195,8 @@ class ServiceRegistry:
             return await self.get_doc_service()
         if name == "health_log_service":
             return await self.get_health_log_service()
+        if name == "proposal_supervision_service":
+            return await self.get_proposal_supervision_service()
         if name == "symbol_service":
             return await self.get_symbol_service()
         if name == "worker_registry_service":
@@ -338,6 +342,19 @@ class ServiceRegistry:
 
                 self._instances["health_log_service"] = HealthLogService()
         return self._instances["health_log_service"]
+
+    # ID: ac6fd1d0-8603-460f-800e-a296a3d0f38d
+    async def get_proposal_supervision_service(self) -> ProposalSupervisionService:
+        async with self._lock:
+            if "proposal_supervision_service" not in self._instances:
+                from body.services.proposal_supervision_service import (
+                    ProposalSupervisionService,
+                )
+
+                self._instances["proposal_supervision_service"] = (
+                    ProposalSupervisionService()
+                )
+        return self._instances["proposal_supervision_service"]
 
     # ID: 4dd57094-61f1-4f94-aa69-f9d5f54d0701
     async def get_crawl_service(self) -> CrawlService:
