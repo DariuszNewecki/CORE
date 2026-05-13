@@ -284,6 +284,40 @@ class CrawlService:
     # symbol_calls
     # ------------------------------------------------------------------
 
+    # ID: 92e7d4a3-1f5b-4c8e-a067-2d9f1b3e8c5a
+    async def purge_verdicts_for_removed_files(self, removed_paths: list[str]) -> int:
+        """
+        Delete core.llm_gate_verdicts rows for files no longer present in the
+        crawl pass. Per ADR-044 §Implementation guidance point 3 and §Consequences
+        (deleted-file cleanup).
+
+        A previously-crawled file that is absent from the current pass has either
+        been removed from disk, moved out of crawl scope, or renamed. Cached
+        llm_gate verdicts for that path will never be served again on a hit
+        (file_content_hash for the same path will differ on any rebirth), but
+        they accumulate as dead rows. Cleaning them here keeps the cache
+        bounded between TTL sweeps and removes attribution to deleted files.
+
+        Returns the count of verdict rows deleted.
+        """
+        if not removed_paths:
+            return 0
+
+        from body.services.service_registry import ServiceRegistry
+
+        async with ServiceRegistry.session() as session:
+            async with session.begin():
+                result = await session.execute(
+                    text(
+                        """
+                        DELETE FROM core.llm_gate_verdicts
+                        WHERE file_path = ANY(:paths)
+                        """
+                    ),
+                    {"paths": removed_paths},
+                )
+                return result.rowcount or 0
+
     # ID: 110cc97e-1872-434f-ae33-436802b9a63f
     async def delete_stale_symbol_calls(
         self, file_path: str, crawl_run_id: str
@@ -445,18 +479,21 @@ class CrawlService:
             "symbols_linked": 0,
             "edges_created": 0,
             "chunks_upserted": 0,
+            "verdicts_purged": 0,
         }
 
         await self.open_crawl_run(str(crawl_run_id))
         try:
             symbol_index = await self.load_symbol_index()
             existing_hashes = await self.load_artifact_hashes()
+            seen_paths: set[str] = set()
 
             for glob_pattern, artifact_type in _CRAWL_SCOPES:
                 for file_path in sorted(repo_root.glob(glob_pattern)):
                     if file_path.is_symlink():
                         continue
                     rel_path = str(file_path.relative_to(repo_root))
+                    seen_paths.add(rel_path)
                     stats["files_scanned"] += 1
                     try:
                         content_hash = _sha256(file_path)
@@ -489,6 +526,21 @@ class CrawlService:
                             rel_path,
                             exc,
                         )
+
+            # ADR-044: purge llm_gate verdicts for files that disappeared
+            # from the crawl scope (deleted, moved, or renamed). Bounded by
+            # previously-crawled set (existing_hashes), so we never delete
+            # rows for files that were simply never crawled.
+            removed_paths = sorted(set(existing_hashes.keys()) - seen_paths)
+            if removed_paths:
+                purged = await self.purge_verdicts_for_removed_files(removed_paths)
+                stats["verdicts_purged"] = purged
+                logger.info(
+                    "CrawlService.run_crawl: purged %d verdict row(s) for "
+                    "%d removed file(s)",
+                    purged,
+                    len(removed_paths),
+                )
 
             await self.close_crawl_run_completed(str(crawl_run_id), stats)
         except Exception as exc:
