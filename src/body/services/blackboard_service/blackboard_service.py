@@ -253,6 +253,67 @@ class BlackboardService:
                     updated += result.rowcount
         return updated
 
+    # ID: 8d586156-b04f-4d7a-a7b9-5a52b099b9b1
+    async def resolve_indeterminate_entry(
+        self,
+        entry_id: str,
+        reason: str,
+        resolved_by: str = "cli_admin",
+        resolution_authority: str = "human.cli_operator",
+    ) -> int:
+        """
+        Close a single indeterminate finding with an operator-provided reason.
+
+        Indeterminate is terminal from the audit sensor's perspective — the
+        sensor delegates to a human and will not re-evaluate the row. Without
+        this method there is no path to close the finding once the underlying
+        condition is addressed out-of-band (manual refactor, threshold change
+        via ADR, or operator judgement that the finding is stale). The §7a
+        revival path covers the deferred_to_proposal branch but has no
+        symmetric counterpart for indeterminate.
+
+        Mirrors the operator-attribution shape of reject_proposal: reason,
+        resolved_by, and resolution_authority are stamped into payload under
+        a 'resolution' key so the audit trail survives. Only acts on rows
+        currently in 'indeterminate' status — returns 1 on success, 0 if the
+        row has already transitioned or does not exist.
+        """
+        from body.services.service_registry import ServiceRegistry
+
+        async with ServiceRegistry.session() as session:
+            async with session.begin():
+                result = await session.execute(
+                    text(
+                        """
+                        UPDATE core.blackboard_entries
+                        SET status = 'resolved',
+                            resolved_at = now(),
+                            updated_at = now(),
+                            payload = jsonb_set(
+                                payload,
+                                '{resolution}',
+                                jsonb_build_object(
+                                    'reason', cast(:reason as text),
+                                    'resolved_by', cast(:resolved_by as text),
+                                    'resolution_authority', cast(:authority as text),
+                                    'resolved_at', to_char(now() at time zone 'UTC',
+                                                           'YYYY-MM-DD"T"HH24:MI:SS"Z"')
+                                ),
+                                true
+                            )
+                        WHERE id = cast(:entry_id as uuid)
+                          AND status = 'indeterminate'
+                        """
+                    ),
+                    {
+                        "entry_id": entry_id,
+                        "reason": reason,
+                        "resolved_by": resolved_by,
+                        "authority": resolution_authority,
+                    },
+                )
+                return result.rowcount or 0
+
     # ID: 54c114b0-4c6d-484f-8b20-d9ff5fa24caf
     async def update_entry_status(self, entry_id: str, status: str) -> None:
         """

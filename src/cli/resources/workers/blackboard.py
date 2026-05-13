@@ -210,3 +210,46 @@ async def workers_blackboard_purge_cmd(
         deleted = result.rowcount
 
     console.print(f"\n[bold green]Purged {deleted} blackboard entries.[/bold green]")
+
+
+@workers_app.command("resolve")
+@core_command(dangerous=False)
+# ID: 0dcd5509-ff34-42aa-b866-de1d76c242ae
+async def workers_blackboard_resolve_cmd(
+    ctx: typer.Context,
+    entry_id: str = typer.Argument(..., help="Blackboard entry UUID."),
+    reason: str = typer.Option(
+        ..., "--reason", "-r", help="Why this finding is being closed."
+    ),
+    by: str = typer.Option("cli_admin", "--by", help="Operator identity."),
+    authority: str = typer.Option(
+        "human.cli_operator",
+        "--authority",
+        help="Authority under which the resolution is recorded (URS NFR.5).",
+    ),
+) -> None:
+    """
+    Close an indeterminate blackboard finding with an operator-provided reason.
+
+    Symmetric counterpart to 'proposals reject' for findings the audit sensor
+    delegated to the governor. Flips status to 'resolved', stamps the
+    operator attribution into payload, and stops counting against the
+    Governor Inbox.
+    """
+    from body.services.blackboard_service.blackboard_service import BlackboardService
+
+    updated = await BlackboardService().resolve_indeterminate_entry(
+        entry_id=entry_id,
+        reason=reason,
+        resolved_by=by,
+        resolution_authority=authority,
+    )
+    if updated == 0:
+        console.print(
+            f"[yellow]No change: entry {entry_id} is not in 'indeterminate' "
+            "status or does not exist.[/yellow]"
+        )
+        raise typer.Exit(1)
+    console.print(
+        f"[green]✅ Finding {entry_id} RESOLVED by {by} under {authority}.[/green]"
+    )
