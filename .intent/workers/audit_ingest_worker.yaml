@@ -6,13 +6,14 @@ metadata:
   title: Audit Ingest Worker
   version: "0.1.0"
   authority: policy
-  status: paused
+  status: active
   rationale: >
     Head of the prompt governance remediation pipeline:
     audit_ingest_worker → prompt_extractor_worker → prompt_artifact_writer → call_site_rewriter.
-    Paused pending activation of the make_request_async() → PromptModel.invoke()
-    migration campaign. No ai.* namespace sensor exists; this worker is the
-    sole entry point for ai.prompt.model_required findings.
+    No ai.* namespace sensor exists; this worker is the sole entry point for
+    ai.prompt.model_required findings. Activated once the
+    make_request_async() → PromptModel.invoke() migration reached zero call-site
+    violations; runs as a regression guard against reintroduction.
 
 identity:
   uuid: "c70004f6-5aa2-40a1-98b9-b703ea93facf"
