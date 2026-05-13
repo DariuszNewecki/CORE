@@ -199,8 +199,7 @@ def extract_executable_rules(
                         )
             else:
                 logger.warning(
-                    "Rule %s requires_findings_from is not a list (got %s) — "
-                    "ignoring",
+                    "Rule %s requires_findings_from is not a list (got %s) — ignoring",
                     rule_id,
                     type(requires_findings_from_raw).__name__,
                 )
