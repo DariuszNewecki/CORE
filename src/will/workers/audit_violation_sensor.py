@@ -188,8 +188,7 @@ class AuditViolationSensor(Worker):
         reaudit_resolved = len(reaudit["resolved_subjects"])
         if reaudit_released or reaudit_resolved:
             logger.info(
-                "AuditViolationSensor[%s]: reaudit drained "
-                "%d released, %d resolved.",
+                "AuditViolationSensor[%s]: reaudit drained %d released, %d resolved.",
                 self._rule_namespace,
                 reaudit_released,
                 reaudit_resolved,
