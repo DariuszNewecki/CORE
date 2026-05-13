@@ -1,5 +1,15 @@
-Generate code for the following task step:
+Generate code for the following task step.
 
+The task_step block below must specify: target file path, full symbol
+signature, behaviour, concrete types (with import paths), forbidden
+imports/constructs, imports already present in the target module, and
+the exact output format. If any of these is missing or ambiguous, treat
+that as a hard constraint to NOT introduce assumptions — emit only what
+the task explicitly directs.
+
+task_step:
 {task_step}
 
-Provide a complete, working implementation.
+Provide a complete, working implementation matching the format the task
+requested. Do not wrap in markdown code fences. Do not introduce imports
+that the task did not authorise.

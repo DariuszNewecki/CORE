@@ -464,11 +464,6 @@ UNDERDOCUMENTED_PROMPTS: dict[str, str] = {
         "requires source_code context not declared in model.yaml — "
         "prompt is undertested with current fixtures."
     ),
-    "code_generation_task_step_prompt": (
-        "model.yaml declares no input.required and no must_contain; harness "
-        "supplies {task_step} via PER_PROMPT_FIXTURES and treats the response "
-        "as raw code (heuristic match on 'code_generation' in prompt name)."
-    ),
 }
 
 

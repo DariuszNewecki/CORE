@@ -1,14 +1,32 @@
 id: code_generation_task_step_prompt
-version: "0.1.0"
+version: "0.2.0"
 role: RemoteCoder
 description: Generates code for a single task step.
 
 model:
   max_tokens: 4096
 
+input:
+  required:
+    - task_step
+  task_step:
+    description: >
+      Complete specification of the code change in a single string. To
+      constrain the model adequately the caller MUST include all of:
+      target file path; symbol/function/class name and full signature;
+      behaviour specification (inputs, outputs, error paths); concrete
+      types the implementation must use (with import paths); any
+      forbidden imports or constructs (e.g. body-layer no-settings rule);
+      imports already present in the target module that the model should
+      reuse rather than re-declare; and the explicit output format (e.g.
+      "method definition only, no fences, no prose"). A caller that
+      omits any of these invites generic-stub output and import drift —
+      observed during the 2026-05-12 RemoteCoder qualification eval.
+
 output:
   max_length: 4096
   must_contain: []
-  must_not_contain: []
+  must_not_contain:
+    - "```"
 
 success_criteria: Produces syntactically correct code implementing the specified task step.
