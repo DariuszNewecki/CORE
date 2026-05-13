@@ -181,9 +181,9 @@ mappings:
     risk: high
     description: >
       Files exceeding line limit with single coherent responsibility are split
-      using two-phase LLM analysis. Phase 1 (Architect) finds the seam. Phase 2
-      (RefactoringArchitect) executes. Logic Conservation Gate validates before
-      any write. Defers automatically on low/medium confidence.
+      using two-phase LLM analysis. Phase 1 (Architect, modularity_analyze) finds
+      the seam. Phase 2 (Architect, modularity_split) executes. Logic Conservation
+      Gate validates before any write. Defers automatically on low/medium confidence.
     status: ACTIVE
 
   # ===========================================================================
