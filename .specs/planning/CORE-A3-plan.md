@@ -2,7 +2,7 @@
 
 **Status:** Active
 **Owner:** Darek (Dariusz Newecki)
-**Last updated:** 2026-05-12
+**Last updated:** 2026-05-13
 **Definition:** The daemon runs continuously, the Blackboard clears, the codebase converges, and every action is visible.
 
 ---
@@ -124,6 +124,9 @@ Full rationale lives in each ADR file under `.specs/decisions/`. This table is t
 | ADR-038 | 2026-05-11 | Circuit-breaker on repeated proposal failures | After N consecutive identical-signature failures, findings marked DELEGATE, hazard finding posted. Threshold governed in `.intent/enforcement/config/circuit_breaker.yaml`. Closes #281. G2 closed. |
 | ADR-039 | 2026-05-12 | Audit-input cache invalidation | `AuditorContext._file_list_cache` and `IntentRepository` invalidated at every audit run start. Closes #298. |
 | ADR-040 | 2026-05-12 | Operational config wiring campaign | 32 operational config sections moved from hardcoded `src/` literals to `.intent/enforcement/config/operational_config.yaml`; 48 typed dataclasses; 113 files importing loader. Closes #282. G4 completed. |
+| ADR-041 | 2026-05-12 | Worker liveness thresholds — per-worker governance | Per-worker liveness thresholds governed in `.intent/`; `WorkerShopManager` and dashboard derive stale/alive verdicts from governed config, not hardcoded values. |
+| ADR-042 | 2026-05-12 | `modularity.class_too_large` recalibration | LOC threshold raised 400→500; pre-selector/verdict separation formalised; `governed_exclusions` register introduced for facade-large and algorithm-large classes pending `llm_gate` operationalisation. |
+| ADR-043 | 2026-05-13 | `llm_gate` audit throughput — pre-selector primary, semaphore secondary | `requires_findings_from:` field on enforcement mappings narrows llm_gate candidate set; `LLMClient._request_with_retry` restructured so retries release the semaphore slot during backoff; per-provider shared cache. Amended same day: D4 engine-layer semaphore retracted — `LLMClient` already owns concurrency control. Closes #308. Unblocks ADR-042 D4. |
 
 ---
 
