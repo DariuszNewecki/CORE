@@ -82,7 +82,10 @@ def _has_docstring_in_source(repo_path: Path, symbol: dict[str, Any]) -> bool:
 
 
 async def _async_fix_docstrings(
-    context: CoreContext, dry_run: bool, limit: int = 0
+    context: CoreContext,
+    dry_run: bool,
+    limit: int = 0,
+    file_path: str | None = None,
 ) -> None:
     """
     Autonomously recover missing docstrings for undocumented CORE symbols.
@@ -96,6 +99,10 @@ async def _async_fix_docstrings(
         context: CoreContext providing cognitive, knowledge, and executor services.
         dry_run: When True, reports what would change without writing to filesystem.
         limit: Max symbols to process. 0 means no limit.
+        file_path: When supplied, restrict the run to symbols whose
+            ``symbol['file_path']`` matches the (normalised) target.
+            Drives the autonomous remediation path; ``None`` retains the
+            legacy whole-tree sweep.
     """
     logger.info("Searching for symbols missing docstrings...")
 
@@ -112,6 +119,14 @@ async def _async_fix_docstrings(
         for s in symbols.values()
         if s.get("kind") == "function" and not _has_docstring_in_source(repo_path, s)
     ]
+
+    if file_path:
+        # Targeted run: drop everything outside the proposal's scope.files
+        # entry. Normalises against the same shape the knowledge graph
+        # stores ("src/foo/bar.py", forward slashes, no leading "./").
+        target = file_path.lstrip("./").replace("\\", "/")
+        symbols_to_fix = [s for s in symbols_to_fix if s.get("file_path") == target]
+        logger.info("Scoped to %s — %d symbol(s) in file.", target, len(symbols_to_fix))
 
     if limit > 0:
         symbols_to_fix = symbols_to_fix[:limit]
@@ -201,7 +216,10 @@ async def _async_fix_docstrings(
 
 # ID: f74db998-8680-40b8-bd62-e6495b5d6df3
 async def fix_docstrings(
-    context: CoreContext, write: bool = False, limit: int = 0
+    context: CoreContext,
+    write: bool = False,
+    limit: int = 0,
+    file_path: str | None = None,
 ) -> None:
     """
     Public entry point for the fix docstrings self-healing command.
@@ -210,5 +228,9 @@ async def fix_docstrings(
         context: CoreContext with all required services.
         write: When True, persists changes. When False, dry-run only.
         limit: Max symbols to process. 0 means no limit.
+        file_path: When supplied, restrict the run to symbols in this
+            repo-relative path. None preserves the legacy whole-tree sweep.
     """
-    await _async_fix_docstrings(context=context, dry_run=not write, limit=limit)
+    await _async_fix_docstrings(
+        context=context, dry_run=not write, limit=limit, file_path=file_path
+    )
