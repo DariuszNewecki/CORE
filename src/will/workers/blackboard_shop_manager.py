@@ -119,11 +119,20 @@ class BlackboardShopManager(Worker):
         """
         Execute one Blackboard health cycle:
         1. Post heartbeat
-        2. Fetch stale entries per SLA tier
-        3. Post finding for each (deduplicated)
-        4. Post completion report
+        2. Auto-resolve stale-entry alerts whose target became terminal
+        3. Fetch stale entries per SLA tier
+        4. Post finding for each (deduplicated)
+        5. Post completion report
         """
         await self.post_heartbeat()
+
+        auto_resolved = await self._sweep_resolved_stale_alerts()
+        if auto_resolved:
+            logger.info(
+                "BlackboardShopManager: auto-resolved %d stale alert(s) "
+                "whose target reached terminal state",
+                auto_resolved,
+            )
 
         stale = await self._fetch_stale_entries()
         existing = await self._fetch_existing_findings()
@@ -202,3 +211,10 @@ class BlackboardShopManager(Worker):
 
         svc = await service_registry.get_blackboard_service()
         return await svc.count_active_entries()
+
+    async def _sweep_resolved_stale_alerts(self) -> int:
+        """Resolve stale-entry alerts whose target reached terminal state."""
+        from body.services.service_registry import service_registry
+
+        svc = await service_registry.get_blackboard_service()
+        return await svc.resolve_stale_alerts_for_terminal_targets()

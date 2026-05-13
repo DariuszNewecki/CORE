@@ -9,6 +9,58 @@ from sqlalchemy import text
 
 # ID: a3842b9b-9285-49d3-bd7e-4fb8f8cbf6b7
 class BlackboardService:
+    # ID: 1b4d6e9f-2c7a-4f08-9b53-8a6d2e4c1f3b
+    async def resolve_stale_alerts_for_terminal_targets(self) -> int:
+        """
+        Resolve open ``blackboard.entry_stale::*`` findings whose target entry
+        has reached a terminal status (or no longer exists).
+
+        The stale-entry sensor (BlackboardShopManager) posts an alert when an
+        entry exceeds its SLA tier. The alert is then itself a finding that
+        stays open until something resolves it. Without this sweep, alerts
+        accumulate forever once their target reaches a terminal state — they
+        become meta-noise that the dashboard's open-findings count surfaces
+        as growing backlog.
+
+        Terminal target statuses mirror ``fetch_stale_entries`` (the inverse
+        relation): resolved, abandoned, suppressed, dry_run_complete,
+        deferred_to_proposal, indeterminate. A target row that no longer
+        exists is also treated as terminal — there is nothing left to act on.
+
+        Returns the count of stale-alert rows resolved.
+        """
+        from body.services.service_registry import ServiceRegistry
+
+        async with ServiceRegistry.session() as session:
+            async with session.begin():
+                result = await session.execute(
+                    text(
+                        """
+                        UPDATE core.blackboard_entries AS alert
+                        SET status = 'resolved',
+                            resolved_at = now(),
+                            updated_at = now()
+                        WHERE alert.entry_type = 'finding'
+                          AND alert.status = 'open'
+                          AND alert.subject LIKE 'blackboard.entry_stale::%'
+                          AND NOT EXISTS (
+                              SELECT 1
+                              FROM core.blackboard_entries AS target
+                              WHERE target.id::text = alert.payload->>'entry_id'
+                                AND target.status NOT IN (
+                                    'resolved',
+                                    'abandoned',
+                                    'suppressed',
+                                    'dry_run_complete',
+                                    'deferred_to_proposal',
+                                    'indeterminate'
+                                )
+                          )
+                        """
+                    )
+                )
+                return result.rowcount or 0
+
     # ID: 6d2f0c8a-9e3b-4a51-b7c8-14e5d6f2a0b9
     async def resolve_dry_run_entries_for_namespace(self, namespace_prefix: str) -> int:
         """
