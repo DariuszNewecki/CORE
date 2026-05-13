@@ -5,9 +5,8 @@ ProposalExecutor pipeline-stage helpers.
 Collaborator module for ProposalExecutor. Houses module-level async/sync
 functions that implement each stage of the proposal execution pipeline
 (pre-flight, claim, action loop, commit, consequence recording, rollback,
-result envelope). Keeps ProposalExecutor a thin orchestrator and lets
-execute_batch() share the same primitives as execute() instead of
-inlining a parallel copy.
+result envelope). Keeps ProposalExecutor a thin orchestrator over reusable
+primitives.
 
 LAYER: will/autonomy — internal collaborator of ProposalExecutor. No
 direct database access (uses service_registry like the orchestrator);

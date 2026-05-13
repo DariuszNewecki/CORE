@@ -1,4 +1,4 @@
-"""Unit tests for ProposalExecutor._files_produced_by (issue #297).
+"""Unit tests for _files_produced_by (issue #297).
 
 The helper collects file paths reported by actions via
 ``ActionResult.data['files_produced']`` so the commit step can stage
@@ -13,7 +13,7 @@ result can never corrupt the git-add invocation.
 
 from __future__ import annotations
 
-from will.autonomy.proposal_executor import _files_produced_by
+from will.autonomy.proposal_execution_pipeline import _files_produced_by
 
 
 def test_empty_action_results_returns_empty_set() -> None:
