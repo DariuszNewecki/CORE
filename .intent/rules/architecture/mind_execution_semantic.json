@@ -17,6 +17,14 @@
             "authority": "constitution",
             "phase": "audit",
             "rationale": "Mind is read-only governance interface. Execution logic (risk classification, decision trees, enforcement) belongs in Body layer. This semantic boundary prevents Mind from evolving into an execution layer disguised as governance."
+        },
+        {
+            "id": "architecture.mind.execution_signal",
+            "statement": "A file under src/mind/** containing structural markers of execution semantics (decision-method names, risk-tier types, allow/deny pattern matching) MUST be flagged as a candidate for execution-semantics review. Pre-selector only — produces no verdict.",
+            "enforcement": "reporting",
+            "authority": "policy",
+            "phase": "audit",
+            "rationale": "Per ADR-043 D7: the Mind layer has 72 files; LLM verdict across all of them at ~17s/call exceeds the sensor SLA. A regex pre-selector narrows the verdict scope to the ~5-10 files that exhibit execution-y signatures."
         }
     ]
 }

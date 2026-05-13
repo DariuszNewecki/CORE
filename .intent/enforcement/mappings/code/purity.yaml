@@ -46,15 +46,25 @@
         excludes:
           - "tests/**/*.py"
 
-    # 4. LAW: Public symbols MUST have docstrings
+    # LAW: Public symbols MUST have meaningful docstrings (not placeholders).
+    # Narrowed scope (#310): the periodic audit checks only public-surface
+    # entry points where docstrings are part of the external contract.
+    # Whole-tree coverage (~399 files) at ~17s/LLM-call exceeded the 600s
+    # sensor SLA — the cost is justifiable only at the boundary where
+    # docstrings are consumed by other code, tooling, or CLI users.
     purity.docstrings.required:
       engine: llm_gate
       params:
         instruction: "Verify that all public functions and classes have a docstring. Return a violation if a docstring is missing or is just a placeholder like 'TODO'."
       scope:
         applies_to:
-          - "src/will/**/*.py"
-          - "src/body/**/*.py"
+          - "src/api/**/*.py"
+          - "src/cli/commands/**/*.py"
+          - "src/will/workers/**/*.py"
+          - "src/body/atomic/**/*.py"
+        excludes:
+          - "**/__init__.py"
+          - "tests/**/*.py"
 
     # 5. LAW: Code MUST NOT contain exact AST duplicates
     purity.no_ast_duplication:
@@ -82,6 +92,13 @@
         excludes:
           - "tests/**/*.py"
 
+    # LAW: A refactor MUST preserve domain logic (no silent deletion of behavior).
+    # This rule compares a proposed code DIFF to the original. The periodic
+    # audit pipeline has no diff — it scans current-state files. The effective
+    # scope is the proposal-execution pipeline (fix.modularity, build.tests),
+    # which receives old/new pairs from the executor. Audit scope is the empty
+    # set so periodic sensors skip the rule without removing it from the
+    # registry (ADR-043 D7 / #310).
     purity.logic_conservation:
       engine: llm_gate
       params:
@@ -90,9 +107,10 @@
           Verify that no significant domain logic has been deleted.
           If the code size shrunk by more than 50%, ensure it was due to
           de-duplication, not logic removal.
+        rationale: "Evaluated at proposal-execution time, not periodic audit."
       scope:
-        applies_to:
-          - "src/**/*.py"
+        applies_to: []
+
 
     purity.no_dead_code:
       engine: workflow_gate
