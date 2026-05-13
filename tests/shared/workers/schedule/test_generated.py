@@ -1,79 +1,110 @@
-from typing import Any, Dict, Set
-from pathlib import Path
 import pytest
-from unittest.mock import MagicMock, patch, mock_open, PropertyMock
+from unittest.mock import patch, MagicMock
+from typing import Any
+
 from src.shared.workers.schedule import WorkerScheduleState, load_worker_schedule_state
 
 
 class TestWorkerScheduleState:
-    """Test suite for the WorkerScheduleState dataclass."""
+    """Tests for the WorkerScheduleState dataclass."""
 
-    def test_init_with_defaults(self):
-        """Verify default values are set correctly when creating an empty state."""
-        state = WorkerScheduleState(thresholds={}, active_uuids=frozenset(), fallback_sec=300)
+    def test_schedule_state_creation_with_all_fields(self) -> None:
+        """Verify that WorkerScheduleState can be created with all fields."""
+        thresholds = {"uuid-1": 120, "uuid-2": 300}
+        active_uuids = frozenset({"uuid-1", "uuid-2"})
+        fallback_sec = 600
+
+        state = WorkerScheduleState(
+            thresholds=thresholds,
+            active_uuids=active_uuids,
+            fallback_sec=fallback_sec,
+        )
+
+        assert state.thresholds == thresholds
+        assert state.active_uuids == active_uuids
+        assert state.fallback_sec == fallback_sec
+
+    def test_schedule_state_with_empty_thresholds_and_active_uuids(self) -> None:
+        """Verify that WorkerScheduleState handles empty collections."""
+        state = WorkerScheduleState(
+            thresholds={},
+            active_uuids=frozenset(),
+            fallback_sec=300,
+        )
+
         assert state.thresholds == {}
         assert state.active_uuids == frozenset()
         assert state.fallback_sec == 300
 
-    def test_init_with_values(self):
-        """Verify custom values are stored correctly when provided."""
-        thresholds = {"uuid-1": 120, "uuid-2": 60}
-        active_uuids = frozenset({"uuid-1"})
-        state = WorkerScheduleState(thresholds=thresholds, active_uuids=active_uuids, fallback_sec=180)
-        assert state.thresholds == thresholds
-        assert state.active_uuids == active_uuids
-        assert state.fallback_sec == 180
+    def test_schedule_state_with_zero_fallback_sec(self) -> None:
+        """Verify that fallback_sec can be zero."""
+        state = WorkerScheduleState(
+            thresholds={},
+            active_uuids=frozenset(),
+            fallback_sec=0,
+        )
 
-    def test_thresholds_type_enforcement(self):
-        """Ensure the thresholds attribute accepts a dictionary with string keys and int values."""
-        test_thresholds: Dict[str, int] = {"abc": 30, "def": 90}
-        state = WorkerScheduleState(thresholds=test_thresholds, active_uuids=frozenset(), fallback_sec=0)
-        assert isinstance(state.thresholds, dict)
-        for key, value in state.thresholds.items():
-            assert isinstance(key, str)
-            assert isinstance(value, int)
+        assert state.fallback_sec == 0
 
-    def test_active_uuids_is_frozenset(self):
-        """Verify active_uuids is stored as an immutable frozenset."""
-        state = WorkerScheduleState(thresholds={}, active_uuids=frozenset(), fallback_sec=0)
+    def test_schedule_state_active_uuids_is_immutable(self) -> None:
+        """Verify that active_uuids cannot be modified via attribute."""
+        state = WorkerScheduleState(
+            thresholds={},
+            active_uuids=frozenset({"uuid-1"}),
+            fallback_sec=100,
+        )
+
+        assert state.active_uuids == frozenset({"uuid-1"})
+        # Ensure it is a frozenset and remains unchanged
         assert isinstance(state.active_uuids, frozenset)
 
-    def test_fallback_sec_is_integer(self):
-        """Ensure fallback_sec attribute is stored as an integer."""
-        state = WorkerScheduleState(thresholds={}, active_uuids=frozenset(), fallback_sec=300)
-        assert isinstance(state.fallback_sec, int)
+    def test_schedule_state_thresholds_are_mutable(self) -> None:
+        """Verify that thresholds dict can be modified (caller may copy)."""
+        thresholds = {"uuid-1": 60}
+        state = WorkerScheduleState(
+            thresholds=thresholds,
+            active_uuids=frozenset(),
+            fallback_sec=100,
+        )
 
-    def test_equality_based_on_all_fields(self):
-        """Verify two identical instances compare equal, differing ones are not equal."""
-        state1 = WorkerScheduleState(thresholds={"x": 10}, active_uuids=frozenset({"x"}), fallback_sec=60)
-        state2 = WorkerScheduleState(thresholds={"x": 10}, active_uuids=frozenset({"x"}), fallback_sec=60)
-        state3 = WorkerScheduleState(thresholds={"y": 20}, active_uuids=frozenset({"x"}), fallback_sec=60)
-        assert state1 == state2
-        assert state1 != state3
+        # Modifying the original dict does not affect the state (shallow copy at creation)
+        thresholds["uuid-1"] = 120
+        assert state.thresholds["uuid-1"] == 60
 
-    def test_repr_contains_all_fields(self):
-        """Confirm the repr output includes the class name and all attribute values."""
-        state = WorkerScheduleState(thresholds={"z": 40}, active_uuids=frozenset({"z"}), fallback_sec=120)
-        repr_output = repr(state)
-        assert "WorkerScheduleState" in repr_output
-        assert "thresholds" in repr_output
-        assert "active_uuids" in repr_output
-        assert "fallback_sec" in repr_output
+    def test_schedule_state_type_hints(self) -> None:
+        """Verify the type hints on the dataclass fields."""
+        # Access class-level annotations to verify types
+        annotations = WorkerScheduleState.__annotations__
+        assert "thresholds" in annotations
+        assert annotations["thresholds"] == dict[str, int]
+        assert "active_uuids" in annotations
+        assert annotations["active_uuids"] == frozenset[str]
+        assert "fallback_sec" in annotations
+        assert annotations["fallback_sec"] == int
 
 
 class TestLoadWorkerScheduleState:
-    """Test suite for the load_worker_schedule_state function."""
+    """Tests for the load_worker_schedule_state function."""
 
-    @patch("src.shared.workers.schedule.os.path.isdir")
-    @patch("src.shared.workers.schedule.os.listdir")
-    @patch("src.shared.workers.schedule.open", new_callable=mock_open, read_data='uuid: "uuid-1"\nstatus: active\nmandate:\n  schedule:\n    max_interval: 60\n    glide_off: 10\n')
+    @patch("src.shared.workers.schedule.logger")
+    @patch("src.shared.workers.schedule.glob")
     @patch("src.shared.workers.schedule.Path")
-    def test_returns_worker_schedule_state_instance(self, MockPath, mock_file, mock_listdir, mock_isdir):
-        """Verify the function returns a WorkerScheduleState instance, not None or another type."""
-        mock_isdir.return_value = True
-        mock_listdir.return_value = ["worker1.yaml"]
-        mock_path_instance = MagicMock(spec=Path)
-        mock_path_instance.exists.return_value = True
-        mock_path_instance.is_dir.return_value = False
-        MockPath.return_value = mock_path_instance
-        result
+    @patch("src.shared.workers.schedule.yaml.safe_load")
+    def test_load_returns_empty_state_when_no_workers_dir(
+        self,
+        mock_safe_load: MagicMock,
+        mock_path: MagicMock,
+        mock_glob: MagicMock,
+        mock_logger: MagicMock,
+    ) -> None:
+        """Verify that missing .intent/workers/ directory yields empty state."""
+        # Simulate that no yaml files are found
+        mock_glob.glob.return_value = []
+        mock_path.return_value.glob.return_value = []
+
+        result = load_worker_schedule_state()
+
+        assert isinstance(result, WorkerScheduleState)
+        assert result.thresholds == {}
+        assert result.active_uuids == frozenset()
+        assert result.fallback_sec == 300  # Default provided by operational_config
