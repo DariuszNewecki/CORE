@@ -20,6 +20,7 @@ from __future__ import annotations
 import asyncio
 import hashlib
 import json
+from collections import OrderedDict
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -31,6 +32,15 @@ from .base import BaseEngine, EngineResult
 if TYPE_CHECKING:
     from shared.path_resolver import PathResolver
     from shared.protocols.llm import LLMClientProtocol
+
+
+# ADR-043 D5: cache is module-level and keyed by (id(client), state_hash)
+# so multiple LLMGateEngine instances sharing the same LLMClient share
+# verdicts. The previous per-instance cache duplicated work across rules
+# that targeted the same provider. Cache is process-local, bounded by a
+# simple LRU; eviction happens at insert time.
+_LLM_GATE_CACHE_MAX_ENTRIES = 4096
+_llm_gate_cache: OrderedDict[tuple[int, str], EngineResult] = OrderedDict()
 
 
 # ID: 8df9b4cd-934a-4115-8e51-2a57833a77d2
@@ -52,7 +62,6 @@ class LLMGateEngine(BaseEngine):
     ):
         self._paths = path_resolver
         self.llm = llm_client
-        self._cache: dict[str, EngineResult] = {}
         self._prompt_model = PromptModel.load("llm_gate")
         self._audit_prompt_model = PromptModel.load("llm_gate_audit_prompt")
 
@@ -95,8 +104,11 @@ class LLMGateEngine(BaseEngine):
             f"{rel_path}{instruction}{content}".encode()
         ).hexdigest()
 
-        if state_hash in self._cache:
-            return self._cache[state_hash]
+        cache_key = (id(self.llm), state_hash)
+        cached = _llm_gate_cache.get(cache_key)
+        if cached is not None:
+            _llm_gate_cache.move_to_end(cache_key)
+            return cached
 
         # 3. Invoke via PromptModel
         try:
@@ -143,7 +155,10 @@ class LLMGateEngine(BaseEngine):
                 engine_id=self.engine_id,
             )
 
-        # 5. Cache result to avoid redundant LLM calls
-        self._cache[state_hash] = final_result
+        # 5. Cache result to avoid redundant LLM calls (ADR-043 D5)
+        _llm_gate_cache[cache_key] = final_result
+        _llm_gate_cache.move_to_end(cache_key)
+        if len(_llm_gate_cache) > _LLM_GATE_CACHE_MAX_ENTRIES:
+            _llm_gate_cache.popitem(last=False)
 
         return final_result

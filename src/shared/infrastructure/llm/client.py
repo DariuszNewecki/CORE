@@ -99,9 +99,9 @@ class LLMClient:
         Generic retry logic with concurrency control.
 
         Enforces:
-        - Max concurrent requests (via semaphore)
+        - Max concurrent requests (via semaphore, per attempt)
         - Rate limiting (via delay between requests)
-        - Exponential backoff on failures
+        - Exponential backoff on failures (sleep outside the semaphore)
         """
         if not self._semaphore:
             raise RuntimeError(
@@ -109,35 +109,35 @@ class LLMClient:
             )
 
         backoff_delays = [1.0, 2.0, 4.0]
+        total_attempts = len(backoff_delays) + 1
 
-        async with self._semaphore:
-            await self._enforce_rate_limit()
-
-            for attempt in range(len(backoff_delays) + 1):
+        for attempt in range(total_attempts):
+            async with self._semaphore:
+                await self._enforce_rate_limit()
                 try:
                     return await method(*args, **kwargs)
                 except Exception as e:
-                    total_attempts = len(backoff_delays) + 1
                     error_message = (
                         f"Request failed (attempt {attempt + 1}/{total_attempts}): "
                         f"{type(e).__name__} - {e}"
                     )
-                    if attempt < len(backoff_delays):
-                        wait_time = backoff_delays[attempt] + random.uniform(0, 0.5)
-                        logger.warning(
-                            "%s. Retrying in %ss...",
+                    if attempt >= len(backoff_delays):
+                        logger.error(
+                            "Final attempt failed: %s",
                             error_message,
-                            wait_time,
+                            exc_info=True,
                         )
-                        await asyncio.sleep(wait_time)
-                        continue
-
-                    logger.error(
-                        "Final attempt failed: %s",
+                        raise
+                    logger.warning(
+                        "%s. Retrying after backoff...",
                         error_message,
-                        exc_info=True,
                     )
-                    raise
+            # ADR-043 D4: backoff sleep happens outside the semaphore so a
+            # failing call releases its slot during the retry delay,
+            # preventing the slot pool from filling with retrying-failing
+            # calls under audit-scale fan-out.
+            wait_time = backoff_delays[attempt] + random.uniform(0, 0.5)
+            await asyncio.sleep(wait_time)
 
     # ID: 32e259f1-415f-4f2e-9d49-08071b12ceba
     async def make_request_async(

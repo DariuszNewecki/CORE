@@ -349,5 +349,3 @@ def test_init_without_llm_client():
     # So we just verify the engine can be instantiated
     engine = LLMGateEngine(llm_client=None)
     assert hasattr(engine, "llm")
-    assert hasattr(engine, "_cache")
-    assert isinstance(engine._cache, dict)
