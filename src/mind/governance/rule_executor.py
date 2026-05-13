@@ -9,6 +9,16 @@ from shared.logger import getLogger
 from shared.models import AuditFinding, AuditSeverity
 
 
+# #306/#307: marker the llm_gate engine emits when an LLM call fails for
+# infrastructure reasons (timeout, connection error, rate limit). We
+# aggregate these into one WARNING per rule rather than emitting one
+# finding per file, because per-file findings get claimed by the
+# autonomous remediation loop and produce churn against unmapped rules.
+# The engine still surfaces a real per-file violation when the LLM
+# returns a legitimate "violation: true" verdict — that path is unaffected.
+_TRANSIENT_LLM_FAILURE_MARKER = "SYSTEM_ERROR_AI_OFFLINE"
+
+
 if TYPE_CHECKING:
     from mind.governance.audit_context import AuditorContext
     from mind.governance.executable_rule import ExecutableRule
@@ -63,6 +73,35 @@ async def execute_rule(
             )
         ]
 
+    # #307: when an llm_gate rule falls back to LLMGateStubEngine (no LLM
+    # client wired), emit ONE WARNING for the rule and skip per-file
+    # evaluation. Without this, llm_gate rules silently produce zero
+    # findings — indistinguishable from a real pass. Per-file evaluation
+    # is also skipped because the stub returns ok=True for every file
+    # and would generate no findings anyway, while the per-rule WARNING
+    # is what the governor actually needs to see.
+    from mind.logic.engines.llm_gate_stub import LLMGateStubEngine
+
+    if isinstance(engine, LLMGateStubEngine):
+        return [
+            AuditFinding(
+                check_id=rule.rule_id,
+                severity=AuditSeverity.WARNING,
+                message=(
+                    f"Rule '{rule.rule_id}' uses engine '{rule.engine}' which "
+                    "is not operational in this run (no LLM client wired). "
+                    "Audit signal for this rule is muted until the wiring is "
+                    "available — see GitHub #306."
+                ),
+                file_path="none",
+                context={
+                    "engine_id": rule.engine,
+                    "stub": True,
+                    "reason": "no_llm_client",
+                },
+            )
+        ]
+
     if rule.is_context_level:
         # ADR-279 / #279: --files scopes per-file checks; context-level
         # rules look at the whole repo and can't be meaningfully filtered
@@ -100,6 +139,7 @@ async def execute_rule(
             if str(p.relative_to(context.repo_path)).replace("\\", "/") in file_filter
         ]
     severity = _map_enforcement_to_severity(rule.enforcement)
+    transient_llm_failures: list[str] = []
 
     for file_path in files:
         try:
@@ -107,6 +147,17 @@ async def execute_rule(
             params_with_context = {**rule.params, "_context": context}
             result = await engine.verify(file_path, params_with_context)
             if not result.ok:
+                # #306/#307: transient LLM infrastructure failures are
+                # aggregated, not emitted per-file. The marker is set by
+                # LLMGateEngine when its LLM call fails for non-verdict
+                # reasons (timeout, connection error, etc.).
+                if any(
+                    _TRANSIENT_LLM_FAILURE_MARKER in str(v) for v in result.violations
+                ):
+                    transient_llm_failures.append(
+                        str(file_path.relative_to(context.repo_path))
+                    )
+                    continue
                 for v in result.violations:
                     # Normalize whether engine emitted a bare string or a
                     # structured dict. Details (when present) flow into
@@ -153,5 +204,32 @@ async def execute_rule(
                 )
             )
             continue
+
+    # #306/#307: emit one aggregate WARNING for transient LLM failures
+    # accumulated during this rule's run. Bounds Blackboard pollution —
+    # the autonomous remediation loop sees one finding per affected rule
+    # instead of one per file. sample_files preserves enough signal for
+    # the governor to investigate without churning the loop.
+    if transient_llm_failures:
+        findings.append(
+            AuditFinding(
+                check_id=rule.rule_id,
+                severity=AuditSeverity.WARNING,
+                message=(
+                    f"Rule '{rule.rule_id}' LLM evaluation failed transiently "
+                    f"on {len(transient_llm_failures)} file(s). Verdict for "
+                    "those files is UNKNOWN until the LLM provider can keep "
+                    "up with audit-scale throughput — see follow-up issue on "
+                    "llm_gate concurrency/batching."
+                ),
+                file_path="none",
+                context={
+                    "finding_type": "LLM_TRANSIENT_FAILURE",
+                    "engine_id": rule.engine,
+                    "failure_count": len(transient_llm_failures),
+                    "sample_files": transient_llm_failures[:5],
+                },
+            )
+        )
 
     return findings

@@ -43,6 +43,16 @@ if TYPE_CHECKING:
 
 logger = getLogger(__name__)
 
+# Externalized cognitive role names for constitutional compliance.
+# Addresses ai.cognitive_role.no_hardcoded_string: the audit rule forbids
+# inline string literals naming roles, since role rename or retirement
+# (see DeepSeek roles cleanup in ec0d6c46) must not require scanning
+# call sites. New entries follow the same UPPER_SNAKE → exact role name
+# convention as call_site_rewriter._COGNITIVE_ROLES.
+_COGNITIVE_ROLES = {
+    "LOCAL_CODER": "LocalCoder",
+}
+
 # --- THE IMMUTABLE KERNEL MAP ---
 # This defines the "Drivers" of your Operating System.
 # We hardcode them here so no one can inject malicious code via the database.
@@ -299,12 +309,36 @@ class ServiceRegistry:
 
     # ID: 92dd68b8-a18e-4482-a861-ff4bf8732e4f
     async def get_auditor_context(self) -> AuditorContext:
+        # #306: resolve an LLM client OUTSIDE the lock so the slow
+        # CognitiveService init doesn't block other registry callers.
+        # CognitiveService bootstrap can fail (LLM_ENABLED=false, provider
+        # unreachable, missing role). Every failure mode falls back to
+        # llm_client=None — the AuditorContext then propagates that to
+        # EngineRegistry, which routes llm_gate-engined rules through
+        # LLMGateStubEngine. rule_executor.py surfaces the stub fall-back
+        # as a per-rule WARNING finding so the audit is never silent.
+        llm_client: Any = None
+        if "auditor_context" not in self._instances:
+            try:
+                cog_svc = await self.get_cognitive_service()
+                llm_client = await cog_svc.aget_client_for_role(
+                    _COGNITIVE_ROLES["LOCAL_CODER"]
+                )
+            except Exception as exc:
+                logger.warning(
+                    "get_auditor_context: LLM client unavailable for audit-time "
+                    "llm_gate rules — falling back to stub. Reason: %s",
+                    exc,
+                )
+
         async with self._lock:
             if "auditor_context" not in self._instances:
                 from mind.governance.audit_context import AuditorContext
 
                 repo_path = bootstrap_registry.get_repo_path()
-                self._instances["auditor_context"] = AuditorContext(repo_path)
+                self._instances["auditor_context"] = AuditorContext(
+                    repo_path, llm_client=llm_client
+                )
         return self._instances["auditor_context"]
 
     # ID: af57e204-14d9-4855-88e8-c35cfefd02f4

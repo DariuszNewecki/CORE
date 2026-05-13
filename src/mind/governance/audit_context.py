@@ -38,6 +38,7 @@ from shared.protocols.knowledge import SessionProviderProtocol
 
 
 if TYPE_CHECKING:
+    from shared.infrastructure.llm.client import LLMClient
     from shared.protocols.knowledge import SessionProviderProtocol
 
 
@@ -76,17 +77,27 @@ class AuditorContext:
         repo_path: Path,
         intent_repository: IntentRepository | None = None,
         session_provider: SessionProviderProtocol | None = None,
+        llm_client: LLMClient | None = None,
     ):
         self.session_provider = session_provider
         self.intent_repo = intent_repository or get_intent_repository()
         self.repo_path = repo_path.resolve()
+        self.llm_client = llm_client
 
         self.paths = PathResolver(self.repo_path)
 
         from mind.logic.engines.registry import EngineRegistry
 
-        EngineRegistry.initialize(self.paths)
-        logger.debug("EngineRegistry initialized via AuditorContext bootstrap")
+        # #306: wire an LLM client into the EngineRegistry if one was
+        # supplied. When None (no provider configured / LLM disabled),
+        # the registry transparently falls back to LLMGateStubEngine.
+        # rule_executor.py surfaces that fall-back as a per-rule warning
+        # so the audit output is never silent about a muted check (#307).
+        EngineRegistry.initialize(self.paths, llm_client=self.llm_client)
+        logger.debug(
+            "EngineRegistry initialized via AuditorContext bootstrap (llm_client=%s)",
+            "wired" if self.llm_client else "stub-fallback",
+        )
 
         self.src_dir = self.paths.repo_root / "src"
         self.intent_path = self.paths.intent_root

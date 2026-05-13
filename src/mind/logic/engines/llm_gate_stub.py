@@ -29,7 +29,11 @@ class LLMGateStubEngine(BaseEngine):
     without requiring LLM API configuration or incurring costs.
     """
 
-    engine_id = "llm_gate"
+    # #306: distinct engine_id so EngineRegistry._discover_engines doesn't
+    # silently overwrite the real LLMGateEngine in the class map. The stub
+    # is only reachable through the explicit fallback path in
+    # EngineRegistry.get() when no LLM client is wired.
+    engine_id = "llm_gate_stub"
 
     def __init__(self):
         """Initialize stub engine - no LLM client needed."""

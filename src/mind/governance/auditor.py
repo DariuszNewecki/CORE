@@ -91,7 +91,12 @@ class ConstitutionalAuditor:
         executed_rule_ids: set[str] = set()
         crashed_rule_ids: set[str] = set()
 
-        EngineRegistry.initialize(self.context.paths)
+        # #306: re-initializing the EngineRegistry clears its cached
+        # instances; the llm_client must be threaded through or the
+        # llm_gate engine reverts to the stub on every audit run.
+        EngineRegistry.initialize(
+            self.context.paths, llm_client=self.context.llm_client
+        )
 
         findings: list[AuditFinding] = await run_dynamic_rules(
             self.context,
