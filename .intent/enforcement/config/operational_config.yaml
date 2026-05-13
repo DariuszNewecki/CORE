@@ -126,6 +126,23 @@ consequence_log:
   default_lookback_seconds: 3600
 
 # ---------------------------------------------------------------------------
+# Audit pipeline (ADR-044 — llm_gate verdict cache)
+# ---------------------------------------------------------------------------
+audit:
+  # TTL for rows in core.llm_gate_verdicts. Rows older than this are
+  # swept at the start of each audit run. TTL is hygiene, not correctness
+  # — file_content_hash + rule_content_hash mismatches handle correctness
+  # by producing a fresh row rather than serving a stale verdict.
+  llm_gate_verdict_cache_ttl_days: 30
+  # Threshold against repo_artifacts.last_crawled_at. When the crawler's
+  # hash is older than this, the llm_gate engine recomputes
+  # file_content_hash inline from file bytes rather than trusting the
+  # stored value. Bounds the window in which a stale crawler hash could
+  # produce an incorrect cache hit between a file edit and the next
+  # crawl.
+  llm_gate_cache_staleness_threshold_seconds: 3600
+
+# ---------------------------------------------------------------------------
 # Coverage
 # ---------------------------------------------------------------------------
 coverage:

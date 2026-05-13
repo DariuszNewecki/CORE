@@ -115,6 +115,14 @@ class AuditorContext:
         self._rel_path_map: dict[Path, str] = {}
         self._pattern_cache: dict[str, list[Path]] = {}
 
+        # ADR-044: per-run knobs for the llm_gate verdict cache. The
+        # rule_executor reads force_llm via getattr; engines that don't
+        # consult them ignore them. _llm_gate_cache_swept is the one-shot
+        # latch that ensures sweep_llm_gate_cache() does its DELETE at most
+        # once per audit run.
+        self.force_llm: bool = False
+        self._llm_gate_cache_swept: bool = False
+
     @property
     # ID: 2e3a5e67-17c7-4c86-8ad5-8a5bfe1b2b14
     def intent_root(self) -> Path:
@@ -138,6 +146,78 @@ class AuditorContext:
         self._file_list_cache = None
         self._rel_path_map.clear()
         self._pattern_cache.clear()
+
+    # ID: 3e8a1b6c-5d4f-49a2-b71c-8e2d0f4a9c5b
+    async def sweep_llm_gate_cache(self) -> int:
+        """Delete llm_gate_verdicts rows past their TTL (ADR-044).
+
+        Called by the audit driver at the start of each run. The latch
+        ``_llm_gate_cache_swept`` ensures the DELETE fires at most once per
+        AuditorContext, even when callers (auditor + filtered_audit) both
+        invoke it as a safety net.
+
+        Returns the count of rows deleted.
+
+        TTL value source order:
+          1. operational_config.audit.llm_gate_verdict_cache_ttl_days
+          2. literal default of 30 days (placeholder until Step 6 lands)
+        """
+        if self._llm_gate_cache_swept:
+            return 0
+        self._llm_gate_cache_swept = True
+
+        # ADR-044 §Decision: TTL is hygiene, not correctness. Hash mismatch
+        # is the correctness mechanism. So an unavailable config or DB
+        # session must NOT block the audit — it falls through silently.
+        try:
+            from shared.infrastructure.intent.operational_config import (
+                load_operational_config,
+            )
+
+            cfg = load_operational_config()
+            ttl_days = int(
+                getattr(
+                    getattr(cfg, "audit", object()),
+                    "llm_gate_verdict_cache_ttl_days",
+                    30,
+                )
+            )
+        except Exception:
+            ttl_days = 30
+
+        # Session is injected by the audit driver before this runs (see
+        # auditor.run_full_audit_async + audit.py CLI). When absent (e.g.
+        # filtered_audit invoked without an outer session block), TTL sweep
+        # is a no-op — the next audit run will catch up.
+        session = getattr(self, "db_session", None)
+        if session is None:
+            return 0
+
+        try:
+            from sqlalchemy import text
+
+            result = await session.execute(
+                text(
+                    "DELETE FROM core.llm_gate_verdicts "
+                    "WHERE evaluated_at < NOW() - make_interval(days => :days)"
+                ),
+                {"days": ttl_days},
+            )
+            purged = result.rowcount or 0
+            await session.commit()
+            if purged:
+                logger.info(
+                    "AuditorContext: TTL-swept %d llm_gate_verdicts row(s) "
+                    "older than %d days",
+                    purged,
+                    ttl_days,
+                )
+            return purged
+        except Exception as exc:
+            logger.warning(
+                "AuditorContext: llm_gate_verdicts TTL sweep skipped: %s", exc
+            )
+            return 0
 
     # ID: 4a2f2b3d-1a8a-4a1f-9a8e-2b6a0e7d9b3c
     def get_files(

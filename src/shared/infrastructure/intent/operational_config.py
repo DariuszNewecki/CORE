@@ -143,6 +143,25 @@ class ConsequenceLogConfig:
 
 
 @dataclass(frozen=True)
+# ID: 8b3c6f4e-2a91-43d7-b582-7e1d4a9c0f6b
+class AuditConfig:
+    """ADR-044 — incremental llm_gate verdict cache knobs.
+
+    - llm_gate_verdict_cache_ttl_days: rows older than this are swept at
+      the start of each audit run. TTL is hygiene, not correctness —
+      content + rule hash mismatches are the correctness mechanism.
+    - llm_gate_cache_staleness_threshold_seconds: when the crawler's
+      repo_artifacts.last_crawled_at is older than this, the engine
+      recomputes file_content_hash inline rather than trusting the
+      stored value. Bounds the window in which a stale crawler hash
+      could produce an incorrect cache hit.
+    """
+
+    llm_gate_verdict_cache_ttl_days: int = 30
+    llm_gate_cache_staleness_threshold_seconds: int = 3600
+
+
+@dataclass(frozen=True)
 # ID: 3101bd97-4957-40cc-85f5-96fa0e874cd4
 class CoverageConfig:
     gap_threshold_pct: float = 75.0
@@ -569,6 +588,7 @@ class OperationalConfig:
     daemon: DaemonConfig = field(default_factory=DaemonConfig)
     proposals: ProposalsConfig = field(default_factory=ProposalsConfig)
     consequence_log: ConsequenceLogConfig = field(default_factory=ConsequenceLogConfig)
+    audit: AuditConfig = field(default_factory=AuditConfig)
     coverage: CoverageConfig = field(default_factory=CoverageConfig)
     workflow_gate: WorkflowGateConfig = field(default_factory=WorkflowGateConfig)
     context: ContextConfig = field(default_factory=ContextConfig)
@@ -670,6 +690,18 @@ def _load_consequence_log(raw: dict[str, Any]) -> ConsequenceLogConfig:
     sec = _section(raw, "consequence_log")
     return ConsequenceLogConfig(
         default_lookback_seconds=_get_int(sec, "default_lookback_seconds", 3600)
+    )
+
+
+def _load_audit(raw: dict[str, Any]) -> AuditConfig:
+    sec = _section(raw, "audit")
+    return AuditConfig(
+        llm_gate_verdict_cache_ttl_days=_get_int(
+            sec, "llm_gate_verdict_cache_ttl_days", 30
+        ),
+        llm_gate_cache_staleness_threshold_seconds=_get_int(
+            sec, "llm_gate_cache_staleness_threshold_seconds", 3600
+        ),
     )
 
 
@@ -1170,6 +1202,7 @@ def load_operational_config() -> OperationalConfig:
         daemon=_load_daemon(raw),
         proposals=_load_proposals(raw),
         consequence_log=_load_consequence_log(raw),
+        audit=_load_audit(raw),
         coverage=_load_coverage(raw),
         workflow_gate=_load_workflow_gate(raw),
         context=_load_context(raw),

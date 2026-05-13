@@ -86,6 +86,9 @@ class ConstitutionalAuditor:
         # rule. Mirrors the same call in run_filtered_audit.
         self.context.invalidate_file_cache()
 
+        # ADR-044: TTL sweep at audit start. Idempotent per AuditorContext.
+        await self.context.sweep_llm_gate_cache()
+
         await self.context.load_knowledge_graph()
 
         executed_rule_ids: set[str] = set()

@@ -170,8 +170,18 @@ async def execute_rule(
 
     for file_path in files:
         try:
-            # We add '_context' to the params so the Engine knows where to find the Cache
-            params_with_context = {**rule.params, "_context": context}
+            # We add '_context' to the params so the Engine knows where to find the Cache.
+            # ADR-044: thread rule identity, content hash, and force-llm flag
+            # through so the llm_gate engine can perform DB-backed verdict
+            # caching. Underscored keys are engine-protocol fields, not rule
+            # params — engines ignore them if they don't care.
+            params_with_context = {
+                **rule.params,
+                "_context": context,
+                "_rule_id": rule.rule_id,
+                "_rule_content_hash": rule.rule_content_hash,
+                "_force_llm": getattr(context, "force_llm", False),
+            }
             result = await engine.verify(file_path, params_with_context)
             if not result.ok:
                 # #306/#307: transient LLM infrastructure failures are

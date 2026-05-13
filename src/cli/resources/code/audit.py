@@ -91,6 +91,16 @@ async def audit_command(
         "--classify",
         help="Print context build commands for all findings.",
     ),
+    force_llm: bool = typer.Option(
+        False,
+        "--force-llm",
+        help=(
+            "Bypass the ADR-044 llm_gate verdict cache for this run. "
+            "Every llm_gate rule re-evaluates every pre-selected file via "
+            "Ollama; cache rows are still updated with fresh verdicts. "
+            "Use after suspect cache state or to validate a model upgrade."
+        ),
+    ),
 ) -> None:
     """Run the constitutional self-audit."""
     min_severity = parse_min_severity(severity)
@@ -118,6 +128,9 @@ async def audit_command(
     with activity_run("constitutional_audit") as run:
         async with service_registry.session() as session:
             core_context.auditor_context.db_session = session
+            # ADR-044: plumb --force-llm onto the per-run context so the
+            # rule_executor can thread it through to llm_gate.verify().
+            core_context.auditor_context.force_llm = force_llm
             auditor = ConstitutionalAuditor(core_context.auditor_context)
             start_time = time.perf_counter()
 

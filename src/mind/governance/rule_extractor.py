@@ -16,6 +16,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
+from shared.infrastructure.intent.intent_repository import compute_rule_content_hash
 from shared.logger import getLogger
 
 
@@ -214,6 +215,14 @@ def extract_executable_rules(
                 )
                 requires_findings_from = []
 
+            # ADR-044: cache-key hash over the combined (law + implementation)
+            # view. Any meaningful change to the rule's canonical fields OR
+            # its enforcement strategy (engine, params, scope, excludes,
+            # pre-selectors) invalidates cached llm_gate verdicts.
+            rule_content_hash = compute_rule_content_hash(
+                {"rule": canonical_rule, "strategy": strategy}
+            )
+
             # Build executable rule from law + implementation.
             # authority is threaded from the canonical rule so IntentGuard
             # can distinguish "always-block" (constitution) from "advisory"
@@ -230,6 +239,7 @@ def extract_executable_rules(
                 is_context_level=is_context_level,
                 authority=canonical_rule["authority"],
                 requires_findings_from=requires_findings_from,
+                rule_content_hash=rule_content_hash,
             )
 
             executable_rules.append(executable_rule)

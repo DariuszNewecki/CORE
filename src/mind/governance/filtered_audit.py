@@ -142,6 +142,9 @@ async def run_filtered_audit(
     # committed since the last cycle are visible to every rule.
     context.invalidate_file_cache()
 
+    # ADR-044: TTL sweep at audit start. Idempotent per AuditorContext.
+    await context.sweep_llm_gate_cache()
+
     file_filter = normalize_file_filter(files, context.repo_path)
 
     # Extract all executable rules from policies

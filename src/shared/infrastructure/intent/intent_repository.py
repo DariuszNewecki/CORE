@@ -16,6 +16,7 @@ CONSTITUTIONAL FIX (V2.4.0):
 
 from __future__ import annotations
 
+import hashlib
 import json
 from collections.abc import Iterable
 from dataclasses import dataclass
@@ -48,6 +49,27 @@ class RuleRef:
     policy_id: str
     source_path: Path
     content: dict[str, Any]
+    rule_content_hash: str
+
+
+# ID: 7c4e8b2f-1d6a-49f3-b0e8-3a5c8d4e9f1b
+def compute_rule_content_hash(content: dict[str, Any]) -> str:
+    """SHA-256 over a canonicalised rule body, for ADR-044 cache keying.
+
+    JSON serialisation with ``sort_keys=True`` + compact separators is
+    deterministic: identical rule semantics produce identical bytes
+    regardless of YAML cosmetic differences (key reordering, comment
+    reformatting, blank lines). The YAML→dict load step already strips
+    comments and normalises scalar representation, so the JSON re-encode
+    is sufficient to capture every governance-meaningful field.
+    """
+    canonical = json.dumps(
+        content,
+        sort_keys=True,
+        separators=(",", ":"),
+        ensure_ascii=False,
+    )
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
 
 # ID: 698141bd-6440-4ffa-950b-a547ecee4699
@@ -530,6 +552,7 @@ class IntentRepository(RootedRepository):
                         policy_id=policy_id,
                         source_path=ref.path,
                         content={**content},
+                        rule_content_hash=compute_rule_content_hash(content),
                     )
 
         return rule_index

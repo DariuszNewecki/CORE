@@ -103,6 +103,20 @@ class ExecutableRule:
     is_context_level=True) happens at extraction time.
     """
 
+    rule_content_hash: str = ""
+    """
+    SHA-256 of the canonicalised (rule + enforcement strategy) dict — the
+    cache key for ADR-044's llm_gate verdict cache. Combines the rule's
+    canonical fields with its enforcement mapping so any meaningful
+    governance change (prompt text edit, threshold change, scope
+    narrowing) invalidates the affected cached verdicts.
+
+    Computed by rule_extractor at audit-context load time via
+    shared.infrastructure.intent.intent_repository.compute_rule_content_hash.
+    Empty default means "cache disabled" — the llm_gate engine treats a
+    blank hash as a signal to bypass DB cache and always call the LLM.
+    """
+
     def __repr__(self) -> str:
         """Concise representation for logging."""
         return f"ExecutableRule({self.rule_id}, engine={self.engine}, authority={self.authority})"
