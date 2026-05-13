@@ -272,8 +272,7 @@ async def _resolve_file_content_hash(session: Any, rel_path: str, content: str) 
         return stored_hash or inline
     except Exception as exc:
         logger.debug(
-            "llm_gate: file_content_hash lookup failed for %s (%s); "
-            "using inline hash",
+            "llm_gate: file_content_hash lookup failed for %s (%s); using inline hash",
             rel_path,
             exc,
         )
