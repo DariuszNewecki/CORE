@@ -2,7 +2,7 @@
 
 # ADR-044 — Incremental LLM-gate verdict cache
 
-**Status:** Draft
+**Status:** Accepted
 **Date:** 2026-05-13
 **Authors:** Darek (Dariusz Newecki)
 **Closes:** #TBD
