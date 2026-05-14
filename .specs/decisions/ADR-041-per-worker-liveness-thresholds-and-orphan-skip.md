@@ -1,4 +1,3 @@
-<!-- draft path: var/adr-drafts/ADR-041-per-worker-liveness-thresholds-and-orphan-skip.md -->
 <!-- target path (on acceptance): .specs/decisions/ADR-041-per-worker-liveness-thresholds-and-orphan-skip.md -->
 
 # ADR-041 — Per-worker liveness thresholds and orphan-skip in the DAL

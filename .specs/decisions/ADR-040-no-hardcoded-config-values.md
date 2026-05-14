@@ -3,7 +3,7 @@
 # ADR-040 — No Hardcoded Values in src/
 
 **Date:** 2026-05-12
-**Status:** Proposed
+**Status:** Accepted
 **Author:** Darek (Dariusz Newecki)
 
 ---
