@@ -166,7 +166,9 @@ async def execute_rule(
             in precondition_files
         ]
     severity = _map_enforcement_to_severity(rule.enforcement)
-    transient_llm_failures: list[str] = []
+    # #309: store (rel_path, underlying_error_message) pairs so the
+    # aggregate finding preserves the engine's diagnostic string.
+    transient_llm_failures: list[tuple[str, str]] = []
 
     for file_path in files:
         try:
@@ -188,12 +190,18 @@ async def execute_rule(
                 # aggregated, not emitted per-file. The marker is set by
                 # LLMGateEngine when its LLM call fails for non-verdict
                 # reasons (timeout, connection error, etc.).
-                if any(
-                    _TRANSIENT_LLM_FAILURE_MARKER in str(v) for v in result.violations
-                ):
-                    transient_llm_failures.append(
-                        str(file_path.relative_to(context.repo_path))
-                    )
+                marker_violation = next(
+                    (
+                        v
+                        for v in result.violations
+                        if _TRANSIENT_LLM_FAILURE_MARKER in str(v)
+                    ),
+                    None,
+                )
+                if marker_violation is not None:
+                    rel_path = str(file_path.relative_to(context.repo_path))
+                    err_msg, _ = normalize_violation(marker_violation)
+                    transient_llm_failures.append((rel_path, err_msg))
                     continue
                 for v in result.violations:
                     # Normalize whether engine emitted a bare string or a
@@ -248,13 +256,19 @@ async def execute_rule(
     # instead of one per file. sample_files preserves enough signal for
     # the governor to investigate without churning the loop.
     if transient_llm_failures:
+        # #309: deduplicate underlying error strings. A single root cause
+        # (e.g. the prompt-contract mismatch that made #308 look transient)
+        # shows up as one entry; a true intermittent shows many. Visible
+        # from the message without reading every per-file sample.
+        unique_errors = sorted({err for _, err in transient_llm_failures})
         findings.append(
             AuditFinding(
                 check_id=rule.rule_id,
                 severity=AuditSeverity.WARNING,
                 message=(
                     f"Rule '{rule.rule_id}' LLM evaluation failed transiently "
-                    f"on {len(transient_llm_failures)} file(s). Verdict for "
+                    f"on {len(transient_llm_failures)} file(s) "
+                    f"({len(unique_errors)} unique error(s)). Verdict for "
                     "those files is UNKNOWN until the LLM provider can keep "
                     "up with audit-scale throughput — see follow-up issue on "
                     "llm_gate concurrency/batching."
@@ -264,7 +278,12 @@ async def execute_rule(
                     "finding_type": "LLM_TRANSIENT_FAILURE",
                     "engine_id": rule.engine,
                     "failure_count": len(transient_llm_failures),
-                    "sample_files": transient_llm_failures[:5],
+                    "sample_files": [path for path, _ in transient_llm_failures[:5]],
+                    "sample_errors": [
+                        {"file": path, "error": err}
+                        for path, err in transient_llm_failures[:5]
+                    ],
+                    "unique_error_messages": unique_errors[:5],
                 },
             )
         )
