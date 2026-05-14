@@ -55,6 +55,17 @@ _QDRANT_COLLECTION_MAP: dict[str, str] = {
     "infra": "core-docs",
 }
 
+# Stale-running janitor threshold for the crawl_runs table (#179).
+# Set to 6x RepoCrawlerWorker.max_interval (600s). A run sitting in 'running'
+# past this window has either been orphaned by a daemon crash or its
+# terminal-status cleanup itself raised; the janitor clears it on the next
+# cycle so the table stays an authoritative record of crawl outcomes.
+_STALE_CRAWL_THRESHOLD_SEC = 3600
+
+# Cap on per-file error samples recorded in a 'partial' or wholly-'failed'
+# crawl_runs row. Keeps error_message bounded for storage and readability.
+_MAX_ERROR_SAMPLES = 5
+
 
 # ID: fc846725-fc1a-4cc2-a598-d915350b4eb0
 class CrawlOrchestrator:
@@ -92,6 +103,11 @@ class CrawlOrchestrator:
 
         Returns stats dict with keys: files_scanned, files_changed,
         symbols_linked, edges_created, chunks_upserted, verdicts_purged.
+
+        Terminal status (per #179): tri-state dispatch on per-file outcomes.
+          - failures == 0                  → 'completed'
+          - failures > 0 and successes > 0 → 'partial'
+          - failures > 0 and successes == 0 → 'failed'
         """
         logger.info("CrawlOrchestrator.run_crawl: starting crawl pass")
         crawl_run_id = uuid.uuid4()
@@ -105,7 +121,30 @@ class CrawlOrchestrator:
         }
 
         svc = self._service
+
+        # Stale-running janitor (#179): clear orphan rows from prior cycles
+        # BEFORE opening the new run so the brand-new row is never swept.
+        # Best-effort — a failure here must not block a new crawl.
+        try:
+            cleaned = await svc.close_stale_crawl_runs(_STALE_CRAWL_THRESHOLD_SEC)
+            if cleaned:
+                logger.warning(
+                    "CrawlOrchestrator.run_crawl: cleaned %d stale 'running' row(s)",
+                    cleaned,
+                )
+        except Exception as exc:
+            logger.warning(
+                "CrawlOrchestrator.run_crawl: stale-running cleanup failed: %s",
+                exc,
+            )
+
         await svc.open_crawl_run(str(crawl_run_id))
+
+        # Per-file outcome tracking for tri-state status dispatch (#179)
+        successes = 0
+        failures = 0
+        error_samples: list[str] = []
+
         try:
             symbol_index = await svc.load_symbol_index()
             existing_hashes = await svc.load_artifact_hashes()
@@ -143,7 +182,13 @@ class CrawlOrchestrator:
                             )
                         if changed:
                             stats["files_changed"] += 1
+                        successes += 1
                     except Exception as exc:
+                        failures += 1
+                        if len(error_samples) < _MAX_ERROR_SAMPLES:
+                            error_samples.append(
+                                f"{rel_path} ({type(exc).__name__}: {str(exc)[:80]})"
+                            )
                         logger.warning(
                             "CrawlOrchestrator.run_crawl: error processing %s: %s",
                             rel_path,
@@ -165,12 +210,49 @@ class CrawlOrchestrator:
                     len(removed_paths),
                 )
 
-            await svc.close_crawl_run_completed(str(crawl_run_id), stats)
+            # Terminal-status dispatch (#179)
+            if failures == 0:
+                await svc.close_crawl_run_completed(str(crawl_run_id), stats)
+                terminal_status = "completed"
+            elif successes == 0:
+                error_msg = (
+                    f"all {failures} file(s) errored. "
+                    f"Samples: {'; '.join(error_samples)}"
+                )
+                await svc.close_crawl_run_failed(str(crawl_run_id), error_msg)
+                terminal_status = "failed"
+            else:
+                error_summary = (
+                    f"{failures} file(s) errored, {successes} succeeded. "
+                    f"Samples: {'; '.join(error_samples)}"
+                )
+                await svc.close_crawl_run_partial(
+                    str(crawl_run_id), stats, error_summary
+                )
+                terminal_status = "partial"
         except Exception as exc:
-            await svc.close_crawl_run_failed(str(crawl_run_id), str(exc))
+            # Outer-loop failure (not a per-file error). Attempt to record
+            # the run as failed; if THAT raises, log both exceptions and
+            # let the original propagate. The stale-running janitor on the
+            # next cycle will eventually clear the orphan row.
+            try:
+                await svc.close_crawl_run_failed(str(crawl_run_id), str(exc))
+            except Exception as cleanup_exc:
+                logger.error(
+                    "CrawlOrchestrator.run_crawl: close_crawl_run_failed itself "
+                    "raised: %s (original error: %s) — crawl_run %s left in "
+                    "'running' state, will be cleaned on next cycle",
+                    cleanup_exc,
+                    exc,
+                    crawl_run_id,
+                )
             raise
 
-        logger.info("CrawlOrchestrator.run_crawl: crawl complete — %s", stats)
+        logger.info(
+            "CrawlOrchestrator.run_crawl: crawl complete (status=%s) — %s",
+            terminal_status,
+            stats,
+        )
         return stats
 
     async def _crawl_python_file(

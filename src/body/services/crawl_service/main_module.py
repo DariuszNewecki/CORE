@@ -113,6 +113,60 @@ class CrawlService:
             )
             await session.commit()
 
+    # ID: 3f0d0f81-6945-47d4-8422-b6de922ed7ef
+    async def close_crawl_run_partial(
+        self, crawl_run_id: str, stats: dict[str, int], error_summary: str
+    ) -> None:
+        """Mark a crawl_run as partial with stats and a failure summary. Per #179."""
+        from body.services.service_registry import ServiceRegistry
+
+        async with ServiceRegistry.session() as session:
+            await session.execute(
+                text(
+                    """
+                    UPDATE core.crawl_runs SET
+                        status          = 'partial',
+                        files_scanned   = :files_scanned,
+                        files_changed   = :files_changed,
+                        symbols_linked  = :symbols_linked,
+                        edges_created   = :edges_created,
+                        chunks_upserted = :chunks_upserted,
+                        error_message   = :error_summary,
+                        finished_at     = now()
+                    WHERE id = :id
+                    """
+                ),
+                {"id": crawl_run_id, "error_summary": error_summary, **stats},
+            )
+            await session.commit()
+
+    # ID: c37b42ca-7550-420c-adb6-94edfdaa3ea5
+    async def close_stale_crawl_runs(self, stale_threshold_sec: int) -> int:
+        """Sweep crawl_runs rows stuck in 'running' past the threshold and mark
+        them 'failed'. Returns the cleaned count. Must be called BEFORE
+        open_crawl_run so the current cycle's row is never swept. Per #179.
+        """
+        from body.services.service_registry import ServiceRegistry
+
+        async with ServiceRegistry.session() as session:
+            async with session.begin():
+                result = await session.execute(
+                    text(
+                        """
+                        UPDATE core.crawl_runs
+                        SET status        = 'failed',
+                            error_message = 'stale-running cleanup: no completion '
+                                            'within threshold',
+                            finished_at   = now()
+                        WHERE status = 'running'
+                          AND EXTRACT(EPOCH FROM (now() - started_at))
+                              > :threshold_sec
+                        """
+                    ),
+                    {"threshold_sec": stale_threshold_sec},
+                )
+                return result.rowcount or 0
+
     # ------------------------------------------------------------------
     # repo_artifacts
     # ------------------------------------------------------------------
@@ -156,6 +210,7 @@ class CrawlService:
                         END,
                         last_crawled_at   = EXCLUDED.last_crawled_at,
                         crawl_run_id      = EXCLUDED.crawl_run_id
+                    WHERE repo_artifacts.content_hash != EXCLUDED.content_hash
                     """
                 ),
                 {
@@ -206,6 +261,7 @@ class CrawlService:
                         END,
                         last_crawled_at   = EXCLUDED.last_crawled_at,
                         crawl_run_id      = EXCLUDED.crawl_run_id
+                    WHERE repo_artifacts.content_hash != EXCLUDED.content_hash
                     """
                 ),
                 {
