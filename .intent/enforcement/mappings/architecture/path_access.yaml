@@ -29,4 +29,5 @@ mappings:
         # Glob/exclude pattern strings — not path construction expressions
         - "src/mind/governance/audit_context.py"
         - "src/body/services/crawl_service/main_module.py"
+        - "src/body/services/crawl_service/orchestrator.py"
         - "src/body/introspection/symbol_index_builder.py"

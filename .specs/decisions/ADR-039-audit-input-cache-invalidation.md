@@ -2,7 +2,7 @@
 
 # ADR-039 — Audit-input cache invalidation
 
-**Status:** Draft
+**Status:** Accepted
 **Date:** 2026-05-12
 **Authors:** Darek (Dariusz Newecki)
 **Closes:** #298
