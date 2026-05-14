@@ -1,5 +1,5 @@
 id: violation_remediator
-version: "0.4.0"
+version: "0.5.0"
 role: RemoteCoder
 description: >
   Produces a corrected version of a Python source file that resolves
@@ -16,7 +16,6 @@ input:
     - architectural_context
     - violations
     - rule_id
-  optional:
     - context_package
 
 output:
