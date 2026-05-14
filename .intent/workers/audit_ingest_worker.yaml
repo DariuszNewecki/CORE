@@ -31,6 +31,8 @@ mandate:
       - audit
       - compliance
   approval_required: false
+  schedule:
+    max_interval: 1800
 
 implementation:
   module: will.workers.audit_ingest_worker
