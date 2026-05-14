@@ -1,12 +1,4 @@
-<!-- path: .specs/planning/SESSION-PROTOCOL.md -->
-
 # CORE — Session Protocol
-
-**Status:** Active
-**Authority:** Policy
-**Scope:** All CORE development sessions between governor and architect
-
----
 
 ## 1. Purpose
 
@@ -33,6 +25,7 @@ The audience is the governor and any architect instance (human or Claude) openin
 | `.intent/CHANGELOG.md` | Constitutional version history — anchors each ADR to the governance change it represents | Updated every time an ADR lands |
 | GitHub Issues | Parked items, hazards, open questions, verification-pending, governance-debt | Opened and closed every session |
 | GitHub Milestones | One per band (A through E); the strategic progress surface | Updated as issues close |
+| GitHub Projects board | Visual band status — kanban, roadmap, governance-debt views | Updated automatically as issues open and close |
 | GitHub Discussions | Architectural questions needing broader input | Opt-in |
 | GitHub Releases | Capability milestones ("Band X closed" or "vN.N.N") | On band closure or major milestone |
 | Git commit history | The authoritative record of what changed and when | Generated as sessions run |
@@ -55,14 +48,14 @@ Both files are produced on lira by `make context` and uploaded to the Claude.ai 
 
 **Step 3 — System state scan.** Run `core-admin code audit` and record the verdict and finding count. Check `systemctl --user status core-daemon` for daemon liveness. If either is unexpectedly off baseline, that observation precedes any lead selection.
 
-**Step 4 — GitHub state scan.** Open the repository's Issues tab filtered by relevant state labels. Default filter set:
+**Step 4 — GitHub state scan.** Open the Projects board (primary visual surface). The Band board view shows what is in-progress, blocked, or pending verification at a glance. The Roadmap view shows the multi-band arc. For precise filtering, the Issues tab remains available as a verification step with the following default filter set:
 - `status:verification-pending` — has anything passively verified since last session?
 - `status:blocked` — has a blocker upstream of something resolved?
 - Open issues on the current band's milestone — what's queued?
 
 Close anything that has resolved. Do this first because closures free up pick candidates.
 
-**Step 5 — Candidate list.** From remaining open issues, identify 2-4 candidates for the session's lead. Preference order: items surfaced last session, items `priority:high`, items on the currently-advancing band's milestone.
+**Step 5 — Candidate list.** From remaining open issues, identify 2–4 candidates for the session's lead. Preference order: items surfaced last session, items `priority:high`, items on the currently-advancing band's milestone.
 
 **Step 6 — Pick one lead.** The governor picks. The architect can propose and argue, but the pick is the governor's. Name it explicitly and state the expected session outcome in one sentence.
 
@@ -86,19 +79,14 @@ Four steps. Most are one-line actions.
 
 **Step 2 — Issues updated.** Close any issues resolved by this session's commits. Confirm labels still accurate on open issues.
 
-**Step 3 — Documentation maintenance.** Two obligations, both triggered by an ADR landing. If no ADR landed this session, check only whether A3 plan structural changes occurred (gate, phase, band).
-
-*A3 plan (`CORE-A3-plan.md`):*
+**Step 3 — A3 plan maintenance.** If this session changed something the A3 plan tracks, edit `CORE-A3-plan.md`. Triggers and edits:
 - An ADR landed → add a row to "Architectural Decisions Made."
 - A gate status shifted on G1–G4 → update the Status column in "A3 Gates."
 - A phase advanced → update the marker (⬜ / 🔄 / ✅) in "A3 Phases."
 - A band closed → update its line in "Bands."
 - Any of the above → bump "Last updated."
 
-*Constitutional CHANGELOG (`.intent/CHANGELOG.md`):*
-- An ADR landed → add an entry anchoring the ADR to the governance change it represents: what rule, mapping, worker declaration, or enforcement policy changed and why. This is mandatory. An ADR without a CHANGELOG entry leaves the constitutional version history incomplete.
-
-If nothing the A3 plan or CHANGELOG tracks changed this session, skip this step. Routine issue closures and commits do not require edits to either document.
+If nothing the A3 plan tracks changed this session, skip this step. Routine issue closures and commits do not require A3 plan edits — those are reconstructible from Git and GitHub.
 
 **Step 4 — Release if warranted.** If a band closed or a major capability milestone landed, cut a GitHub Release with the relevant tag (`vN.N.N` per existing convention). Band closure is the canonical trigger. Release notes are the canonical session summary for bands that ship.
 
@@ -159,4 +147,4 @@ This document does not specify:
 
 *Revised 2026-05-03: §5 Step 3 rewritten. Previous text referenced "Known Blockers," "Resolved Blockers," and "Milestone Summary" sections that the current A3 plan does not contain. New text aligns with the plan's actual section structure (A3 Gates, A3 Phases, Bands, Architectural Decisions Made). §2 row for `CORE-A3-plan.md` correspondingly updated to describe "gates, phases, bands, ADR index" rather than "bands, phases, known blockers."*
 
-*Revised 2026-05-08: §5 Step 3 renamed from "A3 plan maintenance" to "Documentation maintenance" and expanded to cover two obligations. Constitutional CHANGELOG (`.intent/CHANGELOG.md`) added as a mandatory session-close target whenever an ADR lands. §2 table gained a row for `.intent/CHANGELOG.md` clarifying its role and update cadence.*
+*Revised 2026-05-14: §2 gained GitHub Projects board row; §3 Step 4 updated to reference the Projects board as the primary visual surface for session-open state scan, with the Issues tab filter set retained as the verification step.*
