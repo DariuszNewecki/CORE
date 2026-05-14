@@ -104,6 +104,26 @@ class TestEdgeCases:
         assert matches_glob("src\\api\\main.py", "src/**/*.py") is True
 
 
+class TestPathNormalization:
+    """Leading-slash and dot-slash normalization on the path input."""
+
+    def test_normalizes_leading_slash(self):
+        assert matches_glob("/src/main.py", "src/**/*.py") is True
+
+    def test_normalizes_leading_dot_slash(self):
+        assert matches_glob("./src/main.py", "src/**/*.py") is True
+
+    def test_normalizes_multiple_leading_slashes(self):
+        assert matches_glob("//src/main.py", "src/**/*.py") is True
+
+    def test_normalizes_absolute_path_object(self):
+        assert matches_glob(Path("/src/main.py"), "src/**/*.py") is True
+
+    def test_negative_result_preserved_after_normalization(self):
+        # Normalization must not change a False verdict into a True one.
+        assert matches_glob("/var/secrets/k.txt", "secrets/*") is False
+
+
 class TestMatchesAnyGlob:
     def test_any_returns_true_on_first_match(self):
         patterns = ["**/.env", "**/secrets/**"]
@@ -115,3 +135,9 @@ class TestMatchesAnyGlob:
 
     def test_any_with_empty_pattern_list(self):
         assert matches_any_glob("src/main.py", []) is False
+
+    def test_any_normalizes_leading_slash(self):
+        # matches_any_glob applies the same path normalization as matches_glob.
+        assert (
+            matches_any_glob("/var/secrets/k.txt", ["**/.env", "**/secrets/**"]) is True
+        )
