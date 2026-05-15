@@ -57,6 +57,7 @@ class ContextAwareTestGenerator:
                 cognitive_service=self.cognitive,
                 project_root=str(self.repo_root),
                 session_factory=service_registry.session,
+                brain_services_provider=service_registry,
             )
 
             symbol_code = await asyncio.to_thread(

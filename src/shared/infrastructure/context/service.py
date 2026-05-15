@@ -20,6 +20,7 @@ from typing import TYPE_CHECKING, Any
 
 from shared.infrastructure.intent.task_type_phases import resolve_phase
 from shared.logger import getLogger
+from shared.protocols.brain_services import BrainServicesProvider
 
 from .builder import ContextBuilder
 from .cache import ContextCache
@@ -53,6 +54,7 @@ class ContextService:
         project_root: str = ".",
         session_factory: Any | None = None,
         workspace: LimbWorkspace | None = None,
+        brain_services_provider: BrainServicesProvider | None = None,
     ) -> None:
         self.config = config or {}
         self.project_root = Path(project_root)
@@ -61,6 +63,7 @@ class ContextService:
 
         self._qdrant_client = qdrant_client
         self._cognitive_service = cognitive_service
+        self._brain_services_provider = brain_services_provider
 
         self.validator = ContextValidator()
         self.redactor = ContextRedactor()
@@ -73,16 +76,32 @@ class ContextService:
 
     async def _ensure_brain_services(self) -> None:
         """
-        Resolve vector/cognitive services JIT if missing at bootstrap.
+        Resolve vector/cognitive services JIT via the injected provider.
+
+        The provider is asked only for services not already injected at
+        construction. If anything is missing and no provider was supplied,
+        we raise — silently constructing services from a layer-bound
+        global would violate shared/'s isolation.
         """
-        if self._cognitive_service is None or self._qdrant_client is None:
-            from body.services.service_registry import service_registry
+        if self._cognitive_service is not None and self._qdrant_client is not None:
+            return
 
-            if self._cognitive_service is None:
-                self._cognitive_service = await service_registry.get_cognitive_service()
+        if self._brain_services_provider is None:
+            raise RuntimeError(
+                "ContextService requires cognitive_service and qdrant_client; "
+                "neither was injected and no brain_services_provider was "
+                "supplied to resolve them."
+            )
 
-            if self._qdrant_client is None:
-                self._qdrant_client = await service_registry.get_qdrant_service()
+        if self._cognitive_service is None:
+            self._cognitive_service = (
+                await self._brain_services_provider.get_cognitive_service()
+            )
+
+        if self._qdrant_client is None:
+            self._qdrant_client = (
+                await self._brain_services_provider.get_qdrant_service()
+            )
 
     def _build_context_builder(self) -> ContextBuilder:
         db_provider = DBProvider(session_factory=self._session_factory)

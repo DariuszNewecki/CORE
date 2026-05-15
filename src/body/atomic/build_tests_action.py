@@ -221,6 +221,7 @@ async def action_build_tests(
                     session_factory=core_context.registry.session,
                     qdrant_client=None,
                     cognitive_service=cognitive_service,
+                    brain_services_provider=core_context.registry,
                 )
                 logger.info(
                     "build.tests: constructed ContextService via registry JIT fallback"

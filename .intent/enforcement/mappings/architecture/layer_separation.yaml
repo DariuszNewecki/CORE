@@ -325,9 +325,6 @@ mappings:
         # file_handler.py: imports body.governance.intent_guard —
         #   IntentGuard must be injected, not imported directly
         - "src/shared/infrastructure/storage/file_handler.py"
-        # context/service.py: lazy imports body.services.service_registry —
-        #   service_registry must be injected via constructor
-        - "src/shared/infrastructure/context/service.py"
         # Tests
         - "src/shared/**/test_*.py"
         - "tests/**"

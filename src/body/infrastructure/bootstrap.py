@@ -40,6 +40,7 @@ def _build_context_service() -> ContextService:
         session_factory=service_registry.session,
         qdrant_client=None,
         cognitive_service=None,
+        brain_services_provider=service_registry,
     )
 
 
