@@ -137,7 +137,39 @@ diagram, with CLI shown as a caller of API, not a parallel entry point.
 
 ---
 
-## Migration
+## Deferred decision: logical boundary vs network boundary
+
+This ADR enforces CLI→API as a **logical boundary** — an `ast_gate`
+import rule prevents CLI from importing CORE internals directly. The
+alternative is a **network boundary**: CLI makes actual HTTP calls to
+the running CORE daemon, making the boundary physically unbreakable
+by any import rule.
+
+Industry precedent favours the network boundary for production operator
+toolchains. `kubectl` calls `kube-apiserver` over HTTP. The AWS CLI
+calls AWS APIs over HTTPS. No in-process import shortcut exists because
+no in-process import shortcut is architecturally permitted.
+
+CORE already runs a daemon. The infrastructure for a network boundary
+exists. The question is whether the operational cost — every CLI command
+requiring a running daemon — is acceptable for CORE's usage patterns.
+
+This decision is **deferred** because:
+
+- The logical boundary (this ADR) delivers the same architectural
+  correctness at lower operational cost for a single-operator tool.
+- A future operator-scale deployment (multi-user, remote access,
+  GxP audit trail per-request) may require the network boundary for
+  reasons beyond architecture — auditability, access control, TLS.
+- Migrating from logical to network boundary after the CLI migration
+  is complete is straightforward; the migration path is one direction.
+
+**Trigger for revisiting:** the first use case that requires per-request
+authentication, remote CLI access, or request-level audit logging
+that cannot be satisfied by the in-process model. At that point a
+dedicated ADR replaces this section with a binding decision.
+
+---
 
 The ~80 current violations cannot be resolved before this ADR lands;
 they are the reason it exists. The resolution sequence is:

@@ -176,13 +176,25 @@ or
 This is documentation discipline enforced at governor sign-off, not
 by tooling.
 
-### D3 — Each excludes entry must reference a closure ADR
+### D3 — Each excludes entry must reference a closure ADR and carry a deadline
 
 Any addition to an `excludes:` list — whether existing or new — requires
 a companion document in `.specs/decisions/` naming: the file, the rule
-it bypasses, the reason the bypass is temporarily accepted, and the
-planned refactor that will remove the entry. The excludes list is not a
-parking lot; it is a bounded, named, tracked debt register.
+it bypasses, the reason the bypass is temporarily accepted, the planned
+refactor that will remove the entry, and a **deadline date** by which
+the entry must be closed.
+
+The deadline is enforced in two stages:
+
+- **Warning:** audit emits a warning for any `excludes:` entry whose
+  deadline has passed but whose closure ADR is not marked accepted.
+- **Blocking:** after a grace period of 30 days past deadline, the
+  entry is treated as a rule violation — the file fails audit as if
+  it were not excluded.
+
+The excludes list is not a parking lot. "TEMPORARY" without a date is
+not temporary; it is permanent with good intentions. A named deadline
+converts intent into a governance commitment.
 
 ---
 
@@ -216,6 +228,20 @@ parking lot; it is a bounded, named, tracked debt register.
 - **D2 is load-bearing documentation discipline.** There is no tool
   that catches a missing rule citation in a paper. This depends on
   governor sign-off at the point a normative paragraph is authored.
+
+### Long-horizon direction
+
+`shared/` as a substrate layer carries a known long-term risk: logic
+creeps in because it is the path of least resistance, and the layer
+becomes an informal composition root. The 8 excludes entries are the
+current symptom. The direction this ADR points toward — but does not
+enforce — is contraction of `shared/` to pure contracts: interfaces,
+data types, constants, and nothing that depends on a layer. Any module
+in `shared/` that currently contains logic or service calls belongs in a
+layer; the re-export shims are the clearest examples. This is a
+multi-ADR effort on a longer horizon than D1–D3; it is named here so
+future architecture reviews treat it as a known trajectory, not a new
+finding.
 
 ### Neutral
 
