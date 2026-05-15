@@ -41,6 +41,7 @@ from shared.workers.base import Worker
 from will.workers.proposal_consumer_effects import (
     apply_success_effects,
     apply_yield_effects,
+    summarize_flow_step_failures,
 )
 from will.workers.proposal_consumer_revival import (
     mark_proposal_failed,
@@ -175,6 +176,13 @@ class ProposalConsumerWorker(Worker):
                     reason = result.get("failure_reason") or "proposal execution failed"
                     await revive_and_report(self, proposal_id, reason)
 
+                # ADR-046 D3b: surface optional flow-step failures (e.g.
+                # silent fix.format failures inside flow.build_tests) in
+                # the run.complete report so they are discoverable without
+                # introducing a new finding subject family.
+                flow_step_failures = summarize_flow_step_failures(
+                    result.get("action_results")
+                )
                 results.append(
                     {
                         "proposal_id": proposal_id,
@@ -185,6 +193,7 @@ class ProposalConsumerWorker(Worker):
                         "actions_failed": result.get("actions_failed", 0),
                         "duration_sec": result.get("duration_sec", 0),
                         "error": result.get("error"),
+                        "flow_step_failures": flow_step_failures,
                     }
                 )
 

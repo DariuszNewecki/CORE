@@ -163,6 +163,39 @@ class ProposalAction:
         return False
 
 
+def _compute_flow_risk(flow_id: str, _visited: frozenset[str] = frozenset()) -> str:
+    """Resolve a flow's risk as the max impact of its constituent steps.
+
+    Recurses through nested flow steps. Cycle-safe via _visited tracker.
+    Falls back to "moderate" (conservative) when a flow cannot be resolved
+    or a cycle is detected. ADR-046 D1.
+    """
+    from body.atomic.registry import action_registry
+    from body.flows.registry import StepKind, flow_registry
+
+    if flow_id in _visited:
+        return "moderate"
+    visited = _visited | {flow_id}
+
+    flow_def = flow_registry.get(flow_id)
+    if flow_def is None:
+        return "moderate"
+
+    risk_levels = {"safe": 0, "moderate": 1, "dangerous": 2}
+    max_level = 0
+    for step in flow_def.steps:
+        if step.kind == StepKind.ACTION:
+            action_def = action_registry.get(step.ref_id)
+            impact = action_def.impact_level if action_def else "moderate"
+        elif step.kind == StepKind.FLOW:
+            impact = _compute_flow_risk(step.ref_id, visited)
+        else:
+            impact = "moderate"
+        max_level = max(max_level, risk_levels.get(impact, 1))
+
+    return ["safe", "moderate", "dangerous"][max_level]
+
+
 @dataclass
 # ID: 7c009aef-daac-4c91-9b1f-0b40e700922b
 class Proposal:
@@ -296,16 +329,16 @@ class Proposal:
         action_risks = {}
         risk_factors = []
 
-        # Gather impact levels — Actions from ActionRegistry, Flows default to 'moderate'
+        # Gather impact levels — Actions resolve via ActionRegistry; Flows
+        # resolve via FlowRegistry as the max impact of constituent steps
+        # (ADR-046 D1). Falls back to "moderate" for unresolvable flows.
         for action in self.actions:
             if action.action_id is not None:
                 definition = action_registry.get(action.action_id)
                 if definition:
                     action_risks[action.action_id] = definition.impact_level
             elif action.flow_id is not None:
-                # Flows are composed of multiple actions — treat as moderate risk
-                # until FlowRegistry exposes per-flow impact computation.
-                action_risks[action.flow_id] = "moderate"
+                action_risks[action.flow_id] = _compute_flow_risk(action.flow_id)
 
         # Determine overall risk (highest action risk)
         risk_levels = {"safe": 0, "moderate": 1, "dangerous": 2}

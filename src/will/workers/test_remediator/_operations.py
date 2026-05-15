@@ -25,7 +25,10 @@ logger = getLogger(__name__)
 
 _MISSING_SUBJECT_PREFIX = "test.missing::"
 _FAILURE_SUBJECT_PREFIX = "test.failure::"
-_TARGET_ACTION_ID = "build.tests"
+# ADR-046 D2: TestRemediator dispatches the build_tests flow, not the bare
+# build.tests action, so flow.build_tests' declared auto-heal steps
+# (fix.imports, fix.headers, fix.format) execute on generated tests.
+_TARGET_FLOW_ID = "flow.build_tests"
 _TARGET_RULES: list[str] = ["test.missing", "test.failure"]
 
 _ACTIVE_STATUSES: frozenset[ProposalStatus] = frozenset(
@@ -98,10 +101,10 @@ async def _load_open_findings(worker_uuid: uuid.UUID) -> list[dict[str, Any]]:
 async def _get_active_build_tests_source_files() -> set[str]:
     """
     Return the set of source_file values currently in flight for the
-    'build.tests' action — i.e. referenced by any active proposal.
+    flow.build_tests flow — i.e. referenced by any active proposal.
 
     A proposal is active when its status is in _ACTIVE_STATUSES. For
-    each such proposal, every action whose action_id is 'build.tests'
+    each such proposal, every action whose flow_id is flow.build_tests
     contributes its parameters["source_file"] (when present) to the
     returned set.
 
@@ -119,7 +122,7 @@ async def _get_active_build_tests_source_files() -> set[str]:
                 proposals = await repo.list_by_status(status, limit=200)
                 for proposal in proposals:
                     for action in proposal.actions:
-                        if action.action_id != _TARGET_ACTION_ID:
+                        if action.flow_id != _TARGET_FLOW_ID:
                             continue
                         source_file = (action.parameters or {}).get("source_file")
                         if source_file:
@@ -134,10 +137,10 @@ async def _get_active_build_tests_source_files() -> set[str]:
 
 
 async def _create_proposal(
-    action_id: str,
+    flow_id: str,
     findings: list[dict[str, Any]],
 ) -> str | None:
-    """Create and persist a Proposal for the given action and findings.
+    """Create and persist a Proposal for the given flow and findings.
 
     All findings passed to this method must share a single source_file
     (the caller groups them accordingly). The action parameter carries
@@ -163,12 +166,12 @@ async def _create_proposal(
 
     proposal = Proposal(
         goal=(
-            f"Autonomous test remediation: {action_id} "
+            f"Autonomous test remediation: {flow_id} "
             f"({len(findings)} finding(s) — rules: {', '.join(_TARGET_RULES)})"
         ),
         actions=[
             ProposalAction(
-                action_id=action_id,
+                flow_id=flow_id,
                 parameters={
                     "source_file": primary_source_file,
                     "write": True,
@@ -195,7 +198,7 @@ async def _create_proposal(
     if not is_valid:
         logger.warning(
             "TestRemediatorWorker: proposal for '%s' failed validation: %s",
-            action_id,
+            flow_id,
             errors,
         )
         return None
@@ -215,14 +218,14 @@ async def _create_proposal(
                 logger.info(
                     "TestRemediatorWorker: proposal for '%s' auto-approved "
                     "(risk=%s, approval_required=False)",
-                    action_id,
+                    flow_id,
                     proposal.risk.overall_risk if proposal.risk else "unknown",
                 )
             else:
                 logger.info(
                     "TestRemediatorWorker: proposal for '%s' requires human approval "
                     "(risk=%s) — created in DRAFT",
-                    action_id,
+                    flow_id,
                     proposal.risk.overall_risk if proposal.risk else "unknown",
                 )
 
@@ -231,7 +234,7 @@ async def _create_proposal(
     except Exception as e:
         logger.error(
             "TestRemediatorWorker: failed to persist proposal for '%s': %s",
-            action_id,
+            flow_id,
             e,
         )
         return None
@@ -244,7 +247,7 @@ async def _defer_to_proposal(entry_ids: list[str], proposal_id: str) -> int:
     the proposal_id in each entry's payload.
 
     Happy-path terminal transition for findings consumed into a newly-
-    created build.tests proposal. Mirrors ViolationRemediatorWorker's
+    created flow.build_tests proposal. Mirrors ViolationRemediatorWorker's
     contract (CORE-Finding.md §7 row 4, ADR-010); the §7a revival
     path in ProposalStateManager.mark_failed depends on this linkage.
 

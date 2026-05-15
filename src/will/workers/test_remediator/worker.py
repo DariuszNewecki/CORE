@@ -6,10 +6,10 @@ Constitutional role: acting worker, remediation phase.
 
 Responsibility (from .intent/workers/test_remediator.yaml):
   Consume open test.missing and test.failure findings from the Blackboard
-  and create one build.tests proposal per distinct source_file to drive
-  autonomous test generation. Every claimed finding is routed to the
-  single 'build.tests' action — no remediation map lookup, no unmappable
-  or delegate split.
+  and create one flow.build_tests proposal per distinct source_file to
+  drive autonomous test generation. Every claimed finding is routed to
+  the single 'flow.build_tests' flow (ADR-046 D2) — no remediation map
+  lookup, no unmappable or delegate split.
 
 The autonomous test loop this participates in:
 
@@ -32,10 +32,10 @@ The autonomous test loop this participates in:
 Design constraints:
 - No LLM calls
 - No direct file writes
-- Dedup is per source_file — two concurrent build.tests proposals for
-  different source files are valid and must not block each other
+- Dedup is per source_file — two concurrent flow.build_tests proposals
+  for different source files are valid and must not block each other
 - Never creates a second proposal for a source_file that already has an
-  active 'build.tests' proposal
+  active 'flow.build_tests' proposal
 - Defers Blackboard entries to the proposal AFTER the proposal for their
   source_file is persisted (not before). The §7a revival path in
   ProposalStateManager.mark_failed depends on this Finding→Proposal
@@ -50,7 +50,7 @@ from shared.logger import getLogger
 from shared.workers.base import Worker
 
 from ._operations import (
-    _TARGET_ACTION_ID,
+    _TARGET_FLOW_ID,
     _create_proposal,
     _defer_to_proposal,
     _get_active_build_tests_source_files,
@@ -65,13 +65,13 @@ logger = getLogger(__name__)
 # ID: e9f2a4b6-c1d8-4e3f-9a5b-7c8d1e2f3a4b
 class TestRemediatorWorker(Worker):
     """
-    Acting worker that converts Blackboard test findings into build.tests proposals.
+    Acting worker that converts Blackboard test findings into flow.build_tests proposals.
 
     Claims open test.missing and test.failure findings (two prefixes, merged),
-    groups them by source_file, and creates one 'build.tests' proposal per
-    source_file. Dedup is per source_file — two concurrent build.tests
-    proposals for different source files are valid and must not block each
-    other.
+    groups them by source_file, and creates one 'flow.build_tests' proposal
+    per source_file. Dedup is per source_file — two concurrent
+    flow.build_tests proposals for different source files are valid and
+    must not block each other.
     """
 
     __test__ = False
@@ -92,7 +92,7 @@ class TestRemediatorWorker(Worker):
         1. Claim open test.missing + test.failure findings from Blackboard
         2. Group findings by payload["source_file"]
         3. For each group: check per-source_file dedup against active
-           build.tests proposals; create a proposal and defer that
+           flow.build_tests proposals; create a proposal and defer that
            group's findings to it on success, or release that group's
            findings on dedup skip
         4. Post blackboard report
@@ -130,7 +130,7 @@ class TestRemediatorWorker(Worker):
             if source_file in active_source_files:
                 logger.info(
                     "TestRemediatorWorker: skipping '%s' — active "
-                    "build.tests proposal exists for this source_file",
+                    "flow.build_tests proposal exists for this source_file",
                     source_file,
                 )
                 source_files_skipped.append(source_file)
@@ -138,7 +138,7 @@ class TestRemediatorWorker(Worker):
                 entries_released += released
                 continue
 
-            proposal_id = await _create_proposal(_TARGET_ACTION_ID, findings)
+            proposal_id = await _create_proposal(_TARGET_FLOW_ID, findings)
 
             if proposal_id:
                 proposals_created.append(source_file)
@@ -152,10 +152,10 @@ class TestRemediatorWorker(Worker):
                 )
                 entries_deferred += deferred
                 logger.info(
-                    "TestRemediatorWorker: created proposal '%s' for action '%s' "
+                    "TestRemediatorWorker: created proposal '%s' for flow '%s' "
                     "source_file='%s' (%d findings, %d entries deferred to proposal)",
                     proposal_id,
-                    _TARGET_ACTION_ID,
+                    _TARGET_FLOW_ID,
                     source_file,
                     len(findings),
                     deferred,

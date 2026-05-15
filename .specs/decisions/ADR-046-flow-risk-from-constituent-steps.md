@@ -244,18 +244,47 @@ didn't." Cons: not addressable per-step (downstream consumers must parse
 the report payload); not actionable as a finding; coarser correlation
 with file paths.
 
-This ADR adopts **D3a** for these reasons: (a) the test-format-heal loop
-is exactly the case where a downstream consumer wanting to *re-fire*
-`fix.format` on a specific file is a plausible future need, and only the
-finding surface supports that; (b) the run.complete report's audience is
-the dashboard/Observer, where a coarse per-tick summary already serves
-its purpose; (c) the constitutional grain weighs in this direction.
-D3b remains a fallback if vocabulary discipline cannot be lined up in
-the same change-set — in that case, ship D3b first and convert to D3a
-when the subject family is registered.
+**Implementation note — 2026-05-15 amendment.** The original text of this
+ADR adopted D3a. When the implementation reached the editing stage, a
+re-read of CORE-Blackboard.md §4 and CORE-Finding.md §3 showed that
+D3a misaligns with the canonical model on three points:
 
-Audit-side and dashboard surfacing of `flow.optional_step_failed`
-findings is out of scope for this ADR.
+1. **CORE-Blackboard.md §4** declares `finding` as posted by *sensing*
+   workers. ProposalConsumer is an *acting* worker (per its
+   `.intent/workers/proposal_consumer_worker.yaml` declaration). Having
+   an acting worker emit a finding family for its own execution
+   outcomes inverts the entry-type contract.
+2. **CORE-Finding.md §3** requires every Finding payload to carry
+   `rule`, `file_path`, `severity`, `message`, `rule_namespace`,
+   `status`, `dry_run`, `dry_run_scope`. The proposed
+   `flow.optional_step_failed::…` events are execution records, not
+   rule violations, and cannot supply these fields canonically.
+3. **The new-subject-family path was being supported by a 5th-file
+   expansion** of `ProposalExecutor.execute()`'s result contract to
+   surface `scope_files` for the finding payload — tooling driving
+   law-adjacent contract changes, which CORE-Common-Governance-Failure-
+   Modes §8 names *Tool-Driven Law*.
+
+The fallback clause above is therefore invoked: **D3b ships instead of
+D3a.** ProposalConsumer's existing `run.complete` report (an `entry_type:
+report`, the canonical channel for acting-worker execution records) is
+augmented with a `flow_step_failures` field on each per-proposal entry,
+populated from `action_results[ref:order]["data"]["steps"]` for
+`kind == "flow"` entries. No new subject family. No vocabulary
+discipline question. No executor contract change. Two files touched:
+`src/will/workers/proposal_consumer_effects.py` (helper) and
+`src/will/workers/proposal_consumer_worker.py` (caller).
+
+D3a is not retired — it can still be authored later if and when a
+downstream consumer for the per-step finding surface materializes
+(e.g. an autonomous re-firer of `fix.format` on a specific file). At
+that point the subject family and ProposalExecutor contract extension
+become motivated, not speculative. Until then, D3b is the constitutional
+fit.
+
+Audit-side and dashboard surfacing of `flow_step_failures` data
+remains out of scope for this ADR. Reading the field is a downstream
+concern; emitting it is what D3b delivers.
 
 ---
 

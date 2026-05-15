@@ -29,6 +29,41 @@ from shared.workers.base import Worker
 logger = getLogger(__name__)
 
 
+# ID: c8e4f7a2-9b3d-4e1a-8c5f-2d6e9a1b3c4f
+def summarize_flow_step_failures(
+    action_results: dict[str, Any] | None,
+) -> list[dict[str, Any]]:
+    """Extract optional-step failures from flow-kind action_results.
+
+    ADR-046 D3b: surfaces silent auto-heal failures in the per-proposal
+    entry of proposal_consumer_worker.run.complete. Only flow-kind entries
+    are inspected; only steps with ok=False AND required=False contribute
+    (required-step failures already sink the proposal and surface through
+    the existing failure channel).
+    """
+    failures: list[dict[str, Any]] = []
+    for ref_key, ar in (action_results or {}).items():
+        if not isinstance(ar, dict) or ar.get("kind") != "flow":
+            continue
+        data = ar.get("data") or {}
+        flow_id = data.get("flow_id") or ref_key.split(":", 1)[0]
+        for step in data.get("steps") or []:
+            if not isinstance(step, dict):
+                continue
+            if step.get("required", True) or step.get("ok", True):
+                continue
+            step_data = step.get("data") or {}
+            failures.append(
+                {
+                    "flow_id": flow_id,
+                    "step_ref_id": step.get("ref_id"),
+                    "step_kind": step.get("kind"),
+                    "step_error": step_data.get("error"),
+                }
+            )
+    return failures
+
+
 # ID: 2b90edbd-f8b8-4d76-8350-3780ad6a2340
 async def apply_success_effects(
     worker: Worker,
