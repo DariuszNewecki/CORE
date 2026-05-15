@@ -336,9 +336,6 @@ mappings:
         # cognitive_adapter.py: lazy imports will.orchestration.cognitive_service —
         #   CognitiveService must be replaced with a shared protocol
         - "src/shared/infrastructure/vector/cognitive_adapter.py"
-        # Deprecated shims — re-export from body/ pending caller cleanup:
-        - "src/shared/infrastructure/repositories/decision_trace_repository.py"
-        - "src/shared/infrastructure/repositories/refusal_repository.py"
         # Tests
         - "src/shared/**/test_*.py"
         - "tests/**"
