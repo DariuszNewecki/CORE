@@ -186,6 +186,16 @@ mappings:
       Gate validates before any write. Defers automatically on low/medium confidence.
     status: ACTIVE
 
+  ai.cognitive_role.no_hardcoded_string:
+    action: remediate.cognitive_role
+    confidence: 0.85
+    risk: high
+    description: >
+      Hardcoded cognitive role string replaced with a governed constant from
+      the cognitive_roles registry. LLM-assisted rewrite via CoderAgent.
+      Human approval required before execution. See #133.
+    status: ACTIVE
+
   # ===========================================================================
   # TIER 2b: ACTIVE — flow-based (confidence >= 0.85)
   # Dispatched via FlowExecutor. Proposals require human approval before
