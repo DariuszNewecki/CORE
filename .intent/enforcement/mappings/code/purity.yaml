@@ -46,16 +46,19 @@
         excludes:
           - "tests/**/*.py"
 
-    # LAW: Public symbols MUST have meaningful docstrings (not placeholders).
+    # LAW: Public symbols MUST have docstrings (not placeholders).
     # Narrowed scope (#310): the periodic audit checks only public-surface
     # entry points where docstrings are part of the external contract.
-    # Whole-tree coverage (~399 files) at ~17s/LLM-call exceeded the 600s
-    # sensor SLA — the cost is justifiable only at the boundary where
-    # docstrings are consumed by other code, tooling, or CLI users.
+    # ADR-047: engine moved from llm_gate to ast_gate. The presence check
+    # is structural (ast.get_docstring is not None), so it does not need
+    # a language model. Placeholder content ("""TODO""") is already
+    # caught by purity.no_todo_placeholders above. Retiring this rule's
+    # llm_gate usage eliminates verdict instability (see #311) and frees
+    # local-LLM concurrency budget for genuinely semantic rules.
     purity.docstrings.required:
-      engine: llm_gate
+      engine: ast_gate
       params:
-        instruction: "Verify that all public functions and classes have a docstring. Return a violation if a docstring is missing or is just a placeholder like 'TODO'."
+        check_type: docstrings_present
       scope:
         applies_to:
           - "src/api/**/*.py"

@@ -57,6 +57,25 @@ class PurityChecks:
         return violations
 
     @staticmethod
+    # ID: 4bd29d4a-63e7-4132-8ab2-16865c9d500c
+    def check_docstrings_present(tree: ast.AST) -> list[str]:
+        """Flags public functions and classes whose body lacks a docstring."""
+        violations: list[str] = []
+        for node in ast.walk(tree):
+            if not isinstance(
+                node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)
+            ):
+                continue
+            if node.name.startswith("_"):
+                continue
+            if ast.get_docstring(node) is None:
+                kind = "Class" if isinstance(node, ast.ClassDef) else "Function"
+                violations.append(
+                    f"{kind} '{node.name}' has no docstring (line {node.lineno})."
+                )
+        return violations
+
+    @staticmethod
     # ID: 1cc2a7f3-5e21-4c10-9f93-5d2b7bdb3a65
     def check_forbidden_decorators(tree: ast.AST, forbidden: list[str]) -> list[str]:
         """Prevents use of obsolete metadata decorators in source code."""

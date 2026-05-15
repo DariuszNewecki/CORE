@@ -49,6 +49,7 @@ class ASTGateEngine(BaseEngine):
             "max_function_length",
             "stable_id_anchor",
             "id_anchor",
+            "docstrings_present",
             "forbidden_decorators",
             "forbidden_primitives",
             "forbidden_assignments",
@@ -107,6 +108,9 @@ class ASTGateEngine(BaseEngine):
         # --- Purity & Integrity ---
         if check_type in ("stable_id_anchor", "id_anchor"):
             violations.extend(PurityChecks.check_stable_id_anchor(source))
+
+        elif check_type == "docstrings_present":
+            violations.extend(PurityChecks.check_docstrings_present(tree))
 
         elif check_type == "logic_conservation":
             violations.extend(
