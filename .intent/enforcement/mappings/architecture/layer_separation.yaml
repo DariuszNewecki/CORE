@@ -321,11 +321,6 @@ mappings:
       applies_to:
         - "src/shared/**/*.py"
       excludes:
-        # Bootstrap sanctuary — wires layers together at startup only,
-        # not subject to layer separation rules
-        - "src/shared/infrastructure/service_registry.py"
-        - "src/shared/infrastructure/bootstrap_registry.py"
-        - "src/shared/workers/base.py"
         # TEMPORARY — violations pending remediation:
         # file_handler.py: imports body.governance.intent_guard —
         #   IntentGuard must be injected, not imported directly
