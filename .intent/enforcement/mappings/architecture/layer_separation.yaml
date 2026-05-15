@@ -343,6 +343,39 @@ mappings:
         - "src/shared/**/test_*.py"
         - "tests/**"
 
+  # ==========================================================================
+  # RULE 16: CLI Must Route Through API (ADR-050 D4)
+  # ADDED 2026-05-15 (ADR-050 D4): CLI is a client application outside CORE's
+  # closed system. The only sanctioned CORE import target for src/cli/ is
+  # api.*; direct imports from will, body, mind, or shared bypass the API
+  # boundary and are constitutionally prohibited.
+  # Lands as reporting (WARNING) per ADR-050 D4 / GitHub #319 — the
+  # ast_gate engine has no suppress mechanism, so the rule surfaces existing
+  # violations as warnings while the migration epic (#317) drains them.
+  # excludes: is intentionally empty — every violation must be resolved
+  # (no quiet bypasses). Promote enforcement to blocking in the canonical
+  # rule definition once migration is complete and finding count reaches zero.
+  # ==========================================================================
+
+  architecture.cli.api_only:
+    engine: ast_gate
+    params:
+      check_type: import_boundary
+      forbidden:
+        - "src.will"
+        - "will"
+        - "src.body"
+        - "body"
+        - "src.mind"
+        - "mind"
+        - "src.shared"
+        - "shared"
+    scope:
+      applies_to:
+        - "src/cli/**/*.py"
+        - "src/cli/*.py"
+      excludes: []
+
 # ==============================================================================
 # Meta: This mapping file restores CORE's founding architectural principle
 # ==============================================================================
