@@ -45,6 +45,12 @@ Thumbs.db
 ITAM
 
 # -----------------------------------------------------------------------------
+# Confidential commercial documents — strategic content, not for public repo
+# -----------------------------------------------------------------------------
+.specs/commercial/*
+!.specs/commercial/.gitkeep
+
+# -----------------------------------------------------------------------------
 # Runtime state — fully owned by CORE, never versioned
 #   Exception: var/prompts/ is governance content (LLM prompt templates are
 #   authored intent, not runtime output), tracked since #296.
