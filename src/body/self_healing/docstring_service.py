@@ -1,12 +1,23 @@
 # src/body/self_healing/docstring_service.py
 
 """
-AI-powered docstring healing via constitutional PromptModel.
+AI-powered docstring healing — ADR-048 implementation.
 
-CONSTITUTIONAL ALIGNMENT:
-- AI invocation routes through PromptModel.invoke() — never direct make_request_async().
-- Mutations route through the governed ActionExecutor gateway.
-- Ref: .intent/rules/ai/prompt_governance.json [ai.prompt.model_required]
+Discovers public symbols missing docstrings via AST walk over the target
+file (matches the ADR-047 ast_gate predicate). Generates docstrings via
+PromptModel('docstring_writer'). Inserts via AST-position-based rewrite
+through FileHandler.write_runtime_text — the governed mutation surface
+used by every other fix.* action.
+
+Constitutional alignment:
+- AI invocation routes through PromptModel.invoke() — never direct
+  make_request_async() (.intent/rules/ai/prompt_governance.json).
+- File writes route through context.file_handler.write_runtime_text —
+  the governed mutation surface.
+- Symbol discovery predicate mirrors
+  mind.logic.engines.ast_gate.checks.purity_checks.check_docstrings_present
+  so detection and remediation converge on the same definition of
+  "public symbol needing a docstring."
 """
 
 from __future__ import annotations
@@ -15,7 +26,6 @@ import ast
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from body.atomic.executor import ActionExecutor
 from shared.ai.prompt_model import PromptModel
 from shared.logger import getLogger
 
@@ -26,59 +36,185 @@ if TYPE_CHECKING:
 logger = getLogger(__name__)
 
 
-# ID: f7d310e7-c416-4e65-a3c9-c56347297423
-def extract_source_code(repo_root: Path, symbol_data: dict[str, Any]) -> str | None:
-    """Extract source code for a symbol using its database record."""
-    module_path = symbol_data.get("module")
-    symbol_path_str = symbol_data.get("symbol_path")
-    if not module_path or not symbol_path_str:
-        return None
-    file_path = repo_root / ("src/" + module_path.replace(".", "/") + ".py")
-    if not file_path.exists():
-        return None
-    symbol_name = symbol_path_str.split("::")[-1]
-    try:
-        content = file_path.read_text("utf-8")
-        tree = ast.parse(content, filename=str(file_path))
-        for node in ast.walk(tree):
-            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
-                if getattr(node, "name", None) == symbol_name:
-                    return ast.get_source_segment(content, node)
-    except Exception:
-        return None
-    return None
+# Audit rule scope (mirrors
+# .intent/enforcement/mappings/code/purity.yaml#purity.docstrings.required).
+# Sweep mode walks these directories; targeted mode uses an explicit
+# file_path and ignores this list.
+_SCOPE_DIRS: tuple[str, ...] = (
+    "src/api",
+    "src/cli/commands",
+    "src/will/workers",
+    "src/body/atomic",
+)
 
 
-def _has_docstring_in_source(repo_path: Path, symbol: dict[str, Any]) -> bool:
+def _find_undocumented_public_symbols(tree: ast.AST) -> list[ast.AST]:
+    """Walk a parsed module and return public symbols lacking a docstring.
+
+    Public = name not starting with underscore. Symbol kinds covered:
+    FunctionDef, AsyncFunctionDef, ClassDef — including methods, nested
+    functions, and class declarations. Mirrors the predicate in
+    PurityChecks.check_docstrings_present (ADR-047).
     """
-    Check the live source file for an existing docstring.
-
-    Reads the actual file on disk — never trusts the knowledge graph snapshot,
-    which may be stale. Returns True if a docstring already exists so the
-    caller can skip LLM generation entirely.
-    """
-    file_path_str = symbol.get("file_path", "")
-    name = symbol.get("name", "")
-
-    if not file_path_str or not name:
-        return False
-
-    file_path = repo_path / file_path_str
-    if not file_path.exists():
-        return False
-
-    try:
-        source = file_path.read_text(encoding="utf-8")
-        tree = ast.parse(source)
-    except Exception:
-        return False
-
+    candidates: list[ast.AST] = []
     for node in ast.walk(tree):
-        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
-            if node.name == name and ast.get_docstring(node):
-                return True
+        if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+            continue
+        if node.name.startswith("_"):
+            continue
+        if ast.get_docstring(node) is not None:
+            continue
+        candidates.append(node)
+    return candidates
 
-    return False
+
+def _insert_docstrings(source: str, insertions: list[tuple[ast.AST, str]]) -> str:
+    """Insert generated docstrings at AST-determined positions.
+
+    Logic ported from body/workers/doc_writer.py:_insert_docstring (retired
+    under ADR-048 D3). Each insertion is (node, docstring); the docstring
+    is placed at the position of body[0] with indentation
+    `" " * (node.col_offset + 4)`. Insertions are processed bottom-to-top
+    so earlier line numbers stay valid.
+    """
+    if not insertions:
+        return source
+
+    lines = source.splitlines(keepends=True)
+    targets: list[tuple[int, str, str]] = []
+
+    for node, docstring in insertions:
+        body = getattr(node, "body", None)
+        if not body:
+            continue
+        first = body[0]
+        # Defensive: skip if a docstring snuck in between detection and write.
+        if (
+            isinstance(first, ast.Expr)
+            and isinstance(first.value, ast.Constant)
+            and isinstance(first.value.value, str)
+        ):
+            continue
+        insert_line = first.lineno - 1  # 1-indexed AST → 0-indexed line list
+        indent = " " * (node.col_offset + 4)
+        targets.append((insert_line, indent, docstring))
+
+    for insert_line, indent, docstring in sorted(
+        targets, key=lambda t: t[0], reverse=True
+    ):
+        doc_line = f'{indent}"""{docstring}"""\n'
+        lines.insert(insert_line, doc_line)
+
+    return "".join(lines)
+
+
+async def _heal_file(
+    context: CoreContext,
+    file_path: str,
+    dry_run: bool,
+    prompt_model: PromptModel,
+    writer_client: Any,
+) -> int:
+    """Heal a single file. Returns the count of docstrings inserted."""
+    repo_path = Path(context.git_service.repo_path)
+    full_path = repo_path / file_path
+    if not full_path.exists():
+        logger.warning("fix.docstrings: file not found: %s", file_path)
+        return 0
+
+    source = full_path.read_text(encoding="utf-8")
+    try:
+        tree = ast.parse(source)
+    except SyntaxError as e:
+        logger.warning("fix.docstrings: cannot parse %s: %s", file_path, e)
+        return 0
+
+    candidates = _find_undocumented_public_symbols(tree)
+    if not candidates:
+        logger.info(
+            "fix.docstrings: %s — all public symbols have docstrings.",
+            file_path,
+        )
+        return 0
+
+    logger.info(
+        "fix.docstrings: %s — found %d symbol(s) requiring docstrings.",
+        file_path,
+        len(candidates),
+    )
+
+    insertions: list[tuple[ast.AST, str]] = []
+    for node in candidates:
+        node_source = ast.get_source_segment(source, node)
+        if not node_source:
+            continue
+        try:
+            new_doc = await prompt_model.invoke(
+                context={"source_code": node_source},
+                client=writer_client,
+                user_id="docstring_healing_service",
+            )
+        except ValueError as e:
+            logger.warning(
+                "fix.docstrings: PromptModel output validation failed for "
+                "'%s' at %s:%d: %s",
+                node.name,
+                file_path,
+                node.lineno,
+                e,
+            )
+            continue
+        except Exception as e:
+            logger.error(
+                "fix.docstrings: error generating docstring for '%s' at %s:%d: %s",
+                node.name,
+                file_path,
+                node.lineno,
+                e,
+            )
+            continue
+
+        if new_doc:
+            insertions.append((node, new_doc.strip()))
+
+    if not insertions:
+        logger.info("fix.docstrings: %s — no docstrings generated.", file_path)
+        return 0
+
+    if dry_run:
+        logger.info(
+            "[DRY RUN] %s — would write %d docstring(s).",
+            file_path,
+            len(insertions),
+        )
+        return 0
+
+    updated = _insert_docstrings(source, insertions)
+    context.file_handler.write_runtime_text(file_path, updated)
+    logger.info(
+        "fix.docstrings: %s — wrote %d docstring(s).",
+        file_path,
+        len(insertions),
+    )
+    return len(insertions)
+
+
+def _iter_scope_files(repo_path: Path) -> list[str]:
+    """Yield repo-relative .py files in the audit rule's scope.
+
+    Mirrors purity.docstrings.required.scope from the enforcement mapping:
+    applies_to = _SCOPE_DIRS; excludes = __init__.py.
+    """
+    paths: list[str] = []
+    for scope_dir in _SCOPE_DIRS:
+        base = repo_path / scope_dir
+        if not base.exists():
+            continue
+        for p in sorted(base.rglob("*.py")):
+            if p.name == "__init__.py":
+                continue
+            paths.append(str(p.relative_to(repo_path)))
+    return paths
 
 
 async def _async_fix_docstrings(
@@ -87,131 +223,50 @@ async def _async_fix_docstrings(
     limit: int = 0,
     file_path: str | None = None,
 ) -> None:
+    """Heal missing docstrings via AST walk and PromptModel generation.
+
+    Two invocation modes:
+
+    1. Targeted (autonomous loop): caller supplies ``file_path``. Heal
+       that one file. ProposalExecutor expands
+       ``actions[i].parameters.file_path`` into this argument.
+    2. Sweep (legacy CLI): ``file_path`` is None. Walk every .py file
+       under _SCOPE_DIRS, healing each one.
+
+    The knowledge graph is no longer consulted (ADR-048). The audit-gate
+    predicate (ast.get_docstring on public defs/classes) is the single
+    source of truth for "needs a docstring."
     """
-    Autonomously recover missing docstrings for undocumented CORE symbols.
-
-    Scans the knowledge graph for public functions and methods lacking
-    documentation, generates constitutionally-grounded docstrings via the
-    DocstringWriter PromptModel, and applies them through the governed
-    ActionExecutor.
-
-    Args:
-        context: CoreContext providing cognitive, knowledge, and executor services.
-        dry_run: When True, reports what would change without writing to filesystem.
-        limit: Max symbols to process. 0 means no limit.
-        file_path: When supplied, restrict the run to symbols whose
-            ``symbol['file_path']`` matches the (normalised) target.
-            Drives the autonomous remediation path; ``None`` retains the
-            legacy whole-tree sweep.
-    """
-    logger.info("Searching for symbols missing docstrings...")
-
-    executor = ActionExecutor(context)
-    knowledge_service = context.knowledge_service
-    graph = await knowledge_service.get_graph()
-    symbols = graph.get("symbols", {})
-    repo_path = Path(context.git_service.repo_path)
-
-    # Guard: check live source file — never trust the stale knowledge graph.
-    # This prevents repeated docstring injection when the graph hasn't resynced.
-    symbols_to_fix = [
-        s
-        for s in symbols.values()
-        if s.get("kind") == "function" and not _has_docstring_in_source(repo_path, s)
-    ]
-
-    if file_path:
-        # Targeted run: drop everything outside the proposal's scope.files
-        # entry. Normalises against the same shape the knowledge graph
-        # stores ("src/foo/bar.py", forward slashes, no leading "./").
-        target = file_path.lstrip("./").replace("\\", "/")
-        symbols_to_fix = [s for s in symbols_to_fix if s.get("file_path") == target]
-        logger.info("Scoped to %s — %d symbol(s) in file.", target, len(symbols_to_fix))
-
-    if limit > 0:
-        symbols_to_fix = symbols_to_fix[:limit]
-
-    if not symbols_to_fix:
-        logger.info("All public symbols have docstrings.")
-        return
-
-    logger.info("Found %d symbol(s) requiring docstrings.", len(symbols_to_fix))
-
-    # Load PromptModel — validates artifact completeness at load time
-    # Raises FileNotFoundError if var/prompts/docstring_writer/ is incomplete
     prompt_model = PromptModel.load("docstring_writer")
-
     writer_client = await context.cognitive_service.aget_client_for_role(
         prompt_model.manifest.role
     )
+    repo_path = Path(context.git_service.repo_path)
 
-    file_modification_map: dict[str, list[dict[str, Any]]] = {}
-
-    for i, symbol in enumerate(symbols_to_fix, 1):
-        if i % 10 == 0:
-            logger.debug("Docstring progress: %d/%d", i, len(symbols_to_fix))
-
-        try:
-            source_code = extract_source_code(repo_path, symbol)
-            if not source_code:
-                continue
-
-            # Constitutional invocation — PromptModel handles system prompt,
-            # input validation, and output contract enforcement
-            new_doc = await prompt_model.invoke(
-                context={"source_code": source_code},
-                client=writer_client,
-                user_id="docstring_healing_service",
-            )
-
-            if new_doc:
-                rel_path = symbol["file_path"]
-                if rel_path not in file_modification_map:
-                    file_modification_map[rel_path] = []
-
-                file_modification_map[rel_path].append(
-                    {
-                        "line_number": symbol["line_number"],
-                        "docstring": new_doc.strip(),
-                        "symbol_name": symbol.get("name", "unknown"),
-                    }
-                )
-
-        except ValueError as e:
-            # Output contract violation — log and skip, don't crash the whole run
-            logger.warning(
-                "PromptModel output validation failed for '%s': %s",
-                symbol.get("symbol_path", "?"),
-                e,
-            )
-        except Exception as e:
-            logger.error("Could not process %s: %s", symbol.get("symbol_path"), e)
-
-    if not file_modification_map:
-        logger.info("No docstrings generated.")
+    if file_path:
+        normalized = file_path.lstrip("./").replace("\\", "/")
+        await _heal_file(context, normalized, dry_run, prompt_model, writer_client)
         return
 
-    total = sum(len(v) for v in file_modification_map.values())
+    files = _iter_scope_files(repo_path)
+    if limit > 0:
+        files = files[:limit]
+
+    total_inserted = 0
+    files_touched = 0
+    for fp in files:
+        inserted = await _heal_file(context, fp, dry_run, prompt_model, writer_client)
+        if inserted > 0:
+            files_touched += 1
+            total_inserted += inserted
+
     logger.info(
-        "Generated %d docstring(s) across %d file(s).",
-        total,
-        len(file_modification_map),
+        "fix.docstrings: sweep complete — inserted %d docstring(s) across "
+        "%d file(s) out of %d scanned.",
+        total_inserted,
+        files_touched,
+        len(files),
     )
-
-    if dry_run:
-        logger.info("[DRY RUN] Would write %d docstrings — skipping.", total)
-        return
-
-    # Mutations via governed ActionExecutor gateway
-    for rel_path, modifications in file_modification_map.items():
-        for mod in modifications:
-            await executor.execute(
-                "write.docstring",
-                file_path=rel_path,
-                line_number=mod["line_number"],
-                docstring=mod["docstring"],
-                symbol_name=mod["symbol_name"],
-            )
 
 
 # ID: f74db998-8680-40b8-bd62-e6495b5d6df3
@@ -221,15 +276,15 @@ async def fix_docstrings(
     limit: int = 0,
     file_path: str | None = None,
 ) -> None:
-    """
-    Public entry point for the fix docstrings self-healing command.
+    """Public entry point for the docstring healing self-healing command.
 
     Args:
-        context: CoreContext with all required services.
+        context: CoreContext with file_handler, cognitive_service, git_service.
         write: When True, persists changes. When False, dry-run only.
-        limit: Max symbols to process. 0 means no limit.
-        file_path: When supplied, restrict the run to symbols in this
-            repo-relative path. None preserves the legacy whole-tree sweep.
+        limit: Max files to process in sweep mode. 0 means no limit.
+            Ignored when ``file_path`` is set.
+        file_path: When supplied, heal only that repo-relative file.
+            None preserves the legacy whole-tree sweep over _SCOPE_DIRS.
     """
     await _async_fix_docstrings(
         context=context, dry_run=not write, limit=limit, file_path=file_path

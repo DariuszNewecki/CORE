@@ -40,7 +40,7 @@
                     "type": "string",
                     "minLength": 3,
                     "maxLength": 128,
-                    "description": "Unique identifier for this worker declaration. e.g. workers.doc_worker"
+                    "description": "Unique identifier for this worker declaration. e.g.  workers.proposal_consumer_worker"
                 },
                 "title": {
                     "type": "string",

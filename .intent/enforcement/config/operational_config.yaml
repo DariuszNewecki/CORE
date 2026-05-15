@@ -43,10 +43,6 @@ chunking:
 workers:
   call_site_rewriter:
     claim_limit: 50
-  doc_writer:
-    batch_size: 25
-  doc_worker:
-    batch_size: 50
   prompt_artifact_writer:
     claim_limit: 25
   prompt_extractor:
