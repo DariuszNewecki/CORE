@@ -6,7 +6,7 @@ from __future__ import annotations
 import time
 from typing import TYPE_CHECKING, Any
 
-from cli.logic.body_contracts_checker import check_body_contracts
+from body.governance.body_contracts_service import check_body_contracts
 from mind.enforcement.audit import lint
 from shared.action_types import ActionResult
 from shared.context import CoreContext

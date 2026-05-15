@@ -9,12 +9,15 @@ from __future__ import annotations
 
 import ast
 import re
+import time
 import uuid
 from collections import defaultdict
 from typing import TYPE_CHECKING
 
 from body.atomic.executor import ActionExecutor
+from shared.action_types import ActionImpact, ActionResult
 from shared.ast_utility import find_symbol_id_and_def_line
+from shared.atomic_action import atomic_action
 from shared.logger import getLogger
 
 
@@ -182,3 +185,41 @@ async def assign_missing_ids(context: CoreContext, write: bool = False) -> int:
 
     logger.info("🏁 ID Assignment complete. Total: %d", total_ids_assigned)
     return total_ids_assigned
+
+
+@atomic_action(
+    action_id="fix.ids",
+    intent="Assign stable UUIDs to untagged public symbols",
+    impact=ActionImpact.WRITE_METADATA,
+    policies=["symbol_identification"],
+    category="fixers",
+)
+# ID: 2d37fcb6-863e-4197-a3b8-88ad54a2b99c
+async def fix_ids_internal(context: CoreContext, write: bool = False) -> ActionResult:
+    """
+    Core orchestrator for fix.ids — moved from cli/commands/fix/metadata.py
+    under ADR-050. Wraps assign_missing_ids in an ActionResult envelope.
+    """
+    start_time = time.time()
+    try:
+        total_assigned = await assign_missing_ids(context, write=write)
+        return ActionResult(
+            action_id="fix.ids",
+            ok=True,
+            data={
+                "ids_assigned": total_assigned,
+                "files_processed": 1 if total_assigned > 0 else 0,
+                "dry_run": not write,
+                "mode": "write" if write else "dry-run",
+            },
+            duration_sec=time.time() - start_time,
+            impact=ActionImpact.WRITE_METADATA,
+        )
+    except Exception as e:
+        return ActionResult(
+            action_id="fix.ids",
+            ok=False,
+            data={"error": str(e), "error_type": type(e).__name__},
+            duration_sec=time.time() - start_time,
+            logs=[f"Exception during ID assignment: {e}"],
+        )

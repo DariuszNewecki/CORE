@@ -28,7 +28,11 @@ import typer
 
 from body.atomic.executor import ActionExecutor
 from body.self_healing.duplicate_id_service import resolve_duplicate_ids
-from body.self_healing.id_tagging_service import assign_missing_ids
+
+# DEPRECATED: fix_ids_internal moved to body/self_healing/id_tagging_service.py
+# under ADR-050. This re-export keeps in-CLI callers working; remove after the
+# CLI migration epic completes.
+from body.self_healing.id_tagging_service import fix_ids_internal
 from body.self_healing.policy_id_service import add_missing_policy_ids
 from body.self_healing.purge_legacy_tags_service import purge_legacy_tags
 from cli.utils import core_command
@@ -43,41 +47,16 @@ from will.self_healing.capability_tagging_service import (
 from . import fix_app
 
 
-@atomic_action(
-    action_id="fix.ids",
-    intent="Assign stable UUIDs to untagged public symbols",
-    impact=ActionImpact.WRITE_METADATA,
-    policies=["symbol_identification"],
-    category="fixers",
-)
-# ID: 2d37fcb6-863e-4197-a3b8-88ad54a2b99c
-async def fix_ids_internal(context: CoreContext, write: bool = False) -> ActionResult:
-    """
-    Core logic for fix ids command. Now uses governed ActionExecutor.
-    """
-    start_time = time.time()
-    try:
-        total_assigned = await assign_missing_ids(context, write=write)
-        return ActionResult(
-            action_id="fix.ids",
-            ok=True,
-            data={
-                "ids_assigned": total_assigned,
-                "files_processed": 1 if total_assigned > 0 else 0,
-                "dry_run": not write,
-                "mode": "write" if write else "dry-run",
-            },
-            duration_sec=time.time() - start_time,
-            impact=ActionImpact.WRITE_METADATA,
-        )
-    except Exception as e:
-        return ActionResult(
-            action_id="fix.ids",
-            ok=False,
-            data={"error": str(e), "error_type": type(e).__name__},
-            duration_sec=time.time() - start_time,
-            logs=[f"Exception during ID assignment: {e}"],
-        )
+__all__ = [
+    "fix_dead_code_cmd",
+    "fix_duplicate_ids_command",
+    "fix_duplicate_ids_internal",
+    "fix_ids_internal",
+    "fix_placeholders_command",
+    "fix_policy_ids_command",
+    "fix_tags_command",
+    "purge_legacy_tags_command",
+]
 
 
 @atomic_action(

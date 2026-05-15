@@ -151,7 +151,7 @@ async def action_fix_headers(
     core_context: CoreContext, write: bool = False, **kwargs
 ) -> ActionResult:
     """Fix file headers."""
-    from cli.commands.fix.code_style import fix_headers_internal
+    from body.self_healing.header_service import fix_headers_internal
 
     return await fix_headers_internal(core_context, write=write)
 
@@ -174,7 +174,7 @@ async def action_fix_ids(
     core_context: CoreContext, write: bool = False, **kwargs
 ) -> ActionResult:
     """Fix missing ID tags."""
-    from cli.commands.fix.metadata import fix_ids_internal
+    from body.self_healing.id_tagging_service import fix_ids_internal
 
     return await fix_ids_internal(core_context, write=write)
 
@@ -221,7 +221,7 @@ async def action_fix_logging(
 ) -> ActionResult:
     """Fix logging violations."""
     start = time.time()
-    from cli.commands.fix_logging import LoggingFixer
+    from body.self_healing.logging_service import LoggingFixer
 
     if core_context.file_handler is None:
         return ActionResult(

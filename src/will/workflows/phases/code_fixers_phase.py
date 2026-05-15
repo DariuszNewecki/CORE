@@ -10,9 +10,9 @@ import typer
 
 from body.self_healing.code_style_service import format_code
 from body.self_healing.docstring_service import fix_docstrings
-from cli.commands.fix.code_style import fix_headers_internal
-from cli.commands.fix.metadata import fix_ids_internal
-from cli.commands.fix_logging import LoggingFixer
+from body.self_healing.header_service import fix_headers_internal
+from body.self_healing.id_tagging_service import fix_ids_internal
+from body.self_healing.logging_service import LoggingFixer
 from shared.action_types import ActionResult
 from shared.context import CoreContext
 from shared.logger import getLogger
@@ -50,14 +50,14 @@ class CodeFixersPhase:
 
         # Fix IDs
         logger.info("Assigning stable IDs...")
-        result = await fix_ids_internal(write=self.write)
+        result = await fix_ids_internal(self.core_context, write=self.write)
         self.reporter.record_result(result, phase)
         if not result.ok:
             raise typer.Exit(1)
 
         # Fix Headers
         logger.info("Checking file headers...")
-        result = await fix_headers_internal(write=self.write)
+        result = await fix_headers_internal(self.core_context, write=self.write)
         self.reporter.record_result(result, phase)
         if not result.ok:
             raise typer.Exit(1)
@@ -76,8 +76,14 @@ class CodeFixersPhase:
         try:
             start = time.time()
             logger.info("Checking logging standards...")
+            if self.core_context.file_handler is None:
+                raise RuntimeError(
+                    "core_context.file_handler is required for LoggingFixer"
+                )
             fixer = LoggingFixer(
-                self.core_context.git_service.repo_path, dry_run=self.dry_run
+                repo_root=self.core_context.git_service.repo_path,
+                file_handler=self.core_context.file_handler,
+                dry_run=self.dry_run,
             )
             fix_stats = fixer.fix_all()
 
