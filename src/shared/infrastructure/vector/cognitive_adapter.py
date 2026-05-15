@@ -12,13 +12,8 @@ separate local embedding settings.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
 from shared.logger import getLogger
-
-
-if TYPE_CHECKING:
-    from will.orchestration.cognitive_service import CognitiveService
+from shared.protocols.cognitive import CognitiveProtocol
 
 
 logger = getLogger(__name__)
@@ -47,7 +42,7 @@ class CognitiveEmbedderAdapter:
         await service.index_items(policy_items)
     """
 
-    def __init__(self, cognitive_service: CognitiveService):
+    def __init__(self, cognitive_service: CognitiveProtocol):
         """
         Initialize adapter.
 
