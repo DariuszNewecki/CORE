@@ -20,6 +20,7 @@ Constitutional alignment:
 from __future__ import annotations
 
 import re
+import time
 import uuid as uuid_mod
 from collections import defaultdict
 from dataclasses import dataclass
@@ -28,6 +29,10 @@ from typing import TYPE_CHECKING
 
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from shared.action_types import ActionImpact, ActionResult
+from shared.atomic_action import atomic_action
+from shared.infrastructure.database.session_manager import get_session
 
 # REFACTORED: Removed direct settings import
 from shared.logger import getLogger
@@ -352,3 +357,45 @@ async def resolve_duplicate_ids(
     )
 
     return modified_count
+
+
+@atomic_action(
+    action_id="fix.duplicate_ids",
+    intent="Resolve duplicate ID conflicts by regenerating UUIDs",
+    impact=ActionImpact.WRITE_METADATA,
+    policies=["id_uniqueness_check"],
+    category="fixers",
+)
+# ID: ecc8bd51-3c19-4e0f-a689-fe3b33c5841c
+async def fix_duplicate_ids_internal(
+    context: CoreContext, write: bool = False
+) -> ActionResult:
+    """
+    Core orchestrator for fix.duplicate_ids — moved from
+    cli/commands/fix/metadata.py under ADR-050. Wraps resolve_duplicate_ids
+    in an ActionResult envelope.
+    """
+    start_time = time.time()
+    try:
+        async with get_session() as session:
+            resolved_count = await resolve_duplicate_ids(
+                context, session, dry_run=not write
+            )
+        return ActionResult(
+            action_id="fix.duplicate_ids",
+            ok=True,
+            data={
+                "resolved_count": resolved_count,
+                "mode": "write" if write else "dry-run",
+            },
+            duration_sec=time.time() - start_time,
+            impact=ActionImpact.WRITE_METADATA,
+        )
+    except Exception as e:
+        return ActionResult(
+            action_id="fix.duplicate_ids",
+            ok=False,
+            data={"error": str(e)},
+            duration_sec=time.time() - start_time,
+            logs=[f"Error resolving duplicates: {e}"],
+        )

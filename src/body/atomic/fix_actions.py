@@ -197,7 +197,7 @@ async def action_fix_duplicate_ids(
     core_context: CoreContext, write: bool = False, **kwargs
 ) -> ActionResult:
     """Resolve duplicate UUID collisions in source files."""
-    from cli.commands.fix.metadata import fix_duplicate_ids_internal
+    from body.self_healing.duplicate_id_service import fix_duplicate_ids_internal
 
     return await fix_duplicate_ids_internal(core_context, write=write)
 
@@ -418,7 +418,7 @@ async def action_fix_atomic_actions(
     """Fix atomic action patterns."""
     from body.evaluators.atomic_actions_evaluator import AtomicActionsEvaluator
     from body.evaluators.atomic_actions_rules import AtomicActionViolation
-    from cli.commands.fix.atomic_actions import _fix_file_violations
+    from body.self_healing.atomic_actions_fixer import fix_file_violations
 
     start_time = time.time()
     root_path = core_context.git_service.repo_path
@@ -464,7 +464,7 @@ async def action_fix_atomic_actions(
     for file_path, file_violations in violations_by_file.items():
         try:
             source = file_path.read_text(encoding="utf-8")
-            modified_source = _fix_file_violations(source, file_violations, file_path)
+            modified_source = fix_file_violations(source, file_violations, file_path)
             if modified_source != source:
                 if write:
                     rel_path = str(file_path.relative_to(root_path))

@@ -21,13 +21,16 @@ from shared.logger import getLogger
 
 
 logger = getLogger(__name__)
-import time
 from pathlib import Path
 
 import typer
 
 from body.atomic.executor import ActionExecutor
-from body.self_healing.duplicate_id_service import resolve_duplicate_ids
+
+# DEPRECATED: fix_duplicate_ids_internal moved to
+# body/self_healing/duplicate_id_service.py under ADR-050. This re-export
+# keeps in-CLI callers working; remove after the CLI migration epic completes.
+from body.self_healing.duplicate_id_service import fix_duplicate_ids_internal
 
 # DEPRECATED: fix_ids_internal moved to body/self_healing/id_tagging_service.py
 # under ADR-050. This re-export keeps in-CLI callers working; remove after the
@@ -57,46 +60,6 @@ __all__ = [
     "fix_tags_command",
     "purge_legacy_tags_command",
 ]
-
-
-@atomic_action(
-    action_id="fix.duplicate_ids",
-    intent="Resolve duplicate ID conflicts by regenerating UUIDs",
-    impact=ActionImpact.WRITE_METADATA,
-    policies=["id_uniqueness_check"],
-    category="fixers",
-)
-# ID: ecc8bd51-3c19-4e0f-a689-fe3b33c5841c
-async def fix_duplicate_ids_internal(
-    context: CoreContext, write: bool = False
-) -> ActionResult:
-    """
-    Core logic for fixing duplicate IDs via governed ActionExecutor.
-    """
-    start_time = time.time()
-    try:
-        async with get_session() as session:
-            resolved_count = await resolve_duplicate_ids(
-                context, session, dry_run=not write
-            )
-        return ActionResult(
-            action_id="fix.duplicate_ids",
-            ok=True,
-            data={
-                "resolved_count": resolved_count,
-                "mode": "write" if write else "dry-run",
-            },
-            duration_sec=time.time() - start_time,
-            impact=ActionImpact.WRITE_METADATA,
-        )
-    except Exception as e:
-        return ActionResult(
-            action_id="fix.duplicate_ids",
-            ok=False,
-            data={"error": str(e)},
-            duration_sec=time.time() - start_time,
-            logs=[f"Error resolving duplicates: {e}"],
-        )
 
 
 @fix_app.command(
