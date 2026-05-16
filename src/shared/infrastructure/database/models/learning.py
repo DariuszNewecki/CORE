@@ -62,7 +62,12 @@ class AgentMemory(Base):
     id: Mapped[uuid.UUID] = mapped_column(
         pgUUID(as_uuid=True), primary_key=True, default=uuid.uuid4
     )
-    cognitive_role: Mapped[str] = mapped_column(Text)
+    cognitive_role: Mapped[str] = mapped_column(
+        Text,
+        ForeignKey(
+            "core.cognitive_roles.role", onupdate="CASCADE", ondelete="RESTRICT"
+        ),
+    )
     memory_type: Mapped[str] = mapped_column(
         Text
     )  # fact, observation, decision, pattern, error

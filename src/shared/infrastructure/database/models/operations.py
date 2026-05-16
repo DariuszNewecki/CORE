@@ -7,7 +7,7 @@ from __future__ import annotations
 import uuid
 from typing import Any, ClassVar
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, Text, func
+from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, Numeric, Text, func
 from sqlalchemy.dialects.postgresql import ARRAY, JSONB
 from sqlalchemy.dialects.postgresql import UUID as pgUUID
 from sqlalchemy.orm import Mapped, mapped_column
@@ -27,6 +27,31 @@ class LlmResource(Base):
     is_available: Mapped[bool] = mapped_column(Boolean, server_default="true")
     created_at: Mapped[Any] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
+    )
+
+    # ADR-052 Phase 1 additive columns. NULL on existing rows until
+    # Phase 2 backfills them from runtime_settings; Phase 3 adds the
+    # NOT NULL constraint on model_name.
+    model_name: Mapped[str | None] = mapped_column(Text)
+    api_url: Mapped[str | None] = mapped_column(Text)
+    locality: Mapped[str] = mapped_column(Text, nullable=False, server_default="local")
+    max_concurrent: Mapped[int] = mapped_column(
+        Integer, nullable=False, server_default="1"
+    )
+    rate_limit_seconds: Mapped[int] = mapped_column(
+        Integer, nullable=False, server_default="0"
+    )
+    retry_attempts: Mapped[int] = mapped_column(
+        Integer, nullable=False, server_default="0"
+    )
+    retry_backoff_seconds: Mapped[int] = mapped_column(
+        Integer, nullable=False, server_default="5"
+    )
+    cost_per_token: Mapped[float | None] = mapped_column(Numeric(12, 8))
+    health_status: Mapped[str | None] = mapped_column(Text, server_default="unknown")
+    last_health_check_at: Mapped[Any | None] = mapped_column(DateTime(timezone=True))
+    registered_at: Mapped[Any] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
     )
 
     @property
@@ -53,6 +78,9 @@ class CognitiveRole(Base):
     created_at: Mapped[Any] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
+    # ADR-052 Phase 1: per-role override of system_config.operating_mode.
+    # NULL means inherit the system-wide default.
+    operating_mode: Mapped[str | None] = mapped_column(Text)
 
     @property
     # ID: 5210b0f9-7c47-48ed-bbd3-699c4957d19c

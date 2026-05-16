@@ -97,7 +97,12 @@ class SemanticCache(Base):
     query_text: Mapped[str] = mapped_column(Text, nullable=False)
     vector_id: Mapped[str | None] = mapped_column(Text)
     response_text: Mapped[str] = mapped_column(Text, nullable=False)
-    cognitive_role: Mapped[str | None] = mapped_column(Text)
+    cognitive_role: Mapped[str | None] = mapped_column(
+        Text,
+        ForeignKey(
+            "core.cognitive_roles.role", onupdate="CASCADE", ondelete="RESTRICT"
+        ),
+    )
     llm_model: Mapped[str] = mapped_column(Text, nullable=False)
     tokens_used: Mapped[int | None] = mapped_column(Integer)
     confidence: Mapped[float | None] = mapped_column(Numeric(3, 2))
