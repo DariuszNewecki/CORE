@@ -37,6 +37,22 @@ console = Console()
 @dataclass
 # ID: 130b3778-81fa-4f45-b08a-ec7be01cb664
 class AuditPhase:
+    """Represents a phase of an audit process.
+
+    Stores metadata about each stage, such as its name and duration,
+    along with optional detailed information if applicable.
+
+    Args:
+        name: The human-readable name for this audit phase.
+        duration_sec: The time taken to complete this phase in seconds (optional).
+        details: Additional context or findings related to this phase (optional).
+
+    Returns:
+        None
+
+    Raises:
+        None"""
+
     name: str
     duration_sec: float | None = None
     details: dict | None = None
@@ -74,6 +90,16 @@ class AuditRunReporter:
 
     # ID: c3b86fe8-f82a-4af4-be0b-0aef027dcaf2
     def print_header(self) -> None:
+        """Prints a header for the CORE audit run, indicating the workflow, repository path, and run ID.
+
+        Args:
+            None
+
+        Returns:
+            None
+
+        Raises:
+            None"""
         console.rule("[bold]CORE Audit Run[/bold]")
         logger.info("Workflow : check.audit")
         logger.info("Repo     : %s", self.repo_path)
