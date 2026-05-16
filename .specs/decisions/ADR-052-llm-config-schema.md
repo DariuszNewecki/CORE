@@ -418,3 +418,16 @@ DROP TABLE core.runtime_settings;
 - `core.runtime_settings` discovery: 2026-05-16 session
 - `core.llm_resources` / `core.cognitive_roles` discovery: 2026-05-16 session
 - CORE-A3-plan.md — Band D, Milestone 16
+
+---
+
+## Implementation notes
+
+### Phase 1 — 2026-05-16 (commit a6c5fd35)
+
+**`llm_exchange_log` primary key deviation:**
+ADR-052 specified `id uuid PRIMARY KEY` on `llm_exchange_log`. PostgreSQL 16
+rejects a non-inclusive unique constraint on a partitioned table: "unique constraint
+on partitioned table must include all partitioning columns". The PK was set to
+`(id, ts)` — the composite satisfies PG's requirement; application reads still
+key on `id` alone. This is the correct resolution, not a workaround.
