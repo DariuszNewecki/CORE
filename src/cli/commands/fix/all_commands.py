@@ -104,6 +104,15 @@ async def run_all_fixes(
         elif name == "vector-sync":
             # ID: f896e98a-c165-4694-a9d8-0e2c2361e10c
             async def sync_vectors_with_session():
+                """
+                Synchronizes vector embeddings with the current session.
+
+                Ensures that vector data is up-to-date and consistent within the session context, adhering to the specified write mode (normal or dry-run) and using the Qdrant service for storage.
+
+                Args:
+                    write: When True, performs a write operation updating the vectors.
+                    dry_run: When True, simulates the update without making any changes.
+                """
                 async with get_session() as session:
                     return await sync_vectors_async(
                         session=session,
@@ -122,6 +131,20 @@ async def run_all_fixes(
 
             # ID: baa25d91-bb0d-4da4-ba57-c9c83e5ba75a
             async def sync_with_session():
+                """Syncs local command data with the active user session.
+
+                Ensures that the current application's commands are up-to-date by fetching
+                the latest state from the database and applying any necessary updates.
+
+                Args:
+                    None
+
+                Returns:
+                    None
+
+                Raises:
+                    Any exceptions raised during database access or synchronization.
+                """
                 async with get_session() as session:
                     await _sync_commands_to_db(session, main_app)
 
