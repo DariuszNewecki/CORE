@@ -49,6 +49,20 @@ class CommitReachabilityAuditor(Worker):
 
     # ID: d5b6c7e8-9f0a-4b2c-8d3e-4f5a6b7c8d9e
     async def run(self) -> None:
+        """
+        Performs a commit reachability audit to identify and report orphan SHA proposals.
+
+        Scans the repository for commits that are not contained in any branches and logs them as findings,
+        ensuring governance of edge5 architectural integrity through constitutional enforcement.
+
+        Args:
+            None
+
+        Returns:
+            None
+
+        Raises:
+            None"""
         await self.post_heartbeat()
 
         from body.services.service_registry import service_registry
