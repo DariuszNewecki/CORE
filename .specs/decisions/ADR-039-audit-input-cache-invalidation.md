@@ -233,3 +233,38 @@ failure mode.
   restart on 2026-05-12 07:04
 - `.intent/workers/audit_sensor_*.yaml` — 600s `max_interval` per
   sensor declaration (the drift-window bound this ADR establishes)
+
+
+## Supplement — 2026-05-16 (commit 175b46e4)
+
+**Stale AST cache gap — `_AST_CACHE` not cleared by `invalidate_file_cache()`.**
+
+ADR-039 extended `invalidate_file_cache()` to clear `_file_list_cache`,
+`_rel_path_map`, and `_pattern_cache`. A second-order cache was missed:
+`_AST_CACHE: dict[Path, ast.AST]` (audit_context.py:53), populated by
+`get_tree()` on first access and never cleared at audit cycle boundaries.
+
+`clear_knowledge_graph_cache()` (audit_context.py:57) clears it but has
+zero call sites in `src/` — effectively dead code. In practice, the only
+thing clearing `_AST_CACHE` was daemon restart.
+
+**Effect:** `ast_gate` reads source fresh from disk but evaluates a stale
+parsed tree from the prior cycle. Affects all AST-gate rules that consume
+`context.get_tree()` — not only `purity.docstrings.required`. Estimated
+scope: ~14 rules silently evaluating pre-write ASTs since the cache was
+introduced.
+
+**Fix:** `_AST_CACHE.clear()` added inside `invalidate_file_cache()`.
+Existing call sites at `filtered_audit.py:143` and `auditor.py:87`
+inherit the broader invalidation automatically. Re-parse cost per cycle:
+~700 files — trivial against rule-execution wall-time.
+
+`_KNOWLEDGE_GRAPH_CACHE` deliberately excluded — DB-backed via
+`DbSyncWorker` on its own cadence; clearing on every audit forces an
+unnecessary DB round-trip.
+
+**Concurrency note:** `_AST_CACHE.clear()` shares the same
+shared-context race surface as `_file_list_cache` (two concurrent
+sensors, one `AuditorContext`). Result of a race: degraded performance
+on re-parse, not correctness. This surface pre-exists this fix and is
+not widened by it.
