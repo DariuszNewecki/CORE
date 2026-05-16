@@ -1,6 +1,6 @@
 # ADR-053 — CORE API as Resource-Oriented Governance Interface
 
-**Status:** Draft
+**Status:** Accepted
 **Date:** 2026-05-16
 **Authors:** Darek (Dariusz Newecki)
 **Closes:** API incompleteness gap identified by ADR-050 capability audit
