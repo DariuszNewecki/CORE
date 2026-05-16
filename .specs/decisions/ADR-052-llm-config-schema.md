@@ -438,3 +438,29 @@ rejects a non-inclusive unique constraint on a partitioned table: "unique constr
 on partitioned table must include all partitioning columns". The PK was set to
 `(id, ts)` — the composite satisfies PG's requirement; application reads still
 key on `id` alone. This is the correct resolution, not a workaround.
+
+### Phase 3 — 2026-05-16
+
+**`llm_resources.model_name` constraint deviation:**
+ADR-052 Phase 3 step 10 specified
+`ALTER TABLE core.llm_resources ALTER COLUMN model_name SET NOT NULL`.
+This could not be applied as written: five rows had `model_name IS NULL`
+after Phase 2 — registry entries the governor had explicitly marked
+`is_available = false` (decision C, commit 8085c322) rather than configure
+or remove. Bare `SET NOT NULL` would error on those rows; backfilling with
+a sentinel `model_name` would violate governing principle #1 (a fake
+identifier is worse than no identifier).
+
+The constraint landed instead as a partial CHECK:
+
+```sql
+ALTER TABLE core.llm_resources
+    ADD CONSTRAINT llm_resources_available_requires_model_name
+    CHECK (is_available = false OR model_name IS NOT NULL);
+```
+
+This enforces the ADR's actual intent — every *active* resource has a
+real `model_name` — while accommodating unconfigured rows that stay in
+the registry as `is_available=false` placeholders. The full unconditional
+`NOT NULL` becomes appropriate again once every registry entry is either
+configured or removed.

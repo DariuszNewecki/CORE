@@ -226,12 +226,20 @@ async def create_llm_client_for_role(
     """
     from sqlalchemy import text
 
+    # ADR-052 Phase 3: cognitive_roles.assigned_resource was dropped in
+    # favour of role_resource_assignments (priority-ordered FK list).
+    # This factory uses the primary assignment (priority=1, is_active=true).
     query = text(
         """
-        SELECT assigned_resource
-        FROM core.cognitive_roles
-        WHERE role = :role AND is_active = true
-    """
+        SELECT rra.resource
+        FROM core.role_resource_assignments rra
+        JOIN core.cognitive_roles cr ON cr.role = rra.role
+        WHERE rra.role = :role
+          AND rra.is_active = true
+          AND cr.is_active = true
+        ORDER BY rra.priority
+        LIMIT 1
+        """
     )
     result = await db.execute(query, {"role": cognitive_role})
     row = result.fetchone()

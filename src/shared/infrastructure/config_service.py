@@ -89,14 +89,91 @@ class ConfigService:
         Factory: create ConfigService with preloaded cache.
         Loads all non-secret config into memory for performance.
         Secrets are fetched on-demand for security.
+
+        ADR-052 Phase 3: data-driven cutover. When every row in
+        ``core.config_migration_log`` has a non-null ``migrated_at``,
+        ``is_migration_complete()`` returns True and the cache is
+        loaded from the typed tables (``llm_resources`` +
+        ``system_config``). Until then, it falls back to
+        ``runtime_settings`` — the legacy path that existed before
+        ADR-052. No feature flag, no manual switch.
         """
-        query = text(
-            "\n            SELECT key, value\n            FROM core.runtime_settings\n            WHERE is_secret = false\n            "
-        )
-        result = await db.execute(query)
-        cache = {row[0]: row[1] for row in result.fetchall()}
-        logger.info("Loaded %s configuration values from database", len(cache))
+        if await cls._migration_complete(db):
+            cache = await cls._load_from_typed_tables(db)
+            logger.info(
+                "Loaded %s configuration values from typed tables (ADR-052)",
+                len(cache),
+            )
+        else:
+            query = text(
+                "SELECT key, value FROM core.runtime_settings WHERE is_secret = false"
+            )
+            result = await db.execute(query)
+            cache = {row[0]: row[1] for row in result.fetchall()}
+            logger.info(
+                "Loaded %s configuration values from runtime_settings", len(cache)
+            )
         return cls(db, cache)
+
+    @staticmethod
+    async def _migration_complete(db: AsyncSession) -> bool:
+        """Return True when no config_migration_log rows are still in transit."""
+        result = await db.execute(
+            text(
+                "SELECT COUNT(*) FROM core.config_migration_log "
+                "WHERE migrated_at IS NULL"
+            )
+        )
+        return result.scalar() == 0
+
+    @staticmethod
+    async def _load_from_typed_tables(db: AsyncSession) -> dict[str, Any]:
+        """Build the legacy flat-key cache from ADR-052 typed tables.
+
+        Expands every active ``llm_resources`` row into the
+        ``<lower(env_prefix)>.{model_name,api_url,max_concurrent,rate_limit}``
+        keys that ``LLMResourceConfig`` expects. The ``system_config``
+        singleton is expanded into the three ``llm_enabled`` aliases
+        and the timeout / embed-revision keys. Result is a plain
+        ``dict[str, Any]`` matching what the runtime_settings query
+        used to produce.
+        """
+        cache: dict[str, Any] = {}
+
+        resources_q = text(
+            "SELECT env_prefix, model_name, api_url, "
+            "max_concurrent, rate_limit_seconds "
+            "FROM core.llm_resources WHERE is_available = true"
+        )
+        resources = await db.execute(resources_q)
+        for row in resources.mappings():
+            prefix = (row["env_prefix"] or "").lower()
+            if not prefix:
+                continue
+            if row["model_name"] is not None:
+                cache[f"{prefix}.model_name"] = row["model_name"]
+            if row["api_url"] is not None:
+                cache[f"{prefix}.api_url"] = row["api_url"]
+            cache[f"{prefix}.max_concurrent"] = str(row["max_concurrent"])
+            cache[f"{prefix}.rate_limit"] = str(row["rate_limit_seconds"])
+
+        system_q = text(
+            "SELECT llm_enabled, request_timeout_seconds, embed_model_revision "
+            "FROM core.system_config LIMIT 1"
+        )
+        sysrow = (await db.execute(system_q)).mappings().fetchone()
+        if sysrow is not None:
+            enabled_text = "true" if sysrow["llm_enabled"] else "false"
+            cache["system.llm_enabled"] = enabled_text
+            cache["llm.enabled"] = enabled_text
+            cache["LLM_ENABLED"] = enabled_text
+            timeout = str(sysrow["request_timeout_seconds"])
+            cache["llm.default_timeout"] = timeout
+            cache["llm_request.timeout"] = timeout
+            if sysrow["embed_model_revision"]:
+                cache["embed_model.revision"] = sysrow["embed_model_revision"]
+
+        return cache
 
     # ID: a9b6ddbb-5ac8-40f9-adaa-afd582d911b4
     def detach(self) -> None:
@@ -180,6 +257,21 @@ class ConfigService:
         await self.db.commit()
         self._cache[key] = value
         logger.info("Config '{key}' set to '%s'", value)
+
+    # ID: 8a3c1f4d-2b75-4e7c-9c8a-1f5d3e7b9a02
+    async def is_migration_complete(self) -> bool:
+        """Return True when every config_migration_log row has migrated_at set.
+
+        Drives the cutover defined in ADR-052 Phase 3: when this
+        method returns True, future ``ConfigService.create()`` calls
+        load from the typed tables instead of ``runtime_settings``.
+        The daemon picks up the switch on its next start.
+        """
+        if self.db is None:
+            raise RuntimeError(
+                "ConfigService error: Database session has been detached."
+            )
+        return await self._migration_complete(self.db)
 
     # ID: c14f55cb-7f20-41ad-acfb-6830b6ed5387
     async def reload(self) -> None:

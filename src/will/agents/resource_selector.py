@@ -9,7 +9,11 @@ from __future__ import annotations
 
 import json
 
-from shared.infrastructure.database.models import CognitiveRole, LlmResource
+from shared.infrastructure.database.models import (
+    CognitiveRole,
+    LlmResource,
+    RoleResourceAssignment,
+)
 from shared.logger import getLogger
 
 
@@ -26,25 +30,36 @@ class ResourceSelector:
     @staticmethod
     # ID: 3398db27-785f-4e20-bf33-bd962c8ef8c8
     def select_resource_for_role(
-        role_name: str, roles: list[CognitiveRole], resources: list[LlmResource]
+        role_name: str,
+        roles: list[CognitiveRole],
+        resources: list[LlmResource],
+        assignments: list[RoleResourceAssignment] | None = None,
     ) -> LlmResource | None:
         """
         Apply Mind rules to select resource for role.
         Pure function - no state, no side effects.
+
+        ADR-052 Phase 3: the role→resource override now arrives via
+        ``assignments`` (the role_resource_assignments table), not via
+        the dropped ``cognitive_roles.assigned_resource`` column. The
+        primary assignment is the active row at ``priority=1`` for the
+        role. When ``assignments`` is ``None`` or empty, the selector
+        falls back to qualified-by-capability scoring.
         """
         role = next((r for r in roles if r.role == role_name), None)
         if not role:
             logger.error("Role '%s' not found in Mind", role_name)
             return None
-        if role.assigned_resource:
-            resource = next(
-                (r for r in resources if r.name == role.assigned_resource), None
-            )
+
+        primary = _primary_assignment(role_name, assignments)
+        if primary is not None:
+            resource = next((r for r in resources if r.name == primary), None)
             if resource:
                 logger.debug(
                     "Using assigned resource '%s' for '%s'", resource.name, role_name
                 )
                 return resource
+
         qualified = [r for r in resources if ResourceSelector._is_qualified(r, role)]
         if not qualified:
             logger.error("No qualified resources for role '%s'", role_name)
@@ -56,20 +71,27 @@ class ResourceSelector:
     @staticmethod
     # ID: d4e7b2a9-3c5f-4862-9d1c-7e8b5a2f4c6d
     def select_resources_for_role(
-        role_name: str, roles: list[CognitiveRole], resources: list[LlmResource]
+        role_name: str,
+        roles: list[CognitiveRole],
+        resources: list[LlmResource],
+        assignments: list[RoleResourceAssignment] | None = None,
     ) -> list[LlmResource]:
         """
         Plural counterpart to ``select_resource_for_role`` — return every
         qualified resource for the role ordered by ``_score_resource``
-        (lowest cost first), with ``assigned_resource`` at position 0 if
+        (lowest cost first), with the assigned resource at position 0 if
         present and resolvable by name.
 
         Used by callers that need a fallback chain rather than a single
         best match. Returns an empty list if the role is unknown.
 
         Mirrors the singular function's semantic that an explicit
-        ``assigned_resource`` is honored even if it does not satisfy
+        assignment is honored even if it does not satisfy
         ``_is_qualified`` — assignment is a deliberate governor override.
+
+        ADR-052 Phase 3: ``assignments`` (the role_resource_assignments
+        table) replaces the dropped ``cognitive_roles.assigned_resource``
+        column as the source of the override.
         """
         role = next((r for r in roles if r.role == role_name), None)
         if not role:
@@ -79,10 +101,9 @@ class ResourceSelector:
         qualified = [r for r in resources if ResourceSelector._is_qualified(r, role)]
         ordered = sorted(qualified, key=ResourceSelector._score_resource)
 
-        if role.assigned_resource:
-            assigned = next(
-                (r for r in resources if r.name == role.assigned_resource), None
-            )
+        primary = _primary_assignment(role_name, assignments)
+        if primary is not None:
+            assigned = next((r for r in resources if r.name == primary), None)
             if assigned:
                 ordered = [assigned] + [r for r in ordered if r.name != assigned.name]
 
@@ -112,3 +133,16 @@ class ResourceSelector:
             else resource.performance_metadata or {}
         )
         return int(md.get("cost_rating", 3))
+
+
+def _primary_assignment(
+    role_name: str,
+    assignments: list[RoleResourceAssignment] | None,
+) -> str | None:
+    """Return the resource name of the active priority=1 assignment, if any."""
+    if not assignments:
+        return None
+    for a in assignments:
+        if a.role == role_name and a.priority == 1 and a.is_active:
+            return a.resource
+    return None

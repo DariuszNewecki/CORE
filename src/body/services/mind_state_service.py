@@ -19,7 +19,11 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.infrastructure.config_service import ConfigService
-from shared.infrastructure.database.models import CognitiveRole, LlmResource
+from shared.infrastructure.database.models import (
+    CognitiveRole,
+    LlmResource,
+    RoleResourceAssignment,
+)
 from shared.logger import getLogger
 
 
@@ -77,6 +81,27 @@ class MindStateService:
 
         logger.debug("Retrieved %d cognitive roles from Mind", len(roles))
         return roles
+
+    # ID: 0e0c0b7e-67b9-4dcd-bd3a-9f8c4d51a112
+    async def get_role_resource_assignments(self) -> list[RoleResourceAssignment]:
+        """
+        Retrieve role → resource assignments (ADR-052 Phase 3 replacement
+        for the dropped ``cognitive_roles.assigned_resource`` column).
+
+        Returns every row; callers filter by ``priority`` and
+        ``is_active`` as needed.
+        """
+        if self.session is None:
+            raise RuntimeError("MindStateService error: Session has been detached.")
+
+        stmt = select(RoleResourceAssignment)
+        result = await self.session.execute(stmt)
+        assignments = list(result.scalars().all())
+
+        logger.debug(
+            "Retrieved %d role-resource assignments from Mind", len(assignments)
+        )
+        return assignments
 
     # ID: d4e5f678-90ab-cdef-1234-567890abcdef
     async def get_config_service(self) -> ConfigService:

@@ -68,9 +68,10 @@ class CognitiveRole(Base):
 
     role: Mapped[str] = mapped_column(Text, primary_key=True)
     description: Mapped[str | None] = mapped_column(Text)
-    assigned_resource: Mapped[str | None] = mapped_column(
-        Text, ForeignKey("core.llm_resources.name")
-    )
+    # ADR-052 Phase 3: assigned_resource dropped. Resource assignment now
+    # lives in core.role_resource_assignments as a priority-ordered list,
+    # supporting primary + fallback. Query via
+    # MindStateService.get_role_resource_assignments().
     required_capabilities: Mapped[list[str]] = mapped_column(JSONB, server_default="[]")
     max_concurrent_tasks: Mapped[int] = mapped_column(Integer, server_default="1")
     specialization: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
