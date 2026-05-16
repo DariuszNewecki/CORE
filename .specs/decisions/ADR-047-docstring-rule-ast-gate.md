@@ -283,3 +283,29 @@ satisfy 4.
 - Governor reject batches 2026-05-15 ~08:00 UTC and ~08:20 UTC —
   14 + 3 fix.docstrings proposals rejected as LLM-gate false
   positives or stale.
+
+## Amendment — 2026-05-16 (commit 6c1c7270)
+
+**Predicate tightened: nested-fn closures excluded.**
+
+The `check_docstrings_present` implementation shipped with D2 used `ast.walk`
+with no parent awareness. `ast.walk` descends into all child nodes, so a `def`
+nested inside another `def` (a closure or inner helper) was flagged as a
+violation. These symbols are private-by-construction — unreachable from the
+module's public interface — and are not the intent of this rule.
+
+Observed effect: 3 of the first 7 `fix.docstrings` draft proposals (targeting
+`body/atomic/registry.py`, `cli/commands/coverage/generation_commands.py`,
+`api/main.py`) were pure noise from this gap. All 7 were rejected and findings
+returned to `awaiting_reaudit`.
+
+**Fix (commit 6c1c7270):** Before the violation walk, annotate `_parent` on
+every node via `ast.iter_child_nodes`. During the walk, skip any
+`FunctionDef`/`AsyncFunctionDef` whose immediate `_parent` is also a
+`FunctionDef` or `AsyncFunctionDef`. `ClassDef` nodes are not skipped on this
+basis — a class nested inside a function is unusual enough to warrant
+documentation.
+
+The D2 pseudocode above reflects the original design; the live implementation
+in `purity_checks.py` reflects this amendment. ADR-049 doctrine/code parity is
+satisfied by this note.
