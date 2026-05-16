@@ -134,6 +134,13 @@ Key convention: `{env_prefix}.api_key` — identical to existing `runtime_settin
 convention so `ConfigService` requires minimal change. `resource_name` FK enables
 "list all credentials for a resource" without parsing the key string.
 
+**Secret store naming convention (mandatory):** Keys MUST follow the form
+`{env_prefix}.api_key` — lowercase, dot-separated. No exceptions. Uppercase
+or otherwise non-conforming legacy keys (e.g. `DEEPSEEK_CHAT_API_KEY`) are
+not migrated to `secret_store`; they are retired in `config_migration_log`
+with `destination_table = 'retired'` and dropped when `runtime_settings`
+itself is dropped in Phase 4.
+
 ---
 
 #### `config_migration_log`
