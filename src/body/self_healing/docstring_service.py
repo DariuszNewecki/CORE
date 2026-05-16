@@ -102,7 +102,12 @@ def _insert_docstrings(source: str, insertions: list[tuple[ast.AST, str]]) -> st
     for insert_line, indent, docstring in sorted(
         targets, key=lambda t: t[0], reverse=True
     ):
-        doc_line = f'{indent}"""{docstring}"""\n'
+        # The docstring_writer PromptModel contract requires the model to
+        # include the surrounding triple-quote delimiters in its output
+        # (model.yaml: output.must_contain: ['"""']; user.txt: "Start your
+        # response directly with triple double-quotes"). Wrapping again here
+        # would produce """"""...""""""  — invalid Python. See issue #334.
+        doc_line = f"{indent}{docstring}\n"
         lines.insert(insert_line, doc_line)
 
     return "".join(lines)
@@ -181,15 +186,31 @@ async def _heal_file(
         logger.info("fix.docstrings: %s — no docstrings generated.", file_path)
         return 0
 
+    updated = _insert_docstrings(source, insertions)
+
+    # Validate the would-be source before any write. Catches malformed
+    # docstring generation (the failure mode in #334) before commit. In
+    # dry-run mode this is the only verification path; in write mode it
+    # is a belt-and-braces check before FileHandler hands off to the
+    # post-write validator.
+    try:
+        ast.parse(updated)
+    except SyntaxError as e:
+        logger.error(
+            "fix.docstrings: %s — generated source fails ast.parse: %s",
+            file_path,
+            e,
+        )
+        return 0
+
     if dry_run:
         logger.info(
-            "[DRY RUN] %s — would write %d docstring(s).",
+            "[DRY RUN] %s — would write %d docstring(s) (ast.parse: OK).",
             file_path,
             len(insertions),
         )
         return 0
 
-    updated = _insert_docstrings(source, insertions)
     context.file_handler.write_runtime_text(file_path, updated)
     logger.info(
         "fix.docstrings: %s — wrote %d docstring(s).",

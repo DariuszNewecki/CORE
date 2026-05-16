@@ -22,7 +22,10 @@ async def fix_docstrings_command(
     ctx: typer.Context,
     write: bool = typer.Option(False, "--write", help="Apply changes."),
     limit: int = typer.Option(3, "--limit", help="Symbols to process."),
+    file: str | None = typer.Option(
+        None, "--file", help="Target a single file (repo-relative)."
+    ),
     verbose: bool = typer.Option(False, "--verbose", help="Show detail."),
 ) -> None:
     """Autonomously generate and inject missing docstrings using AI."""
-    await fix_docstrings(context=ctx.obj, write=write, limit=limit)
+    await fix_docstrings(context=ctx.obj, write=write, limit=limit, file_path=file)
