@@ -284,18 +284,56 @@ class _SymbolInventory:
 
     # ID: 1c64dbd5-326a-45a1-adad-598b5d79f4ef
     def defined_top_level_names(self) -> set[str]:
+        """Returns a set of all top-level names defined in the current scope.
+
+        This includes class, function, and constant definitions at the top level,
+        excluding any nested or local definitions within functions or classes.
+
+        Returns:
+            A set of strings representing the names of defined entities.
+        """
         return set(self.classes) | set(self.functions) | set(self.constants)
 
     # ID: b5ab6c31-5f6e-4294-b735-4232e4f6ffac
     def defined_class_member_names(self) -> set[str]:
+        """Returns a set of names for all defined class members.
+
+        Aggregates method and variable names that are considered dominant within the class,
+        indicating their significance or frequency of use in the class's implementation.
+
+        Args:
+            None
+
+        Returns:
+            A set containing names of all significant class member definitions.
+
+        Raises:
+            None"""
         return set(self.dominant_methods) | set(self.dominant_class_assigns)
 
     # ID: 2407928f-b671-43f8-b991-e31f9b9f1892
     def imported_lookup(self) -> dict[str, str]:
+        """Fetches a mapping of imported symbols to their sources.
+
+        Returns:
+            A dictionary where keys are names of imported symbols and values
+            are the corresponding source locations or module paths.
+        """
         return {name: source for name, source in self.imported}
 
     # ID: be209121-da7a-4a19-9eff-3df1c907d6ec
     def render_for_prompt(self) -> str:
+        """
+        Generates a human-readable summary of symbol definitions and imports.
+
+        Provides a detailed overview of what symbols are defined in this file, including
+        classes, functions, constants, and dominant class methods, aiding developers in
+        understanding the file's content and structure. Also lists imported symbols that
+        are not considered valid split candidates.
+
+        Returns:
+            A multi-line string summarizing the file's symbol definitions and imports.
+        """
         if not (
             self.classes or self.functions or self.constants or self.dominant_methods
         ):
