@@ -53,6 +53,8 @@ _KNOWLEDGE_GRAPH_CACHE: dict[str, dict[str, Any]] = {}
 _AST_CACHE: dict[Path, ast.AST] = {}
 
 
+# NOTE: zero call sites in src/ — candidate for removal.
+# Retained for backward compat pending ADR-049 ritual.
 # ID: baa7d0a4-2b67-428c-ab64-1e3dbe009b19
 def clear_knowledge_graph_cache() -> None:
     """Clear the module-level knowledge graph and AST caches."""
@@ -146,6 +148,12 @@ class AuditorContext:
         self._file_list_cache = None
         self._rel_path_map.clear()
         self._pattern_cache.clear()
+        # ADR-039 supplement 2026-05-16: clear parsed-tree cache so
+        # ast_gate rules evaluate post-write content, not prior-cycle
+        # ASTs. Race surface (shared AuditorContext across sensors) is
+        # identical to _file_list_cache — degraded perf on collision,
+        # not correctness.
+        _AST_CACHE.clear()
 
     # ID: 3e8a1b6c-5d4f-49a2-b71c-8e2d0f4a9c5b
     async def sweep_llm_gate_cache(self) -> int:
