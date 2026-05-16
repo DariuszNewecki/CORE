@@ -60,7 +60,6 @@ logger = getLogger(__name__)
 __all__ = [
     "ConfigService",
     "LLMResourceConfig",
-    "bootstrap_config_from_env",
     "config_service",
     "get_config_service",
 ]
@@ -287,52 +286,6 @@ class ConfigService:
         result = await self.db.execute(stmt)
         self._cache = {row[0]: row[1] for row in result.fetchall()}
         logger.info("Reloaded %s configuration values", len(self._cache))
-
-
-# ID: 41e15669-c97e-405d-8a2b-1467cd650616
-async def bootstrap_config_from_env() -> None:
-    """
-    Bootstrap database configuration from .env file.
-    """
-    from dotenv import dotenv_values
-
-    from shared.infrastructure.database.session_manager import get_session
-
-    env_vars = dotenv_values(".env")
-    config_mapping = {
-        "OLLAMA_LOCAL_MODEL_NAME": "ollama_local.model_name",
-        "OLLAMA_LOCAL_MAX_CONCURRENT_REQUESTS": "ollama_local.max_concurrent",
-        "OLLAMA_LOCAL_SECONDS_BETWEEN_REQUESTS": "ollama_local.rate_limit",
-        "DEEPSEEK_CHAT_MODEL_NAME": "deepseek_chat.model_name",
-        "DEEPSEEK_CHAT_MAX_CONCURRENT_REQUESTS": "deepseek_chat.max_concurrent",
-        "DEEPSEEK_CHAT_SECONDS_BETWEEN_REQUESTS": "deepseek_chat.rate_limit",
-        "DEEPSEEK_CODER_MODEL_NAME": "deepseek_coder.model_name",
-        "DEEPSEEK_CODER_MAX_CONCURRENT_REQUESTS": "deepseek_coder.max_concurrent",
-        "DEEPSEEK_CODER_SECONDS_BETWEEN_REQUESTS": "deepseek_coder.rate_limit",
-        "ANTHROPIC_CLAUDE_SONNET_MODEL_NAME": "anthropic.model_name",
-        "ANTHROPIC_CLAUDE_SONNET_MAX_CONCURRENT_REQUESTS": "anthropic.max_concurrent",
-        "ANTHROPIC_CLAUDE_SONNET_SECONDS_BETWEEN_REQUESTS": "anthropic.rate_limit",
-        "LOCAL_EMBEDDING_MODEL_NAME": "embedding.model_name",
-        "LOCAL_EMBEDDING_DIM": "embedding.dimensions",
-        "LOCAL_EMBEDDING_MAX_CONCURRENT_REQUESTS": "embedding.max_concurrent",
-        "LLM_REQUEST_TIMEOUT": "llm.default_timeout",
-        "CORE_MAX_CONCURRENT_REQUESTS": "llm.default_max_concurrent",
-        "LLM_SECONDS_BETWEEN_REQUESTS": "llm.default_rate_limit",
-        "LOG_LEVEL": "system.log_level",
-        "LLM_ENABLED": "system.llm_enabled",
-    }
-    async with get_session() as db:
-        config = await ConfigService.create(db)
-        migrated = 0
-        for env_key, db_key in config_mapping.items():
-            if env_vars.get(env_key):
-                await config.set(
-                    db_key,
-                    env_vars[env_key],
-                    description=f"Bootstrapped from {env_key}",
-                )
-                migrated += 1
-        logger.info("Bootstrapped %s config values from .env to database", migrated)
 
 
 # ID: f39ed211-86d5-490b-aa4e-389de41b083f
