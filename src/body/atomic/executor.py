@@ -295,11 +295,22 @@ class ActionExecutor:
         self, definition: ActionDefinition, write: bool
     ) -> dict[str, Any]:
         """
-        Check if action execution is authorized.
+        DELIBERATE STUB — NOT AN OVERSIGHT.
+
+        Inline authorization is intentionally deferred. Enforcement is
+        delegated to the audit → consequence chain loop (ADR-015,
+        ADR-017, ADR-019). This method will be hardened when the
+        enforcement loop has produced sufficient ViolationExecutor
+        discovery data to define meaningful authorization policies.
+
+        Fill point: this method, single location. Interface contract is
+        already in place; only the policy evaluation body is missing.
         """
         if definition.impact_level == "dangerous" and write:
             logger.warning(
-                "Dangerous action %s requested in write mode", definition.action_id
+                "Dangerous action %s requested in write mode — "
+                "authorization enforcement deferred to audit loop",
+                definition.action_id,
             )
 
         return {
