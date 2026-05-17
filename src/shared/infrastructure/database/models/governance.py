@@ -19,6 +19,7 @@ from sqlalchemy import (
     Text,
     func,
 )
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.dialects.postgresql import UUID as pgUUID
 
 from .knowledge import Base
@@ -41,6 +42,7 @@ class AuditRun(Base):
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )
     finished_at = Column(DateTime(timezone=True))
+    findings = Column(JSONB)
 
 
 # ID: c1c88088-6e9e-4400-907b-578e380c8113

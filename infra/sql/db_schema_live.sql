@@ -706,7 +706,8 @@ CREATE TABLE core.audit_runs (
     finding_count integer DEFAULT 0 NOT NULL,
     blocking_count integer DEFAULT 0 NOT NULL,
     started_at timestamp with time zone DEFAULT now() NOT NULL,
-    finished_at timestamp with time zone
+    finished_at timestamp with time zone,
+    findings jsonb
 );
 
 

@@ -89,8 +89,8 @@ class ProposalService:
     async def list_pending_approval(
         self, limit: int = _CFG_PR.pending_limit
     ) -> list[Proposal]:
-        """List proposals awaiting approval."""
-        return await self._repository.list_pending_approval(limit)
+        """List proposals awaiting approval (status == PENDING)."""
+        return await self._repository.list_by_status(ProposalStatus.PENDING, limit)
 
     # -------------------------
     # State Transitions (delegate to state manager)

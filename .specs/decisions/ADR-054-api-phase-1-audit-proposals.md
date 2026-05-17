@@ -137,3 +137,34 @@ This ADR is verified when:
 - `src/api/` — current stub (7 files, health check only)
 - Commit `5c0ee6b0` — `_check_authorization` deliberate-stub precedent
   for D3 rationale
+
+---
+
+## Amendment 2026-05-17 — findings persistence on `audit_runs`
+
+The original schema captured by commit `7ac53960` (audit_runs +
+audit_run_resources consolidation) preserved only counts on
+`core.audit_runs`; the per-run finding list was not persisted. That
+gap made it impossible for `GET /audit/runs/{id}` to satisfy
+Verification criterion #2 ("full finding list") on the async path —
+findings were only returned inline by the sync path (`wait=true`) and
+discarded everywhere else. Tracked as #340.
+
+Resolution: adds a single nullable JSONB column,
+`core.audit_runs.findings`, written by both `run_and_persist_audit`
+(async) and `run_sync_audit` (sync) at run completion, read by `GET
+/audit/runs/{id}` and returned as the `findings` field. Pre-amendment
+rows have `findings = NULL`; the GET handler returns `[]` in that case
+so the response shape is stable. The "no new infrastructure"
+constraint elsewhere in this ADR was authored before the persistence
+hole was known and is now overridden for this column only — denormalized
+JSONB is the smallest pragmatic fix that keeps `audit_runs` the
+complete resource record per ADR-053's model.
+
+A relational alternative (Option A — `audit_findings.run_id` foreign
+key with append-only writes) is the correct long-term answer for GxP
+audit-trail readiness (queryable per `rule_id` / `file_path` across
+historical runs). It is parked as a Band E follow-up; this amendment
+is the interim fix, not the terminal design.
+
+Closes #340.

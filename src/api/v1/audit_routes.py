@@ -17,8 +17,8 @@ Audit API endpoints (ADR-054 Phase 1, D1).
   a long HTTP timeout.
 
 `GET /audit/runs/{id}` reads back the audit_runs row (verdict,
-counts, timestamps). It does NOT return the finding list — see the
-ADR-054 gap note below.
+counts, timestamps, status, findings list). Findings are denormalized
+on `core.audit_runs.findings` (jsonb) — see the ADR-054 amendment.
 
 CONSTITUTIONAL:
 - Session access via api.dependencies.get_api_session /
@@ -136,19 +136,16 @@ async def get_audit_run(
 ) -> dict:
     """Return a persisted audit run by id, or 404 if unknown.
 
-    ADR-054 GAP: ADR-054 verification criterion #2 calls for this
-    endpoint to return the "full finding list" alongside the verdict
-    and counts. Findings are not persisted per-run today — core.audit_runs
-    stores counts only — so the response shape below is intentionally
-    counts-only. Sync mode (POST /audit/runs with wait=true) is the
-    surface that returns findings; the async-findings gap is tracked
-    in #340.
+    Returns the full resource record: verdict + counts + timestamps +
+    status + findings list. Findings are denormalized on
+    `core.audit_runs.findings` (jsonb) per the ADR-054 amendment;
+    pre-amendment rows return an empty list. Closes #340.
     """
     result = await session.execute(
         text(
             """
             SELECT run_id, verdict, finding_count, blocking_count,
-                   started_at, finished_at, status
+                   started_at, finished_at, status, findings
               FROM core.audit_runs
              WHERE run_id = :rid
             """
@@ -170,4 +167,5 @@ async def get_audit_run(
         "started_at": row["started_at"].isoformat() if row["started_at"] else None,
         "finished_at": (row["finished_at"].isoformat() if row["finished_at"] else None),
         "status": row["status"],
+        "findings": row["findings"] or [],
     }

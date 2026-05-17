@@ -126,6 +126,7 @@ async def run_and_persist_audit(
     verdict = AuditVerdict.PASS if passed else AuditVerdict.FAIL
     finding_count = len(findings)
     blocking_count = sum(1 for f in findings if f.severity.is_blocking)
+    findings_dicts = [f.as_dict() if hasattr(f, "as_dict") else f for f in findings]
 
     await session.execute(
         text(
@@ -134,6 +135,7 @@ async def run_and_persist_audit(
                SET verdict = :verdict,
                    finding_count = :finding_count,
                    blocking_count = :blocking_count,
+                   findings = cast(:findings as jsonb),
                    status = 'completed',
                    finished_at = now()
              WHERE run_id = :rid
@@ -143,6 +145,7 @@ async def run_and_persist_audit(
             "verdict": verdict.value,
             "finding_count": finding_count,
             "blocking_count": blocking_count,
+            "findings": json.dumps(findings_dicts),
             "rid": run_id,
         },
     )
@@ -274,10 +277,12 @@ async def run_sync_audit(
             INSERT INTO core.audit_runs (
                 source, commit_sha, verdict, status,
                 finding_count, blocking_count,
+                findings,
                 started_at, finished_at
             ) VALUES (
                 :source, :sha, :verdict, 'completed',
                 :finding_count, :blocking_count,
+                cast(:findings as jsonb),
                 :started_at, :finished_at
             )
             RETURNING run_id
@@ -289,6 +294,7 @@ async def run_sync_audit(
             "verdict": verdict_str,
             "finding_count": finding_count,
             "blocking_count": blocking_count,
+            "findings": json.dumps(processed_findings),
             "started_at": started_at,
             "finished_at": finished_at,
         },
