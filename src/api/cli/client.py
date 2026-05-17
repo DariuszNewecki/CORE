@@ -116,3 +116,8 @@ class CoreApiClient:
             json={"commit_message": commit_message},
             timeout=300.0,
         )
+
+    # ID: 77313481-4787-431c-944f-84a1ab44c594
+    async def lint(self) -> dict:
+        """POST /v1/lint — run black --check and ruff check on src/ and tests/."""
+        return await self._request("POST", "/v1/lint", timeout=300.0)

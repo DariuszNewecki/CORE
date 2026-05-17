@@ -24,6 +24,7 @@ from api.v1 import (
     development_routes,
     integration_routes,
     knowledge_routes,
+    lint_routes,
     proposals_routes,
 )
 from body.infrastructure.lifespan import core_lifespan
@@ -48,6 +49,7 @@ def create_app() -> FastAPI:
     app.include_router(proposals_routes.router, prefix="/v1", tags=["Proposals"])
     app.include_router(audit_routes.router, prefix="/v1", tags=["Audit"])
     app.include_router(integration_routes.router, prefix="/v1", tags=["Integration"])
+    app.include_router(lint_routes.router, prefix="/v1", tags=["Lint"])
     register_exception_handlers(app)
 
     @app.get("/health")
