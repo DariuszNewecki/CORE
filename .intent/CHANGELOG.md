@@ -733,6 +733,18 @@ Commits `90992bb1`, `2ced6e33`.
 
 ---
 
+## ADR-056 — 2026-05-17 (artifact)
+
+Runtime data contracts as first-class constitutional artifacts. Introduces
+`.intent/data_contracts/` (JSON Schemas for `Finding`, `Proposal`,
+`BlackboardEntry.entry_type`), renames the Pydantic `Finding` to
+`CheckResult`, adds a `SchemaConformanceChecks` class to the AST gate,
+and governs `entry_type` as a vocabulary enum. Artifact accepted;
+implementation (D2–D6) tracked separately.
+Files: `.specs/decisions/ADR-056-runtime-data-contracts.md`.
+
+---
+
 ## Notes
 
 * This changelog intentionally avoids implementation detail
