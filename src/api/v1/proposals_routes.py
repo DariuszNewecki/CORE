@@ -30,7 +30,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from api.dependencies import get_api_session
 from shared.context import CoreContext
 from shared.logger import getLogger
-from will.autonomy.proposal import ProposalStatus
+from will.autonomy.proposal import (
+    Proposal,
+    ProposalAction,
+    ProposalScope,
+    ProposalStatus,
+)
 from will.autonomy.proposal_executor import ProposalExecutor
 from will.autonomy.proposal_service import ProposalService
 from will.autonomy.proposal_state_manager import ProposalNotFoundError
@@ -69,6 +74,64 @@ class ExecuteRequest(BaseModel):
     """Body for POST /proposals/{id}/execute."""
 
     write: bool = False
+
+
+# ID: 71caa34a-1661-4178-b982-626bff254539
+class CreateProposalRequest(BaseModel):
+    """Body for POST /proposals.
+
+    `write=False` is a dry-run: server builds the Proposal and computes
+    risk but does not persist. `write=True` persists via
+    ProposalService.create.
+    """
+
+    goal: str
+    actions: list[dict] = []
+    files: list[str] = []
+    created_by: str = "cli_operator"
+    write: bool = True
+
+
+@router.post("", status_code=201)
+# ID: 9704145a-25f5-460c-81a9-fe1fa0b47d68
+async def create_proposal(
+    payload: CreateProposalRequest,
+    session: AsyncSession = Depends(get_api_session),
+) -> dict:
+    """Create a new proposal.
+
+    Validates the action sequence, computes risk, and (when write=True)
+    persists via ProposalService.create. Returns the proposal's
+    `to_dict()` representation either way; in dry-run mode the row
+    is not flushed to the database.
+    """
+    proposal_actions = [
+        ProposalAction(
+            action_id=a.get("action_id"),
+            flow_id=a.get("flow_id"),
+            parameters=a.get("parameters", {}),
+            order=a.get("order", i),
+        )
+        for i, a in enumerate(payload.actions)
+    ]
+    proposal = Proposal(
+        goal=payload.goal,
+        actions=proposal_actions,
+        scope=ProposalScope(files=payload.files),
+        created_by=payload.created_by,
+    )
+    proposal.compute_risk()
+
+    if payload.write:
+        service = ProposalService(session)
+        await service.create(proposal)
+        await session.commit()
+
+    return {
+        "ok": True,
+        "persisted": payload.write,
+        "proposal": proposal.to_dict(),
+    }
 
 
 @router.get("")

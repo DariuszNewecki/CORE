@@ -33,6 +33,28 @@ class CoreApiClient:
             response.raise_for_status()
             return response.json()
 
+    # ID: daf8f641-0358-4298-8465-af1d1c09e221
+    async def create_proposal(
+        self,
+        goal: str,
+        actions: list[dict] | None = None,
+        files: list[str] | None = None,
+        created_by: str = "cli_operator",
+        write: bool = True,
+    ) -> dict:
+        """POST /v1/proposals — create a new proposal (dry-run when write=False)."""
+        return await self._request(
+            "POST",
+            "/v1/proposals",
+            json={
+                "goal": goal,
+                "actions": actions or [],
+                "files": files or [],
+                "created_by": created_by,
+                "write": write,
+            },
+        )
+
     # ID: 36434e12-c232-4452-9ff5-c0690263804f
     async def list_proposals(
         self,

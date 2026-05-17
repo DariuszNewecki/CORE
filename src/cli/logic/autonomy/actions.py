@@ -4,20 +4,19 @@
 
 from __future__ import annotations
 
-from will.autonomy.proposal import ProposalAction
-
 
 # ID: 2b856f28-158c-45e4-95f1-ad85db4bb203
-def parse_action_options(action_strs: list[str]) -> list[ProposalAction]:
+def parse_action_options(action_strs: list[str]) -> list[dict]:
+    """Parse CLI action strings (action_id:key=val) into plain dicts.
+
+    Returns dicts with keys {action_id, parameters, order} matching the
+    POST /v1/proposals action body schema. Preserves input order.
     """
-    Parses CLI action strings (action_id:key=val) into ProposalAction objects.
-    Preserves order and parameter mapping.
-    """
-    proposal_actions = []
+    proposal_actions: list[dict] = []
     for i, action_str in enumerate(action_strs):
         if ":" in action_str:
             action_id, params_str = action_str.split(":", 1)
-            parameters = {}
+            parameters: dict[str, str] = {}
             for param in params_str.split(","):
                 if "=" in param:
                     key, value = param.split("=", 1)
@@ -27,7 +26,7 @@ def parse_action_options(action_strs: list[str]) -> list[ProposalAction]:
             parameters = {}
 
         proposal_actions.append(
-            ProposalAction(action_id=action_id, parameters=parameters, order=i)
+            {"action_id": action_id, "parameters": parameters, "order": i}
         )
     return proposal_actions
 
