@@ -19,7 +19,7 @@ from __future__ import annotations
 from fastapi import FastAPI
 
 from api.errors import register_exception_handlers
-from api.v1 import development_routes, knowledge_routes
+from api.v1 import development_routes, knowledge_routes, proposals_routes
 from body.infrastructure.lifespan import core_lifespan
 from shared.logger import getLogger
 
@@ -39,6 +39,7 @@ def create_app() -> FastAPI:
     )
     app.include_router(knowledge_routes.router, prefix="/v1", tags=["Knowledge"])
     app.include_router(development_routes.router, prefix="/v1", tags=["Development"])
+    app.include_router(proposals_routes.router, prefix="/v1", tags=["Proposals"])
     register_exception_handlers(app)
 
     @app.get("/health")
