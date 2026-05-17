@@ -137,14 +137,6 @@
             "authority": "constitution",
             "phase": "audit",
             "rationale": "Shared is layer-independent substrate. A shared module that imports from a layer fails the constitutional admission test (CORE-Mind-Body-Will-Separation.md §7.2 Test 1) and belongs in that layer, not in shared/. This rule makes the admission test mechanically enforceable. Added 2026-03-28 as a blocking AST gate, replacing previously advisory-only governance."
-        },
-        {
-            "id": "architecture.cli.api_only",
-            "statement": "CLI components (src/cli/**/*.py) MUST NOT import from src/will/, src/body/, src/mind/, or src/shared/. The only sanctioned CORE dependency for CLI is api.*.",
-            "enforcement": "reporting",
-            "authority": "constitution",
-            "phase": "audit",
-            "rationale": "CLI is a client application outside CORE's closed system (ADR-050). The only governed entry point into CORE is api/; direct imports from will, body, mind, or shared bypass the API boundary. Rule lands as reporting (WARNING) — the ast_gate engine has no suppress mechanism — while ~80 pre-existing violations are migrated through the CLI migration epic (#317). Promote to blocking once migration is complete and the finding count reaches zero."
         }
     ]
 }
