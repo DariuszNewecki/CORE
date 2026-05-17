@@ -306,7 +306,7 @@ The autonomous loop depends on a PostgreSQL database (`core` at `192.168.20.23:5
 - `core.autonomous_proposals` (current)
 - `core.proposals` (legacy, documented but "always truncate the correct table")
 - `core.worker_registry`
-- `core.audit_runs` (plan flags an unresolved write gap — `core-admin code audit` does not persist)
+- `core.audit_runs`
 
 The live schema is referenced in the plan at `infra/sql/db_schema_live.sql`. **This file is not in the export.** Any analysis that depends on column names, indices, foreign keys, or constraints cannot be grounded against the export and will need a separate infra snapshot.
 

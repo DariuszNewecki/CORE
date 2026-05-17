@@ -216,12 +216,6 @@ Heartbeat thresholds (10 min amber, 60 min red), the 24h convergence window, and
 `src/cli/resources/runtime/health.py`. The requirement that these live in `.intent/`
 as configurable policy values is not yet met. This is tracked as a Phase 4 item.
 
-**Known gap — audit_runs write gap:**
-`core-admin code audit` does not persist results to the DB. The daemon's sensors
-are the continuous audit source; manual audit output is separate. Panel 4's
-"last consequence" metric reflects daemon-driven execution only. A manual audit
-run does not update the dashboard.
-
 ---
 
 ## 8. Success Signal
