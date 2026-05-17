@@ -28,7 +28,6 @@ from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.dependencies import get_api_session
-from body.services.service_registry import service_registry
 from shared.context import CoreContext
 from shared.logger import getLogger
 from will.autonomy.proposal import ProposalStatus
@@ -174,16 +173,9 @@ async def reject_proposal(
     """
     service = ProposalService(session)
     try:
-        await service.reject(proposal_id, reason=payload.reason)
+        revived_count = await service.reject(proposal_id, reason=payload.reason)
     except ProposalNotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
-
-    bb_service = await service_registry.get_blackboard_service()
-    revival = await bb_service.revive_findings_for_failed_proposal(
-        proposal_id=proposal_id,
-        failure_reason=f"rejected by API operator: {payload.reason}",
-    )
-    revived_count = revival["revived_count"] if revival else 0
 
     return {
         "ok": True,

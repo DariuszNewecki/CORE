@@ -4,7 +4,6 @@
 
 from __future__ import annotations
 
-import os
 from typing import Any
 
 import httpx
@@ -23,7 +22,7 @@ class CoreApiClient:
     """
 
     def __init__(self, base_url: str | None = None) -> None:
-        self.base_url = base_url or os.environ.get("CORE_API_URL", _DEFAULT_BASE_URL)
+        self.base_url = base_url or _DEFAULT_BASE_URL
         self.timeout = _DEFAULT_TIMEOUT_SECONDS
 
     # ID: 77466c97-58c5-4ad2-8e5a-814396965f73

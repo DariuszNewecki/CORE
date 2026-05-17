@@ -126,9 +126,18 @@ class ProposalService:
         await self._session.commit()
 
     # ID: ca316432-a09e-4af3-9a63-82a39b08ebb2
-    async def reject(self, proposal_id: str, reason: str) -> None:
-        """Reject proposal."""
+    async def reject(self, proposal_id: str, reason: str) -> int:
+        """Reject proposal and revive deferred findings (ADR-010 §7a).
+
+        Returns revived_count (0 if no findings were deferred).
+        """
         await self._state_manager.reject(proposal_id, reason)
+        bb_service = await service_registry.get_blackboard_service()
+        revival = await bb_service.revive_findings_for_failed_proposal(
+            proposal_id=proposal_id,
+            failure_reason=f"rejected: {reason}",
+        )
+        return revival["revived_count"] if revival else 0
 
     # -------------------------
     # Convenience Methods
