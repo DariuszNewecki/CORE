@@ -1,3 +1,5 @@
+<!-- path: .specs/planning/SESSION-PROTOCOL.md -->
+
 # CORE — Session Protocol
 
 ## 1. Purpose
@@ -42,16 +44,48 @@ Seven steps. Reads first, commits nothing.
 
 **Step 2 — Context read.** The architect reads the two Project Files context packets via the `view` tool at `/mnt/project/`:
 - `context_tree.txt` — read first; small filtered directory tree for structural navigation.
-- `context_core.txt` — full code/governance/specs snapshot; grepped as needed during the session.
+- `context_intent_specs.txt` — full `.intent/` and `.specs/` snapshot; grepped as needed during the session. This is the architect's primary state surface: ADR table, A3 plan, constitution, rules, enforcement mappings, papers, and all governance specifications.
 
 Both files are produced on lira by `make context` and uploaded to the Claude.ai Project before the session opens. They reflect the state of the repo at last sync. If they are absent or stale, the governor runs `make context` and re-uploads before proceeding. The architect does not ask the governor to upload or paste code mid-session; the Project Files upload is the delivery mechanism.
 
-**Step 3 — System state scan.** Run `core-admin code audit` and record the verdict and finding count. Check `systemctl --user status core-daemon` for daemon liveness. If either is unexpectedly off baseline, that observation precedes any lead selection.
+Tool preference order for data needs within a session: `view` / `bash_tool` against the Project Files first; Claude Code prompts for anything requiring live system state or `src/` code content (Steps 3–4 below, and any code-level reconnaissance during the session).
 
-**Step 4 — GitHub state scan.** Open the Projects board (primary visual surface). The Band board view shows what is in-progress, blocked, or pending verification at a glance. The Roadmap view shows the multi-band arc. For precise filtering, the Issues tab remains available as a verification step with the following default filter set:
-- `status:verification-pending` — has anything passively verified since last session?
-- `status:blocked` — has a blocker upstream of something resolved?
-- Open issues on the current band's milestone — what's queued?
+**Step 3 — System state scan.** The architect produces a Claude Code prompt that the governor runs on lira at session open. The prompt must cover: `core-admin code audit` (verdict + finding count), `systemctl --user status core-daemon` (daemon liveness). The architect does not wait for the output before proceeding to Steps 5–6; it reasons from the A3 plan and ADR table as the primary state surface. If the scan reveals an unexpected condition, the governor opens an issue and surfaces it as the session's lead candidate or a blocker.
+
+Canonical state-scan Claude Code prompt:
+
+```
+Run the following and report the results:
+
+1. core-admin code audit
+2. systemctl --user status core-daemon
+3. core-admin runtime dashboard --plain
+
+Report: audit verdict, total finding count, finding distribution by rule_id, daemon status.
+```
+
+**Step 4 — GitHub state scan.** The architect produces a Claude Code prompt to retrieve open issue state for the current band's milestone. The governor runs it on lira. The architect uses the A3 plan and ADR table (from `context_intent_specs.txt`) as its primary state surface and does not block on GitHub output.
+
+Canonical issue-scan Claude Code prompt:
+
+```
+Run the following and report the results:
+
+gh issue list --milestone "Band E" --state open \
+  --json number,title,labels,assignees \
+  --limit 50
+
+Also run:
+gh issue list --milestone "Band E" --state open \
+  --label "status:verification-pending" \
+  --json number,title --limit 20
+
+gh issue list --milestone "Band E" --state open \
+  --label "status:blocked" \
+  --json number,title --limit 20
+
+Report: full open issue list, verification-pending subset, blocked subset.
+```
 
 Close anything that has resolved. Do this first because closures free up pick candidates.
 
@@ -148,3 +182,5 @@ This document does not specify:
 *Revised 2026-05-03: §5 Step 3 rewritten. Previous text referenced "Known Blockers," "Resolved Blockers," and "Milestone Summary" sections that the current A3 plan does not contain. New text aligns with the plan's actual section structure (A3 Gates, A3 Phases, Bands, Architectural Decisions Made). §2 row for `CORE-A3-plan.md` correspondingly updated to describe "gates, phases, bands, ADR index" rather than "bands, phases, known blockers."*
 
 *Revised 2026-05-14: §2 gained GitHub Projects board row; §3 Step 4 updated to reference the Projects board as the primary visual surface for session-open state scan, with the Issues tab filter set retained as the verification step.*
+
+*Revised 2026-05-17: Two-file context model adopted. §3 Step 2: `context_core.txt` replaced by `context_intent_specs.txt` (`.intent/` + `.specs/` snapshot only; `src/` code excluded). Tool preference order added to Step 2. §3 Steps 3–4: architect no longer executes these interactively; both steps now describe canonical Claude Code prompts that the governor runs on lira at session open. Architect proceeds to Steps 5–6 without waiting for output; live state surfaces through issues when decision-relevant. INTERACTION-CONTRACT.md §3.2 cross-reference to "Step 2 tooling inventory" remains valid — Step 2 now carries the tool preference order explicitly.*
