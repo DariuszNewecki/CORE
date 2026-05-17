@@ -106,3 +106,13 @@ class CoreApiClient:
             f"/v1/proposals/{proposal_id}/execute",
             json={"write": write},
         )
+
+    # ID: 756d1f0f-7315-4fb9-9cd6-4ba14f92dd8a
+    async def integrate(self, commit_message: str) -> dict:
+        """POST /v1/integrate — stage, format, lint, and commit working-tree changes."""
+        return await self._request(
+            "POST",
+            "/v1/integrate",
+            json={"commit_message": commit_message},
+            timeout=300.0,
+        )
