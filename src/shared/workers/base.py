@@ -54,11 +54,17 @@ def _sanitize_str(value: str) -> str:
 
 
 def _sanitize_payload(obj: Any) -> Any:
-    """Recursively sanitize all strings in a payload to printable ASCII."""
+    """Recursively sanitize all strings in a payload to printable ASCII.
+
+    Dict keys are sanitized in addition to values — JSONB write paths
+    under SQL_ASCII reject non-ASCII in keys just as they do in values,
+    and the prior key-pass-through gap (closed by #348) made the
+    promise in the previous docstring untrue.
+    """
     if isinstance(obj, str):
         return _sanitize_str(obj)
     if isinstance(obj, dict):
-        return {k: _sanitize_payload(v) for k, v in obj.items()}
+        return {_sanitize_payload(k): _sanitize_payload(v) for k, v in obj.items()}
     if isinstance(obj, list):
         return [_sanitize_payload(i) for i in obj]
     return obj
