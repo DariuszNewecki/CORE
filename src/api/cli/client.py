@@ -121,3 +121,34 @@ class CoreApiClient:
     async def lint(self) -> dict:
         """POST /v1/lint — run black --check and ruff check on src/ and tests/."""
         return await self._request("POST", "/v1/lint", timeout=300.0)
+
+    # ID: b67c3e8d-93d5-4307-a347-4a6d50ab768d
+    async def audit(
+        self,
+        rule_ids: list[str] | None = None,
+        policy_ids: list[str] | None = None,
+        files: list[str] | None = None,
+        force_llm: bool = False,
+        source: str = "api",
+    ) -> dict:
+        """POST /v1/audit/runs with wait=true — full sync audit result.
+
+        Returns the dict the server's run_sync_audit emits: verdict,
+        passed, stats, findings, executed_rule_ids, auto_ignored,
+        run_id (None for filtered runs), duration_sec. Audit duration
+        is ~60s; uses a 300s HTTP timeout matching integrate() and
+        lint().
+        """
+        return await self._request(
+            "POST",
+            "/v1/audit/runs",
+            json={
+                "rule_ids": rule_ids or [],
+                "policy_ids": policy_ids or [],
+                "files": files or [],
+                "force_llm": force_llm,
+                "source": source,
+                "wait": True,
+            },
+            timeout=300.0,
+        )

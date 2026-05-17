@@ -16,9 +16,38 @@ from rich.text import Text
 from cli.renderers.audit_detail import render_details as _render_details_groups
 from cli.renderers.audit_overview import render_overview as _render_overview_groups
 from shared.logger import getLogger
-from shared.models import AuditFinding
+from shared.models import AuditFinding, AuditSeverity
 from shared.models.audit_rendering import SeverityGroup
 from shared.utils.audit_grouping import SEVERITY_ORDER, get_max_severity, group_findings
+
+
+_SEVERITY_MAP = {
+    "info": AuditSeverity.INFO,
+    "warning": AuditSeverity.WARNING,
+    "error": AuditSeverity.ERROR,
+}
+
+
+# ID: ae8e7546-39a6-4b9b-a7ab-7f41162116f1
+def to_audit_finding(raw: dict) -> AuditFinding:
+    """Build an AuditFinding from a raw finding dict.
+
+    Lives here (and not in src/cli/resources/code/audit.py) so the
+    ADR-054 D4 CLI files can keep their imports inside `api.*` and
+    `cli.*` — the shared.models dependency is centralised in this
+    renderer module which already needs it for its own typing.
+    """
+    severity = _SEVERITY_MAP.get(
+        str(raw.get("severity", "info")).lower(), AuditSeverity.INFO
+    )
+    return AuditFinding(
+        check_id=raw.get("check_id") or raw.get("rule_id") or "unknown",
+        severity=severity,
+        message=raw.get("message", ""),
+        file_path=raw.get("file_path"),
+        line_number=raw.get("line_number"),
+        context=raw.get("context", {}),
+    )
 
 
 logger = getLogger(__name__)
