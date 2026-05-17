@@ -6,10 +6,10 @@ Orchestrates the final integration of staged code changes into the system.
 
 from __future__ import annotations
 
-from shared.logger import getLogger
+import logging
 
 
-logger = getLogger(__name__)
+logger = logging.getLogger(__name__)
 from typing import TYPE_CHECKING
 
 import typer

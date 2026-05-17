@@ -11,6 +11,7 @@ Updated (V2.6.1)
 from __future__ import annotations
 
 import json
+import logging
 import time
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
@@ -34,7 +35,6 @@ from mind.governance.audit_report_writer import build_auto_ignored_markdown
 from mind.governance.auditor import ConstitutionalAuditor
 from mind.governance.filtered_audit import run_filtered_audit
 from shared.activity_logging import activity_run
-from shared.logger import getLogger
 from shared.models import AuditFinding, AuditSeverity
 from shared.path_resolver import PathResolver
 
@@ -42,7 +42,7 @@ from .hub import app
 
 
 console = Console()
-logger = getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 
 def _to_audit_finding(raw: dict | AuditFinding) -> AuditFinding:
