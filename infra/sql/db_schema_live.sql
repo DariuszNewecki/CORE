@@ -715,6 +715,29 @@ ALTER TABLE core.audit_runs OWNER TO core_db;
 
 
 --
+-- Name: fix_runs; Type: TABLE; Schema: core; Owner: core_db
+--
+
+CREATE TABLE core.fix_runs (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    kind text NOT NULL,
+    fix_id text,
+    target_files jsonb,
+    write boolean NOT NULL,
+    status text DEFAULT 'pending'::text NOT NULL,
+    requested_by text NOT NULL,
+    requested_at timestamp with time zone DEFAULT now() NOT NULL,
+    started_at timestamp with time zone,
+    finished_at timestamp with time zone,
+    result jsonb,
+    error text
+);
+
+
+ALTER TABLE core.fix_runs OWNER TO core_db;
+
+
+--
 -- Name: autonomous_proposals; Type: TABLE; Schema: core; Owner: core_db
 --
 
@@ -2752,6 +2775,14 @@ ALTER TABLE ONLY core.audit_runs
 
 
 --
+-- Name: fix_runs fix_runs_pkey; Type: CONSTRAINT; Schema: core; Owner: core_db
+--
+
+ALTER TABLE ONLY core.fix_runs
+    ADD CONSTRAINT fix_runs_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: autonomous_proposals autonomous_proposals_pkey; Type: CONSTRAINT; Schema: core; Owner: core_db
 --
 
@@ -3348,6 +3379,27 @@ CREATE INDEX idx_audit_runs_verdict ON core.audit_runs USING btree (verdict, sta
 --
 
 CREATE INDEX idx_audit_runs_status ON core.audit_runs USING btree (status);
+
+
+--
+-- Name: fix_runs_requested_at_idx; Type: INDEX; Schema: core; Owner: core_db
+--
+
+CREATE INDEX fix_runs_requested_at_idx ON core.fix_runs USING btree (requested_at DESC);
+
+
+--
+-- Name: fix_runs_status_idx; Type: INDEX; Schema: core; Owner: core_db
+--
+
+CREATE INDEX fix_runs_status_idx ON core.fix_runs USING btree (status);
+
+
+--
+-- Name: fix_runs_kind_idx; Type: INDEX; Schema: core; Owner: core_db
+--
+
+CREATE INDEX fix_runs_kind_idx ON core.fix_runs USING btree (kind);
 
 
 --
@@ -4707,6 +4759,13 @@ GRANT ALL ON TABLE core.audit_findings TO core;
 --
 
 GRANT ALL ON TABLE core.audit_runs TO core;
+
+
+--
+-- Name: TABLE fix_runs; Type: ACL; Schema: core; Owner: core_db
+--
+
+GRANT ALL ON TABLE core.fix_runs TO core;
 
 
 --

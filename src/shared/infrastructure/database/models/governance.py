@@ -10,6 +10,7 @@ import uuid
 from typing import ClassVar
 
 from sqlalchemy import (
+    Boolean,
     Column,
     DateTime,
     ForeignKey,
@@ -43,6 +44,27 @@ class AuditRun(Base):
     )
     finished_at = Column(DateTime(timezone=True))
     findings = Column(JSONB)
+
+
+# ID: 60cc8c86-76c9-4279-9a73-326f9058fdb3
+class FixRun(Base):
+    __tablename__: ClassVar[str] = "fix_runs"
+    __table_args__: ClassVar[dict] = {"schema": "core"}
+
+    id = Column(pgUUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    kind = Column(Text, nullable=False)
+    fix_id = Column(Text)
+    target_files = Column(JSONB)
+    write = Column(Boolean, nullable=False)
+    status = Column(Text, nullable=False, server_default="pending")
+    requested_by = Column(Text, nullable=False)
+    requested_at = Column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+    started_at = Column(DateTime(timezone=True))
+    finished_at = Column(DateTime(timezone=True))
+    result = Column(JSONB)
+    error = Column(Text)
 
 
 # ID: c1c88088-6e9e-4400-907b-578e380c8113
