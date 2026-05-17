@@ -236,9 +236,9 @@ docs: ## Generate capability documentation
 
 # ---- Context (LLM session packets) ------------------------------------------
 context: ## Build context packets for upload to Claude.ai Project Files
-	@echo "📦 Building context packets (code + tree)..."
-	@$(POETRY) run python infra/scripts/dev/context_builder.py
-	# Output: context_tree.txt + context_core.txt — upload to Claude.ai Project Files.
+	@echo "📦 Building context packets (intent + specs + tree)..."
+	@$(POETRY) run python infra/scripts/dev/context_builder.py --intent --specs
+	# Output: context_intent_specs.txt + context_tree.txt — upload both to Claude.ai Project Files.
 
 # ---- Clean -------------------------------------------------------------------
 clean: ## Remove temporary files and caches
