@@ -28,6 +28,7 @@ from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.dependencies import get_api_session
+from body.services.service_registry import service_registry
 from shared.context import CoreContext
 from shared.logger import getLogger
 from will.autonomy.proposal import ProposalStatus
@@ -163,18 +164,33 @@ async def reject_proposal(
     payload: RejectRequest,
     session: AsyncSession = Depends(get_api_session),
 ) -> dict:
-    """Reject a proposal with a reason."""
+    """Reject a proposal with a reason.
+
+    Per ADR-010 §7a, rejection is symmetric with mark_failed: findings
+    parked at deferred_to_proposal must be revived so they reach the
+    audit sensor for re-adjudication, otherwise they strand. Revival
+    flips them to awaiting_reaudit per ADR-045; the AuditViolationSensor
+    decides on the next cycle whether to release to 'open' or resolve.
+    """
     service = ProposalService(session)
     try:
         await service.reject(proposal_id, reason=payload.reason)
     except ProposalNotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 
+    bb_service = await service_registry.get_blackboard_service()
+    revival = await bb_service.revive_findings_for_failed_proposal(
+        proposal_id=proposal_id,
+        failure_reason=f"rejected by API operator: {payload.reason}",
+    )
+    revived_count = revival["revived_count"] if revival else 0
+
     return {
         "ok": True,
         "proposal_id": proposal_id,
         "status": ProposalStatus.REJECTED.value,
         "reason": payload.reason,
+        "revived_count": revived_count,
     }
 
 

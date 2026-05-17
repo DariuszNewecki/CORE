@@ -1,5 +1,10 @@
 # src/api/cli/__init__.py
 
-"""Provides functionality for the __init__ module."""
+"""api.cli — client surface for CLI consumers of the CORE API (ADR-054)."""
 
 from __future__ import annotations
+
+from api.cli.client import CoreApiClient
+
+
+__all__ = ["CoreApiClient"]

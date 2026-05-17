@@ -3,10 +3,10 @@
 
 from __future__ import annotations
 
+from datetime import datetime
+
 from rich.console import Console
 from rich.table import Table
-
-from will.autonomy.proposal import Proposal
 
 
 console = Console()
@@ -23,7 +23,7 @@ RISK_COLORS = {"safe": "green", "moderate": "yellow", "dangerous": "red"}
 
 
 # ID: 1d435482-a764-45be-a51d-c5c70eff6c9a
-def render_list_table(proposals: list[Proposal], title: str) -> Table:
+def render_list_table(proposals: list[dict], title: str) -> Table:
     table = Table(title=title)
     table.add_column("ID", style="cyan", no_wrap=True)
     table.add_column("Goal", style="white")
@@ -32,54 +32,69 @@ def render_list_table(proposals: list[Proposal], title: str) -> Table:
     table.add_column("Risk", justify="center")
     table.add_column("Created", style="dim")
     for p in proposals:
-        s_color = STATUS_COLORS.get(p.status.value, "white")
-        risk_level = p.risk.overall_risk if p.risk else "unknown"
+        status = p["status"]
+        s_color = STATUS_COLORS.get(status, "white")
+        risk_level = p["risk"]["overall_risk"] if p.get("risk") else "unknown"
         r_color = RISK_COLORS.get(risk_level, "white")
+        created = datetime.fromisoformat(p["created_at"]).strftime("%Y-%m-%d %H:%M")
+        goal = p.get("goal") or ""
         table.add_row(
-            p.proposal_id[:8] + "...",
-            p.goal[:50] + ("..." if len(p.goal) > 50 else ""),
-            f"[{s_color}]{p.status.value}[/{s_color}]",
-            str(len(p.actions)),
+            p["proposal_id"][:8] + "...",
+            goal[:50] + ("..." if len(goal) > 50 else ""),
+            f"[{s_color}]{status}[/{s_color}]",
+            str(len(p.get("actions", []))),
             f"[{r_color}]{risk_level}[/{r_color}]",
-            p.created_at.strftime("%Y-%m-%d %H:%M"),
+            created,
         )
     return table
 
 
 # ID: 94d02f4b-3d3a-4fd5-8332-132eb7980974
-def print_detailed_info(p: Proposal):
-    console.print(f"\n[bold cyan]Proposal: {p.proposal_id}[/bold cyan]\n")
-    console.print(f"[bold]Goal:[/bold] {p.goal}")
-    console.print(f"[bold]Status:[/bold] {p.status.value}")
-    console.print(f"[bold]Created:[/bold] {p.created_at}")
-    console.print(f"[bold]Created By:[/bold] {p.created_by}\n")
-    if p.risk:
+def print_detailed_info(p: dict):
+    console.print(f"\n[bold cyan]Proposal: {p['proposal_id']}[/bold cyan]\n")
+    console.print(f"[bold]Goal:[/bold] {p.get('goal', '')}")
+    console.print(f"[bold]Status:[/bold] {p['status']}")
+    console.print(f"[bold]Created:[/bold] {p['created_at']}")
+    console.print(f"[bold]Created By:[/bold] {p.get('created_by', '')}\n")
+    risk = p.get("risk")
+    if risk:
         console.print("[bold]Risk Assessment:[/bold]")
-        console.print(f"  Overall: {p.risk.overall_risk}")
-        console.print(f"  Approval Required: {'Yes' if p.approval_required else 'No'}")
-        for factor in p.risk.risk_factors:
+        console.print(f"  Overall: {risk['overall_risk']}")
+        approval = "Yes" if p.get("approval_required") else "No"
+        console.print(f"  Approval Required: {approval}")
+        for factor in risk.get("risk_factors", []):
             console.print(f"    - {factor}")
         console.print("")
-    console.print(f"[bold]Actions ({len(p.actions)}):[/bold]")
-    for a in sorted(p.actions, key=lambda x: x.order):
-        console.print(f"  {a.order + 1}. {a.action_id}")
-        if a.parameters:
-            console.print(f"     Parameters: {a.parameters}")
-    if p.scope.files or p.scope.modules:
+    actions = p.get("actions", [])
+    console.print(f"[bold]Actions ({len(actions)}):[/bold]")
+    for a in sorted(actions, key=lambda x: x.get("order", 0)):
+        ref = a.get("action_id") or a.get("flow_id") or "?"
+        console.print(f"  {a.get('order', 0) + 1}. {ref}")
+        if a.get("parameters"):
+            console.print(f"     Parameters: {a['parameters']}")
+    scope = p.get("scope") or {}
+    files = scope.get("files") or []
+    modules = scope.get("modules") or []
+    if files or modules:
         console.print("\n[bold]Scope:[/bold]")
-        if p.scope.files:
-            console.print(f"  Files: {len(p.scope.files)}")
-        if p.scope.modules:
-            console.print(f"  Modules: {', '.join(p.scope.modules)}")
-    if p.execution_started_at:
+        if files:
+            console.print(f"  Files: {len(files)}")
+        if modules:
+            console.print(f"  Modules: {', '.join(modules)}")
+    started = p.get("execution_started_at")
+    completed = p.get("execution_completed_at")
+    if started:
         console.print("\n[bold]Execution:[/bold]")
-        console.print(f"  Started: {p.execution_started_at}")
-        if p.execution_completed_at:
-            dur = (p.execution_completed_at - p.execution_started_at).total_seconds()
-            console.print(f"  Completed: {p.execution_completed_at}")
+        console.print(f"  Started: {started}")
+        if completed:
+            dur = (
+                datetime.fromisoformat(completed) - datetime.fromisoformat(started)
+            ).total_seconds()
+            console.print(f"  Completed: {completed}")
             console.print(f"  Duration: {dur}s")
-    if p.failure_reason:
-        console.print(f"\n[red]Failure Reason: {p.failure_reason}[/red]")
+    failure_reason = p.get("failure_reason")
+    if failure_reason:
+        console.print(f"\n[red]Failure Reason: {failure_reason}[/red]")
 
 
 # ID: a649ba15-71d8-46ee-b4cd-9888207ed45d

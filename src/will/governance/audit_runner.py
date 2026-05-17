@@ -18,10 +18,10 @@ not be reconciled).
 
 from __future__ import annotations
 
+from typing import Any
 from uuid import UUID
 
 from sqlalchemy import text
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from mind.enforcement.audit import run_audit_workflow
 from mind.governance.auditor import AuditVerdict, ConstitutionalAuditor
@@ -42,7 +42,7 @@ logger = getLogger(__name__)
 # ID: 045484b6-7e52-46df-b4b6-53f3e7a0de65
 async def run_and_persist_audit(
     context: CoreContext,
-    session: AsyncSession,
+    session: Any,
     run_id: UUID | None = None,
 ) -> dict:
     """Run the constitutional audit and persist the result.

@@ -1,45 +1,35 @@
 # src/cli/resources/proposals/manage.py
-from typing import Final
-from uuid import UUID
 
+import httpx
 import typer
 from rich.console import Console
 
-from body.services.service_registry import service_registry
+from api.cli import CoreApiClient
 from cli.logic.autonomy.views import print_detailed_info, print_execution_summary
 from cli.utils import core_command
-from will.autonomy.proposal_executor import ProposalExecutor
-from will.autonomy.proposal_repository import ProposalRepository
 
 
 console = Console()
 
-# CLI claimer sentinel (ADR-017 D4) — humans running CLI commands aren't autonomous
-# workers, so a stable sentinel UUID identifies them collectively and makes
-# CLI-claimed proposals queryable: SELECT * FROM core.autonomous_proposals WHERE
-# claimed_by = '00000000-0000-0000-0000-000000000001'. Mirrors the ADR-015 D6 /
-# NFR.5 approval_authority='human.cli_operator' pattern at the claim layer.
-CLI_CLAIMER_UUID: Final[UUID] = UUID("00000000-0000-0000-0000-000000000001")
 
-
-@core_command(dangerous=False)
+@core_command(dangerous=False, requires_context=False)
 # ID: 9bacc55b-be1d-4f71-a27e-6e83ba176e33
-async def show_proposal(
-    ctx: typer.Context, proposal_id: str = typer.Argument(...)
-) -> None:
+async def show_proposal(proposal_id: str = typer.Argument(...)) -> None:
     """Show detailed breakdown and risk assessment of a proposal."""
-    async with service_registry.session() as session:
-        proposal = await ProposalRepository(session).get(proposal_id)
-    if not proposal:
-        console.print(f"[red]Proposal {proposal_id} not found.[/red]")
-        raise typer.Exit(1)
+    client = CoreApiClient()
+    try:
+        proposal = await client.get_proposal(proposal_id)
+    except httpx.HTTPStatusError as exc:
+        if exc.response.status_code == 404:
+            console.print(f"[red]Proposal {proposal_id} not found.[/red]")
+            raise typer.Exit(1) from exc
+        raise
     print_detailed_info(proposal)
 
 
-@core_command(dangerous=False)
+@core_command(dangerous=False, requires_context=False)
 # ID: f2e065f7-c253-4c33-ae0d-5374ffdb8e23
 async def approve_proposal(
-    ctx: typer.Context,
     proposal_id: str = typer.Argument(...),
     by: str = typer.Option("cli_admin", "--by", help="Approver identity."),
     authority: str = typer.Option(
@@ -49,22 +39,34 @@ async def approve_proposal(
     ),
 ) -> None:
     """Authorize a pending proposal for execution."""
-    from will.autonomy.proposal_state_manager import ProposalStateManager
-
-    async with service_registry.session() as session:
-        await ProposalStateManager(session).approve(
+    client = CoreApiClient()
+    try:
+        response = await client.approve_proposal(
             proposal_id, approved_by=by, approval_authority=authority
         )
-        await session.commit()
+    except httpx.HTTPStatusError as exc:
+        status_code = exc.response.status_code
+        if status_code == 404:
+            console.print(f"[red]Proposal {proposal_id} not found.[/red]")
+            raise typer.Exit(1) from exc
+        if status_code == 400:
+            try:
+                detail = exc.response.json().get("detail", exc.response.text)
+            except ValueError:
+                detail = exc.response.text
+            console.print(f"[red]{detail}[/red]")
+            raise typer.Exit(1) from exc
+        raise
+
     console.print(
-        f"[green]✅ Proposal {proposal_id} APPROVED by {by} under {authority}.[/green]"
+        f"[green]✅ Proposal {proposal_id} APPROVED by "
+        f"{response['approved_by']} under {response['approval_authority']}.[/green]"
     )
 
 
-@core_command(dangerous=True, confirmation=True)
+@core_command(dangerous=True, confirmation=True, requires_context=False)
 # ID: f4cdc45a-2f42-4916-b4e3-a305b5357a9d
 async def execute_proposal(
-    ctx: typer.Context,
     proposal_id: str = typer.Argument(...),
     write: bool = typer.Option(False, "--write", help="Apply changes to the system."),
 ) -> None:
@@ -75,9 +77,9 @@ async def execute_proposal(
     """
     if not write:
         console.print("[yellow]💡 Dry-run: simulating execution steps...[/yellow]\n")
-    executor = ProposalExecutor(ctx.obj)
-    result = await executor.execute(proposal_id, CLI_CLAIMER_UUID, write=write)
-    if result["ok"]:
+    client = CoreApiClient()
+    result = await client.execute_proposal(proposal_id, write=write)
+    if result.get("ok"):
         console.print(
             f"\n[bold green]✅ Execution Successful: {proposal_id}[/bold green]"
         )
@@ -86,40 +88,30 @@ async def execute_proposal(
     print_execution_summary(result)
 
 
-@core_command(dangerous=False)
+@core_command(dangerous=False, requires_context=False)
 # ID: 4ac3cfc1-feae-440c-b02f-4c57a6a1147d
 async def reject_proposal(
-    ctx: typer.Context,
     proposal_id: str = typer.Argument(...),
     reason: str = typer.Option(..., "--reason", "-r"),
 ) -> None:
-    """Reject a proposal and prevent its execution."""
-    from will.autonomy.proposal_state_manager import ProposalStateManager
+    """Reject a proposal and prevent its execution.
 
-    async with service_registry.session() as session:
-        await ProposalStateManager(session).reject(proposal_id, reason=reason)
+    Revival of deferred findings (ADR-010 §7a / ADR-045) now happens
+    on the API side; this command only renders the result.
+    """
+    client = CoreApiClient()
+    try:
+        response = await client.reject_proposal(proposal_id, reason=reason)
+    except httpx.HTTPStatusError as exc:
+        if exc.response.status_code == 404:
+            console.print(f"[red]Proposal {proposal_id} not found.[/red]")
+            raise typer.Exit(1) from exc
+        raise
 
-    # ADR-010 §7a / closes #286: revival is symmetric with mark_failed —
-    # findings parked at deferred_to_proposal must flip back to the
-    # active set or they strand permanently (the audit sensor re-emits,
-    # but a manual reject leaves the original deferred entries
-    # unreachable). Per ADR-045 the revival target is 'awaiting_reaudit',
-    # not 'open' — the AuditViolationSensor adjudicates each row on its
-    # next cycle, releasing to 'open' if the violation still holds or
-    # resolving it if the underlying condition has cleared. The §7a
-    # revival report (worker-attribution) is omitted on the CLI path —
-    # operator attribution lives in the proposal row's failure_reason
-    # and rejected status; mirrors approve_proposal which posts no
-    # blackboard report either.
-    bb_service = await service_registry.get_blackboard_service()
-    revival = await bb_service.revive_findings_for_failed_proposal(
-        proposal_id=proposal_id,
-        failure_reason=f"rejected by CLI operator: {reason}",
-    )
-
-    console.print(f"[yellow]🚫 Proposal {proposal_id} REJECTED.[/yellow]")
-    if revival:
+    console.print(f"[yellow]🚫 Proposal {response['proposal_id']} REJECTED.[/yellow]")
+    revived_count = response.get("revived_count", 0)
+    if revived_count > 0:
         console.print(
-            f"[cyan]   Revived {revival['revived_count']} deferred "
+            f"[cyan]   Revived {revived_count} deferred "
             f"finding(s) to awaiting_reaudit for sensor adjudication.[/cyan]"
         )
