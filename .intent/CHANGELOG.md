@@ -684,6 +684,55 @@ Files: `.intent/enforcement/config/operational_config.yaml`,
 `src/shared/infrastructure/intent/operational_config.py`,
 ~106 `src/` files across 13 commits.
 
+## ADR-055 — 2026-05-17 (Phase 2 endpoint surface)
+
+ADR-053 Phase 2 endpoint surface for the `/fix` and `/quality`
+namespaces. A new resource table `core.fix_runs` carries every
+governor-direct fix or quality operation (`kind` discriminator:
+`atomic` | `flow` | `modularity` | `quality_check`). One table with a
+discriminator avoids the duplicate-table scar `audit_runs` /
+`audit_run_resources` left behind during Phase 1 (folded back together
+by `20260518_consolidate_audit_runs.sql`).
+
+The API layer reaches `body.*` exclusively through a single Will-layer
+facade — `will.governance.fix_runner` — keeping `architecture.api.
+no_body_bypass` satisfied without per-route bridge code. The facade
+exposes (a) registry enumeration helpers for request-time validation,
+(b) async runners (`run_and_persist_fix` / `_flow` / `_modularity` /
+`_quality`) that share a `_update_fix_run_status` lifecycle primitive,
+and (c) synchronous helpers for the inline `/quality/imports` and
+`/quality/body-ui` checks. Subprocess invocation for the async
+`/quality` runners routes through `shared.utils.subprocess_utils.
+run_command_async` — the sanctioned primitive under
+`governance.dangerous_execution_primitives`; direct `subprocess.run`
+calls in the facade would fail the audit.
+
+`/fix/modularity` is the only endpoint that diverges from the
+flow-registry-backed pattern: there is no `flow.modularity` YAML, so
+the route dispatches to `will.self_healing.modularity_remediation_
+service.ModularityRemediationService.remediate_batch` directly. Row
+carries `kind='modularity'`, `fix_id=NULL`. Async `/quality/*` `href`
+fields point at `/fix/runs/{id}` — the single-table design means the
+existing `/fix` resource read serves `quality_check` rows.
+
+The CLI-side cutover (ADR-055 D6: 22 files under `src/cli/resources/
+code/`, `src/cli/commands/fix/`, `src/cli/commands/check/`) is not in
+this change-set and remains open on #349.
+
+Files: `infra/scripts/migrations/20260517_create_fix_runs.sql`,
+`infra/sql/db_schema_live.sql`,
+`src/shared/infrastructure/database/models/governance.py`,
+`src/will/governance/fix_runner.py`,
+`src/api/v1/fix_routes.py`,
+`src/api/v1/quality_routes.py`,
+`src/api/main.py`,
+`tests/api/v1/test_fix_routes.py`,
+`tests/api/v1/test_quality_routes.py`,
+`.specs/decisions/ADR-055-api-phase-2-fix-quality.md`.
+Commits `90992bb1`, `2ced6e33`.
+
+---
+
 ## Notes
 
 * This changelog intentionally avoids implementation detail
