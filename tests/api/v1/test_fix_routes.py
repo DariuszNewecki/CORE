@@ -107,6 +107,46 @@ async def test_run_fix_unknown_id_returns_422_without_inserting():
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("fix_id", ["fix.imports", "fix.headers", "sync.db"])
+async def test_run_fix_dispatches_distinct_known_action_ids(fix_id):
+    """The route forwards whatever fix_id passed validation — no
+    hard-coded values, no special-casing per action. Exercises three
+    distinct registered ids to satisfy ADR-055 #349 acceptance."""
+    request = MagicMock()
+    request.app.state.core_context = MagicMock()
+    response = MagicMock(spec=Response)
+    response.status_code = 200
+
+    background_tasks = MagicMock(spec=BackgroundTasks)
+    background_tasks.add_task = MagicMock()
+
+    new_id = uuid4()
+    session = AsyncMock()
+    result_obj = MagicMock()
+    result_obj.scalar_one = MagicMock(return_value=new_id)
+    session.execute = AsyncMock(return_value=result_obj)
+    session.commit = AsyncMock()
+
+    with patch(
+        "api.v1.fix_routes.list_registered_action_ids",
+        return_value={"fix.imports", "fix.headers", "sync.db"},
+    ):
+        out = await run_fix(
+            fix_id=fix_id,
+            request=request,
+            response=response,
+            background_tasks=background_tasks,
+            payload=RunFixRequest(),
+            session=session,
+        )
+
+    assert out["run_id"] == str(new_id)
+    assert response.status_code == 202
+    bind = session.execute.call_args[0][1]
+    assert bind["fix_id"] == fix_id
+
+
+@pytest.mark.asyncio
 async def test_run_fix_passes_target_files_as_json_and_write_flag():
     """The INSERT serialises target_files as JSON and forwards `write`
     and `requested_by` verbatim to the SQL bind params."""
