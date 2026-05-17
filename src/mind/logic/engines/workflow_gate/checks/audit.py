@@ -51,12 +51,15 @@ class AuditHistoryCheck(WorkflowCheck):
 
         try:
             # Query the audit_runs table for failures in the last 7 days.
-            # This is a read-only evaluation of system history.
+            # This is a read-only evaluation of system history. The
+            # 'pending' verdict is the in-flight placeholder per
+            # 20260517_create_audit_run_resources.sql — exclude it
+            # explicitly rather than relying on `verdict <> 'PASS'`.
             stmt = text(
                 """
                 SELECT COUNT(*)
                 FROM core.audit_runs
-                WHERE passed = false
+                WHERE verdict IN ('FAIL', 'DEGRADED')
                 AND started_at > NOW() - INTERVAL '7 days'
                 """
             )

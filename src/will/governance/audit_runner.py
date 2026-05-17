@@ -9,11 +9,9 @@ constitutional rule. This module is the sanctioned bridge: it
 imports the audit workflow from mind.enforcement.audit and exposes a
 single async function the API can call with an injected session.
 
-Persistence target is core.audit_run_resources (sibling table to the
-legacy core.audit_runs, which remains owned by the CLI audit command
-and the workflow_gate check — see migration
-20260517_create_audit_run_resources.sql for why the schemas could
-not be reconciled).
+Persistence target is core.audit_runs (the canonical audit-run
+table; see migration 20260518_consolidate_audit_runs.sql which folded
+the short-lived audit_run_resources sibling back into it).
 """
 
 from __future__ import annotations
@@ -62,9 +60,9 @@ async def run_and_persist_audit(
         result = await session.execute(
             text(
                 """
-                INSERT INTO core.audit_run_resources
-                    (verdict, finding_count, blocking_count, status)
-                VALUES ('pending', 0, 0, 'pending')
+                INSERT INTO core.audit_runs
+                    (source, verdict, finding_count, blocking_count, status)
+                VALUES ('api', 'pending', 0, 0, 'pending')
                 RETURNING run_id
                 """
             )
@@ -80,9 +78,9 @@ async def run_and_persist_audit(
         await session.execute(
             text(
                 """
-                UPDATE core.audit_run_resources
+                UPDATE core.audit_runs
                    SET status = 'failed',
-                       completed_at = now()
+                       finished_at = now()
                  WHERE run_id = :rid
                 """
             ),
@@ -98,12 +96,12 @@ async def run_and_persist_audit(
     await session.execute(
         text(
             """
-            UPDATE core.audit_run_resources
+            UPDATE core.audit_runs
                SET verdict = :verdict,
                    finding_count = :finding_count,
                    blocking_count = :blocking_count,
                    status = 'completed',
-                   completed_at = now()
+                   finished_at = now()
              WHERE run_id = :rid
             """
         ),

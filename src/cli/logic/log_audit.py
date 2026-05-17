@@ -28,20 +28,26 @@ async def log_audit(
     """Insert one row into core.audit_runs."""
 
     sha = commit_sha or ""
+    verdict = "PASS" if passed else "FAIL"
     stmt = text(
         """
-        insert into core.audit_runs (source, commit_sha, score, passed, started_at, finished_at)
-        values (:source, :sha, :score, :passed, now(), now())
-        returning id
+        insert into core.audit_runs
+            (source, commit_sha, score, verdict, status,
+             started_at, finished_at)
+        values (:source, :sha, :score, :verdict, 'completed',
+                now(), now())
+        returning run_id
         """
     )
     async with get_session() as session:
         async with session.begin():
             result = await session.execute(
-                stmt, dict(source=source, sha=sha, score=score, passed=passed)
+                stmt,
+                dict(source=source, sha=sha, score=score, verdict=verdict),
             )
-            new_id = result.scalar_one()
+            new_run_id = result.scalar_one()
 
     typer.echo(
-        f"📝 Logged audit id={new_id} (source={source}, score={score}, passed={passed})"
+        f"📝 Logged audit run_id={new_run_id} "
+        f"(source={source}, score={score}, verdict={verdict})"
     )

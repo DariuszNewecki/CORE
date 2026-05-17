@@ -24,9 +24,9 @@ async def list_audits(
     """Show recent rows from core.audit_runs."""
     stmt = text(
         """
-        select id, started_at, source, score, passed
+        select run_id, started_at, source, score, verdict
         from core.audit_runs
-        order by id desc
+        order by started_at desc
         limit :lim
         """
     ).bindparams(lim=limit)
@@ -41,5 +41,9 @@ async def list_audits(
 
     for r in rows:
         when = r.started_at.strftime("%Y-%m-%d %H:%M:%S")
-        mark = "✅" if r.passed else "❌"
-        typer.echo(f"{r.id:>4}  {when}  {r.source:<7}  score={r.score:.3f}  {mark}")
+        mark = "✅" if r.verdict == "PASS" else "❌"
+        score = f"{float(r.score):.3f}" if r.score is not None else "—    "
+        typer.echo(
+            f"{str(r.run_id)[:8]}  {when}  {r.source:<7}  "
+            f"score={score}  {r.verdict:<8}  {mark}"
+        )

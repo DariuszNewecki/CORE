@@ -3,9 +3,9 @@
 """
 Audit API endpoints (ADR-054 Phase 1, D1).
 
-POST /audit/runs creates a pending row in core.audit_run_resources,
-returns the run_id with 202, and drives the audit on a background
-task. GET /audit/runs/{id} reads back the row.
+POST /audit/runs creates a pending row in core.audit_runs, returns
+the run_id with 202, and drives the audit on a background task.
+GET /audit/runs/{id} reads back the row.
 
 CONSTITUTIONAL:
 - Session access via api.dependencies.get_api_session /
@@ -53,9 +53,9 @@ async def create_audit_run(
     result = await session.execute(
         text(
             """
-            INSERT INTO core.audit_run_resources
-                (verdict, finding_count, blocking_count, status)
-            VALUES ('pending', 0, 0, 'pending')
+            INSERT INTO core.audit_runs
+                (source, verdict, finding_count, blocking_count, status)
+            VALUES ('api', 'pending', 0, 0, 'pending')
             RETURNING run_id
             """
         )
@@ -85,8 +85,8 @@ async def get_audit_run(
         text(
             """
             SELECT run_id, verdict, finding_count, blocking_count,
-                   created_at, completed_at, status
-              FROM core.audit_run_resources
+                   started_at, finished_at, status
+              FROM core.audit_runs
              WHERE run_id = :rid
             """
         ),
@@ -104,9 +104,7 @@ async def get_audit_run(
         "verdict": row["verdict"],
         "finding_count": row["finding_count"],
         "blocking_count": row["blocking_count"],
-        "created_at": row["created_at"].isoformat() if row["created_at"] else None,
-        "completed_at": (
-            row["completed_at"].isoformat() if row["completed_at"] else None
-        ),
+        "started_at": row["started_at"].isoformat() if row["started_at"] else None,
+        "finished_at": (row["finished_at"].isoformat() if row["finished_at"] else None),
         "status": row["status"],
     }

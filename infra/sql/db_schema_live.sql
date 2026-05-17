@@ -697,38 +697,20 @@ ALTER TABLE core.audit_findings OWNER TO core_db;
 --
 
 CREATE TABLE core.audit_runs (
-    id bigint NOT NULL,
-    source text NOT NULL,
+    run_id uuid DEFAULT gen_random_uuid() NOT NULL,
+    source text DEFAULT 'manual'::text NOT NULL,
     commit_sha character(40),
+    verdict text DEFAULT 'pending'::text NOT NULL,
+    status text DEFAULT 'completed'::text NOT NULL,
     score numeric(4,3),
-    passed boolean NOT NULL,
-    violations_found integer DEFAULT 0,
+    finding_count integer DEFAULT 0 NOT NULL,
+    blocking_count integer DEFAULT 0 NOT NULL,
     started_at timestamp with time zone DEFAULT now() NOT NULL,
     finished_at timestamp with time zone
 );
 
 
 ALTER TABLE core.audit_runs OWNER TO core_db;
-
---
--- Name: audit_runs_id_seq; Type: SEQUENCE; Schema: core; Owner: core_db
---
-
-CREATE SEQUENCE core.audit_runs_id_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
-ALTER SEQUENCE core.audit_runs_id_seq OWNER TO core_db;
-
---
--- Name: audit_runs_id_seq; Type: SEQUENCE OWNED BY; Schema: core; Owner: core_db
---
-
-ALTER SEQUENCE core.audit_runs_id_seq OWNED BY core.audit_runs.id;
 
 
 --
@@ -2662,13 +2644,6 @@ COMMENT ON TABLE core.worker_registry IS 'Constitutional identity register. Work
 
 
 --
--- Name: audit_runs id; Type: DEFAULT; Schema: core; Owner: core_db
---
-
-ALTER TABLE ONLY core.audit_runs ALTER COLUMN id SET DEFAULT nextval('core.audit_runs_id_seq'::regclass);
-
-
---
 -- Name: observability_decisions id; Type: DEFAULT; Schema: core; Owner: core_db
 --
 
@@ -2772,7 +2747,7 @@ ALTER TABLE ONLY core.audit_findings
 --
 
 ALTER TABLE ONLY core.audit_runs
-    ADD CONSTRAINT audit_runs_pkey PRIMARY KEY (id);
+    ADD CONSTRAINT audit_runs_pkey PRIMARY KEY (run_id);
 
 
 --
@@ -3361,10 +3336,17 @@ CREATE INDEX idx_audit_findings_severity ON core.audit_findings USING btree (sev
 
 
 --
--- Name: idx_audit_runs_passed; Type: INDEX; Schema: core; Owner: core_db
+-- Name: idx_audit_runs_verdict; Type: INDEX; Schema: core; Owner: core_db
 --
 
-CREATE INDEX idx_audit_runs_passed ON core.audit_runs USING btree (passed, started_at DESC);
+CREATE INDEX idx_audit_runs_verdict ON core.audit_runs USING btree (verdict, started_at DESC);
+
+
+--
+-- Name: idx_audit_runs_status; Type: INDEX; Schema: core; Owner: core_db
+--
+
+CREATE INDEX idx_audit_runs_status ON core.audit_runs USING btree (status);
 
 
 --
@@ -4724,13 +4706,6 @@ GRANT ALL ON TABLE core.audit_findings TO core;
 --
 
 GRANT ALL ON TABLE core.audit_runs TO core;
-
-
---
--- Name: SEQUENCE audit_runs_id_seq; Type: ACL; Schema: core; Owner: core_db
---
-
-GRANT ALL ON SEQUENCE core.audit_runs_id_seq TO core;
 
 
 --

@@ -10,8 +10,6 @@ import uuid
 from typing import ClassVar
 
 from sqlalchemy import (
-    BigInteger,
-    Boolean,
     Column,
     DateTime,
     ForeignKey,
@@ -31,12 +29,14 @@ class AuditRun(Base):
     __tablename__: ClassVar[str] = "audit_runs"
     __table_args__: ClassVar[dict] = {"schema": "core"}
 
-    id = Column(BigInteger, primary_key=True)
-    source = Column(Text, nullable=False)
+    run_id = Column(pgUUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    source = Column(Text, nullable=False, server_default="manual")
     commit_sha = Column(String(40))
+    verdict = Column(Text, nullable=False, server_default="pending")
+    status = Column(Text, nullable=False, server_default="pending")
     score = Column(Numeric(4, 3))
-    passed = Column(Boolean, nullable=False)
-    violations_found = Column(Integer, default=0)
+    finding_count = Column(Integer, nullable=False, server_default="0")
+    blocking_count = Column(Integer, nullable=False, server_default="0")
     started_at = Column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )

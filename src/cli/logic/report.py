@@ -20,9 +20,10 @@ async def report() -> None:
         select
           source,
           count(*) as total,
-          sum(case when passed then 1 else 0 end) as passed_count,
+          sum(case when verdict = 'PASS' then 1 else 0 end) as passed_count,
           round(avg(score)::numeric, 3) as avg_score
         from core.audit_runs
+        where verdict <> 'pending'
         group by source
         order by source
         """
@@ -39,6 +40,8 @@ async def report() -> None:
     typer.echo("source   total  passed  pass_rate  avg_score")
     for r in rows:
         pass_rate = (r.passed_count / r.total) * 100.0 if r.total else 0.0
+        avg = f"{float(r.avg_score):>8.3f}" if r.avg_score is not None else "    —   "
         typer.echo(
-            f"{r.source:<7} {r.total:>5}  {r.passed_count:>6}   {pass_rate:>6.1f}%     {float(r.avg_score):>8.3f}"
+            f"{r.source:<7} {r.total:>5}  {r.passed_count:>6}   "
+            f"{pass_rate:>6.1f}%     {avg}"
         )
