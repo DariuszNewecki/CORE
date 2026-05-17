@@ -13,14 +13,6 @@ from cli.utils import core_command
 from . import app
 
 
-# ADR-054 Phase 1 note: the @command_meta decorator was removed
-# alongside the will.* / body.* / shared.* import sweep. command_meta
-# lives in shared.models, which is forbidden from src/cli/ by
-# architecture.cli.api_only. command_sync_service falls back to
-# infer_metadata_from_function for this command's registry row.
-# Phase 2 (issue #317) will re-home command_meta to a CLI-permitted
-# location and reinstate explicit metadata here.
-
 logger = logging.getLogger(__name__)
 
 console = Console()
