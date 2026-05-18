@@ -586,3 +586,147 @@ class CoreApiClient:
         return await self._poll_at_path(
             f"/v1/audit/remediations/{run_id}", timeout_seconds=timeout_seconds
         )
+
+    # ------------------------------------------------------------------
+    # Phase 4 — /census (ADR-058 D1)
+    # ------------------------------------------------------------------
+
+    # ID: 1a5b8c2d-3e4f-4567-89ab-cdef01234567
+    async def census_run(
+        self, snapshot: bool = False, requested_by: str = "api"
+    ) -> dict:
+        """POST /v1/census/runs — dispatch a CIM-0 structural census."""
+        return await self._request(
+            "POST",
+            "/v1/census/runs",
+            json={"snapshot": snapshot, "requested_by": requested_by},
+        )
+
+    # ID: 2b6c9d3e-4f5a-4678-9abc-def012345678
+    async def get_census_run(self, run_id: str) -> dict:
+        """GET /v1/census/runs/{run_id} — fetch a census_runs row."""
+        return await self._request("GET", f"/v1/census/runs/{run_id}")
+
+    # ID: 3c7d0e4f-5a6b-4789-abcd-ef0123456789
+    async def poll_census_run(
+        self, run_id: str, timeout_seconds: float = 1800.0
+    ) -> dict:
+        """Poll a census run until terminal. CIM-0 traversal can be slow."""
+        return await self._poll_at_path(
+            f"/v1/census/runs/{run_id}", timeout_seconds=timeout_seconds
+        )
+
+    # ID: 4d8e1f5a-6b7c-489a-bcde-f01234567890
+    async def census_create_baseline(
+        self, name: str, snapshot_file: str | None = None
+    ) -> dict:
+        """POST /v1/census/baselines/{name} — create a named baseline."""
+        return await self._request(
+            "POST",
+            f"/v1/census/baselines/{name}",
+            json={"snapshot_file": snapshot_file},
+        )
+
+    # ID: 5e9f2a6b-7c8d-490b-cdef-012345678901
+    async def census_list_baselines(self) -> dict:
+        """GET /v1/census/baselines — list all named baselines."""
+        return await self._request("GET", "/v1/census/baselines")
+
+    # ID: 6a0b3c7d-8e9f-401c-def0-123456789012
+    async def census_diff(self, baseline: str | None = None) -> dict:
+        """GET /v1/census/diff — diff current vs baseline (or previous)."""
+        params: dict[str, Any] = {}
+        if baseline is not None:
+            params["baseline"] = baseline
+        return await self._request("GET", "/v1/census/diff", params=params)
+
+    # ------------------------------------------------------------------
+    # Phase 4 — /sync (ADR-058 D2)
+    # ------------------------------------------------------------------
+
+    # ID: 7b1c4d8e-9f0a-412d-ef01-234567890123
+    async def sync_db_registry(
+        self,
+        write: bool = False,
+        target: str | None = None,
+        requested_by: str = "api",
+    ) -> dict:
+        """POST /v1/sync/db-registry — CLI command tree -> PostgreSQL."""
+        return await self._request(
+            "POST",
+            "/v1/sync/db-registry",
+            json={"write": write, "target": target, "requested_by": requested_by},
+        )
+
+    # ID: 8c2d5e9f-0a1b-423e-f012-345678901234
+    async def sync_vectors(
+        self,
+        write: bool = False,
+        target: str | None = None,
+        requested_by: str = "api",
+    ) -> dict:
+        """POST /v1/sync/vectors — constitutional vector sync."""
+        return await self._request(
+            "POST",
+            "/v1/sync/vectors",
+            json={"write": write, "target": target, "requested_by": requested_by},
+        )
+
+    # ID: 9d3e6f0a-1b2c-434f-0123-456789012345
+    async def sync_code_vectors(
+        self,
+        write: bool = False,
+        target: str | None = None,
+        requested_by: str = "api",
+    ) -> dict:
+        """POST /v1/sync/code-vectors — codebase symbol embedding."""
+        return await self._request(
+            "POST",
+            "/v1/sync/code-vectors",
+            json={"write": write, "target": target, "requested_by": requested_by},
+        )
+
+    # ID: 0e4f7a1b-2c3d-4450-1234-567890123456
+    async def sync_dev_sync(
+        self,
+        write: bool = False,
+        target: str | None = None,
+        requested_by: str = "api",
+    ) -> dict:
+        """POST /v1/sync/dev-sync — composite fix + db-registry + vectors."""
+        return await self._request(
+            "POST",
+            "/v1/sync/dev-sync",
+            json={"write": write, "target": target, "requested_by": requested_by},
+        )
+
+    # ID: 1f5a8b2c-3d4e-4561-2345-678901234567
+    async def get_sync_run(self, run_id: str) -> dict:
+        """GET /v1/sync/runs/{run_id} — fetch a sync_runs row."""
+        return await self._request("GET", f"/v1/sync/runs/{run_id}")
+
+    # ID: 2a6b9c3d-4e5f-4672-3456-789012345678
+    async def poll_sync_run(self, run_id: str, timeout_seconds: float = 1800.0) -> dict:
+        """Poll a sync run until terminal."""
+        return await self._poll_at_path(
+            f"/v1/sync/runs/{run_id}", timeout_seconds=timeout_seconds
+        )
+
+    # ------------------------------------------------------------------
+    # Phase 4 — /daemon (ADR-058 D3)
+    # ------------------------------------------------------------------
+
+    # ID: 3b7c0d4e-5f6a-4783-4567-890123456789
+    async def daemon_status(self) -> dict:
+        """GET /v1/daemon/status — daemon liveness + per-worker health."""
+        return await self._request("GET", "/v1/daemon/status")
+
+    # ID: 4c8d1e5f-6a7b-4894-5678-901234567890
+    async def daemon_start(self) -> dict:
+        """POST /v1/daemon/start — start core-daemon via systemctl."""
+        return await self._request("POST", "/v1/daemon/start", json={})
+
+    # ID: 5d9e2f6a-7b8c-49a5-6789-012345678901
+    async def daemon_stop(self) -> dict:
+        """POST /v1/daemon/stop — schedule core-daemon stop (fire-and-forget)."""
+        return await self._request("POST", "/v1/daemon/stop", json={})

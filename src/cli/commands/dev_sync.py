@@ -1,32 +1,26 @@
 # src/cli/commands/dev_sync.py
 """
-Dev Sync Command - Atomic Action Architecture
+Dev Sync Command — composite fix + db-registry + vectors.
 
-Constitutional workflow that:
-1. Fixes code to be compliant
-2. Syncs clean state to DB and vectors
-
-Replaces the monolithic dev_sync with composable atomic actions.
+Thin client over POST /v1/sync/dev-sync (ADR-058 D2). The composite
+workflow runs server-side; the CLI dispatches, polls the sync_runs
+resource, and renders per-phase outcomes from the result payload.
 """
 
 from __future__ import annotations
 
-from shared.logger import getLogger
-
-
-logger = getLogger(__name__)
+import logging
 from typing import Any
 
 import typer
 from rich.console import Console
 from rich.table import Table
 
-from body.workflows.dev_sync_workflow import DevSyncWorkflow
+from api.cli import CoreApiClient
 from cli.utils import core_command
-from shared.activity_logging import activity_run
-from shared.context import CoreContext
 
 
+logger = logging.getLogger(__name__)
 console = Console()
 dev_sync_app = typer.Typer(
     help="Development synchronization workflows", no_args_is_help=True
@@ -34,7 +28,7 @@ dev_sync_app = typer.Typer(
 
 
 @dev_sync_app.command("sync")
-@core_command(dangerous=True, confirmation=True)
+@core_command(dangerous=True, confirmation=True, requires_context=False)
 # ID: fbe1973c-5d4b-4495-a37c-dd30beed6389
 async def dev_sync_command(
     ctx: typer.Context,
@@ -44,72 +38,82 @@ async def dev_sync_command(
         help="Dry-run by default; use --write to apply changes",
     ),
 ) -> None:
-    """
-    Run dev sync workflow: Fix code, then sync to DB/vectors.
-
-    This is the ONE command you run after editing code to:
-    1. Make code constitutional (format, IDs, headers, docstrings, logging)
-    2. Sync clean code to PostgreSQL knowledge graph
-    3. Sync vectors to Qdrant
+    """Run dev sync workflow via POST /v1/sync/dev-sync.
 
     By default runs in DRY-RUN mode. Use --write to apply changes.
     """
-    core_context: CoreContext = ctx.obj
-    repo_root = core_context.git_service.repo_path
+    _ = ctx
     console.print()
     console.rule("[bold cyan]CORE Dev Sync Workflow[/bold cyan]")
-    logger.info("[bold]Mode:[/bold] %s", "WRITE" if write else "DRY RUN")
-    logger.info("[bold]Repo:[/bold] %s", repo_root)
+    console.print(f"[bold]Mode:[/bold] {'WRITE' if write else 'DRY RUN'}")
     console.print()
-    with activity_run("dev.sync") as run:
-        workflow = DevSyncWorkflow(core_context=core_context, write=write)
-        result = await workflow.execute()
-        _print_workflow_results(result, write=write)
-        if not result.ok:
-            logger.info("\n[red]✗ Workflow completed with failures[/red]")
-            raise typer.Exit(1)
-        logger.info("\n[green]✓ Workflow completed successfully[/green]")
+
+    client = CoreApiClient()
+    initial = await client.sync_dev_sync(write=write)
+    run_id = initial.get("run_id")
+    if not run_id:
+        console.print(f"[red]❌ dev-sync failed to dispatch: {initial}[/red]")
+        raise typer.Exit(1)
+
+    console.print(f"[dim]Dispatched run {run_id} — polling…[/dim]")
+    final = await client.poll_sync_run(run_id)
+    if final.get("status") != "completed":
+        console.print(f"[red]❌ Workflow failed: {final.get('error') or final}[/red]")
+        raise typer.Exit(1)
+
+    result = final.get("result") or {}
+    _print_workflow_results(result, write=write)
+    if not result.get("ok", False):
+        console.print("\n[red]✗ Workflow completed with failures[/red]")
+        raise typer.Exit(1)
+    console.print("\n[green]✓ Workflow completed successfully[/green]")
 
 
-def _print_workflow_results(result: Any, write: bool) -> None:
-    """Print workflow results in a clean table format."""
-    logger.info("\n[bold]Workflow Results[/bold]")
+def _print_workflow_results(result: dict[str, Any], write: bool) -> None:
+    """Render the dev-sync per-phase result payload returned by the API."""
+    console.print("\n[bold]Workflow Results[/bold]")
     console.print()
-    for phase in result.phases:
-        phase_status = "✓" if phase.ok else "✗"
-        logger.info(
-            "[bold]%s %s[/bold] (%ss)", phase_status, phase.name, phase.duration
-        )
+    phases = result.get("phases") or []
+    for phase in phases:
+        phase_ok = phase.get("ok", False)
+        phase_name = phase.get("name", "(unnamed)")
+        phase_duration = phase.get("duration", phase.get("duration_sec", 0))
+        marker = "✓" if phase_ok else "✗"
+        console.print(f"[bold]{marker} {phase_name}[/bold] ({phase_duration}s)")
         table = Table(show_header=True, box=None, padding=(0, 2))
         table.add_column("Action", style="cyan")
         table.add_column("Status", justify="center")
         table.add_column("Duration", justify="right")
         table.add_column("Details", style="dim")
-        for action in phase.actions:
-            status = "[green]✓[/green]" if action.ok else "[red]✗[/red]"
-            duration = f"{action.duration_sec:.2f}s"
-            details = []
-            if action.ok:
-                data = action.data or {}
+        for action in phase.get("actions") or []:
+            ok = action.get("ok", False)
+            status = "[green]✓[/green]" if ok else "[red]✗[/red]"
+            duration = f"{action.get('duration_sec', 0):.2f}s"
+            data = action.get("data") or {}
+            details: list[str] = []
+            if ok:
                 for key, value in data.items():
-                    if key not in ["error", "dry_run", "traceback"]:
-                        details.append(f"{key}={value}")
+                    if key in ("error", "dry_run", "traceback"):
+                        continue
+                    details.append(f"{key}={value}")
             else:
-                error = action.data.get("error", "Unknown error")
-                details.append(f"[red]{error}[/red]")
+                err = data.get("error", "Unknown error")
+                details.append(f"[red]{err}[/red]")
             table.add_row(
-                action.action_id,
+                str(action.get("action_id", "(unknown)")),
                 status,
                 duration,
                 ", ".join(details) if details else "-",
             )
-        logger.info(table)
-        logger.info()
-    logger.info("[bold]Summary[/bold]")
-    logger.info("  Total Actions: %s", result.total_actions)
-    logger.info("  Duration: %ss", result.total_duration)
-    logger.info("  Status: %s", "✓ Success" if result.ok else "✗ Failed")
-    if not result.ok:
-        logger.info("  Failed: %s actions", len(result.failed_actions))
+        console.print(table)
+        console.print()
+
+    console.print("[bold]Summary[/bold]")
+    console.print(f"  Total Actions: {result.get('total_actions', 0)}")
+    console.print(f"  Duration: {result.get('total_duration', 0)}s")
+    console.print(f"  Status: {'✓ Success' if result.get('ok', False) else '✗ Failed'}")
+    failed = result.get("failed_actions") or []
+    if not result.get("ok", False) and failed:
+        console.print(f"  Failed: {len(failed)} actions")
     if not write:
-        logger.info("\n[yellow]DRY RUN - Use --write to apply changes[/yellow]")
+        console.print("\n[yellow]DRY RUN - Use --write to apply changes[/yellow]")
