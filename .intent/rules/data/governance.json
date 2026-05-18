@@ -30,6 +30,13 @@
             "authority": "policy",
             "phase": "audit",
             "enforcement": "reporting"
+        },
+        {
+            "id": "data.contracts.finding_nucleus_conforms",
+            "statement": "The Pydantic class `CheckResult` at `src/body/services/cim/models.py` MUST declare fields that conform to the canonical Finding data contract at `.intent/enforcement/contracts/Finding.json`. The contract declares the minimum-required field nucleus per ADR-056 D3; classes claiming to be a Finding surface must satisfy this nucleus. Drift between the class declaration and the contract is a constitutional violation.",
+            "authority": "policy",
+            "phase": "audit",
+            "enforcement": "reporting"
         }
     ]
 }

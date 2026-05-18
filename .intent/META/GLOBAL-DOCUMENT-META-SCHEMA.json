@@ -19,7 +19,8 @@
         "workflow_definition",
         "workflow_stage",
         "worker",
-        "flow"
+        "flow",
+        "data_contract"
       ]
     },
     "metadata": {

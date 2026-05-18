@@ -22,6 +22,7 @@ logger = getLogger(__name__)
 _BOOTSTRAP_REQUIRED_FILES = (
     "META/intent_tree.schema.json",
     "META/rule_document.schema.json",
+    "META/data_contract.schema.json",
     "META/enums.json",
 )
 
@@ -113,9 +114,11 @@ def validate_intent_tree(intent_root: Path, *, strict: bool = True) -> Validatio
 
     intent_tree_schema_path = intent_root / "META/intent_tree.schema.json"
     rule_document_schema_path = intent_root / "META/rule_document.schema.json"
+    data_contract_schema_path = intent_root / "META/data_contract.schema.json"
 
     intent_tree_schema = _load_json(intent_tree_schema_path)
     rule_document_schema = _load_json(rule_document_schema_path)
+    data_contract_schema = _load_json(data_contract_schema_path)
 
     _check_schema_is_valid(
         intent_tree_schema, intent_tree_schema_path, strict=strict, warnings=warnings
@@ -126,13 +129,22 @@ def validate_intent_tree(intent_root: Path, *, strict: bool = True) -> Validatio
         strict=strict,
         warnings=warnings,
     )
+    _check_schema_is_valid(
+        data_contract_schema,
+        data_contract_schema_path,
+        strict=strict,
+        warnings=warnings,
+    )
 
-    # For now, Bootstrap v0 defines at least one canonical schema for rule documents.
-    # We can extend this later (still deterministically) by allowing additional schemas,
-    # as long as documents explicitly declare them via '$schema'.
+    # Bootstrap v0 schema allowlist. Additional schemas extend this map; documents
+    # must explicitly declare their schema via '$schema'. ADR-056 D1 adds the
+    # data_contract artifact class for runtime data contracts at
+    # .intent/enforcement/contracts/.
     schema_map: dict[str, dict[str, Any]] = {
         "META/rule_document.schema.json": rule_document_schema,
         "./META/rule_document.schema.json": rule_document_schema,
+        "META/data_contract.schema.json": data_contract_schema,
+        "./META/data_contract.schema.json": data_contract_schema,
     }
 
     # -------------------------
