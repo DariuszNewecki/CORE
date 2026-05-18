@@ -15,6 +15,7 @@ from .metadata_checks import normalize_ast, verify_metadata_only_diff
 from .naming_checks import NamingChecks
 from .prompt_model_checks import PromptModelChecks
 from .purity_checks import PurityChecks
+from .schema_conformance_checks import SchemaConformanceChecks
 
 
 __all__ = [
@@ -28,6 +29,7 @@ __all__ = [
     "NamingChecks",
     "PromptModelChecks",
     "PurityChecks",
+    "SchemaConformanceChecks",
     "normalize_ast",
     "verify_metadata_only_diff",
 ]

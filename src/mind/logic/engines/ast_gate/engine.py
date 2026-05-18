@@ -16,6 +16,7 @@ from mind.logic.engines.ast_gate.checks import (
     NamingChecks,
     PromptModelChecks,
     PurityChecks,
+    SchemaConformanceChecks,
 )
 from mind.logic.engines.ast_gate.checks.import_boundary import ImportBoundaryCheck
 from mind.logic.engines.ast_gate.checks.intent_access_check import IntentAccessCheck
@@ -68,6 +69,7 @@ class ASTGateEngine(BaseEngine):
             "direct_intent_access",
             "import_order",
             "module_header",
+            "schema_conformance",
         }
     )
 
@@ -186,6 +188,20 @@ class ASTGateEngine(BaseEngine):
                 IntentAccessCheck.check_direct_intent_access(
                     tree=tree,
                     file_path=file_path,
+                )
+            )
+
+        elif check_type == "schema_conformance":
+            schema_ref = params.get("schema_ref", "")
+            contract_path = (
+                self._paths.intent_root
+                / "enforcement"
+                / "contracts"
+                / f"{schema_ref}.json"
+            )
+            violations.extend(
+                SchemaConformanceChecks.check_schema_contract_fields(
+                    tree, contract_path, str(file_path)
                 )
             )
 
