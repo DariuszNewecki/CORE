@@ -28,6 +28,8 @@ actions:
   file.read: safe
   file.tag_metadata: safe
   fix.atomic_actions: moderate
+  fix.body-ui: dangerous
+  fix.capability_tagging: moderate
   fix.docstrings: moderate
   fix.duplicate_ids: moderate
   fix.format: safe
@@ -38,6 +40,10 @@ actions:
   fix.modularity: moderate
   fix.path_resolver: moderate
   fix.placeholders: safe
+  fix.policy_ids: safe
+  fix.purge_legacy_tags: dangerous
+  fix.settings_access: dangerous
+  fix.vulture_heal: dangerous
   remediate.cognitive_role: moderate
   sync.db: moderate
   sync.vectors.code: moderate
