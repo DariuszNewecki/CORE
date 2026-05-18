@@ -51,6 +51,7 @@ async def drift_cmd(
 
     client = CoreApiClient()
 
+    # ID: 76621d1c-d1a8-4b47-8210-3c969bc138f1
     async def run_guard() -> None:
         console.print("[bold]Drift: guard[/bold]")
         try:
@@ -61,6 +62,7 @@ async def drift_cmd(
             return
         await guard_drift_cmd()
 
+    # ID: 54d8b8dd-0ea6-4199-bcc3-0b68fb356c79
     async def run_symbol_or_vector(api_scope: str) -> None:
         console.print(f"[bold]Drift: {api_scope}[/bold]")
         payload = await client.status_drift(scope=api_scope)
