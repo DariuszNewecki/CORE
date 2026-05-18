@@ -40,6 +40,7 @@ def _draft_row(proposal_id: str) -> AutonomousProposal:
         scope={"files": [], "modules": [], "symbols": [], "policies": []},
         constitutional_constraints={},
         approval_required=False,
+        approval_authority="risk_classification.safe_auto_approval",
         created_at=datetime.now(UTC),
     )
 
