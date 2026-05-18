@@ -12,7 +12,7 @@ import yaml
 
 from shared.logger import getLogger
 
-from .models import CensusDiff, Finding, PolicyEvaluation
+from .models import CensusDiff, CheckResult, PolicyEvaluation
 
 
 logger = getLogger(__name__)
@@ -41,7 +41,7 @@ class PolicyEvaluator:
         # BLOCK: Prohibited writes
         if diff.new_prohibited_writes > 0:
             findings.append(
-                Finding(
+                CheckResult(
                     id="prohibited_writes",
                     severity="BLOCK",
                     rule="write_prohibited_zone_count > 0",
@@ -57,7 +57,7 @@ class PolicyEvaluator:
             subprocess_delta = diff.by_type["subprocess"].delta
             if subprocess_delta > subprocess_threshold:
                 findings.append(
-                    Finding(
+                    CheckResult(
                         id="subprocess_increase",
                         severity="HIGH",
                         rule=f"subprocess delta > +{subprocess_threshold}",
@@ -73,7 +73,7 @@ class PolicyEvaluator:
             network_delta = diff.by_type["network"].delta
             if network_delta > network_threshold:
                 findings.append(
-                    Finding(
+                    CheckResult(
                         id="network_increase",
                         severity="HIGH",
                         rule=f"network delta > +{network_threshold}",
@@ -92,7 +92,7 @@ class PolicyEvaluator:
                 and mind_delta.percent_change > mind_threshold_pct
             ):
                 findings.append(
-                    Finding(
+                    CheckResult(
                         id="mind_layer_drift",
                         severity="MEDIUM",
                         rule=f"mind lane writes delta > +{mind_threshold_pct}%",
@@ -109,7 +109,7 @@ class PolicyEvaluator:
             and diff.write_production.percent_change > prod_threshold_pct
         ):
             findings.append(
-                Finding(
+                CheckResult(
                     id="production_writes_increase",
                     severity="MEDIUM",
                     rule=f"production writes delta > +{prod_threshold_pct}%",
@@ -124,7 +124,7 @@ class PolicyEvaluator:
         for hotspot in diff.hotspots_added:
             if hotspot.new_count and hotspot.new_count > hotspot_threshold:
                 findings.append(
-                    Finding(
+                    CheckResult(
                         id=f"hotspot_{hotspot.path}",
                         severity="LOW",
                         rule=f"new hotspot mutation_count > {hotspot_threshold}",

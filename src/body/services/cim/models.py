@@ -276,8 +276,14 @@ class CensusDiff(BaseModel):
 
 
 # ID: 71cb6841-ec4a-4394-9348-95bf084416e7
-class Finding(BaseModel):
-    """Policy evaluation result."""
+class CheckResult(BaseModel):
+    """Policy evaluation result.
+
+    Renamed from `Finding` per ADR-056 D2 (2026-05-18): the name `Finding`
+    is reserved for the constitutional blackboard governance entity. This
+    class represents engine output — the result of evaluating one rule —
+    not the consequence-chain signal that the blackboard carries.
+    """
 
     id: str
     severity: Literal["BLOCK", "HIGH", "MEDIUM", "LOW", "INFO"]
@@ -291,7 +297,7 @@ class Finding(BaseModel):
 class PolicyEvaluation(BaseModel):
     """Result of evaluating diff against thresholds."""
 
-    findings: list[Finding] = Field(default_factory=list)
+    findings: list[CheckResult] = Field(default_factory=list)
     blocking_count: int = 0
     high_count: int = 0
     medium_count: int = 0
