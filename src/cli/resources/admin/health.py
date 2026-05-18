@@ -1,8 +1,8 @@
 # src/cli/resources/admin/health.py
-from shared.logger import getLogger
+import logging
 
 
-logger = getLogger(__name__)
+logger = logging.getLogger(__name__)
 import typer
 from rich.console import Console
 from rich.table import Table

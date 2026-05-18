@@ -7,6 +7,8 @@ Semantic search in vector collections.
 
 from __future__ import annotations
 
+import logging
+
 import typer
 from rich.console import Console
 
@@ -15,12 +17,11 @@ from shared.context import CoreContext
 from shared.infrastructure.clients.qdrant_client import QdrantService
 from shared.infrastructure.vector.cognitive_adapter import CognitiveEmbedderAdapter
 from shared.infrastructure.vector.vector_index_service import VectorIndexService
-from shared.logger import getLogger
 
 from .hub import app
 
 
-logger = getLogger(__name__)
+logger = logging.getLogger(__name__)
 console = Console()
 
 

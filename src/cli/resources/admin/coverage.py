@@ -6,6 +6,8 @@ Analyzes the gap between declared laws and physical enforcement.
 
 from __future__ import annotations
 
+import logging
+
 import typer
 from rich.console import Console
 from rich.panel import Panel
@@ -13,13 +15,12 @@ from rich.table import Table
 
 from cli.logic.governance.traceability_service import GovernanceTraceabilityService
 from cli.utils import core_command
-from shared.logger import getLogger
 from shared.models.command_meta import CommandBehavior, CommandLayer, command_meta
 
 from .hub import app
 
 
-logger = getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 
 console = Console()

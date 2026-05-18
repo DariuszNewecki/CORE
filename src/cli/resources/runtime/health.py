@@ -19,6 +19,7 @@ Also provides a five-panel governor dashboard:
 
 from __future__ import annotations
 
+import logging
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
@@ -33,11 +34,10 @@ from body.services.worker_registry_service import WorkerRegistryService
 from cli.utils import async_command
 from shared.infrastructure.database.session_manager import get_session
 from shared.infrastructure.intent.operational_config import load_operational_config
-from shared.logger import getLogger
 from shared.workers.schedule import load_worker_schedule_state
 
 
-logger = getLogger(__name__)
+logger = logging.getLogger(__name__)
 console = Console()
 
 _CFG_H = load_operational_config().health

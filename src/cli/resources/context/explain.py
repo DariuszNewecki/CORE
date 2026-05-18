@@ -16,6 +16,7 @@ USAGE:
 
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 from typing import Any
 
@@ -26,13 +27,12 @@ from body.infrastructure.bootstrap import create_core_context
 from body.services.service_registry import service_registry
 from cli.utils import core_command
 from shared.infrastructure.storage.file_handler import FileHandler
-from shared.logger import getLogger
 from shared.models.command_meta import CommandBehavior, CommandLayer, command_meta
 
 from .hub import app
 
 
-logger = getLogger(__name__)
+logger = logging.getLogger(__name__)
 console = Console()
 
 

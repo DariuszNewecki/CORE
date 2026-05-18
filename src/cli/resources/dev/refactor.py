@@ -9,6 +9,8 @@ entry point for letting CORE fix its own code.
 
 from __future__ import annotations
 
+import logging
+
 import typer
 from dotenv import load_dotenv
 from rich.console import Console
@@ -17,13 +19,12 @@ from cli.utils import core_command
 from shared.context import CoreContext
 from shared.infrastructure.config_service import ConfigService
 from shared.infrastructure.database.session_manager import get_session
-from shared.logger import getLogger
 from shared.models.command_meta import CommandBehavior, CommandLayer, command_meta
 
 from .hub import app
 
 
-logger = getLogger(__name__)
+logger = logging.getLogger(__name__)
 console = Console()
 
 

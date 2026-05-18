@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import json
+import logging
 
 import typer
 from rich.console import Console
@@ -11,12 +12,11 @@ from rich.table import Table
 
 from cli.utils.decorators import core_command
 from shared.infrastructure.database.session_manager import get_session
-from shared.logger import getLogger
 
 from .run import workers_app
 
 
-logger = getLogger(__name__)
+logger = logging.getLogger(__name__)
 console = Console()
 
 

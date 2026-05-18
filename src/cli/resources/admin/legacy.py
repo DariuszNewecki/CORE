@@ -14,10 +14,10 @@ Constitutional Alignment:
 
 from __future__ import annotations
 
-from shared.logger import getLogger
+import logging
 
 
-logger = getLogger(__name__)
+logger = logging.getLogger(__name__)
 from pathlib import Path
 
 import typer

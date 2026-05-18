@@ -12,6 +12,7 @@ Usage:
 from __future__ import annotations
 
 import asyncio
+import logging
 
 import typer
 from rich.console import Console
@@ -21,12 +22,11 @@ from sqlalchemy import text
 from body.services.service_registry import service_registry
 from shared.infrastructure.database.session_manager import get_session
 from shared.infrastructure.intent.operational_config import load_operational_config
-from shared.logger import getLogger
 
 from .hub import app
 
 
-logger = getLogger(__name__)
+logger = logging.getLogger(__name__)
 console = Console()
 
 _CFG = load_operational_config().misc

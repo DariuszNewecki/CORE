@@ -1,10 +1,10 @@
 # src/cli/resources/symbols/tag.py
 from __future__ import annotations
 
-from shared.logger import getLogger
+import logging
 
 
-logger = getLogger(__name__)
+logger = logging.getLogger(__name__)
 import typer
 from rich.console import Console
 

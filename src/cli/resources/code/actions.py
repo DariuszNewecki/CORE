@@ -1,8 +1,8 @@
 # src/cli/resources/code/actions.py
-from shared.logger import getLogger
+import logging
 
 
-logger = getLogger(__name__)
+logger = logging.getLogger(__name__)
 from rich.console import Console
 from rich.table import Table
 

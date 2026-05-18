@@ -9,6 +9,7 @@ Builds doctrine-aligned context packets and renders them for human / LAG use.
 from __future__ import annotations
 
 import json
+import logging
 from pathlib import Path
 from typing import Any
 
@@ -25,13 +26,12 @@ from shared.infrastructure.intent.task_type_phases import (
     resolve_phase,
 )
 from shared.infrastructure.storage.file_handler import FileHandler
-from shared.logger import getLogger
 from shared.models.command_meta import CommandBehavior, CommandLayer, command_meta
 
 from .hub import app
 
 
-logger = getLogger(__name__)
+logger = logging.getLogger(__name__)
 console = Console()
 
 # ADR-004: Typer --task autocompletion and help binding. The choice list

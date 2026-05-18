@@ -10,6 +10,7 @@ Usage:
 
 from __future__ import annotations
 
+import logging
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -18,10 +19,9 @@ from rich.console import Console
 from rich.table import Table
 
 from shared.infrastructure.intent.operational_config import load_operational_config
-from shared.logger import getLogger
 
 
-logger = getLogger(__name__)
+logger = logging.getLogger(__name__)
 console = Console()
 _CACHE_DIR = "work/context_cache"
 _CFG = load_operational_config().context

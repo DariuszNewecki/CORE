@@ -6,10 +6,10 @@ Constitutional compliance: agent_governance, data_governance, operations.
 
 from __future__ import annotations
 
-from shared.logger import getLogger
+import logging
 
 
-logger = getLogger(__name__)
+logger = logging.getLogger(__name__)
 import time
 
 import typer

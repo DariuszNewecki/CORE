@@ -1,8 +1,8 @@
 # src/cli/resources/admin/self_check.py
-from shared.logger import getLogger
+import logging
 
 
-logger = getLogger(__name__)
+logger = logging.getLogger(__name__)
 from pathlib import Path
 
 import typer

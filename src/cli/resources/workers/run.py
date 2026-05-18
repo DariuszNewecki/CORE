@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 from typing import Any
 
@@ -13,10 +14,9 @@ from cli.utils.decorators import core_command
 from shared.config import settings
 from shared.context import CoreContext
 from shared.infrastructure.database.session_manager import get_session
-from shared.logger import getLogger
 
 
-logger = getLogger(__name__)
+logger = logging.getLogger(__name__)
 workers_app = typer.Typer(
     help="Constitutional worker management.", no_args_is_help=True
 )

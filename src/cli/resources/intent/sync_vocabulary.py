@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import logging
 import re
 from datetime import UTC, datetime
 from pathlib import Path
@@ -25,13 +26,12 @@ from shared.infrastructure.intent.vocabulary_projection import (
     load_vocabulary_projection,
     locate_canonical_section,
 )
-from shared.logger import getLogger
 from shared.models.command_meta import CommandBehavior, CommandLayer, command_meta
 
 from .hub import app
 
 
-logger = getLogger(__name__)
+logger = logging.getLogger(__name__)
 console = Console()
 
 REQUIRED_COLUMNS = ("term", "definition", "not", "authoritative_paper")

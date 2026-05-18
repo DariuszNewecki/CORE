@@ -22,6 +22,7 @@ Usage:
 
 from __future__ import annotations
 
+import logging
 import uuid
 from pathlib import Path
 from typing import Any
@@ -32,12 +33,11 @@ from rich.console import Console
 from cli.utils.decorators import core_command
 from shared.context import CoreContext
 from shared.infrastructure.database.session_manager import get_session
-from shared.logger import getLogger
 
 from .run import workers_app
 
 
-logger = getLogger(__name__)
+logger = logging.getLogger(__name__)
 console = Console()
 
 

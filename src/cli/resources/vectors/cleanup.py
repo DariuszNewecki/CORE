@@ -7,17 +7,18 @@ Removes orphaned vectors and synchronizes with PostgreSQL.
 
 from __future__ import annotations
 
+import logging
+
 import typer
 from rich.console import Console
 
 from cli.utils import core_command
 from shared.infrastructure.database.session_manager import get_session
-from shared.logger import getLogger
 
 from .hub import app
 
 
-logger = getLogger(__name__)
+logger = logging.getLogger(__name__)
 console = Console()
 
 
