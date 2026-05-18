@@ -2,8 +2,8 @@
 """
 Code quality and system health commands.
 
-Handles lint, tests, and system-wide health checks.
-Refactored to support async test execution and ActionResult reporting.
+Thin clients over the /v1/quality namespace (ADR-055 D3). lint and
+tests are async (subprocess-backed); system bundles lint+tests+audit.
 """
 
 from __future__ import annotations
@@ -11,43 +11,50 @@ from __future__ import annotations
 import typer
 from rich.console import Console
 
+from api.cli import CoreApiClient
 from cli.utils import core_command
-from mind.enforcement.audit import lint, test_system
-from shared.action_types import ActionImpact, ActionResult
-from shared.atomic_action import atomic_action
 
 
 console = Console()
 
 
+async def _poll_quality(client: CoreApiClient, label: str, initial: dict) -> dict:
+    """Poll an async /quality dispatch to terminal status, raising on failure."""
+    run_id = initial.get("run_id")
+    if not run_id:
+        console.print(f"[red]{label} failed to dispatch: {initial}[/red]")
+        raise typer.Exit(1)
+    final = await client._poll_run(run_id)
+    if final.get("status") != "completed":
+        console.print(f"[red]{label} failed: {final.get('error') or final}[/red]")
+        raise typer.Exit(1)
+    return final
+
+
 @core_command(dangerous=False)
 # ID: 23a0948a-570d-442d-b19a-ebd3af4f1c2d
-def lint_cmd(ctx: typer.Context) -> None:
+async def lint_cmd(ctx: typer.Context) -> None:
     """
     Check code formatting and quality using Black and Ruff.
     """
     _ = ctx
-    lint()
+    client = CoreApiClient()
+    initial = await client.quality_lint()
+    await _poll_quality(client, "quality.lint", initial)
+    console.print("[green]✓ lint completed.[/green]")
 
 
 @core_command(dangerous=False)
-@atomic_action(
-    action_id="tests.cmd",
-    intent="Atomic action for tests_cmd",
-    impact=ActionImpact.WRITE_CODE,
-    policies=["atomic_actions"],
-)
 # ID: 3e9af575-9c8b-483d-b63a-477e5c6b0a02
-async def tests_cmd(ctx: typer.Context) -> ActionResult:
+async def tests_cmd(ctx: typer.Context) -> None:
     """
     Run the project test suite via pytest.
-
-    Returns an ActionResult which is automatically formatted by the
-    Constitutional CLI Framework.
     """
     _ = ctx
-    # Await the now-async test runner
-    return await test_system()
+    client = CoreApiClient()
+    initial = await client.quality_tests()
+    await _poll_quality(client, "quality.tests", initial)
+    console.print("[green]✓ tests completed.[/green]")
 
 
 @core_command(dangerous=False)
@@ -56,15 +63,9 @@ async def system_cmd(ctx: typer.Context) -> None:
     """
     Run all system health checks: Lint, Tests, and Constitutional Audit.
     """
-    # Import here to avoid circular import
-    from cli.commands.check.audit import audit_cmd
-
-    console.rule("[bold cyan]1. Code Quality (Lint)[/bold cyan]")
-    lint()
-
-    console.rule("[bold cyan]2. System Integrity (Tests)[/bold cyan]")
-    # Await the async test runner
-    await test_system()
-
-    console.rule("[bold cyan]3. Constitutional Compliance (Audit)[/bold cyan]")
-    await audit_cmd(ctx)
+    _ = ctx
+    client = CoreApiClient()
+    console.rule("[bold cyan]System Health Bundle (lint + tests + audit)[/bold cyan]")
+    initial = await client.quality_system()
+    await _poll_quality(client, "quality.system", initial)
+    console.print("[green]✓ system health bundle completed.[/green]")

@@ -2,35 +2,35 @@
 """
 Diagnostic and contract verification commands.
 
-Policy coverage, body UI contracts, and other system diagnostics.
+Thin clients over /v1/quality/* (ADR-055 D6 Batch C3). Policy coverage
+and Body UI contract checks both execute server-side; this module
+renders the responses.
 """
 
 from __future__ import annotations
 
-from shared.logger import getLogger
+import logging
 
-
-logger = getLogger(__name__)
 import typer
 from rich.console import Console
 
-from cli.logic.body_contracts_checker import check_body_contracts
+from api.cli import CoreApiClient
 from cli.logic.diagnostics_policy import policy_coverage
 from cli.utils import core_command
-from shared.action_types import ActionResult
 
 
+logger = logging.getLogger(__name__)
 console = Console()
 
 
 @core_command(dangerous=False)
 # ID: 2d3aad66-4285-48c7-b65d-f32ab7f86a01
-def diagnostics_cmd(ctx: typer.Context) -> None:
+async def diagnostics_cmd(ctx: typer.Context) -> None:
     """
     Audit the constitution for policy coverage and structural integrity.
     """
     _ = ctx
-    policy_coverage()
+    await policy_coverage()
 
 
 @core_command(dangerous=False)
@@ -41,29 +41,30 @@ async def check_body_ui_cmd(ctx: typer.Context) -> None:
 
     Body modules must be HEADLESS.
     """
-    core_context = ctx.obj
-    logger.info("[bold cyan]🔍 Checking Body UI Contracts...[/bold cyan]")
-    result: ActionResult = await check_body_contracts(
-        repo_root=core_context.git_service.repo_path
+    _ = ctx
+    console.print("[bold cyan]🔍 Checking Body UI Contracts...[/bold cyan]")
+    client = CoreApiClient()
+    result = await client.quality_body_ui()
+    if result.get("status") == "ok":
+        console.print("[green]✅ Body contracts compliant.[/green]")
+        return
+
+    violations = result.get("violations", [])
+    console.print(f"\n[red]❌ Found {len(violations)} contract violations:[/red]\n")
+    by_file: dict[str, list[dict]] = {}
+    for v in violations:
+        path = v.get("file", "unknown")
+        by_file.setdefault(path, []).append(v)
+    for path, file_violations in by_file.items():
+        console.print(f"[bold]{path}[/bold]:")
+        for v in file_violations:
+            rule = v.get("rule_id", "unknown")
+            msg = v.get("message", "")
+            line = v.get("line")
+            loc = f"line {line}" if line else "general"
+            console.print(f"  - [{rule}] {msg} ({loc})")
+        console.print()
+    console.print(
+        "[yellow]💡 Run 'core-admin fix body-ui --write' to auto-fix.[/yellow]"
     )
-    if not result.ok:
-        violations = result.data.get("violations", [])
-        logger.info("\n[red]❌ Found %s contract violations:[/red]\n", len(violations))
-        by_file: dict[str, list[dict]] = {}
-        for v in violations:
-            path = v.get("file", "unknown")
-            by_file.setdefault(path, []).append(v)
-        for path, file_violations in by_file.items():
-            logger.info("[bold]%s[/bold]:", path)
-            for v in file_violations:
-                rule = v.get("rule_id", "unknown")
-                msg = v.get("message", "")
-                line = v.get("line")
-                loc = f"line {line}" if line else "general"
-                logger.info("  - [%s] %s (%s)", rule, msg, loc)
-            logger.info()
-        logger.info(
-            "[yellow]💡 Run 'core-admin fix body-ui --write' to auto-fix.[/yellow]"
-        )
-        raise typer.Exit(1)
-    logger.info("[green]✅ Body contracts compliant.[/green]")
+    raise typer.Exit(1)
