@@ -74,9 +74,25 @@ architecture is correct; the gap is declaration, not structure.
 
 ### D5 — `BlackboardEntry.entry_type` values are governed vocabulary
 
-Valid entry type values are moved into `.intent/META/enums.json` and
-covered by the existing vocabulary canonical store rule. Any value
-absent from the governed enum is a constitutional violation.
+Valid entry type values are declared in `.intent/META/enums.json` under
+the key `blackboard_entry_type`. The enforcement pattern for `enums.json`
+is `$ref` from JSON Schemas: governance YAML artifacts that consume an
+enum reference it via `./enums.json#/definitions/<name>`, and the
+artifact-gate engine constrains values during schema validation
+(precedent: `phase`, `worker_status`, `artifact_status` enforced via
+`workflow_stage.schema.json` and `worker.schema.json`).
+
+Programmatic enforcement of enum values appearing as string literals
+in `src/` — e.g. a worker posting `entry_type="violation"` — requires
+the schema-conformance check class introduced in D6 plus Wave 1 schemas
+that bind specific Python class fields to the enum. Until those land,
+the enum is declared but not statically enforced against Python source.
+
+Note: an earlier draft of this decision referred to "the existing
+vocabulary canonical store rule" as the enforcement mechanism. That
+phrasing was inaccurate — `governance.vocabulary_canonical_store`
+governs the term vocabulary at `CORE-Vocabulary.md` ↔ `vocabulary.json`,
+not the enum vocabulary at `enums.json`. Corrected 2026-05-18.
 
 ### D6 — Schema conformance is enforced via the AST gate
 

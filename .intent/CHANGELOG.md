@@ -874,6 +874,45 @@ Files: `.specs/decisions/ADR-056-runtime-data-contracts.md`,
 
 ---
 
+## ADR-056 — 2026-05-18 (D5 closure)
+
+ADR-056 D5 complete. Ten enum definitions added to
+`.intent/META/enums.json`: `blackboard_entry_type`, `blackboard_subject`,
+`action_impact`, `action_category`, `refusal_type`, `step_kind`,
+`task_type`, `audit_severity`, `risk_tier`, `approval_type`. The
+existing `proposal_status` enum extended with `rejected` to reconcile
+with the Python `ProposalStatus` enum (governor decision: REJECTED is
+the governor-veto outcome and belongs in the constitutional vocabulary).
+
+Four reconciliation decisions captured in enum description text:
+`risk_tier` kept separate from `proposal_risk` (validator input vs
+proposal self-assessment); `approval_type` kept separate from
+`proposal_approval_authority` (gating mechanism vs post-fact record);
+`task_type` deferred vs ADR-003 `ExecutionTask.task_type` vocabulary;
+`audit_severity` deferred vs CIM Pydantic Finding BLOCK/HIGH/MEDIUM/LOW/INFO.
+
+ADR-056 D5 prose corrected: the original draft referenced "the existing
+vocabulary canonical store rule" as the enforcement mechanism. That
+phrasing was inaccurate — `governance.vocabulary_canonical_store`
+governs term vocabulary at `CORE-Vocabulary.md` ↔ `vocabulary.json`,
+not enum vocabulary at `enums.json`. The actual enforcement pattern is
+`$ref` from JSON Schemas (precedent: `phase`, `worker_status`,
+`artifact_status`). Python-source enum enforcement deferred to D6
+SchemaConformanceChecks + Wave 1 schema authoring.
+
+Inventory erratum: `blackboard_entry_status` has 9 canonical values
+(ADR-045 + #263), not the 4 originally listed.
+
+Commits: `19dcbe5c` (10 enums), `b6531e41` (proposal_status += rejected),
+`4e01beae` (inventory erratum), and this commit (ADR text correction +
+D5 closure).
+
+Files: `.intent/META/enums.json`,
+`.specs/decisions/ADR-056-runtime-data-contracts.md`,
+`.specs/planning/data-contracts-inventory.md`.
+
+---
+
 ## ADR-057 — 2026-05-18 (artifact + Phase 3 implementation)
 
 API Phase 3: `/coverage`, `/refactor`, `/inspect`, and deferred
