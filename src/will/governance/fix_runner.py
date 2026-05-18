@@ -184,12 +184,17 @@ async def run_and_persist_fix(
     fix_id: str,
     target_files: list[str] | None,
     write: bool,
+    params: dict[str, Any] | None = None,
 ) -> None:
     """Execute an atomic fix and persist the result on the fix_runs row.
 
     The row has already been INSERTed by the route handler with
     status='pending' — this function transitions it through executing
     and into completed / failed.
+
+    `params` carries action-specific kwargs (e.g. fix.docstrings's
+    `limit`) — merged into the execute() call alongside target_files.
+    Caller-supplied params take precedence on key collision.
 
     Errors are caught and recorded on the row; this function never
     raises into the background task scheduler.
@@ -198,10 +203,12 @@ async def run_and_persist_fix(
 
     try:
         executor = ActionExecutor(context)
-        params: dict[str, Any] = {}
+        exec_kwargs: dict[str, Any] = {}
         if target_files is not None:
-            params["target_files"] = target_files
-        action_result = await executor.execute(fix_id, write=write, **params)
+            exec_kwargs["target_files"] = target_files
+        if params:
+            exec_kwargs.update(params)
+        action_result = await executor.execute(fix_id, write=write, **exec_kwargs)
     except Exception as exc:
         logger.exception("fix_runner: %s raised for %s", fix_id, run_id)
         await _update_fix_run_status(

@@ -507,6 +507,7 @@ async def action_fix_docstrings(
     core_context: CoreContext,
     file_path: str | None = None,
     write: bool = False,
+    limit: int = 0,
     **kwargs,
 ) -> ActionResult:
     """Generate and inject missing docstrings using the Coder LLM role.
@@ -518,7 +519,9 @@ async def action_fix_docstrings(
        Only symbols inside that file are evaluated. Mirrors the pattern
        used by ``action_format_code`` and ``action_fix_modularity``.
     2. Sweep (legacy CLI): no ``file_path`` supplied. The action walks every
-       symbol in the knowledge graph, as before.
+       symbol in the knowledge graph, as before. ``limit`` caps the symbol
+       count in sweep mode; 0 means unlimited and is ignored when
+       ``file_path`` is set (matches body's fix_docstrings contract).
 
     Before this change the action discarded ``**kwargs``, so every targeted
     proposal silently degraded to a full-tree sweep — one proposal hammered
@@ -528,18 +531,25 @@ async def action_fix_docstrings(
     from body.self_healing.docstring_service import fix_docstrings
 
     try:
-        await fix_docstrings(context=core_context, write=write, file_path=file_path)
+        await fix_docstrings(
+            context=core_context, write=write, limit=limit, file_path=file_path
+        )
     except Exception as e:
         return ActionResult(
             action_id="fix.docstrings",
             ok=False,
-            data={"error": str(e), "write": write, "file_path": file_path},
+            data={
+                "error": str(e),
+                "write": write,
+                "file_path": file_path,
+                "limit": limit,
+            },
             duration_sec=time.time() - start,
         )
     return ActionResult(
         action_id="fix.docstrings",
         ok=True,
-        data={"write": write, "file_path": file_path},
+        data={"write": write, "file_path": file_path, "limit": limit},
         duration_sec=time.time() - start,
     )
 

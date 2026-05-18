@@ -28,7 +28,7 @@ CONSTITUTIONAL:
 from __future__ import annotations
 
 import json
-from typing import Literal
+from typing import Any, Literal
 from uuid import UUID
 
 from fastapi import (
@@ -40,7 +40,7 @@ from fastapi import (
     Request,
     Response,
 )
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -76,11 +76,15 @@ class RunFixRequest(BaseModel):
 
     Empty body is valid and equivalent to a default-constructed model
     (no target file restriction, dry-run).
+
+    `params` carries action-specific kwargs (e.g. fix.docstrings's
+    `limit`); forwarded as **kwargs to ActionExecutor.execute.
     """
 
     target_files: list[str] | None = None
     write: bool = False
     requested_by: str = "api"
+    params: dict[str, Any] = Field(default_factory=dict)
 
 
 # ID: b0666d78-da54-4df4-810d-770ea3011eec
@@ -162,6 +166,7 @@ async def run_fix(
                 fix_id=fix_id,
                 target_files=payload.target_files,
                 write=payload.write,
+                params=payload.params,
             )
 
     background_tasks.add_task(drive_fix)

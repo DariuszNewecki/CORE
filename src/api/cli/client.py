@@ -172,14 +172,20 @@ class CoreApiClient:
         fix_id: str,
         target_files: list[str] | None = None,
         write: bool = False,
+        params: dict[str, Any] | None = None,
     ) -> dict:
-        """POST /v1/fix/run/{fix_id} — dispatch a registered fix action."""
+        """POST /v1/fix/run/{fix_id} — dispatch a registered fix action.
+
+        `params` carries action-specific kwargs (e.g. fix.docstrings's
+        `limit`); forwarded to ActionExecutor as **kwargs.
+        """
         return await self._request(
             "POST",
             f"/v1/fix/run/{fix_id}",
             json={
                 "target_files": target_files or [],
                 "write": write,
+                "params": params or {},
             },
         )
 
