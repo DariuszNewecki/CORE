@@ -326,6 +326,7 @@ async def run_and_persist_modularity(
     *,
     run_id: UUID,
     write: bool,
+    params: dict[str, Any] | None = None,
 ) -> None:
     """Execute the modularity remediation cycle and persist the result.
 
@@ -333,6 +334,9 @@ async def run_and_persist_modularity(
     no `flow.modularity` declaration, so this path runs directly against
     the closed-loop service that the CLI uses (see
     `cli/commands/fix/modularity.py`).
+
+    `params` carries operation-specific kwargs (e.g. `min_score`,
+    `limit`); forwarded as **kwargs to service.remediate_batch.
 
     The fix_runs row has already been INSERTed by the route handler with
     status='pending', kind='modularity', fix_id=NULL. This function
@@ -347,7 +351,7 @@ async def run_and_persist_modularity(
 
     try:
         service = ModularityRemediationService(context)
-        results = await service.remediate_batch(write=write)
+        results = await service.remediate_batch(write=write, **(params or {}))
     except Exception as exc:
         logger.exception("fix_runner: modularity remediation raised for %s", run_id)
         await _update_fix_run_status(

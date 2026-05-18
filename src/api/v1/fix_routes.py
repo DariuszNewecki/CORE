@@ -89,10 +89,17 @@ class RunFixRequest(BaseModel):
 
 # ID: b0666d78-da54-4df4-810d-770ea3011eec
 class RunFlowRequest(BaseModel):
-    """Body for POST /fix/all and POST /fix/modularity."""
+    """Body for POST /fix/all and POST /fix/modularity.
+
+    `params` carries operation-specific kwargs (e.g. /fix/modularity's
+    `min_score` and `limit`); forwarded as **kwargs by route handlers
+    that honor them. /fix/all currently ignores params — caller can
+    pass them but they are unused.
+    """
 
     write: bool = False
     requested_by: str = "api"
+    params: dict[str, Any] = Field(default_factory=dict)
 
 
 # ID: a3575778-f33a-4ed2-a92d-d29451e912dc
@@ -313,6 +320,7 @@ async def run_fix_modularity(
                 bg_session,
                 run_id=run_id,
                 write=payload.write,
+                params=payload.params,
             )
 
     background_tasks.add_task(drive_modularity)

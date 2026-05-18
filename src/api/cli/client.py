@@ -199,12 +199,21 @@ class CoreApiClient:
         )
 
     # ID: 22c3d638-ed25-40a0-8aec-52c569e5e776
-    async def fix_modularity(self, write: bool = False) -> dict:
-        """POST /v1/fix/modularity — trigger modularity remediation."""
+    async def fix_modularity(
+        self,
+        write: bool = False,
+        params: dict[str, Any] | None = None,
+    ) -> dict:
+        """POST /v1/fix/modularity — trigger modularity remediation.
+
+        `params` carries kwargs forwarded to
+        will.self_healing.ModularityRemediationService.remediate_batch
+        (e.g. `min_score`, `limit`).
+        """
         return await self._request(
             "POST",
             "/v1/fix/modularity",
-            json={"write": write},
+            json={"write": write, "params": params or {}},
         )
 
     # ID: 4dcdaddd-1cd1-4561-9d1b-6e76637bada6
