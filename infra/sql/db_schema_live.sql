@@ -803,6 +803,49 @@ ALTER TABLE core.audit_remediation_runs OWNER TO core_db;
 
 
 --
+-- Name: census_runs; Type: TABLE; Schema: core; Owner: core_db
+--
+
+CREATE TABLE core.census_runs (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    snapshot boolean DEFAULT false NOT NULL,
+    baseline_name text,
+    status text DEFAULT 'pending'::text NOT NULL,
+    requested_by text NOT NULL,
+    requested_at timestamp with time zone DEFAULT now() NOT NULL,
+    started_at timestamp with time zone,
+    finished_at timestamp with time zone,
+    result jsonb,
+    error text
+);
+
+
+ALTER TABLE core.census_runs OWNER TO core_db;
+
+
+--
+-- Name: sync_runs; Type: TABLE; Schema: core; Owner: core_db
+--
+
+CREATE TABLE core.sync_runs (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    sync_type text NOT NULL,
+    write boolean DEFAULT false NOT NULL,
+    target text,
+    status text DEFAULT 'pending'::text NOT NULL,
+    requested_by text NOT NULL,
+    requested_at timestamp with time zone DEFAULT now() NOT NULL,
+    started_at timestamp with time zone,
+    finished_at timestamp with time zone,
+    result jsonb,
+    error text
+);
+
+
+ALTER TABLE core.sync_runs OWNER TO core_db;
+
+
+--
 -- Name: autonomous_proposals; Type: TABLE; Schema: core; Owner: core_db
 --
 
@@ -2881,6 +2924,22 @@ ALTER TABLE ONLY core.audit_remediation_runs
 
 
 --
+-- Name: census_runs census_runs_pkey; Type: CONSTRAINT; Schema: core; Owner: core_db
+--
+
+ALTER TABLE ONLY core.census_runs
+    ADD CONSTRAINT census_runs_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: sync_runs sync_runs_pkey; Type: CONSTRAINT; Schema: core; Owner: core_db
+--
+
+ALTER TABLE ONLY core.sync_runs
+    ADD CONSTRAINT sync_runs_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: autonomous_proposals autonomous_proposals_pkey; Type: CONSTRAINT; Schema: core; Owner: core_db
 --
 
@@ -3547,6 +3606,48 @@ CREATE INDEX audit_remediation_runs_status_idx ON core.audit_remediation_runs US
 --
 
 CREATE INDEX audit_remediation_runs_audit_run_id_idx ON core.audit_remediation_runs USING btree (audit_run_id);
+
+
+--
+-- Name: census_runs_requested_at_idx; Type: INDEX; Schema: core; Owner: core_db
+--
+
+CREATE INDEX census_runs_requested_at_idx ON core.census_runs USING btree (requested_at DESC);
+
+
+--
+-- Name: census_runs_status_idx; Type: INDEX; Schema: core; Owner: core_db
+--
+
+CREATE INDEX census_runs_status_idx ON core.census_runs USING btree (status);
+
+
+--
+-- Name: census_runs_baseline_name_idx; Type: INDEX; Schema: core; Owner: core_db
+--
+
+CREATE INDEX census_runs_baseline_name_idx ON core.census_runs USING btree (baseline_name) WHERE (baseline_name IS NOT NULL);
+
+
+--
+-- Name: sync_runs_requested_at_idx; Type: INDEX; Schema: core; Owner: core_db
+--
+
+CREATE INDEX sync_runs_requested_at_idx ON core.sync_runs USING btree (requested_at DESC);
+
+
+--
+-- Name: sync_runs_status_idx; Type: INDEX; Schema: core; Owner: core_db
+--
+
+CREATE INDEX sync_runs_status_idx ON core.sync_runs USING btree (status);
+
+
+--
+-- Name: sync_runs_sync_type_idx; Type: INDEX; Schema: core; Owner: core_db
+--
+
+CREATE INDEX sync_runs_sync_type_idx ON core.sync_runs USING btree (sync_type);
 
 
 --
@@ -4934,6 +5035,20 @@ GRANT ALL ON TABLE core.refactor_runs TO core;
 --
 
 GRANT ALL ON TABLE core.audit_remediation_runs TO core;
+
+
+--
+-- Name: TABLE census_runs; Type: ACL; Schema: core; Owner: core_db
+--
+
+GRANT ALL ON TABLE core.census_runs TO core;
+
+
+--
+-- Name: TABLE sync_runs; Type: ACL; Schema: core; Owner: core_db
+--
+
+GRANT ALL ON TABLE core.sync_runs TO core;
 
 
 --

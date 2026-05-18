@@ -126,6 +126,45 @@ class AuditRemediationRun(Base):
     error = Column(Text)
 
 
+# ID: 5b8a2e9c-3d1f-4a7b-8c0d-6e9f1a2b3c4e
+class CensusRun(Base):
+    __tablename__: ClassVar[str] = "census_runs"
+    __table_args__: ClassVar[dict] = {"schema": "core"}
+
+    id = Column(pgUUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    snapshot = Column(Boolean, nullable=False, server_default="false")
+    baseline_name = Column(Text)
+    status = Column(Text, nullable=False, server_default="pending")
+    requested_by = Column(Text, nullable=False)
+    requested_at = Column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+    started_at = Column(DateTime(timezone=True))
+    finished_at = Column(DateTime(timezone=True))
+    result = Column(JSONB)
+    error = Column(Text)
+
+
+# ID: 6c9b3f0d-4e2a-4b8c-9d1e-7f0a2b3c4d5f
+class SyncRun(Base):
+    __tablename__: ClassVar[str] = "sync_runs"
+    __table_args__: ClassVar[dict] = {"schema": "core"}
+
+    id = Column(pgUUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    sync_type = Column(Text, nullable=False)
+    write = Column(Boolean, nullable=False, server_default="false")
+    target = Column(Text)
+    status = Column(Text, nullable=False, server_default="pending")
+    requested_by = Column(Text, nullable=False)
+    requested_at = Column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+    started_at = Column(DateTime(timezone=True))
+    finished_at = Column(DateTime(timezone=True))
+    result = Column(JSONB)
+    error = Column(Text)
+
+
 # ID: c1c88088-6e9e-4400-907b-578e380c8113
 class ConstitutionalViolation(Base):
     __tablename__: ClassVar[str] = "constitutional_violations"
