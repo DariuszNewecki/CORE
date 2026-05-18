@@ -838,6 +838,32 @@ Files: `.specs/decisions/ADR-056-runtime-data-contracts.md`.
 
 ---
 
+## ADR-057 — 2026-05-18 (artifact)
+
+API Phase 3: `/coverage`, `/refactor`, `/inspect`, and deferred
+`POST /audit/remediations`. Three new resource tables (`coverage_runs`,
+`refactor_runs`, `audit_remediation_runs`). All `/inspect` endpoints
+read-only with no new tables. `POST /refactor/autonomous` routes through
+a separate `refactor_runs` record — distinct from the `autonomous_proposals`
+it produces, preserving GxP request-to-output traceability. Phase 4 boundary
+confirmed: `inspect/repo_census.py` and `/census` namespace excluded.
+Files: `.specs/decisions/ADR-057-api-phase-3-coverage-refactor-inspect.md`.
+
+---
+
+## ADR-058 — 2026-05-18 (artifact)
+
+API Phase 4: `/census`, `/sync`, `/daemon`. Two new resource tables
+(`census_runs`, `sync_runs` with discriminator). Daemon lifecycle
+endpoints are synchronous with no resource table; `POST /daemon/stop`
+fire-and-forget via BackgroundTask to avoid self-termination. Phase 4
+completion is the ADR-050 CLI extraction trigger. Unassigned capability
+map items (`/components`, `/search`) flagged as extraction blocker
+requiring a follow-up issue before Phase 4 is marked complete.
+Files: `.specs/decisions/ADR-058-api-phase-4-census-sync-daemon.md`.
+
+---
+
 ## Notes
 
 * This changelog intentionally avoids implementation detail

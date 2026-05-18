@@ -21,13 +21,16 @@ from fastapi import FastAPI
 from api.errors import register_exception_handlers
 from api.v1 import (
     audit_routes,
+    coverage_routes,
     development_routes,
     fix_routes,
+    inspect_routes,
     integration_routes,
     knowledge_routes,
     lint_routes,
     proposals_routes,
     quality_routes,
+    refactor_routes,
 )
 from body.infrastructure.lifespan import core_lifespan
 from shared.logger import getLogger
@@ -55,6 +58,13 @@ def create_app() -> FastAPI:
     app.include_router(fix_routes.router, prefix="/v1", tags=["Fix"])
     app.include_router(fix_routes.actions_router, prefix="/v1", tags=["Actions"])
     app.include_router(quality_routes.router, prefix="/v1", tags=["quality"])
+    app.include_router(coverage_routes.router, prefix="/v1", tags=["Coverage"])
+    app.include_router(coverage_routes.tests_router, prefix="/v1", tags=["Coverage"])
+    app.include_router(refactor_routes.router, prefix="/v1", tags=["Refactor"])
+    app.include_router(inspect_routes.status_router, prefix="/v1", tags=["Inspect"])
+    app.include_router(inspect_routes.decisions_router, prefix="/v1", tags=["Inspect"])
+    app.include_router(inspect_routes.refusals_router, prefix="/v1", tags=["Inspect"])
+    app.include_router(inspect_routes.analysis_router, prefix="/v1", tags=["Inspect"])
     register_exception_handlers(app)
 
     @app.get("/health")

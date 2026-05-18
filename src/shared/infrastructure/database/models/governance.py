@@ -67,6 +67,65 @@ class FixRun(Base):
     error = Column(Text)
 
 
+# ID: a1c4d6e8-9b3f-4f72-a5c1-7d09b3e2f481
+class CoverageRun(Base):
+    __tablename__: ClassVar[str] = "coverage_runs"
+    __table_args__: ClassVar[dict] = {"schema": "core"}
+
+    id = Column(pgUUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    target_file = Column(Text)
+    batch_priority = Column(Text)
+    write = Column(Boolean, nullable=False, server_default="false")
+    status = Column(Text, nullable=False, server_default="pending")
+    requested_by = Column(Text, nullable=False)
+    requested_at = Column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+    started_at = Column(DateTime(timezone=True))
+    finished_at = Column(DateTime(timezone=True))
+    result = Column(JSONB)
+    error = Column(Text)
+
+
+# ID: 7e25b3f4-19d8-4a26-bd8f-c63a5e21d70c
+class RefactorRun(Base):
+    __tablename__: ClassVar[str] = "refactor_runs"
+    __table_args__: ClassVar[dict] = {"schema": "core"}
+
+    id = Column(pgUUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    goal = Column(Text, nullable=False)
+    write = Column(Boolean, nullable=False, server_default="false")
+    status = Column(Text, nullable=False, server_default="pending")
+    requested_by = Column(Text, nullable=False)
+    requested_at = Column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+    started_at = Column(DateTime(timezone=True))
+    finished_at = Column(DateTime(timezone=True))
+    result = Column(JSONB)
+    error = Column(Text)
+
+
+# ID: 4f1a9c83-d6e5-42b7-a7f6-2b0e9f6f0a13
+class AuditRemediationRun(Base):
+    __tablename__: ClassVar[str] = "audit_remediation_runs"
+    __table_args__: ClassVar[dict] = {"schema": "core"}
+
+    id = Column(pgUUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    audit_run_id = Column(pgUUID(as_uuid=True), ForeignKey("core.audit_runs.run_id"))
+    mode = Column(Text, nullable=False)
+    write = Column(Boolean, nullable=False, server_default="false")
+    status = Column(Text, nullable=False, server_default="pending")
+    requested_by = Column(Text, nullable=False)
+    requested_at = Column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+    started_at = Column(DateTime(timezone=True))
+    finished_at = Column(DateTime(timezone=True))
+    result = Column(JSONB)
+    error = Column(Text)
+
+
 # ID: c1c88088-6e9e-4400-907b-578e380c8113
 class ConstitutionalViolation(Base):
     __tablename__: ClassVar[str] = "constitutional_violations"

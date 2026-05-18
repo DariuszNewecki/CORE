@@ -738,6 +738,71 @@ ALTER TABLE core.fix_runs OWNER TO core_db;
 
 
 --
+-- Name: coverage_runs; Type: TABLE; Schema: core; Owner: core_db
+--
+
+CREATE TABLE core.coverage_runs (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    target_file text,
+    batch_priority text,
+    write boolean DEFAULT false NOT NULL,
+    status text DEFAULT 'pending'::text NOT NULL,
+    requested_by text NOT NULL,
+    requested_at timestamp with time zone DEFAULT now() NOT NULL,
+    started_at timestamp with time zone,
+    finished_at timestamp with time zone,
+    result jsonb,
+    error text
+);
+
+
+ALTER TABLE core.coverage_runs OWNER TO core_db;
+
+
+--
+-- Name: refactor_runs; Type: TABLE; Schema: core; Owner: core_db
+--
+
+CREATE TABLE core.refactor_runs (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    goal text NOT NULL,
+    write boolean DEFAULT false NOT NULL,
+    status text DEFAULT 'pending'::text NOT NULL,
+    requested_by text NOT NULL,
+    requested_at timestamp with time zone DEFAULT now() NOT NULL,
+    started_at timestamp with time zone,
+    finished_at timestamp with time zone,
+    result jsonb,
+    error text
+);
+
+
+ALTER TABLE core.refactor_runs OWNER TO core_db;
+
+
+--
+-- Name: audit_remediation_runs; Type: TABLE; Schema: core; Owner: core_db
+--
+
+CREATE TABLE core.audit_remediation_runs (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    audit_run_id uuid,
+    mode text NOT NULL,
+    write boolean DEFAULT false NOT NULL,
+    status text DEFAULT 'pending'::text NOT NULL,
+    requested_by text NOT NULL,
+    requested_at timestamp with time zone DEFAULT now() NOT NULL,
+    started_at timestamp with time zone,
+    finished_at timestamp with time zone,
+    result jsonb,
+    error text
+);
+
+
+ALTER TABLE core.audit_remediation_runs OWNER TO core_db;
+
+
+--
 -- Name: autonomous_proposals; Type: TABLE; Schema: core; Owner: core_db
 --
 
@@ -2783,6 +2848,39 @@ ALTER TABLE ONLY core.fix_runs
 
 
 --
+-- Name: coverage_runs coverage_runs_pkey; Type: CONSTRAINT; Schema: core; Owner: core_db
+--
+
+ALTER TABLE ONLY core.coverage_runs
+    ADD CONSTRAINT coverage_runs_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: refactor_runs refactor_runs_pkey; Type: CONSTRAINT; Schema: core; Owner: core_db
+--
+
+ALTER TABLE ONLY core.refactor_runs
+    ADD CONSTRAINT refactor_runs_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: audit_remediation_runs audit_remediation_runs_pkey; Type: CONSTRAINT; Schema: core; Owner: core_db
+--
+
+ALTER TABLE ONLY core.audit_remediation_runs
+    ADD CONSTRAINT audit_remediation_runs_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: audit_remediation_runs audit_remediation_runs_audit_run_id_fkey; Type: FK CONSTRAINT; Schema: core; Owner: core_db
+--
+
+ALTER TABLE ONLY core.audit_remediation_runs
+    ADD CONSTRAINT audit_remediation_runs_audit_run_id_fkey
+        FOREIGN KEY (audit_run_id) REFERENCES core.audit_runs(run_id);
+
+
+--
 -- Name: autonomous_proposals autonomous_proposals_pkey; Type: CONSTRAINT; Schema: core; Owner: core_db
 --
 
@@ -3400,6 +3498,55 @@ CREATE INDEX fix_runs_status_idx ON core.fix_runs USING btree (status);
 --
 
 CREATE INDEX fix_runs_kind_idx ON core.fix_runs USING btree (kind);
+
+
+--
+-- Name: coverage_runs_requested_at_idx; Type: INDEX; Schema: core; Owner: core_db
+--
+
+CREATE INDEX coverage_runs_requested_at_idx ON core.coverage_runs USING btree (requested_at DESC);
+
+
+--
+-- Name: coverage_runs_status_idx; Type: INDEX; Schema: core; Owner: core_db
+--
+
+CREATE INDEX coverage_runs_status_idx ON core.coverage_runs USING btree (status);
+
+
+--
+-- Name: refactor_runs_requested_at_idx; Type: INDEX; Schema: core; Owner: core_db
+--
+
+CREATE INDEX refactor_runs_requested_at_idx ON core.refactor_runs USING btree (requested_at DESC);
+
+
+--
+-- Name: refactor_runs_status_idx; Type: INDEX; Schema: core; Owner: core_db
+--
+
+CREATE INDEX refactor_runs_status_idx ON core.refactor_runs USING btree (status);
+
+
+--
+-- Name: audit_remediation_runs_requested_at_idx; Type: INDEX; Schema: core; Owner: core_db
+--
+
+CREATE INDEX audit_remediation_runs_requested_at_idx ON core.audit_remediation_runs USING btree (requested_at DESC);
+
+
+--
+-- Name: audit_remediation_runs_status_idx; Type: INDEX; Schema: core; Owner: core_db
+--
+
+CREATE INDEX audit_remediation_runs_status_idx ON core.audit_remediation_runs USING btree (status);
+
+
+--
+-- Name: audit_remediation_runs_audit_run_id_idx; Type: INDEX; Schema: core; Owner: core_db
+--
+
+CREATE INDEX audit_remediation_runs_audit_run_id_idx ON core.audit_remediation_runs USING btree (audit_run_id);
 
 
 --
@@ -4766,6 +4913,27 @@ GRANT ALL ON TABLE core.audit_runs TO core;
 --
 
 GRANT ALL ON TABLE core.fix_runs TO core;
+
+
+--
+-- Name: TABLE coverage_runs; Type: ACL; Schema: core; Owner: core_db
+--
+
+GRANT ALL ON TABLE core.coverage_runs TO core;
+
+
+--
+-- Name: TABLE refactor_runs; Type: ACL; Schema: core; Owner: core_db
+--
+
+GRANT ALL ON TABLE core.refactor_runs TO core;
+
+
+--
+-- Name: TABLE audit_remediation_runs; Type: ACL; Schema: core; Owner: core_db
+--
+
+GRANT ALL ON TABLE core.audit_remediation_runs TO core;
 
 
 --

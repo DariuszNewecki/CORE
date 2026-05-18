@@ -48,6 +48,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from api.dependencies import get_api_session, open_background_session
 from shared.context import CoreContext
 from shared.logger import getLogger
+from will.governance.audit_remediation_runner import (
+    MODE_ALIASES,
+    run_and_persist_audit_remediation,
+)
 from will.governance.audit_runner import run_and_persist_audit, run_sync_audit
 
 
@@ -168,4 +172,131 @@ async def get_audit_run(
         "finished_at": (row["finished_at"].isoformat() if row["finished_at"] else None),
         "status": row["status"],
         "findings": row["findings"] or [],
+    }
+
+
+# ID: 4b7c8d9e-0f1a-4b2c-3d4e-5f6a7b8c9d0e
+class CreateRemediationRequest(BaseModel):
+    """Body for POST /audit/remediations (ADR-057 D4).
+
+    `audit_run_id` is the prior `core.audit_runs` row whose findings are
+    to be remediated. `mode` is the aggressiveness selector — wire
+    vocabulary 'safe' | 'medium' | 'all' (mapped onto RemediationMode at
+    the facade). `write=false` is the dry-run default (ADR-014).
+    """
+
+    audit_run_id: UUID
+    mode: str = "safe"
+    write: bool = False
+    requested_by: str = "api"
+
+
+@router.post("/remediations")
+# ID: 5c8d9e0f-1a2b-4c3d-4e5f-6a7b8c9d0e1f
+async def create_remediation_run(
+    request: Request,
+    response: Response,
+    background_tasks: BackgroundTasks,
+    payload: CreateRemediationRequest = Body(...),
+    session: AsyncSession = Depends(get_api_session),
+) -> dict:
+    """Dispatch autonomous remediation of audit findings (ADR-057 D4).
+
+    Validates `mode` against the wire vocabulary, INSERTs a pending row
+    in core.audit_remediation_runs, and schedules background execution
+    via will.governance.audit_remediation_runner. The audit_run_id FK
+    is enforced at the DB layer — a missing-audit_run_id 404 surfaces
+    only on read, not at dispatch.
+    """
+    if payload.mode not in MODE_ALIASES:
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "error": f"Unknown remediation mode: {payload.mode}",
+                "allowed": sorted(MODE_ALIASES.keys()),
+            },
+        )
+
+    core_context: CoreContext = request.app.state.core_context
+
+    result = await session.execute(
+        text(
+            """
+            INSERT INTO core.audit_remediation_runs
+                (audit_run_id, mode, write, status, requested_by)
+            VALUES (:audit_run_id, :mode, :write, 'pending', :requested_by)
+            RETURNING id
+            """
+        ),
+        {
+            "audit_run_id": payload.audit_run_id,
+            "mode": payload.mode,
+            "write": payload.write,
+            "requested_by": payload.requested_by,
+        },
+    )
+    run_id: UUID = result.scalar_one()
+    await session.commit()
+
+    # ID: 6d9e0f1a-2b3c-4d4e-5f6a-7b8c9d0e1f2a
+    async def drive_remediation() -> None:
+        async for bg_session in open_background_session():
+            await run_and_persist_audit_remediation(
+                core_context,
+                bg_session,
+                run_id=run_id,
+                mode=payload.mode,
+                write=payload.write,
+            )
+
+    background_tasks.add_task(drive_remediation)
+
+    response.status_code = 202
+    return {
+        "run_id": str(run_id),
+        "status": "pending",
+        "href": f"/audit/remediations/{run_id}",
+    }
+
+
+@router.get("/remediations/{run_id}")
+# ID: 7e0f1a2b-3c4d-4e5f-6a7b-8c9d0e1f2a3b
+async def get_remediation_run(
+    run_id: UUID,
+    session: AsyncSession = Depends(get_api_session),
+) -> dict:
+    """Return a persisted remediation run by id, or 404 if unknown."""
+    result = await session.execute(
+        text(
+            """
+            SELECT id, audit_run_id, mode, write, status,
+                   requested_by, requested_at, started_at, finished_at,
+                   result, error
+              FROM core.audit_remediation_runs
+             WHERE id = :rid
+            """
+        ),
+        {"rid": run_id},
+    )
+    row = result.mappings().first()
+    if row is None:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Audit remediation run not found: {run_id}",
+        )
+
+    return {
+        "run_id": str(row["id"]),
+        "audit_run_id": (str(row["audit_run_id"]) if row["audit_run_id"] else None),
+        "mode": row["mode"],
+        "write": row["write"],
+        "status": row["status"],
+        "requested_by": row["requested_by"],
+        "requested_at": (
+            row["requested_at"].isoformat() if row["requested_at"] else None
+        ),
+        "started_at": row["started_at"].isoformat() if row["started_at"] else None,
+        "finished_at": (row["finished_at"].isoformat() if row["finished_at"] else None),
+        "result": row["result"],
+        "error": row["error"],
     }
