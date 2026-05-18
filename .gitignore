@@ -59,6 +59,7 @@ var/*
 !var/.gitkeep
 !var/prompts/
 !var/prompts/**
+!var/d6-stage-c-migration-plan.md
 
 # -----------------------------------------------------------------------------
 # Autonomous workspace — ephemeral by definition
