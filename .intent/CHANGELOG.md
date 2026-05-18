@@ -898,16 +898,52 @@ Files: `src/will/governance/audit_runner.py`.
 
 ---
 
-## ADR-058 — 2026-05-18 (artifact)
+## ADR-058 — 2026-05-18 (artifact + Phase 4 implementation)
 
 API Phase 4: `/census`, `/sync`, `/daemon`. Two new resource tables
-(`census_runs`, `sync_runs` with discriminator). Daemon lifecycle
-endpoints are synchronous with no resource table; `POST /daemon/stop`
-fire-and-forget via BackgroundTask to avoid self-termination. Phase 4
-completion is the ADR-050 CLI extraction trigger. Unassigned capability
-map items (`/components`, `/search`) flagged as extraction blocker
-requiring a follow-up issue before Phase 4 is marked complete.
-Files: `.specs/decisions/ADR-058-api-phase-4-census-sync-daemon.md`.
+(`census_runs`, `sync_runs` with `sync_type` discriminator). Daemon
+lifecycle endpoints synchronous with no resource table; `POST
+/daemon/stop` fire-and-forget via FastAPI BackgroundTask. Phase 4
+completion is the ADR-050 CLI extraction trigger.
+
+Implementation landed same session. Schema + routes: 2 tables, 3
+Will-layer facades, 13 endpoints, 22 tests. CLI cutover: 7 files
+migrated, 15 new CoreApiClient methods. `daemon.py` carries one
+documented block-level SUPPRESS — bootstrap path deliberately separate
+from `POST /v1/daemon/start`. Audit verdict PASS, 49 findings, no new
+findings introduced.
+
+ADR-053 D5 trigger met: all four phases complete, all ten namespaces
+have endpoints, all CLI surfaces route through `api.*`. Extraction
+unblocked pending unassigned `/components` + `/search` items (tracked).
+
+Open items: #357 (orphan detector, now 10 runners), #358 (HTML
+coverage report), #360 (CoreApiClient split), #361 (force flag on
+`/sync/code-vectors`), unassigned namespace issue (extraction blocker).
+
+Files:
+`.specs/decisions/ADR-058-api-phase-4-census-sync-daemon.md`,
+`infra/scripts/migrations/20260518_create_phase4_tables.sql`,
+`infra/sql/db_schema_live.sql`,
+`src/shared/infrastructure/database/models/governance.py`,
+`src/will/governance/census_runner.py`,
+`src/will/governance/sync_runner.py`,
+`src/will/governance/daemon_runner.py`,
+`src/api/v1/census_routes.py`,
+`src/api/v1/sync_routes.py`,
+`src/api/v1/daemon_routes.py`,
+`src/api/main.py` (amended),
+`tests/api/v1/test_census_routes.py`,
+`tests/api/v1/test_sync_routes.py`,
+`tests/api/v1/test_daemon_routes.py`,
+`src/cli/commands/inspect/repo_census.py`,
+`src/cli/commands/fix/db_tools.py`,
+`src/cli/resources/vectors/sync.py`,
+`src/cli/resources/vectors/sync_code.py`,
+`src/cli/commands/dev_sync.py`,
+`src/cli/commands/daemon.py`,
+`src/cli/commands/run.py`,
+`src/api/cli/client.py` (amended).
 
 ---
 
