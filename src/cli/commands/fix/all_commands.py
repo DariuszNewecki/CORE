@@ -1,40 +1,45 @@
 # src/cli/commands/fix/all_commands.py
 """
-Batch execution command(s) for the 'fix' CLI group.
+Batch execution command for the 'fix' CLI group.
 
-Provides:
-- core-admin fix all
+`core-admin fix all` runs a curated sequence of registered atomic
+actions via POST /v1/fix/run/{fix_id} and POST /v1/fix/ir. The
+sequence preserves the original prerequisite ordering.
 
-CONSTITUTIONAL ALIGNMENT:
-- Orchestrates Atomic Actions via the Body layer services.
-- UPDATED: All imports point to new layered locations (Wave 3 Final).
+Three pre-migration steps (purge-legacy-tags, policy-ids, db-registry)
+have no registered atomic action and were dropped from the sequence —
+they remain available as standalone CLI subcommands. Filed as
+governance debt; future Stage B reopens may restore the bundle.
 """
 
 from __future__ import annotations
 
-from shared.logger import getLogger
-
-
-logger = getLogger(__name__)
-from collections.abc import Callable
-from typing import Any
+import logging
 
 import typer
+from rich.console import Console
 
-from body.introspection.sync_service import run_sync_with_db
-from body.maintenance.command_sync_service import _sync_commands_to_db
-from body.maintenance.sync_vectors import main_async as sync_vectors_async
-from body.self_healing.code_style_service import format_code
-from body.self_healing.docstring_service import fix_docstrings
-from body.self_healing.id_tagging_service import assign_missing_ids
-from body.self_healing.policy_id_service import add_missing_policy_ids
-from body.self_healing.purge_legacy_tags_service import purge_legacy_tags
+from api.cli import CoreApiClient
 from cli.utils import core_command
-from shared.context import CoreContext
-from shared.infrastructure.database.session_manager import get_session
 
 from . import COMMAND_CONFIG, fix_app
-from .fix_ir import fix_ir_log, fix_ir_triage
+
+
+logger = logging.getLogger(__name__)
+console = Console()
+
+
+_PLAN: list[tuple[str, str, str | None]] = [
+    # (step name, fix_id for /fix/run, or ir_kind for /fix/ir)
+    ("code-style", "fix.format", None),
+    ("ids", "fix.ids", None),
+    ("knowledge-sync", "sync.db", None),
+    ("vector-sync", "sync.vectors.code", None),
+    ("docstrings", "fix.docstrings", None),
+    ("tags", "fix.capability_tagging", None),
+    ("ir-triage", "", "triage"),
+    ("ir-log", "", "log"),
+]
 
 
 @fix_app.command("all", help="Run a curated sequence of self-healing fixes.")
@@ -52,141 +57,38 @@ async def run_all_fixes(
     """
     Run a curated set of fix subcommands in a sequence that respects dependencies.
     """
-    core_context: CoreContext = ctx.obj
-    dry_run = not write
+    _ = ctx
+    client = CoreApiClient()
+    mode_str = "write" if write else "dry-run"
 
-    async def _step(label: str, func: Callable[[], Any], is_async: bool = False):
-        with logger.info("[cyan]%s...[/cyan]", label):
-            if is_async:
-                await func()
-            else:
-                res = func()
-                if hasattr(res, "__await__"):
-                    await res
-
-    async def _run(name: str) -> None:
+    for name, fix_id, ir_kind in _PLAN:
         cfg = COMMAND_CONFIG.get(name, {})
         is_dangerous = cfg.get("dangerous", False)
         if skip_dangerous and is_dangerous and write:
-            logger.info("[yellow]Skipping dangerous command 'fix %s'.[/yellow]", name)
-            return
-        mode_str = "write" if write else "dry-run"
-        logger.info("[bold cyan]▶ Running 'fix %s' (%s)[/bold cyan]", name, mode_str)
-        if name == "code-style":
-            await _step("Formatting code", lambda: format_code(write=write))
-        elif name == "ids":
-            await _step(
-                "Assigning missing IDs",
-                lambda: assign_missing_ids(context=core_context, write=write),
+            console.print(f"[yellow]Skipping dangerous command 'fix {name}'.[/yellow]")
+            continue
+        console.print(f"[bold cyan]▶ Running 'fix {name}' ({mode_str})[/bold cyan]")
+
+        if ir_kind is not None:
+            try:
+                result = await client.fix_ir(ir_kind)
+                console.print(f"   -> IR scaffold: {result.get('path', '(unknown)')}")
+            except Exception as exc:
+                console.print(f"   [red]✗ fix {name} failed: {exc}[/red]")
+            continue
+
+        initial = await client.run_fix(fix_id, write=write)
+        run_id = initial.get("run_id")
+        if not run_id:
+            console.print(f"   [red]✗ {fix_id} failed to dispatch: {initial}[/red]")
+            continue
+        final = await client._poll_run(run_id)
+        status = final.get("status")
+        if status != "completed":
+            console.print(
+                f"   [red]✗ {fix_id} failed: {final.get('error') or final}[/red]"
             )
-        elif name == "purge-legacy-tags":
-            await _step(
-                "Purging legacy tags",
-                lambda: purge_legacy_tags(context=core_context, dry_run=dry_run),
-                is_async=True,
-            )
-        elif name == "policy-ids":
-            await _step(
-                "Adding missing policy IDs",
-                lambda: add_missing_policy_ids(context=core_context, dry_run=dry_run),
-                is_async=True,
-            )
-        elif name == "knowledge-sync":
-            if write:
-                async with get_session() as session:
-                    res_obj = await run_sync_with_db(session)
-                    stats = res_obj.data
-                logger.info(
-                    "   -> Scanned: %s, Updated: %s", stats["scanned"], stats["updated"]
-                )
-            else:
-                logger.info("[yellow]Skipping DB sync in dry-run mode[/yellow]")
-        elif name == "vector-sync":
-            # ID: f896e98a-c165-4694-a9d8-0e2c2361e10c
-            async def sync_vectors_with_session():
-                """
-                Synchronizes vector embeddings with the current session.
+            continue
+        console.print(f"   [green]✓ {fix_id} completed.[/green]")
 
-                Ensures that vector data is up-to-date and consistent within the session context, adhering to the specified write mode (normal or dry-run) and using the Qdrant service for storage.
-
-                Args:
-                    write: When True, performs a write operation updating the vectors.
-                    dry_run: When True, simulates the update without making any changes.
-                """
-                async with get_session() as session:
-                    return await sync_vectors_async(
-                        session=session,
-                        write=write,
-                        dry_run=dry_run,
-                        qdrant_service=core_context.qdrant_service,
-                    )
-
-            await _step(
-                "Synchronizing vector database",
-                sync_vectors_with_session,
-                is_async=True,
-            )
-        elif name == "db-registry":
-            from cli.admin_cli import app as main_app
-
-            # ID: baa25d91-bb0d-4da4-ba57-c9c83e5ba75a
-            async def sync_with_session():
-                """Syncs local command data with the active user session.
-
-                Ensures that the current application's commands are up-to-date by fetching
-                the latest state from the database and applying any necessary updates.
-
-                Args:
-                    None
-
-                Returns:
-                    None
-
-                Raises:
-                    Any exceptions raised during database access or synchronization.
-                """
-                async with get_session() as session:
-                    await _sync_commands_to_db(session, main_app)
-
-            await _step("Syncing CLI registry", sync_with_session, is_async=True)
-        elif name == "docstrings":
-            await _step(
-                "Fixing docstrings",
-                lambda: fix_docstrings(context=core_context, write=write),
-                is_async=True,
-            )
-        elif name == "tags":
-            from will.self_healing.capability_tagging_service import main_async
-
-            await _step(
-                "Tagging capabilities",
-                lambda: main_async(
-                    session_factory=get_session,
-                    cognitive_service=core_context.cognitive_service,
-                    knowledge_service=core_context.knowledge_service,
-                    write=write,
-                    dry_run=dry_run,
-                ),
-                is_async=True,
-            )
-        elif name == "ir-triage":
-            fix_ir_triage(ctx, write=write)
-        elif name == "ir-log":
-            fix_ir_log(ctx, write=write)
-
-    plan = [
-        "code-style",
-        "ids",
-        "purge-legacy-tags",
-        "policy-ids",
-        "knowledge-sync",
-        "vector-sync",
-        "db-registry",
-        "docstrings",
-        "tags",
-        "ir-triage",
-        "ir-log",
-    ]
-    for name in plan:
-        await _run(name)
-    logger.info("[green]✅ 'fix all' sequence completed[/green]")
+    console.print("[green]✅ 'fix all' sequence completed[/green]")
