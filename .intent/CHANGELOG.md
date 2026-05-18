@@ -838,6 +838,42 @@ Files: `.specs/decisions/ADR-056-runtime-data-contracts.md`.
 
 ---
 
+## ADR-056 — 2026-05-18 (broadening: D7 boundary criteria + inventory)
+
+ADR-056 expanded from three concrete decisions to a seven-decision frame.
+D7 adds the boundary-based criterion that determines when any structured
+object requires a governing schema: an object must be governed when it
+crosses a consequence-chain, worker, persistence, AI-invocation, vector-
+store, API, phase, atomic-action, or flow boundary. Rules for the
+artifact class are introduced at INFO severity; enforcement tightens as
+coverage matures.
+
+Canonical path corrected: data contracts live at
+`.intent/enforcement/contracts/` (alongside existing `config/`,
+`mappings/`, `remediation/`), not at a new top-level `.intent/data_contracts/`.
+The 2026-05-17 entry above predates the path correction.
+
+Implementation catalogue moved out of the ADR into
+`.specs/planning/data-contracts-inventory.md`: ~70 contracts and 13 enum
+additions identified from a `src/` audit against the D7 boundary
+criteria, organized into three waves. Wave 1 covers the consequence
+chain (Finding, Proposal sub-objects, ProposalConsequence,
+BlackboardEntry payload family), the universal result family
+(ActionResult, ComponentResult, FlowResult/StepResult, RefusalResult),
+the violation persistence family (ViolationReport,
+ConstitutionalViolationPayload, ConstitutionalValidationResult), the AI
+invocation surface (PromptModelManifest, ContextPacket, EmbeddingPayload,
+ExecutionTask, TaskStructure), and all 13 vocabulary enums. Wave 2 and
+Wave 3 cover governance routing, self-healing, API DTOs, and
+observability persistence.
+
+Implementation tracked in #366. Commit `4aad2ee4`.
+
+Files: `.specs/decisions/ADR-056-runtime-data-contracts.md`,
+`.specs/planning/data-contracts-inventory.md`.
+
+---
+
 ## ADR-057 — 2026-05-18 (artifact + Phase 3 implementation)
 
 API Phase 3: `/coverage`, `/refactor`, `/inspect`, and deferred
