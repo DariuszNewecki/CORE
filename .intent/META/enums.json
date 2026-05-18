@@ -127,6 +127,120 @@
         "fix_generated",
         "finding_suppressed"
       ]
+    },
+    "blackboard_entry_type": {
+      "description": "Canonical values for BlackboardEntry.entry_type. Governed by ADR-056 D5 (#366). Posted via shared/workers/base.py post_finding/post_report/post_heartbeat helpers. The 'claim' value is reserved for future use; current workers track claims via status='claimed' on existing entries rather than posting a new entry_type='claim'. The 'proposal' value is used by the proposal pipeline.",
+      "type": "string",
+      "enum": [
+        "finding",
+        "claim",
+        "proposal",
+        "report",
+        "heartbeat"
+      ]
+    },
+    "blackboard_subject": {
+      "description": "Canonical subject vocabulary for BlackboardEntry.subject (ADR-056 #366). Initial Wave-1 coverage from highest-traffic worker subjects. Sensors and shop managers join on these strings; drift here breaks coherence detection silently. TBD / governor review: wildcard patterns like '*.run.complete' are not representable in a flat enum — either each worker's specific run.complete subject is added explicitly, or a separate vocabulary type for the wildcard family is introduced.",
+      "type": "string",
+      "enum": [
+        "worker.heartbeat",
+        "worker.error",
+        "sync.db.complete",
+        "sync.db.failed",
+        "repo.crawl.complete",
+        "repo.embed.complete",
+        "violation_remediator.completed"
+      ]
+    },
+    "action_impact": {
+      "description": "Classification of an atomic action's impact on system state (ADR-056 #366). Mirrors src/shared/action_types.py:25 ActionImpact enum value strings. Used by ActionRegistry impact_level overlay (.intent/enforcement/config/action_risk.yaml) and governance routing.",
+      "type": "string",
+      "enum": [
+        "read-only",
+        "write-metadata",
+        "write-code",
+        "write-data"
+      ]
+    },
+    "action_category": {
+      "description": "Constitutional category for atomic actions (ADR-056 #366). Mirrors src/body/atomic/registry.py:41 ActionCategory enum value strings. Used for action-registry indexing and category-level governance rules.",
+      "type": "string",
+      "enum": [
+        "fix",
+        "sync",
+        "check",
+        "build",
+        "state"
+      ]
+    },
+    "refusal_type": {
+      "description": "Category of constitutional refusal as a first-class outcome (ADR-056 #366). Mirrors src/shared/models/refusal_result.py:79 valid_types set. Persisted into core.refusals.refusal_type.",
+      "type": "string",
+      "enum": [
+        "boundary",
+        "confidence",
+        "contradiction",
+        "assumption",
+        "capability",
+        "extraction",
+        "quality",
+        "unspecified"
+      ]
+    },
+    "step_kind": {
+      "description": "Discriminator for FlowStep references (ADR-056 #366). Mirrors src/body/flows/registry.py:28 StepKind enum value strings. 'action' resolves to AtomicAction in ActionRegistry; 'flow' resolves to a nested Flow in FlowRegistry.",
+      "type": "string",
+      "enum": [
+        "action",
+        "flow"
+      ]
+    },
+    "task_type": {
+      "description": "Canonical task types from the INTERPRET phase (ADR-056 #366). Mirrors src/will/interpreters/request_interpreter.py:34 TaskType enum value strings. TBD / governor review: a parallel ExecutionTask.task_type vocabulary is governed by ADR-003 via .intent/enforcement/config/task_type_phases.yaml. Open question whether the two should consolidate or remain separate (INTERPRET-phase intent vs execution-routing intent).",
+      "type": "string",
+      "enum": [
+        "query",
+        "analyze",
+        "explain",
+        "refactor",
+        "fix",
+        "generate",
+        "test",
+        "audit",
+        "sync",
+        "validate",
+        "develop",
+        "unknown"
+      ]
+    },
+    "audit_severity": {
+      "description": "Severity levels for audit findings (ADR-056 #366). Mirrors src/shared/models/audit_models.py:14 AuditSeverity IntEnum, stored as lowercase string via __str__. TBD / governor review: the Pydantic Finding (CIM) at src/body/services/cim/models.py:283 uses a parallel uppercase Literal['BLOCK', 'HIGH', 'MEDIUM', 'LOW', 'INFO'] vocabulary. Decision pending on whether to unify (one severity vocabulary across audit and CIM policy surfaces) or keep them as deliberately separate engines with their own severity scales.",
+      "type": "string",
+      "enum": [
+        "info",
+        "warning",
+        "error"
+      ]
+    },
+    "risk_tier": {
+      "description": "Risk classification used by the constitutional validator's input layer (ADR-056 #366). Mirrors src/body/services/constitutional_validator.py:34 RiskTier enum names, stored as lowercase strings. Governor decision (2026-05-18): intentionally separate from 'proposal_risk' (safe/moderate/high). risk_tier is the validator's pre-decision input classification; proposal_risk is the proposal's own self-assessment. Different lifecycle points, different concerns. Note: Python defines RiskTier with integer values (ROUTINE=1, STANDARD=3, ELEVATED=7, CRITICAL=10); the enums.json vocabulary uses the name (lowercased) as the canonical string form.",
+      "type": "string",
+      "enum": [
+        "routine",
+        "standard",
+        "elevated",
+        "critical"
+      ]
+    },
+    "approval_type": {
+      "description": "Gating mechanism for governance approvals (ADR-056 #366). Mirrors src/body/services/constitutional_validator.py:44 ApprovalType enum value strings. Governor decision (2026-05-18): intentionally separate from 'proposal_approval_authority'. approval_type is the gating mechanism (what kind of approval is required, evaluated pre-decision); proposal_approval_authority is the post-fact record (who/what authority actually approved). Both are necessary at different points in the lifecycle.",
+      "type": "string",
+      "enum": [
+        "autonomous",
+        "validation_only",
+        "human_confirmation",
+        "human_review"
+      ]
     }
   }
 }
