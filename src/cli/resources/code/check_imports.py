@@ -2,32 +2,29 @@
 """
 Import integrity check command.
 
-Enforces: code.imports.must_resolve, code.imports.no_stale_namespace
-Routes through ActionExecutor for constitutional compliance.
+Routes through POST /v1/quality/imports for constitutional compliance.
 """
 
 from __future__ import annotations
 
 import logging
 
-
-logger = logging.getLogger(__name__)
 import typer
 from rich.console import Console
 from rich.table import Table
 
-from body.atomic.executor import ActionExecutor
+from api.cli import CoreApiClient
 from cli.utils import core_command
-from shared.context import CoreContext
 
 from .hub import app
 
 
+logger = logging.getLogger(__name__)
 console = Console()
 
 
 @app.command("check-imports")
-@core_command(dangerous=False, requires_context=True)
+@core_command(dangerous=False, requires_context=False)
 # ID: 53db749b-a5cf-44e4-8e7f-47e6499aec0b
 async def check_imports_cmd(ctx: typer.Context) -> None:
     """
@@ -41,24 +38,17 @@ async def check_imports_cmd(ctx: typer.Context) -> None:
     - code.imports.must_resolve
     - code.imports.no_stale_namespace
     """
-    core_context: CoreContext = ctx.obj
     console.rule("[bold cyan]Import Integrity Check[/bold cyan]")
-    logger.info("[dim]Scanning src/ for unresolvable imports (F821, F401)...[/dim]\n")
-    executor = ActionExecutor(core_context)
-    result = await executor.execute("check.imports")
-    if result.ok:
-        logger.info("[bold green]✅ All imports resolve cleanly.[/bold green]")
-        logger.info(
-            "[dim]Target: %s | Rules: %s | Duration: %ss[/dim]",
-            result.data.get("target", "src/"),
-            ", ".join(result.data.get("rules_checked", [])),
-            result.duration_sec,
-        )
+    console.print("[dim]Scanning src/ for unresolvable imports (F821, F401)...[/dim]\n")
+    client = CoreApiClient()
+    result = await client.quality_imports()
+    if result.get("status") == "ok":
+        console.print("[bold green]✅ All imports resolve cleanly.[/bold green]")
         return
-    violations = result.data.get("violations", [])
-    violation_count = result.data.get("violation_count", len(violations))
-    logger.info(
-        "[bold red]❌ %s unresolvable import(s) found.[/bold red]\n", violation_count
+    violations = result.get("violations", [])
+    violation_count = len(violations)
+    console.print(
+        f"[bold red]❌ {violation_count} unresolvable import(s) found.[/bold red]\n"
     )
     if violations:
         table = Table(
@@ -75,9 +65,11 @@ async def check_imports_cmd(ctx: typer.Context) -> None:
                 v.get("rule", ""),
                 v.get("message", ""),
             )
-        logger.info(table)
-    logger.info("\n[dim]Fix: Update stale import paths or remove unused imports.[/dim]")
-    logger.info(
+        console.print(table)
+    console.print(
+        "\n[dim]Fix: Update stale import paths or remove unused imports.[/dim]"
+    )
+    console.print(
         "[dim]Rule: code.imports.must_resolve (.intent/rules/code/imports.json)[/dim]"
     )
     raise typer.Exit(code=1)
