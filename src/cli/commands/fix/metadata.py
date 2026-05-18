@@ -187,7 +187,7 @@ async def fix_dead_code_cmd(
     write: bool = typer.Option(False, "--write", help="Apply the deletions."),
 ):
     """CLI wrapper for the Vulture Healer."""
-    from will.self_healing.vulture_healer import heal_dead_code
+    from body.self_healing.vulture_healer import heal_dead_code
 
     with logger.info("[bold cyan]Snipping dead code scars...[/bold cyan]"):
         await heal_dead_code(ctx.obj, write=write)

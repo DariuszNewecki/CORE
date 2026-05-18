@@ -1,11 +1,14 @@
-# src/will/self_healing/vulture_healer.py
+# src/body/self_healing/vulture_healer.py
 """Surgical cleanup of Vulture dead-code findings.
 
 Uses local LLM intelligence to safely remove unused variables and functions
 identified by the Vulture static analyser.
 
-V2.7 FIX:
-- Evidence path now resolved via PathResolver.audit_findings_path.
+Relocated from src/will/self_healing/vulture_healer.py under ADR-055 D6
+Stage B reopen #6: this module has no will/* dependencies (only
+body/services/file_service + shared.*), so its previous will/ placement
+was a layer misfit. Registration as fix.vulture_heal in
+body/atomic/fix_actions.py expects this module to live under body/.
 """
 
 from __future__ import annotations

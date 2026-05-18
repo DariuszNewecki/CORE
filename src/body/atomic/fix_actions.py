@@ -555,6 +555,106 @@ async def action_fix_docstrings(
 
 
 @register_action(
+    action_id="fix.capability_tagging",
+    description="Tag untagged public capabilities using LLM-suggested names",
+    category=ActionCategory.FIX,
+    policies=["capability_tagging"],
+    remediates=["symbols.capability_required"],
+)
+@atomic_action(
+    action_id="fix.capability_tagging",
+    intent="Tag untagged capabilities via LLM",
+    impact=ActionImpact.WRITE_METADATA,
+    policies=["atomic_actions"],
+)
+# ID: 7b3c8d51-9e2a-4f7b-a1e6-5c4d8b2f9a3e
+async def action_fix_capability_tagging(
+    core_context: CoreContext,
+    write: bool = False,
+    limit: int = 0,
+    **kwargs,
+) -> ActionResult:
+    """Tag untagged capabilities via the will-layer naming agent.
+
+    Wraps will.self_healing.capability_tagging_service.main_async. The
+    body→will lazy import matches the precedent in
+    proposal_lifecycle_actions.py — capability_tagging's CapabilityTaggerAgent
+    legitimately depends on will/orchestration, so it stays in will/.
+    """
+    start = time.time()
+    from shared.infrastructure.database.session_manager import get_session
+    from will.self_healing.capability_tagging_service import main_async as tag
+
+    try:
+        await tag(
+            session_factory=get_session,
+            cognitive_service=core_context.cognitive_service,
+            knowledge_service=core_context.knowledge_service,
+            write=write,
+            dry_run=not write,
+            limit=limit,
+        )
+    except Exception as e:
+        return ActionResult(
+            action_id="fix.capability_tagging",
+            ok=False,
+            data={"error": str(e), "write": write, "limit": limit},
+            duration_sec=time.time() - start,
+        )
+    return ActionResult(
+        action_id="fix.capability_tagging",
+        ok=True,
+        data={"write": write, "limit": limit},
+        duration_sec=time.time() - start,
+    )
+
+
+@register_action(
+    action_id="fix.vulture_heal",
+    description="Surgically remove Vulture-identified dead code using LLM analysis",
+    category=ActionCategory.FIX,
+    policies=["dead_code"],
+    remediates=["workflow.dead_code_check"],
+)
+@atomic_action(
+    action_id="fix.vulture_heal",
+    intent="Remove dead code findings via LLM",
+    impact=ActionImpact.WRITE_CODE,
+    policies=["atomic_actions"],
+)
+# ID: 5a2e9c4f-1b8d-43a7-92e6-7f3c1d4b8e5a
+async def action_fix_vulture_heal(
+    core_context: CoreContext,
+    write: bool = False,
+    **kwargs,
+) -> ActionResult:
+    """Surgical dead-code cleanup via the relocated body.self_healing.vulture_healer."""
+    start = time.time()
+    from body.self_healing.vulture_healer import heal_dead_code
+
+    try:
+        await heal_dead_code(
+            context=core_context,
+            file_handler=core_context.file_handler,
+            repo_root=core_context.git_service.repo_path,
+            write=write,
+        )
+    except Exception as e:
+        return ActionResult(
+            action_id="fix.vulture_heal",
+            ok=False,
+            data={"error": str(e), "write": write},
+            duration_sec=time.time() - start,
+        )
+    return ActionResult(
+        action_id="fix.vulture_heal",
+        ok=True,
+        data={"write": write},
+        duration_sec=time.time() - start,
+    )
+
+
+@register_action(
     action_id="fix.settings_access",
     description="Refactor settings.* imports to dependency injection via CoreContext",
     category=ActionCategory.FIX,
