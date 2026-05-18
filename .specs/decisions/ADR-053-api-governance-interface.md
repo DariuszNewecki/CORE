@@ -1,7 +1,8 @@
 # ADR-053 — CORE API as Resource-Oriented Governance Interface
 
-**Status:** Accepted
+**Status:** Accepted (revised 2026-05-18 — D4 amended to assign unassigned capability map items)
 **Date:** 2026-05-16
+**Revised:** 2026-05-18
 **Authors:** Darek (Dariusz Newecki)
 **Closes:** API incompleteness gap identified by ADR-050 capability audit
 **Relates to:** ADR-050 (CLI positioning), ADR-051 (file_handler shared/
@@ -51,6 +52,11 @@ Half the migration surface concentrates in two clusters: `/audit/*`
 by `body.self_healing.*`). Full capability map is retained in
 `.specs/planning/CORE-API-capability-map-2026-05-16.md` as the phase
 roadmap input.
+
+Two files in the capability map — `components.py` and `search.py` — were
+not assigned to any of the ten namespaces at the time of initial
+acceptance. Their assignment is resolved by the 2026-05-18 revision to D4
+below.
 
 ### Who calls this API
 
@@ -207,7 +213,7 @@ in `src/api/schemas/`. No ad-hoc dicts in route handlers. Schemas are
 the API contract. A schema change is a contract change and requires a
 phase ADR amendment or a new phase ADR.
 
-### D4 — Ten domain namespaces
+### D4 — Ten domain namespaces (revised 2026-05-18)
 
 The API surface is organised into ten namespaces derived from the
 capability audit. Each namespace maps to a cohesive Will/Body/Mind
@@ -231,6 +237,70 @@ Phase 1 is chosen because `/audit` and `/proposals` already have
 complete resource backing in the database and the most cohesive Will-
 layer services. They are also the capabilities most critical to the
 governor's daily loop and the GxP audit trail.
+
+**Unassigned items resolved (2026-05-18).** Two CLI files —
+`src/cli/commands/components.py` (`GET /components`) and
+`src/cli/commands/search.py` (`GET /search/capabilities`,
+`GET /search/commands`) — were not assigned to a namespace in the
+original capability audit. They are formally assigned to `/inspect`
+here. The assignment decision and the elimination of the two
+alternative candidates are recorded below.
+
+**Why `/inspect`, not `/audit` or `/meta`.**
+
+`/audit`'s declared primary backend is `mind.governance.*`. Neither
+`components.py` nor `search.py` touches `mind.governance.*`; both
+import exclusively from `shared.*`. Assigning `shared.*`-only files to
+a `mind.governance.*` namespace misrepresents the backend dependency
+and would create a false categorisation that a future maintainer cannot
+verify mechanically. `/audit` is eliminated.
+
+`/meta` appears in the capability map sketch (`GET /meta/validation`
+covers `mind.py`) but has no phase ADR. D6 of this ADR requires a
+phase ADR to be accepted before any endpoint in a namespace is
+implemented. Assigning files to `/meta` now would either block their
+implementation until `/meta` receives a phase ADR, or require
+implementing them before their governing ADR exists — both of which
+violate D6. `/meta` is eliminated.
+
+`/inspect`'s declared primary backend is "Shared observation layer."
+Both files are `shared.*`-only and both endpoints are read-only
+structural queries. This matches the `/inspect` profile on two
+independent constraints (backend dependency and operation character),
+not on a vibes-level similarity claim. The assignment is auditable.
+
+**Assignment:**
+
+`/inspect` is the OpenAPI tag applied to this group, not a URL segment.
+Existing inspect endpoints follow the pattern `/v1/status/*`, `/v1/decisions`,
+`/v1/analysis/*` — no `/v1/inspect/` prefix. These three assignments conform
+to the same convention:
+
+```
+GET /v1/components               — V2 component discovery by package        [Phase 3]
+GET /v1/search/capabilities      — semantic search over capability vectors   [Phase 3]
+GET /v1/search/commands          — fuzzy CLI registry search                 [Phase 3b — deferred]
+```
+
+`GET /v1/components` and `GET /v1/search/capabilities` are implemented by the
+2026-05-18 amendment to ADR-057 D5.
+
+`GET /v1/search/commands` is deferred: its backend (`cli.logic.hub.hub_search_cmd`)
+is a CLI-layer artifact that the API layer cannot import. Follow-up issue
+**#363** (Phase 3b, Band D — Engine Integrity milestone) tracks lifting the
+fuzzy-search logic out of `cli.logic.hub` into a `shared.*` or `will.*`
+service before this endpoint can be implemented. The ADR-050 extraction
+blocker is resolved by the first two endpoints; this deferral does not
+reopen it.
+
+**Seam note.** `GET /v1/components` is structural anatomy —
+squarely within the Inspect group. `GET /v1/search/*` is capability
+discovery over the CLI registry, which is closer to the
+OpenAPI-adjacent surface that `/meta` would cover if formalized. Both
+pass the `shared.*`-only static-import test and the read-only test, so
+the Inspect grouping is correct under the current profile. If `/meta`
+is later formalized per the capability map sketch, `GET /v1/search/*`
+is the candidate for reassignment; `GET /v1/components` stays.
 
 ### D5 — CLI becomes a typed HTTP client
 
@@ -379,3 +449,15 @@ This ADR is verified when:
   evidence mechanism for these articles.
 - Kubernetes `kube-apiserver` architecture — industry reference for
   resource-oriented control plane over reconciliation loop.
+
+---
+
+*Revised 2026-05-18: D4 amended to assign `components.py` and `search.py`
+to the Inspect namespace group (Phase 3, ADR-057). The two alternative candidates
+(`/audit`, `/meta`) are eliminated in D4 with explicit constraint reasoning.
+A seam note records `GET /v1/search/*` as the candidate for reassignment
+if `/meta` is later formalized. `GET /v1/search/commands` is deferred Phase 3b
+pending extraction of `hub_search_cmd` from `cli.logic.hub`. URL paths use the
+existing Inspect convention (`/v1/<resource>`, not `/v1/inspect/<resource>`).
+Context section updated to name the unassigned items and their resolution. No
+other decisions changed.*

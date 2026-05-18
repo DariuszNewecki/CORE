@@ -68,6 +68,8 @@ def create_app() -> FastAPI:
     app.include_router(inspect_routes.decisions_router, prefix="/v1", tags=["Inspect"])
     app.include_router(inspect_routes.refusals_router, prefix="/v1", tags=["Inspect"])
     app.include_router(inspect_routes.analysis_router, prefix="/v1", tags=["Inspect"])
+    app.include_router(inspect_routes.components_router, prefix="/v1", tags=["Inspect"])
+    app.include_router(inspect_routes.search_router, prefix="/v1", tags=["Inspect"])
     app.include_router(census_routes.router, prefix="/v1", tags=["Census"])
     app.include_router(sync_routes.router, prefix="/v1", tags=["Sync"])
     app.include_router(daemon_routes.router, prefix="/v1", tags=["Daemon"])

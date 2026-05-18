@@ -1,7 +1,9 @@
 # ADR-057 — API Phase 3: /coverage + /refactor + /inspect
 
-**Status:** Accepted
+**Status:** Accepted (revised 2026-05-18 — D5 amended to add three `/inspect` endpoints
+for unassigned capability map items; migration scope in Context updated accordingly)
 **Date:** 2026-05-18
+**Revised:** 2026-05-18
 **Authors:** Darek (Dariusz Newecki)
 **Parent:** ADR-053 (API as Governance Interface)
 **Relates to:** ADR-054 (Phase 1), ADR-055 (Phase 2), ADR-038 (circuit
@@ -72,6 +74,21 @@ Audit remediations (deferred from ADR-055 Phase 2):
 `src/cli/commands/inspect/_helpers.py` — pure presentation; kept client-side
 after migration. No migration required; it renders JSON the API returns.
 `src/cli/commands/refactor_support/display.py` — same; pure Rich rendering.
+
+**Unassigned capability map items added to Phase 3 scope (2026-05-18):**
+Two files not assigned in the original capability audit are assigned to
+`/inspect` by the 2026-05-18 revision to ADR-053 D4, and are therefore
+in scope for this ADR:
+
+- `src/cli/commands/components.py` — V2 component discovery by package;
+  `shared.*` imports only
+- `src/cli/commands/search.py` — semantic search over capability vectors +
+  fuzzy CLI registry search; `shared.*` imports only
+
+Both files are presentation-only wrappers over `shared.*` infrastructure.
+Both endpoints are read-only. No new resource table is introduced. These
+are folded into the D3 (inspect operations, all read-only, no new tables)
+characterisation without modification to D3's governing text.
 
 ---
 
@@ -145,10 +162,12 @@ The A3 loop is guarded by the circuit breaker (ADR-038) on the autonomous path.
 
 ### D3 — Inspect operations: all read-only, no new tables
 
-Every `/inspect`, `/decisions`, `/refusals`, `/analysis`, and `/status` endpoint is
-a read-only query against existing data surfaces: `decision_traces`, blackboard
-entries, DB connection state, Qdrant vector store, and in-memory CLI introspection.
-No new tables are introduced.
+Every `/inspect`, `/decisions`, `/refusals`, `/analysis`, `/status`, and
+`GET /v1/components` + `GET /v1/search/*` endpoint is a read-only query
+against existing data surfaces: `decision_traces`, blackboard entries, DB
+connection state, Qdrant vector store, in-memory CLI introspection, V2
+component registry, and capability/command vector stores. No new tables are
+introduced.
 
 `GET /analysis/command-tree` currently returns the CLI command hierarchy by
 introspecting the CLI Typer application. Once `src/cli/` is extracted (ADR-050),
@@ -183,7 +202,7 @@ request_ref         text
 The remediation path respects the circuit breaker (ADR-038) and the dev-phase write
 flag (ADR-014).
 
-### D5 — Endpoint surface
+### D5 — Endpoint surface (revised 2026-05-18)
 
 Full endpoint list for Phase 3, grouped by namespace:
 
@@ -220,6 +239,9 @@ GET  /analysis/duplicates           Semantic code duplication
 GET  /analysis/common-knowledge     DRY-violation candidates
 GET  /analysis/command-tree         CLI hierarchy (pre-extraction) / API tree (post)
 GET  /analysis/test-targets         SIMPLE/COMPLEX classification
+GET  /v1/components                 V2 component discovery by package
+GET  /v1/search/capabilities        Semantic search over capability vectors
+GET  /v1/search/commands            Fuzzy CLI registry search [Phase 3b deferred — #363]
 
 # /audit (deferred from Phase 2)
 POST /audit/remediations            Async: autonomously remediate findings
@@ -251,6 +273,10 @@ Files confirmed as **presentation-only** (`refactor_support/display.py`,
 `inspect/_helpers.py`) are excluded from the D7 list — they stay client-side and
 do not require migration.
 
+`src/cli/commands/components.py` and `src/cli/commands/search.py` are in D7
+scope. Both carry `shared.*` imports; both must be migrated to `api.*` HTTP
+client calls before Phase 3 is marked closed.
+
 ---
 
 ## Deferred to Phase 4
@@ -278,7 +304,7 @@ This ADR is verified when:
    (`safe`, `medium`, `all`) and a missing-`audit_run_id` 422 case.
 5. All files enumerated in the live `var/adr057-phase3-imports.txt` grep import
    exclusively from `api.*` — no `body.*`, `will.*`, `mind.*`, or `shared.*`
-   imports remain.
+   imports remain. This includes `components.py` and `search.py`.
 6. `core-admin code audit` reports no new findings introduced by Phase 3.
 7. `core.coverage_runs`, `core.refactor_runs`, and
    `core.audit_remediation_runs` exist in `db_schema_live.sql` and the ORM.
@@ -301,3 +327,16 @@ This ADR is verified when:
 - `src/body/self_healing/coverage_analyzer.py` — backend for `/coverage/gaps`
 - `src/cli/commands/fix/audit.py` — backend for `POST /audit/remediations`
 - `src/cli/commands/develop.py` — A3 loop backend for `POST /refactor/autonomous`
+
+---
+
+*Revised 2026-05-18: D5 amended to add `GET /v1/components` and
+`GET /v1/search/capabilities` for `components.py` and `search.py`, per the
+2026-05-18 amendment to ADR-053 D4 that assigned those files to the Inspect
+namespace group. `GET /v1/search/commands` listed as Phase 3b deferred pending
+extraction of `hub_search_cmd` from `cli.logic.hub` (tracked as #363). URL paths use the existing
+Inspect convention (`/v1/<resource>`, tagged `Inspect`; no `/v1/inspect/` prefix).
+Context section updated to name the two files as added to Phase 3 scope. D3
+updated to name `GET /v1/components` and `GET /v1/search/*` explicitly. D7
+updated to confirm `components.py` and `search.py` are in the D7 suppression
+list. No resource tables added; no other decisions changed.*

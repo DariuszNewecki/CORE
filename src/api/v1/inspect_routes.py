@@ -1,19 +1,21 @@
 # src/api/v1/inspect_routes.py
 
 """
-Inspect API endpoints (ADR-057 Phase 3, D3).
+Inspect API endpoints (ADR-057 Phase 3, D3, D5).
 
 Every endpoint here is read-only — no resource tables, no background
-tasks. Endpoints live under three top-level namespaces (`/status`,
-`/decisions`, `/refusals`, `/analysis`) so the API surface mirrors the
-CLI command groups one-to-one.
+tasks. Endpoints live under six top-level namespaces (`/status`,
+`/decisions`, `/refusals`, `/analysis`, `/components`, `/search`) so the
+API surface mirrors the CLI command groups one-to-one. All six routers
+are mounted under the `Inspect` OpenAPI tag — `inspect` is the logical
+namespace name, not a URL prefix (per ADR-053 D4 amendment 2026-05-18).
 
 CONSTITUTIONAL:
 - Session access via api.dependencies.get_api_session only.
 - CoreContext is read from request.app.state.core_context.
-- body.* repositories / mind.* engines are reached through the
-  will.governance.inspect_runner facade — no direct imports here
-  (architecture.api.no_body_bypass).
+- body.* repositories / mind.* engines / will.* services are reached
+  through the will.governance.inspect_runner facade — no direct
+  imports here (architecture.api.no_body_bypass).
 """
 
 from __future__ import annotations
@@ -30,12 +32,14 @@ from will.governance.inspect_runner import (
     get_analysis_common_knowledge,
     get_analysis_duplicates,
     get_analysis_test_targets,
+    get_components_list,
     get_db_status,
     get_decisions,
     get_decisions_patterns,
     get_drift_status,
     get_refusals,
     get_refusals_stats,
+    get_search_capabilities,
 )
 
 
@@ -48,6 +52,8 @@ status_router = APIRouter(prefix="/status")
 decisions_router = APIRouter(prefix="/decisions")
 refusals_router = APIRouter(prefix="/refusals")
 analysis_router = APIRouter(prefix="/analysis")
+components_router = APIRouter(prefix="/components")
+search_router = APIRouter(prefix="/search")
 
 
 # ---------- /status ------------------------------------------------------
@@ -173,3 +179,30 @@ async def analysis_test_targets(request: Request) -> dict:
     """Return SIMPLE / COMPLEX classification for in-scope source files."""
     core_context: CoreContext = request.app.state.core_context
     return get_analysis_test_targets(core_context)
+
+
+# ---------- /components --------------------------------------------------
+
+
+@components_router.get("")
+# ID: 3b094d1e-e473-4044-9f46-16f6870f3946
+async def components_list(
+    filter_type: str | None = Query(default=None, alias="type"),
+) -> dict:
+    """Return the registered V2 component inventory across Mind/Body/Will."""
+    return get_components_list(filter_type=filter_type)
+
+
+# ---------- /search ------------------------------------------------------
+
+
+@search_router.get("/capabilities")
+# ID: 08ac8c57-ef92-4142-bf90-ba57bb0c6ce4
+async def search_capabilities(
+    request: Request,
+    q: str = Query(..., min_length=1),
+    limit: int = Query(default=10, ge=1, le=200),
+) -> dict:
+    """Semantic capability search via the Will cognitive service."""
+    core_context: CoreContext = request.app.state.core_context
+    return await get_search_capabilities(core_context, q=q, limit=limit)

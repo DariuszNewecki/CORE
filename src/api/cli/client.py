@@ -551,6 +551,21 @@ class CoreApiClient:
         """GET /v1/analysis/test-targets — SIMPLE/COMPLEX test target classification."""
         return await self._request("GET", "/v1/analysis/test-targets")
 
+    # ID: b347cf17-8caa-4c05-9853-4942b3d8c08f
+    async def inspect_components(self, filter_type: str | None = None) -> dict:
+        """GET /v1/components — V2 component inventory (ADR-057 D5)."""
+        params: dict[str, Any] = {}
+        if filter_type is not None:
+            params["type"] = filter_type
+        return await self._request("GET", "/v1/components", params=params)
+
+    # ID: dbf1dc9a-2a32-4319-94d4-d450c9a54836
+    async def inspect_search_capabilities(self, q: str, limit: int = 10) -> dict:
+        """GET /v1/search/capabilities — semantic capability search (ADR-057 D5)."""
+        return await self._request(
+            "GET", "/v1/search/capabilities", params={"q": q, "limit": limit}
+        )
+
     # ------------------------------------------------------------------
     # Phase 3 — /audit/remediations (ADR-057 D4)
     # ------------------------------------------------------------------

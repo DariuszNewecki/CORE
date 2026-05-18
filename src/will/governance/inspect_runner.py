@@ -2,17 +2,20 @@
 
 """
 Inspect runner facade — Will-layer entry point for the /inspect family
-of read-only APIs (ADR-057 D3).
+of read-only APIs (ADR-057 D3, D5).
 
 Every endpoint in this module is a read-only projection of existing data
-(repositories, blackboard, decision traces, DB connection state). No
-resource table. No background tasks.
+(repositories, blackboard, decision traces, DB connection state, component
+registries, semantic capability index). No resource table. No background
+tasks.
 
 Surface groups:
 * `/status/*`      — DB and drift status
 * `/decisions`     — DecisionTraceRepository projection
 * `/refusals`      — RefusalRepository projection
 * `/analysis/*`    — semantic clusters / duplicates / DRY candidates / command-tree / test targets
+* `/components`    — V2 component inventory across Mind/Body/Will (ADR-057 D5)
+* `/search/*`      — semantic capability search via Will cognitive service (ADR-057 D5)
 
 For Phase 3 every helper here returns a JSON-safe dict suitable for
 direct response serialisation by the route handler.
@@ -38,13 +41,24 @@ __all__ = [
     "get_analysis_common_knowledge",
     "get_analysis_duplicates",
     "get_analysis_test_targets",
+    "get_components_list",
     "get_db_status",
     "get_decisions",
     "get_decisions_patterns",
     "get_drift_status",
     "get_refusals",
     "get_refusals_stats",
+    "get_search_capabilities",
 ]
+
+
+COMPONENT_PACKAGES: dict[str, str] = {
+    "Interpreters": "will.interpreters",
+    "Analyzers": "body.analyzers",
+    "Strategists": "will.strategists",
+    "Evaluators": "body.evaluators",
+    "Deciders": "will.deciders",
+}
 
 
 logger = getLogger(__name__)
@@ -351,3 +365,103 @@ def get_analysis_test_targets(context: CoreContext) -> dict:
     except Exception as exc:
         logger.info("inspect_runner: test_target_classifier unavailable: %s", exc)
         return {"available": False, "error": str(exc), "targets": []}
+
+
+# ---------- /components ---------------------------------------------------
+
+
+# ID: 85883df2-a504-40ba-abbf-9c633c2cbe7c
+def get_components_list(*, filter_type: str | None = None) -> dict:
+    """Return the registered V2 component inventory.
+
+    Walks the canonical component packages and instantiates each
+    discovered class to read its declared phase and description. The
+    `filter_type` parameter is a case-insensitive substring match
+    against the package label (e.g. "analyzers", "strategists"). Rows
+    that fail to instantiate are surfaced with `ok=False` and an error
+    description so the route still returns a 200.
+    """
+    from shared.component_primitive import discover_components
+
+    rows: list[dict[str, Any]] = []
+    for label, package in COMPONENT_PACKAGES.items():
+        if filter_type and filter_type.lower() not in label.lower():
+            continue
+        try:
+            components = discover_components(package)
+        except Exception as exc:
+            rows.append(
+                {
+                    "phase": "ERROR",
+                    "type": label,
+                    "component_id": package,
+                    "description": f"Discovery failed: {type(exc).__name__}: {exc}",
+                    "ok": False,
+                }
+            )
+            continue
+        for cid, cls in sorted(components.items()):
+            try:
+                instance = cls()
+                rows.append(
+                    {
+                        "phase": instance.phase.value.upper(),
+                        "type": label,
+                        "component_id": cid,
+                        "description": instance.description,
+                        "ok": True,
+                    }
+                )
+            except Exception as exc:
+                rows.append(
+                    {
+                        "phase": "ERROR",
+                        "type": label,
+                        "component_id": cid,
+                        "description": f"Initialization failed: {type(exc).__name__}: {exc}",
+                        "ok": False,
+                    }
+                )
+    return {"count": len(rows), "components": rows}
+
+
+# ---------- /search -------------------------------------------------------
+
+
+# ID: e882584c-533c-4267-bda0-83c8f1cadede
+async def get_search_capabilities(
+    context: CoreContext, *, q: str, limit: int = 10
+) -> dict:
+    """Return semantic capability search hits via the Will cognitive service.
+
+    Delegates to `context.cognitive_service.search_capabilities`. If the
+    cognitive service is not attached to the context (e.g. daemon
+    started without LLM orchestration), returns `available=False` with
+    an empty result list so the route still returns a 200.
+    """
+    cognitive_service = getattr(context, "cognitive_service", None)
+    if cognitive_service is None:
+        return {
+            "query": q,
+            "available": False,
+            "error": "cognitive_service not configured",
+            "count": 0,
+            "results": [],
+        }
+    try:
+        results = await cognitive_service.search_capabilities(q, limit=limit)
+    except Exception as exc:
+        return {
+            "query": q,
+            "available": False,
+            "error": f"{type(exc).__name__}: {exc}",
+            "count": 0,
+            "results": [],
+        }
+    results = list(results or [])
+    return {
+        "query": q,
+        "available": True,
+        "count": len(results),
+        "results": results,
+    }

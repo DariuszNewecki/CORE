@@ -20,10 +20,12 @@ from api.v1.inspect_routes import (
     analysis_common_knowledge,
     analysis_duplicates,
     analysis_test_targets,
+    components_list,
     decisions_list,
     decisions_patterns,
     refusals_list,
     refusals_stats,
+    search_capabilities,
     status_db,
     status_drift,
 )
@@ -176,3 +178,87 @@ async def test_analysis_test_targets_returns_facade_payload():
     ):
         out = await analysis_test_targets(request=request)
     assert "targets" in out
+
+
+# ---------- /components (ADR-057 D5) ------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_components_list_passes_filter_type():
+    payload = {
+        "count": 1,
+        "components": [
+            {
+                "phase": "PARSE",
+                "type": "Analyzers",
+                "component_id": "fileanalyzer",
+                "description": "Reads files.",
+                "ok": True,
+            }
+        ],
+    }
+    with patch(
+        "api.v1.inspect_routes.get_components_list",
+        return_value=payload,
+    ) as facade:
+        out = await components_list(filter_type="Analyzers")
+    _, kwargs = facade.call_args
+    assert kwargs["filter_type"] == "Analyzers"
+    assert out["count"] == 1
+    assert out["components"][0]["component_id"] == "fileanalyzer"
+
+
+@pytest.mark.asyncio
+async def test_components_list_no_results():
+    """No matching components — route still returns the facade dict as-is."""
+    with patch(
+        "api.v1.inspect_routes.get_components_list",
+        return_value={"count": 0, "components": []},
+    ) as facade:
+        out = await components_list(filter_type="NoSuchType")
+    _, kwargs = facade.call_args
+    assert kwargs["filter_type"] == "NoSuchType"
+    assert out == {"count": 0, "components": []}
+
+
+# ---------- /search (ADR-057 D5) ----------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_search_capabilities_passes_q_and_limit():
+    request = _mock_request_with_context()
+    payload = {
+        "query": "vector drift",
+        "available": True,
+        "count": 1,
+        "results": [{"score": 0.91, "payload": {"key": "k1", "description": "d"}}],
+    }
+    with patch(
+        "api.v1.inspect_routes.get_search_capabilities",
+        new=AsyncMock(return_value=payload),
+    ) as facade:
+        out = await search_capabilities(request=request, q="vector drift", limit=25)
+    _, kwargs = facade.call_args
+    assert kwargs["q"] == "vector drift"
+    assert kwargs["limit"] == 25
+    assert out["count"] == 1
+
+
+@pytest.mark.asyncio
+async def test_search_capabilities_unavailable_path():
+    """cognitive_service missing — route still returns 200 with available=False."""
+    request = _mock_request_with_context()
+    payload = {
+        "query": "x",
+        "available": False,
+        "error": "cognitive_service not configured",
+        "count": 0,
+        "results": [],
+    }
+    with patch(
+        "api.v1.inspect_routes.get_search_capabilities",
+        new=AsyncMock(return_value=payload),
+    ):
+        out = await search_capabilities(request=request, q="x", limit=10)
+    assert out["available"] is False
+    assert out["results"] == []

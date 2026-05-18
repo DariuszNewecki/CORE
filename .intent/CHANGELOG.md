@@ -947,6 +947,20 @@ Files:
 
 ---
 
+## ADR-053 / ADR-057 — 2026-05-18 (namespace assignment for unassigned capability map items)
+
+`components.py` and `search.py` — the two CLI files left unassigned in the
+original ADR-053 D4 capability map — are formally assigned to the Inspect
+namespace group. ADR-053 D4 records the assignment and eliminates the two
+alternative candidates (`/audit`, `/meta`) with explicit constraint reasoning.
+ADR-057 D5 adds `GET /v1/components` and `GET /v1/search/capabilities` to the
+Phase 3 endpoint surface. `GET /v1/search/commands` is Phase 3b deferred
+pending extraction of `hub_search_cmd` from `cli.logic.hub` — tracked as #363.
+Implementation complete: 7 files touched, ruff clean, zero `shared.*` imports
+remaining in either CLI file. Closes #362. Unblocks ADR-050 CLI extraction.
+
+---
+
 ## Notes
 
 * This changelog intentionally avoids implementation detail
