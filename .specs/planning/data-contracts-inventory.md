@@ -69,7 +69,7 @@ findings from the audit loop.
 | Key | Values | Notes |
 |---|---|---|
 | `blackboard_entry_type` | finding, claim, proposal, report, heartbeat | D5 — ship first, no new engine needed |
-| `blackboard_entry_status` | open, claimed, resolved, abandoned | Verified at models/workers.py:79 |
+| `blackboard_entry_status` | open, claimed, awaiting_reaudit, resolved, abandoned, deferred_to_proposal, dry_run_complete, indeterminate, suppressed | Already governed in `.intent/META/enums.json` — 9 canonical values per ADR-045 and issue #263. Inventory original undercount (4 values) was an authoring error; this row is retained for completeness, no enum action required. |
 | `blackboard_subject` | worker.heartbeat, worker.error, *.run.complete, sync.db.complete, repo.crawl.complete, violation_remediator.completed | Consequence-chain join keys; start with highest-traffic subjects |
 | `proposal_status` | draft, pending, approved, executing, completed, failed, rejected | Implicit in D4; needs explicit enum |
 | `action_impact` | READ_ONLY, WRITE_METADATA, WRITE_CODE, WRITE_DATA | Used by every atomic action |
