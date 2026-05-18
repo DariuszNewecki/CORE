@@ -555,6 +555,86 @@ async def action_fix_docstrings(
 
 
 @register_action(
+    action_id="fix.purge_legacy_tags",
+    description="Remove obsolete tag formats (e.g. legacy '# owner:', '# Tag:' lines)",
+    category=ActionCategory.FIX,
+    policies=["tag_hygiene"],
+    remediates=["metadata.no_legacy_tags"],
+)
+@atomic_action(
+    action_id="fix.purge_legacy_tags",
+    intent="Remove legacy tag formats from source files",
+    impact=ActionImpact.WRITE_METADATA,
+    policies=["atomic_actions"],
+)
+# ID: 3c8d2f15-7e94-4a6b-b1c5-9d3f7e2a4b8d
+async def action_fix_purge_legacy_tags(
+    core_context: CoreContext,
+    write: bool = False,
+    **kwargs,
+) -> ActionResult:
+    """Wrap body.self_healing.purge_legacy_tags_service.purge_legacy_tags."""
+    start = time.time()
+    from body.self_healing.purge_legacy_tags_service import purge_legacy_tags
+
+    try:
+        removed = await purge_legacy_tags(core_context, dry_run=not write)
+    except Exception as e:
+        return ActionResult(
+            action_id="fix.purge_legacy_tags",
+            ok=False,
+            data={"error": str(e), "write": write},
+            duration_sec=time.time() - start,
+        )
+    return ActionResult(
+        action_id="fix.purge_legacy_tags",
+        ok=True,
+        data={"removed": removed, "write": write},
+        duration_sec=time.time() - start,
+    )
+
+
+@register_action(
+    action_id="fix.policy_ids",
+    description="Assign missing policy_id UUIDs to .intent/ policy files",
+    category=ActionCategory.FIX,
+    policies=["policy_id_hygiene"],
+    remediates=["governance.policy_id_required"],
+)
+@atomic_action(
+    action_id="fix.policy_ids",
+    intent="Assign missing policy_id UUIDs",
+    impact=ActionImpact.WRITE_METADATA,
+    policies=["atomic_actions"],
+)
+# ID: 8e1f4a3c-2b6d-49e7-a5c8-7f3d1b4e9c5a
+async def action_fix_policy_ids(
+    core_context: CoreContext,
+    write: bool = False,
+    **kwargs,
+) -> ActionResult:
+    """Wrap body.self_healing.policy_id_service.add_missing_policy_ids."""
+    start = time.time()
+    from body.self_healing.policy_id_service import add_missing_policy_ids
+
+    try:
+        added = await add_missing_policy_ids(core_context, dry_run=not write)
+    except Exception as e:
+        return ActionResult(
+            action_id="fix.policy_ids",
+            ok=False,
+            data={"error": str(e), "write": write},
+            duration_sec=time.time() - start,
+        )
+    return ActionResult(
+        action_id="fix.policy_ids",
+        ok=True,
+        data={"added": added, "write": write},
+        duration_sec=time.time() - start,
+    )
+
+
+@register_action(
     action_id="fix.capability_tagging",
     description="Tag untagged public capabilities using LLM-suggested names",
     category=ActionCategory.FIX,
