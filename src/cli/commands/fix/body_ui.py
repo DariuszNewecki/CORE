@@ -2,33 +2,25 @@
 """
 CLI command: `core-admin fix body-ui`
 
-Runs the Body UI fixer that:
-- Detects Body-layer UI/env violations (Rich, print/input, os.environ)
-- Uses an LLM to rewrite affected modules to be HEADLESS
-- Respects write/dry-run semantics
-
-This module lives in the CLI/Workflow layer, so it is allowed to:
-- Use Rich for terminal output
-- Own progress messages and summaries
+Thin client over POST /v1/quality/body-ui (read) + POST /v1/fix/run/fix.body-ui
+(write). Dry-run returns the violation list inline; --write dispatches the
+LLM fixer asynchronously and polls.
 """
 
 from __future__ import annotations
 
-from shared.logger import getLogger
+import logging
 
-
-logger = getLogger(__name__)
 import typer
 from rich.console import Console
 
-from body.self_healing.body_ui_fixer import fix_body_ui_violations
+from api.cli import CoreApiClient
 from cli.utils import core_command
-from shared.activity_logging import activity_run, log_activity
-from shared.context import CoreContext
 
 from . import fix_app
 
 
+logger = logging.getLogger(__name__)
 console = Console()
 
 
@@ -52,51 +44,50 @@ async def fix_body_ui_command(
     """
     Fix Body-layer UI/env violations (Rich, print/input, os.environ) using the LLM.
 
-    In DRY-RUN mode:
-      - No files are written.
-      - You still see how many files *would* be modified.
-
-    With --write:
-      - Violating files are overwritten with the LLM's corrected versions.
+    Dry-run path uses POST /v1/quality/body-ui (sync check) and reports the
+    violation count. --write path dispatches POST /v1/fix/run/fix.body-ui
+    (async LLM fixer), polls, and reports the summary.
     """
-    core_context: CoreContext = ctx.obj
-    dry_run = not write
-    logger.info("\n[bold cyan]🔧 Body UI Contracts Fixer[/bold cyan]\n")
-    if dry_run:
-        logger.info(
+    _ = ctx
+    console.print("\n[bold cyan]🔧 Body UI Contracts Fixer[/bold cyan]\n")
+    client = CoreApiClient()
+
+    if not write:
+        console.print(
             "[yellow]Running in DRY-RUN mode. Use --write to apply changes.[/yellow]\n"
         )
+        check = await client.quality_body_ui()
+        if check.get("status") == "ok":
+            console.print("[green]✓ Body contracts compliant.[/green]")
+            return
+        violations = check.get("violations", [])
+        unique_files = len({v.get("file") for v in violations if v.get("file")})
+        console.print("[bold]Summary:[/bold]")
+        console.print(f"  Files with violations : {unique_files}")
+        console.print(f"  Total violations      : {len(violations)}")
+        console.print("  Mode                  : DRY-RUN")
+        console.print("\n[yellow]Use --write to apply these changes.[/yellow]")
+        return
+
     if count:
-        logger.info("[dim]Limiting processing to first %s file(s).[/dim]\n", count)
-    with activity_run("fix.body-ui") as run:
-        result = await fix_body_ui_violations(
-            core_context=core_context, write=write, limit=count
-        )
-        log_activity(
-            run,
-            event="fix_summary",
-            status="ok" if result.ok else "warning",
-            details={
-                "files_found": result.data.get("files_found", 0),
-                "files_processed": result.data.get("files_processed", 0),
-                "files_modified": result.data.get("files_modified", 0),
-                "dry_run": result.data.get("dry_run", True),
-            },
-        )
-    files_processed = result.data.get("files_processed", 0)
-    files_modified = result.data.get("files_modified", 0)
-    files_found = result.data.get("files_found", 0)
-    logger.info("[bold]Summary:[/bold]")
-    logger.info("  Files found     : %s", files_found)
-    logger.info("  Files processed : %s", files_processed)
-    logger.info("  Files modified  : %s", files_modified)
-    logger.info("  Mode            : %s", "DRY-RUN" if dry_run else "WRITE")
-    if not result.ok:
-        logger.info(
-            "\n[red]✖ Some issues occurred during Body UI fixing. Check logs or JSON output for details.[/red]"
-        )
+        console.print(f"[dim]Limiting processing to first {count} file(s).[/dim]\n")
+    params: dict[str, object] = {}
+    if count is not None:
+        params["limit"] = count
+    initial = await client.run_fix("fix.body-ui", write=True, params=params)
+    run_id = initial.get("run_id")
+    if not run_id:
+        console.print(f"[red]fix.body-ui failed to dispatch: {initial}[/red]")
         raise typer.Exit(1)
-    if dry_run:
-        logger.info("\n[yellow]Use --write to apply these changes.[/yellow]")
-    else:
-        logger.info("\n[green]✓ Body UI contracts successfully applied.[/green]")
+    final = await client._poll_run(run_id)
+    if final.get("status") != "completed":
+        console.print(f"[red]fix.body-ui failed: {final.get('error') or final}[/red]")
+        raise typer.Exit(1)
+
+    result_data = (final.get("result") or {}).get("data", {})
+    console.print("[bold]Summary:[/bold]")
+    console.print(f"  Files found     : {result_data.get('files_found', 0)}")
+    console.print(f"  Files processed : {result_data.get('files_processed', 0)}")
+    console.print(f"  Files modified  : {result_data.get('files_modified', 0)}")
+    console.print("  Mode            : WRITE")
+    console.print("\n[green]✓ Body UI contracts successfully applied.[/green]")

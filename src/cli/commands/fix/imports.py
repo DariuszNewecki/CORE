@@ -1,29 +1,24 @@
 # src/cli/commands/fix/imports.py
 """
-Import organization commands for the 'fix' CLI group.
-
-Provides:
-- fix imports (Sort and group imports according to PEP 8)
-
-CONSTITUTIONAL ALIGNMENT:
-- Removed legacy error decorators to prevent circular imports.
-- Enforces import organization standards via standard tooling.
+Import organization command for the 'fix' CLI group — thin client over
+POST /v1/fix/run/fix.imports.
 """
 
 from __future__ import annotations
 
-from shared.logger import getLogger
+import logging
 
-
-logger = getLogger(__name__)
 import typer
+from rich.console import Console
 
+from api.cli import CoreApiClient
 from cli.utils import core_command
-from shared.action_types import ActionImpact, ActionResult
-from shared.atomic_action import atomic_action
-from shared.utils.subprocess_utils import run_poetry_command
 
 from . import fix_app
+
+
+logger = logging.getLogger(__name__)
+console = Console()
 
 
 @fix_app.command(
@@ -41,63 +36,20 @@ async def fix_imports_command(
     """
     Sort and group Python imports according to constitutional style policy.
 
-    Groups imports in the correct order:
-    1. Standard library
-    2. Third-party packages
-    3. Local imports
-
-    Uses ruff's import sorting (I) rules.
+    Dispatches fix.imports via POST /v1/fix/run/{fix_id}. The server runs
+    ruff with the I rules; the CLI polls and reports.
     """
-    target_path = "src/"
-    logger.info("[bold cyan]Sorting imports...[/bold cyan]")
-    logger.info("Target: %s", target_path)
-    logger.info("Mode: %s", "WRITE" if write else "DRY RUN")
-    try:
-        cmd = ["ruff", "check", target_path, "--select", "I"]
-        if write:
-            cmd.append("--fix")
-        cmd.append("--exit-zero")
-        run_poetry_command(f"Sorting imports in {target_path}", cmd)
-        logger.info("[green]✅ Import sorting completed[/green]")
-    except Exception as e:
-        logger.info("[red]❌ Import sorting failed: %s[/red]", e)
+    _ = ctx
+    console.print("[bold cyan]Sorting imports...[/bold cyan]")
+    console.print(f"Mode: {'WRITE' if write else 'DRY RUN'}")
+    client = CoreApiClient()
+    initial = await client.run_fix("fix.imports", write=write)
+    run_id = initial.get("run_id")
+    if not run_id:
+        console.print(f"[red]fix.imports failed to dispatch: {initial}[/red]")
         raise typer.Exit(1)
-
-
-@atomic_action(
-    action_id="fix.imports",
-    intent="Sort and group Python imports according to PEP 8 conventions",
-    impact=ActionImpact.WRITE_METADATA,
-    policies=["import_organization"],
-    category="fixers",
-)
-# ID: 0fc1ca3d-ca25-4c3d-ba07-b25abe44c95a
-async def fix_imports_internal(write: bool = False) -> ActionResult:
-    """
-    Internal atomic action for import sorting.
-
-    Used by dev sync workflow and other orchestrators.
-    """
-    import time
-
-    target_path = "src/"
-    start = time.time()
-    try:
-        cmd = ["ruff", "check", target_path, "--select", "I"]
-        if write:
-            cmd.append("--fix")
-        cmd.append("--exit-zero")
-        run_poetry_command(f"Sorting imports in {target_path}", cmd)
-        return ActionResult(
-            action_id="fix.imports",
-            ok=True,
-            data={"status": "completed", "target": target_path, "write": write},
-            duration_sec=time.time() - start,
-        )
-    except Exception as e:
-        return ActionResult(
-            action_id="fix.imports",
-            ok=False,
-            data={"error": str(e)},
-            duration_sec=time.time() - start,
-        )
+    final = await client._poll_run(run_id)
+    if final.get("status") != "completed":
+        console.print(f"[red]fix.imports failed: {final.get('error') or final}[/red]")
+        raise typer.Exit(1)
+    console.print("[green]✅ Import sorting completed[/green]")

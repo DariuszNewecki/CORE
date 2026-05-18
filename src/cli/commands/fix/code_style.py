@@ -3,54 +3,50 @@
 Code style and formatting commands for the 'fix' CLI group.
 
 Provides:
-- fix headers (file header compliance)
-
-CONSTITUTIONAL ALIGNMENT:
-- Logic decoupled from CLI helpers to prevent circular imports.
-- Mutation logic remains in 'internal' functions for Atomic Action use.
+- fix headers — thin client over POST /v1/fix/run/fix.headers
 """
 
 from __future__ import annotations
 
-from shared.logger import getLogger
+import logging
 
-
-logger = getLogger(__name__)
 import typer
+from rich.console import Console
 
-# DEPRECATED: fix_headers_internal moved to body/self_healing/header_service.py
-# under ADR-050. This re-export keeps in-CLI callers working; remove after the
-# CLI migration epic completes.
-from body.self_healing.header_service import fix_headers_internal
+from api.cli import CoreApiClient
 from cli.utils import core_command
-from shared.action_types import ActionImpact, ActionResult
-from shared.atomic_action import atomic_action
 
 from . import fix_app
 
 
-__all__ = ["fix_headers_cmd", "fix_headers_internal"]
+logger = logging.getLogger(__name__)
+console = Console()
 
 
 @fix_app.command(
     "headers", help="Ensures all files have constitutionally compliant headers."
 )
 @core_command(dangerous=True, confirmation=True)
-@atomic_action(
-    action_id="fix.headers",
-    intent="Atomic action for fix_headers_cmd",
-    impact=ActionImpact.WRITE_CODE,
-    policies=["atomic_actions"],
-)
 # ID: 0077efbb-9090-42bb-a602-2ff3b7853875
 async def fix_headers_cmd(
     ctx: typer.Context,
     write: bool = typer.Option(
         False, "--write", help="Apply fixes to files with violations."
     ),
-) -> ActionResult:
+) -> None:
     """
-    CLI wrapper for fix headers command.
+    Dispatches fix.headers via POST /v1/fix/run/{fix_id}.
     """
-    with logger.info("[cyan]Checking file headers...[/cyan]"):
-        return await fix_headers_internal(ctx.obj, write=write)
+    _ = ctx
+    console.print("[cyan]Checking file headers...[/cyan]")
+    client = CoreApiClient()
+    initial = await client.run_fix("fix.headers", write=write)
+    run_id = initial.get("run_id")
+    if not run_id:
+        console.print(f"[red]fix.headers failed to dispatch: {initial}[/red]")
+        raise typer.Exit(1)
+    final = await client._poll_run(run_id)
+    if final.get("status") != "completed":
+        console.print(f"[red]fix.headers failed: {final.get('error') or final}[/red]")
+        raise typer.Exit(1)
+    console.print("[green]✓ fix.headers completed.[/green]")

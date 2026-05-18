@@ -1,22 +1,20 @@
 # src/cli/commands/fix/settings_access.py
-"""Provides functionality for the settings_access module."""
+"""Refactor settings.* imports to DI — thin client over POST /v1/fix/run/fix.settings_access."""
 
 from __future__ import annotations
 
-from shared.logger import getLogger
+import logging
 
-
-logger = getLogger(__name__)
 import typer
 from rich.console import Console
 
-from body.maintenance.refactor_settings_access import refactor_settings_access
+from api.cli import CoreApiClient
 from cli.utils import core_command
-from shared.context import CoreContext
 
 from . import fix_app
 
 
+logger = logging.getLogger(__name__)
 console = Console()
 
 
@@ -29,25 +27,39 @@ async def fix_settings_di_cmd(
     layers: str = typer.Option("mind,will", "--layers", help="Comma-separated layers"),
 ) -> None:
     """Refactor settings imports to dependency injection via CoreContext."""
-    core_context: CoreContext = ctx.obj
-    repo_root = core_context.git_service.repo_path
+    _ = ctx
     layer_list = [layer.strip() for layer in layers.split(",")]
-    results = await refactor_settings_access(
-        repo_path=repo_root, layers=layer_list, dry_run=not write
+    client = CoreApiClient()
+    initial = await client.run_fix(
+        "fix.settings_access", write=write, params={"layers": layer_list}
     )
+    run_id = initial.get("run_id")
+    if not run_id:
+        console.print(f"[red]fix.settings_access failed to dispatch: {initial}[/red]")
+        raise typer.Exit(1)
+    final = await client._poll_run(run_id)
+    if final.get("status") != "completed":
+        console.print(
+            f"[red]fix.settings_access failed: {final.get('error') or final}[/red]"
+        )
+        raise typer.Exit(1)
+
+    result_data = (final.get("result") or {}).get("data", {})
+    results = result_data.get("results", {})
     total_refactored = 0
     total_failed = 0
     for layer_name, stats in results.items():
-        logger.info("\n[cyan]%s[/cyan]:", layer_name.upper())
-        logger.info("  Files analyzed: %s", stats["analyzed"])
-        logger.info("  Files refactored: %s", stats["refactored"])
-        total_refactored += stats["refactored"]
-        total_failed += stats["failed"]
-        if stats["failed"]:
-            logger.info("  [red]Failed: %s[/red]", stats["failed"])
-    logger.info("\n[bold]Summary:[/bold]")
-    logger.info("  Total refactored: %s", total_refactored)
+        console.print(f"\n[cyan]{layer_name.upper()}[/cyan]:")
+        console.print(f"  Files analyzed: {stats.get('analyzed', 0)}")
+        console.print(f"  Files refactored: {stats.get('refactored', 0)}")
+        total_refactored += stats.get("refactored", 0)
+        failed = stats.get("failed", 0)
+        total_failed += failed
+        if failed:
+            console.print(f"  [red]Failed: {failed}[/red]")
+    console.print("\n[bold]Summary:[/bold]")
+    console.print(f"  Total refactored: {total_refactored}")
     if total_failed:
-        logger.info("  [red]Total failed: %s[/red]", total_failed)
+        console.print(f"  [red]Total failed: {total_failed}[/red]")
     else:
-        logger.info("  [green]✅ All files processed successfully[/green]")
+        console.print("  [green]✅ All files processed successfully[/green]")
