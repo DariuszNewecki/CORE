@@ -45,13 +45,7 @@ async def test_start_development_cycle_creates_task_and_starts_background_job():
     with (
         patch("api.v1.development_routes.TaskRepository", return_value=mock_task_repo),
         patch("api.v1.development_routes.develop_from_goal", mock_develop_from_goal),
-        patch("api.v1.development_routes.get_session") as mock_get_session,
     ):
-        # Mock session context manager for background task
-        mock_dev_session = AsyncMock()
-        mock_get_session.return_value.__aenter__.return_value = mock_dev_session
-        mock_get_session.return_value.__aexit__.return_value = None
-
         # Call the function
         result = await start_development_cycle(
             request=mock_request,
@@ -106,7 +100,6 @@ async def test_start_development_cycle_with_different_goal():
     with (
         patch("api.v1.development_routes.TaskRepository", return_value=mock_task_repo),
         patch("api.v1.development_routes.develop_from_goal", AsyncMock()),
-        patch("api.v1.development_routes.get_session"),
     ):
         # Call the function
         result = await start_development_cycle(
@@ -154,7 +147,6 @@ async def test_start_development_cycle_returns_correct_structure():
     with (
         patch("api.v1.development_routes.TaskRepository", return_value=mock_task_repo),
         patch("api.v1.development_routes.develop_from_goal", AsyncMock()),
-        patch("api.v1.development_routes.get_session"),
     ):
         # Call the function
         result = await start_development_cycle(
@@ -209,13 +201,7 @@ async def test_start_development_cycle_background_task_configuration():
     with (
         patch("api.v1.development_routes.TaskRepository", return_value=mock_task_repo),
         patch("api.v1.development_routes.develop_from_goal", mock_develop_from_goal),
-        patch("api.v1.development_routes.get_session") as mock_get_session,
     ):
-        # Mock session context manager
-        mock_dev_session = AsyncMock()
-        mock_get_session.return_value.__aenter__.return_value = mock_dev_session
-        mock_get_session.return_value.__aexit__.return_value = None
-
         # Call the function
         await start_development_cycle(
             request=mock_request,
