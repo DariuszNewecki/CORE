@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from typing import Any
 
 import httpx
@@ -11,6 +12,8 @@ import httpx
 
 _DEFAULT_BASE_URL = "http://127.0.0.1:8000"
 _DEFAULT_TIMEOUT_SECONDS = 30.0
+_POLL_INTERVAL_SECONDS = 1.0
+_POLL_TERMINAL_STATES = frozenset({"completed", "failed"})
 
 
 # ID: 03d88f8c-1a13-4901-a03c-52db4b5ee5b2
@@ -211,6 +214,21 @@ class CoreApiClient:
     async def get_fix_run(self, run_id: str) -> dict:
         """GET /v1/fix/runs/{run_id} — fetch a fix run's status and result."""
         return await self._request("GET", f"/v1/fix/runs/{run_id}")
+
+    # ID: 1205e380-4b68-4a53-b56d-0eec74896962
+    async def _poll_run(self, run_id: str, timeout_seconds: float = 300.0) -> dict:
+        """Poll GET /v1/fix/runs/{run_id} until status is completed or failed.
+
+        Returns the terminal run payload. Raises TimeoutError if the run
+        does not reach a terminal state within `timeout_seconds`. Used by
+        CLIs over async /fix and /quality endpoints (ADR-055 D2/D3).
+        """
+        async with asyncio.timeout(timeout_seconds):
+            while True:
+                payload = await self.get_fix_run(run_id)
+                if payload.get("status") in _POLL_TERMINAL_STATES:
+                    return payload
+                await asyncio.sleep(_POLL_INTERVAL_SECONDS)
 
     # ID: 7863008f-424f-4e14-b461-eeb8b969291e
     async def quality_imports(self, target_files: list[str] | None = None) -> dict:
