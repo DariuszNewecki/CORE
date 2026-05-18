@@ -263,6 +263,15 @@ class CoreApiClient:
             json={"target_files": target_files or []},
         )
 
+    # ID: 4e6f1a2b-8c3d-47e9-a5b1-2d3f4c5a6b7d
+    async def quality_policy_coverage(self) -> dict:
+        """POST /v1/quality/policy-coverage — sync constitutional policy-coverage audit.
+
+        Returns the flattened PolicyCoverageReport: {report_id,
+        generated_at_utc, repo_root, summary, records, exit_code}.
+        """
+        return await self._request("POST", "/v1/quality/policy-coverage", json={})
+
     # ID: 0774cb34-3305-4fee-89b3-8f33bec667a9
     async def quality_lint(self, fix: bool = False) -> dict:
         """POST /v1/quality/lint — async ruff lint run (fix=true applies --fix)."""

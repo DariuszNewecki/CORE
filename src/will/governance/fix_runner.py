@@ -462,6 +462,33 @@ async def run_quality_imports(target_files: list[str] | None) -> dict:
     }
 
 
+# ID: 9f24a1bb-3c5e-4a1d-9b8f-7e2d1f4a3c6e
+async def run_quality_policy_coverage(context: CoreContext) -> dict:
+    """Run the constitutional policy-coverage audit synchronously.
+
+    Wraps mind.governance.PolicyCoverageService. Returns the
+    PolicyCoverageReport flattened to a JSON-safe dict ({report_id,
+    generated_at_utc, repo_root, summary, records, exit_code}). The
+    audit is read-only; no fix_runs row, no background task.
+    """
+    from mind.governance.policy_coverage_service import PolicyCoverageService
+    from shared.path_resolver import PathResolver
+
+    repo_root = context.git_service.repo_path
+    path_resolver = PathResolver.from_repo(
+        repo_root=repo_root, intent_root=repo_root / ".intent"
+    )
+    report = PolicyCoverageService(path_resolver).run()
+    return {
+        "report_id": report.report_id,
+        "generated_at_utc": report.generated_at_utc,
+        "repo_root": report.repo_root,
+        "summary": report.summary,
+        "records": report.records,
+        "exit_code": report.exit_code,
+    }
+
+
 # ID: 59c8771b-19bc-4933-ae34-9b8da796c9ca
 async def run_quality_body_ui(
     context: CoreContext,

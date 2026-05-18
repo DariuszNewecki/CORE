@@ -49,6 +49,7 @@ from will.governance.fix_runner import (
     run_and_persist_quality,
     run_quality_body_ui,
     run_quality_imports,
+    run_quality_policy_coverage,
 )
 
 
@@ -167,6 +168,19 @@ async def quality_body_ui(
     """Run the Body-layer UI contract check inline. Returns {status, violations}."""
     core_context: CoreContext = request.app.state.core_context
     return await run_quality_body_ui(core_context, payload.target_files)
+
+
+@router.post("/policy-coverage")
+# ID: 7c1b5e8a-4f2d-49a6-b3e8-d1c4a2f6b9e0
+async def quality_policy_coverage(request: Request) -> dict:
+    """Run the constitutional policy-coverage audit inline.
+
+    Returns the flattened PolicyCoverageReport: {report_id,
+    generated_at_utc, repo_root, summary, records, exit_code}. Sync;
+    no fix_runs row.
+    """
+    core_context: CoreContext = request.app.state.core_context
+    return await run_quality_policy_coverage(core_context)
 
 
 # ----------------------------------------------------------------------

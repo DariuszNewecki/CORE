@@ -2,22 +2,20 @@
 
 """
 Logic for constitutional policy coverage auditing.
+
+Thin client over POST /v1/quality/policy-coverage. The audit runs
+server-side via mind.governance.PolicyCoverageService; this module
+calls the endpoint and owns rendering only.
 """
 
 from __future__ import annotations
 
-from shared.logger import getLogger
-
-
-logger = getLogger(__name__)
 import logging
-from pathlib import Path
 from typing import Any
 
 import typer
 
-from mind.governance.policy_coverage_service import PolicyCoverageService
-from shared.path_resolver import PathResolver
+from api.cli import CoreApiClient
 
 
 logger = logging.getLogger(__name__)
@@ -50,19 +48,13 @@ def _log_policy_coverage_table(records: list[dict[str, Any]]) -> None:
         ),
     )
     for rec in sorted_records:
-        policy = rec.get("policy_id", "")
-        rule_id = rec.get("rule_id", "")
-        enforcement = rec.get("enforcement", "")
-        coverage = rec.get("coverage", "none")
-        covered = rec.get("covered", False)
-        covered_str = "Yes" if covered else "No"
         logger.info(
             "Policy: %s, Rule ID: %s, Enforcement: %s, Coverage: %s, Covered?: %s",
-            policy,
-            rule_id,
-            enforcement,
-            coverage,
-            covered_str,
+            rec.get("policy_id", ""),
+            rec.get("rule_id", ""),
+            rec.get("enforcement", ""),
+            rec.get("coverage", "none"),
+            "Yes" if rec.get("covered", False) else "No",
         )
 
 
@@ -83,25 +75,26 @@ def _log_uncovered_policy_rules(records: list[dict[str, Any]]) -> None:
 
 
 # ID: 6eb5c3ca-cbbf-48d1-82a5-de01df839b6f
-def policy_coverage():
+async def policy_coverage() -> None:
     """
     Runs a meta-audit on all .intent/policies/ to ensure they are
     well-formed and covered by the governance model.
+
+    Thin client over POST /v1/quality/policy-coverage; this function
+    fetches the report and renders it via the local _log_* helpers.
     """
     logger.info("Running Constitutional Policy Coverage Audit...")
-    path_resolver = PathResolver.from_repo(
-        repo_root=Path.cwd(), intent_root=Path.cwd() / ".intent"
-    )
-    service = PolicyCoverageService(path_resolver)
-    report = service.run()
-    logger.info("Report ID: %s", report.report_id)
-    _log_policy_coverage_summary(report.summary)
-    _log_policy_coverage_table(report.records)
-    if report.summary.get("uncovered_rules", 0) > 0:
-        _log_uncovered_policy_rules(report.records)
-    if report.exit_code != 0:
-        logger.error(
-            "Policy coverage audit failed with exit code: %s", report.exit_code
-        )
-        raise typer.Exit(code=report.exit_code)
+    client = CoreApiClient()
+    report = await client.quality_policy_coverage()
+    logger.info("Report ID: %s", report.get("report_id", ""))
+    summary = report.get("summary", {})
+    records = report.get("records", [])
+    _log_policy_coverage_summary(summary)
+    _log_policy_coverage_table(records)
+    if summary.get("uncovered_rules", 0) > 0:
+        _log_uncovered_policy_rules(records)
+    exit_code = report.get("exit_code", 0)
+    if exit_code != 0:
+        logger.error("Policy coverage audit failed with exit code: %s", exit_code)
+        raise typer.Exit(code=exit_code)
     logger.info("All active policies are backed by implemented or inferred checks.")
