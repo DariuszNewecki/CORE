@@ -152,3 +152,108 @@ class CoreApiClient:
             },
             timeout=300.0,
         )
+
+    # ID: d4b48241-75a5-4e53-bc46-e80b0c8e36e5
+    async def list_fix_commands(self) -> dict:
+        """GET /v1/fix/commands — list registered fix commands."""
+        return await self._request("GET", "/v1/fix/commands")
+
+    # ID: ae1230d2-9f37-4e2f-9025-8b409a73ee32
+    async def list_actions(self) -> dict:
+        """GET /v1/actions — list all registered atomic actions."""
+        return await self._request("GET", "/v1/actions")
+
+    # ID: cca11da8-9878-4c7e-9149-1972446a9d81
+    async def run_fix(
+        self,
+        fix_id: str,
+        target_files: list[str] | None = None,
+        write: bool = False,
+    ) -> dict:
+        """POST /v1/fix/run/{fix_id} — dispatch a registered fix action."""
+        return await self._request(
+            "POST",
+            f"/v1/fix/run/{fix_id}",
+            json={
+                "target_files": target_files or [],
+                "write": write,
+            },
+        )
+
+    # ID: b54035a3-7c41-452c-bd1d-2cb7c92e9214
+    async def fix_all(self, write: bool = False) -> dict:
+        """POST /v1/fix/all — run the curated flow.fix_code sequence."""
+        return await self._request(
+            "POST",
+            "/v1/fix/all",
+            json={"write": write},
+        )
+
+    # ID: 22c3d638-ed25-40a0-8aec-52c569e5e776
+    async def fix_modularity(self, write: bool = False) -> dict:
+        """POST /v1/fix/modularity — trigger modularity remediation."""
+        return await self._request(
+            "POST",
+            "/v1/fix/modularity",
+            json={"write": write},
+        )
+
+    # ID: 4dcdaddd-1cd1-4561-9d1b-6e76637bada6
+    async def fix_ir(self, kind: str) -> dict:
+        """POST /v1/fix/ir — scaffold an IR YAML file (triage or log)."""
+        return await self._request(
+            "POST",
+            "/v1/fix/ir",
+            json={"kind": kind},
+        )
+
+    # ID: 42e18693-ee64-42e7-bf48-dd855f2f3463
+    async def get_fix_run(self, run_id: str) -> dict:
+        """GET /v1/fix/runs/{run_id} — fetch a fix run's status and result."""
+        return await self._request("GET", f"/v1/fix/runs/{run_id}")
+
+    # ID: 7863008f-424f-4e14-b461-eeb8b969291e
+    async def quality_imports(self, target_files: list[str] | None = None) -> dict:
+        """POST /v1/quality/imports — synchronous import-resolution check."""
+        return await self._request(
+            "POST",
+            "/v1/quality/imports",
+            json={"target_files": target_files or []},
+        )
+
+    # ID: e2563ebe-4fc9-45aa-91bc-a362ce637e95
+    async def quality_body_ui(self, target_files: list[str] | None = None) -> dict:
+        """POST /v1/quality/body-ui — synchronous Body-layer UI contract check."""
+        return await self._request(
+            "POST",
+            "/v1/quality/body-ui",
+            json={"target_files": target_files or []},
+        )
+
+    # ID: 0774cb34-3305-4fee-89b3-8f33bec667a9
+    async def quality_lint(self, fix: bool = False) -> dict:
+        """POST /v1/quality/lint — async ruff lint run (fix=true applies --fix)."""
+        return await self._request(
+            "POST",
+            "/v1/quality/lint",
+            json={"fix": fix},
+        )
+
+    # ID: 1824000e-1ced-488b-a083-56e2e25529ec
+    async def quality_tests(self, path: str | None = None) -> dict:
+        """POST /v1/quality/tests — async pytest run."""
+        return await self._request(
+            "POST",
+            "/v1/quality/tests",
+            json={"path": path},
+        )
+
+    # ID: efdd8365-2deb-4093-b03e-fb5aa303647f
+    async def quality_system(self) -> dict:
+        """POST /v1/quality/system — async lint + tests + audit bundle."""
+        return await self._request("POST", "/v1/quality/system", json={})
+
+    # ID: d41045dd-54cb-4b72-897b-55ed29d3f305
+    async def quality_gates(self) -> dict:
+        """POST /v1/quality/gates — async six-gate quality bundle."""
+        return await self._request("POST", "/v1/quality/gates", json={})
