@@ -9,57 +9,59 @@ Provides:
 - fix tags (Capability tagging)
 - fix duplicate-ids
 - fix placeholders
+- fix dead-code
 
-CONSTITUTIONAL ALIGNMENT:
-- Removed legacy error decorators to prevent circular imports.
-- Orchestrates metadata health via governed atomic actions.
+Thin clients over POST /v1/fix/run/{fix_id}. All execution moves
+server-side; this module only dispatches, polls, and renders.
 """
 
 from __future__ import annotations
 
-from shared.logger import getLogger
-
-
-logger = getLogger(__name__)
+import logging
 from pathlib import Path
 
 import typer
+from rich.console import Console
 
-from body.atomic.executor import ActionExecutor
-
-# DEPRECATED: fix_duplicate_ids_internal moved to
-# body/self_healing/duplicate_id_service.py under ADR-050. This re-export
-# keeps in-CLI callers working; remove after the CLI migration epic completes.
-from body.self_healing.duplicate_id_service import fix_duplicate_ids_internal
-
-# DEPRECATED: fix_ids_internal moved to body/self_healing/id_tagging_service.py
-# under ADR-050. This re-export keeps in-CLI callers working; remove after the
-# CLI migration epic completes.
-from body.self_healing.id_tagging_service import fix_ids_internal
-from body.self_healing.policy_id_service import add_missing_policy_ids
-from body.self_healing.purge_legacy_tags_service import purge_legacy_tags
+from api.cli import CoreApiClient
 from cli.utils import core_command
-from shared.action_types import ActionImpact, ActionResult
-from shared.atomic_action import atomic_action
-from shared.context import CoreContext
-from shared.infrastructure.database.session_manager import get_session
-from will.self_healing.capability_tagging_service import (
-    main_async as tag_capabilities_async,
-)
 
 from . import fix_app
+
+
+logger = logging.getLogger(__name__)
+console = Console()
 
 
 __all__ = [
     "fix_dead_code_cmd",
     "fix_duplicate_ids_command",
-    "fix_duplicate_ids_internal",
-    "fix_ids_internal",
     "fix_placeholders_command",
     "fix_policy_ids_command",
     "fix_tags_command",
     "purge_legacy_tags_command",
 ]
+
+
+async def _dispatch_and_poll(
+    fix_id: str, *, write: bool, params: dict | None = None
+) -> dict:
+    """Dispatch an atomic fix and poll to terminal status.
+
+    Returns the final fix_runs payload. Raises typer.Exit(1) on
+    dispatch failure or non-completed terminal status.
+    """
+    client = CoreApiClient()
+    initial = await client.run_fix(fix_id, write=write, params=params)
+    run_id = initial.get("run_id")
+    if not run_id:
+        console.print(f"[red]{fix_id} failed to dispatch: {initial}[/red]")
+        raise typer.Exit(1)
+    final = await client._poll_run(run_id)
+    if final.get("status") != "completed":
+        console.print(f"[red]{fix_id} failed: {final.get('error') or final}[/red]")
+        raise typer.Exit(1)
+    return final
 
 
 @fix_app.command(
@@ -75,9 +77,12 @@ async def purge_legacy_tags_command(
     ),
 ) -> None:
     """Remove obsolete tag formats from Python files."""
-    removed_count = await purge_legacy_tags(ctx.obj, dry_run=not write)
+    _ = ctx
+    final = await _dispatch_and_poll("fix.purge_legacy_tags", write=write)
+    data = (final.get("result") or {}).get("data", {})
+    removed = data.get("removed", 0)
     mode = "removed" if write else "would be removed (dry-run)"
-    logger.info("[bold green]Obsolete tags %s: %s[/bold green]", mode, removed_count)
+    console.print(f"[bold green]Obsolete tags {mode}: {removed}[/bold green]")
 
 
 @fix_app.command(
@@ -95,14 +100,13 @@ async def fix_policy_ids_command(
     ),
 ) -> None:
     """Ensure each policy file has a unique policy_id."""
-    added, skipped = await add_missing_policy_ids(ctx.obj, dry_run=not write)
+    _ = ctx
+    _ = policies_dir
+    final = await _dispatch_and_poll("fix.policy_ids", write=write)
+    data = (final.get("result") or {}).get("data", {})
+    added = data.get("added", 0)
     mode = "write" if write else "dry-run"
-    logger.info(
-        "[bold green]Policy IDs: added=%s, skipped=%s (%s)[/bold green]",
-        added,
-        skipped,
-        mode,
-    )
+    console.print(f"[bold green]Policy IDs: added={added} ({mode})[/bold green]")
 
 
 @fix_app.command(
@@ -117,14 +121,9 @@ async def fix_tags_command(
     """
     Automatically tag untagged capabilities using the AI naming agent.
     """
-    core_context: CoreContext = ctx.obj
-    await tag_capabilities_async(
-        session_factory=get_session,
-        cognitive_service=core_context.cognitive_service,
-        knowledge_service=core_context.knowledge_service,
-        write=write,
-        dry_run=not write,
-    )
+    _ = ctx
+    await _dispatch_and_poll("fix.capability_tagging", write=write)
+    console.print("[green]✓ fix.capability_tagging completed.[/green]")
 
 
 @fix_app.command(
@@ -132,22 +131,18 @@ async def fix_tags_command(
     help="Resolves duplicate IDs by regenerating fresh UUIDs for conflicts.",
 )
 @core_command(dangerous=True, confirmation=True)
-@atomic_action(
-    action_id="fix.duplicate",
-    intent="Atomic action for fix_duplicate_ids_command",
-    impact=ActionImpact.WRITE_CODE,
-    policies=["atomic_actions"],
-)
 # ID: 96717df8-d28f-4124-bc1e-71bf3921b358
 async def fix_duplicate_ids_command(
     ctx: typer.Context,
     write: bool = typer.Option(
         False, "--write", help="Apply the changes to resolve duplicate IDs."
     ),
-) -> ActionResult:
+) -> None:
     """Detect and resolve duplicate IDs in Python files."""
-    with logger.info("[cyan]Resolving duplicate IDs...[/cyan]"):
-        return await fix_duplicate_ids_internal(ctx.obj, write=write)
+    _ = ctx
+    console.print("[cyan]Resolving duplicate IDs...[/cyan]")
+    await _dispatch_and_poll("fix.duplicate_ids", write=write)
+    console.print("[green]✓ fix.duplicate_ids completed.[/green]")
 
 
 @fix_app.command(
@@ -155,26 +150,21 @@ async def fix_duplicate_ids_command(
     help="Automated replacement of forbidden placeholders (FUTURE, pending, none).",
 )
 @core_command(dangerous=True, confirmation=True)
-@atomic_action(
-    action_id="fix.placeholders",
-    intent="Atomic action for fix_placeholders_command",
-    impact=ActionImpact.WRITE_CODE,
-    policies=["atomic_actions"],
-)
 # ID: e8c8f803-1cad-4150-9e66-e50859d8bd35
 async def fix_placeholders_command(
     ctx: typer.Context,
     write: bool = typer.Option(
         False, "--write", help="Apply fixes to resolve forbidden placeholders."
     ),
-) -> ActionResult:
+) -> None:
     """
     Detects and resolves forbidden placeholder strings (pending, FUTURE, etc.)
-    using the governed ActionExecutor to ensure compliance with purity standards.
+    via the registered fix.placeholders atomic action.
     """
-    with logger.info("[cyan]Purging forbidden placeholders...[/cyan]"):
-        executor = ActionExecutor(ctx.obj)
-        return await executor.execute("fix.placeholders", write=write)
+    _ = ctx
+    console.print("[cyan]Purging forbidden placeholders...[/cyan]")
+    await _dispatch_and_poll("fix.placeholders", write=write)
+    console.print("[green]✓ fix.placeholders completed.[/green]")
 
 
 @fix_app.command(
@@ -185,13 +175,12 @@ async def fix_placeholders_command(
 async def fix_dead_code_cmd(
     ctx: typer.Context,
     write: bool = typer.Option(False, "--write", help="Apply the deletions."),
-):
-    """CLI wrapper for the Vulture Healer."""
-    from body.self_healing.vulture_healer import heal_dead_code
-
-    with logger.info("[bold cyan]Snipping dead code scars...[/bold cyan]"):
-        await heal_dead_code(ctx.obj, write=write)
+) -> None:
+    """CLI wrapper for the Vulture Healer (registered as fix.vulture_heal)."""
+    _ = ctx
+    console.print("[bold cyan]Snipping dead code scars...[/bold cyan]")
+    await _dispatch_and_poll("fix.vulture_heal", write=write)
     if not write:
-        logger.info(
+        console.print(
             "\n[yellow]💡 Dry run complete. Use --write to apply the 'Scissors'.[/yellow]"
         )
