@@ -1,6 +1,14 @@
-# src/cli/logic/body_contracts_fixer.py
+# src/body/self_healing/body_ui_fixer.py
 
-"""Headless fixer for Body-layer contract violations."""
+"""Headless fixer for Body-layer contract violations.
+
+Relocated from src/cli/logic/body_contracts_fixer.py under ADR-055 D6:
+an @atomic_action belongs in body/, not cli/logic/. Also wired into
+the action registry via @register_action so it can be dispatched
+through POST /v1/fix/run/fix.body-ui (the previous module had the
+@atomic_action decoration but no registration, so executor dispatch
+returned 422 unknown_fix_id).
+"""
 
 from __future__ import annotations
 
@@ -8,7 +16,8 @@ import time
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from cli.logic.body_contracts_checker import check_body_contracts
+from body.atomic.registry import ActionCategory, register_action
+from body.governance.body_contracts_service import check_body_contracts
 from shared.action_types import ActionImpact, ActionResult
 from shared.ai.prompt_model import PromptModel
 from shared.atomic_action import atomic_action
@@ -103,6 +112,18 @@ async def _process_single_file(
     return {"path": str(path), "had_violations": True, "modified": write}
 
 
+@register_action(
+    action_id="fix.body-ui",
+    description="Autonomously fix Body-layer UI/env contract violations using LLM",
+    category=ActionCategory.FIX,
+    policies=["body_contracts", "agent_governance"],
+    remediates=[
+        "no_ui_imports_in_body",
+        "no_print_or_input_in_body",
+        "write_defaults_false",
+        "no_envvar_access_in_body",
+    ],
+)
 @atomic_action(
     action_id="fix.body-ui",
     intent="Autonomously fix Body UI violations using LLM",

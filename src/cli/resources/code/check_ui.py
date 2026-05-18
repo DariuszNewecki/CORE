@@ -59,7 +59,7 @@ async def check_ui_cmd(
             )
             logger.info("[yellow]💡 Run with '--write' to auto-fix via LLM.[/yellow]")
         return
-    from cli.logic.body_contracts_fixer import fix_body_ui_violations
+    from body.self_healing.body_ui_fixer import fix_body_ui_violations
 
     logger.info("[bold cyan]🔧 Refactoring UI leaks out of Body layer...[/bold cyan]")
     await fix_body_ui_violations(

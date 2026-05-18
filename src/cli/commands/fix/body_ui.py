@@ -21,7 +21,7 @@ logger = getLogger(__name__)
 import typer
 from rich.console import Console
 
-from cli.logic.body_contracts_fixer import fix_body_ui_violations
+from body.self_healing.body_ui_fixer import fix_body_ui_violations
 from cli.utils import core_command
 from shared.activity_logging import activity_run, log_activity
 from shared.context import CoreContext
