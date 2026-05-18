@@ -1,18 +1,21 @@
 # src/cli/commands/refactor_support/display.py
-"""
-Display formatting for refactoring analysis output.
+
+"""Display formatting for refactoring analysis output.
+
+Pure presentation layer. No CORE-internal imports; Rich rendering only.
+All output routes through `console.print` per the CLAUDE.md Rich rule
+(Rich objects/markup must not pass through `logger.info`).
 """
 
 from __future__ import annotations
 
-from shared.logger import getLogger
+import logging
 
-
-logger = getLogger(__name__)
 from rich.console import Console
 from rich.table import Table
 
 
+logger = logging.getLogger(__name__)
 console = Console()
 
 
@@ -27,17 +30,13 @@ class RefactorDisplay:
     # ID: 903e0fd9-1162-4d90-951c-9cc4ed2497f5
     def show_file_analysis(file_path: str, details: dict, target_value: float) -> None:
         """Display detailed analysis for a single file."""
-        logger.info("[bold cyan]🔍 Analyzing Modularity: %s[/bold cyan]\n", file_path)
+        console.print(f"[bold cyan]🔍 Analyzing Modularity: {file_path}[/bold cyan]\n")
         score = details["total_score"]
         breakdown = details["breakdown"]
         status, color = RefactorDisplay._get_status(score, target_value)
-        logger.info(
-            "[%s]Status: %s (Score: %s / Target: <%s)[/%s]\n",
-            color,
-            status,
-            score,
-            target_value,
-            color,
+        console.print(
+            f"[{color}]Status: {status} "
+            f"(Score: {score:.1f} / Target: <{target_value})[/{color}]\n"
         )
         RefactorDisplay._show_breakdown_table(breakdown, score)
         RefactorDisplay._show_responsibilities(details)
@@ -48,15 +47,15 @@ class RefactorDisplay:
     # ID: 1f9a5dcb-9ae6-45a6-bce0-e3a98c74ba97
     def show_recommendations(recommendations: list[str]) -> None:
         """Display recommendations."""
-        logger.info("\n[bold green]💡 Recommended Improvements:[/bold green]")
+        console.print("\n[bold green]💡 Recommended Improvements:[/bold green]")
         for rec in recommendations:
-            logger.info("  - %s", rec)
+            console.print(f"  - {rec}")
 
     @staticmethod
     # ID: f9985b46-2553-46df-9e10-fb86eceb56ea
     def show_clean_file() -> None:
         """Display message for exceptionally clean files."""
-        logger.info("[bold green]✅ This file is exceptionally clean.[/bold green]")
+        console.print("[bold green]✅ This file is exceptionally clean.[/bold green]")
 
     @staticmethod
     # ID: 9f129067-663c-4ec0-944a-59c3aac772a3
@@ -83,7 +82,7 @@ class RefactorDisplay:
     # ID: bedaeaa7-18e6-4ad9-b47e-ac1faa3e70f5
     def show_no_candidates() -> None:
         """Display message when no candidates exceed threshold."""
-        logger.info(
+        console.print(
             "[bold green]✅ No files found exceeding the modularity threshold.[/bold green]"
         )
 
@@ -98,17 +97,17 @@ class RefactorDisplay:
         healthy: int,
     ) -> None:
         """Display codebase statistics."""
-        logger.info("[bold cyan]📊 System Modularity Statistics[/bold cyan]\n")
-        logger.info("Total Files Analyzed : [bold]%s[/bold]", total_files)
-        logger.info("Constitutional Target: <%s", target_value)
-        logger.info("Average System Score : [bold]%s/100[/bold]\n", avg_score)
+        console.print("[bold cyan]📊 System Modularity Statistics[/bold cyan]\n")
+        console.print(f"Total Files Analyzed : [bold]{total_files}[/bold]")
+        console.print(f"Constitutional Target: <{target_value}")
+        console.print(f"Average System Score : [bold]{avg_score:.1f}/100[/bold]\n")
         warning_level = target_value * 0.8
-        logger.info("[bold]Health Distribution (80% Gaussian Gauge):[/bold]")
-        logger.info("  🔴 High Risk (>%s)     : %s files", target_value, high_risk)
-        logger.info(
-            "  🟡 Warning (%s-%s)  : %s files", warning_level, target_value, warning
+        console.print("[bold]Health Distribution (80% Gaussian Gauge):[/bold]")
+        console.print(f"  🔴 High Risk (>{target_value})     : {high_risk} files")
+        console.print(
+            f"  🟡 Warning ({warning_level:.0f}-{target_value:.0f})  : {warning} files"
         )
-        logger.info("  🟢 Healthy (<%s)     : %s files", warning_level, healthy)
+        console.print(f"  🟢 Healthy (<{warning_level:.0f})     : {healthy} files")
 
     @staticmethod
     def _get_status(score: float, target_value: float) -> tuple[str, str]:
@@ -139,32 +138,33 @@ class RefactorDisplay:
     @staticmethod
     def _show_responsibilities(details: dict) -> None:
         """Show detected responsibilities."""
-        if details.get("responsibilities"):
-            logger.info(
-                "\n[bold]Detected Responsibilities (%s):[/bold]",
-                len(details["responsibilities"]),
+        responsibilities = details.get("responsibilities")
+        if responsibilities:
+            console.print(
+                f"\n[bold]Detected Responsibilities ({len(responsibilities)}):[/bold]"
             )
-            for resp in details["responsibilities"]:
-                logger.info("  • %s", resp.replace("_", " ").title())
+            for resp in responsibilities:
+                console.print(f"  • {resp.replace('_', ' ').title()}")
 
     @staticmethod
     def _show_cohesion_warning(details: dict) -> None:
         """Show cohesion warning if applicable."""
         cohesion = details.get("cohesion", 1.0)
         if cohesion < 0.7:
-            logger.info(
-                "\n[bold yellow]⚠️ Low Semantic Cohesion:[/bold yellow] %s", cohesion
+            console.print(
+                f"\n[bold yellow]⚠️ Low Semantic Cohesion:[/bold yellow] {cohesion:.2f}"
             )
-            logger.info("  Functions in this file may not belong together logically.")
+            console.print("  Functions in this file may not belong together logically.")
 
     @staticmethod
     def _show_coupling_warning(details: dict) -> None:
         """Show coupling warning if applicable."""
         concern_count = details.get("concern_count", 0)
         if concern_count > 3:
-            logger.info(
-                "\n[bold yellow]⚠️ High Coupling:[/bold yellow] touches %s areas.",
-                concern_count,
+            console.print(
+                f"\n[bold yellow]⚠️ High Coupling:[/bold yellow] touches "
+                f"{concern_count} areas."
             )
-            if details.get("concerns"):
-                logger.info("  Areas: %s", ", ".join(details["concerns"]))
+            concerns = details.get("concerns") or []
+            if concerns:
+                console.print(f"  Areas: {', '.join(concerns)}")

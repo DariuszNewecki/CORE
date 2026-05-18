@@ -838,7 +838,7 @@ Files: `.specs/decisions/ADR-056-runtime-data-contracts.md`.
 
 ---
 
-## ADR-057 — 2026-05-18 (artifact)
+## ADR-057 — 2026-05-18 (artifact + Phase 3 implementation)
 
 API Phase 3: `/coverage`, `/refactor`, `/inspect`, and deferred
 `POST /audit/remediations`. Three new resource tables (`coverage_runs`,
@@ -847,7 +847,40 @@ read-only with no new tables. `POST /refactor/autonomous` routes through
 a separate `refactor_runs` record — distinct from the `autonomous_proposals`
 it produces, preserving GxP request-to-output traceability. Phase 4 boundary
 confirmed: `inspect/repo_census.py` and `/census` namespace excluded.
-Files: `.specs/decisions/ADR-057-api-phase-3-coverage-refactor-inspect.md`.
+
+Implementation landed in same session. Two constitutional violations caught
+and corrected by audit during implementation: `architecture.path_access`
+(hardcoded `"reports"` literal in `coverage_runner.get_coverage_history` →
+replaced with `PathResolver.reports_dir`) and
+`architecture.intent.non_gateway_no_direct_resolution` (direct
+`yaml.safe_load` on `.intent/` file in `coverage_runner.get_coverage_targets`
+→ replaced with `IntentRepository.load_document`). Audit verdict: PASS at
+44 findings (down from 55 pre-implementation). 40 tests passing.
+
+CLI cutover complete (2026-05-18). All 22 files in
+`var/adr057-phase3-imports.txt` migrated. `CoreApiClient` extended with
+33 Phase 3 helper methods. Two suppress markers placed for HTML coverage
+report path (tracked in issue #358). Filtered audit on Phase 3 rules:
+0 findings attributable to migrated files. ADR-057 fully verified.
+
+Files:
+`.specs/decisions/ADR-057-phase3-imports.md`,
+`infra/scripts/migrations/20260518_create_phase3_tables.sql`,
+`infra/sql/db_schema_live.sql`,
+`src/shared/infrastructure/database/models/governance.py`,
+`src/will/governance/coverage_runner.py`,
+`src/will/governance/refactor_runner.py`,
+`src/will/governance/inspect_runner.py`,
+`src/will/governance/audit_remediation_runner.py`,
+`src/api/v1/coverage_routes.py`,
+`src/api/v1/refactor_routes.py`,
+`src/api/v1/inspect_routes.py`,
+`src/api/v1/audit_routes.py` (amended),
+`src/api/main.py` (amended),
+`tests/api/v1/test_coverage_routes.py`,
+`tests/api/v1/test_refactor_routes.py`,
+`tests/api/v1/test_inspect_routes.py`,
+`tests/api/v1/test_audit_remediations.py`.
 
 ---
 

@@ -1,22 +1,19 @@
 # src/cli/commands/inspect/status.py
-"""
-System and database status inspection commands.
-"""
+"""System and database status inspection commands."""
 
 from __future__ import annotations
 
-from shared.logger import getLogger
+import logging
 
-
-logger = getLogger(__name__)
 import typer
 from rich.console import Console
 
-import cli.logic.status as status_logic
+from api.cli import CoreApiClient
 from cli.utils import core_command
 from shared.cli.command_meta import CommandBehavior, CommandLayer, command_meta
 
 
+logger = logging.getLogger(__name__)
 console = Console()
 
 
@@ -29,23 +26,23 @@ console = Console()
 @core_command(dangerous=False, requires_context=False)
 # ID: 4d56d191-4d50-41f6-8d64-cc5732a92186
 async def status_command(ctx: typer.Context) -> None:
-    """Display database connection and migration status."""
-    report = await status_logic._get_status_report()
-    if report.is_connected:
-        logger.info("Database connection: OK")
+    """Display database connection and schema state via /v1/status/db."""
+    _ = ctx
+    client = CoreApiClient()
+    payload = await client.status_db()
+    if payload.get("connected"):
+        console.print("Database connection: OK")
     else:
-        logger.info("Database connection: FAILED")
-    if report.db_version:
-        logger.info("Database version: %s", report.db_version)
-    else:
-        logger.info("Database version: none")
-    pending = list(report.pending_migrations)
-    if not pending:
-        logger.info("Migrations are up to date.")
-    else:
-        logger.info("Found %s pending migrations", len(pending))
-        for mig in sorted(pending):
-            logger.info("- %s", mig)
+        console.print("Database connection: FAILED")
+        error = payload.get("error")
+        if error:
+            console.print(f"  {error}")
+    tables = payload.get("core_schema_tables")
+    if tables is not None:
+        console.print(f"core schema tables: {tables}")
+    warning = payload.get("warning")
+    if warning:
+        console.print(f"[yellow]{warning}[/yellow]")
 
 
 status_commands = [{"name": "status", "func": status_command}]

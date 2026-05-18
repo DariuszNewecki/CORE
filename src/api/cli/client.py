@@ -238,9 +238,21 @@ class CoreApiClient:
         does not reach a terminal state within `timeout_seconds`. Used by
         CLIs over async /fix and /quality endpoints (ADR-055 D2/D3).
         """
+        return await self._poll_at_path(
+            f"/v1/fix/runs/{run_id}", timeout_seconds=timeout_seconds
+        )
+
+    # ID: c19f4d5e-2b7a-4f8e-bd03-6a8c5d1f9e02
+    async def _poll_at_path(self, path: str, timeout_seconds: float = 300.0) -> dict:
+        """Poll an arbitrary `GET {path}` until status terminal.
+
+        Generalisation of `_poll_run` for Phase 3 resources whose poll
+        paths differ from /v1/fix/runs/ (e.g. /v1/coverage/runs/,
+        /v1/refactor/runs/, /v1/audit/remediations/).
+        """
         async with asyncio.timeout(timeout_seconds):
             while True:
-                payload = await self.get_fix_run(run_id)
+                payload = await self._request("GET", path)
                 if payload.get("status") in _POLL_TERMINAL_STATES:
                     return payload
                 await asyncio.sleep(_POLL_INTERVAL_SECONDS)
@@ -299,3 +311,278 @@ class CoreApiClient:
     async def quality_gates(self) -> dict:
         """POST /v1/quality/gates — async six-gate quality bundle."""
         return await self._request("POST", "/v1/quality/gates", json={})
+
+    # ------------------------------------------------------------------
+    # Phase 3 — /coverage (ADR-057 D1)
+    # ------------------------------------------------------------------
+
+    # ID: a8b2c4d6-1e3f-4a5b-6c7d-8e9f0a1b2c3d
+    async def coverage_check(self) -> dict:
+        """GET /v1/coverage/check — constitutional coverage compliance check."""
+        return await self._request("GET", "/v1/coverage/check", timeout=300.0)
+
+    # ID: b9c3d5e7-2f4a-4b6c-7d8e-9f0a1b2c3d4e
+    async def coverage_report(self, show_missing: bool = False) -> dict:
+        """GET /v1/coverage/report — pytest --cov text report."""
+        return await self._request(
+            "GET",
+            "/v1/coverage/report",
+            params={"show_missing": show_missing},
+            timeout=300.0,
+        )
+
+    # ID: c0d4e6f8-3a5b-4c7d-8e9f-0a1b2c3d4e5f
+    async def coverage_targets(self) -> dict:
+        """GET /v1/coverage/targets — constitutional coverage targets."""
+        return await self._request("GET", "/v1/coverage/targets")
+
+    # ID: d1e5f7a9-4b6c-4d8e-9f0a-1b2c3d4e5f60
+    async def coverage_gaps(self, threshold: float = 75.0, limit: int = 20) -> dict:
+        """GET /v1/coverage/gaps — modules below threshold, ranked by deficit."""
+        return await self._request(
+            "GET",
+            "/v1/coverage/gaps",
+            params={"threshold": threshold, "limit": limit},
+            timeout=300.0,
+        )
+
+    # ID: e2f6a8b0-5c7d-4e9f-0a1b-2c3d4e5f6071
+    async def coverage_history(self, limit: int = 30) -> dict:
+        """GET /v1/coverage/history — recent coverage measurements."""
+        return await self._request(
+            "GET", "/v1/coverage/history", params={"limit": limit}
+        )
+
+    # ID: f3a7b9c1-6d8e-4f0a-1b2c-3d4e5f607182
+    async def coverage_methods(self) -> dict:
+        """GET /v1/coverage/methods — coverage method comparison descriptor."""
+        return await self._request("GET", "/v1/coverage/methods")
+
+    # ID: 04b8c0d2-7e9f-4a1b-2c3d-4e5f60718293
+    async def coverage_generate(self, target_file: str, write: bool = False) -> dict:
+        """POST /v1/coverage/generate — single-file adaptive test generation."""
+        return await self._request(
+            "POST",
+            "/v1/coverage/generate",
+            json={"target_file": target_file, "write": write},
+        )
+
+    # ID: 15c9d1e3-8f0a-4b2c-3d4e-5f60718293a4
+    async def coverage_generate_batch(
+        self, priority: str = "all", write: bool = False
+    ) -> dict:
+        """POST /v1/coverage/generate:batch — prioritised batch generation."""
+        return await self._request(
+            "POST",
+            "/v1/coverage/generate:batch",
+            json={"priority": priority, "write": write},
+        )
+
+    # ID: 26dae2f4-9a1b-4c3d-4e5f-60718293a4b5
+    async def get_coverage_run(self, run_id: str) -> dict:
+        """GET /v1/coverage/runs/{run_id} — fetch a coverage_runs row."""
+        return await self._request("GET", f"/v1/coverage/runs/{run_id}")
+
+    # ID: 37ebf3a5-0b2c-4d4e-5f60-718293a4b5c6
+    async def poll_coverage_run(
+        self, run_id: str, timeout_seconds: float = 600.0
+    ) -> dict:
+        """Poll a coverage run until terminal. Test generation can be slow."""
+        return await self._poll_at_path(
+            f"/v1/coverage/runs/{run_id}", timeout_seconds=timeout_seconds
+        )
+
+    # ID: 48fc04b6-1c3d-4e5f-6071-8293a4b5c6d7
+    async def tests_interactive(self, target_file: str | None = None) -> dict:
+        """POST /v1/tests/interactive — sync interactive test generation."""
+        return await self._request(
+            "POST",
+            "/v1/tests/interactive",
+            json={"target_file": target_file},
+            timeout=600.0,
+        )
+
+    # ------------------------------------------------------------------
+    # Phase 3 — /refactor (ADR-057 D2)
+    # ------------------------------------------------------------------
+
+    # ID: 59ad15c7-2d4e-4f60-7182-93a4b5c6d7e8
+    async def refactor_threshold(self) -> dict:
+        """GET /v1/refactor/threshold — constitutional modularity threshold."""
+        return await self._request("GET", "/v1/refactor/threshold")
+
+    # ID: 6abe26d8-3e5f-4071-8293-a4b5c6d7e8f9
+    async def refactor_score(self, file: str) -> dict:
+        """GET /v1/refactor/score?file= — per-file modularity score."""
+        return await self._request("GET", "/v1/refactor/score", params={"file": file})
+
+    # ID: 7bcf37e9-4f60-4182-93a4-b5c6d7e8f90a
+    async def refactor_candidates(
+        self,
+        min_score: float | None = None,
+        limit: int = 50,
+    ) -> dict:
+        """GET /v1/refactor/candidates — files exceeding modularity threshold."""
+        params: dict[str, Any] = {"limit": limit}
+        if min_score is not None:
+            params["min_score"] = min_score
+        return await self._request(
+            "GET", "/v1/refactor/candidates", params=params, timeout=300.0
+        )
+
+    # ID: 8cd048fa-5071-4293-a4b5-c6d7e8f90a1b
+    async def refactor_stats(self) -> dict:
+        """GET /v1/refactor/stats — aggregate modularity distribution."""
+        return await self._request("GET", "/v1/refactor/stats", timeout=300.0)
+
+    # ID: 9de1590b-6182-4304-b5c6-d7e8f90a1b2c
+    async def refactor_autonomous(self, goal: str, write: bool = False) -> dict:
+        """POST /v1/refactor/autonomous — trigger A3 autonomous refactor cycle."""
+        return await self._request(
+            "POST",
+            "/v1/refactor/autonomous",
+            json={"goal": goal, "write": write},
+        )
+
+    # ID: aef26a1c-7293-4415-c6d7-e8f90a1b2c3d
+    async def get_refactor_run(self, run_id: str) -> dict:
+        """GET /v1/refactor/runs/{run_id} — fetch a refactor_runs row."""
+        return await self._request("GET", f"/v1/refactor/runs/{run_id}")
+
+    # ID: bf037b2d-83a4-4526-d7e8-f90a1b2c3d4e
+    async def poll_refactor_run(
+        self, run_id: str, timeout_seconds: float = 1800.0
+    ) -> dict:
+        """Poll a refactor run until terminal. A3 loops can take minutes."""
+        return await self._poll_at_path(
+            f"/v1/refactor/runs/{run_id}", timeout_seconds=timeout_seconds
+        )
+
+    # ------------------------------------------------------------------
+    # Phase 3 — /status, /decisions, /refusals, /analysis (ADR-057 D3)
+    # ------------------------------------------------------------------
+
+    # ID: c0148c3e-94b5-4637-e8f9-0a1b2c3d4e5f
+    async def status_db(self) -> dict:
+        """GET /v1/status/db — DB connection and schema state."""
+        return await self._request("GET", "/v1/status/db")
+
+    # ID: d1259d4f-a5c6-4748-f90a-1b2c3d4e5f60
+    async def status_drift(self, scope: str = "all") -> dict:
+        """GET /v1/status/drift — consolidated drift snapshot."""
+        return await self._request("GET", "/v1/status/drift", params={"scope": scope})
+
+    # ID: e236ae50-b6d7-4859-0a1b-2c3d4e5f6071
+    async def decisions_list(
+        self,
+        session_id: str | None = None,
+        agent: str | None = None,
+        pattern: str | None = None,
+        limit: int = 50,
+    ) -> dict:
+        """GET /v1/decisions — recent decision traces."""
+        params: dict[str, Any] = {"limit": limit}
+        if session_id is not None:
+            params["session_id"] = session_id
+        if agent is not None:
+            params["agent"] = agent
+        if pattern is not None:
+            params["pattern"] = pattern
+        return await self._request("GET", "/v1/decisions", params=params)
+
+    # ID: f347bf61-c7e8-495a-1b2c-3d4e5f607182
+    async def decisions_patterns(self, days: int = 7) -> dict:
+        """GET /v1/decisions/patterns — pattern classification stats."""
+        return await self._request(
+            "GET", "/v1/decisions/patterns", params={"days": days}
+        )
+
+    # ID: 0458c072-d8f9-4a6b-2c3d-4e5f60718293
+    async def refusals_list(
+        self,
+        refusal_type: str | None = None,
+        session_id: str | None = None,
+        limit: int = 50,
+    ) -> dict:
+        """GET /v1/refusals — recent constitutional refusals."""
+        params: dict[str, Any] = {"limit": limit}
+        if refusal_type is not None:
+            params["type"] = refusal_type
+        if session_id is not None:
+            params["session"] = session_id
+        return await self._request("GET", "/v1/refusals", params=params)
+
+    # ID: 1569d183-e90a-4b7c-3d4e-5f60718293a4
+    async def refusals_stats(self, days: int = 7) -> dict:
+        """GET /v1/refusals/stats — refusal statistics by type."""
+        return await self._request("GET", "/v1/refusals/stats", params={"days": days})
+
+    # ID: 267ae294-f01b-4c8d-4e5f-60718293a4b5
+    async def analysis_clusters(self, limit: int = 25) -> dict:
+        """GET /v1/analysis/clusters — semantic capability clusters."""
+        return await self._request(
+            "GET", "/v1/analysis/clusters", params={"limit": limit}
+        )
+
+    # ID: 378bf3a5-012c-4d9e-5f60-718293a4b5c6
+    async def analysis_duplicates(self, threshold: float = 0.85) -> dict:
+        """GET /v1/analysis/duplicates — semantic code duplication candidates."""
+        return await self._request(
+            "GET",
+            "/v1/analysis/duplicates",
+            params={"threshold": threshold},
+            timeout=300.0,
+        )
+
+    # ID: 489c04b6-123d-4e0f-6071-8293a4b5c6d7
+    async def analysis_common_knowledge(self, limit: int = 25) -> dict:
+        """GET /v1/analysis/common-knowledge — DRY-violation candidates."""
+        return await self._request(
+            "GET", "/v1/analysis/common-knowledge", params={"limit": limit}
+        )
+
+    # ID: 59ad15c7-234e-4f10-7182-93a4b5c6d7e8
+    async def analysis_command_tree(self) -> dict:
+        """GET /v1/analysis/command-tree — introspected CLI command hierarchy."""
+        return await self._request("GET", "/v1/analysis/command-tree")
+
+    # ID: 6abe26d8-345f-4021-8293-a4b5c6d7e8f9
+    async def analysis_test_targets(self) -> dict:
+        """GET /v1/analysis/test-targets — SIMPLE/COMPLEX test target classification."""
+        return await self._request("GET", "/v1/analysis/test-targets")
+
+    # ------------------------------------------------------------------
+    # Phase 3 — /audit/remediations (ADR-057 D4)
+    # ------------------------------------------------------------------
+
+    # ID: 7bcf37e9-4561-4132-93a4-b5c6d7e8f90a
+    async def audit_remediate(
+        self,
+        audit_run_id: str,
+        mode: str = "safe",
+        write: bool = False,
+    ) -> dict:
+        """POST /v1/audit/remediations — dispatch autonomous audit remediation."""
+        return await self._request(
+            "POST",
+            "/v1/audit/remediations",
+            json={
+                "audit_run_id": audit_run_id,
+                "mode": mode,
+                "write": write,
+            },
+        )
+
+    # ID: 8cd048fa-5672-4243-a4b5-c6d7e8f90a1b
+    async def get_audit_remediation_run(self, run_id: str) -> dict:
+        """GET /v1/audit/remediations/{run_id} — fetch a remediation_runs row."""
+        return await self._request("GET", f"/v1/audit/remediations/{run_id}")
+
+    # ID: 9de1590b-6783-4354-b5c6-d7e8f90a1b2c
+    async def poll_audit_remediation_run(
+        self, run_id: str, timeout_seconds: float = 1800.0
+    ) -> dict:
+        """Poll an audit remediation run until terminal."""
+        return await self._poll_at_path(
+            f"/v1/audit/remediations/{run_id}", timeout_seconds=timeout_seconds
+        )

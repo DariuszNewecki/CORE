@@ -1,25 +1,31 @@
 # src/cli/commands/inspect/refusals.py
+"""Constitutional refusal inspection commands.
 
-"""
-Constitutional refusal inspection commands.
-
-Commands:
-- inspect refusals - List recent refusals
-- inspect refusal-stats - Show statistics
-- inspect refusals-by-type - Filter by type
-- inspect refusals-by-session - Audit specific session
+Thin clients over /v1/refusals and /v1/refusals/stats (ADR-057 D3).
+Default limits are hardcoded CLI options now — they were previously read
+from `shared.infrastructure.intent.operational_config.load_operational_config`,
+which is a `shared.*` reach across the CLI boundary.
 """
 
 from __future__ import annotations
 
-import typer
+import logging
 
+import typer
+from rich.console import Console
+from rich.table import Table
+
+from api.cli import CoreApiClient
 from cli.utils import core_command
 from shared.cli.command_meta import CommandBehavior, CommandLayer, command_meta
-from shared.infrastructure.intent.operational_config import load_operational_config
 
 
-_CFG = load_operational_config().misc
+logger = logging.getLogger(__name__)
+console = Console()
+
+
+_DEFAULT_REFUSAL_LIMIT = 20
+_DEFAULT_BY_TYPE_LIMIT = 50
 
 
 @command_meta(
@@ -33,7 +39,7 @@ _CFG = load_operational_config().misc
 async def refusals_list_cmd(
     ctx: typer.Context,
     limit: int = typer.Option(
-        _CFG.refusal_inspect_default_limit,
+        _DEFAULT_REFUSAL_LIMIT,
         "--limit",
         "-n",
         help="Maximum records to show",
@@ -51,25 +57,14 @@ async def refusals_list_cmd(
         False, "--details", "-d", help="Show detailed information"
     ),
 ):
-    """
-    List recent constitutional refusals.
-
-    Constitutional Principle: "Refusal as first-class outcome"
-
-    Examples:
-        core-admin inspect refusals
-        core-admin inspect refusals --limit 50
-        core-admin inspect refusals --type extraction
-        core-admin inspect refusals --component code_generator --details
-    """
-    from cli.logic.refusal_inspect_logic import show_recent_refusals
-
-    await show_recent_refusals(
-        limit=limit,
-        refusal_type=refusal_type,
-        component=component,
-        details=details,
+    """List recent constitutional refusals via the API."""
+    _ = ctx
+    _ = component  # /v1/refusals doesn't currently expose a component filter.
+    client = CoreApiClient()
+    payload = await client.refusals_list(
+        refusal_type=refusal_type, session_id=None, limit=limit
     )
+    _render_refusals(payload, details=details)
 
 
 @command_meta(
@@ -86,16 +81,11 @@ async def refusals_stats_cmd(
         7, "--days", "-d", help="Number of days to analyze (default: 7)"
     ),
 ):
-    """
-    Show refusal statistics and trends.
-
-    Examples:
-        core-admin inspect refusal-stats
-        core-admin inspect refusal-stats --days 30
-    """
-    from cli.logic.refusal_inspect_logic import show_refusal_statistics
-
-    await show_refusal_statistics(days=days)
+    """Show refusal statistics and trends via /v1/refusals/stats."""
+    _ = ctx
+    client = CoreApiClient()
+    payload = await client.refusals_stats(days=days)
+    _render_stats(payload)
 
 
 @command_meta(
@@ -113,23 +103,19 @@ async def refusals_by_type_cmd(
         help="Refusal type (boundary, confidence, extraction, quality, assumption, capability)",
     ),
     limit: int = typer.Option(
-        _CFG.refusal_inspect_by_type_limit,
+        _DEFAULT_BY_TYPE_LIMIT,
         "--limit",
         "-n",
         help="Maximum records to show",
     ),
 ):
-    """
-    Show refusals of a specific type.
-
-    Examples:
-        core-admin inspect refusals-by-type extraction
-        core-admin inspect refusals-by-type boundary --limit 50
-        core-admin inspect refusals-by-type confidence
-    """
-    from cli.logic.refusal_inspect_logic import show_refusals_by_type
-
-    await show_refusals_by_type(refusal_type, limit=limit)
+    """Show refusals of a specific type."""
+    _ = ctx
+    client = CoreApiClient()
+    payload = await client.refusals_list(
+        refusal_type=refusal_type, session_id=None, limit=limit
+    )
+    _render_refusals(payload, details=False)
 
 
 @command_meta(
@@ -144,18 +130,79 @@ async def refusals_by_session_cmd(
     ctx: typer.Context,
     session_id: str = typer.Argument(..., help="Decision trace session ID"),
 ):
-    """
-    Show all refusals for a specific decision trace session.
+    """Show all refusals for a specific decision trace session."""
+    _ = ctx
+    client = CoreApiClient()
+    payload = await client.refusals_list(
+        refusal_type=None,
+        session_id=session_id,
+        limit=_DEFAULT_BY_TYPE_LIMIT,
+    )
+    _render_refusals(payload, details=True)
 
-    Examples:
-        core-admin inspect refusals-by-session abc123def456
-    """
-    from cli.logic.refusal_inspect_logic import show_refusals_by_session
 
-    await show_refusals_by_session(session_id)
+def _render_refusals(payload: dict, *, details: bool) -> None:
+    """Render the refusals list returned by /v1/refusals."""
+    refusals = payload.get("refusals", [])
+    if not refusals:
+        console.print("[yellow]No refusals found.[/yellow]")
+        return
+
+    console.print(
+        f"[cyan]Found {payload.get('count', len(refusals))} refusal(s)[/cyan]\n"
+    )
+    table = Table(title="Constitutional Refusals")
+    table.add_column("ID", style="dim")
+    table.add_column("Component", style="cyan")
+    table.add_column("Phase", style="magenta")
+    table.add_column("Type", style="yellow")
+    table.add_column("Created", style="dim")
+    for refusal in refusals:
+        table.add_row(
+            str(refusal.get("id") or "")[:8],
+            str(refusal.get("component_id") or ""),
+            str(refusal.get("phase") or ""),
+            str(refusal.get("refusal_type") or ""),
+            str(refusal.get("created_at") or "")[:19],
+        )
+    console.print(table)
+
+    if details:
+        for refusal in refusals:
+            console.print(
+                f"\n[bold cyan]{refusal.get('component_id')} — "
+                f"{refusal.get('refusal_type')}[/bold cyan]"
+            )
+            reason = refusal.get("reason")
+            if reason:
+                console.print(f"Reason: {reason}")
+            suggested = refusal.get("suggested_action")
+            if suggested:
+                console.print(f"Suggested: {suggested}")
 
 
-# Export commands for registration
+def _render_stats(payload: dict) -> None:
+    """Render /v1/refusals/stats payload."""
+    counts = payload.get("counts_by_type") or {}
+    stats = payload.get("stats") or {}
+    console.print(f"[cyan]Lookback: {payload.get('days', 7)} day(s)[/cyan]\n")
+
+    if counts:
+        table = Table(title="Refusals by Type")
+        table.add_column("Type", style="cyan")
+        table.add_column("Count", justify="right")
+        for refusal_type, count in sorted(
+            counts.items(), key=lambda x: x[1], reverse=True
+        ):
+            table.add_row(str(refusal_type), str(count))
+        console.print(table)
+
+    if stats:
+        console.print("\n[bold]Aggregate stats:[/bold]")
+        for key, value in stats.items():
+            console.print(f"  {key}: {value}")
+
+
 refusals_commands = [
     {"name": "refusals", "func": refusals_list_cmd},
     {"name": "refusal-stats", "func": refusals_stats_cmd},

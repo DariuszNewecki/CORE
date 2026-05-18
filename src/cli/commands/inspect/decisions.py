@@ -1,29 +1,27 @@
 # src/cli/commands/inspect/decisions.py
+"""Decision trace inspection commands.
 
-"""
-Decision trace inspection commands.
-
-Commands:
-- inspect decisions - View and filter autonomous decision traces
+Thin client over /v1/decisions and /v1/decisions/patterns (ADR-057 D3).
+Rendering is inline (the legacy `_helpers` module operated on an
+ORM-shaped DecisionTraceRepository; the API payloads have a different
+shape and are simpler to render in place).
 """
 
 from __future__ import annotations
 
-import typer
+import logging
 
-from body.infrastructure.repositories.decision_trace_repository import (
-    DecisionTraceRepository,
-)
+import typer
+from rich.console import Console
+from rich.table import Table
+
+from api.cli import CoreApiClient
 from cli.utils import core_command
 from shared.cli.command_meta import CommandBehavior, CommandLayer, command_meta
-from shared.infrastructure.database.session_manager import get_session
 
-from ._helpers import (
-    _show_pattern_traces,
-    _show_recent_traces,
-    _show_session_trace,
-    _show_statistics,
-)
+
+logger = logging.getLogger(__name__)
+console = Console()
 
 
 @command_meta(
@@ -58,30 +56,85 @@ async def decisions_cmd(
         False, "--details", "-d", help="Show full decision details"
     ),
 ) -> None:
-    """
-    Inspect decision traces from autonomous operations.
+    """Inspect decision traces via /v1/decisions."""
+    _ = ctx
+    _ = failures_only  # Server-side filter pending — exposed via future query arg.
+    client = CoreApiClient()
 
-    Examples:
-        core-admin inspect decisions
-        core-admin inspect decisions --session abc123
-        core-admin inspect decisions --agent CodeGenerator
-        core-admin inspect decisions --pattern action_pattern --stats
-        core-admin inspect decisions --failures-only
-    """
-    async with get_session() as session:
-        repo = DecisionTraceRepository(session)
+    if stats:
+        payload = await client.decisions_patterns(days=max(recent, 1))
+        _render_patterns(payload)
+        return
 
-        if session_id:
-            await _show_session_trace(repo, session_id, details)
-        elif stats:
-            await _show_statistics(repo, pattern, days=recent)
-        elif pattern:
-            await _show_pattern_traces(repo, pattern, recent, details)
+    list_payload = await client.decisions_list(
+        session_id=session_id,
+        agent=agent,
+        pattern=pattern,
+        limit=recent,
+    )
+    _render_traces(list_payload, details=details)
+
+
+def _render_traces(payload: dict, *, details: bool) -> None:
+    """Render the decisions list JSON returned by /v1/decisions."""
+    traces = payload.get("traces", [])
+    if not traces:
+        console.print("[yellow]No decision traces found.[/yellow]")
+        return
+
+    console.print(f"[cyan]Found {payload.get('count', len(traces))} trace(s)[/cyan]\n")
+    table = Table(title="Decision Traces")
+    table.add_column("Session", style="cyan")
+    table.add_column("Agent", style="magenta")
+    table.add_column("Pattern", style="yellow")
+    table.add_column("Outcome", style="green")
+    table.add_column("Created", style="dim")
+    for trace in traces:
+        table.add_row(
+            str(trace.get("session_id") or "")[:12],
+            str(trace.get("agent_id") or ""),
+            str(trace.get("pattern") or ""),
+            str(trace.get("outcome") or ""),
+            str(trace.get("created_at") or "")[:19],
+        )
+    console.print(table)
+
+    if details:
+        for trace in traces:
+            console.print(f"\n[bold cyan]Session {trace.get('session_id')}[/bold cyan]")
+            summary = trace.get("summary")
+            if summary:
+                console.print(summary)
+
+
+def _render_patterns(payload: dict) -> None:
+    """Render the patterns aggregate returned by /v1/decisions/patterns."""
+    patterns = payload.get("patterns") or []
+    if not patterns:
+        console.print("[yellow]No pattern statistics found.[/yellow]")
+        return
+
+    console.print(f"[cyan]Lookback: {payload.get('days', 7)} day(s)[/cyan]\n")
+    table = Table(title="Pattern Classification Stats")
+    table.add_column("Pattern", style="cyan")
+    table.add_column("Count", justify="right")
+    table.add_column("Success Rate", justify="right")
+    iterable = (
+        patterns.items()
+        if isinstance(patterns, dict)
+        else ((p.get("pattern", ""), p) for p in patterns)
+    )
+    for name, stats_obj in iterable:
+        if isinstance(stats_obj, dict):
+            count = stats_obj.get("count", 0)
+            success_rate = stats_obj.get("success_rate", 0)
         else:
-            await _show_recent_traces(repo, recent, agent, failures_only, details)
+            count = stats_obj
+            success_rate = 0
+        table.add_row(str(name), str(count), f"{float(success_rate):.1f}%")
+    console.print(table)
 
 
-# Export commands for registration
 decisions_commands = [
     {"name": "decisions", "func": decisions_cmd},
 ]

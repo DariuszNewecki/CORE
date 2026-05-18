@@ -2,26 +2,29 @@
 """
 Coverage checking and reporting commands.
 
-Constitutional Alignment:
-- Uses CoreContext for repo_path and policy access (no direct settings access)
+Thin clients over /v1/coverage/{check,report,targets,gaps} (ADR-057 D1).
+Rich rendering stays here; data fetching goes through CoreApiClient.
 """
 
 from __future__ import annotations
+
+import logging
 
 import typer
 from rich.console import Console
 from rich.table import Table
 
+from api.cli import CoreApiClient
 from cli.utils import core_command
-from shared.context import CoreContext
-from shared.infrastructure.intent.operational_config import load_operational_config
-from shared.logger import getLogger
 
 
-logger = getLogger(__name__)
+logger = logging.getLogger(__name__)
 console = Console()
 
-_CFG = load_operational_config().coverage
+
+_GAP_THRESHOLD_PCT_DEFAULT = 75.0
+_LOW_BUCKET_PCT_DEFAULT = 50.0
+_WARN_PCT_DEFAULT = 80.0
 
 
 # ID: 72963da2-9a25-487b-92ee-0d67a6d1376d
@@ -33,44 +36,39 @@ def register_check_commands(app: typer.Typer) -> None:
     app.command("gaps")(show_coverage_gaps)
 
 
-@core_command(dangerous=False)
+@core_command(dangerous=False, requires_context=False)
 # ID: cbec039a-f2aa-4fc8-9a24-d7e2ba4ef15c
 async def check_coverage(ctx: typer.Context) -> None:
-    """
-    Checks current test coverage against constitutional requirements.
-    Uses the 'qa.coverage.*' dynamic rule set from the Mind.
-    """
-    from .services import CoverageChecker
-
-    logger.info(
+    """Checks current test coverage against constitutional requirements."""
+    _ = ctx
+    console.print(
         "[bold cyan]🔍 Checking Coverage Compliance via Constitution...[/bold cyan]\n"
     )
-    core_context: CoreContext = ctx.obj
-    checker = CoverageChecker(core_context.auditor_context)
-    result = await checker.check_compliance()
-    if result["compliant"]:
-        logger.info(
+    client = CoreApiClient()
+    payload = await client.coverage_check()
+    findings = payload.get("findings", [])
+    if payload.get("passed", len(findings) == 0):
+        console.print(
             "[bold green]✅ Coverage meets all constitutional requirements![/bold green]"
         )
         return
-    findings = result["findings"]
-    blocking_violations = result["blocking_violations"]
-    logger.info(
-        "[bold red]❌ Found %s Coverage Violations:[/bold red]\n", len(findings)
+    blocking = [f for f in findings if str(f.get("severity", "")).lower() == "error"]
+    console.print(
+        f"[bold red]❌ Found {len(findings)} Coverage Violations:[/bold red]\n"
     )
     for finding in findings:
         msg = finding.get("message", "Unknown violation")
-        severity = finding.get("severity", "warning")
+        severity = str(finding.get("severity", "warning")).lower()
         color = "red" if severity == "error" else "yellow"
-        logger.info("  • [%s]%s[/%s] %s", color, severity.upper(), color, msg)
-    if blocking_violations:
-        logger.info("\n[dim]Audit FAILED due to blocking errors.[/dim]")
+        console.print(f"  • [{color}]{severity.upper()}[/{color}] {msg}")
+    if blocking:
+        console.print("\n[dim]Audit FAILED due to blocking errors.[/dim]")
         raise typer.Exit(code=1)
 
 
-@core_command(dangerous=False)
+@core_command(dangerous=False, requires_context=False)
 # ID: 99932c42-c4d5-48ec-aa00-cd4beb3971e8
-def coverage_report(
+async def coverage_report(
     ctx: typer.Context,
     show_missing: bool = typer.Option(
         True,
@@ -79,121 +77,92 @@ def coverage_report(
     ),
     html: bool = typer.Option(False, "--html", help="Generate HTML coverage report"),
 ) -> None:
-    """
-    Generates a detailed coverage report from local .coverage data.
-    """
-    from .services import CoverageReporter
-
-    core_context: CoreContext = ctx.obj
-    reporter = CoverageReporter(core_context.git_service.repo_path)
-    if not reporter.has_coverage_data():
-        logger.info(
-            "[yellow]⚠️ No coverage data found. Run 'poetry run pytest --cov=src' first.[/yellow]"
+    """Generates a detailed coverage report served by the API."""
+    _ = ctx
+    console.print("[bold cyan]📊 Generating Coverage Report...[/bold cyan]\n")
+    client = CoreApiClient()
+    payload = await client.coverage_report(show_missing=show_missing)
+    if not payload.get("ok", False):
+        summary = payload.get("summary") or "report generation failed"
+        console.print(f"[red]{summary}[/red]")
+        raise typer.Exit(code=1)
+    for line in payload.get("stdout_tail", []):
+        console.print(line)
+    if html:
+        # SUPPRESS architecture.cli.api_only: no /v1/coverage/report?format=html
+        # endpoint exists yet; surface a placeholder pointer.
+        console.print(
+            "\n[yellow]HTML output not yet exposed by API — coming with "
+            "/v1/coverage/report?format=html.[/yellow]"
         )
-        raise typer.Exit(0)
-    logger.info("[bold cyan]📊 Generating Coverage Report...[/bold cyan]\n")
-    try:
-        output = reporter.generate_text_report(show_missing=show_missing)
-        logger.info(output)
-        if html:
-            html_dir = reporter.generate_html_report()
-            logger.info(
-                "\n[bold green]✅ HTML report generated:[/bold green] %s/index.html",
-                html_dir,
-            )
-    except FileNotFoundError:
-        logger.info(
-            "[red]Error: coverage tool not found. Run: pip install coverage[/red]"
-        )
-        raise typer.Exit(code=1)
-    except RuntimeError as e:
-        logger.info("[red]%s[/red]", e)
-        raise typer.Exit(code=1)
-    except Exception as e:
-        logger.info("[red]Error generating report: %s[/red]", e)
-        raise typer.Exit(code=1)
 
 
-@core_command(dangerous=False)
+@core_command(dangerous=False, requires_context=False)
 # ID: d0e8d322-d374-42ce-9150-70c158f05297
-def show_targets(ctx: typer.Context) -> None:
-    """
-    Shows constitutional coverage targets directly from the quality_gates policy.
-
-    Constitutional Compliance:
-    - Accesses policy files through IntentRepository (not direct filesystem access)
-    """
-    logger.info("[bold cyan]🎯 Constitutional Coverage Targets[/bold cyan]\n")
-    core_context: CoreContext = ctx.obj
-    try:
-        from shared.infrastructure.intent.intent_repository import get_intent_repository
-
-        repo = get_intent_repository()
-        data = repo.load_policy("rules/architecture/quality_gates")
-        rules = data.get("rules", [])
+async def show_targets(ctx: typer.Context) -> None:
+    """Shows constitutional coverage targets served by the API."""
+    _ = ctx
+    console.print("[bold cyan]🎯 Constitutional Coverage Targets[/bold cyan]\n")
+    client = CoreApiClient()
+    payload = await client.coverage_targets()
+    targets = payload.get("targets") or {}
+    if not targets:
+        console.print("[yellow]No coverage targets reported by API.[/yellow]")
+        return
+    rules = targets.get("rules", targets)
+    if isinstance(rules, list):
         for rule in rules:
             rule_id = rule.get("id", "")
-            if "coverage" in rule_id:
-                status = (
-                    "blocking" if rule.get("enforcement") == "error" else "guideline"
-                )
-                logger.info("  • [bold]%s[/bold] (%s)", rule_id, status)
-                logger.info("    [dim]%s[/dim]\n", rule.get("statement"))
-        if not any("coverage" in r.get("id", "") for r in rules):
-            logger.info(
-                "[yellow]No coverage rules found in quality_gates policy.[/yellow]"
-            )
-    except Exception as e:
-        logger.error("Error loading coverage policy: %s", e, exc_info=True)
-        logger.info("[yellow]Could not load coverage policy from the Mind.[/yellow]")
+            if "coverage" not in rule_id:
+                continue
+            status = "blocking" if rule.get("enforcement") == "error" else "guideline"
+            console.print(f"  • [bold]{rule_id}[/bold] ({status})")
+            statement = rule.get("statement")
+            if statement:
+                console.print(f"    [dim]{statement}[/dim]\n")
+    else:
+        console.print(str(targets))
 
 
-@core_command(dangerous=False)
+@core_command(dangerous=False, requires_context=False)
 # ID: f9b4da0d-deca-4641-8bf5-baa906f1ade4
-async def show_coverage_gaps(ctx: typer.Context) -> None:
-    """
-    Shows files/modules with insufficient coverage (gaps analysis).
-    """
-    from .services import GapsAnalyzer
+async def show_coverage_gaps(
+    ctx: typer.Context,
+    threshold: float = typer.Option(
+        _GAP_THRESHOLD_PCT_DEFAULT,
+        "--threshold",
+        "-t",
+        help="Coverage percentage below which a module is flagged.",
+    ),
+    limit: int = typer.Option(20, "--limit", "-n", help="Maximum modules to show."),
+) -> None:
+    """Shows files/modules with insufficient coverage."""
+    _ = ctx
+    console.print("[bold cyan]📉 Coverage Gaps Analysis[/bold cyan]\n")
+    client = CoreApiClient()
+    payload = await client.coverage_gaps(threshold=threshold, limit=limit)
+    gaps = payload.get("gaps", [])
+    if not gaps:
+        console.print("[yellow]No coverage gaps reported by API.[/yellow]")
+        return
 
-    logger.info("[bold cyan]📉 Coverage Gaps Analysis[/bold cyan]\n")
-    try:
-        core_context: CoreContext = ctx.obj
-        analyzer = GapsAnalyzer(repo_root=core_context.git_service.repo_path)
-        gaps = analyzer.find_gaps(threshold=_CFG.gap_threshold_pct)
-        if not gaps["sorted_lowest"]:
-            logger.info(
-                "[yellow]No coverage data. Run 'poetry run pytest --cov=src' first.[/yellow]"
-            )
-            return
-        table = Table(title="Lowest Coverage Modules (Bottom 20)")
-        table.add_column("Module", style="cyan")
-        table.add_column("Coverage", justify="right")
-        for module, coverage in gaps["sorted_lowest"]:
-            color = (
-                "red"
-                if coverage < _CFG.low_bucket_pct
-                else "yellow"
-                if coverage < _CFG.warn_pct
-                else "green"
-            )
-            table.add_row(module, f"[{color}]{coverage:.1f}%[/{color}]")
-        logger.info(table)
-        stats = gaps["stats"]
-        logger.info("\n[bold]Summary:[/bold]")
-        logger.info("  Total modules: %s", stats["total"])
-        logger.info(
-            "  Below %s%: %s (%s%)",
-            stats["threshold"],
-            stats["below_threshold"],
-            stats["below_threshold"] / stats["total"] * 100,
+    table = Table(title=f"Modules below {threshold:.0f}% coverage")
+    table.add_column("Module", style="cyan")
+    table.add_column("Coverage", justify="right")
+    table.add_column("Deficit", justify="right")
+    for gap in gaps:
+        coverage = float(gap.get("coverage", 0))
+        color = (
+            "red"
+            if coverage < _LOW_BUCKET_PCT_DEFAULT
+            else "yellow"
+            if coverage < _WARN_PCT_DEFAULT
+            else "green"
         )
-        logger.info(
-            "  Below 50%: %s (%s%)",
-            stats["below_50"],
-            stats["below_50"] / stats["total"] * 100,
+        table.add_row(
+            str(gap.get("file", "")),
+            f"[{color}]{coverage:.1f}%[/{color}]",
+            f"{float(gap.get('deficit', 0)):.1f}%",
         )
-    except Exception as e:
-        logger.error("Gaps analysis failed: %s", e, exc_info=True)
-        logger.info("[red]Error analyzing gaps: %s[/red]", e)
-        raise typer.Exit(code=1)
+    console.print(table)
+    console.print(f"\n[bold]Total flagged:[/bold] {payload.get('count', len(gaps))}")

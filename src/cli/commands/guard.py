@@ -1,25 +1,34 @@
 # src/cli/commands/guard.py
 
-"""
-CLI-facing guard registration helpers.
+"""CLI-facing guard registration helpers.
+
+Thin client over /v1/status/drift (ADR-057 D3). The drift analysis runs
+server-side; this CLI module renders the payload and writes evidence to
+disk when requested.
 """
 
 from __future__ import annotations
 
 import json
+import logging
 from pathlib import Path
-from typing import Any
 
 import typer
 
-from body.introspection.drift_detector import write_report
-from body.introspection.drift_service import run_drift_analysis_async
+from api.cli import CoreApiClient
 from cli.logic.cli_utils import should_fail
 from cli.utils import core_command
-from mind.enforcement.guard import _print_pretty, _ux_defaults
 
 
 __all__ = ["guard_drift_cmd", "register_guard"]
+
+
+logger = logging.getLogger(__name__)
+
+
+_DEFAULT_FORMAT = "json"
+_DEFAULT_FAIL_ON = "any"
+_DEFAULT_EVIDENCE_PATH = Path("reports") / "guard_drift.json"
 
 
 @core_command(dangerous=False, requires_context=False)
@@ -33,43 +42,57 @@ async def guard_drift_cmd(
     format: str | None = typer.Option(None, help="json|table|pretty"),
     fail_on: str | None = typer.Option(None, help="any|missing|undeclared"),
 ) -> None:
+    """Compare manifest vs code to detect capability drift.
+
+    Delegates the actual drift analysis to /v1/status/drift?scope=all. The
+    CLI is responsible for formatting and exit-code policy only.
     """
-    Compares manifest vs code to detect capability drift.
-    Exposed as a top-level callable so `status drift guard` can delegate here.
-    """
+    _ = manifest_path  # The manifest path is resolved server-side.
+    fmt = (format or _DEFAULT_FORMAT).lower()
+    fail_policy = (fail_on or _DEFAULT_FAIL_ON).lower()
+
+    client = CoreApiClient()
     try:
-        ux = _ux_defaults(root, manifest_path)
-        fmt = (format or ux["default_format"]).lower()
-        fail_policy = (fail_on or ux["default_fail_on"]).lower()
-
-        report = await run_drift_analysis_async(root)
-        report_dict: dict[str, Any] = report.to_dict()
-
-        if ux["evidence_json"]:
-            write_report(output or (root / ux["evidence_path"]), report)
-
-        if fmt in ("table", "pretty"):
-            _print_pretty(report_dict, ux["labels"])
-        else:
-            typer.echo(json.dumps(report_dict, indent=2))
-
-        if should_fail(report_dict, fail_policy):
-            raise typer.Exit(code=2)
-    except FileNotFoundError as e:
+        report_dict = await client.status_drift(scope="all")
+    except FileNotFoundError as exc:
         typer.secho(
-            f"Error: A required constitutional file was not found: {e}",
+            f"Error: A required constitutional file was not found: {exc}",
             fg=typer.colors.RED,
         )
-        raise typer.Exit(code=1)
+        raise typer.Exit(code=1) from exc
+
+    evidence_path = output or (root / _DEFAULT_EVIDENCE_PATH)
+    evidence_path.parent.mkdir(parents=True, exist_ok=True)
+    evidence_path.write_text(json.dumps(report_dict, indent=2), encoding="utf-8")
+
+    if fmt in {"table", "pretty"}:
+        _print_pretty_report(report_dict)
+    else:
+        typer.echo(json.dumps(report_dict, indent=2))
+
+    if should_fail(report_dict, fail_policy):
+        raise typer.Exit(code=2)
+
+
+def _print_pretty_report(report: dict) -> None:
+    """Render a /v1/status/drift payload in plain text.
+
+    Replaces `mind.enforcement.guard._print_pretty`, which was a CLI-side
+    rendering helper that lived in the wrong layer. Drift scope keys
+    ('symbols', 'vectors') map directly to sub-sections.
+    """
+    for section, payload in report.items():
+        if not isinstance(payload, dict):
+            typer.echo(f"{section}: {payload}")
+            continue
+        typer.echo(f"=== {section} ===")
+        for key, value in payload.items():
+            typer.echo(f"  {key}: {value}")
 
 
 # ID: a083eccb-0f7d-4230-b32c-4f9d9ae80ace
 def register_guard(app: typer.Typer) -> None:
-    """
-    Registers the 'guard' command group with the CLI.
-    """
+    """Register the 'guard' command group with the CLI."""
     guard = typer.Typer(help="Governance/validation guards")
     app.add_typer(guard, name="guard")
-
-    # Wire the group command to the canonical handler.
     guard.command("drift")(guard_drift_cmd)

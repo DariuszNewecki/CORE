@@ -1,14 +1,12 @@
 # src/cli/commands/inspect/diagnostics.py
-"""
-System diagnostics commands.
+"""System diagnostics commands.
 
-Commands:
-- inspect command-tree - CLI hierarchy visualization
-- inspect test-targets - Test complexity analysis
+Thin clients over /v1/analysis/{command-tree,test-targets} (ADR-057 D3).
 """
 
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 from typing import Any
 
@@ -17,14 +15,12 @@ from rich.console import Console
 from rich.table import Table
 from rich.tree import Tree
 
-from body.self_healing.test_target_analyzer import TestTargetAnalyzer
-from cli.logic import diagnostics as diagnostics_logic
+from api.cli import CoreApiClient
 from cli.utils import core_command
 from shared.cli.command_meta import CommandBehavior, CommandLayer, command_meta
-from shared.logger import getLogger
 
 
-logger = getLogger(__name__)
+logger = logging.getLogger(__name__)
 console = Console()
 
 
@@ -36,32 +32,36 @@ console = Console()
 )
 @core_command(dangerous=False, requires_context=False)
 # ID: d7718166-cf0c-4ec3-b6e5-9f4804d56d1b
-def command_tree_cmd(ctx: typer.Context) -> None:
-    """
-    Displays a hierarchical tree view of all available CLI commands.
+async def command_tree_cmd(ctx: typer.Context) -> None:
+    """Display the CLI command hierarchy served by the API."""
+    _ = ctx
+    console.print("Building CLI Command Tree...")
+    client = CoreApiClient()
+    payload = await client.analysis_command_tree()
+    if not payload.get("available", True):
+        console.print(
+            f"[yellow]Command-tree backend unavailable: "
+            f"{payload.get('error', 'unknown')}[/yellow]"
+        )
+        return
 
-    Examples:
-        core-admin inspect command-tree
-    """
-    from cli.admin_cli import app as main_app
-
-    logger.info("Building CLI Command Tree...")
-    tree_data = diagnostics_logic.build_cli_tree_data(main_app)
+    tree_data = payload.get("commands") or []
     root = Tree("[bold blue]CORE CLI[/bold blue]")
 
     # ID: 642514fc-30cb-4d57-b3fd-8f0b2461e77c
     def add_nodes(nodes: list[dict[str, Any]], parent: Tree) -> None:
-        """Recursively add nodes to tree."""
+        """Recursively add nodes to the Rich tree."""
         for node in nodes:
             label = f"[bold]{node['name']}[/bold]"
             if node.get("help"):
                 label += f": [dim]{node['help']}[/dim]"
             branch = parent.add(label)
-            if "children" in node:
-                add_nodes(node["children"], branch)
+            children = node.get("children")
+            if children:
+                add_nodes(children, branch)
 
     add_nodes(tree_data, root)
-    logger.info(root)
+    console.print(root)
 
 
 @command_meta(
@@ -72,7 +72,7 @@ def command_tree_cmd(ctx: typer.Context) -> None:
 )
 @core_command(dangerous=False, requires_context=False)
 # ID: ab41749f-0338-49c3-8a1e-9812a4f1b3a2
-def inspect_test_targets(
+async def inspect_test_targets(
     ctx: typer.Context,
     file_path: Path = typer.Argument(
         ...,
@@ -82,28 +82,23 @@ def inspect_test_targets(
         resolve_path=True,
     ),
 ) -> None:
-    """
-    Identifies and classifies functions in a file as SIMPLE or COMPLEX test targets.
-
-    SIMPLE targets:
-    - Pure functions with no side effects
-    - Clear input/output relationships
-    - Low cyclomatic complexity
-
-    COMPLEX targets:
-    - Database interactions
-    - External API calls
-    - High cyclomatic complexity
-    - Multiple dependencies
-
-    Examples:
-        core-admin inspect test-targets src/shared/utils/parsing.py
-    """
-    analyzer = TestTargetAnalyzer()
-    targets = analyzer.analyze_file(file_path)
-    if not targets:
-        logger.info("[yellow]No suitable public functions found to analyze.[/yellow]")
+    """Classify functions as SIMPLE or COMPLEX test targets via the API."""
+    _ = ctx
+    _ = file_path  # /v1/analysis/test-targets scans the canonical src/ tree.
+    client = CoreApiClient()
+    payload = await client.analysis_test_targets()
+    if not payload.get("available", True):
+        console.print(
+            f"[yellow]Test-target classifier unavailable: "
+            f"{payload.get('error', 'unknown')}[/yellow]"
+        )
         return
+
+    targets = payload.get("targets") or []
+    if not targets:
+        console.print("[yellow]No suitable public functions found to analyze.[/yellow]")
+        return
+
     table = Table(
         title="Test Target Analysis", header_style="bold magenta", show_header=True
     )
@@ -112,14 +107,17 @@ def inspect_test_targets(
     table.add_column("Classification", style="yellow")
     table.add_column("Reason")
     for target in targets:
-        style = "green" if target.classification == "SIMPLE" else "red"
+        if not isinstance(target, dict):
+            continue
+        classification = str(target.get("classification", ""))
+        style = "green" if classification == "SIMPLE" else "red"
         table.add_row(
-            target.name,
-            str(target.complexity),
-            f"[{style}]{target.classification}[/{style}]",
-            target.reason,
+            str(target.get("name", "")),
+            str(target.get("complexity", "")),
+            f"[{style}]{classification}[/{style}]",
+            str(target.get("reason", "")),
         )
-    logger.info(table)
+    console.print(table)
 
 
 diagnostics_commands = [

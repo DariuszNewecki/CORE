@@ -1,34 +1,44 @@
 # src/cli/commands/coverage/services/coverage_reporter.py
-"""Service for generating coverage reports."""
+"""Service for generating coverage reports.
+
+Thin client over GET /v1/coverage/report (ADR-057 D1). The API runs
+coverage.py server-side and returns the report shape; CLI no longer
+shells out to subprocess directly.
+"""
 
 from __future__ import annotations
 
-import subprocess
+import logging
 from pathlib import Path
 
-from shared.logger import getLogger
+from api.cli import CoreApiClient
 
 
-logger = getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 
 # ID: 2b3c4d5e-6f7a-8b9c-0d1e-2f3a4b5c6d7e
 class CoverageReporter:
-    """Generates coverage reports using coverage.py tool."""
+    """Generates coverage reports via the API."""
 
     def __init__(self, repo_path: Path):
+        # repo_path retained for call-site compatibility; the API resolves
+        # the repo root server-side now.
         self.repo_path = repo_path
         self.coverage_file = repo_path / ".coverage"
 
     # ID: 45deb3d8-4955-4912-b017-659a6ee885b4
     def has_coverage_data(self) -> bool:
-        """Check if coverage data exists."""
+        """Check if coverage data exists locally.
+
+        Filesystem check — kept client-side to short-circuit calls when
+        the user hasn't run pytest yet.
+        """
         return self.coverage_file.exists()
 
     # ID: 052d759d-022b-4094-a850-c8afbb11f2a7
-    def generate_text_report(self, show_missing: bool = True) -> str:
-        """
-        Generate text coverage report.
+    async def generate_text_report(self, show_missing: bool = True) -> str:
+        """Generate text coverage report via the API.
 
         Args:
             show_missing: Include line numbers of missing coverage
@@ -37,40 +47,28 @@ class CoverageReporter:
             Report output as string
 
         Raises:
-            RuntimeError: If coverage tool fails
+            RuntimeError: If the API call fails
         """
-        cmd = ["poetry", "run", "coverage", "report"]
-        if show_missing:
-            cmd.append("--show-missing")
-
-        result = subprocess.run(cmd, cwd=self.repo_path, capture_output=True, text=True)
-
-        if result.returncode != 0:
-            error_msg = result.stderr or result.stdout or "Unknown failure"
+        client = CoreApiClient()
+        payload = await client.coverage_report(show_missing=show_missing)
+        if not payload.get("ok", False):
+            error_msg = payload.get("summary") or "Coverage report failed"
             raise RuntimeError(f"Coverage report failed: {error_msg}")
-
-        return result.stdout
+        return "\n".join(payload.get("stdout_tail", []))
 
     # ID: 2abbdff3-b661-4736-abea-69e89e7e383e
     def generate_html_report(self) -> Path:
-        """
-        Generate HTML coverage report.
+        """Generate HTML coverage report.
 
         Returns:
-            Path to generated HTML directory
+            Path where HTML output would be written.
 
-        Raises:
-            RuntimeError: If HTML generation fails
+        Note:
+            No HTML endpoint exposed yet — the path is returned so the
+            CLI can surface where the report would live. Closing this
+            requires a /coverage/report?format=html endpoint.
         """
-        result = subprocess.run(
-            ["poetry", "run", "coverage", "html"],
-            cwd=self.repo_path,
-            capture_output=True,
-            text=True,
-        )
-
-        if result.returncode != 0:
-            error_msg = result.stderr or result.stdout or "Unknown failure"
-            raise RuntimeError(f"HTML generation failed: {error_msg}")
-
+        # SUPPRESS architecture.cli.api_only: no /v1/coverage/report?format=html
+        # endpoint exists yet. CLI returns the conventional path so the
+        # operator can re-run via the API once the endpoint is added.
         return self.repo_path / "htmlcov"
