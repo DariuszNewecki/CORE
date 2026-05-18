@@ -3,7 +3,7 @@
 # ADR-055 — API Phase 2: /fix + /quality
 
 **Status:** Accepted
-**Date:** 2026-05-17
+**Date:** 2026-05-17 (revised 2026-05-18)
 **Authors:** Darek (Dariusz Newecki)
 **Parent:** ADR-053 (API as Governance Interface)
 **Relates to:** ADR-054 (Phase 1), ADR-046 (flow risk), ADR-038 (circuit
@@ -18,28 +18,11 @@ back onto `body.self_healing.*` (fix operations) and Will quality-gate
 workflows (quality checks). ADR-053 D6 requires this ADR to be accepted
 before any Phase 2 endpoint is implemented.
 
-**CLI files in scope (Phase 2 migration targets):**
-
-`src/cli/resources/code/` (Phase 2 subset):
-- `fix_atomic.py` — atomic action dispatch
-- `format.py` — import sort / ruff format
-- `docstrings.py` — docstring fixer
-- `logging.py` — logging fixer
-- `actions.py` — action registry listing
-- `check_imports.py` — import resolution check
-- `integrity.py` — quality gate bundle
-- `test.py` — pytest runner
-- `check_ui.py` — Body-layer UI/env contract check
-
-`src/cli/commands/fix/` (contributing):
-- `all_commands.py`, `atomic_actions.py`, `code_style.py`, `metadata.py`,
-  `handler_discovery.py`, `list_commands.py`, `imports.py`, `body_ui.py`,
-  `settings_access.py`, `fix_ir.py`, `modularity.py`
-
-`src/cli/commands/check/`:
-- `quality.py`, `quality_gates.py`, `imports.py`, `diagnostics_commands.py`
-
-All carry direct imports from `body.*`, `will.*`, `mind.*`, or `shared.*`.
+ADR-050 D1 establishes the physical extraction boundary: `src/cli/` is a
+standalone repository (`core-cli`) that communicates with CORE exclusively
+over HTTP. No Python import from any `src/` module — `body.*`, `will.*`,
+`mind.*`, or `shared.*` — is permitted in CLI after extraction. Phase 2
+completion is one milestone within that larger extraction arc.
 
 ---
 
@@ -203,39 +186,44 @@ Phase 2 inherits the ADR-054 D3 auth posture. No authentication for Phase
 case requiring per-request auth, remote access, or multi-operator
 deployment.
 
-### D6 — Phase 2 completion verified by suppress-entry removal
+### D6 — Phase 2 completion verified by the boundary rule, not a file list
 
-The following files must have all direct `body.*`, `will.*`, `mind.*`, and
-`shared.*` imports replaced by `api.*` HTTP calls when Phase 2 is
-complete. No suppress entries may remain in these files at Phase 2 closure:
+Phase 2 is complete when no file under `src/cli/` imports from any `src/`
+module. The rule is:
 
-```
-src/cli/resources/code/fix_atomic.py
-src/cli/resources/code/format.py
-src/cli/resources/code/docstrings.py
-src/cli/resources/code/logging.py
-src/cli/resources/code/actions.py
-src/cli/resources/code/check_imports.py
-src/cli/resources/code/integrity.py
-src/cli/resources/code/test.py
-src/cli/resources/code/check_ui.py
-src/cli/commands/fix/all_commands.py
-src/cli/commands/fix/atomic_actions.py
-src/cli/commands/fix/code_style.py
-src/cli/commands/fix/metadata.py
-src/cli/commands/fix/handler_discovery.py
-src/cli/commands/fix/list_commands.py
-src/cli/commands/fix/imports.py
-src/cli/commands/fix/body_ui.py
-src/cli/commands/fix/settings_access.py
-src/cli/commands/check/quality.py
-src/cli/commands/check/quality_gates.py
-src/cli/commands/check/imports.py
-src/cli/commands/check/diagnostics_commands.py
-```
+> Every Python file under `src/cli/` MUST import exclusively from `api.*`
+> (via HTTP through `CoreApiClient`) or from the Python standard library.
+> Imports from `body.*`, `will.*`, `mind.*`, and `shared.*` are
+> unconditionally forbidden.
 
-`fix/fix_ir.py`, `fix/modularity.py` are included above and must also
-reach zero direct CORE imports at Phase 2 closure.
+This rule derives from ADR-050 D1 (physical extraction boundary). It
+applies to the entire `src/cli/` tree, not to a named subset of files.
+
+The original revision of this ADR listed 22 specific files as the D6
+scope. That list was a snapshot of the known violation surface at authoring
+time — it was a description of where violations existed, not a definition
+of the rule. The list was incorrect as a scope definition because it named
+files instead of the condition. The correct scope is the rule above; the
+current violation count is an operational metric, not an architectural
+boundary.
+
+**Tracked exceptions (blocked on missing endpoints):**
+
+The following files cannot satisfy the rule until a dedicated endpoint is
+designed. They are excluded from Phase 2 closure and tracked under their
+own issues:
+
+- `src/cli/resources/code/integrity.py` — no endpoint for
+  `IntegrityService.create_baseline` / `verify_integrity` (issue #353)
+- `src/cli/commands/fix/all_commands.py` (sync half) — db sync, vector
+  sync, command sync, capability tagging have no API endpoint (issue #354)
+- `src/cli/commands/fix/metadata.py` (policy/tag steps) —
+  `add_missing_policy_ids` and `purge_legacy_tags` are not registered
+  atomic actions and have no endpoint (issue #355)
+
+These exceptions are temporary. Phase 2 closes when the rule is satisfied
+for all files not covered by an open tracked exception. Each exception
+closes when its endpoint exists and the file is migrated.
 
 ---
 
@@ -258,8 +246,9 @@ This ADR is verified when:
    `fix_id` values including an unknown-id 422 case.
 3. All async `/quality` endpoints are covered by tests.
 4. `GET /fix/commands` and `GET /actions` are covered by tests.
-5. All files listed in D6 import exclusively from `api.*` — no `body.*`,
-   `will.*`, `mind.*`, or `shared.*` imports remain.
+5. `grep -rn "from body\.\|from will\.\|from mind\.\|from shared\." src/cli/`
+   returns zero hits, excluding files covered by open tracked exceptions
+   (#353, #354, #355).
 6. `core-admin code audit` reports no new findings introduced by Phase 2.
 7. `core.fix_runs` table exists in `db_schema_live.sql` and the ORM.
 
@@ -267,6 +256,7 @@ This ADR is verified when:
 
 ## References
 
+- ADR-050 — physical extraction boundary; source of the D6 rule
 - ADR-053 — parent; D2 (resource model), D3 (protocol contract), D4
   (phase map), D5 (CLI migration), D6 (papers-first gate)
 - ADR-054 — Phase 1 pattern; `audit_runs` as resource table template
@@ -275,8 +265,17 @@ This ADR is verified when:
   extended to governor-direct fix operations (same rationale as ADR-054)
 - ADR-014 — dev-phase priority; `write` flag on fix endpoints honors
   dry-run-first discipline
-- `.specs/planning/CORE-API-capability-map-2026-05-16.md` — source for
-  endpoint-to-CLI-file mapping
 - `src/body/atomic/registry.py` — authoritative source for valid `fix_id`
   values
 - `src/body/flows/executor.py` — FlowExecutor backend for `/fix/all`
+
+---
+
+*Revised 2026-05-18: D6 rewritten. The original file enumeration (22
+files) was a snapshot of the known violation surface at authoring time, not
+a scope definition. D6 now states the boundary rule derived from ADR-050
+D1: no file under `src/cli/` may import from any `src/` module. The
+original file list is removed. Three tracked exceptions added (#353, #354,
+#355) for files blocked on missing endpoints. Verification condition 5
+updated to reference the grep assertion rather than the file list. Context
+section updated to surface the ADR-050 D1 dependency explicitly.*
