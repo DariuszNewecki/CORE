@@ -2,19 +2,18 @@
 """
 Integrity CLI Commands - Phase 2 Hardening.
 Allows the operator to baseline and verify the codebase state.
+
+Thin clients over POST /v1/integrity/{baseline,verify}. All execution
+moves server-side; this module only dispatches and renders.
 """
 
 from __future__ import annotations
 
-import logging
-
-
-logger = logging.getLogger(__name__)
 import typer
 from rich.console import Console
 
+from api.cli import CoreApiClient
 from cli.utils import core_command
-from shared.infrastructure.storage.integrity_service import IntegrityService
 
 from .hub import app
 
@@ -23,7 +22,7 @@ console = Console()
 
 
 @app.command("baseline")
-@core_command(dangerous=False, requires_context=True)
+@core_command(dangerous=False)
 # ID: d76fd565-17ef-4f35-9138-9530efc28324
 async def code_baseline_cmd(
     ctx: typer.Context,
@@ -35,15 +34,19 @@ async def code_baseline_cmd(
     Create a secure checksum baseline of the current 'src/' directory.
     Run this before starting autonomous tasks.
     """
-    core_context = ctx.obj
-    service = IntegrityService(core_context.git_service.repo_path)
-    logger.info("[bold cyan]🔐 Creating integrity baseline: %s...[/bold cyan]", label)
-    path = service.create_baseline(label)
-    logger.info("[bold green]✅ Success![/bold green] Baseline stored at: %s", path)
+    _ = ctx
+    client = CoreApiClient()
+    console.print(f"[bold cyan]Creating integrity baseline: {label}...[/bold cyan]")
+    result = await client.baseline(label=label)
+    path = result.get("path")
+    files_hashed = result.get("files_hashed", 0)
+    console.print(
+        f"[bold green]Baseline stored at: {path} ({files_hashed} files)[/bold green]"
+    )
 
 
 @app.command("verify")
-@core_command(dangerous=False, requires_context=True)
+@core_command(dangerous=False)
 # ID: 56975e9b-9040-4c0e-bdc4-76b7c68c5abd
 async def code_verify_cmd(
     ctx: typer.Context,
@@ -55,19 +58,18 @@ async def code_verify_cmd(
     Verify the current codebase against a previously created baseline.
     Detects any unauthorized MODIFICATIONS, DELETIONS, or NEW files.
     """
-    core_context = ctx.obj
-    service = IntegrityService(core_context.git_service.repo_path)
-    logger.info(
-        "[bold cyan]🔍 Verifying code integrity against baseline: %s...[/bold cyan]",
-        label,
+    _ = ctx
+    client = CoreApiClient()
+    console.print(
+        f"[bold cyan]Verifying code integrity against baseline: {label}...[/bold cyan]"
     )
-    result = service.verify_integrity(label)
-    if result.ok:
-        logger.info(
-            "[bold green]✅ Integrity Verified: No unauthorized changes detected.[/bold green]"
+    result = await client.verify(label=label)
+    if result.get("ok"):
+        console.print(
+            "[bold green]Integrity verified: no unauthorized changes detected.[/bold green]"
         )
     else:
-        logger.info("[bold red]❌ Integrity Violation Found![/bold red]")
-        for error in result.errors:
-            logger.info("  [yellow]•[/yellow] %s", error)
+        console.print("[bold red]Integrity violation found.[/bold red]")
+        for error in result.get("errors", []):
+            console.print(f"  [yellow]-[/yellow] {error}")
         raise typer.Exit(code=1)

@@ -28,6 +28,7 @@ from api.v1 import (
     fix_routes,
     inspect_routes,
     integration_routes,
+    integrity_routes,
     knowledge_routes,
     lint_routes,
     proposals_routes,
@@ -72,6 +73,7 @@ def create_app() -> FastAPI:
     app.include_router(inspect_routes.search_router, prefix="/v1", tags=["Inspect"])
     app.include_router(census_routes.router, prefix="/v1", tags=["Census"])
     app.include_router(sync_routes.router, prefix="/v1", tags=["Sync"])
+    app.include_router(integrity_routes.router, prefix="/v1", tags=["Integrity"])
     app.include_router(daemon_routes.router, prefix="/v1", tags=["Daemon"])
     register_exception_handlers(app)
 

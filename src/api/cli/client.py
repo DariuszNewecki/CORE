@@ -728,6 +728,28 @@ class CoreApiClient:
         )
 
     # ------------------------------------------------------------------
+    # Integrity — /integrity (ADR-055 D6 follow-up — closes #353)
+    # ------------------------------------------------------------------
+
+    # ID: 7ba84c02-f8a8-4895-befd-8e43e397cfbb
+    async def baseline(self, label: str = "default") -> dict:
+        """POST /v1/integrity/baseline — SHA256-fingerprint src/."""
+        return await self._request(
+            "POST",
+            "/v1/integrity/baseline",
+            json={"label": label},
+        )
+
+    # ID: dc4b010a-8220-42e4-9d11-78613b6a2eb7
+    async def verify(self, label: str = "default") -> dict:
+        """POST /v1/integrity/verify — diff src/ against a named baseline."""
+        return await self._request(
+            "POST",
+            "/v1/integrity/verify",
+            json={"label": label},
+        )
+
+    # ------------------------------------------------------------------
     # Phase 4 — /daemon (ADR-058 D3)
     # ------------------------------------------------------------------
 
