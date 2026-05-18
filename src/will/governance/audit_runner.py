@@ -47,6 +47,7 @@ from mind.governance.filtered_audit import run_filtered_audit
 from shared.context import CoreContext
 from shared.logger import getLogger
 from shared.path_resolver import PathResolver
+from shared.workers.base import _sanitize_payload
 
 
 __all__ = [
@@ -145,7 +146,12 @@ async def run_and_persist_audit(
             "verdict": verdict.value,
             "finding_count": finding_count,
             "blocking_count": blocking_count,
-            "findings": json.dumps(findings_dicts),
+            # ASCII-sanitize the findings payload before JSONB bind — the
+            # core DB is SQL_ASCII; raw Unicode escapes (e.g. U+0000 in
+            # an audit-finding message) trigger asyncpg's
+            # UntranslatableCharacterError on INSERT. Mirrors the
+            # blackboard payload pattern (see shared.workers.base) — #359.
+            "findings": json.dumps(_sanitize_payload(findings_dicts)),
             "rid": run_id,
         },
     )
@@ -294,7 +300,12 @@ async def run_sync_audit(
             "verdict": verdict_str,
             "finding_count": finding_count,
             "blocking_count": blocking_count,
-            "findings": json.dumps(processed_findings),
+            # ASCII-sanitize the findings payload before JSONB bind — the
+            # core DB is SQL_ASCII; raw Unicode escapes (e.g. U+0000 in
+            # an audit-finding message) trigger asyncpg's
+            # UntranslatableCharacterError on INSERT. Mirrors the
+            # blackboard payload pattern (see shared.workers.base) — #359.
+            "findings": json.dumps(_sanitize_payload(processed_findings)),
             "started_at": started_at,
             "finished_at": finished_at,
         },

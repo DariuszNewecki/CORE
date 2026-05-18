@@ -47,9 +47,21 @@ def register_exception_handlers(app):
         Catches any unhandled exception, logs the full traceback internally,
         and returns a generic 500 Internal Server Error to the client.
         This is a critical security measure to prevent leaking stack traces.
+
+        The traceback is formatted into the log message itself (not just
+        the structured `exc_info`) so it survives any downstream log
+        formatter that drops `exc_info`. Tagged `UNHANDLED_500_TRACE` so
+        operators can grep the journal.
         """
-        logger.exception(
-            "Unhandled exception for request: %s %s", request.method, request.url.path
+        import traceback
+
+        trace = traceback.format_exc()
+        logger.error(
+            "UNHANDLED_500_TRACE method=%s path=%s exc=%s\n%s",
+            request.method,
+            request.url.path,
+            f"{type(exc).__name__}: {exc}",
+            trace,
         )
         return JSONResponse(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

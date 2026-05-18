@@ -884,6 +884,20 @@ Files:
 
 ---
 
+## 2026-05-18 — audit_runner Unicode sanitization (hotfix)
+
+`run_sync_audit` and `run_and_persist_audit` in
+`src/will/governance/audit_runner.py` now sanitize the findings JSONB
+payload via `_sanitize_payload` before INSERT, mirroring the
+`will.autonomy.proposal_mapper` precedent. Fixes 500 on
+`POST /v1/audit/runs` caused by Unicode escape sequences rejected by
+the SQL_ASCII database encoding. `core-admin code audit` restored to
+full operation: PASS, 45 findings, findings persisted and queryable
+via `GET /v1/audit/runs/{id}`. Closes #359.
+Files: `src/will/governance/audit_runner.py`.
+
+---
+
 ## ADR-058 — 2026-05-18 (artifact)
 
 API Phase 4: `/census`, `/sync`, `/daemon`. Two new resource tables
