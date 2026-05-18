@@ -81,7 +81,7 @@
       ]
     },
     "proposal_status": {
-      "description": "Canonical lifecycle states for Proposals. draft, pending, approved, and executing are active — deduplication must treat these as blocking a re-creation of the same action group. completed and failed are terminal.",
+      "description": "Canonical lifecycle states for Proposals. draft, pending, approved, and executing are active — deduplication must treat these as blocking a re-creation of the same action group. completed, failed, and rejected are terminal. rejected is the governor-veto outcome: the proposal completed its review path but was explicitly not approved (distinct from failed, which is execution failure of an approved proposal).",
       "type": "string",
       "enum": [
         "draft",
@@ -89,7 +89,8 @@
         "approved",
         "executing",
         "completed",
-        "failed"
+        "failed",
+        "rejected"
       ]
     },
     "proposal_status_active": {
