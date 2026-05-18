@@ -733,6 +733,99 @@ Commits `90992bb1`, `2ced6e33`.
 
 ---
 
+## ADR-055 — 2026-05-18 (D6 CLI cutover complete)
+
+The CLI-side of ADR-055 D6, deferred from the original Phase 2
+landing (`90992bb1`, `2ced6e33`) and tracked on #349. 23 of the
+24 in-scope CLI files under `src/cli/resources/code/`,
+`src/cli/commands/fix/`, and `src/cli/commands/check/` are now thin
+clients over the /v1 HTTP surface — `grep -E "from
+(body|will|mind|shared)\."` returns zero hits across the set
+(excluding `shared.cli.command_meta` and `shared.logger`, both
+allowlisted as CLI-adjacent primitives).
+
+The 16-commit ledger splits as: two C0 prep commits (`_poll_run`
+helper on `CoreApiClient`; `shared.models.command_meta` relocated to
+the new `shared.cli` neutral subpackage to avoid a body→cli inversion
+in `command_sync_service`), five batch migrations (C1: 8 leaf files,
+C2: 2 composite, C3: 4 commands/check/, C4: 7 commands/fix/, C5: 2
+megaliths split across two commits), seven Stage B reopens that
+extended the API surface as gaps surfaced per batch, and one final
+chore that classified the six newly-registered actions in
+`.intent/enforcement/config/action_risk.yaml` (without which
+`ActionExecutor` refused to initialise — ADR-008 is hard law).
+
+Registry delta: 22 → 28 atomic actions. The six new registrations
+(`fix.body-ui`, `fix.capability_tagging`, `fix.policy_ids`,
+`fix.purge_legacy_tags`, `fix.settings_access`, `fix.vulture_heal`)
+each have a `@register_action` wrapper in
+`src/body/atomic/fix_actions.py` over an existing body or will
+service. Two service relocations accompanied: `vulture_healer.py`
+moved will/ → body/ (no will deps; placement was wrong);
+`body_contracts_fixer.py` (`fix.body-ui` impl) moved cli/logic/ →
+body/self_healing/ for the same reason. `capability_tagging_service`
+remained in will/ — it depends on `will.agents.tagger_agent` and
+`will.orchestration.cognitive_service`; the body wrapper does a lazy
+body→will import (precedent: `proposal_lifecycle_actions.py`).
+
+Two governance-debt carries:
+
+* **#353** — `cli/resources/code/integrity.py` parked from D6.
+  `IntegrityService.create_baseline / verify_integrity` has no
+  matching D2/D3 endpoint and no clean atomic-action wrap (DB
+  session dependencies that don't fit the executor signature).
+  Closes when `POST /v1/integrity/{baseline,verify}` is designed and
+  the file is rewritten as a thin client.
+
+* **#356** — `cli/commands/fix/all_commands.py` dropped the
+  `db-registry` step from the curated `fix all` sequence. The body
+  service (`_sync_commands_to_db` in
+  `body.maintenance.command_sync_service`) has DB session plumbing
+  that requires a wrapper before it can be registered as a fix.*
+  action. Closes when `fix.sync_commands` is registered and added
+  back to the `fix all` plan.
+
+Two pre-existing constitutional gaps were exposed during the
+migration and resolved in the same diffs (not regressions —
+they were already broken):
+
+* Several CLI commands carried decorative-only `@atomic_action`
+  decorations with `action_id` values that were never registered
+  (`fix.cli.atomic_actions`, `tests.cmd`, duplicate `fix.headers`,
+  duplicate `fix.imports`, decorative `fix.duplicate`, decorative
+  `fix.placeholders`). All dropped on touch.
+
+* `fix.body-ui` was decorated `@atomic_action` but missing
+  `@register_action`, so `POST /v1/fix/run/fix.body-ui` returned 422
+  for the entire pre-migration period. Registered in `35d27a50`.
+
+Postmortem with full per-batch detail and seven lessons for D7+
+Phase 3 batches lives at `var/d6-stage-c-migration-plan.md` (the
+plan was rewritten from "Draft" to "Complete" with execution
+results in `85a9f8cb`).
+
+CLI is now a typed HTTP client over `/v1/*` for the entire `/fix`
+and `/quality` surface, with the two named governance-debt
+exceptions above. The "CLI is a typed HTTP client; API is the
+system" framing from ADR-053 D5 holds on the in-scope surface.
+
+Files: 23 files under `src/cli/resources/code/` +
+`src/cli/commands/{check,fix}/`;
+`src/api/cli/client.py`;
+`src/api/v1/{fix,quality}_routes.py`;
+`src/will/governance/fix_runner.py`;
+`src/body/atomic/{__init__,fix_actions}.py`;
+`src/body/self_healing/{body_ui_fixer,vulture_healer}.py` (relocated
+from cli/logic/ and will/self_healing/ respectively);
+`src/shared/cli/{__init__,command_meta}.py` (relocated from
+shared/models/);
+`.intent/enforcement/config/action_risk.yaml`;
+`.intent/enforcement/mappings/infrastructure/cli_commands.yaml`
+(path-rename propagation from the command_meta relocation).
+Commits `43b2adf1` (range start) through `3eea5b87` (Stage D unblock).
+
+---
+
 ## ADR-056 — 2026-05-17 (artifact)
 
 Runtime data contracts as first-class constitutional artifacts. Introduces
