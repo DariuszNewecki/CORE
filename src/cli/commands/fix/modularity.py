@@ -1,26 +1,28 @@
 # src/cli/commands/fix/modularity.py
 """
-Automated Modularity Healing.
-Connects Modularity Diagnostics to the A3 Autonomous Loop.
+Automated Modularity Healing — thin client over POST /v1/fix/modularity.
 
-CONSTITUTIONAL ALIGNMENT:
-- Removed legacy error decorators to prevent circular imports.
-- Triggers autonomous architectural improvement via develop_from_goal.
+The endpoint is async (202 + run_id); CLI polls via CoreApiClient._poll_run
+and renders the per-file remediation summary that
+ModularityRemediationService writes into fix_runs.result.
 """
 
 from __future__ import annotations
 
-from shared.logger import getLogger
+import logging
 
-
-logger = getLogger(__name__)
 import typer
+from rich.console import Console
 from rich.table import Table
 
+from api.cli import CoreApiClient
 from cli.utils import core_command
-from shared.context import CoreContext
 
 from . import fix_app
+
+
+logger = logging.getLogger(__name__)
+console = Console()
 
 
 @fix_app.command("modularity", help="Autonomously modularize architectural offenders.")
@@ -37,37 +39,50 @@ async def fix_modularity_cmd(
         1, "--limit", "-n", help="Max files to heal in one batch"
     ),
     write: bool = typer.Option(False, "--write", help="Apply changes autonomously"),
-):
+) -> None:
     """
     Finds high-complexity files and uses the A3 loop to modularize them.
     """
-    from will.self_healing.modularity_remediation_service import (
-        ModularityRemediationService,
-    )
+    params: dict[str, object] = {"limit": limit}
+    if min_score is not None:
+        params["min_score"] = min_score
 
-    core_context: CoreContext = ctx.obj
-    service = ModularityRemediationService(core_context)
-    with logger.info("[bold cyan]CORE is defragmenting architecture...[/bold cyan]"):
-        results = await service.remediate_batch(
-            min_score=min_score, limit=limit, write=write
+    console.print("[bold cyan]CORE is defragmenting architecture...[/bold cyan]")
+    client = CoreApiClient()
+    initial = await client.fix_modularity(write=write, params=params)
+    run_id = initial.get("run_id")
+    if not run_id:
+        console.print(f"[red]fix.modularity failed to dispatch: {initial}[/red]")
+        raise typer.Exit(1)
+    final = await client._poll_run(run_id)
+    if final.get("status") != "completed":
+        console.print(
+            f"[red]fix.modularity failed: {final.get('error') or final}[/red]"
         )
-    if not results:
-        logger.info("[green]✅ No files exceed the modularity threshold.[/green]")
+        raise typer.Exit(1)
+
+    result_payload = final.get("result") or {}
+    files = result_payload.get("files", [])
+    if not files:
+        console.print("[green]✅ No files exceed the modularity threshold.[/green]")
         return
+
     table = Table(title="Modularity Healing Results")
     table.add_column("File", style="cyan")
     table.add_column("Status", justify="center")
     table.add_column("Initial", justify="right")
     table.add_column("Final", justify="right")
     table.add_column("Delta", style="green", justify="right")
-    for res in results:
-        status = "✅" if res["success"] else "❌"
-        delta = res["improvement"]
+    for res in files:
+        status = "✅" if res.get("success") else "❌"
+        start_score = res.get("start_score", 0.0)
+        final_score = res.get("final_score", 0.0)
+        delta = res.get("improvement", 0.0)
         table.add_row(
-            res["file"],
+            res.get("file", ""),
             status,
-            f"{res['start_score']:.1f}",
-            f"{res['final_score']:.1f}",
+            f"{start_score:.1f}",
+            f"{final_score:.1f}",
             f"-{delta:.1f}" if delta > 0 else "0.0",
         )
-    logger.info(table)
+    console.print(table)
