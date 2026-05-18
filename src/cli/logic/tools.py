@@ -15,12 +15,12 @@ from body.maintenance.maintenance_service import rewire_imports
 
 # Import the moved script module
 from body.maintenance.scripts import context_export
-from shared.logger import getLogger
-from shared.models.command_meta import (
+from shared.cli.command_meta import (
     CommandBehavior,
     CommandLayer,
     command_meta,
 )  # Add this import
+from shared.logger import getLogger
 
 
 logger = getLogger(__name__)

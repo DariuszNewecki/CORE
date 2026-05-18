@@ -8,7 +8,7 @@ from rich.console import Console
 
 from cli.logic.project_docs import docs as generate_docs
 from cli.utils import core_command
-from shared.models.command_meta import CommandBehavior, CommandLayer, command_meta
+from shared.cli.command_meta import CommandBehavior, CommandLayer, command_meta
 
 from . import app
 

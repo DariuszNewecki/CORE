@@ -3,12 +3,12 @@
 import typer
 
 from cli.utils import core_command
-from shared.infrastructure.database.session_manager import get_session
-from shared.models.command_meta import (
+from shared.cli.command_meta import (
     CommandBehavior,
     CommandLayer,
     command_meta,
 )  # Add this import
+from shared.infrastructure.database.session_manager import get_session
 
 from .hub import app
 

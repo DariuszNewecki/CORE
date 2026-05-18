@@ -10,9 +10,9 @@ import typer
 
 from cli.logic.interactive_test_logic import run_interactive_test_generation
 from cli.utils import core_command
+from shared.cli.command_meta import CommandBehavior, CommandLayer, command_meta
 from shared.context import CoreContext
 from shared.logger import getLogger
-from shared.models.command_meta import CommandBehavior, CommandLayer, command_meta
 
 
 logger = getLogger(__name__)

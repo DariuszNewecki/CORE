@@ -15,8 +15,8 @@ from __future__ import annotations
 import typer
 
 from cli.utils import core_command
+from shared.cli.command_meta import CommandBehavior, CommandLayer, command_meta
 from shared.infrastructure.intent.operational_config import load_operational_config
-from shared.models.command_meta import CommandBehavior, CommandLayer, command_meta
 
 
 _CFG = load_operational_config().misc

@@ -19,9 +19,9 @@ from sqlalchemy import delete
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from shared.cli.command_meta import get_command_meta, infer_metadata_from_function
 from shared.infrastructure.database.models import CliCommand
 from shared.logger import getLogger
-from shared.models.command_meta import get_command_meta, infer_metadata_from_function
 from shared.protocols.typer_protocols import (
     TyperAppLike,
 )

@@ -3,7 +3,7 @@ import typer
 
 from body.self_healing.docstring_service import fix_docstrings
 from cli.utils import core_command
-from shared.models.command_meta import CommandBehavior, CommandLayer, command_meta
+from shared.cli.command_meta import CommandBehavior, CommandLayer, command_meta
 
 from .hub import app
 

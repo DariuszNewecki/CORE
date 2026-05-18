@@ -7,7 +7,7 @@ from rich.console import Console
 from rich.table import Table
 
 from body.atomic.registry import action_registry
-from shared.models.command_meta import CommandBehavior, CommandLayer, command_meta
+from shared.cli.command_meta import CommandBehavior, CommandLayer, command_meta
 
 from .hub import app
 

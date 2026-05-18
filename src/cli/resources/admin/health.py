@@ -9,8 +9,8 @@ from rich.table import Table
 from sqlalchemy import text
 
 from cli.utils import core_command
+from shared.cli.command_meta import CommandBehavior, CommandLayer, command_meta
 from shared.infrastructure.database.session_manager import get_session
-from shared.models.command_meta import CommandBehavior, CommandLayer, command_meta
 
 from .hub import app
 

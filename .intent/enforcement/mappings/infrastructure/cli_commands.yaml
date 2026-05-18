@@ -28,7 +28,7 @@ mappings:
   cli.command.canonical_naming:
     engine: dataclass_validation
     params:
-      enforced_by: "shared.models.command_meta.CommandMeta.__post_init__"
+      enforced_by: "shared.cli.command_meta.CommandMeta.__post_init__"
       validation: "Regex pattern in dataclass"
       failure_mode: "ValueError on invalid canonical_name"
     scope:
@@ -41,7 +41,7 @@ mappings:
   cli.command.behavior_classification:
     engine: type_system
     params:
-      enforced_by: "shared.models.command_meta.CommandBehavior enum"
+      enforced_by: "shared.cli.command_meta.CommandBehavior enum"
       validation: "Python enum type checking"
       allowed_values: ["read", "validate", "mutate", "transform"]
     scope:
@@ -53,7 +53,7 @@ mappings:
   cli.command.layer_assignment:
     engine: type_system
     params:
-      enforced_by: "shared.models.command_meta.CommandLayer enum"
+      enforced_by: "shared.cli.command_meta.CommandLayer enum"
       validation: "Python enum type checking"
       allowed_values: ["mind", "body", "will"]
     scope:

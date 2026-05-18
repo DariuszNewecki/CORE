@@ -15,8 +15,8 @@ from body.infrastructure.repositories.decision_trace_repository import (
     DecisionTraceRepository,
 )
 from cli.utils import core_command
+from shared.cli.command_meta import CommandBehavior, CommandLayer, command_meta
 from shared.infrastructure.database.session_manager import get_session
-from shared.models.command_meta import CommandBehavior, CommandLayer, command_meta
 
 from ._helpers import (
     _show_pattern_traces,

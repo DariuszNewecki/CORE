@@ -14,7 +14,7 @@ from rich.console import Console
 
 import cli.logic.status as status_logic
 from cli.utils import core_command
-from shared.models.command_meta import CommandBehavior, CommandLayer, command_meta
+from shared.cli.command_meta import CommandBehavior, CommandLayer, command_meta
 
 
 console = Console()

@@ -10,7 +10,7 @@ from rich.console import Console
 
 from body.atomic.executor import ActionExecutor
 from cli.utils import core_command
-from shared.models.command_meta import CommandBehavior, CommandLayer, command_meta
+from shared.cli.command_meta import CommandBehavior, CommandLayer, command_meta
 
 from .hub import app
 

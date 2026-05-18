@@ -1,4 +1,4 @@
-# src/shared/models/command_meta.py
+# src/shared/cli/command_meta.py
 
 """
 Command Metadata Template - Constitutional Contract for CLI Commands

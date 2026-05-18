@@ -7,7 +7,7 @@ import typer
 from rich.console import Console
 
 from cli.utils import core_command
-from shared.models.command_meta import CommandBehavior, CommandLayer, command_meta
+from shared.cli.command_meta import CommandBehavior, CommandLayer, command_meta
 from will.workflows.dev_sync_workflow import DevSyncWorkflow
 
 from .hub import app

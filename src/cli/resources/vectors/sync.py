@@ -7,8 +7,8 @@ import typer
 from rich.console import Console
 
 from cli.utils import core_command
+from shared.cli.command_meta import CommandBehavior, CommandLayer, command_meta
 from shared.context import CoreContext
-from shared.models.command_meta import CommandBehavior, CommandLayer, command_meta
 
 from .hub import app
 
