@@ -322,6 +322,20 @@ class KnowledgeGateEngine(BaseEngine):
                         resolved = resolve_import(node.module, file_path)
                         if resolved:
                             imports.append(resolved)
+                        # `from X import Y` may bind submodule Y from package X;
+                        # resolve each name as a potential submodule path so the
+                        # BFS reaches files imported via package re-exports or
+                        # FastAPI-style `from api.v1 import audit_routes` patterns.
+                        # Non-submodule names (attributes, classes, functions)
+                        # resolve to None and are silently ignored.
+                        for alias in node.names:
+                            if alias.name == "*":
+                                continue
+                            resolved_sub = resolve_import(
+                                f"{node.module}.{alias.name}", file_path
+                            )
+                            if resolved_sub:
+                                imports.append(resolved_sub)
             return imports
 
         # 3b. Seed from constitutionally declared workers (via IntentRepository)
