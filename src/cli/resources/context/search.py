@@ -54,7 +54,7 @@ async def _search_async(pattern: str, path: str | None, limit: int) -> None:
         )
         rows = result.fetchall()
     if not rows:
-        logger.info("[yellow]No matches found for:[/yellow] %s", pattern)
+        console.print(f"[yellow]No matches found for:[/yellow] {pattern}")
         return
     table = Table(
         title=f"Search results for '{pattern}' ({len(rows)} found)",
@@ -67,10 +67,10 @@ async def _search_async(pattern: str, path: str | None, limit: int) -> None:
     for row in rows:
         summary = (row.intent or row.ast_signature or "—")[:80]
         table.add_row(row.qualname, row.module, row.kind, summary)
-    logger.info(table)
+    console.print(table)
     if len(rows) == limit:
-        logger.info(
-            "[dim]Showing first %s results. Use --limit to see more.[/dim]", limit
+        console.print(
+            f"[dim]Showing first {limit} results. Use --limit to see more.[/dim]"
         )
 
 
@@ -109,6 +109,6 @@ def search(
     try:
         asyncio.run(_search_async(pattern, path, limit))
     except Exception as e:
-        logger.info("[red]❌ Error: %s[/red]", e)
+        console.print(f"[red]❌ Error: {e}[/red]")
         logger.exception("Search failed")
         raise typer.Exit(code=1)

@@ -9,6 +9,7 @@ from typing import Any
 
 import typer
 import yaml
+from rich.console import Console
 
 from cli.utils.decorators import core_command
 from shared.config import settings
@@ -17,6 +18,7 @@ from shared.infrastructure.database.session_manager import get_session
 
 
 logger = logging.getLogger(__name__)
+console = Console()
 workers_app = typer.Typer(
     help="Constitutional worker management.", no_args_is_help=True
 )
@@ -66,14 +68,11 @@ async def workers_run_cmd(
     """Start a constitutional worker by its declaration name."""
     import importlib
 
-    from rich.console import Console
-
-    console = Console()
     declarations = _load_worker_declarations()
     if worker_name not in declarations:
         available = ", ".join(sorted(declarations.keys())) or "(none declared)"
-        logger.info("[red]Unknown worker: %s[/red]", worker_name)
-        logger.info("Available: %s", available)
+        console.print(f"[red]Unknown worker: {worker_name}[/red]")
+        console.print(f"Available: {available}")
         raise typer.Exit(code=1)
     declaration = declarations[worker_name]
     impl = declaration["implementation"]
@@ -136,6 +135,6 @@ async def workers_run_cmd(
 
     if not worker.declaration_name:
         worker.declaration_name = worker_name
-    logger.info("[bold green]Starting worker: %s[/bold green]", worker_name)
+    console.print(f"[bold green]Starting worker: {worker_name}[/bold green]")
     await worker.start()
-    logger.info("[bold green]Worker %s completed.[/bold green]", worker_name)
+    console.print(f"[bold green]Worker {worker_name} completed.[/bold green]")

@@ -16,7 +16,6 @@ USAGE:
 
 from __future__ import annotations
 
-import logging
 from pathlib import Path
 from typing import Any
 
@@ -32,7 +31,6 @@ from shared.infrastructure.storage.file_handler import FileHandler
 from .hub import app
 
 
-logger = logging.getLogger(__name__)
 console = Console()
 
 
@@ -114,7 +112,7 @@ async def explain_cmd(
     async with service_registry.session() as session:
         cognitive = await service_registry.get_cognitive_service()
         await cognitive.initialize(session)
-    logger.info("[bold blue]🔍 Exploring:[/bold blue] %s", query)
+    console.print(f"[bold blue]🔍 Exploring:[/bold blue] {query}")
     packet = await core_context.context_service.build_from_query(
         natural_query=query,
         max_tokens=max_tokens,
@@ -136,7 +134,7 @@ async def explain_cmd(
         FileHandler(str(core_context.git_service.repo_path)).write_runtime_text(
             rel_output, formatted
         )
-        logger.info("[green]✅ Exploration written to %s[/green]", output)
+        console.print(f"[green]✅ Exploration written to {output}[/green]")
     else:
-        logger.info("")
-        logger.info(formatted)
+        console.print("")
+        console.print(formatted)

@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import json
-import logging
 
 import typer
 from rich.console import Console
@@ -16,7 +15,6 @@ from shared.infrastructure.database.session_manager import get_session
 from .run import workers_app
 
 
-logger = logging.getLogger(__name__)
 console = Console()
 
 
@@ -73,7 +71,7 @@ async def workers_blackboard_cmd(
         result = await session.execute(query, params)
         rows = result.fetchall()
     if not rows:
-        logger.info("[yellow]No blackboard entries found.[/yellow]")
+        console.print("[yellow]No blackboard entries found.[/yellow]")
         raise typer.Exit()
     table = Table(
         title=f"Blackboard — {len(rows)} entr{('y' if len(rows) == 1 else 'ies')}",
