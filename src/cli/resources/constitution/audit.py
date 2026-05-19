@@ -1,8 +1,4 @@
 # src/cli/resources/constitution/audit.py
-import logging
-
-
-logger = logging.getLogger(__name__)
 import typer
 from rich.console import Console
 
@@ -33,22 +29,21 @@ async def audit_policies(
     Example: core-admin constitution audit --policy standard_code_linkage
     """
     if not policy and (not rule):
-        logger.info(
+        console.print(
             "[red]Error: Must specify at least one --policy or --rule filter.[/red]"
         )
         raise typer.Exit(1)
     auditor_context = ctx.obj.auditor_context
-    logger.info(
-        "[bold cyan]🔍 Executing targeted audit for %s items...[/bold cyan]",
-        len(policy or rule),
+    console.print(
+        f"[bold cyan]🔍 Executing targeted audit for {len(policy or rule)} items...[/bold cyan]"
     )
     findings, _executed_ids, stats = await run_filtered_audit(
         auditor_context, policy_ids=policy or None, rule_ids=rule or None
     )
-    logger.info(
-        "\n[bold]Audit Complete:[/bold] %s rules checked.", stats["executed_rules"]
+    console.print(
+        f"\n[bold]Audit Complete:[/bold] {stats['executed_rules']} rules checked."
     )
     if not findings:
-        logger.info("[green]✅ No violations found.[/green]")
+        console.print("[green]✅ No violations found.[/green]")
     else:
-        logger.info("[red]❌ Found %s violations.[/red]", len(findings))
+        console.print(f"[red]❌ Found {len(findings)} violations.[/red]")

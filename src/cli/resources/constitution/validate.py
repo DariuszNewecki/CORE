@@ -1,8 +1,4 @@
 # src/cli/resources/constitution/validate.py
-import logging
-
-
-logger = logging.getLogger(__name__)
 import typer
 from rich.console import Console
 
@@ -24,18 +20,17 @@ def validate_constitution(ctx: typer.Context) -> None:
 
     Ensures that the Mind is structurally sound and follows the META-SCHEMA.
     """
-    logger.info("[bold cyan]🛡️  Validating Constitutional Artifacts...[/bold cyan]\n")
+    console.print("[bold cyan]🛡️  Validating Constitutional Artifacts...[/bold cyan]\n")
     validator = MetaValidator()
     report = validator.validate_all_documents()
     if report.valid:
-        logger.info(
-            "[green]✅ Success! %s documents validated.[/green]", report.documents_valid
+        console.print(
+            f"[green]✅ Success! {report.documents_valid} documents validated.[/green]"
         )
     else:
-        logger.info(
-            "[bold red]❌ Validation Failed: %s errors found.[/bold red]",
-            len(report.errors),
+        console.print(
+            f"[bold red]❌ Validation Failed: {len(report.errors)} errors found.[/bold red]"
         )
         for err in report.errors:
-            logger.info("   - [yellow]%s[/yellow]: %s", err.document, err.message)
+            console.print(f"   - [yellow]{err.document}[/yellow]: {err.message}")
         raise typer.Exit(1)

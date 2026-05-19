@@ -1,8 +1,4 @@
 # src/cli/resources/constitution/query.py
-import logging
-
-
-logger = logging.getLogger(__name__)
 import typer
 from rich.console import Console
 
@@ -35,17 +31,15 @@ async def query_constitution(
         cognitive_service=core_context.cognitive_service,
         qdrant_service=core_context.qdrant_service,
     )
-    logger.info("[bold cyan]🧠 Searching Mind for:[/bold cyan] '%s'...", text)
+    console.print(f"[bold cyan]🧠 Searching Mind for:[/bold cyan] '{text}'...")
     results = await vectorizer.search_policies(query=text, limit=3)
     if not results:
-        logger.info("[yellow]No relevant rules found.[/yellow]")
+        console.print("[yellow]No relevant rules found.[/yellow]")
         return
     for i, hit in enumerate(results, 1):
         payload = hit.get("payload", {})
-        logger.info(
-            "\n[bold green]%s. %s[/bold green] (score: %s)",
-            i,
-            payload.get("rule_id", "Unknown Rule"),
-            hit["score"],
+        rule_id = payload.get("rule_id", "Unknown Rule")
+        console.print(
+            f"\n[bold green]{i}. {rule_id}[/bold green] (score: {hit['score']})"
         )
-        logger.info("   [dim]%s...[/dim]", payload.get("content", "")[:200])
+        console.print(f"   [dim]{payload.get('content', '')[:200]}...[/dim]")
