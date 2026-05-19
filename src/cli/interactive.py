@@ -1,10 +1,6 @@
 # src/cli/interactive.py
 from __future__ import annotations
 
-from shared.logger import getLogger
-
-
-logger = getLogger(__name__)
 import sys
 
 from rich.console import Console
@@ -21,8 +17,8 @@ def _show_menu(title: str, options: dict[str, str], actions: dict):
         console.clear()
         console.print(Panel(f"[bold cyan]{title}[/bold cyan]"))
         for key, text in options.items():
-            logger.info("  [%s] %s", key, text)
-        logger.info("\n  [b] Back | [q] Quit")
+            console.print(f"  [{key}] {text}")
+        console.print("\n  [b] Back | [q] Quit")
         choice = console.input("\nEnter choice: ").lower()
         if choice == "b":
             return
@@ -33,7 +29,7 @@ def _show_menu(title: str, options: dict[str, str], actions: dict):
             try:
                 action()
             except Exception as e:
-                logger.info("[red]Error: %s[/red]", e)
+                console.print(f"[red]Error: {e}[/red]")
             console.input("\nPress Enter to return...")
 
 
@@ -157,17 +153,17 @@ def launch_interactive_menu():
     """The main entry point for the interactive TUI menu."""
     while True:
         console.clear()
-        logger.info(
+        console.print(
             Panel(
                 "[bold green]🏛️ Welcome to the CORE Interactive Shell[/bold green]",
                 subtitle="Select a command group",
             )
         )
-        logger.info("[bold cyan]1.[/bold cyan] AI Development & Self-Healing")
-        logger.info("[bold cyan]2.[/bold cyan] Constitutional Governance")
-        logger.info("[bold cyan]3.[/bold cyan] System Health & CI")
-        logger.info("[bold cyan]4.[/bold cyan] Project Lifecycle")
-        logger.info("\n[bold red]q.[/bold red] Quit")
+        console.print("[bold cyan]1.[/bold cyan] AI Development & Self-Healing")
+        console.print("[bold cyan]2.[/bold cyan] Constitutional Governance")
+        console.print("[bold cyan]3.[/bold cyan] System Health & CI")
+        console.print("[bold cyan]4.[/bold cyan] Project Lifecycle")
+        console.print("\n[bold red]q.[/bold red] Quit")
         choice = console.input("\nEnter your choice: ")
         if choice == "1":
             show_development_menu()
