@@ -54,8 +54,8 @@ async def query_vectors(
         # Search both
         core-admin vectors query "governance" --collection policies
     """
-    logger.info("[bold cyan]🔍 Querying %s[/bold cyan]", collection)
-    logger.info("Query: %s", query)
+    console.print(f"[bold cyan]🔍 Querying {collection}[/bold cyan]")
+    console.print(f"Query: {query}")
     console.print()
     try:
         core_context: CoreContext = ctx.obj
@@ -75,10 +75,10 @@ async def query_vectors(
         )
         results = await service.query(query, limit=limit)
         if not results:
-            logger.info("[yellow]No results found[/yellow]")
+            console.print("[yellow]No results found[/yellow]")
             return
-        logger.info("[bold]Top %s results:[/bold]", len(results))
-        logger.info("")
+        console.print(f"[bold]Top {len(results)} results:[/bold]")
+        console.print("")
         for i, result in enumerate(results, 1):
             score = result.get("score", 0.0)
             content = (
@@ -96,10 +96,10 @@ async def query_vectors(
                 or "Unknown"
             )
             content_preview = content[:200] if content else "[No content available]"
-            logger.info("[bold cyan]%s. %s[/bold cyan] (score: %s)", i, doc_id, score)
-            logger.info("   %s...", content_preview)
-            logger.info("")
+            console.print(f"[bold cyan]{i}. {doc_id}[/bold cyan] (score: {score})")
+            console.print(f"   {content_preview}...")
+            console.print("")
     except Exception as e:
         logger.error("Vector query failed", exc_info=True)
-        logger.info("[red]❌ Error: %s[/red]", e)
+        console.print(f"[red]❌ Error: {e}[/red]")
         raise typer.Exit(1)

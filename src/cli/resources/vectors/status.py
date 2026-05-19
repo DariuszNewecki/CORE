@@ -1,8 +1,4 @@
 # src/cli/resources/vectors/status.py
-import logging
-
-
-logger = logging.getLogger(__name__)
 import typer
 from rich.console import Console
 from rich.table import Table
@@ -28,7 +24,7 @@ async def status_vectors(ctx: typer.Context) -> None:
         table.add_column("Status", justify="center")
         for coll in collections.collections:
             table.add_row(coll.name, "🟢 Active")
-        logger.info(table)
+        console.print(table)
     except Exception as e:
-        logger.info("[bold red]❌ Qdrant Connection Failed:[/bold red] %s", e)
+        console.print(f"[bold red]❌ Qdrant Connection Failed:[/bold red] {e}")
         raise typer.Exit(1)
