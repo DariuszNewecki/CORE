@@ -155,6 +155,20 @@ class AuditorContext:
         # not correctness.
         _AST_CACHE.clear()
 
+    # ID: 2704ca91-45bd-420e-be0b-d3f4bb798683
+    def reload_governance(self) -> None:
+        """Re-read policies and enforcement mappings from disk.
+
+        Called at the entry of every audit run so .intent/ edits made
+        since the last cycle (new rules, new mappings, new contracts)
+        become enforceable without daemon restart (ADR-039). Mirrors
+        invalidate_file_cache(): both refresh inputs the cached
+        AuditorContext would otherwise hold across the daemon lifetime.
+        """
+        self.intent_repo.reload()
+        self.policies = self._load_governance_resources()
+        self.enforcement_loader = EnforcementMappingLoader(self.paths.intent_root)
+
     # ID: 3e8a1b6c-5d4f-49a2-b71c-8e2d0f4a9c5b
     async def sweep_llm_gate_cache(self) -> int:
         """Delete llm_gate_verdicts rows past their TTL (ADR-044).

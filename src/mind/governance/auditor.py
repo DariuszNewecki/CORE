@@ -81,9 +81,11 @@ class ConstitutionalAuditor:
                 "passed": bool,  # backward compat: True only if PASS
             }
         """
-        # ADR-039: rebuild the filesystem scan once per full audit run so
+        # ADR-039: refresh governance and filesystem inputs once per full
+        # audit run so .intent/ edits (new rules, mappings, contracts) and
         # files committed since the last invocation are visible to every
-        # rule. Mirrors the same call in run_filtered_audit.
+        # rule without daemon restart. Same pair as audit_violation_sensor.
+        self.context.reload_governance()
         self.context.invalidate_file_cache()
 
         # ADR-044: TTL sweep at audit start. Idempotent per AuditorContext.
