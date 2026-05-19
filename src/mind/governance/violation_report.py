@@ -7,7 +7,7 @@ Used by IntentGuard and engines to report policy violations.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from typing import Any
 
 
@@ -32,6 +32,20 @@ class ViolationReport:
     severity: str
     suggested_fix: str = ""
     source_policy: str = "unknown"
+
+
+@dataclass(frozen=True)
+# ID: 9b61d7e2-170d-4a35-9ca4-9150117bc4fb
+class ConstitutionalViolationPayload:
+    """JSON-safe serialization envelope for ConstitutionalViolationError.to_dict().
+    Governs the shape persisted into proposal.execution_results.
+    Authority: ADR-056 Wave 1.
+    """
+
+    error: str
+    blocked_by: str
+    violation_count: int
+    violations: list[dict[str, str]]
 
 
 # ID: b0bc85fe-cc5b-4547-b2ae-cb6540e8df66
@@ -78,11 +92,11 @@ class ConstitutionalViolationError(ValueError):
         legacy flat-string form so older readers of execution_results that
         expect ``data["error"]`` continue to work.
         """
-        return {
-            "error": str(self),
-            "blocked_by": "IntentGuard",
-            "violation_count": len(self.violations),
-            "violations": [
+        payload = ConstitutionalViolationPayload(
+            error=str(self),
+            blocked_by="IntentGuard",
+            violation_count=len(self.violations),
+            violations=[
                 {
                     "rule_name": v.rule_name,
                     "path": v.path,
@@ -93,7 +107,8 @@ class ConstitutionalViolationError(ValueError):
                 }
                 for v in self.violations
             ],
-        }
+        )
+        return asdict(payload)
 
 
 # ID: 70680aa6-c1c9-4d7e-9906-46f8225133cb
