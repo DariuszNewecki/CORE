@@ -1061,6 +1061,19 @@ src/will/workers/audit_violation_sensor.py.
 
 ---
 
+## ADR-056 Wave 1 — 2026-05-19 (ProposalConsequence)
+
+ProposalConsequence Python dataclass added to src/will/autonomy/proposal.py.
+Mirrors core.proposal_consequences table row (ConsequenceLogService.record()
+fields: proposal_id, pre/post_execution_sha, files_changed, findings_resolved,
+authorized_by_rules, recorded_at). ProposalConsequence.json data contract
+added to .intent/enforcement/contracts/. Closes the last deferred Wave 1
+consequence-chain contract. governed_classes: ["ProposalConsequence"].
+Files: src/will/autonomy/proposal.py,
+.intent/enforcement/contracts/ProposalConsequence.json.
+
+---
+
 ## Notes
 
 * This changelog intentionally avoids implementation detail

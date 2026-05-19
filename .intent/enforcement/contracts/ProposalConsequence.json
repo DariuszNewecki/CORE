@@ -1,0 +1,85 @@
+{
+  "$schema": "META/data_contract.schema.json",
+  "kind": "data_contract",
+  "governed_classes": [
+    "ProposalConsequence"
+  ],
+  "metadata": {
+    "id": "enforcement/contracts/ProposalConsequence",
+    "title": "ProposalConsequence Data Contract",
+    "authority": "constitution",
+    "status": "active",
+    "source": "src/will/autonomy/proposal.py",
+    "adr": "ADR-056 Wave 1",
+    "boundary": "consequence-chain + persistence",
+    "notes": "Mirrors core.proposal_consequences table. Written by ConsequenceLogService.record(). Governs the ADR-015 D5 attribution read path (find_cause_for_file). Deferred from Wave 1 authoring until Python class existed.",
+    "version": "1.0.0"
+  },
+  "type": "object",
+  "properties": {
+    "proposal_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "The proposal whose execution produced this consequence record."
+    },
+    "pre_execution_sha": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Git HEAD SHA before execution began. Null when git state was unavailable."
+    },
+    "post_execution_sha": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Git HEAD SHA after execution and commit. Null when no commit was produced."
+    },
+    "files_changed": {
+      "type": "array",
+      "description": "Repo-relative paths of files modified by this proposal's execution.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string",
+            "description": "Repo-relative file path (e.g. src/will/workers/foo.py)."
+          }
+        },
+        "required": [
+          "path"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "findings_resolved": {
+      "type": "array",
+      "description": "Finding IDs (blackboard entry UUIDs) that this proposal addressed.",
+      "items": {
+        "type": "string"
+      }
+    },
+    "authorized_by_rules": {
+      "type": "array",
+      "description": "Policy or rule IDs that authorized execution of this proposal.",
+      "items": {
+        "type": "string"
+      }
+    },
+    "recorded_at": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date-time",
+      "description": "Timestamp when this consequence record was written. Server-set; null on in-memory instances."
+    }
+  },
+  "required": [
+    "proposal_id",
+    "files_changed",
+    "findings_resolved",
+    "authorized_by_rules"
+  ]
+}

@@ -516,3 +516,39 @@ class Proposal:
             approval_authority=data.get("approval_authority"),
             failure_reason=data.get("failure_reason"),
         )
+
+
+@dataclass
+# ID: 27f4e568-0534-485c-8103-7a877752672d
+class ProposalConsequence:
+    """
+    Outcome record for an executed Proposal.
+
+    Mirrors a row in core.proposal_consequences as written by
+    ConsequenceLogService.record(). Captures pre/post execution SHAs,
+    files touched, audit findings the execution resolved, and the
+    constitutional rules that authorized the change. Used by
+    ConsequenceLogService.find_cause_for_file() to attribute a file
+    change back to the proposal that produced it.
+    """
+
+    proposal_id: str
+    """Proposal that produced this consequence."""
+
+    pre_execution_sha: str | None = None
+    """Repository SHA before execution; None if not captured."""
+
+    post_execution_sha: str | None = None
+    """Repository SHA after execution; None if not captured."""
+
+    files_changed: list[dict[str, Any]] = field(default_factory=list)
+    """Files modified by the proposal. Each entry has at minimum a 'path' key."""
+
+    findings_resolved: list[str] = field(default_factory=list)
+    """Audit finding IDs that this execution cleared."""
+
+    authorized_by_rules: list[str] = field(default_factory=list)
+    """Constitutional rule IDs that authorized the execution."""
+
+    recorded_at: datetime | None = None
+    """When the consequence was recorded. None on construction; the DB sets it on insert."""
