@@ -6,7 +6,7 @@ Batch execution command for the 'fix' CLI group.
 actions via POST /v1/fix/run/{fix_id} and POST /v1/fix/ir. The
 sequence preserves the original prerequisite ordering.
 
-Three pre-migration steps (purge-legacy-tags, policy-ids, db-registry)
+Three pre-migration steps (purge-legacy-tags, policy-ids, knowledge-graph)
 have no registered atomic action and were dropped from the sequence —
 they remain available as standalone CLI subcommands. Filed as
 governance debt; future Stage B reopens may restore the bundle.

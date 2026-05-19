@@ -33,7 +33,7 @@ COMMAND_CONFIG = {
     "purge-legacy-tags": {"category": "cleanup", "dangerous": True},
     "policy-ids": {"category": "metadata", "dangerous": True},
     "tags": {"category": "metadata", "dangerous": True},
-    "db-registry": {"category": "database", "dangerous": False},
+    "knowledge-graph": {"category": "database", "dangerous": False},
     "duplicate-ids": {"category": "metadata", "dangerous": True},
     "vector-sync": {"category": "database", "dangerous": True},
     "atomic-actions": {"category": "compliance", "dangerous": True},

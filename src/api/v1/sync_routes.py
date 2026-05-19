@@ -5,7 +5,7 @@ Sync API endpoints (ADR-058 Phase 4, D2).
 
 Five endpoints, all async-dispatch + poll:
 
-* `POST /sync/db-registry`  → sync_type='db_registry'
+* `POST /sync/knowledge-graph`  → sync_type='knowledge_graph'
 * `POST /sync/vectors`      → sync_type='vectors'
 * `POST /sync/code-vectors` → sync_type='code_vectors'
 * `POST /sync/dev-sync`     → sync_type='dev_sync' (composite)
@@ -131,18 +131,18 @@ async def _dispatch_sync(
     }
 
 
-@router.post("/db-registry")
+@router.post("/knowledge-graph")
 # ID: 9b6d3c1e-5a0f-4c8d-3764-29a01234abcd
-async def sync_db_registry(
+async def sync_knowledge_graph(
     request: Request,
     response: Response,
     background_tasks: BackgroundTasks,
     payload: SyncRequest = Body(default_factory=SyncRequest),
     session: AsyncSession = Depends(get_api_session),
 ) -> dict:
-    """Dispatch CLI command-tree → PostgreSQL sync."""
+    """Dispatch code-symbols → PostgreSQL knowledge graph sync."""
     return await _dispatch_sync(
-        sync_type="db_registry",
+        sync_type="knowledge_graph",
         request=request,
         response=response,
         background_tasks=background_tasks,
@@ -200,7 +200,7 @@ async def sync_dev_sync(
     payload: SyncRequest = Body(default_factory=SyncRequest),
     session: AsyncSession = Depends(get_api_session),
 ) -> dict:
-    """Dispatch the composite fix + db-registry + vectors workflow."""
+    """Dispatch the composite fix + knowledge-graph + vectors workflow."""
     return await _dispatch_sync(
         sync_type="dev_sync",
         request=request,

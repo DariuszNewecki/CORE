@@ -2,7 +2,7 @@
 """
 Database and vector-related commands for the 'fix' CLI group.
 
-Thin clients over POST /v1/sync/db-registry and POST /v1/sync/vectors
+Thin clients over POST /v1/sync/knowledge-graph and POST /v1/sync/vectors
 (ADR-058 D2). Both endpoints dispatch async; the CLI polls the
 sync_runs resource until terminal.
 """
@@ -23,30 +23,32 @@ logger = logging.getLogger(__name__)
 
 
 @fix_app.command(
-    "db-registry", help="Syncs the live CLI command structure to the database."
+    "knowledge-graph",
+    help="Synchronize code symbols to the PostgreSQL knowledge graph.",
 )
 @core_command(dangerous=True, confirmation=False, requires_context=False)
 # ID: 40bd8310-f78e-43bd-bc79-21b3519bc802
-async def sync_db_registry_command(ctx: typer.Context) -> None:
-    """Thin client over POST /v1/sync/db-registry."""
+async def sync_knowledge_graph_command(ctx: typer.Context) -> None:
+    """Thin client over POST /v1/sync/knowledge-graph."""
     _ = ctx
-    typer.secho("Syncing CLI commands to database...", fg=typer.colors.CYAN)
+    typer.secho("Syncing knowledge graph to database...", fg=typer.colors.CYAN)
     client = CoreApiClient()
-    initial = await client.sync_db_registry(write=True)
+    initial = await client.sync_knowledge_graph(write=True)
     run_id = initial.get("run_id")
     if not run_id:
         typer.secho(
-            f"❌ sync_db_registry failed to dispatch: {initial}", fg=typer.colors.RED
+            f"❌ sync_knowledge_graph failed to dispatch: {initial}",
+            fg=typer.colors.RED,
         )
         raise typer.Exit(1)
     final = await client.poll_sync_run(run_id)
     if final.get("status") != "completed":
         typer.secho(
-            f"❌ DB registry sync failed: {final.get('error') or final}",
+            f"❌ Knowledge graph sync failed: {final.get('error') or final}",
             fg=typer.colors.RED,
         )
         raise typer.Exit(1)
-    typer.secho("✅ Database registry sync completed", fg=typer.colors.GREEN)
+    typer.secho("✅ Knowledge graph sync completed", fg=typer.colors.GREEN)
 
 
 @fix_app.command(

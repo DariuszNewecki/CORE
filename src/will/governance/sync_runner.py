@@ -7,14 +7,14 @@ Sync runner facade — Will-layer entry point for the /sync API
 Four sync operations share a single `core.sync_runs` table, distinguished
 by `sync_type`:
 
-* `db_registry`  → atomic action `sync.db`         (CLI command tree → DB)
+* `knowledge_graph`  → atomic action `sync.db`         (CLI command tree → DB)
 * `vectors`      → atomic action `sync.vectors.constitution`
 * `code_vectors` → atomic action `sync.vectors.code`
 * `dev_sync`     → `will.workflows.DevSyncWorkflow.run` (composite)
 
 Atomic-action paths dispatch through `ActionExecutor` — the same Will
 facade pattern `fix_runner` uses. The `dev_sync` composite uses
-`DevSyncWorkflow` directly because it orchestrates a fix → db-registry →
+`DevSyncWorkflow` directly because it orchestrates a fix → knowledge-graph →
 vectors sequence whose result shape is per-phase, not per-action.
 """
 
@@ -40,11 +40,13 @@ __all__ = [
 logger = getLogger(__name__)
 
 
-ALLOWED_SYNC_TYPES = frozenset({"db_registry", "vectors", "code_vectors", "dev_sync"})
+ALLOWED_SYNC_TYPES = frozenset(
+    {"knowledge_graph", "vectors", "code_vectors", "dev_sync"}
+)
 
 
 _SYNC_TYPE_TO_ACTION_ID = {
-    "db_registry": "sync.db",
+    "knowledge_graph": "sync.db",
     "vectors": "sync.vectors.constitution",
     "code_vectors": "sync.vectors.code",
 }

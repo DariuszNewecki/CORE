@@ -660,16 +660,16 @@ class CoreApiClient:
     # ------------------------------------------------------------------
 
     # ID: 7b1c4d8e-9f0a-412d-ef01-234567890123
-    async def sync_db_registry(
+    async def sync_knowledge_graph(
         self,
         write: bool = False,
         target: str | None = None,
         requested_by: str = "api",
     ) -> dict:
-        """POST /v1/sync/db-registry — CLI command tree -> PostgreSQL."""
+        """POST /v1/sync/knowledge-graph — CLI command tree -> PostgreSQL."""
         return await self._request(
             "POST",
-            "/v1/sync/db-registry",
+            "/v1/sync/knowledge-graph",
             json={"write": write, "target": target, "requested_by": requested_by},
         )
 
@@ -708,7 +708,7 @@ class CoreApiClient:
         target: str | None = None,
         requested_by: str = "api",
     ) -> dict:
-        """POST /v1/sync/dev-sync — composite fix + db-registry + vectors."""
+        """POST /v1/sync/dev-sync — composite fix + knowledge-graph + vectors."""
         return await self._request(
             "POST",
             "/v1/sync/dev-sync",

@@ -146,7 +146,7 @@ def command_meta(**kwargs) -> Callable:
             ...
 
     The metadata is stored on the function as __command_meta__ attribute,
-    which fix db-registry can extract during scanning.
+    which fix knowledge-graph can extract during scanning.
     """
     meta = CommandMeta(**kwargs)
 

@@ -1,6 +1,6 @@
 # src/cli/commands/dev_sync.py
 """
-Dev Sync Command — composite fix + db-registry + vectors.
+Dev Sync Command — composite fix + knowledge-graph + vectors.
 
 Thin client over POST /v1/sync/dev-sync (ADR-058 D2). The composite
 workflow runs server-side; the CLI dispatches, polls the sync_runs
