@@ -54,11 +54,11 @@ def cache(action: str = typer.Argument(..., help="Action: list, clear, stats")) 
         elif action == "stats":
             _show_stats()
         else:
-            logger.info("[red]❌ Unknown action: %s[/red]", action)
-            logger.info("[dim]Valid actions: list, clear, stats[/dim]")
+            console.print(f"[red]❌ Unknown action: {action}[/red]")
+            console.print("[dim]Valid actions: list, clear, stats[/dim]")
             raise typer.Exit(code=1)
     except Exception as e:
-        logger.info("[red]❌ Error: %s[/red]", e)
+        console.print(f"[red]❌ Error: {e}[/red]")
         logger.exception("Cache operation failed")
         raise typer.Exit(code=1)
 
@@ -72,13 +72,13 @@ def _list_cache() -> None:
     """List all cached context queries."""
     cache_dir = _get_cache_dir()
     if not cache_dir.exists():
-        logger.info("[dim]Cache directory does not exist. No entries.[/dim]")
+        console.print("[dim]Cache directory does not exist. No entries.[/dim]")
         return
     files = sorted(
         cache_dir.glob("*.yaml"), key=lambda f: f.stat().st_mtime, reverse=True
     )
     if not files:
-        logger.info("[dim]Cache is empty.[/dim]")
+        console.print("[dim]Cache is empty.[/dim]")
         return
     table = Table(
         title=f"Context Cache ({len(files)} entries)", header_style="bold cyan"
@@ -99,33 +99,33 @@ def _list_cache() -> None:
             f"{size_kb:.1f} KB",
             f"{age_h:.1f}",
         )
-    logger.info(table)
+    console.print(table)
 
 
 def _clear_cache() -> None:
     """Clear all cached contexts."""
     cache_dir = _get_cache_dir()
     if not cache_dir.exists() or not list(cache_dir.glob("*.yaml")):
-        logger.info("[dim]Cache is already empty.[/dim]")
+        console.print("[dim]Cache is already empty.[/dim]")
         return
     count = len(list(cache_dir.glob("*.yaml")))
-    logger.info(
-        "[yellow]⚠️  This will delete %s cached context package(s).[/yellow]", count
+    console.print(
+        f"[yellow]⚠️  This will delete {count} cached context package(s).[/yellow]"
     )
     if not typer.confirm("Continue?"):
-        logger.info("[dim]Aborted.[/dim]")
+        console.print("[dim]Aborted.[/dim]")
         return
     from shared.infrastructure.context.cache import ContextCache
 
     removed = ContextCache(str(cache_dir)).clear_all()
-    logger.info("[green]✅ Cleared %s cache entries.[/green]", removed)
+    console.print(f"[green]✅ Cleared {removed} cache entries.[/green]")
 
 
 def _show_stats() -> None:
     """Show cache statistics."""
     cache_dir = _get_cache_dir()
     if not cache_dir.exists():
-        logger.info("[dim]Cache directory does not exist.[/dim]")
+        console.print("[dim]Cache directory does not exist.[/dim]")
         return
     files = list(cache_dir.glob("*.yaml"))
     ttl_hours = _CFG.cache_ttl_hours
@@ -153,4 +153,4 @@ def _show_stats() -> None:
         "Oldest entry", oldest_dt.strftime("%Y-%m-%d %H:%M") if oldest_dt else "—"
     )
     table.add_row("Cache dir", str(cache_dir))
-    logger.info(table)
+    console.print(table)
