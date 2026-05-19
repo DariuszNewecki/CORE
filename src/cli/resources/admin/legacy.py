@@ -14,10 +14,6 @@ Constitutional Alignment:
 
 from __future__ import annotations
 
-import logging
-
-
-logger = logging.getLogger(__name__)
 from pathlib import Path
 
 import typer
@@ -81,17 +77,16 @@ def admin_legacy_cmd(
     """
     repo_root = Path.cwd()
     if severity and severity not in ("high", "medium", "low"):
-        logger.info("[red]Invalid severity. Choose: high, medium, low[/red]")
+        console.print("[red]Invalid severity. Choose: high, medium, low[/red]")
         raise typer.Exit(1)
     if marker:
         marker = marker.upper()
         if marker not in LEGACY_MARKERS:
             valid = ", ".join(LEGACY_MARKERS.keys())
-            logger.info("[red]Unknown marker '%s'. Valid: %s[/red]", marker, valid)
+            console.print(f"[red]Unknown marker '{marker}'. Valid: {valid}[/red]")
             raise typer.Exit(1)
-    logger.info(
-        "\n[bold cyan]🔍 Scanning for technical debt in %s/src ...[/bold cyan]\n",
-        repo_root,
+    console.print(
+        f"\n[bold cyan]🔍 Scanning for technical debt in {repo_root}/src ...[/bold cyan]\n"
     )
     result = scan_for_legacy_markers(
         repo_root=repo_root, scan_dirs=["src"], severity_filter=severity
@@ -99,7 +94,7 @@ def admin_legacy_cmd(
     if marker:
         result = _filter_by_marker(result, marker)
     if result.total_hits == 0:
-        logger.info("[green]✅ No legacy markers found. Clean codebase![/green]\n")
+        console.print("[green]✅ No legacy markers found. Clean codebase![/green]\n")
         return
     _print_summary_panel(result)
     _print_marker_breakdown(result)
@@ -128,7 +123,7 @@ def _print_summary_panel(result: LegacyScanResult) -> None:
     files = len(result.files_with_hits)
     high_color = "red" if high > 0 else "green"
     summary = f"Files scanned : {result.files_scanned}\nFiles with debt: {files}\nTotal markers : {total}\n[{high_color}]High severity : {high}[/{high_color}]"
-    logger.info(
+    console.print(
         Panel(summary, title="[bold]Technical Debt Summary[/bold]", expand=False)
     )
 
@@ -159,7 +154,7 @@ def _print_marker_breakdown(result: LegacyScanResult) -> None:
             f"[{color}]{severity}[/{color}]",
             label,
         )
-    logger.info(table)
+    console.print(table)
     console.print()
 
 
@@ -194,7 +189,7 @@ def _print_file_table(result: LegacyScanResult, top: int, detail: bool) -> None:
                     "",
                     f"[{hit.color}]{hit.marker}[/{hit.color}]  [dim]{hit.line_content}[/dim]",
                 )
-    logger.info(table)
-    logger.info(
+    console.print(table)
+    console.print(
         "\n[dim]Run with --detail to see individual lines. Run with --severity high to focus on critical debt.[/dim]\n"
     )

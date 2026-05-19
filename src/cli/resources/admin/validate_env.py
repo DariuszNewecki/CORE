@@ -6,10 +6,6 @@ Enforces the environment schema to prevent runtime connectivity failures.
 
 from __future__ import annotations
 
-import logging
-
-
-logger = logging.getLogger(__name__)
 import typer
 from rich.console import Console
 from rich.table import Table
@@ -39,20 +35,22 @@ def admin_validate_env_cmd(ctx: typer.Context) -> None:
     Ensures the 'Body' has correct coordinates for its 'Nerves' (DB/Vectors).
     """
     validator = ConfigValidator()
-    logger.info("\n[bold cyan]🛡️  Audit: Environment Schema Validation...[/bold cyan]\n")
+    console.print(
+        "\n[bold cyan]🛡️  Audit: Environment Schema Validation...[/bold cyan]\n"
+    )
     result = validator.validate_env()
     if result.ok:
-        logger.info(
+        console.print(
             "[bold green]✅ Environment Valid: All required configuration keys are present and correctly formatted.[/bold green]\n"
         )
     else:
-        logger.info("[bold red]❌ Configuration Errors Detected:[/bold red]")
+        console.print("[bold red]❌ Configuration Errors Detected:[/bold red]")
         table = Table(show_header=True, header_style="bold red")
         table.add_column("Issue Description", style="yellow")
         for error in result.errors:
             table.add_row(error)
-        logger.info(table)
-        logger.info(
+        console.print(table)
+        console.print(
             "\n[dim]Please update your .env file and re-run this check.[/dim]\n"
         )
         raise typer.Exit(code=1)

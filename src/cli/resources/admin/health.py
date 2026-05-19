@@ -32,7 +32,7 @@ async def admin_health_cmd(
     Reads the system_health_log populated by the continuous ObserverWorker.
     Replaces the legacy 'check audit' active scan with a passive, instant ledger read.
     """
-    logger.info("\n[bold cyan]🏥 Continuous System Health Trend[/bold cyan]\n")
+    console.print("\n[bold cyan]🏥 Continuous System Health Trend[/bold cyan]\n")
     query = text(
         "\n        SELECT observed_at, open_findings, stale_entries, silent_workers, orphaned_symbols\n        FROM core.system_health_log\n        ORDER BY observed_at DESC\n        LIMIT :limit\n    "
     )
@@ -40,7 +40,7 @@ async def admin_health_cmd(
         result = await session.execute(query, {"limit": limit})
         rows = result.fetchall()
     if not rows:
-        logger.info("[yellow]No health logs found. Is the daemon running?[/yellow]")
+        console.print("[yellow]No health logs found. Is the daemon running?[/yellow]")
         return
     table = Table(show_header=True, header_style="bold magenta")
     table.add_column("Observed At", style="dim")
@@ -61,6 +61,6 @@ async def admin_health_cmd(
             f"[{o_color}]{row.orphaned_symbols}[/{o_color}]",
         )
     console.print(table)
-    logger.info(
+    console.print(
         "\n[dim]Run `core-admin workers blackboard` to investigate specific findings.[/dim]\n"
     )

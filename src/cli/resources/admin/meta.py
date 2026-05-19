@@ -1,8 +1,4 @@
 # src/cli/resources/admin/meta.py
-import logging
-
-
-logger = logging.getLogger(__name__)
 import typer
 from rich.console import Console
 
@@ -39,12 +35,12 @@ async def admin_meta_cmd(
     if format == "json":
         import json
 
-        logger.info(json.dumps(paths, indent=2))
+        console.print(json.dumps(paths, indent=2))
     else:
-        logger.info(
-            "\n[bold cyan]🏛️  Authoritative Mind Artifacts (%s):[/bold cyan]", len(paths)
+        console.print(
+            f"\n[bold cyan]🏛️  Authoritative Mind Artifacts ({len(paths)}):[/bold cyan]"
         )
         for p in paths:
-            logger.info("  [dim]•[/dim] %s", p)
-        logger.info()
+            console.print(f"  [dim]•[/dim] {p}")
+        console.print()
     return ActionResult(action_id="admin.meta", ok=True, data=result.data)
