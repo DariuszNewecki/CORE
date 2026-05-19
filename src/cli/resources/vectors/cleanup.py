@@ -59,12 +59,12 @@ async def cleanup_vectors(
         # Full cleanup
         core-admin vectors cleanup --target all --write
     """
-    logger.info("[bold cyan]🧹 Vector Cleanup[/bold cyan]")
-    logger.info("Target: %s", target)
-    logger.info("Mode: %s", "WRITE" if write else "DRY-RUN")
+    console.print("[bold cyan]🧹 Vector Cleanup[/bold cyan]")
+    console.print(f"Target: {target}")
+    console.print(f"Mode: {'WRITE' if write else 'DRY-RUN'}")
     console.print()
     if not write:
-        logger.info("[yellow]DRY-RUN: Use --write to apply changes[/yellow]")
+        console.print("[yellow]DRY-RUN: Use --write to apply changes[/yellow]")
     try:
         from body.maintenance.sync_vectors import (
             _async_sync_vectors as sync_vectors_internal,
@@ -76,20 +76,20 @@ async def cleanup_vectors(
             )
             if write:
                 await session.commit()
-        logger.info()
-        logger.info("[bold]Results:[/bold]")
+        console.print()
+        console.print("[bold]Results:[/bold]")
         if target in ["orphans", "all"]:
             status = "Would prune" if not write else "Pruned"
-            logger.info("  Orphaned vectors: %s %s", status, orphans_pruned)
+            console.print(f"  Orphaned vectors: {status} {orphans_pruned}")
         if target in ["dangling", "all"]:
             status = "Would prune" if not write else "Pruned"
-            logger.info("  Dangling links: %s %s", status, dangling_pruned)
-        logger.info()
+            console.print(f"  Dangling links: {status} {dangling_pruned}")
+        console.print()
         if write:
-            logger.info("[green]✅ Cleanup completed successfully[/green]")
+            console.print("[green]✅ Cleanup completed successfully[/green]")
         else:
-            logger.info("[yellow]DRY-RUN completed - no changes made[/yellow]")
+            console.print("[yellow]DRY-RUN completed - no changes made[/yellow]")
     except Exception as e:
         logger.error("Vector cleanup failed", exc_info=True)
-        logger.info("[red]❌ Error: %s[/red]", e)
+        console.print(f"[red]❌ Error: {e}[/red]")
         raise typer.Exit(1)
