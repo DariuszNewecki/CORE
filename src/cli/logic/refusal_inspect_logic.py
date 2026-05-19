@@ -12,16 +12,12 @@ Used by: `core-admin inspect refusals` command
 
 from __future__ import annotations
 
-from shared.infrastructure.intent.operational_config import load_operational_config
-from shared.logger import getLogger
-
-
-logger = getLogger(__name__)
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
 
 from body.infrastructure.repositories.refusal_repository import RefusalRepository
+from shared.infrastructure.intent.operational_config import load_operational_config
 
 
 console = Console()
@@ -50,7 +46,7 @@ async def show_recent_refusals(
         limit=limit, refusal_type=refusal_type, component_id=component
     )
     if not refusals:
-        logger.info("[yellow]No refusals found matching criteria[/yellow]")
+        console.print("[yellow]No refusals found matching criteria[/yellow]")
         return
     table = Table(title=f"Recent Refusals ({len(refusals)})")
     table.add_column("Type", style="cyan")
@@ -67,9 +63,9 @@ async def show_recent_refusals(
             confidence_str,
             refusal.created_at.strftime("%Y-%m-%d %H:%M:%S"),
         )
-    logger.info(table)
+    console.print(table)
     if details and refusals:
-        logger.info("\n[bold]Most Recent Refusal Details:[/bold]")
+        console.print("\n[bold]Most Recent Refusal Details:[/bold]")
         _show_refusal_details(refusals[0])
 
 
@@ -105,7 +101,7 @@ def _show_refusal_details(refusal) -> None:
     panel = Panel(
         "\n".join(details), title=f"Refusal {str(refusal.id)[:8]}", border_style="cyan"
     )
-    logger.info(panel)
+    console.print(panel)
 
 
 # ID: 6ed8fe95-3088-46bb-87ce-343001399035
@@ -119,11 +115,11 @@ async def show_refusal_statistics(days: int = 7) -> None:
     repo = RefusalRepository()
     stats = await repo.get_statistics(days=days)
     if stats["total_refusals"] == 0:
-        logger.info("[yellow]No refusals recorded in the last %s days[/yellow]", days)
+        console.print(f"[yellow]No refusals recorded in the last {days} days[/yellow]")
         return
-    logger.info("\n[bold]Refusal Statistics (Last %s Days)[/bold]", days)
-    logger.info("Total Refusals: %s", stats["total_refusals"])
-    logger.info("Average Confidence: %s\n", stats["avg_confidence"])
+    console.print(f"\n[bold]Refusal Statistics (Last {days} Days)[/bold]")
+    console.print(f"Total Refusals: {stats['total_refusals']}")
+    console.print(f"Average Confidence: {stats['avg_confidence']}\n")
     if stats["by_type"]:
         type_table = Table(title="Refusals by Type")
         type_table.add_column("Type", style="cyan")
@@ -135,9 +131,9 @@ async def show_refusal_statistics(days: int = 7) -> None:
         ):
             percentage = count / total * 100
             type_table.add_row(refusal_type, str(count), f"{percentage:.1f}%")
-        logger.info(type_table)
+        console.print(type_table)
     if stats["by_component"]:
-        logger.info()
+        console.print()
         comp_table = Table(title="Refusals by Component")
         comp_table.add_column("Component", style="green")
         comp_table.add_column("Count", justify="right")
@@ -148,9 +144,9 @@ async def show_refusal_statistics(days: int = 7) -> None:
         ):
             percentage = count / total * 100
             comp_table.add_row(component, str(count), f"{percentage:.1f}%")
-        logger.info(comp_table)
+        console.print(comp_table)
     if stats["by_phase"]:
-        logger.info()
+        console.print()
         phase_table = Table(title="Refusals by Phase")
         phase_table.add_column("Phase", style="blue")
         phase_table.add_column("Count", justify="right")
@@ -161,7 +157,7 @@ async def show_refusal_statistics(days: int = 7) -> None:
         ):
             percentage = count / total * 100
             phase_table.add_row(phase, str(count), f"{percentage:.1f}%")
-        logger.info(phase_table)
+        console.print(phase_table)
 
 
 # ID: 89e49163-1450-4c3f-85b4-8cdf47b53c37
@@ -178,17 +174,17 @@ async def show_refusals_by_type(
     repo = RefusalRepository()
     refusals = await repo.get_by_type(refusal_type, limit=limit)
     if not refusals:
-        logger.info("[yellow]No refusals found of type: %s[/yellow]", refusal_type)
+        console.print(f"[yellow]No refusals found of type: {refusal_type}[/yellow]")
         return
-    logger.info(
-        "\n[bold]%s Refusals (%s)[/bold]\n", refusal_type.capitalize(), len(refusals)
+    console.print(
+        f"\n[bold]{refusal_type.capitalize()} Refusals ({len(refusals)})[/bold]\n"
     )
     for i, refusal in enumerate(refusals, 1):
-        logger.info("[cyan]%s. %s[/cyan]", i, refusal.component_id)
-        logger.info("   Phase: %s", refusal.phase)
-        logger.info("   Reason: %s...", refusal.reason[:100])
-        logger.info("   Time: %s", refusal.created_at.strftime("%Y-%m-%d %H:%M:%S"))
-        logger.info()
+        console.print(f"[cyan]{i}. {refusal.component_id}[/cyan]")
+        console.print(f"   Phase: {refusal.phase}")
+        console.print(f"   Reason: {refusal.reason[:100]}...")
+        console.print(f"   Time: {refusal.created_at.strftime('%Y-%m-%d %H:%M:%S')}")
+        console.print()
 
 
 # ID: c7576fa4-ec2e-46ba-89e4-feeab36ee0dc
@@ -202,11 +198,11 @@ async def show_refusals_by_session(session_id: str) -> None:
     repo = RefusalRepository()
     refusals = await repo.get_by_session(session_id)
     if not refusals:
-        logger.info("[yellow]No refusals found for session: %s[/yellow]", session_id)
+        console.print(f"[yellow]No refusals found for session: {session_id}[/yellow]")
         return
-    logger.info(
-        "\n[bold]Refusals in Session %s (%s)[/bold]\n", session_id, len(refusals)
+    console.print(
+        f"\n[bold]Refusals in Session {session_id} ({len(refusals)})[/bold]\n"
     )
     for refusal in refusals:
         _show_refusal_details(refusal)
-        logger.info()
+        console.print()
