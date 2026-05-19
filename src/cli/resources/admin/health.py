@@ -1,8 +1,4 @@
 # src/cli/resources/admin/health.py
-import logging
-
-
-logger = logging.getLogger(__name__)
 import typer
 from rich.console import Console
 from rich.table import Table
