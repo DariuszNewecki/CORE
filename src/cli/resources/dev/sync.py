@@ -1,8 +1,4 @@
 # src/cli/resources/dev/sync.py
-import logging
-
-
-logger = logging.getLogger(__name__)
 import typer
 from rich.console import Console
 
@@ -44,10 +40,12 @@ async def sync_workflow(
     """
     core_context = ctx.obj
     mode = "WRITE" if write else "DRY-RUN"
-    logger.info("[bold cyan]🔄 Running Dev-Sync Workflow (%s)...[/bold cyan]", mode)
+    console.print(f"[bold cyan]🔄 Running Dev-Sync Workflow ({mode})...[/bold cyan]")
     workflow = DevSyncWorkflow(core_context)
     result = await workflow.run(write=write)
     if result.ok:
-        logger.info("\n[bold green]✅ System synchronized successfully.[/bold green]")
+        console.print("\n[bold green]✅ System synchronized successfully.[/bold green]")
     else:
-        logger.info("\n[bold red]❌ Sync failed during one or more phases.[/bold red]")
+        console.print(
+            "\n[bold red]❌ Sync failed during one or more phases.[/bold red]"
+        )

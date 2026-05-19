@@ -9,8 +9,6 @@ entry point for letting CORE fix its own code.
 
 from __future__ import annotations
 
-import logging
-
 import typer
 from dotenv import load_dotenv
 from rich.console import Console
@@ -24,7 +22,6 @@ from shared.infrastructure.database.session_manager import get_session
 from .hub import app
 
 
-logger = logging.getLogger(__name__)
 console = Console()
 
 
@@ -71,18 +68,16 @@ async def dev_refactor_cmd(
     async with get_session() as session:
         config = await ConfigService.create(session)
         if not await config.get_bool("LLM_ENABLED", default=False):
-            logger.info(
+            console.print(
                 "[red]❌ LLM_ENABLED is False. Enable LLMs in database settings to use autonomous development.[/red]"
             )
             raise typer.Exit(code=1)
     workflow_type = workflow
     mode = "WRITE" if write else "DRY-RUN"
-    logger.info(
-        "[bold cyan]🤖 CORE Autonomous Refactor[/bold cyan] ([yellow]%s[/yellow] / %s)",
-        workflow_type,
-        mode,
+    console.print(
+        f"[bold cyan]🤖 CORE Autonomous Refactor[/bold cyan] ([yellow]{workflow_type}[/yellow] / {mode})"
     )
-    logger.info("[dim]Goal: %s[/dim]\n", goal)
+    console.print(f"[dim]Goal: {goal}[/dim]\n")
     success, message = await develop_from_goal(
         context=context,
         goal=goal,
@@ -91,7 +86,7 @@ async def dev_refactor_cmd(
         task_id=None,
     )
     if success:
-        logger.info("\n[bold green]✅ Success:[/bold green] %s", message)
+        console.print(f"\n[bold green]✅ Success:[/bold green] {message}")
     else:
-        logger.info("\n[bold red]❌ Failed:[/bold red] %s", message)
+        console.print(f"\n[bold red]❌ Failed:[/bold red] {message}")
         raise typer.Exit(code=1)

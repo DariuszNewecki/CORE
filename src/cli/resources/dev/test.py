@@ -1,8 +1,4 @@
 # src/cli/resources/dev/test.py
-import logging
-
-
-logger = logging.getLogger(__name__)
 import typer
 from rich.console import Console
 
@@ -28,8 +24,8 @@ async def test_interactive(
     Allows you to review, edit, and approve test code step-by-step.
     """
     core_context = ctx.obj
-    logger.info(
-        "[bold cyan]🎯 Starting interactive test session for:[/bold cyan] %s", target
+    console.print(
+        f"[bold cyan]🎯 Starting interactive test session for:[/bold cyan] {target}"
     )
     success = await run_interactive_test_generation(
         target_file=target, core_context=core_context

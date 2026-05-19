@@ -6,10 +6,6 @@ Orchestrates idempotency testing for atomic actions.
 
 from __future__ import annotations
 
-import logging
-
-
-logger = logging.getLogger(__name__)
 import typer
 from rich.console import Console
 
@@ -47,20 +43,18 @@ async def dev_stability_cmd(
     """
     core_context = ctx.obj
     harness = IdempotencyHarness(core_context)
-    logger.info(
-        "\n[bold cyan]🧪 Initiating Stability Trial: %s[/bold cyan]\n", action_id
+    console.print(
+        f"\n[bold cyan]🧪 Initiating Stability Trial: {action_id}[/bold cyan]\n"
     )
     result = await harness.verify_action(action_id)
     if result.ok:
-        logger.info(
-            "\n[bold green]✅ PROVEN:[/bold green] Action '%s' is idempotent and stable.",
-            action_id,
+        console.print(
+            f"\n[bold green]✅ PROVEN:[/bold green] Action '{action_id}' is idempotent and stable."
         )
     else:
-        logger.info(
-            "\n[bold red]❌ FAILED:[/bold red] Action '%s' is unstable (logic drift detected).",
-            action_id,
+        console.print(
+            f"\n[bold red]❌ FAILED:[/bold red] Action '{action_id}' is unstable (logic drift detected)."
         )
         for error in result.errors:
-            logger.info("  [yellow]![/yellow] %s", error)
+            console.print(f"  [yellow]![/yellow] {error}")
         raise typer.Exit(code=1)
