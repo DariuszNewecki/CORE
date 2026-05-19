@@ -40,6 +40,7 @@ from will.governance.inspect_runner import (
     get_refusals,
     get_refusals_stats,
     get_search_capabilities,
+    get_search_commands,
 )
 
 
@@ -206,3 +207,14 @@ async def search_capabilities(
     """Semantic capability search via the Will cognitive service."""
     core_context: CoreContext = request.app.state.core_context
     return await get_search_capabilities(core_context, q=q, limit=limit)
+
+
+@search_router.get("/commands")
+# ID: 5c26c235-e80d-4da5-a942-f027fa7a087a
+async def search_commands(
+    q: str = Query(..., min_length=1),
+    limit: int = Query(default=25, ge=1, le=200),
+    session: AsyncSession = Depends(get_api_session),
+) -> dict:
+    """Fuzzy substring search over the CLI command registry (ADR-057 D5)."""
+    return await get_search_commands(session, q=q, limit=limit)

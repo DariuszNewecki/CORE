@@ -566,6 +566,13 @@ class CoreApiClient:
             "GET", "/v1/search/capabilities", params={"q": q, "limit": limit}
         )
 
+    # ID: 792970ef-a9d3-493d-9049-55d2cbfcf3b3
+    async def inspect_search_commands(self, q: str, limit: int = 25) -> dict:
+        """GET /v1/search/commands — fuzzy substring search over the CLI registry (ADR-057 D5)."""
+        return await self._request(
+            "GET", "/v1/search/commands", params={"q": q, "limit": limit}
+        )
+
     # ------------------------------------------------------------------
     # Phase 3 — /audit/remediations (ADR-057 D4)
     # ------------------------------------------------------------------

@@ -1,13 +1,10 @@
 # src/cli/commands/search.py
 
-"""Search command group — capabilities via API, commands via CLI registry.
+"""Search command group — capabilities and commands, both via API.
 
-Per ADR-057 D5 (revised 2026-05-18):
+Per ADR-057 D5 (revised 2026-05-18) and #363 (closed 2026-05-19):
 - `search capabilities` is served by GET /v1/search/capabilities.
-- `search commands` remains an in-process CLI registry lookup
-  (`cli.logic.hub.hub_search_cmd`) pending a separate lift of that
-  helper into a shared service. Tracked as a follow-up to #362; not
-  on the ADR-050 critical path.
+- `search commands` is served by GET /v1/search/commands.
 """
 
 from __future__ import annotations
@@ -19,7 +16,6 @@ from rich.console import Console
 from rich.table import Table
 
 from api.cli import CoreApiClient
-from cli.logic.hub import hub_search_cmd
 from cli.utils import core_command
 
 
@@ -69,7 +65,7 @@ async def search_capabilities_cmd(
 
 
 @search_app.command("commands")
-@core_command(dangerous=False)
+@core_command(dangerous=False, requires_context=False)
 # ID: 49b5f4fd-7f51-4a19-aa56-7373d83d381d
 async def search_commands_cmd(
     ctx: typer.Context,
@@ -78,6 +74,30 @@ async def search_commands_cmd(
     ),
     limit: int = typer.Option(25, "--limit", "-l", help="Max results."),
 ) -> None:
-    """Fuzzy search across CLI commands from the registry."""
+    """Fuzzy search across CLI commands via /v1/search/commands."""
     _ = ctx
-    await hub_search_cmd(term=term, limit=limit)
+    console.print(f"🔍 Searching CLI commands for: '[cyan]{term}[/cyan]'...")
+    client = CoreApiClient()
+    payload = await client.inspect_search_commands(q=term, limit=limit)
+    if not payload.get("available", False):
+        error = payload.get("error", "unknown error")
+        console.print(f"[yellow]Search unavailable: {error}[/yellow]")
+        return
+    results = payload.get("results") or []
+    if not results:
+        console.print("[yellow]No matching commands found.[/yellow]")
+        return
+    table = Table(title=f"Matching Commands ({len(results)})")
+    table.add_column("Command", style="cyan")
+    table.add_column("Module", style="magenta")
+    table.add_column("Description", style="green")
+    for hit in results:
+        description = (hit.get("description") or "").strip() or "—"
+        if len(description) > 100:
+            description = description[:99] + "…"
+        table.add_row(
+            hit.get("command", "—"),
+            hit.get("module", "—"),
+            description,
+        )
+    console.print(table)

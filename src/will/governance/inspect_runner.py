@@ -49,6 +49,7 @@ __all__ = [
     "get_refusals",
     "get_refusals_stats",
     "get_search_capabilities",
+    "get_search_commands",
 ]
 
 
@@ -459,6 +460,57 @@ async def get_search_capabilities(
             "results": [],
         }
     results = list(results or [])
+    return {
+        "query": q,
+        "available": True,
+        "count": len(results),
+        "results": results,
+    }
+
+
+# ID: 421fdd90-15da-47ac-aeb3-4ed9a4413d78
+async def get_search_commands(session: Any, *, q: str, limit: int = 25) -> dict:
+    """Fuzzy substring search over the CLI command registry.
+
+    Case-insensitive match against `name`, `summary`, and `help_text`
+    columns of `core.cli_commands`. Returns a {query, count, results}
+    envelope matching the `/search/capabilities` response shape so
+    consumers can render both endpoints uniformly. ADR-057 D5 Phase 3b
+    (#363 — hub_search_cmd extraction).
+    """
+    try:
+        result = await session.execute(
+            text(
+                """
+                SELECT name, module, summary, help_text
+                FROM core.cli_commands
+                WHERE position(lower(:term) IN lower(name)) > 0
+                   OR position(lower(:term) IN lower(coalesce(summary, ''))) > 0
+                   OR position(lower(:term) IN lower(coalesce(help_text, ''))) > 0
+                ORDER BY name
+                LIMIT :limit
+                """
+            ),
+            {"term": q, "limit": limit},
+        )
+        rows = result.all()
+    except Exception as exc:
+        return {
+            "query": q,
+            "available": False,
+            "error": f"{type(exc).__name__}: {exc}",
+            "count": 0,
+            "results": [],
+        }
+
+    results = [
+        {
+            "command": row.name,
+            "module": row.module or "",
+            "description": (row.summary or row.help_text or ""),
+        }
+        for row in rows
+    ]
     return {
         "query": q,
         "available": True,
