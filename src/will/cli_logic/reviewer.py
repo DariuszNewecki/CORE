@@ -155,7 +155,7 @@ async def _orchestrate_review(
         logger.info("Review saved to: %s", output_path)
 
 
-# ID: 290e9070-6701-4235-aedc-fb15cbe8d071
+# ID: 70abdd63-dee6-45a9-ba64-32fe80a68982
 async def constitutional_review(
     context: CoreContext,
     output: Path | None = typer.Option(None, "--output", "-o"),
@@ -172,7 +172,7 @@ async def constitutional_review(
     )
 
 
-# ID: 26284b62-a0e0-4843-b73d-d70d80066434
+# ID: d06f400c-5606-4383-b338-3f132474b709
 async def docs_review(
     context: CoreContext,
     output: Path | None = typer.Option(None, "--output", "-o"),
@@ -184,7 +184,7 @@ async def docs_review(
     )
 
 
-# ID: 115ff04a-3981-426c-928f-df02da55c26a
+# ID: 2ee2a3b2-181a-4f4e-b2ad-0083f56c713b
 async def code_review(
     context: CoreContext,
     file_path: Path = typer.Argument(
@@ -221,9 +221,7 @@ async def code_review(
                 client=reviewer_client,
                 user_id="code_review_operator",
             )
-        console.print(
-            Panel("AI Peer Review Complete", style="bold green", expand=False)
-        )
+        logger.info(Panel("AI Peer Review Complete", style="bold green", expand=False))
         logger.info(Markdown(review_feedback))
     except FileNotFoundError:
         logger.error("? Error: File not found at '%s'", file_path)
