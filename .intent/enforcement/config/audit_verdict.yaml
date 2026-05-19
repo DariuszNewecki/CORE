@@ -59,9 +59,11 @@
 
 # Severities that trigger FAIL when any finding carries them (after the
 # ignored_finding_types carve-out). Vocabulary is the AuditSeverity enum
-# in src/shared/models/audit_models.py: ERROR | WARNING | INFO.
+# in src/shared/models/audit_models.py: INFO | LOW | MEDIUM | HIGH | BLOCK
+# (5-value scale per ADR-059 D2). BLOCK is the sole fail-triggering
+# severity; HIGH/MEDIUM/LOW are actionable but do not block CI.
 fail_severities:
-  - ERROR
+  - BLOCK
 
 # Finding types excluded from the FAIL trigger.
 # ENFORCEMENT_FAILURE findings are emitted with severity=ERROR by

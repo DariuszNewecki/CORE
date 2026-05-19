@@ -286,7 +286,7 @@ class CheckResult(BaseModel):
     """
 
     id: str
-    severity: Literal["BLOCK", "HIGH", "MEDIUM", "LOW", "INFO"]
+    severity: Literal["block", "high", "medium", "low", "info"]
     rule: str
     evidence: str
     recommendation: str

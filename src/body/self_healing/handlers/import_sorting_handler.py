@@ -165,7 +165,7 @@ async def test_handler(repo_root: Path):
 
     test_finding = AuditFinding(
         check_id="style.import_order",
-        severity=AuditSeverity.WARNING,
+        severity=AuditSeverity.HIGH,
         message="Imports not sorted",
         file_path="src/body/cli/admin_cli.py",
         line_number=None,

@@ -21,11 +21,7 @@ from shared.models.audit_rendering import SeverityGroup
 from shared.utils.audit_grouping import SEVERITY_ORDER, get_max_severity, group_findings
 
 
-_SEVERITY_MAP = {
-    "info": AuditSeverity.INFO,
-    "warning": AuditSeverity.WARNING,
-    "error": AuditSeverity.ERROR,
-}
+_SEVERITY_MAP = {str(s): s for s in AuditSeverity}
 
 
 # ID: ae8e7546-39a6-4b9b-a7ab-7f41162116f1

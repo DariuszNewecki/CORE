@@ -98,7 +98,7 @@ async def run_dynamic_rules(
             all_findings.append(
                 AuditFinding(
                     check_id=rule.rule_id,
-                    severity=AuditSeverity.ERROR,
+                    severity=AuditSeverity.BLOCK,
                     message=(
                         f"ENFORCEMENT_FAILURE: Rule crashed during execution: {e}. "
                         f"This rule's compliance status is UNKNOWN — "

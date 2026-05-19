@@ -97,7 +97,7 @@ class WorkflowGateEngine(BaseEngine):
             return [
                 AuditFinding(
                     check_id="workflow_gate.error",
-                    severity=AuditSeverity.ERROR,
+                    severity=AuditSeverity.BLOCK,
                     message="Missing 'check_type' parameter in constitutional rule.",
                     file_path="none",
                 )
@@ -108,7 +108,7 @@ class WorkflowGateEngine(BaseEngine):
             return [
                 AuditFinding(
                     check_id="workflow_gate.error",
-                    severity=AuditSeverity.ERROR,
+                    severity=AuditSeverity.BLOCK,
                     message=f"Logic Error: Engine does not support check_type '{check_type}'",
                     file_path="none",
                 )
@@ -124,7 +124,7 @@ class WorkflowGateEngine(BaseEngine):
                     findings.append(
                         AuditFinding(
                             check_id=f"workflow.{check_type}",
-                            severity=AuditSeverity.ERROR,
+                            severity=AuditSeverity.BLOCK,
                             message=f"File would be reformatted: {v}",
                             file_path=v,
                         )
@@ -133,7 +133,7 @@ class WorkflowGateEngine(BaseEngine):
                     findings.append(
                         AuditFinding(
                             check_id=f"workflow.{check_type}",
-                            severity=AuditSeverity.ERROR,
+                            severity=AuditSeverity.BLOCK,
                             message=v,
                             file_path="System",
                         )
@@ -144,7 +144,7 @@ class WorkflowGateEngine(BaseEngine):
             return [
                 AuditFinding(
                     check_id=f"workflow.{check_type}.error",
-                    severity=AuditSeverity.ERROR,
+                    severity=AuditSeverity.BLOCK,
                     message=f"Internal Engine Error during {check_type} verification: {e}",
                     file_path="none",
                 )

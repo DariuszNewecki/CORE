@@ -8,7 +8,7 @@
         "authority": "constitution",
         "status": "active"
     },
-    "description": "CIM engine output — the result of evaluating one constitutional rule against one target. Renamed from Finding per ADR-056 D2 (2026-05-18): the name Finding is reserved for the constitutional blackboard governance entity. This contract governs CheckResult's own declared field shape. A separate governance entry (data.contracts.finding_nucleus_conforms) governs CheckResult against the canonical Finding nucleus in Finding.json, intentionally producing drift findings that surface the gap between CheckResult's engine-output vocabulary (id, rule, recommendation, links) and the nucleus vocabulary (rule_id, subject, worker_uuid). That gap is the constitutional visibility ADR-056 D3 exists to provide. NOTE: CheckResult.severity uses values BLOCK/HIGH/MEDIUM/LOW/INFO (Pydantic Literal); audit_severity enum in .intent/META/enums.json (D5) declares the same values — no discrepancy. Authority: ADR-056 Wave 1.",
+    "description": "CIM engine output — the result of evaluating one constitutional rule against one target. Renamed from Finding per ADR-056 D2 (2026-05-18): the name Finding is reserved for the constitutional blackboard governance entity. This contract governs CheckResult's own declared field shape. A separate governance entry (data.contracts.finding_nucleus_conforms) governs CheckResult against the canonical Finding nucleus in Finding.json, intentionally producing drift findings that surface the gap between CheckResult's engine-output vocabulary (id, rule, recommendation, links) and the nucleus vocabulary (rule_id, subject, worker_uuid). That gap is the constitutional visibility ADR-056 D3 exists to provide. Severity vocabulary aligned to audit_severity (lowercase info/low/medium/high/block) per ADR-059 D2. Authority: ADR-056 Wave 1.",
     "governed_classes": [
         "CheckResult"
     ],
@@ -25,8 +25,8 @@
             "description": "Unique identifier for this check result instance."
         },
         "severity": {
-            "type": "string",
-            "description": "Severity level of the finding. Governed vocabulary: BLOCK, HIGH, MEDIUM, LOW, INFO. Matches audit_severity enum in .intent/META/enums.json (ADR-056 D5)."
+            "$ref": "../../META/enums.json#/definitions/audit_severity",
+            "description": "Severity level of the finding. Governed vocabulary (lowercase): info/low/medium/high/block. Aligned to audit_severity enum per ADR-059 D2."
         },
         "rule": {
             "type": "string",

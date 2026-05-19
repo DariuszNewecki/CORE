@@ -179,12 +179,9 @@ class AuditRemediationService:
             if not isinstance(item, dict):
                 continue
             try:
-                severity_str = item.get("severity", "warning").lower()
-                severity = {
-                    "error": AuditSeverity.ERROR,
-                    "warning": AuditSeverity.WARNING,
-                    "info": AuditSeverity.INFO,
-                }.get(severity_str, AuditSeverity.WARNING)
+                severity_str = item.get("severity", "high").lower()
+                severity_map = {str(s): s for s in AuditSeverity}
+                severity = severity_map.get(severity_str, AuditSeverity.HIGH)
 
                 findings.append(
                     AuditFinding(

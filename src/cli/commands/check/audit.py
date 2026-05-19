@@ -29,11 +29,7 @@ logger = getLogger(__name__)
 
 
 def _to_audit_finding(raw: dict) -> AuditFinding:
-    severity_map = {
-        "info": AuditSeverity.INFO,
-        "warning": AuditSeverity.WARNING,
-        "error": AuditSeverity.ERROR,
-    }
+    severity_map = {str(s): s for s in AuditSeverity}
     raw_severity = str(raw.get("severity", "info")).lower()
     severity = severity_map.get(raw_severity, AuditSeverity.INFO)
     return AuditFinding(
@@ -87,10 +83,10 @@ async def audit_cmd(
     ctx: typer.Context,
     target: Path = typer.Argument(Path("src"), help="File or directory to audit."),
     severity: str = typer.Option(
-        "warning",
+        "high",
         "--severity",
         "-s",
-        help="Minimum severity level.",
+        help="Minimum severity level (info, low, medium, high, block).",
         case_sensitive=False,
     ),
     verbose: bool = typer.Option(
@@ -113,7 +109,7 @@ async def audit_cmd(
     await _persist_findings_to_db(all_findings)
     filtered_findings = [f for f in all_findings if f.severity >= min_severity]
     errors = [f for f in all_findings if f.severity.is_blocking]
-    warnings = [f for f in all_findings if f.severity == AuditSeverity.WARNING]
+    warnings = [f for f in all_findings if f.severity == AuditSeverity.HIGH]
     infos = [f for f in all_findings if f.severity == AuditSeverity.INFO]
     passed = result["passed"]
     summary_table = Table.grid(expand=True, padding=(0, 1))

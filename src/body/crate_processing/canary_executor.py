@@ -75,8 +75,8 @@ class CanaryExecutor:
         Returns:
             Dictionary of metric names to values
         """
-        error_count = sum(1 for f in findings if f.severity == AuditSeverity.ERROR)
-        warning_count = sum(1 for f in findings if f.severity == AuditSeverity.WARNING)
+        error_count = sum(1 for f in findings if f.severity == AuditSeverity.BLOCK)
+        warning_count = sum(1 for f in findings if f.severity == AuditSeverity.HIGH)
         return {
             "audit.errors": float(error_count),
             "audit.warnings": float(warning_count),

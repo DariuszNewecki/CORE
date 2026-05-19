@@ -33,7 +33,7 @@ class TestDetermineVerdict:
         rule = Mock(rule_id="some.rule.id", engine="ast")
         per_file_crash = AuditFinding(
             check_id="some.rule.id.enforcement_failure",
-            severity=AuditSeverity.ERROR,
+            severity=AuditSeverity.BLOCK,
             message="Rule crashed on file foo.py: boom",
             file_path="foo.py",
             context={
@@ -98,7 +98,7 @@ class TestDetermineVerdict:
     def test_genuine_blocking_violation_yields_fail(self):
         finding = AuditFinding(
             check_id="rule.foo",
-            severity=AuditSeverity.ERROR,
+            severity=AuditSeverity.BLOCK,
             message="Direct DB import in API layer",
             file_path="src/api/routes/x.py",
             context={"some_key": "some_value"},

@@ -24,7 +24,7 @@ class SeverityGroup:
 def get_severity_style(severity: AuditSeverity) -> str:
     """Get Rich console style string for a severity level."""
     return {
-        AuditSeverity.ERROR: "bold red",
-        AuditSeverity.WARNING: "bold yellow",
+        AuditSeverity.BLOCK: "bold red",
+        AuditSeverity.HIGH: "bold yellow",
         AuditSeverity.INFO: "cyan",
     }.get(severity, "white")

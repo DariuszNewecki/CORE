@@ -9,13 +9,11 @@ from shared.models.audit_rendering import SeverityGroup
 
 
 SEVERITY_ORDER: dict[AuditSeverity, int] = {
-    AuditSeverity.ERROR: 3,  # highest / blocking
-    AuditSeverity.WARNING: 2,
-    AuditSeverity.INFO: 1,  # or 0 if you want INFO lowest
-    # AuditSeverity.CRITICAL: 4,  # ← removed, doesn't exist
-    # AuditSeverity.HIGH:     3,
-    # AuditSeverity.MEDIUM:   2,
-    # AuditSeverity.LOW:      1,
+    AuditSeverity.BLOCK: 5,
+    AuditSeverity.HIGH: 4,
+    AuditSeverity.MEDIUM: 3,
+    AuditSeverity.LOW: 2,
+    AuditSeverity.INFO: 1,
 }
 
 

@@ -113,7 +113,7 @@ class CrateProcessingService:
             return False, [
                 AuditFinding(
                     check_id="infra.crate_missing",
-                    severity=AuditSeverity.ERROR,
+                    severity=AuditSeverity.BLOCK,
                     message=f"Crate {crate_id} missing from inbox",
                     file_path="none",
                 )
@@ -135,7 +135,7 @@ class CrateProcessingService:
             return False, [
                 AuditFinding(
                     check_id="infra.crate_invalid",
-                    severity=AuditSeverity.ERROR,
+                    severity=AuditSeverity.BLOCK,
                     message=str(e),
                     file_path="manifest.yaml",
                 )
@@ -227,7 +227,7 @@ class CrateProcessingService:
             return False, [
                 AuditFinding(
                     check_id="infra.canary_crash",
-                    severity=AuditSeverity.ERROR,
+                    severity=AuditSeverity.BLOCK,
                     message=f"Canary trial infrastructure error: {e}",
                     file_path="canary_sandbox",
                 )

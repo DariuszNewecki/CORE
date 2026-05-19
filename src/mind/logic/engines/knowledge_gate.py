@@ -129,7 +129,7 @@ class KnowledgeGateEngine(BaseEngine):
             findings.append(
                 AuditFinding(
                     check_id="knowledge_gate.table_not_whitelisted",
-                    severity=AuditSeverity.ERROR,
+                    severity=AuditSeverity.BLOCK,
                     message=(
                         f"Table '{table_name}' is not in the constitutional whitelist. "
                         "Add it to KnowledgeGateEngine._ALLOWED_TABLES via a governed proposal."
@@ -152,7 +152,7 @@ class KnowledgeGateEngine(BaseEngine):
                 findings.append(
                     AuditFinding(
                         check_id="knowledge_gate.table_has_records",
-                        severity=AuditSeverity.ERROR,
+                        severity=AuditSeverity.BLOCK,
                         message=f"DB SSOT table '{table_name}' is empty.",
                         file_path="DB",
                     )
@@ -163,7 +163,7 @@ class KnowledgeGateEngine(BaseEngine):
                 findings.append(
                     AuditFinding(
                         check_id="knowledge_gate.table_missing",
-                        severity=AuditSeverity.ERROR,
+                        severity=AuditSeverity.BLOCK,
                         message=f"Constitutional table '{table_name}' is missing from schema.",
                         file_path="DB",
                     )
@@ -191,7 +191,7 @@ class KnowledgeGateEngine(BaseEngine):
                 findings.append(
                     AuditFinding(
                         check_id="linkage.duplicate_ids",
-                        severity=AuditSeverity.ERROR,
+                        severity=AuditSeverity.BLOCK,
                         message=f"Duplicate ID '{uuid_val}' found.",
                         file_path=occurrences[0].get("file_path"),
                         context={"duplicates": locs},
@@ -216,7 +216,7 @@ class KnowledgeGateEngine(BaseEngine):
                 findings.append(
                     AuditFinding(
                         check_id="linkage.capability.unassigned",
-                        severity=AuditSeverity.ERROR,
+                        severity=AuditSeverity.BLOCK,
                         message=f"Public symbol '{symbol_data.get('name')}' has capability='unassigned'.",
                         file_path=symbol_data.get("file_path"),
                         line_number=symbol_data.get("line_number"),
@@ -368,7 +368,7 @@ class KnowledgeGateEngine(BaseEngine):
             findings.append(
                 AuditFinding(
                     check_id="purity.no_orphan_files",
-                    severity=AuditSeverity.WARNING,
+                    severity=AuditSeverity.HIGH,
                     message=f"Orphan file: '{rel}' is not reachable from any entry point.",
                     file_path=rel,
                 )

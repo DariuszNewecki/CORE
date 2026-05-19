@@ -63,8 +63,8 @@ async def manifest_hygiene(ctx: typer.Context) -> None:
         return
 
     # Sort findings by severity
-    errors = [f for f in findings if f.severity == AuditSeverity.ERROR]
-    warnings = [f for f in findings if f.severity == AuditSeverity.WARNING]
+    errors = [f for f in findings if f.severity == AuditSeverity.BLOCK]
+    warnings = [f for f in findings if f.severity == AuditSeverity.HIGH]
 
     if errors:
         logger.error("❌ Found %s CRITICAL alignment errors:", len(errors))

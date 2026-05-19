@@ -61,10 +61,10 @@ async def rule_cmd(
         ),
     ),
     severity: str = typer.Option(
-        "warning",
+        "high",
         "--severity",
         "-s",
-        help="Filter findings by minimum severity level (info, warning, error).",
+        help="Filter findings by minimum severity level (info, low, medium, high, block).",
         case_sensitive=False,
     ),
     verbose: bool = typer.Option(
@@ -124,7 +124,7 @@ async def rule_cmd(
     min_severity = parse_min_severity(severity)
     filtered_findings = [f for f in all_findings if f.severity >= min_severity]
     errors = [f for f in all_findings if f.severity.is_blocking]
-    warnings = [f for f in all_findings if f.severity == AuditSeverity.WARNING]
+    warnings = [f for f in all_findings if f.severity == AuditSeverity.HIGH]
     passed = len(errors) == 0
     print_filtered_audit_summary(
         passed=passed, stats=stats, errors=errors, warnings=warnings

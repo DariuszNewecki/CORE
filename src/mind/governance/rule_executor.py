@@ -29,9 +29,9 @@ logger = getLogger(__name__)
 def _map_enforcement_to_severity(enforcement: str) -> AuditSeverity:
     e = enforcement.lower()
     if e in ("blocking", "error"):
-        return AuditSeverity.ERROR
+        return AuditSeverity.BLOCK
     if e in ("reporting", "warning"):
-        return AuditSeverity.WARNING
+        return AuditSeverity.HIGH
     return AuditSeverity.INFO
 
 
@@ -76,7 +76,7 @@ async def execute_rule(
         return [
             AuditFinding(
                 check_id=f"{rule.rule_id}.engine_missing",
-                severity=AuditSeverity.ERROR,
+                severity=AuditSeverity.BLOCK,
                 message=str(e),
                 file_path="none",
             )
@@ -95,7 +95,7 @@ async def execute_rule(
         return [
             AuditFinding(
                 check_id=rule.rule_id,
-                severity=AuditSeverity.WARNING,
+                severity=AuditSeverity.HIGH,
                 message=(
                     f"Rule '{rule.rule_id}' uses engine '{rule.engine}' which "
                     "is not operational in this run (no LLM client wired). "
@@ -233,7 +233,7 @@ async def execute_rule(
             findings.append(
                 AuditFinding(
                     check_id=f"{rule.rule_id}.enforcement_failure",
-                    severity=AuditSeverity.ERROR,
+                    severity=AuditSeverity.BLOCK,
                     message=(
                         f"ENFORCEMENT_FAILURE: Rule crashed on {file_path}: {e}. "
                         f"Compliance status UNKNOWN — treat as non-compliant until fixed."
@@ -264,7 +264,7 @@ async def execute_rule(
         findings.append(
             AuditFinding(
                 check_id=rule.rule_id,
-                severity=AuditSeverity.WARNING,
+                severity=AuditSeverity.HIGH,
                 message=(
                     f"Rule '{rule.rule_id}' LLM evaluation failed transiently "
                     f"on {len(transient_llm_failures)} file(s) "

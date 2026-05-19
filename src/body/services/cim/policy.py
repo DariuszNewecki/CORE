@@ -43,7 +43,7 @@ class PolicyEvaluator:
             findings.append(
                 CheckResult(
                     id="prohibited_writes",
-                    severity="BLOCK",
+                    severity="block",
                     rule="write_prohibited_zone_count > 0",
                     evidence=f"{diff.new_prohibited_writes} new writes to prohibited zones detected",
                     recommendation="Remove all writes to .intent/constitution/ and .intent/META/",
@@ -59,7 +59,7 @@ class PolicyEvaluator:
                 findings.append(
                     CheckResult(
                         id="subprocess_increase",
-                        severity="HIGH",
+                        severity="high",
                         rule=f"subprocess delta > +{subprocess_threshold}",
                         evidence=f"Subprocess calls increased by {subprocess_delta}",
                         recommendation="Audit new subprocess usage for sandboxing and security",
@@ -75,7 +75,7 @@ class PolicyEvaluator:
                 findings.append(
                     CheckResult(
                         id="network_increase",
-                        severity="HIGH",
+                        severity="high",
                         rule=f"network delta > +{network_threshold}",
                         evidence=f"Network calls increased by {network_delta}",
                         recommendation="Review new network access for security and error handling",
@@ -94,7 +94,7 @@ class PolicyEvaluator:
                 findings.append(
                     CheckResult(
                         id="mind_layer_drift",
-                        severity="MEDIUM",
+                        severity="medium",
                         rule=f"mind lane writes delta > +{mind_threshold_pct}%",
                         evidence=f"Mind layer mutations increased {mind_delta.percent_change:.1f}%",
                         recommendation="Mind layer should have minimal mutation - investigate architectural drift",
@@ -111,7 +111,7 @@ class PolicyEvaluator:
             findings.append(
                 CheckResult(
                     id="production_writes_increase",
-                    severity="MEDIUM",
+                    severity="medium",
                     rule=f"production writes delta > +{prod_threshold_pct}%",
                     evidence=f"Production writes increased {diff.write_production.percent_change:.1f}%",
                     recommendation="Review new production write patterns for governance compliance",
@@ -126,7 +126,7 @@ class PolicyEvaluator:
                 findings.append(
                     CheckResult(
                         id=f"hotspot_{hotspot.path}",
-                        severity="LOW",
+                        severity="low",
                         rule=f"new hotspot mutation_count > {hotspot_threshold}",
                         evidence=f"New hotspot {hotspot.path} has {hotspot.new_count} mutations",
                         recommendation="Consider refactoring to reduce mutation density",
@@ -137,13 +137,13 @@ class PolicyEvaluator:
         # Compute counts
         evaluation = PolicyEvaluation(findings=findings)
         for finding in findings:
-            if finding.severity == "BLOCK":
+            if finding.severity == "block":
                 evaluation.blocking_count += 1
-            elif finding.severity == "HIGH":
+            elif finding.severity == "high":
                 evaluation.high_count += 1
-            elif finding.severity == "MEDIUM":
+            elif finding.severity == "medium":
                 evaluation.medium_count += 1
-            elif finding.severity == "LOW":
+            elif finding.severity == "low":
                 evaluation.low_count += 1
 
         return evaluation

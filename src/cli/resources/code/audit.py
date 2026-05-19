@@ -40,7 +40,7 @@ logger = logging.getLogger(__name__)
 # ID: 67107783-c506-4634-a23c-c118e86befa8
 async def audit_command(
     ctx: typer.Context,
-    severity: str = typer.Option("warning", "--severity", "-s"),
+    severity: str = typer.Option("high", "--severity", "-s"),
     rule: list[str] = typer.Option([], "--rule", "-r"),
     policy: list[str] = typer.Option([], "--policy", "-p"),
     files: list[str] = typer.Option(

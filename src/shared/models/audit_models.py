@@ -12,11 +12,20 @@ from typing import Any
 
 # ID: 5ccdae76-2214-413d-8551-13d4b224b694
 class AuditSeverity(IntEnum):
-    """Enumeration for the severity of an audit finding."""
+    """Enumeration for the severity of an audit finding.
+
+    Five-value scale (ADR-059 D2): INFO/LOW/MEDIUM/HIGH/BLOCK. Stored as
+    lowercase string via __str__. BLOCK is the sole CI-blocking severity;
+    HIGH/MEDIUM/LOW are actionable at decreasing urgency; INFO is
+    informational only. Governed by `audit_severity` in
+    .intent/META/enums.json.
+    """
 
     INFO = 1
-    WARNING = 2
-    ERROR = 3
+    LOW = 2
+    MEDIUM = 3
+    HIGH = 4
+    BLOCK = 5
 
     def __str__(self) -> str:
         # This allows us to use severity.name in lowercase, e.g., 'info'
@@ -26,7 +35,7 @@ class AuditSeverity(IntEnum):
     # ID: bad8d002-de4c-4b09-900f-0cd784c60242
     def is_blocking(self) -> bool:
         """Returns True if the severity level should block a CI/CD pipeline."""
-        return self == AuditSeverity.ERROR
+        return self == AuditSeverity.BLOCK
 
 
 @dataclass(init=False)

@@ -8,7 +8,7 @@
         "authority": "constitution",
         "status": "active"
     },
-    "description": "Represents a single finding from a constitutional audit check (src/shared/models/audit_models.py). AuditFinding is the persistence surface for audit_runs.findings JSONB — one of the three Finding surfaces ADR-056 identified. The details property is a backward-compat alias for context; it is not a declared field and is not governed here. A separate governance entry will govern AuditFinding against the canonical Finding nucleus (Finding.json), which will produce drift findings for missing nucleus fields (rule_id, subject, worker_uuid absent; check_id/message serve analogous roles under different names). VOCABULARY DISCREPANCY: AuditSeverity uses INFO/WARNING/ERROR (IntEnum); audit_severity enum in .intent/META/enums.json (ADR-056 D5) declares INFO/LOW/MEDIUM/HIGH/BLOCK. Different severity vocabularies for different finding surfaces — governor decision required to reconcile. Authority: ADR-056 Wave 1.",
+    "description": "Represents a single finding from a constitutional audit check (src/shared/models/audit_models.py). AuditFinding is the persistence surface for audit_runs.findings JSONB — one of the three Finding surfaces ADR-056 identified. The details property is a backward-compat alias for context; it is not a declared field and is not governed here. A separate governance entry will govern AuditFinding against the canonical Finding nucleus (Finding.json), which will produce drift findings for missing nucleus fields (rule_id, subject, worker_uuid absent; check_id/message serve analogous roles under different names). Severity vocabulary is governed by audit_severity in .intent/META/enums.json (ADR-059 D2): info/low/medium/high/block. AuditSeverity IntEnum and CIM CheckResult.severity now share this vocabulary. Authority: ADR-056 Wave 1.",
     "governed_classes": [
         "AuditFinding"
     ],
@@ -23,8 +23,8 @@
             "description": "The constitutional rule check identifier that produced this finding. Analogous to rule_id in the Finding nucleus; name difference is documented drift."
         },
         "severity": {
-            "type": "string",
-            "description": "Severity level. Live class uses AuditSeverity IntEnum: INFO=1, WARNING=2, ERROR=3. Discrepancy with audit_severity enum (INFO/LOW/MEDIUM/HIGH/BLOCK) — see contract description."
+            "$ref": "../../META/enums.json#/definitions/audit_severity",
+            "description": "Severity level. AuditSeverity IntEnum (INFO=1, LOW=2, MEDIUM=3, HIGH=4, BLOCK=5) stored as lowercase string via __str__. Vocabulary governed by audit_severity enum per ADR-059 D2."
         },
         "message": {
             "type": "string",

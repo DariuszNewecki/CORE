@@ -33,23 +33,21 @@ def parse_min_severity(severity: str) -> AuditSeverity:
         return AuditSeverity[severity.upper()]
     except KeyError as exc:
         raise typer.BadParameter(
-            f"Invalid severity level '{severity}'. Must be 'info', 'warning', or 'error'."
+            f"Invalid severity level '{severity}'. "
+            f"Must be one of: info, low, medium, high, block."
         ) from exc
 
 
 # ID: b8c7d6e5-f4a3-2b1c-0d9e-8f7a6b5c4d3e
 def severity_from_string(value: str | None) -> AuditSeverity:
-    """Convert string severity to enum, defaulting to ERROR."""
+    """Convert lowercase string severity to enum, defaulting to BLOCK."""
     if not value:
-        return AuditSeverity.ERROR
+        return AuditSeverity.BLOCK
     v = value.strip().lower()
-    if v == "info":
-        return AuditSeverity.INFO
-    if v == "warning":
-        return AuditSeverity.WARNING
-    if v == "error":
-        return AuditSeverity.ERROR
-    return AuditSeverity.ERROR
+    try:
+        return AuditSeverity[v.upper()]
+    except KeyError:
+        return AuditSeverity.BLOCK
 
 
 # ID: c7d6e5f4-a3b2-1c0d-9e8f-7a6b5c4d3e2f

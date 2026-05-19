@@ -215,12 +215,14 @@
       ]
     },
     "audit_severity": {
-      "description": "Severity levels for audit findings (ADR-056 #366). Mirrors src/shared/models/audit_models.py:14 AuditSeverity IntEnum, stored as lowercase string via __str__. TBD / governor review: the Pydantic Finding (CIM) at src/body/services/cim/models.py:283 uses a parallel uppercase Literal['BLOCK', 'HIGH', 'MEDIUM', 'LOW', 'INFO'] vocabulary. Decision pending on whether to unify (one severity vocabulary across audit and CIM policy surfaces) or keep them as deliberately separate engines with their own severity scales.",
+      "description": "Severity levels for audit findings. BLOCK halts execution (sole CI-blocking severity); HIGH/MEDIUM/LOW are actionable at decreasing urgency; INFO is informational only. Governed by ADR-059. Python source: src/shared/models/audit_models.py AuditSeverity IntEnum (stored as lowercase string via __str__). CIM CheckResult.severity (src/body/services/cim/models.py) uses the same vocabulary per ADR-059 D2. Translation to log level (per ADR-059 D3 Boundary 2): block/high → ERROR, medium → WARNING, low/info → INFO.",
       "type": "string",
       "enum": [
         "info",
-        "warning",
-        "error"
+        "low",
+        "medium",
+        "high",
+        "block"
       ]
     },
     "risk_tier": {
