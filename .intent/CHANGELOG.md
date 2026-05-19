@@ -1036,6 +1036,16 @@ remaining in either CLI file. Closes #362. Unblocks ADR-050 CLI extraction.
 
 ---
 
+## ADR-059 — 2026-05-19
+
+Severity vocabulary governance. Three governor decisions from ADR-056 Wave 1:
+D1: retire "dangerous" from RiskAssessment.overall_risk; align to proposal_risk enum (safe/moderate/high).
+D2: replace audit_severity 3-value set (info/warning/error) with 5-value finding severity scale (info/low/medium/high/block); CIM surface aligned post-migration (issue #370).
+D3: five severity surfaces documented as three distinct domains (audit findings, proposal risk, validator input); no unification; translation tables defined at risk_tier→proposal_risk and audit_severity→log-level boundaries as constitutional policy.
+Files: .specs/decisions/ADR-059-severity-vocabulary-governance.md.
+
+---
+
 ## Notes
 
 * This changelog intentionally avoids implementation detail
