@@ -1,0 +1,72 @@
+{
+    "$schema": "META/data_contract.schema.json",
+    "kind": "data_contract",
+    "metadata": {
+        "id": "enforcement/contracts/ConstitutionalViolationPayload",
+        "title": "ConstitutionalViolationPayload — IntentGuard violation serialization envelope",
+        "version": "1.0.0",
+        "authority": "constitution",
+        "status": "active",
+        "source": "src/mind/governance/violation_report.py",
+        "adr": "ADR-056 Wave 1",
+        "boundary": "consequence-chain + persistence",
+        "notes": "Governs the shape of ConstitutionalViolationError.to_dict() as persisted into proposal.execution_results. The top-level 'error' key preserves the legacy flat-string for older readers; 'violations' carries the structured list for diagnostic triage without live daemon probes."
+    },
+    "governed_classes": [
+        "ConstitutionalViolationPayload"
+    ],
+    "required": [
+        "error",
+        "blocked_by",
+        "violation_count",
+        "violations"
+    ],
+    "properties": {
+        "error": {
+            "type": "string",
+            "description": "Legacy flat-string form: 'Blocked by IntentGuard: {primary_message}'. Preserved for backward compatibility with downstream handlers that read data['error']."
+        },
+        "blocked_by": {
+            "type": "string",
+            "description": "Always 'IntentGuard'. Identifies the enforcement component that produced this payload."
+        },
+        "violation_count": {
+            "type": "integer",
+            "description": "Number of ViolationReport instances in the violations list."
+        },
+        "violations": {
+            "type": "array",
+            "description": "Structured list of per-violation dicts. Each entry mirrors ViolationReport fields serialized to primitives only — no nested dataclasses.",
+            "items": {
+                "type": "object",
+                "required": ["rule_name", "path", "severity", "message"],
+                "properties": {
+                    "rule_name": {
+                        "type": "string",
+                        "description": "Rule identifier that was violated. Corresponds to rule_id in the Finding nucleus."
+                    },
+                    "path": {
+                        "type": "string",
+                        "description": "Repo-relative file path where the violation occurred."
+                    },
+                    "severity": {
+                        "type": "string",
+                        "description": "Violation severity. Live values: 'error', 'warning'."
+                    },
+                    "source_policy": {
+                        "type": "string",
+                        "description": "Policy file that declared the violated rule."
+                    },
+                    "message": {
+                        "type": "string",
+                        "description": "Human-readable violation description."
+                    },
+                    "suggested_fix": {
+                        "type": "string",
+                        "description": "Optional remediation guidance. Default empty string."
+                    }
+                }
+            }
+        }
+    }
+}

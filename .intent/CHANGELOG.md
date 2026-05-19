@@ -1074,6 +1074,25 @@ Files: src/will/autonomy/proposal.py,
 
 ---
 
+## ADR-056 Wave 1 — 2026-05-19 (ConstitutionalViolationPayload)
+
+ConstitutionalViolationPayload frozen dataclass added to
+src/mind/governance/violation_report.py. Governs the JSON-safe
+serialization envelope produced by ConstitutionalViolationError.to_dict()
+for persistence into proposal.execution_results. Fields: error (legacy
+flat-string preserving backward compatibility), blocked_by, violation_count,
+violations (list of ViolationReport primitives). to_dict() updated to build
+via dataclasses.asdict() rather than a manual dict literal.
+ConstitutionalViolationPayload.json data contract added to
+.intent/enforcement/contracts/. Rule
+data.contracts.constitutional_violation_payload_conforms added to
+rules/data/governance.json and enforcement mapping
+mappings/data/governance.yaml. governed_classes: ["ConstitutionalViolationPayload"].
+Files: src/mind/governance/violation_report.py,
+.intent/enforcement/contracts/ConstitutionalViolationPayload.json.
+
+---
+
 ## Notes
 
 * This changelog intentionally avoids implementation detail

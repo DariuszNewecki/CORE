@@ -146,6 +146,15 @@ mappings:
       applies_to:
         - "src/mind/governance/violation_report.py"
 
+  data.contracts.constitutional_violation_payload_conforms:
+    engine: ast_gate
+    params:
+      check_type: schema_conformance
+      schema_ref: ConstitutionalViolationPayload
+    scope:
+      applies_to:
+        - "src/mind/governance/violation_report.py"
+
   data.contracts.constitutional_validation_result_conforms:
     engine: ast_gate
     params:

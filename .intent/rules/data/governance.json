@@ -144,6 +144,13 @@
             "enforcement": "reporting"
         },
         {
+            "id": "data.contracts.constitutional_violation_payload_conforms",
+            "statement": "The frozen dataclass `ConstitutionalViolationPayload` MUST declare fields that conform to `.intent/enforcement/contracts/ConstitutionalViolationPayload.json`. Authority: ADR-056 Wave 1.",
+            "authority": "policy",
+            "phase": "audit",
+            "enforcement": "reporting"
+        },
+        {
             "id": "data.contracts.governance_decision_conforms",
             "statement": "The dataclass `GovernanceDecision` MUST declare fields that conform to `.intent/enforcement/contracts/GovernanceDecision.json`. Authority: ADR-056 Wave 2 Session 1.",
             "authority": "policy",
