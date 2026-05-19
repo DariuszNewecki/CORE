@@ -1,0 +1,38 @@
+{
+    "$schema": "META/data_contract.schema.json",
+    "kind": "data_contract",
+    "metadata": {
+        "id": "contracts.policy_evaluation",
+        "title": "PolicyEvaluation — diff evaluation result against CIM thresholds",
+        "version": "1.0.0",
+        "authority": "constitution",
+        "status": "active"
+    },
+    "description": "Result of evaluating a diff against CIM policy thresholds (src/body/services/cim/models.py). Pydantic BaseModel. findings carries list[CheckResult] — CheckResult is the governed CIM engine output (governed by both Finding.json and CheckResult.json). has_blocking and exit_code are @property derived values, not declared fields. NOTE: counter fields cover BLOCK/HIGH/MEDIUM/LOW but not INFO — info_count is absent, so INFO findings from CheckResult.severity are silently omitted from the aggregate. exit_code returns magic numbers (10/2/0) not enumerated as constants. Authority: ADR-056 Wave 3 Session 1.",
+    "governed_classes": [
+        "PolicyEvaluation"
+    ],
+    "required": [],
+    "properties": {
+        "findings": {
+            "type": "array",
+            "description": "List of CheckResult — findings from CIM engine evaluation. Governed by CheckResult contract. Default empty list."
+        },
+        "blocking_count": {
+            "type": "integer",
+            "description": "Count of BLOCK severity findings. Default 0."
+        },
+        "high_count": {
+            "type": "integer",
+            "description": "Count of HIGH severity findings. Default 0."
+        },
+        "medium_count": {
+            "type": "integer",
+            "description": "Count of MEDIUM severity findings. Default 0."
+        },
+        "low_count": {
+            "type": "integer",
+            "description": "Count of LOW severity findings. Default 0. NOTE: info_count is absent — INFO findings are silently excluded from this aggregate."
+        }
+    }
+}

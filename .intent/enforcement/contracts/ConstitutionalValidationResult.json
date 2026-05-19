@@ -1,0 +1,36 @@
+{
+    "$schema": "META/data_contract.schema.json",
+    "kind": "data_contract",
+    "metadata": {
+        "id": "contracts.constitutional_validation_result",
+        "title": "ConstitutionalValidationResult — constitutional validation outcome",
+        "version": "1.0.0",
+        "authority": "constitution",
+        "status": "active"
+    },
+    "description": "Constitutional validation result with rich violation tracking (src/shared/models/constitutional_validation.py). Formalizes the ViolationLike duck-typed Protocol — consumers that previously relied on Protocol conformance can rely on this contract instead. Two subclasses exist in the same file: ConstitutionalFileValidationResult (adds file_path: str, schema_path: str) and ConstitutionalBatchValidationResult (single field: results: list[ConstitutionalValidationResult]). Both subclasses are noted here but governed separately only if audit flags drift — the AST gate extracts only directly-declared annotations, so subclass contracts would govern only the added fields. Authority: ADR-056 Wave 1 Session 4.",
+    "governed_classes": [
+        "ConstitutionalValidationResult"
+    ],
+    "required": [
+        "is_valid"
+    ],
+    "properties": {
+        "is_valid": {
+            "type": "boolean",
+            "description": "True if the validation passed with no violations."
+        },
+        "violations": {
+            "type": "array",
+            "description": "List of violation objects (list[Any] — typed loosely to accept both ViolationReport and ViolationLike protocol instances). Default empty list."
+        },
+        "source": {
+            "type": "string",
+            "description": "Identifier of the validator that produced this result. Default 'unknown'."
+        },
+        "metadata": {
+            "type": "object",
+            "description": "Validator-specific structured metadata. Default empty dict."
+        }
+    }
+}

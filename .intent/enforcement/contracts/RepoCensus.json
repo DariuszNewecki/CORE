@@ -1,0 +1,56 @@
+{
+    "$schema": "META/data_contract.schema.json",
+    "kind": "data_contract",
+    "metadata": {
+        "id": "contracts.repo_census",
+        "title": "RepoCensus — canonical CIM-0 repository census artifact",
+        "version": "1.0.0",
+        "authority": "constitution",
+        "status": "active"
+    },
+    "description": "Complete repository census artifact — the canonical CIM-0 output format (src/body/services/cim/models.py). Pydantic BaseModel. Already self-versioning via RepoCensusMetadata (run_id, timestamp, core_version, schema_id='core.cim.repo_census', schema_version='1.0.0'). All lists are sorted for determinism. Required sub-objects: RepoCensusMetadata, RepoInfo, TreeStats, ArchitecturalSignals, CensusSummary — all Pydantic models in the same file. Optional lists: execution_surfaces (list[ExecutionSurface]), mutation_surfaces (list[MutationSurface]), errors (list[CensusError]). Authority: ADR-056 Wave 3 Session 1.",
+    "governed_classes": [
+        "RepoCensus"
+    ],
+    "required": [
+        "metadata",
+        "repo",
+        "tree",
+        "signals",
+        "summary"
+    ],
+    "properties": {
+        "metadata": {
+            "type": "object",
+            "description": "RepoCensusMetadata — run_id, timestamp, core_version, schema_id, schema_version."
+        },
+        "repo": {
+            "type": "object",
+            "description": "RepoInfo — root_path, git_remote, git_branch, git_commit."
+        },
+        "tree": {
+            "type": "object",
+            "description": "TreeStats — total_files, total_directories, extensions, top_level_dirs."
+        },
+        "signals": {
+            "type": "object",
+            "description": "ArchitecturalSignals — has_src, has_intent, has_sql, has_tests, has_docs, dependency_files."
+        },
+        "summary": {
+            "type": "object",
+            "description": "CensusSummary — aggregated statistics for quick consumption. Prevents consumers from parsing mutation_surfaces arrays directly."
+        },
+        "execution_surfaces": {
+            "type": "array",
+            "description": "List of ExecutionSurface — detected entry points (path, type, line). Default empty list."
+        },
+        "mutation_surfaces": {
+            "type": "array",
+            "description": "List of MutationSurface — detected mutation capabilities (path, type, operation, line, detail, write_zone, lane, allowlisted). Default empty list."
+        },
+        "errors": {
+            "type": "array",
+            "description": "List of CensusError — non-fatal errors during census (path, error_type, message). Default empty list."
+        }
+    }
+}

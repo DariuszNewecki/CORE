@@ -1,0 +1,40 @@
+{
+    "$schema": "META/data_contract.schema.json",
+    "kind": "data_contract",
+    "metadata": {
+        "id": "contracts.validation_result",
+        "title": "ValidationResult — canonical validation result",
+        "version": "1.0.0",
+        "authority": "constitution",
+        "status": "active"
+    },
+    "description": "Single, canonical validation result format (src/shared/models/validation_result.py). The docstring claims canonical status, but at least five ok-nucleus result shapes coexist across the codebase: ValidationResult (ok + errors + warnings + validated_data + metadata), ConstitutionalValidationResult (is_valid + violations + source + metadata), FixResult (ok + error_message + changes_made), ActionResult (action_id + ok + data + ...), PatternValidationResult (pattern_id + passed + violations + ...). These are candidates for a result-family reconciliation ADR. This contract governs ValidationResult's own declared shape only. Authority: ADR-056 Wave 2 Session 2.",
+    "governed_classes": [
+        "ValidationResult"
+    ],
+    "required": [
+        "ok"
+    ],
+    "properties": {
+        "ok": {
+            "type": "boolean",
+            "description": "True if validation passed. The canonical ok-nucleus field shared across multiple result shapes in the codebase."
+        },
+        "errors": {
+            "type": "array",
+            "description": "List of error message strings. Default empty list."
+        },
+        "warnings": {
+            "type": "array",
+            "description": "List of warning message strings. Default empty list."
+        },
+        "validated_data": {
+            "type": "object",
+            "description": "Structured data produced by the validation (dict[str, Any]). Default empty dict."
+        },
+        "metadata": {
+            "type": "object",
+            "description": "Validator-specific metadata (dict[str, Any]). Default empty dict."
+        }
+    }
+}

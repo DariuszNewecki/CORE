@@ -1,0 +1,56 @@
+{
+    "$schema": "META/data_contract.schema.json",
+    "kind": "data_contract",
+    "metadata": {
+        "id": "contracts.context_packet",
+        "title": "ContextPacket — minimal evidence set for constitutional rule evaluation",
+        "version": "1.0.0",
+        "authority": "constitution",
+        "status": "active"
+    },
+    "description": "Constitution-aligned context packet (src/shared/infrastructure/context/models.py). A ContextPacket is the minimal evidence set required to evaluate applicable rules at a declared CORE phase. Passed to LLM invocations as the structured context envelope. The eight dict[str, Any] slots (header, layer_constraints, constitution, policy, constraints, evidence, runtime, provenance) are ungoverned beyond dict[str, Any] — slot-level contracts are Wave 2 scope. ContextPackage = ContextPacket is a module-level alias for backward compatibility during migration; it is a variable assignment, not a class, and is not governed here. Authority: ADR-056 Wave 1 Session 4.",
+    "governed_classes": [
+        "ContextPacket"
+    ],
+    "required": [
+        "request"
+    ],
+    "properties": {
+        "request": {
+            "type": "object",
+            "description": "The ContextBuildRequest that initiated this packet assembly. Governed by the ContextBuildRequest contract."
+        },
+        "header": {
+            "type": "object",
+            "description": "Packet header metadata. Shape ungoverned at this level. Default empty dict."
+        },
+        "layer_constraints": {
+            "type": "object",
+            "description": "Layer-specific constitutional constraints applicable to the request. Default empty dict."
+        },
+        "constitution": {
+            "type": "object",
+            "description": "Constitutional rules relevant to the request phase and target. Default empty dict."
+        },
+        "policy": {
+            "type": "object",
+            "description": "Policy rules relevant to the request. Default empty dict."
+        },
+        "constraints": {
+            "type": "object",
+            "description": "Additional constraints derived from the request context. Default empty dict."
+        },
+        "evidence": {
+            "type": "object",
+            "description": "Evidence gathered to support rule evaluation — symbols, vectors, history. Default empty dict."
+        },
+        "runtime": {
+            "type": "object",
+            "description": "Runtime state snapshot relevant to the request. Default empty dict."
+        },
+        "provenance": {
+            "type": "object",
+            "description": "Traceability metadata: who built this packet, when, from what sources. Default empty dict."
+        }
+    }
+}

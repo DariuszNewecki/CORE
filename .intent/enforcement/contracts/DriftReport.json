@@ -1,0 +1,34 @@
+{
+    "$schema": "META/data_contract.schema.json",
+    "kind": "data_contract",
+    "metadata": {
+        "id": "contracts.drift_report",
+        "title": "DriftReport — manifest vs code drift report",
+        "version": "1.0.0",
+        "authority": "constitution",
+        "status": "active"
+    },
+    "description": "A structured report of the drift between manifest declarations and live code (src/shared/models/drift_models.py). Single-class file. mismatched_mappings uses bare list[dict] (no type parameterization) — the same minor annotation gap as FlowStep.params and DriftReport.mismatched_mappings; low priority, independent of ADR-056. Authority: ADR-056 Wave 3 Session 1.",
+    "governed_classes": [
+        "DriftReport"
+    ],
+    "required": [
+        "missing_in_code",
+        "undeclared_in_manifest",
+        "mismatched_mappings"
+    ],
+    "properties": {
+        "missing_in_code": {
+            "type": "array",
+            "description": "Identifiers declared in the manifest but absent from live code."
+        },
+        "undeclared_in_manifest": {
+            "type": "array",
+            "description": "Identifiers present in live code but not declared in the manifest."
+        },
+        "mismatched_mappings": {
+            "type": "array",
+            "description": "Mapping entries where manifest and code declarations conflict. Typed as list[dict] (bare dict, no type parameterization — minor annotation gap)."
+        }
+    }
+}

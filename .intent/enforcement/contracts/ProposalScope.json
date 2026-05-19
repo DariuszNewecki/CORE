@@ -1,0 +1,39 @@
+{
+    "$schema": "META/data_contract.schema.json",
+    "kind": "data_contract",
+    "metadata": {
+        "id": "contracts.proposal_scope",
+        "title": "ProposalScope — proposal write boundary declaration",
+        "version": "1.0.0",
+        "authority": "constitution",
+        "status": "active"
+    },
+    "description": "Declares what a Proposal will affect. files is the load-bearing field: IntentGuard enforces actual write boundaries against this declaration at execution time (CORE-Proposal.md §6). A non-empty files list is the runtime invariant enforced at proposal creation per ADR-026; the AST gate validates field presence only. Governed as a sub-object of Proposal (src/will/autonomy/proposal.py). Authority: ADR-056 Wave 1.",
+    "governed_classes": [
+        "ProposalScope"
+    ],
+    "required": [
+        "files",
+        "modules",
+        "symbols",
+        "policies"
+    ],
+    "properties": {
+        "files": {
+            "type": "array",
+            "description": "Repo-relative file paths this Proposal may modify. Must be non-empty at proposal creation (ADR-026). IntentGuard enforces write boundaries against this list at execution time."
+        },
+        "modules": {
+            "type": "array",
+            "description": "Python modules affected by this Proposal. Used for conflict detection via conflicts_with()."
+        },
+        "symbols": {
+            "type": "array",
+            "description": "Specific symbols (functions/classes) to be changed. Used for conflict detection via conflicts_with()."
+        },
+        "policies": {
+            "type": "array",
+            "description": "Constitutional policies referenced by this Proposal."
+        }
+    }
+}

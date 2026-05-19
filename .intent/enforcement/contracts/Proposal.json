@@ -1,0 +1,149 @@
+{
+    "$schema": "META/data_contract.schema.json",
+    "kind": "data_contract",
+    "metadata": {
+        "id": "contracts.proposal",
+        "title": "Proposal — state-conditional field contract",
+        "version": "1.0.0",
+        "authority": "constitution",
+        "status": "active"
+    },
+    "description": "State-conditional field invariants for the Proposal domain dataclass (src/will/autonomy/proposal.py). ProposalStateManager is the runtime enforcement site; this contract makes its invariants constitutionally visible and auditable. Authority: ADR-056 D4. The allOf/if/then blocks declare which fields are mandatory at each ProposalStatus value; the current AST gate validates field presence (class declaration conformance only) — runtime value enforcement remains with ProposalStateManager and the DB CHECK constraints (ADR-015 D2/D6). The AutonomousProposal ORM class shares field names but adds ORM-only columns (id, claimed_by, version, updated_at) that are not declared on the domain dataclass and therefore not governed by this contract.",
+    "governed_classes": [
+        "Proposal"
+    ],
+    "required": [
+        "proposal_id",
+        "goal",
+        "actions",
+        "scope",
+        "status",
+        "created_at",
+        "created_by",
+        "validation_checks",
+        "validation_results",
+        "execution_results",
+        "constitutional_constraints",
+        "approval_required"
+    ],
+    "properties": {
+        "proposal_id": {
+            "type": "string",
+            "description": "Permanent identity UUID. Never reused."
+        },
+        "goal": {
+            "type": "string",
+            "description": "Human-readable statement of intent. What this Proposal will achieve."
+        },
+        "actions": {
+            "type": "array",
+            "description": "One or more ProposalAction declarations. Each carries action_id, parameters, and order."
+        },
+        "scope": {
+            "type": "object",
+            "description": "Files and domains this Proposal may touch (ProposalScope). IntentGuard enforces write boundaries against this declaration."
+        },
+        "risk": {
+            "type": "object",
+            "description": "Risk assessment: overall_risk, action_risks, risk_factors, mitigation (RiskAssessment | None). Null before risk computation completes at creation time."
+        },
+        "status": {
+            "type": "string",
+            "description": "Current lifecycle status. Governed vocabulary: proposal_status enum in .intent/META/enums.json. Valid values: draft, pending, approved, executing, completed, failed, rejected."
+        },
+        "created_at": {
+            "type": "string",
+            "description": "Creation timestamp (datetime, UTC)."
+        },
+        "created_by": {
+            "type": "string",
+            "description": "Identity of the Worker that created this Proposal."
+        },
+        "validation_checks": {
+            "type": "array",
+            "description": "Constitutional validation checks performed at creation time."
+        },
+        "validation_results": {
+            "type": "object",
+            "description": "Per-check validation outcomes keyed by check name."
+        },
+        "execution_started_at": {
+            "type": "string",
+            "description": "When execution began (datetime | None). Populated on transition to executing."
+        },
+        "execution_completed_at": {
+            "type": "string",
+            "description": "When execution ended (datetime | None). Populated on transition to completed or failed."
+        },
+        "execution_results": {
+            "type": "object",
+            "description": "Per-action results keyed by action_id. Populated after execution attempt."
+        },
+        "constitutional_constraints": {
+            "type": "object",
+            "description": "Evidence of the constitutional basis for this Proposal. Carries finding_ids and related consequence-chain attribution (ADR-019, ADR-017)."
+        },
+        "approval_required": {
+            "type": "boolean",
+            "description": "Whether human approval is required before execution. Derived from risk.overall_risk at creation: safe → false, moderate/high → true."
+        },
+        "approved_by": {
+            "type": "string",
+            "description": "Identity of the approver (str | None). Non-null when status is approved, executing, or completed. Paired with approval_authority."
+        },
+        "approved_at": {
+            "type": "string",
+            "description": "Approval timestamp (datetime | None). Non-null when status is approved, executing, or completed."
+        },
+        "approval_authority": {
+            "type": "string",
+            "description": "Constitutional authority under which approval was granted (str | None). Non-omittable when status is approved, executing, or completed. Governed vocabulary: proposal_approval_authority enum in .intent/META/enums.json. ADR-015 D2/D6."
+        },
+        "failure_reason": {
+            "type": "string",
+            "description": "Human-readable failure explanation (str | None). Non-null when status is failed. Terminal state."
+        }
+    },
+    "allOf": [
+        {
+            "description": "APPROVED: approval_authority, approved_by, and approved_at must be non-null. Enforced by ProposalStateManager.approve() and DB CHECK constraint (ADR-015 D2/D6).",
+            "if": {
+                "required": ["status"],
+                "properties": {"status": {"const": "approved"}}
+            },
+            "then": {
+                "required": ["approval_authority", "approved_by", "approved_at"]
+            }
+        },
+        {
+            "description": "EXECUTING: all APPROVED invariants hold; execution_started_at must be non-null. claimed_by is enforced at the ORM layer only (AutonomousProposal.claimed_by) — not a Proposal dataclass field.",
+            "if": {
+                "required": ["status"],
+                "properties": {"status": {"const": "executing"}}
+            },
+            "then": {
+                "required": ["approval_authority", "approved_by", "approved_at", "execution_started_at"]
+            }
+        },
+        {
+            "description": "COMPLETED: all APPROVED invariants hold; execution_completed_at must be non-null. Terminal status.",
+            "if": {
+                "required": ["status"],
+                "properties": {"status": {"const": "completed"}}
+            },
+            "then": {
+                "required": ["approval_authority", "approved_by", "approved_at", "execution_completed_at"]
+            }
+        },
+        {
+            "description": "FAILED: failure_reason must be non-null. Terminal status. ConsumerWorker must revive all Findings linked via constitutional_constraints.finding_ids by resetting status to open (CORE-Proposal.md §8a).",
+            "if": {
+                "required": ["status"],
+                "properties": {"status": {"const": "failed"}}
+            },
+            "then": {
+                "required": ["failure_reason"]
+            }
+        }
+    ]
+}

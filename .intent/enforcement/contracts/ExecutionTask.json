@@ -1,0 +1,38 @@
+{
+    "$schema": "META/data_contract.schema.json",
+    "kind": "data_contract",
+    "metadata": {
+        "id": "contracts.execution_task",
+        "title": "ExecutionTask — single validated step in an execution plan",
+        "version": "1.0.0",
+        "authority": "constitution",
+        "status": "active"
+    },
+    "description": "A single validated step in an execution plan (src/shared/models/execution_models.py). Pydantic BaseModel. task_type is a bare str validated at runtime by a Pydantic field_validator against _ALLOWED_TASK_TYPES, which is sourced from .intent/enforcement/config/task_type_phases.yaml (ADR-004). VOCABULARY DISCREPANCY: TaskStructure.task_type (same module) uses the TaskType str-Enum with 12 values; ExecutionTask.task_type uses a bare str validated against a YAML config. Two surfaces for the same concept — governor decision required to reconcile. params is typed as TaskParams (nested Pydantic model: file_path, code, symbol_name, justification, tag — all optional). Authority: ADR-056 Wave 2 Session 1.",
+    "governed_classes": [
+        "ExecutionTask"
+    ],
+    "required": [
+        "step",
+        "action",
+        "params"
+    ],
+    "properties": {
+        "step": {
+            "type": "string",
+            "description": "Human-readable description of this execution step."
+        },
+        "action": {
+            "type": "string",
+            "description": "The action to perform at this step (e.g., action_id or operation name)."
+        },
+        "params": {
+            "type": "object",
+            "description": "TaskParams — typed parameter object: file_path, code, symbol_name, justification, tag (all str | None). Governed by TaskParams Pydantic model."
+        },
+        "task_type": {
+            "type": "string",
+            "description": "Task type classifier. Default 'code_generation'. Runtime-validated by field_validator against _ALLOWED_TASK_TYPES from task_type_phases.yaml (ADR-004). VOCABULARY DISCREPANCY with TaskStructure.task_type (TaskType enum, 12 values) — governor decision required."
+        }
+    }
+}

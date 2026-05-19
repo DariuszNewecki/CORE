@@ -1,0 +1,116 @@
+{
+    "$schema": "META/data_contract.schema.json",
+    "kind": "data_contract",
+    "metadata": {
+        "id": "contracts.blackboard_entry",
+        "title": "BlackboardEntry — constitutional coordination ledger row contract",
+        "version": "1.0.1",
+        "authority": "constitution",
+        "status": "active"
+    },
+    "description": "Whole-row contract for the BlackboardEntry ORM class (src/shared/infrastructure/database/models/workers.py). The blackboard is the sole inter-worker communication channel; every worker interaction produces a row here. entry_type governs the semantic family (finding, claim, proposal, report, heartbeat); payload is JSONB and carries family-specific fields not governed at the class level. __tablename__ and __table_args__ are SQLAlchemy ClassVar metaclass attributes declared as AnnAssign nodes in the class body; they are included in properties to prevent false-positive undeclared-field findings. Payload sub-contracts (worker_heartbeat, worker_error, run_complete families) are deferred — raw dict literals in worker base.py are not governable via the current AST gate. The three Finding surfaces (CheckResult, AuditFinding, BlackboardEntry entry_type='finding') are governed by Finding.json; adding BlackboardEntry to Finding.json governed_classes is deferred pending governor decision. Authority: ADR-056 Wave 1 Session 3.",
+    "governed_classes": [
+        "BlackboardEntry"
+    ],
+    "required": [
+        "id",
+        "worker_uuid",
+        "entry_type",
+        "phase",
+        "status",
+        "subject",
+        "payload",
+        "created_at",
+        "updated_at"
+    ],
+    "properties": {
+        "__tablename__": {
+            "type": "string",
+            "description": "SQLAlchemy ClassVar — table name declaration. Not a data field; included to suppress false-positive undeclared-field findings from the AST gate."
+        },
+        "__table_args__": {
+            "type": "object",
+            "description": "SQLAlchemy ClassVar — table arguments (schema, constraints). Not a data field; included to suppress false-positive undeclared-field findings from the AST gate."
+        },
+        "id": {
+            "type": "string",
+            "description": "Primary key UUID. Server-generated via gen_random_uuid()."
+        },
+        "worker_uuid": {
+            "type": "string",
+            "description": "UUID of the worker that posted this entry. NOT NULL. ADR-011: only Workers may INSERT blackboard entries; worker_uuid provides the attribution trail."
+        },
+        "entry_type": {
+            "type": "string",
+            "description": "Semantic family of this entry. Governed vocabulary: blackboard_entry_type enum in .intent/META/enums.json (ADR-056 D5). Values: finding, claim, proposal, report, heartbeat."
+        },
+        "phase": {
+            "type": "string",
+            "description": "Lifecycle phase in which this entry was posted. Governed vocabulary: phase enum. Values: audit, runtime, execution."
+        },
+        "status": {
+            "type": "string",
+            "description": "Current workflow state of the entry. Server default: open. Governed vocabulary: blackboard_entry_status enum (9 values per ADR-045 and issue #263): open, claimed, awaiting_reaudit, resolved, abandoned, deferred_to_proposal, dry_run_complete, indeterminate, suppressed."
+        },
+        "subject": {
+            "type": "string",
+            "description": "What this entry is about. Governed vocabulary start: blackboard_subject enum in .intent/META/enums.json (ADR-056 D5). Subject is the primary join key for consequence-chain queries (ADR-015, ADR-017)."
+        },
+        "payload": {
+            "type": "object",
+            "description": "Entry-specific structured data (JSONB). Shape varies by entry_type and subject. Payload sub-contracts for worker_heartbeat, worker_error, and run_complete families are deferred (no Python dataclasses exist for these shapes)."
+        },
+        "claimed_by": {
+            "type": "string",
+            "description": "UUID of the worker that claimed this entry (UUID | None). Non-null only when status is claimed. Set atomically with status transition per ADR-011."
+        },
+        "claimed_at": {
+            "type": "string",
+            "description": "Timestamp when this entry was claimed (datetime | None)."
+        },
+        "resolved_at": {
+            "type": "string",
+            "description": "Timestamp when this entry reached a terminal status (datetime | None). NULL resolved_at on terminal-status rows is historical governance debt (28,287 rows, Band C)."
+        },
+        "created_at": {
+            "type": "string",
+            "description": "Row creation timestamp. NOT NULL, server default now()."
+        },
+        "updated_at": {
+            "type": "string",
+            "description": "Row last-update timestamp. NOT NULL, server default now()."
+        }
+    },
+    "allOf": [
+        {
+            "description": "CLAIMED: claimed_by must be non-null when status is claimed. Enforced at the write boundary by the claim atomic action (ADR-011).",
+            "if": {
+                "required": ["status"],
+                "properties": {"status": {"const": "claimed"}}
+            },
+            "then": {
+                "required": ["claimed_by", "claimed_at"]
+            }
+        },
+        {
+            "description": "HEARTBEAT: entry_type=heartbeat entries are always posted with status=resolved. Enforced by post_heartbeat() in worker base class.",
+            "if": {
+                "required": ["entry_type"],
+                "properties": {"entry_type": {"const": "heartbeat"}}
+            },
+            "then": {
+                "properties": {"status": {"const": "resolved"}}
+            }
+        },
+        {
+            "description": "FINDING: entry_type=finding entries are always posted with status=open. Enforced by post_finding() in worker base class.",
+            "if": {
+                "required": ["entry_type"],
+                "properties": {"entry_type": {"const": "finding"}}
+            },
+            "then": {
+                "properties": {"status": {"const": "open"}}
+            }
+        }
+    ]
+}

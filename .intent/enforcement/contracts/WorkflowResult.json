@@ -1,0 +1,28 @@
+{
+    "$schema": "META/data_contract.schema.json",
+    "kind": "data_contract",
+    "metadata": {
+        "id": "contracts.workflow_result",
+        "title": "WorkflowResult — legacy workflow execution result",
+        "version": "1.0.0",
+        "authority": "constitution",
+        "status": "active"
+    },
+    "description": "Result of a complete workflow execution — legacy dev_sync style (src/shared/models/workflow_models.py). WorkflowResult and PhaseWorkflowResult coexist in the same module; the module docstring explicitly acknowledges the dual-shape: WorkflowResult is legacy (phases-of-ActionResult), PhaseWorkflowResult is the new constitutional shape (phases-of-PhaseResult). Both are in active use; no deprecation marker exists. ok, total_duration, total_actions, and failed_actions are @property derived values, not declared fields. WorkflowPhase (sibling: name + actions: list[ActionResult]) is the step container. Authority: ADR-056 Wave 3 Session 1.",
+    "governed_classes": [
+        "WorkflowResult"
+    ],
+    "required": [
+        "workflow_id"
+    ],
+    "properties": {
+        "workflow_id": {
+            "type": "string",
+            "description": "Unique identifier for this workflow execution."
+        },
+        "phases": {
+            "type": "array",
+            "description": "List of WorkflowPhase — each phase carries a name and a list[ActionResult]. Default empty list."
+        }
+    }
+}

@@ -1,0 +1,32 @@
+{
+    "$schema": "META/data_contract.schema.json",
+    "kind": "data_contract",
+    "metadata": {
+        "id": "contracts.fix_result",
+        "title": "FixResult — outcome of applying a single fix",
+        "version": "1.0.0",
+        "authority": "constitution",
+        "status": "active"
+    },
+    "description": "The outcome of applying one autonomous fix (src/body/self_healing/remediation_models.py). FixResult is the smallest result unit in the self-healing pipeline. It shares the ok-bool nucleus with ActionResult, ComponentResult, ValidationResult, and others — part of the result-shape family identified in the Wave 2 audit. The ok-nucleus reconciliation is a separate ADR candidate and does not block this contract. Authority: ADR-056 Wave 2 Session 2.",
+    "governed_classes": [
+        "FixResult"
+    ],
+    "required": [
+        "ok"
+    ],
+    "properties": {
+        "ok": {
+            "type": "boolean",
+            "description": "True if the fix was applied successfully."
+        },
+        "error_message": {
+            "type": "string",
+            "description": "Human-readable failure reason (str | None). Non-null when ok=False."
+        },
+        "changes_made": {
+            "type": "object",
+            "description": "Structured description of changes applied (dict[str, Any] | None). Non-null when ok=True and changes were made."
+        }
+    }
+}

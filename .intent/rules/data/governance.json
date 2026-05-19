@@ -33,7 +33,252 @@
         },
         {
             "id": "data.contracts.finding_nucleus_conforms",
-            "statement": "The Pydantic class `CheckResult` at `src/body/services/cim/models.py` MUST declare fields that conform to the canonical Finding data contract at `.intent/enforcement/contracts/Finding.json`. The contract declares the minimum-required field nucleus per ADR-056 D3; classes claiming to be a Finding surface must satisfy this nucleus. Drift between the class declaration and the contract is a constitutional violation.",
+            "statement": "The classes `CheckResult` and `AuditFinding` MUST declare fields that conform to `.intent/enforcement/contracts/Finding.json`. Authority: ADR-056 D3.",
+            "authority": "policy",
+            "phase": "audit",
+            "enforcement": "reporting"
+        },
+        {
+            "id": "data.contracts.proposal_conforms",
+            "statement": "The dataclass `Proposal` MUST declare fields that conform to `.intent/enforcement/contracts/Proposal.json`. Authority: ADR-056 D4.",
+            "authority": "policy",
+            "phase": "audit",
+            "enforcement": "reporting"
+        },
+        {
+            "id": "data.contracts.action_result_conforms",
+            "statement": "The dataclass `ActionResult` MUST declare fields that conform to `.intent/enforcement/contracts/ActionResult.json`. Authority: ADR-056 Wave 1.",
+            "authority": "policy",
+            "phase": "audit",
+            "enforcement": "reporting"
+        },
+        {
+            "id": "data.contracts.proposal_scope_conforms",
+            "statement": "The dataclass `ProposalScope` MUST declare fields that conform to `.intent/enforcement/contracts/ProposalScope.json`. Authority: ADR-056 Wave 1.",
+            "authority": "policy",
+            "phase": "audit",
+            "enforcement": "reporting"
+        },
+        {
+            "id": "data.contracts.proposal_action_conforms",
+            "statement": "The dataclass `ProposalAction` MUST declare fields that conform to `.intent/enforcement/contracts/ProposalAction.json`. Authority: ADR-056 Wave 1.",
+            "authority": "policy",
+            "phase": "audit",
+            "enforcement": "reporting"
+        },
+        {
+            "id": "data.contracts.risk_assessment_conforms",
+            "statement": "The dataclass `RiskAssessment` MUST declare fields that conform to `.intent/enforcement/contracts/RiskAssessment.json`. Authority: ADR-056 Wave 1.",
+            "authority": "policy",
+            "phase": "audit",
+            "enforcement": "reporting"
+        },
+        {
+            "id": "data.contracts.refusal_result_conforms",
+            "statement": "The dataclass `RefusalResult` MUST declare fields that conform to `.intent/enforcement/contracts/RefusalResult.json`. Authority: ADR-056 Wave 1.",
+            "authority": "policy",
+            "phase": "audit",
+            "enforcement": "reporting"
+        },
+        {
+            "id": "data.contracts.check_result_conforms",
+            "statement": "The Pydantic class `CheckResult` MUST declare fields that conform to `.intent/enforcement/contracts/CheckResult.json`. Authority: ADR-056 Wave 1.",
+            "authority": "policy",
+            "phase": "audit",
+            "enforcement": "reporting"
+        },
+        {
+            "id": "data.contracts.audit_finding_conforms",
+            "statement": "The dataclass `AuditFinding` MUST declare fields that conform to `.intent/enforcement/contracts/AuditFinding.json`. Authority: ADR-056 Wave 1.",
+            "authority": "policy",
+            "phase": "audit",
+            "enforcement": "reporting"
+        },
+        {
+            "id": "data.contracts.blackboard_entry_conforms",
+            "statement": "The ORM class `BlackboardEntry` MUST declare fields that conform to `.intent/enforcement/contracts/BlackboardEntry.json`. Authority: ADR-056 Wave 1 Session 3.",
+            "authority": "policy",
+            "phase": "audit",
+            "enforcement": "reporting"
+        },
+        {
+            "id": "data.contracts.violation_report_conforms",
+            "statement": "The dataclass `ViolationReport` MUST declare fields that conform to `.intent/enforcement/contracts/ViolationReport.json`. Authority: ADR-056 Wave 1 Session 4.",
+            "authority": "policy",
+            "phase": "audit",
+            "enforcement": "reporting"
+        },
+        {
+            "id": "data.contracts.constitutional_validation_result_conforms",
+            "statement": "The dataclass `ConstitutionalValidationResult` MUST declare fields that conform to `.intent/enforcement/contracts/ConstitutionalValidationResult.json`. Authority: ADR-056 Wave 1 Session 4.",
+            "authority": "policy",
+            "phase": "audit",
+            "enforcement": "reporting"
+        },
+        {
+            "id": "data.contracts.prompt_model_manifest_conforms",
+            "statement": "The frozen dataclass `PromptModelManifest` MUST declare fields that conform to `.intent/enforcement/contracts/PromptModelManifest.json`. Authority: ADR-056 Wave 1 Session 4.",
+            "authority": "policy",
+            "phase": "audit",
+            "enforcement": "reporting"
+        },
+        {
+            "id": "data.contracts.context_build_request_conforms",
+            "statement": "The dataclass `ContextBuildRequest` MUST declare fields that conform to `.intent/enforcement/contracts/ContextBuildRequest.json`. Authority: ADR-056 Wave 1 Session 4.",
+            "authority": "policy",
+            "phase": "audit",
+            "enforcement": "reporting"
+        },
+        {
+            "id": "data.contracts.context_packet_conforms",
+            "statement": "The dataclass `ContextPacket` MUST declare fields that conform to `.intent/enforcement/contracts/ContextPacket.json`. Authority: ADR-056 Wave 1 Session 4.",
+            "authority": "policy",
+            "phase": "audit",
+            "enforcement": "reporting"
+        },
+        {
+            "id": "data.contracts.embedding_payload_conforms",
+            "statement": "The Pydantic class `EmbeddingPayload` MUST declare fields that conform to `.intent/enforcement/contracts/EmbeddingPayload.json`. Authority: ADR-056 Wave 1 Session 4.",
+            "authority": "policy",
+            "phase": "audit",
+            "enforcement": "reporting"
+        },
+        {
+            "id": "data.contracts.governance_decision_conforms",
+            "statement": "The dataclass `GovernanceDecision` MUST declare fields that conform to `.intent/enforcement/contracts/GovernanceDecision.json`. Authority: ADR-056 Wave 2 Session 1.",
+            "authority": "policy",
+            "phase": "audit",
+            "enforcement": "reporting"
+        },
+        {
+            "id": "data.contracts.action_definition_conforms",
+            "statement": "The dataclass `ActionDefinition` MUST declare fields that conform to `.intent/enforcement/contracts/ActionDefinition.json`. Authority: ADR-056 Wave 2 Session 1.",
+            "authority": "policy",
+            "phase": "audit",
+            "enforcement": "reporting"
+        },
+        {
+            "id": "data.contracts.execution_task_conforms",
+            "statement": "The Pydantic class `ExecutionTask` MUST declare fields that conform to `.intent/enforcement/contracts/ExecutionTask.json`. Authority: ADR-056 Wave 2 Session 1.",
+            "authority": "policy",
+            "phase": "audit",
+            "enforcement": "reporting"
+        },
+        {
+            "id": "data.contracts.task_structure_conforms",
+            "statement": "The dataclass `TaskStructure` MUST declare fields that conform to `.intent/enforcement/contracts/TaskStructure.json`. Authority: ADR-056 Wave 2 Session 1.",
+            "authority": "policy",
+            "phase": "audit",
+            "enforcement": "reporting"
+        },
+        {
+            "id": "data.contracts.flow_definition_conforms",
+            "statement": "The dataclass `FlowDefinition` MUST declare fields that conform to `.intent/enforcement/contracts/FlowDefinition.json`. Authority: ADR-056 Wave 2 Session 1.",
+            "authority": "policy",
+            "phase": "audit",
+            "enforcement": "reporting"
+        },
+        {
+            "id": "data.contracts.flow_step_conforms",
+            "statement": "The frozen dataclass `FlowStep` MUST declare fields that conform to `.intent/enforcement/contracts/FlowStep.json`. Authority: ADR-056 Wave 2 Session 1.",
+            "authority": "policy",
+            "phase": "audit",
+            "enforcement": "reporting"
+        },
+        {
+            "id": "data.contracts.remediation_result_conforms",
+            "statement": "The dataclass `RemediationResult` MUST declare fields that conform to `.intent/enforcement/contracts/RemediationResult.json`. Authority: ADR-056 Wave 2 Session 2.",
+            "authority": "policy",
+            "phase": "audit",
+            "enforcement": "reporting"
+        },
+        {
+            "id": "data.contracts.fix_result_conforms",
+            "statement": "The dataclass `FixResult` MUST declare fields that conform to `.intent/enforcement/contracts/FixResult.json`. Authority: ADR-056 Wave 2 Session 2.",
+            "authority": "policy",
+            "phase": "audit",
+            "enforcement": "reporting"
+        },
+        {
+            "id": "data.contracts.auto_fixable_pattern_conforms",
+            "statement": "The dataclass `AutoFixablePattern` MUST declare fields that conform to `.intent/enforcement/contracts/AutoFixablePattern.json`. Authority: ADR-056 Wave 2 Session 2.",
+            "authority": "policy",
+            "phase": "audit",
+            "enforcement": "reporting"
+        },
+        {
+            "id": "data.contracts.pattern_violation_conforms",
+            "statement": "The dataclass `PatternViolation` MUST declare fields that conform to `.intent/enforcement/contracts/PatternViolation.json`. Authority: ADR-056 Wave 2 Session 2.",
+            "authority": "policy",
+            "phase": "audit",
+            "enforcement": "reporting"
+        },
+        {
+            "id": "data.contracts.validation_result_conforms",
+            "statement": "The dataclass `ValidationResult` MUST declare fields that conform to `.intent/enforcement/contracts/ValidationResult.json`. Authority: ADR-056 Wave 2 Session 2.",
+            "authority": "policy",
+            "phase": "audit",
+            "enforcement": "reporting"
+        },
+        {
+            "id": "data.contracts.workflow_result_conforms",
+            "statement": "The dataclass `WorkflowResult` MUST declare fields that conform to `.intent/enforcement/contracts/WorkflowResult.json`. WorkflowResult is the legacy workflow execution result; PhaseWorkflowResult is the constitutional successor. Both are in active use. Authority: ADR-056 Wave 3 Session 1.",
+            "authority": "policy",
+            "phase": "audit",
+            "enforcement": "reporting"
+        },
+        {
+            "id": "data.contracts.phase_workflow_result_conforms",
+            "statement": "The dataclass `PhaseWorkflowResult` MUST declare fields that conform to `.intent/enforcement/contracts/PhaseWorkflowResult.json`. PhaseWorkflowResult is the constitutional workflow execution result. Authority: ADR-056 Wave 3 Session 1.",
+            "authority": "policy",
+            "phase": "audit",
+            "enforcement": "reporting"
+        },
+        {
+            "id": "data.contracts.detailed_plan_step_conforms",
+            "statement": "The dataclass `DetailedPlanStep` MUST declare fields that conform to `.intent/enforcement/contracts/DetailedPlanStep.json`. DetailedPlanStep is the blueprint for a single AtomicAction in the Engineering phase. Authority: ADR-056 Wave 3 Session 1.",
+            "authority": "policy",
+            "phase": "audit",
+            "enforcement": "reporting"
+        },
+        {
+            "id": "data.contracts.detailed_plan_conforms",
+            "statement": "The dataclass `DetailedPlan` MUST declare fields that conform to `.intent/enforcement/contracts/DetailedPlan.json`. DetailedPlan is the core Engineering phase artifact; get_steps_requiring_code() hardcodes legacy action names — constitutional violation pending fix. Authority: ADR-056 Wave 3 Session 1.",
+            "authority": "policy",
+            "phase": "audit",
+            "enforcement": "reporting"
+        },
+        {
+            "id": "data.contracts.vectorizable_item_conforms",
+            "statement": "The dataclass `VectorizableItem` MUST declare fields that conform to `.intent/enforcement/contracts/VectorizableItem.json`. VectorizableItem is the vectorization input; its payload dict is the drift surface before EmbeddingPayload governs the Qdrant output. Authority: ADR-056 Wave 3 Session 1.",
+            "authority": "policy",
+            "phase": "audit",
+            "enforcement": "reporting"
+        },
+        {
+            "id": "data.contracts.drift_report_conforms",
+            "statement": "The dataclass `DriftReport` MUST declare fields that conform to `.intent/enforcement/contracts/DriftReport.json`. Authority: ADR-056 Wave 3 Session 1.",
+            "authority": "policy",
+            "phase": "audit",
+            "enforcement": "reporting"
+        },
+        {
+            "id": "data.contracts.agent_decision_conforms",
+            "statement": "The ORM class `AgentDecision` MUST declare fields that conform to `.intent/enforcement/contracts/AgentDecision.json`. options_considered JSONB shape is ungoverned — fourth JSONB gap alongside ProposalConsequence, ConstitutionalViolationPayload, WorkerDeclaration. Authority: ADR-056 Wave 3 Session 1.",
+            "authority": "policy",
+            "phase": "audit",
+            "enforcement": "reporting"
+        },
+        {
+            "id": "data.contracts.policy_evaluation_conforms",
+            "statement": "The Pydantic class `PolicyEvaluation` MUST declare fields that conform to `.intent/enforcement/contracts/PolicyEvaluation.json`. PolicyEvaluation aggregates CheckResult findings; info_count is absent — INFO findings are silently excluded. Authority: ADR-056 Wave 3 Session 1.",
+            "authority": "policy",
+            "phase": "audit",
+            "enforcement": "reporting"
+        },
+        {
+            "id": "data.contracts.repo_census_conforms",
+            "statement": "The Pydantic class `RepoCensus` MUST declare fields that conform to `.intent/enforcement/contracts/RepoCensus.json`. RepoCensus is the canonical CIM-0 output format; already self-versioning via RepoCensusMetadata. Authority: ADR-056 Wave 3 Session 1.",
             "authority": "policy",
             "phase": "audit",
             "enforcement": "reporting"

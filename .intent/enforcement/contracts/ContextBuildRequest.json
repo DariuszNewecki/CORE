@@ -1,0 +1,74 @@
+{
+    "$schema": "META/data_contract.schema.json",
+    "kind": "data_contract",
+    "metadata": {
+        "id": "contracts.context_build_request",
+        "title": "ContextBuildRequest — single entrypoint for all context assembly",
+        "version": "1.0.0",
+        "authority": "constitution",
+        "status": "active"
+    },
+    "description": "Canonical request for building a context packet (src/shared/infrastructure/context/models.py). This is the single entrypoint for all context assembly inside CORE — declares the operational goal, invocation trigger, evaluation phase, and optional targeting hints. Consumed by ContextPacket as its request field. TriggerType (cli/workflow/agent) and PhaseType (parse/load/audit/runtime/execution) are Literal type aliases in the same file — not classes, not governable via AST gate. Authority: ADR-056 Wave 1 Session 4.",
+    "governed_classes": [
+        "ContextBuildRequest"
+    ],
+    "required": [
+        "goal",
+        "trigger",
+        "phase"
+    ],
+    "properties": {
+        "goal": {
+            "type": "string",
+            "description": "Human-readable operational goal for the context assembly."
+        },
+        "trigger": {
+            "type": "string",
+            "description": "Invocation trigger. Governed vocabulary: TriggerType Literal — cli, workflow, agent."
+        },
+        "phase": {
+            "type": "string",
+            "description": "Evaluation phase. Governed vocabulary: PhaseType Literal — parse, load, audit, runtime, execution."
+        },
+        "workflow_id": {
+            "type": "string",
+            "description": "Optional workflow identifier (str | None). Present when trigger is workflow."
+        },
+        "stage_id": {
+            "type": "string",
+            "description": "Optional stage identifier within the workflow (str | None)."
+        },
+        "target_files": {
+            "type": "array",
+            "description": "Repo-relative file paths to target context assembly toward. Default empty list."
+        },
+        "target_symbols": {
+            "type": "array",
+            "description": "Qualified symbol names to target context assembly toward. Default empty list."
+        },
+        "target_paths": {
+            "type": "array",
+            "description": "Directory paths to target context assembly toward. Default empty list."
+        },
+        "include_constitution": {
+            "type": "boolean",
+            "description": "Whether to include constitutional rules in the context packet. Default True."
+        },
+        "include_policy": {
+            "type": "boolean",
+            "description": "Whether to include policy rules in the context packet. Default True."
+        },
+        "include_symbols": {
+            "type": "boolean",
+            "description": "Whether to include symbol-level context. Default True."
+        },
+        "include_vectors": {
+            "type": "boolean",
+            "description": "Whether to include vector similarity results. Default True."
+        },
+        "include_runtime": {
+            "type": "boolean",
+            "description": "Whether to include runtime state context. Default True."
+        }
+    }
+}

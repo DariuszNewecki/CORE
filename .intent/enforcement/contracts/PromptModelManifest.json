@@ -1,0 +1,54 @@
+{
+    "$schema": "META/data_contract.schema.json",
+    "kind": "data_contract",
+    "metadata": {
+        "id": "contracts.prompt_model_manifest",
+        "title": "PromptModelManifest — immutable AI invocation configuration snapshot",
+        "version": "1.0.0",
+        "authority": "constitution",
+        "status": "active"
+    },
+    "description": "Immutable snapshot of a PromptModel artifact's model.yaml configuration (src/shared/models/prompt_model.py). Frozen dataclass — fields cannot be mutated after construction. Populated exclusively by PromptModel.load() via from_yaml() classmethod; never constructed directly by callers. This is the sole governed surface for AI invocations — a rule exists (ai.prompt.model_required) that requires PromptModelManifest presence; the contract makes its required field set constitutionally visible and enforceable. The output_must_contain list is the critical field: if empty, ai.prompt.model_required validation is vacuous (passes but enforces nothing). Authority: ADR-056 Wave 1 Session 4.",
+    "governed_classes": [
+        "PromptModelManifest"
+    ],
+    "required": [
+        "id",
+        "role",
+        "model_max_tokens",
+        "output_max_length",
+        "output_must_contain",
+        "output_must_not_contain",
+        "success_criteria"
+    ],
+    "properties": {
+        "id": {
+            "type": "string",
+            "description": "PromptModel artifact identifier."
+        },
+        "role": {
+            "type": "string",
+            "description": "Cognitive role this manifest governs. Governed vocabulary: cognitive role registry."
+        },
+        "model_max_tokens": {
+            "type": "integer",
+            "description": "Maximum token budget for the LLM call. Sourced from model.yaml or operational config defaults."
+        },
+        "output_max_length": {
+            "type": "integer",
+            "description": "Maximum character length of the expected output."
+        },
+        "output_must_contain": {
+            "type": "array",
+            "description": "List of strings the LLM output must contain for validation to pass. An empty list makes ai.prompt.model_required validation vacuous — this is the critical drift risk."
+        },
+        "output_must_not_contain": {
+            "type": "array",
+            "description": "List of strings the LLM output must not contain."
+        },
+        "success_criteria": {
+            "type": "string",
+            "description": "Human-readable description of what constitutes a successful LLM response for this manifest."
+        }
+    }
+}

@@ -1,0 +1,54 @@
+{
+    "$schema": "META/data_contract.schema.json",
+    "kind": "data_contract",
+    "metadata": {
+        "id": "contracts.action_result",
+        "title": "ActionResult — universal atomic action result contract",
+        "version": "1.0.0",
+        "authority": "constitution",
+        "status": "active"
+    },
+    "description": "Universal result contract for all atomic actions in CORE (src/shared/action_types.py). Every AtomicAction must return an ActionResult. Critical risk: ConstitutionalViolationError provenance stored in the data dict is silently lost if required fields drift from this contract. CommandResult is a backward-compat module-level alias for ActionResult — not a separate governed class. Authority: ADR-056 Wave 1.",
+    "governed_classes": [
+        "ActionResult"
+    ],
+    "required": [
+        "action_id",
+        "ok",
+        "data"
+    ],
+    "properties": {
+        "action_id": {
+            "type": "string",
+            "description": "The registered AtomicAction identifier that produced this result."
+        },
+        "ok": {
+            "type": "boolean",
+            "description": "True if the action succeeded; False if it failed. Downstream consumers must check ok before inspecting data."
+        },
+        "data": {
+            "type": "object",
+            "description": "Action-specific result payload. For failed actions carries failure context including ConstitutionalViolationError provenance. Shape is action-specific; ungoverned beyond dict[str, Any] today."
+        },
+        "duration_sec": {
+            "type": "number",
+            "description": "Execution duration in seconds. Default 0.0."
+        },
+        "impact": {
+            "type": "string",
+            "description": "ActionImpact classification (ActionImpact | None). Governed vocabulary: action_impact enum in .intent/META/enums.json. Values: read-only, write-metadata, write-code, write-data. None if not set at creation."
+        },
+        "logs": {
+            "type": "array",
+            "description": "Informational log lines from action execution."
+        },
+        "warnings": {
+            "type": "array",
+            "description": "Non-fatal warnings produced during execution."
+        },
+        "suggestions": {
+            "type": "array",
+            "description": "Remediation suggestions for failed or partial results."
+        }
+    }
+}

@@ -1,0 +1,44 @@
+{
+    "$schema": "META/data_contract.schema.json",
+    "kind": "data_contract",
+    "metadata": {
+        "id": "contracts.auto_fixable_pattern",
+        "title": "AutoFixablePattern — runtime transfer object for remediation map entries",
+        "version": "1.0.0",
+        "authority": "constitution",
+        "status": "active"
+    },
+    "description": "Maps an audit check_id pattern to an autonomous action handler at runtime (src/shared/models/remediation.py). AutoFixablePattern is a runtime transfer object only — the authoritative remediation map lives in .intent/enforcement/mappings/remediation/auto_remediation.yaml. This class ferries entries from that YAML into the self-healing pipeline. risk_level is a bare str with comment-documented values {low, medium, high} — not an enum; reconciliation with the risk vocabulary cluster (5 surfaces) is a governor decision. confidence is a float in [0.0, 1.0] expressing pattern match reliability. Authority: ADR-056 Wave 2 Session 2.",
+    "governed_classes": [
+        "AutoFixablePattern"
+    ],
+    "required": [
+        "check_id_pattern",
+        "action_handler",
+        "confidence",
+        "risk_level",
+        "description"
+    ],
+    "properties": {
+        "check_id_pattern": {
+            "type": "string",
+            "description": "Rule/check ID from an audit finding. Exact match or prefix* wildcard. Matched against AuditFinding.check_id at runtime."
+        },
+        "action_handler": {
+            "type": "string",
+            "description": "AtomicAction identifier that can fix violations matching this pattern. e.g. 'fix.imports'."
+        },
+        "confidence": {
+            "type": "number",
+            "description": "Pattern match reliability in [0.0, 1.0]. Patterns below the configured confidence threshold are not applied autonomously."
+        },
+        "risk_level": {
+            "type": "string",
+            "description": "Risk classification for applying this fix. Values: low, medium, high (comment-documented, not enum). Reconciliation with risk vocabulary cluster pending governor decision."
+        },
+        "description": {
+            "type": "string",
+            "description": "Human-readable explanation of what this pattern fixes and why."
+        }
+    }
+}

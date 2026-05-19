@@ -1,0 +1,46 @@
+{
+    "$schema": "META/data_contract.schema.json",
+    "kind": "data_contract",
+    "metadata": {
+        "id": "contracts.pattern_violation",
+        "title": "PatternViolation — pattern compliance violation",
+        "version": "1.0.0",
+        "authority": "constitution",
+        "status": "active"
+    },
+    "description": "Represents a pattern compliance violation (src/shared/models/pattern_graph.py). PatternViolation is the output of the pattern checker. PatternValidationResult (sibling in the same file: pattern_id, passed, violations, total_components, compliant) aggregates these. VOCABULARY DRIFT: severity uses values {error, warning, info} (lowercase, comment-documented); AuditFinding.severity uses AuditSeverity enum (INFO/WARNING/ERROR — capitalized); ViolationReport.severity uses {error, warning}. Three overlapping severity surfaces — reconciliation against the audit_severity enum in .intent/META/enums.json is a governor decision. Authority: ADR-056 Wave 2 Session 2.",
+    "governed_classes": [
+        "PatternViolation"
+    ],
+    "required": [],
+    "properties": {
+        "pattern_id": {
+            "type": "string",
+            "description": "Identifier of the pattern whose compliance was violated (str | None). Default None."
+        },
+        "violation_type": {
+            "type": "string",
+            "description": "Category of violation. Default 'unknown'."
+        },
+        "message": {
+            "type": "string",
+            "description": "Human-readable violation description. Default empty string."
+        },
+        "severity": {
+            "type": "string",
+            "description": "Violation severity. Values: error, warning, info (lowercase, comment-documented — not enum). DISCREPANCY with AuditFinding.severity (AuditSeverity enum) and ViolationReport.severity ({error, warning}). Reconciliation pending."
+        },
+        "file_path": {
+            "type": "string",
+            "description": "File path where the violation was detected (str | None). Default None."
+        },
+        "component_name": {
+            "type": "string",
+            "description": "Name of the component involved in the violation (str | None). Default None."
+        },
+        "line_number": {
+            "type": "integer",
+            "description": "Line number within file_path (int | None). Default None."
+        }
+    }
+}

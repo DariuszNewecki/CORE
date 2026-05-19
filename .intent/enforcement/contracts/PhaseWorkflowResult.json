@@ -1,0 +1,36 @@
+{
+    "$schema": "META/data_contract.schema.json",
+    "kind": "data_contract",
+    "metadata": {
+        "id": "contracts.phase_workflow_result",
+        "title": "PhaseWorkflowResult — constitutional workflow execution result",
+        "version": "1.0.0",
+        "authority": "constitution",
+        "status": "active"
+    },
+    "description": "Result of a complete constitutional workflow execution (src/shared/models/workflow_models.py). PhaseWorkflowResult is the new constitutional shape replacing the legacy WorkflowResult; both coexist in the same file without a deprecation path. total_actions and failed_actions are @property derived values, not declared fields. phase_results carries list[PhaseResult] — PhaseResult (sibling: name, ok, data, error, duration_sec) is part of the result-shape family (ok-nucleus). workflow_type is a bare str with no governed vocabulary (example values: 'refactor_modularity'). Authority: ADR-056 Wave 3 Session 1.",
+    "governed_classes": [
+        "PhaseWorkflowResult"
+    ],
+    "required": [
+        "ok"
+    ],
+    "properties": {
+        "ok": {
+            "type": "boolean",
+            "description": "True if the workflow completed successfully."
+        },
+        "workflow_type": {
+            "type": "string",
+            "description": "Workflow type identifier (str, default ''). Example values: 'refactor_modularity'. No governed vocabulary yet."
+        },
+        "phase_results": {
+            "type": "array",
+            "description": "List of PhaseResult — per-phase execution outcomes. Default empty list."
+        },
+        "total_duration": {
+            "type": "number",
+            "description": "Total workflow execution duration in seconds. Default 0.0."
+        }
+    }
+}

@@ -1,0 +1,108 @@
+{
+    "$schema": "META/data_contract.schema.json",
+    "kind": "data_contract",
+    "metadata": {
+        "id": "contracts.remediation_result",
+        "title": "RemediationResult — complete remediation run report",
+        "version": "1.0.0",
+        "authority": "constitution",
+        "status": "active"
+    },
+    "description": "The complete report of one autonomous remediation run (src/body/self_healing/remediation_models.py). RemediationResult is the full audit→fix→validate evidence trail. Three sibling types are declared in the same file and referenced as field types: MatchedPattern (finding + pattern + confidence + risk_level), FixDetail (finding_id + file_path + action_handler + status + duration_ms + error_message), and RemediationMode enum (SAFE_ONLY/MEDIUM_RISK/ALL_DETERMINISTIC). VOCABULARY DRIFT: MatchedPattern.risk_level and FixDetail.status are bare str with comment-documented value sets — not enums. findings_by_severity keys are AuditSeverity enum value names as bare str. These are noted as reconciliation candidates. Authority: ADR-056 Wave 2 Session 2.",
+    "governed_classes": [
+        "RemediationResult"
+    ],
+    "required": [
+        "session_id",
+        "timestamp_utc",
+        "total_findings",
+        "findings_by_severity",
+        "matched_patterns",
+        "unmatched_findings",
+        "fixes_attempted",
+        "fixes_succeeded",
+        "fixes_failed",
+        "validation_passed",
+        "findings_before",
+        "findings_after",
+        "improvement_delta",
+        "fix_details",
+        "duration_sec",
+        "audit_input_path",
+        "remediation_output_path"
+    ],
+    "properties": {
+        "session_id": {
+            "type": "string",
+            "description": "Unique identifier for this remediation session."
+        },
+        "timestamp_utc": {
+            "type": "string",
+            "description": "ISO 8601 UTC timestamp when the remediation run started."
+        },
+        "total_findings": {
+            "type": "integer",
+            "description": "Total number of audit findings at the start of this run."
+        },
+        "findings_by_severity": {
+            "type": "object",
+            "description": "Count of findings keyed by severity name. Keys are AuditSeverity enum value names (bare str) — vocabulary reconciliation pending."
+        },
+        "matched_patterns": {
+            "type": "array",
+            "description": "List of MatchedPattern — findings that matched an AutoFixablePattern with sufficient confidence."
+        },
+        "unmatched_findings": {
+            "type": "array",
+            "description": "List of AuditFinding — findings with no matching AutoFixablePattern."
+        },
+        "fixes_attempted": {
+            "type": "integer",
+            "description": "Number of fixes attempted in this run."
+        },
+        "fixes_succeeded": {
+            "type": "integer",
+            "description": "Number of fixes that completed successfully."
+        },
+        "fixes_failed": {
+            "type": "integer",
+            "description": "Number of fixes that failed or were skipped."
+        },
+        "validation_passed": {
+            "type": "boolean",
+            "description": "True if the post-fix validation audit showed improvement."
+        },
+        "findings_before": {
+            "type": "integer",
+            "description": "Total finding count before fixes were applied."
+        },
+        "findings_after": {
+            "type": "integer",
+            "description": "Total finding count after fixes were applied."
+        },
+        "improvement_delta": {
+            "type": "integer",
+            "description": "findings_before - findings_after. Positive = improvement. Negative = regression."
+        },
+        "fix_details": {
+            "type": "array",
+            "description": "List of FixDetail — per-fix execution records for the evidence trail."
+        },
+        "duration_sec": {
+            "type": "number",
+            "description": "Total remediation run duration in seconds."
+        },
+        "audit_input_path": {
+            "type": "string",
+            "description": "Path to the audit input used for this run."
+        },
+        "remediation_output_path": {
+            "type": "string",
+            "description": "Path to the remediation output artifact."
+        },
+        "validation_audit_path": {
+            "type": "string",
+            "description": "Path to the post-fix validation audit (str | None). None if validation was not run."
+        }
+    }
+}

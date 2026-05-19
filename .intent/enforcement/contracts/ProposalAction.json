@@ -1,0 +1,61 @@
+{
+    "$schema": "META/data_contract.schema.json",
+    "kind": "data_contract",
+    "metadata": {
+        "id": "contracts.proposal_action",
+        "title": "ProposalAction — single execution step within a Proposal",
+        "version": "1.0.0",
+        "authority": "constitution",
+        "status": "active"
+    },
+    "description": "A single execution step within a Proposal. References exactly one of AtomicAction (via action_id) or Flow (via flow_id) — the XOR invariant is enforced by __post_init__ at runtime. The ref_id and ref_kind properties derive from whichever is set. Governed as a sub-object of Proposal (src/will/autonomy/proposal.py). Authority: ADR-056 Wave 1.",
+    "governed_classes": [
+        "ProposalAction"
+    ],
+    "required": [
+        "action_id",
+        "flow_id",
+        "parameters",
+        "order"
+    ],
+    "properties": {
+        "action_id": {
+            "type": "string",
+            "description": "AtomicAction identifier from ActionRegistry (str | None). Mutually exclusive with flow_id. e.g. 'fix.format'. Null when flow_id is set."
+        },
+        "flow_id": {
+            "type": "string",
+            "description": "Flow identifier from FlowRegistry (str | None). Mutually exclusive with action_id. e.g. 'flow.fix_code'. Null when action_id is set."
+        },
+        "parameters": {
+            "type": "object",
+            "description": "Parameters passed to the action or flow at execution time. Must include write: true for mutating actions."
+        },
+        "order": {
+            "type": "integer",
+            "description": "Execution order within the Proposal. Zero-indexed."
+        }
+    },
+    "allOf": [
+        {
+            "description": "XOR invariant: if action_id is non-null, flow_id must be null. Enforced by ProposalAction.__post_init__ at runtime.",
+            "if": {
+                "required": ["action_id"],
+                "properties": {"action_id": {"not": {"type": "null"}}}
+            },
+            "then": {
+                "properties": {"flow_id": {"type": "null"}}
+            }
+        },
+        {
+            "description": "XOR invariant (inverse): if flow_id is non-null, action_id must be null. Enforced by ProposalAction.__post_init__ at runtime.",
+            "if": {
+                "required": ["flow_id"],
+                "properties": {"flow_id": {"not": {"type": "null"}}}
+            },
+            "then": {
+                "properties": {"action_id": {"type": "null"}}
+            }
+        }
+    ]
+}

@@ -1,0 +1,46 @@
+{
+    "$schema": "META/data_contract.schema.json",
+    "kind": "data_contract",
+    "metadata": {
+        "id": "contracts.audit_finding",
+        "title": "AuditFinding — constitutional audit check result",
+        "version": "1.0.0",
+        "authority": "constitution",
+        "status": "active"
+    },
+    "description": "Represents a single finding from a constitutional audit check (src/shared/models/audit_models.py). AuditFinding is the persistence surface for audit_runs.findings JSONB — one of the three Finding surfaces ADR-056 identified. The details property is a backward-compat alias for context; it is not a declared field and is not governed here. A separate governance entry will govern AuditFinding against the canonical Finding nucleus (Finding.json), which will produce drift findings for missing nucleus fields (rule_id, subject, worker_uuid absent; check_id/message serve analogous roles under different names). VOCABULARY DISCREPANCY: AuditSeverity uses INFO/WARNING/ERROR (IntEnum); audit_severity enum in .intent/META/enums.json (ADR-056 D5) declares INFO/LOW/MEDIUM/HIGH/BLOCK. Different severity vocabularies for different finding surfaces — governor decision required to reconcile. Authority: ADR-056 Wave 1.",
+    "governed_classes": [
+        "AuditFinding"
+    ],
+    "required": [
+        "check_id",
+        "severity",
+        "message"
+    ],
+    "properties": {
+        "check_id": {
+            "type": "string",
+            "description": "The constitutional rule check identifier that produced this finding. Analogous to rule_id in the Finding nucleus; name difference is documented drift."
+        },
+        "severity": {
+            "type": "string",
+            "description": "Severity level. Live class uses AuditSeverity IntEnum: INFO=1, WARNING=2, ERROR=3. Discrepancy with audit_severity enum (INFO/LOW/MEDIUM/HIGH/BLOCK) — see contract description."
+        },
+        "message": {
+            "type": "string",
+            "description": "Human-readable description of the finding. Analogous to evidence in the Finding nucleus."
+        },
+        "file_path": {
+            "type": "string",
+            "description": "Repo-relative file path where the finding was detected (str | None). Absent for findings not tied to a specific file."
+        },
+        "line_number": {
+            "type": "integer",
+            "description": "Line number within file_path where the finding was detected (int | None)."
+        },
+        "context": {
+            "type": "object",
+            "description": "Structured finding data. Single source of truth; the details property is a backward-compat alias. Populated from both context= and details= constructor kwargs."
+        }
+    }
+}

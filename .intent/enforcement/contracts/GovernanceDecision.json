@@ -1,0 +1,66 @@
+{
+    "$schema": "META/data_contract.schema.json",
+    "kind": "data_contract",
+    "metadata": {
+        "id": "contracts.governance_decision",
+        "title": "GovernanceDecision — constitutional validation outcome",
+        "version": "1.0.0",
+        "authority": "constitution",
+        "status": "active"
+    },
+    "description": "Result of governance validation produced by ConstitutionalValidator (src/body/services/constitutional_validator.py). GovernanceDecision is the state-conditional output of the risk/approval pipeline: risk_tier determines which approval_type is required. RiskTier is integer-valued (ROUTINE=1, STANDARD=3, ELEVATED=7, CRITICAL=10); ApprovalType is string-valued (autonomous/validation_only/human_confirmation/human_review) — divergent enum value types within the same governance domain, noted as reconciliation candidate. Governed vocabulary: risk_tier and approval_type enums in .intent/META/enums.json (ADR-056 D5). Authority: ADR-056 Wave 2 Session 1.",
+    "governed_classes": [
+        "GovernanceDecision"
+    ],
+    "required": [
+        "allowed",
+        "risk_tier",
+        "approval_type",
+        "rationale",
+        "violations"
+    ],
+    "properties": {
+        "allowed": {
+            "type": "boolean",
+            "description": "True if the governance check permits the operation to proceed."
+        },
+        "risk_tier": {
+            "type": "string",
+            "description": "Risk classification of the evaluated operation. Governed vocabulary: risk_tier enum in .intent/META/enums.json. Values: ROUTINE(1), STANDARD(3), ELEVATED(7), CRITICAL(10). Note: Python enum is integer-valued; string form uses uppercase name."
+        },
+        "approval_type": {
+            "type": "string",
+            "description": "Approval mechanism required for this risk tier. Governed vocabulary: approval_type enum in .intent/META/enums.json. Values: autonomous, validation_only, human_confirmation, human_review."
+        },
+        "rationale": {
+            "type": "string",
+            "description": "Human-readable explanation of the governance decision."
+        },
+        "violations": {
+            "type": "array",
+            "description": "List of constitutional violation messages that influenced this decision. Empty when allowed=True and no violations detected."
+        }
+    },
+    "allOf": [
+        {
+            "description": "CRITICAL risk: approval_type must be human_review. Enforced by ConstitutionalValidator risk→approval mapping.",
+            "if": {
+                "required": ["risk_tier"],
+                "properties": {"risk_tier": {"const": "CRITICAL"}}
+            },
+            "then": {
+                "properties": {"approval_type": {"const": "human_review"}}
+            }
+        },
+        {
+            "description": "NOT ALLOWED: violations must be non-empty when allowed=False.",
+            "if": {
+                "required": ["allowed"],
+                "properties": {"allowed": {"const": false}}
+            },
+            "then": {
+                "required": ["violations"]
+            }
+        }
+    ]
+}

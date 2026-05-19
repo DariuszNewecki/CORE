@@ -1,0 +1,47 @@
+{
+    "$schema": "META/data_contract.schema.json",
+    "kind": "data_contract",
+    "metadata": {
+        "id": "contracts.violation_report",
+        "title": "ViolationReport — IntentGuard constitutional violation detail",
+        "version": "1.0.0",
+        "authority": "constitution",
+        "status": "active"
+    },
+    "description": "Detailed violation report produced by IntentGuard when a constitutional rule is violated (src/mind/governance/violation_report.py). Each ViolationReport describes one violated rule at one file path. ViolationReport instances are collected into ConstitutionalViolationError.violations and serialized via to_dict() into proposal.execution_results. The ConstitutionalViolationPayload (to_dict() envelope) has no Python class and is deferred — same gap as ProposalConsequence. ViolationLike (same file) is a Protocol for duck-typed consumers to avoid Mind-layer imports; it is not a dataclass and is not governable via the current AST gate. Authority: ADR-056 Wave 1 Session 4.",
+    "governed_classes": [
+        "ViolationReport"
+    ],
+    "required": [
+        "rule_name",
+        "path",
+        "message",
+        "severity"
+    ],
+    "properties": {
+        "rule_name": {
+            "type": "string",
+            "description": "Rule identifier that was violated. Corresponds to rule_id in the Finding nucleus."
+        },
+        "path": {
+            "type": "string",
+            "description": "Repo-relative file path where the violation occurred."
+        },
+        "message": {
+            "type": "string",
+            "description": "Human-readable violation description."
+        },
+        "severity": {
+            "type": "string",
+            "description": "Violation severity. Values in live code: 'error', 'warning'."
+        },
+        "suggested_fix": {
+            "type": "string",
+            "description": "Optional remediation guidance. Default empty string."
+        },
+        "source_policy": {
+            "type": "string",
+            "description": "Policy file that declared the violated rule. Default 'unknown'."
+        }
+    }
+}

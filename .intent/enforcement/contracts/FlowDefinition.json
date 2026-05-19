@@ -1,0 +1,43 @@
+{
+    "$schema": "META/data_contract.schema.json",
+    "kind": "data_contract",
+    "metadata": {
+        "id": "contracts.flow_definition",
+        "title": "FlowDefinition — constitutional flow declaration",
+        "version": "1.0.0",
+        "authority": "constitution",
+        "status": "active"
+    },
+    "description": "Constitutional declaration of a Flow, loaded from .intent/flows/*.yaml (src/body/flows/registry.py). Existence in .intent/flows/ is constitutional standing — a flow that exists in code but not in .intent/ is ungoverned. FlowDefinition follows the same registry pattern as ActionDefinition. source_path is a Python Path object (runtime-only, not JSON-serializable); included in properties to suppress AST gate false positives. steps is a list of FlowStep governed by the FlowStep contract. Authority: ADR-056 Wave 2 Session 1.",
+    "governed_classes": [
+        "FlowDefinition"
+    ],
+    "required": [
+        "flow_id",
+        "description",
+        "steps",
+        "policies"
+    ],
+    "properties": {
+        "flow_id": {
+            "type": "string",
+            "description": "Registered flow identifier. Primary key in FlowRegistry. e.g. 'flow.fix_code'."
+        },
+        "description": {
+            "type": "string",
+            "description": "Human-readable description of what this flow accomplishes."
+        },
+        "steps": {
+            "type": "array",
+            "description": "Ordered list of FlowStep declarations. Each step references an AtomicAction or another Flow. Governed by FlowStep contract."
+        },
+        "policies": {
+            "type": "array",
+            "description": "Constitutional policy IDs this flow enforces or depends on."
+        },
+        "source_path": {
+            "type": "string",
+            "description": "Path to the .intent/flows/*.yaml source file (Path | None). Runtime-only field; not JSON-serializable. Included in properties to suppress AST gate false positives."
+        }
+    }
+}

@@ -1,0 +1,39 @@
+{
+    "$schema": "META/data_contract.schema.json",
+    "kind": "data_contract",
+    "metadata": {
+        "id": "contracts.refusal_result",
+        "title": "RefusalResult — first-class refusal outcome contract",
+        "version": "1.0.0",
+        "authority": "constitution",
+        "status": "active"
+    },
+    "description": "First-class refusal outcome. RefusalResult extends ComponentResult (src/shared/component_primitive.py) and is the constitutional representation of an explicit refusal — not a technical failure. This contract governs only the fields declared directly in RefusalResult; inherited ComponentResult fields (component_id, ok, data, phase, confidence) are governed by the ComponentResult contract (Wave 1, Session 2). Runtime invariants enforced by __post_init__: ok must be False, reason must be non-empty (refusals without explanation violate constitutional transparency), refusal_type must be in the governed vocabulary. Governed vocabulary: refusal_type enum in .intent/META/enums.json (ADR-056 D5): boundary, confidence, contradiction, assumption, capability, extraction, quality, unspecified. Authority: ADR-056 Wave 1.",
+    "governed_classes": [
+        "RefusalResult"
+    ],
+    "required": [
+        "reason",
+        "suggested_action",
+        "refusal_type",
+        "original_request"
+    ],
+    "properties": {
+        "reason": {
+            "type": "string",
+            "description": "Constitutional reason for refusal. Must cite the policy or rule being enforced. Non-empty invariant enforced by __post_init__."
+        },
+        "suggested_action": {
+            "type": "string",
+            "description": "What the caller should do instead. Default empty string; populated by factory class methods (boundary_violation, low_confidence, extraction_failed, quality_threshold)."
+        },
+        "refusal_type": {
+            "type": "string",
+            "description": "Category of refusal for tracking and analysis. Default 'unspecified'. Governed vocabulary: refusal_type enum in .intent/META/enums.json. Values: boundary, confidence, contradiction, assumption, capability, extraction, quality, unspecified."
+        },
+        "original_request": {
+            "type": "string",
+            "description": "The request that was refused, recorded for audit trail. Default empty string."
+        }
+    }
+}

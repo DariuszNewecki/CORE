@@ -1,0 +1,36 @@
+{
+    "$schema": "META/data_contract.schema.json",
+    "kind": "data_contract",
+    "metadata": {
+        "id": "contracts.risk_assessment",
+        "title": "RiskAssessment — proposal risk analysis",
+        "version": "1.0.0",
+        "authority": "constitution",
+        "status": "active"
+    },
+    "description": "Risk analysis for a Proposal, derived from action impact levels and scope analysis. Drives approval_required on the parent Proposal via requires_approval(). Governed as a sub-object of Proposal (src/will/autonomy/proposal.py). Authority: ADR-056 Wave 1. VOCABULARY DISCREPANCY: class docstring and requires_approval() use 'safe/moderate/dangerous'; .intent/META/enums.json proposal_risk declares 'safe/moderate/high'. This contract reflects live class semantics ('dangerous'). Governor decision required to reconcile: either rename 'dangerous' to 'high' in src/ or update the enum. Tracked as a constitutional vocabulary drift finding.",
+    "governed_classes": [
+        "RiskAssessment"
+    ],
+    "required": [
+        "overall_risk"
+    ],
+    "properties": {
+        "overall_risk": {
+            "type": "string",
+            "description": "Aggregate risk level. Live class values: safe, moderate, dangerous. Discrepancy with proposal_risk enum (which declares 'high' not 'dangerous') — see contract description. requires_approval() returns True for 'moderate' and 'dangerous'."
+        },
+        "action_risks": {
+            "type": "object",
+            "description": "Per-action risk levels keyed by action_id. Values are impact_level strings."
+        },
+        "risk_factors": {
+            "type": "array",
+            "description": "Human-readable risk explanations surfaced to the governor."
+        },
+        "mitigation": {
+            "type": "array",
+            "description": "Declared mitigations for identified risk factors."
+        }
+    }
+}

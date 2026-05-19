@@ -1,0 +1,49 @@
+{
+    "$schema": "META/data_contract.schema.json",
+    "kind": "data_contract",
+    "metadata": {
+        "id": "contracts.task_structure",
+        "title": "TaskStructure — canonical INTERPRET phase output",
+        "version": "1.0.0",
+        "authority": "constitution",
+        "status": "active"
+    },
+    "description": "Canonical task structure — output of the INTERPRET phase (src/will/interpreters/request_interpreter.py). TaskStructure is the universal workflow handoff from the interpreter to execution layers. task_type uses the TaskType str-Enum (12 values: query/analyze/explain/refactor/fix/generate/test/audit/sync/validate/develop/unknown). VOCABULARY DISCREPANCY: ExecutionTask.task_type (src/shared/models/execution_models.py) uses a bare str validated against a YAML config instead of this enum — two surfaces for the same concept, governor decision required to reconcile. confidence is a float in [0.0, 1.0] expressing the interpreter's certainty about the task classification. Authority: ADR-056 Wave 2 Session 1.",
+    "governed_classes": [
+        "TaskStructure"
+    ],
+    "required": [
+        "task_type",
+        "intent",
+        "targets",
+        "constraints",
+        "context",
+        "confidence"
+    ],
+    "properties": {
+        "task_type": {
+            "type": "string",
+            "description": "Canonical task type. Governed vocabulary: TaskType enum in request_interpreter.py. Values: query, analyze, explain, refactor, fix, generate, test, audit, sync, validate, develop, unknown. DISCREPANCY with ExecutionTask.task_type (bare str)."
+        },
+        "intent": {
+            "type": "string",
+            "description": "Human-readable statement of the interpreted task intent."
+        },
+        "targets": {
+            "type": "array",
+            "description": "List of target identifiers (file paths, symbol names, etc.) for this task."
+        },
+        "constraints": {
+            "type": "object",
+            "description": "Structured constraints on task execution (dict[str, Any])."
+        },
+        "context": {
+            "type": "object",
+            "description": "Additional context derived from the interpretation (dict[str, Any])."
+        },
+        "confidence": {
+            "type": "number",
+            "description": "Interpreter confidence in the task classification. Range [0.0, 1.0]. Low confidence may trigger a confidence refusal via RefusalResult."
+        }
+    }
+}

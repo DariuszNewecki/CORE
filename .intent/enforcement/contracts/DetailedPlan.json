@@ -1,0 +1,33 @@
+{
+    "$schema": "META/data_contract.schema.json",
+    "kind": "data_contract",
+    "metadata": {
+        "id": "contracts.detailed_plan",
+        "title": "DetailedPlan — core artifact of the Engineering phase",
+        "version": "1.0.0",
+        "authority": "constitution",
+        "status": "active"
+    },
+    "description": "A full collection of DetailedPlanStep blueprints for a goal — the core artifact of the Engineering phase (src/shared/models/workflow_models.py). step_count is a @property derived value, not a declared field. NOTE: get_steps_requiring_code() hardcodes four action names ({file.create, file.edit, create_file, edit_file}) — file.create and file.edit are valid registered action IDs; create_file and edit_file are legacy names not in the current ActionRegistry. This is a constitutional violation (hardcoded action vocabulary in src/) pending a governor-authorized fix. Authority: ADR-056 Wave 3 Session 1.",
+    "governed_classes": [
+        "DetailedPlan"
+    ],
+    "required": [
+        "goal",
+        "steps"
+    ],
+    "properties": {
+        "goal": {
+            "type": "string",
+            "description": "Human-readable goal statement for this plan."
+        },
+        "steps": {
+            "type": "array",
+            "description": "Ordered list of DetailedPlanStep blueprints."
+        },
+        "metadata": {
+            "type": "object",
+            "description": "Plan-level metadata (dict[str, Any]). Default empty dict."
+        }
+    }
+}

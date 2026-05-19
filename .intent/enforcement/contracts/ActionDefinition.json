@@ -1,0 +1,60 @@
+{
+    "$schema": "META/data_contract.schema.json",
+    "kind": "data_contract",
+    "metadata": {
+        "id": "contracts.action_definition",
+        "title": "ActionDefinition — atomic action constitutional metadata",
+        "version": "1.0.0",
+        "authority": "constitution",
+        "status": "active"
+    },
+    "description": "Constitutional metadata for a registered atomic action (src/body/atomic/registry.py). ActionDefinition is the runtime declaration for every AtomicAction; its action_id, category, and impact_level drive the autonomy gate. impact_level is a bare str (not enum) with empty string default — it is overlaid at ActionExecutor init from .intent/enforcement/config/action_risk.yaml (ADR-008); a missing entry in that YAML raises ConstitutionalError at startup. executor is a Python Callable (runtime-only, not JSON-serializable); it is included in properties to suppress false-positive undeclared-field findings from the AST gate. Governed vocabulary: action_category enum in .intent/META/enums.json (ADR-056 D5). Authority: ADR-056 Wave 2 Session 1.",
+    "governed_classes": [
+        "ActionDefinition"
+    ],
+    "required": [
+        "action_id",
+        "description",
+        "category",
+        "policies",
+        "executor"
+    ],
+    "properties": {
+        "action_id": {
+            "type": "string",
+            "description": "Registered AtomicAction identifier. Primary key in ActionRegistry."
+        },
+        "description": {
+            "type": "string",
+            "description": "Human-readable description of what this action does."
+        },
+        "category": {
+            "type": "string",
+            "description": "Constitutional action category. Governed vocabulary: action_category enum in .intent/META/enums.json. Values: fix, sync, check, build, state."
+        },
+        "policies": {
+            "type": "array",
+            "description": "Constitutional policy IDs this action enforces or depends on."
+        },
+        "executor": {
+            "type": "string",
+            "description": "Callable[..., Awaitable[ActionResult]] — the async handler for this action. Runtime-only field; not JSON-serializable. Included in properties to suppress AST gate false positives."
+        },
+        "impact_level": {
+            "type": "string",
+            "description": "Impact classification (str, default ''). Overlaid at ActionExecutor init from .intent/enforcement/config/action_risk.yaml (ADR-008). Governed vocabulary: action_impact enum in .intent/META/enums.json. A missing action_id in action_risk.yaml raises ConstitutionalError at startup."
+        },
+        "requires_db": {
+            "type": "boolean",
+            "description": "Whether this action requires database access. Default False."
+        },
+        "requires_vectors": {
+            "type": "boolean",
+            "description": "Whether this action requires vector store access. Default False."
+        },
+        "remediates": {
+            "type": "array",
+            "description": "Rule IDs this action is capable of remediating. Used by RemediatorWorker for remediation map lookup. Default empty list."
+        }
+    }
+}

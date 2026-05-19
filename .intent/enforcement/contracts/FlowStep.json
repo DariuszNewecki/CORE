@@ -1,0 +1,41 @@
+{
+    "$schema": "META/data_contract.schema.json",
+    "kind": "data_contract",
+    "metadata": {
+        "id": "contracts.flow_step",
+        "title": "FlowStep — single step within a Flow declaration",
+        "version": "1.0.0",
+        "authority": "constitution",
+        "status": "active"
+    },
+    "description": "A single step in a Flow's declared sequence (src/body/flows/registry.py). Frozen dataclass. kind discriminates between AtomicAction and nested Flow references via a single ref_id (vs ProposalAction's XOR pattern of action_id/flow_id). consumes governs the parameter routing whitelist per ADR-033: only keys declared in consumes may be passed to this step from the enclosing flow's context. params is a bare dict (no type parameterization) — a minor type-annotation gap, noted but not a governance gap. Governed vocabulary: step_kind enum in .intent/META/enums.json (ADR-056 D5). Authority: ADR-056 Wave 2 Session 1.",
+    "governed_classes": [
+        "FlowStep"
+    ],
+    "required": [
+        "ref_id",
+        "kind"
+    ],
+    "properties": {
+        "ref_id": {
+            "type": "string",
+            "description": "The action_id or flow_id being referenced, depending on kind. Single discriminated field — contrast with ProposalAction's XOR pattern (action_id/flow_id). e.g. 'fix.imports' (action) or 'flow.fix_code' (flow)."
+        },
+        "kind": {
+            "type": "string",
+            "description": "Step discriminator. Governed vocabulary: step_kind enum in .intent/META/enums.json. Values: action, flow."
+        },
+        "required": {
+            "type": "boolean",
+            "description": "Whether this step is required for the flow to succeed. Default True. Optional steps may fail without failing the flow."
+        },
+        "params": {
+            "type": "object",
+            "description": "Parameters passed to the step at execution time. Typed as bare dict (not dict[str, Any]) — minor annotation gap. Default empty dict."
+        },
+        "consumes": {
+            "type": "array",
+            "description": "Parameter routing whitelist (tuple[str, ...] | None). Declared per ADR-033: only keys in consumes may be passed from the enclosing flow context to this step. None means no routing filter. Governs step parameter isolation."
+        }
+    }
+}

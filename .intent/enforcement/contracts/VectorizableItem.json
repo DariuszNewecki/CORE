@@ -1,0 +1,34 @@
+{
+    "$schema": "META/data_contract.schema.json",
+    "kind": "data_contract",
+    "metadata": {
+        "id": "contracts.vectorizable_item",
+        "title": "VectorizableItem — universal container for vectorization input",
+        "version": "1.0.0",
+        "authority": "constitution",
+        "status": "active"
+    },
+    "description": "Universal container for anything that can be vectorized (src/shared/models/vector_models.py). VectorizableItem is the input to VectorIndexService; EmbeddingPayload (governed separately) is the strict output stored in Qdrant. The pipeline is: domain object → VectorizableItem.payload (dict[str, Any]) → EmbeddingPayload (strict Pydantic) → Qdrant. The dict[str, Any] middle hop is a drift surface — payload keys that don't map to EmbeddingPayload fields are silently dropped or cause runtime errors. __post_init__ runtime validates non-empty item_id, non-empty text, and dict type for payload. IndexResult (sibling: item_id, point_id, vector_dim) is also in this file. Authority: ADR-056 Wave 3 Session 1.",
+    "governed_classes": [
+        "VectorizableItem"
+    ],
+    "required": [
+        "item_id",
+        "text",
+        "payload"
+    ],
+    "properties": {
+        "item_id": {
+            "type": "string",
+            "description": "Unique identifier for this vectorizable item. Must be non-empty (enforced by __post_init__)."
+        },
+        "text": {
+            "type": "string",
+            "description": "Text content to be vectorized. Must be non-empty (enforced by __post_init__)."
+        },
+        "payload": {
+            "type": "object",
+            "description": "Structured metadata payload (dict[str, Any]). Passed to EmbeddingPayload at the vectorization boundary. Keys should conform to EmbeddingPayload's required fields to avoid silent drift into Qdrant."
+        }
+    }
+}
