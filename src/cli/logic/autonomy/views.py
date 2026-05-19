@@ -19,7 +19,7 @@ STATUS_COLORS = {
     "failed": "red",
     "rejected": "red",
 }
-RISK_COLORS = {"safe": "green", "moderate": "yellow", "dangerous": "red"}
+RISK_COLORS = {"safe": "green", "moderate": "yellow", "high": "red"}
 
 
 # ID: 1d435482-a764-45be-a51d-c5c70eff6c9a

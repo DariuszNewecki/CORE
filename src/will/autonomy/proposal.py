@@ -83,7 +83,7 @@ class RiskAssessment:
     """
 
     overall_risk: str
-    """safe, moderate, or dangerous"""
+    """safe, moderate, or high (proposal_risk enum per ADR-059 D1)"""
 
     action_risks: dict[str, str] = field(default_factory=dict)
     """Map of action_id -> impact_level"""
@@ -97,7 +97,7 @@ class RiskAssessment:
     # ID: 9037d8bc-c407-4787-99f6-18e09143f013
     def requires_approval(self) -> bool:
         """Whether this proposal needs human approval."""
-        return self.overall_risk in ["moderate", "dangerous"]
+        return self.overall_risk in ["moderate", "high"]
 
 
 @dataclass
@@ -181,6 +181,9 @@ def _compute_flow_risk(flow_id: str, _visited: frozenset[str] = frozenset()) -> 
     if flow_def is None:
         return "moderate"
 
+    # Input keys are action_risk vocabulary (impact_level values from
+    # action_risk.yaml: safe / moderate / dangerous). Output array uses
+    # proposal_risk vocabulary (safe / moderate / high) per ADR-059 D1.
     risk_levels = {"safe": 0, "moderate": 1, "dangerous": 2}
     max_level = 0
     for step in flow_def.steps:
@@ -193,7 +196,7 @@ def _compute_flow_risk(flow_id: str, _visited: frozenset[str] = frozenset()) -> 
             impact = "moderate"
         max_level = max(max_level, risk_levels.get(impact, 1))
 
-    return ["safe", "moderate", "dangerous"][max_level]
+    return ["safe", "moderate", "high"][max_level]
 
 
 @dataclass
@@ -300,10 +303,10 @@ class Proposal:
         if self.risk is None:
             errors.append("Proposal must have risk assessment")
 
-        # 5. Dangerous proposals must have approval
-        if self.risk and self.risk.overall_risk == "dangerous":
+        # 5. High-risk proposals must have approval
+        if self.risk and self.risk.overall_risk == "high":
             if not self.approved_by:
-                errors.append("Dangerous proposals require approval")
+                errors.append("High-risk proposals require approval")
 
         # 6. Must declare at least one file in scope (issue #191).
         # ADR-021 D5 punted execution-time enforcement; commit_paths raises
@@ -340,18 +343,22 @@ class Proposal:
             elif action.flow_id is not None:
                 action_risks[action.flow_id] = _compute_flow_risk(action.flow_id)
 
-        # Determine overall risk (highest action risk)
+        # Determine overall risk (highest action risk). Input keys are
+        # action_risk vocabulary (impact_level values from
+        # action_risk.yaml: safe / moderate / dangerous). Output uses
+        # proposal_risk vocabulary (safe / moderate / high) per
+        # ADR-059 D1.
         risk_levels = {"safe": 0, "moderate": 1, "dangerous": 2}
         max_risk = 0
         for impact in action_risks.values():
             level = risk_levels.get(impact, 0)
             max_risk = max(max_risk, level)
 
-        overall_risk = ["safe", "moderate", "dangerous"][max_risk]
+        overall_risk = ["safe", "moderate", "high"][max_risk]
 
         # Identify risk factors
-        if overall_risk == "dangerous":
-            risk_factors.append("Contains dangerous actions")
+        if overall_risk == "high":
+            risk_factors.append("Contains high-risk actions")
 
         if len(self.scope.files) > 10:
             risk_factors.append(f"Large scope: {len(self.scope.files)} files")
@@ -361,7 +368,7 @@ class Proposal:
 
         # Determine mitigations
         mitigation = []
-        if overall_risk == "dangerous":
+        if overall_risk == "high":
             mitigation.append("Human approval required")
             mitigation.append("Full system backup before execution")
 

@@ -8,7 +8,7 @@
         "authority": "constitution",
         "status": "active"
     },
-    "description": "Risk analysis for a Proposal, derived from action impact levels and scope analysis. Drives approval_required on the parent Proposal via requires_approval(). Governed as a sub-object of Proposal (src/will/autonomy/proposal.py). Authority: ADR-056 Wave 1. VOCABULARY DISCREPANCY: class docstring and requires_approval() use 'safe/moderate/dangerous'; .intent/META/enums.json proposal_risk declares 'safe/moderate/high'. This contract reflects live class semantics ('dangerous'). Governor decision required to reconcile: either rename 'dangerous' to 'high' in src/ or update the enum. Tracked as a constitutional vocabulary drift finding.",
+    "description": "Risk analysis for a Proposal, derived from action impact levels and scope analysis. Drives approval_required on the parent Proposal via requires_approval(). Governed as a sub-object of Proposal (src/will/autonomy/proposal.py). overall_risk vocabulary aligned to the proposal_risk enum (safe/moderate/high) per ADR-059 D1; 'dangerous' has been retired. Authority: ADR-056 Wave 1.",
     "governed_classes": [
         "RiskAssessment"
     ],
@@ -17,8 +17,8 @@
     ],
     "properties": {
         "overall_risk": {
-            "type": "string",
-            "description": "Aggregate risk level. Live class values: safe, moderate, dangerous. Discrepancy with proposal_risk enum (which declares 'high' not 'dangerous') — see contract description. requires_approval() returns True for 'moderate' and 'dangerous'."
+            "$ref": "../../META/enums.json#/definitions/proposal_risk",
+            "description": "Aggregate risk level. Vocabulary governed by proposal_risk enum: safe, moderate, high (per ADR-059 D1). requires_approval() returns True for 'moderate' and 'high'."
         },
         "action_risks": {
             "type": "object",
