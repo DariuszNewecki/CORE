@@ -17,10 +17,7 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.syntax import Syntax
 
-from shared.logger import getLogger
 
-
-logger = getLogger(__name__)
 console = Console()
 
 
@@ -47,26 +44,26 @@ def prompt_user(
     """
     console.print()
     console.print(Panel(f"[bold cyan]{title}[/bold cyan]", expand=False))
-    logger.info(message)
+    console.print(message)
     console.print()
     if preview:
-        logger.info("[dim]Preview (first 20 lines):[/dim]")
-        logger.info("─" * 60)
+        console.print("[dim]Preview (first 20 lines):[/dim]")
+        console.print("─" * 60)
         lines = preview.splitlines()[:20]
         syntax = Syntax("\n".join(lines), "python", theme="monokai", line_numbers=True)
-        logger.info(syntax)
+        console.print(syntax)
         if len(preview.splitlines()) > 20:
-            logger.info(
-                "[dim]... (%s more lines)[/dim]", len(preview.splitlines()) - 20
+            console.print(
+                f"[dim]... ({len(preview.splitlines()) - 20} more lines)[/dim]"
             )
-        logger.info("─" * 60)
-        logger.info("")
+        console.print("─" * 60)
+        console.print("")
     if artifact_path:
-        logger.info("📂 Full output: [cyan]%s[/cyan]", artifact_path)
-        logger.info("")
-    logger.info("[bold]Options:[/bold]")
+        console.print(f"📂 Full output: [cyan]{artifact_path}[/cyan]")
+        console.print("")
+    console.print("[bold]Options:[/bold]")
     for key, desc in options.items():
-        logger.info("  [bold yellow]\\[%s\\][/bold yellow] %s", key, desc)
+        console.print(f"  [bold yellow]\\[{key}\\][/bold yellow] {desc}")
     console.print()
     while True:
         choice = (
@@ -74,9 +71,8 @@ def prompt_user(
         )
         if choice in options:
             return choice
-        logger.info(
-            "[red]Invalid choice. Please enter one of: %s[/red]",
-            ", ".join(options.keys()),
+        console.print(
+            f"[red]Invalid choice. Please enter one of: {', '.join(options.keys())}[/red]"
         )
 
 
@@ -89,7 +85,7 @@ def show_header(target_file: str) -> None:
         target_file: Target file being processed
     """
     console.print()
-    logger.info(
+    console.print(
         Panel.fit(
             f"[bold cyan]🎯 INTERACTIVE TEST GENERATION[/bold cyan]\nTarget: [yellow]{target_file}[/yellow]",
             border_style="cyan",
@@ -109,7 +105,7 @@ def show_step_header(step_num: int, total_steps: int, title: str) -> None:
         title: Step title
     """
     console.print()
-    logger.info("[bold cyan]%s STEP %s/%s[/bold cyan]", title, step_num, total_steps)
+    console.print(f"[bold cyan]{title} STEP {step_num}/{total_steps}[/bold cyan]")
 
 
 # ID: 6699412d-b837-4213-8426-7ea1ecbd1f61
@@ -121,14 +117,14 @@ def show_code_preview(code: str, message: str = "Preview (first 20 lines):") -> 
         code: Code to display
         message: Optional message before preview
     """
-    logger.info("[dim]%s[/dim]", message)
-    logger.info("─" * 60)
+    console.print(f"[dim]{message}[/dim]")
+    console.print("─" * 60)
     lines = code.splitlines()[:20]
     syntax = Syntax("\n".join(lines), "python", theme="monokai", line_numbers=True)
-    logger.info(syntax)
+    console.print(syntax)
     if len(code.splitlines()) > 20:
-        logger.info("[dim]... (%s more lines)[/dim]", len(code.splitlines()) - 20)
-    logger.info("─" * 60)
+        console.print(f"[dim]... ({len(code.splitlines()) - 20} more lines)[/dim]")
+    console.print("─" * 60)
     console.print()
 
 
@@ -141,7 +137,7 @@ def show_full_code(code: str) -> None:
         code: Code to display
     """
     syntax = Syntax(code, "python", theme="monokai", line_numbers=True)
-    logger.info(syntax)
+    console.print(syntax)
 
 
 # ID: ad2cca60-e2cd-4cde-9faf-4a51405decf7
@@ -153,7 +149,7 @@ def show_diff(diff_content: str) -> None:
         diff_content: Diff content to display
     """
     syntax = Syntax(diff_content, "diff", theme="monokai")
-    logger.info(syntax)
+    console.print(syntax)
 
 
 # ID: c43e9ff7-0ac0-4d30-b8a2-ae6a42811444
@@ -165,7 +161,7 @@ def show_success_message(test_path: str) -> None:
         test_path: Path to created test file
     """
     console.print()
-    logger.info(
+    console.print(
         Panel.fit(
             f"[bold green]🎉 SUCCESS![/bold green]\n\nCreated: [cyan]{test_path}[/cyan]\n\nNext steps:\n  - Run: pytest {test_path}\n  - Review: git diff",
             border_style="green",
@@ -176,7 +172,7 @@ def show_success_message(test_path: str) -> None:
 # ID: 62c8c780-c666-4eee-a6a9-ba385f60c122
 def show_cancellation() -> None:
     """Display cancellation message."""
-    logger.info("[yellow]❌ Cancelled by user[/yellow]")
+    console.print("[yellow]❌ Cancelled by user[/yellow]")
 
 
 # ID: 668baf58-4275-4f61-be7f-07c6aa80fe54
@@ -187,7 +183,7 @@ def show_progress(message: str) -> None:
     Args:
         message: Progress message to display
     """
-    logger.info("  → %s", message)
+    console.print(f"  → {message}")
 
 
 # ID: 8137e5f6-f250-4921-986d-85dfd8b09e65
@@ -198,7 +194,7 @@ def show_success_indicator(message: str) -> None:
     Args:
         message: Success message to display
     """
-    logger.info("    ✅ %s", message)
+    console.print(f"    ✅ {message}")
 
 
 # ID: 3fd75b1e-12a2-4b3e-a001-20212a72191d
