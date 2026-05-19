@@ -1,9 +1,6 @@
 # src/cli/renderers/audit_detail.py
-from shared.logger import getLogger
-
-
-logger = getLogger(__name__)
 """Renderer for detailed audit findings."""
+
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
@@ -36,5 +33,5 @@ def render_details(console: Console, groups: list[SeverityGroup]) -> None:
         title = f"{group.severity.name} ({count} findings)"
         style = get_severity_style(group.severity)
         panel = Panel(inner_table, title=title, border_style=style, expand=False)
-        logger.info(panel)
-        logger.info()
+        console.print(panel)
+        console.print()

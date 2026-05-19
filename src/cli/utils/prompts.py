@@ -3,10 +3,6 @@
 
 from __future__ import annotations
 
-from shared.logger import getLogger
-
-
-logger = getLogger(__name__)
 from rich.console import Console
 from rich.prompt import Confirm
 
@@ -20,6 +16,6 @@ def confirm_action(message: str, *, abort_message: str = "Aborted.") -> bool:
     console.print()
     confirmed = Confirm.ask(message)
     if not confirmed:
-        logger.info("[yellow]%s[/yellow]", abort_message)
+        console.print(f"[yellow]{abort_message}[/yellow]")
     console.print()
     return confirmed

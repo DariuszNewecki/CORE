@@ -8,10 +8,6 @@ Enables focused work on one problem at a time.
 
 from __future__ import annotations
 
-from shared.logger import getLogger
-
-
-logger = getLogger(__name__)
 import typer
 from rich.console import Console
 
@@ -95,21 +91,21 @@ async def rule_cmd(
     """
     core_context: CoreContext = ctx.obj
     if not rule and (not policy) and (not pattern) and (not files):
-        logger.info(
+        console.print(
             "[red]Error: Must specify at least one filter:[/red]\n  --rule <rule_id>\n  --policy <policy_id>\n  --pattern <regex>\n  --files <path> [<path>...]\n"
         )
-        logger.info("\nUse --help for examples")
+        console.print("\nUse --help for examples")
         raise typer.Exit(1)
     await core_context.auditor_context.load_knowledge_graph()
-    logger.info("[bold cyan]🔍 Running Filtered Constitutional Audit[/bold cyan]\n")
+    console.print("[bold cyan]🔍 Running Filtered Constitutional Audit[/bold cyan]\n")
     if rule:
-        logger.info("  Rules: %s", ", ".join(rule))
+        console.print(f"  Rules: {', '.join(rule)}")
     if policy:
-        logger.info("  Policies: %s", ", ".join(policy))
+        console.print(f"  Policies: {', '.join(policy)}")
     if pattern:
-        logger.info("  Patterns: %s", ", ".join(pattern))
+        console.print(f"  Patterns: {', '.join(pattern)}")
     if files:
-        logger.info("  Files: %s", ", ".join(files))
+        console.print(f"  Files: {', '.join(files)}")
     console.print()
     executed_rule_ids: set[str] = set()
     findings_dicts, executed_rules, stats = await run_filtered_audit(

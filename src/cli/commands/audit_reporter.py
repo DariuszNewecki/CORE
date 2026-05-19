@@ -204,8 +204,10 @@ class AuditRunReporter:
                 status_text,
             )
 
-        logger.info("[bold][Phase][/bold] Running checks (%s total)", self.total_checks)
-        logger.info(table)  # FIXED: Use console for Rich table
+        console.print(
+            f"[bold][Phase][/bold] Running checks ({self.total_checks} total)"
+        )
+        console.print(table)
         logger.info("")  # FIXED: Empty string for blank line
 
     # ---------- Summary ----------

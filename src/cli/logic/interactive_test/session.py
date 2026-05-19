@@ -97,6 +97,6 @@ class InteractiveSession:
         for name, path in self.artifacts.items():
             summary.append(f"  - {name}: {path}")
         self.file_handler.write_runtime_text(rel_summary_path, "\n".join(summary))
-        logger.info(
-            "\n📂 Session artifacts saved to: [cyan]%s[/cyan]", self.session_dir
+        console.print(
+            f"\n📂 Session artifacts saved to: [cyan]{self.session_dir}[/cyan]"
         )

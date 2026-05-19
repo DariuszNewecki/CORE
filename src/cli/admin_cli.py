@@ -10,10 +10,6 @@ UNIX Philosophy: CLI provides atomic resource actions; Makefile composes them.
 
 from __future__ import annotations
 
-from shared.logger import getLogger
-
-
-logger = getLogger(__name__)
 import typer
 from rich.console import Console
 
@@ -90,7 +86,7 @@ def main(ctx: typer.Context) -> None:
     service_registry.prime(get_session)
     ctx.obj = core_context
     if ctx.invoked_subcommand is None:
-        logger.info(
+        console.print(
             "[bold green]🛏  CORE Admin Active. Resource-First Architecture v2.0 engaged.[/bold green]"
         )
         launch_interactive_menu()

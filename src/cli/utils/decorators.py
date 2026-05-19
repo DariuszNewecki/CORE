@@ -16,6 +16,7 @@ from dataclasses import dataclass
 from typing import Any, ParamSpec, TypeVar, cast
 
 import typer
+from rich.console import Console
 
 from shared.action_types import ActionResult
 from shared.infrastructure.database.session_manager import dispose_engine
@@ -26,6 +27,7 @@ from .prompts import confirm_action
 
 
 logger = getLogger(__name__)
+console = Console()
 P = ParamSpec("P")
 R = TypeVar("R")
 
@@ -70,14 +72,14 @@ def core_command(
                 except Exception:
                     ctx = None
             if requires_context and (not ctx):
-                logger.info(
+                console.print(
                     "[bold red]System Error: CLI command must accept 'ctx: typer.Context'[/bold red]"
                 )
                 raise typer.Exit(1)
             write = bool(cast(dict[str, Any], kwargs).get("write", False))
             check = bool(cast(dict[str, Any], kwargs).get("check", False))
             if dangerous and (not write) and (not check):
-                logger.info(
+                console.print(
                     "[bold yellow]⚠️  DRY RUN MODE[/bold yellow]\n   No changes will be made. Use [cyan]--write[/cyan] to apply.\n"
                 )
             if dangerous and confirmation and write:
@@ -146,10 +148,8 @@ def core_command(
             except typer.Exit:
                 raise
             except Exception as e:
-                logger.info(
-                    "\n[bold red]❌ Command failed:[/bold red]\n   %s: %s",
-                    type(e).__name__,
-                    e,
+                console.print(
+                    f"\n[bold red]❌ Command failed:[/bold red]\n   {type(e).__name__}: {e}"
                 )
                 logger.error(traceback.format_exc())
                 raise typer.Exit(1)
