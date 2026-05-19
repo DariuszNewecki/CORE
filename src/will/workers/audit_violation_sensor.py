@@ -118,9 +118,9 @@ class AuditViolationSensor(Worker):
         )
 
         intent_repo = get_intent_repository()
-        intent_repo.reload()
 
         auditor_context = self._core_context.auditor_context
+        auditor_context.reload_governance()
         auditor_context.invalidate_file_cache()
 
         file_count = sum(1 for _ in auditor_context.repo_path.rglob("*.py"))

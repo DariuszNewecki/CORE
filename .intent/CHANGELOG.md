@@ -1046,6 +1046,21 @@ Files: .specs/decisions/ADR-059-severity-vocabulary-governance.md.
 
 ---
 
+## ADR-060 — 2026-05-19
+
+Governance input staleness closure. ADR-039 companion. reload_governance()
+already landed on auditor.py:88 (commit e36b42f7). D1: extend wiring to
+filtered_audit.py and audit_violation_sensor.py so all three audit entry
+points refresh policies and enforcement mappings each cycle, matching the
+existing invalidate_file_cache() coverage. D2: CORE-IntentRepository.md
+§4a amended — "restart required" contract superseded; drift window bounded
+to one sensor interval on all code paths.
+Files: .specs/decisions/ADR-060-governance-input-staleness-closure.md,
+src/mind/governance/filtered_audit.py,
+src/will/workers/audit_violation_sensor.py.
+
+---
+
 ## Notes
 
 * This changelog intentionally avoids implementation detail

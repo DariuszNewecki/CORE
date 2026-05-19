@@ -56,27 +56,30 @@ scanning only `META`, `constitution`, and `rules`.
 
 ### 4a. External Edit Behaviour
 
-The IntentRepository cache is not invalidated by external edits to
-`.intent/` during a running process. This is intentional:
+`.intent/` edits are picked up on the next audit cycle via
+`AuditorContext.reload_governance()` (ADR-060). The daemon does not need
+to be restarted for new or amended rules, policies, enforcement mappings,
+or contracts to become active. The maximum staleness window is one sensor
+interval (600 s, governed in `.intent/workers/audit_sensor_*.yaml`).
 
-- The daemon reads `.intent/` at startup. A running daemon evaluates
-  rules against the snapshot that was loaded at startup.
-- If `.intent/` is edited while the daemon is running, the new rules
-  take effect only after the daemon is restarted.
-- This is not a bug. It is a safety property: a running process operates
-  under a known, stable constitution. Mid-run changes do not silently
-  alter the law under which in-flight operations are governed.
+A daemon restart is still required when `.intent/` structural changes
+affect `IntentRepository` initialization — for example, adding a new
+directory to `META/intent_tree.yaml` — or when `src/` Python code changes
+(governed by ADR-030).
 
-**The contract:** `.intent/` edits require a daemon restart to take
-effect. The human architect is responsible for restarting the daemon
-after constitutional changes. The daemon does not watch `.intent/` for
-changes and does not hot-reload.
+The read-only contract is unchanged: the daemon never writes to `.intent/`.
+`IntentRepository` exposes no write methods. `.intent/` is immutable to
+CORE at runtime.
 
-**Consequence for operators:** If you edit `.intent/` while the daemon
-is running and do not restart, the daemon continues operating under the
-prior constitution. This is visible — the daemon startup log shows the
-indexed rule count. A restart that produces a different count confirms
-the new rules were loaded.
+**Consequence for operators:** After editing `.intent/`, the next
+`core-admin code audit` run or sensor cycle picks up the change
+automatically. The `IntentRepository indexed N policies and M rules` log
+line is re-emitted each cycle; a change in N or M confirms the new content
+was loaded.
+
+*Amended by ADR-060 (2026-05-19). Prior contract ("`.intent/` edits require
+a daemon restart to take effect") was accurate before ADR-039 and ADR-060
+landed.*
 
 ---
 

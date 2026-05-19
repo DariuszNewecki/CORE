@@ -140,6 +140,7 @@ async def run_filtered_audit(
 
     # ADR-039: rebuild the filesystem scan once per audit run so files
     # committed since the last cycle are visible to every rule.
+    context.reload_governance()
     context.invalidate_file_cache()
 
     # ADR-044: TTL sweep at audit start. Idempotent per AuditorContext.
