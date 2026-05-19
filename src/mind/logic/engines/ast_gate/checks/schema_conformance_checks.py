@@ -15,17 +15,34 @@ class SchemaConformanceChecks:
     """Validate Python class field declarations against governing data contracts."""
 
     @staticmethod
+    def _is_class_var(annotation: ast.expr) -> bool:
+        # ClassVar[X] / typing.ClassVar[X] are class-level config, not instance fields.
+        node = annotation.value if isinstance(annotation, ast.Subscript) else annotation
+        if isinstance(node, ast.Name):
+            return node.id == "ClassVar"
+        if isinstance(node, ast.Attribute):
+            return node.attr == "ClassVar"
+        return False
+
+    @staticmethod
     # ID: 5fd16fed-90b3-42f6-9bc8-cf7a9d3f6ea3
     def extract_class_annotated_fields(class_node: ast.ClassDef) -> dict[str, int]:
         """Return {field_name: lineno} for AnnAssign targets in the class body.
 
         Walks the immediate body of class_node only — nested class definitions
-        and their fields are not visited.
+        and their fields are not visited. `ClassVar[...]`-annotated names are
+        class-level configuration (e.g. SQLAlchemy `__tablename__`) and are
+        excluded from the instance-field set.
         """
         fields: dict[str, int] = {}
         for stmt in class_node.body:
-            if isinstance(stmt, ast.AnnAssign) and isinstance(stmt.target, ast.Name):
-                fields[stmt.target.id] = ASTHelpers.lineno(stmt)
+            if not (
+                isinstance(stmt, ast.AnnAssign) and isinstance(stmt.target, ast.Name)
+            ):
+                continue
+            if SchemaConformanceChecks._is_class_var(stmt.annotation):
+                continue
+            fields[stmt.target.id] = ASTHelpers.lineno(stmt)
         return fields
 
     @staticmethod
