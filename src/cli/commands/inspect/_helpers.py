@@ -12,10 +12,6 @@ Functions used across multiple inspect modules:
 
 from __future__ import annotations
 
-from shared.logger import getLogger
-
-
-logger = getLogger(__name__)
 from typing import TYPE_CHECKING, Any
 
 from rich.console import Console
@@ -65,28 +61,28 @@ async def _show_session_trace(
     """
     trace = await repo.get_by_session_id(session_id)
     if not trace:
-        logger.info("[yellow]No trace found for session: %s[/yellow]", session_id)
+        console.print(f"[yellow]No trace found for session: {session_id}[/yellow]")
         return
-    logger.info("\n[bold cyan]Session: %s[/bold cyan]", trace.session_id)
-    logger.info("Agent: %s", trace.agent_name)
-    logger.info("Goal: %s", trace.goal or "none")
-    logger.info("Decisions: %s", trace.decision_count)
-    logger.info("Created: %s", trace.created_at)
+    console.print(f"\n[bold cyan]Session: {trace.session_id}[/bold cyan]")
+    console.print(f"Agent: {trace.agent_name}")
+    console.print(f"Goal: {trace.goal or 'none'}")
+    console.print(f"Decisions: {trace.decision_count}")
+    console.print(f"Created: {trace.created_at}")
     if _as_bool(getattr(trace, "has_violations", False)):
-        logger.info("[red]Violations: %s[/red]", trace.violation_count)
+        console.print(f"[red]Violations: {trace.violation_count}[/red]")
     if details:
-        logger.info("\n[bold]Decisions:[/bold]")
+        console.print("\n[bold]Decisions:[/bold]")
         for i, decision in enumerate(trace.decisions or [], 1):
             agent = decision.get("agent", "none")
             d_type = decision.get("decision_type", "none")
-            logger.info("\n[cyan]%s. %s - %s[/cyan]", i, agent, d_type)
-            logger.info("  Rationale: %s", decision.get("rationale", "none"))
-            logger.info("  Chosen: %s", decision.get("chosen_action", "none"))
+            console.print(f"\n[cyan]{i}. {agent} - {d_type}[/cyan]")
+            console.print(f"  Rationale: {decision.get('rationale', 'none')}")
+            console.print(f"  Chosen: {decision.get('chosen_action', 'none')}")
             confidence = decision.get("confidence")
             if isinstance(confidence, (int, float)):
-                logger.info("  Confidence: %s", confidence)
+                console.print(f"  Confidence: {confidence}")
             else:
-                logger.info("  Confidence: none")
+                console.print("  Confidence: none")
 
 
 async def _show_recent_traces(
@@ -110,7 +106,7 @@ async def _show_recent_traces(
         limit=limit, agent_name=agent, failures_only=failures_only
     )
     if not traces:
-        logger.info("[yellow]No traces found matching criteria[/yellow]")
+        console.print("[yellow]No traces found matching criteria[/yellow]")
         return
     table = Table(title=f"Recent Decision Traces ({len(traces)})")
     table.add_column("Session", style="cyan")
@@ -138,9 +134,9 @@ async def _show_recent_traces(
             status,
             created_str,
         )
-    logger.info(table)
+    console.print(table)
     if details and traces:
-        logger.info("\n[dim]Showing details for most recent trace...[/dim]")
+        console.print("\n[dim]Showing details for most recent trace...[/dim]")
         await _show_session_trace(repo, traces[0].session_id, True)
 
 
@@ -158,14 +154,14 @@ async def _show_pattern_traces(
     """
     traces = await repo.get_pattern_stats(pattern, limit)
     if not traces:
-        logger.info("[yellow]No traces found using pattern: %s[/yellow]", pattern)
+        console.print(f"[yellow]No traces found using pattern: {pattern}[/yellow]")
         return
-    logger.info("\n[bold cyan]Traces using pattern: %s[/bold cyan]", pattern)
-    logger.info("Found: %s traces\n", len(traces))
+    console.print(f"\n[bold cyan]Traces using pattern: {pattern}[/bold cyan]")
+    console.print(f"Found: {len(traces)} traces\n")
     violations = sum(1 for t in traces if _as_bool(getattr(t, "has_violations", False)))
     success_rate = (len(traces) - violations) / len(traces) * 100 if traces else 0
-    logger.info("Success rate: [green]%s%[/green]", success_rate)
-    logger.info("Violations: [red]%s[/red] / %s\n", violations, len(traces))
+    console.print(f"Success rate: [green]{success_rate}%[/green]")
+    console.print(f"Violations: [red]{violations}[/red] / {len(traces)}\n")
     if not details:
         table = Table()
         table.add_column("Session", style="cyan")
@@ -184,7 +180,7 @@ async def _show_pattern_traces(
                 status,
                 created_str,
             )
-        logger.info(table)
+        console.print(table)
 
 
 async def _show_statistics(
@@ -198,12 +194,12 @@ async def _show_statistics(
         pattern: Optional pattern to analyze
         days: Number of days to include
     """
-    logger.info(
-        "\n[bold cyan]Decision Trace Statistics (Last %s days)[/bold cyan]\n", days
+    console.print(
+        f"\n[bold cyan]Decision Trace Statistics (Last {days} days)[/bold cyan]\n"
     )
     agent_counts = await repo.count_by_agent(days)
     if not agent_counts:
-        logger.info("[yellow]No traces found in the specified time range[/yellow]")
+        console.print("[yellow]No traces found in the specified time range[/yellow]")
         return
     table = Table(title="Traces by Agent")
     table.add_column("Agent", style="cyan")
@@ -212,19 +208,19 @@ async def _show_statistics(
         agent_counts.items(), key=lambda x: x[1], reverse=True
     ):
         table.add_row(agent_name, str(count))
-    logger.info(table)
+    console.print(table)
     if pattern:
         traces = await repo.get_pattern_stats(pattern, 1000)
         if traces:
-            logger.info("\n[bold]Pattern: %s[/bold]", pattern)
+            console.print(f"\n[bold]Pattern: {pattern}[/bold]")
             violations = sum(
                 1 for t in traces if _as_bool(getattr(t, "has_violations", False))
             )
             success_rate = (
                 (len(traces) - violations) / len(traces) * 100 if traces else 0
             )
-            logger.info("Total uses: %s", len(traces))
-            logger.info("Success rate: [green]%s%[/green]", success_rate)
-            logger.info("Violations: [red]%s[/red]", violations)
+            console.print(f"Total uses: {len(traces)}")
+            console.print(f"Success rate: [green]{success_rate}%[/green]")
+            console.print(f"Violations: [red]{violations}[/red]")
         else:
-            logger.info("\n[yellow]No traces found for pattern: %s[/yellow]", pattern)
+            console.print(f"\n[yellow]No traces found for pattern: {pattern}[/yellow]")
