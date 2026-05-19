@@ -6,10 +6,6 @@ Links Agent reasoning to Body execution for constitutional auditing.
 
 from __future__ import annotations
 
-import logging
-
-
-logger = logging.getLogger(__name__)
 import typer
 from rich.console import Console
 from rich.panel import Panel
@@ -44,15 +40,14 @@ async def admin_forensics_cmd(
     Shows exactly what the AI thought vs what the System physically did.
     """
     service = GovernanceForensicsService()
-    logger.info(
-        "\n[bold cyan]🔎 Forensics: Reconstructing Session %s...[/bold cyan]\n",
-        session_id[:8],
+    console.print(
+        f"\n[bold cyan]🔎 Forensics: Reconstructing Session {session_id[:8]}...[/bold cyan]\n"
     )
     trail = await service.get_audit_trail(session_id)
     if trail["intent"]:
         intent = trail["intent"]
         thought_process = f"[bold]Agent:[/bold] {intent['agent_name']}\n[bold]Goal :[/bold] {intent['goal']}\n[bold]Patterns Used:[/bold] {intent['pattern_stats']}"
-        logger.info(
+        console.print(
             Panel(
                 thought_process,
                 title="[blue]Phase A: Intent & Reasoning[/blue]",
@@ -60,9 +55,9 @@ async def admin_forensics_cmd(
             )
         )
     else:
-        logger.info("[yellow]⚠️  No decision trace found for this session.[/yellow]")
+        console.print("[yellow]⚠️  No decision trace found for this session.[/yellow]")
     if trail["actions"]:
-        logger.info("\n[blue]Phase B: Executed Actions & Governance Verdicts[/blue]")
+        console.print("\n[blue]Phase B: Executed Actions & Governance Verdicts[/blue]")
         action_table = Table(show_header=True, header_style="bold magenta")
         action_table.add_column("Time", style="dim")
         action_table.add_column("Action", style="cyan")
@@ -80,19 +75,23 @@ async def admin_forensics_cmd(
                 status,
                 str(action["action_metadata"]),
             )
-        logger.info(action_table)
+        console.print(action_table)
     else:
-        logger.info(
+        console.print(
             "[yellow]⚠️  No physical actions recorded for this session.[/yellow]"
         )
     if trail["legality_verified"]:
-        logger.info("\n[bold green]⚖️  VERDICT: CHAIN OF LEGALITY VERIFIED[/bold green]")
-        logger.info(
+        console.print(
+            "\n[bold green]⚖️  VERDICT: CHAIN OF LEGALITY VERIFIED[/bold green]"
+        )
+        console.print(
             "[dim]Every action in this session is backed by a recorded reasoning trace.[/dim]\n"
         )
     else:
-        logger.info("\n[bold red]⚖️  VERDICT: ILLEGITIMATE SESSION DETECTED[/bold red]")
-        logger.info(
+        console.print(
+            "\n[bold red]⚖️  VERDICT: ILLEGITIMATE SESSION DETECTED[/bold red]"
+        )
+        console.print(
             "[red]Critical Error: This session contains actions that lack recorded intent.[/red]\n"
         )
         raise typer.Exit(code=1)
