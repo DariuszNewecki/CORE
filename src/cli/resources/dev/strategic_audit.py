@@ -69,7 +69,7 @@ async def strategic_audit_cmd(
     async with get_session() as session:
         config = await ConfigService.create(session)
         if not await config.get_bool("LLM_ENABLED", default=False):
-            logger.info(
+            console.print(
                 "[red]❌ LLM_ENABLED is False. Enable LLMs in database settings to use strategic audit.[/red]"
             )
             raise typer.Exit(code=1)
@@ -79,8 +79,8 @@ async def strategic_audit_cmd(
     if execute:
         mode_parts.append("EXECUTE")
     mode = " + ".join(mode_parts) if mode_parts else "DRY-RUN"
-    logger.info(
-        "\n[bold cyan]🧠 CORE Strategic Audit[/bold cyan] [dim](%s)[/dim]\n", mode
+    console.print(
+        f"\n[bold cyan]🧠 CORE Strategic Audit[/bold cyan] [dim]({mode})[/dim]\n"
     )
     try:
         cognitive_service = await context.registry.get_cognitive_service()
@@ -90,26 +90,24 @@ async def strategic_audit_cmd(
                 session=session, write=write, execute_autonomous=execute
             )
         if campaign.escalations:
-            logger.info(
-                "\n[bold yellow]📬 %s escalation(s) require your review.[/bold yellow]",
-                campaign.escalation_count,
+            console.print(
+                f"\n[bold yellow]📬 {campaign.escalation_count} escalation(s) require your review.[/bold yellow]"
             )
-            logger.info(
+            console.print(
                 "[dim]These need .intent/ amendments — only you can approve them.[/dim]\n"
             )
             for i, e in enumerate(campaign.escalations, 1):
-                logger.info("  [yellow]%s.[/yellow] %s", i, e.root_cause)
-                logger.info("     [dim]%s[/dim]", e.proposed_fix[:120])
+                console.print(f"  [yellow]{i}.[/yellow] {e.root_cause}")
+                console.print(f"     [dim]{e.proposed_fix[:120]}[/dim]")
         if write:
-            logger.info(
-                "\n[green]✅ Campaign persisted.[/green] [dim]ID: %s[/dim]",
-                campaign.campaign_id,
+            console.print(
+                f"\n[green]✅ Campaign persisted.[/green] [dim]ID: {campaign.campaign_id}[/dim]"
             )
         else:
-            logger.info(
+            console.print(
                 "\n[dim]Dry-run complete. Use --write to persist, --execute to act.[/dim]"
             )
     except Exception as e:
         logger.exception("Strategic audit failed")
-        logger.info("[red]❌ Strategic audit failed: %s[/red]", e)
+        console.print(f"[red]❌ Strategic audit failed: {e}[/red]")
         raise typer.Exit(code=1)
