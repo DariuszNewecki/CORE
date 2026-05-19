@@ -119,6 +119,14 @@ mappings:
         - "tests/**"
 
   # Logger must not be abused as a presentation renderer.
+  #
+  # Narrowed 2026-05-19 (#364): removed CLI-related excludes
+  # (src/cli/**, src/body/cli/**, src/cli/utils/**, src/will/cli_logic/**).
+  # Rationale: the rule governs logger misuse, not rendering. CLI may render
+  # via console.print (architecture.channels.cli_rendering_allowed), but
+  # passing Rich markup to logger.* leaks tags to log files in every layer,
+  # CLI included. src/will/workflows/** retained pending migration to
+  # src/cli/ (same exclusion as logic_no_terminal_rendering).
   architecture.channels.logger_not_presentation:
     engine: ast_gate
     params:
@@ -127,10 +135,6 @@ mappings:
       applies_to:
         - "src/**/*.py"
       excludes:
-        - "src/cli/**"
-        - "src/body/cli/**"
-        - "src/cli/utils/**"
-        - "src/will/cli_logic/**"
         - "src/will/workflows/**"
         - "tests/**"
 
