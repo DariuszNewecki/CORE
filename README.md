@@ -1,6 +1,8 @@
 # CORE
 
 > **Executable constitutional governance for AI-assisted software development.**
+>
+> Designed for environments where AI action traceability is not optional.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Release](https://img.shields.io/badge/Release-v2.5.0-blue)](https://github.com/DariuszNewecki/CORE/releases)
@@ -51,6 +53,34 @@ This demo shows:
 - Verified compliance after repair
 
 Governance is executable.
+
+---
+
+## 📋 Live Audit Trail
+
+Every enforced action records its lineage. Two consequence chains, pulled live from the CORE database — same schema, two different authorities:
+
+**Autonomous path** — risk-classified as safe, system self-approved
+
+```
+FINDING     → workflow.ruff_format_check       src/api/cli/client.py                2026-05-18 05:15:15 UTC
+PROPOSAL    → 8845dacc…   fix.format                                                2026-05-18 05:16:15 UTC
+APPROVAL    → risk_classification.safe_auto_approval                                2026-05-18 05:16:15 UTC
+EXECUTION   → completed   (1.29s)                                                   2026-05-18 05:17:18 UTC
+FILE CHANGE → +105 / -0   98da9038 → fca9a971  src/api/cli/client.py                2026-05-18 05:17:19 UTC
+```
+
+**Human-approval path** — governor in the loop
+
+```
+FINDING     → purity.docstrings.required       src/cli/commands/audit_reporter.py   2026-05-15 08:28:29 UTC
+PROPOSAL    → a4363a81…   fix.docstrings                                            2026-05-16 13:39:34 UTC
+APPROVAL    → human.cli_operator  (cli_admin)                                       2026-05-16 13:53:32 UTC
+EXECUTION   → completed   (24.5s)                                                   2026-05-16 13:55:48 UTC
+FILE CHANGE → +26 / -0    5a123426 → 71fde489  src/cli/commands/audit_reporter.py   2026-05-16 13:55:49 UTC
+```
+
+Both chains are queryable end-to-end from `proposal_consequences` and `blackboard_entries`. The constitution decides which authority applies; the schema is identical.
 
 ---
 
