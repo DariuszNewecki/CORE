@@ -1,7 +1,5 @@
 # src/cli/resources/proposals/create.py
 
-import logging
-
 import httpx
 import typer
 from rich.console import Console
@@ -12,8 +10,6 @@ from cli.utils import core_command
 
 from . import app
 
-
-logger = logging.getLogger(__name__)
 
 console = Console()
 
@@ -37,10 +33,10 @@ async def create_proposal(
 
     Validates the plan and performs an initial risk assessment.
     """
-    logger.info("[bold cyan]📝 Crafting Proposal:[/bold cyan] %s", goal)
+    console.print(f"[bold cyan]📝 Crafting Proposal:[/bold cyan] {goal}")
     proposal_actions = parse_action_options(actions)
     if not proposal_actions:
-        logger.info(
+        console.print(
             "[yellow]⚠️ Warning: No actions specified. "
             "Proposal created as placeholder.[/yellow]"
         )
@@ -63,20 +59,19 @@ async def create_proposal(
 
     proposal = response["proposal"]
     risk_level = proposal["risk"]["overall_risk"] if proposal.get("risk") else "unknown"
-    logger.info("Risk Tier: [bold]%s[/bold]", risk_level.upper())
+    console.print(f"Risk Tier: [bold]{risk_level.upper()}[/bold]")
 
     if not write:
-        logger.info(
+        console.print(
             "[yellow]⚠️  DRY RUN MODE — No changes made. "
             "Use --write to persist.[/yellow]"
         )
-        logger.info("[dim]Proposal goal: %s[/dim]", proposal["goal"])
+        console.print(f"[dim]Proposal goal: {proposal['goal']}[/dim]")
         return
 
-    logger.info(
-        "[green]✅ Proposal created: [bold]%s[/bold][/green]", proposal["proposal_id"]
+    console.print(
+        f"[green]✅ Proposal created: [bold]{proposal['proposal_id']}[/bold][/green]"
     )
-    logger.info(
-        "[dim]Run 'core-admin proposals approve %s' to authorize.[/dim]",
-        proposal["proposal_id"],
+    console.print(
+        f"[dim]Run 'core-admin proposals approve {proposal['proposal_id']}' to authorize.[/dim]"
     )
