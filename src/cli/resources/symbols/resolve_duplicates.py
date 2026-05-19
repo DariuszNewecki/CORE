@@ -1,8 +1,4 @@
 # src/cli/resources/symbols/resolve_duplicates.py
-import logging
-
-
-logger = logging.getLogger(__name__)
 import typer
 from rich.console import Console
 
@@ -30,5 +26,5 @@ async def resolve_symbol_duplicates(
     """
     core_context: CoreContext = ctx.obj
     mode = "RESOLVING" if write else "ANALYZING"
-    logger.info("[bold cyan]👯 %s duplicate ID collisions...[/bold cyan]", mode)
+    console.print(f"[bold cyan]👯 {mode} duplicate ID collisions...[/bold cyan]")
     await core_context.action_executor.execute("fix.duplicate_ids", write=write)

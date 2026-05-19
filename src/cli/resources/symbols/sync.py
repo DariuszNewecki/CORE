@@ -1,8 +1,4 @@
 # src/cli/resources/symbols/sync.py
-import logging
-
-
-logger = logging.getLogger(__name__)
 import typer
 from rich.console import Console
 
@@ -39,5 +35,5 @@ async def sync_symbols(
     """
     core_context: CoreContext = ctx.obj
     mode = "WRITE" if write else "DRY-RUN"
-    logger.info("[bold cyan]🔄 Synchronizing Symbols to DB (%s)...[/bold cyan]", mode)
+    console.print(f"[bold cyan]🔄 Synchronizing Symbols to DB ({mode})...[/bold cyan]")
     await core_context.action_executor.execute("sync.db", write=write)

@@ -1,8 +1,4 @@
 # src/cli/resources/symbols/fix_ids.py
-import logging
-
-
-logger = logging.getLogger(__name__)
 import typer
 from rich.console import Console
 
@@ -39,9 +35,9 @@ async def fix_ids_command(
     """
     core_context: CoreContext = ctx.obj
     if not write:
-        logger.info("[yellow]📋 Analysis mode: Scanning for missing IDs...[/yellow]")
+        console.print("[yellow]📋 Analysis mode: Scanning for missing IDs...[/yellow]")
     else:
-        logger.info(
+        console.print(
             "[bold red]🧪 Applying missing ID anchors to source code...[/bold red]"
         )
     await core_context.action_executor.execute("fix.ids", write=write)

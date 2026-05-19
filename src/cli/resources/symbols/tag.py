@@ -1,10 +1,6 @@
 # src/cli/resources/symbols/tag.py
 from __future__ import annotations
 
-import logging
-
-
-logger = logging.getLogger(__name__)
 import typer
 from rich.console import Console
 
@@ -40,7 +36,7 @@ async def tag_symbols_command(
 
     core_context: CoreContext = ctx.obj
     mode = "APPLYING" if write else "PREVIEWING"
-    logger.info("[bold cyan]🧠 %s AI capability tagging...[/bold cyan]", mode)
+    console.print(f"[bold cyan]🧠 {mode} AI capability tagging...[/bold cyan]")
     await main_async(
         session_factory=get_session,
         cognitive_service=core_context.cognitive_service,
