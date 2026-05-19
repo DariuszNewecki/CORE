@@ -5,10 +5,6 @@ Admin Status Command - Infrastructure Health Sensation.
 
 from __future__ import annotations
 
-import logging
-
-
-logger = logging.getLogger(__name__)
 import typer
 from rich.console import Console
 from rich.table import Table
@@ -39,7 +35,7 @@ async def admin_status_cmd(ctx: typer.Context) -> None:
     """
     core_context = ctx.obj
     service = DiagnosticService(core_context.git_service.repo_path)
-    logger.info(
+    console.print(
         "\n[bold cyan]📡 Sensation: Probing System Infrastructure...[/bold cyan]\n"
     )
     connectivity = await service.check_connectivity()
@@ -54,17 +50,17 @@ async def admin_status_cmd(ctx: typer.Context) -> None:
     for name, result in connectivity.items():
         status_icon = "[green]OK[/green]" if result["ok"] else "[red]FAIL[/red]"
         table.add_row(name.capitalize(), status_icon, result["detail"])
-    logger.info(table)
+    console.print(table)
     fs_errors = service.check_file_system()
     if not fs_errors:
-        logger.info("\n[green]✅ All mandatory constitutional roots found.[/green]")
+        console.print("\n[green]✅ All mandatory constitutional roots found.[/green]")
     else:
-        logger.info("\n[bold red]❌ File System Gaps Detected:[/bold red]")
+        console.print("\n[bold red]❌ File System Gaps Detected:[/bold red]")
         for err in fs_errors:
-            logger.info("  [yellow]•[/yellow] %s", err)
+            console.print(f"  [yellow]•[/yellow] {err}")
     all_ok = all(r["ok"] for r in connectivity.values()) and (not fs_errors)
     if all_ok:
-        logger.info("\n[bold green]🛡️  Body Health: OPTIMAL[/bold green]\n")
+        console.print("\n[bold green]🛡️  Body Health: OPTIMAL[/bold green]\n")
     else:
-        logger.info("\n[bold red]⚠️  Body Health: DEGRADED[/bold red]\n")
+        console.print("\n[bold red]⚠️  Body Health: DEGRADED[/bold red]\n")
         raise typer.Exit(code=1)
