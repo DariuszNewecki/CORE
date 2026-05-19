@@ -61,10 +61,10 @@ async def cleanup_database(
     """
     from body.maintenance.memory_cleanup_service import MemoryCleanupService
 
-    logger.info("[bold cyan]🧹 Database Cleanup[/bold cyan]")
-    logger.info("Target: %s", target)
-    logger.info("Age threshold: %s days", days)
-    logger.info("Mode: %s", "WRITE" if write else "DRY-RUN")
+    console.print("[bold cyan]🧹 Database Cleanup[/bold cyan]")
+    console.print(f"Target: {target}")
+    console.print(f"Age threshold: {days} days")
+    console.print(f"Mode: {'WRITE' if write else 'DRY-RUN'}")
     console.print()
     try:
         async with get_session() as session:
@@ -77,15 +77,14 @@ async def cleanup_database(
                 )
                 if result.ok:
                     stats = result.data
-                    logger.info("[green]✅ Memory cleanup completed[/green]")
-                    logger.info("  Episodes: %s", stats.get("episodes_deleted", 0))
-                    logger.info(
-                        "  Reflections: %s", stats.get("reflections_deleted", 0)
+                    console.print("[green]✅ Memory cleanup completed[/green]")
+                    console.print(f"  Episodes: {stats.get('episodes_deleted', 0)}")
+                    console.print(
+                        f"  Reflections: {stats.get('reflections_deleted', 0)}"
                     )
                 else:
-                    logger.info(
-                        "[red]❌ Memory cleanup failed: %s[/red]",
-                        result.data.get("error"),
+                    console.print(
+                        f"[red]❌ Memory cleanup failed: {result.data.get('error')}[/red]"
                     )
             if target in ("all", "action_results"):
                 result = await service.cleanup_action_results(
@@ -93,17 +92,16 @@ async def cleanup_database(
                 )
                 if result.ok:
                     stats = result.data
-                    logger.info("[green]✅ Action results cleanup completed[/green]")
-                    logger.info("  Records: %s", stats.get("records_processed", 0))
+                    console.print("[green]✅ Action results cleanup completed[/green]")
+                    console.print(f"  Records: {stats.get('records_processed', 0)}")
                 else:
-                    logger.info(
-                        "[red]❌ Action results cleanup failed: %s[/red]",
-                        result.data.get("error"),
+                    console.print(
+                        f"[red]❌ Action results cleanup failed: {result.data.get('error')}[/red]"
                     )
         if not write:
-            logger.info()
-            logger.info("[yellow]💡 Run with --write to apply cleanup[/yellow]")
+            console.print()
+            console.print("[yellow]💡 Run with --write to apply cleanup[/yellow]")
     except Exception as e:
         logger.error("Database cleanup failed", exc_info=True)
-        logger.info("[red]❌ Error: %s[/red]", e)
+        console.print(f"[red]❌ Error: {e}[/red]")
         raise typer.Exit(1)
