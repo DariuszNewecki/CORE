@@ -270,6 +270,14 @@ mappings:
         #   will.tools.policy_vectorizer —
         #   ADR-049 D3 closure ADR required, deadline TBD
         - "src/body/infrastructure/bootstrap.py"
+        # fix_actions.py: lazy (function-scoped) import of
+        #   will.self_healing.capability_tagging_service.main_async
+        #   inside fix.capability_tagging action body. CapabilityTaggerAgent
+        #   legitimately depends on will/orchestration so it stays in will/.
+        #   Structural fix requires extracting a Body-layer service facade
+        #   that capability_tagging delegates through.
+        #   ADR-049 D3 closure ADR required, deadline TBD
+        - "src/body/atomic/fix_actions.py"
 
   # ==========================================================================
   # RULE 13: Mind Never Executes (Advisory - uses knowledge_gate)
