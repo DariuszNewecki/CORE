@@ -49,7 +49,7 @@ async def database_status(
         # JSON output for scripting
         core-admin database status --format json
     """
-    logger.info("[bold cyan]📊 Database Status[/bold cyan]")
+    console.print("[bold cyan]📊 Database Status[/bold cyan]")
     console.print()
     try:
         from shared.infrastructure.repositories.db.status_service import (
@@ -66,18 +66,18 @@ async def database_status(
                 "applied_migrations": list(report.applied_migrations),
                 "pending_migrations": report.pending_migrations,
             }
-            logger.info(json.dumps(result, indent=2, default=str))
+            console.print(json.dumps(result, indent=2, default=str))
             return
         _display_status_table(report, detailed)
     except Exception as e:
         logger.error("Database status check failed", exc_info=True)
-        logger.info("[red]❌ Error: %s[/red]", e)
+        console.print(f"[red]❌ Error: {e}[/red]")
         raise typer.Exit(1)
 
 
 def _display_status_table(report, detailed: bool) -> None:
     """Display status information as rich tables."""
-    logger.info("[bold]Connection[/bold]")
+    console.print("[bold]Connection[/bold]")
     conn_table = Table(show_header=False)
     conn_table.add_column("Metric", style="cyan")
     conn_table.add_column("Value")
@@ -85,17 +85,17 @@ def _display_status_table(report, detailed: bool) -> None:
         "Status", "🟢 Connected" if report.is_connected else "🔴 Disconnected"
     )
     conn_table.add_row("Version", report.db_version or "N/A")
-    logger.info(conn_table)
+    console.print(conn_table)
     console.print()
-    logger.info("[bold]Migrations[/bold]")
+    console.print("[bold]Migrations[/bold]")
     mig_table = Table(show_header=False)
     mig_table.add_column("Metric", style="cyan")
     mig_table.add_column("Value")
     mig_table.add_row("Applied", str(len(report.applied_migrations)))
     mig_table.add_row("Pending", str(len(report.pending_migrations)))
-    logger.info(mig_table)
+    console.print(mig_table)
     if report.pending_migrations:
-        logger.info()
-        logger.info("[yellow]⚠️  Pending migrations:[/yellow]")
+        console.print()
+        console.print("[yellow]⚠️  Pending migrations:[/yellow]")
         for mig in sorted(report.pending_migrations):
-            logger.info("  • %s", mig)
+            console.print(f"  • {mig}")

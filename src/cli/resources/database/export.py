@@ -47,15 +47,15 @@ async def export_database(
         # Export to custom directory
         core-admin database export --output-dir exports/2024
     """
-    logger.info("[bold cyan]📤 Database Export[/bold cyan]")
-    logger.info("Output directory: %s", output_dir)
+    console.print("[bold cyan]📤 Database Export[/bold cyan]")
+    console.print(f"Output directory: {output_dir}")
     console.print()
     try:
         from cli.logic.db import export_data
 
         export_data(output_dir)
-        logger.info("[green]✅ Export completed to %s[/green]", output_dir)
+        console.print(f"[green]✅ Export completed to {output_dir}[/green]")
     except Exception as e:
         logger.error("Database export failed", exc_info=True)
-        logger.info("[red]❌ Error: %s[/red]", e)
+        console.print(f"[red]❌ Error: {e}[/red]")
         raise typer.Exit(1)

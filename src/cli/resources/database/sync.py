@@ -56,29 +56,29 @@ async def sync_database(
         # Apply changes
         core-admin database sync --write
     """
-    logger.info("[bold cyan]📊 Database Synchronization[/bold cyan]")
-    logger.info("Mode: %s", "WRITE" if write else "DRY-RUN")
+    console.print("[bold cyan]📊 Database Synchronization[/bold cyan]")
+    console.print(f"Mode: {'WRITE' if write else 'DRY-RUN'}")
     console.print()
     try:
         from body.introspection.sync_service import run_sync_with_db
 
         if not write:
-            logger.info("[yellow]DRY-RUN: Use --write to persist changes[/yellow]")
+            console.print("[yellow]DRY-RUN: Use --write to persist changes[/yellow]")
             return
         async with get_session() as session:
             result = await run_sync_with_db(session)
             if result.ok:
                 stats = result.data
-                logger.info("[green]✅ Synchronization completed[/green]")
-                logger.info()
-                logger.info("  Scanned: %s symbols", stats.get("scanned", 0))
-                logger.info("  Inserted: %s", stats.get("inserted", 0))
-                logger.info("  Updated: %s", stats.get("updated", 0))
-                logger.info("  Deleted: %s", stats.get("deleted", 0))
+                console.print("[green]✅ Synchronization completed[/green]")
+                console.print()
+                console.print(f"  Scanned: {stats.get('scanned', 0)} symbols")
+                console.print(f"  Inserted: {stats.get('inserted', 0)}")
+                console.print(f"  Updated: {stats.get('updated', 0)}")
+                console.print(f"  Deleted: {stats.get('deleted', 0)}")
             else:
-                logger.info("[red]❌ Sync failed: %s[/red]", result.error)
+                console.print(f"[red]❌ Sync failed: {result.error}[/red]")
                 raise typer.Exit(1)
     except Exception as e:
         logger.error("Database sync failed", exc_info=True)
-        logger.info("[red]❌ Error: %s[/red]", e)
+        console.print(f"[red]❌ Error: {e}[/red]")
         raise typer.Exit(1)

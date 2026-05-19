@@ -56,8 +56,8 @@ async def sync_env(
     """
     from body.maintenance.dotenv_sync_service import run_dotenv_sync
 
-    logger.info("[bold cyan]⚙️  Environment Settings Sync[/bold cyan]")
-    logger.info("Mode: %s", "WRITE" if write else "DRY-RUN")
+    console.print("[bold cyan]⚙️  Environment Settings Sync[/bold cyan]")
+    console.print(f"Mode: {'WRITE' if write else 'DRY-RUN'}")
     console.print()
     try:
         core_context = ctx.obj
@@ -66,11 +66,11 @@ async def sync_env(
                 context=core_context, session=session, dry_run=not write
             )
         if not write:
-            logger.info()
-            logger.info("[yellow]💡 Run with --write to apply sync[/yellow]")
+            console.print()
+            console.print("[yellow]💡 Run with --write to apply sync[/yellow]")
         else:
-            logger.info("[green]✅ Environment settings synced to database[/green]")
+            console.print("[green]✅ Environment settings synced to database[/green]")
     except Exception as e:
         logger.error("Environment sync failed", exc_info=True)
-        logger.info("[red]❌ Error: %s[/red]", e)
+        console.print(f"[red]❌ Error: {e}[/red]")
         raise typer.Exit(1)

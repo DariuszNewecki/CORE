@@ -43,8 +43,8 @@ async def migrate_database(
         # Apply all pending migrations
         core-admin database migrate --apply
     """
-    logger.info("[bold cyan]🔄 Database Migration[/bold cyan]")
-    logger.info("Mode: %s", "APPLY" if apply else "PREVIEW")
+    console.print("[bold cyan]🔄 Database Migration[/bold cyan]")
+    console.print(f"Mode: {'APPLY' if apply else 'PREVIEW'}")
     console.print()
     try:
         from shared.infrastructure.repositories.db.migration_service import (
@@ -53,14 +53,14 @@ async def migrate_database(
         )
 
         await migrate_db(apply=apply)
-        logger.info("[green]✅ Migration completed[/green]")
+        console.print("[green]✅ Migration completed[/green]")
         if not apply:
-            logger.info()
-            logger.info("[yellow]💡 Run with --apply to execute migrations[/yellow]")
+            console.print()
+            console.print("[yellow]💡 Run with --apply to execute migrations[/yellow]")
     except MigrationServiceError as e:
-        logger.info("[red]❌ Migration failed: %s[/red]", e)
+        console.print(f"[red]❌ Migration failed: {e}[/red]")
         raise typer.Exit(e.exit_code)
     except Exception as e:
         logger.error("Migration failed", exc_info=True)
-        logger.info("[red]❌ Error: %s[/red]", e)
+        console.print(f"[red]❌ Error: {e}[/red]")
         raise typer.Exit(1)
