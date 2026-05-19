@@ -151,6 +151,13 @@
             "enforcement": "reporting"
         },
         {
+            "id": "data.contracts.worker_declaration_conforms",
+            "statement": "The frozen dataclass `WorkerDeclaration` MUST declare fields that conform to `.intent/enforcement/contracts/WorkerDeclaration.json`. Authority: ADR-056 Wave 1.",
+            "authority": "policy",
+            "phase": "audit",
+            "enforcement": "reporting"
+        },
+        {
             "id": "data.contracts.governance_decision_conforms",
             "statement": "The dataclass `GovernanceDecision` MUST declare fields that conform to `.intent/enforcement/contracts/GovernanceDecision.json`. Authority: ADR-056 Wave 2 Session 1.",
             "authority": "policy",

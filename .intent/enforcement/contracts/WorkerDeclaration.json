@@ -1,0 +1,48 @@
+{
+    "$schema": "META/data_contract.schema.json",
+    "kind": "data_contract",
+    "metadata": {
+        "id": "enforcement/contracts/WorkerDeclaration",
+        "title": "WorkerDeclaration — `.intent/workers/*.yaml` governance envelope",
+        "version": "1.0.0",
+        "authority": "constitution",
+        "status": "active"
+    },
+    "description": "Python governance envelope for `.intent/workers/*.yaml` declarations. Source of truth for the YAML shape is `.intent/META/worker.schema.json`; this contract governs the Python dataclass that mirrors it (src/shared/workers/base.py, alongside the Worker base class that consumes it). IntentRepository.load_worker() returns the parsed YAML as a dict consumed by Worker.__init__ as self._declaration. Nested object fields (metadata, identity, mandate, implementation, config) are kept as dicts in the Python class because they cross the YAML→dict parse boundary as dicts — adding a layer of nested dataclasses would buy no enforcement power that META/worker.schema.json doesn't already provide for the YAML side. Closes the WorkerDeclaration Wave 1 deferral (JSONB-shaped gap, alongside ProposalConsequence and ConstitutionalViolationPayload, now all closed). Authority: ADR-056 Wave 1.",
+    "governed_classes": [
+        "WorkerDeclaration"
+    ],
+    "required": [
+        "kind",
+        "metadata",
+        "identity",
+        "mandate",
+        "implementation"
+    ],
+    "properties": {
+        "kind": {
+            "type": "string",
+            "description": "Worker kind. Constitutional values: worker, shop_manager. Mirrors the kind enum in META/worker.schema.json."
+        },
+        "metadata": {
+            "type": "object",
+            "description": "Declaration metadata: id, title, version, authority, status, optional rationale. Shape governed by META/worker.schema.json."
+        },
+        "identity": {
+            "type": "object",
+            "description": "Worker identity: uuid (permanent constitutional UUID) and class (sensing/acting/governance/supervision). Shape governed by META/worker.schema.json."
+        },
+        "mandate": {
+            "type": "object",
+            "description": "Operational mandate: responsibility, phase, optional permitted_tools, scope, approval_required, schedule. Shape governed by META/worker.schema.json."
+        },
+        "implementation": {
+            "type": "object",
+            "description": "Python implementation pointer: module, class, optional requires_core_context, params. Shape governed by META/worker.schema.json."
+        },
+        "config": {
+            "type": "object",
+            "description": "Worker-specific runtime configuration read by the worker via self._declaration.get('config', {}). Optional. Values are not passed to the constructor."
+        }
+    }
+}

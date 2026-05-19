@@ -22,6 +22,7 @@ from __future__ import annotations
 import re
 import uuid
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -68,6 +69,29 @@ def _sanitize_payload(obj: Any) -> Any:
     if isinstance(obj, list):
         return [_sanitize_payload(i) for i in obj]
     return obj
+
+
+@dataclass(frozen=True)
+# ID: 6e048274-0303-4354-9018-07a12b57d9ec
+class WorkerDeclaration:
+    """Parsed `.intent/workers/*.yaml` declaration.
+
+    Existence in `.intent/workers/` is the sole source of a worker's
+    constitutional standing (per `.intent/META/worker.schema.json`).
+    This dataclass governs the runtime shape that
+    IntentRepository.load_worker() returns and that Worker.__init__
+    stores as self._declaration. Nested object fields are kept as dicts
+    rather than further nested dataclasses — the YAML→dict parse path is
+    a single hop, and META/worker.schema.json already enforces the YAML
+    side. Authority: ADR-056 Wave 1.
+    """
+
+    kind: str
+    metadata: dict[str, Any]
+    identity: dict[str, Any]
+    mandate: dict[str, Any]
+    implementation: dict[str, Any]
+    config: dict[str, Any] | None = None
 
 
 # ID: d4e5f6a7-b8c9-0d1e-2f3a-4b5c6d7e8f90

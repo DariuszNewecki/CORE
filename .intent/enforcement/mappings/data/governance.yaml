@@ -155,6 +155,15 @@ mappings:
       applies_to:
         - "src/mind/governance/violation_report.py"
 
+  data.contracts.worker_declaration_conforms:
+    engine: ast_gate
+    params:
+      check_type: schema_conformance
+      schema_ref: WorkerDeclaration
+    scope:
+      applies_to:
+        - "src/shared/workers/base.py"
+
   data.contracts.constitutional_validation_result_conforms:
     engine: ast_gate
     params:

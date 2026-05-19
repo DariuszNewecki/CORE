@@ -1093,6 +1093,42 @@ Files: src/mind/governance/violation_report.py,
 
 ---
 
+## ADR-056 Wave 1 — 2026-05-19 (WorkerDeclaration)
+
+WorkerDeclaration frozen dataclass added to src/shared/workers/base.py
+alongside the Worker base class that consumes worker declarations.
+Re-exported via src/shared/workers/__init__.py. Governs the runtime
+shape of `.intent/workers/*.yaml` declarations as returned by
+IntentRepository.load_worker() and consumed by Worker.__init__ as
+self._declaration. Source-of-truth schema remains
+`.intent/META/worker.schema.json` for YAML validation; the dataclass
+crystallises the same shape on the Python side so the AST gate has a
+declared surface to reason about. Fields: kind, metadata, identity,
+mandate, implementation, config (optional). Nested object fields are
+kept as dicts; further nesting would add no enforcement power beyond
+META/worker.schema.json on the YAML side. Class lives in base.py
+(not a new file) following the established Wave 1 pattern
+(ProposalConsequence in proposal.py, ConstitutionalViolationPayload in
+violation_report.py) — avoids the orphan-file finding that a new
+governance-only file would otherwise produce.
+
+WorkerDeclaration.json data contract added to
+.intent/enforcement/contracts/. Rule
+data.contracts.worker_declaration_conforms added to
+rules/data/governance.json and enforcement mapping in
+mappings/data/governance.yaml. governed_classes: ["WorkerDeclaration"].
+
+Closes the last deferred Wave 1 dataclass+contract item; ADR-056 Wave 1
+deferral list (ProposalConsequence, ConstitutionalViolationPayload,
+WorkerDeclaration) is now fully landed. AgentDecision.options_considered
+remains a contract-level acknowledged JSONB sub-shape gap with no
+writer in src/, not workable as Wave 1 dataclass work.
+
+Files: src/shared/workers/base.py, src/shared/workers/__init__.py,
+.intent/enforcement/contracts/WorkerDeclaration.json.
+
+---
+
 ## Notes
 
 * This changelog intentionally avoids implementation detail

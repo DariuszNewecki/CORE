@@ -3,7 +3,17 @@
 
 from __future__ import annotations
 
-from .base import Worker, WorkerConfigurationError, WorkerRegistrationError
+from .base import (
+    Worker,
+    WorkerConfigurationError,
+    WorkerDeclaration,
+    WorkerRegistrationError,
+)
 
 
-__all__ = ["Worker", "WorkerConfigurationError", "WorkerRegistrationError"]
+__all__ = [
+    "Worker",
+    "WorkerConfigurationError",
+    "WorkerDeclaration",
+    "WorkerRegistrationError",
+]
