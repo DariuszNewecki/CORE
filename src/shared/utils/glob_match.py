@@ -18,7 +18,7 @@ from __future__ import annotations
 from collections.abc import Iterable
 from pathlib import Path
 
-from pathspec.patterns.gitwildmatch import GitWildMatchPattern
+from pathspec.patterns.gitignore.spec import GitIgnoreSpecPattern
 
 
 # ID: 57255383-a41d-4c3e-b003-dd5ba8ce622f
@@ -26,7 +26,7 @@ def matches_glob(path: str | Path, pattern: str) -> bool:
     """
     Test whether a path matches a glob pattern under gitignore semantics.
 
-    Uses pathspec's GitWildMatchPattern. Patterns follow gitignore.5
+    Uses pathspec's GitIgnoreSpecPattern. Patterns follow gitignore.5
     conventions: leading or middle '/' anchors at root; '*' matches any
     run of characters except '/'; '**' matches any number of path
     segments including zero; trailing '/' restricts to directories.
@@ -67,7 +67,7 @@ def matches_glob(path: str | Path, pattern: str) -> bool:
         path_str = path_str[2:]
     path_str = path_str.lstrip("/")
 
-    compiled = GitWildMatchPattern(pattern)
+    compiled = GitIgnoreSpecPattern(pattern)
     regex = compiled.regex
     if regex is None:
         return False
