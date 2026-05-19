@@ -222,8 +222,10 @@ The API layer (`src/api/`) is a special case:
 
 * API is an **entrypoint boundary**, not an architectural layer
 * API components MUST route all work through Will
-* API components MUST NOT access infrastructure directly
+* API components MUST NOT access database sessions directly. API MAY use sanctioned shared repositories and services through `api/dependencies.py` and named providers. Routing all API work through a Will use-case layer is recorded as architectural debt; see ADR-049 and the dedicated use-case-layer ADR (to be filed).
 * API components MUST NOT implement business logic
+
+*Enforced by `architecture.api.no_direct_database_access` (`layer_separation.yaml`). Use-case-layer enforcement: aspirational, see ADR-049.*
 
 **Rationale:** API is a translation layer between external requests and internal architecture. It belongs to no layer and must not bypass the separation.
 
