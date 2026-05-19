@@ -6,8 +6,6 @@ Orchestrates the final integration of staged code changes into the system.
 
 from __future__ import annotations
 
-import logging
-
 import httpx
 import typer
 from rich.console import Console
@@ -17,8 +15,6 @@ from cli.utils import core_command
 
 from . import app
 
-
-logger = logging.getLogger(__name__)
 
 console = Console()
 
@@ -32,7 +28,7 @@ async def integrate_cmd(
     ),
 ) -> None:
     """Finalize and integrate staged changes into the repository."""
-    logger.info("[bold cyan]🚀 Initiating integration sequence...[/bold cyan]")
+    console.print("[bold cyan]🚀 Initiating integration sequence...[/bold cyan]")
     client = CoreApiClient()
     try:
         await client.integrate(commit_message=commit_message)
@@ -48,6 +44,6 @@ async def integrate_cmd(
         console.print(f"[red]Integration failed: {error or exc.response.text}[/red]")
         raise typer.Exit(exit_code) from exc
 
-    logger.info(
+    console.print(
         "[bold green]✅ Changes successfully integrated and committed.[/bold green]"
     )

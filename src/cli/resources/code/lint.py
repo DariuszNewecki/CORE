@@ -1,6 +1,4 @@
 # src/cli/resources/code/lint.py
-import logging
-
 import typer
 from rich.console import Console
 
@@ -10,8 +8,6 @@ from cli.utils import core_command
 from .hub import app
 
 
-logger = logging.getLogger(__name__)
-
 console = Console()
 
 
@@ -20,7 +16,7 @@ console = Console()
 # ID: 044f8edf-3262-4e8b-b394-fd76bdd74136
 async def lint_command() -> None:
     """Check code quality using Black and Ruff (Read-Only)."""
-    logger.info("[bold cyan]🔎 Linting codebase...[/bold cyan]")
+    console.print("[bold cyan]🔎 Linting codebase...[/bold cyan]")
     client = CoreApiClient()
     result = await client.lint()
 

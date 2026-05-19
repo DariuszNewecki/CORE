@@ -1,8 +1,4 @@
 # src/cli/resources/project/onboard.py
-import logging
-
-
-logger = logging.getLogger(__name__)
 from pathlib import Path
 
 import typer
@@ -31,5 +27,5 @@ def onboard_project(
 
     Analyzes code structure and scaffolds a minimal constitution.
     """
-    logger.info("[bold cyan]⚓ Onboarding repository at:[/bold cyan] %s", path)
+    console.print(f"[bold cyan]⚓ Onboarding repository at:[/bold cyan] {path}")
     initialize_repository(path=path, dry_run=not write)

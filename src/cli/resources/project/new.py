@@ -1,8 +1,4 @@
 # src/cli/resources/project/new.py
-import logging
-
-
-logger = logging.getLogger(__name__)
 import typer
 from rich.console import Console
 
@@ -36,8 +32,8 @@ async def new_project_command(
     """
     core_context: CoreContext = ctx.obj
     mode = "Scaffolding" if write else "Previewing"
-    logger.info(
-        "[bold cyan]🚀 %s project:[/bold cyan] '%s' (Profile: %s)", mode, name, profile
+    console.print(
+        f"[bold cyan]🚀 {mode} project:[/bold cyan] '{name}' (Profile: {profile})"
     )
     await create_new_project(
         context=core_context, name=name, profile=profile, write=write

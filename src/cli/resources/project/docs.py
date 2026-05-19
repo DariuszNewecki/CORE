@@ -1,8 +1,4 @@
 # src/cli/resources/project/docs.py
-import logging
-
-
-logger = logging.getLogger(__name__)
 import typer
 from rich.console import Console
 
@@ -38,8 +34,8 @@ def generate_project_docs(
 
     Extracts all public symbols and their intent from the database.
     """
-    logger.info(
-        "[bold cyan]📚 Generating capability reference to:[/bold cyan] %s", output
+    console.print(
+        f"[bold cyan]📚 Generating capability reference to:[/bold cyan] {output}"
     )
     generate_docs(output=output)
-    logger.info("[green]✅ Documentation updated.[/green]")
+    console.print("[green]✅ Documentation updated.[/green]")

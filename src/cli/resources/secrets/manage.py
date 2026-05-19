@@ -6,13 +6,10 @@ Constitutional compliance: agent_governance, data_governance, operations.
 
 from __future__ import annotations
 
-import logging
-
-
-logger = logging.getLogger(__name__)
 import time
 
 import typer
+from rich.console import Console
 from rich.table import Table
 
 from cli.utils import (
@@ -29,6 +26,9 @@ from shared.infrastructure.database.session_manager import get_session
 from shared.infrastructure.secrets_service import get_secrets_service
 
 from .hub import app
+
+
+console = Console()
 
 
 AUDIT_CONTEXT_SET = "cli:set"
@@ -109,7 +109,7 @@ async def _get_internal(key: str, show: bool) -> ActionResult:
             )
             if show:
                 display_info(f"Secret '{key}':")
-                logger.info(value)
+                console.print(value)
             else:
                 display_success(f"Secret '{key}' exists (use --show to display)")
             return ActionResult(
@@ -171,7 +171,7 @@ async def _list_secrets_internal() -> ActionResult:
                         else "none"
                     ),
                 )
-            logger.info(table)
+            console.print(table)
             display_info(f"Total: {len(secrets_list)} secrets")
             return ActionResult(
                 action_id="secrets.list",
