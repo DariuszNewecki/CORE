@@ -1,8 +1,4 @@
 # src/cli/resources/admin/self_check.py
-import logging
-
-
-logger = logging.getLogger(__name__)
 from pathlib import Path
 
 import typer
@@ -62,13 +58,12 @@ async def self_check_cmd(
         scribe = MetadataScribeService(core_context.cognitive_service)
         executor = ActionExecutor(core_context)
         if not unassigned:
-            logger.info(
+            console.print(
                 "[green]✅ All commands have explicit metadata. Nothing to scribe.[/green]"
             )
         else:
-            logger.info(
-                "[bold cyan]🖋️  Metascribe: Analyzing %s unassigned commands...[/bold cyan]\n",
-                len(unassigned),
+            console.print(
+                f"[bold cyan]🖋️  Metascribe: Analyzing {len(unassigned)} unassigned commands...[/bold cyan]\n"
             )
             for cmd in unassigned:
                 f_path = Path(cmd["file_path"])
@@ -82,10 +77,8 @@ async def self_check_cmd(
                     source_code=source,
                 )
                 if meta_draft:
-                    logger.info(
-                        "   → Proposed for [yellow]%s[/yellow]: %s",
-                        cmd["name"],
-                        meta_draft["canonical_name"],
+                    console.print(
+                        f"   → Proposed for [yellow]{cmd['name']}[/yellow]: {meta_draft['canonical_name']}"
                     )
                     decorator = f'@command_meta(\n    canonical_name="{meta_draft["canonical_name"]}",\n    behavior=CommandBehavior.{meta_draft["behavior"].upper()},\n    layer=CommandLayer.{meta_draft["layer"].upper()},\n    summary="{meta_draft["summary"]}",\n    dangerous={meta_draft["dangerous"]}\n)\n'
                     target_def = f"def {cmd['entrypoint']}"
@@ -99,24 +92,23 @@ async def self_check_cmd(
                         "file.edit", write=True, file_path=rel_path, code=new_source
                     )
     if not write:
-        logger.info("\n[bold cyan]🔍 CLI Registry Audit Results[/bold cyan]\n")
+        console.print("\n[bold cyan]🔍 CLI Registry Audit Results[/bold cyan]\n")
         if report["violations"]:
-            logger.info("[bold red]❌ CONSTITUTIONAL VIOLATIONS:[/bold red]")
+            console.print("[bold red]❌ CONSTITUTIONAL VIOLATIONS:[/bold red]")
             for v in report["violations"]:
-                logger.info("   • %s ([dim]%s[/dim])", v["message"], v["item"])
-            logger.info("")
-        logger.info(
-            "  Total commands:            [bold]%s[/bold]", report["total_commands"]
+                console.print(f"   • {v['message']} ([dim]{v['item']}[/dim])")
+            console.print("")
+        console.print(
+            f"  Total commands:            [bold]{report['total_commands']}[/bold]"
         )
-        logger.info(
-            "  Missing explicit @meta:    [bold yellow]%s[/bold yellow]",
-            len(unassigned),
+        console.print(
+            f"  Missing explicit @meta:    [bold yellow]{len(unassigned)}[/bold yellow]"
         )
         if unassigned:
-            logger.info(
+            console.print(
                 "\n[yellow]💡 Run with --write to autonomously assign metadata via AI.[/yellow]"
             )
     if report["is_healthy"]:
-        logger.info(
+        console.print(
             "\n[bold green]✅ CLI Registry is healthy and aligned.[/bold green]"
         )
