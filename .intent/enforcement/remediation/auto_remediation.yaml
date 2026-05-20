@@ -102,15 +102,6 @@ mappings:
       transformation, no reasoning required.
     status: ACTIVE
 
-  architecture.channels.logger_not_presentation:
-    action: fix.logging
-    confidence: 0.90
-    risk: low
-    description: >
-      Logger calls used for presentation output must be replaced with
-      console.print(). Deterministic AST fix.
-    status: ACTIVE
-
   architecture.channels.logic_no_terminal_rendering:
     action: fix.logging
     confidence: 0.90
