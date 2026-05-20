@@ -1,0 +1,115 @@
+{
+    "$schema": "../../META/data_contract.schema.json",
+    "kind": "data_contract",
+    "metadata": {
+        "id": "contracts.feature_issue",
+        "title": "FeatureIssue — GitHub feature issue field contract",
+        "version": "1.0.0",
+        "authority": "policy",
+        "status": "active"
+    },
+    "description": "Field contract for GitHub Feature issues in the CORE Roadmap project. The GitHub issue template at .github/ISSUE_TEMPLATE/feature.yml implements this contract. When the template and this contract diverge, this contract is authoritative. Authority: ADR-065 (documentation layer separation). Feature issues are the join point between the feature registry (.specs/papers/CORE-Features.md), the roadmap (GitHub CORE Roadmap project), and governing specs/ADRs. The feature_id field is the primary join key.",
+    "governed_classes": [
+        "FeatureIssue"
+    ],
+    "required": [
+        "feature_id",
+        "status",
+        "scope",
+        "introduced_in_tier",
+        "description",
+        "why_it_matters",
+        "spec_ref"
+    ],
+    "properties": {
+        "feature_id": {
+            "type": "string",
+            "pattern": "^F-[0-9]+$",
+            "description": "Canonical identifier from .specs/papers/CORE-Features.md. Primary join key. Must match a declared F-ID; a feature issue for an undeclared F-ID is invalid until the registry is updated."
+        },
+        "status": {
+            "type": "string",
+            "enum": [
+                "shipping",
+                "partial",
+                "roadmap"
+            ],
+            "description": "Implementation state. shipping = active in CORE Solo; partial = foundational work exists, not yet complete; roadmap = designed, not yet implemented. Must be kept in sync with CORE-Features.md; CORE-Features.md is authoritative when they diverge."
+        },
+        "scope": {
+            "type": "string",
+            "enum": [
+                "primitive",
+                "source-code instantiation",
+                "extension"
+            ],
+            "description": "Artifact-type scope. primitive = artifact-agnostic governance engine capability; source-code instantiation = current implementation scoped to source code; extension = extends the engine to new artifact types."
+        },
+        "introduced_in_tier": {
+            "type": "string",
+            "enum": [
+                "Audit",
+                "Solo",
+                "Team",
+                "Enterprise",
+                "Embedded"
+            ],
+            "description": "First tier this feature appears in. All higher tiers inherit it. tier_availability is declared explicitly only where the inheritance rule is overridden."
+        },
+        "tier_availability": {
+            "type": "array",
+            "items": {
+                "type": "string",
+                "enum": [
+                    "Audit",
+                    "Solo",
+                    "Team",
+                    "Enterprise",
+                    "Embedded"
+                ]
+            },
+            "description": "Tiers that include this feature. Normally derived from introduced_in_tier. Declared explicitly only where inheritance is broken."
+        },
+        "description": {
+            "type": "string",
+            "description": "What this feature is and does. Must be consistent with the authoritative description in CORE-Features.md. Artifact-agnostic where scope is primitive."
+        },
+        "why_it_matters": {
+            "type": "string",
+            "description": "Governance or commercial significance at its tier. Written for a tier-appropriate reader. 1-3 sentences."
+        },
+        "blocked_by": {
+            "type": "array",
+            "items": {
+                "type": "string",
+                "pattern": "^F-[0-9]+$"
+            },
+            "description": "F-IDs this feature depends on. Informational — canonical dependency record is the GitHub blocking relationship on the issue. Both must be kept in sync."
+        },
+        "blocks": {
+            "type": "array",
+            "items": {
+                "type": "string",
+                "pattern": "^F-[0-9]+$"
+            },
+            "description": "F-IDs that depend on this feature. Same sync requirement as blocked_by."
+        },
+        "spec_ref": {
+            "type": "string",
+            "pattern": "^\\.specs/papers/CORE-Features\\.md#F-[0-9]+$",
+            "description": "Canonical anchor in the feature registry. Format: .specs/papers/CORE-Features.md#F-XX."
+        },
+        "intent_ref": {
+            "type": "string",
+            "description": "Governing .intent/ file(s), if any. Free-form path or comma-separated paths."
+        },
+        "adrs": {
+            "type": "array",
+            "items": {
+                "type": "string",
+                "pattern": "^ADR-[0-9]+$"
+            },
+            "description": "ADR numbers governing this feature."
+        }
+    }
+}

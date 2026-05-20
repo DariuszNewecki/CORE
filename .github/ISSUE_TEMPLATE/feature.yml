@@ -1,0 +1,120 @@
+name: Feature
+description: Declare a CORE feature (F-XX). Governed by .specs/papers/CORE-Features.md and .intent/enforcement/contracts/FeatureIssue.json.
+title: "[F-XX] "
+labels: ["type:feature", "roadmap"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        The F-ID in the title must match the registry in `.specs/papers/CORE-Features.md`.
+        Set blocked-by / blocks relationships via GitHub issue relationships after creation.
+
+  - type: input
+    id: feature-id
+    attributes:
+      label: Feature ID
+      description: Canonical identifier from CORE-Features.md
+      placeholder: F-XX
+    validations:
+      required: true
+
+  - type: dropdown
+    id: status
+    attributes:
+      label: Status
+      options:
+        - shipping
+        - partial
+        - roadmap
+    validations:
+      required: true
+
+  - type: dropdown
+    id: scope
+    attributes:
+      label: Scope
+      description: Is this feature artifact-agnostic, scoped to source code, or extending the engine to a new artifact type?
+      options:
+        - "primitive: artifact-agnostic governance engine capability"
+        - "source-code instantiation: current implementation scoped to source code"
+        - "extension: extends the engine to new artifact types"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: introduced-in-tier
+    attributes:
+      label: Introduced in tier
+      description: The first tier this feature appears in. All higher tiers inherit it.
+      options:
+        - Audit
+        - Solo
+        - Team
+        - Enterprise
+        - Embedded
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: tier-availability
+    attributes:
+      label: Tier availability
+      description: Check all tiers that include this feature. Normally derived from introduced-in-tier; override only where inheritance is broken.
+      options:
+        - label: Audit
+        - label: Solo
+        - label: Team
+        - label: Enterprise
+        - label: Embedded
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: What this feature is and does. Must be consistent with the authoritative description in CORE-Features.md. Artifact-agnostic where the scope is primitive.
+    validations:
+      required: true
+
+  - type: textarea
+    id: why-it-matters
+    attributes:
+      label: Why it matters
+      description: "The governance or commercial significance at its tier. Written for a tier-appropriate reader. 1–3 sentences."
+      placeholder: "e.g., For Enterprise customers, this is the compliance evidence package that makes the consequence chain submittable to a regulator."
+    validations:
+      required: true
+
+  - type: input
+    id: blocked-by
+    attributes:
+      label: Blocked by
+      description: F-IDs this feature depends on (comma-separated). Mirror as GitHub blocking relationships.
+      placeholder: F-XX, F-XX
+
+  - type: input
+    id: blocks
+    attributes:
+      label: Blocks
+      description: F-IDs that depend on this feature (comma-separated).
+      placeholder: F-XX, F-XX
+
+  - type: input
+    id: spec-ref
+    attributes:
+      label: Spec reference
+      placeholder: .specs/papers/CORE-Features.md#F-XX
+    validations:
+      required: true
+
+  - type: input
+    id: intent-ref
+    attributes:
+      label: Intent reference
+      description: Governing .intent/ file(s), if any.
+      placeholder: .intent/...
+
+  - type: input
+    id: adrs
+    attributes:
+      label: Related ADRs
+      placeholder: ADR-XXX, ADR-XXX
