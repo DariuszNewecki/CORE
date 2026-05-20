@@ -154,7 +154,7 @@ to it autonomously. This separation is architecturally non-negotiable.
 
 <a id="F-05"></a>
 **F-05 — Default rule library (source code)**
-Status: `partial` | Scope: `source-code instantiation`
+Status: `shipping` | Scope: `source-code instantiation`
 
 A bundled set of governance rule_documents under `.intent/rules/`, organized
 across eight categories: `ai`, `architecture`, `cli`, `code`, `data`,
@@ -701,7 +701,7 @@ the autonomous remediation loop.
 | F-02 | Constitutional authority hierarchy | shipping | primitive |
 | F-03 | Phase discipline | shipping | primitive |
 | F-04 | Constitution authoring (`.intent/` layer) | shipping | primitive |
-| F-05 | Default rule library (source code) | partial | source-code instantiation |
+| F-05 | Default rule library (source code) | shipping | source-code instantiation |
 | F-06 | PathResolver / canonical path registry | shipping | primitive |
 | F-07 | Stateless constitutional audit | shipping | source-code instantiation |
 | F-08 | Continuous audit (sensor-driven) | shipping | source-code instantiation |
@@ -741,9 +741,9 @@ the autonomous remediation loop.
 | F-42 | Pluggable sensor model | roadmap | extension |
 | F-43 | Pluggable action model | roadmap | extension |
 
-**Shipping: 22** | **Partial: 2** (F-05, F-27) | **Roadmap: 19**
+**Shipping: 23** | **Partial: 1** (F-27) | **Roadmap: 19**
 
-Of the 22 shipping features: 16 are primitives, 6 are source-code instantiations.
+Of the 23 shipping features: 16 are primitives, 7 are source-code instantiations.
 
 ---
 
