@@ -1,5 +1,5 @@
 {
-    "$schema": "../../META/data_contract.schema.json",
+    "$schema": "META/data_contract.schema.json",
     "kind": "data_contract",
     "metadata": {
         "id": "contracts.feature_issue",
