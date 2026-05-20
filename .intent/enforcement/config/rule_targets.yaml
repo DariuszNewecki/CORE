@@ -1,0 +1,86 @@
+# rule_targets.yaml — F-05 Default Rule Library convergence target
+# Authority: policy
+# Status: active
+#
+# Declares the rule_document set F-05 (Default rule library, source code)
+# commits to enforcing for "shipping" status.
+#
+# F-05 transitions from `partial` to `shipping` when every rule_document
+# listed below exists in .intent/rules/ with metadata.status == "active".
+# Adding a new rule_document to .intent/rules/ does NOT break F-05 shipping;
+# the declared list is a lower bound, not an upper bound. Removing or
+# deactivating a listed document reverts F-05 to partial.
+#
+# This file is the canonical convergence-target artifact. Expanding the
+# target (declaring more rule_documents required) is a deliberate governor
+# decision, not autonomous. Per F-05's option-C convergence criterion:
+# completion is a constitutional fact (computable from this file plus the
+# active state of the listed documents), not an opinion.
+#
+# Spec: .specs/papers/CORE-Features.md#F-05
+# Authored: 2026-05-20 (initial bootstrap; mirrors the 38 rule_documents
+# currently active under .intent/rules/).
+
+metadata:
+  id: rule_targets.f_05
+  title: F-05 Convergence Target — Default Rule Library (Source Code)
+  authority: policy
+  status: active
+  feature_id: F-05
+
+# Inventoried 2026-05-20: 38 rule_documents, 182 individual rules.
+# All listed documents currently have metadata.status == "active".
+target_rule_documents:
+  ai:
+    - rules.ai.capability_taxonomy
+    - rules.ai.cognitive_role_governance
+    - rules.ai.prompt_artifact_structure
+    - rules.ai.prompt_governance
+
+  architecture:
+    - rules.architecture.async_logic
+    - rules.architecture.atomic_actions
+    - rules.architecture.blackboard
+    - rules.architecture.channels
+    - rules.architecture.core_safety
+    - rules.architecture.flows
+    - rules.architecture.governance_basics
+    - rules.architecture.intent_access
+    - rules.architecture.layer_separation
+    - rules.architecture.mind_execution_semantic
+    - rules.architecture.modernization
+    - rules.architecture.modularity
+    - rules.architecture.mutation_surface
+    - rules.architecture.path_access
+    - rules.architecture.patterns
+    - rules.architecture.privileged_boundaries
+    - rules.architecture.quality_gates
+
+  cli:
+    - rules.cli.interface_design
+
+  code:
+    - rules.code.imports
+    - rules.code.layout
+    - rules.code.linkage
+    - rules.code.metadata_mutations
+    - rules.code.modularity
+    - rules.code.purity
+    - rules.code.style
+
+  data:
+    - rules.data.governance
+
+  governance:
+    - rules.governance.intent_artifact_encoding
+    - rules.governance.vocabulary_canonical_store
+    - rules.governance.vocabulary_registers
+
+  infrastructure:
+    - rules.infrastructure.authority_boundaries
+    - rules.infrastructure.cli_commands
+
+  will:
+    - rules.will.autonomy
+    - rules.will.planning
+    - rules.will.proposal_lifecycle

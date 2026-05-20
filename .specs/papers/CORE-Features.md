@@ -156,10 +156,14 @@ to it autonomously. This separation is architecturally non-negotiable.
 **F-05 — Default rule library (source code)**
 Status: `partial` | Scope: `source-code instantiation`
 
-A bundled set of governance rules covering: formatting, import hygiene,
-docstring presence, header compliance, duplicate identifiers, placeholder code,
-modularity, logging standards, AI-prompt governance, and path governance.
-121 rules currently enforced. Coverage is active and expanding.
+A bundled set of governance rule_documents under `.intent/rules/`, organized
+across eight categories: `ai`, `architecture`, `cli`, `code`, `data`,
+`governance`, `infrastructure`, and `will`. The convergence target — the
+specific rule_document set F-05 commits to enforcing for shipping status —
+is declared in `.intent/enforcement/config/rule_targets.yaml`. F-05
+transitions from `partial` to `shipping` when every listed rule_document
+exists with `metadata.status == "active"`. Expanding the declared target is
+a deliberate governor decision, not autonomous.
 
 This library is the source-code instantiation of the rule primitive (F-01).
 Rule libraries for other artifact types (documents, compliance records) are
@@ -443,11 +447,12 @@ other artifact types under F-41.
 **F-26 — LLM integration (API)**
 Status: `shipping` | Scope: `primitive`
 
-CORE integrates with Anthropic Claude via the Anthropic API. AI is used as a
-generation component inside governance workers. AI output is never trusted;
-it is verified against the constitution before execution. The integration is
-artifact-agnostic; AI can generate or transform any artifact type, subject
-to governance.
+CORE integrates with LLM providers via HTTP API. AI is used as a generation
+component inside governance workers. AI output is never trusted; it is
+verified against the constitution before execution. The integration surface
+is provider-agnostic; the current Solo reference deployment routes to
+Ollama-served local models (see F-27). The integration is artifact-agnostic;
+AI can generate or transform any artifact type, subject to governance.
 
 ---
 
@@ -455,9 +460,10 @@ to governance.
 **F-27 — Local LLM support**
 Status: `partial` | Scope: `primitive`
 
-CORE supports Ollama-served local models as a fallback when the Anthropic API
-is unavailable or when the deployment requires local execution. Default
-configuration uses the API; local is opt-in via configuration.
+CORE supports Ollama-served local models. In the current Solo reference
+deployment, local models are the default routing target; no external provider
+traffic occurs unless explicitly configured. Provider selection is governed
+by configuration; switching to an external API is opt-in.
 
 ---
 
