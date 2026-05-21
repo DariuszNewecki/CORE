@@ -1,0 +1,22 @@
+{
+    "$schema": "META/rule_document.schema.json",
+    "kind": "rule_document",
+    "metadata": {
+        "id": "rules.governance.remediation",
+        "title": "Remediation Map Completeness",
+        "version": "1.0.0",
+        "authority": "policy",
+        "phase": "audit",
+        "status": "active"
+    },
+    "rules": [
+        {
+            "id": "governance.remediation.all_rules_mapped",
+            "statement": "Every active reporting rule in the audit rule registry MUST have a corresponding entry in .intent/enforcement/remediation/auto_remediation.yaml. Absence is not a valid signal and produces a silent abandoned-finding re-emission loop.",
+            "enforcement": "blocking",
+            "authority": "policy",
+            "phase": "audit",
+            "rationale": "ADR-066. Without a remediation-map entry, ViolationRemediatorWorker silently skips findings via the release_unmappable path; findings age to abandoned within one TTL cycle; blackboard_query_service.py:103 excludes abandoned from the active set by design; the sensor re-emits the finding on the next cycle; the loop runs indefinitely. Peak observed: 4,282 abandoned findings for a single rule (architecture.cli.api_only) in a 48h window. The ADR-038 circuit-breaker does not fire because no proposals are ever created. Scope is reporting rules only — blocking rules are caught at IntentGuard before they reach the audit board and follow a different lifecycle. A DELEGATE or PENDING entry is sufficient to satisfy the invariant; the entry's existence is what closes the loop."
+        }
+    ]
+}

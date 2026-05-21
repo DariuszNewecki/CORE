@@ -1,0 +1,37 @@
+# .intent/enforcement/mappings/governance/remediation.yaml
+#
+# Enforcement mapping for governance.remediation.* rules.
+# Declared under ADR-066 (Unmapped-Rules Invariant).
+#
+# The check operates against .intent/rules/**/*.json and
+# .intent/enforcement/remediation/auto_remediation.yaml; the per-file
+# applies_to scope is satisfied by either being touched, but the check
+# is structurally repo-wide (it enumerates the rule registry against
+# the remediation map keys).
+
+mappings:
+  # RULE: governance.remediation.all_rules_mapped
+  # Verifies that every active reporting rule in the audit registry has a
+  # corresponding entry in auto_remediation.yaml. An entry of any tier
+  # (ACTIVE, DELEGATE, PENDING) satisfies the invariant — the entry's
+  # existence is what closes the abandoned-finding re-emit loop.
+  #
+  # Scope: reporting rules only. Blocking rules fire at IntentGuard
+  # pre-commit and do not enter the audit-cycle re-emit loop. Advisory
+  # rules do not produce findings. See ADR-066 §"Scope".
+  governance.remediation.all_rules_mapped:
+    engine: artifact_gate
+    params:
+      check_type: all_rules_mapped
+    scope:
+      applies_to:
+        - ".intent/enforcement/remediation/auto_remediation.yaml"
+        - ".intent/rules/**/*.json"
+    severity: ERROR
+    message: >
+      One or more active reporting rules have no entry in
+      .intent/enforcement/remediation/auto_remediation.yaml. Per ADR-066,
+      every active reporting rule must be mapped — even as DELEGATE — to
+      prevent the abandoned-finding re-emission loop documented in the ADR.
+      Add a DELEGATE (or PENDING for roadmap items) entry for each unmapped
+      rule. See ADR-066 and #418.
