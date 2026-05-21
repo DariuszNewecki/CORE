@@ -89,12 +89,17 @@ async def coverage_report(
     for line in payload.get("stdout_tail", []):
         console.print(line)
     if html:
-        # SUPPRESS architecture.cli.api_only: no /v1/coverage/report?format=html
-        # endpoint exists yet; surface a placeholder pointer.
-        console.print(
-            "\n[yellow]HTML output not yet exposed by API — coming with "
-            "/v1/coverage/report?format=html.[/yellow]"
-        )
+        console.print("\n[bold cyan]🌐 Generating HTML coverage report...[/bold cyan]")
+        html_payload = await client.coverage_report(output_format="html")
+        if not html_payload.get("ok", False):
+            summary = html_payload.get("summary") or "HTML report generation failed"
+            console.print(f"[red]{summary}[/red]")
+            raise typer.Exit(code=1)
+        html_path = html_payload.get("html_path")
+        if html_path:
+            console.print(f"[green]✅ HTML report written to: {html_path}/[/green]")
+        else:
+            console.print("[yellow]HTML report ran but no html_path returned.[/yellow]")
 
 
 @core_command(dangerous=False, requires_context=False)

@@ -206,6 +206,27 @@ async def test_coverage_report_passes_show_missing():
 
 
 @pytest.mark.asyncio
+async def test_coverage_report_html_format_dispatches_to_html_runner():
+    """format='html' routes to get_coverage_html_report instead of the text path. Closes #358."""
+    request = _mock_request_with_context()
+    html_payload = {"ok": True, "html_path": "htmlcov", "exit_code": 0}
+    with (
+        patch(
+            "api.v1.coverage_routes.get_coverage_html_report",
+            new=AsyncMock(return_value=html_payload),
+        ) as html_facade,
+        patch(
+            "api.v1.coverage_routes.get_coverage_report",
+            new=AsyncMock(return_value={"ok": True, "stdout_tail": []}),
+        ) as text_facade,
+    ):
+        out = await coverage_report(request=request, show_missing=False, format="html")
+    html_facade.assert_awaited_once()
+    text_facade.assert_not_awaited()
+    assert out == html_payload
+
+
+@pytest.mark.asyncio
 async def test_coverage_targets_returns_facade_payload():
     request = _mock_request_with_context()
     with patch(

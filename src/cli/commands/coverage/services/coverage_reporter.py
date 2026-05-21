@@ -57,18 +57,25 @@ class CoverageReporter:
         return "\n".join(payload.get("stdout_tail", []))
 
     # ID: 2abbdff3-b661-4736-abea-69e89e7e383e
-    def generate_html_report(self) -> Path:
-        """Generate HTML coverage report.
+    async def generate_html_report(self) -> Path:
+        """Generate HTML coverage report via the API.
+
+        Calls `GET /v1/coverage/report?format=html`, which runs pytest
+        with `--cov-report=html` server-side and returns the path to
+        the generated `htmlcov/` directory.
 
         Returns:
-            Path where HTML output would be written.
+            Absolute path to the generated htmlcov/ directory.
 
-        Note:
-            No HTML endpoint exposed yet — the path is returned so the
-            CLI can surface where the report would live. Closing this
-            requires a /coverage/report?format=html endpoint.
+        Raises:
+            RuntimeError: If the API call fails or no html_path returned.
         """
-        # SUPPRESS architecture.cli.api_only: no /v1/coverage/report?format=html
-        # endpoint exists yet. CLI returns the conventional path so the
-        # operator can re-run via the API once the endpoint is added.
-        return self.repo_path / "htmlcov"
+        client = CoreApiClient()
+        payload = await client.coverage_report(output_format="html")
+        if not payload.get("ok", False):
+            error_msg = payload.get("summary") or "HTML coverage generation failed"
+            raise RuntimeError(f"Coverage HTML report failed: {error_msg}")
+        rel_path = payload.get("html_path")
+        if not rel_path:
+            raise RuntimeError("Coverage HTML report: server returned no html_path")
+        return self.repo_path / rel_path

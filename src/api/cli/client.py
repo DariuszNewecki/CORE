@@ -322,12 +322,19 @@ class CoreApiClient:
         return await self._request("GET", "/v1/coverage/check", timeout=300.0)
 
     # ID: b9c3d5e7-2f4a-4b6c-7d8e-9f0a1b2c3d4e
-    async def coverage_report(self, show_missing: bool = False) -> dict:
-        """GET /v1/coverage/report — pytest --cov text report."""
+    async def coverage_report(
+        self, show_missing: bool = False, output_format: str = "text"
+    ) -> dict:
+        """GET /v1/coverage/report — pytest --cov report.
+
+        `output_format='text'` (default) returns the term report shape;
+        `output_format='html'` triggers `--cov-report=html` and returns
+        the `htmlcov/` path in `html_path` (#358).
+        """
         return await self._request(
             "GET",
             "/v1/coverage/report",
-            params={"show_missing": show_missing},
+            params={"show_missing": show_missing, "format": output_format},
             timeout=300.0,
         )
 

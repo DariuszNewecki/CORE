@@ -30,6 +30,7 @@ CONSTITUTIONAL:
 
 from __future__ import annotations
 
+from typing import Literal
 from uuid import UUID
 
 from fastapi import (
@@ -53,6 +54,7 @@ from will.governance.coverage_runner import (
     get_coverage_check,
     get_coverage_gaps,
     get_coverage_history,
+    get_coverage_html_report,
     get_coverage_methods,
     get_coverage_report,
     get_coverage_targets,
@@ -116,9 +118,17 @@ async def coverage_check(request: Request) -> dict:
 async def coverage_report(
     request: Request,
     show_missing: bool = Query(default=False),
+    format: Literal["text", "html"] = Query(default="text"),
 ) -> dict:
-    """Return the pytest coverage text report."""
+    """Return the pytest coverage report.
+
+    `format=text` (default) returns the term report in `stdout_tail`.
+    `format=html` runs pytest with the HTML reporter and returns the
+    `htmlcov/` directory path in `html_path` (closes #358).
+    """
     core_context: CoreContext = request.app.state.core_context
+    if format == "html":
+        return await get_coverage_html_report(core_context)
     return await get_coverage_report(core_context, show_missing=show_missing)
 
 

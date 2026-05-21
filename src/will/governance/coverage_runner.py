@@ -124,6 +124,45 @@ async def get_coverage_report(
     }
 
 
+# ID: 8c4f1e9b-2a6d-4b73-9e80-1f2c3d4e5a6b
+async def get_coverage_html_report(context: CoreContext) -> dict:
+    """Run pytest with coverage and generate the HTML report directory.
+
+    Subprocess-backed via the sanctioned run_command_async primitive.
+    Closes #358. Returns the JSON-safe `{ok, exit_code, html_path,
+    stdout_tail, stderr_tail}` shape; `html_path` is the repo-relative
+    directory where the HTML report was written (None on failure).
+    """
+    argv = [
+        "pytest",
+        "--cov=src",
+        "--cov-report=html",
+        "-q",
+        "--no-header",
+    ]
+    cwd = context.git_service.repo_path
+    try:
+        completed = await run_command_async(argv, cwd=cwd)
+    except Exception as exc:
+        return {
+            "ok": False,
+            "exit_code": -1,
+            "summary": f"{type(exc).__name__}: {exc}",
+            "html_path": None,
+            "stdout_tail": [],
+            "stderr_tail": [],
+        }
+    htmlcov_dir = cwd / "htmlcov"
+    html_path = "htmlcov" if htmlcov_dir.exists() else None
+    return {
+        "ok": completed.returncode == 0,
+        "exit_code": completed.returncode,
+        "html_path": html_path,
+        "stdout_tail": (completed.stdout or "").splitlines()[-50:],
+        "stderr_tail": (completed.stderr or "").splitlines()[-50:],
+    }
+
+
 # ID: 9f6a4c2e-31b8-4d57-a9c0-2f6e7d8c5b14
 def get_coverage_targets(context: CoreContext) -> dict:
     """Return the constitutional coverage targets.
