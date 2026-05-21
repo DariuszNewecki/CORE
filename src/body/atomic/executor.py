@@ -4,7 +4,6 @@ Universal Action Executor - Constitutional Enforcement Gateway
 
 This is the ONLY way actions are executed in CORE, whether:
 - Human operator via CLI
-- AI agent via PlanExecutor
 - Workflow orchestrator via DevSyncWorkflow
 
 Every action execution flows through this gateway, ensuring:
