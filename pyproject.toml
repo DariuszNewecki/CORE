@@ -204,6 +204,7 @@ addopts = [
     "-v",
     "--strict-markers",
     "--strict-config",
+    "--import-mode=importlib",
     "--cov=src",
     "--cov-report=html:reports/htmlcov",
     "--cov-report=term-missing:skip-covered",
