@@ -233,6 +233,25 @@ mappings:
       these findings as unmapped. Human review required before any action.
     status: DELEGATE
 
+  architecture.channels.logger_not_presentation:
+    action: fix.logging
+    confidence: 0.40
+    risk: moderate
+    description: >
+      Logger used for presentation output — Rich objects or strings
+      containing Rich markup passed to logger.* calls. Correct
+      remediation is the inverse direction of fix.logging: convert
+      logger.* back to console.print where the content carries Rich
+      content. No automatable fixer exists; manual migration is the
+      only safe path (precedent: #371's 8-batch hand migration of 113
+      sites across src/cli/). Routed to governor inbox as DELEGATE.
+      Confidence below MIN_CONFIDENCE (0.80) prevents dispatch.
+      Explicitly mapped — not unmapped — to halt the abandoned-finding
+      re-emission loop that previously occurred when the rule had no
+      entry at all (peak: 1,558 abandoned findings in 48h from two
+      files before #343/#344 deletion).
+    status: DELEGATE
+
   # ===========================================================================
   # TIER 3b: PENDING — action implementation required
   # Documented for roadmap visibility only. Will not be dispatched.
