@@ -24,6 +24,7 @@ from cli.interactive import launch_interactive_menu
 from cli.logic.tools import tools_app
 from cli.resources.admin import app as admin_app
 from cli.resources.code import app as code_app
+from cli.resources.coherence import app as coherence_app
 from cli.resources.constitution import app as constitution_app
 from cli.resources.context import app as context_app
 from cli.resources.database import app as database_app
@@ -63,6 +64,7 @@ def register_all_commands(app_instance: typer.Typer) -> None:
     app_instance.add_typer(vectors_app, name="vectors")
     app_instance.add_typer(workers_app, name="workers")
     app_instance.add_typer(constitution_app, name="constitution")
+    app_instance.add_typer(coherence_app, name="coherence")
     app_instance.add_typer(proposals_app, name="proposals")
     app_instance.add_typer(project_app, name="project")
     app_instance.add_typer(dev_app, name="dev")

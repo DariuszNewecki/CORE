@@ -1,0 +1,39 @@
+# var/prompts/constitutional_coherence_analyst/model.yaml
+# PromptModel manifest for the ConstitutionalCoherenceAnalyst role.
+# Governing ADR: .specs/decisions/ADR-067-constitutional-coherence-checker.md
+# Version: 1.0.0
+
+id: prompt.constitutional_coherence_analyst
+version: "1.0.0"
+role: ConstitutionalCoherenceAnalyst
+description: >
+  Candidate-finder for constitutional document coherence. Identifies potential
+  contradictions, gaps, and drift between ADRs, rule domains, and northstar
+  documents. Produces no verdicts. Outputs candidates for human review only.
+
+model:
+  preference: local
+  temperature: 0.1
+  max_tokens: 2048
+
+input:
+  required:
+    - relation_description
+    - documents_text
+
+output:
+  format: raw_text
+  max_length: 8000
+  must_contain:
+    - "["
+    - "]"
+  must_not_contain:
+    - "I recommend"
+    - "should be amended"
+    - "```"
+
+success_criteria: >
+  Output is a valid JSON array. Each element has exactly: relation (string,
+  one of R1/R2/R3), documents (array of strings), claim (one sentence),
+  rationale (2-4 sentences). If no candidates are found, output is [].
+  No preamble, no markdown fences, no amendment recommendations.
