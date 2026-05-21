@@ -34,6 +34,7 @@ class ResourceSelector:
         roles: list[CognitiveRole],
         resources: list[LlmResource],
         assignments: list[RoleResourceAssignment] | None = None,
+        system_operating_mode: str = "local_only",
     ) -> LlmResource | None:
         """
         Apply Mind rules to select resource for role.
@@ -45,10 +46,27 @@ class ResourceSelector:
         primary assignment is the active row at ``priority=1`` for the
         role. When ``assignments`` is ``None`` or empty, the selector
         falls back to qualified-by-capability scoring.
+
+        ADR-052 principle #6 (#333): resources are filtered by locality
+        against the effective operating mode — ``role.operating_mode``
+        if set, otherwise ``system_operating_mode`` — before any
+        assignment lookup or capability check.
         """
         role = next((r for r in roles if r.role == role_name), None)
         if not role:
             logger.error("Role '%s' not found in Mind", role_name)
+            return None
+
+        effective_mode = role.operating_mode or system_operating_mode
+        resources = ResourceSelector._filter_by_locality(
+            resources, effective_mode, role_name
+        )
+        if not resources:
+            logger.error(
+                "No resources match locality for role '%s' under operating_mode='%s'",
+                role_name,
+                effective_mode,
+            )
             return None
 
         primary = _primary_assignment(role_name, assignments)
@@ -65,7 +83,7 @@ class ResourceSelector:
             logger.error("No qualified resources for role '%s'", role_name)
             return None
         best = min(qualified, key=ResourceSelector._score_resource)
-        logger.info("Selected '{best.name}' for '%s' (lowest cost)", role_name)
+        logger.info("Selected '%s' for '%s' (lowest cost)", best.name, role_name)
         return best
 
     @staticmethod
@@ -75,6 +93,7 @@ class ResourceSelector:
         roles: list[CognitiveRole],
         resources: list[LlmResource],
         assignments: list[RoleResourceAssignment] | None = None,
+        system_operating_mode: str = "local_only",
     ) -> list[LlmResource]:
         """
         Plural counterpart to ``select_resource_for_role`` — return every
@@ -92,11 +111,21 @@ class ResourceSelector:
         ADR-052 Phase 3: ``assignments`` (the role_resource_assignments
         table) replaces the dropped ``cognitive_roles.assigned_resource``
         column as the source of the override.
+
+        ADR-052 principle #6 (#333): resources are filtered by locality
+        against the effective operating mode — ``role.operating_mode``
+        if set, otherwise ``system_operating_mode`` — before assignment
+        lookup or capability scoring.
         """
         role = next((r for r in roles if r.role == role_name), None)
         if not role:
             logger.error("Role '%s' not found in Mind", role_name)
             return []
+
+        effective_mode = role.operating_mode or system_operating_mode
+        resources = ResourceSelector._filter_by_locality(
+            resources, effective_mode, role_name
+        )
 
         qualified = [r for r in resources if ResourceSelector._is_qualified(r, role)]
         ordered = sorted(qualified, key=ResourceSelector._score_resource)
@@ -108,6 +137,57 @@ class ResourceSelector:
                 ordered = [assigned] + [r for r in ordered if r.name != assigned.name]
 
         return ordered
+
+    @staticmethod
+    # ID: 59b27757-64e3-46b6-9e51-ca01f753e48e
+    def _filter_by_locality(
+        resources: list[LlmResource],
+        effective_mode: str,
+        role_name: str,
+    ) -> list[LlmResource]:
+        """
+        Filter ``resources`` by locality against ``effective_mode``
+        (ADR-052 principle #6 / #333).
+
+        - ``local_only``  → keep ``locality == 'local'`` only
+        - ``remote_only`` → keep ``locality == 'remote'`` only
+        - ``hybrid``      → keep all
+        - any other mode  → fail closed; treat as ``local_only``
+
+        Resources with ``None`` or unrecognised ``locality`` are treated
+        as ``'local'`` (matches the ``server_default`` on the column).
+
+        Excluded resource names are logged at INFO level.
+        """
+        kept: list[LlmResource] = []
+        excluded: list[str] = []
+        for r in resources:
+            locality = r.locality if r.locality in ("local", "remote") else "local"
+            if effective_mode == "hybrid":
+                kept.append(r)
+            elif effective_mode == "remote_only":
+                if locality == "remote":
+                    kept.append(r)
+                else:
+                    excluded.append(r.name)
+            else:
+                # local_only (default) plus any unrecognised mode fail closed to local
+                if locality == "local":
+                    kept.append(r)
+                else:
+                    excluded.append(r.name)
+
+        if excluded:
+            logger.info(
+                "Locality filter excluded %d resource(s) for role '%s' "
+                "under operating_mode='%s': %s",
+                len(excluded),
+                role_name,
+                effective_mode,
+                ", ".join(excluded),
+            )
+
+        return kept
 
     @staticmethod
     def _is_qualified(resource: LlmResource, role: CognitiveRole) -> bool:

@@ -23,6 +23,7 @@ from shared.infrastructure.database.models import (
     CognitiveRole,
     LlmResource,
     RoleResourceAssignment,
+    SystemConfig,
 )
 from shared.logger import getLogger
 
@@ -55,12 +56,16 @@ class MindStateService:
     # ID: 7d983b1d-83e8-4b07-86a5-f15b7f4ca981
     async def get_llm_resources(self) -> list[LlmResource]:
         """
-        Retrieve all configured LLM resources from Mind.
+        Retrieve available LLM resources from Mind.
+
+        Filters ``is_available=false`` rows at fetch time (#333). The
+        registry says "do not use" for those rows; the router must not
+        see them at all.
         """
         if self.session is None:
             raise RuntimeError("MindStateService error: Session has been detached.")
 
-        stmt = select(LlmResource)
+        stmt = select(LlmResource).where(LlmResource.is_available == True)  # noqa: E712
         result = await self.session.execute(stmt)
         resources = list(result.scalars().all())
 
@@ -102,6 +107,21 @@ class MindStateService:
             "Retrieved %d role-resource assignments from Mind", len(assignments)
         )
         return assignments
+
+    # ID: 0bf49f18-ec35-4ba9-aac0-035a8cd18de3
+    async def get_system_config(self) -> SystemConfig | None:
+        """
+        Retrieve the singleton ``system_config`` row (ADR-052).
+
+        Returns ``None`` if no row exists. Used by callers that need the
+        system-default ``operating_mode`` (#333).
+        """
+        if self.session is None:
+            raise RuntimeError("MindStateService error: Session has been detached.")
+
+        stmt = select(SystemConfig)
+        result = await self.session.execute(stmt)
+        return result.scalar_one_or_none()
 
     # ID: d4e5f678-90ab-cdef-1234-567890abcdef
     async def get_config_service(self) -> ConfigService:

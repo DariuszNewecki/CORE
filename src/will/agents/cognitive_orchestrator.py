@@ -65,6 +65,10 @@ class CognitiveOrchestrator:
         self._loaded = False
         self._mind_state_service = mind_state_service
         self._provider_factory = provider_factory
+        # ADR-052 principle #6 (#333): system-default operating_mode.
+        # Overridden by system_config row at initialize() time; falls
+        # back to 'local_only' when the row is missing.
+        self._system_operating_mode: str = "local_only"
 
     # ID: 18a2986d-296b-4388-b2b1-8796d85b5ee2
     async def initialize(self) -> None:
@@ -80,13 +84,26 @@ class CognitiveOrchestrator:
         self._assignments = (
             await self._mind_state_service.get_role_resource_assignments()
         )
+        # ADR-052 principle #6 (#333): system-default operating_mode used
+        # when a role has no per-role override (cognitive_roles.operating_mode
+        # IS NULL).
+        system_config = await self._mind_state_service.get_system_config()
+        if system_config is None:
+            logger.warning(
+                "CognitiveOrchestrator: system_config row missing — "
+                "defaulting operating_mode to '%s'",
+                self._system_operating_mode,
+            )
+        else:
+            self._system_operating_mode = system_config.operating_mode
 
         self._loaded = True
         logger.info(
-            "Loaded %s resources, %s roles, %s assignments",
+            "Loaded %s resources, %s roles, %s assignments, operating_mode='%s'",
             len(self._resources),
             len(self._roles),
             len(self._assignments),
+            self._system_operating_mode,
         )
 
     # ID: a16f98de-17d6-4787-9d94-ab4bf63bc96f
@@ -101,12 +118,21 @@ class CognitiveOrchestrator:
         on per-resource provisioning errors (ValueError from missing
         config) so one misconfigured row in ``llm_resources`` cannot
         poison an entire role.
+
+        Per #333: ``system_operating_mode`` is threaded through to
+        ``ResourceSelector`` so resources whose ``locality`` is barred
+        by the effective operating mode are dropped before the fallback
+        chain is constructed.
         """
         if not self._loaded:
             await self.initialize()
 
         ordered = ResourceSelector.select_resources_for_role(
-            role_name, self._roles, self._resources, self._assignments
+            role_name,
+            self._roles,
+            self._resources,
+            self._assignments,
+            system_operating_mode=self._system_operating_mode,
         )
         if not ordered:
             raise RuntimeError(f"No resource found for role '{role_name}'")
