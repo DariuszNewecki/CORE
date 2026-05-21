@@ -74,6 +74,16 @@ _VOCABULARY_CHECK_TYPES = frozenset(
     }
 )
 
+_GOVERNANCE_CHECK_TYPES = frozenset(
+    {
+        "all_rules_mapped",
+    }
+)
+
+_AUTO_REMEDIATION_REL = ".intent/enforcement/remediation/auto_remediation.yaml"
+_RULES_DIR_REL = ".intent/rules"
+_MAPPING_KEY_RE = re.compile(r"^  ([a-z][a-z0-9_.]+):$", re.MULTILINE)
+
 _REQUIRED_VOCAB_COLUMNS = ("term", "definition", "not", "authoritative_paper")
 _GOVERNED_ROOTS = (".specs", ".intent")
 _TABLE_SEPARATOR_RE = re.compile(r"^\|[\s\-|]+\|$")
@@ -353,6 +363,72 @@ def _check_authoritative_paths(repo_root: Path, check: str) -> EngineResult:
     return _vocab_result(check, violations)
 
 
+# ID: 7d1a2c8e-4b3f-4d52-a6e1-9c2b8d4e1f7a
+def _check_all_rules_mapped(repo_root: Path, check: str) -> EngineResult:
+    """Verify every active reporting rule has an entry in auto_remediation.yaml.
+
+    ADR-066: rules with no remediation-map entry produce a silent
+    abandoned-finding re-emission loop. Scope is reporting rules only
+    — blocking rules fire pre-commit and do not enter the audit loop.
+    """
+    import json as _json
+
+    map_file = repo_root / _AUTO_REMEDIATION_REL
+    rules_dir = repo_root / _RULES_DIR_REL
+
+    if not map_file.exists():
+        return EngineResult(
+            ok=False,
+            message=f"artifact_gate[{check}]: auto_remediation.yaml missing at {map_file}",
+            violations=[f"Configuration error: {_AUTO_REMEDIATION_REL} not found"],
+            engine_id=_ENGINE_ID,
+        )
+    if not rules_dir.is_dir():
+        return EngineResult(
+            ok=False,
+            message=f"artifact_gate[{check}]: rules dir missing at {rules_dir}",
+            violations=[f"Configuration error: {_RULES_DIR_REL} not found"],
+            engine_id=_ENGINE_ID,
+        )
+
+    mapped_ids: set[str] = set(
+        _MAPPING_KEY_RE.findall(map_file.read_text(encoding="utf-8"))
+    )
+
+    unmapped: list[str] = []
+    for path in sorted(rules_dir.rglob("*.json")):
+        try:
+            doc = _json.loads(path.read_text(encoding="utf-8"))
+        except Exception:
+            # Defensive: a malformed rule document is a separate failure mode,
+            # not this rule's concern. Skip silently — other validators flag it.
+            continue
+        if not isinstance(doc, dict):
+            continue
+        if doc.get("metadata", {}).get("status") != "active":
+            continue
+        for r in doc.get("rules", []) or []:
+            if not isinstance(r, dict):
+                continue
+            rid = r.get("id")
+            if not isinstance(rid, str) or not rid:
+                continue
+            if r.get("enforcement") != "reporting":
+                continue
+            if rid in mapped_ids:
+                continue
+            unmapped.append(rid)
+
+    if not unmapped:
+        return _vocab_result(check, [])
+
+    violations = [
+        f"Active reporting rule '{rid}' has no entry in {_AUTO_REMEDIATION_REL}"
+        for rid in sorted(unmapped)
+    ]
+    return _vocab_result(check, violations)
+
+
 # ID: 69841a82-0920-480c-94cb-d5e4b6cb50dd
 class ArtifactGateEngine(BaseEngine):
     """
@@ -397,6 +473,11 @@ class ArtifactGateEngine(BaseEngine):
         # repo-level walks rather than reading file_path as YAML.
         if check_type in _VOCABULARY_CHECK_TYPES:
             return self._check_vocabulary(file_path, check_type)
+
+        # Governance meta-checks (ADR-066): repo-level invariants over
+        # .intent/ content. Dispatched before YAML load for the same reason.
+        if check_type in _GOVERNANCE_CHECK_TYPES:
+            return self._check_governance(file_path, check_type)
 
         try:
             raw = yaml.safe_load(file_path.read_text(encoding="utf-8")) or {}
@@ -563,6 +644,40 @@ class ArtifactGateEngine(BaseEngine):
             ok=False,
             message=f"artifact_gate[{check_type}]: dispatch fall-through.",
             violations=[f"Unknown vocabulary check_type '{check_type}'"],
+            engine_id=self.engine_id,
+        )
+
+    # -------------------------------------------------------------------------
+    # Governance meta-checks (ADR-066)
+    # Dispatch only — the actual check functions live at module level so the
+    # class stays under modularity.class_too_large limits.
+    # -------------------------------------------------------------------------
+
+    def _check_governance(self, file_path: Path, check_type: str) -> EngineResult:
+        """Locate the repo root from file_path and dispatch the governance check."""
+        repo_root: Path | None = None
+        for parent in file_path.resolve().parents:
+            if (parent / ".intent").is_dir() and (parent / ".specs").is_dir():
+                repo_root = parent
+                break
+        if repo_root is None:
+            return EngineResult(
+                ok=False,
+                message=f"artifact_gate[{check_type}]: cannot locate repo root.",
+                violations=[
+                    f"Configuration error: walked up from {file_path} but found "
+                    "no directory containing both .intent/ and .specs/."
+                ],
+                engine_id=self.engine_id,
+            )
+
+        if check_type == "all_rules_mapped":
+            return _check_all_rules_mapped(repo_root, check_type)
+
+        return EngineResult(
+            ok=False,
+            message=f"artifact_gate[{check_type}]: dispatch fall-through.",
+            violations=[f"Unknown governance check_type '{check_type}'"],
             engine_id=self.engine_id,
         )
 
