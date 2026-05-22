@@ -40,6 +40,15 @@ async def check_command(
             "auto-detected from the previous run's input_manifest."
         ),
     ),
+    sample: int = typer.Option(
+        None,
+        "--sample",
+        help=(
+            "Randomly sample N rule files for R2/R3 (R1 still scans all "
+            "ADRs). Use for narrow exploratory runs. Omit to evaluate all "
+            "rule files."
+        ),
+    ),
 ) -> None:
     """Run one Constitutional Coherence Checker pass (R1, R2, R3)."""
     context: CoreContext = ctx.obj
@@ -60,7 +69,7 @@ async def check_command(
 
         console.print("[cyan]Starting coherence run…[/cyan]")
         try:
-            run_id = await checker.run(full=full)
+            run_id = await checker.run(full=full, sample_rules=sample)
         except Exception as exc:
             logger.exception("Coherence run failed")
             console.print(f"[red]❌ Coherence run failed: {exc}[/red]")

@@ -25,6 +25,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import random
 import re
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -83,9 +84,14 @@ class CoherenceChecker:
         self._cognitive_service = cognitive_service
         self._coherence_service = coherence_service
         self._repo_root = Path(repo_root)
+        # Per-run state — set by run(). _rule_paths_cache holds the (possibly
+        # sampled) rule path list so R2 and R3 see the same set even when
+        # sampling is in effect.
+        self._sample_rules: int | None = None
+        self._rule_paths_cache: list[Path] | None = None
 
     # ID: 2e4a95a7-fdac-427a-94eb-ed20ce2930c9
-    async def run(self, full: bool = False) -> str:
+    async def run(self, full: bool = False, sample_rules: int | None = None) -> str:
         """
         Execute one CCC pass over R1, R2, and R3. Returns the new run_id.
 
@@ -93,7 +99,15 @@ class CoherenceChecker:
         recent run's input_manifest: a higher ADR count yields ``adr_added``;
         any changed northstar SHA-256 yields ``northstar_changed``; otherwise
         ``manual``. With ``full=True`` the trigger is always ``manual``.
+
+        ``sample_rules`` randomly samples N rule files for R2/R3 (R1 still
+        scans all ADRs). Use for narrow exploratory runs. When None or >=
+        total rule count, all rules are evaluated.
         """
+        # Per-run cache reset — see __init__ docstring.
+        self._sample_rules = sample_rules
+        self._rule_paths_cache = None
+
         trigger = await self._detect_trigger(full=full)
         manifest = self._build_input_manifest()
         run_id = await self._coherence_service.create_run(trigger)
@@ -365,11 +379,31 @@ class CoherenceChecker:
         return sorted(northstar_dir.glob("*.md"))
 
     def _rule_paths(self) -> list[Path]:
-        # Canonical access: discover rule documents via IntentRepository, the
-        # sanctioned gateway for .intent/ (rules.architecture.intent_access).
+        """
+        Return the rule path list for the current run. Cached so R2 and R3
+        see the same set when ``--sample`` is in effect.
+        """
+        if self._rule_paths_cache is None:
+            self._rule_paths_cache = self._discover_rule_paths(self._sample_rules)
+        return self._rule_paths_cache
+
+    def _discover_rule_paths(self, sample: int | None) -> list[Path]:
+        """
+        Discover rule documents via IntentRepository (the sanctioned gateway
+        for .intent/ — rules.architecture.intent_access). Optionally subsample.
+        """
         repo = get_intent_repository()
         repo.initialize()
-        return sorted(ref.path for ref in repo.list_policies())
+        all_rule_paths = sorted(ref.path for ref in repo.list_policies())
+        if sample is not None and 0 < sample < len(all_rule_paths):
+            chosen = sorted(random.sample(all_rule_paths, sample))
+            logger.info(
+                "CCC: sampling %d of %d rule files for R2/R3",
+                sample,
+                len(all_rule_paths),
+            )
+            return chosen
+        return all_rule_paths
 
     def _load_rule_id(self, rule_path: Path) -> str | None:
         try:
