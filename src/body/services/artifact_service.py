@@ -128,3 +128,28 @@ class ArtifactService:
                 )
             )
             return result.scalar() or 0
+
+    # ID: 1a8d7e2b-5c91-4f3a-9d6b-8e4c0a72f513
+    async def reset_pending_chunk_counts(self) -> int:
+        """
+        Reset chunk_count to 0 on every artifact that has been embedded
+        (chunk_count > 0), forcing the next embed pass to treat them as
+        pending. Permanently-skipped artifacts (chunk_count = -1) are left
+        alone — they were determined empty and should not be re-queued.
+
+        Returns the number of rows reset.
+
+        Covers:
+          - sync.vectors.code force=True — pre-loop reset before re-embed.
+        """
+        from body.services.service_registry import ServiceRegistry
+
+        async with ServiceRegistry.session() as session:
+            result = await session.execute(
+                text(
+                    "UPDATE core.repo_artifacts SET chunk_count = 0 "
+                    "WHERE chunk_count > 0"
+                )
+            )
+            await session.commit()
+            return result.rowcount or 0

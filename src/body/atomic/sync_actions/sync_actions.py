@@ -153,11 +153,13 @@ async def action_sync_code_vectors(
         if not write:
             logger.info(
                 "Dry-run: would run CrawlService.run_crawl + ArtifactService embed loop"
+                " (force=%s)",
+                force,
             )
             return ActionResult(
                 action_id="sync.vectors.code",
                 ok=True,
-                data={"status": "dry_run"},
+                data={"status": "dry_run", "force": force},
                 duration_sec=time.time() - start,
             )
 
@@ -172,6 +174,19 @@ async def action_sync_code_vectors(
         # Phase 1: Crawl — register/update repo_artifacts and call-graph edges
         logger.info("sync.vectors.code: Phase 1 — CrawlService.run_crawl")
         await crawl_svc.run_crawl(repo_root, cognitive_service)
+
+        # Phase 1.5: Force — reset chunk_count on already-embedded artifacts so
+        # the embed loop re-processes them. Permanently-skipped artifacts
+        # (chunk_count = -1) are left alone. Qdrant point IDs are deterministic
+        # from (file_path, chunk_index), so the upsert overwrites existing
+        # vectors rather than producing duplicates.
+        reset_count = 0
+        if force:
+            reset_count = await artifact_svc.reset_pending_chunk_counts()
+            logger.info(
+                "sync.vectors.code: force=True reset %d artifact(s) to chunk_count=0",
+                reset_count,
+            )
 
         # Phase 2: Embed — chunk and upsert all pending artifacts in batches
         logger.info("sync.vectors.code: Phase 2 — ArtifactService embed loop")
@@ -254,7 +269,12 @@ async def action_sync_code_vectors(
         return ActionResult(
             action_id="sync.vectors.code",
             ok=True,
-            data={"status": "completed", "dry_run": False},
+            data={
+                "status": "completed",
+                "dry_run": False,
+                "force": force,
+                "reset_count": reset_count,
+            },
             duration_sec=time.time() - start,
         )
 

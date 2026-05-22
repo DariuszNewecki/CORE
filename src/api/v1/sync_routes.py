@@ -61,11 +61,17 @@ class SyncRequest(BaseModel):
 
     `target` is an optional scope filter forwarded to the backend.
     Backends that don't honour it ignore it.
+
+    `force` is a backend-specific re-run hint. Today only
+    `sync.vectors.code` honours it (resets chunk_count on already-embedded
+    artifacts so the embed loop re-processes them). Default False — no
+    behaviour change for callers that don't pass it.
     """
 
     write: bool = False
     target: str | None = None
     requested_by: str = "api"
+    force: bool = False
 
 
 # ID: 7f4b1a9c-3e8d-4a6b-1542-07890ab12345
@@ -119,6 +125,7 @@ async def _dispatch_sync(
                 sync_type=sync_type,
                 write=payload.write,
                 target=payload.target,
+                force=payload.force,
             )
 
     background_tasks.add_task(drive_sync)

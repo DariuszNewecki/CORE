@@ -94,12 +94,18 @@ async def run_and_persist_sync(
     sync_type: str,
     write: bool,
     target: str | None = None,
+    force: bool = False,
 ) -> None:
     """Dispatch the correct backend per `sync_type` and persist on sync_runs.
 
     The row has been INSERTed by the route handler with status='pending'
     and the supplied `sync_type` / `write` / `target` values. This
     function transitions it through executing → completed | failed.
+
+    `force` is a runtime parameter (not persisted on sync_runs): it is
+    forwarded to the backend action where supported. `sync.vectors.code`
+    uses it to reset chunk_count on already-embedded artifacts before
+    the embed loop.
 
     Errors are caught and recorded on the row; this function never
     raises into the background-task scheduler.
@@ -136,6 +142,10 @@ async def run_and_persist_sync(
             exec_kwargs: dict[str, Any] = {}
             if target is not None:
                 exec_kwargs["target"] = target
+            # force is only meaningful for sync.vectors.code (re-embed).
+            # The other actions don't accept a `force` kwarg.
+            if force and sync_type == "code_vectors":
+                exec_kwargs["force"] = True
             action_result = await executor.execute(
                 action_id, write=write, **exec_kwargs
             )
@@ -167,9 +177,10 @@ async def run_and_persist_sync(
     )
 
     logger.info(
-        "sync_runner: %s (%s) completed ok=%s write=%s",
+        "sync_runner: %s (%s) completed ok=%s write=%s force=%s",
         run_id,
         sync_type,
         ok,
         write,
+        force,
     )

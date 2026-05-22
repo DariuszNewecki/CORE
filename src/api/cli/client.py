@@ -707,12 +707,22 @@ class CoreApiClient:
         write: bool = False,
         target: str | None = None,
         requested_by: str = "api",
+        force: bool = False,
     ) -> dict:
-        """POST /v1/sync/code-vectors — codebase symbol embedding."""
+        """POST /v1/sync/code-vectors — codebase symbol embedding.
+
+        `force=True` resets chunk_count on already-embedded artifacts so the
+        embed loop re-processes them. No-op when `write` is False.
+        """
         return await self._request(
             "POST",
             "/v1/sync/code-vectors",
-            json={"write": write, "target": target, "requested_by": requested_by},
+            json={
+                "write": write,
+                "target": target,
+                "requested_by": requested_by,
+                "force": force,
+            },
         )
 
     # ID: 0e4f7a1b-2c3d-4450-1234-567890123456

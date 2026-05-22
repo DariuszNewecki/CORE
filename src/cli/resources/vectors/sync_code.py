@@ -38,11 +38,14 @@ async def sync_code_cmd(
 ) -> None:
     """Synchronize codebase symbol embeddings with the vector database."""
     _ = ctx
-    _ = force  # API doesn't currently expose a force flag; #361 follow-up.
     mode = "SYNCING" if write else "ANALYZING"
+    if force and write:
+        console.print(
+            "[bold yellow]⚡ --force: re-embedding all artifacts[/bold yellow]"
+        )
     console.print(f"[bold cyan]🧠 {mode} codebase vectors...[/bold cyan]")
     client = CoreApiClient()
-    initial = await client.sync_code_vectors(write=write)
+    initial = await client.sync_code_vectors(write=write, force=force)
     run_id = initial.get("run_id")
     if not run_id:
         console.print(f"[red]❌ sync_code_vectors failed to dispatch: {initial}[/red]")
