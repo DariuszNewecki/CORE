@@ -266,14 +266,28 @@ async def action_sync_code_vectors(
                 "sync.vectors.code: reached max embedding passes (%d)", max_passes
             )
 
+        # The pass loop has a hard cap (max_passes * batch_size). If pending
+        # artifacts remain after it exits, the action did partial work:
+        # surface that explicitly so callers (audit rows, CLI, scripted
+        # loops) can distinguish "all done" from "more pending — re-invoke
+        # or wait for RepoEmbedderWorker".
+        pending_remaining = await artifact_svc.count_pending_artifacts()
+        embed_status = "completed" if pending_remaining == 0 else "partial"
+        if embed_status == "partial":
+            logger.info(
+                "sync.vectors.code: partial — %d artifact(s) still pending",
+                pending_remaining,
+            )
+
         return ActionResult(
             action_id="sync.vectors.code",
             ok=True,
             data={
-                "status": "completed",
+                "status": embed_status,
                 "dry_run": False,
                 "force": force,
                 "reset_count": reset_count,
+                "pending_remaining": pending_remaining,
             },
             duration_sec=time.time() - start,
         )

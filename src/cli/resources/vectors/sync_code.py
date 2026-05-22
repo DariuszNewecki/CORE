@@ -56,4 +56,12 @@ async def sync_code_cmd(
             f"[red]❌ Code vector sync failed: {final.get('error') or final}[/red]"
         )
         raise typer.Exit(1)
-    console.print("[green]✅ Code vector sync completed[/green]")
+    action_data = (final.get("result") or {}).get("data") or {}
+    if action_data.get("status") == "partial":
+        remaining = action_data.get("pending_remaining", "?")
+        console.print(
+            f"[yellow]⚠ Embed cap reached — {remaining} artifact(s) still "
+            f"pending. Re-run sync-code or wait for RepoEmbedderWorker.[/yellow]"
+        )
+    else:
+        console.print("[green]✅ Code vector sync completed[/green]")
