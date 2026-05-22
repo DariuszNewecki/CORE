@@ -19,6 +19,7 @@ import typer
 from rich.console import Console
 
 from api.cli.client import CoreApiClient
+from body.services.coherence_service import CoherenceService
 from cli.commands.check.converters import parse_min_severity
 from cli.commands.check.formatters import (
     print_context_build_hints,
@@ -27,6 +28,7 @@ from cli.commands.check.formatters import (
 )
 from cli.logic.audit_renderer import AuditStats, render_overview, to_audit_finding
 from cli.utils import core_command
+from shared.infrastructure.database.session_manager import get_session
 
 from .hub import app
 
@@ -105,6 +107,15 @@ async def audit_command(
         verdict_str=result["verdict"],
     )
 
+    # ADR-067 D5: append Constitutional Coherence advisory. Advisory only —
+    # any CCC DB failure is logged and the line silently skipped so audit
+    # semantics are not affected.
+    try:
+        async with get_session() as session:
+            await _print_coherence_advisory(console, CoherenceService(session))
+    except Exception as exc:
+        logger.warning("CCC advisory line skipped: %s", exc)
+
     if filtered_findings:
         if verbose:
             print_verbose_findings(filtered_findings)
@@ -117,3 +128,36 @@ async def audit_command(
     if not result["passed"]:
         print_context_build_hints(all_findings)
         raise typer.Exit(1)
+
+
+async def _print_coherence_advisory(
+    console: Console, coherence_service: CoherenceService
+) -> None:
+    """ADR-067 D5: print one Constitutional Coherence advisory line.
+
+    Three cases:
+      - no runs:    Constitutional Coherence: no runs recorded — run
+                    `core-admin coherence check --full`
+      - open runs:  Constitutional Coherence: {N} open run(s) ·
+                    {M} candidate(s) unreviewed
+      - all closed: Constitutional Coherence: clean (last run {YYYY-MM-DD})
+    """
+    summary = await coherence_service.get_unreviewed_summary()
+    latest = await coherence_service.get_latest_run()
+
+    if latest is None:
+        console.print(
+            "Constitutional Coherence: no runs recorded — run "
+            "`core-admin coherence check --full`"
+        )
+        return
+
+    if summary["open_runs"] > 0:
+        console.print(
+            f"Constitutional Coherence: {summary['open_runs']} open run(s) "
+            f"· {summary['unreviewed']} candidate(s) unreviewed"
+        )
+        return
+
+    run_date = latest["run_at"].date().isoformat()
+    console.print(f"Constitutional Coherence: clean (last run {run_date})")
