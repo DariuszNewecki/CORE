@@ -42,7 +42,7 @@ async def complexity_cmd(
 
     Targets high cyclomatic complexity and 'God Methods' to improve modularity.
     """
-    # CONSTITUTIONAL FIX: Swapped legacy service for V2.3 Roadmap-Compliant logic
+    # CONSTITUTIONAL FIX: V2.3 Roadmap-Compliant complexity remediation logic
     from will.self_healing.complexity_service import remediate_complexity
 
     core_context: CoreContext = ctx.obj

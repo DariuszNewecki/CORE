@@ -54,7 +54,7 @@ class EmbeddingService(Embeddable):
         # api_key is also ignored (local-only).
         _ = (model, base_url, api_key, expected_dim, connect_timeout_sec, max_retries)
 
-        # Map legacy request timeout to canonical httpx timeout.
+        # Map the request timeout to canonical httpx timeout.
         self._svc = LocalEmbeddingService(timeout=float(request_timeout_sec))
 
         logger.warning(

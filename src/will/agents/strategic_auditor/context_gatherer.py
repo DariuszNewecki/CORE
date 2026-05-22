@@ -89,7 +89,7 @@ class SystemContextGatherer:
             "structural_health": structural_health,  # Dim 4
             "change_context": change_context,  # Dim 5
             "intent_drift": intent_drift,  # Dim 6
-            # Legacy aliases for prompt compatibility
+            # Aliases for prompt compatibility
             "knowledge_graph_summary": structural_health,
             "constitution_summary": constitution_summary,
             "git_delta": change_context,

@@ -365,7 +365,7 @@ async def action_fix_placeholders(
                 duration_sec=time.time() - start,
             )
 
-    # ---- Sweep mode (legacy CLI) -------------------------------------------
+    # ---- Sweep mode (CLI callers only) -------------------------------------
     logger.warning(
         "fix.placeholders invoked in sweep mode (no file_path). "
         "This mode is reserved for CLI callers; autonomous callers MUST "

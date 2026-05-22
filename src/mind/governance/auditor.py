@@ -78,7 +78,7 @@ class ConstitutionalAuditor:
                 "executed_rule_ids": set[str],
                 "crashed_rule_ids": set[str],
                 "verdict": AuditVerdict,
-                "passed": bool,  # backward compat: True only if PASS
+                "passed": bool,  # convenience flag: True only if PASS
             }
         """
         # ADR-039: refresh governance and filesystem inputs once per full

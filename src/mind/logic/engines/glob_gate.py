@@ -61,7 +61,7 @@ class GlobGateEngine(BaseEngine):
         if check_type == "allowed_top_level_dirs":
             return self._check_allowed_top_level_dirs(target_path, params)
 
-        # --- LEGACY: max_lines with optional path-based thresholds ---
+        # --- max_lines with optional path-based thresholds ---
         max_lines = params.get("max_lines")
         thresholds = params.get("thresholds")
 

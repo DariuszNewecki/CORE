@@ -53,7 +53,7 @@ class KnowledgeGateEngine(BaseEngine):
     _ALLOWED_TABLES: frozenset[str] = frozenset(
         {
             "core.symbol_vector_links",
-            "core.vector_index",  # legacy alias — shim converts to symbol_vector_links below
+            "core.vector_index",  # alias — converted to symbol_vector_links below
             "core.cli_commands",
             "core.llm_resources",
             "core.cognitive_roles",
@@ -116,7 +116,7 @@ class KnowledgeGateEngine(BaseEngine):
         if not table_name:
             return []
 
-        # SCHEMA DRIFT SHIM:
+        # SCHEMA DRIFT ALIAS:
         # Policy says 'core.vector_index', but database uses 'core.symbol_vector_links'
         if table_name == "core.vector_index":
             table_name = "core.symbol_vector_links"

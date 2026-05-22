@@ -18,7 +18,7 @@ from shared.models import ExecutionTask
 
 
 # ============================================================================
-# LEGACY WORKFLOW MODELS (for dev_sync_workflow)
+# WORKFLOW MODELS (for dev_sync_workflow)
 # ============================================================================
 
 

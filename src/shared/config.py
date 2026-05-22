@@ -155,7 +155,7 @@ class Settings(BaseSettings):
         self._path_resolver = None
 
     # =========================================================================
-    # TRANSITIONAL SHIM: load()
+    # TRANSITIONAL: load()
     # =========================================================================
 
     # ID: 174906ec-e521-4e15-b464-d2b082486dc2
@@ -201,7 +201,7 @@ class Settings(BaseSettings):
         return self._path_resolver
 
     # =========================================================================
-    # LEGACY ACCESSOR SHIM: get_path()
+    # TRANSITIONAL ACCESSOR: get_path()
     # =========================================================================
 
     # ID: 4d351281-e7c8-424f-a916-a9626579580c

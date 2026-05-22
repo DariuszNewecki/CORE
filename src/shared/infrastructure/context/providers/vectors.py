@@ -165,7 +165,7 @@ class VectorProvider:
 
         # ``section`` is the chunk identifier from the embedder: heading
         # text for markdown/YAML, symbol name for Python, "full" for
-        # whole-file chunks. Falls back to legacy symbol_path/symbol.
+        # whole-file chunks. Falls back to symbol_path/symbol if absent.
         section = (
             payload.get("section")
             or payload.get("symbol_path")

@@ -20,7 +20,7 @@ from shared.path_resolver import PathResolver
 from shared.path_utils import get_repo_root
 
 
-# Evidence artifact written by legacy governance auditor
+# Evidence artifact path written by the governance auditor
 LEGACY_AUDIT_EVIDENCE_PATH = (
     PathResolver.from_repo(get_repo_root()).reports_dir / "audit" / "latest_audit.json"
 )

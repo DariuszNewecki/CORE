@@ -219,7 +219,7 @@ class ContextService:
 
         packet = await self.build(request, use_cache=use_cache)
 
-        # Re-shape ContextPacket -> legacy dict consumed by callers.
+        # Re-shape ContextPacket -> the dict shape consumed by callers.
         # Callers index on "context"; ContextPacket stores evidence under .evidence.
         # The builder produces a list; the dataclass annotation says dict — guard both.
         evidence = packet.evidence

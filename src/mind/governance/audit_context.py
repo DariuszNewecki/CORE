@@ -54,7 +54,7 @@ _AST_CACHE: dict[Path, ast.AST] = {}
 
 
 # NOTE: zero call sites in src/ — candidate for removal.
-# Retained for backward compat pending ADR-049 ritual.
+# Retained until ADR-049 ritual permits removal.
 # ID: baa7d0a4-2b67-428c-ab64-1e3dbe009b19
 def clear_knowledge_graph_cache() -> None:
     """Clear the module-level knowledge graph and AST caches."""

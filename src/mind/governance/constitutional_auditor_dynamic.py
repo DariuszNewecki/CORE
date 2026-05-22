@@ -239,7 +239,7 @@ def get_dynamic_execution_stats(
             # Coverage (honest)
             "effective_coverage_percent": effective_coverage,
             "mapped_coverage_percent": mapped_coverage,
-            # Backward compat: existing callers read this key
+            # Existing callers read this key
             "coverage_percent": mapped_coverage,
         }
     except Exception as e:

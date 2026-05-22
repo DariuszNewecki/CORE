@@ -118,7 +118,7 @@ async def workers_run_cmd(
 
     cog_svc = core_context.cognitive_service
 
-    # Single fallback to bare instantiation handles legacy workers whose
+    # Single fallback to bare instantiation handles workers whose
     # __init__ takes no args and rely on a class-level declaration_name
     # (e.g. ObserverWorker). Anything more elaborate belongs in the daemon's
     # _instantiate_worker, not the CLI run path.

@@ -90,7 +90,7 @@ class AuditFinding:
             "file_path": self.file_path,
             "line_number": self.line_number,
             "context": self.context,
-            # Keep legacy key for consumers expecting "details"
+            # Keep the "details" key for existing consumers
             "details": self.context,
         }
 

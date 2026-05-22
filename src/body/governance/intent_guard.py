@@ -332,7 +332,7 @@ class IntentGuard:
                 )
             )
 
-        # 3. Pattern-specific validation (legacy shim - candidates for Strike 1 Phase 3).
+        # 3. Pattern-specific validation (candidates for Strike 1 Phase 3).
         # PatternValidators.validate dispatches by pattern_id and returns an
         # empty list when no validator applies (issue #210). target_path is
         # forwarded so dispatched per-pattern validators receive the path

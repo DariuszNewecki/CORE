@@ -174,7 +174,7 @@ class ActionResult:
             pass
 
     # ------------------------------------------------------------------
-    # Backwards compatibility for legacy CommandResult.name usage
+    # Alias for CommandResult.name usage
     # ------------------------------------------------------------------
     @property
     # ID: c70bf747-67ee-4913-a8df-91e325b8021a

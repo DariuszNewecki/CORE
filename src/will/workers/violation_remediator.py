@@ -327,7 +327,7 @@ class ViolationRemediatorWorker(Worker):
     # -------------------------------------------------------------------------
     # Private helpers — collaborator-module shims. Kept as bound methods on
     # the class so tests can patch/call them (worker._create_proposal etc.);
-    # each shim is a one-line delegation to the corresponding free function.
+    # they are one-line delegations to the corresponding free functions.
     # -------------------------------------------------------------------------
 
     async def _blackboard_service(self) -> Any:
