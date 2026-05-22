@@ -193,6 +193,7 @@ class PromptModel:
             prompt=prompt,
             system_prompt=self._system_prompt,
             max_tokens=self.manifest.model_max_tokens,
+            cognitive_role=self.manifest.role,
         )
 
         return self._validate(raw)

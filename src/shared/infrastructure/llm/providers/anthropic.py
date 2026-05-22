@@ -45,6 +45,7 @@ class AnthropicProvider(AIProvider):
         system_prompt: str = "",
         max_tokens: int | None = None,
         response_format: dict[str, Any] | None = None,
+        usage_sink: dict[str, int] | None = None,
     ) -> str:
         """
         Generates a chat completion using the Anthropic Messages API.
@@ -91,10 +92,20 @@ class AnthropicProvider(AIProvider):
             response = await client.post(endpoint, headers=self.headers, json=payload)
             response.raise_for_status()
             data = response.json()
+            if usage_sink is not None:
+                usage = data.get("usage") or {}
+                if "input_tokens" in usage:
+                    usage_sink["prompt_tokens"] = int(usage["input_tokens"])
+                if "output_tokens" in usage:
+                    usage_sink["completion_tokens"] = int(usage["output_tokens"])
             return data["content"][0]["text"]
 
     # ID: 4e5f6a7b-8c9d-0e1f-2a3b-4c5d6e7f8a9b
-    async def get_embedding(self, text: str) -> list[float]:
+    async def get_embedding(
+        self,
+        text: str,
+        usage_sink: dict[str, int] | None = None,
+    ) -> list[float]:
         """Not supported — Anthropic does not offer an embeddings endpoint."""
         raise NotImplementedError(
             "AnthropicProvider does not support embeddings. "

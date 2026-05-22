@@ -41,6 +41,7 @@ class OllamaProvider(AIProvider):
         system_prompt: str = "",
         max_tokens: int | None = None,
         response_format: dict[str, Any] | None = None,
+        usage_sink: dict[str, int] | None = None,
     ) -> str:
         """
         Generates a chat completion using the Ollama /api/chat format.
@@ -119,10 +120,19 @@ class OllamaProvider(AIProvider):
             response = await client.post(endpoint, headers=self.headers, json=payload)
             response.raise_for_status()
             data = response.json()
+            if usage_sink is not None:
+                if "prompt_eval_count" in data:
+                    usage_sink["prompt_tokens"] = int(data["prompt_eval_count"])
+                if "eval_count" in data:
+                    usage_sink["completion_tokens"] = int(data["eval_count"])
             return data["message"]["content"]
 
     # ID: fcc3342d-746d-4bb4-b153-8eef9465c0f0
-    async def get_embedding(self, text: str) -> list[float]:
+    async def get_embedding(
+        self,
+        text: str,
+        usage_sink: dict[str, int] | None = None,
+    ) -> list[float]:
         """
         Generates an embedding using the Ollama /api/embed format (Ollama 0.4+).
 

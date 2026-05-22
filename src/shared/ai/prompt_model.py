@@ -304,6 +304,7 @@ class PromptModel:
             user_id=user_id,
             max_tokens=manifest.model_max_tokens,
             response_format=response_format,
+            cognitive_role=manifest.role,
         )
 
         # 7. Validate output

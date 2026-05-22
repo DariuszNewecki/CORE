@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import asyncio
 import random
+import time
 from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -22,6 +23,10 @@ from .providers.base import AIProvider
 
 
 logger = getLogger(__name__)
+
+# Default cognitive_role for embedding calls — Vectorizer is an active row
+# in core.cognitive_roles so the FK constraint is satisfied.
+_DEFAULT_EMBEDDING_ROLE = "Vectorizer"
 
 
 # ID: 7a329240-1a5e-440b-9c8a-65ad427b5e65
@@ -144,13 +149,34 @@ class LLMClient:
         self,
         prompt: str,
         user_id: str = "core_system",
+        cognitive_role: str | None = None,
+        privacy_level: str = "standard",
     ) -> str:
         """Makes a chat completion request using the configured provider with retries."""
-        return await self._request_with_retry(
-            self.provider.chat_completion,
-            prompt,
-            user_id,
-        )
+        usage_sink: dict[str, int] = {}
+        started = time.monotonic()
+        try:
+            result = await self._request_with_retry(
+                self.provider.chat_completion,
+                prompt,
+                user_id,
+                usage_sink=usage_sink,
+            )
+            await self._log_exchange(
+                cognitive_role=cognitive_role,
+                usage_sink=usage_sink,
+                started=started,
+                privacy_level=privacy_level,
+            )
+            return result
+        except Exception:
+            await self._log_exchange(
+                cognitive_role=cognitive_role,
+                usage_sink=usage_sink,
+                started=started,
+                privacy_level=privacy_level,
+            )
+            raise
 
     # ID: 09f65041-e28e-4832-9336-9d7475e45565
     async def make_request_with_system_async(
@@ -160,6 +186,8 @@ class LLMClient:
         user_id: str = "core_system",
         max_tokens: int | None = None,
         response_format: dict[str, Any] | None = None,
+        cognitive_role: str | None = None,
+        privacy_level: str = "standard",
     ) -> str:
         """
         Makes a governed chat completion request with a constitutional system prompt.
@@ -178,25 +206,117 @@ class LLMClient:
                 Supported shapes:
                     {"type": "json_object"}
                     {"type": "json_schema", "schema": {...}}
+            cognitive_role: Canonical core.cognitive_roles row driving this call.
+                Used for the llm_exchange_log row. PromptModel.invoke() passes
+                its manifest.role here.
+            privacy_level: 'standard' | 'restricted' | 'redacted' — recorded
+                on the exchange log row. Defaults to 'standard'.
 
         Returns:
             Raw string response from the AI provider.
         """
         if max_tokens is None:
             max_tokens = load_operational_config().llm.default_max_tokens
-        return await self._request_with_retry(
-            self.provider.chat_completion,
-            prompt,
-            user_id,
-            system_prompt=system_prompt,
-            max_tokens=max_tokens,
-            response_format=response_format,
-        )
+        usage_sink: dict[str, int] = {}
+        started = time.monotonic()
+        try:
+            result = await self._request_with_retry(
+                self.provider.chat_completion,
+                prompt,
+                user_id,
+                system_prompt=system_prompt,
+                max_tokens=max_tokens,
+                response_format=response_format,
+                usage_sink=usage_sink,
+            )
+            await self._log_exchange(
+                cognitive_role=cognitive_role,
+                usage_sink=usage_sink,
+                started=started,
+                privacy_level=privacy_level,
+            )
+            return result
+        except Exception:
+            await self._log_exchange(
+                cognitive_role=cognitive_role,
+                usage_sink=usage_sink,
+                started=started,
+                privacy_level=privacy_level,
+            )
+            raise
 
     # ID: 7e13b689-e8ae-48ac-819b-44f8d3b97e22
-    async def get_embedding(self, text: str) -> list[float]:
+    async def get_embedding(
+        self,
+        text: str,
+        cognitive_role: str | None = None,
+        privacy_level: str = "standard",
+    ) -> list[float]:
         """Gets an embedding using the configured provider with retries."""
-        return await self._request_with_retry(self.provider.get_embedding, text)
+        usage_sink: dict[str, int] = {}
+        started = time.monotonic()
+        try:
+            result = await self._request_with_retry(
+                self.provider.get_embedding,
+                text,
+                usage_sink=usage_sink,
+            )
+            await self._log_exchange(
+                cognitive_role=cognitive_role or _DEFAULT_EMBEDDING_ROLE,
+                usage_sink=usage_sink,
+                started=started,
+                privacy_level=privacy_level,
+            )
+            return result
+        except Exception:
+            await self._log_exchange(
+                cognitive_role=cognitive_role or _DEFAULT_EMBEDDING_ROLE,
+                usage_sink=usage_sink,
+                started=started,
+                privacy_level=privacy_level,
+            )
+            raise
+
+    async def _log_exchange(
+        self,
+        cognitive_role: str | None,
+        usage_sink: dict[str, int],
+        started: float,
+        privacy_level: str,
+    ) -> None:
+        """Write one row to core.llm_exchange_log. Fire-and-forget semantics —
+        any DB failure is logged and swallowed so the LLM call result is
+        never affected. cognitive_role=None skips the write (the row's NOT
+        NULL FK to core.cognitive_roles cannot be satisfied without it)."""
+        if not cognitive_role:
+            return
+        duration_ms = int((time.monotonic() - started) * 1000)
+        try:
+            from shared.infrastructure.database.models.llm_config import (
+                LlmExchangeLog,
+            )
+            from shared.infrastructure.database.session_manager import get_session
+
+            row = LlmExchangeLog(
+                resource_name=self.resource_config.resource_name,
+                cognitive_role=cognitive_role,
+                prompt_tokens=usage_sink.get("prompt_tokens"),
+                completion_tokens=usage_sink.get("completion_tokens"),
+                duration_ms=duration_ms,
+                model_snapshot=self.model_name,
+                cost_estimate=None,
+                privacy_level=privacy_level,
+            )
+            async with get_session() as session:
+                session.add(row)
+                await session.commit()
+        except Exception as e:
+            logger.warning(
+                "llm_exchange_log write failed for role=%s resource=%s: %s",
+                cognitive_role,
+                self.resource_config.resource_name,
+                e,
+            )
 
 
 # ID: f0962c2a-eb02-4ef6-856f-413472d3a699

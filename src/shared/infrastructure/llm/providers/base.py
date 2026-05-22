@@ -49,6 +49,7 @@ class AIProvider(ABC):
         system_prompt: str = "",
         max_tokens: int | None = None,
         response_format: dict[str, Any] | None = None,
+        usage_sink: dict[str, int] | None = None,
     ) -> str:
         """
         Generates a text completion for a given prompt.
@@ -74,6 +75,12 @@ class AIProvider(ABC):
                                  - support only one of them,
                                  - ignore unsupported variants and fall back
                                    to normal text generation.
+            usage_sink: Optional dict mutated in place after a successful
+                        HTTP response to record token usage from the provider
+                        envelope. Populated keys: 'prompt_tokens' and
+                        'completion_tokens' when the provider exposes them.
+                        Allocated per-call by the caller; never shared across
+                        concurrent invocations.
 
         Returns:
             Raw provider response content as a string.
@@ -82,6 +89,16 @@ class AIProvider(ABC):
 
     @abstractmethod
     # ID: bf6da823-1185-4a93-98bb-da095eb92f4f
-    async def get_embedding(self, text: str) -> list[float]:
-        """Generate an embedding vector for a given text."""
+    async def get_embedding(
+        self,
+        text: str,
+        usage_sink: dict[str, int] | None = None,
+    ) -> list[float]:
+        """Generate an embedding vector for a given text.
+
+        Args:
+            text: Source text to embed.
+            usage_sink: Optional dict mutated in place with 'prompt_tokens'
+                        when the provider exposes embedding token counts.
+        """
         pass

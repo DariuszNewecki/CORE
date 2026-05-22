@@ -38,6 +38,7 @@ class OpenAIProvider(AIProvider):
         system_prompt: str = "",
         max_tokens: int | None = None,
         response_format: dict[str, Any] | None = None,
+        usage_sink: dict[str, int] | None = None,
     ) -> str:
         """
         Generates a chat completion using the OpenAI chat/completions format.
@@ -92,6 +93,12 @@ class OpenAIProvider(AIProvider):
             response = await client.post(endpoint, headers=self.headers, json=payload)
             response.raise_for_status()
             data = response.json()
+            if usage_sink is not None:
+                usage = data.get("usage") or {}
+                if "prompt_tokens" in usage:
+                    usage_sink["prompt_tokens"] = int(usage["prompt_tokens"])
+                if "completion_tokens" in usage:
+                    usage_sink["completion_tokens"] = int(usage["completion_tokens"])
             return data["choices"][0]["message"]["content"]
 
     @staticmethod
@@ -141,7 +148,11 @@ class OpenAIProvider(AIProvider):
         return None
 
     # ID: bd55279d-308d-4483-890f-05835055b54e
-    async def get_embedding(self, text: str) -> list[float]:
+    async def get_embedding(
+        self,
+        text: str,
+        usage_sink: dict[str, int] | None = None,
+    ) -> list[float]:
         """Generates an embedding using the OpenAI embeddings format."""
         endpoint = f"{self.api_url}/embeddings"
         payload = {"model": self.model_name, "input": [text]}
@@ -150,4 +161,8 @@ class OpenAIProvider(AIProvider):
             response = await client.post(endpoint, headers=self.headers, json=payload)
             response.raise_for_status()
             data = response.json()
+            if usage_sink is not None:
+                usage = data.get("usage") or {}
+                if "prompt_tokens" in usage:
+                    usage_sink["prompt_tokens"] = int(usage["prompt_tokens"])
             return data["data"][0]["embedding"]
