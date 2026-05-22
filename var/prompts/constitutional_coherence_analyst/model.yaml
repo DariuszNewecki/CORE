@@ -14,7 +14,7 @@ description: >
 model:
   preference: local
   temperature: 0.1
-  max_tokens: 2048
+  max_tokens: 1024
 
 input:
   required:
@@ -22,7 +22,18 @@ input:
     - documents_text
 
 output:
-  format: raw_text
+  # `format: json` maps to OpenAI-compatible `response_format: {"type":
+  # "json_object"}` (see PromptModel._build_response_format). We previously
+  # had a `json_schema:` block here for grammar-constrained sampling, but
+  # DeepSeek's API rejects `response_format: {type: json_schema}` (returns
+  # 400 "This response_format type is unavailable now" — 2026-05-22).
+  # Without cross-provider json_schema support, shape enforcement falls to:
+  #   1. system.txt instructions (output ONLY a JSON array, exact field set)
+  #   2. CoherenceChecker._is_valid_candidate shape check per candidate
+  # If the model returns a wrapper object instead of an array (the phi4
+  # 2026-05-21 failure mode), `_llm_call` raises a clean `llm_parse_failure`
+  # rather than silently violating the contract.
+  format: json
   max_length: 8000
   must_contain:
     - "["
@@ -30,7 +41,8 @@ output:
   must_not_contain:
     - "I recommend"
     - "should be amended"
-    - "```"
+    # Don't add "```" here — phi4 reliably ignored "no fences" guidance and
+    # this check became the failure mechanism on 2026-05-21.
 
 success_criteria: >
   Output is a valid JSON array. Each element has exactly: relation (string,

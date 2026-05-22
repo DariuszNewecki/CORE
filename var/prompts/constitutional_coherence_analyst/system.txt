@@ -26,3 +26,10 @@ If you find no candidates, output exactly: []
 
 Output ONLY the JSON array. No preamble. No markdown code fences. Nothing
 after the closing bracket.
+
+Only report candidates where you see a potential problem. Do NOT
+report when documents are consistent or aligned. Silence is the
+correct output when documents agree.
+
+Every path in the documents array MUST be a path you were explicitly
+given. Do not invent, infer, or abbreviate paths.

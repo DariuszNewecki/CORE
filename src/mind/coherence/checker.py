@@ -23,6 +23,7 @@ Constitutional Compliance:
 
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import json
 import random
@@ -59,7 +60,8 @@ _R3_DESCRIPTION = (
     "governing ADR."
 )
 
-_R1_BATCH_SIZE = 5
+_R1_BATCH_SIZE = 2
+_LLM_CALL_TIMEOUT = 480
 _FUZZY_MIN_TOKEN_LEN = 4
 _USER_ID = "coherence_checker"
 
@@ -227,8 +229,9 @@ class CoherenceChecker:
                 run_id=run_id,
                 relation="R2",
                 relation_description=_R2_DESCRIPTION,
-                document_paths=[rule_path, *northstar_paths],
+                document_paths=[*northstar_paths, rule_path],
                 manifest=manifest,
+                focal_document_path=rule_path,
             )
 
     async def _run_r3(self, run_id: str, manifest: list[dict]) -> None:
@@ -276,6 +279,7 @@ class CoherenceChecker:
         relation_description: str,
         document_paths: list[Path],
         manifest: list[dict],
+        focal_document_path: Path | None = None,
     ) -> None:
         """
         Load documents, invoke the LLM, parse JSON, store candidates.
@@ -301,7 +305,18 @@ class CoherenceChecker:
                 logger.warning("CCC: failed to read %s: %s", rel, exc)
                 self._mark_skipped(manifest, rel, "file_read_failure")
                 continue
-            text_parts.append(f"=== {rel} ===\n{content}\n\n")
+            if focal_document_path is not None:
+                if path == focal_document_path:
+                    text_parts.append(
+                        f"RULE DOMAIN UNDER EVALUATION:\n=== {rel} ===\n{content}\n\n"
+                    )
+                else:
+                    text_parts.append(
+                        f"NORTHSTAR DOCUMENTS FOR COMPARISON:\n"
+                        f"=== {rel} ===\n{content}\n\n"
+                    )
+            else:
+                text_parts.append(f"=== {rel} ===\n{content}\n\n")
             readable_rels.append(rel)
 
         if not readable_rels:
@@ -314,14 +329,26 @@ class CoherenceChecker:
             client = await self._cognitive_service.aget_client_for_role(
                 model.manifest.role
             )
-            raw = await model.invoke(
-                context={
-                    "relation_description": relation_description,
-                    "documents_text": documents_text,
-                },
-                client=client,
-                user_id=_USER_ID,
+            raw = await asyncio.wait_for(
+                model.invoke(
+                    context={
+                        "relation_description": relation_description,
+                        "documents_text": documents_text,
+                    },
+                    client=client,
+                    user_id=_USER_ID,
+                ),
+                timeout=_LLM_CALL_TIMEOUT,
             )
+        except TimeoutError:
+            logger.warning(
+                "CCC: LLM call timed out after %ds for relation %s",
+                _LLM_CALL_TIMEOUT,
+                relation,
+            )
+            for rel in readable_rels:
+                self._mark_skipped(manifest, rel, "call_timeout")
+            return
         except Exception as exc:
             logger.warning("CCC: LLM call failed for relation %s: %s", relation, exc)
             for rel in readable_rels:
