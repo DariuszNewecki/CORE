@@ -3,7 +3,7 @@
 """
 Executes pytest and captures results as Constitutional Evidence.
 
-- Implemented 'silent' parameter to control logging verbosity (workflow.dead_code_check).
+- Implemented 'suppress_logging' parameter to control logging verbosity (workflow.dead_code_check).
 - Maintains strict traceability by persisting to DB regardless of verbosity.
 - Aligns with the 'Headless' policy (LOG-001).
 """
@@ -27,16 +27,16 @@ logger = getLogger(__name__)
 
 
 # ID: 0a702b47-f04b-4afe-8e35-20e9cad19aa3
-async def run_tests(silent: bool = True) -> ActionResult:
+async def run_tests(suppress_logging: bool = True) -> ActionResult:
     """
     Executes pytest asynchronously and returns a canonical ActionResult.
 
     Args:
-        silent: If False, logs start/stop events to the system logger.
+        suppress_logging: If False, logs start/stop events to the system logger.
     """
     start_time = time.perf_counter()
 
-    if not silent:
+    if not suppress_logging:
         logger.info("🧪 Initiating system test suite...")
 
     repo_root = settings.REPO_PATH
@@ -99,12 +99,12 @@ async def run_tests(silent: bool = True) -> ActionResult:
         suggestions=["Run 'pytest --lf' to retry failed tests."] if not ok else [],
     )
 
-    # 3. Persist Evidence (Always happens, even if silent)
+    # 3. Persist Evidence (Always happens, even if suppress_logging is True)
     _log_test_result_to_file(result_data)
     _store_failure_artifact(result_data)
     await _persist_result_to_db(action_result)
 
-    if not silent:
+    if not suppress_logging:
         logger.info("🏁 Test run complete: %s (%.2fs)", summary, duration)
 
     return action_result
