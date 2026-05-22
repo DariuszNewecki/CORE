@@ -28,6 +28,8 @@ from typing import Any
 
 import yaml
 
+from shared.infrastructure.intent.errors import GovernanceError
+from shared.infrastructure.intent.intent_repository import get_intent_repository
 from shared.infrastructure.intent.vocabulary_projection import (
     VOCABULARY_JSON_REL,
     VOCABULARY_PAPER_REL,
@@ -371,8 +373,6 @@ def _check_all_rules_mapped(repo_root: Path, check: str) -> EngineResult:
     abandoned-finding re-emission loop. Scope is reporting rules only
     — blocking rules fire pre-commit and do not enter the audit loop.
     """
-    import json as _json
-
     map_file = repo_root / _AUTO_REMEDIATION_REL
     rules_dir = repo_root / _RULES_DIR_REL
 
@@ -391,15 +391,22 @@ def _check_all_rules_mapped(repo_root: Path, check: str) -> EngineResult:
             engine_id=_ENGINE_ID,
         )
 
+    repo = get_intent_repository()
     mapped_ids: set[str] = set(
-        _MAPPING_KEY_RE.findall(map_file.read_text(encoding="utf-8"))
+        _MAPPING_KEY_RE.findall(
+            repo.load_text(_AUTO_REMEDIATION_REL.removeprefix(".intent/"))
+        )
     )
 
     unmapped: list[str] = []
-    for path in sorted(rules_dir.rglob("*.json")):
+    for ref in sorted(repo.list_policies(), key=lambda r: r.policy_id):
+        if not ref.policy_id.startswith("rules/"):
+            continue
+        if ref.path.suffix != ".json":
+            continue
         try:
-            doc = _json.loads(path.read_text(encoding="utf-8"))
-        except Exception:
+            doc = repo.load_document(ref.path)
+        except GovernanceError:
             # Defensive: a malformed rule document is a separate failure mode,
             # not this rule's concern. Skip silently — other validators flag it.
             continue
