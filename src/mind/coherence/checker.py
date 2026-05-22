@@ -421,7 +421,12 @@ class CoherenceChecker:
         """
         repo = get_intent_repository()
         repo.initialize()
-        all_rule_paths = sorted(ref.path for ref in repo.list_policies())
+        rules_dir = self._repo_root / ".intent" / "rules"
+        all_rule_paths = sorted(
+            ref.path
+            for ref in repo.list_policies()
+            if ref.path.is_relative_to(rules_dir)
+        )
         if sample is not None and 0 < sample < len(all_rule_paths):
             chosen = sorted(random.sample(all_rule_paths, sample))
             logger.info(
