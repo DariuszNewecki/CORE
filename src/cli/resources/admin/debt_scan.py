@@ -1,4 +1,4 @@
-# src/cli/resources/admin/legacy.py
+# src/cli/resources/admin/debt_scan.py
 """
 Admin Legacy Command - Technical Debt Map.
 
