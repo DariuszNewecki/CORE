@@ -33,7 +33,7 @@ async def approve_proposal(
     proposal_id: str = typer.Argument(...),
     by: str = typer.Option("cli_admin", "--by", help="Approver identity."),
     authority: str = typer.Option(
-        "human.cli_operator",
+        "principal.governor",
         "--authority",
         help="Authority under which approval is granted (URS NFR.5).",
     ),

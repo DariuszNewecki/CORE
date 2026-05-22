@@ -11,6 +11,7 @@ optional_directories:
   - workflows
   - enforcement
   - workers
+  - taxonomies
 
 validated_directories:
   - META

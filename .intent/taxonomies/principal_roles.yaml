@@ -1,0 +1,88 @@
+version: "1.0.0"
+status: active
+authority: constitutional
+title: CORE Principal Role Taxonomy
+description: >
+  Canonical declaration of principal roles in CORE. Defines what roles
+  exist and what authority each carries (Layer 1 of the three-layer role
+  model). Principal-to-role binding (Layer 2) is a deployment concern.
+  Action-to-role requirements (Layer 3) are expressed in enforcement rules.
+  Authority: ADR-068.
+
+governance:
+  flat_forever: true
+  rationale: >
+    Role hierarchy is permanently rejected. Scope constraints are expressed
+    as attributes on Layer 2 bindings, not as structural properties of roles.
+    This makes permission attribution a one-sentence answer, required for
+    GxP audit defensibility. See ADR-068 D1.
+
+roles:
+  principal.governor:
+    display_name: Governor
+    authority: constitutional
+    description: >
+      Full constitutional authority. May approve or reject proposals, accept
+      ADRs, authorize .intent/ changes, and trigger any governed operation.
+      At most one Governor per deployment at any given time.
+    proposal_approval_authority: true
+    read_access: full
+    write_access: full
+
+  principal.operator:
+    display_name: Operator
+    authority: policy
+    description: >
+      Read all system state; trigger read-only operations (audit runs,
+      inspect, coverage). Cannot approve proposals or authorize
+      constitutional changes.
+    proposal_approval_authority: false
+    read_access: full
+    write_access: none
+
+  principal.auditor:
+    display_name: Auditor
+    authority: policy
+    description: >
+      Read audit findings, consequence chain, and compliance evidence.
+      No write access of any kind. Designed for the GxP QA archetype:
+      an external auditor who inspects the trail without influencing it.
+      A principal holding this role may not have approved the proposals
+      they are auditing (SoD constraint — ADR-068 D3).
+    proposal_approval_authority: false
+    read_access: audit_trail_only
+    write_access: none
+
+  principal.system:
+    display_name: System Agent
+    authority: policy
+    description: >
+      Autonomous system actors — workers, daemons, and the risk classifier.
+      The risk_classification.safe_auto_approval authority belongs to this
+      role class. Distinct from human principals; never issued credentials.
+    proposal_approval_authority: false
+    read_access: operational
+    write_access: operational
+
+separation_of_duties:
+  governor_auditor_constraint:
+    description: >
+      A principal holding principal.governor authority may not serve as
+      principal.auditor for the same governance action. A proposal approved
+      by a Governor cannot have its audit-verification record signed by the
+      same principal. Enforcement deferred to first multi-operator deployment
+      (Track 3). Declared here so Team/Enterprise tiers inherit no structural
+      SoD gap. See ADR-068 D3.
+    status: declared
+    enforcement: deferred
+
+deployment_topologies:
+  single_governor_local:
+    description: >
+      A deployment in which exactly one principal exists and the system
+      binds exclusively to localhost. Authentication deferred (no credential
+      verification required at the local process boundary). SoD constraint
+      noted but not enforced. All approval_authority records stamped
+      principal.governor. See ADR-068 D4.
+    authentication_required: false
+    sor_constraint_enforced: false

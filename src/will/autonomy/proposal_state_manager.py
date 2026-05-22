@@ -34,7 +34,7 @@ logger = getLogger(__name__)
 ALLOWED_APPROVAL_AUTHORITIES: frozenset[str] = frozenset(
     {
         "risk_classification.safe_auto_approval",
-        "human.cli_operator",
+        "principal.governor",
     }
 )
 """Closed set per .intent/META/enums.json proposal_approval_authority.
