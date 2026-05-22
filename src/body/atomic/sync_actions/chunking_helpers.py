@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from pathlib import Path
 from typing import Any
 
@@ -178,10 +179,17 @@ async def _embed_and_upsert(
 
     await qdrant.ensure_collection(collection_name=collection)
 
+    # Concurrency is bounded by the Vectorizer LLMClient's
+    # asyncio.Semaphore(max_concurrent) at the resource layer, so the
+    # gather here can fan out the full chunk list without overrunning the
+    # embedding host. Order is preserved, so the deterministic chunk
+    # index (used to build the Qdrant point ID) stays stable.
+    embeddings = await asyncio.gather(
+        *(cognitive.get_embedding_for_code(c["text"]) for c in chunks)
+    )
+
     points = []
-    for i, chunk in enumerate(chunks):
-        text = chunk["text"]
-        embedding = await cognitive.get_embedding_for_code(text)
+    for i, (chunk, embedding) in enumerate(zip(chunks, embeddings)):
         if embedding is None:
             continue
         item_id = f"{file_path}::chunk::{i}"
