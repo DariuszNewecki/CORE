@@ -25,12 +25,12 @@ from __future__ import annotations
 
 import asyncio
 import hashlib
-import json
 import random
 import re
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+from shared.ai.response_parser import extract_json_safe
 from shared.infrastructure.intent.intent_repository import get_intent_repository
 from shared.logger import getLogger
 
@@ -355,15 +355,22 @@ class CoherenceChecker:
                 self._mark_skipped(manifest, rel, "llm_call_failure")
             return
 
-        try:
-            parsed = json.loads(raw)
-            if not isinstance(parsed, list):
-                raise ValueError("expected top-level JSON array")
-        except (json.JSONDecodeError, ValueError) as exc:
+        parsed = extract_json_safe(raw)
+        if isinstance(parsed, dict):
+            # Wrapper-object response (observed phi4 failure mode): unwrap the
+            # first value that is a list. Shape is enforced per-candidate
+            # below, so we don't constrain key names here.
+            unwrapped = next(
+                (v for v in parsed.values() if isinstance(v, list)),
+                None,
+            )
+            if unwrapped is not None:
+                parsed = unwrapped
+        if parsed is None or not isinstance(parsed, list):
             logger.warning(
-                "CCC: LLM output parse failure for relation %s: %s",
+                "CCC: LLM output parse failure for relation %s: "
+                "could not extract a JSON array from response",
                 relation,
-                exc,
             )
             for rel in readable_rels:
                 self._mark_skipped(manifest, rel, "llm_parse_failure")
