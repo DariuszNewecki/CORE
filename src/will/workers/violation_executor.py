@@ -127,7 +127,7 @@ class ViolationExecutorWorker(Worker):
             if not file_path:
                 logger.warning(
                     "ViolationExecutorWorker: skipping finding %s — missing file_path",
-                    finding.get("entry_id"),
+                    finding.get("id"),
                 )
                 continue
             by_file.setdefault(file_path, []).append(finding)
@@ -360,7 +360,7 @@ class ViolationExecutorWorker(Worker):
             from body.services.service_registry import service_registry
 
             svc = await service_registry.get_blackboard_service()
-            entry_ids = [str(f["entry_id"]) for f in findings]
+            entry_ids = [str(f["id"]) for f in findings]
             await svc.release_claimed_entries(entry_ids)
         except Exception as exc:
             logger.error(
@@ -374,7 +374,7 @@ class ViolationExecutorWorker(Worker):
             from body.services.service_registry import service_registry
 
             svc = await service_registry.get_blackboard_service()
-            entry_ids = [str(f["entry_id"]) for f in findings]
+            entry_ids = [str(f["id"]) for f in findings]
             await svc.abandon_entries(entry_ids)
         except Exception as exc:
             logger.error("ViolationExecutorWorker: abandon_entries failed — %s", exc)
