@@ -24,7 +24,12 @@ input:
       observed during the 2026-05-12 RemoteCoder qualification eval.
 
 output:
-  max_length: 4096
+  # 0 = no length limit; model.max_tokens is the sole output cap.
+  # A char-based max_length is redundant with the token-based model.max_tokens
+  # and the unit mismatch silently truncated long valid outputs (defect 2 of
+  # #429). Trust model.max_tokens here; other manifests keep their caps where
+  # those caps are legitimate output contracts.
+  max_length: 0
   must_contain: []
   must_not_contain:
     - "```"
