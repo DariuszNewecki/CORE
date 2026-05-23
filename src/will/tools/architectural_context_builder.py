@@ -7,7 +7,7 @@ Modularized for V2.3 Octopus Synthesis.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from shared.logger import getLogger
 from shared.path_resolver import PathResolver
@@ -31,12 +31,14 @@ class ArchitecturalContextBuilder:
         policy_vectorizer: PolicyVectorizer,
         anchor_generator: ModuleAnchorGenerator,
         path_resolver: PathResolver,
+        session_factory: Any,
         cognitive_service=None,
         qdrant_service=None,
     ):
         self.policies = policy_vectorizer
         self.anchors = anchor_generator
         self._paths = path_resolver
+        self._session_factory = session_factory
         self.retriever = ContextRetriever(
             self._paths.repo_root, cognitive_service, qdrant_service
         )
@@ -62,7 +64,8 @@ class ArchitecturalContextBuilder:
         if is_test:
             file_content, file_path = await self.retriever.read_target_file(goal)
 
-        examples = await self.retriever.find_examples(goal, best["layer"])
+        async with self._session_factory() as session:
+            examples = await self.retriever.find_examples(goal, best["layer"], session)
 
         # 3. Assembly
         return ArchitecturalContext(

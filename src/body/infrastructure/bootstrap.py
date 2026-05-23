@@ -82,6 +82,7 @@ def _build_context_builder_factory(core_context: CoreContext):
             policy_vectorizer=PolicyVectorizer(repo_root, cognitive, qdrant),
             anchor_generator=ModuleAnchorGenerator(repo_root, cognitive, qdrant),
             path_resolver=builder_path_resolver,
+            session_factory=core_context.registry.session,
             cognitive_service=cognitive,
             qdrant_service=qdrant,
         )
