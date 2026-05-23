@@ -16,8 +16,8 @@ HEALED (V2.3.0):
 from __future__ import annotations
 
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 
+from body.services.session_attached_service import SessionAttachedService
 from shared.infrastructure.config_service import ConfigService
 from shared.infrastructure.database.models import (
     CognitiveRole,
@@ -34,24 +34,10 @@ __all__ = ["MindStateService"]
 
 
 # ID: 49fce217-d1fe-480e-8ede-cef3abf4680b
-class MindStateService:
+class MindStateService(SessionAttachedService):
     """
     Body service for accessing Mind state (LlmResources, CognitiveRoles, Config).
     """
-
-    def __init__(self, session: AsyncSession):
-        """
-        Initialize service with database session.
-        """
-        self.session = session
-
-    # ID: 8876c24d-5e6f-4a8b-9c0d-1e2f3a4b5c6d
-    def detach(self) -> None:
-        """
-        Releases the database session reference.
-        Prevents the service from holding a connection open after work is done.
-        """
-        self.session = None
 
     # ID: 7d983b1d-83e8-4b07-86a5-f15b7f4ca981
     async def get_llm_resources(self) -> list[LlmResource]:
@@ -62,11 +48,10 @@ class MindStateService:
         registry says "do not use" for those rows; the router must not
         see them at all.
         """
-        if self.session is None:
-            raise RuntimeError("MindStateService error: Session has been detached.")
+        session = self._require_session()
 
         stmt = select(LlmResource).where(LlmResource.is_available == True)  # noqa: E712
-        result = await self.session.execute(stmt)
+        result = await session.execute(stmt)
         resources = list(result.scalars().all())
 
         logger.debug("Retrieved %d LLM resources from Mind", len(resources))
@@ -77,11 +62,10 @@ class MindStateService:
         """
         Retrieve all configured cognitive roles from Mind.
         """
-        if self.session is None:
-            raise RuntimeError("MindStateService error: Session has been detached.")
+        session = self._require_session()
 
         stmt = select(CognitiveRole)
-        result = await self.session.execute(stmt)
+        result = await session.execute(stmt)
         roles = list(result.scalars().all())
 
         logger.debug("Retrieved %d cognitive roles from Mind", len(roles))
@@ -96,11 +80,10 @@ class MindStateService:
         Returns every row; callers filter by ``priority`` and
         ``is_active`` as needed.
         """
-        if self.session is None:
-            raise RuntimeError("MindStateService error: Session has been detached.")
+        session = self._require_session()
 
         stmt = select(RoleResourceAssignment)
-        result = await self.session.execute(stmt)
+        result = await session.execute(stmt)
         assignments = list(result.scalars().all())
 
         logger.debug(
@@ -116,11 +99,10 @@ class MindStateService:
         Returns ``None`` if no row exists. Used by callers that need the
         system-default ``operating_mode`` (#333).
         """
-        if self.session is None:
-            raise RuntimeError("MindStateService error: Session has been detached.")
+        session = self._require_session()
 
         stmt = select(SystemConfig)
-        result = await self.session.execute(stmt)
+        result = await session.execute(stmt)
         return result.scalar_one_or_none()
 
     # ID: d4e5f678-90ab-cdef-1234-567890abcdef
@@ -128,10 +110,9 @@ class MindStateService:
         """
         Create and return a ConfigService instance for configuration access.
         """
-        if self.session is None:
-            raise RuntimeError("MindStateService error: Session has been detached.")
+        session = self._require_session()
 
-        config_service = await ConfigService.create(self.session)
+        config_service = await ConfigService.create(session)
         return config_service
 
     # ID: e5f67890-abcd-ef12-3456-7890abcdef12

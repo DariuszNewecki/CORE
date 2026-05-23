@@ -20,8 +20,8 @@ import json
 from typing import Any
 
 from sqlalchemy import text
-from sqlalchemy.ext.asyncio import AsyncSession
 
+from body.services.session_attached_service import SessionAttachedService
 from shared.logger import getLogger
 
 
@@ -31,7 +31,7 @@ __all__ = ["CoherenceService"]
 
 
 # ID: be79ccfb-6907-4aa7-abc1-b50af356cf6d
-class CoherenceService:
+class CoherenceService(SessionAttachedService):
     """
     Body service for Constitutional Coherence Checker storage.
 
@@ -40,22 +40,13 @@ class CoherenceService:
     run's unreviewed counter; when the counter reaches zero the run is closed.
     """
 
-    def __init__(self, session: AsyncSession):
-        self.session = session
-
-    # ID: afc36718-af66-4a75-815d-8efafd5ea3fb
-    def detach(self) -> None:
-        """Release the database session reference."""
-        self.session = None
-
     # ID: 926480f7-0a87-4775-a112-47e716e073af
     async def create_run(self, trigger: str) -> str:
         """
         Insert a new coherence_runs row. Returns the new run_id as a string.
         """
-        if self.session is None:
-            raise RuntimeError("CoherenceService error: Session has been detached.")
-        result = await self.session.execute(
+        session = self._require_session()
+        result = await session.execute(
             text(
                 "INSERT INTO core.coherence_runs (trigger) "
                 "VALUES (:trigger) RETURNING run_id"
@@ -63,7 +54,7 @@ class CoherenceService:
             {"trigger": trigger},
         )
         run_id = str(result.scalar_one())
-        await self.session.commit()
+        await session.commit()
         logger.debug("Created coherence run %s (trigger=%s)", run_id, trigger)
         return run_id
 
@@ -80,9 +71,8 @@ class CoherenceService:
         Insert one candidate and increment counters on its parent run.
         Returns the new candidate_id as a string.
         """
-        if self.session is None:
-            raise RuntimeError("CoherenceService error: Session has been detached.")
-        insert_result = await self.session.execute(
+        session = self._require_session()
+        insert_result = await session.execute(
             text(
                 "INSERT INTO core.coherence_candidates "
                 "(run_id, relation, documents, claim, rationale) "
@@ -99,7 +89,7 @@ class CoherenceService:
             },
         )
         candidate_id = str(insert_result.scalar_one())
-        await self.session.execute(
+        await session.execute(
             text(
                 "UPDATE core.coherence_runs "
                 "SET candidate_count = candidate_count + 1, "
@@ -108,7 +98,7 @@ class CoherenceService:
             ),
             {"run_id": run_id},
         )
-        await self.session.commit()
+        await session.commit()
         logger.debug(
             "Added candidate %s (relation=%s) to run %s",
             candidate_id,
@@ -137,10 +127,9 @@ class CoherenceService:
         does not exist; ``run_closed`` is True only when *this* call's
         transition brought unreviewed_count to zero.
         """
-        if self.session is None:
-            raise RuntimeError("CoherenceService error: Session has been detached.")
+        session = self._require_session()
 
-        lookup = await self.session.execute(
+        lookup = await session.execute(
             text(
                 "SELECT run_id, triage_decision "
                 "FROM core.coherence_candidates WHERE candidate_id = :candidate_id"
@@ -154,7 +143,7 @@ class CoherenceService:
         run_id = str(row[0])
         was_unreviewed = row[1] == "unreviewed"
 
-        await self.session.execute(
+        await session.execute(
             text(
                 "UPDATE core.coherence_candidates "
                 "SET triage_decision = :decision, "
@@ -171,7 +160,7 @@ class CoherenceService:
 
         run_closed = False
         if was_unreviewed:
-            decrement = await self.session.execute(
+            decrement = await session.execute(
                 text(
                     "UPDATE core.coherence_runs "
                     "SET unreviewed_count = unreviewed_count - 1 "
@@ -182,7 +171,7 @@ class CoherenceService:
             )
             new_count = decrement.scalar_one()
             if new_count == 0:
-                await self.session.execute(
+                await session.execute(
                     text(
                         "UPDATE core.coherence_runs "
                         "SET run_status = 'closed' "
@@ -193,7 +182,7 @@ class CoherenceService:
                 run_closed = True
                 logger.info("Coherence run %s closed (all candidates triaged)", run_id)
 
-        await self.session.commit()
+        await session.commit()
         return {"run_id": run_id, "run_closed": run_closed}
 
     # ID: 9dbdeb54-1eae-4532-a1a6-d14b23b9b2e0
@@ -205,9 +194,8 @@ class CoherenceService:
         final coverage manifest (with per-item ``status`` and
         ``skipped_reason``) is persisted in one atomic write.
         """
-        if self.session is None:
-            raise RuntimeError("CoherenceService error: Session has been detached.")
-        await self.session.execute(
+        session = self._require_session()
+        await session.execute(
             text(
                 "UPDATE core.coherence_runs "
                 "SET input_manifest = cast(:manifest as jsonb) "
@@ -215,7 +203,7 @@ class CoherenceService:
             ),
             {"run_id": run_id, "manifest": json.dumps(manifest)},
         )
-        await self.session.commit()
+        await session.commit()
         logger.debug(
             "Updated input_manifest for coherence run %s (%d entries)",
             run_id,
@@ -227,9 +215,8 @@ class CoherenceService:
         """
         Fetch one coherence run by id. Returns None if not found.
         """
-        if self.session is None:
-            raise RuntimeError("CoherenceService error: Session has been detached.")
-        result = await self.session.execute(
+        session = self._require_session()
+        result = await session.execute(
             text(
                 "SELECT run_id, run_at, trigger, run_status, input_manifest, "
                 "       candidate_count, unreviewed_count "
@@ -248,9 +235,8 @@ class CoherenceService:
         Fetch the most recent coherence run by run_at. Returns None if no runs
         exist.
         """
-        if self.session is None:
-            raise RuntimeError("CoherenceService error: Session has been detached.")
-        result = await self.session.execute(
+        session = self._require_session()
+        result = await session.execute(
             text(
                 "SELECT run_id, run_at, trigger, run_status, input_manifest, "
                 "       candidate_count, unreviewed_count "
@@ -271,9 +257,8 @@ class CoherenceService:
         candidate list; not in the Section 3 required-methods list but
         unavoidable for the CLI surface. Pure read, no commit.
         """
-        if self.session is None:
-            raise RuntimeError("CoherenceService error: Session has been detached.")
-        result = await self.session.execute(
+        session = self._require_session()
+        result = await session.execute(
             text(
                 "SELECT candidate_id, run_id, relation, documents, claim, rationale, "
                 "       triage_decision, triage_note, created_at, triaged_at "
@@ -290,9 +275,8 @@ class CoherenceService:
         Return a summary across all open runs:
         ``{"open_runs": int, "unreviewed": int}``.
         """
-        if self.session is None:
-            raise RuntimeError("CoherenceService error: Session has been detached.")
-        result = await self.session.execute(
+        session = self._require_session()
+        result = await session.execute(
             text(
                 "SELECT COUNT(*) AS open_runs, "
                 "       COALESCE(SUM(unreviewed_count), 0) AS unreviewed "
