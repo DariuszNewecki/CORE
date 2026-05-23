@@ -31,3 +31,13 @@ repos:
       - id: ruff-format
         files: \.pyi?$
         exclude: ^(scripts|dev-scripts)/
+
+  # #438: SQL migrations must be registered in the policy `migrations.order`
+  - repo: local
+    hooks:
+      - id: check-migrations-registered
+        name: SQL migrations are registered in governance policy
+        entry: python infra/scripts/check_migrations_registered.py
+        language: system
+        files: ^infra/scripts/migrations/.*\.sql$
+        pass_filenames: true
