@@ -7,7 +7,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from cli.commands.fix.code_style import fix_headers_internal
+from body.self_healing.header_service import fix_headers_internal
 from shared.action_types import ActionResult
 
 

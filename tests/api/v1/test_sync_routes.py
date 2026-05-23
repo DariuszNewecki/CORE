@@ -19,8 +19,8 @@ from api.v1.sync_routes import (
     SyncRequest,
     get_sync_run,
     sync_code_vectors,
-    sync_db_registry,
     sync_dev_sync,
+    sync_knowledge_graph,
     sync_vectors,
 )
 
@@ -44,7 +44,7 @@ def _mock_session_returning(new_id):
 @pytest.mark.parametrize(
     "handler, expected_sync_type",
     [
-        (sync_db_registry, "db_registry"),
+        (sync_knowledge_graph, "knowledge_graph"),
         (sync_vectors, "vectors"),
         (sync_code_vectors, "code_vectors"),
         (sync_dev_sync, "dev_sync"),
@@ -94,7 +94,7 @@ async def test_get_sync_run_returns_row():
     session = AsyncMock()
     row = {
         "id": run_id,
-        "sync_type": "db_registry",
+        "sync_type": "knowledge_graph",
         "write": True,
         "target": None,
         "status": "completed",
@@ -110,7 +110,7 @@ async def test_get_sync_run_returns_row():
     session.execute = AsyncMock(return_value=result_obj)
 
     out = await get_sync_run(run_id=run_id, session=session)
-    assert out["sync_type"] == "db_registry"
+    assert out["sync_type"] == "knowledge_graph"
     assert out["write"] is True
     assert out["status"] == "completed"
 
