@@ -27,10 +27,14 @@ logger = getLogger(__name__)
 
 
 def _map_enforcement_to_severity(enforcement: str) -> AuditSeverity:
+    # #432: `reporting` is informational by intent — surfacing a fact, not
+    # demanding action. It must not inflate the HIGH bucket alongside true
+    # warnings. `warning` stays HIGH for callers that want noisy-but-non-
+    # blocking signal even though no rule in the current tree uses it.
     e = enforcement.lower()
     if e in ("blocking", "error"):
         return AuditSeverity.BLOCK
-    if e in ("reporting", "warning"):
+    if e == "warning":
         return AuditSeverity.HIGH
     return AuditSeverity.INFO
 
