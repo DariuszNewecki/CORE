@@ -141,7 +141,7 @@
       ]
     },
     "blackboard_subject": {
-      "description": "Canonical subject vocabulary for BlackboardEntry.subject (ADR-056 #366). Sensors and shop managers join on these strings; drift here breaks coherence detection silently. Worker run-completion subjects follow the pattern `<worker_name>.run.complete` and are enumerated explicitly per worker \u2014 the closed-enum invariant is preserved over wildcard convenience (governor decision 2026-05-23, #366 D5 residual 1). When a new worker is added, its `.run.complete` subject MUST be added to this enum.",
+      "description": "Canonical subject vocabulary for BlackboardEntry.subject (ADR-056 #366). Sensors and shop managers join on these strings; drift here breaks coherence detection silently. Two shapes share this enum: (1) literal subjects matched exactly (e.g. `worker.heartbeat`, `<worker_name>.run.complete`); (2) family roots for parametric subjects of the form `<root>::<params>`, matched via `subject LIKE '<root>::%'` (e.g. root `prompt.extraction` represents posted subjects `prompt.extraction::<file_path>::<line_number>`). The closed-enum invariant applies to both shapes (governor decisions 2026-05-23 on #366 D5 residual 1 and #258): when a new worker emits a literal subject, or when a new parametric subject family is introduced, the literal or family root MUST be added to this enum.",
       "type": "string",
       "enum": [
         "worker.heartbeat",
@@ -167,7 +167,11 @@
         "test_runner_sensor.run.complete",
         "violation_executor.run.complete",
         "violation_remediator.run.complete",
-        "worker_shop_manager.run.complete"
+        "worker_shop_manager.run.complete",
+        "prompt.extraction",
+        "prompt.artifact",
+        "prompt.rewrite.complete",
+        "prompt.rewrite.failed"
       ]
     },
     "action_impact": {
