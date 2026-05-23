@@ -27,7 +27,7 @@ This document is intentionally boring.
 
 ## Article I — Primitives
 
-CORE recognizes **exactly four constitutional primitives**.
+CORE recognizes **exactly five constitutional primitives**.
 
 No other concept may be treated as fundamental.
 
@@ -148,14 +148,15 @@ A vocabulary item MAY NOT have two forms within the same Register.
 
 ## Article II — Rule Definition
 
-A Rule is constitutionally valid **only if all four primitives are explicit**.
+A Rule is constitutionally valid **only if its statement, enforcement
+strength, phase, and authority are all explicit**.
 
 A valid Rule therefore has:
 
-* a **statement**
-* an **enforcement strength**
-* a **phase**
-* an **authority**
+* a **statement** (the Rule's content)
+* an **enforcement strength** (Article III)
+* a **phase** (Article I §3)
+* an **authority** (Article I §4)
 
 Nothing else is required.
 Nothing else is permitted at the constitutional level.
@@ -298,3 +299,4 @@ summary, and the ADR or paper that triggered it.
 | 2026-05-04 | additive | Article I §5 — added the Register primitive, declaring three vocabulary registers (Conceptual, Operational, Diagnostic). | `.specs/papers/CORE-Vocabulary-Registers.md`. |
 | 2026-05-04 | semantic-replacement | Article VII rewritten — distinguishes additive amendment from semantic replacement; clarifies that replacement supersedes prior versions of the document but does NOT invalidate dependent authority chains; requires every change to appear in this Amendments log. | Recognition that the prior Article VII forbade in-place modification absolutely, while ordinary governance evolution requires it. The same session also dropped filename versioning from the document path. |
 | 2026-05-04 | additive | Filename de-versioned — file moved from `CORE-CONSTITUTION-v0.md` to `CORE-CONSTITUTION.md`. Filename-level versioning removed; version history is recorded here. | Pragmatic alignment: filesystem-level versioning duplicated what git already provides at byte-level and what this Amendments log provides at semantic-level. The version suffix served no governance function. |
+| 2026-05-23 | semantic-replacement | Article I — primitive count corrected from "exactly four" to "exactly five" to match §5 Register added 2026-05-04. Article II reworded to enumerate the four required Rule fields (statement, enforcement strength, phase, authority) directly, removing the misleading "all four primitives" phrasing that conflated Article I's primitive count with Article II's field count. | Surfaced 2026-05-23 during issue triage; the contradiction had been latent since 2026-05-04 when Register was added to Article I without propagation to Article II. |
