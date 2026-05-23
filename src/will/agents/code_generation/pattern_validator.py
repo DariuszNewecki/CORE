@@ -57,11 +57,11 @@ class PatternValidator:
 
         # 1. THE SANCTUARY: Test Files
         # Prevents "test_logic" from being arrested by "service" folder rules.
+        # Routes to `test_file` so the LLM receives pytest-shaped requirements,
+        # not generic stateless-utility guidance (which produced #429 defect 4).
         if "test_" in file_path or "/tests/" in file_path or "test" in task_description:
-            logger.debug(
-                "  -> Identified as test logic. Mapping to 'stateless_utility'."
-            )
-            return "stateless_utility"
+            logger.debug("  -> Identified as test logic. Mapping to 'test_file'.")
+            return "test_file"
 
         # 2. CLASSIFICATION HIERARCHY: Check nature of function next
         function_type = self._classify_function_type(file_path, task_description)
@@ -211,6 +211,14 @@ class PatternValidator:
 - Should use type hints and clear docstrings.
 - NO 'write' parameter needed.
 """,
+            "test_file": """
+## Pattern Requirements: test_file
+- You are generating a pytest TEST MODULE for an existing source file. The source is shown in the "Target File to Test" section of the architectural context above.
+- Use pytest conventions: `def test_*()` functions, fixtures via `@pytest.fixture`, parametrization via `@pytest.mark.parametrize`, mocks via `unittest.mock` where needed.
+- Import the module under test using its PACKAGE PATH, e.g. `from shared.infrastructure.storage.file_classifier import get_file_classification`. DO NOT use `from src.shared...` — `src` is a `pythonpath` root, not an importable package.
+- Use ONLY symbols (functions, classes, constants) that actually exist in the target file's source. If a symbol is not present in the "Target File to Test" section, do NOT import or reference it.
+- Cover the public surface: every public function/class, happy paths, error paths, and edge cases observable from the public interface.
+""",
             "action_pattern": """
 ## Pattern Requirements: action_pattern (Atomic Action)
 - MUST use @atomic_action decorator from shared.atomic_action.
@@ -237,8 +245,10 @@ class PatternValidator:
         """
         Validate generated code against pattern requirements.
         """
-        # Purity check: Pure/Stateless patterns only need syntax validation
-        if pattern_id in ("pure_function", "stateless_utility"):
+        # Purity check: Pure/Stateless/Test patterns only need syntax validation.
+        # IntentGuard treats `test_file` as the deliberate no-validator case
+        # (see body/governance/intent_pattern_validators.py); aligned here.
+        if pattern_id in ("pure_function", "stateless_utility", "test_file"):
             try:
                 ast.parse(code)
                 return (True, [])
