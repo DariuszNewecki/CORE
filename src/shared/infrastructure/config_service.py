@@ -316,9 +316,19 @@ class LLMResourceConfig:
 
     # ID: 4e31e5fa-9abc-4e1a-9086-98170e554b29
     async def get_api_key(self, audit_context: str | None = None) -> str:
-        """Get API key for this resource."""
+        """Get API key for this resource.
+
+        Always forwards `resource_name` (FK-free column) from the
+        wrapper's own identity, in addition to the caller's optional
+        `audit_context` (FK to cognitive_roles.role). The audit row
+        carries both columns when supplied — see #434.
+        """
         key = f"{self._prefix}.api_key"
-        return await self.config.get_secret(key, audit_context=audit_context)
+        return await self.config.get_secret(
+            key,
+            audit_context=audit_context,
+            resource_name=self.resource_name,
+        )
 
     # ID: 895e21ac-ae06-4135-8606-16ae5653b44c
     async def get_model_name(self) -> str:
