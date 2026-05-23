@@ -13,30 +13,17 @@ input:
     - plan
 
 output:
+  # `format: json` maps to OpenAI-compatible `response_format: {"type":
+  # "json_object"}` (see PromptModel._build_response_format). A `json_schema:`
+  # block here would emit `response_format: {"type": "json_schema", ...}`,
+  # which DeepSeek's API rejects with HTTP 400. Shape enforcement falls to
+  # must_contain + post-parse validation via shared.ai.response_parser.
   format: json
   max_length: 8000
-  json_schema:
-    type: object
-    required:
-      - files
-    properties:
-      files:
-        type: array
-        description: >
-          One entry per file produced by the split.
-          Includes the modified original and all new files.
-        items:
-          type: object
-          required:
-            - path
-            - content
-          properties:
-            path:
-              type: string
-              description: Repo-relative path. e.g. src/body/services/new_file.py
-            content:
-              type: string
-              description: Complete file content. No truncation. No placeholders.
+  must_contain:
+    - "files"
+    - "path"
+    - "content"
 
 model:
   max_tokens: 16384

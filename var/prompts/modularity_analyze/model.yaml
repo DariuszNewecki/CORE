@@ -17,89 +17,19 @@ input:
     - symbol_inventory
 
 output:
+  # `format: json` maps to OpenAI-compatible `response_format: {"type":
+  # "json_object"}` (see PromptModel._build_response_format). A `json_schema:`
+  # block here would emit `response_format: {"type": "json_schema", ...}`,
+  # which DeepSeek's API rejects with HTTP 400. Shape enforcement falls to
+  # must_contain + post-parse validation via shared.ai.response_parser.
+  # The verbal schema (can_split semantics, confidence-band scale, modules
+  # and import_updates shape) lives in system.txt / user.txt.
   format: json
   max_length: 8192
-  json_schema:
-    type: object
-    required:
-      - can_split
-      - confidence
-      - reason
-    properties:
-      can_split:
-        type: boolean
-        description: >
-          True if a clean seam exists. False if the file is long
-          but genuinely cohesive and should not be split.
-      confidence:
-        type: number
-        minimum: 0.0
-        maximum: 1.0
-        description: >
-          Confidence in the proposed seam on a 0.0-1.0 scale.
-          0.90+ = obvious seam, clean naming, no shared state.
-          0.75  = seam exists with minor coupling that is easy to resolve.
-          0.60  = seam exists but symbols are coupled in ways needing untangling.
-          0.40  = borderline; concepts are real but separation adds friction.
-          0.20  = no clean seam; splitting would make the code worse.
-          The action's confidence gate (default 0.75) rejects plans below threshold.
-      reason:
-        type: string
-        description: >
-          Plain language explanation of the decision.
-          If can_split is false, explain why the file is cohesive.
-          If can_split is true, name the distinct concepts found.
-      modules:
-        type: array
-        description: >
-          Present only when can_split is true.
-          One entry per resulting module.
-        items:
-          type: object
-          required:
-            - module_name
-            - rationale
-            - is_class_split
-            - symbols
-          properties:
-            module_name:
-              type: string
-              description: >
-                snake_case name for the resulting module file.
-            rationale:
-              type: string
-              description: >
-                One sentence naming what this module is responsible for.
-            is_class_split:
-              type: boolean
-              description: >
-                True if the symbols are class methods being extracted
-                from a parent class. False for top-level symbols.
-            symbols:
-              type: array
-              items:
-                type: string
-              description: >
-                Exact names of all symbols that belong in this module,
-                including leading underscores for private methods.
-      import_updates:
-        type: array
-        description: >
-          Present only when can_split is true.
-          One entry per import line that must change in a caller.
-        items:
-          type: object
-          required:
-            - file
-            - old
-            - new
-          properties:
-            file:
-              type: string
-            old:
-              type: string
-            new:
-              type: string
+  must_contain:
+    - "can_split"
+    - "confidence"
+    - "reason"
 
 model:
   max_tokens: 8192

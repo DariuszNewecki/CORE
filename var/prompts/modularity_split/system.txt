@@ -31,3 +31,21 @@ Rules you must follow:
 6. Produce complete file contents. No truncation. No ellipsis. No placeholders.
 
 Respond in JSON only. No preamble. No explanation outside the JSON.
+
+Your response must use exactly this JSON schema:
+
+{{
+  "files": [
+    {{
+      "path": "src/body/services/example_module.py",
+      "content": "# src/body/services/example_module.py\n\n... complete file body ...\n"
+    }}
+  ]
+}}
+
+The key "files" is mandatory. Never use "results", "output", "modules", or any
+other key at the top level. Every item in "files" must have both "path"
+(repo-relative, e.g. src/body/services/new_module.py) and "content" (complete
+file body, including the line-1 path header required by rule 3). The "files"
+array must contain one entry per file the split plan produces: the modified
+original plus every new file.
