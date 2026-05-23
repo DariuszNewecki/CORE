@@ -9,13 +9,18 @@ from shared.infrastructure.knowledge.knowledge_service import KnowledgeService
 
 
 class _VectorProviderStub:
-    async def search_similar(self, summary: str, top_k: int = 5) -> list[dict]:
+    async def search_similar(
+        self,
+        query: str,
+        top_k: int = 5,
+        collection: str = "core-code",
+    ) -> list[dict]:
         return [
             {
                 "name": "vector_hit_symbol",
                 "path": "",
                 "item_type": "symbol",
-                "summary": f"hit for {summary}",
+                "summary": f"hit for {query}",
             }
         ]
 
@@ -43,6 +48,7 @@ async def test_context_builder_degrades_graph_only_on_import_error(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     from shared.infrastructure.context import builder as builder_module
+    from shared.infrastructure.context.models import ContextBuildRequest
 
     async def _raise_import_error(self) -> dict:  # pragma: no cover - test stub
         raise ImportError("cannot import name 'KnowledgeGraphBuilder'")
@@ -59,19 +65,21 @@ async def test_context_builder_degrades_graph_only_on_import_error(
         workspace=None,
     )
 
-    packet = await context_builder.build_for_task(
-        {
-            "task_id": "graph_fallback",
-            "task_type": "code_generation",
-            "summary": "add validation",
-            "scope": {"traversal_depth": 2, "include": []},
-            "constraints": {"max_tokens": 5000, "max_items": 5},
-        }
+    request = ContextBuildRequest(
+        goal="add validation",
+        trigger="agent",
+        phase="parse",
+        include_constitution=False,
+        include_policy=False,
+        include_symbols=False,
+        include_runtime=False,
     )
 
-    assert "context" in packet
-    assert packet["context"], "Non-graph context should still be present"
-    assert packet["context"][0]["name"] == "vector_hit_symbol"
+    packet = await context_builder.build(request)
+
+    assert "evidence" in packet
+    assert packet["evidence"], "Vector evidence should still be present when graph fails"
+    assert packet["evidence"][0]["name"] == "vector_hit_symbol"
 
 
 @pytest.mark.asyncio
