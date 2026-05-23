@@ -114,7 +114,7 @@ class CognitiveService:
                 async with self._session_factory() as session:
                     jit_config = await ConfigService.create(session)
                     api_key = await jit_config.get_secret(
-                        f"{prefix}.api_key", audit_context=resource.name
+                        f"{prefix}.api_key", resource_name=resource.name
                     )
             else:
                 api_key = await self._config.get_secret(f"{prefix}.api_key")

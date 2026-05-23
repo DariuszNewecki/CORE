@@ -116,7 +116,12 @@ class SecretsService:
 
     # ID: 57544a15-6f61-4058-b5ea-280618781666
     async def get_secret(
-        self, db: AsyncSession, key: str, audit_context: str | None = None
+        self,
+        db: AsyncSession,
+        key: str,
+        audit_context: str | None = None,
+        *,
+        resource_name: str | None = None,
     ) -> str:
         """
         Retrieve and decrypt a secret from the database.
@@ -124,7 +129,15 @@ class SecretsService:
         Args:
             db: Database session
             key: Secret identifier
-            audit_context: Optional context for audit log (e.g., "planner_agent")
+            audit_context: Optional cognitive_role context for audit log
+                (must be a value in cognitive_roles.role; otherwise the
+                audit insert fires a FK violation and is silently lost —
+                see #434). Prefer the explicit `resource_name` keyword
+                for resource-context callers (e.g. LLM resource access).
+            resource_name: Optional free-text identifier of the access
+                source for resource-context events (e.g. llm_resources.name
+                like 'deepseek_chat'). FK-free; survives schema vocabulary
+                changes. Added under #434.
 
         Returns:
             Decrypted secret value
@@ -140,7 +153,9 @@ class SecretsService:
         row = result.fetchone()
         if not row:
             raise SecretNotFoundError(key)
-        await self._audit_secret_access(db, key, audit_context)
+        await self._audit_secret_access(
+            db, key, cognitive_role=audit_context, resource_name=resource_name
+        )
         return self.decrypt(row[0])
 
     # ID: 91ab22d7-7020-45ec-9258-0c46a37ff9d0
@@ -208,20 +223,36 @@ class SecretsService:
         )
 
     async def _audit_secret_access(
-        self, db: AsyncSession, key: str, context: str | None
+        self,
+        db: AsyncSession,
+        key: str,
+        cognitive_role: str | None = None,
+        resource_name: str | None = None,
     ) -> None:
         """
         Log secret access for audit trail.
 
-        This creates a record in agent_memory for forensics.
+        Writes a row to agent_memory carrying whichever identifier the caller
+        supplied:
+        - cognitive_role: FK to cognitive_roles.role; for role-context callers
+        - resource_name: free text; for resource-context callers (#434)
+
+        If neither is provided, defaults to resource_name='system' (FK-free,
+        so the audit insert cannot fail on vocabulary mismatch).
         """
         try:
+            if cognitive_role is None and resource_name is None:
+                resource_name = "system"
             query = text(
-                "\n                INSERT INTO core.agent_memory (\n                    cognitive_role,\n                    memory_type,\n                    content,\n                    relevance_score,\n                    created_at\n                ) VALUES (\n                    :role,\n                    'fact',\n                    :content,\n                    1.0,\n                    NOW()\n                )\n            "
+                "\n                INSERT INTO core.agent_memory (\n                    cognitive_role,\n                    resource_name,\n                    memory_type,\n                    content,\n                    relevance_score,\n                    created_at\n                ) VALUES (\n                    :cognitive_role,\n                    :resource_name,\n                    'fact',\n                    :content,\n                    1.0,\n                    NOW()\n                )\n            "
             )
             await db.execute(
                 query,
-                {"role": context or "system", "content": f"Accessed secret: {key}"},
+                {
+                    "cognitive_role": cognitive_role,
+                    "resource_name": resource_name,
+                    "content": f"Accessed secret: {key}",
+                },
             )
         except Exception as e:
             logger.error("Failed to audit secret access: %s", e)
