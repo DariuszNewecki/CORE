@@ -141,7 +141,7 @@
       ]
     },
     "blackboard_subject": {
-      "description": "Canonical subject vocabulary for BlackboardEntry.subject (ADR-056 #366). Initial Wave-1 coverage from highest-traffic worker subjects. Sensors and shop managers join on these strings; drift here breaks coherence detection silently. TBD / governor review: wildcard patterns like '*.run.complete' are not representable in a flat enum \u2014 either each worker's specific run.complete subject is added explicitly, or a separate vocabulary type for the wildcard family is introduced.",
+      "description": "Canonical subject vocabulary for BlackboardEntry.subject (ADR-056 #366). Sensors and shop managers join on these strings; drift here breaks coherence detection silently. Worker run-completion subjects follow the pattern `<worker_name>.run.complete` and are enumerated explicitly per worker \u2014 the closed-enum invariant is preserved over wildcard convenience (governor decision 2026-05-23, #366 D5 residual 1). When a new worker is added, its `.run.complete` subject MUST be added to this enum.",
       "type": "string",
       "enum": [
         "worker.heartbeat",
@@ -150,7 +150,24 @@
         "sync.db.failed",
         "repo.crawl.complete",
         "repo.embed.complete",
-        "violation_remediator.completed"
+        "violation_remediator.completed",
+        "audit_ingest_worker.run.complete",
+        "audit_violation_sensor.run.complete",
+        "blackboard_shop_manager.run.complete",
+        "call_site_rewriter.run.complete",
+        "capability_tagger.run.complete",
+        "coherence_sensor.run.complete",
+        "commit_reachability_auditor.run.complete",
+        "intent_inspector.run.complete",
+        "prompt_artifact_writer.run.complete",
+        "prompt_extractor_worker.run.complete",
+        "proposal_consumer_worker.run.complete",
+        "proposal_pipeline_shop_manager.run.complete",
+        "test_coverage_sensor.run.complete",
+        "test_runner_sensor.run.complete",
+        "violation_executor.run.complete",
+        "violation_remediator.run.complete",
+        "worker_shop_manager.run.complete"
       ]
     },
     "action_impact": {
