@@ -12,7 +12,15 @@ metadata:
     audit_ingest_worker → prompt_extractor_worker → prompt_artifact_writer → call_site_rewriter.
     Paused pending activation of the make_request_async() → PromptModel.invoke()
     migration campaign. Implementation in body.workers.prompt_artifact_writer
-    may be incomplete — verify before activating.
+    verified complete 2026-05-23 against declared mandate (#258 closed):
+    three-artifact generation, atomic blackboard claim via FOR UPDATE SKIP LOCKED,
+    FileHandler-scoped writes to var/prompts/, LLM role aligns (model
+    'prompt_artifact_generator' uses role: Architect, mandate permits
+    llm.architect). PromptModel 'prompt_artifact_generator' confirmed on disk
+    with model.yaml + system.txt + user.txt. Pre-activation correctness:
+    prompt.extraction, prompt.artifact, prompt.rewrite.complete, and
+    prompt.rewrite.failed subject family roots added to blackboard_subject
+    enum in same session.
 
 identity:
   uuid: "c3d4e5f6-a7b8-9012-cdef-123456789012"
