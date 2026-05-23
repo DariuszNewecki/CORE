@@ -59,12 +59,17 @@ class ContextRetriever:
         self.query_builder = SymbolQueryBuilder()
 
     # ID: 16312ff7-2d23-49b2-9f18-44580f40032f
-    async def read_target_file(self, goal: str) -> tuple[str | None, str | None]:
+    async def read_target_file(
+        self, goal: str, target_file: str | None = None
+    ) -> tuple[str | None, str | None]:
         """
-        Extract and read target file path from goal string.
+        Read the target file for a test-generation context.
 
         Args:
-            goal: Goal string containing "for src/path/to/file.py"
+            goal: Goal string. Used as fallback when `target_file` is not
+                provided — parsed for "for src/path/to/file.py".
+            target_file: Explicit target file path. Preferred when available;
+                avoids fragile coupling to the goal string's exact wording.
 
         Returns:
             Tuple of (file_content, file_path) or (None, None)
@@ -72,11 +77,14 @@ class ContextRetriever:
         Constitutional Note:
         This method only reads files, no database access needed.
         """
-        match = re.search(r"for\s+(src/[^\s]+\.py)", goal)
-        if not match:
-            return None, None
+        if target_file:
+            file_path = target_file
+        else:
+            match = re.search(r"for\s+(src/[^\s]+\.py)", goal)
+            if not match:
+                return None, None
+            file_path = match.group(1)
 
-        file_path = match.group(1)
         content = await self.snippet_extractor.read_file(file_path)
 
         return content, file_path if content else (None, None)

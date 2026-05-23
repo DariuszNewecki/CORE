@@ -62,7 +62,9 @@ class ArchitecturalContextBuilder:
         is_test = "test" in goal.lower()
         file_content, file_path = (None, None)
         if is_test:
-            file_content, file_path = await self.retriever.read_target_file(goal)
+            file_content, file_path = await self.retriever.read_target_file(
+                goal, target_file
+            )
 
         async with self._session_factory() as session:
             examples = await self.retriever.find_examples(goal, best["layer"], session)
