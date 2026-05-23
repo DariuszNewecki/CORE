@@ -198,9 +198,18 @@ class ConfigService:
         return value
 
     # ID: afbb956b-f399-4630-8be7-afdb20d68f00
-    async def get_secret(self, key: str, audit_context: str | None = None) -> str:
+    async def get_secret(
+        self,
+        key: str,
+        audit_context: str | None = None,
+        *,
+        resource_name: str | None = None,
+    ) -> str:
         """
         Get a secret configuration value (decrypted).
+
+        Forwards `audit_context` (cognitive_role) and `resource_name`
+        (free-text resource identifier) to SecretsService — see #434.
         """
         if self.db is None:
             raise RuntimeError(
@@ -210,7 +219,7 @@ class ConfigService:
         if not self._secrets_service:
             self._secrets_service = await get_secrets_service(self.db)
         return await self._secrets_service.get_secret(
-            self.db, key, audit_context=audit_context
+            self.db, key, audit_context=audit_context, resource_name=resource_name
         )
 
     # ID: f4493c4d-4248-4f21-8b16-a440b9433606
