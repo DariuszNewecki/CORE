@@ -42,6 +42,19 @@ class ModuleAnchorGenerator:
         self.cognitive_service = cognitive_service
         self.qdrant = qdrant_service
 
+    # ID: a66c5b38-2109-41f0-ba29-b20912566771
+    async def find_best_placement(
+        self, code_description: str, limit: int = 3
+    ) -> list[dict[str, Any]]:
+        from will.tools import anchor_search
+
+        return await anchor_search.find_best_placement(
+            code_description=code_description,
+            cognitive_service=self.cognitive_service,
+            qdrant_service=self.qdrant,
+            limit=limit,
+        )
+
     # ID: ef29c8df-12fc-45cc-b26e-a7697c1f1abe
     async def generate_all_anchors(self) -> dict[str, Any]:
         """Generate all layer and module anchors."""
