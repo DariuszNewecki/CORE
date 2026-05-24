@@ -54,7 +54,15 @@ logger = getLogger(__name__)
 
 _FINDING_SUBJECT_PREFIX = "audit.violation::"
 _CANDIDATE_SUBJECT = "audit.remediation.candidate"
+_BLAST_BOUND_SUBJECT = "coherence.violation_executor.blast_bound"
 _CFG = load_operational_config().workers.violation_executor
+
+# Bounded sample of deferred-file paths included in the blast-bound
+# OPEN-finding payload for operator inspection. Keep small enough to fit
+# comfortably in a CLI render and a blackboard JSONB row. Same pattern as
+# ADR-070 D8's _REAP_SAMPLE_SIZE in orchestrator.py — payload-shaping
+# constant, not a governance bound.
+_DEFERRED_PATHS_SAMPLE_SIZE = 20
 
 
 # ID: ba3704d8-23da-49d2-b67d-7b42f33fce83
@@ -77,6 +85,24 @@ class ViolationExecutorWorker(Worker):
         super().__init__()
         self._ctx = core_context
         self._write = write
+        # Constitutional blast bound — per-cycle files-rewritten cap.
+        # MUST be declared in the worker YAML at
+        # `mandate.schedule.files_per_cycle_max`. Missing declaration is a
+        # constitutional gap; the worker refuses to load (cognate with
+        # ADR-069 D3's no-runtime-fallback rule for lease_seconds). The
+        # YAML is the single source of truth — no module-level default.
+        try:
+            self._files_per_cycle_max: int = int(
+                self._declaration["mandate"]["schedule"]["files_per_cycle_max"]
+            )
+        except (KeyError, TypeError, ValueError) as exc:
+            raise ValueError(
+                "violation_executor.yaml is missing or has an invalid "
+                "mandate.schedule.files_per_cycle_max — the per-cycle blast "
+                "bound MUST be declared on the worker artifact (no runtime "
+                "fallback, cognate with ADR-069 D3 for lease_seconds). "
+                f"Underlying error: {type(exc).__name__}: {exc}"
+            ) from exc
 
     # ID: 4cb3dadb-8f63-4da1-8725-c88bcf819d3b
     async def run(self) -> None:
@@ -139,6 +165,37 @@ class ViolationExecutorWorker(Worker):
             mode,
         )
 
+        # Blast-bound rail: cap files-per-cycle (2026-05-24 hardening sweep).
+        # The work is not lost — deferred files' findings are released back to
+        # `open` and re-enter the queue for the next cycle. Pacing, not censor.
+        # When the cap is hit, an OPEN coherence finding surfaces it for
+        # governor visibility (parallel to ADR-070 D8's writer-as-sensor
+        # OPEN-finding pattern when guards trip).
+        all_files = list(by_file.items())
+        blast_bound_hit = len(all_files) > self._files_per_cycle_max
+        deferred_paths: list[str] = []
+        if blast_bound_hit:
+            deferred = all_files[self._files_per_cycle_max :]
+            deferred_findings = [f for _, f_list in deferred for f in f_list]
+            deferred_paths = [path for path, _ in deferred]
+
+            await self._release_findings(deferred_findings)
+            await self._post_blast_bound_finding(
+                cap=self._files_per_cycle_max,
+                total_files=len(all_files),
+                deferred_paths=deferred_paths,
+            )
+            logger.warning(
+                "ViolationExecutorWorker: BLAST BOUND reached — processing "
+                "%d/%d files; %d finding(s) for %d deferred file(s) released "
+                "to open for next cycle.",
+                self._files_per_cycle_max,
+                len(all_files),
+                len(deferred_findings),
+                len(deferred_paths),
+            )
+            by_file = dict(all_files[: self._files_per_cycle_max])
+
         succeeded = 0
         failed = 0
         candidates_surfaced = 0
@@ -166,6 +223,11 @@ class ViolationExecutorWorker(Worker):
                 "succeeded": succeeded,
                 "failed": failed,
                 "candidates_surfaced": candidates_surfaced,
+                "blast_bound": {
+                    "cap": self._files_per_cycle_max,
+                    "hit": blast_bound_hit,
+                    "deferred_files": len(deferred_paths),
+                },
             },
         )
         logger.info(
@@ -378,3 +440,57 @@ class ViolationExecutorWorker(Worker):
             await svc.abandon_entries(entry_ids)
         except Exception as exc:
             logger.error("ViolationExecutorWorker: abandon_entries failed — %s", exc)
+
+    # ID: 7e1d8f4a-3c2b-4d5e-9a6f-2c4d8b3e9f1c
+    async def _post_blast_bound_finding(
+        self,
+        *,
+        cap: int,
+        total_files: int,
+        deferred_paths: list[str],
+    ) -> None:
+        """
+        Post an OPEN finding when the per-cycle blast bound is reached.
+
+        Mirrors the ADR-070 D8 writer-as-sensor OPEN-finding pattern: the
+        system noticed the rate-limit and surfaces it for governor visibility.
+        Not autonomously remediated — operator may choose to increase the
+        cap (amend the YAML), investigate why so many files are queued, or
+        accept the pacing.
+
+        Bounded sample of deferred paths included in the payload (max 20)
+        so the finding fits comfortably in a CLI render and a blackboard
+        JSONB row.
+        """
+        try:
+            await self._post_entry(
+                entry_type="finding",
+                subject=_BLAST_BOUND_SUBJECT,
+                payload={
+                    "rule_id": _BLAST_BOUND_SUBJECT,
+                    "severity": "medium",
+                    "drift_class": "per_cycle_cap_reached",
+                    "cap": cap,
+                    "total_files_queued": total_files,
+                    "deferred_files_count": len(deferred_paths),
+                    "deferred_paths_sample": deferred_paths[
+                        :_DEFERRED_PATHS_SAMPLE_SIZE
+                    ],
+                    "remediation": "deferred-to-next-cycle",
+                    "remediation_hint": (
+                        f"{total_files} files were queued in this cycle, "
+                        f"above the declared cap of {cap}. "
+                        f"{len(deferred_paths)} file(s) deferred to the next "
+                        f"cycle. If the queue consistently exceeds the cap, "
+                        f"investigate upstream (is a sensor over-emitting?) "
+                        f"or amend the cap in violation_executor.yaml."
+                    ),
+                    "pair_id": "violation_executor ↔ src/",
+                },
+                status="open",
+            )
+        except Exception as exc:
+            logger.warning(
+                "ViolationExecutorWorker: blast-bound finding post failed: %s",
+                exc,
+            )
