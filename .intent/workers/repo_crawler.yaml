@@ -18,6 +18,15 @@ metadata:
     composite wrapper (vector_sync_worker, deprecated under ADR-018 D1)
     for operational continuity.
 
+    ADR-070 D8 (2026-05-24): declared as the writer-as-sensor for the
+    `repo_artifacts ↔ filesystem` projection pair in
+    .intent/governance/projections.yaml. The walk pass naturally
+    enumerates the filesystem source set; the reap is one additional
+    DELETE appended to the existing pipeline (orchestrator.run_crawl).
+    Drift findings are posted under `coherence.repo_artifacts.drift`
+    when the reap removes any rows; remediation is inline (no proposal
+    pipeline) per the writer-as-sensor pattern.
+
 identity:
   uuid: "f1a2b3c4-d5e6-7890-abcd-ef1234567891"
   class: sensing

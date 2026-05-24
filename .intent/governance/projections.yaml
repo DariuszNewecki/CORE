@@ -1,0 +1,55 @@
+# Source–Projection Coherence Inventory
+#
+# Authority: policy
+# Status:    active
+# Governs:   ADR-070 (Source–projection coherence as bounded drift)
+#
+# This file inventories every (source-of-truth, derived projection) pair
+# CORE maintains. Each entry declares the source of truth, the projection,
+# the drift bound, the sensor worker that detects divergence, and the
+# remediation pathway.
+#
+# Per ADR-070 D2, this inventory is the constitutional surface for
+# representation coherence. Completeness is governor obligation —
+# the meta-rule (D5) catches declared-but-unsensed pairs, but cannot
+# enumerate pairs that exist in the running system without an entry here.
+# A projection pair found in the running system without a matching entry
+# is a constitutional gap (D2, D9).
+#
+# Bound shapes (D3):
+#   - lease            — lease_seconds; for operational caches
+#   - hash_equality    — source_hash comparison; for vector projections
+#   - reference_set    — tolerance; for set-difference projections
+#
+# Sensor patterns (D4):
+#   - proposal (default)  — independent sensor + remediation via proposal pipeline
+#   - inline              — writer-as-sensor; reap executed in writer's own cycle
+#                           (permitted only for reference_set pairs where the
+#                            writer's existing cycle enumerates the source set)
+
+projections:
+
+  - pair_id: "repo_artifacts ↔ filesystem"
+    description: >
+      core.repo_artifacts is the structural self-model populated by
+      RepoCrawlerWorker. Each row references a filesystem path under
+      repo_root; row set must equal the current crawl walk set.
+    source_of_truth:
+      kind: filesystem
+      root: "."           # walked per RepoCrawlerWorker scope (see _CRAWL_SCOPES)
+    projection:
+      kind: postgres_table
+      locator: "core.repo_artifacts"
+      join_key: "file_path"
+    drift_bound:
+      type: reference_set
+      tolerance: 0        # any non-empty source ∖ projection or projection ∖ source is drift
+    sensor_worker: "repo_crawler"
+    remediation:
+      mode: inline        # reap executed in the crawler's own walk cycle; no proposal pipeline
+    rule_id: "coherence.repo_artifacts.drift"
+    authority: "RepoCrawlerWorker is the authoritative writer for this projection."
+    landed_by:
+      adr: "ADR-070"
+      decision: "D8"
+      closes_issue: "#441"

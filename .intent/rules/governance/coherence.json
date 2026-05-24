@@ -1,0 +1,22 @@
+{
+    "$schema": "META/rule_document.schema.json",
+    "kind": "rule_document",
+    "metadata": {
+        "id": "rules.governance.coherence",
+        "title": "Source–Projection Coherence",
+        "version": "1.0.0",
+        "authority": "policy",
+        "phase": "audit",
+        "status": "active"
+    },
+    "rules": [
+        {
+            "id": "coherence.repo_artifacts.drift",
+            "statement": "Every row in core.repo_artifacts MUST reference a file that exists on disk under the current RepoCrawlerWorker scope. The row set and the filesystem set must be equal (reference-set bound, tolerance 0).",
+            "enforcement": "reporting",
+            "authority": "policy",
+            "phase": "audit",
+            "rationale": "ADR-070 D8. core.repo_artifacts is the structural self-model populated by RepoCrawlerWorker. When files are deleted from disk, rows that still reference them are orphans — they waste embedder bandwidth (RepoEmbedderWorker logs `file missing` each cycle), inflate vector-store coordinates, and falsify any downstream query joining on file_path. Detection and remediation are handled by the writer (RepoCrawlerWorker) under the writer-as-sensor pattern (ADR-070 D4): the crawler's existing walk pass naturally enumerates the source set, and the reap is one additional DELETE in the same cycle. Findings are posted to the blackboard under this rule for governor visibility and audit-trail attribution; no proposal is dispatched because the writer is constitutionally permitted to mutate the projection. Pre-ADR-070 state: 350 orphan rows accumulated silently (issue #441), surfaced only by raw SQL inspection during the ADR-069 diagnostic session."
+        }
+    ]
+}

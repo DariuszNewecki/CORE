@@ -638,6 +638,22 @@ mappings:
       of the rule registry.
     status: DELEGATE
 
+  coherence.repo_artifacts.drift:
+    action: fix.modularity
+    confidence: 0.40
+    risk: moderate
+    description: >
+      ADR-070 D8 writer-as-sensor: orphan rows in core.repo_artifacts
+      (rows whose file_path no longer exists on disk) are detected and
+      reaped INLINE by RepoCrawlerWorker in its existing walk cycle.
+      The finding is posted to the blackboard for governor visibility
+      and audit-trail attribution; no proposal is dispatched because
+      the writer is constitutionally permitted to mutate the projection
+      (ADR-070 D4). This DELEGATE entry satisfies the ADR-066 invariant
+      that every active rule must have a remediation map entry without
+      diverting the finding into the proposal pipeline.
+    status: DELEGATE
+
   # ===========================================================================
   # TIER 3b: PENDING — action implementation required
   # Documented for roadmap visibility only. Will not be dispatched.
