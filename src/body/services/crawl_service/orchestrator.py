@@ -118,6 +118,7 @@ class CrawlOrchestrator:
             "edges_created": 0,
             "chunks_upserted": 0,
             "verdicts_purged": 0,
+            "orphans_reaped": 0,
         }
 
         svc = self._service
@@ -207,6 +208,20 @@ class CrawlOrchestrator:
                     "CrawlOrchestrator.run_crawl: purged %d verdict row(s) for "
                     "%d removed file(s)",
                     purged,
+                    len(removed_paths),
+                )
+
+                # ADR-070 D8 writer-as-sensor reap of orphan repo_artifacts
+                # rows. `removed_paths` is the (source minus projection) set
+                # for the repo_artifacts/filesystem pair declared in
+                # .intent/governance/projections.yaml. Reference-set bound,
+                # tolerance 0: a non-empty difference is drift, reaped inline.
+                reaped = await svc.delete_orphan_artifacts(removed_paths)
+                stats["orphans_reaped"] = reaped
+                logger.info(
+                    "CrawlOrchestrator.run_crawl: reaped %d orphan repo_artifacts "
+                    "row(s) for %d removed file(s) (ADR-070 D8)",
+                    reaped,
                     len(removed_paths),
                 )
 

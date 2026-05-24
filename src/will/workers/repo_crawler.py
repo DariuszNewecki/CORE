@@ -93,11 +93,36 @@ class RepoCrawlerWorker(Worker):
         svc = await service_registry.get_crawl_service()
         stats = await svc.run_crawl(self._repo_root, self._cognitive_service)
 
+        completed_at = datetime.now(UTC).isoformat()
+
+        # ADR-070 D8 writer-as-sensor: when the cycle reaped any
+        # orphan repo_artifacts rows, post a coherence.repo_artifacts.drift
+        # finding for governor visibility and audit-trail attribution.
+        # Status is `resolved` because remediation is inline — by the
+        # time this finding is filed, the drift is already corrected
+        # (ADR-070 D4 inline-remediation pattern). The finding is the
+        # audit record that drift was detected, not an open work item.
+        orphans_reaped = stats.get("orphans_reaped", 0)
+        if orphans_reaped > 0:
+            await self._post_entry(
+                entry_type="finding",
+                subject="coherence.repo_artifacts.drift",
+                payload={
+                    "rule_id": "coherence.repo_artifacts.drift",
+                    "severity": "medium",
+                    "orphan_count": orphans_reaped,
+                    "remediation": "inline-reap",
+                    "remediated_at": completed_at,
+                    "pair_id": "repo_artifacts ↔ filesystem",
+                },
+                status="resolved",
+            )
+
         await self.post_report(
             subject="repo.crawl.complete",
             payload={
                 **stats,
-                "completed_at": datetime.now(UTC).isoformat(),
+                "completed_at": completed_at,
             },
         )
         logger.info("RepoCrawlerWorker: crawl complete — %s", stats)

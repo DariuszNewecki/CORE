@@ -20,6 +20,9 @@ from rich.console import Console
 
 from api.cli.client import CoreApiClient
 from body.services.coherence_service import CoherenceService
+from body.services.representation_coherence_service import (
+    RepresentationCoherenceService,
+)
 from cli.commands.check.converters import parse_min_severity
 from cli.commands.check.formatters import (
     print_context_build_hints,
@@ -116,6 +119,17 @@ async def audit_command(
     except Exception as exc:
         logger.warning("CCC advisory line skipped: %s", exc)
 
+    # ADR-070 D6: append Representation Coherence advisory. Advisory only —
+    # any inventory load or DB failure is logged and the line silently
+    # skipped so audit semantics are not affected.
+    try:
+        async with get_session() as session:
+            await _print_representation_coherence_advisory(
+                console, RepresentationCoherenceService(session)
+            )
+    except Exception as exc:
+        logger.warning("Representation Coherence advisory line skipped: %s", exc)
+
     if filtered_findings:
         if verbose:
             print_verbose_findings(filtered_findings)
@@ -161,3 +175,56 @@ async def _print_coherence_advisory(
 
     run_date = latest["run_at"].date().isoformat()
     console.print(f"Constitutional Coherence: clean (last run {run_date})")
+
+
+async def _print_representation_coherence_advisory(
+    console: Console, service: RepresentationCoherenceService
+) -> None:
+    """ADR-070 D6: print one Representation Coherence advisory line.
+
+    Four cases:
+      - inventory missing: Representation Coherence: no inventory file
+                           — see .intent/governance/projections.yaml
+      - empty inventory:   Representation Coherence: no pairs declared
+                           — see .intent/governance/projections.yaml
+      - all in-lease:      Representation Coherence: clean
+                           ({N} pair(s) · last check {YYYY-MM-DD HH:MM:SSZ})
+      - mixed state:       Representation Coherence:
+                           {A} in-lease · {B} drifted · {C} sensor-stale
+    """
+    summary = await service.get_summary()
+
+    if not summary["inventory_loaded"]:
+        console.print(
+            "Representation Coherence: no inventory file "
+            "— see .intent/governance/projections.yaml"
+        )
+        return
+
+    if summary["pairs_declared"] == 0:
+        console.print(
+            "Representation Coherence: no pairs declared "
+            "— see .intent/governance/projections.yaml"
+        )
+        return
+
+    if summary["drifted"] == 0 and summary["sensor_stale"] == 0:
+        last_check = summary["last_check_at"]
+        if last_check is not None:
+            ts = last_check.strftime("%Y-%m-%d %H:%M:%SZ")
+            console.print(
+                f"Representation Coherence: clean "
+                f"({summary['pairs_declared']} pair(s) · last check {ts})"
+            )
+        else:
+            console.print(
+                f"Representation Coherence: clean "
+                f"({summary['pairs_declared']} pair(s))"
+            )
+        return
+
+    console.print(
+        f"Representation Coherence: {summary['in_lease']} in-lease "
+        f"· {summary['drifted']} drifted "
+        f"· {summary['sensor_stale']} sensor-stale"
+    )

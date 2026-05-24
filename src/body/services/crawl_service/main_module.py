@@ -313,6 +313,40 @@ class CrawlService:
     # symbol_calls
     # ------------------------------------------------------------------
 
+    # ID: 7d4c8e1a-3b5f-4a8c-9d2e-6c1b8e3f0a4d
+    async def delete_orphan_artifacts(self, removed_paths: list[str]) -> int:
+        """
+        Delete core.repo_artifacts rows for files no longer present in the
+        crawl pass. ADR-070 D8 writer-as-sensor reap.
+
+        A previously-crawled file that is absent from the current pass has
+        been removed from disk, moved out of crawl scope, or renamed. Its
+        repo_artifacts row is now a structural orphan: RepoEmbedderWorker
+        warns once per cycle, vector-store coordinates inflate, and any
+        downstream query joining on file_path returns ghost evidence.
+        Reaping the row in the same cycle that detected the absence is the
+        writer-as-sensor pattern declared in ADR-070 D4 for this pair.
+
+        Returns the count of orphan rows deleted.
+        """
+        if not removed_paths:
+            return 0
+
+        from body.services.service_registry import ServiceRegistry
+
+        async with ServiceRegistry.session() as session:
+            async with session.begin():
+                result = await session.execute(
+                    text(
+                        """
+                        DELETE FROM core.repo_artifacts
+                        WHERE file_path = ANY(:paths)
+                        """
+                    ),
+                    {"paths": removed_paths},
+                )
+                return result.rowcount or 0
+
     # ID: 92e7d4a3-1f5b-4c8e-a067-2d9f1b3e8c5a
     async def purge_verdicts_for_removed_files(self, removed_paths: list[str]) -> int:
         """
