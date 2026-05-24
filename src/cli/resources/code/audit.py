@@ -218,8 +218,7 @@ async def _print_representation_coherence_advisory(
             )
         else:
             console.print(
-                f"Representation Coherence: clean "
-                f"({summary['pairs_declared']} pair(s))"
+                f"Representation Coherence: clean ({summary['pairs_declared']} pair(s))"
             )
         return
 
