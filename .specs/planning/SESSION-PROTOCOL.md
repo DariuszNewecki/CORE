@@ -20,6 +20,7 @@ The audience is the governor and any architect instance (human or Claude) openin
 | `.specs/requirements/` | URS documents | Updated on major feature arcs |
 | `.specs/META/` | Schemas governing `.specs/` and `.intent/` documents | Updated when conventions change |
 | `.specs/state/` | Investigations and historical snapshots cited by ADRs or papers | Append-only; dated artifacts |
+| `.specs/commercial/` | Private commercial material (e.g. tech-rep onboarding) | Gitignored; not published |
 | `.specs/planning/CORE-A3-plan.md` | Strategic roadmap — gates, phases, bands, ADR index | Updated when an A3 gate, phase, band, or ADR table entry changes |
 | `.specs/planning/SESSION-PROTOCOL.md` | This document | Revised when the protocol itself changes |
 | `.specs/planning/INTERACTION-CONTRACT.md` | Operating contract between governor and architect | Loaded at session-open Step 1; revised when the contract itself changes |
@@ -33,6 +34,8 @@ The audience is the governor and any architect instance (human or Claude) openin
 | Git commit history | The authoritative record of what changed and when | Generated as sessions run |
 
 What is no longer kept: long-form handoff documents under `.specs/state/handoffs/handoff-*.md`. The existing archive (pre-this-protocol) remains as historical record; no new ones are produced. Session activity is reconstructible from Git history, GitHub Issue events, and GitHub Releases — no separate session log is maintained.
+
+Note: gitignored subtrees (`.specs/commercial/`) exist alongside the published ones and are not reflected in the repo or context packets.
 
 ---
 
@@ -50,7 +53,7 @@ Both files are produced on lira by `make context` and uploaded to the Claude.ai 
 
 Tool preference order for data needs within a session: `view` / `bash_tool` against the Project Files first; Claude Code prompts for anything requiring live system state or `src/` code content (Steps 3–4 below, and any code-level reconnaissance during the session).
 
-**Step 3 — System state scan.** The architect produces a Claude Code prompt that the governor runs on lira at session open. The prompt must cover: `core-admin code audit` (verdict + finding count), `systemctl --user status core-daemon` (daemon liveness). The architect does not wait for the output before proceeding to Steps 5–6; it reasons from the A3 plan and ADR table as the primary state surface. If the scan reveals an unexpected condition, the governor opens an issue and surfaces it as the session's lead candidate or a blocker.
+**Step 3 — System state scan.** The architect produces a Claude Code prompt that the governor runs on lira at session open. The prompt must cover: `core-admin code audit` (verdict + finding count), `systemctl --user status core-daemon` and `systemctl --user status core-api` (service liveness — both must be up; the audit CLI on :8000 depends on `core-api`). The architect does not wait for the output before proceeding to Steps 5–6; it reasons from the A3 plan and ADR table as the primary state surface. If the scan reveals an unexpected condition, the governor opens an issue and surfaces it as the session's lead candidate or a blocker.
 
 Canonical state-scan Claude Code prompt:
 
@@ -59,9 +62,10 @@ Run the following and report the results:
 
 1. core-admin code audit
 2. systemctl --user status core-daemon
-3. core-admin runtime dashboard --plain
+3. systemctl --user status core-api
+4. core-admin runtime dashboard --plain
 
-Report: audit verdict, total finding count, finding distribution by rule_id, daemon status.
+Report: audit verdict, total finding count, finding distribution by rule_id, daemon status, api status.
 ```
 
 **Step 4 — GitHub state scan.** The architect produces a Claude Code prompt to retrieve open issue state for the current band's milestone. The governor runs it on lira. The architect uses the A3 plan and ADR table (from `context_intent_specs.txt`) as its primary state surface and does not block on GitHub output.
@@ -84,12 +88,23 @@ gh issue list --milestone "Band E" --state open \
   --label "status:blocked" \
   --json number,title --limit 20
 
-Report: full open issue list, verification-pending subset, blocked subset.
+gh issue list --search "no:milestone label:priority:high state:open" \
+  --json number,title,labels \
+  --limit 20
+
+Report: full open issue list, verification-pending subset, blocked subset, unbanded high-priority subset.
 ```
 
 Close anything that has resolved. Do this first because closures free up pick candidates.
 
-**Step 5 — Candidate list.** From remaining open issues, identify 2–4 candidates for the session's lead. Preference order: items surfaced last session, items `priority:high`, items on the currently-advancing band's milestone.
+**Step 5 — Candidate list.** From remaining open issues, identify 2–4 candidates for the session's lead. Preference order:
+
+1. Items surfaced last session (regardless of band or milestone).
+2. Banded items with `priority:high` on the currently-advancing band's milestone.
+3. Unbanded items with `priority:high`.
+4. Remaining banded items on the currently-advancing band's milestone.
+
+Unbanded items without `priority:high` are not session lead candidates — they are backlog until banded or escalated. The preference order exists to make picks determinate; the governor's pick always governs.
 
 **Step 6 — Pick one lead.** The governor picks. The architect can propose and argue, but the pick is the governor's. Name it explicitly and state the expected session outcome in one sentence.
 
@@ -184,3 +199,7 @@ This document does not specify:
 *Revised 2026-05-14: §2 gained GitHub Projects board row; §3 Step 4 updated to reference the Projects board as the primary visual surface for session-open state scan, with the Issues tab filter set retained as the verification step.*
 
 *Revised 2026-05-17: Two-file context model adopted. §3 Step 2: `context_core.txt` replaced by `context_intent_specs.txt` (`.intent/` + `.specs/` snapshot only; `src/` code excluded). Tool preference order added to Step 2. §3 Steps 3–4: architect no longer executes these interactively; both steps now describe canonical Claude Code prompts that the governor runs on lira at session open. Architect proceeds to Steps 5–6 without waiting for output; live state surfaces through issues when decision-relevant. INTERACTION-CONTRACT.md §3.2 cross-reference to "Step 2 tooling inventory" remains valid — Step 2 now carries the tool preference order explicitly.*
+
+*Revised 2026-05-24: Three drifts corrected. §3 Step 3: canonical state-scan prompt extended to include `systemctl --user status core-api` alongside `core-daemon`; prose updated to name both services explicitly. §2: `.specs/commercial/` row added (gitignored private commercial material); trailing note added that gitignored subtrees exist outside the context packets. §3 Step 5: preference order extended to four tiers — last-session items, banded `priority:high`, unbanded `priority:high`, remaining banded items; unbanded items without `priority:high` explicitly excluded from lead candidacy. §3 Step 4 canonical prompt gains a fourth `gh` call for unbanded `priority:high` issues to match the expanded Step 5 preference order.*
+
+*Revised 2026-05-24: §3 Step 4 fourth `gh` call corrected. The unbanded-issue lookup originally used a non-existent `--no-milestone` flag (`gh issue list` only supports `-m, --milestone`), which would have failed with `unknown flag: --no-milestone`. Replaced with the equivalent `--search "no:milestone label:priority:high state:open"` form, which is the supported GitHub search syntax for the same filter. Verified against `gh` CLI on lira.*
