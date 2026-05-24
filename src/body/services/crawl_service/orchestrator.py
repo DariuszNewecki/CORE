@@ -66,6 +66,21 @@ _STALE_CRAWL_THRESHOLD_SEC = 3600
 # crawl_runs row. Keeps error_message bounded for storage and readability.
 _MAX_ERROR_SAMPLES = 5
 
+# ADR-070 D8 safety rails. Bounds on the autonomous repo_artifacts reap
+# to prevent config-drift or partial-walk catastrophe. If any guard
+# trips the reap is skipped and an OPEN finding is posted for governor
+# inspection (rather than running the destructive DELETE under suspect
+# conditions). Hard-coded for v1 — future work may move these to
+# `.intent/governance/projections.yaml` as per-pair declared bounds.
+_REAP_HARD_CAP = 100  # absolute max rows reaped per cycle
+_REAP_FRACTION_CAP = 0.05  # max fraction of known table reaped per cycle
+_WALK_FRACTION_FLOOR = 0.5  # walked/known must exceed this (partial-walk guard)
+_WALK_ABSOLUTE_FLOOR = 50  # OR walked must exceed this floor in absolute terms
+# Bounded sample of candidate-to-be-reaped paths included in the
+# drift-excessive finding payload for operator inspection. Keep small
+# enough to fit comfortably in a CLI render and a blackboard JSONB row.
+_REAP_SAMPLE_SIZE = 20
+
 
 # ID: fc846725-fc1a-4cc2-a598-d915350b4eb0
 class CrawlOrchestrator:
@@ -215,15 +230,40 @@ class CrawlOrchestrator:
                 # rows. `removed_paths` is the (source minus projection) set
                 # for the repo_artifacts/filesystem pair declared in
                 # .intent/governance/projections.yaml. Reference-set bound,
-                # tolerance 0: a non-empty difference is drift, reaped inline.
-                reaped = await svc.delete_orphan_artifacts(removed_paths)
-                stats["orphans_reaped"] = reaped
-                logger.info(
-                    "CrawlOrchestrator.run_crawl: reaped %d orphan repo_artifacts "
-                    "row(s) for %d removed file(s) (ADR-070 D8)",
-                    reaped,
-                    len(removed_paths),
+                # tolerance 0: a non-empty difference is drift, reaped inline
+                # — but only after the safety guards in _evaluate_reap_safety
+                # confirm the diff is within declared bounds.
+                guard_state = _evaluate_reap_safety(
+                    removed_paths=removed_paths,
+                    total_known=len(existing_hashes),
+                    total_walked=len(seen_paths),
                 )
+                stats["coherence_guard"] = guard_state
+
+                if guard_state["triggered"]:
+                    logger.warning(
+                        "CrawlOrchestrator.run_crawl: REAP SKIPPED "
+                        "— safety guard tripped (%s); proposed=%d "
+                        "walked=%d known=%d. Candidates left for "
+                        "governor inspection (ADR-070 D8 safety rail).",
+                        guard_state["trigger"],
+                        guard_state["proposed_reaps"],
+                        guard_state["total_walked"],
+                        guard_state["total_known"],
+                    )
+                    # orphans_reaped stays 0; the worker reads
+                    # stats["coherence_guard"] and posts an OPEN finding for
+                    # governor action.
+                else:
+                    reaped = await svc.delete_orphan_artifacts(removed_paths)
+                    stats["orphans_reaped"] = reaped
+                    logger.info(
+                        "CrawlOrchestrator.run_crawl: reaped %d orphan "
+                        "repo_artifacts row(s) for %d removed file(s) "
+                        "(ADR-070 D8)",
+                        reaped,
+                        len(removed_paths),
+                    )
 
             # Terminal-status dispatch (#179)
             if failures == 0:
@@ -343,3 +383,70 @@ class CrawlOrchestrator:
             await svc.insert_artifact_symbol_links(artifact_id, links)
             stats["symbols_linked"] += len(links)
         return True
+
+
+# ID: 8c1f3a5e-7d9b-4e6c-a8f2-5b3d9c1e7a4f
+def _evaluate_reap_safety(
+    *,
+    removed_paths: list[str],
+    total_known: int,
+    total_walked: int,
+) -> dict[str, Any]:
+    """
+    ADR-070 D8 safety rails — pure function that decides whether the
+    proposed reap is within bounds. Returns the guard state regardless
+    of outcome so the caller can record it in `stats["coherence_guard"]`
+    for both the safe and the tripped paths.
+
+    Two independent triggers, either of which trips the guard:
+
+    - walk_too_small: the walker enumerated suspiciously few files
+      compared to what the table believes exists. Bound is
+      max(_WALK_ABSOLUTE_FLOOR, total_known * _WALK_FRACTION_FLOOR).
+      Catches partial walks (transient I/O issues, glob-returning-empty
+      on missing-directory) before they manifest as mass reaps.
+
+    - reap_too_large: the proposed deletion count exceeds either the
+      hard cap (_REAP_HARD_CAP) or the fraction cap (_REAP_FRACTION_CAP)
+      of the known table size. Catches config drift (narrowed crawl
+      scope) and any pathological state where the diff is implausibly
+      large.
+
+    Returns:
+        {
+            "triggered": bool,
+            "trigger": str | None,        # comma-joined trigger names or None
+            "proposed_reaps": int,
+            "total_known": int,
+            "total_walked": int,
+            "walk_floor_required": int,
+            "reap_hard_cap": int,
+            "reap_fraction_cap": float,
+            "sample_paths": list[str],    # bounded by _REAP_SAMPLE_SIZE
+        }
+    """
+    proposed = len(removed_paths)
+    triggers: list[str] = []
+
+    walk_floor = max(
+        _WALK_ABSOLUTE_FLOOR,
+        int(total_known * _WALK_FRACTION_FLOOR),
+    )
+    if total_walked < walk_floor:
+        triggers.append("walk_too_small")
+
+    fraction = (proposed / total_known) if total_known > 0 else 0.0
+    if proposed > _REAP_HARD_CAP or fraction > _REAP_FRACTION_CAP:
+        triggers.append("reap_too_large")
+
+    return {
+        "triggered": bool(triggers),
+        "trigger": ",".join(triggers) if triggers else None,
+        "proposed_reaps": proposed,
+        "total_known": total_known,
+        "total_walked": total_walked,
+        "walk_floor_required": walk_floor,
+        "reap_hard_cap": _REAP_HARD_CAP,
+        "reap_fraction_cap": _REAP_FRACTION_CAP,
+        "sample_paths": removed_paths[:_REAP_SAMPLE_SIZE],
+    }

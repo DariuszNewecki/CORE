@@ -644,14 +644,23 @@ mappings:
     risk: moderate
     description: >
       ADR-070 D8 writer-as-sensor: orphan rows in core.repo_artifacts
-      (rows whose file_path no longer exists on disk) are detected and
-      reaped INLINE by RepoCrawlerWorker in its existing walk cycle.
-      The finding is posted to the blackboard for governor visibility
-      and audit-trail attribution; no proposal is dispatched because
-      the writer is constitutionally permitted to mutate the projection
-      (ADR-070 D4). This DELEGATE entry satisfies the ADR-066 invariant
-      that every active rule must have a remediation map entry without
-      diverting the finding into the proposal pipeline.
+      (rows whose file_path no longer exists on disk) are detected
+      every RepoCrawlerWorker cycle. Two emission paths share this
+      rule; the finding's `status` and `payload.drift_class`
+      discriminate. (1) `status=resolved` / `drift_class=reaped_inline`:
+      the drift was within the safety bounds and reaped INLINE in the
+      same cycle (ADR-070 D4 writer-as-sensor + inline remediation);
+      finding is audit-trail attribution only. (2) `status=open` /
+      `drift_class=excessive_or_partial_walk`: a safety guard tripped
+      (proposed reap above hard/fraction cap, or walker enumerated
+      suspiciously few files); the reap was SKIPPED pending governor
+      inspection of `payload.sample_paths`. Either way no proposal is
+      dispatched — the writer is constitutionally permitted to mutate
+      the projection but only under bounded conditions, and the OPEN
+      case explicitly routes to governor decision rather than
+      autonomous action. This DELEGATE entry satisfies the ADR-066
+      invariant that every active rule must have a remediation map
+      entry.
     status: DELEGATE
 
   # ===========================================================================

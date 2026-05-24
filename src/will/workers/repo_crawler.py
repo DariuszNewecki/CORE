@@ -95,21 +95,61 @@ class RepoCrawlerWorker(Worker):
 
         completed_at = datetime.now(UTC).isoformat()
 
-        # ADR-070 D8 writer-as-sensor: when the cycle reaped any
-        # orphan repo_artifacts rows, post a coherence.repo_artifacts.drift
-        # finding for governor visibility and audit-trail attribution.
-        # Status is `resolved` because remediation is inline — by the
-        # time this finding is filed, the drift is already corrected
-        # (ADR-070 D4 inline-remediation pattern). The finding is the
-        # audit record that drift was detected, not an open work item.
+        # ADR-070 D8 writer-as-sensor: emit a coherence.repo_artifacts.drift
+        # finding when this cycle either reaped orphans (status=resolved) or
+        # skipped the reap because a safety guard tripped (status=open). The
+        # two cases are mutually exclusive: the orchestrator either runs the
+        # DELETE inline OR records the guard state and leaves orphans_reaped
+        # at 0. The worker reads stats and posts the appropriate shape.
         orphans_reaped = stats.get("orphans_reaped", 0)
-        if orphans_reaped > 0:
+        guard = stats.get("coherence_guard") or {}
+
+        if guard.get("triggered"):
+            # Safety rail tripped — reap was SKIPPED. Post an OPEN finding
+            # so a governor inspects the candidate list before any rows
+            # are removed. This is the "system noticed and stopped" signal.
+            await self._post_entry(
+                entry_type="finding",
+                subject="coherence.repo_artifacts.drift",
+                payload={
+                    "rule_id": "coherence.repo_artifacts.drift",
+                    "severity": "high",
+                    "drift_class": "excessive_or_partial_walk",
+                    "trigger": guard.get("trigger"),
+                    "proposed_reaps": guard.get("proposed_reaps"),
+                    "total_known": guard.get("total_known"),
+                    "total_walked": guard.get("total_walked"),
+                    "walk_floor_required": guard.get("walk_floor_required"),
+                    "reap_hard_cap": guard.get("reap_hard_cap"),
+                    "reap_fraction_cap": guard.get("reap_fraction_cap"),
+                    "sample_paths": guard.get("sample_paths", []),
+                    "remediation": "skipped",
+                    "remediation_hint": (
+                        "Reap exceeded the ADR-070 D8 safety bound. "
+                        "Inspect the candidate list before any rows "
+                        "are removed. If the candidates are legitimate "
+                        "(e.g. a large refactor deleting many files), "
+                        "delete them manually via SQL. If a config "
+                        "issue (narrowed crawl scope, missing mount), "
+                        "restore the source-of-truth state before the "
+                        "next cycle."
+                    ),
+                    "detected_at": completed_at,
+                    "pair_id": "repo_artifacts ↔ filesystem",
+                },
+                status="open",
+            )
+        elif orphans_reaped > 0:
+            # Normal inline reap completed — record audit-trail attribution
+            # with status=resolved (the writer handled remediation in-cycle,
+            # ADR-070 D4 inline-remediation pattern).
             await self._post_entry(
                 entry_type="finding",
                 subject="coherence.repo_artifacts.drift",
                 payload={
                     "rule_id": "coherence.repo_artifacts.drift",
                     "severity": "medium",
+                    "drift_class": "reaped_inline",
                     "orphan_count": orphans_reaped,
                     "remediation": "inline-reap",
                     "remediated_at": completed_at,
