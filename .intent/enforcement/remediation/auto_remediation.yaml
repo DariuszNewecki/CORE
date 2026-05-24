@@ -638,6 +638,24 @@ mappings:
       of the rule registry.
     status: DELEGATE
 
+  coherence.violation_executor.blast_bound:
+    action: fix.modularity
+    confidence: 0.40
+    risk: moderate
+    description: >
+      2026-05-24 hardening sweep Session 2 / blast-bound principle.
+      ViolationExecutorWorker reached its per-cycle files-rewritten cap
+      (declared in .intent/workers/violation_executor.yaml
+      mandate.schedule.files_per_cycle_max). The excess findings have
+      been released back to `open` for the next cycle — work is paced,
+      not lost. The OPEN finding under this rule is the audit-trail
+      record that the rate limit fired; no autonomous proposal is
+      dispatched. Operator action: amend the cap if too low,
+      investigate upstream cause if sensor is over-emitting, or accept
+      the pacing as intended. Cognate with coherence.repo_artifacts.drift
+      (ADR-070 D8 writer-as-sensor OPEN-finding pattern).
+    status: DELEGATE
+
   coherence.repo_artifacts.drift:
     action: fix.modularity
     confidence: 0.40

@@ -17,6 +17,14 @@
             "authority": "policy",
             "phase": "audit",
             "rationale": "ADR-070 D8. core.repo_artifacts is the structural self-model populated by RepoCrawlerWorker. When files are deleted from disk, rows that still reference them are orphans — they waste embedder bandwidth (RepoEmbedderWorker logs `file missing` each cycle), inflate vector-store coordinates, and falsify any downstream query joining on file_path. Detection and remediation are handled by the writer (RepoCrawlerWorker) under the writer-as-sensor pattern (ADR-070 D4): the crawler's existing walk pass naturally enumerates the source set, and the reap is one additional DELETE in the same cycle. Findings are posted to the blackboard under this rule for governor visibility and audit-trail attribution; no proposal is dispatched because the writer is constitutionally permitted to mutate the projection. Pre-ADR-070 state: 350 orphan rows accumulated silently (issue #441), surfaced only by raw SQL inspection during the ADR-069 diagnostic session."
+        },
+        {
+            "id": "coherence.violation_executor.blast_bound",
+            "statement": "ViolationExecutorWorker MUST NOT rewrite more files per cycle than the constitutional blast bound declared at .intent/workers/violation_executor.yaml mandate.schedule.files_per_cycle_max. When more files are queued in one cycle than the bound permits, the excess findings MUST be released back to `open` for the next cycle and an OPEN finding under this rule MUST be posted for governor visibility.",
+            "enforcement": "reporting",
+            "authority": "policy",
+            "phase": "audit",
+            "rationale": "2026-05-24 hardening sweep (Session 2). The worker's claim_limit caps findings, not files; a single cycle could otherwise rewrite up to claim_limit distinct files via LLM-driven full-file rewrites and commit them to live src/. The blast bound declared in the worker YAML caps files-per-cycle directly; this rule is the constitutional record that the bound is enforced and the OPEN-finding pattern surfaces when the bound is hit. The cap is a rate limit, not a censor — deferred files re-enter the next cycle's claim set. Cognate with ADR-070 D8's writer-as-sensor OPEN-finding pattern; same shape applied to worker-level blast bounds. Detection is by the worker itself (the orchestrator counts files-per-cycle and emits the finding when the cap is hit); remediation is operator-side (amend the YAML cap, investigate upstream cause, or accept the pacing)."
         }
     ]
 }

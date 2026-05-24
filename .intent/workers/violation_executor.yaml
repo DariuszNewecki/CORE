@@ -38,6 +38,19 @@ mandate:
       - compliance
       - remediation
   approval_required: true
+  schedule:
+    # Cadence — was previously unset, defaulting to worker_shop globals.
+    # Declared explicitly so the per-cycle bound below has a stable reference.
+    max_interval: 600
+    # Blast bound — per-cycle files-rewritten cap (2026-05-24 hardening sweep
+    # blast-bound principle). claim_limit caps findings, not files; a single
+    # cycle could otherwise rewrite up to claim_limit distinct files. Worker
+    # processes the first N files (where N = files_per_cycle_max), then
+    # releases the remaining claimed findings back to `open` so they re-enter
+    # the queue for the next cycle. The work is not lost — pacing only.
+    # When the cap is hit, an OPEN coherence.violation_executor.blast_bound
+    # finding is posted for governor visibility.
+    files_per_cycle_max: 10
 
 implementation:
   module: will.workers.violation_executor
