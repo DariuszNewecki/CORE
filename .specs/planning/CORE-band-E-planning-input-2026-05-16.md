@@ -1,6 +1,7 @@
 # CORE — Band E Strategic Planning Input
 # Enterprise Readiness Tracks
 # Captured: 2026-05-16 | Status: Open — awaiting governor sequencing
+# Status overlay refreshed 2026-05-24 (constitutional-prerequisite ADRs noted on Tracks 3 and 10)
 
 ---
 
@@ -96,6 +97,15 @@ localhost.
 
 **ADR trigger:** Auth model ADR (deferred in ADR-053; trigger is first
 multi-user or remote-access use case).
+
+**Status (2026-05-24):** Constitutional prerequisite landed —
+**ADR-068 (Principal Role Taxonomy)** 2026-05-22 declares the four-role
+taxonomy (`principal.governor`, `principal.operator`, `principal.auditor`,
+`principal.system`), the three-layer model (taxonomy / binding / enforcement),
+the SoD constraint, and the Single-Governor Local deployment posture. ADR-068
+explicitly notes: *"this ADR is the constitutional prerequisite, not the full
+Track 3 delivery."* The auth model itself (API key lifecycle, RBAC
+enforcement, mTLS) remains the open ADR trigger.
 
 ---
 
@@ -406,3 +416,15 @@ taxonomy formally, lists the remediation targets by document, and
 establishes the Category A style constraint as a constitutional rule.
 A `regex_gate` enforcing Category A constraints on `.specs/decisions/`
 and `.specs/papers/` is the natural enforcement mechanism.
+
+**Status (2026-05-24):** Two ADRs collectively address this track —
+**ADR-065 (Documentation layer separation: `.specs/` vs `docs/`)** 2026-05-20
+declares the placement law (governance layer vs communication layer,
+one-way authority `docs/` → `.specs/`, placement rules per audience),
+and **ADR-068 D6** 2026-05-22 provides the canonical replacement template
+for founder-sovereignty language in Tier A documents (resolves the
+"only by me" remediation with a derivable substitution rather than an
+editorial judgment call). The remaining open work in this track —
+authoring a regex_gate for the Category A style constraint, and the
+mechanical remediation pass across older identity-forming papers —
+is no longer blocked on the taxonomy decision.
