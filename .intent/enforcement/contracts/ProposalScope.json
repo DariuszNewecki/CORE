@@ -21,7 +21,9 @@
     "properties": {
         "files": {
             "type": "array",
-            "description": "Repo-relative file paths this Proposal may modify. Must be non-empty at proposal creation (ADR-026). IntentGuard enforces write boundaries against this list at execution time."
+            "minItems": 1,
+            "maxItems": 50,
+            "description": "Repo-relative file paths this Proposal may modify. minItems=1 per ADR-026 D5 (proposal must declare what it touches). maxItems=50 per the blast-bound principle (2026-05-24 hardening sweep): a single proposal's per-execution blast is constitutionally bounded; larger scopes require this contract to be amended via ADR. Proposal.validate() mirrors the maxItems check at write time; IntentGuard enforces actual write boundaries at execution time."
         },
         "modules": {
             "type": "array",

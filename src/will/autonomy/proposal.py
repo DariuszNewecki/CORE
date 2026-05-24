@@ -29,6 +29,16 @@ from shared.logger import getLogger
 logger = getLogger(__name__)
 
 
+# Constitutional blast bound for proposal scope.files.
+# MUST match `.intent/enforcement/contracts/ProposalScope.json` files.maxItems.
+# Authority: 2026-05-24 hardening-sweep blast-bound principle. A single
+# proposal's per-execution blast is constitutionally bounded; larger scopes
+# require the contract to be amended via ADR. Mirrored here so the bound is
+# enforced at write time (Proposal.validate) in addition to audit time
+# (ADR-056 D6 SchemaConformanceChecks).
+_SCOPE_FILES_MAX_ITEMS = 50
+
+
 # ID: 86a456a9-13eb-415f-96e3-7a8622556dfe
 class ProposalStatus(str, Enum):
     """Proposal lifecycle states."""
@@ -316,6 +326,20 @@ class Proposal:
         # executor.
         if not self.scope.files:
             errors.append("Proposal must declare at least one file in scope.files")
+
+        # 7. Must not exceed the constitutional blast bound on scope.files.
+        # The bound is declared in .intent/enforcement/contracts/ProposalScope.json
+        # (files.maxItems); mirrored here at _SCOPE_FILES_MAX_ITEMS for write-time
+        # enforcement. A proposal above the bound never reaches the executor —
+        # ProposalConsumerWorker would otherwise dispatch arbitrarily large blasts
+        # in one cycle. Larger scopes require the contract to be amended via ADR.
+        if len(self.scope.files) > _SCOPE_FILES_MAX_ITEMS:
+            errors.append(
+                f"Proposal scope.files declares {len(self.scope.files)} files, "
+                f"exceeding the constitutional blast bound of "
+                f"{_SCOPE_FILES_MAX_ITEMS} (ProposalScope.json files.maxItems). "
+                f"Larger scopes require an ADR amending the contract."
+            )
 
         return (len(errors) == 0, errors)
 
