@@ -1,0 +1,63 @@
+# .intent/enforcement/mappings/coherence/coherence.yaml
+#
+# Enforcement mappings for ADR-070 coherence rules — writer-as-sensor
+# pattern. These rules are not evaluated by an external static gate;
+# they are enforced inside a runtime component (the writer) that posts
+# findings under the rule_id when its bound trips.
+#
+# Both entries use engine: passive_gate, following the precedent set by
+# autonomy.conservation.min_preservation_ratio and
+# autonomy.remediation.min_confidence_floor in
+# .intent/enforcement/mappings/will/autonomy.yaml.
+#
+# Remediation routing for these rules lives in
+# .intent/enforcement/remediation/auto_remediation.yaml (DELEGATE
+# entries, satisfying the ADR-066 unmapped-rules invariant for the
+# remediation surface). This file satisfies the parallel invariant on
+# the enforcement-mapping surface: every active rule MUST declare how
+# it is evaluated.
+#
+# See ADR-070 D4 (writer-as-sensor with inline remediation) and ADR-070
+# D8 (safety bounds + OPEN finding when bound trips) for the principle.
+
+mappings:
+  coherence.violation_executor.blast_bound:
+    engine: passive_gate
+    params:
+      enforced_by: "will.workers.violation_executor.ViolationExecutorWorker"
+      enforcement_note: >
+        Writer-as-sensor per ADR-070 D8. ViolationExecutorWorker
+        enforces the per-cycle files-rewritten cap declared in
+        .intent/workers/violation_executor.yaml
+        (mandate.schedule.files_per_cycle_max). When the cap fires,
+        the worker posts an OPEN finding under this rule_id with a
+        bounded sample of deferred file paths
+        (_DEFERRED_PATHS_SAMPLE_SIZE = 20) and defers the excess to
+        the next cycle. Work is paced, not lost. No external
+        evaluator runs this rule; the worker is both sensor and
+        enforcer.
+    scope:
+      applies_to:
+        - "src/will/workers/violation_executor.py"
+
+  coherence.repo_artifacts.drift:
+    engine: passive_gate
+    params:
+      enforced_by: "body.services.crawl_service.orchestrator.CrawlOrchestrator"
+      enforcement_note: >
+        Writer-as-sensor per ADR-070 D4/D8. CrawlOrchestrator applies
+        the reap safety bounds (hard cap, fraction cap, walk floor)
+        every cycle and produces stats that classify the outcome. When
+        orphans are within bounds the reap runs inline and
+        RepoCrawlerWorker posts a RESOLVED finding with
+        drift_class=reaped_inline (audit-trail attribution only).
+        When a bound trips the reap is SKIPPED and the worker posts
+        an OPEN finding with drift_class=excessive_or_partial_walk
+        plus a bounded sample (_REAP_SAMPLE_SIZE = 20) of candidate
+        paths for governor inspection. The orchestrator is the
+        constitutional enforcer; the worker is the sensor that
+        relays the verdict.
+    scope:
+      applies_to:
+        - "src/body/services/crawl_service/**/*.py"
+        - "src/will/workers/repo_crawler.py"
