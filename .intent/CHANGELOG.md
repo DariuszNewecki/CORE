@@ -1129,6 +1129,219 @@ Files: src/shared/workers/base.py, src/shared/workers/__init__.py,
 
 ---
 
+## ADR-061 — 2026-05-19
+
+Composition-root sanctuary for `api/main.py` lifespan import. Codifies
+the existing `architecture.api.no_body_bypass` exemption at
+`layer_separation.yaml:237` (landed 2026-04-19, commit `f634e521`) as
+the permanent answer. D1: `src/api/main.py` is exempt from the rule
+for **exactly one import** — `body.infrastructure.lifespan.core_lifespan`,
+required by FastAPI's `lifespan=` constructor argument at app creation
+time. Relocation alternatives ruled out: `src/api/` destination would
+require half a dozen new bypass imports (worse, not better); `src/will/`
+is a semantic mismatch (Will is the cognitive layer, not infrastructure
+ignition). D2: existing sanctuary scope verified correct (single-file,
+per-rule, no glob, rationale comment in place at lines 233–237). D3:
+revisit triggers — FastAPI lifespan contract changes, a second Body
+import needed in `api/main.py`, or `core_lifespan`'s Body-residence
+challenged. Permanent (not transitional); the FastAPI lifespan
+contract is stable upstream. Closes #157.
+
+Files: `.specs/decisions/ADR-061-composition-root-sanctuary-api-main.md`.
+
+---
+
+## ADR-062 — 2026-05-19
+
+`proposal_lifecycle_actions.py` body→will closure. Closure ADR for the
+`architecture.layers.no_body_to_will` exclude on
+`src/body/atomic/proposal_lifecycle_actions.py`, which imports
+`ProposalStatus` from `will.autonomy.proposal` to enforce the
+`approved → executing` transition in the `claim.proposal` atomic action
+(ADR-017). Two viable refactor paths named — Option A (preferred) move
+`ProposalStatus` to `src/shared/lifecycles/proposal.py` matching
+ADR-049's "shared as pure contracts" long-horizon direction; Option B
+pass enum values as strings with Will-side validation. Deadline
+2026-09-16 (120 days; matches ADR-051). The "TBD" deadline marker in
+`layer_separation.yaml` is replaced with `2026-09-16` + back-reference
+to this ADR. Closes first bullet of #313.
+
+Files: `.specs/decisions/ADR-062-proposal-lifecycle-actions-body-will-closure.md`.
+
+---
+
+## ADR-063 — 2026-05-19
+
+`bootstrap.py` `will.tools` body→will closure. Closure ADR for the
+three lazy `will.tools.*` imports at
+`src/body/infrastructure/bootstrap.py:60–64`
+(`ArchitecturalContextBuilder`, `ModuleAnchorGenerator`,
+`PolicyVectorizer`), all caught under the expanded ADR-049 D1
+bare-prefix `forbidden:` list (commit `6edec08d`). Two paths —
+Option A (preferred) re-home the three tools to
+`src/shared/cognitive_tools/` since they are stateless protocol-based
+builders fitting ADR-049's "shared as pure contracts" direction;
+Option B invert ownership so Body owns the factory and Will instances
+are injected via `CoreContext`. Deadline 2026-09-16. Closes
+second/third/fourth bullets of #313.
+
+Files: `.specs/decisions/ADR-063-bootstrap-will-tools-body-will-closure.md`.
+
+---
+
+## ADR-064 — 2026-05-19
+
+`fix_actions.py` `capability_tagging` body→will closure. Closure ADR
+for the `src/body/atomic/fix_actions.py:666` lazy import of
+`will.self_healing.capability_tagging_service.main_async`, added under
+the ADR-049 exclude in commit `5201b3b6`. The action is a thin Body
+dispatch wrapper around a Will-resident agent that uses
+cognitive/knowledge services. Two paths — Option A (preferred)
+Body-layer dispatch facade with injected callable
+(`CapabilityTaggingService` in `src/body/services/`, wired at lifespan
+composition); Option B move `main_async` to Body, keep
+`CapabilityTaggerAgent` as a Will-internal helper. Precedent:
+`BrainServicesProvider` protocol injection (commit `c9332d73`).
+Deadline 2026-09-16. Closes fix-actions bullet of #313.
+
+Files: `.specs/decisions/ADR-064-fix-actions-capability-tagging-body-will-closure.md`.
+
+---
+
+## ADR-065 — 2026-05-20
+
+Documentation layer separation: `.specs/` vs `docs/`. Declares
+constitutional law for the two human-readable directories. D1:
+`.specs/` is the **governance layer** (authoritative artifacts,
+internal audience, governor-only); `docs/` is the **communication
+layer** (external audience, reader-facing, no constitutional
+authority). D2: authority and derivation are one-way: `docs/` →
+`.specs/`, never the reverse. D3: explicit placement rules per
+audience and authority. D4: specific placements confirmed —
+`CORE-Features.md` and `CORE-Product-Tiers.md` in `.specs/papers/`;
+ADRs in `.specs/decisions/`; URS in `.specs/urs/`; usage guides and
+tutorials in `docs/`. D5: GitHub Feature issues link to `.specs/`,
+not `docs/`. No automated rule; verification is governor
+responsibility. Closes Track 10 placement ambiguity.
+
+Files: `.specs/decisions/ADR-065-documentation-layer-separation.md`.
+
+---
+
+## ADR-066 — 2026-05-21
+
+Unmapped-rules invariant — every active rule must have an
+`auto_remediation.yaml` entry. Closes the silent abandoned-finding
+re-emission loop where an active rule with no remediation map entry
+produced **8,539 abandoned findings across four rules in 48 hours**
+(`architecture.cli.api_only` 4,282; `purity.no_orphan_files` 1,691;
+`architecture.channels.logger_not_presentation` 1,558;
+`architecture.layers.no_body_to_will` 8). Invariant: every rule that
+is `active` in the audit rule registry and capable of producing
+findings MUST have a corresponding entry in
+`.intent/enforcement/remediation/auto_remediation.yaml`. A
+minimum-valid `DELEGATE` entry (confidence 0.40, below MIN_CONFIDENCE
+0.80) is sufficient — it requires no automatable fixer, no action ID,
+no implementation work. Its sole purpose is to close the loop:
+`ViolationRemediatorWorker` recognises the entry, routes the finding
+to the governor inbox, and the finding does not re-accumulate. New
+blocking audit rule `governance.remediation.all_rules_mapped` enforces
+the invariant at each audit cycle (severity HIGH; emits FAIL on
+unmapped active rules). Self-referential: the new rule must itself
+be mapped (DELEGATE). Implementation tracked as #418.
+
+Files: `.specs/decisions/ADR-066-unmapped-rules-invariant.md`.
+
+---
+
+## ADR-067 — 2026-05-21
+
+Constitutional Coherence Checker — storage, CLI, LLM invocation,
+scheduling. Implementation decisions for the CCC instrument defined
+in `.specs/papers/CORE-ConstitutionalCoherenceChecker.md`. D1: two new
+tables `core.coherence_runs` and `core.coherence_candidates` (no FK
+entanglement with `autonomous_proposals` / blackboard / findings —
+CCC candidates are a separate governance artifact). D2: three CLI
+subcommands `core-admin coherence check [--full] | report [RUN_ID]
+| triage CANDIDATE_ID DECISION [--note TEXT]`. D3: dedicated
+`constitutional_coherence_analysis` cognitive role (analysis-only,
+read-only; produces no proposals, no blackboard entries, no file
+writes); R1/R2/R3/R4 batching strategy; all failure modes non-fatal
+(LLM/parse/schema/file failures → `skipped` with reason; >20% skip
+emits WARNING; advisory threshold). D4: CCC is CLI-only, not a daemon
+worker; trigger detection (`adr_added`, `northstar_changed`, `manual`)
+computed at invocation time; automated daemon triggering deferred.
+D5: advisory `Constitutional Coherence: …` line appended to
+`core-admin code audit` output (does not affect PASS/FAIL verdict).
+Closes #374 acceptance criteria.
+
+Files: `.specs/decisions/ADR-067-constitutional-coherence-checker.md`.
+
+---
+
+## ADR-068 — 2026-05-22
+
+Principal Role Taxonomy. Establishes CORE's constitutional role model
+in three layers — Layer 1 taxonomy in `.intent/` (constitutional;
+governor-amendment only); Layer 2 principal-to-role binding at
+deployment (not part of the constitution); Layer 3 action-to-role
+requirement in enforcement rules. D1: three-layer separation is
+constitutional; roles are permanently flat (no inheritance, no
+Layer-1 resource scoping — irrevocable). Mirrors NIST RBAC Core
+(ANSI/INCITS 359-2004). D2: four declared roles —
+`principal.governor`, `principal.operator`, `principal.auditor`,
+`principal.system`. D3: SoD constraint — a Governor may not sign the
+audit-verification record for an action they approved (declared now,
+enforcement deferred to multi-operator tier). D4: Single-Governor
+Local deployment posture defined as a constitutionally recognized
+topology; authentication deferred when the only access path is
+localhost. D5: `proposal_approval_authority` enum value
+`human.cli_operator` retired and replaced by `principal.governor`
+(migration backfills existing `autonomous_proposals` rows). D6:
+canonical replacement template for founder-sovereignty language in
+Tier A documents — resolves Track 10 with a derivable substitution
+rather than editorial judgment. Satisfies 21 CFR Part 11 §11.50 and
+EU AI Act Article 17(1)(m) at the constitutional level. Implementation
+deferred (`.intent/governance/principal_roles.yaml`, `enums.json`
+update, DB CHECK constraint update, `ProposalStateManager` call site,
+backfill migration).
+
+Files: `.specs/decisions/ADR-068-principal-role-taxonomy.md`.
+
+---
+
+## ADR-069 — 2026-05-23
+
+Claim lifecycle: lease semantics. Closes the structural orphan-claim
+gap (154 stuck `audit.violation` claims found 2026-05-23 across
+2026-05-13 → 2026-05-19; ~26 fresh per daemon restart measured; orphan
+rate is structural, not historical). D1: a `claimed` row's ownership
+is bounded by a declared `lease_expires_at`; expiry is intrinsic to
+the row, not asserted by surveillance — same posture as ADR-016
+(confidence floor) extended to the ownership-lifecycle dimension.
+D2: schema adds nullable `lease_expires_at TIMESTAMPTZ` to
+`core.blackboard_entries`; terminal transitions set it to NULL;
+`claimed_at` preserved as forensic record. D3: every worker
+(daemon-run or CLI-triggered) MUST declare
+`mandate.schedule.lease_seconds`; no runtime fallback;
+`intent_validator.py` refuses workers omitting it. Migration values:
+`violation_executor` 3600 s; `proposal_consumer_worker` and
+`violation_remediator_body` 1800 s; all others 2× `max_interval`.
+D4: `BlackboardService.renew_lease(entry_ids, claimed_by,
+additional_seconds)` per-batch API; partial loss treated as full
+batch loss; `LeaseExpiredError` raised and caught at `Worker.start()`;
+`_on_lease_lost` hook for rollback. D5: terminal transitions release
+the lease. D6: re-claim on expiry uses the same query path
+(`status='claimed' AND lease_expires_at < now()` recognised as
+re-claimable); partial index on `(lease_expires_at) WHERE
+status='claimed'`. D7: migration backfills existing claimed rows at
+`claimed_at + 600 s`; `release_claimed_entries` retained as
+governor-override utility. Implementation deferred. Closes #439.
+
+Files: `.specs/decisions/ADR-069-claim-lifecycle-lease-semantics.md`.
+
+---
+
 ## ADR-070 — 2026-05-24
 
 Source–projection coherence as bounded drift. Establishes representation
