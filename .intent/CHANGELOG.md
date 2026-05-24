@@ -1129,6 +1129,49 @@ Files: src/shared/workers/base.py, src/shared/workers/__init__.py,
 
 ---
 
+## ADR-070 — 2026-05-24
+
+Source–projection coherence as bounded drift. Establishes representation
+coherence as a constitutional property across the five-surface model
+(`src/` + `.intent/` + `.specs/` as on-disk sources of truth; PostgreSQL
+and Qdrant as derived projections). The property is **bounded drift,
+not identity** — every projection's divergence from its source is
+observable through audit/finding/remediation channels and bounded by a
+constitutional value declared in `.intent/`, not inferred by
+surveillance.
+
+D1: representation coherence is constitutional. D2:
+`.intent/governance/projections.yaml` inventory (governor-authored;
+completeness is governor obligation — no automated discovery, since
+no projection registry exists to enumerate against). D3: three bound
+shapes (lease-style, hash-equality, reference-set). D4: coherence
+sensors emit findings under `coherence.*` namespace; two permitted
+patterns — independent sensor (`remediation.mode: proposal`, default)
+and writer-as-sensor (`remediation.mode: inline`, reference-set pairs
+only). The `logger.warning` anti-pattern (current state in
+`RepoEmbedderWorker`) is constitutionally retired. D5: meta-rule
+`governance.coherence.all_pairs_sensed` enforces declared-but-unsensed.
+D6: composite "Representation Coherence" advisory line on
+`core-admin code audit` output (parallel to ADR-067 D5's CCC line;
+advisory only, does not affect PASS/FAIL verdict). D7: existing
+partial mechanisms (ADR-030, ADR-039/060, `DbSyncWorker`,
+`core-admin inspect drift`, `CommitReachabilityAuditor`) remain —
+each documented as the sensor for its pair; no retrofit. D8: first
+incremental delivery — `repo_artifacts ↔ filesystem` reframes #441 as
+the framework's first pair (writer-as-sensor on `RepoCrawlerWorker`;
+reap is one extra SQL operation in the existing walk pass). D9:
+subsequent pairs sequenced by silent-blast-radius.
+
+Cognate with ADR-016 (confidence floor), ADR-066 (unmapped-rules
+invariant), and ADR-069 (claim lifecycle lease) — same pattern
+(validity declared on the artifact, not inferred by surveillance)
+extended to the representation layer. Implementation deferred; D8
+implementation is the next step and closes #441.
+
+Files: `.specs/decisions/ADR-070-source-projection-coherence.md`.
+
+---
+
 ## Notes
 
 * This changelog intentionally avoids implementation detail
