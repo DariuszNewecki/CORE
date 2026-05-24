@@ -6,6 +6,27 @@ Files are grouped by their immediate subdirectory of `src/cli/commands/`. Each l
 
 ---
 
+## Status — dated snapshot
+
+**This is a dated capture, not a live document.** The filename carries the date deliberately; the body below reflects the `src/cli/commands/` and proposed endpoint surface as observed on 2026-05-16. It is preserved as the supporting artifact for ADR-053's D4 capability map and as the reference inventory the phase ADRs were sequenced against.
+
+**Supersession trail (chronological):**
+
+| ADR | Date | What it shipped or amended |
+|---|---|---|
+| ADR-053 | 2026-05-16 | API as resource-oriented governance interface; 10 domain namespaces declared as the migration surface |
+| ADR-053+ / ADR-057+ | 2026-05-18 | `components.py` and `search.py` (unassigned in the original D4 capability map below) formally assigned to the Inspect namespace; ADR-053 D4 records elimination of `/audit` (wrong backend profile) and `/meta` (no phase ADR). `GET /v1/components` and `GET /v1/search/capabilities` added to Phase 3 surface; `GET /v1/search/commands` deferred to Phase 3b (#363) |
+| ADR-054 | 2026-05-16 (amended 2026-05-17) | API Phase 1 — `/audit` + `/proposals`; `findings jsonb` on `core.audit_runs` |
+| ADR-055 | 2026-05-17 (D6 complete 2026-05-18) | API Phase 2 — `/fix` + `/quality`; generic atomic dispatch via `ActionExecutor`; D6 CLI cutover landed across 16 commits, 23 of 24 in-scope files migrated |
+| ADR-057 | 2026-05-18 | API Phase 3 — `/coverage` + `/refactor` + `/inspect`; deferred `POST /audit/remediations` |
+| ADR-058 | 2026-05-18 | API Phase 4 — `/census` + `/sync` + `/daemon`; Phase 4 completion is the ADR-050 CLI extraction trigger |
+
+The endpoint clusters in the table below should be read against these ADRs for the as-shipped surface. The `~40 endpoints / 10 clusters` count at the bottom is the 2026-05-16 proposal; the actual count after the four phase ADRs is reconciled in the per-phase ADR text.
+
+For the current authoritative state of API phases and CLI cutover, see CORE-A3-plan.md §Architectural Decisions Made (rows ADR-054 → ADR-058 + ADR-053+/057+).
+
+---
+
 ```
 GROUP: (root)
   audit_reporter.py | Structured reporter helper for audit runs (header/phase/checks/summary) | mind, shared
