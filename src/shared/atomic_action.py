@@ -75,6 +75,7 @@ def atomic_action(
             raise TypeError(
                 f"Constitutional violation in '{func.__name__}': "
                 f"@atomic_action signature must accept **kwargs. "
+                f"Rule: atomic_actions.must_accept_kwargs. "
                 f"Required: signature must include a **kwargs parameter to absorb "
                 f"extra keyword arguments forwarded by FlowExecutor and "
                 f"ActionExecutor. See issue #448 and ADR-070 D8."

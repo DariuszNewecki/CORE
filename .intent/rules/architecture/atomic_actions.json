@@ -4,7 +4,7 @@
     "metadata": {
         "id": "rules.architecture.atomic_actions",
         "title": "Atomic Actions Pattern Contract",
-        "version": "0.2.0",
+        "version": "0.3.0",
         "authority": "policy",
         "phase": "load",
         "status": "active"
@@ -57,6 +57,14 @@
             "authority": "policy",
             "phase": "load",
             "rationale": "Impact level determines whether an action requires human approval or auto-executes — a governance decision that belongs in .intent/, not in src/. Centralizing it in action_risk.yaml makes reclassification an auditable constitutional edit rather than a code change. See ADR-008."
+        },
+        {
+            "id": "atomic_actions.must_accept_kwargs",
+            "statement": "All functions decorated with @atomic_action MUST include a **kwargs parameter in their signature to absorb extra keyword arguments forwarded by FlowExecutor and ActionExecutor. The check fires at decoration (import) time; runtime fallback is not permitted.",
+            "enforcement": "blocking",
+            "authority": "policy",
+            "phase": "load",
+            "rationale": "After #445 inverted FlowExecutor's consumes-None default to forward-all, the next action omitting **kwargs trips a silent TypeError on its first invocation carrying unexpected keys. Declaring the requirement at registration (per ADR-008 / ADR-069 D3 / ADR-070 D8 no-runtime-fallback posture) surfaces the gap at import time rather than at the first half-built flow that probes it. Implementation lives in shared/atomic_action.py; see #448."
         }
     ]
 }
