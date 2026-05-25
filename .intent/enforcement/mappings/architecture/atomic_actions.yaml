@@ -92,3 +92,18 @@ mappings:
         - "tests/**/*.py"
         - "src/body/atomic/registry.py"
         - "src/body/atomic/executor.py"
+
+  # Rule: atomic_actions.must_accept_kwargs
+  # Enforcement: Decoration-time TypeError raise in shared/atomic_action.py.
+  # Every @atomic_action whose signature lacks **kwargs fails at import,
+  # so no audit-time finding is ever produced — the daemon cannot start
+  # with a violator present. See ADR-070 D8 and issue #448.
+  atomic_actions.must_accept_kwargs:
+    engine: python_runtime
+    params:
+      check_type: decoration_time_validation
+      enforcement_location: "shared.atomic_action.atomic_action"
+      validation_function: "inspect.signature **kwargs presence check"
+    scope:
+      applies_to:
+        - "src/body/atomic/**/*.py"
