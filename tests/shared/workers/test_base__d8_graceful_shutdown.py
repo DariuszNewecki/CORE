@@ -42,6 +42,30 @@ class _D8MinimalWorker(Worker):
         return
 
 
+async def _ensure_worker_registered(
+    db_session: AsyncSession, worker_uuid: uuid.UUID
+) -> None:
+    """Insert a worker_registry row for a synthetic UUID.
+
+    Required because blackboard_entries.worker_uuid carries an FK to
+    worker_registry.worker_uuid. ON CONFLICT DO NOTHING keeps the helper
+    safe to call for both emitter and claimer (which may be the same UUID).
+    """
+    await db_session.execute(
+        text(
+            """
+            insert into core.worker_registry
+                (worker_uuid, worker_name, worker_class, phase, last_heartbeat)
+            values
+                (:worker_uuid, 'test.d8.synthetic', 'test', 'audit', now())
+            on conflict (worker_uuid) do nothing
+            """
+        ),
+        {"worker_uuid": worker_uuid},
+    )
+    await db_session.commit()
+
+
 async def _insert_synthetic_claimed_entry(
     db_session: AsyncSession,
     *,
@@ -49,6 +73,9 @@ async def _insert_synthetic_claimed_entry(
     worker_uuid: uuid.UUID,
     claimed_by: uuid.UUID,
 ) -> None:
+    await _ensure_worker_registered(db_session, worker_uuid)
+    if claimed_by != worker_uuid:
+        await _ensure_worker_registered(db_session, claimed_by)
     await db_session.execute(
         text(
             """
@@ -89,6 +116,11 @@ async def _fetch_entry_status(
 
 
 async def _delete_entry(db_session: AsyncSession, entry_id: str) -> None:
+    """Delete the synthetic entry. Leaves the worker_registry rows alone —
+    they're harmless test markers with worker_name='test.d8.synthetic' and
+    are cheaper to leave than to cascade-clean (FK from blackboard_entries
+    would block deletion anyway if other rows still reference them).
+    """
     await db_session.execute(
         text("delete from core.blackboard_entries where id = cast(:id as uuid)"),
         {"id": entry_id},
