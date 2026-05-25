@@ -34,7 +34,7 @@ from typing import Any
 
 from shared.infrastructure.intent.test_coverage_paths import (
     load_test_coverage_config,
-    source_to_test_path,
+    uncovered_source_files,
 )
 from shared.logger import getLogger
 from shared.workers.base import Worker
@@ -179,46 +179,12 @@ class TestCoverageSensor(Worker):
         Walk source_root and return relative paths (from repo root) for
         Python source files that have no corresponding test file.
 
-        Mapping is driven entirely by config loaded from .intent/ via
-        source_to_test_path:
-          {source_root}/foo/bar.py
-            → {test_root}/foo/bar{test_file_suffix}
+        Delegates to shared.infrastructure.intent.test_coverage_paths
+        .uncovered_source_files — same helper is used by TestRunnerSensor
+        to build current_subjects for the test.missing quarantine drain
+        (ADR-072 D5).
         """
-        source_root_rel: str = config.get("source_root", "src")
-        excluded: frozenset[str] = frozenset(
-            config.get("excluded_filenames", ["__init__.py"])
-        )
-        include_files: frozenset[str] = frozenset(config.get("include_files") or [])
-
-        src_root = self._repo_root / source_root_rel
-        if not src_root.exists():
-            logger.warning("TestCoverageSensor: source root not found at %s", src_root)
-            return []
-
-        uncovered: list[str] = []
-
-        for py_file in src_root.rglob("*.py"):
-            if py_file.name in excluded:
-                continue
-
-            # Relative path from repo root, e.g. src/foo/bar.py
-            rel = py_file.relative_to(self._repo_root)
-            source_file = str(rel)
-
-            if include_files and source_file not in include_files:
-                continue
-
-            try:
-                test_rel = source_to_test_path(source_file, config)
-            except ValueError:
-                continue  # skip files outside configured source_root
-
-            test_path = self._repo_root / test_rel
-
-            if not test_path.exists():
-                uncovered.append(source_file)
-
-        return uncovered
+        return uncovered_source_files(self._repo_root, config)
 
     # -------------------------------------------------------------------------
     # Blackboard helpers

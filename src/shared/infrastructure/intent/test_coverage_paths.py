@@ -23,6 +23,7 @@ will/, body/, or cli/.
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Any
 
 from shared.logger import getLogger
@@ -117,3 +118,64 @@ def source_to_test_path(
         source_file.replace(prefix, f"{test_root}/", 1).removesuffix(".py")
         + test_file_suffix
     )
+
+
+# ID: 8f9a4e1c-6d7b-4a23-be35-c4d5e6f7a819
+def uncovered_source_files(
+    repo_root: Path,
+    config: dict[str, Any] | None = None,
+) -> list[str]:
+    """
+    Walk source_root and return repo-relative paths for in-scope Python
+    source files that have no corresponding test file.
+
+    Shared between TestCoverageSensor (which posts test.run_required for
+    these sources) and TestRunnerSensor (which uses the same set as
+    current_subjects for the test.missing quarantine drain — ADR-072 D5).
+
+    The mapping and scoping rules are entirely owned by
+    .intent/enforcement/config/test_coverage.yaml:
+      - source_root, test_root, test_file_suffix
+      - excluded_filenames (skip-list)
+      - include_files (scope limiter; if non-empty, only these are scanned)
+    """
+    if config is None:
+        config = load_test_coverage_config()
+
+    source_root_rel: str = config.get("source_root", _FALLBACK_SOURCE_ROOT)
+    excluded: frozenset[str] = frozenset(
+        config.get("excluded_filenames", _FALLBACK_EXCLUDED_FILENAMES)
+    )
+    include_files: frozenset[str] = frozenset(config.get("include_files") or [])
+
+    src_root = repo_root / source_root_rel
+    if not src_root.exists():
+        logger.warning(
+            "test_coverage_paths.uncovered_source_files: source root not found at %s",
+            src_root,
+        )
+        return []
+
+    uncovered: list[str] = []
+
+    for py_file in src_root.rglob("*.py"):
+        if py_file.name in excluded:
+            continue
+
+        rel = py_file.relative_to(repo_root)
+        source_file = str(rel)
+
+        if include_files and source_file not in include_files:
+            continue
+
+        try:
+            test_rel = source_to_test_path(source_file, config)
+        except ValueError:
+            continue
+
+        test_path = repo_root / test_rel
+
+        if not test_path.exists():
+            uncovered.append(source_file)
+
+    return uncovered

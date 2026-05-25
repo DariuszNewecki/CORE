@@ -35,6 +35,7 @@ from typing import Any
 from shared.infrastructure.intent.test_coverage_paths import (
     load_test_coverage_config,
     source_to_test_path,
+    uncovered_source_files,
 )
 from shared.logger import getLogger
 from shared.workers.base import Worker
@@ -122,16 +123,17 @@ class TestRunnerSensor(Worker):
 
         findings = await self._fetch_run_required_findings()
 
+        # Load coverage config once per cycle so every mapping below
+        # shares one consistent policy snapshot. Drain also uses it.
+        config = load_test_coverage_config()
+
         if not findings:
+            await self._adjudicate_test_quarantine(config)
             await self.post_report(
                 subject="test_runner_sensor.run.complete",
                 payload={"message": "No test.run_required findings to process."},
             )
             return
-
-        # Load coverage config once per cycle so every mapping below
-        # shares one consistent policy snapshot.
-        config = load_test_coverage_config()
 
         count_run = 0
         count_passed = 0
@@ -229,6 +231,12 @@ class TestRunnerSensor(Worker):
             # Resolve the test.run_required entry regardless of pass/fail
             await svc.resolve_entries([entry_id])
 
+        # ADR-072 D5: drain test.missing and test.failure quarantine after
+        # processing this cycle's queue. Reuses the just-loaded config so
+        # the source-tree walk for test.missing matches the policy snapshot
+        # the queue loop used.
+        await self._adjudicate_test_quarantine(config)
+
         await self.post_report(
             subject="test_runner_sensor.run.complete",
             payload={
@@ -259,3 +267,161 @@ class TestRunnerSensor(Worker):
             prefix=f"{_SUBJECT_PREFIX}%",
             limit=50,
         )
+
+    # -------------------------------------------------------------------------
+    # Quarantine drain — ADR-072 D5
+    # -------------------------------------------------------------------------
+
+    # ID: 4a2c8f5e-9d1b-4607-b3a8-7e9f0c1d2e34
+    async def _adjudicate_test_quarantine(self, config: dict[str, Any]) -> None:
+        """
+        Drain the awaiting_reaudit quarantine for test.missing and
+        test.failure namespaces (ADR-072 D5).
+
+        - test.missing: re-walks source_root via uncovered_source_files;
+          subjects of currently-uncovered files form current_subjects.
+          Quarantined rows whose source file is still uncovered are
+          released back to 'open'; rows whose source is now covered (or
+          was deleted) are resolved.
+
+        - test.failure: enumerates test_files referenced by quarantined
+          rows, re-runs pytest on each, and rebuilds current_subjects
+          from the FAILED output. Quarantined rows whose test still
+          fails are released; rows whose test now passes (or whose
+          test_file was deleted) are resolved. A pytest infrastructure
+          failure for a given test_file keeps the related subjects in
+          current_subjects so they are released back to 'open' rather
+          than resolved without evidence.
+        """
+        from body.services.service_registry import service_registry
+
+        bb_svc = await service_registry.get_blackboard_service()
+
+        # --- test.missing drain ----------------------------------------------
+        uncovered = uncovered_source_files(self._repo_root, config)
+        missing_current = {f"test.missing::{src}" for src in uncovered}
+
+        missing_reaudit = await bb_svc.adjudicate_awaiting_reaudit_findings(
+            subject_prefix="test.missing",
+            current_violation_subjects=missing_current,
+            resolved_by="test_runner_sensor",
+        )
+        missing_released = len(missing_reaudit["released_subjects"])
+        missing_resolved = len(missing_reaudit["resolved_subjects"])
+
+        if missing_released or missing_resolved:
+            logger.info(
+                "TestRunnerSensor: test.missing reaudit drained %d released, %d resolved.",
+                missing_released,
+                missing_resolved,
+            )
+            await self.post_report(
+                subject="audit.reaudit.complete::test.missing",
+                payload={
+                    "namespace": "test.missing",
+                    "released_count": missing_released,
+                    "resolved_count": missing_resolved,
+                    "released_subjects": missing_reaudit["released_subjects"],
+                    "resolved_subjects": missing_reaudit["resolved_subjects"],
+                },
+            )
+
+        # --- test.failure drain ----------------------------------------------
+        failure_quarantined = await bb_svc.fetch_awaiting_reaudit_subjects_by_prefix(
+            "test.failure::%"
+        )
+        if not failure_quarantined:
+            return
+
+        # Group quarantined subjects by their test_file so each file is
+        # only re-run once even if it has multiple failing test_names.
+        # Subject format: test.failure::<test_file>::<test_name>
+        by_test_file: dict[str, list[str]] = {}
+        for subject in failure_quarantined:
+            parts = subject.split("::")
+            if len(parts) < 3:
+                continue
+            by_test_file.setdefault(parts[1], []).append(subject)
+
+        failure_current: set[str] = set()
+
+        try:
+            from shared.path_resolver import PathResolver
+            from will.phases.canary.pytest_runner import PytestRunner
+
+            path_resolver = PathResolver.from_repo(
+                self._repo_root, self._repo_root / ".intent"
+            )
+            runner = PytestRunner(path_resolver)
+        except Exception as exc:
+            logger.warning(
+                "TestRunnerSensor: pytest runner unavailable for test.failure "
+                "drain (%s) — keeping all quarantined subjects in current set "
+                "to avoid spurious resolve.",
+                exc,
+            )
+            for subjects in by_test_file.values():
+                failure_current.update(subjects)
+            by_test_file = {}
+
+        for test_file, quarantined_subjects in by_test_file.items():
+            test_path = self._repo_root / test_file
+            if not test_path.exists():
+                # Deleted test_file: leave subjects out of current → resolved.
+                continue
+
+            try:
+                result = await runner.run_tests([test_file])
+            except Exception as exc:
+                logger.warning(
+                    "TestRunnerSensor: pytest run failed for %s during "
+                    "reaudit (%s) — keeping subjects in current set to "
+                    "avoid spurious resolve.",
+                    test_file,
+                    exc,
+                )
+                failure_current.update(quarantined_subjects)
+                continue
+
+            exit_code = result.get("exit_code", 1)
+            if exit_code == 0:
+                continue  # all green → leave out of current → resolved
+
+            output = result.get("output", "")
+            failed_test_names = set(_FAILED_TEST_PATTERN.findall(output))
+
+            for subject in quarantined_subjects:
+                parts = subject.split("::")
+                test_name = parts[2] if len(parts) >= 3 else "unknown"
+                if test_name == "unknown":
+                    # Original was posted as ::unknown when failures were
+                    # unparseable. If pytest still reports failure for the
+                    # file, the ::unknown subject remains "still failing".
+                    failure_current.add(subject)
+                elif test_name in failed_test_names:
+                    failure_current.add(subject)
+
+        failure_reaudit = await bb_svc.adjudicate_awaiting_reaudit_findings(
+            subject_prefix="test.failure",
+            current_violation_subjects=failure_current,
+            resolved_by="test_runner_sensor",
+        )
+        failure_released = len(failure_reaudit["released_subjects"])
+        failure_resolved = len(failure_reaudit["resolved_subjects"])
+
+        if failure_released or failure_resolved:
+            logger.info(
+                "TestRunnerSensor: test.failure reaudit drained %d released, %d resolved.",
+                failure_released,
+                failure_resolved,
+            )
+            await self.post_report(
+                subject="audit.reaudit.complete::test.failure",
+                payload={
+                    "namespace": "test.failure",
+                    "released_count": failure_released,
+                    "resolved_count": failure_resolved,
+                    "released_subjects": failure_reaudit["released_subjects"],
+                    "resolved_subjects": failure_reaudit["resolved_subjects"],
+                },
+            )

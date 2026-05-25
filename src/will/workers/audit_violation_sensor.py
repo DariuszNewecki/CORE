@@ -181,8 +181,9 @@ class AuditViolationSensor(Worker):
         }
         bb_svc = await self._core_context.registry.get_blackboard_service()
         reaudit = await bb_svc.adjudicate_awaiting_reaudit_findings(
-            rule_namespace=self._rule_namespace,
+            subject_prefix=f"audit.violation::{self._rule_namespace}",
             current_violation_subjects=current_subjects,
+            resolved_by="audit_violation_sensor",
         )
         reaudit_released = len(reaudit["released_subjects"])
         reaudit_resolved = len(reaudit["resolved_subjects"])

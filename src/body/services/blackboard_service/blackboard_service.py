@@ -317,36 +317,40 @@ class BlackboardService:
     # ID: 77d705b6-bafe-481b-9d73-3bbefdd85470
     async def adjudicate_awaiting_reaudit_findings(
         self,
-        rule_namespace: str,
+        subject_prefix: str,
         current_violation_subjects: set[str],
+        resolved_by: str,
     ) -> dict[str, list[str]]:
         """
-        Drain the awaiting_reaudit queue for this rule namespace (ADR-045).
+        Drain the awaiting_reaudit queue for a subject prefix (ADR-045, ADR-072).
 
-        Implements the audit sensor's release pass. For each finding
-        currently in 'awaiting_reaudit' whose subject begins with
-        ``audit.violation::<rule_namespace>``, decide based on the current
-        audit cycle's violation set:
+        Implements the drainer release pass. For each finding currently in
+        'awaiting_reaudit' whose subject begins with ``subject_prefix``,
+        decide based on the caller's current-state evaluation:
 
         - Subject present in *current_violation_subjects*: transition to
-          'open'. The violation still holds; the remediator should pick
-          it up on its next tick.
+          'open'. The condition still holds; the remediator should pick it
+          up on its next tick.
         - Subject absent from *current_violation_subjects*: transition to
-          'resolved'. The audit re-evaluated and the underlying condition
-          has cleared. payload.resolution is stamped with
-          system.audit attribution so the audit trail records why this
-          row closed without operator action.
+          'resolved'. The drainer re-evaluated and the underlying condition
+          has cleared (including the deleted-source case per ADR-072).
+          payload.resolution is stamped with *resolved_by* attribution so
+          the audit trail records why this row closed without operator
+          action.
+
+        Per ADR-072, every quarantine-capable namespace must call this
+        method from a registered drainer worker. Caller passes the full
+        subject prefix (e.g. ``audit.violation::<rule_namespace>`` or
+        ``test.missing``).
 
         The two transitions run in one transaction. Returns lists of
-        released and resolved subjects for the sensor's release-pass
+        released and resolved subjects for the drainer's release-pass
         report.
         """
         from body.services.service_registry import ServiceRegistry
 
         released_subjects: list[str] = []
         resolved_subjects: list[str] = []
-
-        subject_prefix = f"audit.violation::{rule_namespace}"
 
         async with ServiceRegistry.session() as session:
             async with session.begin():
@@ -406,7 +410,7 @@ class BlackboardService:
                                     '{resolution}',
                                     jsonb_build_object(
                                         'reason', 'audit re-evaluation: condition no longer present',
-                                        'resolved_by', 'audit_violation_sensor',
+                                        'resolved_by', :resolved_by,
                                         'resolution_authority', 'system.audit',
                                         'resolved_at', to_char(now() at time zone 'UTC',
                                                                'YYYY-MM-DD"T"HH24:MI:SS"Z"')
@@ -417,7 +421,7 @@ class BlackboardService:
                               AND status = 'awaiting_reaudit'
                             """
                         ),
-                        {"ids": resolve_ids},
+                        {"ids": resolve_ids, "resolved_by": resolved_by},
                     )
 
         return {

@@ -66,6 +66,32 @@ class BlackboardQueryService:
             )
             return {row[0] for row in result.fetchall()}
 
+    # ID: 9c4e1f7a-2b3d-4e85-a6f7-90bc8d1e2f43
+    async def fetch_awaiting_reaudit_subjects_by_prefix(self, prefix: str) -> set[str]:
+        """
+        Return subjects of awaiting_reaudit finding entries matching *prefix*.
+
+        Used by quarantine drainers (ADR-072) to determine the scope of
+        work for the current drain cycle — e.g. TestRunnerSensor uses this
+        to enumerate test_files referenced by quarantined test.failure
+        rows so it can re-run pytest only for what is actually parked.
+        """
+        from body.services.service_registry import ServiceRegistry
+
+        async with ServiceRegistry.session() as session:
+            result = await session.execute(
+                text(
+                    """
+                    SELECT subject FROM core.blackboard_entries
+                    WHERE entry_type = 'finding'
+                      AND status = 'awaiting_reaudit'
+                      AND subject LIKE :prefix
+                    """
+                ),
+                {"prefix": prefix},
+            )
+            return {row[0] for row in result.fetchall()}
+
     # ID: 1b8e7a4c-3f2d-4c5b-9a01-8e6d2f9b0a31
     async def fetch_active_finding_subjects_by_prefix(self, prefix: str) -> set[str]:
         """
