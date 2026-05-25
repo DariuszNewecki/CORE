@@ -427,13 +427,16 @@ class Worker(ABC):
                     text(
                         """
                         insert into core.worker_registry
-                            (worker_uuid, worker_name, worker_class, phase, last_heartbeat)
+                            (worker_uuid, worker_name, worker_class, phase,
+                             declaration_name, last_heartbeat)
                         values
-                            (:worker_uuid, :worker_name, :worker_class, :phase, now())
+                            (:worker_uuid, :worker_name, :worker_class, :phase,
+                             :declaration_name, now())
                         on conflict (worker_uuid) do update set
                             worker_name = excluded.worker_name,
                             worker_class = excluded.worker_class,
                             phase = excluded.phase,
+                            declaration_name = excluded.declaration_name,
                             last_heartbeat = now()
 """
                     ),
@@ -442,6 +445,7 @@ class Worker(ABC):
                         "worker_name": self._worker_name,
                         "worker_class": self._worker_class,
                         "phase": self._phase,
+                        "declaration_name": self.declaration_name,
                     },
                 )
 
