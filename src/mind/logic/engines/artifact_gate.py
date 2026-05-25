@@ -79,11 +79,13 @@ _VOCABULARY_CHECK_TYPES = frozenset(
 _GOVERNANCE_CHECK_TYPES = frozenset(
     {
         "all_rules_mapped",
+        "namespace_has_drainer",
     }
 )
 
 _AUTO_REMEDIATION_REL = ".intent/enforcement/remediation/auto_remediation.yaml"
 _RULES_DIR_REL = ".intent/rules"
+_DRAINER_REGISTRY_REL = ".intent/enforcement/quarantine/drainer_registry.yaml"
 _MAPPING_KEY_RE = re.compile(r"^  ([a-z][a-z0-9_.]+):$", re.MULTILINE)
 
 _REQUIRED_VOCAB_COLUMNS = ("term", "definition", "not", "authoritative_paper")
@@ -436,6 +438,129 @@ def _check_all_rules_mapped(repo_root: Path, check: str) -> EngineResult:
     return _vocab_result(check, violations)
 
 
+# ID: 5b8c2d1e-7a4f-4609-bc3a-d8e9f0a1b234
+async def _check_namespace_has_drainer(
+    repo_root: Path,
+    check: str,
+    params: dict[str, Any],
+) -> EngineResult:
+    """Verify every awaiting_reaudit subject namespace has a registered drainer.
+
+    ADR-072. The check enumerates DISTINCT subject prefixes currently
+    held in ``awaiting_reaudit`` and compares them to the prefixes
+    registered in ``drainer_registry.yaml``. A prefix present in the
+    DB but absent from the registry is an unmapped quarantine namespace.
+
+    DB access uses the audit-driver-injected session via
+    ``params['_context'].db_session`` (mirrors llm_gate's pattern —
+    Mind layer cannot open sessions itself). If no session is injected
+    (e.g. IntentGuard pre-commit path), the check returns ok=True with
+    a deferred-to-audit-time message rather than failing — the check
+    is meaningful only when the live blackboard state is accessible.
+    """
+    from sqlalchemy import text
+
+    registry_file = repo_root / _DRAINER_REGISTRY_REL
+    if not registry_file.exists():
+        return EngineResult(
+            ok=False,
+            message=(
+                f"artifact_gate[{check}]: drainer_registry.yaml missing at "
+                f"{registry_file}"
+            ),
+            violations=[f"Configuration error: {_DRAINER_REGISTRY_REL} not found"],
+            engine_id=_ENGINE_ID,
+        )
+
+    repo = get_intent_repository()
+    try:
+        registry_doc = repo.load_document(
+            repo.resolve_rel(_DRAINER_REGISTRY_REL.removeprefix(".intent/"))
+        )
+    except GovernanceError as exc:
+        return EngineResult(
+            ok=False,
+            message=f"artifact_gate[{check}]: cannot load drainer_registry.yaml: {exc}",
+            violations=[f"Configuration error: {_DRAINER_REGISTRY_REL} unloadable"],
+            engine_id=_ENGINE_ID,
+        )
+
+    if not isinstance(registry_doc, dict):
+        return EngineResult(
+            ok=False,
+            message=f"artifact_gate[{check}]: drainer_registry.yaml not a mapping",
+            violations=[
+                f"Configuration error: {_DRAINER_REGISTRY_REL} top-level "
+                "must be a YAML mapping"
+            ],
+            engine_id=_ENGINE_ID,
+        )
+
+    raw_entries = registry_doc.get("namespaces") or []
+    registered_normalized: set[str] = set()
+    for entry in raw_entries:
+        if not isinstance(entry, dict):
+            continue
+        prefix = entry.get("prefix")
+        if isinstance(prefix, str) and prefix:
+            # Normalise by stripping trailing colons so both "audit.violation::"
+            # and "audit.violation" registry forms match the bare namespace
+            # returned by SPLIT_PART.
+            registered_normalized.add(prefix.rstrip(":"))
+
+    # DB session is injected by the audit driver; absence is a
+    # degraded-mode signal, not a check failure (see docstring).
+    auditor_context = params.get("_context")
+    session = getattr(auditor_context, "db_session", None)
+    if session is None:
+        return EngineResult(
+            ok=True,
+            message=(
+                f"artifact_gate[{check}]: DB session not injected — check "
+                "deferred to audit-time run that injects auditor_context.db_session."
+            ),
+            violations=[],
+            engine_id=_ENGINE_ID,
+        )
+
+    result = await session.execute(
+        text(
+            """
+            SELECT DISTINCT SPLIT_PART(subject, '::', 1) AS namespace
+            FROM core.blackboard_entries
+            WHERE entry_type = 'finding'
+              AND status = 'awaiting_reaudit'
+              AND resolved_at IS NULL
+            """
+        )
+    )
+    quarantine_namespaces = {row[0] for row in result.fetchall() if row[0]}
+
+    unmapped = sorted(quarantine_namespaces - registered_normalized)
+    if not unmapped:
+        return EngineResult(
+            ok=True,
+            message=f"artifact_gate[{check}]: all quarantine namespaces have registered drainers.",
+            violations=[],
+            engine_id=_ENGINE_ID,
+        )
+
+    violations = [
+        f"Subject namespace '{ns}' has rows in awaiting_reaudit but no "
+        f"drainer is registered in {_DRAINER_REGISTRY_REL}"
+        for ns in unmapped
+    ]
+    return EngineResult(
+        ok=False,
+        message=(
+            f"artifact_gate[{check}]: {len(unmapped)} unmapped quarantine "
+            "namespace(s) — ADR-072 invariant violated."
+        ),
+        violations=violations,
+        engine_id=_ENGINE_ID,
+    )
+
+
 # ID: 69841a82-0920-480c-94cb-d5e4b6cb50dd
 class ArtifactGateEngine(BaseEngine):
     """
@@ -481,10 +606,11 @@ class ArtifactGateEngine(BaseEngine):
         if check_type in _VOCABULARY_CHECK_TYPES:
             return self._check_vocabulary(file_path, check_type)
 
-        # Governance meta-checks (ADR-066): repo-level invariants over
-        # .intent/ content. Dispatched before YAML load for the same reason.
+        # Governance meta-checks (ADR-066, ADR-072): repo-level invariants
+        # over .intent/ content and blackboard state. Dispatched before YAML
+        # load for the same reason.
         if check_type in _GOVERNANCE_CHECK_TYPES:
-            return self._check_governance(file_path, check_type)
+            return await self._check_governance(file_path, check_type, params)
 
         try:
             raw = yaml.safe_load(file_path.read_text(encoding="utf-8")) or {}
@@ -660,8 +786,15 @@ class ArtifactGateEngine(BaseEngine):
     # class stays under modularity.class_too_large limits.
     # -------------------------------------------------------------------------
 
-    def _check_governance(self, file_path: Path, check_type: str) -> EngineResult:
-        """Locate the repo root from file_path and dispatch the governance check."""
+    async def _check_governance(
+        self, file_path: Path, check_type: str, params: dict[str, Any]
+    ) -> EngineResult:
+        """Locate the repo root from file_path and dispatch the governance check.
+
+        Dispatcher is async because ``namespace_has_drainer`` (ADR-072 D4)
+        runs a DB query via the injected auditor_context.db_session.
+        ``all_rules_mapped`` remains synchronous internally.
+        """
         repo_root: Path | None = None
         for parent in file_path.resolve().parents:
             if (parent / ".intent").is_dir() and (parent / ".specs").is_dir():
@@ -680,6 +813,8 @@ class ArtifactGateEngine(BaseEngine):
 
         if check_type == "all_rules_mapped":
             return _check_all_rules_mapped(repo_root, check_type)
+        if check_type == "namespace_has_drainer":
+            return await _check_namespace_has_drainer(repo_root, check_type, params)
 
         return EngineResult(
             ok=False,
