@@ -133,6 +133,22 @@ class FileHandler:
         self._atomic_write_bytes(abs_path, content)
         return FileOpResult("success", "Wrote runtime bytes", rel_path)
 
+    # ID: d21ce0ee-5d6c-4030-b294-3cd33715c41a
+    def write_validated_bytes(self, rel_path: str, content: bytes) -> FileOpResult:
+        """Atomic byte-write that bypasses IntentGuard.
+
+        Used by ActionExecutor's worktree-sandbox propagation step
+        (ADR-071 D2.2): the content was already governance-validated by
+        the action that produced it inside the sandbox, so re-running
+        IntentGuard here would duplicate work. Path-escape protection
+        is still enforced via _resolve_repo_path. NOT a general write
+        surface — actions must use write_runtime_text / _bytes.
+        """
+        rel_path = rel_path.strip().removeprefix("./")
+        abs_path = self._resolve_repo_path(rel_path)
+        self._atomic_write_bytes(abs_path, content)
+        return FileOpResult("success", "Wrote validated bytes", rel_path)
+
     # ID: 9e9e41dc-9dc2-451b-940f-15199f23d548
     def write_runtime_json(self, rel_path: str, payload: Any) -> FileOpResult:
         rel_path = rel_path.strip().removeprefix("./")

@@ -18,6 +18,7 @@ CRITICAL: This enforces the "single execution contract" principle.
 
 from __future__ import annotations
 
+import dataclasses
 import inspect
 import json
 import time
@@ -37,6 +38,11 @@ if TYPE_CHECKING:
     from shared.context import CoreContext
 
 logger = getLogger(__name__)
+
+# ADR-071 D2.2 Phase 2: action impacts that warrant hermetic worktree
+# sandboxing. WRITE_DATA targets databases/external systems (not the
+# source tree), so the worktree isolation does nothing for it.
+_SANDBOXED_IMPACTS = frozenset({ActionImpact.WRITE_CODE, ActionImpact.WRITE_METADATA})
 
 
 # ID: b2c3d4e5-f6a7-8b9c-0d1e-2f3a4b5c6d7e
@@ -141,6 +147,7 @@ class ActionExecutor:
         self,
         action_id: str,
         write: bool = False,
+        pre_execution_sha: str | None = None,
         **params: Any,
     ) -> ActionResult:
         """
@@ -150,9 +157,24 @@ class ActionExecutor:
         2. Validates constitutional policies
         3. Checks impact authorization
         4. Runs pre-execution hooks
-        5. Executes the action
+        5. Executes the action (sandboxed in a git worktree if applicable)
         6. Runs post-execution hooks
         7. Records audit trail
+
+        Sandboxing (ADR-071 D2.2 Phase 2)
+        --------------------------------
+        When `pre_execution_sha` is supplied AND `write=True` AND the
+        action's ActionImpact is WRITE_CODE or WRITE_METADATA, the action
+        runs against a hermetic git worktree checked out at
+        `pre_execution_sha`. The scoped CoreContext has both `git_service`
+        and `file_handler` repointed at the worktree, so mutations land
+        inside the sandbox. On success, changed files are copy-propagated
+        back to the main tree under ADR-021's existing scope-binding (the
+        commit_paths call in proposal_execution_pipeline is unchanged).
+        On failure, the sandbox is discarded and the main tree is
+        untouched. CLI direct invocations leave `pre_execution_sha=None`
+        and pass through with no sandbox — D2.1's operational stop/start
+        protocol covers concurrent-human cases there.
         """
         start_time = time.time()
 
@@ -211,9 +233,14 @@ class ActionExecutor:
         # 4. Pre-execution hooks
         await self._pre_execute_hooks(definition, write, params)
 
-        # 5. Execute action
+        # 5. Execute action (sandboxed when ADR-071 D2.2 conditions hold)
+        exec_context, scoped_git = self._build_execution_context(
+            definition, write, pre_execution_sha
+        )
         try:
-            exec_params = self._prepare_params(definition, write, params)
+            exec_params = self._prepare_params(
+                definition, write, params, context=exec_context
+            )
 
             # --- Issue Governance Token ---
             with authorize_execution(action_id):
@@ -222,6 +249,9 @@ class ActionExecutor:
 
             # CONSTITUTIONAL ENFORCEMENT: Validate result at runtime
             result = _validate_action_result(action_id, raw_result)
+
+            if scoped_git is not None and result.ok:
+                self._propagate_sandbox_changes(scoped_git)
 
             logger.info(
                 "Action %s completed: ok=%s, duration=%.2fs",
@@ -243,6 +273,9 @@ class ActionExecutor:
                 },
                 duration_sec=time.time() - start_time,
             )
+        finally:
+            if scoped_git is not None:
+                scoped_git.cleanup()
 
         # 6. Post-execution hooks
         await self._post_execute_hooks(definition, result)
@@ -251,6 +284,181 @@ class ActionExecutor:
         await self._audit_log(definition, result, write)
 
         return result
+
+    # ID: a9b3e7c1-4d2f-4e85-9a17-6b8c3d5e7f12
+    def _build_execution_context(
+        self,
+        definition: ActionDefinition,
+        write: bool,
+        pre_execution_sha: str | None,
+    ) -> tuple[CoreContext, Any]:
+        """Decide whether to sandbox this execution and build the context.
+
+        Returns (context_to_pass_to_action, scoped_git_or_None). When
+        sandboxing applies, the returned context is a shallow copy of
+        self.core_context with `git_service` and `file_handler` repointed
+        at a fresh ScopedGitService rooted at `pre_execution_sha`. The
+        caller MUST call `scoped_git.cleanup()` in a finally block.
+
+        Gate (all required):
+          - pre_execution_sha is not None (autonomous call path)
+          - write is True (dry-runs need no isolation)
+          - the action's @atomic_action metadata declares impact ∈
+            {WRITE_CODE, WRITE_METADATA}
+
+        Note on IntentGuard: the FileHandler constructor wires an
+        IntentGuard via get_intent_guard(), which is a process singleton
+        bound to the first repo_path it sees. A scoped FileHandler reuses
+        that singleton — paths are still validated against governance,
+        but using main-repo .intent/ state (the current governance frame)
+        rather than the worktree's snapshot. That's the correct default:
+        we want to honour governance as-of-now, not as-of-proposal.
+        """
+        if (
+            pre_execution_sha is None
+            or not write
+            or self.core_context.git_service is None
+        ):
+            return self.core_context, None
+
+        metadata = getattr(definition.executor, "_atomic_action_metadata", None)
+        if metadata is None or metadata.impact not in _SANDBOXED_IMPACTS:
+            return self.core_context, None
+
+        from shared.infrastructure.storage.file_handler import FileHandler
+
+        scoped_git = self.core_context.git_service.create_worktree(pre_execution_sha)
+        try:
+            scoped_file_handler = FileHandler(str(scoped_git.repo_path))
+        except Exception:
+            scoped_git.cleanup()
+            raise
+
+        scoped_context = dataclasses.replace(
+            self.core_context,
+            git_service=scoped_git,
+            file_handler=scoped_file_handler,
+        )
+        logger.info(
+            "ActionExecutor: %s sandboxed in %s at sha %s",
+            definition.action_id,
+            scoped_git.repo_path,
+            pre_execution_sha[:12],
+        )
+        return scoped_context, scoped_git
+
+    # ID: b1d2c5f9-3a48-4e67-8b91-2c5f8a3d6e90
+    def _propagate_sandbox_changes(self, scoped_git: Any) -> None:
+        """Copy files modified inside the sandbox back to the main tree.
+
+        Walks `scoped_git.status_porcelain()` and for each modified or
+        untracked entry, copies the worktree-side bytes through the main
+        FileHandler's write_runtime_bytes surface (canonical write path,
+        no re-syntax-check, no auto-newline injection — byte-identical).
+
+        Before copying anything, checks the main tree for uncommitted
+        modifications in the sandbox's target paths. If any overlap, raises
+        — the exception bubbles into execute()'s outer try and turns the
+        action result into a loud failure, rather than silently overwriting
+        the governor's concurrent edits. This is the safety mechanism the
+        ADR-071 D2.2 plan describes as "loud failure rather than silent
+        contamination". The b11f4dba race shape is closed: worker either
+        propagates cleanly (no overlap) or refuses (overlap detected).
+
+        Deletions are not propagated: the no_direct_writes rule (#451)
+        forbids @atomic_action functions from invoking unlink/rmdir, so
+        a `D`-status entry here would itself be a constitutional
+        violation. We log and skip rather than silently deleting from
+        the main tree.
+        """
+        sandbox_root = scoped_git.repo_path
+        file_handler = self.core_context.file_handler
+
+        try:
+            porcelain = scoped_git.status_porcelain()
+        except Exception as exc:
+            logger.error(
+                "ActionExecutor: sandbox status read failed (%s); "
+                "main tree NOT updated to avoid partial propagation",
+                exc,
+            )
+            return
+
+        if not porcelain:
+            logger.debug(
+                "ActionExecutor: sandbox produced no changes for %s", sandbox_root
+            )
+            return
+
+        # Collect intended target paths. Porcelain v1 format is "XY path"
+        # but GitService.status_porcelain strips the wrapping stdout, which
+        # eats the leading space of the first line when X (staged) is
+        # unmodified — so " M foo" arrives as "M foo". Split on first
+        # whitespace to recover {status_token, path} regardless.
+        target_paths: set[str] = set()
+        for line in porcelain.splitlines():
+            parts = line.split(None, 1)
+            if len(parts) != 2:
+                continue
+            status_token, rel = parts[0], parts[1].strip().strip('"')
+            if "D" in status_token:
+                logger.warning(
+                    "ActionExecutor: sandbox reports deletion of %s — "
+                    "atomic actions cannot delete files (#451); skipping",
+                    rel,
+                )
+                continue
+            target_paths.add(rel)
+
+        if not target_paths:
+            return
+
+        # Conflict check: is the main tree dirty on any target path?
+        try:
+            main_porcelain = self.core_context.git_service.status_porcelain()
+        except Exception as exc:
+            logger.error(
+                "ActionExecutor: main tree status read failed (%s); "
+                "refusing to propagate without a conflict check",
+                exc,
+            )
+            raise RuntimeError(
+                f"ADR-071 D2.2: cannot verify main tree cleanliness ({exc}); "
+                "refusing to propagate sandbox changes"
+            ) from exc
+
+        main_dirty: set[str] = set()
+        for line in main_porcelain.splitlines():
+            parts = line.split(None, 1)
+            if len(parts) == 2:
+                main_dirty.add(parts[1].strip().strip('"'))
+
+        conflict = sorted(target_paths & main_dirty)
+        if conflict:
+            raise RuntimeError(
+                "ADR-071 D2.2: refusing to propagate sandbox changes — "
+                f"main tree has uncommitted changes in {len(conflict)} "
+                f"sandbox target file(s): {conflict[:5]}"
+                f"{' ...' if len(conflict) > 5 else ''}. "
+                "Commit or revert those changes, then re-run."
+            )
+
+        copied = 0
+        for rel in sorted(target_paths):
+            src = sandbox_root / rel
+            if not src.exists():
+                logger.warning(
+                    "ActionExecutor: sandbox entry %s missing on disk; skipping",
+                    rel,
+                )
+                continue
+            file_handler.write_validated_bytes(rel, src.read_bytes())
+            copied += 1
+
+        logger.info(
+            "ActionExecutor: propagated %d file(s) from sandbox to main tree",
+            copied,
+        )
 
     # ID: 7d302f78-f0c6-4fe5-8273-11f85d53b2fb
     async def _validate_policies(self, definition: ActionDefinition) -> dict[str, Any]:
@@ -386,25 +594,35 @@ class ActionExecutor:
 
     # ID: eff3eded-b30d-49e0-b50c-3503a1b695af
     def _prepare_params(
-        self, definition: ActionDefinition, write: bool, params: dict[str, Any]
+        self,
+        definition: ActionDefinition,
+        write: bool,
+        params: dict[str, Any],
+        context: CoreContext | None = None,
     ) -> dict[str, Any]:
         """
         Prepare parameters for action execution with smart injection.
+
+        `context` overrides the core_context injected into actions that
+        accept it. None means use self.core_context (the default for
+        unsandboxed pass-through); a scoped CoreContext is supplied by
+        _build_execution_context when ADR-071 D2.2 sandboxing applies.
         """
         exec_params = {"write": write}
+        effective_context = context if context is not None else self.core_context
 
         sig = inspect.signature(definition.executor)
         if "core_context" in sig.parameters:
-            exec_params["core_context"] = self.core_context
+            exec_params["core_context"] = effective_context
 
         exec_params.update(params)
 
-        if definition.requires_db and not self.core_context.db_available:
+        if definition.requires_db and not effective_context.db_available:
             logger.warning(
                 "Action %s requires DB but it's not available", definition.action_id
             )
 
-        if definition.requires_vectors and not self.core_context.qdrant_service:
+        if definition.requires_vectors and not effective_context.qdrant_service:
             logger.warning(
                 "Action %s requires vectors but Qdrant is not available",
                 definition.action_id,

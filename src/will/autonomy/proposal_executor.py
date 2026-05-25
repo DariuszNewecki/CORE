@@ -261,9 +261,16 @@ class ProposalExecutor:
                             **params,
                         )
                     else:
+                        # ADR-071 D2.2 Phase 2: thread pre_execution_sha so
+                        # write-bearing actions execute in a hermetic worktree
+                        # rooted at the SHA captured before the claim. The
+                        # executor sandboxes only when impact is WRITE_CODE /
+                        # WRITE_METADATA AND write=True; CLI direct invocations
+                        # leave pre_execution_sha=None and pass through.
                         result = await self.action_executor.execute(
                             action_id=ref_id,
                             write=write,
+                            pre_execution_sha=pre_execution_sha,
                             **params,
                         )
 
