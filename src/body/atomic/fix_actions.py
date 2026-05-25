@@ -104,7 +104,7 @@ async def action_format_code(
     policies=["atomic_actions"],
 )
 # ID: d5879178-fdfe-4d8b-b6a6-f887f8e9500b
-async def action_fix_imports(write: bool = False) -> ActionResult:
+async def action_fix_imports(write: bool = False, **kwargs) -> ActionResult:
     """Sort and group Python imports according to constitutional style policy."""
     start = time.time()
     from shared.utils.subprocess_utils import run_poetry_command

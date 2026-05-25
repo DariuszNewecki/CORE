@@ -70,7 +70,7 @@ def _load_max_embedding_passes(repo_root) -> int:
 )
 # ID: f6789012-3456-789a-bcde-f0123456789a
 async def action_sync_database(
-    core_context: CoreContext, write: bool = False
+    core_context: CoreContext, write: bool = False, **kwargs
 ) -> ActionResult:
     """
     Synchronize code symbols to PostgreSQL knowledge graph.
@@ -133,7 +133,7 @@ async def action_sync_database(
 )
 # ID: af6a56d0-b2d3-44fe-b6ea-55d6aed3768b
 async def action_sync_code_vectors(
-    core_context: CoreContext, write: bool = False, force: bool = False
+    core_context: CoreContext, write: bool = False, force: bool = False, **kwargs
 ) -> ActionResult:
     """
     Vectorize codebase artifacts to Qdrant by calling Body services directly.
@@ -316,7 +316,7 @@ async def action_sync_code_vectors(
 )
 # ID: b301871b-6205-4300-a76e-65d2ffa56c03
 async def action_sync_constitutional_vectors(
-    core_context: CoreContext, write: bool = False
+    core_context: CoreContext, write: bool = False, **kwargs
 ) -> ActionResult:
     """
     Vectorize constitutional documents to Qdrant with smart deduplication.

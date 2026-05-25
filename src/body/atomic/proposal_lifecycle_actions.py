@@ -53,6 +53,7 @@ async def action_claim_proposal(
     write: bool = False,
     proposal_id: str | None = None,
     claimed_by: UUID | None = None,
+    **kwargs,
 ) -> ActionResult:
     """Atomically claim an approved proposal for execution.
 

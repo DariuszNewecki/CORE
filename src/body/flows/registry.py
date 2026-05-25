@@ -63,12 +63,15 @@ class FlowStep:
 
     consumes: tuple[str, ...] | None = None
     """
-    Whitelist of caller-param keys this step is allowed to receive.
+    Allowlist of caller-param keys this step is allowed to receive.
 
-    None (or absent) = no caller params are forwarded to this step;
-    only static ``params`` apply. A tuple of key names = only those keys
-    are forwarded from the caller; everything else is dropped. Static
-    ``params`` always pass through regardless of this field.
+    None (or absent) = all caller params are forwarded to this step.
+    This is the safe default — silent swallow is a worse failure mode
+    than an unexpected-kwarg TypeError in a governed system (see #445).
+    A tuple of key names = only those keys are forwarded from the
+    caller; everything else is dropped. An empty tuple drops everything
+    explicitly. Static ``params`` always pass through regardless of
+    this field.
     """
 
 

@@ -158,13 +158,16 @@ class FlowExecutor:
         write=False is enforced unconditionally — a step cannot
         escalate to write mode even if its static params request it.
         """
-        # Merge params: static step params first, then a filtered subset of
-        # caller params. step.consumes is the whitelist — None means "no
-        # caller params forwarded"; a tuple restricts forwarding to those
-        # keys. Static params always pass through. Caller-supplied keys
-        # override static params on conflict.
+        # Merge params: static step params first, then caller params.
+        # step.consumes governs caller-param forwarding. None means "forward
+        # all caller params" (the safe default — silent swallow is a worse
+        # failure mode than an unexpected-kwarg TypeError in a governed
+        # system; see issue #445). A tuple restricts forwarding to those
+        # keys (explicit allowlist). An empty tuple drops everything
+        # explicitly. Static params always pass through. Caller-supplied
+        # keys override static params on conflict.
         if step.consumes is None:
-            filtered_caller: dict[str, Any] = {}
+            filtered_caller: dict[str, Any] = dict(caller_params)
         else:
             filtered_caller = {
                 k: v for k, v in caller_params.items() if k in step.consumes

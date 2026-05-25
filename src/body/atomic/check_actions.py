@@ -50,7 +50,7 @@ _TARGET = "src/"
     policies=["atomic_actions"],
 )
 # ID: dd985101-edb8-4256-ad7f-c6088b68183b
-async def action_check_imports(*, write: bool = False) -> ActionResult:
+async def action_check_imports(*, write: bool = False, **kwargs) -> ActionResult:
     """
     Verify all import statements in src/ resolve to existing modules.
 
