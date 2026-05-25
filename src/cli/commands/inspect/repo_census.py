@@ -65,8 +65,7 @@ async def repo_census_cmd(
     """
     _ = ctx
     _ = path  # API resolves repo_root server-side; --path retained for compatibility.
-    _ = out  # SUPPRESS architecture.cli.api_only: output paths are now server-
-    # managed; the --out flag is kept for backward compatibility but ignored.
+    _ = out  # Output paths are now server-managed; --out kept for backward compat.
     client = CoreApiClient()
 
     if list_baselines_flag:

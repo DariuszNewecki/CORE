@@ -13,15 +13,14 @@ Constitutional standing:
 
 LAYER: cli/commands — CLI entry point for Will orchestration.
 
-SUPPRESS architecture.cli.api_only (entire `start` command + `_run_daemon`):
-This is the daemon bootstrap. The CLI command `core-admin daemon start` is
-what systemd executes to bring the daemon (and therefore the API) into
-existence. A thin-client implementation here would be a chicken-and-egg
-deadlock — the daemon must be running for /v1/daemon/start to be reachable.
-Per ADR-058 D3, the API's POST /v1/daemon/start (operator-triggered remote
-restart) and this CLI's `daemon start` (systemd-triggered bootstrap) are
-deliberately separate paths. The body/shared imports below are bootstrap-
-only and exempt from the api_only rule.
+Bootstrap path — the `start` command and `_run_daemon` import body/shared
+directly because this is what systemd executes to bring the daemon (and
+therefore the API) into existence. A thin-client implementation would be
+a chicken-and-egg deadlock — the daemon must be running for
+/v1/daemon/start to be reachable. Per ADR-058 D3, the API's
+POST /v1/daemon/start (operator-triggered remote restart) and this CLI's
+`daemon start` (systemd-triggered bootstrap) are deliberately separate
+paths.
 """
 
 from __future__ import annotations
@@ -33,7 +32,7 @@ from typing import Any
 
 import typer
 
-# Bootstrap imports — SUPPRESS architecture.cli.api_only (see module docstring).
+# Bootstrap imports — see module docstring.
 from cli.utils import async_command
 from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.logger import getLogger
@@ -166,9 +165,8 @@ async def _run_daemon() -> None:
     occurs, so workers with hardcoded declaration_name class attributes and
     plain __init__(self) signatures are still started correctly.
     """
-    # SUPPRESS architecture.cli.api_only: bootstrap-only imports — the daemon
-    # cannot construct itself by calling its own API (chicken-and-egg). See
-    # module docstring.
+    # Bootstrap-only imports — the daemon cannot construct itself by calling
+    # its own API (chicken-and-egg). See module docstring.
     import yaml
 
     from body.services.service_registry import service_registry
@@ -204,8 +202,7 @@ async def _run_daemon() -> None:
         repo_path=BootstrapRegistry.get_repo_path()
     )
 
-    # SUPPRESS architecture.cli.api_only: bootstrap-only — daemon
-    # constructs its own GitService (no API yet to call).
+    # Bootstrap-only — daemon constructs its own GitService (no API yet to call).
     from shared.infrastructure.git_service import GitService
 
     try:
