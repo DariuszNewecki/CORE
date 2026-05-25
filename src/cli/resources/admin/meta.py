@@ -25,6 +25,7 @@ console = Console()
 async def admin_meta_cmd(
     ctx: typer.Context,
     format: str = typer.Option("list", "--format", help="Output format (list|json)"),
+    **kwargs,
 ) -> ActionResult:
     """
     Explore the System Mind: Prints all authoritative constitutional files.

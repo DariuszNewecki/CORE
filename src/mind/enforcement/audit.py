@@ -79,7 +79,7 @@ def lint() -> None:
     policies=["atomic_actions"],
 )
 # ID: 5963ab12-7398-4506-a257-0836ec585a88
-async def test_system() -> ActionResult:
+async def test_system(**kwargs) -> ActionResult:
     """
     Run the project test suite via the canonical async test runner.
 

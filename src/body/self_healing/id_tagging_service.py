@@ -195,7 +195,9 @@ async def assign_missing_ids(context: CoreContext, write: bool = False) -> int:
     category="fixers",
 )
 # ID: 2d37fcb6-863e-4197-a3b8-88ad54a2b99c
-async def fix_ids_internal(context: CoreContext, write: bool = False) -> ActionResult:
+async def fix_ids_internal(
+    context: CoreContext, write: bool = False, **kwargs
+) -> ActionResult:
     """
     Core orchestrator for fix.ids — moved from cli/commands/fix/metadata.py
     under ADR-050. Wraps assign_missing_ids in an ActionResult envelope.

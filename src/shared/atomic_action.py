@@ -9,6 +9,7 @@ and autonomous orchestration.
 
 from __future__ import annotations
 
+import inspect
 import logging
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -58,6 +59,26 @@ def atomic_action(
     # ID: 3578222b-00ae-4cde-9865-e3db946a9c4e
     def decorator(func: Callable) -> Callable:
         """Actual decorator that wraps the function."""
+
+        # Constitutional: signature must accept **kwargs to absorb extra
+        # keyword arguments forwarded by FlowExecutor and ActionExecutor.
+        # Without it, the next half-built flow trips a silent TypeError at
+        # runtime. Enforced at decoration (import) time so every
+        # @atomic_action function is caught — including helpers that don't
+        # also carry @register_action. See issue #448 and ADR-070 D8.
+        sig = inspect.signature(func)
+        has_var_keyword = any(
+            param.kind is inspect.Parameter.VAR_KEYWORD
+            for param in sig.parameters.values()
+        )
+        if not has_var_keyword:
+            raise TypeError(
+                f"Constitutional violation in '{func.__name__}': "
+                f"@atomic_action signature must accept **kwargs. "
+                f"Required: signature must include a **kwargs parameter to absorb "
+                f"extra keyword arguments forwarded by FlowExecutor and "
+                f"ActionExecutor. See issue #448 and ADR-070 D8."
+            )
 
         # Attach metadata to function for introspection
         func._atomic_action_metadata = metadata  # type: ignore

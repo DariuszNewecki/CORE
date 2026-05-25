@@ -264,7 +264,7 @@ async def _run_header_fix_cycle(
 )
 # ID: 936e32e6-18a3-4b7c-a0f2-06cc8ca654f7
 async def fix_headers_internal(
-    context: CoreContext, write: bool = False
+    context: CoreContext, write: bool = False, **kwargs
 ) -> ActionResult:
     """
     Core orchestrator for fix.headers — moved from cli/commands/fix/code_style.py

@@ -44,6 +44,7 @@ class MemoryCleanupService:
         days_to_keep_episodes: int = _CFG_MEM.episode_retention_days,
         days_to_keep_reflections: int = _CFG_MEM.reflection_retention_days,
         dry_run: bool = True,
+        **kwargs,
     ) -> ActionResult:
         """
         Execute agent memory retention policy.
@@ -93,7 +94,7 @@ class MemoryCleanupService:
     )
     # ID: 5e76777a-ca1d-424f-9853-acbee0967c6e
     async def cleanup_action_results(
-        self, days_to_keep: int = 7, dry_run: bool = True
+        self, days_to_keep: int = 7, dry_run: bool = True, **kwargs
     ) -> ActionResult:
         """
         Removes old records from core.action_results to keep the ledger relevant.

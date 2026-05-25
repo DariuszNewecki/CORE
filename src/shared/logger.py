@@ -161,7 +161,7 @@ from shared.atomic_action import atomic_action
     policies=["standard_logging"],
 )
 # ID: fef5e4a6-9002-452d-92df-aabbb41e50f8
-async def reconfigure_log_level(level: str) -> ActionResult:
+async def reconfigure_log_level(level: str, **kwargs) -> ActionResult:
     """
     Updates the root logger level at runtime.
     Constitutional: Wrapped in atomic_action for traceability.

@@ -137,6 +137,7 @@ async def fix_body_ui_violations(
     write: bool = False,
     repo_root: Path | None = None,
     limit: int | None = None,
+    **kwargs,
 ) -> ActionResult:
     """
     Use an LLM (via CoreContext) to automatically fix Body UI/env violations.

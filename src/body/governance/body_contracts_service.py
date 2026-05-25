@@ -255,6 +255,7 @@ def _check_os_environ(path: Path, tree: ast.AST) -> list[Violation]:
 # ID: ad55c8fb-3c0d-4d32-9ea0-7b4b773360b3
 async def check_body_contracts(
     repo_root: Path,
+    **kwargs,
 ) -> ActionResult:
     """
     Run Body Contracts checks over the repository.

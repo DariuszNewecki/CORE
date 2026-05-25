@@ -215,6 +215,7 @@ async def define_single_symbol(
 async def define_symbols(
     context_service: ContextService,
     session_factory: Callable[[], Any],
+    **kwargs,
 ) -> ActionResult:
     """
     Main entry point for batch symbol definition.

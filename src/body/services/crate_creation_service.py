@@ -78,6 +78,7 @@ class CrateCreationService:
         payload_files: dict[str, str],
         crate_type: str = "STANDARD",
         metadata: dict[str, Any] | None = None,
+        **kwargs,
     ) -> ActionResult:
         """
         The core logic to build a Crate. Returns an ActionResult for the Orchestrator.
@@ -205,6 +206,7 @@ async def create_crate_from_spec(
     intent: str,
     files_generated: dict[str, str],
     metadata: dict[str, Any] | None = None,
+    **kwargs,
 ) -> ActionResult:
     """
     Convenience wrapper for SpecificationAgent.

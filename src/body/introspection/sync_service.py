@@ -30,7 +30,7 @@ logger = getLogger(__name__)
     category="introspection",
 )
 # ID: 3d99a5e7-06f8-4cfa-aba8-41a6e0655987
-async def run_sync_with_db(session: AsyncSession) -> ActionResult:
+async def run_sync_with_db(session: AsyncSession, **kwargs) -> ActionResult:
     """Entry point for the database-centric sync logic."""
     start_time = time.time()
     logger.info("🚀 Starting symbol sync with database (Mind/Body alignment)")

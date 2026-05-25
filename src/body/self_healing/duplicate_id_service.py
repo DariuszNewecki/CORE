@@ -368,7 +368,7 @@ async def resolve_duplicate_ids(
 )
 # ID: ecc8bd51-3c19-4e0f-a689-fe3b33c5841c
 async def fix_duplicate_ids_internal(
-    context: CoreContext, write: bool = False
+    context: CoreContext, write: bool = False, **kwargs
 ) -> ActionResult:
     """
     Core orchestrator for fix.duplicate_ids — moved from

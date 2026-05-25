@@ -209,6 +209,12 @@ def _validate_action_signature(func: Callable[..., Awaitable[ActionResult]]) -> 
     - atomic_actions.must_have_decorator
     - atomic_actions.no_governance_bypass
 
+    Note: the **kwargs absorption invariant (issue #448) is enforced inside
+    the @atomic_action decorator itself, not here — since must_have_decorator
+    above guarantees @atomic_action has already run on every registered
+    function, the kwargs check has already fired by the time control
+    reaches this validator.
+
     Raises:
         TypeError: If function signature violates constitutional rules
     """
