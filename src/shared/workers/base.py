@@ -166,7 +166,16 @@ class Worker(ABC):
 
     # ID: 5a443e92-5798-4571-a3b0-63762bde2154
     async def start(self) -> None:
-        """Register and run. Entry point for the scheduler."""
+        """Register and run. Entry point for the scheduler.
+
+        ADR-069 D8: the finally block releases any blackboard entries this
+        worker still holds in status='claimed' at exit time — covering
+        graceful shutdown (asyncio.CancelledError from systemctl stop),
+        uncaught Exception, and the success path (idempotent: the WHERE
+        clause filters entries already in a terminal status). The lease
+        mechanism (ADR-069 D2/D6, future work) remains the recovery path
+        for ungraceful exits where the finally block cannot run.
+        """
         await self._register()
         try:
             await self.run()
@@ -179,6 +188,58 @@ class Worker(ABC):
             )
             logger.error("Worker %s failed: %s", self._worker_name, e, exc_info=True)
             raise
+        finally:
+            try:
+                await self._release_held_claims()
+            except Exception as release_err:
+                # Never let release failures suppress the original exit
+                # (CancelledError or the re-raised worker exception).
+                logger.error(
+                    "Worker %s failed to release held claims at shutdown: %s",
+                    self._worker_name,
+                    release_err,
+                    exc_info=True,
+                )
+
+    async def _release_held_claims(self) -> int:
+        """Release any blackboard entries this worker still holds at exit.
+
+        Single-statement UPDATE filtered by claimed_by + status='claimed' —
+        idempotent across retries and across the three exit paths
+        (success, exception, cancellation). Returns the count of rows
+        actually released so callers (today: start()'s finally block) can
+        log the shutdown effect.
+
+        Constitutional position: the Worker base class is the right home
+        for this — graceful pre-release is a property of the lifecycle
+        contract, not a property of the blackboard service surface.
+        """
+        from sqlalchemy import text
+
+        async with get_session() as session:
+            async with session.begin():
+                result = await session.execute(
+                    text(
+                        """
+                        update core.blackboard_entries
+                           set status = 'open',
+                               claimed_by = null,
+                               updated_at = now()
+                         where claimed_by = :worker_uuid
+                           and status = 'claimed'
+                        """
+                    ),
+                    {"worker_uuid": self._worker_uuid},
+                )
+                released = result.rowcount
+
+        if released:
+            logger.info(
+                "Worker %s released %d held claim(s) at shutdown (ADR-069 D8)",
+                self._worker_name,
+                released,
+            )
+        return released
 
     # -------------------------------------------------------------------------
     # Blackboard API — subclasses use these to fulfill history obligation
