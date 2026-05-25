@@ -2,9 +2,6 @@
 #
 # Enforcement mapping for governance.quarantine.* rules.
 # Declared under ADR-072 (Quarantine-Drainer Invariant).
-#
-# Amendment 2026-05-25: severity value updated from retired `ERROR` vocabulary
-# to canonical ADR-059 `block` (sole CI-halting severity tier).
 
 mappings:
   # RULE: governance.quarantine.namespace_has_drainer

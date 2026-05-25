@@ -8,9 +8,6 @@
 #
 # THE LAW: Every model.yaml must be structurally complete, must not leak
 # infrastructure provider names, and must reference a declared cognitive role.
-#
-# Amendment 2026-05-25: severity values updated from retired `error` vocabulary
-# to canonical ADR-059 `block` (sole CI-halting severity tier).
 
 mappings:
   # RULE: ai.prompt.artifact.required_fields
