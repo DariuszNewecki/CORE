@@ -207,6 +207,19 @@ async def _run_daemon() -> None:
 
     try:
         ctx.git_service = GitService(repo_path=BootstrapRegistry.get_repo_path())
+        # ADR-071 D2.2 Phase 1: reclaim sandbox worktrees leaked by crashes.
+        try:
+            swept = ctx.git_service.sweep_orphan_worktrees()
+            if swept:
+                logger.info(
+                    "CORE daemon: cleared %d orphan action sandbox(es) from prior runs",
+                    swept,
+                )
+        except Exception as sweep_err:
+            logger.warning(
+                "CORE daemon: orphan worktree sweep failed (non-fatal): %s",
+                sweep_err,
+            )
     except Exception as e:
         logger.warning("CORE daemon: GitService unavailable: %s", e)
 

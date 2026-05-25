@@ -14,7 +14,9 @@ subprocess for git operations. All other layers must go through this service.
 
 from __future__ import annotations
 
+import shutil
 import subprocess
+import uuid
 from pathlib import Path
 
 from shared.infrastructure.intent.operational_config import load_operational_config
@@ -24,6 +26,13 @@ from shared.logger import getLogger
 logger = getLogger(__name__)
 
 _CFG_GIT = load_operational_config().git
+
+# ADR-071 D2.2 Phase 1: hermetic action execution via git worktree.
+# Sandbox worktrees live under SANDBOX_PARENT with names beginning
+# SANDBOX_PREFIX so the orphan sweep on daemon boot can identify and
+# reclaim them without touching unrelated worktrees.
+SANDBOX_PARENT = Path("/tmp")
+SANDBOX_PREFIX = "core-action-sandbox-"
 
 
 # ID: 4c70a9c7-ee57-40d7-80af-470c19223c21
@@ -256,3 +265,121 @@ class GitService:
             ]
         except RuntimeError:
             return []
+
+    # ID: 2204a851-0f11-495b-be3d-c0af82bb13ee
+    def create_worktree(self, sha: str) -> ScopedGitService:
+        """
+        Create a hermetic git worktree rooted at `sha` for action execution.
+
+        Path: SANDBOX_PARENT/SANDBOX_PREFIX<uuid4>/. Uses --detach so no
+        branch is created. Returns a ScopedGitService wrapping the worktree;
+        the caller MUST call cleanup() (or use as a context manager). Any
+        leaked worktrees are reclaimed by sweep_orphan_worktrees() on the
+        next daemon boot.
+
+        ADR-071 D2.2 Phase 1.
+        """
+        worktree_path = SANDBOX_PARENT / f"{SANDBOX_PREFIX}{uuid.uuid4().hex}"
+        self._run_command(["worktree", "add", "--detach", str(worktree_path), sha])
+        logger.info(
+            "GitService: created worktree %s at sha %s",
+            worktree_path,
+            sha[:12],
+        )
+        return ScopedGitService(worktree_path, parent=self)
+
+    # ID: 7990798e-4c6b-4aff-a8ce-26f7f1f9d480
+    def sweep_orphan_worktrees(self) -> int:
+        """
+        Remove any sandbox worktrees left behind by crashed actions.
+
+        Lists worktrees registered against this repo, removes those whose
+        path lives directly under SANDBOX_PARENT with the SANDBOX_PREFIX,
+        and prunes the administrative entries. Returns the count removed.
+        Safe to call on daemon boot; failures are logged and swallowed so
+        ignition is never blocked.
+
+        ADR-071 D2.2 Phase 1.
+        """
+        try:
+            output = self._run_command(["worktree", "list", "--porcelain"])
+        except RuntimeError as exc:
+            logger.warning("GitService.sweep_orphan_worktrees: list failed: %s", exc)
+            return 0
+
+        removed = 0
+        for line in output.splitlines():
+            if not line.startswith("worktree "):
+                continue
+            path_str = line[len("worktree ") :].strip()
+            path = Path(path_str)
+            if path.parent != SANDBOX_PARENT or not path.name.startswith(
+                SANDBOX_PREFIX
+            ):
+                continue
+            try:
+                self._run_command(["worktree", "remove", "--force", path_str])
+                removed += 1
+                logger.info("GitService: removed orphan worktree %s", path_str)
+            except RuntimeError as exc:
+                logger.warning(
+                    "GitService: failed to remove orphan worktree %s: %s",
+                    path_str,
+                    exc,
+                )
+
+        try:
+            self._run_command(["worktree", "prune"])
+        except RuntimeError as exc:
+            logger.debug("GitService.sweep_orphan_worktrees: prune failed: %s", exc)
+
+        return removed
+
+
+# ID: ea3110a9-3a63-402f-af22-61f1860eff2b
+class ScopedGitService(GitService):
+    """GitService bound to a temporary git worktree (ADR-071 D2.2 Phase 1).
+
+    Inherits every GitService operation; because `self.repo_path` points at
+    the worktree, all commands execute against the sandbox rather than the
+    main tree. The caller is responsible for `cleanup()` — either directly
+    or via context-manager use — once execution finishes.
+    """
+
+    def __init__(self, worktree_path: Path, parent: GitService):
+        super().__init__(worktree_path)
+        self._parent = parent
+        self._cleaned_up = False
+
+    # ID: 375faa32-d545-47ee-9fdb-3894b425de5a
+    def cleanup(self) -> None:
+        """
+        Remove the worktree. Idempotent. Uses `git worktree remove --force`
+        which discards any uncommitted changes in the sandbox — intentional,
+        because the caller is expected to copy out wanted changes before
+        cleanup.
+        """
+        if self._cleaned_up:
+            return
+        try:
+            self._parent._run_command(
+                ["worktree", "remove", "--force", str(self.repo_path)]
+            )
+        except RuntimeError as exc:
+            logger.warning(
+                "ScopedGitService.cleanup: git worktree remove failed (%s); "
+                "falling back to rmtree on %s",
+                exc,
+                self.repo_path,
+            )
+            if self.repo_path.exists():
+                shutil.rmtree(self.repo_path, ignore_errors=True)
+        finally:
+            self._cleaned_up = True
+            logger.info("ScopedGitService: cleaned up worktree %s", self.repo_path)
+
+    def __enter__(self) -> ScopedGitService:
+        return self
+
+    def __exit__(self, *exc_info: object) -> None:
+        self.cleanup()
