@@ -110,13 +110,14 @@ class CommitReachabilityAuditor(Worker):
                     sha,
                     proposal_id,
                 )
-                await self.post_finding(
+                await self.post_observation(
                     subject=subject,
                     payload={
                         "proposal_id": proposal_id,
                         "orphan_sha": sha,
                         "detected_at": datetime.now(UTC).isoformat(),
                     },
+                    status="indeterminate",
                 )
 
         await self.post_report(

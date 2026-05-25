@@ -152,15 +152,24 @@ async def apply_yield_effects(
     yields a proposal rather than executing it (typically because the
     working tree is dirty under ADR-021 D5).
 
-    Idempotent by subject: if an open
-    autonomy.yielded.scope_collision::<proposal_id> finding already exists,
-    skip the post. The yield will be re-attempted on the next consumer
-    tick, so re-posting on every tick produces only duplicate noise (the
-    first finding is sufficient for downstream observation, and is
-    resolved/abandoned when the proposal ultimately completes or fails).
+    Posted terminal-at-creation via post_observation(status='abandoned')
+    per the observability-TTL fix (2026-05-25): no in-code resolver
+    consumes these findings, so prior posts as status='open' accumulated
+    forever and produced perpetual stale-alerts from
+    BlackboardShopManager. The prior docstring's claim of "resolved when
+    proposal completes/fails" was aspirational — only 57 rows have ever
+    been resolved historically, all by manual SQL on 2026-05-12 (single
+    governor-triggered purge). If a real proposal-completion resolver is
+    implemented later, the contract here can be downgraded from
+    terminal-at-creation back to open + lifecycle-linked.
 
-    Fail-soft: lookup or post errors are logged. On lookup failure we fall
-    back to posting — better a duplicate than a silenced yield. The
+    Idempotent by subject is no longer load-bearing now that emissions
+    are terminal — a terminal entry never blocks fresh detection — but
+    the dedup lookup is retained as a cheap guard against double-post
+    races within a single consumer tick.
+
+    Fail-soft: lookup or post errors are logged. On lookup failure we
+    fall back to posting — better a duplicate than a silenced yield. The
     worker's run-loop accounting (yielded += 1) is not disturbed either
     way.
     """
@@ -189,7 +198,7 @@ async def apply_yield_effects(
         )
 
     try:
-        await worker.post_finding(
+        await worker.post_observation(
             subject=subject,
             payload={
                 "proposal_id": proposal_id,
@@ -197,6 +206,7 @@ async def apply_yield_effects(
                 "yield_reason": yield_reason,
                 "colliding_paths": colliding,
             },
+            status="abandoned",
         )
     except Exception as post_err:
         logger.warning(

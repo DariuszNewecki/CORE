@@ -70,9 +70,10 @@ class DbSyncWorker(Worker):
             result = await executor.execute("sync.db", write=True)
         except Exception as exc:
             logger.error("DbSyncWorker: sync.db raised: %s", exc, exc_info=True)
-            await self.post_finding(
+            await self.post_observation(
                 subject="sync.db.failed",
                 payload={"error": str(exc)},
+                status="abandoned",
             )
             await self.post_heartbeat()
             return
@@ -86,9 +87,10 @@ class DbSyncWorker(Worker):
         else:
             error = result.data.get("error") if isinstance(result.data, dict) else None
             logger.warning("DbSyncWorker: sync.db reported ok=False: %s", error)
-            await self.post_finding(
+            await self.post_observation(
                 subject="sync.db.failed",
                 payload={"error": error},
+                status="abandoned",
             )
 
         await self.post_heartbeat()

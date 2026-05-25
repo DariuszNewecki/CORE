@@ -38,6 +38,23 @@ logger = getLogger(__name__)
 # UntranslatableCharacterError on insert. Sanitize all payload strings.
 _NON_ASCII_RE = re.compile(r"[^\x09\x0A\x0D\x20-\x7E]")
 
+# Terminal statuses per .intent/META/enums.json (blackboard_entry_status).
+# A row in any of these states cannot be claimed or transitioned by a
+# worker without explicit revival. post_observation() enforces that its
+# `status` argument is in this set so observability findings are
+# constitutionally terminal at creation — no SLA accumulation, no
+# stale-alert spam from BlackboardShopManager.
+_TERMINAL_STATUSES: frozenset[str] = frozenset(
+    {
+        "resolved",
+        "abandoned",
+        "suppressed",
+        "dry_run_complete",
+        "indeterminate",
+        "deferred_to_proposal",
+    }
+)
+
 
 # ID: 5bd51595-1946-496c-9fc6-00c1a96acbc3
 class WorkerConfigurationError(RuntimeError):
@@ -273,6 +290,53 @@ class Worker(ABC):
             subject="worker.heartbeat",
             payload={"worker": self._worker_name, "ts": datetime.now(UTC).isoformat()},
             status="resolved",
+        )
+
+    # ID: 90d3435b-06b4-407e-8aee-7380942946c9
+    async def post_observation(
+        self, subject: str, payload: dict[str, Any], *, status: str
+    ) -> uuid.UUID:
+        """Post an observability finding that is terminal at creation.
+
+        Use this for records that have no remediation pathway — events the
+        system observed but no worker will claim and resolve (yields,
+        detection-only audits, infrastructure error records). The caller
+        MUST specify which terminal status applies, since the semantic
+        choice is meaningful per .intent/META/enums.json:
+
+        - abandoned: "workers gave up but the underlying issue persists;
+          sensor MAY re-emit on a fresh detection." Right for transient
+          failures (sync.db.failed, worker.silent) and for per-event
+          records where the same root condition recurs (yield receipts).
+        - indeterminate: "no worker may claim or transition without
+          explicit revival." Right for detection-only audits that need
+          governor review (orphan SHA detection).
+        - dry_run_complete: dedicated terminal for dry-run records.
+        - suppressed: governor signal that the subject must not be
+          surfaced again.
+        - resolved: completion records that look like findings rather
+          than reports (rare; prefer post_report).
+        - deferred_to_proposal: when the finding has been folded into a
+          proposal whose lifecycle now owns the resolution.
+
+        Posting with status='open' is forbidden here — that's what
+        post_finding is for. Using post_finding for an observability
+        subject causes BlackboardShopManager to accumulate stale-alerts
+        forever (the alert sweep only resolves when target reaches
+        terminal). ADR-069 / #observability-TTL recon, 2026-05-25.
+        """
+        if status not in _TERMINAL_STATUSES:
+            raise ValueError(
+                f"post_observation requires a terminal status (got '{status}'). "
+                f"Permitted: {sorted(_TERMINAL_STATUSES)}. "
+                f"Use post_finding for status='open' (actionable findings) "
+                f"or post_report for status='resolved' completion records."
+            )
+        return await self._post_entry(
+            entry_type="finding",
+            subject=subject,
+            payload=payload,
+            status=status,
         )
 
     # -------------------------------------------------------------------------

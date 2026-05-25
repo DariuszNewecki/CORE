@@ -174,7 +174,7 @@ class WorkerShopManager(Worker):
                     )
                     continue
 
-                await self.post_finding(
+                await self.post_observation(
                     subject=subject,
                     payload={
                         "worker_name": worker_name,
@@ -182,6 +182,7 @@ class WorkerShopManager(Worker):
                         "seconds_silent": seconds_silent,
                         "threshold": threshold,
                     },
+                    status="abandoned",
                 )
                 flagged += 1
                 logger.warning(

@@ -420,7 +420,7 @@ class ViolationRemediator(
             return False
 
         if not self._write:
-            await self.post_finding(
+            await self.post_observation(
                 subject=f"{_DRY_RUN_SUBJECT}::{file_path}",
                 payload={
                     "file_path": file_path,
@@ -437,6 +437,7 @@ class ViolationRemediator(
                         "then re-run with write=True."
                     ),
                 },
+                status="dry_run_complete",
             )
             # Source findings are marked 'abandoned', not 'dry_run_complete':
             # the dry-run candidate report (posted above) carries all the fix
