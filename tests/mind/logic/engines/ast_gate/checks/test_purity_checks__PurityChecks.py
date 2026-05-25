@@ -129,3 +129,34 @@ class TestPurityChecks:
         violations = PurityChecks.check_no_direct_writes(tree3)
         assert len(violations) == 1
         assert "open(..., 'w')" in violations[0]
+
+    def test_check_no_direct_writes_catches_bare_unlink_and_rmdir(self):
+        """Closes the deletion gap (ADR-071 D2.2 / #451).
+
+        Method-leaf matching for unlink/rmdir catches both the Call-receiver
+        form (Path('x').unlink()) AND the variable-receiver form
+        (target.unlink(), pathobj.unlink()). The real production violations
+        that motivated this rule were all variable-receiver — relying on
+        full_attr_name alone would have missed them.
+        """
+        import ast
+
+        code = (
+            "from pathlib import Path\n"
+            "def deletes():\n"
+            "    target = Path('foo.py')\n"
+            "    target.unlink()                       # variable receiver\n"
+            "    Path('bar/').rmdir()                  # Call receiver\n"
+            "    cache_file.unlink()                   # variable receiver\n"
+            "    obj.nested.path.unlink()              # multi-segment receiver\n"
+        )
+        violations = PurityChecks.check_no_direct_writes(ast.parse(code))
+        assert len(violations) == 4
+        joined = "\n".join(violations)
+        assert "unlink" in joined
+        assert "rmdir" in joined
+
+        # Negative: bare method names not in the baseline (e.g. .close())
+        # must NOT trigger.
+        clean = "def reads():\n    f = open('x', 'r')\n    f.close()\n"
+        assert PurityChecks.check_no_direct_writes(ast.parse(clean)) == []

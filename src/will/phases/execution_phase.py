@@ -155,7 +155,7 @@ class ExecutionPhase:
             # Delete the original monolith file
             if split_result.original_path.exists():
                 rel_original = str(split_result.original_path.relative_to(repo_root))
-                split_result.original_path.unlink()
+                file_handler.remove_file(rel_original)
                 files_deleted.append(rel_original)
                 logger.info("Deleted original: %s", rel_original)
 

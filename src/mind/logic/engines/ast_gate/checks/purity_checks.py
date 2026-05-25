@@ -233,8 +233,19 @@ class PurityChecks:
         """Enforces the 'Governed Mutation Surface' by blocking raw filesystem writes.
 
         Baseline blocks Path.write_text(), Path.write_bytes(), and open() in
-        write/append modes. The optional `forbidden_additional` parameter lets
-        mappings extend the list with fully-qualified names (e.g. 'os.replace',
+        write/append modes (full_attr_name match, so caught only when the
+        receiver is a Call — e.g. Path('x').write_text() — not when it is a
+        variable). Plus a method-leaf match for `unlink` and `rmdir` that
+        catches both the Call-receiver form AND the variable-receiver form
+        (target.unlink(), split_result.original_path.unlink()), since pathlib
+        deletion method names are unambiguous enough that leaf matching does
+        not produce realistic false positives. This closes the deletion gap
+        that motivated ADR-071 D2.2 / #451: an atomic action calling
+        target.unlink() would succeed in the worktree sandbox but silently
+        fail to propagate to the main tree.
+
+        The optional `forbidden_additional` parameter lets mappings extend
+        the list with fully-qualified names (e.g. 'os.replace',
         'shutil.copyfile') via .intent/ without touching src/. Matched via
         ASTHelpers.full_attr_name, so only dotted forms like 'os.replace' are
         detected — bare-import forms (e.g. `from os import replace`) still
@@ -242,17 +253,21 @@ class PurityChecks:
         """
         violations = []
         additional_set = {n.strip() for n in (forbidden_additional or []) if n.strip()}
+        leaf_deletion_methods = ("unlink", "rmdir")
         for n in ast.walk(tree):
             if isinstance(n, ast.Call):
                 name = ASTHelpers.full_attr_name(n.func)
-                # Matches Path.write_text(), Path.write_bytes(), and open() in write/append modes
-                baseline_match = name in ("write_text", "write_bytes") or (
-                    name == "open" and _is_write_mode(n)
+                attr_leaf = n.func.attr if isinstance(n.func, ast.Attribute) else None
+                baseline_match = (
+                    name in ("write_text", "write_bytes")
+                    or attr_leaf in leaf_deletion_methods
+                    or (name == "open" and _is_write_mode(n))
                 )
                 additional_match = name is not None and name in additional_set
                 if baseline_match or additional_match:
+                    display = name or attr_leaf or "<unknown>"
                     violations.append(
-                        f"Direct write detected: '{name}' (line {ASTHelpers.lineno(n)}). Use FileHandler."
+                        f"Direct write detected: '{display}' (line {ASTHelpers.lineno(n)}). Use FileHandler."
                     )
         return violations
 

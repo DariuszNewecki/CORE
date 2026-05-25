@@ -793,7 +793,7 @@ async def action_fix_modularity(
         # all symbols so callers resolve without import-path changes.
         # Mirrors _execute_deterministic_split in the workflow path.
         if target.exists():
-            target.unlink()
+            core_context.file_handler.remove_file(rel_path)
             logger.info("fix.modularity: deleted original monolith %s", rel_path)
 
         # Issue #212 / Failure 2: invalidate stale .pyc so the daemon does

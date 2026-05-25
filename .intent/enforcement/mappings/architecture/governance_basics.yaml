@@ -56,6 +56,16 @@
           - "src/body/services/crate_processing_service.py" # Crate generation infrastructure
           - "src/mind/governance/runtime_validator.py" # Validation infrastructure
           - "src/shared/infrastructure/validation/ruff_linter.py" # Linting infrastructure
+          # Subprocess sanctuary — also owns ephemeral worktree directory
+          # cleanup (/tmp/core-action-sandbox-*) per ADR-071 D2.2.
+          # shutil.rmtree fallback covers crashed-git worktrees the orphan
+          # sweep can't reach (admin entry pruned, directory remains).
+          - "src/shared/infrastructure/git_service.py" # Git + ephemeral worktree sanctuary
+          # Runtime cache for ContextPackets — operates beneath the
+          # FileHandler abstraction on var/cache/context/ ephemera; not a
+          # constitutional artifact surface. Same shape as runtime_validator
+          # and ruff_linter above.
+          - "src/shared/infrastructure/context/cache.py" # Runtime cache infrastructure
           # --- AUTONOMOUS CODE: Now enforced (no exclusions) ---
           # Self-healing modules MUST route writes through FileHandler
           # Violations will be detected and must be fixed in P3
