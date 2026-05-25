@@ -1,0 +1,38 @@
+# .intent/enforcement/mappings/governance/quarantine.yaml
+#
+# Enforcement mapping for governance.quarantine.* rules.
+# Declared under ADR-072 (Quarantine-Drainer Invariant).
+#
+# The check enumerates distinct subject prefixes currently held in
+# awaiting_reaudit against the prefix list registered in
+# .intent/enforcement/quarantine/drainer_registry.yaml. A prefix
+# present in the DB but absent from the registry is an unmapped
+# quarantine namespace and fails the audit.
+#
+# Scope note: the check is structurally repo-wide (it queries
+# blackboard_entries), but applies_to references the registry file
+# so a registry edit re-triggers the check at audit time.
+
+mappings:
+  # RULE: governance.quarantine.namespace_has_drainer
+  # Verifies every subject namespace currently holding rows in
+  # awaiting_reaudit has a corresponding entry in drainer_registry.yaml.
+  # ADR-072 §"Mechanism" defines the behaviour. An entry's existence
+  # is what closes the loop; the drainer worker class and method are
+  # documentation for human readers — the engine validates presence,
+  # not behaviour.
+  governance.quarantine.namespace_has_drainer:
+    engine: artifact_gate
+    params:
+      check_type: namespace_has_drainer
+    scope:
+      applies_to:
+        - ".intent/enforcement/quarantine/drainer_registry.yaml"
+    severity: ERROR
+    message: >
+      One or more subject namespaces have rows in awaiting_reaudit but
+      no drainer is registered in
+      .intent/enforcement/quarantine/drainer_registry.yaml. Per ADR-072,
+      every quarantine-capable namespace must be registered with the
+      worker class that drains it. Add a drainer entry to the registry,
+      or determine that emission into the namespace should be removed.

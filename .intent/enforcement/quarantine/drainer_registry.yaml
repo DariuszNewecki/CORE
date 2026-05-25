@@ -1,0 +1,65 @@
+# .intent/enforcement/quarantine/drainer_registry.yaml
+#
+# Quarantine Drainer Registry
+# Authority: policy
+# Phase: audit
+# Status: active
+#
+# PURPOSE:
+#   Maps subject namespaces capable of placing findings into
+#   awaiting_reaudit (ADR-045) to the worker class that drains them.
+#   Consumed by: mind/logic/engines/artifact_gate.py
+#                (governance.quarantine.namespace_has_drainer check, ADR-072 D4).
+#
+# RULE: Every namespace that any code path can place into
+#   awaiting_reaudit MUST be registered here. Silence is not a
+#   valid signal — ADR-072.
+#
+# FIELDS:
+#   prefix          — subject prefix the drainer is responsible for. The
+#                     SQL match is `subject = prefix OR LIKE prefix||'.%'
+#                     OR LIKE prefix||'::%'`, so trailing '::' or '.' is
+#                     not required but is conventional.
+#   drainer_worker  — Python class name of the worker that drains this
+#                     prefix.
+#   drain_method    — method on BlackboardService the drainer invokes.
+#                     Currently always adjudicate_awaiting_reaudit_findings.
+#   cycle_source    — Worker.run-loop entry point that calls the drain.
+#                     Used by D4 to locate the drainer for diagnostics.
+#   description     — one-paragraph explanation of the drainer's
+#                     release-vs-resolve semantics.
+
+namespaces:
+  - prefix: "audit.violation::"
+    drainer_worker: "AuditViolationSensor"
+    drain_method: "adjudicate_awaiting_reaudit_findings"
+    cycle_source: "AuditViolationSensor.run"
+    description: >
+      Drains audit violations against the current file state per ADR-045.
+      Released if the rule still fires on the file; resolved otherwise.
+      current_subjects is built from the cycle's fresh-violation scan,
+      so no extra evaluation pass is required.
+
+  - prefix: "test.missing::"
+    drainer_worker: "TestRunnerSensor"
+    drain_method: "adjudicate_awaiting_reaudit_findings"
+    cycle_source: "TestRunnerSensor.run"
+    description: >
+      Drains missing-test findings by re-scanning the source tree per
+      .intent/enforcement/config/test_coverage.yaml via
+      shared.infrastructure.intent.test_coverage_paths.uncovered_source_files.
+      Released if the source file is still uncovered; resolved otherwise
+      (including the deleted-source case — absent files do not appear
+      in the walk, so their subjects are absent from current_subjects).
+
+  - prefix: "test.failure::"
+    drainer_worker: "TestRunnerSensor"
+    drain_method: "adjudicate_awaiting_reaudit_findings"
+    cycle_source: "TestRunnerSensor.run"
+    description: >
+      Drains test-failure findings by re-running pytest on each unique
+      test_file referenced by quarantined rows. Released if the same
+      test_name still appears in the FAILED output; resolved otherwise.
+      Pytest infrastructure failure for a given test_file keeps that
+      file's subjects in current_subjects so they release-not-resolve
+      (no evidence-free drain).

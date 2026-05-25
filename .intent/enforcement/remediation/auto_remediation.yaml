@@ -638,6 +638,22 @@ mappings:
       of the rule registry.
     status: DELEGATE
 
+  governance.quarantine.namespace_has_drainer:
+    action: fix.modularity
+    confidence: 0.40
+    risk: high
+    description: >
+      Meta-governance: a subject namespace has rows in awaiting_reaudit
+      but no drainer is registered in
+      .intent/enforcement/quarantine/drainer_registry.yaml — the
+      invariant established by ADR-072 is violated. Resolution: either
+      implement a drainer worker for the namespace (mirroring
+      AuditViolationSensor's release-pass and TestRunnerSensor's D5
+      wiring) and register it, or determine that emission into the
+      namespace should be removed. Non-automatable; requires governor
+      architectural decision.
+    status: DELEGATE
+
   coherence.violation_executor.blast_bound:
     action: fix.modularity
     confidence: 0.40

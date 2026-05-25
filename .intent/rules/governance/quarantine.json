@@ -1,0 +1,22 @@
+{
+    "$schema": "META/rule_document.schema.json",
+    "kind": "rule_document",
+    "metadata": {
+        "id": "rules.governance.quarantine",
+        "title": "Quarantine Drainer Completeness",
+        "version": "1.0.0",
+        "authority": "policy",
+        "phase": "audit",
+        "status": "active"
+    },
+    "rules": [
+        {
+            "id": "governance.quarantine.namespace_has_drainer",
+            "statement": "Every subject namespace with rows in awaiting_reaudit MUST have a registered drainer in .intent/enforcement/quarantine/drainer_registry.yaml. Absence is not a valid signal — ADR-045's drain-to-zero promise holds only for namespaces with a registered drainer.",
+            "enforcement": "blocking",
+            "authority": "policy",
+            "phase": "audit",
+            "rationale": "ADR-072. Without a registered drainer, findings entering awaiting_reaudit cannot exit. 19 test.missing/test.failure rows accumulated over 9 days (2026-05-16 → 2026-05-25) before the gap was diagnosed; only AuditViolationSensor was wired. The audit pipeline cannot detect this class of leak — the rule is mapped (so ADR-066 does not fire), ADR-038's circuit-breaker does not fire (no proposals are created), and BlackboardShopManager's stale-alert is a symptom-side signal, not a cause-side one. This rule is the cause-side guard."
+        }
+    ]
+}
