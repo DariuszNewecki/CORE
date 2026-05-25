@@ -133,6 +133,13 @@
                             "params": {
                                 "type": "object",
                                 "description": "Static parameters passed to this step. Caller params override these."
+                            },
+                            "consumes": {
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                },
+                                "description": "Allowlist of caller param keys forwarded to this step. Absent means current executor default (see issue #445)."
                             }
                         }
                     }

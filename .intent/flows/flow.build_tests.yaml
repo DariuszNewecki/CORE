@@ -33,17 +33,21 @@ flow:
     - ref_id: build.tests
       kind: action
       required: true
+      consumes: [source_file, write]
 
     # Auto-heal runs on generated output — optional because generated
     # code may already be compliant
     - ref_id: fix.imports
       kind: action
       required: false
+      consumes: [write]
 
     - ref_id: fix.headers
       kind: action
       required: false
+      consumes: [write]
 
     - ref_id: fix.format
       kind: action
       required: false
+      consumes: [write]
