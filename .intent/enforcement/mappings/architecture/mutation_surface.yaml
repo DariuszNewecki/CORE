@@ -12,7 +12,16 @@ mappings:
         - "src/**/*.py"
         - "features/**/*.py"
       excludes:
-        - "shared/infrastructure/storage/file_handler.py" # Load Phase infrastructure exemption
+        # Bug fix 2026-05-25: existing entry was "shared/..." without the
+        # leading "src/", so it never matched. The audit's leaf-match
+        # extension for .unlink/.rmdir (ADR-071 D2.2 / #451) exposed it
+        # by surfacing remove_file's own abs_path.unlink as a violation.
+        - "src/shared/infrastructure/storage/file_handler.py" # IS the governed surface
+        # Excludes mirrored from governance.logic_mutation.governed in
+        # governance_basics.yaml — both rules use no_direct_writes and
+        # must share the same sanctuary set or one will fire spuriously.
+        - "src/shared/infrastructure/git_service.py" # Git + ephemeral worktree sanctuary
+        - "src/shared/infrastructure/context/cache.py" # Runtime cache infrastructure
         - "var/**"
         - "**/__pycache__/**"
         - "tests/**" # Tests may use direct writes for fixtures
