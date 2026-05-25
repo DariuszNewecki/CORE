@@ -410,7 +410,7 @@ class BlackboardService:
                                     '{resolution}',
                                     jsonb_build_object(
                                         'reason', 'audit re-evaluation: condition no longer present',
-                                        'resolved_by', :resolved_by,
+                                        'resolved_by', cast(:resolved_by as text),
                                         'resolution_authority', 'system.audit',
                                         'resolved_at', to_char(now() at time zone 'UTC',
                                                                'YYYY-MM-DD"T"HH24:MI:SS"Z"')
