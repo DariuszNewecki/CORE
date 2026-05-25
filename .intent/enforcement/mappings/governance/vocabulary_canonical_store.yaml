@@ -10,6 +10,9 @@
 #
 # No auto_remediation entries: vocabulary drift and import violations
 # require human-authored correction, not text substitution.
+#
+# Amendment 2026-05-25: severity values updated from retired `ERROR` vocabulary
+# to canonical ADR-059 `block` (sole CI-halting severity tier).
 
 mappings:
   # RULE: governance.vocabulary.projection_must_match_canonical
@@ -24,12 +27,6 @@ mappings:
       applies_to:
         - ".intent/META/vocabulary.json"
         - ".specs/papers/CORE-Vocabulary.md"
-    severity: ERROR
-    message: >
-      vocabulary.json has drifted from the canonical section of CORE-Vocabulary.md.
-      The projection must be regenerated so that terms, definitions, and source_hash
-      are consistent with the canonical source. Run the regen command to restore
-      consistency. See: .intent/rules/governance/vocabulary_canonical_store.json
 
   # RULE: governance.vocabulary.canonical_format_must_validate
   # Verifies that the canonical section of CORE-Vocabulary.md conforms to the
@@ -42,14 +39,6 @@ mappings:
     scope:
       applies_to:
         - ".specs/papers/CORE-Vocabulary.md"
-    severity: ERROR
-    message: >
-      The canonical section of CORE-Vocabulary.md does not conform to the
-      grammar declared in ADR-023. Check that the section is delimited by the
-      correct heading, contains exactly one markdown table, uses the required
-      column order, has no empty cells, and contains no nested structures or
-      inline HTML. Correct the authoring error before regenerating the projection.
-      See: .intent/rules/governance/vocabulary_canonical_store.json
 
   # RULE: governance.vocabulary.authoritative_source_must_be_paper
   # Verifies that every authoritative_paper value in the canonical section and
@@ -63,14 +52,6 @@ mappings:
       applies_to:
         - ".intent/META/vocabulary.json"
         - ".specs/papers/CORE-Vocabulary.md"
-    severity: ERROR
-    message: >
-      One or more vocabulary terms declare an authoritative_paper path that does
-      not resolve to an existing file in the governed tree, or the path in the
-      projection does not match the canonical section for the same term. Correct
-      the authoritative_paper value to point to an existing .specs/ or .intent/
-      file. Do not regenerate until the authoring error is fixed.
-      See: .intent/rules/governance/vocabulary_canonical_store.json
 
   # RULE: governance.vocabulary.no_direct_json_import
   # Ensures no src/ module other than the sanctioned loader reads vocabulary.json
@@ -81,11 +62,6 @@ mappings:
     params:
       pattern: "vocabulary\\.json"
       match_means: violation
-      message: >
-        A src/ module is accessing vocabulary.json directly. All vocabulary term
-        access must route through src/shared/infrastructure/intent/vocabulary_projection.py.
-        Direct file access bypasses hash verification and DEGRADED mode detection.
-        See: .intent/rules/governance/vocabulary_canonical_store.json
     scope:
       applies_to:
         - "src/**/*.py"

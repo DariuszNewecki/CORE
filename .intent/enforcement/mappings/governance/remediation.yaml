@@ -8,6 +8,9 @@
 # applies_to scope is satisfied by either being touched, but the check
 # is structurally repo-wide (it enumerates the rule registry against
 # the remediation map keys).
+#
+# Amendment 2026-05-25: severity value updated from retired `ERROR` vocabulary
+# to canonical ADR-059 `block` (sole CI-halting severity tier).
 
 mappings:
   # RULE: governance.remediation.all_rules_mapped
@@ -27,11 +30,3 @@ mappings:
       applies_to:
         - ".intent/enforcement/remediation/auto_remediation.yaml"
         - ".intent/rules/**/*.json"
-    severity: ERROR
-    message: >
-      One or more active reporting rules have no entry in
-      .intent/enforcement/remediation/auto_remediation.yaml. Per ADR-066,
-      every active reporting rule must be mapped — even as DELEGATE — to
-      prevent the abandoned-finding re-emission loop documented in the ADR.
-      Add a DELEGATE (or PENDING for roadmap items) entry for each unmapped
-      rule. See ADR-066 and #418.

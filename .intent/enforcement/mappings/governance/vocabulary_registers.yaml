@@ -7,6 +7,12 @@
 #
 # No auto_remediation entries: register casing violations require
 # intentional human correction of governance artifact authoring.
+#
+# Amendment 2026-05-25: scope.excludes for both rules cover
+# .intent/enforcement/mappings/** as a structural guard — mapping files
+# have no register fields to validate (their schema in
+# enforcement_mapping.schema.json defines only engine, params, scope,
+# governed_exclusions, requires_findings_from).
 
 mappings:
   # RULE: governance.vocabulary_registers.operational_fields_must_be_lowercase
@@ -34,19 +40,14 @@ mappings:
         - ".intent/**/*.json"
       excludes:
         - ".intent/META/**"
-    severity: ERROR
-    message: >
-      An operational-register field contains a value in the wrong casing register.
-      The fields authority, phase, strength, enforcement, status, class, and ordering
-      must use lowercase_snake_case. Title Case and UPPER_CASE values import the
-      wrong register and break case-sensitive loaders. Correct the authoring error
-      in the affected .intent/ artifact.
-      See: .intent/rules/governance/vocabulary_registers.json
+        - ".intent/enforcement/mappings/**"
 
   # RULE: governance.vocabulary_registers.diagnostic_fields_must_be_uppercase
-  # Verifies that values in diagnostic-register fields of .intent/ artifacts
-  # use UPPER_SNAKE_CASE. Diagnostic-register fields: severity, verdict-state fields.
-  # A lowercase value in any of these fields is a violation.
+  # Verifies that values in diagnostic-register fields of .intent/ vocabulary
+  # artifacts use UPPER_SNAKE_CASE. Diagnostic-register fields: severity,
+  # verdict-state fields.
+  # Scope: vocabulary declarations only. Enforcement mapping files are excluded
+  # as a structural guard — the mapping schema has no severity field to validate.
   governance.vocabulary_registers.diagnostic_fields_must_be_uppercase:
     engine: python_runtime
     params:
@@ -61,11 +62,4 @@ mappings:
         - ".intent/**/*.json"
       excludes:
         - ".intent/META/**"
-    severity: ERROR
-    message: >
-      A diagnostic-register field contains a value in the wrong casing register.
-      The fields severity and verdict-state fields must use UPPER_SNAKE_CASE.
-      A lowercase severity value cannot be matched against AuditSeverity enum
-      members without a transformation that itself becomes a drift surface.
-      Correct the authoring error in the affected .intent/ artifact.
-      See: .intent/rules/governance/vocabulary_registers.json
+        - ".intent/enforcement/mappings/**"

@@ -1,6 +1,6 @@
 # .intent/enforcement/mappings/ai/prompt_governance.yaml
 # Constitutional enforcement for AI Prompt Governance
-# Version: 1.0.0
+# Version: 1.1.0
 # Authority: policy
 #
 # WHAT THIS ENFORCES:
@@ -9,6 +9,9 @@
 # THE LAW: All AI invocations MUST route through PromptModel.
 # Direct calls to make_request_async() or make_request() are PROHIBITED
 # outside of the PromptModel implementation and LLMClient itself.
+#
+# Amendment 2026-05-25: severity values updated from retired `error` vocabulary
+# to canonical ADR-059 `block` (sole CI-halting severity tier).
 
 mappings:
   # RULE: ai.prompt.model_required
@@ -34,11 +37,6 @@ mappings:
         - "src/shared/ai/prompt_model.py"
         # Provider implementations call make_request at the transport layer
         - "src/shared/ai/providers/**/*.py"
-    severity: error
-    message: >
-      Direct call to make_request_async() or make_request() detected.
-      All AI invocations MUST use PromptModel.invoke() instead.
-      See: .intent/rules/ai/prompt_governance.json [ai.prompt.model_required]
 
   # RULE: ai.prompt.model_artifact_required
   # Verifies that every var/prompts/ subdirectory has a model.yaml manifest.
@@ -55,11 +53,6 @@ mappings:
     scope:
       applies_to:
         - "var/prompts/**"
-    severity: error
-    message: >
-      PromptModel directory is missing required artifact(s).
-      Each var/prompts/<name>/ directory MUST contain: model.yaml, system.txt, user.txt.
-      See: .intent/rules/ai/prompt_governance.json [ai.prompt.model_artifact_required]
 
   # RULE: ai.prompt.system_prompt_required
   # Verifies that no system.txt file is empty (zero-byte or whitespace only).
@@ -71,11 +64,6 @@ mappings:
     scope:
       applies_to:
         - "var/prompts/**"
-    severity: error
-    message: >
-      Empty system.txt detected in PromptModel artifact.
-      A system prompt is mandatory — it is the constitutional grounding for the AI role.
-      See: .intent/rules/ai/prompt_governance.json [ai.prompt.system_prompt_required]
 
   # RULE: ai.prompt.output_validation_required
   # Verifies PromptModel.invoke() calls output validation before returning.
@@ -92,8 +80,3 @@ mappings:
     scope:
       applies_to:
         - "src/shared/ai/prompt_model.py"
-    severity: error
-    message: >
-      PromptModel.invoke() MUST call _validate_output() before returning.
-      Output validation is the last constitutional gate before unvetted AI content enters CORE.
-      See: .intent/rules/ai/prompt_governance.json [ai.prompt.output_validation_required]

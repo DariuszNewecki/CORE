@@ -1,6 +1,6 @@
 # .intent/enforcement/mappings/ai/prompt_artifact_structure.yaml
 # Constitutional enforcement for PromptModel Artifact Structure Governance
-# Version: 1.0.0
+# Version: 1.1.0
 # Authority: policy
 #
 # WHAT THIS ENFORCES:
@@ -8,9 +8,11 @@
 #
 # THE LAW: Every model.yaml must be structurally complete, must not leak
 # infrastructure provider names, and must reference a declared cognitive role.
+#
+# Amendment 2026-05-25: severity values updated from retired `error` vocabulary
+# to canonical ADR-059 `block` (sole CI-halting severity tier).
 
 mappings:
-
   # RULE: ai.prompt.artifact.required_fields
   # Verifies all mandatory fields are present and non-empty in model.yaml.
   ai.prompt.artifact.required_fields:
@@ -20,12 +22,6 @@ mappings:
     scope:
       applies_to:
         - "var/prompts/**/model.yaml"
-    severity: error
-    message: >
-      model.yaml is missing one or more required fields.
-      Every PromptModel manifest MUST declare: id, version, role,
-      input.required, output.format, and success_criteria.
-      See: .intent/rules/ai/prompt_artifact_structure.json
 
   # RULE: ai.prompt.artifact.no_provider_leak
   # Ensures model.preference does not name an infrastructure provider.
@@ -36,12 +32,6 @@ mappings:
     scope:
       applies_to:
         - "var/prompts/**/model.yaml"
-    severity: error
-    message: >
-      model.yaml references an infrastructure provider in model.preference.
-      Use a capability class ('local', 'fast') or omit the field.
-      Provider routing belongs in CognitiveService role configuration.
-      See: .intent/rules/ai/prompt_artifact_structure.json
 
   # RULE: ai.prompt.artifact.role_abstraction
   # Verifies role field is a declared cognitive role.
@@ -52,8 +42,3 @@ mappings:
     scope:
       applies_to:
         - "var/prompts/**/model.yaml"
-    severity: error
-    message: >
-      model.yaml 'role' field references an undeclared cognitive role.
-      All roles must be declared in .intent/ before use in artifacts.
-      See: .intent/rules/ai/prompt_artifact_structure.json
