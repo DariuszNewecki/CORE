@@ -186,6 +186,11 @@
                             "type": "integer",
                             "minimum": 1,
                             "description": "Number of items to process per run cycle. Workers that process collections in batches read this to control throughput."
+                        },
+                        "files_per_cycle_max": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "description": "Blast-bound cap on files processed per cycle. Workers managing destructive autonomous loops declare this constitutionally; absent declaration refuses worker registration (ADR-069 D3 / ADR-070 D8 no-runtime-fallback). Files beyond the cap are deferred to the next cycle; a coherence finding is posted when the cap is hit so the rate limit is observable on the audit surface."
                         }
                     }
                 }

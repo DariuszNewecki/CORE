@@ -8,24 +8,17 @@ metadata:
   authority: policy
   status: active
   rationale: >
-    Activated per ADR-018 as the structural-self-model producer in the
-    decomposed autonomous path. Walks the repository, registers artifacts
-    in core.repo_artifacts, extracts AST call-graph edges into
-    core.symbol_calls, and cross-references non-Python artifacts in
-    core.artifact_symbol_links. Sets repo_artifacts.chunk_count = 0 on
-    content_hash change — the explicit work-queue signal consumed by
-    RepoEmbedderWorker (ADR-018 D4). Cadence aligned with the prior
-    composite wrapper (vector_sync_worker, deprecated under ADR-018 D1)
-    for operational continuity.
+    Structural-self-model producer per ADR-018 D4: populates
+    core.repo_artifacts, core.symbol_calls, and
+    core.artifact_symbol_links; sets repo_artifacts.chunk_count = 0 on
+    content_hash change as the work-queue signal for RepoEmbedderWorker.
+    Replaces vector_sync_worker (deprecated under ADR-018 D1).
 
-    ADR-070 D8 (2026-05-24): declared as the writer-as-sensor for the
-    `repo_artifacts ↔ filesystem` projection pair in
-    .intent/governance/projections.yaml. The walk pass naturally
-    enumerates the filesystem source set; the reap is one additional
-    DELETE appended to the existing pipeline (orchestrator.run_crawl).
-    Drift findings are posted under `coherence.repo_artifacts.drift`
-    when the reap removes any rows; remediation is inline (no proposal
-    pipeline) per the writer-as-sensor pattern.
+    Under ADR-070 D8 (2026-05-24) also declared writer-as-sensor for
+    the `repo_artifacts ↔ filesystem` projection pair (see
+    .intent/governance/projections.yaml). The walk's reap step posts
+    `coherence.repo_artifacts.drift` findings inline (no proposal
+    pipeline) when rows are removed.
 
 identity:
   uuid: "f1a2b3c4-d5e6-7890-abcd-ef1234567891"
