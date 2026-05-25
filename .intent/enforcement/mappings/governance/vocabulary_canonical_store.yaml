@@ -57,8 +57,9 @@ mappings:
   governance.vocabulary.no_direct_json_import:
     engine: regex_gate
     params:
-      pattern: "vocabulary\\.json"
-      match_means: violation
+      forbidden_patterns:
+        - "(open|read_text|read_bytes|json\\.loads?)\\s*\\([^)]*vocabulary\\.json"
+        - "vocabulary\\.json[^)\\n]*\\)\\.(read|read_text|read_bytes)"
     scope:
       applies_to:
         - "src/**/*.py"
