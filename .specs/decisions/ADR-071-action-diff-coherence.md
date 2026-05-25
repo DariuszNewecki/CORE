@@ -1,7 +1,7 @@
 # ADR-071 — Action Diff Coherence Enforcement
 
 **Date:** 2026-05-25
-**Status:** Accepted (Revised 2026-05-25)
+**Status:** Accepted (Revised 2026-05-25); D2.2 Implemented 2026-05-25 (commits d23ecb57, 7d5c6945, bc166daa)
 **Author:** Darek (Dariusz Newecki)
 **Band:** E — Constitutional Completeness
 **Closes:** Working-tree-race class surfaced by the b11f4dba / f78b5c64 / 81631145 incident
@@ -113,26 +113,62 @@ it is the bridge.
 
 **The daemon may restart immediately under this protocol.**
 
-#### D2.2 — Architectural fix: worktree sandbox (deferred to future band)
+#### D2.2 — Architectural fix: worktree sandbox (Implemented 2026-05-25)
 
-The correct fix is hermetic action execution via `git worktree`:
+The correct fix is hermetic action execution via `git worktree`. The
+action never touches the main working tree; commit content is the
+sandbox diff, copy-propagated back to the main tree under ADR-021's
+existing scope-binding. As-implemented shape:
 
 ```
-git worktree add /tmp/core-action-sandbox <pre_execution_sha>
-# action runs against sandbox path, not main working tree
-# executor captures diff between sandbox output and pre_execution_sha
-# applies diff to main working tree under ADR-021 scope-binding
-git worktree remove /tmp/core-action-sandbox
+ScopedGitService = GitService(repo_path=/tmp/core-action-sandbox-<uuid>/)
+# created via GitService.create_worktree(pre_execution_sha)
+# action runs with a CoreContext whose git_service AND file_handler
+# are repointed at the sandbox
+# on success, ActionExecutor._propagate_sandbox_changes copies
+# changed files back to the main tree (loud failure on concurrent
+# governor edits in the target paths — see below)
+# ScopedGitService.cleanup() removes the worktree
 ```
 
-The action never touches the main working tree. The commit content is
-the sandbox diff — unambiguous, uncontaminatable, deterministic. ADR-021's
-scope-binding applies at the staging step unchanged.
+The implementation realised three deltas from the original outline:
 
-Implementation requires threading a `working_dir` parameter through the
-action API and adding worktree lifecycle to the executor. This is a
-one-time cost; no per-action declarations or corpus maintenance follow.
-A GitHub issue tracks the implementation work.
+1. **Sandboxing keys on `ActionImpact`, not the unrelated `impact_level`
+   risk string.** Gate fires when `pre_execution_sha is not None`, `write
+   is True`, and the action's `@atomic_action` metadata declares impact
+   ∈ {`WRITE_CODE`, `WRITE_METADATA`}. CLI direct invocations leave
+   `pre_execution_sha=None` and pass through — D2.1 still covers them.
+
+2. **Both `git_service` AND `file_handler` are swapped** for the action
+   call, not just `git_service`. Atomic actions write through
+   `core_context.file_handler`, so the sandbox swap requires a
+   FileHandler rooted at the worktree. `dataclasses.replace` builds the
+   scoped CoreContext without mutating the main one.
+
+3. **Loud failure on concurrent overlap.** Before copy-back,
+   `_propagate_sandbox_changes` reads the main tree's `status_porcelain`
+   and raises `RuntimeError("ADR-071 D2.2: ...")` if any sandbox target
+   path is also dirty on main. This is the mechanism by which the
+   consequences-section's "concurrent governor edit on a scope file
+   surfaces as a loud failure rather than silent contamination" actually
+   fires. Governor's edit survives; worker fails and is re-tried.
+
+A new `FileHandler.write_validated_bytes(rel_path, content)` surface
+exists for the propagation step: it bypasses `IntentGuard` re-validation
+because the producing action already validated when writing into the
+sandbox, but retains the path-escape protection of `_resolve_repo_path`.
+This surface is not for general action use.
+
+ADR-021's scope-binding in
+`proposal_execution_pipeline.commit_proposal_changes` is unchanged —
+still calls `commit_paths(scope_files ∪ files_produced)` against the
+main tree. The worktree changes *what content* is in those paths; the
+existing code bounds *which paths* get staged.
+
+The deletion-rule prerequisite (worktree cannot propagate deletions)
+landed in commit `7d5c6945` via extension of
+`governance.logic_mutation.governed` rather than as a new rule — recon
+showed the existing rule already encoded most of the intent. See #451.
 
 #### D2.3 — Predicate framework rejected
 
@@ -172,9 +208,15 @@ GitHub issue #443 is closed.
 D2.1: Daemon starts cleanly after a coding session ends. No predicate
 or coherence infrastructure required. Verified by daemon restart.
 
-D2.2: Verified at implementation time. The b11f4dba race shape
-reproduced in a unit test against the worktree executor confirms
-contamination is impossible.
+D2.2: Verified at implementation time (2026-05-25). The b11f4dba race
+shape is reproduced in
+`tests/body/atomic/test_executor_worktree_isolation.py::test_propagation_refuses_when_main_has_concurrent_edit_on_target` —
+worker action runs against the worktree, governor edits the same file
+on main, propagation refuses with a loud `RuntimeError("ADR-071 D2.2:
+...")`, and the governor's edit survives the refused propagation. The
+full 10-test isolation suite covers gate behaviour, clean propagation,
+non-conflicting concurrent edits, and the wiring from
+`ProposalExecutor` through `ActionExecutor.execute(pre_execution_sha=...)`.
 
 ---
 
