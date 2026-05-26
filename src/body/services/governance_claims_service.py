@@ -68,6 +68,7 @@ class GovernanceClaimsService:
         self._vector_size = vector_size
 
     @property
+    # ID: d579e0ca-aa2c-41f4-98a2-9ebd0acdb640
     def collection_name(self) -> str:
         return GOVERNANCE_CLAIMS_COLLECTION
 
@@ -103,6 +104,7 @@ class GovernanceClaimsService:
             vector_size=self._vector_size,
         )
 
+    # ID: 681683dd-1bb7-4118-8f31-580cc5433e38
     async def upsert_claims(self, items: Sequence[ClaimVector]) -> int:
         """Upsert (point_id, vector, payload) tuples; returns count written.
 
@@ -129,6 +131,7 @@ class GovernanceClaimsService:
         await self._qdrant.upsert_points(self.collection_name, points, wait=True)
         return len(points)
 
+    # ID: 0b95b690-181b-48de-89bd-719648812305
     async def delete_by_source_path(self, source_path: str) -> None:
         """Remove all points belonging to a single source artifact."""
         await self._qdrant.client.delete(
@@ -146,6 +149,7 @@ class GovernanceClaimsService:
             wait=True,
         )
 
+    # ID: 1fd1324e-7b1c-4bf3-914c-c5faf22a2354
     async def current_keys(self) -> set[tuple[str, str]]:
         """Return {(source_path, content_sha)} for every point in the collection.
 
@@ -169,6 +173,7 @@ class GovernanceClaimsService:
                 result.add((source_path, content_sha))
         return result
 
+    # ID: 04a0c52c-6a14-469a-a85b-19b0c978c3d5
     async def delete_by_keys(self, keys: Sequence[tuple[str, str]]) -> int:
         """Delete points by (source_path, content_sha). Returns count."""
         if not keys:
@@ -181,6 +186,7 @@ class GovernanceClaimsService:
         )
         return len(point_ids)
 
+    # ID: 644e1d97-0c04-4788-8523-79707f59db45
     async def search(
         self,
         query_vector: list[float],
