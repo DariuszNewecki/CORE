@@ -30,4 +30,5 @@ class CheckClass(Protocol):
 
     relation: str
 
+    # ID: a8967c42-38a3-4161-bb66-bf03f1fe5a35
     async def run(self) -> list[CoherenceCandidate]: ...
