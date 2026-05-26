@@ -7,7 +7,7 @@ constitutional obligation that has been declared-but-unenforced.
 
 Mechanism: split each paper into top-level §s, classify each via the §2.5
 marker register from D10, emit when a normative section has no rule citation
-and no aspirational/TBD/deferred marker.
+and no aspirational/pending/deferred marker.
 """
 
 from __future__ import annotations
@@ -63,13 +63,13 @@ class Row3CitationCheck:
                         documents=[rel],
                         claim=(
                             f"Paper § '{heading}' contains normative markers but "
-                            "cites no enforcing rule and carries no aspirational/TBD marker."
+                            "cites no enforcing rule and carries no aspirational/pending marker."
                         ),
                         rationale=(
                             "ADR-049 D2 (operationalized by topology row 3) requires "
                             "every normative paper § to either name a `.intent/rules/...` "
                             "artifact that enforces the claim, or explicitly mark "
-                            "itself aspirational/TBD/deferred. Neither was detected in "
+                            "itself aspirational/pending/deferred. Neither was detected in "
                             "this section. Either backfill the rule citation or add "
                             "an aspirational marker so the claim's status is honest."
                         ),
