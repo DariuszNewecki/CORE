@@ -1,42 +1,41 @@
 # src/mind/coherence/checker.py
 
 """
-CoherenceChecker — Mind-layer instrument for the Constitutional Coherence Checker.
+CoherenceChecker — Mind-layer orchestrator for the Constitutional Coherence Checker.
 
-Governing paper: .specs/papers/CORE-ConstitutionalCoherenceChecker.md
-Governing ADR:   .specs/decisions/ADR-067-constitutional-coherence-checker.md
+Governing paper: .specs/papers/CORE-Governance-Topology.md (the directional grid)
+Governing ADR:   .specs/decisions/ADR-073-ccc-scanner-redesign.md
+Preserves:       ADR-067 D1 (storage), D2 (CLI), D4 (scheduling), D5 (dashboard).
+
+Per ADR-073 D3, the scanner dispatches to seven check classes covering the
+topology paper §10.2 enabled checks and the §10.3 retained/scoped R1. The
+legacy R1/R2/R3 emission paths are removed.
 
 Constitutional Compliance:
 - Mind layer cognitive instrument; reads constitutional documents and invokes
-  the LLM as a candidate-finder only.
+  the LLM judge only for SAMECONCERN and R1_SCOPED.
 - LLM has no enforcement power — every output is a candidate for human triage.
 - No direct database access from this module: writes route through
   CoherenceService (body layer).
-- No file mutations — read-only.
-- .intent/ rule files are accessed via IntentRepository (the canonical
-  gateway). .specs/ artifacts (ADRs, northstar) are read directly — there is
-  no governance gateway for .specs/, and .specs/ has no analogue of the
-  rules.architecture.intent_access constraint.
-- aget_client_for_role() is called with model.manifest.role (no hardcoded
-  role strings) per ai.cognitive_role.no_hardcoded_string.
+- Per ADR-073 D4: vector-dependent checks (SAMECONCERN, R1_SCOPED) refuse
+  when the governance_claims collection is not seeded by the governor's
+  `core-admin coherence seed bootstrap` operation. Structural checks operate
+  independently and are unaffected.
 """
 
 from __future__ import annotations
 
-import asyncio
 import hashlib
-import random
-import re
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from shared.ai.response_parser import extract_json_safe
-from shared.infrastructure.intent.intent_repository import get_intent_repository
 from shared.logger import getLogger
 
 
 if TYPE_CHECKING:
     from body.services.coherence_service import CoherenceService
+
+    from .checks.base import CheckClass
 
 
 logger = getLogger(__name__)
@@ -44,39 +43,16 @@ logger = getLogger(__name__)
 __all__ = ["CoherenceChecker"]
 
 
-_R1_DESCRIPTION = (
-    "R1 — ADR-vs-ADR coherence. Look for ADRs that contradict each other, "
-    "implicitly supersede one another without declaring it, or address the "
-    "same governance concern without cross-referencing."
-)
-_R2_DESCRIPTION = (
-    "R2 — Rule-vs-northstar coherence. Look for rule domains with no traceable "
-    "connection to any northstar requirement, or northstar requirements that "
-    "have no corresponding rule enforcement."
-)
-_R3_DESCRIPTION = (
-    "R3 — Rule-vs-ADR coherence. Look for rule domains whose enforcement "
-    "behaviour appears to have drifted from the specification of their "
-    "governing ADR."
-)
-
-_R1_BATCH_SIZE = 2
-_LLM_CALL_TIMEOUT = 480
-_FUZZY_MIN_TOKEN_LEN = 4
-_USER_ID = "coherence_checker"
-
-
 # ID: 73a23100-c107-4205-9313-0318dca1143b
 class CoherenceChecker:
-    """
-    Constitutional Coherence Checker — mind-layer instrument that scans
-    constitutional documents for candidate contradictions, gaps, and drift.
+    """Orchestrator for the seven ADR-073 D3 check classes.
 
-    Produces candidates only. No verdicts, no enforcement actions, no
+    Produces candidates only — no verdicts, no enforcement actions, no
     constitutional amendments. All human triage runs through
     ``core-admin coherence triage``.
     """
 
+    # ID: 5ae048c9-f6c7-4200-a4f1-193cbc82f1b9
     def __init__(
         self,
         cognitive_service: Any,
@@ -86,49 +62,137 @@ class CoherenceChecker:
         self._cognitive_service = cognitive_service
         self._coherence_service = coherence_service
         self._repo_root = Path(repo_root)
-        # Per-run state — set by run(). _rule_paths_cache holds the (possibly
-        # sampled) rule path list so R2 and R3 see the same set even when
-        # sampling is in effect.
-        self._sample_rules: int | None = None
-        self._rule_paths_cache: list[Path] | None = None
 
     # ID: 2e4a95a7-fdac-427a-94eb-ed20ce2930c9
     async def run(self, full: bool = False, sample_rules: int | None = None) -> str:
-        """
-        Execute one CCC pass over R1, R2, and R3. Returns the new run_id.
+        """Execute one CCC pass over the seven D3 check classes. Returns the new run_id.
 
-        With ``full=False``, the run's trigger is inferred from the most
-        recent run's input_manifest: a higher ADR count yields ``adr_added``;
-        any changed northstar SHA-256 yields ``northstar_changed``; otherwise
-        ``manual``. With ``full=True`` the trigger is always ``manual``.
-
-        ``sample_rules`` randomly samples N rule files for R2/R3 (R1 still
-        scans all ADRs). Use for narrow exploratory runs. When None or >=
-        total rule count, all rules are evaluated.
+        ``sample_rules`` is accepted for back-compat with the ADR-067-era CLI but
+        is no longer meaningful — rule-scoped relations (R2, R3) were retired
+        per topology §10.3. Set values are logged and ignored.
         """
-        # Per-run cache reset — see __init__ docstring.
-        self._sample_rules = sample_rules
-        self._rule_paths_cache = None
+        if sample_rules is not None:
+            logger.info(
+                "CCC: sample_rules=%d ignored — R2/R3 retired per ADR-073 D1",
+                sample_rules,
+            )
 
         trigger = await self._detect_trigger(full=full)
         manifest = self._build_input_manifest()
         run_id = await self._coherence_service.create_run(trigger)
 
-        await self._run_r1(run_id, manifest)
-        await self._run_r2(run_id, manifest)
-        await self._run_r3(run_id, manifest)
-
+        check_status = await self._dispatch_checks(run_id)
+        manifest.append(
+            {
+                "domain": "_meta",
+                "path": None,
+                "type": "check_classes_run",
+                "check_status": check_status,
+            }
+        )
         await self._coherence_service.update_manifest(run_id, manifest)
+
+        emitted_total = sum(s.get("emitted", 0) for s in check_status.values())
         logger.info(
-            "Coherence run %s complete (trigger=%s, %d manifest entries)",
+            "CCC run %s complete (trigger=%s, %d candidates from %d check classes)",
             run_id,
             trigger,
-            len(manifest),
+            emitted_total,
+            len(check_status),
         )
         return run_id
 
     # ------------------------------------------------------------------ #
-    # Trigger detection
+    # Check-class dispatch
+    # ------------------------------------------------------------------ #
+
+    # ID: 43725b56-2fcb-4746-a414-dc57428ff02f
+    async def _dispatch_checks(self, run_id: str) -> dict[str, dict]:
+        from body.governance.coherence_harvester import NormativeMarkerRegister
+        from body.services.governance_claims_service import GovernanceClaimsService
+
+        from .checks.r1_scoped import R1ScopedCheck
+        from .checks.row2_grounding import Row2GroundingCheck
+        from .checks.row3_citation import Row3CitationCheck
+        from .checks.row4_naming import Row4NamingCheck
+        from .checks.sameconcern import SameConcernCheck
+        from .checks.specgap import SpecGapCheck
+        from .checks.vocabulary import VocabularyCheck
+
+        register = NormativeMarkerRegister.from_yaml(
+            self._repo_root
+            / ".intent"
+            / "enforcement"
+            / "config"
+            / "normative_markers.yaml"
+        )
+
+        claims_service: GovernanceClaimsService | None = None
+        try:
+            from body.services.service_registry import service_registry
+
+            qdrant = await service_registry.get_qdrant_service()
+            claims_service = GovernanceClaimsService(qdrant)
+        except Exception as exc:
+            logger.warning(
+                "CCC: Qdrant unavailable; SAMECONCERN/R1_SCOPED will skip (%s)", exc
+            )
+
+        checks: list[CheckClass] = [
+            Row2GroundingCheck(self._repo_root),
+            Row3CitationCheck(self._repo_root, register),
+            Row4NamingCheck(self._repo_root),
+            VocabularyCheck(self._repo_root),
+            SpecGapCheck(self._repo_root, register),
+        ]
+        if claims_service is not None:
+            checks.append(
+                SameConcernCheck(
+                    self._repo_root,
+                    register,
+                    claims_service,
+                    self._cognitive_service,
+                )
+            )
+            checks.append(
+                R1ScopedCheck(
+                    self._repo_root,
+                    register,
+                    claims_service,
+                    self._cognitive_service,
+                )
+            )
+
+        status: dict[str, dict] = {}
+        for check in checks:
+            try:
+                candidates = await check.run()
+            except Exception as exc:
+                logger.warning(
+                    "CCC: check %s failed: %s", check.relation, exc, exc_info=True
+                )
+                status[check.relation] = {
+                    "status": "error",
+                    "error": str(exc),
+                    "emitted": 0,
+                }
+                continue
+            for candidate in candidates:
+                await self._coherence_service.add_candidate(
+                    run_id=run_id,
+                    relation=candidate.relation,
+                    documents=candidate.documents,
+                    claim=candidate.claim,
+                    rationale=candidate.rationale,
+                )
+            status[check.relation] = {"status": "ok", "emitted": len(candidates)}
+            logger.info(
+                "CCC: %s emitted %d candidates", check.relation, len(candidates)
+            )
+        return status
+
+    # ------------------------------------------------------------------ #
+    # Trigger detection (preserved from ADR-067 implementation)
     # ------------------------------------------------------------------ #
 
     async def _detect_trigger(self, full: bool) -> str:
@@ -155,7 +219,7 @@ class CoherenceChecker:
         }
         for path in self._northstar_paths():
             try:
-                current_hash = self._sha256(path)
+                current_hash = _sha256(path)
             except OSError:
                 return "northstar_changed"
             rel = self._rel(path)
@@ -168,20 +232,33 @@ class CoherenceChecker:
     # Manifest construction
     # ------------------------------------------------------------------ #
 
+    # ID: c44f8192-948c-4671-82a1-445dc657ee59
     def _build_input_manifest(self) -> list[dict]:
+        """Document the governance inputs consumed by the redesigned scanner.
+
+        ADR-067-era 'rule' entries are no longer emitted — rule-scoped relations
+        (R2, R3) were retired per topology §10.3. The new scanner consumes
+        ADRs, papers, northstar, phases, and the vocabulary projection.
+        """
         manifest: list[dict] = []
         for path in self._adr_paths():
             manifest.append(self._manifest_entry(path, "adr"))
-        for ref_path in self._rule_paths():
-            manifest.append(self._manifest_entry(ref_path, "rule"))
+        for path in self._paper_paths():
+            manifest.append(self._manifest_entry(path, "paper"))
         for path in self._northstar_paths():
             manifest.append(self._manifest_entry(path, "northstar"))
+        for path in self._phase_paths():
+            manifest.append(self._manifest_entry(path, "phase"))
+        vocab = self._repo_root / ".intent" / "META" / "vocabulary.json"
+        if vocab.exists():
+            manifest.append(self._manifest_entry(vocab, "vocabulary"))
         return manifest
 
+    # ID: f6ffc21f-e4ef-477c-9bb7-2cdd2d4599c5
     def _manifest_entry(self, path: Path, domain: str) -> dict:
         rel = self._rel(path)
         try:
-            sha = self._sha256(path)
+            sha = _sha256(path)
         except OSError:
             return {
                 "path": rel,
@@ -199,279 +276,32 @@ class CoherenceChecker:
         }
 
     # ------------------------------------------------------------------ #
-    # Relation runners
-    # ------------------------------------------------------------------ #
-
-    async def _run_r1(self, run_id: str, manifest: list[dict]) -> None:
-        adr_paths = self._adr_paths()
-        if not adr_paths:
-            return
-        # ADR filenames carry no YYYY-MM prefix in this repo, so the
-        # month-clustering preference (paper §3, ADR-067 D3) falls back to
-        # the sequential ordering by ADR number.
-        for i in range(0, len(adr_paths), _R1_BATCH_SIZE):
-            cluster = adr_paths[i : i + _R1_BATCH_SIZE]
-            await self._llm_call(
-                run_id=run_id,
-                relation="R1",
-                relation_description=_R1_DESCRIPTION,
-                document_paths=cluster,
-                manifest=manifest,
-            )
-
-    async def _run_r2(self, run_id: str, manifest: list[dict]) -> None:
-        rule_paths = self._rule_paths()
-        northstar_paths = self._northstar_paths()
-        if not rule_paths or not northstar_paths:
-            return
-        for rule_path in rule_paths:
-            await self._llm_call(
-                run_id=run_id,
-                relation="R2",
-                relation_description=_R2_DESCRIPTION,
-                document_paths=[*northstar_paths, rule_path],
-                manifest=manifest,
-                focal_document_path=rule_path,
-            )
-
-    async def _run_r3(self, run_id: str, manifest: list[dict]) -> None:
-        rule_paths = self._rule_paths()
-        adr_paths = self._adr_paths()
-        for rule_path in rule_paths:
-            rule_id = self._load_rule_id(rule_path)
-            if rule_id is None:
-                self._mark_skipped(manifest, self._rel(rule_path), "file_read_failure")
-                continue
-
-            matched_adrs = self._match_adrs_to_rule(rule_id, adr_paths)
-            if not matched_adrs:
-                await self._coherence_service.add_candidate(
-                    run_id=run_id,
-                    relation="R3",
-                    documents=[self._rel(rule_path)],
-                    claim=f"No governing ADR found for rule domain {rule_id}",
-                    rationale=(
-                        "Heuristic keyword match against ADR filenames produced "
-                        "no hits. Either the rule domain genuinely lacks a "
-                        "governing ADR (constitutional gap) or the ADR exists "
-                        "under a name the heuristic does not detect. Governor "
-                        "triage required."
-                    ),
-                )
-                continue
-
-            await self._llm_call(
-                run_id=run_id,
-                relation="R3",
-                relation_description=_R3_DESCRIPTION,
-                document_paths=[rule_path, *matched_adrs],
-                manifest=manifest,
-            )
-
-    # ------------------------------------------------------------------ #
-    # LLM invocation
-    # ------------------------------------------------------------------ #
-
-    async def _llm_call(
-        self,
-        run_id: str,
-        relation: str,
-        relation_description: str,
-        document_paths: list[Path],
-        manifest: list[dict],
-        focal_document_path: Path | None = None,
-    ) -> None:
-        """
-        Load documents, invoke the LLM, parse JSON, store candidates.
-
-        All failure modes are non-fatal. Per ADR-067 D3:
-          - file_read_failure → that file's manifest entry is marked skipped.
-          - llm_call_failure / llm_parse_failure / llm_schema_failure → every
-            readable file in this call is marked skipped with the call-level
-            reason (last write wins if the same file appears in multiple
-            calls).
-        """
-        # Lazy import — keeps the mind/shared coupling local to the call site,
-        # matches the Section 4 spec.
-        from shared.ai.prompt_model import PromptModel
-
-        text_parts: list[str] = []
-        readable_rels: list[str] = []
-        for path in document_paths:
-            rel = self._rel(path)
-            try:
-                content = path.read_text(encoding="utf-8")
-            except OSError as exc:
-                logger.warning("CCC: failed to read %s: %s", rel, exc)
-                self._mark_skipped(manifest, rel, "file_read_failure")
-                continue
-            if focal_document_path is not None:
-                if path == focal_document_path:
-                    text_parts.append(
-                        f"RULE DOMAIN UNDER EVALUATION:\n=== {rel} ===\n{content}\n\n"
-                    )
-                else:
-                    text_parts.append(
-                        f"NORTHSTAR DOCUMENTS FOR COMPARISON:\n"
-                        f"=== {rel} ===\n{content}\n\n"
-                    )
-            else:
-                text_parts.append(f"=== {rel} ===\n{content}\n\n")
-            readable_rels.append(rel)
-
-        if not readable_rels:
-            return
-
-        documents_text = "".join(text_parts)
-
-        try:
-            model = PromptModel.load("constitutional_coherence_analyst")
-            client = await self._cognitive_service.aget_client_for_role(
-                model.manifest.role
-            )
-            raw = await asyncio.wait_for(
-                model.invoke(
-                    context={
-                        "relation_description": relation_description,
-                        "documents_text": documents_text,
-                    },
-                    client=client,
-                    user_id=_USER_ID,
-                ),
-                timeout=_LLM_CALL_TIMEOUT,
-            )
-        except TimeoutError:
-            logger.warning(
-                "CCC: LLM call timed out after %ds for relation %s",
-                _LLM_CALL_TIMEOUT,
-                relation,
-            )
-            for rel in readable_rels:
-                self._mark_skipped(manifest, rel, "call_timeout")
-            return
-        except Exception as exc:
-            logger.warning("CCC: LLM call failed for relation %s: %s", relation, exc)
-            for rel in readable_rels:
-                self._mark_skipped(manifest, rel, "llm_call_failure")
-            return
-
-        parsed = extract_json_safe(raw)
-        if isinstance(parsed, dict):
-            # Wrapper-object response (observed phi4 failure mode): unwrap the
-            # first value that is a list. Shape is enforced per-candidate
-            # below, so we don't constrain key names here.
-            unwrapped = next(
-                (v for v in parsed.values() if isinstance(v, list)),
-                None,
-            )
-            if unwrapped is not None:
-                parsed = unwrapped
-        if parsed is None or not isinstance(parsed, list):
-            logger.warning(
-                "CCC: LLM output parse failure for relation %s: "
-                "could not extract a JSON array from response",
-                relation,
-            )
-            for rel in readable_rels:
-                self._mark_skipped(manifest, rel, "llm_parse_failure")
-            return
-
-        for candidate in parsed:
-            if not _is_valid_candidate(candidate):
-                logger.warning(
-                    "CCC: skipping invalid candidate in relation %s: %r",
-                    relation,
-                    candidate,
-                )
-                for rel in readable_rels:
-                    self._mark_skipped(manifest, rel, "llm_schema_failure")
-                return
-            # The call-level relation is authoritative — the LLM's `relation`
-            # field is not trusted, since the call boundary already fixes it.
-            await self._coherence_service.add_candidate(
-                run_id=run_id,
-                relation=relation,
-                documents=candidate["documents"],
-                claim=candidate["claim"],
-                rationale=candidate["rationale"],
-            )
-
-    # ------------------------------------------------------------------ #
     # Input enumeration
     # ------------------------------------------------------------------ #
 
     def _adr_paths(self) -> list[Path]:
-        decisions_dir = self._repo_root / ".specs" / "decisions"
-        if not decisions_dir.exists():
+        decisions = self._repo_root / ".specs" / "decisions"
+        if not decisions.exists():
             return []
-        return sorted(decisions_dir.glob("ADR-*.md"))
+        return sorted(decisions.glob("ADR-*.md"))
+
+    def _paper_paths(self) -> list[Path]:
+        papers = self._repo_root / ".specs" / "papers"
+        if not papers.exists():
+            return []
+        return sorted(papers.glob("*.md"))
 
     def _northstar_paths(self) -> list[Path]:
-        northstar_dir = self._repo_root / ".specs" / "northstar"
-        if not northstar_dir.exists():
+        northstar = self._repo_root / ".specs" / "northstar"
+        if not northstar.exists():
             return []
-        return sorted(northstar_dir.glob("*.md"))
+        return sorted(northstar.glob("*.md"))
 
-    def _rule_paths(self) -> list[Path]:
-        """
-        Return the rule path list for the current run. Cached so R2 and R3
-        see the same set when ``--sample`` is in effect.
-        """
-        if self._rule_paths_cache is None:
-            self._rule_paths_cache = self._discover_rule_paths(self._sample_rules)
-        return self._rule_paths_cache
-
-    def _discover_rule_paths(self, sample: int | None) -> list[Path]:
-        """
-        Discover rule documents via IntentRepository (the sanctioned gateway
-        for .intent/ — rules.architecture.intent_access). Optionally subsample.
-        """
-        repo = get_intent_repository()
-        repo.initialize()
-        rules_dir = self._repo_root / ".intent" / "rules"
-        all_rule_paths = sorted(
-            ref.path
-            for ref in repo.list_policies()
-            if ref.path.is_relative_to(rules_dir)
-        )
-        if sample is not None and 0 < sample < len(all_rule_paths):
-            chosen = sorted(random.sample(all_rule_paths, sample))
-            logger.info(
-                "CCC: sampling %d of %d rule files for R2/R3",
-                sample,
-                len(all_rule_paths),
-            )
-            return chosen
-        return all_rule_paths
-
-    def _load_rule_id(self, rule_path: Path) -> str | None:
-        try:
-            repo = get_intent_repository()
-            data = repo.load_document(rule_path)
-            return data.get("metadata", {}).get("id") or None
-        except Exception as exc:
-            logger.warning("CCC: failed to load rule id from %s: %s", rule_path, exc)
-            return None
-
-    # ------------------------------------------------------------------ #
-    # ADR ↔ rule fuzzy matching (R3)
-    # ------------------------------------------------------------------ #
-
-    def _match_adrs_to_rule(self, rule_id: str, adr_paths: list[Path]) -> list[Path]:
-        last_segment = rule_id.split(".")[-1] if rule_id else ""
-        tokens = [
-            t.lower()
-            for t in re.split(r"[_.-]", last_segment)
-            if len(t) >= _FUZZY_MIN_TOKEN_LEN
-        ]
-        if not tokens:
+    def _phase_paths(self) -> list[Path]:
+        phases = self._repo_root / ".intent" / "phases"
+        if not phases.exists():
             return []
-        matched: list[Path] = []
-        for adr_path in adr_paths:
-            stem_lower = adr_path.stem.lower()
-            if any(t in stem_lower for t in tokens):
-                matched.append(adr_path)
-        return matched
+        return sorted(phases.glob("*.yaml"))
 
     # ------------------------------------------------------------------ #
     # Helpers
@@ -483,30 +313,6 @@ class CoherenceChecker:
         except ValueError:
             return str(path)
 
-    @staticmethod
-    def _sha256(path: Path) -> str:
-        return hashlib.sha256(path.read_bytes()).hexdigest()
 
-    @staticmethod
-    def _mark_skipped(manifest: list[dict], rel_path: str, reason: str) -> None:
-        for entry in manifest:
-            if entry["path"] == rel_path:
-                entry["status"] = "skipped"
-                entry["skipped_reason"] = reason
-                return
-
-
-def _is_valid_candidate(candidate: Any) -> bool:
-    if not isinstance(candidate, dict):
-        return False
-    if not all(k in candidate for k in ("relation", "documents", "claim", "rationale")):
-        return False
-    if not isinstance(candidate["documents"], list):
-        return False
-    if not all(isinstance(d, str) for d in candidate["documents"]):
-        return False
-    if not isinstance(candidate["claim"], str):
-        return False
-    if not isinstance(candidate["rationale"], str):
-        return False
-    return True
+def _sha256(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()

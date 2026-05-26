@@ -1,0 +1,56 @@
+$schema: "META/worker.schema.json"
+kind: worker
+
+metadata:
+  id: workers.governance_embedder
+  title: Governance Embedder
+  version: "1.0.0"
+  authority: policy
+  status: active
+  rationale: >
+    Activated per ADR-073 D4 as the embedding consumer for governance
+    normative claims. Maintains the Qdrant `governance_claims` collection
+    that SAMECONCERN and R1_SCOPED checks (ADR-073 D5/D2) query via vector
+    kNN. Follows the ADR-018 decomposed crawler/embedder pattern adapted
+    to the governance corpus.
+
+    Bootstrap is NOT performed by this worker. Per ADR-073 D4, first-time
+    corpus seeding is a governor CLI operation (`core-admin coherence seed
+    bootstrap`). This worker handles steady-state incremental sync:
+    re-embeds a claim only when its content_sha differs from the stored
+    value. Full-corpus re-embed per cycle is constitutionally forbidden.
+
+identity:
+  uuid: "013c9680-929e-471b-a478-2597bdbf622c"
+  class: sensing
+
+mandate:
+  responsibility: >
+    Harvest normative claims from the governance corpus (.specs/decisions/,
+    .specs/papers/, .specs/northstar/, .intent/**/*.{json,yaml} excluding
+    META/) using the §2.5 marker register at
+    .intent/enforcement/config/normative_markers.yaml, compute content_sha
+    per claim, and incrementally upsert/delete points in the Qdrant
+    governance_claims collection. Re-embeds only on content_sha change.
+  phase: audit
+  permitted_tools:
+    - file.read
+    - llm.embedder
+  scope:
+    paths:
+      - ".specs/decisions/**"
+      - ".specs/papers/**"
+      - ".specs/northstar/**"
+      - ".intent/**"
+    domains:
+      - governance
+      - knowledge
+  approval_required: false
+  schedule:
+    max_interval: 600
+    batch_size: 50
+
+implementation:
+  module: will.workers.governance_embedding
+  class: GovernanceEmbedderWorker
+  requires_core_context: false
