@@ -123,6 +123,8 @@ Three rules are added under `.intent/rules/governance/`. All three carry severit
    - Any term entry's `authoritative_paper` field does not resolve to an existing file under `.specs/papers/`.
    - Any term entry's `authoritative_paper` value in the projection does not match the canonical section's value for the same term (which would indicate manual JSON tampering surviving regen, e.g. via a partial-write race).
 
+   **Note (2026-05-10 governor clarification):** The governed-root scope for `authoritative_paper` was widened from `.specs/papers/` to the full governed tree (`.specs/` and `.intent/`) — `.intent/constitution/` and `.specs/northstar/` are first-class governed locations. The clarification is recorded in the Implementation addendum (Part 3/4) below, and the rule statement in `.intent/rules/governance/vocabulary_canonical_store.json` is authoritative on this scope.
+
 Per ADR-005's verdict policy, ERROR-severity findings flip the audit to FAIL. Drift in the constitutional vocabulary mechanism is the worst class of drift CORE can experience; it does not merit a softer signal. The DEGRADED-on-loader-broken posture in D4 is distinct from these FAIL conditions: D4's DEGRADED applies when the *instrument* is broken; D5's FAIL applies when the *content* has drifted while the instrument works.
 
 ### D6. Regeneration is enforced in CI.
