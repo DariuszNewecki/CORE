@@ -5,6 +5,7 @@
 **Status:** Canonical
 **Authority:** Constitution-level
 **Scope:** Coherence of constitutional documents — ADRs, rule domains, northstar
+**Operationalizes:** UR-07 (Defensibility is Non-Negotiable) — primary; UR-06 (Continuous Constitutional Governance) — secondary
 
 ---
 
@@ -16,6 +17,28 @@ that evaluates the internal soundness of CORE's governing documents.
 CORE audits `src/` against `.intent/`. Nothing audits `.intent/` against itself
 or against `.specs/northstar/`. The constitution is currently trusted by
 assumption, not by proof. This paper closes that gap.
+
+### 1.1 Grounding in northstar
+
+The CCC operationalizes **UR-07 (Defensibility is Non-Negotiable)** as primary
+grounding. UR-07 requires that every output CORE produces be traceable to a
+stated requirement. Traceability terminates in contradiction when the
+constitution itself is incoherent — UR-X says one thing, paper says another,
+rule says a third. Defensibility is broken at the constitutional layer before
+any source-code output is even produced. The CCC is the instrument that
+prevents that breakage by checking the constitutional layer against itself.
+
+Secondary grounding is **UR-06 (Continuous Constitutional Governance)**:
+governance applies from the first commit, every commit thereafter, and to
+every artifact in the governance graph — including the governance graph itself.
+There is no exempt layer where coherence may drift. The CCC is the
+operational mechanism by which UR-06 reaches the constitutional layer.
+
+UR-03 (Gap and Contradiction Reporting) is intentionally **not** cited as
+grounding. UR-03's scope is gaps and contradictions in stated user intent —
+input the system is asked to act on. The CCC's scope is gaps and
+contradictions in CORE's own governing documents. Related discipline, distinct
+operationalization.
 
 ---
 

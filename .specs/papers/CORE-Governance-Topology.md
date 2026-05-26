@@ -7,6 +7,7 @@
 **Date accepted:** 2026-05-26
 **Drafter:** Claude (CCC backlog review session 2026-05-26)
 **Author:** Darek (Dariusz Newecki)
+**Operationalizes:** UR-07 (Defensibility is Non-Negotiable) — primary; UR-06 (Continuous Constitutional Governance) — secondary
 **Revision history:** r1 initial draft 2026-05-26; r2 same day, incorporates five-issue review (row 2 direction fix, escape-hatch removal, §2.5 normative definition, §2.4 enforcement-surfaces restructure, §6.3 aspirational scoping, §11.3 row 2 migration, §7.2 sharpened addendum rule, §10.3 R1 distinction); accepted 2026-05-26
 **Closes definition gap surfaced by:** 2026-05-26 CCC sweep of run `db48491b` (133 candidates, ~98% dismissal rate)
 
@@ -29,6 +30,24 @@ This paper closes the gap by declaring:
 - How this topology relates to the framework/project namespace split (§8)
 
 Without this declaration, downstream work — CCC scanner redesign, governance application data model, framework/project split (#457) — has no doctrine to compare against. With it, each becomes a scoped engineering problem.
+
+### §1.1 — Grounding in northstar
+
+This paper operationalizes **UR-07 (Defensibility is Non-Negotiable)** as
+primary grounding. UR-07 requires that every output be traceable to a stated
+requirement. Traceability requires a *shape* — a declared topology — otherwise
+the chain has no inspectable form and the constitutional record cannot be
+defended. This paper declares that shape.
+
+Secondary grounding is **UR-06 (Continuous Constitutional Governance)**:
+governance is uninterrupted and applies to every artifact, including the
+governance graph itself. The directional grid in §3 is the structural
+expression of UR-06 reaching the meta-governance layer.
+
+Row 1 of §3 itself ("Northstar → Paper: constitutional, Paper § cites UR-NN")
+is satisfied for this paper by the citation above. Migration of pre-existing
+papers to row 1 compliance follows the §11 backfill-on-touch posture; the
+governor may extend §11 to explicitly enumerate row 1 in a future revision.
 
 ---
 
