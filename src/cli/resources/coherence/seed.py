@@ -38,9 +38,9 @@ seed_app = typer.Typer(
 )
 
 
-# ID: fc3436fb-1626-498f-8d0e-9c4914fc89ef
 @seed_app.command("bootstrap")
 @core_command(dangerous=True, requires_context=True)
+# ID: 73ce1ee6-67ce-4806-8a3c-252838cd3212
 async def bootstrap_command(ctx: typer.Context) -> None:
     """Embed the full governance corpus into the governance_claims collection.
 
@@ -117,9 +117,9 @@ async def bootstrap_command(ctx: typer.Context) -> None:
     )
 
 
-# ID: 6d24ffd6-943d-4f7e-bfbc-cfc676279e82
 @seed_app.command("export")
 @core_command(dangerous=False, requires_context=True)
+# ID: 1fefb5ca-3d3d-474c-aed6-06c68f3b0694
 async def export_command(
     ctx: typer.Context,
     output: Path = typer.Argument(
@@ -177,9 +177,9 @@ async def export_command(
     console.print(f"[green]Exported[/green] {written} claims to [bold]{output}[/bold]")
 
 
-# ID: 64acdd0c-1f7b-4e85-ac20-2aaac38806b7
 @seed_app.command("import")
 @core_command(dangerous=True, requires_context=True)
+# ID: 0d96f158-176d-4701-9cd9-131b2c2a0f9a
 async def import_command(
     ctx: typer.Context,
     source: Path = typer.Argument(
