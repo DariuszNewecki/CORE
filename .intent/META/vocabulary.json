@@ -57,9 +57,7 @@
       "definition": "A registered, governed, deterministic operation that produces a Crate. Declared with @atomic_action, registered in the ActionRegistry, and executed exclusively via ActionExecutor. The unit of constitutional remediation.",
       "not": "AtomicAction is not a ProposalAction line item and is not a generic verb for what a Worker does. The statement 'all actions must go through ActionExecutor' applies only to AtomicActions — not to Worker run-loop steps or Component invocations.",
       "authoritative_paper": ".specs/papers/CORE-Action.md",
-      "aliases": [
-        "Action"
-      ],
+      "aliases": [],
       "see_also": [
         "ProposalAction | ActionExecutor | Crate"
       ]
@@ -120,7 +118,7 @@
       "not": "A Component is not a Worker. Components are short-lived, phase-scoped, and invoked by orchestrators — not by the daemon. A Component does not claim Blackboard entries.",
       "authoritative_paper": ".specs/papers/CORE-Adaptive-Workflow-Pattern.md",
       "aliases": [
-        "Handler | Processor | Step"
+        "Handler | Processor"
       ],
       "see_also": [
         "Worker | Phase"
