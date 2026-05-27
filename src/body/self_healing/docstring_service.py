@@ -23,6 +23,7 @@ Constitutional alignment:
 from __future__ import annotations
 
 import ast
+import re
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -47,21 +48,40 @@ _SCOPE_DIRS: tuple[str, ...] = (
     "src/body/atomic",
 )
 
+# Placeholder-content rejection pattern. var/prompts/docstring_writer/system.txt
+# rule #7 forbids TODO/FIXME/placeholder text; this is the post-generation
+# enforcement that catches the case where the LLM disregards the rule. If the
+# pattern matches we skip the symbol — inserting placeholder content would land
+# a fresh `purity.no_todo_placeholders` violation and bounce the autonomous
+# loop between gates.
+_PLACEHOLDER_PATTERN = re.compile(r"\bTODO\b|\bFIXME\b|placeholder")
+
 
 def _find_undocumented_public_symbols(tree: ast.AST) -> list[ast.AST]:
     """Walk a parsed module and return public symbols lacking a docstring.
 
     Public = name not starting with underscore. Symbol kinds covered:
-    FunctionDef, AsyncFunctionDef, ClassDef — including methods, nested
-    functions, and class declarations. Mirrors the predicate in
-    PurityChecks.check_docstrings_present (ADR-047).
+    FunctionDef, AsyncFunctionDef, ClassDef — including methods and class
+    declarations. Nested functions (functions whose immediate parent is
+    itself a function) are excluded, mirroring the ADR-047 amendment to
+    PurityChecks.check_docstrings_present (commit 6c1c7270). Nested
+    classes are NOT excluded — only nested functions, matching the
+    source-of-truth predicate exactly.
     """
+    for node in ast.walk(tree):
+        for child in ast.iter_child_nodes(node):
+            child._parent = node  # type: ignore[attr-defined]
+
     candidates: list[ast.AST] = []
     for node in ast.walk(tree):
         if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
             continue
         if node.name.startswith("_"):
             continue
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            parent = getattr(node, "_parent", None)
+            if isinstance(parent, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                continue
         if ast.get_docstring(node) is not None:
             continue
         candidates.append(node)
@@ -179,8 +199,21 @@ async def _heal_file(
             )
             continue
 
-        if new_doc:
-            insertions.append((node, new_doc.strip()))
+        if not new_doc:
+            continue
+        # Reject placeholder content (system.txt rule #7). Inserting would
+        # produce a fresh purity.no_todo_placeholders violation and bounce
+        # the autonomous loop between gates.
+        if _PLACEHOLDER_PATTERN.search(new_doc):
+            logger.warning(
+                "fix.docstrings: rejecting placeholder content for '%s' at "
+                "%s:%d (matched TODO/FIXME/placeholder).",
+                node.name,
+                file_path,
+                node.lineno,
+            )
+            continue
+        insertions.append((node, new_doc.strip()))
 
     if not insertions:
         logger.info("fix.docstrings: %s — no docstrings generated.", file_path)
