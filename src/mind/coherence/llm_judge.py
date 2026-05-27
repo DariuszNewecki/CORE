@@ -25,6 +25,19 @@ logger = getLogger(__name__)
 _LLM_CALL_TIMEOUT = 120
 _USER_ID = "coherence_checker"
 
+# Markers indicating the LLM emitted a candidate while admitting no contradiction
+# exists. The prompt asks for an empty array in that case; the model sometimes
+# returns a populated array whose rationale concedes alignment. Drop those.
+_NO_CONTRADICTION_MARKERS = (
+    "no contradiction",
+    "fully aligned",
+    "not contradictory",
+    "no candidate is warranted",
+    "no candidate is needed",
+    "no direct conflict",
+    "semantically equivalent",
+)
+
 
 _HIGH_CONFIDENCE_DESC = (
     "Same-concern contradiction check. The two normative claims below were "
@@ -103,6 +116,15 @@ async def judge_contradiction_pair(
     claim = first.get("claim")
     rationale = first.get("rationale")
     if not isinstance(claim, str) or not isinstance(rationale, str):
+        return None
+
+    text = (claim + " " + rationale).lower()
+    if any(marker in text for marker in _NO_CONTRADICTION_MARKERS):
+        logger.debug(
+            "LLM judge: dropped aligned-noise candidate (%s ↔ %s)",
+            source_a,
+            source_b,
+        )
         return None
 
     return CoherenceCandidate(
