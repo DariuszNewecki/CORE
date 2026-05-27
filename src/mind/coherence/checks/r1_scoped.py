@@ -35,6 +35,36 @@ _RELATES_FRONTMATTER = re.compile(
 )
 _ADR_TOKEN = re.compile(r"ADR-\d{3}")
 
+# Body-level reconciliation prefix: `**Compatibility with ADR-NNN**`,
+# `**Supersedes:** ADR-NNN`, `**Supersedes (partial):** ADR-NNN`, etc.
+# Used to filter out R1_SCOPED pairs where the author has explicitly
+# reconciled the relationship — the LLM judge cannot see the reconciliation
+# when only chunked claims reach the prompt, and routinely emits
+# false-positive contradiction verdicts on reconciled pairs. See #474.
+_RECONCILIATION_PREFIX = re.compile(
+    r"\*\*\s*(?:Compatibility\s+with|Supersedes)\b",
+    re.IGNORECASE,
+)
+
+
+def _declared_compatibility_partners(text: str) -> set[str]:
+    """Return ADR-NNN tokens this document explicitly reconciles with.
+
+    Scans for body-level patterns: `**Compatibility with ADR-NNN**`,
+    `**Supersedes:** ADR-NNN`, `**Supersedes (partial):** ADR-NNN`.
+    The returned set is treated as authoritative for skipping R1_SCOPED
+    pairs — if the author declares reconciliation, the judge does not get
+    to override it (per #474). Line-level scan; multi-line declarations
+    capture only ADRs cited on the prefix line.
+    """
+    partners: set[str] = set()
+    for line in text.splitlines():
+        if not _RECONCILIATION_PREFIX.search(line):
+            continue
+        partners.update(_ADR_TOKEN.findall(line))
+    return partners
+
+
 _HIGH_CONFIDENCE_COSINE = 0.78
 _AMBIGUOUS_COSINE = 0.74
 _KNN_LIMIT = 10
@@ -142,6 +172,12 @@ class R1ScopedCheck:
 
         Returns a list of (source_adr_path, partner_adr_path) tuples — one
         per declared link. One-directional sufficient per D2.
+
+        Per #474: pairs where either ADR reconciles with the other via a
+        body-level `**Compatibility with ADR-NNN**` or `**Supersedes**`
+        declaration are filtered out. The LLM judge cannot see the
+        reconciliation when only chunked claims reach the prompt and
+        routinely emits false-positive contradictions on reconciled pairs.
         """
         decisions = self._repo_root / ".specs" / "decisions"
         if not decisions.is_dir():
@@ -153,19 +189,38 @@ class R1ScopedCheck:
             if m:
                 adr_path_by_id[m.group(0)] = str(path.relative_to(self._repo_root))
 
-        pairs: list[tuple[str, str]] = []
+        # Single read per ADR — extract Relates: partners and reconciliation set.
+        relates_by_id: dict[str, list[str]] = {}
+        reconciled_by_id: dict[str, set[str]] = {}
         for source_id, source_rel in adr_path_by_id.items():
             content = (self._repo_root / source_rel).read_text(
                 encoding="utf-8", errors="replace"
             )
             match = _RELATES_FRONTMATTER.search(content)
-            if not match:
-                continue
-            for partner_id in _ADR_TOKEN.findall(match.group(1)):
+            if match:
+                relates_by_id[source_id] = _ADR_TOKEN.findall(match.group(1))
+            reconciled_by_id[source_id] = _declared_compatibility_partners(content)
+
+        pairs: list[tuple[str, str]] = []
+        reconciled_skips = 0
+        for source_id, source_rel in adr_path_by_id.items():
+            partners = relates_by_id.get(source_id, [])
+            for partner_id in partners:
                 if partner_id == source_id:
                     continue
                 partner_rel = adr_path_by_id.get(partner_id)
                 if partner_rel is None:
                     continue
+                if partner_id in reconciled_by_id.get(
+                    source_id, set()
+                ) or source_id in reconciled_by_id.get(partner_id, set()):
+                    reconciled_skips += 1
+                    continue
                 pairs.append((source_rel, partner_rel))
+
+        if reconciled_skips:
+            logger.info(
+                "R1_SCOPED: skipped %d Relates: pair(s) due to declared compatibility/supersedes (per #474)",
+                reconciled_skips,
+            )
         return pairs
