@@ -309,3 +309,15 @@ documentation.
 The D2 pseudocode above reflects the original design; the live implementation
 in `purity_checks.py` reflects this amendment. ADR-049 doctrine/code parity is
 satisfied by this note.
+
+## Amendment — 2026-05-27 (CCC #464)
+
+**Engine transition complete; Context section describes pre-ADR state.**
+
+`purity.docstrings.required` is `engine: ast_gate` as of 2026-05-15. The
+Context section's "currently `engine: llm_gate`" (line 20) is historical
+narrative describing the pre-decision state when this ADR was drafted, not
+a claim about current configuration. Live truth:
+`.intent/enforcement/mappings/code/purity.yaml:58–59`. CCC SAMECONCERN
+candidate `2f44312f-024b-4290-81d2-415ae363e882` surfaced the temporal
+ambiguity; this marker resolves it without rewriting the original text.

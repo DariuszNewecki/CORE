@@ -228,3 +228,20 @@ This paper does not define:
 - the ShopManager's monitoring queries
 
 Those are implementation concerns.
+
+---
+
+## 11. Amendments
+
+### 2026-05-27 (CCC #465)
+
+**Third non-terminal status: `awaiting_reaudit`.**
+
+Section 5 enumerates non-terminal statuses as `open` and `claimed`. ADR-045
+introduced `awaiting_reaudit` as a third non-terminal status (quarantine
+state for findings rejected pending re-audit), and ADR-072 made the drainer
+invariant constitutional. The line "Non-terminal statuses are `open` and
+`claimed`" above should be read as the pre-quarantine enumeration; the
+current non-terminal set is `{open, claimed, awaiting_reaudit}`. Worker
+filtering must include all three. Authoritative status enum:
+`.intent/META/enums.json` under `blackboard_entry_status`.

@@ -50,7 +50,7 @@ async def check_command(
         ),
     ),
 ) -> None:
-    """Run one Constitutional Coherence Checker pass (R1, R2, R3)."""
+    """Run one Constitutional Coherence Checker pass — 7 check classes per ADR-073."""
     context: CoreContext = ctx.obj
     try:
         cognitive_service = await context.registry.get_cognitive_service()
