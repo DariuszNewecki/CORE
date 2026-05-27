@@ -20,7 +20,8 @@
         "workflow_stage",
         "worker",
         "flow",
-        "data_contract"
+        "data_contract",
+        "phase"
       ]
     },
     "metadata": {

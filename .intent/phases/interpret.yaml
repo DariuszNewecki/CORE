@@ -1,3 +1,6 @@
+$schema: "META/phase.schema.json"
+kind: phase
+
 phase_type: interpret
 description: 'Convert natural language user intent into canonical task structure.
   This is the constitutional entry point for the Will layer.
@@ -17,7 +20,9 @@ constitutional_requirements:
 - governance.no_governance_bypass
 - autonomy.tracing.mandatory
 authority: policy
-failure_mode: clarify
+failure_modes:
+  ambiguity: clarify
+  contradiction: block
 max_retries: 3
 agent_role: IntentInterpreter
 llm_tier: high
@@ -36,16 +41,20 @@ forbidden_actions:
 success_criteria:
   task_structure_valid: true
   workflow_identified: true
-notes: 'INTERPRET is the first constitutional phase.
+notes: 'INTERPRET is the first constitutional phase. It does NOT have authority to
+  execute - only to propose task structures that will be validated in subsequent
+  phases.
 
-  It does NOT have authority to execute - only to propose task structures that will
-  be validated in subsequent phases.
+  Per UR-03 (CORE-USER-REQUIREMENTS §3), INTERPRET has two orthogonal failure
+  classes: ambiguity (input unclear → CORE asks via the `clarify` strategy) and
+  contradiction (input internally inconsistent → CORE stops via the `block`
+  strategy). These are not substitutable: ambiguity is missing-input that the
+  user can supply; contradiction is malformed-input that the user must resolve.
+  Modeling them as a single failure_mode value erases UR-03''s distinction
+  (ADR-074).
 
-  Failure mode is ''clarify'' rather than ''block'' because ambiguous input should
-  result in dialogue, not rejection.
-
-  This phase completes the Mind-Body-Will architecture by giving the Will layer a
-  constitutional entry point with clear boundaries.
+  This phase completes the Mind-Body-Will architecture by giving the Will layer
+  a constitutional entry point with clear boundaries.
 
   '
 implementation: will.phases.interpret_phase.InterpretPhase

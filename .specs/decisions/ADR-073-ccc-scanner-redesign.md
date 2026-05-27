@@ -239,3 +239,19 @@ ADR is considered Implemented when ALL of the following hold:
 - Issue #459 — interpret-phase/northstar specification gap; the empirical case grounding D7
 - 2026-05-26 CCC backlog clearance — empirical population grounding D1
 - Stage 0 validation outcome (numeric calibration archived in `[[project_ccc_redesign_validation]]` memory)
+
+---
+
+## Note — 2026-05-27 (per ADR-074 D13 corrigendum)
+
+D7 condition 4 reads:
+
+> The phase YAML exists with a non-empty `failure_modes:` list.
+
+Per ADR-074 D2, `failure_modes:` is declared as a mapping (failure-class → response-strategy), not a list. The condition reads:
+
+> The phase YAML exists with a non-empty `failure_modes:` mapping.
+
+D7's logic is unchanged: condition 5's action-verb coverage check iterates the response-strategy surface, which is identically iterable from a map's `.values()` collection as from a list's elements.
+
+Authoritative artifact: ADR-074 §D2, §D13.

@@ -16,6 +16,7 @@ optional_directories:
 validated_directories:
   - META
   - flows
+  - phases
   - rules
   - workers
   - workflows/definitions

@@ -34,7 +34,7 @@
       ]
     },
     "component_phase": {
-      "description": "Subset of `phase` values a runtime Component may operate in. Excludes `interpret` because the INTERPRET phase runs at the Will/interpreter layer before any context is built and no Component is dispatched into it. Constitutional subset of `phase`. Mirrors src/shared/infrastructure/context/models.py PhaseType Literal and src/shared/infrastructure/intent/task_type_phases.py _VALID_PHASES. Drift between this enum and either Python site is caught by tests/intent/test_phase_enum_canonical_alignment.py.",
+      "description": "Subset of `phase` values a runtime Component may operate in. Excludes `interpret` because the INTERPRET phase runs at the Will/interpreter layer before any context is built and no Component is dispatched into it. Constitutional subset of `phase`. Mirrors src/shared/infrastructure/context/models.py PhaseType Literal and src/shared/infrastructure/intent/task_type_phases.py _VALID_PHASES. Drift between this enum and either Python site is caught by tests/shared/infrastructure/test_phase_enum_canonical_alignment.py.",
       "type": "string",
       "enum": [
         "parse",
@@ -42,6 +42,14 @@
         "audit",
         "runtime",
         "execution"
+      ]
+    },
+    "failure_mode": {
+      "description": "Response strategy a phase invokes when a constitutional failure of a specific class occurs (ADR-074). Consumed via $ref by .intent/META/phase.schema.json#/properties/failure_modes/additionalProperties (values of the failure-class → response-strategy map declared in .intent/phases/*.yaml). `block` halts the workflow (used for contradictions, rule violations, structural illegibility, action denials, mutation failures); `clarify` halts pending user dialogue (used for INTERPRET-phase ambiguity per UR-03). v1 vocabulary is restricted to these two strategies; TBD candidates (`warn`, `continue`, `defer`, `escalate`) are listed in ADR-074 D3 for governor review.",
+      "type": "string",
+      "enum": [
+        "block",
+        "clarify"
       ]
     },
     "strength": {

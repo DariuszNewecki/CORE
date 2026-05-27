@@ -1,3 +1,6 @@
+$schema: "META/phase.schema.json"
+kind: phase
+
 phase_type: audit
 description: >
   Evaluate candidate outputs against applicable constitutional and policy rules.
@@ -14,7 +17,8 @@ constitutional_requirements:
   - governance.rule_evaluation.exclusive
   - autonomy.tracing.mandatory
 authority: policy
-failure_mode: block
+failure_modes:
+  rule_violation: block
 max_retries: 0
 agent_role: Auditor
 permitted_actions:

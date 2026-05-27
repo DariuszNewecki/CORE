@@ -1,3 +1,6 @@
+$schema: "META/phase.schema.json"
+kind: phase
+
 phase_type: parse
 description: >
   Transform interpreted intent into a structured, machine-usable operational
@@ -15,7 +18,8 @@ constitutional_requirements:
   - governance.no_governance_bypass
   - autonomy.tracing.mandatory
 authority: policy
-failure_mode: block
+failure_modes:
+  illegibility: block
 max_retries: 2
 agent_role: WorkflowPlanner
 permitted_actions:

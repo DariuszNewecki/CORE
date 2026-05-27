@@ -82,12 +82,15 @@ class SpecGapCheck:
                     ur_id, paragraph, phase, responsibility
                 ):
                     continue
-                failure_mode = phase_modes.get(phase)
-                if not failure_mode:
+                failure_modes = phase_modes.get(phase) or {}
+                if not failure_modes:
                     continue
-                if self._verbs_covered_by(failure_mode):
+                if self._verbs_covered_by(failure_modes):
                     continue
                 phase_rel = f".intent/phases/{phase}.yaml"
+                rendered = ", ".join(
+                    f"{cls}:{strat}" for cls, strat in sorted(failure_modes.items())
+                )
                 candidates.append(
                     CoherenceCandidate(
                         relation=self.relation,
@@ -95,8 +98,8 @@ class SpecGapCheck:
                         claim=(
                             f"Northstar §{ur_id} declares required behavior "
                             f"({', '.join(sorted(action_verbs))}) for phase "
-                            f"`{phase}`, but `{phase}.yaml`'s failure_mode "
-                            f"`{failure_mode}` does not address it."
+                            f"`{phase}`, but `{phase}.yaml`'s failure_modes "
+                            f"({rendered}) do not address it."
                         ),
                         rationale=(
                             f"Topology paper §6.1 contradiction invariant via "
@@ -104,25 +107,38 @@ class SpecGapCheck:
                             f"`{phase}` as responsible for {ur_id}. The Northstar "
                             f"paragraph asserts the system should "
                             f"{', '.join(sorted(action_verbs))} under some condition, "
-                            f"but the phase's only declared failure mode is "
-                            f"`{failure_mode}`. Either extend the phase's "
-                            "failure_mode vocabulary to cover the upstream "
-                            "required behavior, or — if the upstream claim is "
-                            "no longer authoritative — amend Northstar."
+                            f"but the phase declares failure_modes "
+                            f"({rendered}) — neither the failure-class names "
+                            f"nor the response-strategy values match a halt-class "
+                            "action verb. Either extend the phase's failure_modes "
+                            "to cover the upstream required behavior (ADR-074 D2 "
+                            "map shape), or — if the upstream claim is no longer "
+                            "authoritative — amend Northstar."
                         ),
                     )
                 )
         return candidates
 
-    def _load_phase_failure_modes(self) -> dict[str, str | None]:
-        result: dict[str, str | None] = {}
+    def _load_phase_failure_modes(self) -> dict[str, dict[str, str]]:
+        """Return per-phase failure-class → response-strategy map (ADR-074 D2).
+
+        Reads `.intent/phases/<phase>.yaml` and returns the `failure_modes:`
+        mapping. Returns an empty dict for the phase if the file is missing
+        or declares no `failure_modes`. Legacy scalar `failure_mode:` keys
+        are intentionally not read — ADR-074 D12 retires the singular field.
+        """
+        result: dict[str, dict[str, str]] = {}
         for phase in _phases():
             path = self._repo_root / ".intent" / "phases" / f"{phase}.yaml"
             if not path.exists():
-                result[phase] = None
+                result[phase] = {}
                 continue
             data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
-            result[phase] = data.get("failure_mode")
+            modes = data.get("failure_modes")
+            if isinstance(modes, dict):
+                result[phase] = {str(k): str(v) for k, v in modes.items()}
+            else:
+                result[phase] = {}
         return result
 
     def _load_phase_responsibility(self) -> dict[str, dict]:
@@ -179,9 +195,22 @@ class SpecGapCheck:
         return verbs
 
     # ID: 4b4328d6-4874-4d40-87b8-123c510da8ce
-    def _verbs_covered_by(self, failure_mode: str) -> bool:
-        """Covered iff failure_mode declares any verb from register.action_verbs (one halt-class today)."""
-        return bool(self._action_verb_pattern.search(failure_mode))
+    def _verbs_covered_by(self, failure_modes: dict[str, str]) -> bool:
+        """Covered iff any failure-class key OR response-strategy value declares an action verb.
+
+        Per ADR-074 D9: a phase addresses an upstream halt-class signal when
+        either the failure-class name (e.g., `contradiction`) or the
+        response-strategy value (e.g., `block`) string-matches a verb from
+        the normative-marker register. Map keys and values are both checked
+        because either signal independently operationalizes the upstream
+        required behavior.
+        """
+        for key, value in failure_modes.items():
+            if self._action_verb_pattern.search(key):
+                return True
+            if self._action_verb_pattern.search(value):
+                return True
+        return False
 
 
 def _iter_paragraphs(section: str):

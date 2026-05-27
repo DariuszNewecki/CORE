@@ -189,14 +189,24 @@ class WorkflowOrchestrator:
                     logger.error("❌ Phase failed: %s", result.error)
 
                     phase_def = self._load_phase_definition(phase_name)
-                    failure_mode = phase_def.get("failure_mode", "block")
+                    failure_modes = phase_def.get("failure_modes") or {}
+                    strategies = set(failure_modes.values())
 
-                    if failure_mode == "block":
+                    if "block" in strategies:
                         logger.error("⛔ Workflow blocked by phase failure")
                         break
-                    if failure_mode == "warn":
-                        logger.warning("⚠️  Phase failed but workflow continues")
-                        continue
+                    if "clarify" in strategies:
+                        logger.warning(
+                            "⚠️  Phase requires clarification; halting workflow "
+                            "pending dialogue (ADR-074 D7)"
+                        )
+                        break
+                    logger.error(
+                        "⛔ Phase declared no recognized failure strategy "
+                        "(failure_modes=%r); halting conservatively",
+                        failure_modes,
+                    )
+                    break
 
             except Exception as e:
                 logger.error("💥 Phase crashed: %s", e, exc_info=True)
