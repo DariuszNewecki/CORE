@@ -1,199 +1,78 @@
-# Constitutional Workflow System
+# Constitutional Workflows
 
-## Overview
+Workflows and phases are constitutional declarations. Their definitions live in `.intent/`. No workflow or phase definition lives in `src/`. Implementation code may consume these declarations; it may not embed them.
 
-CORE now uses **dynamic, constitutional workflow orchestration** instead of hardcoded A3 loops.
+A workflow or phase that exists only as code, with no corresponding `.intent/` declaration, is in violation.
 
-Workflows are defined in `.intent/workflows/` and composed from reusable phases defined in `.intent/phases/`.
+## Declaration Locations
 
-## Architecture
+- **Phases** are declared under `.intent/phases/`. Each declaration is a YAML document of `kind: phase` validated against `META/phase.schema.json`.
+- **Workflows** are declared under `.intent/workflows/`. A workflow declaration composes a sequence of phase declarations.
 
-```
-.intent/
-├── phases/              # Reusable building blocks
-│   ├── planning.yaml
-│   ├── code_generation.yaml
-│   ├── test_generation.yaml
-│   ├── canary_validation.yaml
-│   ├── sandbox_validation.yaml
-│   ├── style_check.yaml
-│   └── execution.yaml
-│
-└── workflows/           # Goal-specific compositions
-    ├── refactor_modularity.yaml
-    ├── coverage_remediation.yaml
-    └── full_feature_development.yaml
-```
+The phase declarations and the workflow declarations are the authoritative source. Code that derives phase ordering, failure handling, or workflow composition from any other source is in violation.
 
-## Key Principle: Separation of Concerns
+## Phase Contract
 
-**Refactoring ≠ Testing**
+Every phase declaration MUST include:
 
-Different goals require different phase pipelines:
+- `phase_type` — the canonical phase identifier, drawn from `enums.json#/definitions/phase`
+- `description` — natural-language statement of the phase's responsibility
+- `authority` — the authority class under which the phase operates, drawn from `enums.json#/definitions/authority`
+- `failure_modes` — a mapping from failure-class name to response-strategy value (see below)
 
-### Refactor Modularity Workflow
-```yaml
-phases:
-  - planning          # Analyze & propose split
-  - code_generation   # Generate refactored code
-  - canary_validation # Run EXISTING tests
-  - style_check       # ruff, black, constitutional
-  - execution         # Apply changes
-```
+A phase declaration MAY also declare its `inputs`, `outputs`, `constitutional_requirements`, `permitted_actions`, `forbidden_actions`, `success_criteria`, `notes`, and an `implementation` reference. The full schema is fixed in `META/phase.schema.json`.
 
-**Does NOT generate tests.** New code starts with 0% coverage.
+## Failure Modes
 
-### Coverage Remediation Workflow
-```yaml
-phases:
-  - planning          # Identify uncovered symbols
-  - test_generation   # Generate tests
-  - sandbox_validation # Validate in isolation
-  - execution         # Promote passing tests
-```
+`failure_modes` is a **mapping** from a phase-local failure-class name to a canonical response-strategy value drawn from `enums.json#/definitions/failure_mode`. It is neither a scalar nor a list.
 
-**Does NOT modify production code.** Only writes tests.
+| Strategy | Semantic |
+|---|---|
+| `block` | Halt the workflow. The phase did not produce a usable result and no recovery is available without external action. |
+| `clarify` | Halt the workflow pending user dialogue. The phase detected ambiguity in its input that the user must resolve before progress is possible. |
 
-## Usage
+Failure-class names — the map keys — are phase-local. Each phase declares the failure classes it can detect, named in terms of its own concerns. The closed-enum discipline applies only to the strategy values; class names are governed locally by each phase declaration.
 
-### Explicit Workflow Type (Recommended)
-
-```python
-from features.autonomy.autonomous_developer_v2 import develop_from_goal_v2
-
-# Refactor for modularity
-await develop_from_goal_v2(
-    context=core_context,
-    goal="Improve modularity of user_service.py",
-    workflow_type="refactor_modularity",
-    write=True
-)
-
-# Generate missing tests
-await develop_from_goal_v2(
-    context=core_context,
-    goal="Generate tests for payment_processor.py",
-    workflow_type="coverage_remediation",
-    write=True
-)
-```
-
-### Legacy Interface (Auto-infers workflow)
-
-```python
-from features.autonomy.autonomous_developer import develop_from_goal
-
-# Automatically infers workflow_type from goal text
-await develop_from_goal(
-    session=session,
-    context=core_context,
-    goal="Refactor user_service.py",
-    write=True
-)
-```
+A phase declaration MUST contain at least one entry in `failure_modes`. A phase that can fail under more than one class MUST declare each class as a separate map entry bound to its corresponding strategy. Modeling distinct failure classes under a single shared value erases the distinction and is in violation.
 
 ## Workflow Lifecycle
 
 ```
-1. Load workflow definition from .intent/workflows/{type}.yaml
-2. For each phase in workflow.phases:
-   a. Load phase definition from .intent/phases/{phase}.yaml
-   b. Execute phase.execute(context)
-   c. Check phase.failure_mode (block/warn/continue)
-   d. Store outputs in context for next phase
-3. Evaluate workflow.success_criteria
-4. Return WorkflowResult
+1. Load workflow declaration from .intent/workflows/
+2. For each phase named in the workflow:
+   a. Load the phase declaration from .intent/phases/
+   b. Execute the phase under its declared contract
+   c. On failure, dispatch the strategy from failure_modes
+      for the detected failure class
+   d. Pass declared outputs to the next phase as context
+3. Evaluate the workflow's declared success criteria
+4. Return the workflow result
 ```
 
-## Phase Contracts
+A phase failure dispatches the strategy bound to the detected failure class. A phase that does not declare a strategy for a detected failure class halts the workflow. There is no implicit fallthrough; an unrecognized or unbound strategy MUST NOT permit silent continuation.
 
-Each phase has a clear contract:
+## Separation of Concerns
 
-- **Inputs**: What it needs from context
-- **Outputs**: What it produces for next phase
-- **Constitutional Requirements**: Rules it must enforce
-- **Failure Mode**: What happens if it fails (block/warn/continue)
+Each workflow declaration addresses a single goal class. A workflow that mixes responsibilities — for example, code refactoring combined with test generation, or test generation combined with production-code mutation — is in violation. Code-mutating workflows do not generate tests. Test-generating workflows do not mutate production code. Goal-specific composition is the unit of workflow design.
+
+This is the constitutional analogue of the UNIX-philosophy principle: one workflow, one well-defined transformation. A workflow whose stated goal cannot be expressed in a single sentence is suspect.
 
 ## Success Criteria
 
-Workflows define explicit success criteria:
+Every workflow declaration MUST include explicit `success_criteria`. The criteria define the conditions under which the workflow's result is considered successful. Workflows that declare no success criteria, or whose criteria cannot be evaluated mechanically, are in violation: such a workflow cannot be audited against its own contract.
 
-```yaml
-# refactor_modularity.yaml
-success_criteria:
-  canary_passes: true              # Existing tests pass
-  style_violations: 0              # No style errors
-  modularity_score_improvement: "> 10"  # Score improved
+Specific threshold values, comparison operators, and signal names are governed by the workflow declaration itself, not by this document.
 
-# coverage_remediation.yaml
-success_criteria:
-  at_least_one_test_passing: true  # At least one test works
-  coverage_improvement: "> 0"      # Coverage increased
-```
+## Truth Hierarchy
 
-## The UNIX Philosophy
+When generated artifacts and pre-existing artifacts disagree on whether code is correct, the pre-existing artifacts prevail. Specifically: when a canary test suite passes and newly-generated tests fail against the same code, the canary result is authoritative. Newly-generated tests are themselves candidate output and may be wrong; the canary suite is established ground.
 
-Each workflow does **one thing well**:
+Workflows MUST gate on the canary result when both signals are available. Workflows MUST NOT gate the commitment of production code on the agreement of newly-generated tests with newly-generated code.
 
-- `refactor_modularity`: Code structure → Better structure
-- `coverage_remediation`: Missing tests → Tests exist
-- `full_feature_development`: Nothing → Complete feature
+This invariant does not absolve newly-generated tests of correctness; it asserts the order of evidence.
 
-**No workflow tries to do everything.**
+## Constitutional Position
 
-## Migration Path
+These constraints are constitutional because workflow composition determines what CORE can do autonomously. A drifting workflow definition, a phase with under-declared failure modes, or a workflow with no auditable success criteria each erode the defensibility that the founding charter and the user requirements demand.
 
-1. **Phase 1**: New services use V2 interface with explicit workflow_type
-2. **Phase 2**: Legacy services use backward-compatible wrapper (auto-infers)
-3. **Phase 3**: Remove old AutonomousWorkflowOrchestrator
-4. **Phase 4**: All code uses explicit workflow types
-
-## Benefits
-
-✅ **Constitutional**: Workflows defined in .intent/, not code
-✅ **Composable**: Mix/match phases based on goal
-✅ **Traceable**: Each phase logs decisions
-✅ **Testable**: Each phase is independent unit
-✅ **Evolvable**: Add workflows without touching orchestrator
-✅ **Clear**: Different goals = different pipelines
-
-## Example: Modularity Fix Flow
-
-```bash
-# User runs
-core-admin fix modularity --limit 1 --write
-
-# System executes
-ModularityRemediationServiceV2
-  ↓
-develop_from_goal_v2(workflow_type="refactor_modularity")
-  ↓
-WorkflowOrchestrator.execute_goal()
-  ↓
-[Planning → Code Gen → Canary → Style → Execute]
-  ↓
-Result: Code refactored, tests pass, NO new tests generated
-  ↓
-(Later) Coverage scanner finds new files with 0% coverage
-  ↓
-core-admin fix coverage
-  ↓
-develop_from_goal_v2(workflow_type="coverage_remediation")
-  ↓
-Result: Tests generated for new modules
-```
-
-## The Truth Hierarchy
-
-When code works but tests fail:
-
-```
-1. Canary passes = CODE WORKS ✓ (source of truth)
-2. New tests fail = TESTS ARE WRONG (fix later)
-```
-
-Workflows respect this hierarchy:
-- `refactor_modularity` gates on canary, not new tests
-- `coverage_remediation` handles test fixing separately
-
-**Working code > Perfect tests**
+This document declares the invariants. Implementation conformance is verified by audit; deviation from it is enforced as governance failure, not corrected silently.
