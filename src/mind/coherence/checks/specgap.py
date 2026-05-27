@@ -34,7 +34,21 @@ if TYPE_CHECKING:
 
 
 _UR_HEADING = re.compile(r"^###\s+(UR-\d{2}):\s*(.+?)\s*$", re.MULTILINE)
-_PHASES = ("interpret", "parse", "load", "runtime", "audit", "execution")
+
+
+# ID: 8a9fd6fc-ce33-4b47-ba55-fe24b5d37bc5
+def _phases() -> tuple[str, ...]:
+    """Canonical `phase` membership from .intent/META/enums.json.
+
+    Sourced from the canonical enum store rather than inlined here so
+    SpecGap's iteration order tracks the constitutional vocabulary
+    without drift (closed-enum discipline, issue #460). Lazy because
+    coherence checks are constructed before IntentRepository may be
+    fully warm during cold-start scans.
+    """
+    from shared.infrastructure.intent.canonical_enums import get_enum_members
+
+    return tuple(sorted(get_enum_members("phase")))
 
 
 # ID: 462e86d4-ce44-4239-8fb0-4efaf0a5278d
@@ -63,7 +77,7 @@ class SpecGapCheck:
             action_verbs = self._action_verbs_in(paragraph)
             if not action_verbs:
                 continue
-            for phase in _PHASES:
+            for phase in _phases():
                 if not self._operationally_linked(
                     ur_id, paragraph, phase, responsibility
                 ):
@@ -102,7 +116,7 @@ class SpecGapCheck:
 
     def _load_phase_failure_modes(self) -> dict[str, str | None]:
         result: dict[str, str | None] = {}
-        for phase in _PHASES:
+        for phase in _phases():
             path = self._repo_root / ".intent" / "phases" / f"{phase}.yaml"
             if not path.exists():
                 result[phase] = None

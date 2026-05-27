@@ -110,13 +110,8 @@
                     "description": "Single sentence declaring the one thing this worker is responsible for. No conjunctions."
                 },
                 "phase": {
-                    "type": "string",
-                    "enum": [
-                        "audit",
-                        "runtime",
-                        "execution"
-                    ],
-                    "description": "The CORE phase in which this worker is permitted to act."
+                    "$ref": "./enums.json#/definitions/worker_phase",
+                    "description": "The CORE phase in which this worker is permitted to act. Subset of `phase`; see worker_phase in enums.json."
                 },
                 "permitted_tools": {
                     "type": "array",

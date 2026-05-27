@@ -24,6 +24,26 @@
         "execution"
       ]
     },
+    "worker_phase": {
+      "description": "Subset of `phase` values a Worker mandate may declare. Workers operate only in the execution-side phases; interpret/parse/load run before any worker is dispatched (interpret at the Will layer, parse/load as deterministic pre-execution stages). Constitutional subset of `phase`. Consumed via $ref by .intent/META/worker.schema.json#/properties/mandate/properties/phase. Loader: src/shared/workers/declaration_validator.py — fails closed on empty or missing.",
+      "type": "string",
+      "enum": [
+        "audit",
+        "runtime",
+        "execution"
+      ]
+    },
+    "component_phase": {
+      "description": "Subset of `phase` values a runtime Component may operate in. Excludes `interpret` because the INTERPRET phase runs at the Will/interpreter layer before any context is built and no Component is dispatched into it. Constitutional subset of `phase`. Mirrors src/shared/infrastructure/context/models.py PhaseType Literal and src/shared/infrastructure/intent/task_type_phases.py _VALID_PHASES. Drift between this enum and either Python site is caught by tests/intent/test_phase_enum_canonical_alignment.py.",
+      "type": "string",
+      "enum": [
+        "parse",
+        "load",
+        "audit",
+        "runtime",
+        "execution"
+      ]
+    },
     "strength": {
       "type": "string",
       "enum": [
@@ -58,7 +78,7 @@
       ]
     },
     "blackboard_entry_status": {
-      "description": "Canonical lifecycle states for all Blackboard entries. Three categories. (1) Active and claimable: open, claimed \u2014 workers MAY claim and transition these. (2) Active but non-claimable, awaiting sensor adjudication: awaiting_reaudit \u2014 workers MUST NOT claim entries in this state; the audit sensor that owns the rule namespace re-evaluates each such entry on its next cycle and transitions it to open (violation still holds) or resolved (cleared). This state exists to gate the remediator's claim queue against stale finding payloads after \u00a77a revival; see ADR-045. (3) Terminal: resolved, abandoned, deferred_to_proposal, dry_run_complete, indeterminate, suppressed \u2014 no worker may claim or transition these without explicit revival. abandoned and suppressed differ in re-emission semantics: an abandoned subject MAY be re-emitted by its sensor on a fresh detection (workers gave up but the underlying issue persists); a suppressed subject MUST be skipped permanently by sensors (deliberate governor signal that the subject must not be surfaced again). See issue #263 for the abandoned/suppressed split rationale.",
+      "description": "Canonical lifecycle states for all Blackboard entries. Three categories. (1) Active and claimable: open, claimed — workers MAY claim and transition these. (2) Active but non-claimable, awaiting sensor adjudication: awaiting_reaudit — workers MUST NOT claim entries in this state; the audit sensor that owns the rule namespace re-evaluates each such entry on its next cycle and transitions it to open (violation still holds) or resolved (cleared). This state exists to gate the remediator's claim queue against stale finding payloads after §7a revival; see ADR-045. (3) Terminal: resolved, abandoned, deferred_to_proposal, dry_run_complete, indeterminate, suppressed — no worker may claim or transition these without explicit revival. abandoned and suppressed differ in re-emission semantics: an abandoned subject MAY be re-emitted by its sensor on a fresh detection (workers gave up but the underlying issue persists); a suppressed subject MUST be skipped permanently by sensors (deliberate governor signal that the subject must not be surfaced again). See issue #263 for the abandoned/suppressed split rationale.",
       "type": "string",
       "enum": [
         "open",
@@ -81,7 +101,7 @@
       ]
     },
     "proposal_status": {
-      "description": "Canonical lifecycle states for Proposals. draft, pending, approved, and executing are active \u2014 deduplication must treat these as blocking a re-creation of the same action group. completed, failed, and rejected are terminal. rejected is the governor-veto outcome: the proposal completed its review path but was explicitly not approved (distinct from failed, which is execution failure of an approved proposal).",
+      "description": "Canonical lifecycle states for Proposals. draft, pending, approved, and executing are active — deduplication must treat these as blocking a re-creation of the same action group. completed, failed, and rejected are terminal. rejected is the governor-veto outcome: the proposal completed its review path but was explicitly not approved (distinct from failed, which is execution failure of an approved proposal).",
       "type": "string",
       "enum": [
         "draft",
@@ -113,7 +133,7 @@
       ]
     },
     "proposal_approval_authority": {
-      "description": "Closed set of authority values for the approval_authority column on core.autonomous_proposals. Identifies the role under which a proposal was approved. Non-omittable when status transitions to approved, executing, or completed (per URS NFR.5; URS Q2.A; ADR-015 D6). risk_classification.safe_auto_approval is the autonomous self-promote authority (principal.system), used when compute_risk() classifies the proposal as safe and approval_required is False. principal.governor is the authority for approvals issued by a human Governor. Note: this enum governs only the approval_authority column \u2014 it is not the full principal role taxonomy. Roles that carry no proposal approval authority (principal.operator, principal.auditor, principal.system) do not appear here. Full taxonomy: .intent/taxonomies/principal_roles.yaml. Authority: ADR-068 D5.",
+      "description": "Closed set of authority values for the approval_authority column on core.autonomous_proposals. Identifies the role under which a proposal was approved. Non-omittable when status transitions to approved, executing, or completed (per URS NFR.5; URS Q2.A; ADR-015 D6). risk_classification.safe_auto_approval is the autonomous self-promote authority (principal.system), used when compute_risk() classifies the proposal as safe and approval_required is False. principal.governor is the authority for approvals issued by a human Governor. Note: this enum governs only the approval_authority column — it is not the full principal role taxonomy. Roles that carry no proposal approval authority (principal.operator, principal.auditor, principal.system) do not appear here. Full taxonomy: .intent/taxonomies/principal_roles.yaml. Authority: ADR-068 D5.",
       "type": "string",
       "enum": [
         "risk_classification.safe_auto_approval",
@@ -236,7 +256,7 @@
       ]
     },
     "audit_severity": {
-      "description": "Severity levels for audit findings. BLOCK halts execution (sole CI-blocking severity); HIGH/MEDIUM/LOW are actionable at decreasing urgency; INFO is informational only. Governed by ADR-059. Python source: src/shared/models/audit_models.py AuditSeverity IntEnum (stored as lowercase string via __str__). CIM CheckResult.severity (src/body/services/cim/models.py) uses the same vocabulary per ADR-059 D2. Translation to log level (per ADR-059 D3 Boundary 2): block/high \u2192 ERROR, medium \u2192 WARNING, low/info \u2192 INFO.",
+      "description": "Severity levels for audit findings. BLOCK halts execution (sole CI-blocking severity); HIGH/MEDIUM/LOW are actionable at decreasing urgency; INFO is informational only. Governed by ADR-059. Python source: src/shared/models/audit_models.py AuditSeverity IntEnum (stored as lowercase string via __str__). CIM CheckResult.severity (src/body/services/cim/models.py) uses the same vocabulary per ADR-059 D2. Translation to log level (per ADR-059 D3 Boundary 2): block/high → ERROR, medium → WARNING, low/info → INFO.",
       "type": "string",
       "enum": [
         "info",

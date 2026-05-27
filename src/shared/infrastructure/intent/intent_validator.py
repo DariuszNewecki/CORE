@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Any
 
 import jsonschema
-from jsonschema import Draft7Validator
+from jsonschema import Draft7Validator, RefResolver
 
 from shared.infrastructure.intent.errors import GovernanceError
 from shared.logger import getLogger
@@ -115,10 +115,23 @@ def validate_intent_tree(intent_root: Path, *, strict: bool = True) -> Validatio
     intent_tree_schema_path = intent_root / "META/intent_tree.schema.json"
     rule_document_schema_path = intent_root / "META/rule_document.schema.json"
     data_contract_schema_path = intent_root / "META/data_contract.schema.json"
+    enums_path = intent_root / "META/enums.json"
 
     intent_tree_schema = _load_json(intent_tree_schema_path)
     rule_document_schema = _load_json(rule_document_schema_path)
     data_contract_schema = _load_json(data_contract_schema_path)
+    enums_schema = _load_json(enums_path)
+
+    # $ref store for cross-META resolution. rule_document.schema.json (and
+    # any future META schema) may $ref into enums.json to source canonical
+    # enum subsets; see issue #460 and feedback_enum_subset_canonicalize_and_fail_closed.
+    meta_base_uri = (intent_root / "META").resolve().as_uri() + "/"
+    meta_ref_store: dict[str, dict[str, Any]] = {
+        meta_base_uri + "enums.json": enums_schema,
+        meta_base_uri + "rule_document.schema.json": rule_document_schema,
+        meta_base_uri + "data_contract.schema.json": data_contract_schema,
+        meta_base_uri + "intent_tree.schema.json": intent_tree_schema,
+    }
 
     _check_schema_is_valid(
         intent_tree_schema, intent_tree_schema_path, strict=strict, warnings=warnings
@@ -185,8 +198,13 @@ def validate_intent_tree(intent_root: Path, *, strict: bool = True) -> Validatio
             errors.append(msg)
             continue
 
+        resolver = RefResolver(
+            base_uri=meta_base_uri,
+            referrer=schema,
+            store=meta_ref_store,
+        )
         try:
-            Draft7Validator(schema).validate(document)
+            Draft7Validator(schema, resolver=resolver).validate(document)
         except jsonschema.ValidationError as e:
             msg = f"Schema validation failed for {doc_path}:\n{e.message}"
             if strict:

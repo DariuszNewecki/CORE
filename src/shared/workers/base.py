@@ -397,6 +397,19 @@ class Worker(ABC):
                 f"Failed to load worker declaration {declaration_path}: {e}"
             ) from e
 
+        # Schema validation (issue #460): the declaration must satisfy
+        # .intent/META/worker.schema.json, including the canonical
+        # worker_phase subset declared in .intent/META/enums.json.
+        # Fails closed on missing/empty worker_phase, unresolved $ref,
+        # or any structural violation.
+        from shared.infrastructure.intent.errors import GovernanceError
+        from shared.workers.declaration_validator import validate_worker_declaration
+
+        try:
+            validate_worker_declaration(data, source=declaration_path)
+        except GovernanceError as e:
+            raise WorkerConfigurationError(str(e)) from e
+
         try:
             uuid.UUID(data["identity"]["uuid"])
         except (KeyError, ValueError) as e:

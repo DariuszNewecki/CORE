@@ -25,6 +25,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
+from shared.infrastructure.intent.errors import GovernanceError
 from shared.logger import getLogger
 
 
@@ -34,10 +35,6 @@ if TYPE_CHECKING:
 
 logger = getLogger(__name__)
 
-
-_VALID_PHASES: frozenset[str] = frozenset(
-    {"parse", "load", "audit", "runtime", "execution"}
-)
 
 _FALLBACK_DEFAULT_PHASE = "execution"
 _FALLBACK_MAPPING: dict[str, str] = {
@@ -49,17 +46,31 @@ _FALLBACK_MAPPING: dict[str, str] = {
 }
 
 
+def _valid_phases() -> frozenset[str]:
+    """Canonical `component_phase` membership from .intent/META/enums.json.
+
+    Sourced from the canonical enum store rather than inlined here so the
+    Python and JSON schema sides cannot drift (closed-enum discipline,
+    issue #460). Lazy so callers reaching this module at import time of
+    other modules do not force IntentRepository construction.
+    """
+    from shared.infrastructure.intent.canonical_enums import get_enum_members
+
+    return get_enum_members("component_phase")
+
+
 def _validate_config(config: dict[str, Any]) -> None:
     """
     Validate at load time that every phase value in the config is a
-    member of the PhaseType Literal set. Raises ValueError with a
-    clear message on the first offending key/value encountered.
+    member of the canonical `component_phase` enum. Raises ValueError
+    with a clear message on the first offending key/value encountered.
     """
+    valid = _valid_phases()
     default_phase = config.get("default_phase")
-    if default_phase is None or default_phase not in _VALID_PHASES:
+    if default_phase is None or default_phase not in valid:
         raise ValueError(
             f"task_type_phases: default_phase {default_phase!r} is not a "
-            f"valid PhaseType; allowed values are {sorted(_VALID_PHASES)}"
+            f"valid PhaseType; allowed values are {sorted(valid)}"
         )
 
     mapping = config.get("mapping")
@@ -69,10 +80,10 @@ def _validate_config(config: dict[str, Any]) -> None:
         )
 
     for task_type, phase in mapping.items():
-        if phase not in _VALID_PHASES:
+        if phase not in valid:
             raise ValueError(
                 f"task_type_phases: mapping[{task_type!r}] = {phase!r} is not "
-                f"a valid PhaseType; allowed values are {sorted(_VALID_PHASES)}"
+                f"a valid PhaseType; allowed values are {sorted(valid)}"
             )
 
 
@@ -86,10 +97,12 @@ def load_task_type_phases() -> dict[str, Any]:
     defaults and logs a warning so callers degrade gracefully rather
     than halting.
 
-    The loader validates every phase value against the PhaseType Literal
-    set before returning. A YAML that maps a task_type to a phase
-    outside {parse, load, audit, runtime, execution} raises ValueError
-    at load time, not at the call site.
+    The loader validates every phase value against the canonical
+    `component_phase` enum (sourced from `.intent/META/enums.json`)
+    before returning. A YAML that maps a task_type to a phase outside
+    that enum raises ValueError at load time, not at the call site.
+    If the canonical enum is unreachable or empty, GovernanceError
+    propagates (no silent fallback — closed-enum discipline, #460).
     """
     try:
         from shared.infrastructure.intent.intent_repository import (
@@ -107,6 +120,11 @@ def load_task_type_phases() -> dict[str, Any]:
             "— using fallback defaults."
         )
     except ValueError:
+        raise
+    except GovernanceError:
+        # Canonical enum store unreachable or empty — propagate per
+        # closed-enum discipline (issue #460). Falling back here would
+        # silently mask a META authoring failure.
         raise
     except Exception as exc:
         logger.warning(

@@ -43,15 +43,7 @@
                     ]
                 },
                 "phase": {
-                    "type": "string",
-                    "enum": [
-                        "interpret",
-                        "parse",
-                        "load",
-                        "audit",
-                        "runtime",
-                        "execution"
-                    ]
+                    "$ref": "./enums.json#/definitions/phase"
                 },
                 "status": {
                     "type": "string",
@@ -106,15 +98,7 @@
                         ]
                     },
                     "phase": {
-                        "type": "string",
-                        "enum": [
-                            "interpret",
-                            "parse",
-                            "load",
-                            "audit",
-                            "runtime",
-                            "execution"
-                        ]
+                        "$ref": "./enums.json#/definitions/phase"
                     },
                     "rationale": {
                         "type": "string",
