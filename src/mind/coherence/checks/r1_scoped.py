@@ -161,6 +161,8 @@ class R1ScopedCheck:
                         source_b=hit.source_path,
                         tier=tier,
                         relation=self.relation,
+                        category_a=claim.category,
+                        category_b=hit.category,
                     )
                     if verdict is not None:
                         candidates.append(verdict)

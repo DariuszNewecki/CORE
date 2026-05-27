@@ -33,3 +33,11 @@ correct output when documents agree.
 
 Every path in the documents array MUST be a path you were explicitly
 given. Do not invent, infer, or abbreviate paths.
+
+Each document is presented with its artifact type label in parentheses
+(e.g., "DOC A (ADR) — ...", "DOC B (Intent · worker mandate) — ...",
+"DOC A (Paper) — ..."). Use that label when referring to the document
+in claim or rationale text. Do not describe an Intent file or a Paper
+as an "ADR". Do not generalise both documents as "these ADRs" unless
+both labels are "ADR". The labels are authoritative; your prose must
+match them.

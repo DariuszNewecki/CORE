@@ -72,6 +72,57 @@ _COMPATIBILITY_GUARDRAIL = (
     "contradictions, not declared compatibility."
 )
 
+# Document headers carry an artifact-type label in parentheses (e.g.
+# "DOC A (Intent · worker mandate) — ..."). The LLM has historically
+# described worker YAMLs as "ADRs" in its rationale because every prior
+# prompt example anchored on ADR pairs. This guardrail forces the model
+# to honour the given label. See #475.
+_ARTIFACT_TYPE_GUARDRAIL = (
+    "\n\n"
+    "Each document header carries an artifact-type label in parentheses "
+    "(e.g., 'DOC A (ADR) — ...', 'DOC B (Intent · worker mandate) — ...'). "
+    "When you write the claim or rationale, refer to each document by the "
+    "label given. Do not call an Intent file an 'ADR'; do not call a Paper "
+    "an 'ADR'; do not generalise both documents as 'these ADRs' unless both "
+    "labels are 'ADR'. The labels are authoritative — your prose must match."
+)
+
+
+_CATEGORY_LABEL: dict[str, str] = {
+    "adr": "ADR",
+    "paper": "Paper",
+    "northstar": "Northstar",
+    "intent": "Intent file",
+}
+
+_INTENT_SUBCATEGORY: dict[str, str] = {
+    "workers": "Intent · worker mandate",
+    "policies": "Intent · policy",
+    "rules": "Intent · rule",
+    "enforcement": "Intent · enforcement config",
+    "workflows": "Intent · workflow",
+    "phases": "Intent · phase",
+    "taxonomies": "Intent · taxonomy",
+}
+
+
+def _artifact_label(category: str, source_path: str) -> str:
+    """Return a human-anchoring label for the (category, source_path) pair.
+
+    Non-intent categories return their plain label. Intent files are refined
+    by the first path segment under `.intent/` so the LLM sees, e.g.,
+    'Intent · worker mandate' rather than the generic 'Intent file'. Unknown
+    categories fall back to a lowercased label so the prompt still has *some*
+    anchor instead of an empty parenthetical.
+    """
+    if category == "intent":
+        parts = source_path.split("/")
+        if len(parts) >= 2 and parts[0] == ".intent":
+            subdir = parts[1]
+            return _INTENT_SUBCATEGORY.get(subdir, "Intent file")
+        return "Intent file"
+    return _CATEGORY_LABEL.get(category, category or "Document")
+
 
 # ID: 9ccc8a46-d93a-4d2b-89f0-8511915a4e46
 async def judge_contradiction_pair(
@@ -82,6 +133,8 @@ async def judge_contradiction_pair(
     source_b: str,
     tier: str,
     relation: str = "SAMECONCERN",
+    category_a: str = "",
+    category_b: str = "",
 ) -> CoherenceCandidate | None:
     """Invoke the LLM to judge a pair of claims as contradiction or not.
 
@@ -92,10 +145,12 @@ async def judge_contradiction_pair(
     from shared.ai.prompt_model import PromptModel
 
     base = _AMBIGUOUS_DESC if tier == "ambiguous" else _HIGH_CONFIDENCE_DESC
-    description = base + _COMPATIBILITY_GUARDRAIL
+    description = base + _COMPATIBILITY_GUARDRAIL + _ARTIFACT_TYPE_GUARDRAIL
+    label_a = _artifact_label(category_a, source_a)
+    label_b = _artifact_label(category_b, source_b)
     documents_text = (
-        f"=== CLAIM A: {source_a} ===\n{text_a}\n\n"
-        f"=== CLAIM B: {source_b} ===\n{text_b}\n\n"
+        f"=== DOC A ({label_a}) — {source_a} ===\n{text_a}\n\n"
+        f"=== DOC B ({label_b}) — {source_b} ===\n{text_b}\n\n"
     )
 
     try:
