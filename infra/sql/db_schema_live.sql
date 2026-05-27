@@ -2,10 +2,10 @@
 -- PostgreSQL database dump
 --
 
-\restrict wHxVhw1QcWqbCpqQhz1d6KWrf54aUi0loGa53bOTDNrEIg7HStRYy3yS3apd8lP
+\restrict r1207jRvEJN9GzYrSH4yfBFFo9d6MBDsWuv6I0XvX9B79GzqEDFa0gDw21NrO62
 
 -- Dumped from database version 16.13 (Ubuntu 16.13-0ubuntu0.24.04.1)
--- Dumped by pg_dump version 16.13 (Ubuntu 16.13-0ubuntu0.24.04.1)
+-- Dumped by pg_dump version 16.14 (Ubuntu 16.14-0ubuntu0.24.04.1)
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -76,34 +76,6 @@ FROM core.symbols s, core.decorator_registry dr
 WHERE s.symbol_path = ''body.cli.check:audit''
   AND dr.decorator_name = ''core_command'';
 ';
-
-
---
--- Name: btree_gist; Type: EXTENSION; Schema: -; Owner: -
---
-
-CREATE EXTENSION IF NOT EXISTS btree_gist WITH SCHEMA public;
-
-
---
--- Name: EXTENSION btree_gist; Type: COMMENT; Schema: -; Owner:
---
-
-COMMENT ON EXTENSION btree_gist IS 'support for indexing common datatypes in GiST';
-
-
---
--- Name: pgcrypto; Type: EXTENSION; Schema: -; Owner: -
---
-
-CREATE EXTENSION IF NOT EXISTS pgcrypto WITH SCHEMA public;
-
-
---
--- Name: EXTENSION pgcrypto; Type: COMMENT; Schema: -; Owner:
---
-
-COMMENT ON EXTENSION pgcrypto IS 'cryptographic functions';
 
 
 --
@@ -613,19 +585,27 @@ ALTER TABLE core.agent_decisions OWNER TO core_db;
 
 CREATE TABLE core.agent_memory (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
-    cognitive_role text NOT NULL,
+    cognitive_role text,
     memory_type text NOT NULL,
     content text NOT NULL,
     related_task_id uuid,
     relevance_score core.probability DEFAULT 1.0,
     expires_at timestamp with time zone,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
+    resource_name text,
     CONSTRAINT agent_memory_memory_type_check CHECK ((memory_type = ANY (ARRAY['fact'::text, 'observation'::text, 'decision'::text, 'pattern'::text, 'error'::text]))),
     CONSTRAINT agent_memory_relevance_score_check CHECK ((((relevance_score)::numeric >= (0)::numeric) AND ((relevance_score)::numeric <= (1)::numeric)))
 );
 
 
 ALTER TABLE core.agent_memory OWNER TO core_db;
+
+--
+-- Name: COLUMN agent_memory.resource_name; Type: COMMENT; Schema: core; Owner: core_db
+--
+
+COMMENT ON COLUMN core.agent_memory.resource_name IS 'Free-text identifier of the access source for resource-context audit events (e.g. llm_resources.name like ''deepseek_chat''). Distinct from cognitive_role which carries cognitive_roles.role values via FK. Exactly one of (cognitive_role, resource_name) should be non-NULL per row.';
+
 
 --
 -- Name: artifact_symbol_links; Type: TABLE; Schema: core; Owner: core_db
@@ -693,94 +673,6 @@ CREATE TABLE core.audit_findings (
 ALTER TABLE core.audit_findings OWNER TO core_db;
 
 --
--- Name: audit_runs; Type: TABLE; Schema: core; Owner: core_db
---
-
-CREATE TABLE core.audit_runs (
-    run_id uuid DEFAULT gen_random_uuid() NOT NULL,
-    source text DEFAULT 'manual'::text NOT NULL,
-    commit_sha character(40),
-    verdict text DEFAULT 'pending'::text NOT NULL,
-    status text DEFAULT 'completed'::text NOT NULL,
-    score numeric(4,3),
-    finding_count integer DEFAULT 0 NOT NULL,
-    blocking_count integer DEFAULT 0 NOT NULL,
-    started_at timestamp with time zone DEFAULT now() NOT NULL,
-    finished_at timestamp with time zone,
-    findings jsonb
-);
-
-
-ALTER TABLE core.audit_runs OWNER TO core_db;
-
-
---
--- Name: fix_runs; Type: TABLE; Schema: core; Owner: core_db
---
-
-CREATE TABLE core.fix_runs (
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
-    kind text NOT NULL,
-    fix_id text,
-    target_files jsonb,
-    write boolean NOT NULL,
-    status text DEFAULT 'pending'::text NOT NULL,
-    requested_by text NOT NULL,
-    requested_at timestamp with time zone DEFAULT now() NOT NULL,
-    started_at timestamp with time zone,
-    finished_at timestamp with time zone,
-    result jsonb,
-    error text
-);
-
-
-ALTER TABLE core.fix_runs OWNER TO core_db;
-
-
---
--- Name: coverage_runs; Type: TABLE; Schema: core; Owner: core_db
---
-
-CREATE TABLE core.coverage_runs (
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
-    target_file text,
-    batch_priority text,
-    write boolean DEFAULT false NOT NULL,
-    status text DEFAULT 'pending'::text NOT NULL,
-    requested_by text NOT NULL,
-    requested_at timestamp with time zone DEFAULT now() NOT NULL,
-    started_at timestamp with time zone,
-    finished_at timestamp with time zone,
-    result jsonb,
-    error text
-);
-
-
-ALTER TABLE core.coverage_runs OWNER TO core_db;
-
-
---
--- Name: refactor_runs; Type: TABLE; Schema: core; Owner: core_db
---
-
-CREATE TABLE core.refactor_runs (
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
-    goal text NOT NULL,
-    write boolean DEFAULT false NOT NULL,
-    status text DEFAULT 'pending'::text NOT NULL,
-    requested_by text NOT NULL,
-    requested_at timestamp with time zone DEFAULT now() NOT NULL,
-    started_at timestamp with time zone,
-    finished_at timestamp with time zone,
-    result jsonb,
-    error text
-);
-
-
-ALTER TABLE core.refactor_runs OWNER TO core_db;
-
-
---
 -- Name: audit_remediation_runs; Type: TABLE; Schema: core; Owner: core_db
 --
 
@@ -801,49 +693,43 @@ CREATE TABLE core.audit_remediation_runs (
 
 ALTER TABLE core.audit_remediation_runs OWNER TO core_db;
 
-
 --
--- Name: census_runs; Type: TABLE; Schema: core; Owner: core_db
+-- Name: audit_run_resources; Type: TABLE; Schema: core; Owner: core_db
 --
 
-CREATE TABLE core.census_runs (
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
-    snapshot boolean DEFAULT false NOT NULL,
-    baseline_name text,
-    status text DEFAULT 'pending'::text NOT NULL,
-    requested_by text NOT NULL,
-    requested_at timestamp with time zone DEFAULT now() NOT NULL,
-    started_at timestamp with time zone,
-    finished_at timestamp with time zone,
-    result jsonb,
-    error text
+CREATE TABLE core.audit_run_resources (
+    run_id uuid DEFAULT gen_random_uuid() NOT NULL,
+    verdict text NOT NULL,
+    finding_count integer NOT NULL,
+    blocking_count integer NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    completed_at timestamp with time zone,
+    status text DEFAULT 'pending'::text NOT NULL
 );
 
 
-ALTER TABLE core.census_runs OWNER TO core_db;
-
+ALTER TABLE core.audit_run_resources OWNER TO core_db;
 
 --
--- Name: sync_runs; Type: TABLE; Schema: core; Owner: core_db
+-- Name: audit_runs; Type: TABLE; Schema: core; Owner: core_db
 --
 
-CREATE TABLE core.sync_runs (
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
-    sync_type text NOT NULL,
-    write boolean DEFAULT false NOT NULL,
-    target text,
-    status text DEFAULT 'pending'::text NOT NULL,
-    requested_by text NOT NULL,
-    requested_at timestamp with time zone DEFAULT now() NOT NULL,
-    started_at timestamp with time zone,
+CREATE TABLE core.audit_runs (
+    source text NOT NULL,
+    commit_sha character(40),
+    score numeric(4,3),
+    started_at timestamp with time zone DEFAULT now() NOT NULL,
     finished_at timestamp with time zone,
-    result jsonb,
-    error text
+    run_id uuid DEFAULT gen_random_uuid() NOT NULL,
+    verdict text DEFAULT 'pending'::text NOT NULL,
+    status text DEFAULT 'completed'::text NOT NULL,
+    finding_count integer DEFAULT 0 NOT NULL,
+    blocking_count integer DEFAULT 0 NOT NULL,
+    findings jsonb
 );
 
 
-ALTER TABLE core.sync_runs OWNER TO core_db;
-
+ALTER TABLE core.audit_runs OWNER TO core_db;
 
 --
 -- Name: autonomous_proposals; Type: TABLE; Schema: core; Owner: core_db
@@ -874,6 +760,7 @@ CREATE TABLE core.autonomous_proposals (
     approval_authority text,
     claimed_by uuid,
     CONSTRAINT approval_authority_required_when_approved CHECK (((status <> ALL (ARRAY['approved'::text, 'executing'::text, 'completed'::text])) OR (approval_authority IS NOT NULL) OR (created_at < '2026-04-27 00:00:00+00'::timestamp with time zone))),
+    CONSTRAINT autonomous_proposals_approval_authority_value_check CHECK (((approval_authority IS NULL) OR (approval_authority = ANY (ARRAY['risk_classification.safe_auto_approval'::text, 'principal.governor'::text])))),
     CONSTRAINT autonomous_proposals_status_check CHECK ((status = ANY (ARRAY['draft'::text, 'pending'::text, 'approved'::text, 'executing'::text, 'completed'::text, 'failed'::text, 'rejected'::text])))
 );
 
@@ -952,7 +839,8 @@ CREATE TABLE core.blackboard_entries (
     claimed_at timestamp with time zone,
     resolved_at timestamp with time zone,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT blackboard_entry_status_closed_set CHECK ((status = ANY (ARRAY['open'::text, 'claimed'::text, 'awaiting_reaudit'::text, 'resolved'::text, 'abandoned'::text, 'deferred_to_proposal'::text, 'dry_run_complete'::text, 'indeterminate'::text, 'suppressed'::text])))
 );
 
 
@@ -992,6 +880,22 @@ CREATE TABLE core.capabilities (
 ALTER TABLE core.capabilities OWNER TO core_db;
 
 --
+-- Name: capability_alignment_tests; Type: TABLE; Schema: core; Owner: core_db
+--
+
+CREATE TABLE core.capability_alignment_tests (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    name text NOT NULL,
+    capability text NOT NULL,
+    expected_behavior text NOT NULL,
+    scoring_rubric jsonb DEFAULT '{}'::jsonb NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+ALTER TABLE core.capability_alignment_tests OWNER TO core_db;
+
+--
 -- Name: capability_cli_links; Type: TABLE; Schema: core; Owner: core_db
 --
 
@@ -1002,6 +906,26 @@ CREATE TABLE core.capability_cli_links (
 
 
 ALTER TABLE core.capability_cli_links OWNER TO core_db;
+
+--
+-- Name: census_runs; Type: TABLE; Schema: core; Owner: core_db
+--
+
+CREATE TABLE core.census_runs (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    snapshot boolean DEFAULT false NOT NULL,
+    baseline_name text,
+    status text DEFAULT 'pending'::text NOT NULL,
+    requested_by text NOT NULL,
+    requested_at timestamp with time zone DEFAULT now() NOT NULL,
+    started_at timestamp with time zone,
+    finished_at timestamp with time zone,
+    result jsonb,
+    error text
+);
+
+
+ALTER TABLE core.census_runs OWNER TO core_db;
 
 --
 -- Name: cli_commands; Type: TABLE; Schema: core; Owner: core_db
@@ -1081,17 +1005,78 @@ COMMENT ON COLUMN core.cli_commands.help_text IS 'Extended help text with exampl
 CREATE TABLE core.cognitive_roles (
     role text NOT NULL,
     description text,
-    assigned_resource text,
     required_capabilities jsonb DEFAULT '[]'::jsonb,
     max_concurrent_tasks integer DEFAULT 1,
     specialization jsonb,
     is_active boolean DEFAULT true,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
+    operating_mode text,
+    CONSTRAINT cognitive_roles_operating_mode_check CHECK (((operating_mode IS NULL) OR (operating_mode = ANY (ARRAY['local_only'::text, 'remote_only'::text, 'hybrid'::text])))),
     CONSTRAINT cognitive_roles_required_capabilities_check CHECK ((jsonb_typeof(required_capabilities) = 'array'::text))
 );
 
 
 ALTER TABLE core.cognitive_roles OWNER TO core_db;
+
+--
+-- Name: coherence_candidates; Type: TABLE; Schema: core; Owner: core_db
+--
+
+CREATE TABLE core.coherence_candidates (
+    candidate_id uuid DEFAULT gen_random_uuid() NOT NULL,
+    run_id uuid NOT NULL,
+    relation text NOT NULL,
+    documents jsonb DEFAULT '[]'::jsonb NOT NULL,
+    claim text NOT NULL,
+    rationale text NOT NULL,
+    triage_decision text DEFAULT 'unreviewed'::text NOT NULL,
+    triage_note text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    triaged_at timestamp with time zone,
+    CONSTRAINT coherence_candidates_relation_check CHECK ((relation = ANY (ARRAY['R1_SCOPED'::text, 'SAMECONCERN'::text, 'ROW2_GROUNDING'::text, 'ROW3_CITATION'::text, 'ROW4_NAMING'::text, 'SPECGAP'::text, 'VOCABULARY'::text, 'R1'::text, 'R2'::text, 'R3'::text, 'R4'::text]))),
+    CONSTRAINT coherence_candidates_triage_decision_check CHECK ((triage_decision = ANY (ARRAY['unreviewed'::text, 'confirmed'::text, 'dismissed'::text, 'deferred'::text])))
+);
+
+
+ALTER TABLE core.coherence_candidates OWNER TO core_db;
+
+--
+-- Name: coherence_runs; Type: TABLE; Schema: core; Owner: core_db
+--
+
+CREATE TABLE core.coherence_runs (
+    run_id uuid DEFAULT gen_random_uuid() NOT NULL,
+    run_at timestamp with time zone DEFAULT now() NOT NULL,
+    trigger text NOT NULL,
+    run_status text DEFAULT 'open'::text NOT NULL,
+    input_manifest jsonb DEFAULT '[]'::jsonb NOT NULL,
+    candidate_count integer DEFAULT 0 NOT NULL,
+    unreviewed_count integer DEFAULT 0 NOT NULL,
+    CONSTRAINT coherence_runs_run_status_check CHECK ((run_status = ANY (ARRAY['open'::text, 'closed'::text]))),
+    CONSTRAINT coherence_runs_trigger_check CHECK ((trigger = ANY (ARRAY['manual'::text, 'adr_added'::text, 'northstar_changed'::text])))
+);
+
+
+ALTER TABLE core.coherence_runs OWNER TO core_db;
+
+--
+-- Name: config_migration_log; Type: TABLE; Schema: core; Owner: core_db
+--
+
+CREATE TABLE core.config_migration_log (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    env_key text NOT NULL,
+    source text NOT NULL,
+    destination_table text NOT NULL,
+    destination_column text NOT NULL,
+    imported_at timestamp with time zone NOT NULL,
+    migrated_at timestamp with time zone,
+    migrated_by text NOT NULL,
+    CONSTRAINT config_migration_log_source_check CHECK ((source = ANY (ARRAY['dotenv'::text, 'runtime_settings'::text])))
+);
+
+
+ALTER TABLE core.config_migration_log OWNER TO core_db;
 
 --
 -- Name: constitutional_violations; Type: TABLE; Schema: core; Owner: core_db
@@ -1253,6 +1238,27 @@ COMMENT ON COLUMN core.context_packets.metadata IS 'Extensible metadata (provena
 
 COMMENT ON COLUMN core.context_packets.builder_version IS 'Version of ContextBuilder that created packet';
 
+
+--
+-- Name: coverage_runs; Type: TABLE; Schema: core; Owner: core_db
+--
+
+CREATE TABLE core.coverage_runs (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    target_file text,
+    batch_priority text,
+    write boolean DEFAULT false NOT NULL,
+    status text DEFAULT 'pending'::text NOT NULL,
+    requested_by text NOT NULL,
+    requested_at timestamp with time zone DEFAULT now() NOT NULL,
+    started_at timestamp with time zone,
+    finished_at timestamp with time zone,
+    result jsonb,
+    error text
+);
+
+
+ALTER TABLE core.coverage_runs OWNER TO core_db;
 
 --
 -- Name: crawl_runs; Type: TABLE; Schema: core; Owner: core_db
@@ -1533,6 +1539,28 @@ CREATE TABLE core.feedback (
 ALTER TABLE core.feedback OWNER TO core_db;
 
 --
+-- Name: fix_runs; Type: TABLE; Schema: core; Owner: core_db
+--
+
+CREATE TABLE core.fix_runs (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    kind text NOT NULL,
+    fix_id text,
+    target_files jsonb,
+    write boolean NOT NULL,
+    status text DEFAULT 'pending'::text NOT NULL,
+    requested_by text NOT NULL,
+    requested_at timestamp with time zone DEFAULT now() NOT NULL,
+    started_at timestamp with time zone,
+    finished_at timestamp with time zone,
+    result jsonb,
+    error text
+);
+
+
+ALTER TABLE core.fix_runs OWNER TO core_db;
+
+--
 -- Name: symbol_capability_links; Type: TABLE; Schema: core; Owner: core_db
 --
 
@@ -1656,6 +1684,95 @@ CREATE VIEW core.knowledge_graph AS
 ALTER VIEW core.knowledge_graph OWNER TO lira_user;
 
 --
+-- Name: llm_exchange_log; Type: TABLE; Schema: core; Owner: core_db
+--
+
+CREATE TABLE core.llm_exchange_log (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    resource_name text NOT NULL,
+    cognitive_role text NOT NULL,
+    task_id uuid,
+    prompt_tokens integer,
+    completion_tokens integer,
+    duration_ms integer,
+    model_snapshot text NOT NULL,
+    cost_estimate numeric(10,6),
+    privacy_level text DEFAULT 'standard'::text NOT NULL,
+    redacted boolean DEFAULT false NOT NULL,
+    ts timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT llm_exchange_log_privacy_check CHECK ((privacy_level = ANY (ARRAY['standard'::text, 'restricted'::text, 'redacted'::text])))
+)
+PARTITION BY RANGE (ts);
+
+
+ALTER TABLE core.llm_exchange_log OWNER TO core_db;
+
+--
+-- Name: llm_exchange_log_2026_05; Type: TABLE; Schema: core; Owner: core_db
+--
+
+CREATE TABLE core.llm_exchange_log_2026_05 (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    resource_name text NOT NULL,
+    cognitive_role text NOT NULL,
+    task_id uuid,
+    prompt_tokens integer,
+    completion_tokens integer,
+    duration_ms integer,
+    model_snapshot text NOT NULL,
+    cost_estimate numeric(10,6),
+    privacy_level text DEFAULT 'standard'::text NOT NULL,
+    redacted boolean DEFAULT false NOT NULL,
+    ts timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT llm_exchange_log_privacy_check CHECK ((privacy_level = ANY (ARRAY['standard'::text, 'restricted'::text, 'redacted'::text])))
+);
+
+
+ALTER TABLE core.llm_exchange_log_2026_05 OWNER TO core_db;
+
+--
+-- Name: llm_exchange_log_2026_06; Type: TABLE; Schema: core; Owner: core_db
+--
+
+CREATE TABLE core.llm_exchange_log_2026_06 (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    resource_name text NOT NULL,
+    cognitive_role text NOT NULL,
+    task_id uuid,
+    prompt_tokens integer,
+    completion_tokens integer,
+    duration_ms integer,
+    model_snapshot text NOT NULL,
+    cost_estimate numeric(10,6),
+    privacy_level text DEFAULT 'standard'::text NOT NULL,
+    redacted boolean DEFAULT false NOT NULL,
+    ts timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT llm_exchange_log_privacy_check CHECK ((privacy_level = ANY (ARRAY['standard'::text, 'restricted'::text, 'redacted'::text])))
+);
+
+
+ALTER TABLE core.llm_exchange_log_2026_06 OWNER TO core_db;
+
+--
+-- Name: llm_gate_verdicts; Type: TABLE; Schema: core; Owner: core_db
+--
+
+CREATE TABLE core.llm_gate_verdicts (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    rule_id text NOT NULL,
+    file_path text NOT NULL,
+    file_content_hash text NOT NULL,
+    rule_content_hash text NOT NULL,
+    verdict text NOT NULL,
+    findings_json jsonb NOT NULL,
+    evaluated_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT llm_gate_verdicts_verdict_chk CHECK ((verdict = ANY (ARRAY['PASS'::text, 'FAIL'::text, 'ERROR'::text])))
+);
+
+
+ALTER TABLE core.llm_gate_verdicts OWNER TO core_db;
+
+--
 -- Name: llm_resources; Type: TABLE; Schema: core; Owner: core_db
 --
 
@@ -1666,11 +1783,44 @@ CREATE TABLE core.llm_resources (
     performance_metadata jsonb,
     is_available boolean DEFAULT true,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
+    model_name text,
+    api_url text,
+    locality text DEFAULT 'local'::text NOT NULL,
+    max_concurrent integer DEFAULT 1 NOT NULL,
+    rate_limit_seconds integer DEFAULT 0 NOT NULL,
+    retry_attempts integer DEFAULT 0 NOT NULL,
+    retry_backoff_seconds integer DEFAULT 5 NOT NULL,
+    cost_per_token numeric(12,8),
+    health_status text DEFAULT 'unknown'::text,
+    last_health_check_at timestamp with time zone,
+    registered_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT llm_resources_available_requires_model_name CHECK (((is_available = false) OR (model_name IS NOT NULL))),
+    CONSTRAINT llm_resources_health_status_check CHECK (((health_status IS NULL) OR (health_status = ANY (ARRAY['healthy'::text, 'degraded'::text, 'unavailable'::text, 'unknown'::text])))),
+    CONSTRAINT llm_resources_locality_check CHECK ((locality = ANY (ARRAY['local'::text, 'remote'::text]))),
     CONSTRAINT llm_resources_provided_capabilities_check CHECK ((jsonb_typeof(provided_capabilities) = 'array'::text))
 );
 
 
 ALTER TABLE core.llm_resources OWNER TO core_db;
+
+--
+-- Name: model_performance_results; Type: TABLE; Schema: core; Owner: core_db
+--
+
+CREATE TABLE core.model_performance_results (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    resource_name text NOT NULL,
+    test_id uuid NOT NULL,
+    score numeric(5,2) NOT NULL,
+    notes text,
+    triggered_by text NOT NULL,
+    evaluated_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT model_performance_results_score_check CHECK (((score >= (0)::numeric) AND (score <= (100)::numeric))),
+    CONSTRAINT model_performance_results_triggered_by_check CHECK ((triggered_by = ANY (ARRAY['registration'::text, 'manual'::text, 'scheduled'::text])))
+);
+
+
+ALTER TABLE core.model_performance_results OWNER TO core_db;
 
 --
 -- Name: mv_refresh_log; Type: TABLE; Schema: core; Owner: core_db
@@ -1948,6 +2098,26 @@ COMMENT ON TABLE core.proposal_consequences IS 'Consequence log: records what ea
 
 
 --
+-- Name: refactor_runs; Type: TABLE; Schema: core; Owner: core_db
+--
+
+CREATE TABLE core.refactor_runs (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    goal text NOT NULL,
+    write boolean DEFAULT false NOT NULL,
+    status text DEFAULT 'pending'::text NOT NULL,
+    requested_by text NOT NULL,
+    requested_at timestamp with time zone DEFAULT now() NOT NULL,
+    started_at timestamp with time zone,
+    finished_at timestamp with time zone,
+    result jsonb,
+    error text
+);
+
+
+ALTER TABLE core.refactor_runs OWNER TO core_db;
+
+--
 -- Name: refusals; Type: TABLE; Schema: core; Owner: core_db
 --
 
@@ -2129,6 +2299,22 @@ CREATE TABLE core.retrieval_feedback (
 ALTER TABLE core.retrieval_feedback OWNER TO core_db;
 
 --
+-- Name: role_resource_assignments; Type: TABLE; Schema: core; Owner: core_db
+--
+
+CREATE TABLE core.role_resource_assignments (
+    role text NOT NULL,
+    resource text NOT NULL,
+    priority integer NOT NULL,
+    is_active boolean DEFAULT true NOT NULL,
+    assigned_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT role_resource_assignments_priority_check CHECK ((priority >= 1))
+);
+
+
+ALTER TABLE core.role_resource_assignments OWNER TO core_db;
+
+--
 -- Name: runtime_services; Type: TABLE; Schema: core; Owner: core_db
 --
 
@@ -2169,6 +2355,21 @@ COMMENT ON TABLE core.runtime_settings IS 'Single source of truth for runtime co
 
 COMMENT ON COLUMN core.runtime_settings.is_secret IS 'If true, the value should be handled with care.';
 
+
+--
+-- Name: secret_store; Type: TABLE; Schema: core; Owner: core_db
+--
+
+CREATE TABLE core.secret_store (
+    key text NOT NULL,
+    resource_name text,
+    value text NOT NULL,
+    last_rotated_at timestamp with time zone,
+    created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+ALTER TABLE core.secret_store OWNER TO core_db;
 
 --
 -- Name: semantic_cache; Type: TABLE; Schema: core; Owner: core_db
@@ -2332,6 +2533,44 @@ ALTER SEQUENCE core.symbols_audit_audit_id_seq OWNED BY core.symbols_audit.audit
 
 
 --
+-- Name: sync_runs; Type: TABLE; Schema: core; Owner: core_db
+--
+
+CREATE TABLE core.sync_runs (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    sync_type text NOT NULL,
+    write boolean DEFAULT false NOT NULL,
+    target text,
+    status text DEFAULT 'pending'::text NOT NULL,
+    requested_by text NOT NULL,
+    requested_at timestamp with time zone DEFAULT now() NOT NULL,
+    started_at timestamp with time zone,
+    finished_at timestamp with time zone,
+    result jsonb,
+    error text
+);
+
+
+ALTER TABLE core.sync_runs OWNER TO core_db;
+
+--
+-- Name: system_config; Type: TABLE; Schema: core; Owner: core_db
+--
+
+CREATE TABLE core.system_config (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    operating_mode text DEFAULT 'local_only'::text NOT NULL,
+    llm_enabled boolean DEFAULT true NOT NULL,
+    request_timeout_seconds integer DEFAULT 300 NOT NULL,
+    embed_model_revision text,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT system_config_operating_mode_check CHECK ((operating_mode = ANY (ARRAY['local_only'::text, 'remote_only'::text, 'hybrid'::text])))
+);
+
+
+ALTER TABLE core.system_config OWNER TO core_db;
+
+--
 -- Name: system_health_log; Type: TABLE; Schema: core; Owner: core_db
 --
 
@@ -2426,7 +2665,7 @@ CREATE VIEW core.v_agent_context AS
 ALTER VIEW core.v_agent_context OWNER TO lira_user;
 
 --
--- Name: v_agent_workload; Type: VIEW; Schema: core; Owner: lira_user
+-- Name: v_agent_workload; Type: VIEW; Schema: core; Owner: core_db
 --
 
 CREATE VIEW core.v_agent_workload AS
@@ -2437,14 +2676,18 @@ CREATE VIEW core.v_agent_workload AS
     count(t.id) FILTER (WHERE (t.status = 'blocked'::text)) AS blocked_tasks,
     cr.max_concurrent_tasks,
     (cr.max_concurrent_tasks - count(t.id) FILTER (WHERE (t.status = 'executing'::text))) AS available_slots,
-    cr.assigned_resource
+    ( SELECT rra.resource
+           FROM core.role_resource_assignments rra
+          WHERE ((rra.role = cr.role) AND (rra.is_active = true))
+          ORDER BY rra.priority
+         LIMIT 1) AS assigned_resource
    FROM (core.cognitive_roles cr
      LEFT JOIN core.tasks t ON (((t.assigned_role = cr.role) AND (t.status = ANY (ARRAY['pending'::text, 'executing'::text, 'blocked'::text])))))
-  GROUP BY cr.role, cr.is_active, cr.max_concurrent_tasks, cr.assigned_resource
+  GROUP BY cr.role, cr.is_active, cr.max_concurrent_tasks
   ORDER BY cr.role;
 
 
-ALTER VIEW core.v_agent_workload OWNER TO lira_user;
+ALTER VIEW core.v_agent_workload OWNER TO core_db;
 
 --
 -- Name: v_observability_action_health; Type: VIEW; Schema: core; Owner: lira_user
@@ -2762,7 +3005,8 @@ CREATE TABLE core.worker_registry (
     worker_class text NOT NULL,
     phase text NOT NULL,
     declared_at timestamp with time zone DEFAULT now() NOT NULL,
-    last_heartbeat timestamp with time zone DEFAULT now() NOT NULL
+    last_heartbeat timestamp with time zone DEFAULT now() NOT NULL,
+    declaration_name text
 );
 
 
@@ -2773,6 +3017,27 @@ ALTER TABLE core.worker_registry OWNER TO core_db;
 --
 
 COMMENT ON TABLE core.worker_registry IS 'Constitutional identity register. Workers declare here on startup. Proposals without a valid registration are rejected.';
+
+
+--
+-- Name: COLUMN worker_registry.declaration_name; Type: COMMENT; Schema: core; Owner: core_db
+--
+
+COMMENT ON COLUMN core.worker_registry.declaration_name IS 'YAML declaration stem (e.g. ''repo_crawler'') — distinct from worker_name which stores the metadata.title display value (e.g. ''Repo Crawler''). Used by representation_coherence_service to look up the sensor worker declared in .intent/governance/projections.yaml.';
+
+
+--
+-- Name: llm_exchange_log_2026_05; Type: TABLE ATTACH; Schema: core; Owner: core_db
+--
+
+ALTER TABLE ONLY core.llm_exchange_log ATTACH PARTITION core.llm_exchange_log_2026_05 FOR VALUES FROM ('2026-05-01 00:00:00+00') TO ('2026-06-01 00:00:00+00');
+
+
+--
+-- Name: llm_exchange_log_2026_06; Type: TABLE ATTACH; Schema: core; Owner: core_db
+--
+
+ALTER TABLE ONLY core.llm_exchange_log ATTACH PARTITION core.llm_exchange_log_2026_06 FOR VALUES FROM ('2026-06-01 00:00:00+00') TO ('2026-07-01 00:00:00+00');
 
 
 --
@@ -2875,38 +3140,6 @@ ALTER TABLE ONLY core.audit_findings
 
 
 --
--- Name: audit_runs audit_runs_pkey; Type: CONSTRAINT; Schema: core; Owner: core_db
---
-
-ALTER TABLE ONLY core.audit_runs
-    ADD CONSTRAINT audit_runs_pkey PRIMARY KEY (run_id);
-
-
---
--- Name: fix_runs fix_runs_pkey; Type: CONSTRAINT; Schema: core; Owner: core_db
---
-
-ALTER TABLE ONLY core.fix_runs
-    ADD CONSTRAINT fix_runs_pkey PRIMARY KEY (id);
-
-
---
--- Name: coverage_runs coverage_runs_pkey; Type: CONSTRAINT; Schema: core; Owner: core_db
---
-
-ALTER TABLE ONLY core.coverage_runs
-    ADD CONSTRAINT coverage_runs_pkey PRIMARY KEY (id);
-
-
---
--- Name: refactor_runs refactor_runs_pkey; Type: CONSTRAINT; Schema: core; Owner: core_db
---
-
-ALTER TABLE ONLY core.refactor_runs
-    ADD CONSTRAINT refactor_runs_pkey PRIMARY KEY (id);
-
-
---
 -- Name: audit_remediation_runs audit_remediation_runs_pkey; Type: CONSTRAINT; Schema: core; Owner: core_db
 --
 
@@ -2915,28 +3148,19 @@ ALTER TABLE ONLY core.audit_remediation_runs
 
 
 --
--- Name: audit_remediation_runs audit_remediation_runs_audit_run_id_fkey; Type: FK CONSTRAINT; Schema: core; Owner: core_db
+-- Name: audit_run_resources audit_run_resources_pkey; Type: CONSTRAINT; Schema: core; Owner: core_db
 --
 
-ALTER TABLE ONLY core.audit_remediation_runs
-    ADD CONSTRAINT audit_remediation_runs_audit_run_id_fkey
-        FOREIGN KEY (audit_run_id) REFERENCES core.audit_runs(run_id);
-
-
---
--- Name: census_runs census_runs_pkey; Type: CONSTRAINT; Schema: core; Owner: core_db
---
-
-ALTER TABLE ONLY core.census_runs
-    ADD CONSTRAINT census_runs_pkey PRIMARY KEY (id);
+ALTER TABLE ONLY core.audit_run_resources
+    ADD CONSTRAINT audit_run_resources_pkey PRIMARY KEY (run_id);
 
 
 --
--- Name: sync_runs sync_runs_pkey; Type: CONSTRAINT; Schema: core; Owner: core_db
+-- Name: audit_runs audit_runs_pkey; Type: CONSTRAINT; Schema: core; Owner: core_db
 --
 
-ALTER TABLE ONLY core.sync_runs
-    ADD CONSTRAINT sync_runs_pkey PRIMARY KEY (id);
+ALTER TABLE ONLY core.audit_runs
+    ADD CONSTRAINT audit_runs_pkey PRIMARY KEY (run_id);
 
 
 --
@@ -2980,11 +3204,35 @@ ALTER TABLE ONLY core.capabilities
 
 
 --
+-- Name: capability_alignment_tests capability_alignment_tests_name_key; Type: CONSTRAINT; Schema: core; Owner: core_db
+--
+
+ALTER TABLE ONLY core.capability_alignment_tests
+    ADD CONSTRAINT capability_alignment_tests_name_key UNIQUE (name);
+
+
+--
+-- Name: capability_alignment_tests capability_alignment_tests_pkey; Type: CONSTRAINT; Schema: core; Owner: core_db
+--
+
+ALTER TABLE ONLY core.capability_alignment_tests
+    ADD CONSTRAINT capability_alignment_tests_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: capability_cli_links capability_cli_links_pkey; Type: CONSTRAINT; Schema: core; Owner: core_db
 --
 
 ALTER TABLE ONLY core.capability_cli_links
     ADD CONSTRAINT capability_cli_links_pkey PRIMARY KEY (capability_id, cli_command_name);
+
+
+--
+-- Name: census_runs census_runs_pkey; Type: CONSTRAINT; Schema: core; Owner: core_db
+--
+
+ALTER TABLE ONLY core.census_runs
+    ADD CONSTRAINT census_runs_pkey PRIMARY KEY (id);
 
 
 --
@@ -3004,6 +3252,30 @@ ALTER TABLE ONLY core.cognitive_roles
 
 
 --
+-- Name: coherence_candidates coherence_candidates_pkey; Type: CONSTRAINT; Schema: core; Owner: core_db
+--
+
+ALTER TABLE ONLY core.coherence_candidates
+    ADD CONSTRAINT coherence_candidates_pkey PRIMARY KEY (candidate_id);
+
+
+--
+-- Name: coherence_runs coherence_runs_pkey; Type: CONSTRAINT; Schema: core; Owner: core_db
+--
+
+ALTER TABLE ONLY core.coherence_runs
+    ADD CONSTRAINT coherence_runs_pkey PRIMARY KEY (run_id);
+
+
+--
+-- Name: config_migration_log config_migration_log_pkey; Type: CONSTRAINT; Schema: core; Owner: core_db
+--
+
+ALTER TABLE ONLY core.config_migration_log
+    ADD CONSTRAINT config_migration_log_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: constitutional_violations constitutional_violations_pkey; Type: CONSTRAINT; Schema: core; Owner: core_db
 --
 
@@ -3017,6 +3289,14 @@ ALTER TABLE ONLY core.constitutional_violations
 
 ALTER TABLE ONLY core.context_packets
     ADD CONSTRAINT context_packets_pkey PRIMARY KEY (packet_id);
+
+
+--
+-- Name: coverage_runs coverage_runs_pkey; Type: CONSTRAINT; Schema: core; Owner: core_db
+--
+
+ALTER TABLE ONLY core.coverage_runs
+    ADD CONSTRAINT coverage_runs_pkey PRIMARY KEY (id);
 
 
 --
@@ -3108,6 +3388,54 @@ ALTER TABLE ONLY core.feedback
 
 
 --
+-- Name: fix_runs fix_runs_pkey; Type: CONSTRAINT; Schema: core; Owner: core_db
+--
+
+ALTER TABLE ONLY core.fix_runs
+    ADD CONSTRAINT fix_runs_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: llm_exchange_log llm_exchange_log_pkey; Type: CONSTRAINT; Schema: core; Owner: core_db
+--
+
+ALTER TABLE ONLY core.llm_exchange_log
+    ADD CONSTRAINT llm_exchange_log_pkey PRIMARY KEY (id, ts);
+
+
+--
+-- Name: llm_exchange_log_2026_05 llm_exchange_log_2026_05_pkey; Type: CONSTRAINT; Schema: core; Owner: core_db
+--
+
+ALTER TABLE ONLY core.llm_exchange_log_2026_05
+    ADD CONSTRAINT llm_exchange_log_2026_05_pkey PRIMARY KEY (id, ts);
+
+
+--
+-- Name: llm_exchange_log_2026_06 llm_exchange_log_2026_06_pkey; Type: CONSTRAINT; Schema: core; Owner: core_db
+--
+
+ALTER TABLE ONLY core.llm_exchange_log_2026_06
+    ADD CONSTRAINT llm_exchange_log_2026_06_pkey PRIMARY KEY (id, ts);
+
+
+--
+-- Name: llm_gate_verdicts llm_gate_verdicts_cache_key_unique; Type: CONSTRAINT; Schema: core; Owner: core_db
+--
+
+ALTER TABLE ONLY core.llm_gate_verdicts
+    ADD CONSTRAINT llm_gate_verdicts_cache_key_unique UNIQUE (rule_id, file_path, file_content_hash, rule_content_hash);
+
+
+--
+-- Name: llm_gate_verdicts llm_gate_verdicts_pkey; Type: CONSTRAINT; Schema: core; Owner: core_db
+--
+
+ALTER TABLE ONLY core.llm_gate_verdicts
+    ADD CONSTRAINT llm_gate_verdicts_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: llm_resources llm_resources_env_prefix_key; Type: CONSTRAINT; Schema: core; Owner: core_db
 --
 
@@ -3129,6 +3457,14 @@ ALTER TABLE ONLY core.llm_resources
 
 ALTER TABLE ONLY core.observability_metrics
     ADD CONSTRAINT metrics_unique_point UNIQUE ("timestamp", metric_name, tags);
+
+
+--
+-- Name: model_performance_results model_performance_results_pkey; Type: CONSTRAINT; Schema: core; Owner: core_db
+--
+
+ALTER TABLE ONLY core.model_performance_results
+    ADD CONSTRAINT model_performance_results_pkey PRIMARY KEY (id);
 
 
 --
@@ -3188,6 +3524,14 @@ ALTER TABLE ONLY core.proposal_consequences
 
 
 --
+-- Name: refactor_runs refactor_runs_pkey; Type: CONSTRAINT; Schema: core; Owner: core_db
+--
+
+ALTER TABLE ONLY core.refactor_runs
+    ADD CONSTRAINT refactor_runs_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: refusals refusals_pkey; Type: CONSTRAINT; Schema: core; Owner: core_db
 --
 
@@ -3220,6 +3564,14 @@ ALTER TABLE ONLY core.retrieval_feedback
 
 
 --
+-- Name: role_resource_assignments role_resource_assignments_pkey; Type: CONSTRAINT; Schema: core; Owner: core_db
+--
+
+ALTER TABLE ONLY core.role_resource_assignments
+    ADD CONSTRAINT role_resource_assignments_pkey PRIMARY KEY (role, resource);
+
+
+--
 -- Name: runtime_services runtime_services_implementation_key; Type: CONSTRAINT; Schema: core; Owner: core_db
 --
 
@@ -3241,6 +3593,14 @@ ALTER TABLE ONLY core.runtime_services
 
 ALTER TABLE ONLY core.runtime_settings
     ADD CONSTRAINT runtime_settings_pkey PRIMARY KEY (key);
+
+
+--
+-- Name: secret_store secret_store_pkey; Type: CONSTRAINT; Schema: core; Owner: core_db
+--
+
+ALTER TABLE ONLY core.secret_store
+    ADD CONSTRAINT secret_store_pkey PRIMARY KEY (key);
 
 
 --
@@ -3324,6 +3684,22 @@ ALTER TABLE ONLY core.symbols
 
 
 --
+-- Name: sync_runs sync_runs_pkey; Type: CONSTRAINT; Schema: core; Owner: core_db
+--
+
+ALTER TABLE ONLY core.sync_runs
+    ADD CONSTRAINT sync_runs_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: system_config system_config_pkey; Type: CONSTRAINT; Schema: core; Owner: core_db
+--
+
+ALTER TABLE ONLY core.system_config
+    ADD CONSTRAINT system_config_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: system_health_log system_health_log_pkey; Type: CONSTRAINT; Schema: core; Owner: core_db
 --
 
@@ -3392,10 +3768,87 @@ CREATE INDEX artifact_symbol_links_symbol_idx ON core.artifact_symbol_links USIN
 
 
 --
+-- Name: audit_remediation_runs_audit_run_id_idx; Type: INDEX; Schema: core; Owner: core_db
+--
+
+CREATE INDEX audit_remediation_runs_audit_run_id_idx ON core.audit_remediation_runs USING btree (audit_run_id);
+
+
+--
+-- Name: audit_remediation_runs_requested_at_idx; Type: INDEX; Schema: core; Owner: core_db
+--
+
+CREATE INDEX audit_remediation_runs_requested_at_idx ON core.audit_remediation_runs USING btree (requested_at DESC);
+
+
+--
+-- Name: audit_remediation_runs_status_idx; Type: INDEX; Schema: core; Owner: core_db
+--
+
+CREATE INDEX audit_remediation_runs_status_idx ON core.audit_remediation_runs USING btree (status);
+
+
+--
+-- Name: audit_run_resources_created_at_idx; Type: INDEX; Schema: core; Owner: core_db
+--
+
+CREATE INDEX audit_run_resources_created_at_idx ON core.audit_run_resources USING btree (created_at DESC);
+
+
+--
+-- Name: audit_run_resources_status_idx; Type: INDEX; Schema: core; Owner: core_db
+--
+
+CREATE INDEX audit_run_resources_status_idx ON core.audit_run_resources USING btree (status);
+
+
+--
 -- Name: autonomous_proposals_executing_once; Type: INDEX; Schema: core; Owner: core_db
 --
 
 CREATE UNIQUE INDEX autonomous_proposals_executing_once ON core.autonomous_proposals USING btree (proposal_id) WHERE (status = 'executing'::text);
+
+
+--
+-- Name: census_runs_baseline_name_idx; Type: INDEX; Schema: core; Owner: core_db
+--
+
+CREATE INDEX census_runs_baseline_name_idx ON core.census_runs USING btree (baseline_name) WHERE (baseline_name IS NOT NULL);
+
+
+--
+-- Name: census_runs_requested_at_idx; Type: INDEX; Schema: core; Owner: core_db
+--
+
+CREATE INDEX census_runs_requested_at_idx ON core.census_runs USING btree (requested_at DESC);
+
+
+--
+-- Name: census_runs_status_idx; Type: INDEX; Schema: core; Owner: core_db
+--
+
+CREATE INDEX census_runs_status_idx ON core.census_runs USING btree (status);
+
+
+--
+-- Name: config_migration_log_pending_idx; Type: INDEX; Schema: core; Owner: core_db
+--
+
+CREATE INDEX config_migration_log_pending_idx ON core.config_migration_log USING btree (env_key) WHERE (migrated_at IS NULL);
+
+
+--
+-- Name: coverage_runs_requested_at_idx; Type: INDEX; Schema: core; Owner: core_db
+--
+
+CREATE INDEX coverage_runs_requested_at_idx ON core.coverage_runs USING btree (requested_at DESC);
+
+
+--
+-- Name: coverage_runs_status_idx; Type: INDEX; Schema: core; Owner: core_db
+--
+
+CREATE INDEX coverage_runs_status_idx ON core.coverage_runs USING btree (status);
 
 
 --
@@ -3410,6 +3863,27 @@ CREATE INDEX crawl_runs_started_idx ON core.crawl_runs USING btree (started_at D
 --
 
 CREATE INDEX crawl_runs_status_idx ON core.crawl_runs USING btree (status);
+
+
+--
+-- Name: fix_runs_kind_idx; Type: INDEX; Schema: core; Owner: core_db
+--
+
+CREATE INDEX fix_runs_kind_idx ON core.fix_runs USING btree (kind);
+
+
+--
+-- Name: fix_runs_requested_at_idx; Type: INDEX; Schema: core; Owner: core_db
+--
+
+CREATE INDEX fix_runs_requested_at_idx ON core.fix_runs USING btree (requested_at DESC);
+
+
+--
+-- Name: fix_runs_status_idx; Type: INDEX; Schema: core; Owner: core_db
+--
+
+CREATE INDEX fix_runs_status_idx ON core.fix_runs USING btree (status);
 
 
 --
@@ -3525,13 +3999,6 @@ CREATE INDEX idx_audit_findings_severity ON core.audit_findings USING btree (sev
 
 
 --
--- Name: idx_audit_runs_verdict; Type: INDEX; Schema: core; Owner: core_db
---
-
-CREATE INDEX idx_audit_runs_verdict ON core.audit_runs USING btree (verdict, started_at DESC);
-
-
---
 -- Name: idx_audit_runs_status; Type: INDEX; Schema: core; Owner: core_db
 --
 
@@ -3539,115 +4006,10 @@ CREATE INDEX idx_audit_runs_status ON core.audit_runs USING btree (status);
 
 
 --
--- Name: fix_runs_requested_at_idx; Type: INDEX; Schema: core; Owner: core_db
+-- Name: idx_audit_runs_verdict; Type: INDEX; Schema: core; Owner: core_db
 --
 
-CREATE INDEX fix_runs_requested_at_idx ON core.fix_runs USING btree (requested_at DESC);
-
-
---
--- Name: fix_runs_status_idx; Type: INDEX; Schema: core; Owner: core_db
---
-
-CREATE INDEX fix_runs_status_idx ON core.fix_runs USING btree (status);
-
-
---
--- Name: fix_runs_kind_idx; Type: INDEX; Schema: core; Owner: core_db
---
-
-CREATE INDEX fix_runs_kind_idx ON core.fix_runs USING btree (kind);
-
-
---
--- Name: coverage_runs_requested_at_idx; Type: INDEX; Schema: core; Owner: core_db
---
-
-CREATE INDEX coverage_runs_requested_at_idx ON core.coverage_runs USING btree (requested_at DESC);
-
-
---
--- Name: coverage_runs_status_idx; Type: INDEX; Schema: core; Owner: core_db
---
-
-CREATE INDEX coverage_runs_status_idx ON core.coverage_runs USING btree (status);
-
-
---
--- Name: refactor_runs_requested_at_idx; Type: INDEX; Schema: core; Owner: core_db
---
-
-CREATE INDEX refactor_runs_requested_at_idx ON core.refactor_runs USING btree (requested_at DESC);
-
-
---
--- Name: refactor_runs_status_idx; Type: INDEX; Schema: core; Owner: core_db
---
-
-CREATE INDEX refactor_runs_status_idx ON core.refactor_runs USING btree (status);
-
-
---
--- Name: audit_remediation_runs_requested_at_idx; Type: INDEX; Schema: core; Owner: core_db
---
-
-CREATE INDEX audit_remediation_runs_requested_at_idx ON core.audit_remediation_runs USING btree (requested_at DESC);
-
-
---
--- Name: audit_remediation_runs_status_idx; Type: INDEX; Schema: core; Owner: core_db
---
-
-CREATE INDEX audit_remediation_runs_status_idx ON core.audit_remediation_runs USING btree (status);
-
-
---
--- Name: audit_remediation_runs_audit_run_id_idx; Type: INDEX; Schema: core; Owner: core_db
---
-
-CREATE INDEX audit_remediation_runs_audit_run_id_idx ON core.audit_remediation_runs USING btree (audit_run_id);
-
-
---
--- Name: census_runs_requested_at_idx; Type: INDEX; Schema: core; Owner: core_db
---
-
-CREATE INDEX census_runs_requested_at_idx ON core.census_runs USING btree (requested_at DESC);
-
-
---
--- Name: census_runs_status_idx; Type: INDEX; Schema: core; Owner: core_db
---
-
-CREATE INDEX census_runs_status_idx ON core.census_runs USING btree (status);
-
-
---
--- Name: census_runs_baseline_name_idx; Type: INDEX; Schema: core; Owner: core_db
---
-
-CREATE INDEX census_runs_baseline_name_idx ON core.census_runs USING btree (baseline_name) WHERE (baseline_name IS NOT NULL);
-
-
---
--- Name: sync_runs_requested_at_idx; Type: INDEX; Schema: core; Owner: core_db
---
-
-CREATE INDEX sync_runs_requested_at_idx ON core.sync_runs USING btree (requested_at DESC);
-
-
---
--- Name: sync_runs_status_idx; Type: INDEX; Schema: core; Owner: core_db
---
-
-CREATE INDEX sync_runs_status_idx ON core.sync_runs USING btree (status);
-
-
---
--- Name: sync_runs_sync_type_idx; Type: INDEX; Schema: core; Owner: core_db
---
-
-CREATE INDEX sync_runs_sync_type_idx ON core.sync_runs USING btree (sync_type);
+CREATE INDEX idx_audit_runs_verdict ON core.audit_runs USING btree (verdict, started_at DESC);
 
 
 --
@@ -3753,13 +4115,6 @@ CREATE INDEX idx_cli_commands_behavior ON core.cli_commands USING btree (behavio
 --
 
 CREATE INDEX idx_cli_commands_layer ON core.cli_commands USING btree (layer);
-
-
---
--- Name: idx_cognitive_roles_assigned_resource; Type: INDEX; Schema: core; Owner: core_db
---
-
-CREATE INDEX idx_cognitive_roles_assigned_resource ON core.cognitive_roles USING btree (assigned_resource);
 
 
 --
@@ -4393,6 +4748,13 @@ CREATE INDEX idx_violations_unresolved ON core.constitutional_violations USING b
 
 
 --
+-- Name: idx_worker_registry_declaration_name; Type: INDEX; Schema: core; Owner: core_db
+--
+
+CREATE INDEX idx_worker_registry_declaration_name ON core.worker_registry USING btree (declaration_name) WHERE (declaration_name IS NOT NULL);
+
+
+--
 -- Name: idx_worker_registry_uuid; Type: INDEX; Schema: core; Owner: core_db
 --
 
@@ -4435,10 +4797,108 @@ CREATE INDEX ix_autonomous_proposals_status ON core.autonomous_proposals USING b
 
 
 --
+-- Name: llm_exchange_log_role_ts_idx; Type: INDEX; Schema: core; Owner: core_db
+--
+
+CREATE INDEX llm_exchange_log_role_ts_idx ON ONLY core.llm_exchange_log USING btree (cognitive_role, ts DESC);
+
+
+--
+-- Name: llm_exchange_log_2026_05_cognitive_role_ts_idx; Type: INDEX; Schema: core; Owner: core_db
+--
+
+CREATE INDEX llm_exchange_log_2026_05_cognitive_role_ts_idx ON core.llm_exchange_log_2026_05 USING btree (cognitive_role, ts DESC);
+
+
+--
+-- Name: llm_exchange_log_resource_ts_idx; Type: INDEX; Schema: core; Owner: core_db
+--
+
+CREATE INDEX llm_exchange_log_resource_ts_idx ON ONLY core.llm_exchange_log USING btree (resource_name, ts DESC);
+
+
+--
+-- Name: llm_exchange_log_2026_05_resource_name_ts_idx; Type: INDEX; Schema: core; Owner: core_db
+--
+
+CREATE INDEX llm_exchange_log_2026_05_resource_name_ts_idx ON core.llm_exchange_log_2026_05 USING btree (resource_name, ts DESC);
+
+
+--
+-- Name: llm_exchange_log_task_idx; Type: INDEX; Schema: core; Owner: core_db
+--
+
+CREATE INDEX llm_exchange_log_task_idx ON ONLY core.llm_exchange_log USING btree (task_id);
+
+
+--
+-- Name: llm_exchange_log_2026_05_task_id_idx; Type: INDEX; Schema: core; Owner: core_db
+--
+
+CREATE INDEX llm_exchange_log_2026_05_task_id_idx ON core.llm_exchange_log_2026_05 USING btree (task_id);
+
+
+--
+-- Name: llm_exchange_log_2026_06_cognitive_role_ts_idx; Type: INDEX; Schema: core; Owner: core_db
+--
+
+CREATE INDEX llm_exchange_log_2026_06_cognitive_role_ts_idx ON core.llm_exchange_log_2026_06 USING btree (cognitive_role, ts DESC);
+
+
+--
+-- Name: llm_exchange_log_2026_06_resource_name_ts_idx; Type: INDEX; Schema: core; Owner: core_db
+--
+
+CREATE INDEX llm_exchange_log_2026_06_resource_name_ts_idx ON core.llm_exchange_log_2026_06 USING btree (resource_name, ts DESC);
+
+
+--
+-- Name: llm_exchange_log_2026_06_task_id_idx; Type: INDEX; Schema: core; Owner: core_db
+--
+
+CREATE INDEX llm_exchange_log_2026_06_task_id_idx ON core.llm_exchange_log_2026_06 USING btree (task_id);
+
+
+--
+-- Name: llm_gate_verdicts_rule_file_idx; Type: INDEX; Schema: core; Owner: core_db
+--
+
+CREATE INDEX llm_gate_verdicts_rule_file_idx ON core.llm_gate_verdicts USING btree (rule_id, file_path);
+
+
+--
+-- Name: model_performance_results_registration_unique_idx; Type: INDEX; Schema: core; Owner: core_db
+--
+
+CREATE UNIQUE INDEX model_performance_results_registration_unique_idx ON core.model_performance_results USING btree (resource_name, test_id) WHERE (triggered_by = 'registration'::text);
+
+
+--
+-- Name: model_performance_results_resource_evaluated_idx; Type: INDEX; Schema: core; Owner: core_db
+--
+
+CREATE INDEX model_performance_results_resource_evaluated_idx ON core.model_performance_results USING btree (resource_name, evaluated_at DESC);
+
+
+--
 -- Name: public_core_symbols_staging_symbol_path_idx; Type: INDEX; Schema: core; Owner: core_db
 --
 
 CREATE INDEX public_core_symbols_staging_symbol_path_idx ON core._staging_core_symbols USING btree (symbol_path);
+
+
+--
+-- Name: refactor_runs_requested_at_idx; Type: INDEX; Schema: core; Owner: core_db
+--
+
+CREATE INDEX refactor_runs_requested_at_idx ON core.refactor_runs USING btree (requested_at DESC);
+
+
+--
+-- Name: refactor_runs_status_idx; Type: INDEX; Schema: core; Owner: core_db
+--
+
+CREATE INDEX refactor_runs_status_idx ON core.refactor_runs USING btree (status);
 
 
 --
@@ -4467,6 +4927,13 @@ CREATE INDEX repo_artifacts_hash_idx ON core.repo_artifacts USING btree (content
 --
 
 CREATE INDEX repo_artifacts_type_idx ON core.repo_artifacts USING btree (artifact_type);
+
+
+--
+-- Name: role_resource_assignments_active_priority_idx; Type: INDEX; Schema: core; Owner: core_db
+--
+
+CREATE UNIQUE INDEX role_resource_assignments_active_priority_idx ON core.role_resource_assignments USING btree (role, priority) WHERE is_active;
 
 
 --
@@ -4502,6 +4969,83 @@ CREATE INDEX symbol_calls_cross_layer ON core.symbol_calls USING btree (is_cross
 --
 
 CREATE INDEX symbol_calls_kind_idx ON core.symbol_calls USING btree (edge_kind);
+
+
+--
+-- Name: sync_runs_requested_at_idx; Type: INDEX; Schema: core; Owner: core_db
+--
+
+CREATE INDEX sync_runs_requested_at_idx ON core.sync_runs USING btree (requested_at DESC);
+
+
+--
+-- Name: sync_runs_status_idx; Type: INDEX; Schema: core; Owner: core_db
+--
+
+CREATE INDEX sync_runs_status_idx ON core.sync_runs USING btree (status);
+
+
+--
+-- Name: sync_runs_sync_type_idx; Type: INDEX; Schema: core; Owner: core_db
+--
+
+CREATE INDEX sync_runs_sync_type_idx ON core.sync_runs USING btree (sync_type);
+
+
+--
+-- Name: llm_exchange_log_2026_05_cognitive_role_ts_idx; Type: INDEX ATTACH; Schema: core; Owner: core_db
+--
+
+ALTER INDEX core.llm_exchange_log_role_ts_idx ATTACH PARTITION core.llm_exchange_log_2026_05_cognitive_role_ts_idx;
+
+
+--
+-- Name: llm_exchange_log_2026_05_pkey; Type: INDEX ATTACH; Schema: core; Owner: core_db
+--
+
+ALTER INDEX core.llm_exchange_log_pkey ATTACH PARTITION core.llm_exchange_log_2026_05_pkey;
+
+
+--
+-- Name: llm_exchange_log_2026_05_resource_name_ts_idx; Type: INDEX ATTACH; Schema: core; Owner: core_db
+--
+
+ALTER INDEX core.llm_exchange_log_resource_ts_idx ATTACH PARTITION core.llm_exchange_log_2026_05_resource_name_ts_idx;
+
+
+--
+-- Name: llm_exchange_log_2026_05_task_id_idx; Type: INDEX ATTACH; Schema: core; Owner: core_db
+--
+
+ALTER INDEX core.llm_exchange_log_task_idx ATTACH PARTITION core.llm_exchange_log_2026_05_task_id_idx;
+
+
+--
+-- Name: llm_exchange_log_2026_06_cognitive_role_ts_idx; Type: INDEX ATTACH; Schema: core; Owner: core_db
+--
+
+ALTER INDEX core.llm_exchange_log_role_ts_idx ATTACH PARTITION core.llm_exchange_log_2026_06_cognitive_role_ts_idx;
+
+
+--
+-- Name: llm_exchange_log_2026_06_pkey; Type: INDEX ATTACH; Schema: core; Owner: core_db
+--
+
+ALTER INDEX core.llm_exchange_log_pkey ATTACH PARTITION core.llm_exchange_log_2026_06_pkey;
+
+
+--
+-- Name: llm_exchange_log_2026_06_resource_name_ts_idx; Type: INDEX ATTACH; Schema: core; Owner: core_db
+--
+
+ALTER INDEX core.llm_exchange_log_resource_ts_idx ATTACH PARTITION core.llm_exchange_log_2026_06_resource_name_ts_idx;
+
+
+--
+-- Name: llm_exchange_log_2026_06_task_id_idx; Type: INDEX ATTACH; Schema: core; Owner: core_db
+--
+
+ALTER INDEX core.llm_exchange_log_task_idx ATTACH PARTITION core.llm_exchange_log_2026_06_task_id_idx;
 
 
 --
@@ -4608,6 +5152,14 @@ ALTER TABLE ONLY core.artifact_symbol_links
 
 
 --
+-- Name: audit_remediation_runs audit_remediation_runs_audit_run_id_fkey; Type: FK CONSTRAINT; Schema: core; Owner: core_db
+--
+
+ALTER TABLE ONLY core.audit_remediation_runs
+    ADD CONSTRAINT audit_remediation_runs_audit_run_id_fkey FOREIGN KEY (audit_run_id) REFERENCES core.audit_runs(run_id);
+
+
+--
 -- Name: blackboard_entries blackboard_entries_worker_uuid_fkey; Type: FK CONSTRAINT; Schema: core; Owner: core_db
 --
 
@@ -4640,11 +5192,11 @@ ALTER TABLE ONLY core.capability_cli_links
 
 
 --
--- Name: cognitive_roles cognitive_roles_assigned_resource_fkey; Type: FK CONSTRAINT; Schema: core; Owner: core_db
+-- Name: coherence_candidates coherence_candidates_run_id_fkey; Type: FK CONSTRAINT; Schema: core; Owner: core_db
 --
 
-ALTER TABLE ONLY core.cognitive_roles
-    ADD CONSTRAINT cognitive_roles_assigned_resource_fkey FOREIGN KEY (assigned_resource) REFERENCES core.llm_resources(name);
+ALTER TABLE ONLY core.coherence_candidates
+    ADD CONSTRAINT coherence_candidates_run_id_fkey FOREIGN KEY (run_id) REFERENCES core.coherence_runs(run_id);
 
 
 --
@@ -4704,11 +5256,67 @@ ALTER TABLE ONLY core.actions
 
 
 --
+-- Name: agent_memory fk_agent_memory_cognitive_role; Type: FK CONSTRAINT; Schema: core; Owner: core_db
+--
+
+ALTER TABLE ONLY core.agent_memory
+    ADD CONSTRAINT fk_agent_memory_cognitive_role FOREIGN KEY (cognitive_role) REFERENCES core.cognitive_roles(role) ON UPDATE CASCADE ON DELETE RESTRICT;
+
+
+--
+-- Name: semantic_cache fk_semantic_cache_cognitive_role; Type: FK CONSTRAINT; Schema: core; Owner: core_db
+--
+
+ALTER TABLE ONLY core.semantic_cache
+    ADD CONSTRAINT fk_semantic_cache_cognitive_role FOREIGN KEY (cognitive_role) REFERENCES core.cognitive_roles(role) ON UPDATE CASCADE ON DELETE RESTRICT;
+
+
+--
 -- Name: symbols fk_symbols_domain; Type: FK CONSTRAINT; Schema: core; Owner: core_db
 --
 
 ALTER TABLE ONLY core.symbols
     ADD CONSTRAINT fk_symbols_domain FOREIGN KEY (domain) REFERENCES core.domains(key) ON UPDATE CASCADE ON DELETE SET DEFAULT;
+
+
+--
+-- Name: llm_exchange_log llm_exchange_log_resource_fkey; Type: FK CONSTRAINT; Schema: core; Owner: core_db
+--
+
+ALTER TABLE core.llm_exchange_log
+    ADD CONSTRAINT llm_exchange_log_resource_fkey FOREIGN KEY (resource_name) REFERENCES core.llm_resources(name) ON UPDATE CASCADE ON DELETE RESTRICT;
+
+
+--
+-- Name: llm_exchange_log llm_exchange_log_role_fkey; Type: FK CONSTRAINT; Schema: core; Owner: core_db
+--
+
+ALTER TABLE core.llm_exchange_log
+    ADD CONSTRAINT llm_exchange_log_role_fkey FOREIGN KEY (cognitive_role) REFERENCES core.cognitive_roles(role) ON UPDATE CASCADE ON DELETE RESTRICT;
+
+
+--
+-- Name: llm_exchange_log llm_exchange_log_task_fkey; Type: FK CONSTRAINT; Schema: core; Owner: core_db
+--
+
+ALTER TABLE core.llm_exchange_log
+    ADD CONSTRAINT llm_exchange_log_task_fkey FOREIGN KEY (task_id) REFERENCES core.tasks(id) ON DELETE SET NULL;
+
+
+--
+-- Name: model_performance_results model_performance_results_resource_fkey; Type: FK CONSTRAINT; Schema: core; Owner: core_db
+--
+
+ALTER TABLE ONLY core.model_performance_results
+    ADD CONSTRAINT model_performance_results_resource_fkey FOREIGN KEY (resource_name) REFERENCES core.llm_resources(name) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: model_performance_results model_performance_results_test_fkey; Type: FK CONSTRAINT; Schema: core; Owner: core_db
+--
+
+ALTER TABLE ONLY core.model_performance_results
+    ADD CONSTRAINT model_performance_results_test_fkey FOREIGN KEY (test_id) REFERENCES core.capability_alignment_tests(id) ON DELETE RESTRICT;
 
 
 --
@@ -4725,6 +5333,30 @@ ALTER TABLE ONLY core.proposal_consequences
 
 ALTER TABLE ONLY core.retrieval_feedback
     ADD CONSTRAINT retrieval_feedback_task_id_fkey FOREIGN KEY (task_id) REFERENCES core.tasks(id);
+
+
+--
+-- Name: role_resource_assignments role_resource_assignments_resource_fkey; Type: FK CONSTRAINT; Schema: core; Owner: core_db
+--
+
+ALTER TABLE ONLY core.role_resource_assignments
+    ADD CONSTRAINT role_resource_assignments_resource_fkey FOREIGN KEY (resource) REFERENCES core.llm_resources(name) ON UPDATE CASCADE ON DELETE RESTRICT;
+
+
+--
+-- Name: role_resource_assignments role_resource_assignments_role_fkey; Type: FK CONSTRAINT; Schema: core; Owner: core_db
+--
+
+ALTER TABLE ONLY core.role_resource_assignments
+    ADD CONSTRAINT role_resource_assignments_role_fkey FOREIGN KEY (role) REFERENCES core.cognitive_roles(role) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: secret_store secret_store_resource_name_fkey; Type: FK CONSTRAINT; Schema: core; Owner: core_db
+--
+
+ALTER TABLE ONLY core.secret_store
+    ADD CONSTRAINT secret_store_resource_name_fkey FOREIGN KEY (resource_name) REFERENCES core.llm_resources(name) ON UPDATE CASCADE ON DELETE SET NULL;
 
 
 --
@@ -4817,14 +5449,6 @@ CREATE POLICY settings_read_policy ON core.runtime_settings FOR SELECT USING (((
 --
 
 CREATE POLICY settings_write_policy ON core.runtime_settings USING ((CURRENT_USER = ANY (ARRAY['postgres'::name, 'admin'::name, 'core_db'::name])));
-
-
---
--- Name: SCHEMA public; Type: ACL; Schema: -; Owner: pg_database_owner
---
-
-GRANT ALL ON SCHEMA public TO lira_user;
-GRANT ALL ON SCHEMA public TO core;
 
 
 --
@@ -5007,48 +5631,6 @@ GRANT ALL ON TABLE core.audit_findings TO core;
 --
 
 GRANT ALL ON TABLE core.audit_runs TO core;
-
-
---
--- Name: TABLE fix_runs; Type: ACL; Schema: core; Owner: core_db
---
-
-GRANT ALL ON TABLE core.fix_runs TO core;
-
-
---
--- Name: TABLE coverage_runs; Type: ACL; Schema: core; Owner: core_db
---
-
-GRANT ALL ON TABLE core.coverage_runs TO core;
-
-
---
--- Name: TABLE refactor_runs; Type: ACL; Schema: core; Owner: core_db
---
-
-GRANT ALL ON TABLE core.refactor_runs TO core;
-
-
---
--- Name: TABLE audit_remediation_runs; Type: ACL; Schema: core; Owner: core_db
---
-
-GRANT ALL ON TABLE core.audit_remediation_runs TO core;
-
-
---
--- Name: TABLE census_runs; Type: ACL; Schema: core; Owner: core_db
---
-
-GRANT ALL ON TABLE core.census_runs TO core;
-
-
---
--- Name: TABLE sync_runs; Type: ACL; Schema: core; Owner: core_db
---
-
-GRANT ALL ON TABLE core.sync_runs TO core;
 
 
 --
@@ -5355,14 +5937,6 @@ GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE core.v_agent_context TO core_db;
 
 
 --
--- Name: TABLE v_agent_workload; Type: ACL; Schema: core; Owner: lira_user
---
-
-GRANT ALL ON TABLE core.v_agent_workload TO core;
-GRANT ALL ON TABLE core.v_agent_workload TO core_db;
-
-
---
 -- Name: TABLE v_observability_action_health; Type: ACL; Schema: core; Owner: lira_user
 --
 
@@ -5492,21 +6066,7 @@ ALTER DEFAULT PRIVILEGES FOR ROLE lira_user IN SCHEMA core GRANT SELECT,INSERT,D
 
 
 --
--- Name: DEFAULT PRIVILEGES FOR SEQUENCES; Type: DEFAULT ACL; Schema: -; Owner: lira_user
---
-
-ALTER DEFAULT PRIVILEGES FOR ROLE lira_user GRANT ALL ON SEQUENCES TO core;
-
-
---
--- Name: DEFAULT PRIVILEGES FOR TABLES; Type: DEFAULT ACL; Schema: -; Owner: lira_user
---
-
-ALTER DEFAULT PRIVILEGES FOR ROLE lira_user GRANT ALL ON TABLES TO core;
-
-
---
 -- PostgreSQL database dump complete
 --
 
-\unrestrict wHxVhw1QcWqbCpqQhz1d6KWrf54aUi0loGa53bOTDNrEIg7HStRYy3yS3apd8lP
+\unrestrict r1207jRvEJN9GzYrSH4yfBFFo9d6MBDsWuv6I0XvX9B79GzqEDFa0gDw21NrO62
