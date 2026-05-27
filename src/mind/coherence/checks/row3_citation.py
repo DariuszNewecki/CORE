@@ -22,6 +22,33 @@ from .base import CoherenceCandidate
 
 _HEADING = re.compile(r"^(#{1,3})\s+(.+?)\s*$", re.MULTILINE)
 _RULE_CITE = re.compile(r"\.intent/[\w\-.]+/[\w\-./*{}]+\.[a-z]+", re.IGNORECASE)
+_LEADING_NUMBERING = re.compile(r"^[\d.]+\s*")
+
+# Headings that legitimately use normative vocabulary about the paper's own
+# process (amendment mechanism, status lifecycle) rather than about runtime
+# behavior. ADR-049 D2's citation obligation does not apply — there is no
+# operational rule to cite. Definition sections are deliberately NOT in this
+# set; they carry rule-enforceable claims about the paper's subject.
+_BOILERPLATE_HEADINGS = frozenset(
+    {
+        "purpose",
+        "abstract",
+        "motivation",
+        "problem statement",
+        "the problem",
+        "alignment statement",
+        "conclusion",
+        "closing statement",
+        "summary",
+        "non-goals",
+        "relationship to other papers",
+        "amendment discipline",
+        "status: superseded",
+        "why it was superseded",
+        "constitutional identity",
+        "constitutional identity (historical)",
+    }
+)
 
 
 # ID: b70fb5d2-9de3-4575-b1b2-58f4c88cc147
@@ -49,6 +76,9 @@ class Row3CitationCheck:
             content = path.read_text(encoding="utf-8", errors="replace")
             rel = str(path.relative_to(self._repo_root))
             for heading, section_text in _iter_sections(content):
+                normalized = _LEADING_NUMBERING.sub("", heading).strip().lower()
+                if normalized in _BOILERPLATE_HEADINGS:
+                    continue
                 if not self._register.marker_pattern.search(section_text):
                     continue
                 if _RULE_CITE.search(section_text):
