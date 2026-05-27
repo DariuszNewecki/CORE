@@ -49,7 +49,7 @@ _SCOPE_DIRS: tuple[str, ...] = (
 )
 
 # Placeholder-content rejection pattern. var/prompts/docstring_writer/system.txt
-# rule #7 forbids TODO/FIXME/placeholder text; this is the post-generation
+# rule #7 forbids FUTURE/PENDING/placeholder text; this is the post-generation
 # enforcement that catches the case where the LLM disregards the rule. If the
 # pattern matches we skip the symbol — inserting placeholder content would land
 # a fresh `purity.no_todo_placeholders` violation and bounce the autonomous
@@ -207,7 +207,7 @@ async def _heal_file(
         if _PLACEHOLDER_PATTERN.search(new_doc):
             logger.warning(
                 "fix.docstrings: rejecting placeholder content for '%s' at "
-                "%s:%d (matched TODO/FIXME/placeholder).",
+                "%s:%d (matched FUTURE/PENDING/placeholder).",
                 node.name,
                 file_path,
                 node.lineno,
