@@ -102,3 +102,29 @@ class AIProvider(ABC):
                         when the provider exposes embedding token counts.
         """
         pass
+
+    # ID: 6f5d4b78-0a92-4a3f-9c50-bb3a4f0e7b21
+    async def get_embeddings_batch(
+        self,
+        texts: list[str],
+        usage_sink: dict[str, int] | None = None,
+    ) -> list[list[float]]:
+        """Generate embedding vectors for a list of texts.
+
+        Default implementation loops `get_embedding` per text. Providers
+        whose backend natively supports list input (e.g., Ollama's
+        `/api/embed`) MUST override with a single round-trip variant to
+        realise the throughput win (#461). Providers without batch support
+        inherit this default unchanged — the call returns identical
+        vectors to N serial single-input calls, just without speedup.
+
+        Args:
+            texts: Source texts to embed.
+            usage_sink: Optional dict mutated in place with summed
+                        `prompt_tokens` across the batch. Per-text token
+                        attribution is not preserved (#461 D2 decision).
+        """
+        results: list[list[float]] = []
+        for text in texts:
+            results.append(await self.get_embedding(text, usage_sink=usage_sink))
+        return results

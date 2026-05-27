@@ -133,19 +133,35 @@ class GovernanceEmbedderWorker(Worker):
         to_embed = [harvested_keys[k] for k in new_keys][: self._batch_size]
         items: list[ClaimVector] = []
         failures = 0
-        for claim in to_embed:
+        if to_embed:
             try:
-                vector = await embedder.get_embedding(claim.text)
+                vectors = await embedder.get_embeddings_batch(
+                    [c.text for c in to_embed]
+                )
+                items = [
+                    ClaimVector(claim=c, vector=v) for c, v in zip(to_embed, vectors)
+                ]
             except Exception as exc:
                 logger.warning(
-                    "GovernanceEmbedderWorker: embed failed for %s (sha=%s): %s",
-                    claim.source_path,
-                    claim.content_sha[:8],
+                    "GovernanceEmbedderWorker: batch embed failed for %d claims "
+                    "(%s); falling back to single-shot for this cycle",
+                    len(to_embed),
                     exc,
                 )
-                failures += 1
-                continue
-            items.append(ClaimVector(claim=claim, vector=vector))
+                for claim in to_embed:
+                    try:
+                        vector = await embedder.get_embedding(claim.text)
+                    except Exception as exc2:
+                        logger.warning(
+                            "GovernanceEmbedderWorker: single-shot embed failed "
+                            "for %s (sha=%s): %s",
+                            claim.source_path,
+                            claim.content_sha[:8],
+                            exc2,
+                        )
+                        failures += 1
+                        continue
+                    items.append(ClaimVector(claim=claim, vector=vector))
 
         added = await claims_service.upsert_claims(items)
         deleted = await claims_service.delete_by_keys(list(stale_keys))

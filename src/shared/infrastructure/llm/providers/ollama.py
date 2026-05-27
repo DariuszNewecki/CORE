@@ -185,3 +185,81 @@ class OllamaProvider(AIProvider):
                     raise RuntimeError("Embedding model failed (Ghost Vector returned)")
 
             return vec
+
+    # ID: 9e2c4f81-3a6d-4b85-b4f7-c8d3a1e09f72
+    async def get_embeddings_batch(
+        self,
+        texts: list[str],
+        usage_sink: dict[str, int] | None = None,
+    ) -> list[list[float]]:
+        """Generate embeddings for a list of texts in a single round-trip.
+
+        Uses Ollama's `/api/embed` list-input form (Ollama 0.4+):
+            payload: {"model": ..., "input": [t1, t2, ...], "options": {...}}
+            response: {"embeddings": [[...], [...], ...]} aligned to input order
+
+        Empty input list returns `[]` without an HTTP call. Each text is
+        truncated to `_CFG_EMB.max_chars` before sending, matching the
+        single-input path. Ghost-vector check applied per-element; one bad
+        vector raises and aborts the whole batch (consumer handles the
+        retry/skip — same posture as the single-input path).
+
+        Per #461 D2: token usage from the batch response is summed into
+        `usage_sink`; per-text attribution is lost.
+        """
+        if not texts:
+            return []
+
+        endpoint = f"{self.api_url}/api/embed"
+
+        prepared: list[str] = []
+        for text in texts:
+            if len(text) > _CFG_EMB.max_chars:
+                logger.warning(
+                    "Embedding input truncated from %d to %d chars (model context limit).",
+                    len(text),
+                    _CFG_EMB.max_chars,
+                )
+                prepared.append(text[: _CFG_EMB.max_chars])
+            else:
+                prepared.append(text)
+
+        payload = {
+            "model": self.model_name,
+            "input": prepared,
+            "options": {"num_ctx": 8192},
+        }
+
+        async with httpx.AsyncClient(timeout=self.timeout) as client:
+            response = await client.post(endpoint, headers=self.headers, json=payload)
+            response.raise_for_status()
+            data = response.json()
+            vectors = data["embeddings"]
+
+            if len(vectors) != len(prepared):
+                raise RuntimeError(
+                    f"Ollama returned {len(vectors)} embeddings for {len(prepared)} "
+                    "inputs — batch response misalignment"
+                )
+
+            for i, vec in enumerate(vectors):
+                if len(vec) > 3:
+                    is_ghost = all(
+                        abs(a - b) < 0.001 for a, b in zip(vec[:3], GHOST_VECTOR_START)
+                    )
+                    if is_ghost:
+                        logger.error(
+                            "Ollama returned Ghost Vector (Model Failure) for batch "
+                            "input %d/%d (length %s)",
+                            i,
+                            len(prepared),
+                            len(prepared[i]),
+                        )
+                        raise RuntimeError(
+                            "Embedding model failed (Ghost Vector returned in batch)"
+                        )
+
+            if usage_sink is not None and "prompt_eval_count" in data:
+                usage_sink["prompt_tokens"] = int(data["prompt_eval_count"])
+
+            return vectors

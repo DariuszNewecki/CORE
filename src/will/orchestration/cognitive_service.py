@@ -151,6 +151,25 @@ class CognitiveService:
         client = await self.aget_client_for_role("Vectorizer")
         return await client.get_embedding(source_code)
 
+    # ID: 7c4e9a35-1f8b-4d62-a591-2e0f6b8c7a39
+    async def get_embeddings_for_code_batch(
+        self, source_texts: list[str]
+    ) -> list[list[float]]:
+        """Batch-embed a list of texts via the Vectorizer role (#461).
+
+        Returns vectors aligned to input order. Empty input returns `[]`
+        without acquiring a client. The provider's batch entry point is
+        used when available (single round-trip for Ollama); other
+        providers fall back to the base-class default of looping
+        single-input calls. Empty input strings are NOT filtered here —
+        callers should pre-filter if they want the same `if not text:
+        return None` behaviour as the single-input path.
+        """
+        if not source_texts:
+            return []
+        client = await self.aget_client_for_role("Vectorizer")
+        return await client.get_embeddings_batch(source_texts)
+
     # ID: 8b9e2ff1-ec8d-4234-b96c-0a2fc1f43804
     async def search_capabilities(
         self, query: str, limit: int = 5

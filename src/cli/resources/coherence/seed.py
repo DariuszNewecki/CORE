@@ -38,15 +38,23 @@ seed_app = typer.Typer(
 )
 
 
+# Batch size for the bootstrap embed call. 32 is the #461 D1-confirmed default;
+# larger risks Ollama timeout on slow embed models, smaller loses throughput.
+# Tunable if a future Ollama version or model changes the trade-off.
+_BOOTSTRAP_EMBED_BATCH = 32
+
+
 @seed_app.command("bootstrap")
 @core_command(dangerous=True, requires_context=True)
 # ID: 73ce1ee6-67ce-4806-8a3c-252838cd3212
 async def bootstrap_command(ctx: typer.Context) -> None:
     """Embed the full governance corpus into the governance_claims collection.
 
-    One-shot operation taking ~30-70 min depending on corpus size and
-    embedding throughput. The daemon worker handles steady-state incremental
-    sync after this completes. Run once on install or after a collection drop.
+    One-shot operation; wall-clock dominated by embedding throughput.
+    Post-#461 the embed call is batched (~3-10x speedup), so a 1572-claim
+    corpus completes well under 10 min on the current `.40` setup.
+    The daemon worker handles steady-state incremental sync after this
+    completes. Run once on install or after a collection drop.
     """
     from body.governance.coherence_harvester import GovernanceClaimHarvester
     from body.services.governance_claims_service import (
@@ -77,7 +85,7 @@ async def bootstrap_command(ctx: typer.Context) -> None:
 
     console.print(
         f"[cyan]Bootstrapping[/cyan] governance_claims with [bold]{len(claims)}[/bold] "
-        "claims. This is a one-shot operation; expect ~30-70 min wall-clock."
+        f"claims (batch={_BOOTSTRAP_EMBED_BATCH}, expect <10 min)."
     )
 
     embedder = CognitiveEmbedderAdapter(cognitive_service)
@@ -87,25 +95,18 @@ async def bootstrap_command(ctx: typer.Context) -> None:
     embedded = 0
     started = datetime.now(UTC)
 
-    for i, claim in enumerate(claims, start=1):
-        try:
-            vector = await embedder.get_embedding(claim.text)
-        except Exception as exc:
-            logger.warning(
-                "bootstrap: embed failed for %s (sha=%s): %s",
-                claim.source_path,
-                claim.content_sha[:8],
-                exc,
-            )
-            failures += 1
-            continue
-        items.append(ClaimVector(claim=claim, vector=vector))
+    for window_start in range(0, len(claims), _BOOTSTRAP_EMBED_BATCH):
+        window = claims[window_start : window_start + _BOOTSTRAP_EMBED_BATCH]
+        window_vectors, window_failures = await _embed_window(embedder, window)
+        items.extend(window_vectors)
+        failures += window_failures
         if len(items) >= upsert_batch:
             embedded += await claims_service.upsert_claims(items)
             items = []
+            done = window_start + len(window)
             console.print(
                 f"  [dim]progress[/dim] {embedded}/{len(claims)} "
-                f"({i / len(claims):.0%})"
+                f"({done / len(claims):.0%})"
             )
     if items:
         embedded += await claims_service.upsert_claims(items)
@@ -115,6 +116,52 @@ async def bootstrap_command(ctx: typer.Context) -> None:
         f"[green]Bootstrap complete[/green] — embedded {embedded}/{len(claims)} "
         f"claims in {elapsed / 60:.1f} min ({failures} failures)"
     )
+
+
+# ID: a47b6c39-2e85-4d18-8f06-c5b9e3a7d149
+async def _embed_window(embedder, window):
+    """Embed a window of claims via the batch entry point with single-shot fallback.
+
+    Tries `get_embeddings_batch` first; on batch failure, falls back to
+    per-claim single-input embed so a single bad claim does not abort
+    the whole window. This preserves the original bootstrap's error
+    isolation while still capturing the batch speedup on the common path.
+
+    Returns:
+        (list[ClaimVector] for successfully-embedded claims, failure_count)
+    """
+    from body.services.governance_claims_service import ClaimVector
+
+    texts = [c.text for c in window]
+    try:
+        vectors = await embedder.get_embeddings_batch(texts)
+        return (
+            [ClaimVector(claim=c, vector=v) for c, v in zip(window, vectors)],
+            0,
+        )
+    except Exception as exc:
+        logger.warning(
+            "bootstrap: batch embed failed for window of %d claims (%s); "
+            "falling back to single-shot for this window",
+            len(window),
+            exc,
+        )
+        items: list[ClaimVector] = []
+        failures = 0
+        for claim in window:
+            try:
+                vector = await embedder.get_embedding(claim.text)
+            except Exception as exc2:
+                logger.warning(
+                    "bootstrap: single-shot embed failed for %s (sha=%s): %s",
+                    claim.source_path,
+                    claim.content_sha[:8],
+                    exc2,
+                )
+                failures += 1
+                continue
+            items.append(ClaimVector(claim=claim, vector=vector))
+        return items, failures
 
 
 @seed_app.command("export")

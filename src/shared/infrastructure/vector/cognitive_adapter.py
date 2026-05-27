@@ -80,3 +80,40 @@ class CognitiveEmbedderAdapter:
         except Exception as e:
             logger.error("Failed to generate embedding via CognitiveService: %s", e)
             raise RuntimeError(f"Embedding generation failed: {e}") from e
+
+    # ID: 3a8f2e74-9c1d-4b85-a047-6e5f9c2a8d13
+    async def get_embeddings_batch(self, texts: list[str]) -> list[list[float]]:
+        """
+        Batch-generate embeddings for a list of texts (#461).
+
+        Delegates to cognitive_service.get_embeddings_for_code_batch().
+        Single round-trip to the embedding endpoint when the underlying
+        provider supports it (Ollama 0.4+); other providers fall back
+        to looped single-input calls (correct, not faster).
+
+        Args:
+            texts: Texts to embed, in order.
+
+        Returns:
+            Embedding vectors aligned to input order.
+
+        Raises:
+            RuntimeError: If embedding generation fails for the batch.
+        """
+        if not texts:
+            return []
+        try:
+            embeddings = await self._cognitive_service.get_embeddings_for_code_batch(
+                texts
+            )
+            if len(embeddings) != len(texts):
+                raise RuntimeError(
+                    f"CognitiveService returned {len(embeddings)} embeddings "
+                    f"for {len(texts)} inputs — batch response misalignment"
+                )
+            return embeddings
+        except Exception as e:
+            logger.error(
+                "Failed to generate batch embeddings via CognitiveService: %s", e
+            )
+            raise RuntimeError(f"Batch embedding generation failed: {e}") from e

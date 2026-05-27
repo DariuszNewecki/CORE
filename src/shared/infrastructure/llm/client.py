@@ -277,6 +277,50 @@ class LLMClient:
             )
             raise
 
+    # ID: 5d8f2c91-7a4b-4e63-9c12-3b8e7f6a5d04
+    async def get_embeddings_batch(
+        self,
+        texts: list[str],
+        cognitive_role: str | None = None,
+        privacy_level: str = "standard",
+    ) -> list[list[float]]:
+        """Batch-embed a list of texts via the provider's batch entry point.
+
+        Wraps `provider.get_embeddings_batch` with the same retry policy as
+        the single-input path. Writes ONE row to `core.llm_exchange_log`
+        per batch (not per text); token usage is summed across the batch
+        per #461 D2. Per-text token attribution is not preserved.
+
+        Providers without a native batch implementation inherit the
+        base-class default that loops single-input calls — correct, just
+        not faster. OllamaProvider overrides for the real speedup.
+        """
+        if not texts:
+            return []
+        usage_sink: dict[str, int] = {}
+        started = time.monotonic()
+        try:
+            result = await self._request_with_retry(
+                self.provider.get_embeddings_batch,
+                texts,
+                usage_sink=usage_sink,
+            )
+            await self._log_exchange(
+                cognitive_role=cognitive_role or _DEFAULT_EMBEDDING_ROLE,
+                usage_sink=usage_sink,
+                started=started,
+                privacy_level=privacy_level,
+            )
+            return result
+        except Exception:
+            await self._log_exchange(
+                cognitive_role=cognitive_role or _DEFAULT_EMBEDDING_ROLE,
+                usage_sink=usage_sink,
+                started=started,
+                privacy_level=privacy_level,
+            )
+            raise
+
     async def _log_exchange(
         self,
         cognitive_role: str | None,
