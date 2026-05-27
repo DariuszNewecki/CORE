@@ -56,6 +56,22 @@ _AMBIGUOUS_DESC = (
     "Only (a) warrants a candidate. Return an empty array for (b)."
 )
 
+# Applied to every judge invocation regardless of tier. Authors who write
+# "Compatibility with X", "Relates to X", "Supersedes X", or "References X"
+# sections are signaling deliberate reconciliation; the judge must respect
+# that signal before asserting contradiction. See #474.
+_COMPATIBILITY_GUARDRAIL = (
+    "\n\n"
+    "Before asserting a contradiction, scan each document for sections that "
+    "explicitly address the other document — labels like 'Compatibility with X', "
+    "'Relates to X', 'Supersedes X', 'References X', or any prose where the "
+    "author reconciles the two. If either document declares the relationship "
+    "(e.g., 'this ADR is compatible with X because Y'), default to no candidate "
+    "unless the actual runtime behavior contradicts the declared compatibility. "
+    "Authors are trusted to know their own intent; the judge catches unintended "
+    "contradictions, not declared compatibility."
+)
+
 
 # ID: 9ccc8a46-d93a-4d2b-89f0-8511915a4e46
 async def judge_contradiction_pair(
@@ -75,7 +91,8 @@ async def judge_contradiction_pair(
     """
     from shared.ai.prompt_model import PromptModel
 
-    description = _AMBIGUOUS_DESC if tier == "ambiguous" else _HIGH_CONFIDENCE_DESC
+    base = _AMBIGUOUS_DESC if tier == "ambiguous" else _HIGH_CONFIDENCE_DESC
+    description = base + _COMPATIBILITY_GUARDRAIL
     documents_text = (
         f"=== CLAIM A: {source_a} ===\n{text_a}\n\n"
         f"=== CLAIM B: {source_b} ===\n{text_b}\n\n"
