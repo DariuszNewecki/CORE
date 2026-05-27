@@ -33,9 +33,7 @@ class TestExtractClassAnnotatedFieldsClassVarFiltering:
 
     def test_classvar_subscript_with_name_skipped(self):
         node = _parse_class(
-            "class Target:\n"
-            "    x: int\n"
-            "    __tablename__: ClassVar[str] = 'tbl'\n"
+            "class Target:\n    x: int\n    __tablename__: ClassVar[str] = 'tbl'\n"
         )
         assert SchemaConformanceChecks.extract_class_annotated_fields(node) == {
             "x": 2,
@@ -52,9 +50,7 @@ class TestExtractClassAnnotatedFieldsClassVarFiltering:
         }
 
     def test_bare_classvar_name_skipped(self):
-        node = _parse_class(
-            "class Target:\n    x: int\n    flag: ClassVar = True\n"
-        )
+        node = _parse_class("class Target:\n    x: int\n    flag: ClassVar = True\n")
         assert SchemaConformanceChecks.extract_class_annotated_fields(node) == {
             "x": 2,
         }
@@ -78,10 +74,7 @@ class TestExtractClassAnnotatedFieldsClassVarFiltering:
 
     def test_nested_class_fields_ignored(self):
         node = _parse_class(
-            "class Target:\n"
-            "    x: int\n"
-            "    class Inner:\n"
-            "        y: str\n"
+            "class Target:\n    x: int\n    class Inner:\n        y: str\n"
         )
         assert SchemaConformanceChecks.extract_class_annotated_fields(node) == {
             "x": 2,

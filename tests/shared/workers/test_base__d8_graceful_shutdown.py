@@ -145,8 +145,7 @@ async def test_release_held_claims_releases_my_held_entries(
     try:
         released = await worker._release_held_claims()
         assert released == 1, (
-            f"_release_held_claims should release the 1 synthetic entry, "
-            f"got {released}"
+            f"_release_held_claims should release the 1 synthetic entry, got {released}"
         )
         status, claimed_by = await _fetch_entry_status(db_session, entry_id)
         assert status == "open"

@@ -1,9 +1,11 @@
 import unittest
-from typing import Dict
+
 
 class CrawlServiceTest(unittest.TestCase):
     def setUp(self):
-        self.crawler = CrawlService()  # Assuming CrawlService is a class from the provided context evidence
+        self.crawler = (
+            CrawlService()
+        )  # Assuming CrawlService is a class from the provided context evidence
 
     def test_open_crawl_run(self):
         crawl_id = "12345678-1234-1234-1234-123456789012"
@@ -32,7 +34,10 @@ class CrawlServiceTest(unittest.TestCase):
     def test_load_symbol_index(self):
         symbol_index = self.crawler.load_symbol_index()
         self.assertIsInstance(symbol_index, dict)
-        self.assertIsNotEmpty(symbol_index)  # Assume some symbols exist in the repository
+        self.assertIsNotEmpty(
+            symbol_index
+        )  # Assume some symbols exist in the repository
 
-if __name__ == '__main__':
-    unittest.main(argv=[''], exit=False)
+
+if __name__ == "__main__":
+    unittest.main(argv=[""], exit=False)

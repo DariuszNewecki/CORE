@@ -135,9 +135,7 @@ async def test_create_baseline_returns_422_when_no_snapshot():
         side_effect=ValueError("No census snapshot available"),
     ):
         with pytest.raises(HTTPException) as exc:
-            await create_census_baseline(
-                request=request, name="v2.0", payload=payload
-            )
+            await create_census_baseline(request=request, name="v2.0", payload=payload)
     assert exc.value.status_code == 422
     assert "No census snapshot" in exc.value.detail
 

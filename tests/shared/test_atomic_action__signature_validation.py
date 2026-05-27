@@ -49,9 +49,7 @@ def test_action_without_kwargs_refused_at_decoration() -> None:
             policies=["test.policy"],
         )
         async def action_kwargs_missing(file_path: str) -> ActionResult:
-            return ActionResult(
-                action_id="test.kwargs_missing", ok=True, data={}
-            )
+            return ActionResult(action_id="test.kwargs_missing", ok=True, data={})
 
 
 # ID: 12b5f894-b27c-49a6-8923-b786722e74eb

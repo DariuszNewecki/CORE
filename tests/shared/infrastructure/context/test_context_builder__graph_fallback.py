@@ -78,7 +78,9 @@ async def test_context_builder_degrades_graph_only_on_import_error(
     packet = await context_builder.build(request)
 
     assert "evidence" in packet
-    assert packet["evidence"], "Vector evidence should still be present when graph fails"
+    assert packet["evidence"], (
+        "Vector evidence should still be present when graph fails"
+    )
     assert packet["evidence"][0]["name"] == "vector_hit_symbol"
 
 

@@ -100,9 +100,7 @@ async def test_refusals_list_passes_filters():
         "api.v1.inspect_routes.get_refusals",
         new=AsyncMock(return_value={"count": 0, "refusals": []}),
     ) as facade:
-        out = await refusals_list(
-            refusal_type="boundary", session_id=None, limit=5
-        )
+        out = await refusals_list(refusal_type="boundary", session_id=None, limit=5)
     _, kwargs = facade.call_args
     assert kwargs["refusal_type"] == "boundary"
     assert kwargs["limit"] == 5

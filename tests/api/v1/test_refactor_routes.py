@@ -173,7 +173,12 @@ async def test_refactor_score_404_when_facade_reports_missing():
     request = _mock_request_with_context()
     with patch(
         "api.v1.refactor_routes.get_refactor_score",
-        return_value={"file": "src/x.py", "found": False, "score": 0.0, "details": None},
+        return_value={
+            "file": "src/x.py",
+            "found": False,
+            "score": 0.0,
+            "details": None,
+        },
     ):
         with pytest.raises(HTTPException) as exc:
             await refactor_score(request=request, file="src/x.py")
@@ -199,9 +204,7 @@ async def test_refactor_candidates_passes_filters():
         "api.v1.refactor_routes.get_refactor_candidates",
         return_value={"threshold": 50.0, "count": 0, "candidates": []},
     ) as facade:
-        out = await refactor_candidates(
-            request=request, min_score=50.0, limit=10
-        )
+        out = await refactor_candidates(request=request, min_score=50.0, limit=10)
     _, kwargs = facade.call_args
     assert kwargs["min_score"] == 50.0
     assert kwargs["limit"] == 10

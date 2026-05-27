@@ -60,9 +60,7 @@ def test_action_with_data_none_is_ignored() -> None:
 
 
 def test_action_with_files_produced_none_is_ignored() -> None:
-    results = {
-        "some.action:0": {"ok": True, "data": {"files_produced": None}}
-    }
+    results = {"some.action:0": {"ok": True, "data": {"files_produced": None}}}
     assert _files_produced_by(results) == set()
 
 
@@ -70,7 +68,9 @@ def test_non_string_entries_are_filtered() -> None:
     results = {
         "some.action:0": {
             "ok": True,
-            "data": {"files_produced": ["ok.py", 42, None, {"path": "evil"}, "also_ok.py"]},
+            "data": {
+                "files_produced": ["ok.py", 42, None, {"path": "evil"}, "also_ok.py"]
+            },
         }
     }
     assert _files_produced_by(results) == {"ok.py", "also_ok.py"}

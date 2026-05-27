@@ -287,9 +287,9 @@ async def test_acceptance_4_force_llm_bypasses_cache(
         result = await stub_engine.verify(file_path, params)
 
     # 4a: LLM was actually called — bypass worked.
-    assert (
-        stub_engine._audit_prompt_model.invoke.call_count == 1
-    ), "force_llm should have driven a fresh LLM call"
+    assert stub_engine._audit_prompt_model.invoke.call_count == 1, (
+        "force_llm should have driven a fresh LLM call"
+    )
 
     # 4b: Returned verdict is the LIVE one, not the cached FAIL.
     assert result.ok is True, "expected live PASS, not cached FAIL"
@@ -431,6 +431,6 @@ async def test_acceptance_6_info_log_on_hit(
         and rule_id in r.getMessage()
         and rel_path in r.getMessage()
     ]
-    assert (
-        len(matches) == 1
-    ), f"expected one cache-hit INFO line, got {len(matches)}: {[r.getMessage() for r in caplog.records]}"
+    assert len(matches) == 1, (
+        f"expected one cache-hit INFO line, got {len(matches)}: {[r.getMessage() for r in caplog.records]}"
+    )

@@ -23,7 +23,7 @@ import pytest
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from shared.workers.base import Worker, _TERMINAL_STATUSES
+from shared.workers.base import _TERMINAL_STATUSES, Worker
 
 
 class _ObservationMinimalWorker(Worker):

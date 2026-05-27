@@ -188,9 +188,7 @@ async def test_approve_proposal_bad_authority_returns_400():
 
     with patch("api.v1.proposals_routes.ProposalService", return_value=service):
         with pytest.raises(HTTPException) as exc_info:
-            await approve_proposal(
-                proposal_id="p-1", payload=payload, session=session
-            )
+            await approve_proposal(proposal_id="p-1", payload=payload, session=session)
 
     assert exc_info.value.status_code == 400
 
@@ -207,9 +205,7 @@ async def test_reject_proposal_returns_revived_count():
     payload = RejectRequest(reason="stale finding")
 
     with patch("api.v1.proposals_routes.ProposalService", return_value=service):
-        out = await reject_proposal(
-            proposal_id="p-1", payload=payload, session=session
-        )
+        out = await reject_proposal(proposal_id="p-1", payload=payload, session=session)
 
     service.reject.assert_awaited_once_with("p-1", reason="stale finding")
     assert out == {
@@ -233,9 +229,7 @@ async def test_reject_proposal_unknown_id_returns_404():
 
     with patch("api.v1.proposals_routes.ProposalService", return_value=service):
         with pytest.raises(HTTPException) as exc_info:
-            await reject_proposal(
-                proposal_id="nope", payload=payload, session=session
-            )
+            await reject_proposal(proposal_id="nope", payload=payload, session=session)
 
     assert exc_info.value.status_code == 404
 

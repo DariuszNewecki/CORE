@@ -77,9 +77,7 @@ async def test_create_remediation_unknown_mode_returns_422():
     background_tasks = MagicMock(spec=BackgroundTasks)
     session = AsyncMock()
 
-    payload = CreateRemediationRequest(
-        audit_run_id=uuid4(), mode="bogus", write=False
-    )
+    payload = CreateRemediationRequest(audit_run_id=uuid4(), mode="bogus", write=False)
 
     with pytest.raises(HTTPException) as exc:
         await create_remediation_run(

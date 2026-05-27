@@ -136,9 +136,7 @@ def test_sweep_removes_orphan_sandbox_worktree(repo: GitService) -> None:
     assert not abandoned_path.exists()
 
 
-def test_sweep_skips_non_sandbox_worktrees(
-    repo: GitService, tmp_path: Path
-) -> None:
+def test_sweep_skips_non_sandbox_worktrees(repo: GitService, tmp_path: Path) -> None:
     sha = repo.get_current_commit()
     other = tmp_path / "human-checkout"
     _run(

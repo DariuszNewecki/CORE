@@ -233,8 +233,7 @@ async def test_reject_proposal_revival_returns_none_when_no_deferred_findings(
         )
 
         assert revival is None, (
-            "expected None when proposal had no deferred findings, "
-            f"got {revival!r}"
+            f"expected None when proposal had no deferred findings, got {revival!r}"
         )
     finally:
         await db_session.rollback()

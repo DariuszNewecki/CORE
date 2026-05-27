@@ -86,8 +86,12 @@ def _attach_metadata(fn, impact: ActionImpact) -> None:
     )
 
 
-def _make_definition(impact: ActionImpact = ActionImpact.WRITE_CODE) -> ActionDefinition:
-    async def executor(write: bool = False, core_context=None, **kwargs) -> ActionResult:
+def _make_definition(
+    impact: ActionImpact = ActionImpact.WRITE_CODE,
+) -> ActionDefinition:
+    async def executor(
+        write: bool = False, core_context=None, **kwargs
+    ) -> ActionResult:
         return _write_action(write=write, core_context=core_context, **kwargs)
 
     _attach_metadata(executor, impact)
@@ -182,7 +186,9 @@ def test_clean_propagation_copies_sandbox_writes_to_main(repo: Path) -> None:
     try:
         asyncio.run(defn.executor(write=True, core_context=scoped_ctx))
         # Sandbox mutated; main untouched
-        assert (Path(scoped_git.repo_path) / "scope.py").read_text() == "# action wrote this\n"
+        assert (
+            Path(scoped_git.repo_path) / "scope.py"
+        ).read_text() == "# action wrote this\n"
         assert (repo / "scope.py").read_text() == "# original\n"
 
         executor._propagate_sandbox_changes(scoped_git)
@@ -194,7 +200,9 @@ def test_clean_propagation_copies_sandbox_writes_to_main(repo: Path) -> None:
             scoped_git.cleanup()
 
 
-def test_propagation_refuses_when_main_has_concurrent_edit_on_target(repo: Path) -> None:
+def test_propagation_refuses_when_main_has_concurrent_edit_on_target(
+    repo: Path,
+) -> None:
     """The b11f4dba race shape: governor edits the same file the worker is
     sandbox-editing. Sandbox propagation must refuse, not overwrite."""
     executor, ctx = _bare_executor(repo)
@@ -212,7 +220,9 @@ def test_propagation_refuses_when_main_has_concurrent_edit_on_target(repo: Path)
         asyncio.run(defn.executor(write=True, core_context=scoped_ctx))
 
         # Sandbox has worker's content; main still has governor's edit
-        assert (Path(scoped_git.repo_path) / "scope.py").read_text() == "# action wrote this\n"
+        assert (
+            Path(scoped_git.repo_path) / "scope.py"
+        ).read_text() == "# action wrote this\n"
         assert (repo / "scope.py").read_text() == "# GOVERNOR EDIT\n"
 
         with pytest.raises(RuntimeError, match=r"ADR-071 D2\.2"):

@@ -1,15 +1,16 @@
-import pytest
-from unittest.mock import AsyncMock, MagicMock, patch, PropertyMock
-from typing import Any, Dict, List, Optional, Tuple
 from dataclasses import dataclass
 from datetime import datetime
+from typing import Any
+from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
 
 
 @dataclass
 class MockProposalAction:
-    action_id: Optional[str] = None
-    flow_id: Optional[str] = None
-    parameters: Optional[Dict[str, Any]] = None
+    action_id: str | None = None
+    flow_id: str | None = None
+    parameters: dict[str, Any] | None = None
     order: int = 0
 
     @property
@@ -21,10 +22,10 @@ class MockProposalAction:
 class MockProposal:
     proposal_id: str = ""
     goal: str = ""
-    actions: List[MockProposalAction] = None
+    actions: list[MockProposalAction] = None
     scope: Any = None
     created_by: str = ""
-    constitutional_constraints: Dict[str, Any] = None
+    constitutional_constraints: dict[str, Any] = None
     approval_required: bool = False
     risk: Any = None
     created_at: datetime = None
@@ -32,7 +33,7 @@ class MockProposal:
     def compute_risk(self) -> None:
         pass
 
-    def validate(self) -> Tuple[bool, List[str]]:
+    def validate(self) -> tuple[bool, list[str]]:
         return True, []
 
 
@@ -50,9 +51,9 @@ class TestViolationRemediatorWorker:
     def worker(self, mock_core_context):
         """Create a ViolationRemediatorWorker instance for testing."""
         from will.workers.violation_remediator import ViolationRemediatorWorker
+
         inst = ViolationRemediatorWorker(
-            core_context=mock_core_context,
-            declaration_name="violation_remediator"
+            core_context=mock_core_context, declaration_name="violation_remediator"
         )
         inst._worker_uuid = "test-worker-uuid"
         return inst
@@ -64,7 +65,9 @@ class TestViolationRemediatorWorker:
         worker.post_heartbeat = AsyncMock()
         worker.post_report = AsyncMock()
 
-        with patch("will.workers.violation_remediator.load_vocabulary_projection") as mock_load:
+        with patch(
+            "will.workers.violation_remediator.load_vocabulary_projection"
+        ) as mock_load:
             mock_load.return_value = MagicMock()
             await worker.run()
 
@@ -80,7 +83,9 @@ class TestViolationRemediatorWorker:
         worker.post_finding = AsyncMock()
         worker.post_heartbeat = AsyncMock()
 
-        with patch("will.workers.violation_remediator.load_vocabulary_projection") as mock_load:
+        with patch(
+            "will.workers.violation_remediator.load_vocabulary_projection"
+        ) as mock_load:
             mock_load.return_value = projection_error
             await worker.run()
 
@@ -97,22 +102,26 @@ class TestViolationRemediatorWorker:
     @pytest.mark.asyncio
     async def test_run_with_findings_no_remediation(self, worker):
         """Test run method when findings have no remediation mapping."""
-        worker._load_open_findings = AsyncMock(return_value=[
-            {
-                "id": "finding-1",
-                "subject": "audit.violation.test",
-                "payload": {
-                    "check_id": "unknown_rule",
-                    "file_path": "src/test.py",
-                },
-            }
-        ])
+        worker._load_open_findings = AsyncMock(
+            return_value=[
+                {
+                    "id": "finding-1",
+                    "subject": "audit.violation.test",
+                    "payload": {
+                        "check_id": "unknown_rule",
+                        "file_path": "src/test.py",
+                    },
+                }
+            ]
+        )
         worker._get_remediation_map = MagicMock(return_value={})
         worker._release_unmappable = AsyncMock(return_value=1)
         worker._mark_delegated = AsyncMock(return_value=0)
         worker.post_heartbeat = AsyncMock()
         worker.post_report = AsyncMock()
 
-        with patch("will.workers.violation_remediator.load_vocabulary_projection") as mock_load:
+        with patch(
+            "will.workers.violation_remediator.load_vocabulary_projection"
+        ) as mock_load:
             mock_load.return_value = MagicMock()
             await worker.run()

@@ -128,8 +128,7 @@ async def test_adjudicate_releases_present_and_resolves_absent(
         )
 
         assert result["released_subjects"] == [subject_held], (
-            f"expected only {subject_held} released, got "
-            f"{result['released_subjects']}"
+            f"expected only {subject_held} released, got {result['released_subjects']}"
         )
         assert result["resolved_subjects"] == [subject_cleared], (
             f"expected only {subject_cleared} resolved, got "
@@ -242,9 +241,7 @@ async def test_adjudicate_only_touches_matching_namespace(
 
         db_session.expire_all()
         row = await db_session.execute(
-            text(
-                "SELECT status FROM core.blackboard_entries WHERE id = :id"
-            ),
+            text("SELECT status FROM core.blackboard_entries WHERE id = :id"),
             {"id": other_finding},
         )
         status = row.scalar()

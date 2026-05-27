@@ -65,9 +65,7 @@ async def test_consumes_tuple_filters_to_allowlist(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """consumes=("source_file",) — only source_file reaches the action."""
-    step = FlowStep(
-        ref_id="test.noop", kind=StepKind.ACTION, consumes=("source_file",)
-    )
+    step = FlowStep(ref_id="test.noop", kind=StepKind.ACTION, consumes=("source_file",))
     received = await _invoke(
         monkeypatch, step, {"source_file": "src/x.py", "extra": 42}
     )

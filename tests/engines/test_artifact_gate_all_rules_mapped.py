@@ -50,7 +50,9 @@ def _build_repo(
 def _verify(repo_root: Path) -> object:
     """Invoke the all_rules_mapped check via the engine entry point."""
     engine = ArtifactGateEngine()
-    target = repo_root / ".intent" / "enforcement" / "remediation" / "auto_remediation.yaml"
+    target = (
+        repo_root / ".intent" / "enforcement" / "remediation" / "auto_remediation.yaml"
+    )
     return asyncio.run(engine.verify(target, {"check_type": "all_rules_mapped"}))
 
 
@@ -170,4 +172,7 @@ def test_missing_map_file_returns_config_error(tmp_path: Path) -> None:
     result = asyncio.run(engine.verify(target, {"check_type": "all_rules_mapped"}))
     assert not result.ok
     # Either file-not-found (handled by engine before dispatch) or config error
-    assert "not found" in " ".join(result.violations).lower() or "missing" in result.message.lower()
+    assert (
+        "not found" in " ".join(result.violations).lower()
+        or "missing" in result.message.lower()
+    )

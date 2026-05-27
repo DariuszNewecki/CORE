@@ -1,8 +1,8 @@
 """
 Tests for cli/resources/coherence/seed.py — bootstrap_command, export_command, import_command.
 """
+
 import json
-from datetime import UTC, datetime
 from pathlib import Path
 from unittest.mock import ANY, AsyncMock, MagicMock, call, patch
 
@@ -10,12 +10,17 @@ import pytest
 import typer
 from typer.testing import CliRunner  # noqa: F401 — used by caller
 
-from cli.resources.coherence.seed import bootstrap_command, export_command, import_command
+from cli.resources.coherence.seed import (
+    bootstrap_command,
+    export_command,
+    import_command,
+)
 
 
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
+
 
 @pytest.fixture
 def mock_context() -> MagicMock:
@@ -38,6 +43,7 @@ def mock_registry(mock_context: MagicMock) -> MagicMock:
 # bootstrap_command
 # ===========================================================================
 
+
 class TestBootstrapCommand:
     """Coverage for bootstrap_command — happy path, no claims, service errors."""
 
@@ -50,17 +56,19 @@ class TestBootstrapCommand:
         mock_registry.get_cognitive_service.return_value = cognitive_svc
         mock_registry.get_qdrant_service.return_value = qdrant_svc
 
-        with patch(
-            "cli.resources.coherence.seed.GovernanceClaimHarvester"
-        ) as mock_harvester_cls, patch(
-            "cli.resources.coherence.seed.GovernanceClaimsService"
-        ) as mock_svc_cls, patch(
-            "cli.resources.coherence.seed.CognitiveEmbedderAdapter"
-        ) as mock_embedder_cls, patch(
-            "cli.resources.coherence.seed.Path"
-        ) as mock_path, patch(
-            "cli.resources.coherence.seed.console"
-        ) as mock_console:
+        with (
+            patch(
+                "cli.resources.coherence.seed.GovernanceClaimHarvester"
+            ) as mock_harvester_cls,
+            patch(
+                "cli.resources.coherence.seed.GovernanceClaimsService"
+            ) as mock_svc_cls,
+            patch(
+                "cli.resources.coherence.seed.CognitiveEmbedderAdapter"
+            ) as mock_embedder_cls,
+            patch("cli.resources.coherence.seed.Path") as mock_path,
+            patch("cli.resources.coherence.seed.console") as mock_console,
+        ):
             # configure harvester
             harvester_instance = mock_harvester_cls.return_value
             claim = MagicMock()
@@ -76,7 +84,9 @@ class TestBootstrapCommand:
             # configure claims service
             svc_instance = mock_svc_cls.return_value
             svc_instance.ensure_collection = AsyncMock()
-            svc_instance.upsert_claims = AsyncMock(return_value=2)  # return embedded count
+            svc_instance.upsert_claims = AsyncMock(
+                return_value=2
+            )  # return embedded count
 
             await bootstrap_command(mock_context)
 
@@ -115,15 +125,16 @@ class TestBootstrapCommand:
         mock_registry.get_cognitive_service.return_value = cognitive_svc
         mock_registry.get_qdrant_service.return_value = qdrant_svc
 
-        with patch(
-            "cli.resources.coherence.seed.GovernanceClaimHarvester"
-        ) as mock_harvester_cls, patch(
-            "cli.resources.coherence.seed.GovernanceClaimsService"
-        ) as mock_svc_cls, patch(
-            "cli.resources.coherence.seed.CognitiveEmbedderAdapter"
-        ), patch(
-            "cli.resources.coherence.seed.console"
-        ) as mock_console:
+        with (
+            patch(
+                "cli.resources.coherence.seed.GovernanceClaimHarvester"
+            ) as mock_harvester_cls,
+            patch(
+                "cli.resources.coherence.seed.GovernanceClaimsService"
+            ) as mock_svc_cls,
+            patch("cli.resources.coherence.seed.CognitiveEmbedderAdapter"),
+            patch("cli.resources.coherence.seed.console") as mock_console,
+        ):
             mock_harvester_cls.return_value.harvest.return_value = []
             svc_instance = mock_svc_cls.return_value
             svc_instance.ensure_collection = AsyncMock()
@@ -141,15 +152,17 @@ class TestBootstrapCommand:
         """Raise typer.Exit(1) when registry calls fail."""
         mock_registry.get_cognitive_service.side_effect = RuntimeError("Qdrant down")
 
-        with patch(
-            "cli.resources.coherence.seed.logger"
-        ) as mock_logger, patch(
-            "cli.resources.coherence.seed.console"
-        ) as mock_console, pytest.raises(typer.Exit) as exc_info:
+        with (
+            patch("cli.resources.coherence.seed.logger") as mock_logger,
+            patch("cli.resources.coherence.seed.console") as mock_console,
+            pytest.raises(typer.Exit) as exc_info,
+        ):
             await bootstrap_command(mock_context)
 
         assert exc_info.value.exit_code == 1
-        mock_logger.exception.assert_called_once_with("Failed to acquire embedding services")
+        mock_logger.exception.assert_called_once_with(
+            "Failed to acquire embedding services"
+        )
         mock_console.print.assert_called_once_with(
             "[red]Service unavailable: Qdrant down[/red]"
         )
@@ -163,17 +176,19 @@ class TestBootstrapCommand:
         mock_registry.get_cognitive_service.return_value = cognitive_svc
         mock_registry.get_qdrant_service.return_value = qdrant_svc
 
-        with patch(
-            "cli.resources.coherence.seed.GovernanceClaimHarvester"
-        ) as mock_harvester_cls, patch(
-            "cli.resources.coherence.seed.GovernanceClaimsService"
-        ) as mock_svc_cls, patch(
-            "cli.resources.coherence.seed.CognitiveEmbedderAdapter"
-        ) as mock_embedder_cls, patch(
-            "cli.resources.coherence.seed.logger"
-        ) as mock_logger, patch(
-            "cli.resources.coherence.seed.console"
-        ) as mock_console:
+        with (
+            patch(
+                "cli.resources.coherence.seed.GovernanceClaimHarvester"
+            ) as mock_harvester_cls,
+            patch(
+                "cli.resources.coherence.seed.GovernanceClaimsService"
+            ) as mock_svc_cls,
+            patch(
+                "cli.resources.coherence.seed.CognitiveEmbedderAdapter"
+            ) as mock_embedder_cls,
+            patch("cli.resources.coherence.seed.logger") as mock_logger,
+            patch("cli.resources.coherence.seed.console") as mock_console,
+        ):
             claim_ok = MagicMock()
             claim_ok.text = "fine"
             claim_ok.source_path = "ok.md"
@@ -215,6 +230,7 @@ class TestBootstrapCommand:
 # export_command
 # ===========================================================================
 
+
 class TestExportCommand:
     """Coverage for export_command — happy path and error on file write."""
 
@@ -225,15 +241,14 @@ class TestExportCommand:
         qdrant_svc = AsyncMock()
         mock_registry.get_qdrant_service.return_value = qdrant_svc
 
-        with patch(
-            "cli.resources.coherence.seed.GovernanceClaimsService"
-        ) as mock_svc_cls, patch(
-            "cli.resources.coherence.seed.Path.open"
-        ) as mock_open, patch(
-            "cli.resources.coherence.seed.Path"
-        ) as mock_path, patch(
-            "cli.resources.coherence.seed.console"
-        ) as mock_console:
+        with (
+            patch(
+                "cli.resources.coherence.seed.GovernanceClaimsService"
+            ) as mock_svc_cls,
+            patch("cli.resources.coherence.seed.Path.open") as mock_open,
+            patch("cli.resources.coherence.seed.Path") as mock_path,
+            patch("cli.resources.coherence.seed.console") as mock_console,
+        ):
             # prepare mock claims
             claim1 = MagicMock()
             claim1.payload = {"id": "a"}
@@ -274,15 +289,17 @@ class TestExportCommand:
         qdrant_svc = AsyncMock()
         mock_registry.get_qdrant_service.return_value = qdrant_svc
 
-        with patch(
-            "cli.resources.coherence.seed.GovernanceClaimsService"
-        ) as mock_svc_cls, patch(
-            "cli.resources.coherence.seed.Path.open"
-        ) as mock_open, patch(
-            "cli.resources.coherence.seed.console"
-        ) as mock_console:
+        with (
+            patch(
+                "cli.resources.coherence.seed.GovernanceClaimsService"
+            ) as mock_svc_cls,
+            patch("cli.resources.coherence.seed.Path.open") as mock_open,
+            patch("cli.resources.coherence.seed.console") as mock_console,
+        ):
             svc_instance = mock_svc_cls.return_value
-            svc_instance.list_claims = AsyncMock(return_value=[MagicMock(payload={}, vector=[])])
+            svc_instance.list_claims = AsyncMock(
+                return_value=[MagicMock(payload={}, vector=[])]
+            )
 
             mock_open.side_effect = OSError("Disk full")
 
@@ -298,6 +315,7 @@ class TestExportCommand:
 # ===========================================================================
 # import_command
 # ===========================================================================
+
 
 class TestImportCommand:
     """Coverage for import_command — happy path and file-not-found."""
@@ -315,13 +333,13 @@ class TestImportCommand:
             json.dumps({"payload": {"id": "b"}, "vector": [0.3, 0.4]}),
         ]
 
-        with patch(
-            "cli.resources.coherence.seed.GovernanceClaimsService"
-        ) as mock_svc_cls, patch(
-            "cli.resources.coherence.seed.Path.open"
-        ) as mock_open, patch(
-            "cli.resources.coherence.seed.console"
-        ) as mock_console:
+        with (
+            patch(
+                "cli.resources.coherence.seed.GovernanceClaimsService"
+            ) as mock_svc_cls,
+            patch("cli.resources.coherence.seed.Path.open") as mock_open,
+            patch("cli.resources.coherence.seed.console") as mock_console,
+        ):
             file_mock = MagicMock()
             file_mock.__aiter__.return_value = [l + "\n" for l in lines]
             mock_open.return_value.__aenter__.return_value = file_mock
@@ -347,11 +365,10 @@ class TestImportCommand:
         """Raise typer.Exit when source file does not exist."""
         source_path = Path("/nonexistent/fixture.jsonl")
 
-        with patch(
-            "cli.resources.coherence.seed.Path.open"
-        ) as mock_open, patch(
-            "cli.resources.coherence.seed.console"
-        ) as mock_console:
+        with (
+            patch("cli.resources.coherence.seed.Path.open") as mock_open,
+            patch("cli.resources.coherence.seed.console") as mock_console,
+        ):
             mock_open.side_effect = FileNotFoundError("No such file")
 
             with pytest.raises(typer.Exit) as exc_info:
