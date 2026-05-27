@@ -1,7 +1,7 @@
-import pytest
-from unittest.mock import AsyncMock, Mock, patch, PropertyMock
-from pathlib import Path
 import ast
+from unittest.mock import AsyncMock, Mock, patch
+
+import pytest
 
 from body.self_healing.docstring_service import (
     _async_fix_docstrings,
@@ -20,7 +20,7 @@ class TestFindUndocumentedPublicSymbols:
         assert result == []
 
     def test_public_function_with_docstring_excluded(self):
-        tree = ast.parse("def foo():\n    \"\"\"Docstring.\"\"\"\n    pass")
+        tree = ast.parse('def foo():\n    """Docstring."""\n    pass')
         result = _find_undocumented_public_symbols(tree)
         assert result == []
 
@@ -44,7 +44,7 @@ class TestFindUndocumentedPublicSymbols:
         assert result[0].name == "Bar"
 
     def test_public_class_with_docstring_excluded(self):
-        tree = ast.parse("class Bar:\n    \"\"\"Docstring.\"\"\"\n    pass")
+        tree = ast.parse('class Bar:\n    """Docstring."""\n    pass')
         result = _find_undocumented_public_symbols(tree)
         assert result == []
 
@@ -115,9 +115,9 @@ class TestInsertDocstrings:
         source = "def foo():\n    pass"
         tree = ast.parse(source)
         node = tree.body[0]
-        docstring = "\"\"\"My docstring.\"\"\""
+        docstring = '"""My docstring."""'
         result = _insert_docstrings(source, [(node, docstring)])
-        expected = "def foo():\n    \"\"\"My docstring.\"\"\"\n    pass"
+        expected = 'def foo():\n    """My docstring."""\n    pass'
         assert result == expected
 
     def test_insertions_processed_bottom_to_top(self):
@@ -125,7 +125,7 @@ class TestInsertDocstrings:
         tree = ast.parse(source)
         node_a = tree.body[0]
         node_b = tree.body[1]
-        insertions = [(node_a, "\"\"\"Doc A.\"\"\""), (node_b, "\"\"\"Doc B.\"\"\"")]
+        insertions = [(node_a, '"""Doc A."""'), (node_b, '"""Doc B."""')]
         result = _insert_docstrings(source, insertions)
         lines = result.split("\n")
         # b comes after a, so b's docstring should appear before b's body
@@ -141,9 +141,9 @@ class TestInsertDocstrings:
         source = "class Foo:\n    pass"
         tree = ast.parse(source)
         node = tree.body[0]
-        docstring = "\"\"\"Class doc.\"\"\""
+        docstring = '"""Class doc."""'
         result = _insert_docstrings(source, [(node, docstring)])
-        expected = "class Foo:\n    \"\"\"Class doc.\"\"\"\n    pass"
+        expected = 'class Foo:\n    """Class doc."""\n    pass'
         assert result == expected
 
 
@@ -204,30 +204,48 @@ class TestHealFile:
         return model
 
     @pytest.mark.asyncio
-    async def test_returns_zero_when_file_not_found(self, mock_context, mock_prompt_model):
+    async def test_returns_zero_when_file_not_found(
+        self, mock_context, mock_prompt_model
+    ):
         writer_client = AsyncMock()
-        result = await _heal_file(mock_context, "nonexistent.py", True, mock_prompt_model, writer_client)
+        result = await _heal_file(
+            mock_context, "nonexistent.py", True, mock_prompt_model, writer_client
+        )
         assert result == 0
 
     @pytest.mark.asyncio
-    async def test_returns_zero_for_already_documented(self, mock_context, mock_prompt_model, tmp_path):
+    async def test_returns_zero_for_already_documented(
+        self, mock_context, mock_prompt_model, tmp_path
+    ):
         mock_context.git_service.repo_path = str(tmp_path)
         file_path = tmp_path / "module.py"
-        file_path.write_text("def foo():\n    \"\"\"Doc.\"\"\"\n    pass")
-        result = await _heal_file(mock_context, "module.py", True, mock_prompt_model, AsyncMock())
+        file_path.write_text('def foo():\n    """Doc."""\n    pass')
+        result = await _heal_file(
+            mock_context, "module.py", True, mock_prompt_model, AsyncMock()
+        )
         assert result == 0
 
     @pytest.mark.asyncio
-    async def test_inserts_docstring_for_undocumented(self, mock_context, mock_prompt_model, tmp_path):
+    async def test_inserts_docstring_for_undocumented(
+        self, mock_context, mock_prompt_model, tmp_path
+    ):
         mock_context.git_service.repo_path = str(tmp_path)
         file_path = tmp_path / "module.py"
         file_path.write_text("def foo():\n    pass")
         writer_client = AsyncMock()
         writer_client.generate.return_value = AsyncMock()
-        writer_client.generate.return_value.choices = [Mock(message=Mock(content='"""Generated doc."""'))]
-        with patch.object(mock_prompt_model, 'generate', new_callable=AsyncMock) as mock_generate:
-            mock_generate.return_value = Mock(choices=[Mock(message=Mock(content='"""Generated doc."""'))])
-            result = await _heal_file(mock_context, "module.py", True, mock_prompt_model, writer_client)
+        writer_client.generate.return_value.choices = [
+            Mock(message=Mock(content='"""Generated doc."""'))
+        ]
+        with patch.object(
+            mock_prompt_model, "generate", new_callable=AsyncMock
+        ) as mock_generate:
+            mock_generate.return_value = Mock(
+                choices=[Mock(message=Mock(content='"""Generated doc."""'))]
+            )
+            result = await _heal_file(
+                mock_context, "module.py", True, mock_prompt_model, writer_client
+            )
             assert result == 1
 
 
@@ -240,18 +258,30 @@ class TestAsyncFixDocstrings:
         return ctx
 
     @pytest.mark.asyncio
-    async def test_targeted_mode_calls_heal_file_with_normalized_path(self, mock_context):
-        with patch("body.self_healing.docstring_service._heal_file", new_callable=AsyncMock) as mock_heal:
-            await _async_fix_docstrings(mock_context, dry_run=False, file_path="./src/app/module.py")
+    async def test_targeted_mode_calls_heal_file_with_normalized_path(
+        self, mock_context
+    ):
+        with patch(
+            "body.self_healing.docstring_service._heal_file", new_callable=AsyncMock
+        ) as mock_heal:
+            await _async_fix_docstrings(
+                mock_context, dry_run=False, file_path="./src/app/module.py"
+            )
             mock_heal.assert_called_once()
             args, _ = mock_heal.call_args
             assert args[1] == "src/app/module.py"
 
     @pytest.mark.asyncio
     async def test_sweep_mode_limits_files(self, mock_context):
-        with patch("body.self_healing.docstring_service._iter_scope_files") as mock_iter:
+        with patch(
+            "body.self_healing.docstring_service._iter_scope_files"
+        ) as mock_iter:
             mock_iter.return_value = ["a.py", "b.py", "c.py"]
-            with patch("body.self_healing.docstring_service._heal_file", new_callable=AsyncMock, return_value=0):
+            with patch(
+                "body.self_healing.docstring_service._heal_file",
+                new_callable=AsyncMock,
+                return_value=0,
+            ):
                 await _async_fix_docstrings(mock_context, dry_run=True, limit=2)
                 mock_iter.assert_called_once()
                 # Should have processed only 2 files
@@ -267,12 +297,22 @@ class TestFixDocstrings:
 
     @pytest.mark.asyncio
     async def test_delegates_to_async_fix_with_inverted_dry_run(self, mock_context):
-        with patch("body.self_healing.docstring_service._async_fix_docstrings", new_callable=AsyncMock) as mock_async:
+        with patch(
+            "body.self_healing.docstring_service._async_fix_docstrings",
+            new_callable=AsyncMock,
+        ) as mock_async:
             await fix_docstrings(mock_context, write=True, file_path="test.py")
-            mock_async.assert_called_once_with(context=mock_context, dry_run=False, limit=0, file_path="test.py")
+            mock_async.assert_called_once_with(
+                context=mock_context, dry_run=False, limit=0, file_path="test.py"
+            )
 
     @pytest.mark.asyncio
     async def test_write_false_sets_dry_run_true(self, mock_context):
-        with patch("body.self_healing.docstring_service._async_fix_docstrings", new_callable=AsyncMock) as mock_async:
+        with patch(
+            "body.self_healing.docstring_service._async_fix_docstrings",
+            new_callable=AsyncMock,
+        ) as mock_async:
             await fix_docstrings(mock_context, write=False, limit=5)
-            mock_async.assert_called_once_with(context=mock_context, dry_run=True, limit=5, file_path=None)
+            mock_async.assert_called_once_with(
+                context=mock_context, dry_run=True, limit=5, file_path=None
+            )
