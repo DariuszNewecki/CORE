@@ -71,7 +71,7 @@ class SpecGapCheck:
                 failure_mode = phase_modes.get(phase)
                 if not failure_mode:
                     continue
-                if self._verbs_covered_by(action_verbs, failure_mode):
+                if self._verbs_covered_by(failure_mode):
                     continue
                 phase_rel = f".intent/phases/{phase}.yaml"
                 candidates.append(
@@ -164,16 +164,10 @@ class SpecGapCheck:
             verbs.add(m.group(0).lower())
         return verbs
 
-    @staticmethod
     # ID: 4b4328d6-4874-4d40-87b8-123c510da8ce
-    def _verbs_covered_by(verbs: set[str], failure_mode: str) -> bool:
-        """True iff any verb stem appears in the failure_mode string."""
-        fm_lower = failure_mode.lower()
-        for verb in verbs:
-            stem = verb[:4] if len(verb) > 4 else verb
-            if stem in fm_lower:
-                return True
-        return False
+    def _verbs_covered_by(self, failure_mode: str) -> bool:
+        """Covered iff failure_mode declares any verb from register.action_verbs (one halt-class today)."""
+        return bool(self._action_verb_pattern.search(failure_mode))
 
 
 def _iter_paragraphs(section: str):
