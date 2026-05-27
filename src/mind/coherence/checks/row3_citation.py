@@ -21,7 +21,7 @@ from .base import CoherenceCandidate
 
 
 _HEADING = re.compile(r"^(#{1,3})\s+(.+?)\s*$", re.MULTILINE)
-_RULE_CITE = re.compile(r"\.intent/rules/[\w\-./]+\.json", re.IGNORECASE)
+_RULE_CITE = re.compile(r"\.intent/[\w\-.]+/[\w\-./*{}]+\.[a-z]+", re.IGNORECASE)
 
 
 # ID: b70fb5d2-9de3-4575-b1b2-58f4c88cc147
