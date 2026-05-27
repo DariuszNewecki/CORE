@@ -91,6 +91,11 @@ class CoherenceChecker:
             }
         )
         await self._coherence_service.update_manifest(run_id, manifest)
+        # Self-guarded close for zero-candidate scans — the triage-driven
+        # auto-close never fires when no candidates exist (issue #458). The
+        # service method's WHERE clause makes this a no-op when candidates
+        # were added, so the call is unconditional here.
+        await self._coherence_service.close_run_if_empty(run_id)
 
         emitted_total = sum(s.get("emitted", 0) for s in check_status.values())
         logger.info(

@@ -185,6 +185,38 @@ class CoherenceService(SessionAttachedService):
         await session.commit()
         return {"run_id": run_id, "run_closed": run_closed}
 
+    # ID: 597ace12-e2d9-4013-8961-80302ad3bcaa
+    async def close_run_if_empty(self, run_id: str) -> bool:
+        """Close a coherence run iff its scan produced zero candidates.
+
+        Companion to the auto-close path in `triage_candidate`: when a scan
+        emits no R1/R2/R3 findings, no triage event ever fires, and the
+        unreviewed-count-driven close cannot trigger. Without this method
+        zero-candidate runs accumulate in 'open' forever (issue #458).
+
+        Atomic + idempotent: the WHERE clause guards on both
+        `run_status = 'open'` and `candidate_count = 0`, so calling it on
+        a run that already has candidates or that is already closed is a
+        safe no-op. Returns True iff this call transitioned the row.
+        """
+        session = self._require_session()
+        result = await session.execute(
+            text(
+                "UPDATE core.coherence_runs "
+                "SET run_status = 'closed' "
+                "WHERE run_id = :run_id "
+                "  AND run_status = 'open' "
+                "  AND candidate_count = 0 "
+                "RETURNING run_id"
+            ),
+            {"run_id": run_id},
+        )
+        closed = result.fetchone() is not None
+        await session.commit()
+        if closed:
+            logger.info("Coherence run %s closed (zero-candidate scan, #458)", run_id)
+        return closed
+
     # ID: 9dbdeb54-1eae-4532-a1a6-d14b23b9b2e0
     async def update_manifest(self, run_id: str, manifest: list[dict]) -> None:
         """
