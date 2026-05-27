@@ -139,6 +139,11 @@ you see here.
   permitted under the four conditions above
 - Any file outside `src/`, `tests/`, `.intent/` (mechanical substitutions only),
   `.specs/` (read-only), `var/prompts/`, `CLAUDE.md`
+- `/tmp/` — **the system temp directory is prohibited.** All temporary file writes must use
+  `var/tmp/` (relative to the repo root). Never use `/tmp/`, `tempfile.gettempdir()`, or any
+  `tempfile` default that resolves outside the repo. Pass `dir=repo_root / "var" / "tmp"`
+  explicitly when creating temporary files via `tempfile.NamedTemporaryFile`,
+  `tempfile.mkstemp`, or `tempfile.mkdtemp`.
 
 **Turn-scoped governor override.** Restricted directories (`.intent/`, `.specs/`) are
 off-limits by default. Exception: if the governor explicitly requests a write to a
@@ -492,6 +497,7 @@ only the governor can run it.
 12. `.env`, `.venv/`, `.specs/`, and `*.pth` files are untouched. `.intent/` files received
     only mechanical substitutions explicitly authorized in the prompt (no semantic edits)
 13. Every relevant ADR in `.specs/decisions/` has been honored
+14. No writes to `/tmp/` or any path outside the repo — temporary files use `var/tmp/` only
 
 ---
 
