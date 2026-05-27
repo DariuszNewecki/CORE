@@ -313,3 +313,20 @@ A single full audit cycle after D1 changes land satisfies criterion 4.
 - 2026-05-15 static architecture review — original surfacing.
 - 2026-05-15 full architecture audit — verification of all findings
   against live state; source of engine constraint confirmation.
+
+## Amendment — 2026-05-27 (CCC #463)
+
+**Scope broadened by CORE-Governance-Topology Row 3 (2026-05-26).**
+
+D2 as written required rule citation only for normative paper claims about
+imports, layer boundaries, or component responsibilities. CORE-Governance-Topology
+Row 3 (accepted 2026-05-26) operationalizes the same Paper → Rule constitutional
+direction but applies it to ALL normative paper §s, using the normative-marker
+detection at `.intent/enforcement/config/normative_markers.yaml`. The narrow
+scope in D2 above is the original framing; the current constitutional bar is
+the broader Topology Row 3 reading. Scanner gate: ROW3_CITATION per ADR-073 D6.
+
+CCC SAMECONCERN candidate `d571a2d2-614b-45d0-9f21-805432cc61d8` surfaced this
+scope gap. Topology Row 3's "(existing ADR-049 D2)" parenthetical was
+accidental — it inherited the broader reading as if D2 already covered it.
+Corrected in the companion edit to "(extends ADR-049 D2)."

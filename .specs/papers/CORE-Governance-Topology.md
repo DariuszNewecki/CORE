@@ -131,7 +131,7 @@ The core of this paper. The grid below declares which directional links between 
 |---|---|---|---|
 | 1 | Northstar → Paper | **constitutional** | Paper § cites `UR-NN` it operationalizes |
 | 2 | ADR → Paper | **constitutional (upward exception)** | ADR References block cites grounding paper(s). ADRs without grounding paper are in-flight migration debt per §11.3; no escape hatch is provided |
-| 3 | Paper → Rule | **constitutional** (existing ADR-049 D2) | Normative paper § cites `<rule_id>` (`<rule_path>`) OR marks itself aspirational. Descriptive sections are exempt per §2.5 |
+| 3 | Paper → Rule | **constitutional** (extends ADR-049 D2) | Normative paper § cites `<rule_id>` (`<rule_path>`) OR marks itself aspirational. Descriptive sections are exempt per §2.5 |
 | 4 | ADR → Rule | **constitutional (strict)** | Every ADR that affects rule interpretation (statement, mapping, contract, OR scope/interpretation via clarification) MUST name the affected `.intent/` artifact in its D-text at the time of acceptance |
 | 5 | ADR → ADR (supersedes) | **constitutional** (existing precedent) | Frontmatter `Supersedes:` field with scope ("partially", "fully") |
 | 6 | ADR → ADR (related) | **editorial** | References block; explicit `Relates:` frontmatter for tighter coupling |
@@ -300,7 +300,7 @@ Once accepted, this paper:
 
 - **Row 2 verification:** every ADR cites at least one grounding paper in its References block. Grep-checkable.
 - **Row 4 verification:** for every governance change in `.intent/` (rule statement, mapping, contract, config, worker, taxonomy), there must be an ADR whose D-text names the affected artifact. Grep-checkable, not LLM-judged.
-- **Row 3 verification (existing but unenforced):** every normative paper § cites an enforcing rule or marks itself aspirational. Already constitutional via ADR-049 D2 but not scanner-checked today; depends on §2.5's normative-vs-descriptive distinction being machine-detectable (initial heuristic: presence of MUST/MUST NOT/SHALL/MAY NOT/categorical-statement markers).
+- **Row 3 verification:** every normative paper § cites an enforcing rule or marks itself aspirational. Extends ADR-049 D2 (originally scoped to imports/layer-boundaries/component-responsibilities) to all normative claims. Scanner-checked via ROW3_CITATION (ADR-073 D6) using §2.5's normative-marker register at `.intent/enforcement/config/normative_markers.yaml`.
 - **§6.1 contradiction invariant:** pairwise scan of normative claims across governance artifacts for conflicts on the same concern.
 - **§6.2 vocabulary invariant:** scan for term usage that diverges from canonical vocabulary projections.
 - **§6.3 logic invariant (deferred):** scan for problem-pattern instances that diverge from registered precedent shapes. Requires the pattern register from §6.3; not enforceable today.
