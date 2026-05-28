@@ -1385,6 +1385,48 @@ Files: `.specs/decisions/ADR-070-source-projection-coherence.md`.
 
 ---
 
+## ADR-075 — 2026-05-28
+
+Framework/project namespace split. Formalizes Governance-Topology §8 from
+declared principle into an enforced classification: every governance artifact
+under `.intent/` and `.specs/` belongs to exactly one governance namespace —
+`framework` (ships with CORE, applies to any governed project) or
+`project::<name>` (specific to a named repo; CORE's own codebase is
+`project::core`, a BYOR repo is `project::<external>`). The split is the
+prerequisite for the governance-application data model, which cannot reason
+over a surface that conflates framework and project ownership.
+
+D1: the namespace model is constitutional. D2: namespace is declared in an
+external path-to-namespace manifest, not per-file frontmatter — `.intent/`
+artifacts are heterogeneous YAML/JSON with no shared frontmatter convention,
+and stamping every file is a big-bang touch against the Topology §11
+backfill-on-touch posture. D3: the key is `governance_namespace`, never bare
+`namespace`, to avoid collision with the three existing senses (`rule_namespace`
+sensor scope, blackboard subject namespace, API domain namespace). D4: two
+artifacts realize the model — a vocabulary register
+(`.intent/taxonomies/governance_namespaces.yaml`) and a classification manifest
+(`.intent/governance/namespace_manifest.yaml`), following the ADR-068
+register-plus-enforcement shape. D5: classification authority is per-artifact;
+file type is a non-authoritative default heuristic only, because a rule, ADR, or
+paper may be framework-general or CORE-specific regardless of type. D6: the
+manifest is per-layer — the framework ships its own, each project carries its
+own — which gives the separability #457 requires and the mechanism
+`src/cli/logic/byor.py` will eventually consume. D7: a reporting rule
+`governance.namespace.classification_complete` fails on any unclassified
+`.intent/`/`.specs/` file, maintaining the invariant. D8: initial population is
+a one-shot full classification (a bounded exception to §11, since partial
+classification cannot unblock the data model), maintained thereafter by D7.
+
+Grounded in `papers/CORE-Governance-Topology.md` §8 (row 2). Implementation
+deferred: the register, manifest, and rule do not exist at acceptance; per
+Topology row 4 strict the ADR D-text names each. Satisfies #457
+close-condition 1; #457 remains open pending the manifest (close-2) and the
+governance-application data-model follow-on issue (close-3).
+
+Files: `.specs/decisions/ADR-075-framework-project-namespace-split.md`.
+
+---
+
 ## Notes
 
 * This changelog intentionally avoids implementation detail
