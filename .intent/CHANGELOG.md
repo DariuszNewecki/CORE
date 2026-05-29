@@ -1468,6 +1468,45 @@ Files: `.intent/taxonomies/governance_namespaces.yaml`,
 
 ---
 
+## ADR-076 — 2026-05-29
+
+Context-level dispatch as a per-check-type engine property. Audit rules dispatch
+either per-file (`verify(file_path)` once per file) or context-level
+(`verify_context(context)` once over the repo). The dispatch is already per-rule
+(`rule_executor.py:118`), but `is_context_level` was set per-engine
+(`engine in CONTEXT_LEVEL_ENGINES`) — that asymmetry is the defect. `artifact_gate`
+is mixed-mode: six repo-level governance/vocabulary checks that ignore `file_path`
+plus three per-file PromptModel checks that parse it. A per-engine flag cannot
+enroll a mixed engine without breaking the three per-file checks, so all nine
+`artifact_gate` checks produced no findings under any condition since the audit
+walker was authored 2026-05-16 — including ADR-066's blocking unmapped-rules
+invariant (the abandoned-finding re-emit guard) and ADR-075 D7. No prior ADR or
+paper governed context-level dispatch; this ADR governs it for the first time.
+
+D1: context-level is a per-check-type property owned by the engine. D2: the
+extractor consults `engine.is_context_level_for(check_type)` instead of the
+`CONTEXT_LEVEL_ENGINES` frozenset, which is retired; `workflow_gate` and
+`knowledge_gate` declare their modes via the same method. D3: `artifact_gate`
+becomes explicitly mixed-mode, gaining `verify_context` for its six repo-level
+check_types and keeping `verify` for the three per-file ones. D4: each rule's
+effective mode is surfaced in audit/inspect output — visibility under a single
+source of truth, not a second declaration in `.intent/`. D5: the audit walker
+admits the file set per-file rules declare, derived from active rule `scope`
+declarations (the per-file half of #480, consistent with the ADR's
+projection-from-declarations stance). D6: every check_type must demonstrably fire
+on a planted violation — a test-time coverage gate testing the property that
+matters rather than a `file_path`-usage proxy.
+
+Grounded in `papers/CORE-Gate.md` (engine-model context; the paper does not
+itself govern dispatch mode). Implementation deferred and tracked on #481; closes
+#480 at land, with the ADR-066 provocation as the acceptance gate. Complements
+ADR-075's implementation entry: that entry records D7 as gated by #480; this one
+removes that gate for nine rules.
+
+Files: `.specs/decisions/ADR-076-per-check-type-context-level-dispatch.md`.
+
+---
+
 ## Notes
 
 * This changelog intentionally avoids implementation detail
