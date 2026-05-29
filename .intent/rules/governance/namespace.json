@@ -1,0 +1,29 @@
+{
+    "$schema": "META/rule_document.schema.json",
+    "kind": "rule_document",
+    "metadata": {
+        "id": "rules.governance.namespace",
+        "title": "Governance Namespace Classification",
+        "version": "1.0.0",
+        "authority": "policy",
+        "phase": "audit",
+        "status": "active"
+    },
+    "rules": [
+        {
+            "id": "governance.namespace.classification_complete",
+            "statement": "Every file under `.intent/` and `.specs/` MUST have an entry in `.intent/governance/namespace_manifest.yaml` declaring its `governance_namespace`. A file present on disk under either tree with no manifest entry is unclassified and MUST surface as an open finding under this rule.",
+            "enforcement": "reporting",
+            "authority": "policy",
+            "phase": "audit",
+            "rationale": "ADR-075 D7. The framework/project namespace split is the prerequisite for the governance-application data model (#457 close-condition 3); a partial classification cannot unblock a schema that must reason over the whole governance surface. D8 makes the initial population a deliberate one-shot full pass — a bounded exception to Topology §11's incremental posture. After the one-shot pass, this rule maintains the invariant going forward: a newly added governance artifact that is not classified surfaces as a finding, applying §11's backfill-on-touch posture to the namespace manifest. Enforcement is `reporting` at introduction; per D7 escalation to `blocking` is a later decision once the manifest is complete and stable. The rule complements the cognate completeness checks already in place — ADR-066 (every active rule has an auto_remediation entry) and ADR-070 D5 (every source-projection pair has a sensor) — extending the register-plus-completeness-rule pattern to the namespace classification surface. The check sources its scope from the running filesystem (every file under .intent/ and .specs/) and its declared coverage from .intent/governance/namespace_manifest.yaml; the set difference is the finding set.",
+            "scope": {
+                "paths": [
+                    ".intent/**",
+                    ".specs/**"
+                ],
+                "notes": "Walk includes both governance trees in full. The manifest itself (.intent/governance/namespace_manifest.yaml) and the taxonomy register (.intent/taxonomies/governance_namespaces.yaml) are both classified by their own entries in the manifest — no self-reference exemption."
+            }
+        }
+    ]
+}

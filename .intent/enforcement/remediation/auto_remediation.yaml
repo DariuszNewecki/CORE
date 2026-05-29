@@ -638,6 +638,25 @@ mappings:
       of the rule registry.
     status: DELEGATE
 
+  governance.namespace.classification_complete:
+    action: fix.modularity
+    confidence: 0.40
+    risk: high
+    description: >
+      A file under .intent/ or .specs/ has no entry in
+      .intent/governance/namespace_manifest.yaml — the
+      framework/project classification invariant established by
+      ADR-075 D7 is violated. Classification is a property of an
+      artifact's purpose, not its file type (D5), so the manifest
+      entry is the governor-authored constitutional record; no
+      heuristic can substitute. Resolution: governor reviews the
+      unclassified file and adds a manifest entry with
+      governance_namespace = framework or project::<name>.
+      Non-automatable per D5; routed to governor inbox as DELEGATE.
+      Explicitly mapped to satisfy the ADR-066 unmapped-rules
+      invariant.
+    status: DELEGATE
+
   governance.quarantine.namespace_has_drainer:
     action: fix.modularity
     confidence: 0.40

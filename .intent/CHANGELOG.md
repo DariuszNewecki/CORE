@@ -1427,6 +1427,47 @@ Files: `.specs/decisions/ADR-075-framework-project-namespace-split.md`.
 
 ---
 
+## ADR-075 — 2026-05-29 (implementation complete)
+
+Framework/project namespace classification surface authored. The five
+artifacts named in the ADR's D-text now exist on disk:
+
+* `.intent/taxonomies/governance_namespaces.yaml` — vocabulary register
+  (D3, D4). Declares the closed value space (`framework`,
+  `project::<name>`) with `project::core` as the reserved self-name.
+* `.intent/governance/namespace_manifest.yaml` — classification manifest
+  (D4, D6, D8). One-shot full pass: every path under `.intent/` and
+  `.specs/` (402 files) plus the four new artifacts (4 self-references)
+  classified, 406 entries total — 152 `framework`, 254 `project::core`.
+* `.intent/rules/governance/namespace.json` — rule
+  `governance.namespace.classification_complete` (D7, reporting).
+  Surfaces any `.intent/`/`.specs/` file with no manifest entry.
+* `.intent/enforcement/mappings/governance/namespace.yaml` — enforcement
+  mapping. `python_runtime` check_type
+  `namespace_manifest_completeness`; severity WARNING.
+* `.intent/enforcement/remediation/auto_remediation.yaml` — DELEGATE
+  entry for the new rule, satisfying the ADR-066 unmapped-rules
+  invariant. Inserted in TIER 3a adjacent to
+  `governance.remediation.all_rules_mapped` and
+  `governance.quarantine.namespace_has_drainer`.
+
+The manifest is itself classified `project::core` — CORE's classification
+data is project-layer, per D6. The register, rule, and mapping are
+classified `framework` — they are the mechanism, inherited by any
+deployment that adopts CORE.
+
+Satisfies #457 close-condition 2 (manifest authored with every
+`.intent/`/`.specs/` path classified) and close-condition 3 (follow-on
+issue #479 for the governance-application data model). Closes #457.
+
+Files: `.intent/taxonomies/governance_namespaces.yaml`,
+`.intent/governance/namespace_manifest.yaml`,
+`.intent/rules/governance/namespace.json`,
+`.intent/enforcement/mappings/governance/namespace.yaml`,
+`.intent/enforcement/remediation/auto_remediation.yaml`.
+
+---
+
 ## Notes
 
 * This changelog intentionally avoids implementation detail

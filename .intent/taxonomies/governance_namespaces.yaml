@@ -1,0 +1,97 @@
+version: "1.0.0"
+status: active
+authority: constitutional
+title: CORE Governance Namespace Taxonomy
+description: >
+  Canonical declaration of the governance-namespace vocabulary. Defines the
+  two value classes — `framework` and `project::<name>` — that every
+  governance artifact under .intent/ and .specs/ is classified into.
+  Authority: ADR-075 D1, D3, D4. Grounding: CORE-Governance-Topology §8.
+  The per-file classification is carried by
+  .intent/governance/namespace_manifest.yaml (D4); this register declares
+  what the legal values are, not which files take which value.
+
+governance:
+  closed_value_space: true
+  rationale: >
+    The vocabulary is closed: every value MUST be either `framework` or
+    a `project::<name>` form. Ad-hoc strings are rejected at audit
+    by governance.namespace.classification_complete (D7). New
+    project-name values are admitted by amending this register, never
+    by free-form entry in the manifest. See ADR-075 D3.
+  key_name_protection: governance_namespace
+  key_name_rationale: >
+    The classification key is `governance_namespace`, never bare
+    `namespace`. ADR-075 D3 establishes this name to avoid collision
+    with three pre-existing senses of "namespace" in the codebase:
+    `rule_namespace` (audit-sensor rule-ID prefix), blackboard
+    subject namespace, and API domain namespace.
+
+namespaces:
+  framework:
+    display_name: Framework
+    description: >
+      Ships with CORE; applies to any governed project. Artifacts in this
+      namespace describe the governance system itself — its schemas,
+      contracts, enforcement primitives, constitutional papers, and the
+      patterns any governed repository inherits when it adopts CORE.
+      A BYOR deployment receives the framework namespace unchanged; the
+      governor of a BYOR repo does not author framework artifacts.
+    authoritative_layer: framework
+    deployment_scope: any_governed_repo
+
+  project:
+    display_name: Project (parameterized)
+    description: >
+      Specific to a named repository. The form is `project::<name>`,
+      where `<name>` identifies the governed repo. CORE's own codebase
+      is `project::core`; a BYOR repository is `project::<external>`.
+      Project artifacts capture the rules, workers, ADRs, mappings, and
+      state specific to one repo's own structure and operational
+      history. A BYOR deployment authors its own project layer; it does
+      not see other repositories' project layers.
+    value_form: "project::<name>"
+    name_format: "[a-z][a-z0-9_]*"
+    reserved_names:
+      core:
+        description: >
+          The self-name for CORE's own codebase. A CORE deployment is
+          framework + project::core. The name `core` is reserved at
+          this register and may not be claimed by an external repo.
+        authority: ADR-075 D1
+
+deployment_topologies:
+  core_self_governance:
+    description: >
+      CORE governing its own codebase. The full classified surface is
+      framework + project::core. This is the deployment that ships from
+      this repository today.
+    layers:
+      - framework
+      - project::core
+
+  byor_external:
+    description: >
+      CORE governing an external repository. The deployment surface is
+      framework + project::<external>. The external repo authors its
+      project layer; the framework layer is shipped unchanged. BYOR is
+      a downstream consumer of this register, not yet exercised in the
+      production code path. See ADR-075 D6.
+    layers:
+      - framework
+      - "project::<external>"
+
+references:
+  adr: ADR-075
+  grounding_paper: papers/CORE-Governance-Topology.md
+  grounding_section: "§8"
+  cognate_register_pattern:
+    adr: ADR-068
+    artifact: .intent/taxonomies/principal_roles.yaml
+    description: >
+      ADR-068's principal role taxonomy is the cognate register pattern
+      this taxonomy follows: a declared closed vocabulary in
+      .intent/taxonomies/ paired with an external classification surface
+      (here: .intent/governance/namespace_manifest.yaml).
+  manifest_artifact: .intent/governance/namespace_manifest.yaml
+  completeness_rule: governance.namespace.classification_complete

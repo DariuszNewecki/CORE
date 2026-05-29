@@ -1,0 +1,43 @@
+# .intent/enforcement/mappings/governance/namespace.yaml
+#
+# Enforcement mapping for governance.namespace.classification_complete
+# (ADR-075 D7). The check is a structural set-difference between the
+# filesystem walk (every file under .intent/ and .specs/) and the
+# classifications enumerated in
+# .intent/governance/namespace_manifest.yaml. Path-walk + YAML parse;
+# python_runtime is the appropriate engine.
+#
+# Enforcement is reporting (non-blocking) per ADR-075 D7. Escalation to
+# blocking is a later governor decision once the manifest is complete
+# and stable.
+#
+# Remediation routing for this rule lives in
+# .intent/enforcement/remediation/auto_remediation.yaml. Unclassified
+# files require governor judgment (D5 — namespace is per-artifact
+# *purpose*, not file type), so the route is human-only, not an
+# automated remediator. The ADR-066 unmapped-rules invariant is
+# satisfied by a DELEGATE entry on the remediation surface.
+
+mappings:
+  # RULE: governance.namespace.classification_complete
+  # Verifies that every file in .intent/ and .specs/ has a matching
+  # entry in .intent/governance/namespace_manifest.yaml. The finding
+  # set is: (filesystem walk under .intent/ and .specs/) ∖ (paths
+  # declared in the manifest's `classifications:` list).
+  governance.namespace.classification_complete:
+    engine: python_runtime
+    params:
+      check_type: namespace_manifest_completeness
+      walked_roots:
+        - .intent
+        - .specs
+      manifest_path: .intent/governance/namespace_manifest.yaml
+      manifest_list_key: classifications
+      manifest_path_field: path
+      vocabulary_register: .intent/taxonomies/governance_namespaces.yaml
+      severity: WARNING
+    scope:
+      applies_to:
+        - ".intent/**"
+        - ".specs/**"
+      excludes: []

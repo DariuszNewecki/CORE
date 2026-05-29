@@ -1,0 +1,1152 @@
+# .intent/governance/namespace_manifest.yaml
+#
+# Authority: policy
+# Status:    active
+# Governs:   ADR-075 D4, D5, D6, D8
+# Vocabulary: .intent/taxonomies/governance_namespaces.yaml
+# Completeness rule: governance.namespace.classification_complete (D7)
+#
+# Classifies every file under .intent/ and .specs/ into the
+# `governance_namespace` vocabulary declared by the taxonomy register.
+# Per ADR-075 D5, the governor is the classification authority. Type
+# and directory seed defaults; the governor MAY override per file.
+#
+# Per D6 the manifest is per-layer in shape — CORE's deployment manifest
+# is the union of framework entries and project::core entries. This file
+# carries both layers as a single classified surface today. When the
+# governance application separates layers into per-layer storage
+# (follow-on issue), this file is the source the per-layer split reads
+# from. A BYOR deployment authors its own `project::<external>` entries
+# in its own repo's layer; this file is the framework + project::core
+# layer of the CORE deployment.
+#
+# Per D8, this initial population is a one-shot full pass. Going forward,
+# governance.namespace.classification_complete (D7, reporting) detects
+# any file added to .intent/ or .specs/ without an entry here and posts
+# a finding for governor classification — the §11 backfill-on-touch
+# posture applied to the manifest itself.
+#
+# Entry shape:
+#   - path: <relative path from repo root>
+#     governance_namespace: framework | project::core
+#     # notes:  (optional) governor-facing rationale on gray-zone entries.
+#                Used by the initial draft to flag entries where the
+#                heuristic could plausibly resolve either way and the
+#                governor should review the decision.
+#
+# Sections are organized framework first, then project::core. Within
+# each section, entries are grouped by subtree to support quick review.
+
+classifications:
+
+  # =====================================================================
+  # FRAMEWORK
+  # Ships with CORE; applies to any governed project. Schemas, contracts,
+  # patterns, constitutional papers, and pattern-establishing ADRs.
+  # =====================================================================
+
+  # ---------------------------------------------------------------------
+  # .intent/META/** — meta-schemas + enums (the shape of a valid
+  # governance artifact). Framework by definition.
+  # ---------------------------------------------------------------------
+  - path: .intent/META/GLOBAL-DOCUMENT-META-SCHEMA.json
+    governance_namespace: framework
+  - path: .intent/META/data_contract.schema.json
+    governance_namespace: framework
+  - path: .intent/META/enforcement_mapping.schema.json
+    governance_namespace: framework
+  - path: .intent/META/enums.json
+    governance_namespace: framework
+  - path: .intent/META/flow.schema.json
+    governance_namespace: framework
+  - path: .intent/META/intent_tree.schema.json
+    governance_namespace: framework
+  - path: .intent/META/intent_tree.yaml
+    governance_namespace: framework
+  - path: .intent/META/phase.schema.json
+    governance_namespace: framework
+  - path: .intent/META/rule_document.schema.json
+    governance_namespace: framework
+  - path: .intent/META/vocabulary.json
+    governance_namespace: framework
+  - path: .intent/META/vocabulary.schema.json
+    governance_namespace: framework
+  - path: .intent/META/worker.schema.json
+    governance_namespace: framework
+  - path: .intent/META/workflow_definition.schema.json
+    governance_namespace: framework
+  - path: .intent/META/workflow_stage.schema.json
+    governance_namespace: framework
+
+  # ---------------------------------------------------------------------
+  # .intent/constitution/** — constitutional articles inherited by any
+  # governed repo.
+  # ---------------------------------------------------------------------
+  - path: .intent/constitution/CONSTITUTIONAL-WORKFLOWS.md
+    governance_namespace: framework
+  - path: .intent/constitution/CORE-CONSTITUTION.md
+    governance_namespace: framework
+    notes: >
+      Title contains "CORE" but the document is the constitutional
+      frame any governed repo inherits, not CORE-specific code rules.
+      Governor confirm.
+
+  # ---------------------------------------------------------------------
+  # .intent/phases/** — six universal phase definitions
+  # (INTERPRET/PARSE/LOAD/AUDIT/RUNTIME/EXECUTION).
+  # ---------------------------------------------------------------------
+  - path: .intent/phases/audit.yaml
+    governance_namespace: framework
+  - path: .intent/phases/execution.yaml
+    governance_namespace: framework
+  - path: .intent/phases/interpret.yaml
+    governance_namespace: framework
+  - path: .intent/phases/load.yaml
+    governance_namespace: framework
+  - path: .intent/phases/parse.yaml
+    governance_namespace: framework
+  - path: .intent/phases/runtime.yaml
+    governance_namespace: framework
+
+  # ---------------------------------------------------------------------
+  # .intent/workflows/** — stage and definition files.
+  # Stages are universal workflow building blocks. Definitions describe
+  # generic workflows (canary validation, change-set lifecycle, coverage
+  # remediation, modularity refactor) that apply to any governed code.
+  # ---------------------------------------------------------------------
+  - path: .intent/workflows/definitions/audit.canary_validation.yaml
+    governance_namespace: framework
+  - path: .intent/workflows/definitions/core.change_set.lifecycle.yaml
+    governance_namespace: framework
+  - path: .intent/workflows/definitions/coverage_remediation.yaml
+    governance_namespace: framework
+  - path: .intent/workflows/definitions/refactor_modularity.yaml
+    governance_namespace: framework
+  - path: .intent/workflows/stages/audit.canary_validation.yaml
+    governance_namespace: framework
+  - path: .intent/workflows/stages/audit.sandbox_validation.yaml
+    governance_namespace: framework
+  - path: .intent/workflows/stages/audit.style_check.yaml
+    governance_namespace: framework
+  - path: .intent/workflows/stages/audit.validate_changes.yaml
+    governance_namespace: framework
+  - path: .intent/workflows/stages/execution.commit_changes.yaml
+    governance_namespace: framework
+  - path: .intent/workflows/stages/interpret.intent.yaml
+    governance_namespace: framework
+  - path: .intent/workflows/stages/load.operational_context.yaml
+    governance_namespace: framework
+  - path: .intent/workflows/stages/parse.plan_actions.yaml
+    governance_namespace: framework
+  - path: .intent/workflows/stages/runtime.generate_changes.yaml
+    governance_namespace: framework
+  - path: .intent/workflows/stages/runtime.generate_tests.yaml
+    governance_namespace: framework
+  - path: .intent/workflows/stages/runtime.repair_changes.yaml
+    governance_namespace: framework
+
+  # ---------------------------------------------------------------------
+  # .intent/taxonomies/** — vocabulary registers.
+  # ---------------------------------------------------------------------
+  - path: .intent/taxonomies/capability_taxonomy.yaml
+    governance_namespace: framework
+  - path: .intent/taxonomies/governance_namespaces.yaml
+    governance_namespace: framework
+    notes: >
+      The vocabulary register for this manifest's value space (ADR-075
+      D4). Framework: the value space ships with CORE.
+  - path: .intent/taxonomies/principal_roles.yaml
+    governance_namespace: framework
+
+  # ---------------------------------------------------------------------
+  # .intent/rules/governance/** — framework subset.
+  # Rules that govern governance artifacts themselves (encoding,
+  # registers, remediation pattern, vocabulary store). The two
+  # CORE-specific rule files (coherence.json, quarantine.json) appear
+  # in the project::core section below.
+  # ---------------------------------------------------------------------
+  - path: .intent/rules/governance/intent_artifact_encoding.json
+    governance_namespace: framework
+  - path: .intent/rules/governance/remediation.json
+    governance_namespace: framework
+  - path: .intent/rules/governance/vocabulary_canonical_store.json
+    governance_namespace: framework
+  - path: .intent/rules/governance/vocabulary_registers.json
+    governance_namespace: framework
+
+  # ---------------------------------------------------------------------
+  # .intent/rules/ai/** — generic AI/prompt governance applicable to
+  # any governed repo that hosts AI components.
+  # ---------------------------------------------------------------------
+  - path: .intent/rules/ai/capability_taxonomy_governance.json
+    governance_namespace: framework
+  - path: .intent/rules/ai/cognitive_role_governance.json
+    governance_namespace: framework
+  - path: .intent/rules/ai/prompt_artifact_structure.json
+    governance_namespace: framework
+  - path: .intent/rules/ai/prompt_governance.json
+    governance_namespace: framework
+
+  # ---------------------------------------------------------------------
+  # .intent/enforcement/mappings/ai/** — match the framework rules/ai
+  # cluster.
+  # ---------------------------------------------------------------------
+  - path: .intent/enforcement/mappings/ai/capability_taxonomy_governance.yaml
+    governance_namespace: framework
+  - path: .intent/enforcement/mappings/ai/cognitive_role_governance.yaml
+    governance_namespace: framework
+  - path: .intent/enforcement/mappings/ai/prompt_artifact_structure.yaml
+    governance_namespace: framework
+  - path: .intent/enforcement/mappings/ai/prompt_governance.yaml
+    governance_namespace: framework
+
+  # ---------------------------------------------------------------------
+  # .intent/enforcement/mappings/governance/** — framework subset.
+  # quarantine.yaml maps a project::core rule and appears below.
+  # ---------------------------------------------------------------------
+  - path: .intent/enforcement/mappings/governance/intent_artifact_encoding.yaml
+    governance_namespace: framework
+  - path: .intent/enforcement/mappings/governance/remediation.yaml
+    governance_namespace: framework
+  - path: .intent/enforcement/mappings/governance/vocabulary_canonical_store.yaml
+    governance_namespace: framework
+  - path: .intent/enforcement/mappings/governance/vocabulary_registers.yaml
+    governance_namespace: framework
+
+  # ---------------------------------------------------------------------
+  # .intent/enforcement/** — root-level envelope.
+  # ---------------------------------------------------------------------
+  - path: .intent/enforcement/constitutional_envelope.yaml
+    governance_namespace: framework
+    notes: >
+      Gray zone. The envelope concept is framework, but its contents
+      may reference CORE-specific scopes. Governor review recommended;
+      could plausibly resolve to project::core if envelope contents
+      are CORE-specific.
+
+  # ---------------------------------------------------------------------
+  # .specs/META/** — handoff schema.
+  # ---------------------------------------------------------------------
+  - path: .specs/META/handoff.schema.json
+    governance_namespace: framework
+    notes: >
+      Handoff schema concept is framework. Governor confirm — if CORE
+      handoffs include CORE-specific fields, this may belong under
+      project::core.
+
+  # ---------------------------------------------------------------------
+  # .specs/CORE-CHARTER.md — founding charter of CORE-the-framework.
+  # ---------------------------------------------------------------------
+  - path: .specs/CORE-CHARTER.md
+    governance_namespace: framework
+    notes: >
+      Names CORE but declares the framework's founding principles.
+      Governor confirm.
+
+  # ---------------------------------------------------------------------
+  # .specs/northstar/** — framework vision.
+  # ---------------------------------------------------------------------
+  - path: .specs/northstar/CORE - What It Does.md
+    governance_namespace: framework
+  - path: .specs/northstar/CORE-USER-REQUIREMENTS.md
+    governance_namespace: framework
+    notes: >
+      Could plausibly be project::core (URS for CORE-the-product) or
+      framework (framework's user-facing requirements). Defaulted to
+      framework on directory placement. Governor decide.
+  - path: .specs/northstar/core_northstar.md
+    governance_namespace: framework
+
+  # ---------------------------------------------------------------------
+  # .specs/papers/** — framework subset.
+  # Heuristic: papers naming abstract patterns and concepts → framework;
+  # papers naming specific CORE workers/components → project::core
+  # (appear in the project::core section below).
+  # ---------------------------------------------------------------------
+  - path: .specs/papers/CORE-Action.md
+    governance_namespace: framework
+  - path: .specs/papers/CORE-Adaptive-Workflow-Pattern.md
+    governance_namespace: framework
+  - path: .specs/papers/CORE-As-a-Legal-System.md
+    governance_namespace: framework
+  - path: .specs/papers/CORE-Authority-Without-Registries.md
+    governance_namespace: framework
+  - path: .specs/papers/CORE-Blackboard.md
+    governance_namespace: framework
+  - path: .specs/papers/CORE-Canary.md
+    governance_namespace: framework
+  - path: .specs/papers/CORE-Capability-Taxonomy.md
+    governance_namespace: framework
+  - path: .specs/papers/CORE-Cognitive-Role-Capability-Resource-Taxonomy.md
+    governance_namespace: framework
+  - path: .specs/papers/CORE-Cognitive-Routing-and-Resource-Selection.md
+    governance_namespace: framework
+  - path: .specs/papers/CORE-Common-Governance-Failure-Modes.md
+    governance_namespace: framework
+  - path: .specs/papers/CORE-ConservationGate.md
+    governance_namespace: framework
+  - path: .specs/papers/CORE-Constitution-Read-Only-Contract.md
+    governance_namespace: framework
+  - path: .specs/papers/CORE-Constitutional-Foundations.md
+    governance_namespace: framework
+  - path: .specs/papers/CORE-ConstitutionalCoherenceChecker.md
+    governance_namespace: framework
+    notes: >
+      CCC concept paper. Could plausibly be project::core (the CCC is
+      CORE-specific machinery). Defaulted framework on the pattern
+      interpretation. Governor decide.
+  - path: .specs/papers/CORE-ConstitutionalEnvelope.md
+    governance_namespace: framework
+  - path: .specs/papers/CORE-Context-Packet-Doctrine.md
+    governance_namespace: framework
+  - path: .specs/papers/CORE-Crate.md
+    governance_namespace: framework
+    notes: Governor confirm — concept paper, abstract noun.
+  - path: .specs/papers/CORE-DataContracts.md
+    governance_namespace: framework
+  - path: .specs/papers/CORE-DocumentationPipeline.md
+    governance_namespace: framework
+    notes: >
+      Documentation pipeline as a pattern. Could plausibly be
+      project::core if it describes CORE-specific stages. Governor
+      decide.
+  - path: .specs/papers/CORE-Emergency-and-Exception-Stance.md
+    governance_namespace: framework
+  - path: .specs/papers/CORE-Evidence-as-Input.md
+    governance_namespace: framework
+  - path: .specs/papers/CORE-Finding.md
+    governance_namespace: framework
+  - path: .specs/papers/CORE-Flow.md
+    governance_namespace: framework
+  - path: .specs/papers/CORE-Gate.md
+    governance_namespace: framework
+  - path: .specs/papers/CORE-Governance-Topology.md
+    governance_namespace: framework
+  - path: .specs/papers/CORE-Infrastructure-Definition.md
+    governance_namespace: framework
+    notes: Governor confirm — could go either way on the title.
+  - path: .specs/papers/CORE-IntentGuard.md
+    governance_namespace: framework
+  - path: .specs/papers/CORE-IntentRepository.md
+    governance_namespace: framework
+  - path: .specs/papers/CORE-Mind-Body-Will-Separation.md
+    governance_namespace: framework
+  - path: .specs/papers/CORE-Minimal-Derivable-Artifacts.md
+    governance_namespace: framework
+  - path: .specs/papers/CORE-Phases-as-Governance-Boundaries.md
+    governance_namespace: framework
+  - path: .specs/papers/CORE-PromptGovernancePipeline.md
+    governance_namespace: framework
+  - path: .specs/papers/CORE-Proposal.md
+    governance_namespace: framework
+  - path: .specs/papers/CORE-Remediation.md
+    governance_namespace: framework
+  - path: .specs/papers/CORE-RemediationMap.md
+    governance_namespace: framework
+    notes: >
+      Pattern paper. Could plausibly be project::core if it describes
+      CORE's specific remediation routing rather than the pattern.
+      Governor decide.
+  - path: .specs/papers/CORE-RepositoryIndexing.md
+    governance_namespace: framework
+    notes: Governor confirm — indexing model paper.
+  - path: .specs/papers/CORE-Rule-Authoring-Discipline.md
+    governance_namespace: framework
+  - path: .specs/papers/CORE-Rule-Canonical-Form.md
+    governance_namespace: framework
+  - path: .specs/papers/CORE-Rule-Conflict-Semantics.md
+    governance_namespace: framework
+  - path: .specs/papers/CORE-Rule-Evaluation-Semantics.md
+    governance_namespace: framework
+  - path: .specs/papers/CORE-Rule-Storage-Minimalism.md
+    governance_namespace: framework
+  - path: .specs/papers/CORE-ShopManager.md
+    governance_namespace: framework
+    notes: >
+      Pattern paper for shop-manager workers. Could plausibly be
+      project::core. Governor decide.
+  - path: .specs/papers/CORE-TestGovernance.md
+    governance_namespace: framework
+  - path: .specs/papers/CORE-The-Octopus-UNIX-Synthesis.md
+    governance_namespace: framework
+  - path: .specs/papers/CORE-Vocabulary-Registers.md
+    governance_namespace: framework
+  - path: .specs/papers/CORE-Vocabulary.md
+    governance_namespace: framework
+  - path: .specs/papers/CORE-Workers-and-Governance-Model.md
+    governance_namespace: framework
+  - path: .specs/papers/CORE-Workflow-Papers-First.md
+    governance_namespace: framework
+  - path: .specs/papers/CORE-Workflow-Stages.md
+    governance_namespace: framework
+
+  # ---------------------------------------------------------------------
+  # .specs/decisions/** — framework subset.
+  # Heuristic: ADRs establishing patterns / mechanisms / invariants
+  # inherited by any governed repo → framework. ADRs tuning CORE's own
+  # workers, columns, src/ files → project::core (in project::core
+  # section below).
+  # ---------------------------------------------------------------------
+  - path: .specs/decisions/ADR-001-specs-layer-established.md
+    governance_namespace: framework
+  - path: .specs/decisions/ADR-005-govern-audit-verdict-policy.md
+    governance_namespace: framework
+  - path: .specs/decisions/ADR-008-constitutionalize-action-impact-level.md
+    governance_namespace: framework
+  - path: .specs/decisions/ADR-010-finding-proposal-contract.md
+    governance_namespace: framework
+  - path: .specs/decisions/ADR-011-worker-attribution-for-blackboard-entries.md
+    governance_namespace: framework
+  - path: .specs/decisions/ADR-015-consequence-chain-attribution.md
+    governance_namespace: framework
+  - path: .specs/decisions/ADR-017-claim-proposal-as-atomic-action.md
+    governance_namespace: framework
+  - path: .specs/decisions/ADR-019-edge5-git-boundary-attribution-posture.md
+    governance_namespace: framework
+  - path: .specs/decisions/ADR-020-worker-liveness-derived-from-heartbeat.md
+    governance_namespace: framework
+  - path: .specs/decisions/ADR-021-scoped-autonomous-git-operations.md
+    governance_namespace: framework
+  - path: .specs/decisions/ADR-023-vocabulary-canonical-store.md
+    governance_namespace: framework
+  - path: .specs/decisions/ADR-024-local-llm-cognitive-role-assignments.md
+    governance_namespace: framework
+  - path: .specs/decisions/ADR-026-proposal-scope-files-non-emptiness-validation.md
+    governance_namespace: framework
+  - path: .specs/decisions/ADR-027-sensor-fixer-coherence-detection.md
+    governance_namespace: framework
+  - path: .specs/decisions/ADR-028-describe-rules-dont-quote-forbidden-syntax.md
+    governance_namespace: framework
+  - path: .specs/decisions/ADR-029-explicit-non-automatable-rule-mapping.md
+    governance_namespace: framework
+  - path: .specs/decisions/ADR-033-flow-step-parameter-routing-contract.md
+    governance_namespace: framework
+  - path: .specs/decisions/ADR-035-one-finding-one-proposal.md
+    governance_namespace: framework
+  - path: .specs/decisions/ADR-037-flow-scope-exception.md
+    governance_namespace: framework
+  - path: .specs/decisions/ADR-038-circuit-breaker-on-repeated-proposal-failures.md
+    governance_namespace: framework
+  - path: .specs/decisions/ADR-039-audit-input-cache-invalidation.md
+    governance_namespace: framework
+  - path: .specs/decisions/ADR-040-no-hardcoded-config-values.md
+    governance_namespace: framework
+  - path: .specs/decisions/ADR-041-per-worker-liveness-thresholds-and-orphan-skip.md
+    governance_namespace: framework
+  - path: .specs/decisions/ADR-045-quarantine-state-for-revived-findings.md
+    governance_namespace: framework
+  - path: .specs/decisions/ADR-046-flow-risk-from-constituent-steps.md
+    governance_namespace: framework
+  - path: .specs/decisions/ADR-049-doctrine-rule-parity.md
+    governance_namespace: framework
+  - path: .specs/decisions/ADR-052-llm-config-schema.md
+    governance_namespace: framework
+  - path: .specs/decisions/ADR-053-api-governance-interface.md
+    governance_namespace: framework
+  - path: .specs/decisions/ADR-056-runtime-data-contracts.md
+    governance_namespace: framework
+  - path: .specs/decisions/ADR-059-severity-vocabulary-governance.md
+    governance_namespace: framework
+  - path: .specs/decisions/ADR-060-governance-input-staleness-closure.md
+    governance_namespace: framework
+  - path: .specs/decisions/ADR-065-documentation-layer-separation.md
+    governance_namespace: framework
+  - path: .specs/decisions/ADR-066-unmapped-rules-invariant.md
+    governance_namespace: framework
+  - path: .specs/decisions/ADR-067-constitutional-coherence-checker.md
+    governance_namespace: framework
+  - path: .specs/decisions/ADR-068-principal-role-taxonomy.md
+    governance_namespace: framework
+  - path: .specs/decisions/ADR-069-claim-lifecycle-lease-semantics.md
+    governance_namespace: framework
+  - path: .specs/decisions/ADR-070-source-projection-coherence.md
+    governance_namespace: framework
+  - path: .specs/decisions/ADR-071-action-diff-coherence.md
+    governance_namespace: framework
+  - path: .specs/decisions/ADR-075-framework-project-namespace-split.md
+    governance_namespace: framework
+
+  # =====================================================================
+  # PROJECT::CORE
+  # Specific to CORE's own codebase. CORE-specific workers, rules tuned
+  # to CORE's structure, ADRs about CORE incidents/recalibration, runtime
+  # config/contracts/quarantine/remediation surfaces, CORE's roadmap and
+  # operational state.
+  # =====================================================================
+
+  # ---------------------------------------------------------------------
+  # .intent/cim/** — CORE Interface Map thresholds.
+  # ---------------------------------------------------------------------
+  - path: .intent/cim/thresholds.yaml
+    governance_namespace: project::core
+
+  # ---------------------------------------------------------------------
+  # .intent/flows/** — CORE's specific flow orchestrations
+  # (reference CORE-specific workers).
+  # ---------------------------------------------------------------------
+  - path: .intent/flows/flow.build_tests.yaml
+    governance_namespace: project::core
+  - path: .intent/flows/flow.dev_sync.yaml
+    governance_namespace: project::core
+  - path: .intent/flows/flow.fix_code.yaml
+    governance_namespace: project::core
+  - path: .intent/flows/flow.sync_state.yaml
+    governance_namespace: project::core
+
+  # ---------------------------------------------------------------------
+  # .intent/governance/** — projection inventory + (this) manifest +
+  # taxonomy. All CORE's own meta-governance state.
+  # ---------------------------------------------------------------------
+  - path: .intent/governance/namespace_manifest.yaml
+    governance_namespace: project::core
+    notes: >
+      Self-classified. The manifest is CORE's own classification state;
+      the BYOR pattern (D6) sees each repo author its own. Vocabulary
+      register is framework (declared above under taxonomies).
+  - path: .intent/governance/projections.yaml
+    governance_namespace: project::core
+
+  # ---------------------------------------------------------------------
+  # .intent/workers/** — every CORE worker declaration.
+  # ---------------------------------------------------------------------
+  - path: .intent/workers/audit_ingest_worker.yaml
+    governance_namespace: project::core
+  - path: .intent/workers/audit_sensor_architecture.yaml
+    governance_namespace: project::core
+  - path: .intent/workers/audit_sensor_layout.yaml
+    governance_namespace: project::core
+  - path: .intent/workers/audit_sensor_linkage.yaml
+    governance_namespace: project::core
+  - path: .intent/workers/audit_sensor_logic.yaml
+    governance_namespace: project::core
+  - path: .intent/workers/audit_sensor_modularity.yaml
+    governance_namespace: project::core
+  - path: .intent/workers/audit_sensor_purity.yaml
+    governance_namespace: project::core
+  - path: .intent/workers/audit_sensor_style.yaml
+    governance_namespace: project::core
+  - path: .intent/workers/audit_violation_sensor.yaml
+    governance_namespace: project::core
+  - path: .intent/workers/blackboard_shop_manager.yaml
+    governance_namespace: project::core
+  - path: .intent/workers/call_site_rewriter.yaml
+    governance_namespace: project::core
+  - path: .intent/workers/capability_tagger.yaml
+    governance_namespace: project::core
+  - path: .intent/workers/coherence_sensor.yaml
+    governance_namespace: project::core
+  - path: .intent/workers/commit_reachability_auditor.yaml
+    governance_namespace: project::core
+  - path: .intent/workers/db_sync_worker.yaml
+    governance_namespace: project::core
+  - path: .intent/workers/governance_embedder.yaml
+    governance_namespace: project::core
+  - path: .intent/workers/intent_inspector.yaml
+    governance_namespace: project::core
+  - path: .intent/workers/observer_worker.yaml
+    governance_namespace: project::core
+  - path: .intent/workers/prompt_artifact_writer.yaml
+    governance_namespace: project::core
+  - path: .intent/workers/prompt_extractor_worker.yaml
+    governance_namespace: project::core
+  - path: .intent/workers/proposal_consumer_worker.yaml
+    governance_namespace: project::core
+  - path: .intent/workers/proposal_pipeline_shop_manager.yaml
+    governance_namespace: project::core
+  - path: .intent/workers/repo_crawler.yaml
+    governance_namespace: project::core
+  - path: .intent/workers/repo_embedder.yaml
+    governance_namespace: project::core
+  - path: .intent/workers/test_coverage_sensor.yaml
+    governance_namespace: project::core
+  - path: .intent/workers/test_remediator.yaml
+    governance_namespace: project::core
+  - path: .intent/workers/test_runner_sensor.yaml
+    governance_namespace: project::core
+  - path: .intent/workers/violation_executor.yaml
+    governance_namespace: project::core
+  - path: .intent/workers/violation_remediator.yaml
+    governance_namespace: project::core
+  - path: .intent/workers/violation_remediator_body.yaml
+    governance_namespace: project::core
+  - path: .intent/workers/worker_shop_manager.yaml
+    governance_namespace: project::core
+
+  # ---------------------------------------------------------------------
+  # .intent/rules/architecture/** — CORE's specific api/body/will/shared
+  # layer model rules.
+  # ---------------------------------------------------------------------
+  - path: .intent/rules/architecture/async_logic.json
+    governance_namespace: project::core
+  - path: .intent/rules/architecture/atomic_actions.json
+    governance_namespace: project::core
+  - path: .intent/rules/architecture/blackboard.json
+    governance_namespace: project::core
+  - path: .intent/rules/architecture/channels.json
+    governance_namespace: project::core
+  - path: .intent/rules/architecture/core_safety.json
+    governance_namespace: project::core
+  - path: .intent/rules/architecture/flows.json
+    governance_namespace: project::core
+  - path: .intent/rules/architecture/governance_basics.json
+    governance_namespace: project::core
+  - path: .intent/rules/architecture/intent_access.json
+    governance_namespace: project::core
+  - path: .intent/rules/architecture/layer_separation.json
+    governance_namespace: project::core
+  - path: .intent/rules/architecture/mind_execution_semantic.json
+    governance_namespace: project::core
+  - path: .intent/rules/architecture/modernization.json
+    governance_namespace: project::core
+  - path: .intent/rules/architecture/modularity.json
+    governance_namespace: project::core
+  - path: .intent/rules/architecture/mutation_surface.json
+    governance_namespace: project::core
+  - path: .intent/rules/architecture/path_access.json
+    governance_namespace: project::core
+  - path: .intent/rules/architecture/patterns.json
+    governance_namespace: project::core
+  - path: .intent/rules/architecture/privileged_boundaries.json
+    governance_namespace: project::core
+  - path: .intent/rules/architecture/quality_gates.json
+    governance_namespace: project::core
+
+  # ---------------------------------------------------------------------
+  # .intent/rules/cli/** — CORE-specific CLI rules.
+  # ---------------------------------------------------------------------
+  - path: .intent/rules/cli/interface_design.json
+    governance_namespace: project::core
+
+  # ---------------------------------------------------------------------
+  # .intent/rules/code/** — Python-specific style/structure rules for
+  # CORE's source.
+  # ---------------------------------------------------------------------
+  - path: .intent/rules/code/imports.json
+    governance_namespace: project::core
+  - path: .intent/rules/code/layout.json
+    governance_namespace: project::core
+  - path: .intent/rules/code/linkage.json
+    governance_namespace: project::core
+  - path: .intent/rules/code/metadata_mutations.json
+    governance_namespace: project::core
+  - path: .intent/rules/code/modularity.json
+    governance_namespace: project::core
+  - path: .intent/rules/code/purity.json
+    governance_namespace: project::core
+  - path: .intent/rules/code/style.json
+    governance_namespace: project::core
+
+  # ---------------------------------------------------------------------
+  # .intent/rules/data/** — CORE's data governance rules.
+  # ---------------------------------------------------------------------
+  - path: .intent/rules/data/governance.json
+    governance_namespace: project::core
+
+  # ---------------------------------------------------------------------
+  # .intent/rules/infrastructure/** — CORE infrastructure rules.
+  # ---------------------------------------------------------------------
+  - path: .intent/rules/infrastructure/authority_boundaries.json
+    governance_namespace: project::core
+  - path: .intent/rules/infrastructure/cli_commands.json
+    governance_namespace: project::core
+
+  # ---------------------------------------------------------------------
+  # .intent/rules/will/** — CORE's will-layer rules.
+  # ---------------------------------------------------------------------
+  - path: .intent/rules/will/autonomy.json
+    governance_namespace: project::core
+  - path: .intent/rules/will/planning.json
+    governance_namespace: project::core
+  - path: .intent/rules/will/proposal_lifecycle.json
+    governance_namespace: project::core
+
+  # ---------------------------------------------------------------------
+  # .intent/rules/governance/** — project::core subset.
+  # coherence.json contains CORE-specific rules (coherence.repo_artifacts
+  # references core.repo_artifacts). quarantine.json governs CORE's
+  # quarantine subsystem.
+  # ---------------------------------------------------------------------
+  - path: .intent/rules/governance/coherence.json
+    governance_namespace: project::core
+    notes: >
+      Rule cluster name is generic, but contained rules
+      (coherence.repo_artifacts.drift, coherence.violation_executor.blast_bound)
+      reference CORE-specific tables and workers. Could be split if
+      framework-general coherence rules emerge.
+  - path: .intent/rules/governance/quarantine.json
+    governance_namespace: project::core
+    notes: >
+      Governs the awaiting_reaudit state for CORE's quarantine subsystem
+      (ADR-045). Defaulted project::core; could go framework if
+      considered a pattern. Governor decide.
+
+  # ---------------------------------------------------------------------
+  # .intent/rules/governance/namespace.json — the new completeness rule
+  # (this implementation).
+  # ---------------------------------------------------------------------
+  - path: .intent/rules/governance/namespace.json
+    governance_namespace: framework
+    notes: >
+      The classification-completeness rule itself is framework: it
+      governs the manifest invariant any deployment must maintain.
+      Cognate to governance.vocabulary_registers (also framework).
+
+  # ---------------------------------------------------------------------
+  # .intent/enforcement/config/** — CORE's runtime configuration values.
+  # ---------------------------------------------------------------------
+  - path: .intent/enforcement/config/action_risk.yaml
+    governance_namespace: project::core
+  - path: .intent/enforcement/config/audit_verdict.yaml
+    governance_namespace: project::core
+  - path: .intent/enforcement/config/autonomy_dirty_tree.yaml
+    governance_namespace: project::core
+  - path: .intent/enforcement/config/circuit_breaker.yaml
+    governance_namespace: project::core
+  - path: .intent/enforcement/config/crawl_scopes.yaml
+    governance_namespace: project::core
+  - path: .intent/enforcement/config/governance_paths.yaml
+    governance_namespace: project::core
+  - path: .intent/enforcement/config/normative_markers.yaml
+    governance_namespace: project::core
+  - path: .intent/enforcement/config/operational_config.yaml
+    governance_namespace: project::core
+  - path: .intent/enforcement/config/phase_responsibility.yaml
+    governance_namespace: project::core
+  - path: .intent/enforcement/config/rule_targets.yaml
+    governance_namespace: project::core
+  - path: .intent/enforcement/config/task_type_phases.yaml
+    governance_namespace: project::core
+  - path: .intent/enforcement/config/test_coverage.yaml
+    governance_namespace: project::core
+
+  # ---------------------------------------------------------------------
+  # .intent/enforcement/contracts/** — CORE's runtime type contracts
+  # (ADR-056). Every contract describes a specific CORE runtime shape.
+  # ---------------------------------------------------------------------
+  - path: .intent/enforcement/contracts/ActionDefinition.json
+    governance_namespace: project::core
+  - path: .intent/enforcement/contracts/ActionResult.json
+    governance_namespace: project::core
+  - path: .intent/enforcement/contracts/AgentDecision.json
+    governance_namespace: project::core
+  - path: .intent/enforcement/contracts/AuditFinding.json
+    governance_namespace: project::core
+  - path: .intent/enforcement/contracts/AutoFixablePattern.json
+    governance_namespace: project::core
+  - path: .intent/enforcement/contracts/BlackboardEntry.json
+    governance_namespace: project::core
+  - path: .intent/enforcement/contracts/CheckResult.json
+    governance_namespace: project::core
+  - path: .intent/enforcement/contracts/ConstitutionalValidationResult.json
+    governance_namespace: project::core
+  - path: .intent/enforcement/contracts/ConstitutionalViolationPayload.json
+    governance_namespace: project::core
+  - path: .intent/enforcement/contracts/ContextBuildRequest.json
+    governance_namespace: project::core
+  - path: .intent/enforcement/contracts/ContextPacket.json
+    governance_namespace: project::core
+  - path: .intent/enforcement/contracts/DetailedPlan.json
+    governance_namespace: project::core
+  - path: .intent/enforcement/contracts/DetailedPlanStep.json
+    governance_namespace: project::core
+  - path: .intent/enforcement/contracts/DriftReport.json
+    governance_namespace: project::core
+  - path: .intent/enforcement/contracts/EmbeddingPayload.json
+    governance_namespace: project::core
+  - path: .intent/enforcement/contracts/ExecutionTask.json
+    governance_namespace: project::core
+  - path: .intent/enforcement/contracts/FeatureIssue.json
+    governance_namespace: project::core
+  - path: .intent/enforcement/contracts/Finding.json
+    governance_namespace: project::core
+  - path: .intent/enforcement/contracts/FixResult.json
+    governance_namespace: project::core
+  - path: .intent/enforcement/contracts/FlowDefinition.json
+    governance_namespace: project::core
+  - path: .intent/enforcement/contracts/FlowStep.json
+    governance_namespace: project::core
+  - path: .intent/enforcement/contracts/GovernanceDecision.json
+    governance_namespace: project::core
+  - path: .intent/enforcement/contracts/PatternViolation.json
+    governance_namespace: project::core
+  - path: .intent/enforcement/contracts/PhaseWorkflowResult.json
+    governance_namespace: project::core
+  - path: .intent/enforcement/contracts/PolicyEvaluation.json
+    governance_namespace: project::core
+  - path: .intent/enforcement/contracts/PromptModelManifest.json
+    governance_namespace: project::core
+  - path: .intent/enforcement/contracts/Proposal.json
+    governance_namespace: project::core
+  - path: .intent/enforcement/contracts/ProposalAction.json
+    governance_namespace: project::core
+  - path: .intent/enforcement/contracts/ProposalConsequence.json
+    governance_namespace: project::core
+  - path: .intent/enforcement/contracts/ProposalScope.json
+    governance_namespace: project::core
+  - path: .intent/enforcement/contracts/RefusalResult.json
+    governance_namespace: project::core
+  - path: .intent/enforcement/contracts/RemediationResult.json
+    governance_namespace: project::core
+  - path: .intent/enforcement/contracts/RepoCensus.json
+    governance_namespace: project::core
+  - path: .intent/enforcement/contracts/RiskAssessment.json
+    governance_namespace: project::core
+  - path: .intent/enforcement/contracts/TaskStructure.json
+    governance_namespace: project::core
+  - path: .intent/enforcement/contracts/ValidationResult.json
+    governance_namespace: project::core
+  - path: .intent/enforcement/contracts/VectorizableItem.json
+    governance_namespace: project::core
+  - path: .intent/enforcement/contracts/ViolationReport.json
+    governance_namespace: project::core
+  - path: .intent/enforcement/contracts/WorkerDeclaration.json
+    governance_namespace: project::core
+  - path: .intent/enforcement/contracts/WorkflowResult.json
+    governance_namespace: project::core
+
+  # ---------------------------------------------------------------------
+  # .intent/enforcement/mappings/architecture/** — match the CORE
+  # architecture rule cluster.
+  # ---------------------------------------------------------------------
+  - path: .intent/enforcement/mappings/architecture/async_logic.yaml
+    governance_namespace: project::core
+  - path: .intent/enforcement/mappings/architecture/atomic_actions.yaml
+    governance_namespace: project::core
+  - path: .intent/enforcement/mappings/architecture/blackboard.yaml
+    governance_namespace: project::core
+  - path: .intent/enforcement/mappings/architecture/channels.yaml
+    governance_namespace: project::core
+  - path: .intent/enforcement/mappings/architecture/core_safety.yaml
+    governance_namespace: project::core
+  - path: .intent/enforcement/mappings/architecture/flows.yaml
+    governance_namespace: project::core
+  - path: .intent/enforcement/mappings/architecture/governance_basics.yaml
+    governance_namespace: project::core
+  - path: .intent/enforcement/mappings/architecture/intent_access.yaml
+    governance_namespace: project::core
+  - path: .intent/enforcement/mappings/architecture/layer_separation.yaml
+    governance_namespace: project::core
+  - path: .intent/enforcement/mappings/architecture/mind_execution_semantic.yaml
+    governance_namespace: project::core
+  - path: .intent/enforcement/mappings/architecture/modernization.yaml
+    governance_namespace: project::core
+  - path: .intent/enforcement/mappings/architecture/modularity.yaml
+    governance_namespace: project::core
+  - path: .intent/enforcement/mappings/architecture/mutation_surface.yaml
+    governance_namespace: project::core
+  - path: .intent/enforcement/mappings/architecture/path_access.yaml
+    governance_namespace: project::core
+  - path: .intent/enforcement/mappings/architecture/patterns.yaml
+    governance_namespace: project::core
+  - path: .intent/enforcement/mappings/architecture/privileged_boundaries.yaml
+    governance_namespace: project::core
+  - path: .intent/enforcement/mappings/architecture/quality_gates.yaml
+    governance_namespace: project::core
+
+  # ---------------------------------------------------------------------
+  # .intent/enforcement/mappings/cli/**
+  # ---------------------------------------------------------------------
+  - path: .intent/enforcement/mappings/cli/interface_design.yaml
+    governance_namespace: project::core
+
+  # ---------------------------------------------------------------------
+  # .intent/enforcement/mappings/code/**
+  # ---------------------------------------------------------------------
+  - path: .intent/enforcement/mappings/code/imports.yaml
+    governance_namespace: project::core
+  - path: .intent/enforcement/mappings/code/layout.yaml
+    governance_namespace: project::core
+  - path: .intent/enforcement/mappings/code/linkage.yaml
+    governance_namespace: project::core
+  - path: .intent/enforcement/mappings/code/metadata_mutations.yaml
+    governance_namespace: project::core
+  - path: .intent/enforcement/mappings/code/modularity.yaml
+    governance_namespace: project::core
+  - path: .intent/enforcement/mappings/code/purity.yaml
+    governance_namespace: project::core
+  - path: .intent/enforcement/mappings/code/style.yaml
+    governance_namespace: project::core
+
+  # ---------------------------------------------------------------------
+  # .intent/enforcement/mappings/coherence/** — maps the CORE-specific
+  # coherence rules.
+  # ---------------------------------------------------------------------
+  - path: .intent/enforcement/mappings/coherence/coherence.yaml
+    governance_namespace: project::core
+
+  # ---------------------------------------------------------------------
+  # .intent/enforcement/mappings/data/**
+  # ---------------------------------------------------------------------
+  - path: .intent/enforcement/mappings/data/governance.yaml
+    governance_namespace: project::core
+
+  # ---------------------------------------------------------------------
+  # .intent/enforcement/mappings/governance/** — project::core subset.
+  # The new namespace.yaml mapping (this implementation) is classified
+  # framework along with its rule.
+  # ---------------------------------------------------------------------
+  - path: .intent/enforcement/mappings/governance/quarantine.yaml
+    governance_namespace: project::core
+  - path: .intent/enforcement/mappings/governance/namespace.yaml
+    governance_namespace: framework
+    notes: >
+      Mapping for the new framework-classified rule
+      governance.namespace.classification_complete.
+
+  # ---------------------------------------------------------------------
+  # .intent/enforcement/mappings/infrastructure/**
+  # ---------------------------------------------------------------------
+  - path: .intent/enforcement/mappings/infrastructure/authority_boundaries.yaml
+    governance_namespace: project::core
+  - path: .intent/enforcement/mappings/infrastructure/cli_commands.yaml
+    governance_namespace: project::core
+
+  # ---------------------------------------------------------------------
+  # .intent/enforcement/mappings/will/**
+  # ---------------------------------------------------------------------
+  - path: .intent/enforcement/mappings/will/autonomy.yaml
+    governance_namespace: project::core
+  - path: .intent/enforcement/mappings/will/planning.yaml
+    governance_namespace: project::core
+  - path: .intent/enforcement/mappings/will/proposal_lifecycle.yaml
+    governance_namespace: project::core
+
+  # ---------------------------------------------------------------------
+  # .intent/enforcement/quarantine/** — CORE's quarantine drainer
+  # registry.
+  # ---------------------------------------------------------------------
+  - path: .intent/enforcement/quarantine/drainer_registry.yaml
+    governance_namespace: project::core
+
+  # ---------------------------------------------------------------------
+  # .intent/enforcement/remediation/** — CORE's auto-remediation routes.
+  # ---------------------------------------------------------------------
+  - path: .intent/enforcement/remediation/auto_remediation.yaml
+    governance_namespace: project::core
+
+  # ---------------------------------------------------------------------
+  # .intent/CHANGELOG.md — CORE's constitutional-state history.
+  # ---------------------------------------------------------------------
+  - path: .intent/CHANGELOG.md
+    governance_namespace: project::core
+
+  # ---------------------------------------------------------------------
+  # .specs/commercial/** — CORE org material.
+  # ---------------------------------------------------------------------
+  - path: .specs/commercial/.gitkeep
+    governance_namespace: project::core
+  - path: .specs/commercial/CORE-TechRep-Onboarding.md
+    governance_namespace: project::core
+
+  # ---------------------------------------------------------------------
+  # .specs/planning/** — CORE's own roadmaps and planning notes.
+  # ---------------------------------------------------------------------
+  - path: .specs/planning/BAND-B-consequence-chain-plan.md
+    governance_namespace: project::core
+  - path: .specs/planning/CORE-A3-plan.md
+    governance_namespace: project::core
+  - path: .specs/planning/CORE-API-capability-map-2026-05-16.md
+    governance_namespace: project::core
+  - path: .specs/planning/CORE-GitHub-Project-Management.md
+    governance_namespace: project::core
+  - path: .specs/planning/CORE-band-E-planning-input-2026-05-16.md
+    governance_namespace: project::core
+  - path: .specs/planning/INTERACTION-CONTRACT.md
+    governance_namespace: project::core
+    notes: >
+      Governor confirm — interaction contract may be a framework
+      pattern. Defaulted project::core on directory placement.
+  - path: .specs/planning/SESSION-PROTOCOL.md
+    governance_namespace: project::core
+    notes: Governor confirm — same gray-zone reasoning as above.
+  - path: .specs/planning/data-contracts-inventory.md
+    governance_namespace: project::core
+  - path: .specs/planning/worktree-sandbox-implementation-plan.md
+    governance_namespace: project::core
+
+  # ---------------------------------------------------------------------
+  # .specs/requirements/** — URS for specific CORE features.
+  # ---------------------------------------------------------------------
+  - path: .specs/requirements/CORE-Ask-URS.md
+    governance_namespace: project::core
+  - path: .specs/requirements/CORE-Governor-Ask-URS.md
+    governance_namespace: project::core
+  - path: .specs/requirements/CORE-Governor-Dashboard-URS.md
+    governance_namespace: project::core
+  - path: .specs/requirements/URS-consequence-chain.md
+    governance_namespace: project::core
+
+  # ---------------------------------------------------------------------
+  # .specs/state/** — CORE recon, diagnostics, handoffs, snapshots.
+  # ---------------------------------------------------------------------
+  - path: .specs/state/2026-04-20-daemon-reactivation-recon.md
+    governance_namespace: project::core
+  - path: .specs/state/2026-04-20-modularity-needs-split-diagnostic.artifacts/counterfactual.json
+    governance_namespace: project::core
+  - path: .specs/state/2026-04-20-modularity-needs-split-diagnostic.artifacts/modularity_diagnostic.py
+    governance_namespace: project::core
+  - path: .specs/state/2026-04-20-modularity-needs-split-diagnostic.artifacts/needs_split_findings.json
+    governance_namespace: project::core
+  - path: .specs/state/2026-04-20-modularity-needs-split-diagnostic.artifacts/per_file.json
+    governance_namespace: project::core
+  - path: .specs/state/2026-04-20-modularity-needs-split-diagnostic.md
+    governance_namespace: project::core
+  - path: .specs/state/2026-04-25-consequence-chain-mapping.md
+    governance_namespace: project::core
+  - path: .specs/state/2026-04-27-test-environment-recon.md
+    governance_namespace: project::core
+  - path: .specs/state/CORE-state-2026-04-18.md
+    governance_namespace: project::core
+  - path: .specs/state/Prior Art and the End-to-End Gap.md
+    governance_namespace: project::core
+  - path: .specs/state/handoffs/handoff-2026-04-19.md
+    governance_namespace: project::core
+  - path: .specs/state/handoffs/handoff-2026-04-20-evening.md
+    governance_namespace: project::core
+  - path: .specs/state/handoffs/handoff-2026-04-20.md
+    governance_namespace: project::core
+  - path: .specs/state/handoffs/handoff-2026-04-21.md
+    governance_namespace: project::core
+  - path: .specs/state/handoffs/handoff-2026-04-24.md
+    governance_namespace: project::core
+  - path: .specs/state/handoffs/handoff-2026-04-25.md
+    governance_namespace: project::core
+  - path: .specs/state/handoffs/handoff_2026-04-23_evening.md
+    governance_namespace: project::core
+  - path: .specs/state/handoffs/session_handoff_2026-04-21_evening.md
+    governance_namespace: project::core
+  - path: .specs/state/handoffs/session_handoff_2026-04-22_evening.md
+    governance_namespace: project::core
+  - path: .specs/state/nested_scope_audit_2026-04-19.md
+    governance_namespace: project::core
+  - path: .specs/state/reconnaissance_2026-04-20.md
+    governance_namespace: project::core
+  - path: .specs/state/tracing_mandatory_diagnostic_2026-04-20.md
+    governance_namespace: project::core
+
+  # ---------------------------------------------------------------------
+  # .specs/papers/** — project::core subset.
+  # Papers naming specific CORE workers / components / market posture.
+  # ---------------------------------------------------------------------
+  - path: .specs/papers/CORE-AutonomousProposalWorker.md
+    governance_namespace: project::core
+  - path: .specs/papers/CORE-CapabilityTagger.md
+    governance_namespace: project::core
+  - path: .specs/papers/CORE-CoherenceSensor.md
+    governance_namespace: project::core
+  - path: .specs/papers/CORE-CommitReachabilityAuditor.md
+    governance_namespace: project::core
+  - path: .specs/papers/CORE-Competitive-Landscape.md
+    governance_namespace: project::core
+  - path: .specs/papers/CORE-ConsumerWorker.md
+    governance_namespace: project::core
+  - path: .specs/papers/CORE-DbSyncWorker.md
+    governance_namespace: project::core
+  - path: .specs/papers/CORE-Deliberate-Non-Goals.md
+    governance_namespace: project::core
+  - path: .specs/papers/CORE-Features.md
+    governance_namespace: project::core
+  - path: .specs/papers/CORE-IntentInspector.md
+    governance_namespace: project::core
+  - path: .specs/papers/CORE-ModularizationLessons.md
+    governance_namespace: project::core
+  - path: .specs/papers/CORE-ObserverWorker.md
+    governance_namespace: project::core
+  - path: .specs/papers/CORE-OptimizerWorker.md
+    governance_namespace: project::core
+  - path: .specs/papers/CORE-Product-Tiers.md
+    governance_namespace: project::core
+  - path: .specs/papers/CORE-RemediatorWorker.md
+    governance_namespace: project::core
+  - path: .specs/papers/CORE-Roadmap.md
+    governance_namespace: project::core
+  - path: .specs/papers/CORE-SelfHealingAgent.md
+    governance_namespace: project::core
+  - path: .specs/papers/CORE-V2-Command-Pattern-Reference.md
+    governance_namespace: project::core
+  - path: .specs/papers/CORE-ViolationExecutor.md
+    governance_namespace: project::core
+  - path: .specs/papers/CORE-ViolationRemediatorBody.md
+    governance_namespace: project::core
+  - path: .specs/papers/CORE-ViolationSensor.md
+    governance_namespace: project::core
+
+  # ---------------------------------------------------------------------
+  # .specs/decisions/** — project::core subset.
+  # ADRs tuning CORE's own workers/columns/src files, recalibrating
+  # CORE-specific rules, fixing CORE incidents.
+  # ---------------------------------------------------------------------
+  - path: .specs/decisions/ADR-002-shared-boundary-enforcement.md
+    governance_namespace: project::core
+  - path: .specs/decisions/ADR-003-task-type-first-class-field-on-execution-task.md
+    governance_namespace: project::core
+  - path: .specs/decisions/ADR-004-govern-task-type-phase-mapping.md
+    governance_namespace: project::core
+  - path: .specs/decisions/ADR-006-align-needs-split-with-statement.md
+    governance_namespace: project::core
+  - path: .specs/decisions/ADR-007-modularity-class-too-large-rule.md
+    governance_namespace: project::core
+  - path: .specs/decisions/ADR-009-cli-depth-block-passive-instrumentation.md
+    governance_namespace: project::core
+  - path: .specs/decisions/ADR-012-centralize-globstar-pattern-matching.md
+    governance_namespace: project::core
+  - path: .specs/decisions/ADR-013-retire-legacy-proposals-table.md
+    governance_namespace: project::core
+  - path: .specs/decisions/ADR-014-development-phase-priority-loop-before-quality.md
+    governance_namespace: project::core
+  - path: .specs/decisions/ADR-016-test-environment-architecture.md
+    governance_namespace: project::core
+  - path: .specs/decisions/ADR-018-decomposed-crawler-embedder-supersedes-vector-sync-worker.md
+    governance_namespace: project::core
+  - path: .specs/decisions/ADR-022-contextbuilder-vector-evidence-scope.md
+    governance_namespace: project::core
+  - path: .specs/decisions/ADR-025-architectural-context-builder-wiring.md
+    governance_namespace: project::core
+  - path: .specs/decisions/ADR-030-daemon-stale-code-detection-posture.md
+    governance_namespace: project::core
+  - path: .specs/decisions/ADR-031-no-hardcoded-runtime-dir-paths.md
+    governance_namespace: project::core
+  - path: .specs/decisions/ADR-032-tighten-no-hardcoded-runtime-dirs-regex.md
+    governance_namespace: project::core
+  - path: .specs/decisions/ADR-034-optimizer-worker-formal-deferral.md
+    governance_namespace: project::core
+  - path: .specs/decisions/ADR-036-path-resolver-excluded-from-needs-split.md
+    governance_namespace: project::core
+  - path: .specs/decisions/ADR-042-modularity-governance-recalibration.md
+    governance_namespace: project::core
+  - path: .specs/decisions/ADR-043-llm-gate-audit-throughput.md
+    governance_namespace: project::core
+  - path: .specs/decisions/ADR-044-llm-gate-verdict-cache.md
+    governance_namespace: project::core
+  - path: .specs/decisions/ADR-047-docstring-rule-ast-gate.md
+    governance_namespace: project::core
+  - path: .specs/decisions/ADR-048-fix-docstrings-ast-walk.md
+    governance_namespace: project::core
+  - path: .specs/decisions/ADR-050-cli-positioning.md
+    governance_namespace: project::core
+  - path: .specs/decisions/ADR-051-file-handler-shared-excludes-closure.md
+    governance_namespace: project::core
+  - path: .specs/decisions/ADR-054-api-phase-1-audit-proposals.md
+    governance_namespace: project::core
+  - path: .specs/decisions/ADR-055-api-phase-2-fix-quality.md
+    governance_namespace: project::core
+  - path: .specs/decisions/ADR-057-phase3-imports.md
+    governance_namespace: project::core
+  - path: .specs/decisions/ADR-058-api-phase-4-census-sync-daemon.md
+    governance_namespace: project::core
+  - path: .specs/decisions/ADR-061-composition-root-sanctuary-api-main.md
+    governance_namespace: project::core
+  - path: .specs/decisions/ADR-062-proposal-lifecycle-actions-body-will-closure.md
+    governance_namespace: project::core
+  - path: .specs/decisions/ADR-063-bootstrap-will-tools-body-will-closure.md
+    governance_namespace: project::core
+  - path: .specs/decisions/ADR-064-fix-actions-capability-tagging-body-will-closure.md
+    governance_namespace: project::core
+  - path: .specs/decisions/ADR-072-quarantine-drainer-invariant.md
+    governance_namespace: project::core
+  - path: .specs/decisions/ADR-073-ccc-scanner-redesign.md
+    governance_namespace: project::core
+  - path: .specs/decisions/ADR-074-interpret-failure-modes.md
+    governance_namespace: project::core
+  - path: .specs/decisions/README.md
+    governance_namespace: project::core
