@@ -36,8 +36,7 @@ class DangerousExplicitCheck(CliCheck):
                         check_id="cli_gate.dangerous_explicit",
                         severity=AuditSeverity.BLOCK,
                         message=(
-                            f"Mutating command '{name}' is not marked "
-                            "dangerous=True."
+                            f"Mutating command '{name}' is not marked dangerous=True."
                         ),
                         file_path=file_path,
                         context={"command_name": name, "missing": "dangerous"},
