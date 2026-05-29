@@ -28,6 +28,7 @@ from typing import TYPE_CHECKING, Any
 
 import yaml
 
+from shared.infrastructure.intent.cognitive_roles import load_cognitive_roles
 from shared.infrastructure.intent.errors import GovernanceError
 from shared.infrastructure.intent.intent_repository import get_intent_repository
 from shared.infrastructure.intent.vocabulary_projection import (
@@ -55,20 +56,10 @@ logger = getLogger(__name__)
 # Providers are infrastructure. They must not appear in model.yaml.
 _KNOWN_PROVIDERS = {"anthropic", "openai", "deepseek", "ollama", "azure", "mistral"}
 
-# Cognitive roles defined in core.cognitive_roles (the SSOT). This set is
-# a static validation aid; keep it in sync when roles are added or removed.
-_KNOWN_ROLES = {
-    "Architect",
-    "CapabilityTagger",
-    "CodeReviewer",
-    "Coder",
-    "DocstringWriter",
-    "LocalCoder",
-    "LocalReasoner",
-    "Planner",
-    "RemoteCoder",
-    "Vectorizer",
-}
+# Cognitive role names are loaded fail-closed from
+# .intent/taxonomies/cognitive_roles.yaml (ADR-068 taxonomy pattern). See
+# load_cognitive_roles for the contract; the gate never carries a literal
+# role set, so role declarations land by editing the taxonomy, not this file.
 
 _REQUIRED_TOP_LEVEL = {"id", "version", "role", "success_criteria"}
 _REQUIRED_INPUT_SUBFIELDS = {"required"}
@@ -842,12 +833,14 @@ class ArtifactGateEngine(BaseEngine):
         role = str(manifest.get("role", "")).strip()
         if not role:
             violations.append("'role' field is missing or empty.")
-        elif role not in _KNOWN_ROLES:
-            violations.append(
-                f"role '{role}' is not a declared cognitive role. "
-                f"Known roles: {sorted(_KNOWN_ROLES)}. "
-                "If this is a new role, declare it in .intent/ first."
-            )
+        else:
+            known_roles = load_cognitive_roles()
+            if role not in known_roles:
+                violations.append(
+                    f"role '{role}' is not a declared cognitive role. "
+                    f"Known roles: {sorted(known_roles)}. "
+                    "If this is a new role, declare it in .intent/ first."
+                )
 
         return self._result(file_path, violations, "role_abstraction")
 
