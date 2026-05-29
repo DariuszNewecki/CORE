@@ -76,6 +76,29 @@ class VocabularyProjectionError:
     reason: str
 
 
+# ID: fcc64fd7-f36e-41b8-be7a-2b1062946287
+def normalize_vocabulary_cell(value: str) -> str:
+    """
+    Produce the identity form of a canonical-vocabulary-table cell.
+
+    The canonical section in CORE-Vocabulary.md is a markdown table; cells
+    routinely carry presentation decoration that is not part of the value's
+    identity. Today the only such decoration is a surrounding pair of
+    backticks (markdown inline-code formatting) around path-shaped cells, plus
+    leading/trailing whitespace. Both the sync writer (producing
+    vocabulary.json) and the audit gate (validating canonical paths) must
+    parse the same identity, so this normalization is the single shared
+    contract.
+
+    Behavior: strip leading/trailing whitespace; if the trimmed value is
+    wrapped in a single pair of backticks, drop them and strip again.
+    """
+    v = value.strip()
+    if v.startswith("`") and v.endswith("`") and len(v) >= 2:
+        return v[1:-1].strip()
+    return v
+
+
 # ID: 3f8c1b4a-7d2e-4f9b-a6c1-9d3e2b5f8a09
 def locate_canonical_section(text: str) -> tuple[int, int] | None:
     """

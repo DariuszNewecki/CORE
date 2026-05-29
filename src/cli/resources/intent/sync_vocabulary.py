@@ -26,6 +26,7 @@ from shared.infrastructure.intent.vocabulary_projection import (
     VocabularyProjectionError,
     load_vocabulary_projection,
     locate_canonical_section,
+    normalize_vocabulary_cell,
 )
 
 from .hub import app
@@ -78,15 +79,6 @@ def _split_list_cell(cell: str) -> list[str]:
         return []
     parts = [p.strip() for p in cell.split("\\|")]
     return [p for p in parts if p]
-
-
-# ID: 8c2d1f5e-7b9a-4f3c-9e2d-4a7c8e5b1f05
-def _strip_inline_code(value: str) -> str:
-    """Strip surrounding backticks from a markdown inline-code value."""
-    v = value.strip()
-    if v.startswith("`") and v.endswith("`") and len(v) >= 2:
-        return v[1:-1].strip()
-    return v
 
 
 # ID: 6e1a4c7d-2b9f-4d8c-a3e1-5d8b2c9e1a06
@@ -160,7 +152,7 @@ def _parse_terms(
             "term": cells[col_idx["term"]].strip(),
             "definition": cells[col_idx["definition"]].strip(),
             "not": cells[col_idx["not"]].strip(),
-            "authoritative_paper": _strip_inline_code(
+            "authoritative_paper": normalize_vocabulary_cell(
                 cells[col_idx["authoritative_paper"]]
             ),
             "aliases": (

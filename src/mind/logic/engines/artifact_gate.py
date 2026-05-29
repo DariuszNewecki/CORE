@@ -38,6 +38,7 @@ from shared.infrastructure.intent.vocabulary_projection import (
     compute_canonical_section_hash,
     load_vocabulary_projection,
     locate_canonical_section,
+    normalize_vocabulary_cell,
 )
 from shared.logger import getLogger
 from shared.models import AuditFinding, AuditSeverity
@@ -158,7 +159,7 @@ def _parse_canonical_terms(
                 "term": cells[0],
                 "definition": cells[1],
                 "not": cells[2],
-                "authoritative_paper": cells[3],
+                "authoritative_paper": normalize_vocabulary_cell(cells[3]),
             }
         )
     return terms, None
