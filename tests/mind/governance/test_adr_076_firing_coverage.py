@@ -372,9 +372,9 @@ async def test_all_rules_mapped_fires_when_mapping_missing(
     assert findings, "all_rules_mapped did not fire when rule was unmapped"
     # ADR-066 D6 provocation: enforcement=blocking → severity must be BLOCK,
     # which is what flips the audit verdict from PASS to FAIL.
-    assert any(
-        f.severity is AuditSeverity.BLOCK for f in findings
-    ), "all_rules_mapped finding had no BLOCK severity — verdict would not FAIL"
+    assert any(f.severity is AuditSeverity.BLOCK for f in findings), (
+        "all_rules_mapped finding had no BLOCK severity — verdict would not FAIL"
+    )
 
 
 async def test_namespace_has_drainer_fires_when_drainer_missing(
@@ -429,7 +429,9 @@ async def test_namespace_manifest_completeness_fires_on_unclassified_file(
     """ADR-075 D7: a .intent/ or .specs/ file with no manifest entry fires."""
     repo = _scaffold_repo(tmp_path)
     # Plant one unclassified file under .intent/
-    (repo / ".intent" / "unclassified.yaml").write_text("hello: world\n", encoding="utf-8")
+    (repo / ".intent" / "unclassified.yaml").write_text(
+        "hello: world\n", encoding="utf-8"
+    )
     # Manifest exists but classifications is empty
     manifest_path = repo / ".intent" / "governance" / "namespace_manifest.yaml"
     manifest_path.parent.mkdir(parents=True, exist_ok=True)
@@ -589,10 +591,10 @@ def test_artifact_gate_mixed_mode_extraction() -> None:
     for r in artifact_rules:
         ct = r.params.get("check_type")
         if ct in repo_level_check_types:
-            assert (
-                r.is_context_level
-            ), f"{r.rule_id} ({ct}) should be context-level but is per-file"
+            assert r.is_context_level, (
+                f"{r.rule_id} ({ct}) should be context-level but is per-file"
+            )
         elif ct in per_file_check_types:
-            assert (
-                not r.is_context_level
-            ), f"{r.rule_id} ({ct}) should be per-file but is context-level"
+            assert not r.is_context_level, (
+                f"{r.rule_id} ({ct}) should be per-file but is context-level"
+            )

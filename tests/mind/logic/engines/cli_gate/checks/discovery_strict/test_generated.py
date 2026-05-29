@@ -1,6 +1,5 @@
 from pathlib import Path
-from typing import Any, Optional
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -9,7 +8,7 @@ from mind.logic.engines.cli_gate.checks.discovery_strict import (
     _handler_suppresses_import,
     _node_imports_cli,
 )
-from shared.audit.model import AuditFinding, AuditSeverity
+from shared.audit.model import AuditSeverity
 from shared.pathing.path_resolver import PathResolver
 
 
@@ -53,7 +52,9 @@ class TestDiscoveryStrictCheck:
         assert "missing the 'loader' parameter" in finding.message
         assert finding.file_path == "none"
 
-    def test_verify_missing_loader_whitespace(self, check: DiscoveryStrictCheck) -> None:
+    def test_verify_missing_loader_whitespace(
+        self, check: DiscoveryStrictCheck
+    ) -> None:
         """Test verify returns BLOCK finding when loader is only whitespace."""
         findings = check.verify([], {"loader": "   "})
         assert len(findings) == 1
@@ -61,7 +62,9 @@ class TestDiscoveryStrictCheck:
         assert finding.severity == AuditSeverity.BLOCK
         assert "missing the 'loader' parameter" in finding.message
 
-    def test_verify_loader_file_not_found(self, check: DiscoveryStrictCheck, tmp_path: Path) -> None:
+    def test_verify_loader_file_not_found(
+        self, check: DiscoveryStrictCheck, tmp_path: Path
+    ) -> None:
         """Test verify returns BLOCK finding when loader file does not exist."""
         findings = check.verify([], {"loader": "nonexistent.py"})
         assert len(findings) == 1
@@ -71,7 +74,9 @@ class TestDiscoveryStrictCheck:
         assert "not found on disk" in finding.message
         assert finding.file_path == "nonexistent.py"
 
-    def test_verify_parse_error(self, check: DiscoveryStrictCheck, tmp_path: Path) -> None:
+    def test_verify_parse_error(
+        self, check: DiscoveryStrictCheck, tmp_path: Path
+    ) -> None:
         """Test verify returns BLOCK finding when loader file cannot be parsed."""
         loader_file = tmp_path / "loader.py"
         loader_file.write_text("invalid python syntax @@@", encoding="utf-8")
@@ -83,21 +88,29 @@ class TestDiscoveryStrictCheck:
         assert "could not parse" in finding.message
         assert finding.file_path == "loader.py"
 
-    def test_verify_no_cli_imports(self, check: DiscoveryStrictCheck, tmp_path: Path) -> None:
+    def test_verify_no_cli_imports(
+        self, check: DiscoveryStrictCheck, tmp_path: Path
+    ) -> None:
         """Test verify returns empty list when loader has no CLI imports."""
         loader_file = tmp_path / "loader.py"
-        loader_file.write_text("import os\nimport sys\ndef run(): pass\n", encoding="utf-8")
+        loader_file.write_text(
+            "import os\nimport sys\ndef run(): pass\n", encoding="utf-8"
+        )
         findings = check.verify([], {"loader": "loader.py"})
         assert len(findings) == 0
 
-    def test_verify_cli_import_without_try_except(self, check: DiscoveryStrictCheck, tmp_path: Path) -> None:
+    def test_verify_cli_import_without_try_except(
+        self, check: DiscoveryStrictCheck, tmp_path: Path
+    ) -> None:
         """Test verify returns empty list when CLI import is not in try/except."""
         loader_file = tmp_path / "loader.py"
         loader_file.write_text("import cli.commands\n", encoding="utf-8")
         findings = check.verify([], {"loader": "loader.py"})
         assert len(findings) == 0
 
-    def test_verify_cli_import_in_try_without_handler(self, check: DiscoveryStrictCheck, tmp_path: Path) -> None:
+    def test_verify_cli_import_in_try_without_handler(
+        self, check: DiscoveryStrictCheck, tmp_path: Path
+    ) -> None:
         """Test verify returns empty list when try has no except handlers."""
         loader_file = tmp_path / "loader.py"
         loader_file.write_text(
@@ -107,7 +120,9 @@ class TestDiscoveryStrictCheck:
         findings = check.verify([], {"loader": "loader.py"})
         assert len(findings) == 0
 
-    def test_verify_cli_import_in_try_with_non_suppressing_handler(self, check: DiscoveryStrictCheck, tmp_path: Path) -> None:
+    def test_verify_cli_import_in_try_with_non_suppressing_handler(
+        self, check: DiscoveryStrictCheck, tmp_path: Path
+    ) -> None:
         """Test verify returns empty list when except handler does not suppress imports."""
         loader_file = tmp_path / "loader.py"
         loader_file.write_text(
@@ -117,7 +132,9 @@ class TestDiscoveryStrictCheck:
         findings = check.verify([], {"loader": "loader.py"})
         assert len(findings) == 0
 
-    def test_verify_cli_import_in_try_with_import_suppressing_handler(self, check: DiscoveryStrictCheck, tmp_path: Path) -> None:
+    def test_verify_cli_import_in_try_with_import_suppressing_handler(
+        self, check: DiscoveryStrictCheck, tmp_path: Path
+    ) -> None:
         """Test verify returns BLOCK finding when cli import is in try with suppressing handler."""
         loader_file = tmp_path / "loader.py"
         loader_file.write_text(
@@ -133,7 +150,9 @@ class TestDiscoveryStrictCheck:
         assert finding.context["handler"] == "ImportError"
         assert finding.context["loader"] == "loader.py"
 
-    def test_verify_cli_import_in_try_with_bare_except(self, check: DiscoveryStrictCheck, tmp_path: Path) -> None:
+    def test_verify_cli_import_in_try_with_bare_except(
+        self, check: DiscoveryStrictCheck, tmp_path: Path
+    ) -> None:
         """Test verify returns BLOCK finding when cli import is in try with bare except."""
         loader_file = tmp_path / "loader.py"
         loader_file.write_text(
@@ -147,7 +166,9 @@ class TestDiscoveryStrictCheck:
         assert "CLI import inside try/except bare/multi" in finding.message
         assert finding.context["handler"] == "bare/multi"
 
-    def test_verify_from_cli_import_in_try(self, check: DiscoveryStrictCheck, tmp_path: Path) -> None:
+    def test_verify_from_cli_import_in_try(
+        self, check: DiscoveryStrictCheck, tmp_path: Path
+    ) -> None:
         """Test verify detects from-style CLI imports in try blocks."""
         loader_file = tmp_path / "loader.py"
         loader_file.write_text(
@@ -158,7 +179,9 @@ class TestDiscoveryStrictCheck:
         assert len(findings) == 1
         assert findings[0].severity == AuditSeverity.BLOCK
 
-    def test_verify_importlib_import_cli(self, check: DiscoveryStrictCheck, tmp_path: Path) -> None:
+    def test_verify_importlib_import_cli(
+        self, check: DiscoveryStrictCheck, tmp_path: Path
+    ) -> None:
         """Test verify detects importlib.import_module('cli.*') calls."""
         loader_file = tmp_path / "loader.py"
         loader_file.write_text(
@@ -173,21 +196,21 @@ class TestDiscoveryStrictCheck:
         assert len(findings) == 1
         assert findings[0].severity == AuditSeverity.BLOCK
 
-    def test_verify_multiple_cli_imports_one_finding_per_block(self, check: DiscoveryStrictCheck, tmp_path: Path) -> None:
+    def test_verify_multiple_cli_imports_one_finding_per_block(
+        self, check: DiscoveryStrictCheck, tmp_path: Path
+    ) -> None:
         """Test verify returns one finding per try/except block, not per import."""
         loader_file = tmp_path / "loader.py"
         loader_file.write_text(
-            "try:\n"
-            "    import cli.a\n"
-            "    import cli.b\n"
-            "except ImportError:\n"
-            "    pass\n",
+            "try:\n    import cli.a\n    import cli.b\nexcept ImportError:\n    pass\n",
             encoding="utf-8",
         )
         findings = check.verify([], {"loader": "loader.py"})
         assert len(findings) == 1
 
-    def test_verify_multiple_try_blocks(self, check: DiscoveryStrictCheck, tmp_path: Path) -> None:
+    def test_verify_multiple_try_blocks(
+        self, check: DiscoveryStrictCheck, tmp_path: Path
+    ) -> None:
         """Test verify returns one finding per violating try/except block."""
         loader_file = tmp_path / "loader.py"
         loader_file.write_text(
@@ -205,7 +228,9 @@ class TestDiscoveryStrictCheck:
         findings = check.verify([], {"loader": "loader.py"})
         assert len(findings) == 2
 
-    def test_verify_first_suppressing_handler_breaks(self, check: DiscoveryStrictCheck, tmp_path: Path) -> None:
+    def test_verify_first_suppressing_handler_breaks(
+        self, check: DiscoveryStrictCheck, tmp_path: Path
+    ) -> None:
         """Test verify stops at first suppressing handler in multiple handlers."""
         loader_file = tmp_path / "loader.py"
         loader_file.write_text(
@@ -221,27 +246,25 @@ class TestDiscoveryStrictCheck:
         assert len(findings) == 1
         assert findings[0].context["handler"] == "ImportError"
 
-    def test_verify_non_cli_import_ignored(self, check: DiscoveryStrictCheck, tmp_path: Path) -> None:
+    def test_verify_non_cli_import_ignored(
+        self, check: DiscoveryStrictCheck, tmp_path: Path
+    ) -> None:
         """Test verify ignores non-CLI imports in try/except."""
         loader_file = tmp_path / "loader.py"
         loader_file.write_text(
-            "try:\n"
-            "    import os\n"
-            "except ImportError:\n"
-            "    pass\n",
+            "try:\n    import os\nexcept ImportError:\n    pass\n",
             encoding="utf-8",
         )
         findings = check.verify([], {"loader": "loader.py"})
         assert len(findings) == 0
 
-    def test_verify_no_block_level_import(self, check: DiscoveryStrictCheck, tmp_path: Path) -> None:
+    def test_verify_no_block_level_import(
+        self, check: DiscoveryStrictCheck, tmp_path: Path
+    ) -> None:
         """Test verify ignores try blocks where body has no cli imports."""
         loader_file = tmp_path / "loader.py"
         loader_file.write_text(
-            "try:\n"
-            "    x = 1\n"
-            "except ImportError:\n"
-            "    pass\n",
+            "try:\n    x = 1\nexcept ImportError:\n    pass\n",
             encoding="utf-8",
         )
         findings = check.verify([], {"loader": "loader.py"})

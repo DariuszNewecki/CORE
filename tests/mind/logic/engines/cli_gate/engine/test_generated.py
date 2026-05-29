@@ -1,6 +1,5 @@
 from pathlib import Path
-from unittest.mock import AsyncMock, MagicMock, patch
-from typing import Any
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -12,6 +11,7 @@ from shared.engine.model import EngineResult
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
+
 
 @pytest.fixture
 def mock_path_resolver():
@@ -101,7 +101,9 @@ class TestVerify:
 
     @pytest.mark.asyncio
     async def test_returns_safe_engine_result(self, engine):
-        result = await engine.verify(Path("/fake/path.py"), {"check_type": "resource_first"})
+        result = await engine.verify(
+            Path("/fake/path.py"), {"check_type": "resource_first"}
+        )
         assert isinstance(result, EngineResult)
         assert result.ok is True
         assert result.violations == []
@@ -119,9 +121,7 @@ class TestWalkRegistry:
 
     @patch("mind.logic.engines.cli_gate.engine.walk_typer_app")
     @patch("mind.logic.engines.cli_gate.engine.main_app")
-    async def test_lazy_import_and_walk_called(
-        self, mock_main_app, mock_walk, engine
-    ):
+    async def test_lazy_import_and_walk_called(self, mock_main_app, mock_walk, engine):
         """_walk_registry imports admin_cli app and delegates to walk_typer_app."""
         mock_walk.return_value = [{"name": "foo"}]
         result = engine._walk_registry()
@@ -130,9 +130,7 @@ class TestWalkRegistry:
 
     @patch("mind.logic.engines.cli_gate.engine.walk_typer_app")
     @patch("mind.logic.engines.cli_gate.engine.main_app")
-    async def test_returns_list_of_dicts(
-        self, mock_main_app, mock_walk, engine
-    ):
+    async def test_returns_list_of_dicts(self, mock_main_app, mock_walk, engine):
         """The returned value from walk_typer_app is passed through unchanged."""
         sample = [{"cmd": "test", "handler": "<function>"}]
         mock_walk.return_value = sample

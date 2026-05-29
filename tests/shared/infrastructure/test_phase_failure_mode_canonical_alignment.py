@@ -92,9 +92,10 @@ def test_phase_yaml_failure_mode_values_are_canonical() -> None:
 
 def test_interpret_declares_both_ur_03_classes() -> None:
     """interpret.yaml must declare ambiguity AND contradiction per UR-03."""
-    data = yaml.safe_load(
-        (_PHASES_DIR / "interpret.yaml").read_text(encoding="utf-8")
-    ) or {}
+    data = (
+        yaml.safe_load((_PHASES_DIR / "interpret.yaml").read_text(encoding="utf-8"))
+        or {}
+    )
     modes = data.get("failure_modes") or {}
     assert modes.get("ambiguity") == "clarify", (
         "interpret.yaml must declare `ambiguity: clarify` per ADR-074 D1/D2 "
@@ -134,11 +135,7 @@ def test_block_strategy_matches_halt_class_action_verb() -> None:
     for sibling phases regresses to false-positive.
     """
     register_path = (
-        _REPO_ROOT
-        / ".intent"
-        / "enforcement"
-        / "config"
-        / "normative_markers.yaml"
+        _REPO_ROOT / ".intent" / "enforcement" / "config" / "normative_markers.yaml"
     )
     register = yaml.safe_load(register_path.read_text(encoding="utf-8")) or {}
     action_verbs = {v.lower() for v in register.get("action_verbs", [])}

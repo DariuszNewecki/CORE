@@ -1,9 +1,8 @@
-import pytest
-from unittest.mock import Mock, MagicMock
 
-from mind.logic.engines.cli_gate.checks.dangerous_explicit import DangerousExplicitCheck
-from mind.logic.engines.cli_gate.audit_finding import AuditFinding
+import pytest
+
 from mind.logic.engines.cli_gate.audit_severity import AuditSeverity
+from mind.logic.engines.cli_gate.checks.dangerous_explicit import DangerousExplicitCheck
 
 
 class TestDangerousExplicitCheck:
@@ -15,21 +14,37 @@ class TestDangerousExplicitCheck:
         """Verify the check_type class attribute is 'dangerous_explicit'."""
         assert check.check_type == "dangerous_explicit"
 
-    def test_empty_commands_returns_empty_findings(self, check: DangerousExplicitCheck) -> None:
+    def test_empty_commands_returns_empty_findings(
+        self, check: DangerousExplicitCheck
+    ) -> None:
         """When no commands are provided, verify returns no findings."""
         result = check.verify([], {})
         assert result == []
 
-    def test_non_mutate_commands_are_skipped(self, check: DangerousExplicitCheck) -> None:
+    def test_non_mutate_commands_are_skipped(
+        self, check: DangerousExplicitCheck
+    ) -> None:
         """Commands with behavior other than 'mutate' are ignored."""
         commands = [
-            {"behavior": "read", "name": "read_cmd", "dangerous": True, "params_list": ["write"]},
-            {"behavior": "query", "name": "query_cmd", "dangerous": True, "params_list": ["write"]},
+            {
+                "behavior": "read",
+                "name": "read_cmd",
+                "dangerous": True,
+                "params_list": ["write"],
+            },
+            {
+                "behavior": "query",
+                "name": "query_cmd",
+                "dangerous": True,
+                "params_list": ["write"],
+            },
         ]
         result = check.verify(commands, {})
         assert result == []
 
-    def test_dangerous_mutate_command_with_write_param_no_findings(self, check: DangerousExplicitCheck) -> None:
+    def test_dangerous_mutate_command_with_write_param_no_findings(
+        self, check: DangerousExplicitCheck
+    ) -> None:
         """A mutate command with dangerous=True and write param generates no findings."""
         commands = [
             {
@@ -43,7 +58,9 @@ class TestDangerousExplicitCheck:
         result = check.verify(commands, {})
         assert result == []
 
-    def test_mutate_command_missing_dangerous_flag_generates_finding(self, check: DangerousExplicitCheck) -> None:
+    def test_mutate_command_missing_dangerous_flag_generates_finding(
+        self, check: DangerousExplicitCheck
+    ) -> None:
         """A mutate command without dangerous=True should produce a BLOCK finding."""
         commands = [
             {
@@ -62,9 +79,14 @@ class TestDangerousExplicitCheck:
         assert "risky_mutate" in finding.message
         assert "not marked dangerous=True" in finding.message
         assert finding.file_path == "/tmp/script.sh"
-        assert finding.context == {"command_name": "risky_mutate", "missing": "dangerous"}
+        assert finding.context == {
+            "command_name": "risky_mutate",
+            "missing": "dangerous",
+        }
 
-    def test_mutate_command_missing_write_param_generates_finding(self, check: DangerousExplicitCheck) -> None:
+    def test_mutate_command_missing_write_param_generates_finding(
+        self, check: DangerousExplicitCheck
+    ) -> None:
         """A mutate command without 'write' in params_list should produce a BLOCK finding."""
         commands = [
             {
@@ -109,7 +131,9 @@ class TestDangerousExplicitCheck:
             assert finding.severity == AuditSeverity.BLOCK
             assert finding.file_path == "/tmp/bad.sh"
 
-    def test_mutate_command_with_none_params_list_missing_write(self, check: DangerousExplicitCheck) -> None:
+    def test_mutate_command_with_none_params_list_missing_write(
+        self, check: DangerousExplicitCheck
+    ) -> None:
         """A mutate command with params_list=None should trigger missing write finding."""
         commands = [
             {
@@ -124,7 +148,9 @@ class TestDangerousExplicitCheck:
         assert len(result) == 1
         assert result[0].context["missing"] == "write_param"
 
-    def test_mutate_command_with_empty_params_list_missing_write(self, check: DangerousExplicitCheck) -> None:
+    def test_mutate_command_with_empty_params_list_missing_write(
+        self, check: DangerousExplicitCheck
+    ) -> None:
         """A mutate command with params_list=[] should trigger missing write finding."""
         commands = [
             {
@@ -139,7 +165,9 @@ class TestDangerousExplicitCheck:
         assert len(result) == 1
         assert result[0].context["missing"] == "write_param"
 
-    def test_multiple_mutate_commands_all_with_errors(self, check: DangerousExplicitCheck) -> None:
+    def test_multiple_mutate_commands_all_with_errors(
+        self, check: DangerousExplicitCheck
+    ) -> None:
         """Multiple problematic mutate commands each produce their own findings."""
         commands = [
             {
@@ -180,7 +208,9 @@ class TestDangerousExplicitCheck:
         cmd3_findings = [f for f in result if f.context["command_name"] == "cmd3"]
         assert len(cmd3_findings) == 2
 
-    def test_command_with_no_name_and_no_file_path(self, check: DangerousExplicitCheck) -> None:
+    def test_command_with_no_name_and_no_file_path(
+        self, check: DangerousExplicitCheck
+    ) -> None:
         """When command name and file_path are missing, the verify method uses defaults."""
         commands = [
             {
