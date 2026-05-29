@@ -2,9 +2,10 @@
 
 """Verifies cli.resource_first: 'resource action [flags]' command shape.
 
-Depth is computed from the canonical dotted name. Commands at the
-``admin`` namespace may use a deeper structure (``admin.<group>.<verb>``)
-per the rule's exception clause.
+Depth is computed from the canonical dotted name and bounded between
+``min_depth`` and ``max_depth`` inclusive (defaults 2 and 3). Depth-3
+is the depth a real sub-hub nesting produces (resource.subresource.action);
+deeper paths remain blocked by design.
 """
 
 from __future__ import annotations
@@ -23,8 +24,8 @@ class ResourceFirstCheck(CliCheck):
     def verify(
         self, commands: list[dict[str, Any]], params: dict[str, Any]
     ) -> list[AuditFinding]:
-        expected_depth = int(params.get("expected_depth", 2))
-        admin_depth = int(params.get("admin_namespace_depth", 3))
+        min_depth = int(params.get("min_depth", 2))
+        max_depth = int(params.get("max_depth", 3))
         findings: list[AuditFinding] = []
 
         for cmd in commands:
@@ -33,11 +34,7 @@ class ResourceFirstCheck(CliCheck):
                 continue
             parts = name.split(".")
             depth = len(parts)
-            resource = parts[0] if parts else ""
-            allowed = (depth == expected_depth) or (
-                resource == "admin" and depth == admin_depth
-            )
-            if allowed:
+            if min_depth <= depth <= max_depth:
                 continue
 
             findings.append(
@@ -45,16 +42,15 @@ class ResourceFirstCheck(CliCheck):
                     check_id="cli_gate.resource_first",
                     severity=AuditSeverity.BLOCK,
                     message=(
-                        f"Command '{name}' has depth {depth}; resource-first "
-                        f"requires depth {expected_depth} "
-                        f"(admin namespace may use depth {admin_depth})."
+                        f"Command '{name}' has depth {depth}; "
+                        f"must be between {min_depth} and {max_depth}."
                     ),
                     file_path=cmd.get("file_path") or "none",
                     context={
                         "command_name": name,
                         "depth": depth,
-                        "expected_depth": expected_depth,
-                        "admin_namespace_depth": admin_depth,
+                        "min_depth": min_depth,
+                        "max_depth": max_depth,
                     },
                 )
             )

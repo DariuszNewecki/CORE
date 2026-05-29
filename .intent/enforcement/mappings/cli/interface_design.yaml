@@ -21,13 +21,13 @@
 #   corpus); their data now lives in this file's params.
 
 mappings:
-  # LAW: Commands MUST follow 'resource action [flags]' (depth=2; admin may be depth=3)
+  # LAW: Command paths MUST be depth 2-3; depth MUST NOT exceed 3.
   cli.resource_first:
     engine: cli_gate
     params:
       check_type: resource_first
-      expected_depth: 2
-      admin_namespace_depth: 3
+      min_depth: 2
+      max_depth: 3
     scope:
       applies_to: ["src/cli/**/*.py"]
 
