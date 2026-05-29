@@ -24,7 +24,7 @@ from __future__ import annotations
 
 import re
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import yaml
 
@@ -40,8 +40,13 @@ from shared.infrastructure.intent.vocabulary_projection import (
     locate_canonical_section,
 )
 from shared.logger import getLogger
+from shared.models import AuditFinding, AuditSeverity
 
 from .base import BaseEngine, EngineResult
+
+
+if TYPE_CHECKING:
+    from mind.governance.audit_context import AuditorContext
 
 
 logger = getLogger(__name__)
@@ -165,6 +170,40 @@ def _parse_canonical_terms(
 # -----------------------------------------------------------------------------
 
 _ENGINE_ID = "artifact_gate"
+
+
+# ID: 7e3b9c2f-4a18-4d65-b083-1f5a8c6e2d40
+def _result_to_findings(
+    result: EngineResult, check_type: str, engine_id: str
+) -> list[AuditFinding]:
+    """Convert an EngineResult into AuditFindings for context-level dispatch.
+
+    ADR-076 D3. The repo-level check_* functions return EngineResult
+    (their per-file dispatch shape); ``verify_context`` must return
+    ``list[AuditFinding]`` per the rule_executor contract for
+    context-level rules. Severity is a placeholder — rule_executor
+    overwrites it from the rule's declared enforcement.
+    """
+    if result.ok:
+        return []
+    findings: list[AuditFinding] = []
+    for v in result.violations:
+        if isinstance(v, dict):
+            msg = str(v.get("message", ""))
+            details = dict(v.get("details") or {})
+        else:
+            msg = str(v)
+            details = {}
+        findings.append(
+            AuditFinding(
+                check_id=f"{engine_id}.{check_type}",
+                severity=AuditSeverity.INFO,
+                message=msg,
+                file_path="repo",
+                context=details,
+            )
+        )
+    return findings
 
 
 def _vocab_result(check: str, violations: list[str]) -> EngineResult:
@@ -917,6 +956,92 @@ class ArtifactGateEngine(BaseEngine):
             violations=[f"Unknown governance check_type '{check_type}'"],
             engine_id=self.engine_id,
         )
+
+    # -------------------------------------------------------------------------
+    # Context-level dispatch (ADR-076 D3)
+    # -------------------------------------------------------------------------
+
+    # ID: 5a8d2f17-3e6b-4f12-9a47-c1b8e0d5f3a9
+    async def verify_context(
+        self, context: AuditorContext, params: dict[str, Any]
+    ) -> list[AuditFinding]:
+        """Dispatch the six repo-level check_types over AuditorContext.
+
+        ADR-076 D3. The three vocabulary checks and three governance
+        meta-checks (ADR-066/072/075) walk the whole repository — they
+        ignore ``file_path`` in their per-file form. This entry point
+        runs them once per audit with ``context.repo_path`` as the
+        repo root, instead of forcing the dispatcher to walk a synthetic
+        file just so ``verify(file_path, ...)`` could parent-traverse
+        back to the repo root.
+
+        Returns ``list[AuditFinding]`` (the rule_executor contract for
+        context-level), not ``EngineResult``. ``rule_executor`` overwrites
+        severity per the rule's enforcement; check_id is derived from the
+        check_type so the audit verdict surfaces the right rule.
+        """
+        check_type = params.get("check_type")
+        if check_type is None:
+            return [
+                AuditFinding(
+                    check_id=f"{self.engine_id}.error",
+                    severity=AuditSeverity.BLOCK,
+                    message=(
+                        f"{self.engine_id}.verify_context invoked without "
+                        "params['check_type']."
+                    ),
+                    file_path="none",
+                )
+            ]
+
+        repo_root = context.repo_path
+
+        if check_type in _VOCABULARY_CHECK_TYPES:
+            if check_type == "vocabulary_projection_consistency":
+                result = _check_projection_consistency(repo_root, check_type)
+            elif check_type == "vocabulary_canonical_format":
+                result = _check_canonical_format(repo_root, check_type)
+            elif check_type == "vocabulary_authoritative_paths":
+                result = _check_authoritative_paths(repo_root, check_type)
+            else:
+                result = EngineResult(
+                    ok=False,
+                    message=f"{self.engine_id}[{check_type}]: dispatch fall-through.",
+                    violations=[f"Unknown vocabulary check_type '{check_type}'"],
+                    engine_id=self.engine_id,
+                )
+        elif check_type in _GOVERNANCE_CHECK_TYPES:
+            if check_type == "all_rules_mapped":
+                result = _check_all_rules_mapped(repo_root, check_type)
+            elif check_type == "namespace_has_drainer":
+                merged_params = {**params, "_context": context}
+                result = await _check_namespace_has_drainer(
+                    repo_root, check_type, merged_params
+                )
+            elif check_type == "namespace_manifest_completeness":
+                result = _check_namespace_manifest_completeness(repo_root, check_type)
+            else:
+                result = EngineResult(
+                    ok=False,
+                    message=f"{self.engine_id}[{check_type}]: dispatch fall-through.",
+                    violations=[f"Unknown governance check_type '{check_type}'"],
+                    engine_id=self.engine_id,
+                )
+        else:
+            return [
+                AuditFinding(
+                    check_id=f"{self.engine_id}.{check_type}.error",
+                    severity=AuditSeverity.BLOCK,
+                    message=(
+                        f"{self.engine_id}.verify_context received non-context-level "
+                        f"check_type '{check_type}'. Per-file check_types route "
+                        "through verify(file_path, ...)."
+                    ),
+                    file_path="none",
+                )
+            ]
+
+        return _result_to_findings(result, check_type, self.engine_id)
 
     # The actual vocabulary check implementations live as module-level
     # functions (_check_projection_consistency, _check_canonical_format,
