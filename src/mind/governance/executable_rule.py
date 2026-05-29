@@ -66,12 +66,17 @@ class ExecutableRule:
 
     is_context_level: bool = False
     """
-    Whether this rule operates on full AuditorContext vs individual files.
+    Whether this rule dispatches via ``engine.verify_context`` (whole
+    repository) or ``engine.verify(file_path)`` (one call per matching
+    file).
 
-    - True: Engine needs full context (knowledge_gate, workflow_gate)
-    - False: Engine operates file-by-file (ast_gate, glob_gate, regex_gate)
-
-    Set automatically by rule_extractor based on engine type.
+    ADR-076: mode is owned by the engine *per check_type*, not by the
+    engine as a whole. ``rule_extractor`` consults
+    ``engine_cls.is_context_level_for(check_type)`` (a classmethod, no
+    instantiation) and stores the result here. Mixed-mode engines —
+    notably ``artifact_gate`` — return True for some check_types and
+    False for others. Engines that do not override the classmethod
+    inherit ``False`` from BaseEngine.
     """
 
     authority: str = "policy"

@@ -224,6 +224,16 @@ def get_dynamic_execution_stats(
             else 0
         )
 
+        # ADR-076 D4: effective dispatch mode is engine-derived per
+        # check_type. Surface it here so the governor can see which
+        # rules ran context-level vs per-file without reading src/.
+        context_level_rule_ids = sorted(
+            r.rule_id for r in executable_rules if r.is_context_level
+        )
+        per_file_rule_ids = sorted(
+            r.rule_id for r in executable_rules if not r.is_context_level
+        )
+
         return {
             # True denominator
             "total_declared_rules": total_declared,
@@ -236,6 +246,11 @@ def get_dynamic_execution_stats(
             "cleanly_executed_rules": len(cleanly_executed),
             "crashed_rules": len(crashed_rule_ids),
             "crashed_rule_ids": sorted(crashed_rule_ids),
+            # ADR-076 D4: effective dispatch mode per rule
+            "context_level_rules": len(context_level_rule_ids),
+            "context_level_rule_ids": context_level_rule_ids,
+            "per_file_rules": len(per_file_rule_ids),
+            "per_file_rule_ids": per_file_rule_ids,
             # Coverage (honest)
             "effective_coverage_percent": effective_coverage,
             "mapped_coverage_percent": mapped_coverage,
@@ -253,6 +268,10 @@ def get_dynamic_execution_stats(
             "cleanly_executed_rules": 0,
             "crashed_rules": 0,
             "crashed_rule_ids": [],
+            "context_level_rules": 0,
+            "context_level_rule_ids": [],
+            "per_file_rules": 0,
+            "per_file_rule_ids": [],
             "effective_coverage_percent": 0,
             "mapped_coverage_percent": 0,
             "coverage_percent": 0,

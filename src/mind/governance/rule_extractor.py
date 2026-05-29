@@ -27,10 +27,6 @@ if TYPE_CHECKING:
 logger = getLogger(__name__)
 
 
-# Context-level engines (operate on full AuditorContext, not individual files)
-CONTEXT_LEVEL_ENGINES = frozenset({"workflow_gate", "knowledge_gate"})
-
-
 # ID: bb50b995-53a3-436d-bd01-10f6ab0c8a42
 def extract_executable_rules(
     policies: dict[str, dict[str, Any]], enforcement_loader: EnforcementMappingLoader
@@ -175,8 +171,17 @@ def extract_executable_rules(
                         continue
                     exclusions.append(path)
 
-            # Determine if this is a context-level engine
-            is_context_level = engine in CONTEXT_LEVEL_ENGINES
+            # ADR-076 D1/D2: dispatch mode is per-check-type, owned by the
+            # engine. Consult the engine class (no instantiation) for the
+            # mode of this rule's check_type. Engines that do not implement
+            # the classmethod inherit ``False`` from BaseEngine (per-file).
+            check_type = strategy.get("params", {}).get("check_type")
+            engine_cls = _lookup_engine_class(engine)
+            is_context_level = (
+                engine_cls.is_context_level_for(check_type)
+                if engine_cls is not None
+                else False
+            )
 
             # ADR-043 D2: pre-selector dependency list. Parsed defensively
             # here; canonical type/shape is enforced by
@@ -348,4 +353,24 @@ def _topologically_sort_rules(
     return sorted_rules
 
 
-__all__ = ["CONTEXT_LEVEL_ENGINES", "extract_executable_rules"]
+def _lookup_engine_class(engine_id: str) -> type | None:
+    """Return the engine class for ``engine_id`` without instantiating it.
+
+    ADR-076 D2. The extractor must consult an engine's
+    ``is_context_level_for(check_type)`` classmethod, which means we need
+    the *class* — not an instance — without forcing the registry to do
+    JIT init (PathResolver, LLM client). ``EngineRegistry._engine_classes``
+    is populated by pkgutil/inspect discovery and is class-only.
+
+    Returns ``None`` for unknown engines (extractor falls back to
+    per-file). Passive aliases (``python_runtime``, ``type_system``, ...)
+    resolve through PASSIVE_ALIASES to ``PassiveGateEngine``.
+    """
+    from mind.logic.engines.registry import PASSIVE_ALIASES, EngineRegistry
+
+    EngineRegistry._discover_engines()
+    target_id = "passive_gate" if engine_id in PASSIVE_ALIASES else engine_id
+    return EngineRegistry._engine_classes.get(target_id)
+
+
+__all__ = ["extract_executable_rules"]

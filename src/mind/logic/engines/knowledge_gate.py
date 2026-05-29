@@ -43,6 +43,17 @@ class KnowledgeGateEngine(BaseEngine):
 
     engine_id = "knowledge_gate"
 
+    @classmethod
+    # ID: 9e3a7d51-6b2f-4c89-a04d-1e8b5c3f9a26
+    def is_context_level_for(cls, check_type: str | None) -> bool:
+        """
+        ADR-076 D1/D2: every knowledge_gate check_type is context-level.
+
+        The engine's ``verify(file_path, ...)`` is a hard-fail stub; all
+        real work is in ``verify_context`` consuming AuditorContext.
+        """
+        return True
+
     # Constitutional whitelist of tables this engine may query.
     # Table names in SQL cannot be parameterized — they must be validated
     # against a known-good set before interpolation.
