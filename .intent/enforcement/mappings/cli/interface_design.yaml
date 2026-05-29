@@ -4,84 +4,149 @@
 # Based on: .intent/rules/cli/interface_design.json
 #
 # ENFORCEMENT NOTE:
-#   These rules are enforced at runtime by audit_cli_registry()
-#   in body/maintenance/command_sync_service.py, invoked via
-#   'core-admin admin self-check'. They are not engine-checkable
-#   at audit time — the check requires a live CLI introspection.
-#   Engines below are passive markers; actual enforcement is runtime.
+#   These rules are enforced at AUDIT time by the cli_gate engine
+#   (src/mind/logic/engines/cli_gate.py), which imports the Typer app
+#   once per audit and introspects the command registry, then dispatches
+#   the check_types below.
+#
+#   All cli_gate check_types are CONTEXT-LEVEL (is_context_level_for ->
+#   True): they inspect the command registry / loader as a whole, not
+#   individual files. SCOPE_INERT (ADR-076 D6) therefore skips per-file
+#   scope matching for them, so the `applies_to` glob is documentary —
+#   it names the surface examined, not a per-file trigger.
+#
+#   Engine binding lives HERE, not in the rule JSON. The previous
+#   inline `check` blocks on cli.no_layer_exposure / cli.standard_verbs
+#   were removed (they were the only inline check blocks in the rule
+#   corpus); their data now lives in this file's params.
 
 mappings:
-  # LAW: Commands MUST follow 'resource action [flags]' pattern (depth=2)
-  # ENFORCEMENT: audit_cli_registry() checks name structure at runtime
+  # LAW: Commands MUST follow 'resource action [flags]' (depth=2; admin may be depth=3)
   cli.resource_first:
-    engine: runtime_check
+    engine: cli_gate
     params:
-      enforced_by: "body.maintenance.command_sync_service.audit_cli_registry"
-      check: "Command name depth == 2 (or 3 for admin namespace)"
-      invoked_via: "core-admin admin self-check"
+      check_type: resource_first
+      expected_depth: 2
+      admin_namespace_depth: 3
     scope:
-      applies_to: ["src/cli/resources/**/*.py"]
+      applies_to: ["src/cli/**/*.py"]
 
   # LAW: Resource names MUST NOT expose internal architecture layers
-  # ENFORCEMENT: audit_cli_registry() checks against forbidden_resources list
   cli.no_layer_exposure:
-    engine: runtime_check
+    engine: cli_gate
     params:
-      enforced_by: "body.maintenance.command_sync_service.audit_cli_registry"
+      check_type: no_layer_exposure
       forbidden_resources: ["mind", "body", "will", "manage", "check", "fix"]
-      invoked_via: "core-admin admin self-check"
     scope:
-      applies_to: ["src/cli/resources/**/*.py"]
+      applies_to: ["src/cli/**/*.py"]
 
   # LAW: Action names SHOULD use standard verbs from approved vocabulary
-  # ENFORCEMENT: audit_cli_registry() checks action against allowed_verbs list
   cli.standard_verbs:
-    engine: runtime_check
+    engine: cli_gate
     params:
-      enforced_by: "body.maintenance.command_sync_service.audit_cli_registry"
-      check: "action in allowed_verbs (sourced from rule JSON at runtime)"
-      invoked_via: "core-admin admin self-check"
+      check_type: standard_verbs
+      allowed_verbs:
+        - actions
+        - analyze
+        - approve
+        - audit
+        - audit-duplicates
+        - baseline
+        - chat
+        - check-imports
+        - check-ui
+        - clarity
+        - cleanup
+        - complexity
+        - coverage
+        - create
+        - delete
+        - docs
+        - docstrings
+        - drift
+        - execute
+        - export
+        - export-context
+        - fix-atomic
+        - fix-ids
+        - forensics
+        - format
+        - format-imports
+        - get
+        - generate
+        - info
+        - inspect
+        - legacy
+        - lint
+        - list
+        - logging
+        - migrate
+        - new
+        - onboard
+        - patterns
+        - query
+        - refactor-settings
+        - refusals
+        - reject
+        - rebuild
+        - refactor
+        - resolve-duplicates
+        - rewire
+        - rewire-imports
+        - score
+        - self-check
+        - set
+        - show
+        - stats
+        - status
+        - strategic_audit
+        - suggest
+        - summary
+        - sync
+        - sync-code
+        - sync-registry
+        - tag
+        - test
+        - test-stability
+        - traces
+        - validate
+        - validate-env
+        - verify
     scope:
-      applies_to: ["src/cli/resources/**/*.py"]
+      applies_to: ["src/cli/**/*.py"]
 
   # LAW: Mutating commands MUST require --write flag or confirmation
-  # ENFORCEMENT: audit_cli_registry() checks behavior='mutate' + dangerous=True
   cli.dangerous_explicit:
-    engine: runtime_check
+    engine: cli_gate
     params:
-      enforced_by: "body.maintenance.command_sync_service.audit_cli_registry"
-      check: "behavior==mutate implies dangerous=True and 'write' in params"
-      invoked_via: "core-admin admin self-check"
+      check_type: dangerous_explicit
     scope:
-      applies_to: ["src/cli/resources/**/*.py"]
+      applies_to: ["src/cli/**/*.py"]
 
   # LAW: Async commands MUST be wrapped with @core_command decorator
-  # ENFORCEMENT: Python runtime — decorator raises at load if missing
   cli.async_execution:
-    engine: python_runtime
+    engine: cli_gate
     params:
-      enforced_by: "cli.utils.decorators.core_command"
-      mechanism: "Decorator wraps async execution; absence causes RuntimeWarning at load"
+      check_type: async_execution
+      required_decorator: "core_command"
     scope:
-      applies_to: ["src/cli/resources/**/*.py"]
+      applies_to: ["src/cli/**/*.py"]
 
-  # LAW: CLI discovery MUST fail-fast on module load errors
-  # ENFORCEMENT: Python runtime — discovery mechanism at application load
+  # LAW: CLI module imports MUST be fail-fast at process start
+  # (restated per ADR-076 D6 — see rule JSON. Structural check: static
+  #  imports, no error-swallowing around the CLI loader.)
   cli.discovery_strict:
-    engine: python_runtime
+    engine: cli_gate
     params:
-      enforced_by: "cli discovery loader"
-      mechanism: "Module load errors raise unless CORE_DEV_MODE=1"
+      check_type: discovery_strict
+      loader: "src/cli/admin_cli.py"
     scope:
-      applies_to: ["src/cli/resources/**/*.py"]
+      applies_to: ["src/cli/**/*.py"]
 
   # LAW: Every command MUST provide help text
-  # ENFORCEMENT: audit_cli_registry() checks presence of summary/docstring
   cli.help_required:
-    engine: runtime_check
+    engine: cli_gate
     params:
-      enforced_by: "body.maintenance.command_sync_service.audit_cli_registry"
-      check: "command.summary is not None and non-empty"
-      invoked_via: "core-admin admin self-check"
+      check_type: help_required
     scope:
-      applies_to: ["src/cli/resources/**/*.py"]
+      applies_to: ["src/cli/**/*.py"]

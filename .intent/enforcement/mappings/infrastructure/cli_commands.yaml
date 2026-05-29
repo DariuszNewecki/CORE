@@ -74,16 +74,15 @@ mappings:
 
   # LAW: No duplicate canonical names
   #
-  # ENFORCEMENT: Runtime deduplication in command_sync_service
-  # - Duplicates logged as warnings
-  # - First occurrence wins, duplicates skipped
-  # - Prevents database constraint violations
+  # ENFORCEMENT: audit-time detection via cli_gate (check_type: no_duplicates),
+  #   which walks the command registry and emits a finding for any duplicate
+  #   canonical name.
+  #   NOTE: this ADDS audit-time detection; it does NOT replace the runtime
+  #   first-wins deduplication in command_sync_service._sync_commands_to_db,
+  #   which MUST remain to prevent DB constraint violations during sync.
   cli.command.no_duplicates:
-    engine: runtime_check
+    engine: cli_gate
     params:
-      enforced_by: "features.maintenance.command_sync_service._sync_commands_to_db"
-      deduplication_logic: "seen_names set tracking"
-      action: "Log warning and skip duplicate"
-      logged_as: "WARNING:...Duplicate command name detected"
+      check_type: no_duplicates
     scope:
-      applies_to: ["Registry sync process"]
+      applies_to: ["src/cli/**/*.py"]

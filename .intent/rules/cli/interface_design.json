@@ -4,7 +4,7 @@
     "metadata": {
         "id": "rules.cli.interface_design",
         "title": "CLI Interface Design Enforcement",
-        "version": "2.0.0",
+        "version": "2.1.0",
         "authority": "constitution",
         "phase": "load",
         "status": "active"
@@ -24,20 +24,7 @@
             "enforcement": "blocking",
             "authority": "constitution",
             "phase": "load",
-            "rationale": "Internal architecture layers should not be visible in user-facing commands.",
-            "check": {
-                "engine": "knowledge_gate",
-                "params": {
-                    "forbidden_resources": [
-                        "mind",
-                        "body",
-                        "will",
-                        "manage",
-                        "check",
-                        "fix"
-                    ]
-                }
-            }
+            "rationale": "Internal architecture layers should not be visible in user-facing commands."
         },
         {
             "id": "cli.standard_verbs",
@@ -45,80 +32,7 @@
             "enforcement": "reporting",
             "authority": "constitution",
             "phase": "load",
-            "rationale": "Consistent vocabulary improves discoverability and reduces cognitive load.",
-            "check": {
-                "engine": "knowledge_gate",
-                "params": {
-                    "allowed_verbs": [
-                        "actions",
-                        "analyze",
-                        "approve",
-                        "audit",
-                        "audit-duplicates",
-                        "baseline",
-                        "chat",
-                        "check-imports",
-                        "check-ui",
-                        "clarity",
-                        "cleanup",
-                        "complexity",
-                        "coverage",
-                        "create",
-                        "delete",
-                        "docs",
-                        "docstrings",
-                        "drift",
-                        "execute",
-                        "export",
-                        "export-context",
-                        "fix-atomic",
-                        "fix-ids",
-                        "forensics",
-                        "format",
-                        "format-imports",
-                        "get",
-                        "generate",
-                        "info",
-                        "inspect",
-                        "legacy",
-                        "lint",
-                        "list",
-                        "logging",
-                        "migrate",
-                        "new",
-                        "onboard",
-                        "patterns",
-                        "query",
-                        "refactor-settings",
-                        "refusals",
-                        "reject",
-                        "rebuild",
-                        "refactor",
-                        "resolve-duplicates",
-                        "rewire",
-                        "rewire-imports",
-                        "score",
-                        "self-check",
-                        "set",
-                        "show",
-                        "stats",
-                        "status",
-                        "strategic_audit",
-                        "suggest",
-                        "summary",
-                        "sync",
-                        "sync-code",
-                        "sync-registry",
-                        "tag",
-                        "test",
-                        "test-stability",
-                        "traces",
-                        "validate",
-                        "validate-env",
-                        "verify"
-                    ]
-                }
-            }
+            "rationale": "Consistent vocabulary improves discoverability and reduces cognitive load."
         },
         {
             "id": "cli.dangerous_explicit",
@@ -138,11 +52,11 @@
         },
         {
             "id": "cli.discovery_strict",
-            "statement": "CLI resource discovery MUST fail-fast on module load errors unless CORE_DEV_MODE=1.",
+            "statement": "CLI command and resource modules MUST resolve at process start using static imports; import failures MUST be fatal (no error-swallowing around CLI module imports, no deferred or lazy loading that masks load errors).",
             "enforcement": "blocking",
             "authority": "code",
             "phase": "load",
-            "rationale": "Prevents silent failures and ensures all registered commands are functional."
+            "rationale": "A fail-fast import surface guarantees every registered command is functional at startup. Enforced structurally by the absence of error-swallowing around the CLI loader, not by a discovery loader. Restated per ADR-076 D6: the prior statement described a CORE_DEV_MODE discovery loader that was never implemented anywhere in the codebase; the rule now matches the observed, enforceable mechanism."
         },
         {
             "id": "cli.help_required",

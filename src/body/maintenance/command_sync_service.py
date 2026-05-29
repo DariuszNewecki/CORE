@@ -12,14 +12,13 @@ CONSTITUTIONAL HARDENING (v2.3):
 
 from __future__ import annotations
 
-import inspect
 from typing import Any
 
 from sqlalchemy import delete
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from shared.cli.command_meta import get_command_meta, infer_metadata_from_function
+from shared.cli.app_introspection import walk_typer_app
 from shared.infrastructure.database.models import CliCommand
 from shared.logger import getLogger
 from shared.protocols.typer_protocols import (
@@ -35,103 +34,24 @@ def _introspect_typer_app(
     prefix: str = "",
     include_missing_handlers: bool = False,
 ) -> list[dict[str, Any]]:
-    """
-    Recursively scans a Typer app to discover all commands and their metadata.
-    Includes physical file paths for constitutional auditing.
-    """
-    commands: list[dict[str, Any]] = []
-
-    for cmd_info in app.registered_commands:
-        if not cmd_info.name:
-            continue
-
-        callback = cmd_info.callback
-        full_name = f"{prefix}{cmd_info.name}"
-
-        if not callback:
-            if include_missing_handlers:
-                commands.append(
-                    {
-                        "name": full_name,
-                        "module": None,
-                        "entrypoint": None,
-                        "file_path": None,
-                        "summary": None,
-                        "category": prefix.replace(".", " ").strip() or "general",
-                        "behavior": None,
-                        "layer": None,
-                        "aliases": [],
-                        "dangerous": False,
-                        "params_list": [],
-                        "has_callback": False,
-                        "has_explicit_meta": False,
-                    }
-                )
-            continue
-
-        # Find the physical file where this command is defined
-        try:
-            file_path: str | None = inspect.getfile(callback)
-        except Exception:
-            file_path = "unknown"
-
-        # Extract function parameters to check for 'write' flag
-        sig = inspect.signature(callback)
-        params_list = list(sig.parameters.keys())
-
-        meta = get_command_meta(callback)
-
-        if meta:
-            source = meta
-            summary = meta.summary
-            category = meta.category
-            has_explicit = True
-        else:
-            inferred = infer_metadata_from_function(
-                func=callback, command_name=cmd_info.name, group_prefix=prefix
-            )
-            source = inferred
-            summary = inferred.summary or (cmd_info.help or "").split("\n")[0]
-            category = inferred.category
-            has_explicit = False
-
-        command_dict: dict[str, Any] = {
-            "name": source.canonical_name,
-            "module": source.module or callback.__module__,
-            "entrypoint": source.entrypoint or callback.__name__,
-            "file_path": file_path,
-            "summary": summary,
-            "category": category or prefix.replace(".", " ").strip() or "general",
-            "behavior": source.behavior.value,
-            "layer": source.layer.value,
-            "aliases": source.aliases or [],
-            "dangerous": source.dangerous,
-            "params_list": params_list,
-            "has_callback": True,
-            "has_explicit_meta": has_explicit,
-        }
-
-        commands.append(command_dict)
-
-    for group_info in app.registered_groups:
-        if group_info.name:
-            new_prefix = f"{prefix}{group_info.name}."
-            commands.extend(
-                _introspect_typer_app(
-                    group_info.typer_instance,
-                    new_prefix,
-                    include_missing_handlers=include_missing_handlers,
-                )
-            )
-
-    return commands
+    """Back-compat shim. New code should import ``walk_typer_app`` from
+    ``shared.cli.app_introspection`` directly. Strips the ``callback``
+    field that the shared walker now exposes, so legacy callers
+    (audit_cli_registry, _sync_commands_to_db downstream consumers) see
+    the same dict shape as before."""
+    return [
+        {k: v for k, v in cmd.items() if k != "callback"}
+        for cmd in walk_typer_app(
+            app, prefix=prefix, include_missing_handlers=include_missing_handlers
+        )
+    ]
 
 
 async def _sync_commands_to_db(session: AsyncSession, main_app: TyperAppLike):
     """
     Introspects the main CLI application and syncs to database.
     """
-    discovered_commands = _introspect_typer_app(main_app)
+    discovered_commands = walk_typer_app(main_app)
 
     if not discovered_commands:
         return
@@ -145,7 +65,13 @@ async def _sync_commands_to_db(session: AsyncSession, main_app: TyperAppLike):
             k: v
             for k, v in cmd.items()
             if k
-            not in {"params_list", "has_callback", "has_explicit_meta", "file_path"}
+            not in {
+                "params_list",
+                "has_callback",
+                "has_explicit_meta",
+                "file_path",
+                "callback",
+            }
         }
 
         name = db_ready_cmd["name"]
