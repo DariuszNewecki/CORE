@@ -14,7 +14,7 @@ console = Console()
 
 @app.command("sync")
 @command_meta(
-    canonical_name="database.sync-symbols",
+    canonical_name="symbols.sync",
     behavior=CommandBehavior.MUTATE,
     layer=CommandLayer.BODY,
     summary="Synchronize database with codebase symbols.",
