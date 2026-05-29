@@ -7,14 +7,19 @@ from rich.console import Console
 from api.cli import CoreApiClient
 from cli.logic.autonomy.actions import parse_action_options
 from cli.utils import core_command
-
-from . import app
+from shared.cli.command_meta import CommandBehavior, CommandLayer, command_meta
 
 
 console = Console()
 
 
-@app.command("create")
+@command_meta(
+    canonical_name="proposals.create",
+    behavior=CommandBehavior.MUTATE,
+    layer=CommandLayer.WILL,
+    summary="Create a new autonomous proposal for system modification.",
+    dangerous=True,
+)
 @core_command(dangerous=True, requires_context=False)
 # ID: e3cc0065-b821-49dd-b90e-df86633d01c6
 async def create_proposal(

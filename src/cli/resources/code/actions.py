@@ -5,6 +5,7 @@ from rich.console import Console
 from rich.table import Table
 
 from api.cli import CoreApiClient
+from cli.utils import core_command
 from shared.cli.command_meta import CommandBehavior, CommandLayer, command_meta
 
 from .hub import app
@@ -22,6 +23,7 @@ console = Console()
     summary="List all registered Atomic Actions showing their IDs, categories, impact levels, and descriptions.",
     dangerous=False,
 )
+@core_command(dangerous=False, requires_context=False)
 # ID: 4f8e13a3-f017-4d0f-a6ef-340f81d05341
 async def list_actions_cmd() -> None:
     """
