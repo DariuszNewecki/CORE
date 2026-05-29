@@ -1,0 +1,36 @@
+$schema: "META/worker.schema.json"
+kind: worker
+
+metadata:
+  id: workers.audit_sensor_cli
+  title: Audit Violation Sensor - CLI
+  version: "1.0.0"
+  authority: policy
+  status: active
+
+identity:
+  uuid: "8545634a-1416-4521-b5f1-413481d6f45f"
+  class: sensing
+
+mandate:
+  responsibility: >
+    Run the constitutional auditor scoped to all cli.* rules and post
+    each unprocessed violation as a blackboard finding for downstream
+    processing by ViolationRemediatorWorker. No LLM calls. No file writes.
+  phase: audit
+  permitted_tools: []
+  scope:
+    rule_namespace: "cli"
+    domains:
+      - audit
+      - compliance
+  approval_required: false
+  schedule:
+    max_interval: 600
+
+implementation:
+  module: will.workers.audit_violation_sensor
+  class: AuditViolationSensor
+  requires_core_context: true
+  params:
+    dry_run: false
