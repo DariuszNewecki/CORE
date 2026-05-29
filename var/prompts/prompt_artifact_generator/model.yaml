@@ -20,9 +20,6 @@ output:
     - "system_txt"
     - "user_txt"
 
-model:
-  preference: anthropic
-
 success_criteria: >
   Returns valid JSON containing three keys: model_yaml (a valid YAML string),
   system_txt (a non-empty constitutional system prompt), and user_txt

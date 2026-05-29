@@ -24,6 +24,7 @@ input:
       observed during the 2026-05-12 RemoteCoder qualification eval.
 
 output:
+  format: raw_text
   # 0 = no length limit; model.max_tokens is the sole output cap.
   # A char-based max_length is redundant with the token-based model.max_tokens
   # and the unit mismatch silently truncated long valid outputs (defect 2 of
