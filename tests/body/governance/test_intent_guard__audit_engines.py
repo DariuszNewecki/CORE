@@ -6,8 +6,8 @@ duplicate stale-backlog observation #292. Both issues' symptom — 128
 ``cli.resource_first`` ("CLI commands MUST follow 'resource action [flags]'
 pattern (depth=2)…") — re-opens the moment any passive-marker engine is
 removed from the skip set, because the underlying rule is enforced at
-``core-admin admin self-check`` time (``audit_cli_registry()``), not at
-``FileHandler``-mediated writes.
+audit time by the ``cli_gate`` engine (also driven from
+``core-admin admin self-check``), not at ``FileHandler``-mediated writes.
 
 The original fix did not include a regression test. These tests are that
 defense: a parametrised set-membership check that fails loudly if the skip

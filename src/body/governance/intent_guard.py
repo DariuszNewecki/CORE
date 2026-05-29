@@ -36,7 +36,7 @@ logger = getLogger(__name__)
 #
 # 2. Passive-marker engines (no write-time check exists; enforcement happens
 #    elsewhere — at runtime, at parse time, at decoration, or by code review):
-#       runtime_check        → enforced by audit_cli_registry() at self-check
+#       runtime_check        → enforced by cli_gate at audit/self-check time
 #       python_runtime       → enforced by Python at module import
 #       dataclass_validation → enforced by Pydantic __post_init__
 #       type_system          → enforced by Python enum type-checking
