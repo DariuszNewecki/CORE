@@ -95,7 +95,7 @@ class DiscoveryStrictCheck(CliCheck):
                     check_id="cli_gate.discovery_strict",
                     severity=AuditSeverity.BLOCK,
                     message=(
-                        "discovery_strict mapping is missing the 'loader' " "parameter."
+                        "discovery_strict mapping is missing the 'loader' parameter."
                     ),
                     file_path="none",
                 )
@@ -108,7 +108,7 @@ class DiscoveryStrictCheck(CliCheck):
                     check_id="cli_gate.discovery_strict",
                     severity=AuditSeverity.BLOCK,
                     message=(
-                        f"discovery_strict loader '{loader_rel}' not found " "on disk."
+                        f"discovery_strict loader '{loader_rel}' not found on disk."
                     ),
                     file_path=str(loader_rel),
                 )
@@ -123,8 +123,7 @@ class DiscoveryStrictCheck(CliCheck):
                     check_id="cli_gate.discovery_strict",
                     severity=AuditSeverity.BLOCK,
                     message=(
-                        f"discovery_strict could not parse loader "
-                        f"'{loader_rel}': {exc}"
+                        f"discovery_strict could not parse loader '{loader_rel}': {exc}"
                     ),
                     file_path=str(loader_rel),
                 )
