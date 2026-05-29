@@ -4,8 +4,13 @@
 # (ADR-075 D7). The check is a structural set-difference between the
 # filesystem walk (every file under .intent/ and .specs/) and the
 # classifications enumerated in
-# .intent/governance/namespace_manifest.yaml. Path-walk + YAML parse;
-# python_runtime is the appropriate engine.
+# .intent/governance/namespace_manifest.yaml.
+#
+# Engine: artifact_gate. Cognate with all_rules_mapped (ADR-066) and
+# namespace_has_drainer (ADR-072) — same shape: a repo-level invariant
+# anchored on a single meta-state file, walked internally by the check
+# function. applies_to references the manifest itself so the check
+# fires once per audit cycle, not once per .intent/.specs/ file.
 #
 # Enforcement is reporting (non-blocking) per ADR-075 D7. Escalation to
 # blocking is a later governor decision once the manifest is complete
@@ -25,19 +30,9 @@ mappings:
   # set is: (filesystem walk under .intent/ and .specs/) ∖ (paths
   # declared in the manifest's `classifications:` list).
   governance.namespace.classification_complete:
-    engine: python_runtime
+    engine: artifact_gate
     params:
       check_type: namespace_manifest_completeness
-      walked_roots:
-        - .intent
-        - .specs
-      manifest_path: .intent/governance/namespace_manifest.yaml
-      manifest_list_key: classifications
-      manifest_path_field: path
-      vocabulary_register: .intent/taxonomies/governance_namespaces.yaml
-      severity: WARNING
     scope:
       applies_to:
-        - ".intent/**"
-        - ".specs/**"
-      excludes: []
+        - ".intent/governance/namespace_manifest.yaml"

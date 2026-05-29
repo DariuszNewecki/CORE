@@ -80,12 +80,15 @@ _GOVERNANCE_CHECK_TYPES = frozenset(
     {
         "all_rules_mapped",
         "namespace_has_drainer",
+        "namespace_manifest_completeness",
     }
 )
 
 _AUTO_REMEDIATION_REL = ".intent/enforcement/remediation/auto_remediation.yaml"
 _RULES_DIR_REL = ".intent/rules"
 _DRAINER_REGISTRY_REL = ".intent/enforcement/quarantine/drainer_registry.yaml"
+_NAMESPACE_MANIFEST_REL = ".intent/governance/namespace_manifest.yaml"
+_NAMESPACE_GOVERNED_ROOTS = (".intent", ".specs")
 _MAPPING_KEY_RE = re.compile(r"^  ([a-z][a-z0-9_.]+):$", re.MULTILINE)
 
 _REQUIRED_VOCAB_COLUMNS = ("term", "definition", "not", "authoritative_paper")
@@ -561,6 +564,77 @@ async def _check_namespace_has_drainer(
     )
 
 
+# ID: 742276f9-7865-4073-a345-1256089d91c8
+def _check_namespace_manifest_completeness(repo_root: Path, check: str) -> EngineResult:
+    """Verify every file under .intent/ and .specs/ has a manifest entry.
+
+    ADR-075 D7. The check is a structural set-difference between the
+    filesystem walk under the governed roots (.intent/ + .specs/) and the
+    paths declared in .intent/governance/namespace_manifest.yaml's
+    ``classifications`` list. A file present on disk with no manifest
+    entry is unclassified and surfaces as a violation under this rule.
+    """
+    manifest_file = repo_root / _NAMESPACE_MANIFEST_REL
+    if not manifest_file.exists():
+        return EngineResult(
+            ok=False,
+            message=(
+                f"artifact_gate[{check}]: namespace_manifest.yaml missing at "
+                f"{manifest_file}"
+            ),
+            violations=[f"Configuration error: {_NAMESPACE_MANIFEST_REL} not found"],
+            engine_id=_ENGINE_ID,
+        )
+
+    try:
+        manifest_doc = yaml.safe_load(manifest_file.read_text(encoding="utf-8")) or {}
+    except yaml.YAMLError as exc:
+        return EngineResult(
+            ok=False,
+            message=f"artifact_gate[{check}]: cannot parse namespace_manifest.yaml: {exc}",
+            violations=[f"Configuration error: {_NAMESPACE_MANIFEST_REL} unparseable"],
+            engine_id=_ENGINE_ID,
+        )
+
+    if not isinstance(manifest_doc, dict):
+        return EngineResult(
+            ok=False,
+            message=f"artifact_gate[{check}]: namespace_manifest.yaml not a mapping",
+            violations=[
+                f"Configuration error: {_NAMESPACE_MANIFEST_REL} top-level "
+                "must be a YAML mapping"
+            ],
+            engine_id=_ENGINE_ID,
+        )
+
+    classified: set[str] = set()
+    for entry in manifest_doc.get("classifications") or []:
+        if not isinstance(entry, dict):
+            continue
+        path = entry.get("path")
+        if isinstance(path, str) and path:
+            classified.add(path)
+
+    fs_paths: set[str] = set()
+    for root_name in _NAMESPACE_GOVERNED_ROOTS:
+        root_dir = repo_root / root_name
+        if not root_dir.is_dir():
+            continue
+        for p in root_dir.rglob("*"):
+            if p.is_file():
+                fs_paths.add(str(p.relative_to(repo_root)))
+
+    unclassified = sorted(fs_paths - classified)
+    if not unclassified:
+        return _vocab_result(check, [])
+
+    violations = [
+        f"File '{path}' has no entry in {_NAMESPACE_MANIFEST_REL}"
+        for path in unclassified
+    ]
+    return _vocab_result(check, violations)
+
+
 # ID: 69841a82-0920-480c-94cb-d5e4b6cb50dd
 class ArtifactGateEngine(BaseEngine):
     """
@@ -815,6 +889,8 @@ class ArtifactGateEngine(BaseEngine):
             return _check_all_rules_mapped(repo_root, check_type)
         if check_type == "namespace_has_drainer":
             return await _check_namespace_has_drainer(repo_root, check_type, params)
+        if check_type == "namespace_manifest_completeness":
+            return _check_namespace_manifest_completeness(repo_root, check_type)
 
         return EngineResult(
             ok=False,
