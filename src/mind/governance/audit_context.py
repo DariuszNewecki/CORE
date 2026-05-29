@@ -53,6 +53,65 @@ _KNOWLEDGE_GRAPH_CACHE: dict[str, dict[str, Any]] = {}
 _AST_CACHE: dict[Path, ast.AST] = {}
 
 
+# ADR-076 D5: structural excludes are directory names whose contents are
+# never the subject of any governance rule — VCS metadata, virtualenvs,
+# bytecode caches, third-party dependency mirrors, packaging output. They
+# are the minimum prune the candidate walker performs *before* the
+# rule-scope filter. ``work/`` and ``reports/`` are deliberately NOT
+# listed: they are application output, and the derived walker correctly
+# admits them iff some active per-file rule scopes them. The diagnostic
+# (``audit_walker_diagnostic`` below) reports if any active per-file rule
+# scopes into a listed structural dir — that would be a real finding.
+_STRUCTURAL_DIR_PARTS: frozenset[str] = frozenset(
+    {
+        ".git",
+        ".venv",
+        "venv",
+        "__pycache__",
+        "node_modules",
+        "dist",
+        "build",
+    }
+)
+
+
+def _is_under_structural_exclude(p: Path, root: Path) -> bool:
+    """Return True if ``p`` falls under a structural-excluded directory.
+
+    Component check on the relative path; cheaper than fnmatch on every
+    file at scan time.
+    """
+    try:
+        rel = p.relative_to(root)
+    except ValueError:
+        return False
+    return any(part in _STRUCTURAL_DIR_PARTS for part in rel.parts)
+
+
+def _include_matches(rel_posix: str, pattern: str) -> bool:
+    """Match ``rel_posix`` against ``pattern`` with correct ``**`` semantics.
+
+    For patterns without ``**``, behaviour is identical to
+    ``fnmatch.fnmatch``. For patterns containing ``**/`` or ``/**``, the
+    ``**/``- and ``/**``-collapsed forms are also tried — this restores
+    the zero-intermediate-directory case (e.g. ``src/api/main.py``
+    matches ``src/api/**/*.py``).
+
+    Lifted to module scope (ADR-076 D5) so both the candidate-retention
+    pass during file-cache build AND the per-rule scope filter at dispatch
+    consult the same matcher. Single source for "does this path satisfy
+    this scope" — the walker and the dispatcher can never disagree about
+    whether a file is in scope.
+    """
+    if fnmatch.fnmatch(rel_posix, pattern):
+        return True
+    if "**/" in pattern and fnmatch.fnmatch(rel_posix, pattern.replace("**/", "")):
+        return True
+    if "/**" in pattern and fnmatch.fnmatch(rel_posix, pattern.replace("/**", "")):
+        return True
+    return False
+
+
 # NOTE: zero call sites in src/ — candidate for removal.
 # Retained until ADR-049 ritual permits removal.
 # ID: baa7d0a4-2b67-428c-ab64-1e3dbe009b19
@@ -116,6 +175,9 @@ class AuditorContext:
         self._file_list_cache: list[Path] | None = None
         self._rel_path_map: dict[Path, str] = {}
         self._pattern_cache: dict[str, list[Path]] = {}
+        # ADR-076 D5: union of active per-file rule scopes, computed
+        # lazily on first get_files() call and reset by invalidate_file_cache.
+        self._per_file_scopes_cache: list[str] | None = None
 
         # ADR-044: per-run knobs for the llm_gate verdict cache. The
         # rule_executor reads force_llm via getattr; engines that don't
@@ -148,6 +210,10 @@ class AuditorContext:
         self._file_list_cache = None
         self._rel_path_map.clear()
         self._pattern_cache.clear()
+        # ADR-076 D5: the cached scope union is derived from policies +
+        # enforcement_loader; both can change on reload_governance, so
+        # invalidate alongside the file cache.
+        self._per_file_scopes_cache = None
         # ADR-039 supplement 2026-05-16: clear parsed-tree cache so
         # ast_gate rules evaluate post-write content, not prior-cycle
         # ASTs. Race surface (shared AuditorContext across sensors) is
@@ -241,6 +307,41 @@ class AuditorContext:
             )
             return 0
 
+    # ID: 6f8c2a9b-5e3d-4f17-91c4-2a8b6e5d3f10
+    def _active_per_file_rule_scopes(self) -> list[str]:
+        """Union of include-patterns from every active per-file rule.
+
+        ADR-076 D5. The walked set is derived from this union: a file is
+        retained iff some active per-file rule's scope matches it. By
+        lazy-evaluating against ``self.policies`` and
+        ``self.enforcement_loader``, ``AuditorContext`` owns the cache
+        AND the constraint that shapes it — no caller has to remember to
+        feed scopes in, and the derivation cannot fall out of sync with
+        the rule set the same context is about to dispatch.
+
+        Context-level rules (``is_context_level=True``) are excluded:
+        they use ``verify_context`` and do not iterate the walked set,
+        so widening the walk on their behalf would silently re-introduce
+        the over-walking the ADR rejects. ``requires_findings_from``
+        pre-selectors do not change scope membership; they only narrow
+        which files in scope are iterated at dispatch.
+        """
+        if self._per_file_scopes_cache is not None:
+            return self._per_file_scopes_cache
+
+        from mind.governance.rule_extractor import extract_executable_rules
+
+        rules = extract_executable_rules(self.policies, self.enforcement_loader)
+        scopes: set[str] = set()
+        for r in rules:
+            if r.is_context_level:
+                continue
+            for pat in r.scope:
+                if isinstance(pat, str) and pat:
+                    scopes.add(pat)
+        self._per_file_scopes_cache = sorted(scopes)
+        return self._per_file_scopes_cache
+
     # ID: 4a2f2b3d-1a8a-4a1f-9a8e-2b6a0e7d9b3c
     def get_files(
         self,
@@ -250,18 +351,24 @@ class AuditorContext:
         """
         Deterministically expand repo-relative glob patterns into file Paths.
 
-        Optimized via single-pass filesystem scan and pattern memoization —
-        the file list is built once per process and reused across all rules.
+        ADR-076 D5: the file-list cache is the DERIVED set
+        ``{ f : f matches some active per-file rule's scope }``. After
+        pruning a minimal structural-exclude set (.git, .venv,
+        __pycache__, node_modules, dist, build) from the candidate walk,
+        each candidate is retained iff at least one active per-file rule
+        would match it under ``_include_matches`` — the same matcher
+        dispatch uses. This is a single-source-of-truth derivation: a
+        rule cannot be silently inerted by walker scope (#480) because
+        the walker's scope IS the union of rule scopes.
+
+        Per-call behaviour is unchanged: the rule's own ``include``
+        patterns narrow the cached set to that rule's working scope.
 
         Glob semantics:
         - ``*`` matches any run of characters (fnmatch default, may cross ``/``).
-        - ``**`` is intended to mean "zero or more intermediate directories".
-          Raw ``fnmatch`` does not honour the *zero* case: e.g.
-          ``fnmatch('src/api/main.py', 'src/api/**/*.py')`` is ``False``.
-          ``_include_matches`` compensates by also matching against the
-          ``**/``- and ``/**``-collapsed forms of the pattern, so a rule
-          scoped ``src/api/**/*.py`` now also matches ``src/api/main.py``.
-          Non-``**`` patterns behave identically to raw fnmatch.
+        - ``**`` zero-directory semantics handled by ``_include_matches``
+          (module-level), shared with the cache builder so dispatch and
+          retention agree byte-for-byte on scope membership.
         """
         include_list = sorted(list(include))
         exclude_list = sorted(list(exclude or []))
@@ -274,21 +381,25 @@ class AuditorContext:
 
         if self._file_list_cache is None:
             logger.debug("⚡ Cold start: Scanning filesystem once...")
-            self._file_list_cache = list(self.repo_path.rglob("*.py"))
-            for p in self._file_list_cache:
-                self._rel_path_map[p] = str(p.relative_to(root)).replace("\\", "/")
+            # ADR-076 D5: candidate walk — only structural excludes
+            # prune the rglob result. Extensions, application roots, and
+            # exclusion of subtrees like ``.intent/`` or ``var/`` are NOT
+            # hardcoded here; the retention pass below derives them from
+            # the active per-file rules' scopes.
+            per_file_scopes = self._active_per_file_rule_scopes()
+            self._file_list_cache = []
+            for p in self.repo_path.rglob("*"):
+                if not p.is_file():
+                    continue
+                if _is_under_structural_exclude(p, root):
+                    continue
+                rel_posix = str(p.relative_to(root)).replace("\\", "/")
+                # Retain iff some active per-file rule scopes this path.
+                if any(_include_matches(rel_posix, sc) for sc in per_file_scopes):
+                    self._file_list_cache.append(p)
+                    self._rel_path_map[p] = rel_posix
 
-        hard_excludes = [
-            ".intent/**",
-            ".git/**",
-            ".venv/**",
-            "venv/**",
-            "**/__pycache__/**",
-            "var/**",
-            "work/**",
-            "reports/**",
-        ]
-        exclude_patterns = set(exclude_list) | set(hard_excludes)
+        exclude_patterns = set(exclude_list)
 
         def _is_excluded(rel_posix: str) -> bool:
             for pat in exclude_patterns:
@@ -313,26 +424,6 @@ class AuditorContext:
                     if not all(mp in rel_posix for mp in mid_parts):
                         continue
                 return True
-            return False
-
-        def _include_matches(rel_posix: str, pattern: str) -> bool:
-            """
-            Match ``rel_posix`` against ``pattern`` with correct ``**``
-            zero-directory semantics.
-
-            For patterns without ``**``, behaviour is identical to
-            ``fnmatch.fnmatch``. For patterns containing ``**/`` or ``/**``,
-            the ``**/``- and ``/**``-collapsed forms are also tried, which
-            restores the zero-intermediate-directory case.
-            """
-            if fnmatch.fnmatch(rel_posix, pattern):
-                return True
-            if "**/" in pattern:
-                if fnmatch.fnmatch(rel_posix, pattern.replace("**/", "")):
-                    return True
-            if "/**" in pattern:
-                if fnmatch.fnmatch(rel_posix, pattern.replace("/**", "")):
-                    return True
             return False
 
         matched: set[Path] = set()
