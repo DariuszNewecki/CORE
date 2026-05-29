@@ -62,6 +62,9 @@ class AuditStats:
     crashed_rules: int = 0
     unmapped_rules: int = 0
     effective_coverage_percent: float = 0
+    # ADR-076 D4: effective per-rule dispatch mode counts
+    context_level_rules: int = 0
+    per_file_rules: int = 0
 
 
 # ID: 0b88103e-949f-4a1d-9daf-c2042c6346b9
@@ -88,7 +91,8 @@ def render_overview(
     stats_table.add_row(
         f"Duration: [dim]{duration:.2f}s[/dim]",
         f"Total findings: [cyan]{len(findings)}[/cyan]",
-        "",
+        f"Dispatch: [cyan]{stats.context_level_rules}[/cyan] context-level · "
+        f"[cyan]{stats.per_file_rules}[/cyan] per-file",
     )
     console.print(
         Panel(stats_table, title="[bold]Audit Execution Stats[/bold]", expand=False)

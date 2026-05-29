@@ -96,6 +96,9 @@ async def audit_command(
         crashed_rules=raw_stats.get("crashed_rules", 0),
         unmapped_rules=raw_stats.get("unmapped_rules", 0),
         effective_coverage_percent=raw_stats.get("effective_coverage_percent", 0),
+        # ADR-076 D4
+        context_level_rules=raw_stats.get("context_level_rules", 0),
+        per_file_rules=raw_stats.get("per_file_rules", 0),
     )
 
     all_findings = [to_audit_finding(f) for f in result.get("findings", [])]
