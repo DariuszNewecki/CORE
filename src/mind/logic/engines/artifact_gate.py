@@ -646,6 +646,25 @@ class ArtifactGateEngine(BaseEngine):
 
     engine_id = "artifact_gate"
 
+    @classmethod
+    # ID: 3c7b9d12-58a4-4e6f-8c1d-2a9e6b4f3d70
+    def is_context_level_for(cls, check_type: str | None) -> bool:
+        """
+        ADR-076 D1/D2/D3: artifact_gate is mixed-mode.
+
+        Six repo-level check_types (vocabulary projection/canonical_format/
+        authoritative_paths + governance all_rules_mapped/namespace_has_drainer/
+        namespace_manifest_completeness) dispatch context-level. The three
+        PromptModel check_types (required_fields, no_provider_leak,
+        role_abstraction) dispatch per-file over var/prompts/**/model.yaml.
+        """
+        if check_type is None:
+            return False
+        return (
+            check_type in _VOCABULARY_CHECK_TYPES
+            or check_type in _GOVERNANCE_CHECK_TYPES
+        )
+
     # ID: 46226873-bc5a-4258-b3c8-476b0cfc878a
     async def verify(self, file_path: Path, params: dict[str, Any]) -> EngineResult:
         """

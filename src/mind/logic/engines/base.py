@@ -88,3 +88,19 @@ class BaseEngine(ABC):
             EngineResult indicating compliance status.
         """
         pass
+
+    @classmethod
+    # ID: 17cb7c7f-94f3-4d61-8a2c-3a0b9d1e4c2d
+    def is_context_level_for(cls, check_type: str | None) -> bool:
+        """
+        Whether this engine dispatches the given check_type at context-level.
+
+        ADR-076 D1/D2: dispatch mode is engine-declared per check_type, not
+        per-engine. Default is per-file (False); engines override to return
+        True for check_types whose ``_check_*`` implementation walks the
+        repository instead of consuming a single ``file_path``.
+
+        Called by the rule extractor on the engine *class* (no instantiation),
+        so overrides must be classmethods that depend only on ``check_type``.
+        """
+        return False
