@@ -152,25 +152,6 @@ async def run_dynamic_rules(
     return all_findings
 
 
-# Engines whose verify*/verify_context return OK by construction
-# (passive_gate proper + the aliases registry.py resolves to it). A
-# rule routed through one of these never produces a finding via the
-# audit dispatch, so excluding it from the firing-coverage gate is
-# correct — its enforcement (if any) lives outside the audit pipeline
-# at decoration time, registration time, or runtime.
-_PASSIVE_ENGINE_IDS = frozenset(
-    {
-        "passive_gate",
-        "python_runtime",
-        "type_system",
-        "runtime_metric",
-        "advisory",
-        "runtime_check",
-        "dataclass_validation",
-    }
-)
-
-
 # ID: 5b8a1c2d-9e3f-4a7b-8c5d-2e9f1a3b4c5d
 def _check_per_file_scope_coverage(
     context: AuditorContext,
@@ -186,15 +167,23 @@ def _check_per_file_scope_coverage(
     Exclusions:
       - Context-level rules (engine.verify_context, not file-iterated)
       - Empty-scope rules (scope: [], ADR-043 D7 deliberate)
-      - Passive engines (route to passive_gate by construction)
+      - Passive engines (route to passive_gate by construction);
+        the authoritative alias set lives on EngineRegistry — re-deriving
+        it locally would be a second source of truth for "what's passive"
+        and the exact failure mode ADR-076 retired for context-level
+        dispatch. Read it through the registry.
       - Non-blocking rules (declared advisory/reporting/info — zero
         findings is consistent with intent)
     """
+    from mind.logic.engines import registry as engine_registry
+
+    passive_engine_ids = engine_registry.PASSIVE_ALIASES | {"passive_gate"}
+
     findings: list[AuditFinding] = []
     for rule in executable_rules:
         if rule.is_context_level:
             continue
-        if rule.engine in _PASSIVE_ENGINE_IDS:
+        if rule.engine in passive_engine_ids:
             continue
         if not rule.scope:
             continue

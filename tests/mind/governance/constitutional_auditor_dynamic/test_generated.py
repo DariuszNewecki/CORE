@@ -1,6 +1,6 @@
+from unittest.mock import AsyncMock, MagicMock
+
 import pytest
-from unittest.mock import AsyncMock, MagicMock, patch, PropertyMock
-from typing import Any, Optional
 
 from mind.governance.constitutional_auditor_dynamic import (
     _check_per_file_scope_coverage,
@@ -76,19 +76,13 @@ class TestCountTotalDeclaredRules:
         assert rule_ids == ["dup_rule", "dup_rule"]
 
     def test_policy_with_no_rules_key(self):
-        policies = {
-            "policy1": {}
-        }
+        policies = {"policy1": {}}
         total, rule_ids = _count_total_declared_rules(policies)
         assert total == 0
         assert rule_ids == []
 
     def test_policy_with_empty_rules_list(self):
-        policies = {
-            "policy1": {
-                "rules": []
-            }
-        }
+        policies = {"policy1": {"rules": []}}
         total, rule_ids = _count_total_declared_rules(policies)
         assert total == 0
         assert rule_ids == []
@@ -109,9 +103,7 @@ class TestCountTotalDeclaredRules:
 
 class TestFindUnmappedRuleIds:
     def test_all_rules_mapped(self):
-        policies = {
-            "p1": {"rules": [{"rule_id": "r1"}, {"rule_id": "r2"}]}
-        }
+        policies = {"p1": {"rules": [{"rule_id": "r1"}, {"rule_id": "r2"}]}}
         executable = {"r1", "r2"}
         unmapped = _find_unmapped_rule_ids(policies, executable)
         assert unmapped == []
@@ -125,9 +117,7 @@ class TestFindUnmappedRuleIds:
         assert unmapped == ["r2"]
 
     def test_all_rules_unmapped(self):
-        policies = {
-            "p1": {"rules": [{"rule_id": "r1"}, {"rule_id": "r2"}]}
-        }
+        policies = {"p1": {"rules": [{"rule_id": "r1"}, {"rule_id": "r2"}]}}
         executable = set()
         unmapped = _find_unmapped_rule_ids(policies, executable)
         assert unmapped == ["r1", "r2"]
@@ -140,16 +130,20 @@ class TestFindUnmappedRuleIds:
 
     def test_returns_sorted_result(self):
         policies = {
-            "p1": {"rules": [{"rule_id": "z_rule"}, {"rule_id": "a_rule"}, {"rule_id": "m_rule"}]}
+            "p1": {
+                "rules": [
+                    {"rule_id": "z_rule"},
+                    {"rule_id": "a_rule"},
+                    {"rule_id": "m_rule"},
+                ]
+            }
         }
         executable = {"a_rule"}
         unmapped = _find_unmapped_rule_ids(policies, executable)
         assert unmapped == ["m_rule", "z_rule"]
 
     def test_extra_executable_ids_ignored(self):
-        policies = {
-            "p1": {"rules": [{"rule_id": "r1"}]}
-        }
+        policies = {"p1": {"rules": [{"rule_id": "r1"}]}}
         executable = {"r1", "extra_rule"}
         unmapped = _find_unmapped_rule_ids(policies, executable)
         assert unmapped == []
@@ -162,9 +156,16 @@ class TestCheckPerFileScopeCoverage:
         ctx.get_files.return_value = ["file1.py", "file2.py"]
         return ctx
 
-    def make_mock_rule(self, rule_id="rule1", is_context_level=False, scope=None,
-                       exclusions=None, engine="file_scanner", enforcement="blocking",
-                       policy_id="pol1"):
+    def make_mock_rule(
+        self,
+        rule_id="rule1",
+        is_context_level=False,
+        scope=None,
+        exclusions=None,
+        engine="file_scanner",
+        enforcement="blocking",
+        policy_id="pol1",
+    ):
         rule = MagicMock()
         rule.rule_id = rule_id
         rule.is_context_level = is_context_level
@@ -221,9 +222,15 @@ class TestCheckPerFileScopeCoverage:
 
     def test_multiple_inert_rules_reported(self, mock_context):
         mock_context.get_files.return_value = []
-        rule1 = self.make_mock_rule(rule_id="inert_a", scope=["a/*"], enforcement="blocking")
-        rule2 = self.make_mock_rule(rule_id="inert_b", scope=["b/*"], enforcement="blocking")
-        rule3 = self.make_mock_rule(rule_id="ok_rule", scope=["ok/*"], enforcement="blocking")
+        rule1 = self.make_mock_rule(
+            rule_id="inert_a", scope=["a/*"], enforcement="blocking"
+        )
+        rule2 = self.make_mock_rule(
+            rule_id="inert_b", scope=["b/*"], enforcement="blocking"
+        )
+        rule3 = self.make_mock_rule(
+            rule_id="ok_rule", scope=["ok/*"], enforcement="blocking"
+        )
         mock_context.get_files.side_effect = [[], [], ["file.py"]]
         findings = _check_per_file_scope_coverage(mock_context, [rule1, rule2, rule3])
         assert len(findings) == 2
@@ -232,7 +239,9 @@ class TestCheckPerFileScopeCoverage:
 
     def test_exclusions_still_empty_scope_match(self, mock_context):
         mock_context.get_files.return_value = ["src/main.py"]
-        rule = self.make_mock_rule(scope=["src/*.py"], exclusions=["*.bak"], enforcement="blocking")
+        rule = self.make_mock_rule(
+            scope=["src/*.py"], exclusions=["*.bak"], enforcement="blocking"
+        )
         findings = _check_per_file_scope_coverage(mock_context, [rule])
         assert findings == []
 
@@ -252,7 +261,9 @@ class TestGetDynamicExecutionStats:
         assert stats["crashed_rule_ids"] == []
 
     def test_all_rules_executed_none_crashed(self):
-        ctx = self.make_mock_context({"pol1": {"rules": [{"rule_id": "r1"}, {"rule_id": "r2"}]}})
+        ctx = self.make_mock_context(
+            {"pol1": {"rules": [{"rule_id": "r1"}, {"rule_id": "r2"}]}}
+        )
         stats = get_dynamic_execution_stats(ctx, {"r1", "r2"})
         assert stats["total_declared"] == 2
         assert stats["total_executed"] == 2
@@ -260,7 +271,13 @@ class TestGetDynamicExecutionStats:
         assert stats["crashed_rule_ids"] == []
 
     def test_with_crashed_rules(self):
-        ctx = self.make_mock_context({"pol1": {"rules": [{"rule_id": "r1"}, {"rule_id": "r2"}, {"rule_id": "r3"}]}})
+        ctx = self.make_mock_context(
+            {
+                "pol1": {
+                    "rules": [{"rule_id": "r1"}, {"rule_id": "r2"}, {"rule_id": "r3"}]
+                }
+            }
+        )
         stats = get_dynamic_execution_stats(ctx, {"r1", "r2"}, crashed_rule_ids={"r2"})
         assert stats["total_declared"] == 3
         assert stats["total_executed"] == 2
@@ -268,7 +285,9 @@ class TestGetDynamicExecutionStats:
         assert stats["unmapped_rule_ids"] == ["r3"]
 
     def test_crashed_rule_also_unmapped_not_counted_twice(self):
-        ctx = self.make_mock_context({"pol1": {"rules": [{"rule_id": "r1"}, {"rule_id": "r2"}]}})
+        ctx = self.make_mock_context(
+            {"pol1": {"rules": [{"rule_id": "r1"}, {"rule_id": "r2"}]}}
+        )
         stats = get_dynamic_execution_stats(ctx, {"r1"}, crashed_rule_ids={"r2"})
         assert stats["total_declared"] == 2
         assert stats["total_executed"] == 1
@@ -281,9 +300,13 @@ class TestGetDynamicExecutionStats:
         assert stats["crashed_rule_ids"] == []
 
     def test_mixed_scenario(self):
-        ctx = self.make_mock_context({
-            "pol1": {"rules": [{"rule_id": "r1"}, {"rule_id": "r2"}, {"rule_id": "r3"}]}
-        })
+        ctx = self.make_mock_context(
+            {
+                "pol1": {
+                    "rules": [{"rule_id": "r1"}, {"rule_id": "r2"}, {"rule_id": "r3"}]
+                }
+            }
+        )
         stats = get_dynamic_execution_stats(ctx, {"r1", "r2"}, crashed_rule_ids={"r1"})
         assert stats["total_declared"] == 3
         assert stats["total_executed"] == 2
@@ -304,7 +327,9 @@ class TestRunDynamicRules:
     async def test_empty_executable_rules(self, mock_context):
         executed = set()
         crashed = set()
-        results = await run_dynamic_rules(mock_context, executed_rule_ids=executed, crashed_rule_ids=crashed)
+        results = await run_dynamic_rules(
+            mock_context, executed_rule_ids=executed, crashed_rule_ids=crashed
+        )
         assert executed == set()
         assert crashed == set()
         assert results == []
@@ -318,7 +343,9 @@ class TestRunDynamicRules:
         executed = set()
         crashed = set()
         mock_context.enforcement_loader.get_enforcing_rules.return_value = [mock_rule]
-        results = await run_dynamic_rules(mock_context, executed_rule_ids=executed, crashed_rule_ids=crashed)
+        results = await run_dynamic_rules(
+            mock_context, executed_rule_ids=executed, crashed_rule_ids=crashed
+        )
         assert "r1" in executed
         assert "r1" not in crashed
         mock_rule.dispatch_engine.assert_awaited_once()
@@ -331,7 +358,9 @@ class TestRunDynamicRules:
         mock_rule.dispatch_engine = AsyncMock(side_effect=Exception("Engine crash"))
         executed = set()
         crashed = set()
-        results = await run_dynamic_rules(mock_context, executed_rule_ids=executed, crashed_rule_ids=crashed)
+        results = await run_dynamic_rules(
+            mock_context, executed_rule_ids=executed, crashed_rule_ids=crashed
+        )
         assert "crash_rule" in executed
         assert "crash_rule" in crashed
         assert len(results) == 1
@@ -360,7 +389,9 @@ class TestRunDynamicRules:
         mock_context.enforcement_loader.get_enforcing_rules.return_value = rules
         executed = set()
         crashed = set()
-        results = await run_dynamic_rules(mock_context, executed_rule_ids=executed, crashed_rule_ids=crashed)
+        results = await run_dynamic_rules(
+            mock_context, executed_rule_ids=executed, crashed_rule_ids=crashed
+        )
         assert executed == {"r0", "r1", "r2"}
         assert crashed == set()
 
@@ -369,17 +400,24 @@ class TestRunDynamicRules:
         good_rule = MagicMock()
         good_rule.rule_id = "good"
         good_rule.engine = "scanner"
-        good_rule.dispatch_engine = AsyncMock(return_value=[MagicMock(check_id="good.result")])
+        good_rule.dispatch_engine = AsyncMock(
+            return_value=[MagicMock(check_id="good.result")]
+        )
 
         bad_rule = MagicMock()
         bad_rule.rule_id = "bad"
         bad_rule.engine = "scanner"
         bad_rule.dispatch_engine = AsyncMock(side_effect=RuntimeError("broken"))
 
-        mock_context.enforcement_loader.get_enforcing_rules.return_value = [good_rule, bad_rule]
+        mock_context.enforcement_loader.get_enforcing_rules.return_value = [
+            good_rule,
+            bad_rule,
+        ]
         executed = set()
         crashed = set()
-        results = await run_dynamic_rules(mock_context, executed_rule_ids=executed, crashed_rule_ids=crashed)
+        results = await run_dynamic_rules(
+            mock_context, executed_rule_ids=executed, crashed_rule_ids=crashed
+        )
         assert executed == {"good", "bad"}
         assert crashed == {"bad"}
         assert any(f.check_id == "good.result" for f in results)
