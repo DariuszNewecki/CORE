@@ -55,6 +55,16 @@ async def run_dynamic_rules(
         context.policies, context.enforcement_loader
     )
 
+    # ADR-076 D6 standing gate: surface zero-match enforcing per-file
+    # rules as SCOPE_INERT findings before the rule loop. The D5 walker
+    # derivation closed the #480 silent-inert vector at its root, but a
+    # rule whose scope drifts to a pattern matching no files (typo, dir
+    # rename, dead glob) still wouldn't be caught until someone notices
+    # it never fires. Promoting the D6 firing-coverage assertion into the
+    # audit driver makes such drift visible in the next audit verdict
+    # rather than discoverable months later.
+    all_findings.extend(_check_per_file_scope_coverage(context, executable_rules))
+
     executed_count = 0
     skipped_stub_count = 0
 
@@ -140,6 +150,90 @@ async def run_dynamic_rules(
         len(crashed_rule_ids),
     )
     return all_findings
+
+
+# Engines whose verify*/verify_context return OK by construction
+# (passive_gate proper + the aliases registry.py resolves to it). A
+# rule routed through one of these never produces a finding via the
+# audit dispatch, so excluding it from the firing-coverage gate is
+# correct — its enforcement (if any) lives outside the audit pipeline
+# at decoration time, registration time, or runtime.
+_PASSIVE_ENGINE_IDS = frozenset(
+    {
+        "passive_gate",
+        "python_runtime",
+        "type_system",
+        "runtime_metric",
+        "advisory",
+        "runtime_check",
+        "dataclass_validation",
+    }
+)
+
+
+# ID: 5b8a1c2d-9e3f-4a7b-8c5d-2e9f1a3b4c5d
+def _check_per_file_scope_coverage(
+    context: AuditorContext,
+    executable_rules: list[Any],
+) -> list[AuditFinding]:
+    """Standing firing-coverage gate (ADR-076 D6).
+
+    For every active enforcing per-file rule, verify the rule's scope
+    matches at least one file in the walked set (same matcher dispatch
+    uses). A zero-match enforcing rule is the #480 silent-inert class:
+    it cannot fire and therefore cannot enforce its constraint.
+
+    Exclusions:
+      - Context-level rules (engine.verify_context, not file-iterated)
+      - Empty-scope rules (scope: [], ADR-043 D7 deliberate)
+      - Passive engines (route to passive_gate by construction)
+      - Non-blocking rules (declared advisory/reporting/info — zero
+        findings is consistent with intent)
+    """
+    findings: list[AuditFinding] = []
+    for rule in executable_rules:
+        if rule.is_context_level:
+            continue
+        if rule.engine in _PASSIVE_ENGINE_IDS:
+            continue
+        if not rule.scope:
+            continue
+        # Only enforcing rules need a non-empty walked-set; advisory/
+        # reporting rules can have empty matches by intent.
+        if rule.enforcement != "blocking":
+            continue
+        matched = context.get_files(include=rule.scope, exclude=rule.exclusions or [])
+        if matched:
+            continue
+        findings.append(
+            AuditFinding(
+                check_id=f"{rule.rule_id}.scope_inert",
+                severity=AuditSeverity.BLOCK,
+                message=(
+                    f"SCOPE_INERT: rule '{rule.rule_id}' is declared blocking "
+                    f"but its scope matches zero files in the walked set. The "
+                    f"rule cannot fire — its constraint is unenforceable in "
+                    f"the current repo state. Either fix the scope "
+                    f"({rule.scope}) or, if the rule is intentionally inert, "
+                    f"declare it advisory/reporting in the policy document."
+                ),
+                file_path=None,
+                context={
+                    "finding_type": "SCOPE_INERT",
+                    "engine": rule.engine,
+                    "policy_id": rule.policy_id,
+                    "scope": list(rule.scope),
+                    "exclusions": list(rule.exclusions or []),
+                },
+            )
+        )
+    if findings:
+        logger.warning(
+            "SCOPE_INERT: %d enforcing per-file rule(s) match zero files: %s",
+            len(findings),
+            sorted(f.check_id for f in findings),
+        )
+    return findings
 
 
 def _count_total_declared_rules(policies: dict[str, Any]) -> tuple[int, list[str]]:
