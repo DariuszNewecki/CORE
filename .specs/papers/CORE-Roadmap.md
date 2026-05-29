@@ -23,19 +23,57 @@ this document follows.
 build order — features that unblock others come first. Features that are
 genuinely parallel within a tier are noted as such.
 
+**Scope boundary.** This roadmap sequences *features* — registry entries, each
+carrying an F-ID. CORE's internal capability and architecture milestones — the
+A3 autonomy state, the API-as-governance-interface migration, and the
+Constitutional Coherence Checker — are **not** features and are not sequenced
+here. They appear in §2 only as the realized baseline the remaining feature
+work builds on. Their canonical homes are `CORE-A3-plan.md`, the ADR ledger
+(ADR-053 / ADR-054 / ADR-055), and ADR-067 respectively.
+
 ---
 
 ## 2. Current State
 
-As of May 2026:
+As of May 2026.
 
-- **22 features shipping** — full Solo reference implementation active
-- **2 features partial** — F-05 (rule library), F-27 (local LLM)
-- **19 features on roadmap** — distributed across Audit, Solo, Team,
-  Enterprise, and Embedded tiers
+### Realized baseline
 
-The shipping baseline is the Solo tier minus F-05 and F-27 at full completion.
-Every roadmap item below is net-new capability.
+Since the previous roadmap revision, three internal milestones moved from plan
+to fact. They are not features, but they define the floor every roadmap item
+now builds on.
+
+- **A3 governed autonomy achieved.** All four A3 gates are cleared and held:
+  loop closure (G1), convergence (G2, closed 2026-05-12), consequence chain
+  (G3, closed 2026-05-01), and governance-in-`.intent/` (G4, closed
+  2026-05-10). The daemon finds, proposes, and fixes violations unattended;
+  the human role is reviewer/governor. A3 is a state, not a feature — see
+  `CORE-A3-plan.md`.
+
+- **API as the single governed interface.** The CLI-to-HTTP migration
+  (ADR-053) is live through its first two capability phases: `/audit` +
+  `/proposals` (ADR-054) and `/fix` + `/quality` (ADR-055). The CLI is now a
+  typed client over `api.*` rather than a direct caller of the engine. This is
+  the load-bearing surface that F-34 (web dashboard) and F-40 (OEM API)
+  require.
+
+- **Constitutional Coherence Checker live.** A read-only instrument (ADR-067)
+  that detects drift between the constitution and the codebase and surfaces
+  triage candidates. It strengthens the evidentiary basis for F-37 (regulatory
+  export) without itself being a tiered feature.
+
+### Feature counts
+
+Authoritative in `CORE-Features.md`:
+
+- **23 features shipping** — full Solo reference implementation, including
+  F-05 (default rule library), promoted from partial since the last revision.
+- **1 feature partial** — F-27 (local LLM), opt-in via configuration.
+- **19 features on roadmap** — distributed across Audit, Solo-completion,
+  Team, Enterprise, and Embedded tiers.
+
+The shipping baseline is the Solo tier minus F-27 completion. Every roadmap
+item below is net-new capability.
 
 ---
 
@@ -62,21 +100,15 @@ depends on this existing.
 
 ### Tier 2 — Solo (completions)
 
-Two features are partial in the current Solo implementation. Neither blocks
-the core governance loop; both improve coverage and resilience.
-
----
-
-**F-05 — Default rule library** `partial` `source-code instantiation`
-*Blocked by: nothing. Parallel with F-27.*
-
-121 rules active. Expanding to full coverage of the source-code governance
-surface. Completion is ongoing work, not a discrete milestone.
+One feature remains partial in the Solo implementation. It does not block the
+core governance loop; completing it improves deployment resilience and unlocks
+the Enterprise air-gapped guarantee. (F-05 completed since the previous
+revision and is now shipping; it no longer appears here.)
 
 ---
 
 **F-27 — Local LLM support** `partial` `primitive`
-*Blocked by: nothing. Parallel with F-05. Required before F-38.*
+*Blocked by: nothing. Required before F-38.*
 
 Local model support exists but is opt-in via configuration. Completion means
 making local execution a first-class deployment mode with documented model
@@ -139,6 +171,11 @@ the full web dashboard since the dashboard depends on this view existing.
 Browser-based governance interface: convergence graph, proposal queue, audit
 history, worker health. Replaces CLI as the primary interface for governors
 not working in a terminal. Depends on F-20 being the anchor view.
+
+The HTTP service layer it renders over is now live (ADR-053 / ADR-054 /
+ADR-055), so the remaining work is the browser interface itself, not the
+underlying API. This lowers build risk; it does not change the F-20 → F-34
+sequence.
 
 ---
 
@@ -215,6 +252,13 @@ feature wraps it in a signed, timestamped, regulator-formatted package.
 Requires federated constitution (F-35) and SSO (F-36) so that approvals
 carry verified identity before submission.
 
+Request-level identity attribution (ADR-053 D7) and the Constitutional
+Coherence Checker (ADR-067) further strengthen the export's evidentiary
+basis: attribution makes each approval traceable to an identity, and the
+Coherence Checker provides a standing record that the constitution and the
+governed codebase have not drifted apart. Neither is a prerequisite F-ID; both
+raise the defensibility of the eventual export.
+
 ---
 
 **F-39 — SLA support** `roadmap` `primitive`
@@ -235,11 +279,12 @@ One feature. Depends on Team and Enterprise reaching sufficient maturity.
 **F-40 — OEM API surface** `roadmap` `primitive`
 *Blocked by: Team and Enterprise tier maturity. No specific F-ID dependency.*
 
-Stable, versioned API for third-party platform integration. Requires the
-atomic action registry to be stabilised as a public contract, the FastAPI
-layer to be load-bearing, and the constitution schema to be versioned for
-external authors. This is the distribution multiplier — built last, after
-the product is stable enough to make integrations reliable.
+Stable, versioned API for third-party platform integration. The FastAPI layer
+is now load-bearing following the API migration (ADR-053 / ADR-054 / ADR-055),
+which removes one prior prerequisite. The remaining prerequisites are
+stabilising the atomic action registry as a public contract and versioning the
+constitution schema for external authors. This is the distribution multiplier —
+built last, after the product is stable enough to make integrations reliable.
 
 ---
 
@@ -249,8 +294,7 @@ the product is stable enough to make integrations reliable.
 F-10  (Audit gate)
   └── no dependencies
 
-F-05  (rule library completion)   — parallel
-F-27  (local LLM completion)      — parallel
+F-27  (local LLM completion)
   └── F-38  (air-gapped guaranteed)
 
 F-32  (RBAC)
@@ -295,8 +339,16 @@ compliance package without those guarantees in place is not defensible.
 is only valuable when the product is stable enough to make integrations
 reliable. Building it early produces an unstable contract.
 
+**The API foundation is in place.** F-34 and F-40 previously carried an
+implicit dependency on a load-bearing HTTP interface. That interface now
+exists (ADR-053 / ADR-054 / ADR-055). Their remaining work is interface and
+contract surface, not service-layer construction — this lowers their build
+risk but does not change their position in the sequence.
+
 ---
 
-*This document reflects roadmap state as of May 2026. Update when feature
-status changes. Feature definitions are authoritative in
-`.specs/papers/CORE-Features.md`; this document governs sequence only.*
+*This document reflects roadmap state as of May 2026, following the A3
+milestone, the API-as-governance-interface migration (ADR-053), and the
+Constitutional Coherence Checker (ADR-067). Update when feature status changes.
+Feature definitions are authoritative in `.specs/papers/CORE-Features.md`; this
+document governs sequence only.*
