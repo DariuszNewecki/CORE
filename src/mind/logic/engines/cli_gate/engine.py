@@ -122,8 +122,7 @@ class CliGateEngine(BaseEngine):
                     check_id="cli_gate.error",
                     severity=AuditSeverity.BLOCK,
                     message=(
-                        f"cli_gate has no implementation for check_type "
-                        f"'{check_type}'"
+                        f"cli_gate has no implementation for check_type '{check_type}'"
                     ),
                     file_path="none",
                 )
