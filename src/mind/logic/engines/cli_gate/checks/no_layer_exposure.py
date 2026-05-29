@@ -34,8 +34,7 @@ class NoLayerExposureCheck(CliCheck):
                         check_id="cli_gate.no_layer_exposure",
                         severity=AuditSeverity.BLOCK,
                         message=(
-                            f"Command '{name}' exposes forbidden resource "
-                            f"'{resource}'."
+                            f"Command '{name}' exposes forbidden resource '{resource}'."
                         ),
                         file_path=cmd.get("file_path") or "none",
                         context={
