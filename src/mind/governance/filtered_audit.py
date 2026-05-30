@@ -89,10 +89,14 @@ def normalize_file_filter(
     repo_root = Path(repo_path).resolve()
     normalized: set[str] = set()
     for raw in files:
-        candidate = Path(raw)
-        absolute = (
-            candidate if candidate.is_absolute() else (repo_root / candidate).resolve()
-        )
+        # Always resolve before validating. pathlib's `/` operator drops
+        # the LHS when the RHS is absolute, so a single expression handles
+        # both repo-relative and absolute inputs. Resolving first
+        # normalizes `..` segments and follows symlinks, so the
+        # `relative_to(repo_root)` check below is a real boundary, not a
+        # lexical one — `/<repo>/x/../../etc/passwd` and `/<repo>/symlink`
+        # pointing outside both reject. Closes CodeQL py/path-injection.
+        absolute = (repo_root / Path(raw)).resolve()
         try:
             rel = absolute.relative_to(repo_root)
         except ValueError as exc:

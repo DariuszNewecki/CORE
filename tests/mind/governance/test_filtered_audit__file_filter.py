@@ -77,3 +77,29 @@ def test_normalize_deduplicates(tmp_path: Path) -> None:
         [str(abs_path), "src/dup.py", "./src/dup.py"], tmp_path
     )
     assert result == frozenset({"src/dup.py"})
+
+
+def test_normalize_rejects_absolute_dot_dot_traversal(tmp_path: Path) -> None:
+    """Absolute path with `..` that escapes repo_root must be rejected
+    (CodeQL py/path-injection). Pre-fix, the absolute branch skipped
+    .resolve() and `relative_to(repo_root)` was purely lexical — a path
+    like `/<repo>/x/../../etc/passwd` lexically starts with `/<repo>` and
+    sneaked past the boundary check.
+    """
+    escape = tmp_path / "x" / ".." / ".." / "outside.py"
+    with pytest.raises(ValueError, match="outside the repository root"):
+        normalize_file_filter([str(escape)], tmp_path)
+
+
+def test_normalize_rejects_absolute_symlink_to_outside_repo(tmp_path: Path) -> None:
+    """Absolute symlink lexically inside repo_root but pointing outside
+    must be rejected (CodeQL py/path-injection). Resolving before
+    relative_to follows the symlink and surfaces the real target.
+    """
+    (tmp_path / "src").mkdir()
+    outside_target = tmp_path.parent / "outside_target.py"
+    outside_target.touch()
+    symlink = tmp_path / "src" / "innocent.py"
+    symlink.symlink_to(outside_target)
+    with pytest.raises(ValueError, match="outside the repository root"):
+        normalize_file_filter([str(symlink)], tmp_path)
