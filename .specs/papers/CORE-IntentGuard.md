@@ -36,6 +36,16 @@ by `write_runtime_text()` before any disk operation occurs.
 Every file write in CORE goes through `FileHandler`. There is no
 alternative write path that bypasses IntentGuard.
 
+> **Note (2026-05-30):** The assertion above is incomplete, and is corrected
+> here per append-only convention; the original text is preserved unchanged.
+> IntentGuard guards writes routed through `FileHandler`. It does **not** reach
+> raw filesystem writes — e.g. `pathlib.Path(...).write_text()` — that never
+> call `FileHandler`, and such writes are invisible to it. Runtime guarding is
+> necessary but not sufficient: completeness of the write perimeter is
+> established at audit time, not by this Gate alone. The governing principle and
+> the audit-time complement are defined in CORE-Enforcement-Completeness.md; the
+> empirical disproof and the enforcement design are recorded in ADR-077.
+
 ---
 
 ## 4. What It Evaluates
