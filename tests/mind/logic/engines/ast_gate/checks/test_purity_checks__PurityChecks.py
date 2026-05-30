@@ -85,6 +85,84 @@ class TestPurityChecks:
         violations = PurityChecks.check_forbidden_primitives(tree, [])
         assert violations == []
 
+    def test_check_forbidden_primitives_catches_bare_import_form(self):
+        """Closes the bare-import bypass sibling of #488.
+
+        Pre-fix: `from os import system; system(...)` and `import os as o;
+        o.system(...)` slipped through because full_attr_name returned
+        "system" / "o.system", neither of which matched the qualified
+        "os.system" in the forbidden list. The alias-map resolver now
+        translates both shapes to the qualified form for matching.
+        """
+        import ast
+
+        forbidden = ["os.system", "subprocess.Popen"]
+
+        # 1. Bare-import form.
+        code_bare = (
+            "from os import system\n"
+            "def f():\n"
+            "    system('ls')\n"
+        )
+        violations = PurityChecks.check_forbidden_primitives(
+            ast.parse(code_bare), forbidden
+        )
+        assert len(violations) == 1
+        assert "os.system" in violations[0]
+
+        # 2. Module alias form.
+        code_mod_alias = (
+            "import os as o\n"
+            "def f():\n"
+            "    o.system('ls')\n"
+        )
+        violations = PurityChecks.check_forbidden_primitives(
+            ast.parse(code_mod_alias), forbidden
+        )
+        assert len(violations) == 1
+        assert "os.system" in violations[0]
+
+        # 3. Aliased function-name form.
+        code_func_alias = (
+            "from subprocess import Popen as P\n"
+            "def f():\n"
+            "    P(['ls'])\n"
+        )
+        violations = PurityChecks.check_forbidden_primitives(
+            ast.parse(code_func_alias), forbidden
+        )
+        assert len(violations) == 1
+        assert "subprocess.Popen" in violations[0]
+
+        # 4. Dotted form still flagged (no regression).
+        code_dotted = (
+            "import os\n"
+            "def f():\n"
+            "    os.system('ls')\n"
+        )
+        violations = PurityChecks.check_forbidden_primitives(
+            ast.parse(code_dotted), forbidden
+        )
+        assert len(violations) == 1
+        assert "os.system" in violations[0]
+
+        # 5. Locally-shadowed name — accepted false positive trade.
+        # The alias_map resolution does not track reassignment; documented
+        # in build_import_alias_map docstring as the conservative trade.
+        # Test omitted (intentional behavior, not a bug).
+
+        # 6. Unrelated bare name — no false positive.
+        code_clean = (
+            "def system(x):\n"
+            "    return x\n"
+            "def use():\n"
+            "    system('hello')\n"
+        )
+        violations = PurityChecks.check_forbidden_primitives(
+            ast.parse(code_clean), forbidden
+        )
+        assert violations == []
+
     def test_check_no_print_statements(self):
         """Test print statement checking."""
         import ast
@@ -113,13 +191,12 @@ class TestPurityChecks:
         tree = ast.parse(code)
         violations = PurityChecks.check_no_direct_writes(tree)
         assert len(violations) == 5
-        assert all("FileHandler.add_pending_write()" in v for v in violations)
-        violation_texts = "\n".join(violations)
-        assert "Path.write_text()" in violation_texts
-        assert "Path.write_bytes()" in violation_texts
-        assert "open(..., 'w')" in violation_texts
-        assert "open(..., 'a')" in violation_texts
-        assert "open(..., mode='wb')" in violation_texts
+        assert all("Use FileHandler." in v for v in violations)
+        joined = "\n".join(violations)
+        assert "'write_text'" in joined
+        assert "'write_bytes'" in joined
+        # open() in write/append/write-binary modes fires 3 times.
+        assert joined.count("'open'") == 3
         code2 = 'def read_only():\n    content = Path("file.txt").read_text()\n    with open("file.txt", "r") as f:\n        return f.read()\n'
         tree2 = ast.parse(code2)
         violations = PurityChecks.check_no_direct_writes(tree2)
@@ -128,7 +205,7 @@ class TestPurityChecks:
         tree3 = ast.parse(code3)
         violations = PurityChecks.check_no_direct_writes(tree3)
         assert len(violations) == 1
-        assert "open(..., 'w')" in violations[0]
+        assert "'open'" in violations[0]
 
     def test_check_no_direct_writes_catches_bare_unlink_and_rmdir(self):
         """Closes the deletion gap (ADR-071 D2.2 / #451).
@@ -160,3 +237,97 @@ class TestPurityChecks:
         # must NOT trigger.
         clean = "def reads():\n    f = open('x', 'r')\n    f.close()\n"
         assert PurityChecks.check_no_direct_writes(ast.parse(clean)) == []
+
+    def test_check_no_direct_writes_catches_bare_import_form(self):
+        """Closes the bare-import bypass (#488).
+
+        `forbidden_additional` lists qualified names like 'os.replace'.
+        Before #488 only the dotted form `os.replace(...)` matched;
+        `from os import replace; replace(...)` slipped through because
+        full_attr_name returned 'replace', not 'os.replace'. The alias-map
+        resolver now translates Name-form callees back to the qualified
+        form so both shapes are detected.
+        """
+        import ast
+
+        forbidden = [
+            "os.replace",
+            "os.rename",
+            "shutil.rmtree",
+            "shutil.copyfile",
+        ]
+
+        # 1. Bare import — the bypass case.
+        code_bare = (
+            "from os import replace\n"
+            "def mutate():\n"
+            "    replace('a', 'b')\n"
+        )
+        violations = PurityChecks.check_no_direct_writes(
+            ast.parse(code_bare), forbidden_additional=forbidden
+        )
+        assert len(violations) == 1
+        assert "os.replace" in violations[0]
+
+        # 2. Aliased import.
+        code_alias = (
+            "from os import replace as r\n"
+            "def mutate():\n"
+            "    r('a', 'b')\n"
+        )
+        violations = PurityChecks.check_no_direct_writes(
+            ast.parse(code_alias), forbidden_additional=forbidden
+        )
+        assert len(violations) == 1
+        assert "os.replace" in violations[0]
+
+        # 3. `import ... as` for a module — Attribute receiver via alias.
+        code_mod_alias = (
+            "import os as o\n"
+            "def mutate():\n"
+            "    o.rename('a', 'b')\n"
+        )
+        violations = PurityChecks.check_no_direct_writes(
+            ast.parse(code_mod_alias), forbidden_additional=forbidden
+        )
+        assert len(violations) == 1
+        assert "os.rename" in violations[0]
+
+        # 4. Dotted form still flagged (no regression).
+        code_dotted = (
+            "import shutil\n"
+            "def mutate():\n"
+            "    shutil.rmtree('dir')\n"
+        )
+        violations = PurityChecks.check_no_direct_writes(
+            ast.parse(code_dotted), forbidden_additional=forbidden
+        )
+        assert len(violations) == 1
+        assert "shutil.rmtree" in violations[0]
+
+        # 5. Multiple bare imports in one module — all flagged.
+        code_multi = (
+            "from shutil import rmtree, copyfile\n"
+            "def mutate():\n"
+            "    rmtree('a')\n"
+            "    copyfile('a', 'b')\n"
+        )
+        violations = PurityChecks.check_no_direct_writes(
+            ast.parse(code_multi), forbidden_additional=forbidden
+        )
+        assert len(violations) == 2
+        joined = "\n".join(violations)
+        assert "shutil.rmtree" in joined
+        assert "shutil.copyfile" in joined
+
+        # 6. Unrelated bare name — no false positive (collision check).
+        code_clean = (
+            "def replace(a, b):\n"
+            "    return a + b\n"
+            "def use():\n"
+            "    replace('a', 'b')\n"
+        )
+        violations = PurityChecks.check_no_direct_writes(
+            ast.parse(code_clean), forbidden_additional=forbidden
+        )
+        assert violations == []

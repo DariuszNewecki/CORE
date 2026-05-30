@@ -16,15 +16,16 @@
     # 2. THE BLOCKING LAW: Logic mutations must be governed.
     # This list EXCLUDES components that are allowed to use direct writes.
     #
-    # Widened 2026-04-18:
+    # Widened 2026-04-18, bare-import gap closed 2026-05-30 (#488):
     # The baseline check catches Path.write_text(), Path.write_bytes(), and
     # open() in write/append modes. That's narrower than the statement's
     # "logic modifications only through governed mutation surfaces." The
     # forbidden_additional list extends the check to cover common alternative
-    # filesystem-mutation paths. Matched via ASTHelpers.full_attr_name, so only
-    # dotted forms (e.g. "os.replace", "shutil.copyfile") are detected. Bare-
-    # import forms (e.g. `from os import replace`) still bypass the check and
-    # require import-tracking to close — deferred to B.iii.
+    # filesystem-mutation paths. Matched against the qualified form recovered
+    # via ASTHelpers.resolve_qualified_name, so both the dotted form
+    # ("os.replace(...)") and the bare-import form ("from os import replace;
+    # replace(...)") are detected. Star imports and dynamic imports remain
+    # out of reach.
     governance.logic_mutation.governed:
       engine: ast_gate
       params:
@@ -117,11 +118,13 @@
     # - "builtins.eval" / "builtins.exec" / "builtins.compile" — nobody writes
     #   these forms; the bare names are already caught.
     #
-    # Known remaining gap (requires AST import-tracking, not regex widening):
-    # - "from os import system; system(...)" bypasses "os.system" because
-    #   full_attr_name of bare system() is "system" and "system" is too
-    #   generic to list bare. A proper fix requires tracking imports and
-    #   resolving bare names back to their module. Deferred to B.iii.
+    # Bare-import gap closed 2026-05-30 (#488 sibling fix):
+    # - `from os import system; system(...)` is now caught:
+    #   check_forbidden_primitives resolves Name-form callees through the
+    #   import alias map and matches the qualified form ("os.system")
+    #   against the forbidden list. The "Popen" entry below is now redundant
+    #   with bare-import resolution against "subprocess.Popen" but is kept
+    #   as a belt-and-suspenders guard.
     governance.dangerous_execution_primitives:
       engine: ast_gate
       params:

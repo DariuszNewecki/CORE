@@ -51,6 +51,80 @@ class ASTHelpers:
         return None
 
     @staticmethod
+    # ID: b86381d2-3020-4866-b5d0-265950020b84
+    def build_import_alias_map(tree: ast.AST) -> dict[str, str]:
+        """Map local names to their qualified imported names.
+
+        Walks ImportFrom and Import statements anywhere in the tree and
+        records the translation a caller needs to recover the fully
+        qualified form of a Name- or Attribute-rooted call:
+
+            from os import replace            -> {"replace": "os.replace"}
+            from os import replace as r       -> {"r": "os.replace"}
+            import os                         -> {"os": "os"}
+            import os.path as op              -> {"op": "os.path"}
+
+        Function-local imports are included by design: governance-grade
+        detection prefers conservative over-inclusion to silent
+        bypass via `def f(): from os import replace`. False positives
+        from local shadowing are an accepted trade.
+
+        Out of scope (per #488):
+        - Star imports (`from os import *`) — explicit policy is no.
+        - Relative imports (`from . import x`) — `node.level > 0` skipped.
+        - Dynamic / `__import__` / `importlib` patterns.
+        """
+        alias_map: dict[str, str] = {}
+        for node in ast.walk(tree):
+            if isinstance(node, ast.ImportFrom):
+                if not node.module or node.level > 0:
+                    continue
+                for alias in node.names:
+                    if alias.name == "*":
+                        continue
+                    local = alias.asname or alias.name
+                    alias_map[local] = f"{node.module}.{alias.name}"
+            elif isinstance(node, ast.Import):
+                for alias in node.names:
+                    if alias.asname:
+                        # `import os.path as op` -> {"op": "os.path"}
+                        alias_map[alias.asname] = alias.name
+                    else:
+                        # `import os` -> {"os": "os"}
+                        # `import os.path` binds the leftmost name "os";
+                        # callers still write `os.path.exists(...)`, which
+                        # full_attr_name already resolves correctly.
+                        head = alias.name.split(".", 1)[0]
+                        alias_map[head] = head
+        return alias_map
+
+    @staticmethod
+    # ID: a24dd4d6-a617-4197-a65e-d1257c691d38
+    def resolve_qualified_name(node: ast.AST, alias_map: dict[str, str]) -> str | None:
+        """Resolve a Name/Attribute chain to its qualified form via aliases.
+
+        Computes `full_attr_name(node)` and, if the leftmost segment is in
+        the alias map, replaces it with the imported qualified form:
+
+            r                  + {"r": "os.replace"}    -> "os.replace"
+            path.exists        + {"path": "os.path"}    -> "os.path.exists"
+            os.replace         + {"os": "os"}           -> "os.replace"
+            unrelated.thing    + {}                     -> "unrelated.thing"
+
+        Returns None when the node is neither a Name nor an Attribute
+        chain (e.g., Call().method() — the receiver is a Call, not a
+        resolvable dotted name).
+        """
+        name = ASTHelpers.full_attr_name(node)
+        if not name:
+            return None
+        head, _, tail = name.partition(".")
+        if head in alias_map:
+            resolved = alias_map[head]
+            return f"{resolved}.{tail}" if tail else resolved
+        return name
+
+    @staticmethod
     # ID: e5fec108-e53c-4611-9ccb-1b17f9d3523b
     def matches_call(call_name: str, disallowed: list[str]) -> bool:
         """

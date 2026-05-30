@@ -6,6 +6,8 @@ import ast
 from pathlib import Path
 from typing import ClassVar
 
+from ..base import ASTHelpers
+
 
 # ID: 9f6c6a4d-2d39-4a54-a6ab-1e3d4136d8d1
 class IntentAccessCheck:
@@ -71,6 +73,7 @@ class IntentAccessCheck:
 
         findings: list[str] = []
         tainted_names: set[str] = set()
+        alias_map = ASTHelpers.build_import_alias_map(tree)
 
         # Pass 1 — collect tainted variables across plain, annotated, and
         # augmented assignments. The growing tainted_names set is threaded
@@ -81,7 +84,7 @@ class IntentAccessCheck:
 
         for node in ast.walk(tree):
             if isinstance(node, ast.Call):
-                findings.extend(cls._check_call(node, tainted_names))
+                findings.extend(cls._check_call(node, tainted_names, alias_map))
 
         return findings
 
@@ -153,10 +156,24 @@ class IntentAccessCheck:
         return names
 
     @classmethod
-    def _check_call(cls, node: ast.Call, tainted_names: set[str]) -> list[str]:
-        """Inspect a call node for unauthorized .intent usage."""
+    def _check_call(
+        cls,
+        node: ast.Call,
+        tainted_names: set[str],
+        alias_map: dict[str, str] | None = None,
+    ) -> list[str]:
+        """Inspect a call node for unauthorized .intent usage.
+
+        ``alias_map`` carries the {local_name: qualified_name} translation
+        from imports, so PARSE_CALLS lookups match both
+        ``yaml.safe_load(...)`` AND ``from yaml import safe_load;
+        safe_load(...)``. Defaults to empty for callers that have not yet
+        threaded the resolver (behavioural parity with pre-#488 callers).
+        """
         findings: list[str] = []
-        call_name = cls._full_attr_name(node.func) or ""
+        if alias_map is None:
+            alias_map = {}
+        call_name = ASTHelpers.resolve_qualified_name(node.func, alias_map) or ""
 
         if call_name in cls._PARSE_CALLS and any(
             cls._expr_is_intent_related(arg, tainted_names) for arg in node.args

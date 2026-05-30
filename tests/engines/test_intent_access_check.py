@@ -98,3 +98,57 @@ class C:
 """
     findings = _check(source, file_path=_INSIDE_GATEWAY)
     assert findings == []
+
+
+def test_bare_import_yaml_safe_load_is_flagged() -> None:
+    """#488: `from yaml import safe_load; safe_load(intent_path)` must flag.
+
+    Pre-#488 the parser called `_full_attr_name(node.func)` which returned
+    "safe_load" — not in `_PARSE_CALLS` (which lists "yaml.safe_load"). The
+    alias-map resolver now translates the bare name back to its qualified
+    form so PARSE_CALLS membership matches.
+    """
+    source = """
+from yaml import safe_load
+class C:
+    def m(self):
+        path = self.intent_root / "rules.yaml"
+        safe_load(path.read_text())
+"""
+    findings = _check(source)
+    assert any("safe_load" in f for f in findings)
+
+
+def test_aliased_yaml_safe_load_resolves_via_alias_map() -> None:
+    """#488: `from yaml import safe_load as sl` resolves to qualified form.
+
+    Exercises the alias-map translation directly: ``sl(content)`` becomes
+    ``yaml.safe_load(content)`` after resolution, putting it into
+    `_PARSE_CALLS` even though the source text never spells out the dotted
+    form.
+    """
+    source = """
+from yaml import safe_load as sl
+class C:
+    def m(self):
+        path = self.intent_root / "rules.yaml"
+        content = path.read_text()
+        sl(content)
+"""
+    findings = _check(source)
+    assert any(
+        "yaml.safe_load" in f and "parsing" in f.lower() for f in findings
+    ), findings
+
+
+def test_dotted_yaml_safe_load_still_flagged() -> None:
+    """Regression guard: pre-#488 detection path still works."""
+    source = """
+import yaml
+class C:
+    def m(self):
+        path = self.intent_root / "rules.yaml"
+        yaml.safe_load(path.read_text())
+"""
+    findings = _check(source)
+    assert any("safe_load" in f for f in findings)

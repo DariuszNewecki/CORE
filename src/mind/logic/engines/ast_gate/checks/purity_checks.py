@@ -106,7 +106,15 @@ class PurityChecks:
         file_path: Path | None = None,
         allowed_domains: list[str] | None = None,
     ) -> list[str]:
-        """Check for dangerous primitives (eval/exec) with trust-zone awareness."""
+        """Check for dangerous primitives (eval/exec) with trust-zone awareness.
+
+        Matches both bare-name primitives (eval, exec) and dotted forms
+        (os.system, subprocess.Popen). Bare-import forms (e.g.
+        `from os import system; system(...)`) are also caught: callees are
+        resolved through the import alias map and the qualified form is
+        matched against the forbidden set. Closes the sibling of #488
+        explicitly called out in governance_basics.yaml.
+        """
         violations, forbidden_set = [], {p.strip() for p in forbidden if p.strip()}
 
         if file_path and allowed_domains:
@@ -114,15 +122,28 @@ class PurityChecks:
             if ASTHelpers.domain_matches(domain, allowed_domains):
                 return []
 
+        alias_map = ASTHelpers.build_import_alias_map(tree)
         for node in ast.walk(tree):
             name = None
-            if isinstance(node, ast.Name) and node.id in forbidden_set:
-                name = node.id
-            elif (
-                isinstance(node, ast.Attribute)
-                and (attr := ASTHelpers.full_attr_name(node)) in forbidden_set
-            ):
-                name = attr
+            if isinstance(node, ast.Name):
+                if node.id in forbidden_set:
+                    name = node.id
+                else:
+                    # Bare-import resolution: `from os import system` makes
+                    # Name("system") resolve to "os.system" via alias map.
+                    resolved = alias_map.get(node.id)
+                    if resolved and resolved in forbidden_set:
+                        name = resolved
+            elif isinstance(node, ast.Attribute):
+                full = ASTHelpers.full_attr_name(node)
+                if full in forbidden_set:
+                    name = full
+                else:
+                    # Module-alias resolution: `import os as o; o.system()`
+                    # resolves "o.system" -> "os.system".
+                    resolved = ASTHelpers.resolve_qualified_name(node, alias_map)
+                    if resolved and resolved != full and resolved in forbidden_set:
+                        name = resolved
 
             if name:
                 violations.append(
@@ -246,26 +267,32 @@ class PurityChecks:
 
         The optional `forbidden_additional` parameter lets mappings extend
         the list with fully-qualified names (e.g. 'os.replace',
-        'shutil.copyfile') via .intent/ without touching src/. Matched via
-        ASTHelpers.full_attr_name, so only dotted forms like 'os.replace' are
-        detected — bare-import forms (e.g. `from os import replace`) still
-        bypass this check and require import-tracking to close.
+        'shutil.copyfile') via .intent/ without touching src/. Matched
+        against the qualified form recovered via
+        ASTHelpers.resolve_qualified_name, so both the dotted form
+        ('os.replace(...)') and the bare-import form ('from os import
+        replace; replace(...)') are detected. Star imports and dynamic
+        imports remain out of reach (#488).
         """
         violations = []
         additional_set = {n.strip() for n in (forbidden_additional or []) if n.strip()}
         leaf_deletion_methods = ("unlink", "rmdir")
+        alias_map = ASTHelpers.build_import_alias_map(tree)
         for n in ast.walk(tree):
             if isinstance(n, ast.Call):
                 name = ASTHelpers.full_attr_name(n.func)
+                qualified = ASTHelpers.resolve_qualified_name(n.func, alias_map)
                 attr_leaf = n.func.attr if isinstance(n.func, ast.Attribute) else None
                 baseline_match = (
                     name in ("write_text", "write_bytes")
                     or attr_leaf in leaf_deletion_methods
                     or (name == "open" and _is_write_mode(n))
                 )
-                additional_match = name is not None and name in additional_set
+                additional_match = qualified is not None and qualified in additional_set
                 if baseline_match or additional_match:
-                    display = name or attr_leaf or "<unknown>"
+                    display = (
+                        qualified if additional_match else (name or attr_leaf)
+                    ) or "<unknown>"
                     violations.append(
                         f"Direct write detected: '{display}' (line {ASTHelpers.lineno(n)}). Use FileHandler."
                     )
