@@ -59,6 +59,18 @@ IntentGuard evaluates:
 - Absolute paths — forbidden unconditionally
 - Path traversal (`..`) — forbidden unconditionally
 
+> **Note (2026-05-30):** The `.intent/` entry above is refined per
+> CORE-Capability-Scoped-Filesystem-Authority.md (same change-set). It
+> remains a floor-level block in *live* mode — the Constitution stays
+> immutable to CORE at runtime when no governor is in the loop. In
+> *development* mode the block is layered over by capability-mediated
+> permissions: governor-approved capabilities declared in the
+> operational-capability taxonomy may write `.intent/` through the
+> chokepoint. The other entries (`var/keys/`, `var/cache/`, absolute
+> paths, traversal) are unaffected and remain unconditional in both
+> modes. `.specs/` is newly subject to chokepoint policy per the same
+> paper but is not part of this path-boundary list.
+
 **Constitutional rules** — rules applicable to the target file's layer
 are evaluated against the proposed content. If any blocking rule
 (enforcement: blocking) is violated, the write is rejected.
