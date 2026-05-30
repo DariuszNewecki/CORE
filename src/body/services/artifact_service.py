@@ -140,7 +140,7 @@ class ArtifactService:
         Returns the number of rows reset.
 
         Covers:
-          - sync.vectors.code force=True — pre-loop reset before re-embed.
+          - sync.vectors_code force=True — pre-loop reset before re-embed.
         """
         from body.services.service_registry import ServiceRegistry
 

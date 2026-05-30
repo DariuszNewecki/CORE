@@ -120,14 +120,14 @@ async def action_sync_database(
 
 
 @register_action(
-    action_id="sync.vectors.code",
+    action_id="sync.vectors_code",
     description="Vectorize codebase artifacts to Qdrant",
     category=ActionCategory.SYNC,
     policies=["rules/architecture/blackboard"],
 )
 @atomic_action(
-    action_id="sync.vectors.code",
-    intent="Atomic action for sync.vectors.code",
+    action_id="sync.vectors_code",
+    intent="Atomic action for sync.vectors_code",
     impact=ActionImpact.WRITE_METADATA,
     policies=["atomic_actions"],
 )
@@ -157,7 +157,7 @@ async def action_sync_code_vectors(
                 force,
             )
             return ActionResult(
-                action_id="sync.vectors.code",
+                action_id="sync.vectors_code",
                 ok=True,
                 data={"status": "dry_run", "force": force},
                 duration_sec=time.time() - start,
@@ -172,7 +172,7 @@ async def action_sync_code_vectors(
             cognitive_service = await core_context.registry.get_cognitive_service()
 
         # Phase 1: Crawl — register/update repo_artifacts and call-graph edges
-        logger.info("sync.vectors.code: Phase 1 — CrawlService.run_crawl")
+        logger.info("sync.vectors_code: Phase 1 — CrawlService.run_crawl")
         await crawl_svc.run_crawl(repo_root, cognitive_service)
 
         # Phase 1.5: Force — reset chunk_count on already-embedded artifacts so
@@ -184,12 +184,12 @@ async def action_sync_code_vectors(
         if force:
             reset_count = await artifact_svc.reset_pending_chunk_counts()
             logger.info(
-                "sync.vectors.code: force=True reset %d artifact(s) to chunk_count=0",
+                "sync.vectors_code: force=True reset %d artifact(s) to chunk_count=0",
                 reset_count,
             )
 
         # Phase 2: Embed — chunk and upsert all pending artifacts in batches
-        logger.info("sync.vectors.code: Phase 2 — ArtifactService embed loop")
+        logger.info("sync.vectors_code: Phase 2 — ArtifactService embed loop")
         qdrant = QdrantService()
 
         max_passes = _load_max_embedding_passes(repo_root)
@@ -197,12 +197,12 @@ async def action_sync_code_vectors(
             pending = await artifact_svc.count_pending_artifacts()
             if pending == 0:
                 logger.info(
-                    "sync.vectors.code: all artifacts embedded after %d pass(es)",
+                    "sync.vectors_code: all artifacts embedded after %d pass(es)",
                     pass_num - 1,
                 )
                 break
             logger.info(
-                "sync.vectors.code: embedding pass %d (%d artifacts pending)",
+                "sync.vectors_code: embedding pass %d (%d artifacts pending)",
                 pass_num,
                 pending,
             )
@@ -221,7 +221,7 @@ async def action_sync_code_vectors(
                 full_path = repo_root / file_path_str
                 if not full_path.exists():
                     logger.warning(
-                        "sync.vectors.code: file missing, marking permanently skipped: %s",
+                        "sync.vectors_code: file missing, marking permanently skipped: %s",
                         file_path_str,
                     )
                     await artifact_svc.mark_artifact_empty(artifact_id)
@@ -232,7 +232,7 @@ async def action_sync_code_vectors(
                     if not chunks:
                         await artifact_svc.mark_artifact_empty(artifact_id)
                         logger.info(
-                            "sync.vectors.code: empty file skipped permanently: %s",
+                            "sync.vectors_code: empty file skipped permanently: %s",
                             file_path_str,
                         )
                         continue
@@ -250,20 +250,20 @@ async def action_sync_code_vectors(
                         artifact_id, chunk_count
                     )
                     logger.info(
-                        "sync.vectors.code: embedded %s → %d chunks → %s",
+                        "sync.vectors_code: embedded %s → %d chunks → %s",
                         file_path_str,
                         chunk_count,
                         collection,
                     )
                 except Exception as exc:
                     logger.warning(
-                        "sync.vectors.code: failed to embed %s: %s",
+                        "sync.vectors_code: failed to embed %s: %s",
                         file_path_str,
                         exc,
                     )
         else:
             logger.warning(
-                "sync.vectors.code: reached max embedding passes (%d)", max_passes
+                "sync.vectors_code: reached max embedding passes (%d)", max_passes
             )
 
         # The pass loop has a hard cap (max_passes * batch_size). If pending
@@ -275,12 +275,12 @@ async def action_sync_code_vectors(
         embed_status = "completed" if pending_remaining == 0 else "partial"
         if embed_status == "partial":
             logger.info(
-                "sync.vectors.code: partial — %d artifact(s) still pending",
+                "sync.vectors_code: partial — %d artifact(s) still pending",
                 pending_remaining,
             )
 
         return ActionResult(
-            action_id="sync.vectors.code",
+            action_id="sync.vectors_code",
             ok=True,
             data={
                 "status": embed_status,
@@ -295,7 +295,7 @@ async def action_sync_code_vectors(
     except Exception as e:
         logger.error("Code vectorization failed: %s", e, exc_info=True)
         return ActionResult(
-            action_id="sync.vectors.code",
+            action_id="sync.vectors_code",
             ok=False,
             data={"error": str(e)},
             duration_sec=time.time() - start,
@@ -303,14 +303,14 @@ async def action_sync_code_vectors(
 
 
 @register_action(
-    action_id="sync.vectors.constitution",
+    action_id="sync.vectors_constitution",
     description="Vectorize constitutional documents to Qdrant",
     category=ActionCategory.SYNC,
     policies=["rules/architecture/blackboard"],
 )
 @atomic_action(
-    action_id="sync.vectors.constitution",
-    intent="Atomic action for sync.vectors.constitution",
+    action_id="sync.vectors_constitution",
+    intent="Atomic action for sync.vectors_constitution",
     impact=ActionImpact.WRITE_METADATA,
     policies=["atomic_actions"],
 )
@@ -329,7 +329,7 @@ async def action_sync_constitutional_vectors(
         if not write:
             logger.info("Dry-run: would vectorize constitutional documents")
             return ActionResult(
-                action_id="sync.vectors.constitution",
+                action_id="sync.vectors_constitution",
                 ok=True,
                 data={"dry_run": True, "status": "skipped"},
                 duration_sec=time.time() - start,
@@ -341,7 +341,7 @@ async def action_sync_constitutional_vectors(
 
         if cognitive_service is None:
             return ActionResult(
-                action_id="sync.vectors.constitution",
+                action_id="sync.vectors_constitution",
                 ok=True,
                 data={"status": "skipped", "reason": "cognitive_service_unavailable"},
                 duration_sec=time.time() - start,
@@ -352,7 +352,7 @@ async def action_sync_constitutional_vectors(
             await cognitive_service.get_embedding_for_code("test")
         except Exception as e:
             return ActionResult(
-                action_id="sync.vectors.constitution",
+                action_id="sync.vectors_constitution",
                 ok=True,
                 data={
                     "status": "skipped",
@@ -409,7 +409,7 @@ async def action_sync_constitutional_vectors(
         )
 
         return ActionResult(
-            action_id="sync.vectors.constitution",
+            action_id="sync.vectors_constitution",
             ok=True,
             data={
                 "policies_count": len(policy_items),
@@ -424,7 +424,7 @@ async def action_sync_constitutional_vectors(
     except Exception as e:
         logger.error("Constitutional vectorization failed: %s", e, exc_info=True)
         return ActionResult(
-            action_id="sync.vectors.constitution",
+            action_id="sync.vectors_constitution",
             ok=False,
             data={"error": str(e)},
             duration_sec=time.time() - start,

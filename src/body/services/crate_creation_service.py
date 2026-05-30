@@ -195,7 +195,7 @@ class CrateCreationService:
 
 
 @atomic_action(
-    action_id="create.crate",
+    action_id="crate.create_from_spec",
     intent="Atomic action for create_crate_from_spec",
     impact=ActionImpact.WRITE_CODE,
     policies=["atomic_actions"],

@@ -523,7 +523,7 @@ class CrawlService:
     ) -> dict[str, int]:
         """
         Delegate to CrawlOrchestrator. Retained on CrawlService so existing
-        callers (ServiceRegistry consumers, sync.vectors.code action,
+        callers (ServiceRegistry consumers, sync.vectors_code action,
         RepoCrawlerWorker) continue to use the same public entry point.
         """
         from .orchestrator import CrawlOrchestrator

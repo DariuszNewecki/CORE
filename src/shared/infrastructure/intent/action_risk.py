@@ -54,8 +54,8 @@ _FALLBACK_MAPPING: dict[str, str] = {
     "fix.modularity": "moderate",
     "fix.placeholders": "safe",
     "sync.db": "moderate",
-    "sync.vectors.code": "moderate",
-    "sync.vectors.constitution": "moderate",
+    "sync.vectors_code": "moderate",
+    "sync.vectors_constitution": "moderate",
 }
 
 

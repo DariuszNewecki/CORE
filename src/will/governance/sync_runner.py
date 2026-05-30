@@ -8,8 +8,8 @@ Four sync operations share a single `core.sync_runs` table, distinguished
 by `sync_type`:
 
 * `knowledge_graph`  → atomic action `sync.db`         (CLI command tree → DB)
-* `vectors`      → atomic action `sync.vectors.constitution`
-* `code_vectors` → atomic action `sync.vectors.code`
+* `vectors`      → atomic action `sync.vectors_constitution`
+* `code_vectors` → atomic action `sync.vectors_code`
 * `dev_sync`     → `will.workflows.DevSyncWorkflow.run` (composite)
 
 Atomic-action paths dispatch through `ActionExecutor` — the same Will
@@ -47,8 +47,8 @@ ALLOWED_SYNC_TYPES = frozenset(
 
 _SYNC_TYPE_TO_ACTION_ID = {
     "knowledge_graph": "sync.db",
-    "vectors": "sync.vectors.constitution",
-    "code_vectors": "sync.vectors.code",
+    "vectors": "sync.vectors_constitution",
+    "code_vectors": "sync.vectors_code",
 }
 
 
@@ -103,7 +103,7 @@ async def run_and_persist_sync(
     function transitions it through executing → completed | failed.
 
     `force` is a runtime parameter (not persisted on sync_runs): it is
-    forwarded to the backend action where supported. `sync.vectors.code`
+    forwarded to the backend action where supported. `sync.vectors_code`
     uses it to reset chunk_count on already-embedded artifacts before
     the embed loop.
 
@@ -142,7 +142,7 @@ async def run_and_persist_sync(
             exec_kwargs: dict[str, Any] = {}
             if target is not None:
                 exec_kwargs["target"] = target
-            # force is only meaningful for sync.vectors.code (re-embed).
+            # force is only meaningful for sync.vectors_code (re-embed).
             # The other actions don't accept a `force` kwarg.
             if force and sync_type == "code_vectors":
                 exec_kwargs["force"] = True

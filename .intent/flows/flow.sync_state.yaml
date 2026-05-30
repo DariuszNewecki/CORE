@@ -22,7 +22,7 @@ flow:
       required: true
 
     # Code vectors require DB to be current
-    - ref_id: sync.vectors.code
+    - ref_id: sync.vectors_code
       kind: action
       required: true
 

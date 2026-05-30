@@ -40,4 +40,4 @@ async def vectorize_cmd(
         write = False
 
     logger.info("🚀 Starting vectorization via constitutional worker pipeline...")
-    await context.action_executor.execute("sync.vectors.code", write=write)
+    await context.action_executor.execute("sync.vectors_code", write=write)

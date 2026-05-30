@@ -5,7 +5,7 @@
 Relocated from src/cli/logic/body_contracts_fixer.py under ADR-055 D6:
 an @atomic_action belongs in body/, not cli/logic/. Also wired into
 the action registry via @register_action so it can be dispatched
-through POST /v1/fix/run/fix.body-ui (the previous module had the
+through POST /v1/fix/run/fix.body_ui (the previous module had the
 @atomic_action decoration but no registration, so executor dispatch
 returned 422 unknown_fix_id).
 """
@@ -113,7 +113,7 @@ async def _process_single_file(
 
 
 @register_action(
-    action_id="fix.body-ui",
+    action_id="fix.body_ui",
     description="Autonomously fix Body-layer UI/env contract violations using LLM",
     category=ActionCategory.FIX,
     policies=["body_contracts", "agent_governance"],
@@ -125,7 +125,7 @@ async def _process_single_file(
     ],
 )
 @atomic_action(
-    action_id="fix.body-ui",
+    action_id="fix.body_ui",
     intent="Autonomously fix Body UI violations using LLM",
     impact=ActionImpact.WRITE_CODE,
     policies=["body_contracts", "agent_governance"],
@@ -151,7 +151,7 @@ async def fix_body_ui_violations(
 
     if not violations_raw:
         return ActionResult(
-            action_id="fix.body-ui",
+            action_id="fix.body_ui",
             ok=True,
             data={"files_processed": 0},
             duration_sec=time.time() - start_time,
@@ -179,7 +179,7 @@ async def fix_body_ui_violations(
     files_modified = sum(1 for res in per_file_results if res.get("modified"))
 
     return ActionResult(
-        action_id="fix.body-ui",
+        action_id="fix.body_ui",
         ok=True,
         data={
             "files_found": len(by_file),

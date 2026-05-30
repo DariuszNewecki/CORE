@@ -2,7 +2,7 @@
 """
 CLI command: `core-admin fix body-ui`
 
-Thin client over POST /v1/quality/body-ui (read) + POST /v1/fix/run/fix.body-ui
+Thin client over POST /v1/quality/body-ui (read) + POST /v1/fix/run/fix.body_ui
 (write). Dry-run returns the violation list inline; --write dispatches the
 LLM fixer asynchronously and polls.
 """
@@ -45,7 +45,7 @@ async def fix_body_ui_command(
     Fix Body-layer UI/env violations (Rich, print/input, os.environ) using the LLM.
 
     Dry-run path uses POST /v1/quality/body-ui (sync check) and reports the
-    violation count. --write path dispatches POST /v1/fix/run/fix.body-ui
+    violation count. --write path dispatches POST /v1/fix/run/fix.body_ui
     (async LLM fixer), polls, and reports the summary.
     """
     _ = ctx
@@ -74,14 +74,14 @@ async def fix_body_ui_command(
     params: dict[str, object] = {}
     if count is not None:
         params["limit"] = count
-    initial = await client.run_fix("fix.body-ui", write=True, params=params)
+    initial = await client.run_fix("fix.body_ui", write=True, params=params)
     run_id = initial.get("run_id")
     if not run_id:
-        console.print(f"[red]fix.body-ui failed to dispatch: {initial}[/red]")
+        console.print(f"[red]fix.body_ui failed to dispatch: {initial}[/red]")
         raise typer.Exit(1)
     final = await client._poll_run(run_id)
     if final.get("status") != "completed":
-        console.print(f"[red]fix.body-ui failed: {final.get('error') or final}[/red]")
+        console.print(f"[red]fix.body_ui failed: {final.get('error') or final}[/red]")
         raise typer.Exit(1)
 
     result_data = (final.get("result") or {}).get("data", {})

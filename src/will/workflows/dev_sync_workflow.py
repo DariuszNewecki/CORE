@@ -111,7 +111,7 @@ class DevSyncWorkflow:
             return phase
 
         vectorize_res = await self.executor.execute(
-            action_id="sync.vectors.code", write=write
+            action_id="sync.vectors_code", write=write
         )
         phase.actions.append(vectorize_res)
 

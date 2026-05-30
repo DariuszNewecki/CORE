@@ -63,7 +63,7 @@ class SyncRequest(BaseModel):
     Backends that don't honour it ignore it.
 
     `force` is a backend-specific re-run hint. Today only
-    `sync.vectors.code` honours it (resets chunk_count on already-embedded
+    `sync.vectors_code` honours it (resets chunk_count on already-embedded
     artifacts so the embed loop re-processes them). Default False — no
     behaviour change for callers that don't pass it.
     """

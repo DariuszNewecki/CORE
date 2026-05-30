@@ -246,7 +246,7 @@ def _check_os_environ(path: Path, tree: ast.AST) -> list[Violation]:
 
 
 @atomic_action(
-    action_id="check.body-contracts",
+    action_id="check.body_contracts",
     intent="Validate Body layer headless contract compliance",
     impact=ActionImpact.READ_ONLY,
     policies=["body_contracts"],
@@ -304,7 +304,7 @@ async def check_body_contracts(
     has_error = any(v.rule_id in error_rules for v in violations)
 
     return ActionResult(
-        action_id="check.body-contracts",
+        action_id="check.body_contracts",
         ok=not has_error,
         data={
             "file_count": len(files),

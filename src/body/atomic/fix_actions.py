@@ -60,7 +60,7 @@ def _error_data(exc: Exception, **extra: Any) -> dict[str, Any]:
     remediates=["style.formatter_required"],
 )
 @atomic_action(
-    action_id="format.code",
+    action_id="fix.format",
     intent="Atomic action for action_format_code",
     impact=ActionImpact.WRITE_CODE,
     policies=["atomic_actions"],

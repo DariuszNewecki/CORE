@@ -34,7 +34,7 @@ _PLAN: list[tuple[str, str, str | None]] = [
     ("code-style", "fix.format", None),
     ("ids", "fix.ids", None),
     ("knowledge-sync", "sync.db", None),
-    ("vector-sync", "sync.vectors.code", None),
+    ("vector-sync", "sync.vectors_code", None),
     ("docstrings", "fix.docstrings", None),
     ("tags", "fix.capability_tagging", None),
     ("ir-triage", "", "triage"),

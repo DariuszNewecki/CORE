@@ -205,7 +205,7 @@ async def define_single_symbol(
 
 
 @atomic_action(
-    action_id="manage.define-symbols",
+    action_id="manage.define_symbols",
     intent="Assign capability keys to public symbols via AI reasoning",
     impact=ActionImpact.WRITE_DATA,
     policies=["symbol_identification"],
@@ -230,7 +230,7 @@ async def define_symbols(
 
     if not symbols:
         return ActionResult(
-            action_id="manage.define-symbols",
+            action_id="manage.define_symbols",
             ok=True,
             data={"attempted": 0, "defined": 0},
             duration_sec=time.time() - start_time,
@@ -252,7 +252,7 @@ async def define_symbols(
     defined_count = sum(1 for r in results if r.get("key"))
 
     return ActionResult(
-        action_id="manage.define-symbols",
+        action_id="manage.define_symbols",
         ok=True,
         data={
             "attempted": len(symbols),

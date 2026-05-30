@@ -293,6 +293,24 @@
         "human_confirmation",
         "human_review"
       ]
+    },
+    "fs_operation_class": {
+      "description": "Operation-class vocabulary used by both .intent/taxonomies/filesystem_operations.yaml (call-name → op-class) and .intent/taxonomies/operational_capabilities.yaml (per-capability fs_profile keys). Same spelling at both surfaces; no pluralization or synonym variants. Authority: ADR-077 + ADR-078. First-materialization: whichever ADR's implementation lands first creates this entry; the second no-ops (per ADR-078 D5 first-materialization clause). Loader: src/shared/infrastructure/intent/operational_capabilities.py reads this enum's values to derive the expected fs_profile key set; drift between the YAML's keys and this enum is a load-time failure.",
+      "type": "string",
+      "enum": [
+        "read",
+        "create",
+        "modify",
+        "delete"
+      ]
+    },
+    "operational_mode": {
+      "description": "Process-level mode flag governing capability-scoped filesystem authorization. dev = governor in the loop; live = no governor in the loop. Immutable for the process lifetime per papers/CORE-Capability-Scoped-Filesystem-Authority.md §6. Authority: ADR-078. Mode-flag startup mechanism and provenance guarantees deferred to a separate ADR (#492). Loader: src/shared/infrastructure/intent/operational_capabilities.py reads this enum's values to validate the modes list on each fs_profile pattern entry; values outside this enum are a load-time failure.",
+      "type": "string",
+      "enum": [
+        "dev",
+        "live"
+      ]
     }
   }
 }

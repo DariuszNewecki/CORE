@@ -91,7 +91,7 @@ async def run_tests(suppress_logging: bool = True) -> ActionResult:
 
     # 2. Build the Canonical ActionResult
     action_result = ActionResult(
-        action_id="test_execution",
+        action_id="test.execute",
         ok=ok,
         data=result_data,
         duration_sec=duration,

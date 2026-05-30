@@ -518,7 +518,7 @@ mappings:
     confidence: 0.40
     risk: high
     description: >
-      sync.vectors.code has plausible semantic but no remediates=
+      sync.vectors_code has plausible semantic but no remediates=
       declaration and cardinality mismatch (per-symbol findings vs
       whole-repo crawl). Validate wiring in a separate issue before
       promoting to ACTIVE. Until then, DELEGATE.

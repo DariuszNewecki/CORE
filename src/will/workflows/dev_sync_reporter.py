@@ -212,7 +212,7 @@ class DevSyncReporter:
         elif name in [
             "manage.sync-knowledge",
             "run.vectorize",
-            "manage.define-symbols",
+            "manage.define_symbols",
         ]:
             return "Completed"
         elif name == "inspect.duplicates":

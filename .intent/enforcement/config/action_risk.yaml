@@ -16,19 +16,32 @@
 #   here. No impact_level literals permitted in @register_action
 #   decorators in src/. See ADR-008.
 #
+#   ADR-078 amendment (2026-05-30): risk values declared here are
+#   cross-referenced by .intent/taxonomies/operational_capabilities.yaml
+#   per ADR-078 D3. Any operational capability whose risk field does
+#   not resolve to a defined entry here is a load-time failure of
+#   src/shared/infrastructure/intent/operational_capabilities.py.
+#
 # VALUES: safe | moderate | dangerous
 
 actions:
+  action.execute: moderate
+  admin.meta: safe
   build.tests: safe
+  check.body_contracts: safe
   check.imports: safe
   claim.proposal: safe
+  cleanup.action_results: moderate
+  cleanup.agent_memory: moderate
   crate.create: safe
+  crate.create_from_spec: moderate
   file.create: moderate
   file.edit: moderate
   file.read: safe
   file.tag_metadata: safe
+  fix.atomic: moderate
   fix.atomic_actions: moderate
-  fix.body-ui: dangerous
+  fix.body_ui: dangerous
   fix.capability_tagging: moderate
   fix.docstrings: moderate
   fix.duplicate_ids: moderate
@@ -44,7 +57,16 @@ actions:
   fix.purge_legacy_tags: dangerous
   fix.settings_access: dangerous
   fix.vulture_heal: dangerous
+  logging.reconfigure: safe
+  manage.define_symbols: moderate
   remediate.cognitive_role: moderate
+  secrets.delete: dangerous
+  secrets.get: safe
+  secrets.list: safe
+  secrets.set: moderate
   sync.db: moderate
-  sync.vectors.code: moderate
-  sync.vectors.constitution: moderate
+  sync.knowledge_graph: moderate
+  sync.vectors_code: moderate
+  sync.vectors_constitution: moderate
+  test.execute: moderate
+  test.system: safe

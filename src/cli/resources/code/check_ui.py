@@ -50,13 +50,13 @@ async def check_ui_cmd(
         console.print("[yellow]💡 Run with '--write' to auto-fix via LLM.[/yellow]")
         raise typer.Exit(1)
     console.print("[bold cyan]🔧 Refactoring UI leaks out of Body layer...[/bold cyan]")
-    initial = await client.run_fix("fix.body-ui", write=True)
+    initial = await client.run_fix("fix.body_ui", write=True)
     run_id = initial.get("run_id")
     if not run_id:
-        console.print(f"[red]fix.body-ui failed to dispatch: {initial}[/red]")
+        console.print(f"[red]fix.body_ui failed to dispatch: {initial}[/red]")
         raise typer.Exit(1)
     final = await client._poll_run(run_id)
     if final.get("status") != "completed":
-        console.print(f"[red]fix.body-ui failed: {final.get('error') or final}[/red]")
+        console.print(f"[red]fix.body_ui failed: {final.get('error') or final}[/red]")
         raise typer.Exit(1)
-    console.print("[green]✓ fix.body-ui completed.[/green]")
+    console.print("[green]✓ fix.body_ui completed.[/green]")

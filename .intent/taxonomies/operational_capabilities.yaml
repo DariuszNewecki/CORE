@@ -1,0 +1,442 @@
+version: "1.0.0"
+status: active
+authority: constitutional
+title: CORE Operational Capability Taxonomy
+description: >
+  Canonical declaration of operational capabilities in CORE. An operational
+  capability is a named unit of what CORE-as-a-system does — distinct from a
+  cognitive capability per CORE-Capability-Taxonomy.md, which describes what an
+  LLM model can do. This file is the authoritative source of the operational-
+  capability name set and the filesystem profile per capability used by the
+  runtime chokepoint to authorize writes. Framework authority:
+  .specs/papers/CORE-Capability-Scoped-Filesystem-Authority.md. Schema declared
+  by ADR-078.
+
+  This file is the LIVE-AUTHORIZATION SURFACE — it enumerates capabilities the
+  chokepoint will authorize, not the complete @atomic_action / @register_action
+  registry. The two surfaces diverge by exactly the dormant set (see ADR-078
+  D9): a capability that is structurally non-functional today (e.g.
+  fix.policy_ids per #493) is absent from this file but may still appear in
+  .intent/enforcement/config/action_risk.yaml and in src/ as a decorator.
+
+  Chokepoint primitives (file.create, file.edit, file.read, file.tag_metadata)
+  are NOT capabilities and do not appear here per ADR-078 D8. They are the
+  chokepoint itself; the chokepoint authorizes their invocation based on the
+  calling capability's fs_profile.
+
+  Loader: src/shared/infrastructure/intent/operational_capabilities.py.
+  Validation is fail-closed per ADR-068 pattern; no META JSON schema. The
+  loader derives fs_profile key names from .intent/META/enums.json
+  fs_operation_class enum and validates modes against operational_mode enum.
+
+capabilities:
+
+  action.execute:
+    description: Meta-dispatcher — invokes other atomic actions; FS authorization resolves at runtime against the dispatched capability per paper §7.
+    risk: moderate
+    fs_profile:
+      read: []
+      create: []
+      modify: []
+      delete: []
+
+  admin.meta:
+    description: Constitutional file index — lists indexed .intent/ files for operator inspection. Read-only.
+    risk: safe
+    fs_profile:
+      read:
+        - {path_pattern: ".intent/**", modes: [dev, live]}
+      create: []
+      modify: []
+      delete: []
+
+  build.tests:
+    description: Generates a pytest test file for a source file via CoderAgent; path mapping governed by .intent/enforcement/config/test_coverage.yaml.
+    risk: safe
+    fs_profile:
+      read:
+        - {path_pattern: ".intent/rules/**", modes: [dev, live]}
+        - {path_pattern: ".intent/enforcement/config/test_coverage.yaml", modes: [dev, live]}
+      create:
+        - {path_pattern: "tests/**/test_*.py", modes: [dev, live]}
+      modify: []
+      delete: []
+
+  check.body_contracts:
+    description: Structural verification that body/ contracts match their .intent/enforcement/contracts/ declarations. Read-only.
+    risk: safe
+    fs_profile:
+      read:
+        - {path_pattern: ".intent/enforcement/contracts/**", modes: [dev, live]}
+      create: []
+      modify: []
+      delete: []
+
+  check.imports:
+    description: Static analysis of import structure against .intent/rules/code/imports.json. Read-only.
+    risk: safe
+    fs_profile:
+      read:
+        - {path_pattern: ".intent/rules/code/imports.json", modes: [dev, live]}
+      create: []
+      modify: []
+      delete: []
+
+  claim.proposal:
+    description: DB-only proposal claim transition; sets claimed_by on autonomous_proposals row.
+    risk: safe
+    fs_profile:
+      read: []
+      create: []
+      modify: []
+      delete: []
+
+  cleanup.action_results:
+    description: DB-only purge of stale rows from core.action_results table by created_at cutoff.
+    risk: moderate
+    fs_profile:
+      read: []
+      create: []
+      modify: []
+      delete: []
+
+  cleanup.agent_memory:
+    description: DB-only purge of stale rows from core.agent_memory table.
+    risk: moderate
+    fs_profile:
+      read: []
+      create: []
+      modify: []
+      delete: []
+
+  crate.create:
+    description: General-purpose intent crate packaging — bundles source and tests into var/crates/ for proposal export.
+    risk: safe
+    fs_profile:
+      read: []
+      create:
+        - {path_pattern: "var/crates/**", modes: [dev, live]}
+      modify: []
+      delete: []
+
+  crate.create_from_spec:
+    description: SpecificationAgent convenience wrapper around CrateCreationService — bundles generated artifacts into var/crates/.
+    risk: moderate
+    fs_profile:
+      read: []
+      create:
+        - {path_pattern: "var/crates/**", modes: [dev, live]}
+      modify: []
+      delete: []
+
+  fix.atomic:
+    description: Atomic-action conformance fixer — signature, decorator order, return type alignment per .intent/rules/architecture/atomic_actions.json.
+    risk: moderate
+    fs_profile:
+      read:
+        - {path_pattern: ".intent/rules/architecture/atomic_actions.json", modes: [dev, live]}
+      create: []
+      modify:
+        - {path_pattern: "src/**/*.py", modes: [dev, live]}
+      delete: []
+
+  fix.atomic_actions:
+    description: "@atomic_action decorator placement and presence fixer per .intent/rules/architecture/atomic_actions.json."
+    risk: moderate
+    fs_profile:
+      read:
+        - {path_pattern: ".intent/rules/architecture/atomic_actions.json", modes: [dev, live]}
+      create: []
+      modify:
+        - {path_pattern: "src/**/*.py", modes: [dev, live]}
+      delete: []
+
+  fix.body_ui:
+    description: Body-layer UI/CLI rendering separation fixer — moves Rich rendering out of body/.
+    risk: dangerous
+    fs_profile:
+      read: []
+      create: []
+      modify:
+        - {path_pattern: "src/body/**/*.py", modes: [dev, live]}
+      delete: []
+
+  fix.capability_tagging:
+    description: Capability tag injector — adds canonical dot-notation capability keys to symbols per .intent/taxonomies/capability_taxonomy.yaml.
+    risk: moderate
+    fs_profile:
+      read:
+        - {path_pattern: ".intent/taxonomies/capability_taxonomy.yaml", modes: [dev, live]}
+      create: []
+      modify:
+        - {path_pattern: "src/**/*.py", modes: [dev, live]}
+      delete: []
+
+  fix.docstrings:
+    description: Missing-docstring remediator per .intent/rules/code/purity.json.
+    risk: moderate
+    fs_profile:
+      read:
+        - {path_pattern: ".intent/rules/code/purity.json", modes: [dev, live]}
+      create: []
+      modify:
+        - {path_pattern: "src/**/*.py", modes: [dev, live]}
+      delete: []
+
+  fix.duplicate_ids:
+    description: "Dedupes duplicate # ID: <uuid> comments per .intent/rules/code/linkage.json."
+    risk: moderate
+    fs_profile:
+      read:
+        - {path_pattern: ".intent/rules/code/linkage.json", modes: [dev, live]}
+      create: []
+      modify:
+        - {path_pattern: "src/**/*.py", modes: [dev, live]}
+      delete: []
+
+  fix.format:
+    description: Constitutional code-style formatter (ruff-format wrapper) per .intent/rules/code/style.json. Absorbs the retired format.code capability per ADR-078 D7.
+    risk: safe
+    fs_profile:
+      read:
+        - {path_pattern: ".intent/rules/code/style.json", modes: [dev, live]}
+      create: []
+      modify:
+        - {path_pattern: "src/**/*.py", modes: [dev, live]}
+        - {path_pattern: "tests/**/*.py", modes: [dev, live]}
+      delete: []
+
+  fix.headers:
+    description: Path-header injector per ADR-040 and .intent/rules/code/layout.json.
+    risk: safe
+    fs_profile:
+      read:
+        - {path_pattern: ".intent/rules/code/layout.json", modes: [dev, live]}
+      create: []
+      modify:
+        - {path_pattern: "src/**/*.py", modes: [dev, live]}
+      delete: []
+
+  fix.ids:
+    description: "Injects # ID: <uuid> comments on public defs/classes per .intent/rules/code/linkage.json."
+    risk: safe
+    fs_profile:
+      read:
+        - {path_pattern: ".intent/rules/code/linkage.json", modes: [dev, live]}
+      create: []
+      modify:
+        - {path_pattern: "src/**/*.py", modes: [dev, live]}
+      delete: []
+
+  fix.imports:
+    description: Import organization fixer per .intent/rules/code/imports.json.
+    risk: safe
+    fs_profile:
+      read:
+        - {path_pattern: ".intent/rules/code/imports.json", modes: [dev, live]}
+      create: []
+      modify:
+        - {path_pattern: "src/**/*.py", modes: [dev, live]}
+      delete: []
+
+  fix.logging:
+    description: Logger-not-presentation fixer — separates logger.* from console.* per .intent/rules/code/purity.json.
+    risk: safe
+    fs_profile:
+      read:
+        - {path_pattern: ".intent/rules/code/purity.json", modes: [dev, live]}
+      create: []
+      modify:
+        - {path_pattern: "src/**/*.py", modes: [dev, live]}
+      delete: []
+
+  fix.modularity:
+    description: Oversize-module splitter per .intent/rules/code/modularity.json.
+    risk: moderate
+    fs_profile:
+      read:
+        - {path_pattern: ".intent/rules/code/modularity.json", modes: [dev, live]}
+      create: []
+      modify:
+        - {path_pattern: "src/**/*.py", modes: [dev, live]}
+      delete: []
+
+  fix.path_resolver:
+    description: Routes file-path operations through PathResolver per .intent/rules/architecture/path_access.json.
+    risk: moderate
+    fs_profile:
+      read:
+        - {path_pattern: ".intent/rules/architecture/path_access.json", modes: [dev, live]}
+      create: []
+      modify:
+        - {path_pattern: "src/**/*.py", modes: [dev, live]}
+      delete: []
+
+  fix.placeholders:
+    description: Replaces TBD/placeholder literals with finalized values; rule consumed at invocation time (parameterized).
+    risk: safe
+    fs_profile:
+      read: []
+      create: []
+      modify:
+        - {path_pattern: "src/**/*.py", modes: [dev, live]}
+      delete: []
+
+  fix.purge_legacy_tags:
+    description: Removes legacy decorator/tag lines per pattern argument (parameterized; mechanical line removal).
+    risk: dangerous
+    fs_profile:
+      read: []
+      create: []
+      modify:
+        - {path_pattern: "src/**/*.py", modes: [dev, live]}
+      delete: []
+
+  fix.settings_access:
+    description: Body-layer settings-import remover — routes body/ config through dependency injection per .intent/rules/architecture/layer_separation.json.
+    risk: dangerous
+    fs_profile:
+      read:
+        - {path_pattern: ".intent/rules/architecture/layer_separation.json", modes: [dev, live]}
+      create: []
+      modify:
+        - {path_pattern: "src/body/**/*.py", modes: [dev, live]}
+      delete: []
+
+  fix.vulture_heal:
+    description: Vulture-driven dead-code remover; reads vulture report at runtime (parameterized).
+    risk: dangerous
+    fs_profile:
+      read: []
+      create: []
+      modify:
+        - {path_pattern: "src/**/*.py", modes: [dev, live]}
+      delete: []
+
+  logging.reconfigure:
+    description: Runtime logging-config reload; in-process state change, no FS or DB writes.
+    risk: safe
+    fs_profile:
+      read: []
+      create: []
+      modify: []
+      delete: []
+
+  manage.define_symbols:
+    description: DB-only symbol-to-capability-key assignment; writes core.symbols capability fields.
+    risk: moderate
+    fs_profile:
+      read: []
+      create: []
+      modify: []
+      delete: []
+
+  remediate.cognitive_role:
+    description: Returns finding-shape for the calling Worker to post; no direct FS or DB side effects.
+    risk: moderate
+    fs_profile:
+      read: []
+      create: []
+      modify: []
+      delete: []
+
+  secrets.delete:
+    description: DB-only secret deletion from encrypted-secrets store.
+    risk: dangerous
+    fs_profile:
+      read: []
+      create: []
+      modify: []
+      delete: []
+
+  secrets.get:
+    description: DB-only secret retrieval; private key read from var/keys/ at service init only (out-of-band, not via this action).
+    risk: safe
+    fs_profile:
+      read: []
+      create: []
+      modify: []
+      delete: []
+
+  secrets.list:
+    description: DB-only secret-key enumeration.
+    risk: safe
+    fs_profile:
+      read: []
+      create: []
+      modify: []
+      delete: []
+
+  secrets.set:
+    description: DB-only encrypted-secret storage; encryption key managed out-of-band via var/keys/.
+    risk: moderate
+    fs_profile:
+      read: []
+      create: []
+      modify: []
+      delete: []
+
+  sync.db:
+    description: Synchronizes code symbols to PostgreSQL knowledge graph; DB-only mutation, FS reads only.
+    risk: moderate
+    fs_profile:
+      read:
+        - {path_pattern: "src/**", modes: [dev, live]}
+        - {path_pattern: ".intent/**", modes: [dev, live]}
+      create: []
+      modify: []
+      delete: []
+
+  sync.knowledge_graph:
+    description: Synchronizes constitutional and source artifacts to knowledge graph tables; DB-only mutation, FS reads only.
+    risk: moderate
+    fs_profile:
+      read:
+        - {path_pattern: "src/**", modes: [dev, live]}
+        - {path_pattern: ".intent/**", modes: [dev, live]}
+        - {path_pattern: ".specs/**", modes: [dev, live]}
+      create: []
+      modify: []
+      delete: []
+
+  sync.vectors_code:
+    description: Generates and stores code-symbol vector embeddings in Qdrant; DB/Qdrant mutation, FS reads only.
+    risk: moderate
+    fs_profile:
+      read:
+        - {path_pattern: "src/**", modes: [dev, live]}
+      create: []
+      modify: []
+      delete: []
+
+  sync.vectors_constitution:
+    description: Generates and stores constitutional-document vector embeddings in Qdrant; DB/Qdrant mutation, FS reads only.
+    risk: moderate
+    fs_profile:
+      read:
+        - {path_pattern: ".intent/**", modes: [dev, live]}
+        - {path_pattern: ".specs/**", modes: [dev, live]}
+      create: []
+      modify: []
+      delete: []
+
+  test.execute:
+    description: pytest runner — executes tests, persists results to DB and var/reports/. Renamed from test_execution per ADR-078 D7.
+    risk: moderate
+    fs_profile:
+      read:
+        - {path_pattern: "src/**", modes: [dev, live]}
+        - {path_pattern: "tests/**", modes: [dev, live]}
+      create:
+        - {path_pattern: "var/reports/test_results/**", modes: [dev, live]}
+      modify: []
+      delete: []
+
+  test.system:
+    description: Test-execution dispatcher — delegates to test.execute; own fs_profile empty (FS authorization resolves at runtime against the dispatched capability).
+    risk: safe
+    fs_profile:
+      read: []
+      create: []
+      modify: []
+      delete: []
