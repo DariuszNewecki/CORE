@@ -125,7 +125,7 @@ Every autonomous operation is governed by the same constitutional loop:
 ```mermaid
 flowchart TD
     A["🟢 GOAL\nHUMAN INTENT"] --> B["📂 CONTEXT\nRepo state • knowledge • history"]
-    B --> C["🔒 CONSTRAINTS\nImmutable rules\n138 rules • 7 engines"]
+    B --> C["🔒 CONSTRAINTS\nImmutable rules\n188 rules • 10 engines"]
     C --> D["🗺️ PLAN\nStep-by-step reasoning\nRule-aware plan"]
     D --> E["✨ GENERATE\nCode • changes • tool calls"]
     E --> F["✅ VALIDATE\nDeterministic checks\nAST • semantic • intent • style"]
@@ -184,19 +184,25 @@ Enforcement strengths: **Blocking** · **Reporting** · **Advisory**
 
 ## Enforcement Engines
 
-| Engine           | Method                                        |
-|------------------|-----------------------------------------------|
-| `ast_gate`       | Deterministic structural analysis (AST-based) |
-| `glob_gate`      | Path and boundary enforcement                 |
-| `intent_gate`    | Runtime write authorization                   |
-| `knowledge_gate` | Responsibility and ownership validation       |
-| `workflow_gate`  | Phase-sequencing and coverage checks          |
-| `regex_gate`     | Pattern-based text enforcement                |
-| `llm_gate`       | LLM-assisted semantic checks                  |
+| Engine            | Method                                       |
+|-------------------|----------------------------------------------|
+| `ast_gate`        | Deterministic structural analysis (AST)      |
+| `regex_gate`      | Pattern-based text enforcement               |
+| `glob_gate`       | Path and boundary enforcement                |
+| `cli_gate`        | CLI surface and command-shape enforcement    |
+| `artifact_gate`   | Declared-vs-discovered artifact completeness |
+| `workflow_gate`   | Phase-sequencing and coverage checks         |
+| `knowledge_gate`  | Responsibility and ownership validation      |
+| `action_gate`     | Atomic-action invariants                     |
+| `passive_gate`    | Substrate-enforced rules (DB/runtime marker) |
+| `llm_gate`        | LLM-assisted semantic checks                 |
+| `IntentGuard`*    | Runtime write authorization (not audit)      |
+
+*Runtime Gate per `.specs/papers/CORE-Gate.md`, kept here for visibility.
 
 Deterministic when possible. LLM only when necessary.
 
-138 rules across 126 policies. 138 executable.
+188 rules across 42 rule documents. All mapped.
 
 ---
 
