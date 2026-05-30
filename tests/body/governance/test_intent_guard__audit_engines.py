@@ -43,6 +43,14 @@ CONTENT_ANALYSIS_ENGINES = [
     "regex_gate",
 ]
 
+# Cross-artifact engines whose checks need the whole YAML against
+# all-of-src/ substrate (e.g., ADR-079 D9 phantom-decoration). They have no
+# per-file write-time check; evaluating them in check_against_rules
+# produces false-positive blocks whose message is the rule statement.
+CROSS_ARTIFACT_ENGINES = [
+    "taxonomy_gate",
+]
+
 
 def _bare_guard(rules: list[PolicyRule]) -> IntentGuard:
     """Construct an ``IntentGuard`` instance without invoking ``__init__``.
@@ -107,10 +115,31 @@ def test_content_analysis_engine_remains_in_audit_set(engine: str) -> None:
     )
 
 
+@pytest.mark.parametrize("engine", CROSS_ARTIFACT_ENGINES)
+def test_cross_artifact_engine_remains_in_audit_set(engine: str) -> None:
+    """Cross-artifact engines (whole-YAML against all-of-src/ checks) must
+    stay in ``_AUDIT_ENGINES`` so write-time evaluation skips them.
+
+    For ADR-079 D9's ``taxonomy_gate``: removing it would make every
+    FileHandler write evaluate the operational-capabilities backing check,
+    surfacing every YAML cap_id without a per-write decoration match as a
+    bogus block — the rule's statement as the block reason — even though
+    the check has no per-file semantics.
+    """
+    assert engine in _AUDIT_ENGINES, (
+        f"{engine!r} was removed from _AUDIT_ENGINES — cross-artifact "
+        f"engines have no per-file write-time check; evaluating them here "
+        f"produces false positives whose message is the rule statement."
+    )
+
+
 # ---- Skip behaviour: _check_against_rules honours the set ----------------
 
 
-@pytest.mark.parametrize("engine", PASSIVE_MARKER_ENGINES + CONTENT_ANALYSIS_ENGINES)
+@pytest.mark.parametrize(
+    "engine",
+    PASSIVE_MARKER_ENGINES + CONTENT_ANALYSIS_ENGINES + CROSS_ARTIFACT_ENGINES,
+)
 def test_rule_with_audit_engine_produces_no_write_time_violation(
     engine: str,
 ) -> None:

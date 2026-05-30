@@ -67,6 +67,7 @@ _AUDIT_ENGINES = frozenset(
         "type_system",
         "advisory",
         "runtime_metric",
+        "taxonomy_gate",
     }
 )
 

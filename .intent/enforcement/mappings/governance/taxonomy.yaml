@@ -1,0 +1,20 @@
+# .intent/enforcement/mappings/governance/taxonomy.yaml
+#
+# Enforcement mappings for the operational-capability taxonomy invariants.
+# Based on: .intent/rules/governance/taxonomy.json
+#
+# ADR-079 D9. The chokepoint requires every capability id in
+# operational_capabilities.yaml to be backed by an @atomic_action decoration
+# in src/. The taxonomy_gate engine walks both surfaces and emits one
+# finding per phantom (YAML entry without backing decoration).
+#
+# Promotion path: stage 1 ships at `reporting`. Stage 2 (per ADR-079 D10)
+# promotes to `blocking` together with the phantom-resolution change-set.
+
+mappings:
+  # Rule: governance.taxonomy.operational_capabilities_decorator_backing
+  # Engine: taxonomy_gate (context-level; cross-artifact YAML vs AST sweep)
+  governance.taxonomy.operational_capabilities_decorator_backing:
+    engine: taxonomy_gate
+    params:
+      check_type: operational_capabilities_decorator_backing

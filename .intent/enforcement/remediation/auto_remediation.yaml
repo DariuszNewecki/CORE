@@ -1133,3 +1133,19 @@ mappings:
       Legacy-pattern flag. Removal/migration fixer to be built per
       modernization roadmap.
     status: PENDING
+
+  governance.taxonomy.operational_capabilities_decorator_backing:
+    action: fix.modularity
+    confidence: 0.40
+    risk: high
+    description: >
+      A capability id in .intent/taxonomies/operational_capabilities.yaml
+      has no matching @atomic_action decoration in src/ — a phantom that
+      cannot be authorized by the ADR-079 chokepoint. Resolution is a
+      governor decision: either strip the YAML entry (the capability does
+      not represent a real authority), or decorate the underlying function
+      with @atomic_action(action_id="<id>") and route its dispatch through
+      ActionExecutor.execute so the token is actually set. Per ADR-079 D9
+      Shape 1 (strip) and Shape 2 (re-route + register/decorate/**kwargs).
+      The autonomous remediator cannot pick between the two paths.
+    status: DELEGATE

@@ -1,0 +1,29 @@
+{
+    "$schema": "META/rule_document.schema.json",
+    "kind": "rule_document",
+    "metadata": {
+        "id": "rules.governance.taxonomy",
+        "title": "Operational-Capability Taxonomy Backing",
+        "version": "1.0.0",
+        "authority": "constitution",
+        "phase": "audit",
+        "status": "active"
+    },
+    "rules": [
+        {
+            "id": "governance.taxonomy.operational_capabilities_decorator_backing",
+            "statement": "Every capability id declared in `.intent/taxonomies/operational_capabilities.yaml` MUST be backed by exactly one `@atomic_action(action_id=\"<id>\")` decoration in `src/`. A capability id present in the YAML with no matching decoration is a phantom and MUST surface as an open finding under this rule.",
+            "enforcement": "reporting",
+            "authority": "constitution",
+            "phase": "audit",
+            "rationale": "ADR-079 D9. The chokepoint's decision tree (D5 branches 3-4) authorizes writes by looking up `current_capability()` in the operational-capability taxonomy. A capability id in the YAML that no `@atomic_action`-decorated function declares is structurally unreachable from the chokepoint — a YAML entry no caller can ever set as `_executor_token`. It is also a YAML-vs-runtime divergence: the declared authority cannot be granted because the bearer does not exist. The five phantoms documented in issue #495 are the surface this rule polices. The check is the structural counterweight to ADR-078 D9's dormant-capability exclusion (registry entries without YAML are allowed; YAML entries without registry are NOT). Promotion from `reporting` to `blocking` lands at ADR-079 D10 stage 2 together with the phantom resolution change-set; advisory in the meantime so stage-1-without-stage-2 doesn't block the daemon on existing phantoms. The cognate `atomic_actions.must_have_decorator` (rules.architecture.atomic_actions) governs the opposite direction (@register_action requires @atomic_action); together the two pin the registry-decoration-YAML triangle.",
+            "scope": {
+                "paths": [
+                    "src/**/*.py",
+                    ".intent/taxonomies/operational_capabilities.yaml"
+                ],
+                "notes": "Context-level check — the substrate is the whole YAML cross-referenced against AST decorations across src/. Per-file dispatch is never engaged. The taxonomy file appears in scope so a YAML edit triggers re-evaluation; the src/ glob ensures the same on any decoration change."
+            }
+        }
+    ]
+}
