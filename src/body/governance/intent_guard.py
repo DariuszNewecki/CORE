@@ -7,6 +7,7 @@ Constitutional Intent Guard - Main Orchestrator.
 from __future__ import annotations
 
 import ast
+from collections.abc import Mapping
 from pathlib import Path
 
 from body.governance.intent_pattern_validators import PatternValidators
@@ -15,6 +16,11 @@ from mind.governance.policy_rule import PolicyRule
 from mind.governance.rule_extractor import extract_executable_rules
 from mind.governance.violation_report import ViolationReport
 from shared.infrastructure.intent.intent_repository import get_intent_repository
+from shared.infrastructure.intent.operational_capabilities import (
+    OperationalCapability,
+    OperationalCapabilityTaxonomyError,
+    load_operational_capabilities,
+)
 from shared.infrastructure.intent.vocabulary_projection import (
     VocabularyProjectionError,
     load_vocabulary_projection,
@@ -187,9 +193,32 @@ class IntentGuard:
             strict_mode,
         )
 
+        # ADR-079 D2/D5: capability taxonomy index for chokepoint authorization.
+        # Stage 1 is advisory — a load failure logs and disables the tier rather
+        # than failing startup. Stage 4+ promotion will tighten this to fail-closed.
+        self._capabilities: Mapping[str, OperationalCapability] | None
+        try:
+            caps = load_operational_capabilities(self.repo_path)
+            self._capabilities = {c.id: c for c in caps}
+            logger.info(
+                "Capability taxonomy loaded: %d entries (chokepoint tier: advisory).",
+                len(self._capabilities),
+            )
+        except OperationalCapabilityTaxonomyError as exc:
+            self._capabilities = None
+            logger.warning(
+                "Capability taxonomy not loaded; chokepoint tier will no-op. Reason: %s",
+                exc,
+            )
+
     # ID: 0955918c-8ada-4631-bd8b-8b186d43203e
     def check_transaction(
-        self, proposed_paths: list[str], impact: str | None = None
+        self,
+        proposed_paths: list[str],
+        impact: str | None = None,
+        op_classes: Mapping[str, str] | None = None,
+        calling_capability: str | None = None,
+        current_mode: str | None = None,
     ) -> ConstitutionalValidationResult:
         """
         Validate a set of proposed file operations.
@@ -202,6 +231,7 @@ class IntentGuard:
         │ authority="constitution"     │ Always                 │
         │ authority="policy", error    │ Only when strict_mode  │
         │ authority="policy", warning  │ Never                  │
+        │ capability tier (ADR-079)    │ Never — advisory only  │
         └──────────────────────────────┴────────────────────────┘
 
         DEGRADED pre-check (ADR-023 D4): if the vocabulary projection is
@@ -209,6 +239,13 @@ class IntentGuard:
         return a single instrument-degraded violation. This preserves the
         invariant that governance evaluation is only possible when the
         governance instrument is healthy.
+
+        ADR-079 stage 1 (advisory): the capability tier evaluates D5
+        branches 3-8 and emits ``chokepoint.advisory.would-deny`` log
+        lines for paths that would be denied. The tier does NOT affect
+        ``is_valid`` or the returned ``violations`` list in this stage —
+        log-only observability. Stage 3+ promotes the tier to blocking
+        per-capability per the D10 migration sequence.
         """
         projection = load_vocabulary_projection(self.repo_path)
         if isinstance(projection, VocabularyProjectionError):
@@ -240,6 +277,16 @@ class IntentGuard:
 
         for path_str in proposed_paths:
             abs_path = (self.repo_path / path_str).resolve()
+
+            # ADR-079 stage 1 (advisory). Capability tier runs alongside the
+            # existing tiers and emits log-only "would-deny" observations.
+            # Does not contribute to violations or is_valid in stage 1.
+            self._evaluate_capability_tier_advisory(
+                path_str=path_str,
+                op_class=(op_classes or {}).get(path_str),
+                capability=calling_capability,
+                mode=current_mode,
+            )
 
             # 1. HARD INVARIANT: Absolute block on .intent writes
             if self._is_under_intent(abs_path):
@@ -406,6 +453,104 @@ class IntentGuard:
             )
 
         return violations
+
+    def _evaluate_capability_tier_advisory(
+        self,
+        *,
+        path_str: str,
+        op_class: str | None,
+        capability: str | None,
+        mode: str | None,
+    ) -> None:
+        """Stage 1 capability-tier evaluation: emit advisory log lines only.
+
+        Implements ADR-079 D5 branches 3-8. Does NOT mutate violations or
+        is_valid. Logs at INFO with marker ``chokepoint.advisory.would-deny``
+        when a path would be denied; logs at DEBUG with marker
+        ``chokepoint.advisory.would-permit`` on a permit.
+
+        No-ops if any input required to make a decision is absent — the
+        chokepoint reads context up-stack and stage-1 callers (FileHandler)
+        always supply all four; other callers (e.g. validate_generated_code's
+        target_path probe) pass none and the tier is skipped.
+        """
+        if self._capabilities is None or op_class is None or mode is None:
+            return
+
+        # Branch 3: no capability in context (paper §7).
+        if capability is None:
+            logger.info(
+                "chokepoint.advisory.would-deny op_class=%s path=%s mode=%s "
+                "capability=<none> reason=no_capability_context",
+                op_class,
+                path_str,
+                mode,
+            )
+            return
+
+        # Branch 4: unknown capability.
+        cap = self._capabilities.get(capability)
+        if cap is None:
+            logger.info(
+                "chokepoint.advisory.would-deny op_class=%s path=%s mode=%s "
+                "capability=%s reason=unknown_capability",
+                op_class,
+                path_str,
+                mode,
+                capability,
+            )
+            return
+
+        fs_profile = cap.as_mapping
+        entries = fs_profile.get(op_class, ())
+
+        # Branch 5: op-class not declared (empty list for this op_class).
+        if not entries:
+            logger.info(
+                "chokepoint.advisory.would-deny op_class=%s path=%s mode=%s "
+                "capability=%s reason=operation_not_authorized",
+                op_class,
+                path_str,
+                mode,
+                capability,
+            )
+            return
+
+        # Branch 6: no matching path pattern.
+        matching = [e for e in entries if matches_glob(path_str, e.path_pattern)]
+        if not matching:
+            declared = [e.path_pattern for e in entries]
+            logger.info(
+                "chokepoint.advisory.would-deny op_class=%s path=%s mode=%s "
+                "capability=%s reason=path_not_authorized declared_patterns=%s",
+                op_class,
+                path_str,
+                mode,
+                capability,
+                declared,
+            )
+            return
+
+        # Branch 7: mode-excluded.
+        if not any(mode in e.modes for e in matching):
+            logger.info(
+                "chokepoint.advisory.would-deny op_class=%s path=%s mode=%s "
+                "capability=%s reason=mode_not_authorized",
+                op_class,
+                path_str,
+                mode,
+                capability,
+            )
+            return
+
+        # Branch 8: permit.
+        logger.debug(
+            "chokepoint.advisory.would-permit op_class=%s path=%s mode=%s capability=%s",
+            op_class,
+            path_str,
+            mode,
+            capability,
+        )
 
 
 def _audit_engines_set():

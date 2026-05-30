@@ -37,6 +37,24 @@ def authorize_execution(action_id: str) -> Iterator[None]:
         _executor_token.reset(token)
 
 
+# ID: 567fc741-5e5c-4214-b791-b711898adfd3
+def current_capability() -> str | None:
+    """
+    Return the capability_id currently authorized by ActionExecutor, or None.
+
+    Per ADR-079 D2, the chokepoint reads this accessor — never a parallel
+    ContextVar. The value reflects the innermost-active `authorize_execution`
+    frame, matching the dispatcher → dispatched semantics that
+    `action.execute` invoking `fix.format` already exercises.
+
+    Returns:
+        The current capability_id, or None when no `authorize_execution`
+        frame is active. A None return is the §7 "no provenance" case and
+        is the chokepoint's signal to deny the write without taxonomy lookup.
+    """
+    return _executor_token.get()
+
+
 # ID: b2ded143-129c-41fa-8287-92f9bf4b1fdd
 def verify_authorization(action_id: str) -> None:
     """

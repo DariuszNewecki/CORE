@@ -17,6 +17,8 @@ from typing import Any
 from body.governance.intent_guard import get_intent_guard
 from mind.governance.violation_report import ConstitutionalViolationError
 from shared.config import settings
+from shared.governance_token import current_capability
+from shared.infrastructure.intent.operational_mode import current_mode
 from shared.logger import getLogger
 from shared.path_resolver import PathResolver
 from shared.utils.common_knowledge import ensure_trailing_newline
@@ -160,7 +162,7 @@ class FileHandler:
     # ID: 84aa153b-1651-4ca8-abf3-f15a57fe6b80
     def add_pending_write(self, prompt: str, suggested_path: str, code: str) -> str:
         suggested_path = suggested_path.strip().removeprefix("./")
-        self._guard_paths([suggested_path])
+        self._guard_paths([suggested_path], op_class="create")
         payload = {"prompt": prompt, "suggested_path": suggested_path, "code": code}
         fname = f"pw-{abs(hash(suggested_path + prompt))}.json"
         out = self.pending_dir / fname
@@ -170,7 +172,7 @@ class FileHandler:
     # ID: 5c958c3b-d6bb-4c30-ad37-5b1abcaac762
     def ensure_dir(self, rel_dir: str) -> FileOpResult:
         rel_dir = rel_dir.strip().removeprefix("./").strip("/")
-        self._guard_paths([rel_dir + "/"])
+        self._guard_paths([rel_dir + "/"], op_class="create")
         abs_dir = self._resolve_repo_path(rel_dir)
         abs_dir.mkdir(parents=True, exist_ok=True)
         return FileOpResult("success", "Directory ensured", rel_dir)
@@ -178,7 +180,7 @@ class FileHandler:
     # ID: 5f626d7b-5ce4-46c8-adc6-6228eef7c41a
     def remove_file(self, rel_path: str) -> FileOpResult:
         rel_path = rel_path.strip().removeprefix("./")
-        self._guard_paths([rel_path])
+        self._guard_paths([rel_path], op_class="delete")
         abs_path = self._resolve_repo_path(rel_path)
         abs_path.unlink(missing_ok=True)
         return FileOpResult("success", "File removed", rel_path)
@@ -186,7 +188,7 @@ class FileHandler:
     # ID: 443bb5d6-306d-4d03-ab69-762cc14b1eb3
     def remove_tree(self, rel_dir: str) -> FileOpResult:
         rel_dir = rel_dir.strip().removeprefix("./").strip("/")
-        self._guard_paths([rel_dir + "/"])
+        self._guard_paths([rel_dir + "/"], op_class="delete")
         abs_dir = self._resolve_repo_path(rel_dir)
         if abs_dir.exists():
             shutil.rmtree(abs_dir, ignore_errors=True)
@@ -211,7 +213,7 @@ class FileHandler:
         exclude_top_level: Iterable[str] = ("var", ".git", "__pycache__", ".venv"),
     ) -> FileOpResult:
         rel_dst_dir = rel_dst_dir.strip().removeprefix("./").strip("/")
-        self._guard_paths([rel_dst_dir + "/"])
+        self._guard_paths([rel_dst_dir + "/"], op_class="create")
         abs_dst = self._resolve_repo_path(rel_dst_dir)
         if abs_dst.exists():
             shutil.rmtree(abs_dst, ignore_errors=True)
@@ -248,7 +250,12 @@ class FileHandler:
             raise ValueError(f"Attempted to escape repository boundary: {rel_path}")
         return candidate
 
-    def _guard_paths(self, rel_paths: list[str], impact: str | None = None) -> None:
+    def _guard_paths(
+        self,
+        rel_paths: list[str],
+        impact: str | None = None,
+        op_class: str = "write",
+    ) -> None:
         """Run a transaction's paths through IntentGuard, raising on rejection.
 
         Uses ``removeprefix("./")`` rather than ``lstrip("./")`` so that
@@ -256,6 +263,14 @@ class FileHandler:
         IntentGuard's tier-1 hard invariant — ``lstrip("./")`` strips the
         leading ``.`` as a character-set member and silently redirects the
         write target.
+
+        ADR-079 stage 1: this gateway also reads the calling capability
+        (``current_capability()``) and the operational mode
+        (``current_mode()``) once per transaction and derives a per-path
+        op-class (D3), then passes all three to ``check_transaction`` so
+        the chokepoint capability tier can emit advisory ``would-deny``
+        log lines. The tier is log-only in stage 1 — this method's raise
+        contract is unchanged.
 
         Raises:
             ConstitutionalViolationError: Subclass of ``ValueError``. Carries
@@ -268,10 +283,39 @@ class FileHandler:
                 ``"Blocked by IntentGuard: {msg}"`` one-liner verbatim.
         """
         cleaned: list[str] = [str(p).removeprefix("./") for p in rel_paths]
-        result = self._guard.check_transaction(cleaned, impact=impact)
+        op_classes = self._derive_op_classes(cleaned, op_class)
+        calling_capability = current_capability()
+        mode = current_mode()
+        result = self._guard.check_transaction(
+            cleaned,
+            impact=impact,
+            op_classes=op_classes,
+            calling_capability=calling_capability,
+            current_mode=mode,
+        )
         if result.is_valid:
             return
         raise ConstitutionalViolationError(result.violations)
+
+    def _derive_op_classes(
+        self, cleaned_paths: list[str], op_class_hint: str
+    ) -> dict[str, str]:
+        """Resolve per-path op-class for the chokepoint tier (ADR-079 D3).
+
+        For the ``"write"`` hint, stat each path: ``"modify"`` if the
+        target exists, ``"create"`` otherwise. For ``"create"`` and
+        ``"delete"`` hints the op-class is structurally fixed by the
+        calling method's intent and is returned verbatim. The
+        stat-before-decide carries a TOCTOU caveat (ADR-079 D3) that is
+        benign under CORE's single-trust-boundary threat model.
+        """
+        if op_class_hint == "write":
+            resolved: dict[str, str] = {}
+            for p in cleaned_paths:
+                abs_p = self.repo_path / p.rstrip("/")
+                resolved[p] = "modify" if abs_p.exists() else "create"
+            return resolved
+        return {p: op_class_hint for p in cleaned_paths}
 
     def _atomic_write_text(self, abs_path: Path, content: str) -> None:
         abs_path.parent.mkdir(parents=True, exist_ok=True)
