@@ -50,9 +50,21 @@ class EngineRegistry:
     def initialize(
         cls, path_resolver: PathResolver, llm_client: LLMClient | None = None
     ) -> None:
+        """Reset registry state and re-run engine discovery.
+
+        Clears both cached instances AND the discovered-engine-class map,
+        then triggers a fresh discovery pass. Auditor re-init at the start
+        of each audit run (auditor.py) relies on this to pick up engine
+        files added since process start — without resetting ``_discovered``
+        a new engine module is invisible until the process restarts.
+        Caught by ADR-079 Slice B (taxonomy_gate) which shipped against a
+        long-running core-api and went undiscovered until manual restart.
+        """
         cls._path_resolver = path_resolver
         cls._llm_client = llm_client
         cls._instances.clear()
+        cls._engine_classes.clear()
+        cls._discovered = False
         cls._discover_engines()
         logger.debug("EngineRegistry primed with dynamic discovery.")
 

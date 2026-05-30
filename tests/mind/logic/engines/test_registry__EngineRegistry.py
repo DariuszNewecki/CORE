@@ -5,9 +5,24 @@
 - Generated: 2026-01-11 02:21:23
 """
 
+from pathlib import Path
+
 import pytest
 
 from mind.logic.engines.registry import EngineRegistry
+from shared.path_resolver import PathResolver
+
+
+@pytest.fixture(autouse=True)
+def _initialize_registry():
+    """Ensure the registry is initialized for every test in this module.
+
+    The class-level state survives across tests in the same process, so an
+    early initialization (here or via cross-module side effect) is what
+    lets ``get()`` succeed. Doing it explicitly makes standalone runs of
+    this file work without depending on test-order coincidence.
+    """
+    EngineRegistry.initialize(PathResolver(repo_root=Path("/opt/dev/CORE")))
 
 
 # Detected return type: The 'get' method returns an instance of the requested engine class (Any).
@@ -45,7 +60,15 @@ def test_get_registers_different_engines():
 
 
 def test_get_all_supported_engines():
-    """Test that all hardcoded engine IDs can be retrieved without error."""
+    """Test that all hardcoded engine IDs can be retrieved without error.
+
+    ``llm_gate`` is excluded — when no LLM client is wired into the
+    registry, ``get('llm_gate')`` returns an uncached ``LLMGateStubEngine``
+    (see registry.get's llm_client branch), so the
+    ``engine_id in _instances`` assertion does not apply. That code path
+    is covered by other tests; the rest of the engines follow the
+    standard JIT-instance-cache pattern.
+    """
     EngineRegistry._instances.clear()
     supported_ids = [
         "ast_gate",
@@ -54,10 +77,48 @@ def test_get_all_supported_engines():
         "regex_gate",
         "workflow_gate",
         "knowledge_gate",
-        "llm_gate",
     ]
     for engine_id in supported_ids:
         instance = EngineRegistry.get(engine_id)
         assert instance is not None
         assert engine_id in EngineRegistry._instances
         assert EngineRegistry._instances[engine_id] == instance
+
+
+def test_initialize_clears_engine_class_cache_and_rediscovers():
+    """initialize() MUST clear ``_engine_classes`` AND reset ``_discovered``
+    so engine modules added between calls become visible.
+
+    Regression: ADR-079 Slice B shipped ``taxonomy_gate`` against a
+    long-running core-api process. The auditor's per-run re-initialize
+    pattern (auditor.py:99-102) was meant to refresh state, but
+    ``initialize()`` only cleared ``_instances`` — the previously-cached
+    ``_engine_classes`` dict and ``_discovered=True`` flag persisted, so
+    the new engine module was never imported. Audit reported
+    "Unsupported Governance Engine: taxonomy_gate" until manual restart.
+
+    This test simulates the same shape: corrupt the cache (remove an
+    entry), re-initialize, assert the entry is back without a process
+    restart.
+    """
+    assert "ast_gate" in EngineRegistry._engine_classes
+
+    # Simulate the stale-cache shape — entry missing from _engine_classes
+    # (as it would be if a new engine were added after first discovery).
+    cached_cls = EngineRegistry._engine_classes.pop("ast_gate")
+    assert "ast_gate" not in EngineRegistry._engine_classes
+
+    # Re-initialize: the fix must restore the entry via fresh discovery.
+    EngineRegistry.initialize(PathResolver(repo_root=Path("/opt/dev/CORE")))
+    assert "ast_gate" in EngineRegistry._engine_classes
+    assert EngineRegistry._engine_classes["ast_gate"] is cached_cls
+
+
+def test_initialize_clears_instance_cache():
+    """initialize() must also clear ``_instances`` so re-init's per-process
+    state (e.g. swapped llm_client) is reflected on next ``get()``."""
+    EngineRegistry.get("ast_gate")
+    assert "ast_gate" in EngineRegistry._instances
+
+    EngineRegistry.initialize(PathResolver(repo_root=Path("/opt/dev/CORE")))
+    assert EngineRegistry._instances == {}
