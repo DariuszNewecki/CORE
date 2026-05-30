@@ -14,7 +14,19 @@
 mappings:
   # Rule: governance.taxonomy.operational_capabilities_decorator_backing
   # Engine: taxonomy_gate (context-level; cross-artifact YAML vs AST sweep)
+  #
+  # scope.applies_to per #158: every mapping must declare an explicit
+  # surface so a typo or omission produces an empty-match warning at
+  # extraction time rather than silently widening to all of src/. For
+  # this context-level check the substrate IS the YAML; the engine's
+  # verify_context loads it directly and AST-walks src/ independently.
+  # applies_to is referenced here only to satisfy the gate — the check
+  # fires once per audit cycle regardless of file_filter intersection.
+  # Mirrors the cognate pattern in governance/namespace.yaml.
   governance.taxonomy.operational_capabilities_decorator_backing:
     engine: taxonomy_gate
     params:
       check_type: operational_capabilities_decorator_backing
+    scope:
+      applies_to:
+        - ".intent/taxonomies/operational_capabilities.yaml"

@@ -413,7 +413,6 @@ class IntentGuard:
         - otherwise                        → "warning"          (advisory)
         """
         violations: list[ViolationReport] = []
-        is_metadata = impact == "write-metadata"
 
         for rule in self.rules:
             if not rule.pattern:
