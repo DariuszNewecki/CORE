@@ -78,8 +78,8 @@ class OperationalCapabilityTaxonomyError(GovernanceError):
     """Raised when the operational-capability taxonomy cannot be loaded fail-closed."""
 
 
-# ID: a1376303-989f-4335-8b09-71f59975e32d
 @dataclass(frozen=True)
+# ID: a1376303-989f-4335-8b09-71f59975e32d
 class FsPatternEntry:
     """A single filesystem pattern entry within an fs_profile operation-class list."""
 
@@ -87,8 +87,8 @@ class FsPatternEntry:
     modes: tuple[str, ...]
 
 
-# ID: fa5f8ab9-8cf0-43b6-999f-b74d69363787
 @dataclass(frozen=True)
+# ID: fa5f8ab9-8cf0-43b6-999f-b74d69363787
 class OperationalCapability:
     """
     A single operational capability with its filesystem authorization profile.
@@ -107,6 +107,7 @@ class OperationalCapability:
     fs_profile: tuple[tuple[str, tuple[FsPatternEntry, ...]], ...]
 
     @property
+    # ID: bd74eb57-912d-409c-9d19-76e154f07aed
     def as_mapping(self) -> Mapping[str, tuple[FsPatternEntry, ...]]:
         """Return fs_profile as a mapping view for ergonomic key access."""
         return dict(self.fs_profile)
