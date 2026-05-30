@@ -26,6 +26,7 @@ from __future__ import annotations
 import textwrap
 from collections.abc import Iterable
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -34,6 +35,15 @@ from shared.path_resolver import PathResolver
 
 
 _DECORATOR_BACKING_CHECK = "operational_capabilities_decorator_backing"
+
+
+def _fake_context(repo_root: Path) -> SimpleNamespace:
+    """Minimal AuditorContext stand-in carrying only ``repo_path`` — the
+    only attribute taxonomy_gate's verify_context reads. SimpleNamespace
+    avoids constructing a real AuditorContext (which would bring in the
+    full PathResolver + EnforcementMappingLoader + IntentRepository
+    bootstrap unrelated to this engine's surface)."""
+    return SimpleNamespace(repo_path=repo_root)
 
 
 # ---------------------------------------------------------------------------
@@ -131,8 +141,8 @@ def test_is_context_level_false_for_unknown_check_type() -> None:
 
 
 @pytest.mark.asyncio
-async def test_clean_tree_yields_ok_no_violations(tmp_path: Path) -> None:
-    """Every YAML id has a matching @atomic_action(action_id=...) → ok=True."""
+async def test_clean_tree_yields_no_findings(tmp_path: Path) -> None:
+    """Every YAML id has a matching @atomic_action(action_id=...) → empty list."""
     _write_repo_skeleton(
         tmp_path,
         capability_ids=["fix.format", "check.imports"],
@@ -152,16 +162,14 @@ async def test_clean_tree_yields_ok_no_violations(tmp_path: Path) -> None:
             ),
         },
     )
-    result = await _engine(tmp_path).verify(
-        Path("ignored"), {"check_type": _DECORATOR_BACKING_CHECK}
+    findings = await _engine(tmp_path).verify_context(
+        _fake_context(tmp_path), {"check_type": _DECORATOR_BACKING_CHECK}
     )
-    assert result.ok is True
-    assert result.violations == []
-    assert "2 capability id(s)" in result.message
+    assert findings == []
 
 
 @pytest.mark.asyncio
-async def test_phantom_yields_one_violation_with_resolution_prompt(
+async def test_phantom_yields_one_finding_with_resolution_prompt(
     tmp_path: Path,
 ) -> None:
     """A YAML id with no backing decoration is reported with both Shape 1/2 paths."""
@@ -180,39 +188,33 @@ async def test_phantom_yields_one_violation_with_resolution_prompt(
             ),
         },
     )
-    result = await _engine(tmp_path).verify(
-        Path("ignored"), {"check_type": _DECORATOR_BACKING_CHECK}
+    findings = await _engine(tmp_path).verify_context(
+        _fake_context(tmp_path), {"check_type": _DECORATOR_BACKING_CHECK}
     )
-    assert result.ok is False
-    assert len(result.violations) == 1
-    msg = str(result.violations[0])
-    assert "secrets.set" in msg
-    assert "Shape 1" in msg and "Shape 2" in msg
-    assert "ADR-079 D9" in msg
+    assert len(findings) == 1
+    finding = findings[0]
+    assert finding.check_id == "governance.taxonomy.operational_capabilities_decorator_backing"
+    assert finding.file_path == ".intent/taxonomies/operational_capabilities.yaml"
+    assert finding.context == {"capability_id": "secrets.set"}
+    assert "secrets.set" in finding.message
+    assert "Shape 1" in finding.message and "Shape 2" in finding.message
+    assert "ADR-079 D9" in finding.message
 
 
 @pytest.mark.asyncio
-async def test_multiple_phantoms_one_violation_each_sorted(tmp_path: Path) -> None:
+async def test_multiple_phantoms_one_finding_each_sorted(tmp_path: Path) -> None:
     """Phantoms are reported sorted by cap_id so the output is stable."""
     _write_repo_skeleton(
         tmp_path,
         capability_ids=["z.last", "a.first", "m.middle"],
         decoration_sources={},  # zero decorations → all three are phantoms
     )
-    result = await _engine(tmp_path).verify(
-        Path("ignored"), {"check_type": _DECORATOR_BACKING_CHECK}
+    findings = await _engine(tmp_path).verify_context(
+        _fake_context(tmp_path), {"check_type": _DECORATOR_BACKING_CHECK}
     )
-    assert result.ok is False
-    assert len(result.violations) == 3
-    cap_ids_in_order = [
-        msg
-        for v in result.violations
-        for msg in [str(v)]
-    ]
-    # Order: a.first < m.middle < z.last
-    assert "a.first" in cap_ids_in_order[0]
-    assert "m.middle" in cap_ids_in_order[1]
-    assert "z.last" in cap_ids_in_order[2]
+    assert len(findings) == 3
+    cap_ids = [f.context["capability_id"] for f in findings]
+    assert cap_ids == ["a.first", "m.middle", "z.last"]
 
 
 @pytest.mark.asyncio
@@ -233,10 +235,10 @@ async def test_attribute_access_decoration_counts_as_backing(tmp_path: Path) -> 
             ),
         },
     )
-    result = await _engine(tmp_path).verify(
-        Path("ignored"), {"check_type": _DECORATOR_BACKING_CHECK}
+    findings = await _engine(tmp_path).verify_context(
+        _fake_context(tmp_path), {"check_type": _DECORATOR_BACKING_CHECK}
     )
-    assert result.ok is True
+    assert findings == []
 
 
 @pytest.mark.asyncio
@@ -263,11 +265,11 @@ async def test_non_literal_action_id_is_not_counted_as_backing(
             ),
         },
     )
-    result = await _engine(tmp_path).verify(
-        Path("ignored"), {"check_type": _DECORATOR_BACKING_CHECK}
+    findings = await _engine(tmp_path).verify_context(
+        _fake_context(tmp_path), {"check_type": _DECORATOR_BACKING_CHECK}
     )
-    assert result.ok is False
-    assert "fix.format" in str(result.violations[0])
+    assert len(findings) == 1
+    assert findings[0].context["capability_id"] == "fix.format"
 
 
 @pytest.mark.asyncio
@@ -290,11 +292,10 @@ async def test_unparseable_python_file_is_skipped(tmp_path: Path) -> None:
             ),
         },
     )
-    result = await _engine(tmp_path).verify(
-        Path("ignored"), {"check_type": _DECORATOR_BACKING_CHECK}
+    findings = await _engine(tmp_path).verify_context(
+        _fake_context(tmp_path), {"check_type": _DECORATOR_BACKING_CHECK}
     )
-    assert result.ok is True
-    assert result.violations == []
+    assert findings == []
 
 
 # ---------------------------------------------------------------------------
@@ -303,25 +304,39 @@ async def test_unparseable_python_file_is_skipped(tmp_path: Path) -> None:
 
 
 @pytest.mark.asyncio
-async def test_taxonomy_load_failure_surfaces_as_engine_not_ok(
+async def test_taxonomy_load_failure_surfaces_under_distinct_check_id(
     tmp_path: Path,
 ) -> None:
-    """If the YAML loader raises, the engine returns ok=False with no
-    violations — the caller sees a degraded-instrument signal, not a
-    phantom finding."""
+    """If the YAML loader raises, the engine emits one BLOCK finding under
+    a distinct check_id so the operator sees the underlying YAML defect
+    rather than a phantom-shaped misattribution."""
     # No skeleton written → loader fails (taxonomy file missing).
+    findings = await _engine(tmp_path).verify_context(
+        _fake_context(tmp_path), {"check_type": _DECORATOR_BACKING_CHECK}
+    )
+    assert len(findings) == 1
+    assert findings[0].check_id.endswith(".load_failed")
+    assert "cannot load" in findings[0].message
+
+
+@pytest.mark.asyncio
+async def test_unknown_check_type_in_verify_context_returns_block(
+    tmp_path: Path,
+) -> None:
+    findings = await _engine(tmp_path).verify_context(
+        _fake_context(tmp_path), {"check_type": "something_else"}
+    )
+    assert len(findings) == 1
+    assert findings[0].check_id == "taxonomy_gate.unknown_check_type"
+    assert "unknown check_type" in findings[0].message
+
+
+@pytest.mark.asyncio
+async def test_verify_per_file_returns_not_ok_marker(tmp_path: Path) -> None:
+    """The per-file verify path is only reachable on misconfiguration —
+    surface that as engine-not-ok rather than silently producing nothing."""
     result = await _engine(tmp_path).verify(
         Path("ignored"), {"check_type": _DECORATOR_BACKING_CHECK}
     )
     assert result.ok is False
-    assert result.violations == []
-    assert "cannot load" in result.message
-
-
-@pytest.mark.asyncio
-async def test_unknown_check_type_returns_clear_marker(tmp_path: Path) -> None:
-    result = await _engine(tmp_path).verify(
-        Path("ignored"), {"check_type": "something_else"}
-    )
-    assert result.ok is False
-    assert "unknown check_type" in result.message
+    assert "context-level" in result.message

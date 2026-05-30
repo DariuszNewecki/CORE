@@ -23,22 +23,27 @@ from __future__ import annotations
 
 import ast
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from shared.infrastructure.intent.operational_capabilities import (
     OperationalCapabilityTaxonomyError,
     load_operational_capabilities,
 )
 from shared.logger import getLogger
+from shared.models import AuditFinding, AuditSeverity
 from shared.path_resolver import PathResolver
 
 from .base import BaseEngine, EngineResult
 
 
+if TYPE_CHECKING:
+    from mind.governance.audit_context import AuditorContext
+
 logger = getLogger(__name__)
 
 
 _DECORATOR_BACKING_CHECK = "operational_capabilities_decorator_backing"
+_YAML_REL_PATH = ".intent/taxonomies/operational_capabilities.yaml"
 
 
 # ID: 8c4e1f7b-2d6a-4b58-9e3c-1a7f6d4b5e89
@@ -70,71 +75,95 @@ class TaxonomyGateEngine(BaseEngine):
 
     # ID: 2b9d4f6a-8e3c-4751-a16d-5b9e2d7f4c83
     async def verify(self, file_path: Path, params: dict[str, Any]) -> EngineResult:
-        """Dispatch on ``check_type``; the context-level checks ignore ``file_path``."""
+        """Per-file path — this engine has no per-file checks.
+
+        The auditor dispatches context-level rules through ``verify_context``
+        (see ``rule_executor.py`` after the ``if rule.is_context_level:``
+        gate). ``verify`` is reachable only if a rule were mis-mapped as
+        per-file with this engine; surface that as an engine-not-ok signal
+        rather than silently producing nothing.
+        """
         check_type = params.get("check_type")
-        if check_type == _DECORATOR_BACKING_CHECK:
-            return self._check_decorator_backing()
         return EngineResult(
             ok=False,
-            message=f"taxonomy_gate: unknown check_type {check_type!r}",
+            message=(
+                f"taxonomy_gate: check_type {check_type!r} is context-level; "
+                f"dispatch via verify_context, not verify"
+            ),
             violations=[],
             engine_id=self.engine_id,
         )
 
-    def _check_decorator_backing(self) -> EngineResult:
-        """Compute the YAML-vs-decoration set difference and emit one
-        violation per phantom (capability id in YAML, absent in src/)."""
-        repo_root = self._path_resolver.repo_root
+    # ID: 19c8e74f-6ad3-4b91-95e7-2c43f8a9d6b1
+    async def verify_context(
+        self, context: AuditorContext, params: dict[str, Any]
+    ) -> list[AuditFinding]:
+        """Context-level dispatch — the auditor calls this for any rule
+        whose engine returns True from ``is_context_level_for(check_type)``.
+
+        Returns one ``AuditFinding`` per phantom capability id. Severity
+        is overwritten by the auditor from ``rule.enforcement``; the default
+        here is INFO so a misconfigured caller still gets a non-blocking
+        signal.
+        """
+        check_type = params.get("check_type")
+        if check_type == _DECORATOR_BACKING_CHECK:
+            return self._build_decorator_backing_findings(context.repo_path)
+        return [
+            AuditFinding(
+                check_id="taxonomy_gate.unknown_check_type",
+                severity=AuditSeverity.BLOCK,
+                message=(
+                    f"taxonomy_gate: unknown check_type {check_type!r}; "
+                    f"valid values: {_DECORATOR_BACKING_CHECK!r}"
+                ),
+                file_path="none",
+            )
+        ]
+
+    def _build_decorator_backing_findings(self, repo_root: Path) -> list[AuditFinding]:
+        """Compute YAML-vs-decoration set difference; one finding per phantom."""
         try:
             capabilities = load_operational_capabilities(repo_root)
         except OperationalCapabilityTaxonomyError as exc:
-            # Loader failure is a degraded-instrument state, not a phantom
-            # finding — surface it as engine-not-ok so the auditor reports
-            # the underlying YAML defect rather than misattributing it.
-            return EngineResult(
-                ok=False,
-                message=f"taxonomy_gate: cannot load operational-capability taxonomy: {exc}",
-                violations=[],
-                engine_id=self.engine_id,
-            )
+            # Loader failure is a degraded-instrument state — emit one
+            # finding under a distinct check_id so the operator sees the
+            # underlying YAML defect rather than a phantom-shaped misattribution.
+            return [
+                AuditFinding(
+                    check_id="governance.taxonomy.operational_capabilities_decorator_backing.load_failed",
+                    severity=AuditSeverity.BLOCK,
+                    message=(
+                        f"taxonomy_gate: cannot load operational-capability "
+                        f"taxonomy: {exc}"
+                    ),
+                    file_path=_YAML_REL_PATH,
+                )
+            ]
 
         yaml_ids = {cap.id for cap in capabilities}
         decoration_ids = _collect_atomic_action_ids(repo_root / "src")
-
         phantoms = sorted(yaml_ids - decoration_ids)
-        if not phantoms:
-            return EngineResult(
-                ok=True,
-                message=(
-                    f"taxonomy_gate: all {len(yaml_ids)} capability id(s) have "
-                    f"backing @atomic_action decorations in src/."
-                ),
-                violations=[],
-                engine_id=self.engine_id,
-            )
 
-        violations: list[str | dict[str, Any]] = [
-            (
-                f"Phantom capability '{cap_id}' in "
-                f".intent/taxonomies/operational_capabilities.yaml has no "
-                f"matching @atomic_action(action_id={cap_id!r}) decoration "
-                f"in src/. Resolve per ADR-079 D9: strip the YAML entry "
-                f"(Shape 1) or decorate the underlying function and "
-                f"re-route its dispatch through ActionExecutor.execute "
-                f"(Shape 2 — three-change recipe: @register_action + "
-                f"@atomic_action + **kwargs)."
+        return [
+            AuditFinding(
+                check_id="governance.taxonomy.operational_capabilities_decorator_backing",
+                severity=AuditSeverity.INFO,
+                message=(
+                    f"Phantom capability '{cap_id}' in "
+                    f"{_YAML_REL_PATH} has no matching "
+                    f"@atomic_action(action_id={cap_id!r}) decoration in src/. "
+                    f"Resolve per ADR-079 D9: strip the YAML entry (Shape 1) "
+                    f"or decorate the underlying function and re-route its "
+                    f"dispatch through ActionExecutor.execute (Shape 2 — "
+                    f"three-change recipe: @register_action + @atomic_action "
+                    f"+ **kwargs)."
+                ),
+                file_path=_YAML_REL_PATH,
+                context={"capability_id": cap_id},
             )
             for cap_id in phantoms
         ]
-        return EngineResult(
-            ok=False,
-            message=(
-                f"taxonomy_gate: {len(phantoms)} phantom capability id(s) in "
-                f"operational_capabilities.yaml without @atomic_action backing"
-            ),
-            violations=violations,
-            engine_id=self.engine_id,
-        )
 
 
 def _collect_atomic_action_ids(src_root: Path) -> set[str]:
