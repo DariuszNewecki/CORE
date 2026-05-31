@@ -26,6 +26,7 @@ from __future__ import annotations
 
 import asyncio
 import re
+import time
 from typing import Any
 
 from shared.infrastructure.intent.operational_config import load_operational_config
@@ -104,6 +105,7 @@ class WorkerShopManager(Worker):
         await self._register()
 
         while True:
+            cycle_start = time.monotonic()
             try:
                 await self.run()
             except Exception as exc:
@@ -118,7 +120,8 @@ class WorkerShopManager(Worker):
                 except Exception:
                     logger.exception("WorkerShopManager: failed to post error report")
 
-            await asyncio.sleep(self._max_interval)
+            elapsed = time.monotonic() - cycle_start
+            await asyncio.sleep(max(self._max_interval - elapsed, 0))
 
     # -------------------------------------------------------------------------
     # Single audit cycle

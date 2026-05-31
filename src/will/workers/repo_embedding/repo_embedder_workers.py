@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 import asyncio
+import time
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -66,6 +67,7 @@ class RepoEmbedderWorker(Worker):
         await self._register()
 
         while True:
+            cycle_start = time.monotonic()
             try:
                 await self.run()
             except Exception as exc:
@@ -80,7 +82,8 @@ class RepoEmbedderWorker(Worker):
                 except Exception:
                     logger.exception("RepoEmbedderWorker: failed to post error report")
 
-            await asyncio.sleep(self._max_interval)
+            elapsed = time.monotonic() - cycle_start
+            await asyncio.sleep(max(self._max_interval - elapsed, 0))
 
     # ID: b3c4d5e6-f7a8-9b0c-2345-678901abcdef
     async def run(self) -> None:

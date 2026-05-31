@@ -13,6 +13,7 @@ Constitutional grounding:
 from __future__ import annotations
 
 import asyncio
+import time
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -69,6 +70,7 @@ class GovernanceEmbedderWorker(Worker):
         await self._register()
 
         while True:
+            cycle_start = time.monotonic()
             try:
                 await self.run()
             except Exception as exc:
@@ -86,7 +88,8 @@ class GovernanceEmbedderWorker(Worker):
                     logger.exception(
                         "GovernanceEmbedderWorker: failed to post error report"
                     )
-            await asyncio.sleep(self._max_interval)
+            elapsed = time.monotonic() - cycle_start
+            await asyncio.sleep(max(self._max_interval - elapsed, 0))
 
     # ID: 4c7e0f2a-786d-4423-97d5-060b7e67eee7
     async def run(self) -> None:

@@ -29,6 +29,7 @@ Posts findings to Blackboard. No LLM. No file writes.
 from __future__ import annotations
 
 import asyncio
+import time
 from pathlib import Path
 from typing import Any
 
@@ -84,11 +85,13 @@ class TestCoverageSensor(Worker):
         await self._register()
 
         while True:
+            cycle_start = time.monotonic()
             try:
                 await self.run()
             except Exception as exc:
                 logger.error("TestCoverageSensor: cycle failed: %s", exc, exc_info=True)
-            await asyncio.sleep(self._max_interval)
+            elapsed = time.monotonic() - cycle_start
+            await asyncio.sleep(max(self._max_interval - elapsed, 0))
 
     # ID: b3c4d5e6-f7a8-4901-0123-456789012cde
     async def run(self) -> None:

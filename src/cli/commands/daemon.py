@@ -51,15 +51,19 @@ async def _run_one_shot_loop(worker: Any, stem: str, interval: int) -> None:
     Wraps a one-shot worker (has start() but no run_loop()) in a periodic loop.
     Re-instantiation is not needed — start() is idempotent per the Worker contract.
     """
+    import time
+
     logger.info("CORE daemon: one-shot loop for '%s' (interval=%ds)", stem, interval)
     while True:
+        cycle_start = time.monotonic()
         try:
             await worker.start()
         except Exception as e:
             logger.error(
                 "CORE daemon: one-shot worker '%s' failed: %s", stem, e, exc_info=True
             )
-        await asyncio.sleep(interval)
+        elapsed = time.monotonic() - cycle_start
+        await asyncio.sleep(max(interval - elapsed, 0))
 
 
 @daemon_app.command("start")

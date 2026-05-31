@@ -30,6 +30,7 @@ Blackboard via the Worker base class. No LLM. No file writes.
 from __future__ import annotations
 
 import asyncio
+import time
 from typing import Any
 
 from shared.infrastructure.intent.operational_config import load_operational_config
@@ -74,6 +75,7 @@ class ProposalPipelineShopManager(Worker):
         await self._register()
 
         while True:
+            cycle_start = time.monotonic()
             try:
                 await self.run()
             except Exception as exc:
@@ -94,7 +96,8 @@ class ProposalPipelineShopManager(Worker):
                         "ProposalPipelineShopManager: failed to post error report"
                     )
 
-            await asyncio.sleep(self._max_interval)
+            elapsed = time.monotonic() - cycle_start
+            await asyncio.sleep(max(self._max_interval - elapsed, 0))
 
     # ID: 451a310d-f5eb-48c7-8c23-eea73eb44485
     async def run(self) -> None:

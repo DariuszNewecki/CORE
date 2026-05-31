@@ -18,6 +18,7 @@ backward-compatibility access via this module's namespace.
 
 from __future__ import annotations
 
+import time
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -67,6 +68,7 @@ class RepoCrawlerWorker(Worker):
         await self._register()
 
         while True:
+            cycle_start = time.monotonic()
             try:
                 await self.run()
             except Exception as exc:
@@ -81,7 +83,8 @@ class RepoCrawlerWorker(Worker):
                 except Exception:
                     logger.exception("RepoCrawlerWorker: failed to post error report")
 
-            await __import__("asyncio").sleep(self._max_interval)
+            elapsed = time.monotonic() - cycle_start
+            await __import__("asyncio").sleep(max(self._max_interval - elapsed, 0))
 
     # ID: b2c3d4e5-f6a7-8901-bcde-f12345678903
     async def run(self) -> None:

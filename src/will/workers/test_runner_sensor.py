@@ -29,6 +29,7 @@ from __future__ import annotations
 
 import asyncio
 import re
+import time
 from pathlib import Path
 from typing import Any
 
@@ -90,6 +91,7 @@ class TestRunnerSensor(Worker):
         await self._register()
 
         while True:
+            cycle_start = time.monotonic()
             try:
                 await self.run()
             except Exception as exc:
@@ -104,7 +106,8 @@ class TestRunnerSensor(Worker):
                 except Exception:
                     logger.exception("TestRunnerSensor: failed to post error report")
 
-            await asyncio.sleep(self._max_interval)
+            elapsed = time.monotonic() - cycle_start
+            await asyncio.sleep(max(self._max_interval - elapsed, 0))
 
     # -------------------------------------------------------------------------
     # Single sensing cycle
