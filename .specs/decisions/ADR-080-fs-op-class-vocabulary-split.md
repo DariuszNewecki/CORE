@@ -3,7 +3,7 @@
 # ADR-080 — Filesystem-operation-class vocabulary split
 
 **Date:** 2026-05-31
-**Status:** Proposed
+**Status:** Accepted
 **Author:** Darek (Dariusz Newecki)
 **Drafter:** Claude (vocabulary-split session 2026-05-31)
 **Grounding paper:** `papers/CORE-Vocabulary.md` (one term, one definition, one spelling — and its corollary: one *spelling* per *meaning*; conflating two meanings under one spelling violates the same discipline as the reverse)
