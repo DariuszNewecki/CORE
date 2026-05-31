@@ -112,22 +112,21 @@ async def get_db_status(session: Any) -> dict:
 async def get_drift_status(context: CoreContext, *, scope: str = "all") -> dict:
     """Return a consolidated drift snapshot.
 
-    `scope` is a free-form filter ('symbols' | 'vectors' | 'all'). For
-    Phase 3 each branch returns a thin summary; the deeper drift
+    `scope` is a free-form filter ('symbols' | 'vectors' | 'guard' | 'all').
+    For Phase 3 each branch returns a thin summary; the deeper drift
     diagnostics live in mind.* and are exposed through a follow-up
     issue if richer reporting is needed before CLI cutover.
     """
     summary: dict[str, Any] = {"scope": scope}
 
     if scope in ("symbols", "all"):
-        try:
-            from shared.infrastructure.knowledge.knowledge_graph_status import (
-                get_symbol_drift_summary,
-            )
-
-            summary["symbols"] = await get_symbol_drift_summary(context)
-        except Exception as exc:
-            summary["symbols"] = {"available": False, "error": str(exc)}
+        summary["symbols"] = {
+            "available": False,
+            "error": (
+                "symbols-drift contract not designed — no code-side "
+                "capability vocabulary SSOT (see #503)"
+            ),
+        }
 
     if scope in ("vectors", "all"):
         try:
@@ -138,17 +137,20 @@ async def get_drift_status(context: CoreContext, *, scope: str = "all") -> dict:
                     "error": "qdrant_service not configured",
                 }
             else:
-                collections = (
-                    await qdrant.list_collections()
-                    if hasattr(qdrant, "list_collections")
-                    else []
-                )
+                collections = await qdrant.list_collections()
                 summary["vectors"] = {
                     "available": True,
-                    "collections": [str(c) for c in (collections or [])],
+                    "collections": collections,
+                    "count": len(collections),
                 }
         except Exception as exc:
             summary["vectors"] = {"available": False, "error": str(exc)}
+
+    if scope in ("guard", "all"):
+        summary["guard"] = {
+            "available": False,
+            "error": "guard analyzer not implemented (see #502)",
+        }
 
     return summary
 

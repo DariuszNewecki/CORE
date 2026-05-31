@@ -20,7 +20,7 @@ from cli.logic.cli_utils import should_fail
 from cli.utils import core_command
 
 
-__all__ = ["guard_drift_cmd", "register_guard"]
+__all__ = ["guard_drift_cmd", "register_guard", "run_guard_drift"]
 
 
 logger = logging.getLogger(__name__)
@@ -31,21 +31,20 @@ _DEFAULT_FAIL_ON = "any"
 _DEFAULT_EVIDENCE_PATH = Path("reports") / "guard_drift.json"
 
 
-@core_command(dangerous=False, requires_context=False)
-# ID: b639850a-7321-4176-9891-dd24678bedb1
-async def guard_drift_cmd(
-    root: Path = typer.Option(Path("."), help="Repository root."),
-    manifest_path: Path | None = typer.Option(
-        None, help="Explicit manifest path (deprecated)."
-    ),
-    output: Path | None = typer.Option(None, help="Path for JSON evidence report."),
-    format: str | None = typer.Option(None, help="json|table|pretty"),
-    fail_on: str | None = typer.Option(None, help="any|missing|undeclared"),
+# ID: 206eca11-fb40-4c24-af72-2c29376638c4
+async def run_guard_drift(
+    root: Path = Path("."),
+    manifest_path: Path | None = None,
+    output: Path | None = None,
+    format: str | None = None,
+    fail_on: str | None = None,
 ) -> None:
     """Compare manifest vs code to detect capability drift.
 
-    Delegates the actual drift analysis to /v1/status/drift?scope=all. The
-    CLI is responsible for formatting and exit-code policy only.
+    Plain-args async helper. Callable from Python without Typer dependence;
+    `guard_drift_cmd` is the Typer binding, and other CLI commands (e.g.
+    `status drift guard`) call this helper directly to avoid OptionInfo
+    leakage when invoking the work from non-Typer call sites.
     """
     _ = manifest_path  # The manifest path is resolved server-side.
     fmt = (format or _DEFAULT_FORMAT).lower()
@@ -72,6 +71,31 @@ async def guard_drift_cmd(
 
     if should_fail(report_dict, fail_policy):
         raise typer.Exit(code=2)
+
+
+@core_command(dangerous=False, requires_context=False)
+# ID: b639850a-7321-4176-9891-dd24678bedb1
+async def guard_drift_cmd(
+    root: Path = typer.Option(Path("."), help="Repository root."),
+    manifest_path: Path | None = typer.Option(
+        None, help="Explicit manifest path (deprecated)."
+    ),
+    output: Path | None = typer.Option(None, help="Path for JSON evidence report."),
+    format: str | None = typer.Option(None, help="json|table|pretty"),
+    fail_on: str | None = typer.Option(None, help="any|missing|undeclared"),
+) -> None:
+    """Compare manifest vs code to detect capability drift.
+
+    Typer binding. Delegates to `run_guard_drift` so the work is also
+    callable from non-Typer call sites without OptionInfo leakage.
+    """
+    await run_guard_drift(
+        root=root,
+        manifest_path=manifest_path,
+        output=output,
+        format=format,
+        fail_on=fail_on,
+    )
 
 
 def _print_pretty_report(report: dict) -> None:

@@ -55,12 +55,12 @@ async def drift_cmd(
     async def run_guard() -> None:
         console.print("[bold]Drift: guard[/bold]")
         try:
-            from cli.commands.guard import guard_drift_cmd
+            from cli.commands.guard import run_guard_drift
         except Exception as exc:
-            logger.debug("status drift: cannot import guard_drift_cmd: %s", exc)
+            logger.debug("status drift: cannot import run_guard_drift: %s", exc)
             _warn_not_wired("guard drift handler not available")
             return
-        await guard_drift_cmd()
+        await run_guard_drift()
 
     # ID: 54d8b8dd-0ea6-4199-bcc3-0b68fb356c79
     async def run_symbol_or_vector(api_scope: str) -> None:

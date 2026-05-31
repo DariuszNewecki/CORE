@@ -133,6 +133,12 @@ class QdrantService:
     # CORE PRIMITIVES (The only places where raw client calls are allowed)
     # ========================================================================
 
+    # ID: ffe0341e-2bf4-4bb0-8cec-e9c2e3c6de8d
+    async def list_collections(self) -> list[str]:
+        """Return names of all collections in the Qdrant instance."""
+        response = await self.client.get_collections()
+        return [c.name for c in response.collections]
+
     # ID: 6e07e45f-5abc-40ac-8a0a-68c2d6a85bf8
     async def upsert_points(
         self, collection_name: str, points: list[qm.PointStruct], wait: bool = True
