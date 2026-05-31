@@ -294,8 +294,19 @@
         "human_review"
       ]
     },
+    "fs_audit_op_class": {
+      "description": "Operation-class vocabulary for the audit-time call-name → op-class taxonomy used by .intent/taxonomies/filesystem_operations.yaml. Read-axis decomposition (read/traverse/parse distinguish what kind of read) with write left as a single class and neutral for non-FS calls. Authority: ADR-077 §2, ADR-080. Not the same vocabulary as fs_operation_class — the two surfaces decompose on different axes for different jobs; see ADR-080. Loader: src/shared/infrastructure/intent/filesystem_operations.py reads this enum's values to validate per-call-entry op_class declarations; values outside this enum are a load-time failure.",
+      "type": "string",
+      "enum": [
+        "read",
+        "traverse",
+        "parse",
+        "write",
+        "neutral"
+      ]
+    },
     "fs_operation_class": {
-      "description": "Operation-class vocabulary used by both .intent/taxonomies/filesystem_operations.yaml (call-name → op-class) and .intent/taxonomies/operational_capabilities.yaml (per-capability fs_profile keys). Same spelling at both surfaces; no pluralization or synonym variants. Authority: ADR-077 + ADR-078. First-materialization: whichever ADR's implementation lands first creates this entry; the second no-ops (per ADR-078 D5 first-materialization clause). Loader: src/shared/infrastructure/intent/operational_capabilities.py reads this enum's values to derive the expected fs_profile key set; drift between the YAML's keys and this enum is a load-time failure.",
+      "description": "Operation-class vocabulary for the write-axis decomposition used by operational_capabilities.yaml per-capability fs_profile keys. Authority: ADR-078. Not the audit-time call-name vocabulary — that lives in fs_audit_op_class (ADR-080), which uses a separate read-axis decomposition for the filesystem_operations.yaml taxonomy declared by ADR-077. The two surfaces' op-class vocabularies are deliberately distinct because they decompose on different axes for different jobs (authorization vs audit completeness). Loader: src/shared/infrastructure/intent/operational_capabilities.py reads this enum's values to derive the expected fs_profile key set; drift between the YAML's keys and this enum is a load-time failure.",
       "type": "string",
       "enum": [
         "read",
