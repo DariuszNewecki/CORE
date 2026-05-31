@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from shared.infrastructure.storage.file_handler import FileHandler
+from body.services.file_service import FileService
 from shared.logger import getLogger
 
 from .models import RepoCensus
@@ -28,7 +28,7 @@ class CensusHistory:
     def __init__(
         self,
         history_dir: Path,
-        file_handler: FileHandler,
+        file_handler: FileService,
         repo_root: Path,
     ):
         """Initialize history manager."""
@@ -54,7 +54,7 @@ class CensusHistory:
             return snapshot_path
 
         rel_path = str(snapshot_path.relative_to(self.repo_root))
-        self.file_handler.write_runtime_text(rel_path, census.model_dump_json(indent=2))
+        self.file_handler.write_file(rel_path, census.model_dump_json(indent=2))
         logger.info("Saved snapshot: %s", snapshot_path)
 
         return snapshot_path

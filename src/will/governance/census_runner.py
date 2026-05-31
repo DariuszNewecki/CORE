@@ -33,8 +33,8 @@ from body.services.cim.baselines import BaselineManager
 from body.services.cim.census_service import CensusService
 from body.services.cim.diff import DiffEngine
 from body.services.cim.history import CensusHistory
+from body.services.file_service import FileService
 from shared.context import CoreContext
-from shared.infrastructure.storage.file_handler import FileHandler
 from shared.logger import getLogger
 from shared.path_resolver import PathResolver
 from shared.workers.base import _sanitize_payload
@@ -142,7 +142,7 @@ async def run_and_persist_census(
     if snapshot:
         try:
             history = CensusHistory(
-                _history_dir(repo_root), FileHandler(str(repo_root)), repo_root
+                _history_dir(repo_root), FileService(repo_root), repo_root
             )
             snapshot_path = history.save_snapshot(census)
             snapshot_file = str(snapshot_path.relative_to(repo_root))
@@ -185,7 +185,7 @@ def create_baseline(
     snapshot is available.
     """
     repo_root = context.git_service.repo_path
-    file_handler = FileHandler(str(repo_root))
+    file_handler = FileService(repo_root)
     manager = BaselineManager(
         _baseline_registry_path(repo_root), file_handler, repo_root
     )
@@ -219,7 +219,7 @@ def create_baseline(
 def list_baselines(context: CoreContext) -> dict:
     """List all named baselines (newest first)."""
     repo_root = context.git_service.repo_path
-    file_handler = FileHandler(str(repo_root))
+    file_handler = FileService(repo_root)
     manager = BaselineManager(
         _baseline_registry_path(repo_root), file_handler, repo_root
     )
@@ -244,7 +244,7 @@ def get_diff(
     loaded from `CensusHistory`.
     """
     repo_root = context.git_service.repo_path
-    file_handler = FileHandler(str(repo_root))
+    file_handler = FileService(repo_root)
     history = CensusHistory(_history_dir(repo_root), file_handler, repo_root)
     latest = history.get_latest_snapshot()
     if latest is None:
