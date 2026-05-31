@@ -67,9 +67,18 @@
           # constitutional artifact surface. Same shape as runtime_validator
           # and ruff_linter above.
           - "src/shared/infrastructure/context/cache.py" # Runtime cache infrastructure
-          # --- AUTONOMOUS CODE: Now enforced (no exclusions) ---
+          # --- ADDED 2026-05-31 (#507 Phase 2 drain — Tier 2 authority-scoped exclusions) ---
+          # Each entry mirrored in mutation_surface.yaml's excludes set.
+          # Per-line rationale; see #507 for the full disposition table.
+          - "src/body/governance/key_management_service.py" # Security-sanctuary: chmod 0600 on private keying material; FileHandler exposes no chmod primitive
+          - "src/shared/action_logger.py" # Bootstrap-tier: module-level singleton instantiated at import; append-mode action audit log; FileHandler has no append surface
+          - "src/shared/infrastructure/storage/integrity_service.py" # Bootstrap-tier (circular): sibling of file_handler.py; SHA256 baseline writer validates governance, cannot depend on it
+          - "src/shared/processors/base_processor.py" # Provisional: constitutional file parser; FileHandler depends on yaml_processor via IntentGuard at construction. REMOVE when dead dump() deleted (#509)
+          - "src/will/test_generation/sandbox.py" # Ephemeral-zone: writes under tempfile.TemporaryDirectory; FileHandler is repo-bound and refuses out-of-repo paths (separate /tmp/ hazard: #508)
+          - "src/cli/resources/intent/sync_vocabulary.py" # Provisional: constitutional vocabulary regenerator writing .intent/META/vocabulary.json; ADR-077 §6 step 3 authority-scoped exception. REMOVE when sanctioned .intent/ write-path lands (#510)
+          # --- AUTONOMOUS CODE: Now enforced (no exclusions for self-healing) ---
           # Self-healing modules MUST route writes through FileHandler
-          # Violations will be detected and must be fixed in P3
+          # (sandbox.py above is test-generation, not self-healing)
 
     # 3. Artifact mutations must be traceable via FileHandler.
     # Advisory — automated detection not feasible for SHOULD-level requirement

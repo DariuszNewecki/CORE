@@ -48,9 +48,12 @@ def run_clustering(
         )
     input_path = Path(input_path)
     output_path = Path(output)
+    if repo_root is None:
+        raise ValueError("repo_root is required")
+    file_handler = FileHandler(str(repo_root))
 
     logger.info("Starting semantic clustering process...")
-    output_path.parent.mkdir(parents=True, exist_ok=True)
+    file_handler.ensure_dir(str(output_path.parent.relative_to(repo_root)))
     logger.info("   -> Loading vectors from %s...", input_path)
     vectors = []
     capability_keys = []
@@ -84,9 +87,6 @@ def run_clustering(
         key: f"domain_{label}"
         for key, label in zip(capability_keys, labels, strict=False)
     }
-    if repo_root is None:
-        raise ValueError("repo_root is required")
-    file_handler = FileHandler(str(repo_root))
     rel_path = str(output_path.relative_to(repo_root))
     file_handler.write_runtime_json(rel_path, proposed_domains)
     logger.info(

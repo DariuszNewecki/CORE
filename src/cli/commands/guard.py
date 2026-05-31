@@ -18,6 +18,7 @@ import typer
 from api.cli import CoreApiClient
 from cli.logic.cli_utils import should_fail
 from cli.utils import core_command
+from shared.infrastructure.storage.file_handler import FileHandler
 
 
 __all__ = ["guard_drift_cmd", "register_guard", "run_guard_drift"]
@@ -61,8 +62,10 @@ async def run_guard_drift(
         raise typer.Exit(code=1) from exc
 
     evidence_path = output or (root / _DEFAULT_EVIDENCE_PATH)
-    evidence_path.parent.mkdir(parents=True, exist_ok=True)
-    evidence_path.write_text(json.dumps(report_dict, indent=2), encoding="utf-8")
+    file_handler = FileHandler(str(root))
+    rel_evidence = str(evidence_path.relative_to(root))
+    file_handler.ensure_dir(str(evidence_path.parent.relative_to(root)))
+    file_handler.write_runtime_json(rel_evidence, report_dict)
 
     if fmt in {"table", "pretty"}:
         _print_pretty_report(report_dict)

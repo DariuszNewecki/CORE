@@ -30,6 +30,15 @@ mappings:
         - "src/shared/path_utils.py" # Path resolution utilities
         - "src/body/services/crate_processing_service.py" # Crate generation infrastructure
         - "src/shared/infrastructure/validation/ruff_linter.py" # Linting infrastructure
+        # --- ADDED 2026-05-31 (#507 Phase 2 drain — Tier 2 authority-scoped exclusions) ---
+        # Each entry mirrored in governance_basics.yaml's excludes set.
+        # Per-line rationale; see #507 for the full disposition table.
+        - "src/body/governance/key_management_service.py" # Security-sanctuary: chmod 0600 on private keying material; FileHandler exposes no chmod primitive
+        - "src/shared/action_logger.py" # Bootstrap-tier: module-level singleton instantiated at import; append-mode action audit log; FileHandler has no append surface
+        - "src/shared/infrastructure/storage/integrity_service.py" # Bootstrap-tier (circular): sibling of file_handler.py; SHA256 baseline writer validates governance, cannot depend on it
+        - "src/shared/processors/base_processor.py" # Provisional: constitutional file parser; FileHandler depends on yaml_processor via IntentGuard at construction. REMOVE when dead dump() deleted (#509)
+        - "src/will/test_generation/sandbox.py" # Ephemeral-zone: writes under tempfile.TemporaryDirectory; FileHandler is repo-bound and refuses out-of-repo paths (separate /tmp/ hazard: #508)
+        - "src/cli/resources/intent/sync_vocabulary.py" # Provisional: constitutional vocabulary regenerator writing .intent/META/vocabulary.json; ADR-077 §6 step 3 authority-scoped exception. REMOVE when sanctioned .intent/ write-path lands (#510)
         - "var/**"
         - "**/__pycache__/**"
         - "tests/**" # Tests may use direct writes for fixtures

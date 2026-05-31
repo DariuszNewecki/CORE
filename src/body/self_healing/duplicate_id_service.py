@@ -33,6 +33,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from shared.action_types import ActionImpact, ActionResult
 from shared.atomic_action import atomic_action
 from shared.infrastructure.database.session_manager import get_session
+from shared.infrastructure.storage.file_handler import FileHandler
 
 # REFACTORED: Removed direct settings import
 from shared.logger import getLogger
@@ -226,6 +227,8 @@ def _build_replacement_plan(
 def _apply_replacements(
     file_path: Path,
     edits: list[tuple[int, str, str]],
+    file_handler: FileHandler,
+    rel_path: str,
 ) -> bool:
     """
     Apply line-level replacements to a single file.
@@ -233,6 +236,8 @@ def _apply_replacements(
     Args:
         file_path: Absolute path to the file.
         edits: List of (line_number, old_content, new_content) tuples.
+        file_handler: Governed mutation surface for the rewrite.
+        rel_path: Repo-relative path matching file_path.
 
     Returns:
         True if file was modified successfully.
@@ -254,8 +259,8 @@ def _apply_replacements(
 
     if modified:
         try:
-            file_path.write_text("".join(lines), encoding="utf-8")
-        except OSError as e:
+            file_handler.write_runtime_text(rel_path, "".join(lines))
+        except (OSError, ValueError) as e:
             logger.error("Could not write %s: %s", file_path, e)
             return False
 
@@ -341,10 +346,11 @@ async def resolve_duplicate_ids(
         return files_affected
 
     # 5. Apply replacements
+    file_handler = FileHandler(str(context.git_service.repo_path))
     modified_count = 0
     for file_path, edits in file_edits.items():
         rel_path = file_path.relative_to(context.git_service.repo_path)
-        if _apply_replacements(file_path, edits):
+        if _apply_replacements(file_path, edits, file_handler, str(rel_path)):
             modified_count += 1
             logger.info("  ✏️  Fixed %d IDs in %s", len(edits), rel_path)
         else:

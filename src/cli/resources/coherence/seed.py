@@ -22,6 +22,7 @@ from rich.console import Console
 from cli.utils import core_command
 from shared.config import settings
 from shared.context import CoreContext
+from shared.infrastructure.storage.file_handler import FileHandler
 
 
 logger = logging.getLogger(__name__)
@@ -203,8 +204,14 @@ async def export_command(
         collection_name=claims_service.collection_name,
     )
 
-    output.parent.mkdir(parents=True, exist_ok=True)
+    repo_root = context.git_service.repo_path
+    file_handler = FileHandler(str(repo_root))
+    file_handler.ensure_dir(str(output.parent.relative_to(repo_root)))
     written = 0
+    # NOTE: streaming `output.open("w")` below is the #506 variable-receiver
+    # gap (silent in current taxonomy). The mkdir above is routed through
+    # FileHandler so the check no longer fires; the streaming write is
+    # enumerated in #506, not laundered as sanctuary here.
     with output.open("w", encoding="utf-8") as fh:
         for record in records:
             fh.write(

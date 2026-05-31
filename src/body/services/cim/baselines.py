@@ -9,6 +9,7 @@ from __future__ import annotations
 from datetime import datetime
 from pathlib import Path
 
+from shared.infrastructure.storage.file_handler import FileHandler
 from shared.logger import getLogger
 
 from .models import BaselineRegistry, CensusBaseline
@@ -25,10 +26,19 @@ class BaselineManager:
     Baselines are named references to specific snapshots.
     """
 
-    def __init__(self, registry_path: Path):
+    def __init__(
+        self,
+        registry_path: Path,
+        file_handler: FileHandler,
+        repo_root: Path,
+    ):
         """Initialize baseline manager."""
         self.registry_path = registry_path
-        self.registry_path.parent.mkdir(parents=True, exist_ok=True)
+        self.file_handler = file_handler
+        self.repo_root = repo_root
+        self.file_handler.ensure_dir(
+            str(self.registry_path.parent.relative_to(self.repo_root))
+        )
 
         if self.registry_path.exists():
             content = self.registry_path.read_text(encoding="utf-8")
@@ -38,8 +48,9 @@ class BaselineManager:
 
     def _save(self):
         """Persist registry to disk."""
-        self.registry_path.write_text(
-            self.registry.model_dump_json(indent=2), encoding="utf-8"
+        rel_path = str(self.registry_path.relative_to(self.repo_root))
+        self.file_handler.write_runtime_text(
+            rel_path, self.registry.model_dump_json(indent=2)
         )
 
     # ID: cdc3462e-f8b5-4ac6-9dcb-53f15de55528

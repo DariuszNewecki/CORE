@@ -84,7 +84,7 @@ class RemediationEvidenceWriter:
         remediation_dir = (
             PathResolver.from_repo(self.repo_root).reports_dir / "remediation"
         )
-        remediation_dir.mkdir(parents=True, exist_ok=True)
+        self.file_handler.ensure_dir(str(remediation_dir.relative_to(self.repo_root)))
 
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         evidence_path = remediation_dir / f"remediation_{timestamp}.json"

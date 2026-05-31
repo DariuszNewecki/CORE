@@ -7,10 +7,10 @@ Produces a detailed mapping of Constitutional Law to physical Enforcement Engine
 
 from __future__ import annotations
 
-import json
 from pathlib import Path
 from typing import Any
 
+from shared.infrastructure.storage.file_handler import FileHandler
 from shared.logger import getLogger
 from shared.path_resolver import PathResolver
 
@@ -29,7 +29,8 @@ class GovernanceTraceabilityService:
     def __init__(self, repo_root: Path):
         self.repo_root = repo_root
         self.report_dir = PathResolver.from_repo(repo_root).reports_dir / "governance"
-        self.report_dir.mkdir(parents=True, exist_ok=True)
+        self._fh = FileHandler(str(repo_root))
+        self._fh.ensure_dir(str(self.report_dir.relative_to(repo_root)))
 
     # ID: d5e39414-301c-4f9a-8381-52caea6bd50e
     def generate_traceability_report(self) -> dict[str, Any]:
@@ -71,6 +72,7 @@ class GovernanceTraceabilityService:
 
         # Persist as a formal evidence artifact
         output_path = self.report_dir / "traceability_matrix.json"
-        output_path.write_text(json.dumps(report, indent=2), encoding="utf-8")
+        rel_path = str(output_path.relative_to(self.repo_root))
+        self._fh.write_runtime_json(rel_path, report)
 
         return report

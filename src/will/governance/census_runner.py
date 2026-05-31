@@ -34,6 +34,7 @@ from body.services.cim.census_service import CensusService
 from body.services.cim.diff import DiffEngine
 from body.services.cim.history import CensusHistory
 from shared.context import CoreContext
+from shared.infrastructure.storage.file_handler import FileHandler
 from shared.logger import getLogger
 from shared.path_resolver import PathResolver
 from shared.workers.base import _sanitize_payload
@@ -140,7 +141,9 @@ async def run_and_persist_census(
     snapshot_file: str | None = None
     if snapshot:
         try:
-            history = CensusHistory(_history_dir(repo_root))
+            history = CensusHistory(
+                _history_dir(repo_root), FileHandler(str(repo_root)), repo_root
+            )
             snapshot_path = history.save_snapshot(census)
             snapshot_file = str(snapshot_path.relative_to(repo_root))
         except Exception as exc:
@@ -182,10 +185,13 @@ def create_baseline(
     snapshot is available.
     """
     repo_root = context.git_service.repo_path
-    manager = BaselineManager(_baseline_registry_path(repo_root))
+    file_handler = FileHandler(str(repo_root))
+    manager = BaselineManager(
+        _baseline_registry_path(repo_root), file_handler, repo_root
+    )
 
     if snapshot_file is None:
-        history = CensusHistory(_history_dir(repo_root))
+        history = CensusHistory(_history_dir(repo_root), file_handler, repo_root)
         latest = history.get_latest_snapshot()
         if latest is None:
             raise ValueError(
@@ -213,7 +219,10 @@ def create_baseline(
 def list_baselines(context: CoreContext) -> dict:
     """List all named baselines (newest first)."""
     repo_root = context.git_service.repo_path
-    manager = BaselineManager(_baseline_registry_path(repo_root))
+    file_handler = FileHandler(str(repo_root))
+    manager = BaselineManager(
+        _baseline_registry_path(repo_root), file_handler, repo_root
+    )
     baselines = manager.list_baselines()
     return {
         "count": len(baselines),
@@ -235,7 +244,8 @@ def get_diff(
     loaded from `CensusHistory`.
     """
     repo_root = context.git_service.repo_path
-    history = CensusHistory(_history_dir(repo_root))
+    file_handler = FileHandler(str(repo_root))
+    history = CensusHistory(_history_dir(repo_root), file_handler, repo_root)
     latest = history.get_latest_snapshot()
     if latest is None:
         return {"available": False, "error": "No census snapshot available."}
@@ -248,7 +258,9 @@ def get_diff(
                 "error": "Only one census snapshot exists; nothing to diff.",
             }
     else:
-        manager = BaselineManager(_baseline_registry_path(repo_root))
+        manager = BaselineManager(
+            _baseline_registry_path(repo_root), file_handler, repo_root
+        )
         record = manager.get_baseline(baseline)
         if record is None:
             return {

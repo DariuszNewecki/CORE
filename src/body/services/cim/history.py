@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from shared.infrastructure.storage.file_handler import FileHandler
 from shared.logger import getLogger
 
 from .models import RepoCensus
@@ -24,10 +25,17 @@ class CensusHistory:
     Append-only storage with named baselines.
     """
 
-    def __init__(self, history_dir: Path):
+    def __init__(
+        self,
+        history_dir: Path,
+        file_handler: FileHandler,
+        repo_root: Path,
+    ):
         """Initialize history manager."""
         self.history_dir = history_dir
-        self.history_dir.mkdir(parents=True, exist_ok=True)
+        self.file_handler = file_handler
+        self.repo_root = repo_root
+        self.file_handler.ensure_dir(str(self.history_dir.relative_to(self.repo_root)))
 
     # ID: 04b505ee-35c4-4747-88a8-9c83ea9cd8f9
     def save_snapshot(self, census: RepoCensus) -> Path:
@@ -45,7 +53,8 @@ class CensusHistory:
             logger.warning("Snapshot already exists: %s", snapshot_path)
             return snapshot_path
 
-        snapshot_path.write_text(census.model_dump_json(indent=2), encoding="utf-8")
+        rel_path = str(snapshot_path.relative_to(self.repo_root))
+        self.file_handler.write_runtime_text(rel_path, census.model_dump_json(indent=2))
         logger.info("Saved snapshot: %s", snapshot_path)
 
         return snapshot_path
