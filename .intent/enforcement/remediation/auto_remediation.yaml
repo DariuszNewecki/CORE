@@ -800,6 +800,23 @@ mappings:
       PENDING: AST rewrite requiring context on surrounding logic.
     status: PENDING
 
+  # Sibling rule to governance.mutation_surface.filehandler_required.
+  # Both rules use the no_direct_writes check; under Phase 2 of the
+  # #489 phased re-plan, the check switches to taxonomy-driven derivation
+  # and both rules will surface the same finding set. Mapping added
+  # 2026-05-31 in Phase 1 (taxonomy-inert; this rule does not currently
+  # fire under the OLD check, so the mapping is dormant). Closes a
+  # pre-existing #418 invariant gap — the rule was emitting blocking
+  # findings on revival flows without a registered remediator.
+  governance.logic_mutation.governed:
+    action: fix.layer_violation
+    confidence: 0.40
+    risk: high
+    description: >
+      PENDING: AST rewrite requiring context on surrounding logic.
+      Same remediation as governance.mutation_surface.filehandler_required.
+    status: PENDING
+
   data.contracts.action_definition_conforms:
     action: fix.contract_conformance
     confidence: 0.40

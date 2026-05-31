@@ -48,11 +48,26 @@ description: >
 operations:
 
   # ---------------------------------------------------------------------------
-  # pathlib.Path — every public method, leaf match.
+  # pathlib.Path — every public method classified.
   # ADR-077 §3: "every public method must be classified. A method present in
   # the runtime but absent from the taxonomy is a finding." The completeness
   # check enumerates pathlib.Path public callables via inspect.getmembers and
   # set-differences against this block; any gap fires manual_review.
+  #
+  # Per-entry match: leaf by convention. Three exceptions — `replace`,
+  # `rename`, and `open` — are declared qualified to avoid colliding with
+  # high-volume non-FS attribute names. Leaf-matching `replace` would fire
+  # on every `str.replace(...)` (~140 src/ sites); leaf-matching `open`
+  # would fire on `tarfile.open(mode="w:gz")`, `gzip.open(...)`, and any
+  # other module's `.open()` method. Detection of the write semantics on
+  # these names runs through the watched-block entries (`os.replace`,
+  # `os.rename`, builtin `open`); the pathlib qualified entries below
+  # exist for §3 completeness compliance but never resolve at detection
+  # time (`Path("x").replace(...)` and `Path("x").open("w")` have Call
+  # receivers, unresolvable through `resolve_qualified_name` — the
+  # detection routes through the watched-block bare `open` and `os.*`
+  # entries instead). The variable-receiver bypass (`p.replace(...)`,
+  # `p.open("w")`) is a pre-existing, accepted gap — see #506 follow-up.
   # ---------------------------------------------------------------------------
   pathlib_path:
     absolute:          { op_class: neutral,  match: leaf }
@@ -84,14 +99,14 @@ operations:
     lstat:             { op_class: read,     match: leaf }
     match:             { op_class: neutral,  match: leaf }
     mkdir:             { op_class: write,    match: leaf }
-    open:              { op_class: write,    match: leaf,      predicate: write_mode }
+    open:              { op_class: write,    match: qualified, predicate: write_mode }
     owner:             { op_class: read,     match: leaf }
     read_bytes:        { op_class: read,     match: leaf }
     read_text:         { op_class: read,     match: leaf }
     readlink:          { op_class: read,     match: leaf }
     relative_to:       { op_class: neutral,  match: leaf }
-    rename:            { op_class: write,    match: leaf }
-    replace:           { op_class: write,    match: leaf }
+    rename:            { op_class: write,    match: qualified }
+    replace:           { op_class: write,    match: qualified }
     resolve:           { op_class: read,     match: leaf }
     rglob:             { op_class: traverse, match: leaf }
     rmdir:             { op_class: write,    match: leaf }
