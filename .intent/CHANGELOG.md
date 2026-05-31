@@ -1507,6 +1507,179 @@ Files: `.specs/decisions/ADR-076-per-check-type-context-level-dispatch.md`.
 
 ---
 
+## ADR-077 — 2026-05-30
+
+Config-driven protected-namespace access with an introspective
+filesystem-operation taxonomy. The trust claim that operational CORE
+cannot mutate its own constitution was enforced only narrowly: IntentGuard
+blocks `.intent/` writes as a tier-1 invariant but only for writes routed
+through FileHandler; the two ast_gate backstops split the axes — one
+namespace-aware but write-blind, the other write-aware but
+namespace-blind — and neither was both at once. Three live bypasses
+reached protected namespaces directly: variable-receiver
+`write_text`/`write_bytes`, uncovered `mkdir`/`makedirs`/`touch`/
+`symlink`/`link`/`chmod`, and bare-import forms of `os.{replace,rename,
+remove,unlink,rmdir}`. Protected-namespace literals and operation
+call-sets were hardcoded `ClassVar` frozensets, invisible to governance.
+`.specs/` had no equivalent protection at all.
+
+The ADR moves the access policy into config and the operation vocabulary
+into a governed taxonomy. `.intent/taxonomies/filesystem_operations.yaml`
+becomes the canonical call-name → op-class mapping for the audit-time
+backstop; per-entry match mode (`leaf` vs `qualified`) closes the
+variable-receiver and bare-import bypasses without false-positiving on
+collision-prone names (`str.replace` etc.). An introspective completeness
+check in `artifact_gate` guards the taxonomy against `pathlib.Path` drift
+and a curated cross-module watched set — fail-closed against the live
+stdlib. The enforcement rollout is two dials on one policy phased across
+five steps: land the taxonomy, land the completeness check, promote the
+blocking dial for protected markers, keep the broad-path advisory dial
+advisory until the gateway's read methods exist, then converge the
+~340-site migration under the advisory perimeter.
+
+Pre-existing gaps recorded honestly rather than closed: variable-receiver
+`p.replace(...)` / `p.rename(...)` / `p.open(mode)` remain detection-inert
+because leaf-matching `replace`/`rename`/`open` would collide with
+`str.replace`, `tarfile.open`, etc. (~143 src/ collision sites). Tracked
+under #506 (Phase 2 honesty addendum) and the §6 step 3 plan.
+
+Grounded in `papers/CORE-Enforcement-Completeness.md` (runtime↔audit
+complement and completeness-against-runtime-reality principle) and
+`papers/CORE-IntentGuard.md` (the runtime Gate whose reach gap motivates
+the audit-time check). Closes #489 and #507 at land.
+
+Files:
+`.specs/decisions/ADR-077-protected-namespace-access.md`,
+`.intent/taxonomies/filesystem_operations.yaml`,
+`.intent/enforcement/mappings/architecture/governance_basics.yaml`,
+`.intent/enforcement/mappings/architecture/mutation_surface.yaml`,
+`src/shared/infrastructure/intent/filesystem_operations.py`,
+`src/mind/logic/engines/ast_gate/checks/purity_checks.py`,
+`src/mind/logic/engines/ast_gate/engine.py`,
+`src/mind/logic/engines/artifact_gate.py`.
+Commits 6a7f6965 (steps 1+2), 17173680 (Phase 1 prep), 047a3165 (drain),
+4a1b867f (boundary fix), bf3521aa (Phase 2 — step 3 convergence).
+
+---
+
+## ADR-078 — 2026-05-30
+
+Operational-Capability Taxonomy Schema. Closes bullet 2 of the
+Capability-Scoped Filesystem Authority paper's §9 deferral set: the
+data-model schema for `.intent/taxonomies/operational_capabilities.yaml`,
+which until this ADR could not become governance because no stable schema
+existed for it to land on. The forcing inventory enumerated the live
+`@atomic_action` surface across nine clusters but self-declared as
+"planning document, NOT governance"; this ADR provides the schema that
+lets each capability declare a per-capability `fs_profile` of allowed
+op-classes plus its risk classification, identity, and chokepoint
+primitive binding.
+
+Four pre-existing patterns constrain the choice space: the
+`.intent/taxonomies/` precedent (ADR-068, fail-closed Python loader, no
+META schema); the operation-class vocabulary declared by ADR-077;
+`.intent/META/enums.json` as the canonical home for cross-document closed
+vocabularies; and `.intent/enforcement/config/action_risk.yaml` as the
+existing source of truth for per-action risk. The schema honours all
+four: the loader is the sole sanctioned reader, the `fs_profile` keys
+reference op-classes from `filesystem_operations.yaml`, the enum is
+binding-validated against `enums.json`, and the risk field cross-checks
+against `action_risk.yaml`. Structural deviation raises a typed
+`OperationalCapabilityTaxonomyError`.
+
+The ADR establishes a first-materialization clause for shared enums
+(D5): whichever sibling ADR's implementation lands first creates the
+enum entry in `enums.json`; the second no-ops. This clause was exercised
+and refined by ADR-080.
+
+Grounded in `papers/CORE-Capability-Scoped-Filesystem-Authority.md` §9
+bullet 2 and `papers/CORE-Cognitive-Role-Capability-Resource-Taxonomy.md`
+(parent framework for `.intent/taxonomies/`).
+
+Files:
+`.specs/decisions/ADR-078-operational-capability-taxonomy-schema.md`,
+`.intent/taxonomies/operational_capabilities.yaml`,
+`src/shared/infrastructure/intent/operational_capabilities.py`,
+`.intent/META/enums.json`.
+
+---
+
+## ADR-079 — 2026-05-30
+
+Chokepoint Implementation for Capability-Scoped Filesystem Authority.
+Closes bullets 5 and 6 of the Capability-Scoped Filesystem Authority
+paper's §9: the chokepoint's identity-propagation implementation and the
+migration path from today's `scope.excludes`-based perimeter to
+capability-keyed authorization. The runtime chokepoint becomes capability
+tier-aware: each filesystem mutation transaction carries the calling
+capability's identity through `FileHandler` to `IntentGuard`, which
+authorizes (or refuses) against the operational-capability taxonomy's
+per-capability `fs_profile` declarations.
+
+Two-stage rollout. Stage 1 (advisory): the capability tier emits
+log-only `would-deny` lines at the existing tier-1 chokepoint; raises
+remain governed by the existing `scope.excludes` perimeter, so behaviour
+is unchanged but every mismatched transaction is observable. Stage 2
+(phantom resolution): the inventory contract is enforced — every
+capability declared in `operational_capabilities.yaml` must resolve to a
+live `@atomic_action` registration, and every live `@atomic_action` must
+have a taxonomy entry. Drift between the two surfaces fails the
+introspective completeness check at engine startup.
+
+Three items remain explicitly deferred to their own ADRs: the mode-flag
+startup mechanism and its provenance guarantees (#492), the
+governor-token machinery for development-mode privileged writes, and
+the full operational migration execution plan beyond the framing in D10.
+
+Grounded in `papers/CORE-Capability-Scoped-Filesystem-Authority.md` §§4–7
+(chokepoint, capability-scoped least authority, mode dimension, identity
+at the chokepoint). Closes #495 (operational_capabilities phantoms) at
+stage 2 land.
+
+Files:
+`.specs/decisions/ADR-079-chokepoint-implementation-for-capability-scoped-filesystem-authority.md`,
+`src/shared/infrastructure/storage/file_handler.py`,
+`src/body/governance/intent_guard.py`,
+`src/shared/infrastructure/intent/operational_capabilities.py`.
+
+---
+
+## ADR-080 — 2026-05-31
+
+Filesystem-operation-class vocabulary split. The original
+`fs_operation_class` enum in `.intent/META/enums.json` conflated two
+distinct meanings under one spelling: a write-axis vocabulary
+(`[read, create, modify, delete]`) consumed by
+`operational_capabilities.yaml`'s `fs_profile`, and a read/traverse-axis
+vocabulary needed by `filesystem_operations.yaml`'s call-name
+classification (`[read, traverse, parse, write, neutral]`). Both
+surfaces would have used the same enum key with different values —
+violating `papers/CORE-Vocabulary.md`'s discipline that one spelling
+must carry one meaning.
+
+The ADR splits the enum along the meaning boundary. `fs_operation_class`
+keeps its existing `[read, create, modify, delete]` values for the
+capability/write-axis surface. A new `fs_audit_op_class` enum carries
+`[read, traverse, parse, write, neutral]` for the audit/read-axis
+surface. Both are declared in `.intent/META/enums.json`; the loaders for
+the two consumer taxonomies each cross-reference exactly one of them.
+ADR-078's first-materialization clause is preserved and now applies
+per-enum rather than per-spelling.
+
+Grounded in `papers/CORE-Vocabulary.md` (one term, one definition, one
+spelling — and its corollary that one spelling per meaning is the same
+discipline). Unblocks ADR-077 §6 step 1 (the audit-side taxonomy could
+not bind to a meaningful enum until the split landed) and transitively
+unblocks #489.
+
+Files:
+`.specs/decisions/ADR-080-fs-op-class-vocabulary-split.md`,
+`.intent/META/enums.json`.
+Commits df6d95ca (Proposed), 3499d489 (Accepted), 3e8eefc0
+(materialization).
+
+---
+
 ## Notes
 
 * This changelog intentionally avoids implementation detail
