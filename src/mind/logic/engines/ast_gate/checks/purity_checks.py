@@ -16,8 +16,6 @@ import ast
 from pathlib import Path
 from typing import ClassVar
 
-from shared.infrastructure.intent.filesystem_operations import FsOperationTaxonomy
-
 from ..base import ASTHelpers
 
 
@@ -251,72 +249,53 @@ class PurityChecks:
     @staticmethod
     # ID: b7d320ba-ce8b-4274-8576-a254eeb58bd0
     def check_no_direct_writes(
-        tree: ast.AST,
-        taxonomy: FsOperationTaxonomy,
+        tree: ast.AST, forbidden_additional: list[str] | None = None
     ) -> list[str]:
         """Enforces the 'Governed Mutation Surface' by blocking raw filesystem writes.
 
-        Derives the forbidden set from ``taxonomy.all_entries`` filtered by
-        ``op_class == "write"``. Match mode is read per-entry from the
-        taxonomy: ``leaf`` matches ``n.func.attr`` (catches the
-        variable-receiver form, e.g. ``p.write_text()`` where ``p`` is a
-        Path); ``qualified`` matches the dotted form recovered via
-        ``ASTHelpers.resolve_qualified_name`` (collision-safe for ambiguous
-        attribute names like ``replace`` and ``rename`` which would
-        otherwise fire on ``str.replace`` and similar). The ``write_mode``
-        predicate, when declared, filters ``open()`` to write/append modes
-        via ``_is_write_mode``.
+        Baseline blocks Path.write_text(), Path.write_bytes(), and open() in
+        write/append modes (full_attr_name match, so caught only when the
+        receiver is a Call — e.g. Path('x').write_text() — not when it is a
+        variable). Plus a method-leaf match for `unlink` and `rmdir` that
+        catches both the Call-receiver form AND the variable-receiver form
+        (target.unlink(), split_result.original_path.unlink()), since pathlib
+        deletion method names are unambiguous enough that leaf matching does
+        not produce realistic false positives. This closes the deletion gap
+        that motivated ADR-071 D2.2 / #451: an atomic action calling
+        target.unlink() would succeed in the worktree sandbox but silently
+        fail to propagate to the main tree.
 
-        Star imports and dynamic imports remain out of reach (#488). The
-        variable-receiver bypass for the qualified-only leaves
-        (``p.replace(...)``, ``p.rename(...)``) is a pre-existing,
-        deliberately-accepted gap — leaf-match would collide with
-        ``str.replace`` (143 src/ sites); see #489 migration trap.
-
-        ADR-077 §6 step 3 convergence (#489) — replaces the previous
-        hardcoded baseline + per-mapping ``forbidden_additional`` shape.
+        The optional `forbidden_additional` parameter lets mappings extend
+        the list with fully-qualified names (e.g. 'os.replace',
+        'shutil.copyfile') via .intent/ without touching src/. Matched
+        against the qualified form recovered via
+        ASTHelpers.resolve_qualified_name, so both the dotted form
+        ('os.replace(...)') and the bare-import form ('from os import
+        replace; replace(...)') are detected. Star imports and dynamic
+        imports remain out of reach (#488).
         """
-        write_entries = [e for e in taxonomy.all_entries if e.op_class == "write"]
-        leaf_entries = {e.name: e for e in write_entries if e.match == "leaf"}
-        # Qualified-match detection is sourced from the watched block only.
-        # pathlib_path qualified entries (`replace`, `rename`) exist for §3
-        # completeness compliance; their bare leaf names would otherwise
-        # match unrelated calls like `text.replace(...)` via
-        # full_attr_name's fallback to `node.attr` for unresolvable value
-        # chains. See #489 migration trap.
-        qualified_entries = {
-            e.name: e
-            for e in write_entries
-            if e.match == "qualified" and e.namespace == "watched"
-        }
-
+        violations = []
+        additional_set = {n.strip() for n in (forbidden_additional or []) if n.strip()}
+        leaf_deletion_methods = ("unlink", "rmdir")
         alias_map = ASTHelpers.build_import_alias_map(tree)
-        violations: list[str] = []
-
         for n in ast.walk(tree):
-            if not isinstance(n, ast.Call):
-                continue
-
-            attr_leaf = n.func.attr if isinstance(n.func, ast.Attribute) else None
-            qualified = ASTHelpers.resolve_qualified_name(n.func, alias_map)
-
-            candidates: list[tuple[str, str]] = []
-            if attr_leaf and attr_leaf in leaf_entries:
-                candidates.append((leaf_entries[attr_leaf].predicate or "", attr_leaf))
-            if qualified and qualified in qualified_entries:
-                candidates.append(
-                    (qualified_entries[qualified].predicate or "", qualified)
+            if isinstance(n, ast.Call):
+                name = ASTHelpers.full_attr_name(n.func)
+                qualified = ASTHelpers.resolve_qualified_name(n.func, alias_map)
+                attr_leaf = n.func.attr if isinstance(n.func, ast.Attribute) else None
+                baseline_match = (
+                    name in ("write_text", "write_bytes")
+                    or attr_leaf in leaf_deletion_methods
+                    or (name == "open" and _is_write_mode(n))
                 )
-
-            for predicate, display in candidates:
-                if predicate == "write_mode" and not _is_write_mode(n):
-                    continue
-                violations.append(
-                    f"Direct write detected: '{display}' "
-                    f"(line {ASTHelpers.lineno(n)}). Use FileHandler."
-                )
-                break
-
+                additional_match = qualified is not None and qualified in additional_set
+                if baseline_match or additional_match:
+                    display = (
+                        qualified if additional_match else (name or attr_leaf)
+                    ) or "<unknown>"
+                    violations.append(
+                        f"Direct write detected: '{display}' (line {ASTHelpers.lineno(n)}). Use FileHandler."
+                    )
         return violations
 
     @staticmethod

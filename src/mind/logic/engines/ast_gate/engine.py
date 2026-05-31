@@ -22,10 +22,6 @@ from mind.logic.engines.ast_gate.checks.import_boundary import ImportBoundaryChe
 from mind.logic.engines.ast_gate.checks.intent_access_check import IntentAccessCheck
 from mind.logic.engines.ast_gate.checks.modularity_checks import ModularityChecker
 from mind.logic.engines.base import BaseEngine, EngineResult
-from shared.infrastructure.intent.filesystem_operations import (
-    FsOperationTaxonomy,
-    load_filesystem_operations,
-)
 from shared.path_resolver import PathResolver
 
 
@@ -37,22 +33,6 @@ class ASTGateEngine(BaseEngine):
         self._paths = path_resolver
         self._capability_checks = CapabilityChecks(path_resolver)
         self._modularity_checker = ModularityChecker()
-        self._fs_taxonomy: FsOperationTaxonomy | None = None
-
-    @property
-    # ID: a8436363-71f5-4ae5-b698-cdc1593cc6c8
-    def fs_taxonomy(self) -> FsOperationTaxonomy:
-        """Lazily-loaded filesystem-operation taxonomy (ADR-077 §6 step 3, #489).
-
-        Sole consumer point for the taxonomy inside the AST gate. Fail-closed:
-        a loader error surfaces as an engine-load failure on first audit
-        cycle that exercises a taxonomy-reading check (currently
-        ``no_direct_writes``). Cached after first load — the taxonomy is
-        constitutional and does not change at runtime.
-        """
-        if self._fs_taxonomy is None:
-            self._fs_taxonomy = load_filesystem_operations()
-        return self._fs_taxonomy
 
     _SUPPORTED_CHECK_TYPES: ClassVar[frozenset[str]] = frozenset(
         {
@@ -160,7 +140,7 @@ class ASTGateEngine(BaseEngine):
             violations.extend(
                 PurityChecks.check_no_direct_writes(
                     tree,
-                    taxonomy=self.fs_taxonomy,
+                    forbidden_additional=params.get("forbidden_additional", []),
                 )
             )
 

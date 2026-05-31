@@ -800,25 +800,6 @@ mappings:
       PENDING: AST rewrite requiring context on surrounding logic.
     status: PENDING
 
-  # Sibling rule to governance.mutation_surface.filehandler_required.
-  # Both rules use the no_direct_writes check and surface the same
-  # findings (a write outside FileHandler fires on both). Mapping
-  # added 2026-05-31 as part of #489 / ADR-077 §6 step 3 — the taxonomy
-  # migration surfaced 22 additional findings on this rule, exposing a
-  # pre-existing #418 invariant gap (the check was firing on builtin
-  # open()/os.replace/etc. before the migration, but the rule had no
-  # auto_remediation entry). Both findings are loop-visible-as-PENDING
-  # under fix.layer_violation; promoting either rule's status to ACTIVE
-  # is a single-rule decision.
-  governance.logic_mutation.governed:
-    action: fix.layer_violation
-    confidence: 0.40
-    risk: high
-    description: >
-      PENDING: AST rewrite requiring context on surrounding logic.
-      Same remediation as governance.mutation_surface.filehandler_required.
-    status: PENDING
-
   data.contracts.action_definition_conforms:
     action: fix.contract_conformance
     confidence: 0.40

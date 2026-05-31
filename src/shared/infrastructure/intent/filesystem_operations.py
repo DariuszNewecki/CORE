@@ -150,7 +150,7 @@ def load_filesystem_operations(
     pathlib_entries = _parse_block(
         block_name="pathlib_path",
         raw=operations_block["pathlib_path"],
-        expected_match=None,
+        expected_match="leaf",
         fs_audit_op_classes=fs_audit_op_classes,
     )
     watched_entries = _parse_block(
@@ -242,14 +242,11 @@ def _parse_block(
 ) -> frozenset[FsOperationEntry]:
     """Validate one operations sub-block and assemble its frozenset of entries.
 
-    ``expected_match`` constrains the match mode for every entry in this
-    block. ``None`` permits either valid mode on a per-entry basis — both
-    the watched block (where ADR-077 §2 specifies qualified for the
-    module-rooted families that motivate it, but leaf would be schema-valid
-    if ever needed) and the pathlib_path block (where the convention is
-    leaf, but collision-prone attribute names like ``replace`` and
-    ``rename`` are declared qualified to avoid firing on ``str.replace``
-    and similar collisions — see #489 / ADR-077 §6 step 3).
+    ``expected_match`` constrains the match mode for entries in this block
+    (e.g. pathlib_path requires ``leaf`` per ADR-077 §2). ``None`` permits
+    either valid mode — used for the watched block, where leaf entries
+    would be theoretically permissible but ADR-077 §2 specifies qualified
+    for the module-rooted families that motivate it.
     """
     if not isinstance(raw, dict):
         raise FilesystemOperationTaxonomyError(
