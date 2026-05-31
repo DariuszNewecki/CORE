@@ -701,8 +701,7 @@ def _check_fs_operations_completeness(repo_root: Path, check: str) -> EngineResu
         return EngineResult(
             ok=False,
             message=(
-                f"artifact_gate[{check}]: filesystem-operation taxonomy "
-                "failed to load."
+                f"artifact_gate[{check}]: filesystem-operation taxonomy failed to load."
             ),
             violations=[f"Taxonomy load error: {exc}"],
             engine_id=_ENGINE_ID,
