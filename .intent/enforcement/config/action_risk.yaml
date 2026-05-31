@@ -39,7 +39,6 @@ actions:
   file.edit: moderate
   file.read: safe
   file.tag_metadata: safe
-  fix.atomic: moderate
   fix.atomic_actions: moderate
   fix.body_ui: dangerous
   fix.capability_tagging: moderate

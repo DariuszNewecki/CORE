@@ -129,17 +129,6 @@ capabilities:
       modify: []
       delete: []
 
-  fix.atomic:
-    description: Atomic-action conformance fixer — signature, decorator order, return type alignment per .intent/rules/architecture/atomic_actions.json.
-    risk: moderate
-    fs_profile:
-      read:
-        - {path_pattern: ".intent/rules/architecture/atomic_actions.json", modes: [dev, live]}
-      create: []
-      modify:
-        - {path_pattern: "src/**/*.py", modes: [dev, live]}
-      delete: []
-
   fix.atomic_actions:
     description: "@atomic_action decorator placement and presence fixer per .intent/rules/architecture/atomic_actions.json."
     risk: moderate
@@ -333,42 +322,6 @@ capabilities:
 
   remediate.cognitive_role:
     description: Returns finding-shape for the calling Worker to post; no direct FS or DB side effects.
-    risk: moderate
-    fs_profile:
-      read: []
-      create: []
-      modify: []
-      delete: []
-
-  secrets.delete:
-    description: DB-only secret deletion from encrypted-secrets store.
-    risk: dangerous
-    fs_profile:
-      read: []
-      create: []
-      modify: []
-      delete: []
-
-  secrets.get:
-    description: DB-only secret retrieval; private key read from var/keys/ at service init only (out-of-band, not via this action).
-    risk: safe
-    fs_profile:
-      read: []
-      create: []
-      modify: []
-      delete: []
-
-  secrets.list:
-    description: DB-only secret-key enumeration.
-    risk: safe
-    fs_profile:
-      read: []
-      create: []
-      modify: []
-      delete: []
-
-  secrets.set:
-    description: DB-only encrypted-secret storage; encryption key managed out-of-band via var/keys/.
     risk: moderate
     fs_profile:
       read: []

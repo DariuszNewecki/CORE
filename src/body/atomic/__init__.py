@@ -21,7 +21,9 @@ from body.atomic import (
     metadata_ops,
     modularity_fix,
     proposal_lifecycle_actions,
+    remediate_cognitive_role,
     sync_actions,
+    test_actions,
 )
 from body.atomic.build_tests_action import action_build_tests
 from body.atomic.check_actions import action_check_imports

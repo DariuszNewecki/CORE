@@ -22,7 +22,6 @@ from mind.governance.auditor import ConstitutionalAuditor
 from shared.action_types import ActionImpact, ActionResult
 from shared.atomic_action import atomic_action
 from shared.context import CoreContext
-from shared.infrastructure.validation.test_runner import run_tests
 from shared.models import AuditFinding
 from shared.utils.subprocess_utils import run_poetry_command
 
@@ -63,7 +62,7 @@ def lint() -> None:
     policies=["atomic_actions"],
 )
 # ID: 5963ab12-7398-4506-a257-0836ec585a88
-async def test_system(**kwargs) -> ActionResult:
+async def test_system(core_context: CoreContext, **kwargs) -> ActionResult:
     """
     Run the project test suite via the canonical async test runner.
 
@@ -71,7 +70,9 @@ async def test_system(**kwargs) -> ActionResult:
     1. Recorded in core.action_results (Database SSOT)
     2. Available as structured JSON evidence in var/reports/
     3. Interpretable by CORE agents and governance engines.
+
+    Dispatches through ActionExecutor so the inner ``test.execute`` action
+    runs with ``_executor_token == "test.execute"`` (ADR-079 identity
+    propagation) rather than the enclosing ``test.system`` token.
     """
-    # We delegate to the infrastructure layer to ensure the "single execution contract"
-    # is maintained across CLI and autonomous tasks.
-    return await run_tests()
+    return await core_context.action_executor.execute("test.execute")

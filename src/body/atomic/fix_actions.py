@@ -406,7 +406,7 @@ async def action_fix_placeholders(
     remediates=["architecture.atomic_actions.must_return_action_result"],
 )
 @atomic_action(
-    action_id="fix.atomic",
+    action_id="fix.atomic_actions",
     intent="Atomic action for action_fix_atomic_actions",
     impact=ActionImpact.WRITE_CODE,
     policies=["atomic_actions"],

@@ -19,7 +19,8 @@ from __future__ import annotations
 from typing import Any
 
 from body.atomic.registry import ActionCategory, register_action
-from shared.action_types import ActionResult
+from shared.action_types import ActionImpact, ActionResult
+from shared.atomic_action import atomic_action
 from shared.logger import getLogger
 
 
@@ -40,6 +41,12 @@ logger = getLogger(__name__)
         "ai.cognitive_role.no_hardcoded_string",
         # Add other related check_ids here if they exist
     ],
+)
+@atomic_action(
+    action_id="remediate.cognitive_role",
+    intent="Prepare prompt.artifact finding for hardcoded cognitive-role strings",
+    impact=ActionImpact.READ_ONLY,
+    policies=["atomic_actions"],
 )
 # ID: bf9420e3-f4ca-4cdf-aa11-7a9ecfa2a050
 async def remediate_cognitive_role(
