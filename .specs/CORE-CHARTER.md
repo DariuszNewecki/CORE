@@ -32,7 +32,7 @@ CORE implements a two-tier governance model:
 
 **Tier 1: Constitutional Foundation**
 * `.intent/constitution/` - Foundational constitutional documents
-* `.intent/papers/` - Constitutional philosophy and principles
+* `.specs/papers/` - Constitutional philosophy and principles
 
 These documents establish **why** and **what** CORE must be.
 They are vectorized for semantic understanding but not directly enforced.
