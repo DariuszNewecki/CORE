@@ -16,35 +16,24 @@
     # 2. THE BLOCKING LAW: Logic mutations must be governed.
     # This list EXCLUDES components that are allowed to use direct writes.
     #
-    # Widened 2026-04-18, bare-import gap closed 2026-05-30 (#488):
-    # The baseline check catches Path.write_text(), Path.write_bytes(), and
-    # open() in write/append modes. That's narrower than the statement's
-    # "logic modifications only through governed mutation surfaces." The
-    # forbidden_additional list extends the check to cover common alternative
-    # filesystem-mutation paths. Matched against the qualified form recovered
-    # via ASTHelpers.resolve_qualified_name, so both the dotted form
-    # ("os.replace(...)") and the bare-import form ("from os import replace;
-    # replace(...)") are detected. Star imports and dynamic imports remain
-    # out of reach.
+    # Forbidden surface converged 2026-05-31 (#489 / ADR-077 §6 step 3):
+    # the check now derives its forbidden set from
+    # .intent/taxonomies/filesystem_operations.yaml filtered by
+    # op_class == "write". The previous forbidden_additional block
+    # (os.*/shutil.*/aiofiles.open) is now redundant with the watched:
+    # block of the taxonomy; aiofiles.open was dropped (no src/ consumer,
+    # legacy defensive coverage). The §4 gap-set (mkdir, makedirs, touch,
+    # symlink, link, chmod) is now covered by both leaf-matched pathlib
+    # entries and qualified-matched os.* entries. Variable-receiver
+    # `p.replace(...)` / `p.rename(...)` remain a pre-existing accepted
+    # gap — see #489 migration trap. Bare-import resolution for the
+    # qualified entries (closed in #488, 2026-05-30) is preserved by
+    # ASTHelpers.resolve_qualified_name; star imports and dynamic imports
+    # remain out of reach.
     governance.logic_mutation.governed:
       engine: ast_gate
       params:
         check_type: no_direct_writes
-        forbidden_additional:
-          # os filesystem mutation family
-          - "os.replace"
-          - "os.rename"
-          - "os.remove"
-          - "os.unlink"
-          - "os.rmdir"
-          # shutil filesystem mutation family
-          - "shutil.copyfile"
-          - "shutil.copy"
-          - "shutil.copy2"
-          - "shutil.move"
-          - "shutil.rmtree"
-          # Async filesystem
-          - "aiofiles.open"
       scope:
         applies_to:
           - "src/**/*.py"
