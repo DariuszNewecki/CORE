@@ -318,6 +318,212 @@ class CoherenceService(SessionAttachedService):
         row = result.fetchone()
         return {"open_runs": int(row[0]), "unreviewed": int(row[1])}
 
+    # ID: a21764d3-ce5f-420e-bc31-1272a187ad6c
+    async def repair_unreviewed_counts(self) -> list[dict]:
+        """
+        Recompute ``unreviewed_count`` from live candidate state across every
+        open run; write it back when it drifted; mirror the auto-close
+        transitions that ``triage_candidate`` would have made.
+
+        Implements the ADR-067 D6 repair verb. Idempotent: repeated calls on
+        an in-sync corpus produce empty deltas and no UPDATE.
+
+        Returns one dict per run that was open at call time:
+        ``{"run_id": str, "old_count": int, "new_count": int, "closed": bool}``.
+        """
+        session = self._require_session()
+        open_runs = await session.execute(
+            text(
+                "SELECT run_id, unreviewed_count, candidate_count "
+                "FROM core.coherence_runs WHERE run_status = 'open' "
+                "ORDER BY run_at"
+            ),
+        )
+        rows = open_runs.fetchall()
+
+        deltas: list[dict] = []
+        for row in rows:
+            run_id = str(row[0])
+            old_count = int(row[1])
+            candidate_count = int(row[2])
+
+            live = await session.execute(
+                text(
+                    "SELECT COUNT(*) FROM core.coherence_candidates "
+                    "WHERE run_id = :run_id AND triage_decision = 'unreviewed'"
+                ),
+                {"run_id": run_id},
+            )
+            new_count = int(live.scalar_one())
+
+            if new_count != old_count:
+                await session.execute(
+                    text(
+                        "UPDATE core.coherence_runs "
+                        "SET unreviewed_count = :new_count "
+                        "WHERE run_id = :run_id"
+                    ),
+                    {"run_id": run_id, "new_count": new_count},
+                )
+
+            closed = False
+            if new_count == 0 and candidate_count > 0:
+                await session.execute(
+                    text(
+                        "UPDATE core.coherence_runs "
+                        "SET run_status = 'closed' "
+                        "WHERE run_id = :run_id AND run_status = 'open'"
+                    ),
+                    {"run_id": run_id},
+                )
+                closed = True
+                logger.info(
+                    "Coherence run %s closed by repair-counts "
+                    "(all candidates off-path-triaged)",
+                    run_id,
+                )
+
+            deltas.append(
+                {
+                    "run_id": run_id,
+                    "old_count": old_count,
+                    "new_count": new_count,
+                    "closed": closed,
+                }
+            )
+
+        await session.commit()
+
+        for delta in deltas:
+            if delta["new_count"] == 0 and not delta["closed"]:
+                if await self.close_run_if_empty(delta["run_id"]):
+                    delta["closed"] = True
+
+        return deltas
+
+    # ID: 84162b33-4763-4036-a730-83e73e812dbe
+    async def supersede_run(
+        self,
+        old_run_id: str,
+        canonical_run_id: str,
+        note: str,
+    ) -> dict:
+        """
+        Retire ``old_run_id`` by supersession from ``canonical_run_id``.
+
+        Implements the ADR-067 D6 supersede verb. Bulk-dismisses every
+        candidate in ``old_run_id`` whose ``triage_decision = 'unreviewed'``
+        with the supplied ``note`` as ``triage_note``, sets
+        ``run_status = 'closed'`` on the old run, and recomputes
+        ``canonical_run_id``'s denormalized ``unreviewed_count`` from live
+        state.
+
+        All mutations run in a single session committed once at the end; on
+        failure nothing partial lands.
+
+        Raises ``ValueError`` when either run is missing or when
+        ``old_run_id`` is not in ``run_status = 'open'``.
+
+        Returns::
+
+            {
+                "old_run_id": str,
+                "canonical_run_id": str,
+                "dismissed_count": int,
+                "old_run_closed": bool,
+                "canonical_old_count": int,
+                "canonical_new_count": int,
+                "canonical_age_warning": bool,
+            }
+        """
+        session = self._require_session()
+
+        runs = await session.execute(
+            text(
+                "SELECT run_id, run_at, run_status, unreviewed_count "
+                "FROM core.coherence_runs WHERE run_id IN (:old, :canonical)"
+            ),
+            {"old": old_run_id, "canonical": canonical_run_id},
+        )
+        by_id = {str(r[0]): r for r in runs.fetchall()}
+
+        if old_run_id not in by_id:
+            raise ValueError(f"old_run_id not found: {old_run_id}")
+        if canonical_run_id not in by_id:
+            raise ValueError(f"canonical_run_id not found: {canonical_run_id}")
+
+        old_row = by_id[old_run_id]
+        canonical_row = by_id[canonical_run_id]
+
+        if old_row[2] != "open":
+            raise ValueError(
+                f"old_run_id {old_run_id} is not open (status: {old_row[2]})"
+            )
+
+        canonical_age_warning = canonical_row[1] <= old_row[1]
+        canonical_old_count = int(canonical_row[3])
+
+        dismiss = await session.execute(
+            text(
+                "UPDATE core.coherence_candidates "
+                "SET triage_decision = 'dismissed', "
+                "    triage_note = :note, "
+                "    triaged_at = now() "
+                "WHERE run_id = :old AND triage_decision = 'unreviewed'"
+            ),
+            {"old": old_run_id, "note": note},
+        )
+        dismissed_count = int(dismiss.rowcount or 0)
+
+        await session.execute(
+            text(
+                "UPDATE core.coherence_runs "
+                "SET run_status = 'closed', unreviewed_count = 0 "
+                "WHERE run_id = :rid"
+            ),
+            {"rid": old_run_id},
+        )
+
+        live = await session.execute(
+            text(
+                "SELECT COUNT(*) FROM core.coherence_candidates "
+                "WHERE run_id = :rid AND triage_decision = 'unreviewed'"
+            ),
+            {"rid": canonical_run_id},
+        )
+        canonical_new_count = int(live.scalar_one())
+
+        if canonical_new_count != canonical_old_count:
+            await session.execute(
+                text(
+                    "UPDATE core.coherence_runs "
+                    "SET unreviewed_count = :new_count "
+                    "WHERE run_id = :rid"
+                ),
+                {"rid": canonical_run_id, "new_count": canonical_new_count},
+            )
+
+        await session.commit()
+
+        logger.info(
+            "Supersede: old=%s canonical=%s dismissed=%d canonical_count=%d->%d",
+            old_run_id,
+            canonical_run_id,
+            dismissed_count,
+            canonical_old_count,
+            canonical_new_count,
+        )
+
+        return {
+            "old_run_id": old_run_id,
+            "canonical_run_id": canonical_run_id,
+            "dismissed_count": dismissed_count,
+            "old_run_closed": True,
+            "canonical_old_count": canonical_old_count,
+            "canonical_new_count": canonical_new_count,
+            "canonical_age_warning": canonical_age_warning,
+        }
+
 
 def _row_to_run_dict(row: Any) -> dict:
     return {

@@ -229,6 +229,70 @@ It is rendered on every audit run regardless of verdict.
 
 ---
 
+### D6 — Cleanup Verbs (added 2026-05-31)
+
+D2 specified three CCC verbs (`check`, `report`, `triage`) covering the
+forward path: produce a run, view it, decide each candidate. Two operational
+failure modes surfaced in production (planning record:
+`.specs/planning/CCC-backlog-cleanup-2026-05-31.md`):
+
+1. The Revisit Trigger fired: `unreviewed_count` drifted from the live
+   `triage_decision = 'unreviewed'` row count after an off-path bulk mutation
+   bypassed `coherence_service.triage_candidate()` and skipped its decrement.
+2. A structural gap not anticipated by D2: when multiple full-scan runs are
+   open simultaneously, retiring superseded runs requires per-candidate
+   triage of duplicated content (~2400 calls in the 2026-05-31 case) or a
+   direct-DB mutation outside the governed loop.
+
+Both are governed by adding two cleanup verbs under `core-admin coherence`.
+
+**`core-admin coherence repair-counts`**
+
+For every run in `run_status = 'open'`, recompute `unreviewed_count` from
+`SELECT COUNT(*) FROM core.coherence_candidates WHERE run_id = :run_id AND
+triage_decision = 'unreviewed'` and write the value back. Then evaluate the
+zero-candidate auto-close path (the existing `close_run_if_empty` companion)
+on each affected run.
+
+Idempotent. No schema change. Output: one row per open run with old count,
+new count, delta, and whether the run was auto-closed by the repair.
+
+**`core-admin coherence supersede <old_run_id> --by <canonical_run_id> --note "..."`**
+
+Bulk-dismisses every candidate in `<old_run_id>` whose
+`triage_decision = 'unreviewed'`, setting `triage_decision = 'dismissed'`,
+`triage_note = <note>`, and `triaged_at = now()`. Sets
+`run_status = 'closed'` on `<old_run_id>`. Repairs `<canonical_run_id>`'s
+denormalized `unreviewed_count` (same recompute path as `repair-counts`).
+
+Guards:
+- Both `<old_run_id>` and `<canonical_run_id>` must exist.
+- `<old_run_id>` must be `run_status = 'open'`.
+- `<canonical_run_id>`'s `run_at` should be newer than `<old_run_id>`'s.
+  If not, the CLI emits a warning but proceeds; the mandatory `--note`
+  records the governor's choice honestly.
+- The CLI prints the count of candidates that would be dismissed and
+  requires interactive confirmation before applying.
+- `--note` is mandatory at the CLI option layer. The supersession is
+  recorded on every dismissed candidate's `triage_note`, so the cleanup
+  is fully auditable through the same triage history that records
+  ordinary dismissals.
+
+`dangerous = True`. Per-CLI convention.
+
+**Atomicity.** Both verbs run inside a single DB session and commit once at
+the end of the operation. `supersede` does not partially close: if the
+bulk-dismiss or the canonical recount fails, the session rolls back and the
+old run remains open.
+
+**What D6 does NOT introduce.** Cross-run dedup at candidate generation —
+the substantive fix that prevents the regrowth pattern motivating
+`supersede` — is out of scope here. It is ADR-shaped on its own, design
+candidates recorded in `.specs/planning/CCC-backlog-cleanup-2026-05-31.md`,
+and owned by a dedicated session.
+
+---
+
 ## Consequences
 
 **Positive:**
@@ -270,8 +334,9 @@ It is rendered on every audit run regardless of verdict.
 
 ## Revisit Triggers
 
-- `unreviewed_count` drift is observed in production → add a repair subcommand
-  (`core-admin coherence repair-counts`).
+- `unreviewed_count` drift was observed in production (2026-05-31). Repair
+  verb landed as **D6** (`core-admin coherence repair-counts`); the original
+  Revisit Trigger is closed.
 - Automated triggering becomes necessary → extend this ADR with a D6 covering
   the daemon event hook and the worker declaration.
 - ADR corpus grows beyond ~100 entries and R1 batching becomes a throughput

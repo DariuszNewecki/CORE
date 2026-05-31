@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-from . import check, report, triage
+from . import check, repair_counts, report, supersede, triage
 from .hub import app
 from .seed import seed_app
 
