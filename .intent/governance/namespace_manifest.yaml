@@ -465,6 +465,12 @@ classifications:
     governance_namespace: framework
   - path: .specs/decisions/ADR-075-framework-project-namespace-split.md
     governance_namespace: framework
+  - path: .specs/decisions/ADR-077-protected-namespace-access.md
+    governance_namespace: framework
+  - path: .specs/decisions/ADR-078-operational-capability-taxonomy-schema.md
+    governance_namespace: framework
+  - path: .specs/decisions/ADR-080-fs-op-class-vocabulary-split.md
+    governance_namespace: framework
 
   # =====================================================================
   # PROJECT::CORE
@@ -1148,5 +1154,11 @@ classifications:
     governance_namespace: project::core
   - path: .specs/decisions/ADR-074-interpret-failure-modes.md
     governance_namespace: project::core
+  - path: .specs/decisions/ADR-076-per-check-type-context-level-dispatch.md
+    governance_namespace: project::core
+    # notes: gray — engine dispatch mechanism (framework-ish) vs CORE-specific #480 closure; governor review
+  - path: .specs/decisions/ADR-079-chokepoint-implementation-for-capability-scoped-filesystem-authority.md
+    governance_namespace: project::core
+    # notes: gray — implements a framework mechanism in CORE src; classed with ADR-062/063/064 implementations; governor review
   - path: .specs/decisions/README.md
     governance_namespace: project::core
