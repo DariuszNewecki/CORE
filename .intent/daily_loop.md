@@ -3,7 +3,7 @@
 Status: working note. Not committed to `.intent/`.
 
 1. **Pull down planning** — current band, open leads, parked items.
-2. **State scan** — `core-admin code audit`, daemon health, open GitHub issues. This determines the lead; don't pick before scanning.
+2. **State scan** — `core-admin code audit` (codebase violations), `core-admin runtime health` (workers, blackboard, crawls, blast radius), `core-admin runtime dashboard` (five-signal governor panel — convergence, inbox, loop, pipeline, reach), open GitHub issues. Two daemons must be up for the scan to be real: `core-daemon` (the worker loop) and `core-api` (FastAPI on :8000, which `code audit` calls). This determines the lead; don't pick before scanning.
 3. **Choose one lead** — name it with an issue number. Park everything else.
 4. **Ground the lead** — before producing anything, read the existing ADRs / papers / issues touching the lead's subject via `project_knowledge_search`. The scan says *what's open*; this says *what's already been decided*. Skipping it is how a "new" ADR duplicates an accepted one and a guessed number collides with a real one.
 5. **Execute** — through Claude Code. Stop when the lead closes; don't chase adjacent threads.
