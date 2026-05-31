@@ -1,8 +1,9 @@
 # CCC Backlog Cleanup — 2026-05-31
 
-Status: diagnosis + decision record. Not doctrine. Documents the
-diagnosis of the 3345-headline regrowth and the cleanup deferred until
-governed verbs land.
+Status: diagnosis + decision record + closure note. Not doctrine. The
+deferred cleanup ran end-to-end 2026-05-31 — see **Closure** at bottom.
+Original diagnosis preserved as the historical record of why the cleanup
+was deferred in the first place.
 
 This record lives in `.specs/planning/` rather than as a GitHub issue, by
 governor decision (no new issues for this work). It is the tracking home so
@@ -156,3 +157,55 @@ compounds the inflation against the deferred cleanup.
 - **2026-05-26 clearance memory** → annotated: the clear did not survive the
   post-clear run cadence; the system regenerated through the absence of
   cross-run dedup.
+
+---
+
+## Closure — 2026-05-31
+
+The deferred cleanup ran end-to-end after #496 shipped (commit
+`b25681a0`). Mechanism executed exactly as written in the "Mechanism"
+section above:
+
+```
+$ coherence supersede 4a48c1d3-5b1c-4231-9de2-755aa730987b --by 408f7c5d-… --note "…"
+$ coherence supersede 899aa91a-f56d-4868-a1ce-ae8c7d3a08d0 --by 408f7c5d-… --note "…"
+$ coherence supersede f264894e-780f-4134-be53-66039a514023 --by 408f7c5d-… --note "…"
+$ coherence repair-counts
+```
+
+Result on the live DB:
+
+| run | pre-cleanup unreviewed | post-cleanup |
+|---|---|---|
+| 4a48c1d3 | 790 | 0 (closed) |
+| 899aa91a | 805 | 0 (closed) |
+| f264894e | 811 | 0 (closed) |
+| 408f7c5d (canonical) | 785 | 785 (open) |
+
+Headline: **3345 → 785** (the 76% drop predicted in "Diagnosis"). The
+intermediate repair-counts step corrected an additional 154 rows of
+denormalized drift before the supersedes (planning doc estimate: ~154
+rows; exact match). Every dismissed candidate carries the `triage_note`
+"superseded by canonical full run 408f7c5d (cleanup 2026-05-31)" — 2406
+rows total, fully auditable through ordinary triage history. No bypass.
+
+### What this closure does NOT discharge
+
+1. **Generator dedup design.** Still ADR-shaped and unimplemented. The
+   next parallel `--full` will re-inflate the backlog against 408f7c5d
+   exactly as the 2026-05-26 clear was re-inflated. The "Deferred
+   substantive fix" section above remains the home for this work.
+2. **Single-live-run discipline.** Still required by hand until the
+   generator dedup ADR lands. The new floor (785 on 408f7c5d) replaces
+   the old "clean" reference point.
+3. **Misleading `DRY RUN MODE` banner.** Filed as **#504** during
+   verification — pre-existing CLI decorator ergonomics issue, not a
+   #496 regression. Both new verbs print the banner but mutate
+   regardless; behavior matches existing `coherence triage`.
+
+### Tracking — final
+
+- **#496** — closed by `b25681a0` (cleanup verbs landed).
+- **#504** — opened during verification; CLI decorator banner cleanup.
+- **Generator dedup ADR** — unowned; design candidates above remain the
+  starting context.
