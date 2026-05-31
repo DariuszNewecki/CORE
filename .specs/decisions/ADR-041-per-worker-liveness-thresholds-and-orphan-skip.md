@@ -152,3 +152,25 @@ After implementation:
 - `core-admin runtime health` shows the same alive/stale set as a manual query of `WorkerRegistryService.fetch_stale_workers_with_schedules(...)`.
 - The next `system_health_log` snapshot reports a `silent_workers` count consistent with WorkerShopManager's blackboard findings (the two are now derived from the same source data via the same rule).
 - WorkerShopManager's behaviour observably unchanged (same findings posted, same auto-resolution cadence).
+
+---
+
+## Note — 2026-05-31 (post-implementation observation)
+
+A 3-hour cycle measurement during the 2026-05-31 runtime-health investigation falsified one claim above and surfaced two adjacent gaps. This Note records the divergence; the original decisions (D1–D5) stand.
+
+### One verification claim no longer holds
+
+The Verification section (above) names Repo Embedder among workers absent from the dashboard's Loop Running stale list. Today's measurement: Repo Embedder declares `max_interval: 600` and has observed max cycle gap 1864s (avg 840s). It trips its threshold on every cycle spike. The other two named workers still fit (Audit Ingest at 1800, Commit Reachability Auditor at 3600). Repo Embedder's value was either insufficient at acceptance time and undetected, or its cycle grew post-acceptance; either way the verification claim against it is stale.
+
+### Two readers were left on the pre-ADR-041 path
+
+D5 migrated the dashboard's Loop Running panel to per-worker thresholds. Not migrated: `cli/resources/runtime/health.py::_worker_colour` and `_liveness_label` (the Workers table in `core-admin runtime health`) — both still read `_CFG_H.worker_alive_threshold_sec` (a global value). The runtime health Workers view therefore continues to false-positive against long-cadence workers exactly as ADR-020 D4 originally accepted, even though D1/D5 said the dashboard would not. `cli/resources/admin/health.py` is a candidate for the same check.
+
+### Value-vs-reality drift is uncovered by this ADR — #516 owns it
+
+D4 closed *reader-side* drift: all consumers of liveness thresholds now go through `load_worker_schedule_state`. It did not close *value-side* drift: that the configured `max_interval` matches the worker's actual cycle behavior. With no audit enforcing this invariant, values silently fall out of fit as workloads change. 2026-05-31 measurement: 10 of 11 long-cadence workers configured at `max_interval: 600` had observed max gaps exceeding 660s; 9,125 false-positive `worker.silent` findings accumulated over 7 days (62% of the abandoned pile).
+
+Interim manual fix: commit `329919d4` bumped four worker YAMLs (`audit_sensor_architecture`, `audit_sensor_purity`, `audit_sensor_cli`, `repo_crawler`) to `max_interval: 1200`. The remaining unfit workers are intentionally not patched in advance of #516 — the right closure is a measurement-vs-config audit rule, not a sweep of hand-tuned values.
+
+Tracking issue: **#516 — "Worker max_interval values are unmeasured — no audit ensures config matches observed cycle reality."**
