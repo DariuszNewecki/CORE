@@ -50,7 +50,7 @@ mandate:
       - governance
   approval_required: false
   schedule:
-    max_interval: 600
+    max_interval: 1200
 
 implementation:
   module: will.workers.repo_crawler
