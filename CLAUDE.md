@@ -55,9 +55,12 @@ source of truth for *why* things are the way they are.
 New ADRs are authored by the human *before* implementation, accepted, then implemented as a
 change-set. If an ADR is referenced in a prompt, read it before editing.
 
-`.specs/` is human territory. Do not modify anything under `.specs/`. If a prompt asks you to
-draft an ADR, return the complete file content in the response — never write under `.specs/`
-yourself.
+`.specs/` is human territory. **By default, do not modify anything under `.specs/`**; when
+asked to draft an ADR or paper, return the complete file content in the response for the
+governor to apply. **Exception — confirmed write:** if the governor explicitly confirms a
+write to a `.specs/` file in the current turn, Claude Code may write that file directly. The
+confirmation is per-turn and does not carry forward. Absent that confirmation, draft in the
+response and never write under `.specs/` yourself.
 
 ---
 
@@ -84,74 +87,90 @@ invoke one, ask rather than writing a throwaway script.
 
 ---
 
-## Mechanical substitutions in `.intent/`
+## Writing to `.intent/` and `.specs/` — the confirmation gate
 
-`.intent/` files contain governance law. Law is human-authored. Claude Code does NOT author
-or modify governance content in `.intent/`.
+**This file is a development contract, not a runtime governance posture.** CORE is
+bootstrapped on itself — we develop CORE using CORE. The restrictions here govern how Claude
+Code works on *this repo during development*; they are intentionally permissive under governor
+confirmation so the bootstrap can never lock itself out of evolving its own governance frame.
+The *strong* version of these restrictions — what CORE enforces on governed projects at
+runtime — lives in `.intent/` rules read by the runtime, not here. Do not import that live
+strictness into this dev contract, and do not export this dev permissiveness into runtime
+rules. (This conflation is the framework/project namespace fusion the namespace-split work
+exists to resolve.)
 
-Claude Code MAY apply edits to files under `.intent/` if and only if **all four** of the
-following conditions hold:
+`.intent/` files contain governance law; `.specs/` files contain architectural reasoning.
+Both are human-authored by default. Claude Code's default posture toward both is
+**draft-in-response**: produce the complete corrected file in the response and let the
+governor apply it.
+
+Claude Code MAY write directly to `.intent/` or `.specs/` only under one of these paths:
+
+**Path A — confirmed write (semantic edits permitted).** The governor explicitly confirms a
+write to a named file in the current turn. That single write is permitted, including
+semantic changes. The confirmation is **turn-scoped**: it authorizes the writes named in
+that turn and does not carry forward to later turns.
+
+**Path B — authorized mechanical substitution (no fresh confirmation needed per write).**
+A purely syntactic change the governor named in the prompt, where **all four** conditions hold:
 
 1. **Explicitly authorized by the governor in the prompt.** The governor names the
    transformation. Claude Code does not infer, optimize, or improve the substitution.
 2. **Purely syntactic.** A string or regex substitution. If applying the change correctly
-   requires understanding the surrounding text's governance meaning, the change is
-   authoring — governor applies.
+   requires understanding the surrounding text's governance meaning, it is a semantic edit —
+   use Path A.
 3. **No content added or removed.** Pure replacement only. No "while you're at it" fixes.
    No reorganization. No clarifications.
 4. **Semantically invariant.** Two readers must interpret the file the same way before
-   and after the change. If interpretation might shift, governor applies.
+   and after the change.
 
-Examples that pass and Claude Code may apply:
+Examples that pass Path B and Claude Code may apply:
 
 - Filename rename propagation when a governance file moves
 - Updating a path reference when a file moves
 - Renaming a constant whose new name has been governor-decided
 
-Examples that fail and stay governor-only:
+**The constitutional core requires heightened confirmation.** Files under
+`.intent/constitution/`, `.intent/META/`, and `.intent/rules/governance/` define the
+governance frame itself. A confirmed write (Path A) reaches them too — the bootstrap must be
+able to evolve its own frame — but with one added condition: the governor must name the
+**specific** constitutional file in the confirmation, not a blanket "go ahead," and Claude
+Code surfaces the change for review before writing. Per-file authorization plus visibility is
+the residual safety here; it is not a lockout.
 
-- Adding a clause, even a clearly-correct one
-- Editing a rule statement
-- Changing an authority, phase, severity, or status value
-- Reorganizing a section
-- Fixing what looks like a typo — it might be intentional vocabulary
-- Anything inside `.intent/constitution/`, `.intent/META/`, or
-  `.intent/rules/governance/` other than path-rename propagation,
-  because those surfaces define the governance frame itself
-
-When in doubt, default to producing a corrected file or patch list for the governor to
-apply. The four conditions are an exception, not the norm.
+When neither path applies, default to producing a corrected file or patch list for the
+governor to apply. Direct writes are the exception, not the norm.
 
 ---
 
 ## Files Claude Code must NEVER modify
 
-These files are machine-specific infrastructure or governor-authored governance. Claude Code
-may run inside a container where paths differ from the server. Never "fix" paths or settings
-you see here.
+These files are machine-specific infrastructure. Claude Code may run inside a container where
+paths differ from the server. Never "fix" paths or settings you see here.
 
 - `.env` — environment-specific paths and secrets for this machine (`/opt/dev/CORE`)
 - `.venv/` — the Python virtual environment; never touch any file inside it
 - `*.pth` files — Python path configuration; machine-specific, never modify
 - `var/` — runtime data directory; read-only unless explicitly asked
-- `.specs/` — human territory; draft ADRs/papers in the response, never write them here
-- `.intent/` — governance law; semantic edits are governor-only. Mechanical substitutions
-  permitted under the four conditions above
-- Any file outside `src/`, `tests/`, `.intent/` (mechanical substitutions only),
-  `.specs/` (read-only), `var/prompts/`, `CLAUDE.md`
+- Any file outside `src/`, `tests/`, `.intent/`, `.specs/`, `var/prompts/`, `CLAUDE.md`
+
+`.intent/` and `.specs/` are governed surfaces, not hard-prohibited ones: writes are
+permitted under the confirmation gate above, with the constitutional core carved out.
+
+**Turn-scoped governor override.** `.intent/` and `.specs/` are draft-in-response by default.
+If the governor explicitly confirms a write to one of these files in the current turn, that
+write — including semantic edits — is permitted for that turn only. The permission does not
+carry forward to subsequent turns. It reaches the constitutional core only under heightened
+confirmation — the governor names the specific constitutional file in the same turn.
+
+**The project lives at `/opt/dev/CORE` on the server.** Claude Code's container may mount it
+at a different path — that is a container artifact, not a bug to fix.
+
 - `/tmp/` — **the system temp directory is prohibited.** All temporary file writes must use
   `var/tmp/` (relative to the repo root). Never use `/tmp/`, `tempfile.gettempdir()`, or any
   `tempfile` default that resolves outside the repo. Pass `dir=repo_root / "var" / "tmp"`
   explicitly when creating temporary files via `tempfile.NamedTemporaryFile`,
   `tempfile.mkstemp`, or `tempfile.mkdtemp`.
-
-**Turn-scoped governor override.** Restricted directories (`.intent/`, `.specs/`) are
-off-limits by default. Exception: if the governor explicitly requests a write to a
-restricted file in the current turn, that single write is permitted. The permission
-does not carry forward to subsequent turns.
-
-**The project lives at `/opt/dev/CORE` on the server.** Claude Code's container may mount it
-at a different path — that is a container artifact, not a bug to fix.
 
 ---
 
@@ -494,8 +513,11 @@ only the governor can run it.
 9. Workers post to blackboard; they never call other workers directly
 10. Constitutional compliance comment at the top of modified files reflects the change
 11. No Rich objects or Rich markup strings passed to `logger.info()`
-12. `.env`, `.venv/`, `.specs/`, and `*.pth` files are untouched. `.intent/` files received
-    only mechanical substitutions explicitly authorized in the prompt (no semantic edits)
+12. `.env`, `.venv/`, and `*.pth` files are untouched. Any write to `.specs/` or `.intent/`
+    came from either an authorized mechanical substitution or a write the governor explicitly
+    confirmed this turn; any write to the constitutional core (`.intent/constitution/`,
+    `.intent/META/`, `.intent/rules/governance/`) was confirmed by the governor naming that
+    specific file this turn
 13. Every relevant ADR in `.specs/decisions/` has been honored
 14. No writes to `/tmp/` or any path outside the repo — temporary files use `var/tmp/` only
 
