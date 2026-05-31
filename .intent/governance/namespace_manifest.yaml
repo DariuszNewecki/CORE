@@ -150,6 +150,12 @@ classifications:
   # ---------------------------------------------------------------------
   - path: .intent/taxonomies/capability_taxonomy.yaml
     governance_namespace: framework
+  - path: .intent/taxonomies/filesystem_operations.yaml
+    governance_namespace: framework
+    notes: >
+      The audit-side call-name → op-class taxonomy declared by ADR-077
+      §2 and consumed by the protected-namespace access check. Framework:
+      the FS-operation classification surface ships with CORE.
   - path: .intent/taxonomies/governance_namespaces.yaml
     governance_namespace: framework
     notes: >
@@ -165,6 +171,12 @@ classifications:
   # CORE-specific rule files (coherence.json, quarantine.json) appear
   # in the project::core section below.
   # ---------------------------------------------------------------------
+  - path: .intent/rules/governance/fs_operations.json
+    governance_namespace: framework
+    notes: >
+      Filesystem-operation taxonomy completeness + no-direct-yaml-import
+      rules (ADR-077 §3). Framework: the FS-operation governance surface
+      ships with CORE.
   - path: .intent/rules/governance/intent_artifact_encoding.json
     governance_namespace: framework
   - path: .intent/rules/governance/remediation.json
@@ -204,6 +216,12 @@ classifications:
   # .intent/enforcement/mappings/governance/** — framework subset.
   # quarantine.yaml maps a project::core rule and appears below.
   # ---------------------------------------------------------------------
+  - path: .intent/enforcement/mappings/governance/fs_operations.yaml
+    governance_namespace: framework
+    notes: >
+      Enforcement bindings for the fs_operations rule cluster
+      (ADR-077 §3 + §6 step 2). Framework: matches the rule
+      classification.
   - path: .intent/enforcement/mappings/governance/intent_artifact_encoding.yaml
     governance_namespace: framework
   - path: .intent/enforcement/mappings/governance/remediation.yaml

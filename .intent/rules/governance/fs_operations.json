@@ -1,0 +1,36 @@
+{
+    "$schema": "META/rule_document.schema.json",
+    "kind": "rule_document",
+    "metadata": {
+        "id": "rules.governance.fs_operations",
+        "title": "Filesystem-Operation Taxonomy Invariants",
+        "version": "1.0.0",
+        "authority": "constitution",
+        "phase": "audit",
+        "status": "active"
+    },
+    "rules": [
+        {
+            "id": "governance.fs_operations.completeness",
+            "statement": "The filesystem-operation taxonomy at `.intent/taxonomies/filesystem_operations.yaml` MUST classify every public method on `pathlib.Path` in the running interpreter (auto-discovered), MUST resolve every entry in its `watched` block to a callable in its declared module (curated set; catches stdlib rename/removal or third-party absence), and MUST declare a `python_version` matching runtime `sys.version_info` major.minor. Any gap surfaces as an open finding under this rule.",
+            "enforcement": "reporting",
+            "authority": "constitution",
+            "phase": "audit",
+            "rationale": "ADR-077 §3 + §5. The taxonomy's authority rests on its vocabulary being a faithful image of the runtime FS surface; a name in the runtime but absent from the YAML is a silent gap in the audit-side namespace-access check, and a name in the YAML but absent from the runtime is a stale classification that may already be misrouting policy. The pathlib.Path half is auto-discovered via `inspect.getmembers` because it is a single-class surface whose growth (new methods in future Python versions) is the most likely drift vector; the watched half is curated because os/shutil/tempfile/builtin-open are mixed namespaces where introspection cannot separate FS members from non-FS, and the integrity check there verifies the curated names still resolve. The `python_version` anchor (§5) keeps the classification deterministic given a version, rather than silently version-dependent. Remediation is manual_review per §3: classifying a newly surfaced call is a governance decision (read vs write vs traverse vs parse), not auto-remediation territory. Enforcement is `reporting` at introduction; promotion to `blocking` lands when the surface is stable and the cognate namespace-access policy (ADR-077 §6 step 3) ships its blocking dial. The check is the structural prerequisite for that promotion: until the taxonomy's watched-set coverage of the live stdlib is verified, the blocking policy would inherit any gap silently (§4).",
+            "scope": {
+                "paths": [
+                    ".intent/taxonomies/filesystem_operations.yaml"
+                ],
+                "notes": "Context-level check — the substrate is the YAML cross-referenced against runtime introspection. Per-file dispatch is never engaged; applies_to references the taxonomy itself so the check fires once per audit cycle."
+            }
+        },
+        {
+            "id": "governance.fs_operations.no_direct_yaml_import",
+            "statement": "No module under `src/` other than `src/shared/infrastructure/intent/filesystem_operations.py` MAY read `.intent/taxonomies/filesystem_operations.yaml` directly, whether by `open()`, `read_text`, `yaml.safe_load`, or any other file access mechanism. All filesystem-operation taxonomy access MUST go through the sanctioned loader.",
+            "enforcement": "blocking",
+            "authority": "constitution",
+            "phase": "audit",
+            "rationale": "The filesystem_operations.yaml taxonomy is a fail-closed governance vocabulary whose load contract is hash-stable, structurally validated, and cross-referenced against `.intent/META/enums.json` (`fs_audit_op_class`) on every read. Code that opens the YAML directly bypasses every one of those guarantees: it will silently consume entries with invalid op_class values, entries violating the per-block match constraint, or entries the loader rejects as structurally malformed. The sanctioned loader at `src/shared/infrastructure/intent/filesystem_operations.py` is the only code path that performs these validations and emits `FilesystemOperationTaxonomyError` on any deviation. Direct file access also couples consumers to the YAML's location and shape, both of which the loader owns. Cognate with `governance.vocabulary.no_direct_json_import` (ADR-023) for vocabulary.json; same discipline applied to the cognate ADR-077 taxonomy artifact."
+        }
+    ]
+}

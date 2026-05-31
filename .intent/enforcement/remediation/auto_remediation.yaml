@@ -657,6 +657,32 @@ mappings:
       invariant.
     status: DELEGATE
 
+  governance.fs_operations.completeness:
+    action: fix.modularity
+    confidence: 0.40
+    risk: high
+    description: >
+      The filesystem-operation taxonomy at
+      .intent/taxonomies/filesystem_operations.yaml is out of
+      sync with the runtime FS surface — either a pathlib.Path
+      public method exists in the interpreter but is not
+      classified, a curated `watched` entry no longer resolves to
+      a callable in its module (stdlib rename/removal or
+      third-party absence), or the declared python_version no
+      longer matches runtime sys.version_info major.minor (ADR-077
+      §3 + §5). Resolution: governor reviews the surfaced gap and
+      either classifies the new call (read / traverse / parse /
+      write / neutral per fs_audit_op_class.enum), removes the
+      stale watched entry, or refreshes the python_version
+      after re-verifying classifications against the new
+      interpreter. Classification is a governance decision
+      (the same name can be read or write depending on call
+      semantics); no heuristic can substitute. Non-automatable
+      per ADR-077 §3; routed to governor inbox as DELEGATE.
+      Explicitly mapped to satisfy the ADR-066 unmapped-rules
+      invariant.
+    status: DELEGATE
+
   governance.quarantine.namespace_has_drainer:
     action: fix.modularity
     confidence: 0.40

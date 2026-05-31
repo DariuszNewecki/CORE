@@ -1,0 +1,59 @@
+# .intent/enforcement/mappings/governance/fs_operations.yaml
+#
+# Enforcement mappings for filesystem-operation taxonomy invariants.
+# Based on: .intent/rules/governance/fs_operations.json
+#
+# ADR-077 §3 + §6 step 2. The completeness rule guards the taxonomy at
+# .intent/taxonomies/filesystem_operations.yaml against drift from the
+# runtime FS surface (pathlib.Path auto-discovery) and against unresolved
+# entries in the curated watched set. The no-direct-yaml-import rule
+# guards the same taxonomy against bypass of the sanctioned loader.
+#
+# Engine routing:
+# - completeness → artifact_gate (context-level, repo-level dispatch; same
+#   shape as namespace_manifest_completeness and all_rules_mapped). The
+#   check loads the YAML via the sanctioned loader and cross-references it
+#   against runtime introspection.
+# - no_direct_yaml_import → regex_gate (per-file pattern match on src/).
+#
+# Promotion path: completeness ships at `reporting` per ADR-077 §6 step 2
+# discipline (the prerequisite for promoting the §6 step 3 blocking dial
+# on the namespace-access policy). no_direct_yaml_import ships at
+# `blocking` from day one — the cognate `governance.vocabulary.no_direct_json_import`
+# precedent.
+
+mappings:
+  # RULE: governance.fs_operations.completeness
+  # Engine: artifact_gate (context-level; ADR-076 D3 dispatch).
+  #
+  # applies_to references the taxonomy itself so the check fires once per
+  # audit cycle, mirroring namespace.classification_complete and
+  # taxonomy.operational_capabilities_decorator_backing. The check is
+  # repo-level — it ignores the file_path argument when dispatched
+  # per-file; verify_context is the canonical entry point.
+  governance.fs_operations.completeness:
+    engine: artifact_gate
+    params:
+      check_type: fs_operations_completeness
+    scope:
+      applies_to:
+        - ".intent/taxonomies/filesystem_operations.yaml"
+
+  # RULE: governance.fs_operations.no_direct_yaml_import
+  # Engine: regex_gate (per-file string match).
+  #
+  # Forbidden patterns: any file access against filesystem_operations.yaml.
+  # Cognate with governance.vocabulary.no_direct_json_import — same
+  # pattern structure, same exclusion shape (sanctioned loader + tests).
+  governance.fs_operations.no_direct_yaml_import:
+    engine: regex_gate
+    params:
+      forbidden_patterns:
+        - "(open|read_text|read_bytes|yaml\\.safe_load|yaml\\.load)\\s*\\([^)]*filesystem_operations\\.yaml"
+        - "filesystem_operations\\.yaml[^)\\n]*\\)\\.(read|read_text|read_bytes)"
+    scope:
+      applies_to:
+        - "src/**/*.py"
+      excludes:
+        - "src/shared/infrastructure/intent/filesystem_operations.py"
+        - "tests/**"

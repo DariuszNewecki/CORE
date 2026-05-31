@@ -22,7 +22,11 @@ before the YAML load so the engine never tries to parse Markdown as YAML.
 
 from __future__ import annotations
 
+import builtins
+import importlib
+import inspect
 import re
+import sys
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -30,6 +34,10 @@ import yaml
 
 from shared.infrastructure.intent.cognitive_roles import load_cognitive_roles
 from shared.infrastructure.intent.errors import GovernanceError
+from shared.infrastructure.intent.filesystem_operations import (
+    FilesystemOperationTaxonomyError,
+    load_filesystem_operations,
+)
 from shared.infrastructure.intent.intent_repository import get_intent_repository
 from shared.infrastructure.intent.vocabulary_projection import (
     VOCABULARY_JSON_REL,
@@ -78,6 +86,7 @@ _GOVERNANCE_CHECK_TYPES = frozenset(
         "all_rules_mapped",
         "namespace_has_drainer",
         "namespace_manifest_completeness",
+        "fs_operations_completeness",
     }
 )
 
@@ -666,6 +675,117 @@ def _check_namespace_manifest_completeness(repo_root: Path, check: str) -> Engin
     return _vocab_result(check, violations)
 
 
+# ID: f68dc080-017d-42ee-8580-095b44bf668d
+def _check_fs_operations_completeness(repo_root: Path, check: str) -> EngineResult:
+    """Verify the filesystem-operation taxonomy covers the runtime FS surface.
+
+    ADR-077 §3. Three-part introspective set-difference against the loaded
+    taxonomy:
+
+    - Every public method on pathlib.Path must appear in operations.pathlib_path
+      (auto-discovery; absence is a finding). Stale declarations whose names no
+      longer resolve to runtime Path methods are also surfaced.
+    - Every entry in operations.watched must still resolve to a callable in its
+      module (catches stdlib rename/removal or third-party absence). Mixed
+      namespaces (os/shutil/tempfile/builtin open) are not auto-discovered —
+      §3 explicitly excludes that.
+    - The taxonomy's declared python_version must match runtime major.minor
+      (§5 determinism anchor).
+
+    Remediation is manual_review per §3: classifying a newly surfaced call is a
+    governance decision (read vs write), not auto-remediation territory.
+    """
+    try:
+        taxonomy = load_filesystem_operations(repo_root)
+    except FilesystemOperationTaxonomyError as exc:
+        return EngineResult(
+            ok=False,
+            message=(
+                f"artifact_gate[{check}]: filesystem-operation taxonomy "
+                "failed to load."
+            ),
+            violations=[f"Taxonomy load error: {exc}"],
+            engine_id=_ENGINE_ID,
+        )
+
+    violations: list[str] = []
+
+    declared_pathlib = {entry.name for entry in taxonomy.pathlib_path}
+    discovered_pathlib = {
+        name
+        for name, _ in inspect.getmembers(Path, predicate=callable)
+        if not name.startswith("_")
+    }
+    for name in sorted(discovered_pathlib - declared_pathlib):
+        violations.append(
+            f"pathlib.Path public method '{name}' is present in the runtime "
+            f"but absent from filesystem_operations.yaml "
+            f"operations.pathlib_path — classify it (manual_review)."
+        )
+    for name in sorted(declared_pathlib - discovered_pathlib):
+        violations.append(
+            f"filesystem_operations.yaml operations.pathlib_path declares "
+            f"'{name}' which is not a public method on pathlib.Path in this "
+            f"runtime — remove the stale entry or re-verify against the "
+            f"declared python_version (ADR-077 §5)."
+        )
+
+    for entry in sorted(taxonomy.watched, key=lambda e: e.name):
+        ok, reason = _resolve_watched_call(entry.name)
+        if not ok:
+            violations.append(
+                f"watched filesystem operation '{entry.name}' does not resolve "
+                f"to a callable: {reason} — update the taxonomy or restore the "
+                f"sanctioned import (manual_review)."
+            )
+
+    runtime_version = f"{sys.version_info.major}.{sys.version_info.minor}"
+    if taxonomy.python_version != runtime_version:
+        violations.append(
+            f"filesystem_operations.yaml declares python_version "
+            f"'{taxonomy.python_version}' but runtime is '{runtime_version}'; "
+            f"re-verify classifications against {runtime_version} and update "
+            f"the taxonomy header (ADR-077 §5)."
+        )
+
+    return _vocab_result(check, violations)
+
+
+# ID: 269e97f0-0707-479c-b005-a3c23cd8a017
+def _resolve_watched_call(qualified: str) -> tuple[bool, str]:
+    """Resolve a dotted module.attr name (or bare builtin) to a callable.
+
+    Returns ``(True, "")`` on success; ``(False, reason)`` on any failure.
+    Bare names (no dot) resolve against ``builtins`` — e.g. ``"open"`` →
+    ``builtins.open``. Dotted names import the leftmost segment and walk
+    ``getattr`` through the remainder.
+    """
+    if "." not in qualified:
+        target = getattr(builtins, qualified, None)
+        if target is None:
+            return False, f"builtins.{qualified} not found"
+        if not callable(target):
+            return False, f"builtins.{qualified} is not callable"
+        return True, ""
+
+    head, _, rest = qualified.partition(".")
+    try:
+        module = importlib.import_module(head)
+    except ImportError as exc:
+        return False, f"cannot import module '{head}': {exc}"
+
+    obj: Any = module
+    path_so_far = head
+    for part in rest.split("."):
+        obj = getattr(obj, part, None)
+        path_so_far = f"{path_so_far}.{part}"
+        if obj is None:
+            return False, f"{path_so_far} not found"
+    if not callable(obj):
+        return False, f"{qualified} is not callable"
+    return True, ""
+
+
 # ID: 69841a82-0920-480c-94cb-d5e4b6cb50dd
 class ArtifactGateEngine(BaseEngine):
     """
@@ -683,11 +803,12 @@ class ArtifactGateEngine(BaseEngine):
         """
         ADR-076 D1/D2/D3: artifact_gate is mixed-mode.
 
-        Six repo-level check_types (vocabulary projection/canonical_format/
+        Seven repo-level check_types (vocabulary projection/canonical_format/
         authoritative_paths + governance all_rules_mapped/namespace_has_drainer/
-        namespace_manifest_completeness) dispatch context-level. The three
-        PromptModel check_types (required_fields, no_provider_leak,
-        role_abstraction) dispatch per-file over var/prompts/**/model.yaml.
+        namespace_manifest_completeness/fs_operations_completeness) dispatch
+        context-level. The three PromptModel check_types (required_fields,
+        no_provider_leak, role_abstraction) dispatch per-file over
+        var/prompts/**/model.yaml.
         """
         if check_type is None:
             return False
@@ -943,6 +1064,8 @@ class ArtifactGateEngine(BaseEngine):
             return await _check_namespace_has_drainer(repo_root, check_type, params)
         if check_type == "namespace_manifest_completeness":
             return _check_namespace_manifest_completeness(repo_root, check_type)
+        if check_type == "fs_operations_completeness":
+            return _check_fs_operations_completeness(repo_root, check_type)
 
         return EngineResult(
             ok=False,
@@ -1014,6 +1137,8 @@ class ArtifactGateEngine(BaseEngine):
                 )
             elif check_type == "namespace_manifest_completeness":
                 result = _check_namespace_manifest_completeness(repo_root, check_type)
+            elif check_type == "fs_operations_completeness":
+                result = _check_fs_operations_completeness(repo_root, check_type)
             else:
                 result = EngineResult(
                     ok=False,
