@@ -100,12 +100,12 @@ class GovernanceEmbedderWorker(Worker):
         """
         await self.post_heartbeat()
 
-        from body.governance.coherence_harvester import GovernanceClaimHarvester
         from body.services.governance_claims_service import (
             ClaimVector,
             GovernanceClaimsService,
         )
         from body.services.service_registry import service_registry
+        from shared.governance.coherence_harvester import GovernanceClaimHarvester
         from shared.infrastructure.vector.cognitive_adapter import (
             CognitiveEmbedderAdapter,
         )

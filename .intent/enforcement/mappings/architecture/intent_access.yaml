@@ -1,12 +1,20 @@
 # .intent/enforcement/mappings/architecture/intent_access.yaml
 #
 # Enforces canonical access to .intent governance memory.
+#
+# Rule ID renamed under #490 (ADR-077 cleanup):
+#   old: architecture.intent.non_gateway_no_direct_resolution
+#   new: architecture.namespace.no_direct_protected_access
+# The check_type was renamed simultaneously from `direct_intent_access`
+# to `protected_namespace_access`. The check still hardcodes `.intent/`
+# semantics; promoting markers/gateway to rule-supplied parameters is
+# follow-up generalisation work tracked separately.
 
 mappings:
-  architecture.intent.non_gateway_no_direct_resolution:
+  architecture.namespace.no_direct_protected_access:
     engine: ast_gate
     params:
-      check_type: direct_intent_access
+      check_type: protected_namespace_access
     scope:
       applies_to:
         - "src/**/*.py"

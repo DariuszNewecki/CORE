@@ -1680,6 +1680,89 @@ Commits df6d95ca (Proposed), 3499d489 (Accepted), 3e8eefc0
 
 ---
 
+### #490 — Engine check rename: `IntentAccessCheck` → `ProtectedNamespaceAccessCheck`
+
+The literal scope of #490, deferred from ADR-077. The class was
+`.intent/`-specific in name only — its constitutional intent (announced
+in ADR-077) is broader: no direct access to any protected namespace
+outside its sanctioned gateway. The name now matches the intent.
+
+Renames in one atomic commit:
+- Class: `IntentAccessCheck` → `ProtectedNamespaceAccessCheck` (fresh UUID)
+- File: `checks/intent_access_check.py` → `checks/protected_namespace_access_check.py`
+- Method: `check_direct_intent_access` → `check_protected_namespace_access`
+- Engine dispatch key: `direct_intent_access` → `protected_namespace_access`
+- Rule ID: `architecture.intent.non_gateway_no_direct_resolution` → `architecture.namespace.no_direct_protected_access`
+
+Behaviour preserved verbatim. Markers (`.intent`, `intent_root`, etc.),
+the gateway path (`src/shared/infrastructure/intent/`), and the
+traversal/read/parse call sets all remain hardcoded to `.intent/`
+semantics. Promoting these to rule-supplied parameters
+(`protected_markers`, `gateway_segment`, `forbidden_classes`) is the
+generalisation step ADR-077 anticipated and is intentionally separate
+follow-up work — keeping the rename atomic limits the symbol-index
+ripple to one bounded change.
+
+Old rule ID kept in inline comments on the rule (`.intent/rules/architecture/intent_access.json`,
+`_renamed_from` field) and on the mapping
+(`.intent/enforcement/mappings/architecture/intent_access.yaml`, header
+comment) for greppability. Auto-remediation map key updated.
+
+No back-compat: the old `check_type: direct_intent_access` and the old
+rule ID no longer dispatch / no longer match. Audit-log finding subjects
+shift from `…architecture.intent.non_gateway_no_direct_resolution…` to
+`…architecture.namespace.no_direct_protected_access…` going forward.
+
+Files:
+`src/mind/logic/engines/ast_gate/checks/protected_namespace_access_check.py` (new, replaces `intent_access_check.py`),
+`src/mind/logic/engines/ast_gate/engine.py`,
+`src/mind/logic/engines/ast_gate/checks/__init__.py`,
+`.intent/enforcement/mappings/architecture/intent_access.yaml`,
+`.intent/rules/architecture/intent_access.json`,
+`.intent/enforcement/remediation/auto_remediation.yaml`,
+`src/shared/governance/coherence_harvester.py` (docstring),
+`src/will/governance/coverage_runner.py` (docstring),
+`tests/engines/test_intent_access_check.py`,
+`.specs/decisions/ADR-077-protected-namespace-access.md` (Note appended).
+Closes #490.
+
+---
+
+### #490 — Engine check rename: `import_boundary` → `runtime_import_boundary`
+
+Honesty cleanup, deferred from ADR-077. The `ast_gate` engine's
+`import_boundary` check forbade *imports*; the rule IDs that dispatched
+to it (e.g. `architecture.mind.no_body_invocation`) declared a
+constitutional intent about *invocation*. The check also silently
+exempted `if TYPE_CHECKING:` blocks — a convention authored in the
+engine but invisible in the rule YAML, so a reader of the rule alone
+could not tell whether type-level cross-layer references counted as
+violations.
+
+The check is renamed `runtime_import_boundary` so its name announces
+what it actually checks (runtime imports, not all imports). The
+TYPE_CHECKING exemption is promoted from a hardcoded engine convention
+to a rule-visible parameter (`type_checking_exempt: true` default). The
+constitutional intent — *mind knows body's surface (proprioception),
+mind does not invoke body's machinery* — is now expressed at three
+layers (rule ID, check name, parameter) telling the same story.
+
+No back-compat alias: the old `import_boundary` string no longer
+dispatches. Audit-log identifiers shift from `ast_gate.import_boundary`
+to `ast_gate.runtime_import_boundary` going forward; historical records
+are unchanged.
+
+Files:
+`src/mind/logic/engines/ast_gate/checks/runtime_import_boundary.py`
+(new, replaces `import_boundary.py`),
+`src/mind/logic/engines/ast_gate/engine.py`,
+`.intent/enforcement/mappings/architecture/{layer_separation,async_logic,privileged_boundaries}.yaml`,
+`.specs/decisions/ADR-049-doctrine-rule-parity.md` (Note appended),
+`.specs/decisions/ADR-063-bootstrap-will-tools-body-will-closure.md` (Note appended).
+Closes #490.
+
+---
+
 ## Notes
 
 * This changelog intentionally avoids implementation detail

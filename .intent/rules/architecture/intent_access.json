@@ -19,12 +19,12 @@
       "rationale": "Hardcoded legacy roots preserve migration drift and undermine convergence on the active intent tree."
     },
     {
-      "id": "architecture.intent.non_gateway_no_direct_resolution",
+      "id": "architecture.namespace.no_direct_protected_access",
       "statement": "Non-gateway Python components MUST NOT discover, scan, or load .intent governance artifacts through direct filesystem crawling or local parsing logic. Access to .intent governance artifacts MUST route through the shared intent infrastructure.",
       "enforcement": "reporting",
       "authority": "constitution",
       "phase": "audit",
-      "rationale": "Parallel .intent resolution paths create identity drift, stale structural assumptions, and inconsistent governance behavior."
+      "rationale": "Parallel .intent resolution paths create identity drift, stale structural assumptions, and inconsistent governance behavior. The rule scope is presently .intent-specific; the underlying engine check is named generically (protected_namespace_access) so future protected-namespace rules can reuse it. Renamed from architecture.intent.non_gateway_no_direct_resolution under #490 (ADR-077 cleanup, 2026-06-01)."
     },
     {
       "id": "architecture.intent.gateway_is_shared_infrastructure",

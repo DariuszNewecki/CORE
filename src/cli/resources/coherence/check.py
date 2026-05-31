@@ -13,6 +13,7 @@ import typer
 from rich.console import Console
 
 from body.services.coherence_service import CoherenceService
+from body.services.governance_claims_service import GovernanceClaimsService
 from cli.utils import core_command
 from mind.coherence.checker import CoherenceChecker
 from shared.config import settings
@@ -59,12 +60,20 @@ async def check_command(
         console.print(f"[red]❌ Cognitive service unavailable: {exc}[/red]")
         raise typer.Exit(code=1) from exc
 
+    claims_service: GovernanceClaimsService | None = None
+    try:
+        qdrant = await context.registry.get_qdrant_service()
+        claims_service = GovernanceClaimsService(qdrant)
+    except Exception as exc:
+        logger.warning("Qdrant unavailable; SAMECONCERN/R1_SCOPED will skip (%s)", exc)
+
     async with get_session() as session:
         coherence_service = CoherenceService(session)
         checker = CoherenceChecker(
             cognitive_service=cognitive_service,
             coherence_service=coherence_service,
             repo_root=settings.REPO_PATH,
+            claims_service=claims_service,
         )
 
         console.print("[cyan]Starting coherence run…[/cyan]")

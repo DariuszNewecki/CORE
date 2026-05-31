@@ -25,8 +25,8 @@ from .base import CoherenceCandidate
 
 
 if TYPE_CHECKING:
-    from body.governance.coherence_harvester import NormativeMarkerRegister
     from body.services.governance_claims_service import GovernanceClaimsService
+    from shared.governance.coherence_harvester import NormativeMarkerRegister
 
 
 logger = getLogger(__name__)
@@ -61,7 +61,7 @@ class SameConcernCheck:
 
     # ID: 43f12752-e72e-43e4-9d87-027d762e4e9e
     async def run(self) -> list[CoherenceCandidate]:
-        from body.governance.coherence_harvester import GovernanceClaimHarvester
+        from shared.governance.coherence_harvester import GovernanceClaimHarvester
         from shared.infrastructure.vector.cognitive_adapter import (
             CognitiveEmbedderAdapter,
         )

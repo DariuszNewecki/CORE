@@ -183,3 +183,16 @@ This ADR is verified when, on or before 2026-09-16:
 - `src/will/tools/policy_vectorizer.py` — third tool.
 - `.intent/enforcement/mappings/architecture/layer_separation.yaml`
   RULE 12 `excludes:` block — the entry this ADR closes.
+
+---
+
+## Note — 2026-05-31 (#490): engine check renamed
+
+The phrase "`ast_gate import_boundary` engine" in this ADR's body is
+superseded by the rename landed under #490 — the engine check is now
+`runtime_import_boundary`, the file is `checks/runtime_import_boundary.py`,
+and the class is `RuntimeImportBoundaryCheck`. Constitutional intent
+unchanged; the rename brings the mechanism name into line with the
+constitutional intent (forbids runtime invocation, allows type-level
+proprioception via `if TYPE_CHECKING:`). See `.intent/CHANGELOG.md`
+#490 entry for the full rationale.

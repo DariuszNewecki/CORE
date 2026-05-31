@@ -55,7 +55,7 @@ class PolicyRule:
           "authority": "policy",
           "check": {
             "engine": "ast_gate",
-            "params": {"check_type": "import_boundary", ...}
+            "params": {"check_type": "runtime_import_boundary", ...}
           },
           "enforcement": "error",
           "scope": ["src/**/*.py"]

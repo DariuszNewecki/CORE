@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import hashlib
 import json
-from collections.abc import Iterable
+from collections.abc import Iterable, Iterator
 from dataclasses import dataclass
 from pathlib import Path
 from threading import Lock
@@ -140,6 +140,32 @@ class IntentRepository(RootedRepository):
         raise GovernanceError(
             f"Unsupported intent artifact type: {path.suffix} ({path})"
         )
+
+    # ID: 1d4f9c2a-7e83-4b15-9a6e-3c8d5f0a1b27
+    def iter_documents(
+        self,
+        *,
+        skip_components: Iterable[str] = (),
+    ) -> Iterator[tuple[Path, dict[str, Any]]]:
+        """Yield (absolute_path, parsed_dict) for every .yaml/.yml/.json under .intent/.
+
+        Canonical gateway for corpus-walking callers (e.g. the governance
+        claim harvester) that previously did `intent_root.rglob(...)` —
+        replaces direct Path access per architecture.namespace.no_direct_protected_access
+        (renamed #490; formerly architecture.intent.non_gateway_no_direct_resolution).
+
+        skip_components filters by path component name (e.g. {"META"} to
+        exclude .intent/META/**). Parse failures are logged and skipped so
+        a single bad file does not abort the walk.
+        """
+        skip = frozenset(skip_components)
+        for path in self._iter_policy_files(self._root):
+            if skip and any(part in skip for part in path.parts):
+                continue
+            try:
+                yield path, self.load_document(path)
+            except GovernanceError as exc:
+                logger.warning("iter_documents: skipping %s: %s", path, exc)
 
     # ID: a2b3c4d5-e6f7-8901-abcd-ef1234567890
     def load_text(self, rel: str | Path) -> str:

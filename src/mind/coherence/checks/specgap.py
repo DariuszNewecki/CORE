@@ -30,7 +30,7 @@ from .base import CoherenceCandidate
 
 
 if TYPE_CHECKING:
-    from body.governance.coherence_harvester import NormativeMarkerRegister
+    from shared.governance.coherence_harvester import NormativeMarkerRegister
 
 
 _UR_HEADING = re.compile(r"^###\s+(UR-\d{2}):\s*(.+?)\s*$", re.MULTILINE)

@@ -315,7 +315,9 @@ mappings:
       required.
     status: DELEGATE
 
-  architecture.intent.non_gateway_no_direct_resolution:
+  architecture.namespace.no_direct_protected_access:
+    # Renamed from architecture.intent.non_gateway_no_direct_resolution
+    # under #490 (ADR-077 cleanup, 2026-06-01).
     action: fix.modularity
     confidence: 0.40
     risk: high

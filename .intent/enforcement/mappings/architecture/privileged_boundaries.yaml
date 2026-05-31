@@ -19,7 +19,7 @@ mappings:
   architecture.boundary.database_session_access:
     engine: ast_gate
     params:
-      check_type: import_boundary
+      check_type: runtime_import_boundary
       forbidden:
         - "shared.infrastructure.database.session_manager.get_session"
         - "sqlalchemy.ext.asyncio.AsyncSession"
@@ -47,7 +47,7 @@ mappings:
   architecture.boundary.settings_access:
     engine: ast_gate
     params:
-      check_type: import_boundary
+      check_type: runtime_import_boundary
       forbidden:
         - "shared.config.Settings"
         - "shared.config.settings"
@@ -77,7 +77,7 @@ mappings:
   architecture.boundary.file_handler_access:
     engine: ast_gate
     params:
-      check_type: import_boundary
+      check_type: runtime_import_boundary
       forbidden:
         - "shared.infrastructure.storage.file_handler.FileHandler"
     scope:
@@ -100,7 +100,7 @@ mappings:
   architecture.boundary.llm_client_access:
     engine: ast_gate
     params:
-      check_type: import_boundary
+      check_type: runtime_import_boundary
       forbidden:
         - "shared.infrastructure.llm.client"
         - "will.agents"

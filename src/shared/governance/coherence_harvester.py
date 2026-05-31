@@ -1,15 +1,23 @@
-# src/body/governance/coherence_harvester.py
+# src/shared/governance/coherence_harvester.py
 """
-Governance Claim Harvester - Body Layer
+Governance Claim Harvester — Shared utility.
 
-Walks the governance corpus (.specs/{decisions,papers,northstar}, .intent/)
-and extracts normative claims per ADR-073 D4 / D10. Pure read-only; no DB,
-no LLM, no side effects.
+Walks the governance corpus (.specs/{decisions,papers,northstar} via direct
+filesystem reads, and .intent/ via the IntentRepository gateway) and yields
+typed normative claims. Pure read-only; no DB, no LLM, no side effects.
 
 Consumed by:
+  - mind.coherence.* (check-class implementations for ROW3_CITATION, SAMECONCERN, R1_SCOPED, SPECGAP)
   - will.workers.governance_embedding (steady-state incremental sync)
-  - mind.coherence.* (check-class implementations for ROW3_CITATION, SPECGAP)
   - cli.resources.coherence (bootstrap subcommand)
+
+Lives in shared/ per architecture.shared.no_strategic_decisions: this module
+is a utility — every harvested Claim is data, not a decision. Strategic
+interpretation happens in consumers (the check classes, embedder, judge).
+
+.intent/ reads route through IntentRepository.iter_documents (the canonical
+gateway), satisfying architecture.namespace.no_direct_protected_access
+(formerly architecture.intent.non_gateway_no_direct_resolution; renamed #490).
 
 Constitutional grounding:
   - ADR-073 D4 (sync worker harvest)
@@ -19,15 +27,19 @@ Constitutional grounding:
 from __future__ import annotations
 
 import hashlib
-import json
 import re
 from collections.abc import Iterator
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import yaml
 
 from shared.logger import getLogger
+
+
+if TYPE_CHECKING:
+    from shared.infrastructure.intent.intent_repository import IntentRepository
 
 
 logger = getLogger(__name__)
@@ -39,6 +51,8 @@ _MAX_TEXT_LEN = 1500
 _STRUCTURED_FIELDS = frozenset(
     {"statement", "description", "rationale", "principle", "responsibility", "verdict"}
 )
+
+_NORMATIVE_MARKERS_REL = "enforcement/config/normative_markers.yaml"
 
 
 @dataclass(frozen=True)
@@ -67,13 +81,34 @@ class NormativeMarkerRegister:
     @classmethod
     # ID: a3523853-4dd5-4941-8c6d-d51831c9da31
     def from_yaml(cls, path: Path) -> NormativeMarkerRegister:
+        """Legacy constructor — reads a yaml file directly.
+
+        Kept for test ergonomics and ad-hoc CLI use. Production callers
+        in src/ should prefer from_intent so .intent/ access stays
+        gateway-routed.
+        """
         data = yaml.safe_load(path.read_text(encoding="utf-8"))
+        return cls._from_data(data, source=str(path))
+
+    @classmethod
+    # ID: 8f3e1a72-5c4b-4d6e-9a0f-7b2c8d4e6f10
+    def from_intent(cls, intent_repo: IntentRepository) -> NormativeMarkerRegister:
+        """Canonical constructor — loads via IntentRepository gateway."""
+        register_path = intent_repo.resolve_rel(_NORMATIVE_MARKERS_REL)
+        data = intent_repo.load_document(register_path)
+        return cls._from_data(data, source=str(register_path))
+
+    @classmethod
+    def _from_data(
+        cls, data: dict[str, object] | None, *, source: str
+    ) -> NormativeMarkerRegister:
+        data = data or {}
         markers = tuple(data.get("markers", []))
         action_verbs = tuple(data.get("action_verbs", []))
         aspirational = tuple(data.get("aspirational_markers", []))
         if not markers:
             raise ValueError(
-                f"normative_markers.yaml at {path} has empty markers list — D10 requires non-empty"
+                f"normative_markers register at {source} has empty markers list — D10 requires non-empty"
             )
         pattern = re.compile(
             "|".join(rf"\b{re.escape(m)}\b" for m in markers),
@@ -87,6 +122,10 @@ class GovernanceClaimHarvester:
     """Walks the governance corpus and yields normative claims.
 
     Pure read-only. No DB. No LLM. Deterministic over corpus + register.
+
+    .intent/ reads route through the injected IntentRepository (canonical
+    gateway). .specs/ reads use direct filesystem access — the
+    namespace.no_direct_protected_access rule governs .intent/ only.
     """
 
     # ID: 23757375-49cc-43db-972e-1bb5aaa87502
@@ -94,17 +133,18 @@ class GovernanceClaimHarvester:
         self,
         repo_root: Path,
         register: NormativeMarkerRegister | None = None,
+        intent_repo: IntentRepository | None = None,
     ) -> None:
         self._repo_root = Path(repo_root).resolve()
-        if register is None:
-            register_path = (
-                self._repo_root
-                / ".intent"
-                / "enforcement"
-                / "config"
-                / "normative_markers.yaml"
+        if intent_repo is None:
+            from shared.infrastructure.intent.intent_repository import (
+                get_intent_repository,
             )
-            register = NormativeMarkerRegister.from_yaml(register_path)
+
+            intent_repo = get_intent_repository()
+        self._intent_repo = intent_repo
+        if register is None:
+            register = NormativeMarkerRegister.from_intent(intent_repo)
         self._register = register
 
     @property
@@ -126,16 +166,8 @@ class GovernanceClaimHarvester:
             for path in sorted(root.glob(glob)):
                 yield from self._extract_markdown(path, category)
 
-        intent_root = self._repo_root / ".intent"
-        if intent_root.is_dir():
-            for path in sorted(intent_root.rglob("*.json")):
-                if "META" in path.parts:
-                    continue
-                yield from self._extract_structured(path)
-            for path in sorted(intent_root.rglob("*.yaml")):
-                if "META" in path.parts:
-                    continue
-                yield from self._extract_structured(path)
+        for path, data in self._intent_repo.iter_documents(skip_components={"META"}):
+            yield from self._extract_structured(path, data)
 
     # ID: b3e40f83-334f-427f-8fab-85ad189875cf
     def _extract_markdown(self, path: Path, category: str) -> Iterator[Claim]:
@@ -184,15 +216,7 @@ class GovernanceClaimHarvester:
             content_sha=self._sha(truncated),
         )
 
-    def _extract_structured(self, path: Path) -> Iterator[Claim]:
-        try:
-            if path.suffix == ".json":
-                data = json.loads(path.read_text(encoding="utf-8"))
-            else:
-                data = yaml.safe_load(path.read_text(encoding="utf-8"))
-        except Exception as exc:
-            logger.warning("harvester: failed to parse %s: %s", path, exc)
-            return
+    def _extract_structured(self, path: Path, data: object) -> Iterator[Claim]:
         if data is None:
             return
 

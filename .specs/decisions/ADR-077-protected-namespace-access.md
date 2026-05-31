@@ -95,6 +95,18 @@ Sequencing — each step ships green before the next is promoted:
 - The ~340-site migration converges separately under the advisory broad policy — the autonomous-remediation training set, not a blocker for the trust fix.
 - `IntentAccessCheck` → `ProtectedNamespaceAccessCheck` and the `check_type` router-key generalization are a follow-up cleanup commit, done after behavior is proven (it ripples through the symbol index). Tracked as #490.
 
+> **Note — 2026-06-01 (#490 landed):** The class is now
+> `ProtectedNamespaceAccessCheck`, the file is
+> `checks/protected_namespace_access_check.py`, the check_type is
+> `protected_namespace_access`, and the rule ID is
+> `architecture.namespace.no_direct_protected_access`. The body and the
+> related-link reference at the top of this ADR retain the old
+> `IntentAccessCheck` / `non_gateway_no_direct_resolution` names for
+> historical continuity. Markers/gateway/forbidden_classes remain
+> hardcoded; promoting them to rule-supplied parameters is a separate
+> generalisation step intentionally deferred from #490 to keep the
+> rename atomic. See `.intent/CHANGELOG.md` #490 entries.
+
 ## Alternatives considered
 
 - **Vocabulary in code (status quo).** The bug-hiding pattern that triggered this. Rejected.

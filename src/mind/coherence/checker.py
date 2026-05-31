@@ -34,6 +34,7 @@ from shared.logger import getLogger
 
 if TYPE_CHECKING:
     from body.services.coherence_service import CoherenceService
+    from body.services.governance_claims_service import GovernanceClaimsService
 
     from .checks.base import CheckClass
 
@@ -58,10 +59,12 @@ class CoherenceChecker:
         cognitive_service: Any,
         coherence_service: CoherenceService,
         repo_root: Path,
+        claims_service: GovernanceClaimsService | None = None,
     ):
         self._cognitive_service = cognitive_service
         self._coherence_service = coherence_service
         self._repo_root = Path(repo_root)
+        self._claims_service = claims_service
 
     # ID: 2e4a95a7-fdac-427a-94eb-ed20ce2930c9
     async def run(self, full: bool = False, sample_rules: int | None = None) -> str:
@@ -113,8 +116,8 @@ class CoherenceChecker:
 
     # ID: 43725b56-2fcb-4746-a414-dc57428ff02f
     async def _dispatch_checks(self, run_id: str) -> dict[str, dict]:
-        from body.governance.coherence_harvester import NormativeMarkerRegister
-        from body.services.governance_claims_service import GovernanceClaimsService
+        from shared.governance.coherence_harvester import NormativeMarkerRegister
+        from shared.infrastructure.intent.intent_repository import get_intent_repository
 
         from .checks.r1_scoped import R1ScopedCheck
         from .checks.row2_grounding import Row2GroundingCheck
@@ -124,23 +127,11 @@ class CoherenceChecker:
         from .checks.specgap import SpecGapCheck
         from .checks.vocabulary import VocabularyCheck
 
-        register = NormativeMarkerRegister.from_yaml(
-            self._repo_root
-            / ".intent"
-            / "enforcement"
-            / "config"
-            / "normative_markers.yaml"
-        )
+        register = NormativeMarkerRegister.from_intent(get_intent_repository())
 
-        claims_service: GovernanceClaimsService | None = None
-        try:
-            from body.services.service_registry import service_registry
-
-            qdrant = await service_registry.get_qdrant_service()
-            claims_service = GovernanceClaimsService(qdrant)
-        except Exception as exc:
-            logger.warning(
-                "CCC: Qdrant unavailable; SAMECONCERN/R1_SCOPED will skip (%s)", exc
+        if self._claims_service is None:
+            logger.info(
+                "CCC: claims_service not injected; SAMECONCERN/R1_SCOPED will skip"
             )
 
         checks: list[CheckClass] = [
@@ -150,12 +141,12 @@ class CoherenceChecker:
             VocabularyCheck(self._repo_root),
             SpecGapCheck(self._repo_root, register),
         ]
-        if claims_service is not None:
+        if self._claims_service is not None:
             checks.append(
                 SameConcernCheck(
                     self._repo_root,
                     register,
-                    claims_service,
+                    self._claims_service,
                     self._cognitive_service,
                 )
             )
@@ -163,7 +154,7 @@ class CoherenceChecker:
                 R1ScopedCheck(
                     self._repo_root,
                     register,
-                    claims_service,
+                    self._claims_service,
                     self._cognitive_service,
                 )
             )

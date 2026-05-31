@@ -17,9 +17,8 @@ class ImportChecks:
     # ID: 86bdd1f7-c822-445c-9d91-dc40acb224b9
     def check_forbidden_imports(tree: ast.AST, forbidden: list[str]) -> list[str]:
         """
-        Enforce import_boundary rule.
+        Enforce runtime_import_boundary rule.
 
-        BIG BOYS PATTERN:
         Allows TYPE_CHECKING imports (runtime-erased, tooling only).
         Only blocks actual runtime imports that create coupling.
         """

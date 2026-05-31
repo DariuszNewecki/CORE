@@ -9,11 +9,11 @@ from .capability_checks import CapabilityChecks
 from .conservation_checks import ConservationChecks
 from .generic_checks import GenericASTChecks
 from .import_checks import ImportChecks
-from .intent_access_check import IntentAccessCheck
 from .logging_checks import LoggingChecks
 from .metadata_checks import normalize_ast, verify_metadata_only_diff
 from .naming_checks import NamingChecks
 from .prompt_model_checks import PromptModelChecks
+from .protected_namespace_access_check import ProtectedNamespaceAccessCheck
 from .purity_checks import PurityChecks
 from .schema_conformance_checks import SchemaConformanceChecks
 
@@ -24,10 +24,10 @@ __all__ = [
     "ConservationChecks",
     "GenericASTChecks",
     "ImportChecks",
-    "IntentAccessCheck",
     "LoggingChecks",
     "NamingChecks",
     "PromptModelChecks",
+    "ProtectedNamespaceAccessCheck",
     "PurityChecks",
     "SchemaConformanceChecks",
     "normalize_ast",

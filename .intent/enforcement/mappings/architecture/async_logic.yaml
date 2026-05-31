@@ -12,7 +12,7 @@ mappings:
   logic.di.no_global_session:
     engine: ast_gate
     params:
-      check_type: import_boundary
+      check_type: runtime_import_boundary
       forbidden:
         - "shared.infrastructure.database.session_manager.get_session"
         - "shared.infrastructure.database.session_manager.get_db_session"

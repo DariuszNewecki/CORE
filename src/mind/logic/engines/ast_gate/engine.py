@@ -18,9 +18,13 @@ from mind.logic.engines.ast_gate.checks import (
     PurityChecks,
     SchemaConformanceChecks,
 )
-from mind.logic.engines.ast_gate.checks.import_boundary import ImportBoundaryCheck
-from mind.logic.engines.ast_gate.checks.intent_access_check import IntentAccessCheck
 from mind.logic.engines.ast_gate.checks.modularity_checks import ModularityChecker
+from mind.logic.engines.ast_gate.checks.protected_namespace_access_check import (
+    ProtectedNamespaceAccessCheck,
+)
+from mind.logic.engines.ast_gate.checks.runtime_import_boundary import (
+    RuntimeImportBoundaryCheck,
+)
 from mind.logic.engines.base import BaseEngine, EngineResult
 from shared.infrastructure.intent.filesystem_operations import (
     FsOperationTaxonomy,
@@ -57,7 +61,7 @@ class ASTGateEngine(BaseEngine):
     _SUPPORTED_CHECK_TYPES: ClassVar[frozenset[str]] = frozenset(
         {
             "generic_primitive",
-            "import_boundary",
+            "runtime_import_boundary",
             "linter_compliance",
             "restrict_event_loop_creation",
             "no_import_time_async_singletons",
@@ -86,7 +90,7 @@ class ASTGateEngine(BaseEngine):
             "metadata_only_diff",
             "logic_conservation",
             "logger_not_presentation",
-            "direct_intent_access",
+            "protected_namespace_access",
             "import_order",
             "module_header",
             "schema_conformance",
@@ -180,8 +184,8 @@ class ASTGateEngine(BaseEngine):
             )
 
         # --- Boundaries & Architecture ---
-        elif check_type == "import_boundary":
-            res = ImportBoundaryCheck.check(file_path, tree, params)
+        elif check_type == "runtime_import_boundary":
+            res = RuntimeImportBoundaryCheck.check(file_path, tree, params)
             if not res.ok:
                 violations.extend(res.violations)
 
@@ -203,9 +207,9 @@ class ASTGateEngine(BaseEngine):
             findings = method(file_path, params)
             violations.extend(findings)
 
-        elif check_type == "direct_intent_access":
+        elif check_type == "protected_namespace_access":
             violations.extend(
-                IntentAccessCheck.check_direct_intent_access(
+                ProtectedNamespaceAccessCheck.check_protected_namespace_access(
                     tree=tree,
                     file_path=file_path,
                 )

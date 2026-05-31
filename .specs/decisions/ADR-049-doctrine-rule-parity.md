@@ -330,3 +330,23 @@ CCC SAMECONCERN candidate `d571a2d2-614b-45d0-9f21-805432cc61d8` surfaced this
 scope gap. Topology Row 3's "(existing ADR-049 D2)" parenthetical was
 accidental — it inherited the broader reading as if D2 already covered it.
 Corrected in the companion edit to "(extends ADR-049 D2)."
+
+## Note — 2026-05-31 (#490): engine check renamed
+
+The `ast_gate import_boundary` references in this ADR's body — the
+identifier in §D ("visible in audit log as `ast_gate.import_boundary`"),
+the citation `src/mind/logic/engines/ast_gate/checks/import_boundary.py:233–261`,
+and other body-text occurrences — are superseded by the rename landed
+under #490 (deferred-and-tracked in ADR-077):
+
+- Check name: `import_boundary` → `runtime_import_boundary`
+- File: `checks/import_boundary.py` → `checks/runtime_import_boundary.py`
+- Class: `ImportBoundaryCheck` → `RuntimeImportBoundaryCheck`
+- Audit-log identifier going forward: `ast_gate.runtime_import_boundary`
+
+This ADR's original text is preserved above. Constitutional intent is
+unchanged — only the mechanism name now matches the intent (forbids
+runtime cross-layer invocation; type-level proprioception via
+`if TYPE_CHECKING:` is allowed by default and configurable via the new
+`type_checking_exempt` parameter). See `.intent/CHANGELOG.md` #490 entry
+for the full rationale.

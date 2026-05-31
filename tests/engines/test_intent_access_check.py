@@ -1,8 +1,11 @@
-"""Regression tests for IntentAccessCheck taint-propagation gaps (#119).
+"""Regression tests for ProtectedNamespaceAccessCheck taint-propagation gaps (#119).
 
 Pure AST-driven tests — no DB fixtures. Each test parses a small source
-snippet, runs `IntentAccessCheck.check_direct_intent_access` against it,
-and asserts on the resulting findings list.
+snippet, runs `ProtectedNamespaceAccessCheck.check_protected_namespace_access`
+against it, and asserts on the resulting findings list.
+
+Class previously named `IntentAccessCheck` / method
+`check_direct_intent_access` — renamed under #490 (ADR-077 cleanup).
 
 Covers gaps 1-3 from #119:
   - Gap 1: variable-to-variable derivation (multi-hop taint chain)
@@ -17,8 +20,8 @@ from __future__ import annotations
 import ast
 from pathlib import Path
 
-from mind.logic.engines.ast_gate.checks.intent_access_check import (
-    IntentAccessCheck,
+from mind.logic.engines.ast_gate.checks.protected_namespace_access_check import (
+    ProtectedNamespaceAccessCheck,
 )
 
 
@@ -27,7 +30,9 @@ _INSIDE_GATEWAY = Path("src/shared/infrastructure/intent/some_module.py")
 
 
 def _check(source: str, file_path: Path = _OUTSIDE_GATEWAY) -> list[str]:
-    return IntentAccessCheck.check_direct_intent_access(ast.parse(source), file_path)
+    return ProtectedNamespaceAccessCheck.check_protected_namespace_access(
+        ast.parse(source), file_path
+    )
 
 
 def test_two_hop_chain_derived_from_intent_root() -> None:

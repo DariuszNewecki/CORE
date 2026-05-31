@@ -2,7 +2,7 @@
 - Source: src/mind/logic/engines/ast_gate/engine.py
 - Symbol: ASTGateEngine
 - Status: 14 tests passed, some failed
-- Passing tests: test_verify_unknown_check_type, test_verify_empty_check_type, test_verify_parse_error, test_verify_no_print_statements_compliant, test_verify_no_print_statements_violation, test_verify_forbidden_assignments, test_verify_write_defaults_false_violation, test_verify_write_defaults_false_compliant, test_verify_max_file_lines_violation, test_verify_decorator_args, test_verify_stable_id_anchor, test_verify_import_boundary, test_supported_check_types, test_verify_all_supported_check_types_exist
+- Passing tests: test_verify_unknown_check_type, test_verify_empty_check_type, test_verify_parse_error, test_verify_no_print_statements_compliant, test_verify_no_print_statements_violation, test_verify_forbidden_assignments, test_verify_write_defaults_false_violation, test_verify_write_defaults_false_compliant, test_verify_max_file_lines_violation, test_verify_decorator_args, test_verify_stable_id_anchor, test_verify_runtime_import_boundary, test_supported_check_types, test_verify_all_supported_check_types_exist
 - Generated: 2026-01-11 02:26:12
 """
 
@@ -170,13 +170,14 @@ async def test_verify_stable_id_anchor():
 
 
 @pytest.mark.asyncio
-async def test_verify_import_boundary():
-    """Test import_boundary check."""
+async def test_verify_runtime_import_boundary():
+    """Test runtime_import_boundary check."""
     engine = ASTGateEngine()
     file_path = Path("/tmp/test.py")
     file_path.write_text("import forbidden_module")
     result = await engine.verify(
-        file_path, {"check_type": "import_boundary", "forbidden": ["forbidden_module"]}
+        file_path,
+        {"check_type": "runtime_import_boundary", "forbidden": ["forbidden_module"]},
     )
     assert not result.ok
     assert result.message == "AST Gate: Violations found"
@@ -189,7 +190,7 @@ async def test_supported_check_types():
     supported = ASTGateEngine.supported_check_types()
     assert isinstance(supported, set)
     assert "no_print_statements" in supported
-    assert "import_boundary" in supported
+    assert "runtime_import_boundary" in supported
     assert "max_file_lines" in supported
     assert len(supported) > 0
 

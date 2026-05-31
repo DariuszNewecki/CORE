@@ -15,7 +15,7 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-from body.governance.coherence_harvester import NormativeMarkerRegister
+from shared.governance.coherence_harvester import NormativeMarkerRegister
 
 from .base import CoherenceCandidate
 

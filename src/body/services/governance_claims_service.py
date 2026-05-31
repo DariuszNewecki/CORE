@@ -26,7 +26,7 @@ from shared.logger import getLogger
 
 
 if TYPE_CHECKING:
-    from body.governance.coherence_harvester import Claim
+    from shared.governance.coherence_harvester import Claim
     from shared.infrastructure.clients.qdrant_client import QdrantService
 
 

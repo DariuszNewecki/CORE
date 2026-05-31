@@ -170,7 +170,8 @@ def get_coverage_targets(context: CoreContext) -> dict:
     Reads `.intent/enforcement/config/test_coverage.yaml` through the
     sanctioned `IntentRepository.load_document` gateway — direct
     `yaml.safe_load` on `.intent/` content is forbidden by
-    `architecture.intent.non_gateway_no_direct_resolution`.
+    `architecture.namespace.no_direct_protected_access` (renamed #490;
+    formerly `architecture.intent.non_gateway_no_direct_resolution`).
     """
     from shared.infrastructure.intent.intent_repository import (
         get_intent_repository,

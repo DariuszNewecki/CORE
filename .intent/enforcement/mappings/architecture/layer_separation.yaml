@@ -33,7 +33,7 @@ mappings:
   architecture.mind.no_database_access:
     engine: ast_gate
     params:
-      check_type: import_boundary
+      check_type: runtime_import_boundary
       forbidden:
         - "shared.infrastructure.database.session_manager.get_session"
         - "shared.infrastructure.database.get_session"
@@ -64,7 +64,7 @@ mappings:
   architecture.mind.no_body_invocation:
     engine: ast_gate
     params:
-      check_type: import_boundary
+      check_type: runtime_import_boundary
       forbidden:
         - "src.body"
         - "body"
@@ -79,7 +79,7 @@ mappings:
   architecture.mind.no_will_invocation:
     engine: ast_gate
     params:
-      check_type: import_boundary
+      check_type: runtime_import_boundary
       forbidden:
         - "src.will"
         - "will"
@@ -94,7 +94,7 @@ mappings:
   architecture.body.no_rule_evaluation:
     engine: ast_gate
     params:
-      check_type: import_boundary
+      check_type: runtime_import_boundary
       forbidden:
         - "src.mind.logic.engines"
         - "mind.logic.engines"
@@ -124,7 +124,7 @@ mappings:
   architecture.will.no_direct_database_access:
     engine: ast_gate
     params:
-      check_type: import_boundary
+      check_type: runtime_import_boundary
       forbidden:
         - "shared.infrastructure.database.session_manager.get_session"
         - "shared.infrastructure.database.session_manager.get_db_session"
@@ -184,7 +184,7 @@ mappings:
   architecture.api.no_direct_database_access:
     engine: ast_gate
     params:
-      check_type: import_boundary
+      check_type: runtime_import_boundary
       forbidden:
         - "shared.infrastructure.database.session_manager.get_session"
         - "shared.infrastructure.database.session_manager.get_db_session"
@@ -221,7 +221,7 @@ mappings:
   architecture.api.no_body_bypass:
     engine: ast_gate
     params:
-      check_type: import_boundary
+      check_type: runtime_import_boundary
       forbidden:
         - "src.body"
         - "body"
@@ -249,7 +249,7 @@ mappings:
   architecture.layers.no_body_to_will:
     engine: ast_gate
     params:
-      check_type: import_boundary
+      check_type: runtime_import_boundary
       forbidden:
         - "src.will"
         - "will"
@@ -317,7 +317,7 @@ mappings:
   architecture.shared.no_layer_imports:
     engine: ast_gate
     params:
-      check_type: import_boundary
+      check_type: runtime_import_boundary
       forbidden:
         - "src.mind"
         - "mind"

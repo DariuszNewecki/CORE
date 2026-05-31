@@ -46,7 +46,7 @@ def test_from_dict_with_full_fields_and_check_block():
         "scope": ["lib/**/*.js", "test/**/*.js"],
         "check": {
             "engine": "ast_gate",
-            "params": {"check_type": "import_boundary", "allowed": ["lib"]},
+            "params": {"check_type": "runtime_import_boundary", "allowed": ["lib"]},
         },
     }
     rule = PolicyRule.from_dict(data, source="full.json")
@@ -57,7 +57,7 @@ def test_from_dict_with_full_fields_and_check_block():
     assert rule.severity == "warning"
     assert rule.source_policy == "full.json"
     assert rule.engine == "ast_gate"
-    assert rule.params == {"check_type": "import_boundary", "allowed": ["lib"]}
+    assert rule.params == {"check_type": "runtime_import_boundary", "allowed": ["lib"]}
 
 
 def test_from_dict_fallbacks_and_missing_data():

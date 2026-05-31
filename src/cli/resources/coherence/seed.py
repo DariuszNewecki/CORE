@@ -57,11 +57,11 @@ async def bootstrap_command(ctx: typer.Context) -> None:
     The daemon worker handles steady-state incremental sync after this
     completes. Run once on install or after a collection drop.
     """
-    from body.governance.coherence_harvester import GovernanceClaimHarvester
     from body.services.governance_claims_service import (
         ClaimVector,
         GovernanceClaimsService,
     )
+    from shared.governance.coherence_harvester import GovernanceClaimHarvester
     from shared.infrastructure.vector.cognitive_adapter import (
         CognitiveEmbedderAdapter,
     )
