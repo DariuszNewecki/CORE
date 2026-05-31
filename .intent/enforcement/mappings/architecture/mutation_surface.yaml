@@ -20,8 +20,16 @@ mappings:
         # Excludes mirrored from governance.logic_mutation.governed in
         # governance_basics.yaml — both rules use no_direct_writes and
         # must share the same sanctuary set or one will fire spuriously.
+        # Alignment completed 2026-05-31 (#489): three bootstrap-tier
+        # entries (path_utils, crate_processing_service, ruff_linter) were
+        # sanctioned in governance_basics.yaml but absent here. The
+        # taxonomy migration surfaced the gap by surfacing legitimate
+        # mkdir/write_text writes from these files under this rule only.
         - "src/shared/infrastructure/git_service.py" # Git + ephemeral worktree sanctuary
         - "src/shared/infrastructure/context/cache.py" # Runtime cache infrastructure
+        - "src/shared/path_utils.py" # Path resolution utilities
+        - "src/body/services/crate_processing_service.py" # Crate generation infrastructure
+        - "src/shared/infrastructure/validation/ruff_linter.py" # Linting infrastructure
         - "var/**"
         - "**/__pycache__/**"
         - "tests/**" # Tests may use direct writes for fixtures

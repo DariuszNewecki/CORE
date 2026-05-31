@@ -48,11 +48,22 @@ description: >
 operations:
 
   # ---------------------------------------------------------------------------
-  # pathlib.Path — every public method, leaf match.
+  # pathlib.Path — every public method classified.
   # ADR-077 §3: "every public method must be classified. A method present in
   # the runtime but absent from the taxonomy is a finding." The completeness
   # check enumerates pathlib.Path public callables via inspect.getmembers and
   # set-differences against this block; any gap fires manual_review.
+  #
+  # Per-entry match: leaf by convention. Two exceptions — `replace` and
+  # `rename` — are declared qualified to avoid colliding with str.replace
+  # (~140 src/ sites) and similar. Detection of the write semantics on these
+  # names runs through the watched-block `os.replace`/`os.rename` entries;
+  # the pathlib qualified entries below exist for §3 completeness compliance
+  # but never resolve at detection time (`Path("x").replace(...)` has a Call
+  # receiver, unresolvable through `resolve_qualified_name`). The
+  # variable-receiver bypass `p.replace(...)` is a pre-existing, accepted
+  # gap — see #489 migration trap (and the follow-up tracking the type-flow
+  # work that would close it).
   # ---------------------------------------------------------------------------
   pathlib_path:
     absolute:          { op_class: neutral,  match: leaf }
@@ -90,8 +101,8 @@ operations:
     read_text:         { op_class: read,     match: leaf }
     readlink:          { op_class: read,     match: leaf }
     relative_to:       { op_class: neutral,  match: leaf }
-    rename:            { op_class: write,    match: leaf }
-    replace:           { op_class: write,    match: leaf }
+    rename:            { op_class: write,    match: qualified }
+    replace:           { op_class: write,    match: qualified }
     resolve:           { op_class: read,     match: leaf }
     rglob:             { op_class: traverse, match: leaf }
     rmdir:             { op_class: write,    match: leaf }
