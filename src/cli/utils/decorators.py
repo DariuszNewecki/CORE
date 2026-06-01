@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import asyncio
 import functools
+import inspect
 import traceback
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -59,6 +60,10 @@ def core_command(
         COMMAND_REGISTRY[func.__name__] = CommandMetadata(
             dangerous, confirmation, requires_context
         )
+        # Banner text recommends `--write`; only meaningful if the command
+        # actually has a `write` parameter to toggle. Computed once per
+        # decoration so the hot path doesn't re-introspect. See #504.
+        has_write_param = "write" in inspect.signature(func).parameters
 
         @functools.wraps(func)
         # ID: 77ebffad-b3e8-4cc7-8835-f49770a2a653
@@ -78,7 +83,7 @@ def core_command(
                 raise typer.Exit(1)
             write = bool(cast(dict[str, Any], kwargs).get("write", False))
             check = bool(cast(dict[str, Any], kwargs).get("check", False))
-            if dangerous and (not write) and (not check):
+            if dangerous and has_write_param and (not write) and (not check):
                 console.print(
                     "[bold yellow]⚠️  DRY RUN MODE[/bold yellow]\n   No changes will be made. Use [cyan]--write[/cyan] to apply.\n"
                 )
