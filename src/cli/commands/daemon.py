@@ -28,6 +28,7 @@ from __future__ import annotations
 import asyncio
 import fcntl
 import importlib
+import logging
 import os
 import re
 import signal
@@ -716,6 +717,10 @@ async def _run_daemon_locked(only: str | None = None) -> None:
 
     tasks: list[asyncio.Task[Any]] = []
     excluded_heavy: list[str] = []
+    # ADR-081 Step 3a — stem → Worker registry for loop-hold telemetry
+    # attribution. Populated alongside worker instantiation below; consumed
+    # by the drain coroutine after the loop completes.
+    workers_by_stem: dict[str, Any] = {}
 
     for yaml_file in yaml_files:
         stem = yaml_file.stem
@@ -814,6 +819,7 @@ async def _run_daemon_locked(only: str | None = None) -> None:
 
             task = asyncio.create_task(coro, name=f"{stem}_worker")
             tasks.append(task)
+            workers_by_stem[stem] = worker
             logger.info(
                 "CORE daemon: started worker '%s' (%s.%s)",
                 stem,
@@ -838,6 +844,33 @@ async def _run_daemon_locked(only: str | None = None) -> None:
             ", ".join(excluded_heavy),
         )
 
+    # ADR-081 Step 3a-telemetry — install slow-callback blackboard handler
+    # alongside the loop.set_debug(True) instrumentation from Step 0. The
+    # handler runs in lockstep with asyncio's slow-callback warnings (only
+    # emitted when set_debug is on), so it costs nothing when set_debug is
+    # off and the drain task self-cancels on shutdown.
+    telemetry_task: asyncio.Task[Any] | None = None
+    telemetry_handler: logging.Handler | None = None
+    if _CFG.set_debug and workers_by_stem:
+        from shared.workers.loop_hold_telemetry import (
+            SlowCallbackBlackboardHandler,
+            drain_loop_hold_samples,
+            make_sample_queue,
+        )
+
+        sample_queue = make_sample_queue()
+        telemetry_handler = SlowCallbackBlackboardHandler(sample_queue)
+        logging.getLogger("asyncio").addHandler(telemetry_handler)
+        telemetry_task = asyncio.create_task(
+            drain_loop_hold_samples(sample_queue, workers_by_stem),
+            name="loop_hold_telemetry_drain",
+        )
+        logger.info(
+            "CORE daemon: loop-hold telemetry handler installed "
+            "(ADR-081 Step 3a) — %d worker(s) registered for attribution.",
+            len(workers_by_stem),
+        )
+
     # loop is acquired above (ADR-081 Step 0); reuse it for signal handling.
     stop_event = asyncio.Event()
 
@@ -855,4 +888,18 @@ async def _run_daemon_locked(only: str | None = None) -> None:
         task.cancel()
 
     await asyncio.gather(*tasks, return_exceptions=True)
+
+    # ADR-081 Step 3a — tear down telemetry after the worker tasks have
+    # finished cancelling. Removing the handler first stops further
+    # samples landing in the queue; cancelling the drain task lets it
+    # exit cleanly via its CancelledError handler.
+    if telemetry_handler is not None:
+        logging.getLogger("asyncio").removeHandler(telemetry_handler)
+    if telemetry_task is not None:
+        telemetry_task.cancel()
+        try:
+            await telemetry_task
+        except asyncio.CancelledError:
+            pass
+
     logger.info("CORE daemon: stopped cleanly.")
