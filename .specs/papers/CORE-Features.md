@@ -36,6 +36,18 @@ source-code instantiation of that primitive.
 | `source-code instantiation` | Current implementation of the primitive, scoped to source code. Does not limit the primitive's generality. |
 | `extension` | Extends a primitive to a new artifact type or deployment context. |
 
+**Sourcing values:**
+
+| Value | Meaning |
+|---|---|
+| `open` | Included in the open-source distribution (Audit + Solo tiers). Covers the governance engine, audit loop, autonomous remediation, source-code reference implementation, worker/Blackboard runtime, CLI, and the extension *interfaces* (F-41–F-43). The feature set required to reproduce CORE's thesis without payment. |
+| `commercial` | Available only in the commercial product line (Team / Enterprise / Embedded tiers). Multi-user state, identity integration, regulated-industry exports, the convergence-graph dashboard, air-gap-guaranteed deployment, SLA support, and the OEM API surface. |
+
+The open/commercial line is a **constitutional commitment**: weakening any `open` stamp
+(reclassifying an open feature as commercial) is a governance amendment, not a product
+decision. The structural boundary is enforced via separate license terms on the open and
+commercial codebases — not by convention.
+
 ---
 
 ## 2. Primitive vs. Instantiation
@@ -102,7 +114,7 @@ All features in this domain are governance primitives — artifact-agnostic by d
 
 <a id="F-01"></a>
 **F-01 — Constitutional rule engine**
-Status: `shipping` | Scope: `primitive`
+Status: `shipping` | Scope: `primitive` | Sourcing: `open`
 
 A deterministic rules engine that evaluates any governed artifact against a set
 of rules declared in `.intent/rules/`. Rules are YAML or JSON documents. Each
@@ -120,7 +132,7 @@ rule engine.
 
 <a id="F-02"></a>
 **F-02 — Constitutional authority hierarchy**
-Status: `shipping` | Scope: `primitive`
+Status: `shipping` | Scope: `primitive` | Sourcing: `open`
 
 Two-tier authority model: Constitutional (highest) and Policy. Constitutional
 rules require dual-key amendment. Policy rules are governed by the current
@@ -131,7 +143,7 @@ authority level. Rule authority is declared, not inferred.
 
 <a id="F-03"></a>
 **F-03 — Phase discipline**
-Status: `shipping` | Scope: `primitive`
+Status: `shipping` | Scope: `primitive` | Sourcing: `open`
 
 Six strictly ordered governance phases: Interpret → Load → Parse → Audit →
 Execute → Verify. Each phase has defined authority, permitted operations, and
@@ -142,7 +154,7 @@ boundaries are governance boundaries, not performance optimisations.
 
 <a id="F-04"></a>
 **F-04 — Constitution authoring (`.intent/` layer)**
-Status: `shipping` | Scope: `primitive`
+Status: `shipping` | Scope: `primitive` | Sourcing: `open`
 
 The `.intent/` directory is the constitution of a governed repository. It
 contains rules, worker declarations, phase definitions, enforcement mappings,
@@ -154,7 +166,7 @@ to it autonomously. This separation is architecturally non-negotiable.
 
 <a id="F-05"></a>
 **F-05 — Default rule library (source code)**
-Status: `shipping` | Scope: `source-code instantiation`
+Status: `shipping` | Scope: `source-code instantiation` | Sourcing: `open`
 
 A bundled set of governance rule_documents under `.intent/rules/`, organized
 across eight categories: `ai`, `architecture`, `cli`, `code`, `data`,
@@ -173,7 +185,7 @@ a roadmap concern under F-41.
 
 <a id="F-06"></a>
 **F-06 — PathResolver / canonical path registry**
-Status: `shipping` | Scope: `primitive`
+Status: `shipping` | Scope: `primitive` | Sourcing: `open`
 
 A declared registry (`governance_paths.yaml`) mapping canonical logical paths
 to filesystem locations. All CORE internals resolve paths through this registry.
@@ -188,7 +200,7 @@ PathResolver is the mechanism that enforces that law.
 
 <a id="F-07"></a>
 **F-07 — Stateless constitutional audit**
-Status: `shipping` | Scope: `source-code instantiation`
+Status: `shipping` | Scope: `source-code instantiation` | Sourcing: `open`
 
 Point-in-time evaluation of a repository against its constitution. Produces a
 structured finding set: rule violated, file, line number, severity, message.
@@ -203,7 +215,7 @@ and rule library.
 
 <a id="F-08"></a>
 **F-08 — Continuous audit (sensor-driven)**
-Status: `shipping` | Scope: `source-code instantiation`
+Status: `shipping` | Scope: `source-code instantiation` | Sourcing: `open`
 
 The `AuditViolationSensor` runs constitutional audit on a continuous daemon
 cycle and posts findings to the Blackboard. Unlike the stateless audit, this
@@ -217,7 +229,7 @@ is the roadmap work that makes this extensible to other artifact types.
 
 <a id="F-09"></a>
 **F-09 — Audit finding persistence**
-Status: `shipping` | Scope: `primitive`
+Status: `shipping` | Scope: `primitive` | Sourcing: `open`
 
 Findings are persisted to the Blackboard (PostgreSQL). Each finding carries:
 rule ID, artifact identifier, location, severity, message, and status
@@ -228,7 +240,7 @@ assumption about artifact type. Finding history is queryable.
 
 <a id="F-10"></a>
 **F-10 — CI/CD gate**
-Status: `roadmap` | Scope: `source-code instantiation`
+Status: `roadmap` | Scope: `source-code instantiation` | Sourcing: `open`
 
 Stateless audit packaged as a GitHub Action, GitLab CI step, or pre-commit
 hook. No daemon, database, or workers required. Findings reported as PR
@@ -243,7 +255,7 @@ Audit tier's primary delivery mechanism.
 
 <a id="F-11"></a>
 **F-11 — Remediation map**
-Status: `shipping` | Scope: `source-code instantiation`
+Status: `shipping` | Scope: `source-code instantiation` | Sourcing: `open`
 
 A declaration (`auto_remediation.yaml`) mapping rule IDs to Atomic Actions.
 One rule maps to exactly one action. The RemediatorWorker reads this map to
@@ -257,7 +269,7 @@ artifact-agnostic; the entries are not.
 
 <a id="F-12"></a>
 **F-12 — Atomic action registry (source code)**
-Status: `shipping` | Scope: `source-code instantiation`
+Status: `shipping` | Scope: `source-code instantiation` | Sourcing: `open`
 
 A registry of discrete, bounded remediation operations against source code.
 Each action is independently testable, has a declared confidence level, and
@@ -273,7 +285,7 @@ model (F-43) is the roadmap work that extends this to other artifact types.
 
 <a id="F-13"></a>
 **F-13 — Autonomous remediation loop**
-Status: `shipping` | Scope: `primitive`
+Status: `shipping` | Scope: `primitive` | Sourcing: `open`
 
 The closed-loop cycle: Finding detected → Proposal generated → Approval
 received → Action executed → Verification audit run → New findings posted.
@@ -285,7 +297,7 @@ artifact type produced them.
 
 <a id="F-14"></a>
 **F-14 — Proposal engine**
-Status: `shipping` | Scope: `primitive`
+Status: `shipping` | Scope: `primitive` | Sourcing: `open`
 
 The RemediatorWorker groups open findings by action and creates one Proposal
 per unique action group. Proposals are persisted to the Blackboard. A Proposal
@@ -297,7 +309,7 @@ schema is artifact-agnostic.
 
 <a id="F-15"></a>
 **F-15 — Governor approval interface (CLI)**
-Status: `shipping` | Scope: `primitive`
+Status: `shipping` | Scope: `primitive` | Sourcing: `open`
 
 Proposals queue in the Blackboard and are reviewed via `core-admin proposals`.
 The governor approves or rejects. Approved proposals are dispatched to the
@@ -308,7 +320,7 @@ bypass. Approval operates on proposals, not on artifact type.
 
 <a id="F-16"></a>
 **F-16 — Confidence floor enforcement**
-Status: `shipping` | Scope: `primitive`
+Status: `shipping` | Scope: `primitive` | Sourcing: `open`
 
 A constitutional rule (`autonomy.remediation.min_confidence_floor`) sets the
 minimum confidence required for auto-dispatch at 0.80. Entries below this
@@ -323,7 +335,7 @@ Changing the threshold requires a rule amendment, not a config change.
 
 <a id="F-17"></a>
 **F-17 — Full consequence chain**
-Status: `shipping` | Scope: `primitive`
+Status: `shipping` | Scope: `primitive` | Sourcing: `open`
 
 A complete, attributed causal trace linking: Finding → Proposal → Approval →
 Execution → Artifact changes → New findings. All six edges are persisted in
@@ -339,7 +351,7 @@ record — the chain structure remains identical.
 
 <a id="F-18"></a>
 **F-18 — Commit-level attribution**
-Status: `shipping` | Scope: `source-code instantiation`
+Status: `shipping` | Scope: `source-code instantiation` | Sourcing: `open`
 
 Each autonomous execution produces a commit whose message encodes the proposal
 ID as a structured prefix (`fix(XXXXXXXX): …`). The `proposal_consequences`
@@ -354,7 +366,7 @@ F-17. Other artifact types would use a different change-record mechanism; the
 
 <a id="F-19"></a>
 **F-19 — Convergence metric**
-Status: `shipping` | Scope: `primitive`
+Status: `shipping` | Scope: `primitive` | Sourcing: `open`
 
 The Blackboard records finding creation and resolution events over time.
 Rate of resolution versus rate of creation is queryable. A governed artifact
@@ -366,7 +378,7 @@ and it is fully artifact-agnostic.
 
 <a id="F-20"></a>
 **F-20 — Convergence graph dashboard**
-Status: `roadmap` | Scope: `primitive`
+Status: `roadmap` | Scope: `primitive` | Sourcing: `commercial`
 
 A web UI rendering the convergence metric as a time-series graph. Finding rate
 versus resolution rate over time. The anchor feature for Team tier adoption.
@@ -380,7 +392,7 @@ Equally applicable to any governed artifact type.
 
 <a id="F-21"></a>
 **F-21 — Daemon runtime**
-Status: `shipping` | Scope: `primitive`
+Status: `shipping` | Scope: `primitive` | Sourcing: `open`
 
 A persistent background process that runs governance workers on a continuous
 cycle. Workers are discovered from `.intent/workers/*.yaml` declarations.
@@ -392,7 +404,7 @@ artifact-agnostic.
 
 <a id="F-22"></a>
 **F-22 — Worker declaration model**
-Status: `shipping` | Scope: `primitive`
+Status: `shipping` | Scope: `primitive` | Sourcing: `open`
 
 Workers are declared in `.intent/workers/*.yaml`, not instantiated in code.
 A worker declaration specifies: name, class, schedule, capabilities required,
@@ -404,7 +416,7 @@ artifact-agnostic; any worker operating on any artifact type uses it.
 
 <a id="F-23"></a>
 **F-23 — Blackboard coordination ledger**
-Status: `shipping` | Scope: `primitive`
+Status: `shipping` | Scope: `primitive` | Sourcing: `open`
 
 A PostgreSQL-backed shared state store. All inter-worker communication passes
 through the Blackboard via typed entries: `finding`, `proposal`, `claim`,
@@ -416,7 +428,7 @@ no artifact-type assumption.
 
 <a id="F-24"></a>
 **F-24 — Worker health monitoring**
-Status: `shipping` | Scope: `primitive`
+Status: `shipping` | Scope: `primitive` | Sourcing: `open`
 
 The BlackboardAuditor worker monitors worker registrations for stale claims
 (SLA = 3600s) and orphaned heartbeats. Stale entries are flagged as abandoned.
@@ -426,7 +438,7 @@ Worker health state is queryable via `core-admin workers blackboard`.
 
 <a id="F-25"></a>
 **F-25 — Vector artifact indexing**
-Status: `shipping` | Scope: `source-code instantiation`
+Status: `shipping` | Scope: `source-code instantiation` | Sourcing: `open`
 
 The `repo_crawler` and `repo_embedder` workers crawl the repository on a
 continuous cycle (~10 min), chunk source files into logical units, and embed
@@ -445,31 +457,39 @@ other artifact types under F-41.
 
 <a id="F-26"></a>
 **F-26 — LLM integration (API)**
-Status: `shipping` | Scope: `primitive`
+Status: `shipping` | Scope: `primitive` | Sourcing: `open`
 
 CORE integrates with LLM providers via HTTP API. AI is used as a generation
 component inside governance workers. AI output is never trusted; it is
 verified against the constitution before execution. The integration surface
-is provider-agnostic; the current Solo reference deployment routes to
-Ollama-served local models (see F-27). The integration is artifact-agnostic;
-AI can generate or transform any artifact type, subject to governance.
+is **provider-agnostic by architecture**: `core.llm_resources` is per-resource
+(ADR-052), and the operator selects which provider(s) to enable. The current
+Solo reference deployment routes to local LLM models (see F-27). The
+integration is artifact-agnostic; AI can generate or transform any artifact
+type, subject to governance.
+
+CORE's positioning does not name specific LLM vendors. Operational
+deployments may select any provider; positioning material refers to
+capabilities (local / external / API-routable), not brand names.
 
 ---
 
 <a id="F-27"></a>
 **F-27 — Local LLM support**
-Status: `partial` | Scope: `primitive`
+Status: `partial` | Scope: `primitive` | Sourcing: `open`
 
-CORE supports Ollama-served local models. In the current Solo reference
+CORE supports any HTTP-API-served local LLM. In the current Solo reference
 deployment, local models are the default routing target; no external provider
 traffic occurs unless explicitly configured. Provider selection is governed
-by configuration; switching to an external API is opt-in.
+by configuration (`core.llm_resources`, ADR-052); switching to an external
+LLM API is opt-in per resource. Specific vendor selection is an operator
+preference, not a product fact.
 
 ---
 
 <a id="F-28"></a>
 **F-28 — Context builder**
-Status: `shipping` | Scope: `source-code instantiation`
+Status: `shipping` | Scope: `source-code instantiation` | Sourcing: `open`
 
 `shared/infrastructure/context/builder.py` assembles the governance context
 packet passed to AI components before any generation task. Context includes:
@@ -488,7 +508,7 @@ other artifact types requires context builder support under F-41.
 
 <a id="F-29"></a>
 **F-29 — CLI governance surface**
-Status: `shipping` | Scope: `primitive`
+Status: `shipping` | Scope: `primitive` | Sourcing: `open`
 
 A full command-line interface (`core-admin`) covering 14 command groups:
 `code`, `admin`, `database`, `vectors`, `dev`, `symbols`, `context`,
@@ -501,7 +521,7 @@ management are artifact-agnostic CLI operations.
 
 <a id="F-30"></a>
 **F-30 — Constitutional maintenance commands**
-Status: `shipping` | Scope: `source-code instantiation`
+Status: `shipping` | Scope: `source-code instantiation` | Sourcing: `open`
 
 `core-admin dev sync --write` performs constitutional maintenance: header
 enforcement, ID assignment, formatting normalisation, DB sync, and vector
@@ -515,7 +535,7 @@ sync in a single pass. Currently scoped to source code maintenance operations.
 
 <a id="F-31"></a>
 **F-31 — Shared consequence chain (multi-user)**
-Status: `roadmap` | Scope: `primitive`
+Status: `roadmap` | Scope: `primitive` | Sourcing: `commercial`
 
 All proposals, findings, and executions visible to every member of a shared
 CORE instance. Governance state is team-level, not per-governor. Applies
@@ -525,7 +545,7 @@ equally to any governed artifact type.
 
 <a id="F-32"></a>
 **F-32 — Role-based constitutional authority (RBAC)**
-Status: `roadmap` | Scope: `primitive`
+Status: `roadmap` | Scope: `primitive` | Sourcing: `commercial`
 
 Explicit governance over who can approve proposals and who can amend `.intent/`.
 Role assignments are themselves governed artefacts. A team member without
@@ -536,7 +556,7 @@ not convention.
 
 <a id="F-33"></a>
 **F-33 — Multi-repository support**
-Status: `roadmap` | Scope: `primitive`
+Status: `roadmap` | Scope: `primitive` | Sourcing: `commercial`
 
 A single CORE instance governing multiple repositories. Each repository has its
 own `.intent/` constitution; shared governance infrastructure (Blackboard,
@@ -546,7 +566,7 @@ workers, dashboard) is common.
 
 <a id="F-34"></a>
 **F-34 — Web dashboard**
-Status: `roadmap` | Scope: `primitive`
+Status: `roadmap` | Scope: `primitive` | Sourcing: `commercial`
 
 Browser-based governance interface. Views: convergence graph (F-20), proposal
 queue, audit history, worker health. Replaces CLI as the primary interface for
@@ -560,7 +580,7 @@ team governors who are not working in a terminal.
 
 <a id="F-35"></a>
 **F-35 — Federated constitution**
-Status: `roadmap` | Scope: `primitive`
+Status: `roadmap` | Scope: `primitive` | Sourcing: `commercial`
 
 An org-level root constitution that team-level constitutions inherit and cannot
 override. Teams can extend the root; they cannot weaken it. The root
@@ -570,7 +590,7 @@ constitution is the compliance floor. Applies to any governed artifact type.
 
 <a id="F-36"></a>
 **F-36 — SSO / SAML / OIDC**
-Status: `roadmap` | Scope: `primitive`
+Status: `roadmap` | Scope: `primitive` | Sourcing: `commercial`
 
 Enterprise identity integration. Role assignments (F-32) bind to SSO identities.
 Required for regulated-industry deployments where identity auditability is
@@ -580,7 +600,7 @@ mandatory.
 
 <a id="F-37"></a>
 **F-37 — Regulatory export (GxP / EU AI Act)**
-Status: `roadmap` | Scope: `primitive`
+Status: `roadmap` | Scope: `primitive` | Sourcing: `commercial`
 
 Structured, signed export of the full consequence chain formatted for
 regulatory submission. For GxP customers, the export IS the Change Control
@@ -597,7 +617,7 @@ governed artifact is source code, a document, or a regulated process output.
 
 <a id="F-38"></a>
 **F-38 — Air-gapped deployment (guaranteed)**
-Status: `roadmap` | Scope: `primitive`
+Status: `roadmap` | Scope: `primitive` | Sourcing: `commercial`
 
 Local-only LLM with no outbound network traffic. Governed artifacts never leave
 the customer perimeter. Builds on F-27 but guarantees network isolation at the
@@ -607,7 +627,7 @@ infrastructure level rather than relying on configuration.
 
 <a id="F-39"></a>
 **F-39 — SLA support**
-Status: `roadmap` | Scope: `primitive`
+Status: `roadmap` | Scope: `primitive` | Sourcing: `commercial`
 
 Contractual support SLA with defined response times. Not a software feature;
 a commercial and operational commitment required for regulated-industry
@@ -621,7 +641,7 @@ procurement.
 
 <a id="F-40"></a>
 **F-40 — OEM API surface**
-Status: `roadmap` | Scope: `primitive`
+Status: `roadmap` | Scope: `primitive` | Sourcing: `commercial`
 
 A stable, versioned API exposing the CORE enforcement engine to third-party
 platforms (IDE plugins, AI coding platforms, DevSecOps tools, GitHub Apps).
@@ -645,7 +665,7 @@ supported model.
 
 <a id="F-41"></a>
 **F-41 — Artifact type registry**
-Status: `roadmap` | Scope: `extension`
+Status: `roadmap` | Scope: `extension` | Sourcing: `open`
 
 A declared model for registering governed artifact types beyond source code.
 An artifact type declaration specifies: artifact schema, identity key format,
@@ -661,7 +681,7 @@ governance requires custom wiring against the primitives directly.
 
 <a id="F-42"></a>
 **F-42 — Pluggable sensor model**
-Status: `roadmap` | Scope: `extension`
+Status: `roadmap` | Scope: `extension` | Sourcing: `open`
 
 An abstract sensor interface that decouples artifact observation from the audit
 engine. A sensor implementation declares: the artifact type it observes, the
@@ -678,7 +698,7 @@ observer to participate in the governance loop without modifying the engine.
 
 <a id="F-43"></a>
 **F-43 — Pluggable action model**
-Status: `roadmap` | Scope: `extension`
+Status: `roadmap` | Scope: `extension` | Sourcing: `open`
 
 An abstract action interface that decouples remediation execution from artifact
 type. An action implementation declares: the artifact type it operates on, the
@@ -695,61 +715,80 @@ the autonomous remediation loop.
 
 ## 4. Feature x Status Summary
 
-| ID | Feature | Status | Scope |
-|---|---|---|---|
-| F-01 | Constitutional rule engine | shipping | primitive |
-| F-02 | Constitutional authority hierarchy | shipping | primitive |
-| F-03 | Phase discipline | shipping | primitive |
-| F-04 | Constitution authoring (`.intent/` layer) | shipping | primitive |
-| F-05 | Default rule library (source code) | shipping | source-code instantiation |
-| F-06 | PathResolver / canonical path registry | shipping | primitive |
-| F-07 | Stateless constitutional audit | shipping | source-code instantiation |
-| F-08 | Continuous audit (sensor-driven) | shipping | source-code instantiation |
-| F-09 | Audit finding persistence | shipping | primitive |
-| F-10 | CI/CD gate | roadmap | source-code instantiation |
-| F-11 | Remediation map | shipping | source-code instantiation |
-| F-12 | Atomic action registry (source code) | shipping | source-code instantiation |
-| F-13 | Autonomous remediation loop | shipping | primitive |
-| F-14 | Proposal engine | shipping | primitive |
-| F-15 | Governor approval interface (CLI) | shipping | primitive |
-| F-16 | Confidence floor enforcement | shipping | primitive |
-| F-17 | Full consequence chain | shipping | primitive |
-| F-18 | Commit-level attribution | shipping | source-code instantiation |
-| F-19 | Convergence metric | shipping | primitive |
-| F-20 | Convergence graph dashboard | roadmap | primitive |
-| F-21 | Daemon runtime | shipping | primitive |
-| F-22 | Worker declaration model | shipping | primitive |
-| F-23 | Blackboard coordination ledger | shipping | primitive |
-| F-24 | Worker health monitoring | shipping | primitive |
-| F-25 | Vector artifact indexing | shipping | source-code instantiation |
-| F-26 | LLM integration (API) | shipping | primitive |
-| F-27 | Local LLM support | partial | primitive |
-| F-28 | Context builder | shipping | source-code instantiation |
-| F-29 | CLI governance surface | shipping | primitive |
-| F-30 | Constitutional maintenance commands | shipping | source-code instantiation |
-| F-31 | Shared consequence chain (multi-user) | roadmap | primitive |
-| F-32 | Role-based constitutional authority (RBAC) | roadmap | primitive |
-| F-33 | Multi-repository support | roadmap | primitive |
-| F-34 | Web dashboard | roadmap | primitive |
-| F-35 | Federated constitution | roadmap | primitive |
-| F-36 | SSO / SAML / OIDC | roadmap | primitive |
-| F-37 | Regulatory export (GxP / EU AI Act) | roadmap | primitive |
-| F-38 | Air-gapped deployment (guaranteed) | roadmap | primitive |
-| F-39 | SLA support | roadmap | primitive |
-| F-40 | OEM API surface | roadmap | primitive |
-| F-41 | Artifact type registry | roadmap | extension |
-| F-42 | Pluggable sensor model | roadmap | extension |
-| F-43 | Pluggable action model | roadmap | extension |
+| ID | Feature | Status | Scope | Sourcing |
+|---|---|---|---|---|
+| F-01 | Constitutional rule engine | shipping | primitive | open |
+| F-02 | Constitutional authority hierarchy | shipping | primitive | open |
+| F-03 | Phase discipline | shipping | primitive | open |
+| F-04 | Constitution authoring (`.intent/` layer) | shipping | primitive | open |
+| F-05 | Default rule library (source code) | shipping | source-code instantiation | open |
+| F-06 | PathResolver / canonical path registry | shipping | primitive | open |
+| F-07 | Stateless constitutional audit | shipping | source-code instantiation | open |
+| F-08 | Continuous audit (sensor-driven) | shipping | source-code instantiation | open |
+| F-09 | Audit finding persistence | shipping | primitive | open |
+| F-10 | CI/CD gate | roadmap | source-code instantiation | open |
+| F-11 | Remediation map | shipping | source-code instantiation | open |
+| F-12 | Atomic action registry (source code) | shipping | source-code instantiation | open |
+| F-13 | Autonomous remediation loop | shipping | primitive | open |
+| F-14 | Proposal engine | shipping | primitive | open |
+| F-15 | Governor approval interface (CLI) | shipping | primitive | open |
+| F-16 | Confidence floor enforcement | shipping | primitive | open |
+| F-17 | Full consequence chain | shipping | primitive | open |
+| F-18 | Commit-level attribution | shipping | source-code instantiation | open |
+| F-19 | Convergence metric | shipping | primitive | open |
+| F-20 | Convergence graph dashboard | roadmap | primitive | commercial |
+| F-21 | Daemon runtime | shipping | primitive | open |
+| F-22 | Worker declaration model | shipping | primitive | open |
+| F-23 | Blackboard coordination ledger | shipping | primitive | open |
+| F-24 | Worker health monitoring | shipping | primitive | open |
+| F-25 | Vector artifact indexing | shipping | source-code instantiation | open |
+| F-26 | LLM integration (API) | shipping | primitive | open |
+| F-27 | Local LLM support | partial | primitive | open |
+| F-28 | Context builder | shipping | source-code instantiation | open |
+| F-29 | CLI governance surface | shipping | primitive | open |
+| F-30 | Constitutional maintenance commands | shipping | source-code instantiation | open |
+| F-31 | Shared consequence chain (multi-user) | roadmap | primitive | commercial |
+| F-32 | Role-based constitutional authority (RBAC) | roadmap | primitive | commercial |
+| F-33 | Multi-repository support | roadmap | primitive | commercial |
+| F-34 | Web dashboard | roadmap | primitive | commercial |
+| F-35 | Federated constitution | roadmap | primitive | commercial |
+| F-36 | SSO / SAML / OIDC | roadmap | primitive | commercial |
+| F-37 | Regulatory export (GxP / EU AI Act) | roadmap | primitive | commercial |
+| F-38 | Air-gapped deployment (guaranteed) | roadmap | primitive | commercial |
+| F-39 | SLA support | roadmap | primitive | commercial |
+| F-40 | OEM API surface | roadmap | primitive | commercial |
+| F-41 | Artifact type registry | roadmap | extension | open |
+| F-42 | Pluggable sensor model | roadmap | extension | open |
+| F-43 | Pluggable action model | roadmap | extension | open |
 
 **Shipping: 23** | **Partial: 1** (F-27) | **Roadmap: 19**
 
 Of the 23 shipping features: 16 are primitives, 7 are source-code instantiations.
+
+**Sourcing split:** Open: 32 | Commercial: 11.
+Of the 23 shipping features, **all 23 are open**.
+Of the 19 roadmap features, **8 are open** (F-10 CI/CD gate; F-41–F-43 extension
+interfaces) and **11 are commercial** (F-20 dashboard; F-31–F-40 Team/Enterprise/Embedded).
 
 ---
 
 ## 5. Relationship to Tier Packaging
 
 Tier definitions in `CORE-Product-Tiers.md` reference features by ID.
+
+**Sourcing-to-tier mapping** (the open/commercial line, restated as tiers):
+
+- **Audit + Solo tiers = `open`.** Everything required to reproduce the thesis,
+  including the autonomous remediation loop and the full consequence chain, ships
+  in the open distribution. A technical user can run the entire engine without
+  payment, indefinitely.
+- **Team + Enterprise + Embedded tiers = `commercial`** *with one carve-out*:
+  the extension interfaces F-41–F-43, although tier-packaged at Enterprise+, are
+  stamped `open` because they are plugin APIs. Anyone may write a sensor or
+  action against the public interface; the first-party non-code instantiations
+  CORE builds on top of them (e.g. a GxP document sensor) are separate features
+  and will receive their own `commercial` stamps when they exist.
+
 The canonical tier x feature mapping:
 
 | Feature | Audit | Solo | Team | Enterprise | Embedded |

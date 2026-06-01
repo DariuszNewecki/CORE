@@ -50,7 +50,7 @@ A stateless audit engine deployable as a GitHub Action, GitLab CI step, or pre-c
 
 **Deployment:** pip package or Docker image. First findings visible within minutes of installation.
 
-**Revenue model:** Open-source core. Premium rule libraries and hosted findings dashboard as paid add-ons.
+**Revenue model:** Open-source core. *Future commercial add-ons (not yet enumerated as features in `CORE-Features.md`):* premium rule libraries; hosted findings dashboard. These are monetisation mechanics under consideration; they will get F-IDs and `Sourcing: commercial` stamps when they crystallise into committed roadmap.
 
 **Strategic role:** This is the top of the funnel. The cost of adoption is near zero. The purpose is to make CORE's governance visible to a developer who has not yet heard of CORE.
 
@@ -64,7 +64,7 @@ The current reference implementation. Full daemon with workers, sensors, remedia
 
 **Deployment:** Docker Compose on developer machine or private server.
 
-**Revenue model:** Open-source, with optional small subscription for cloud audit export or managed Qdrant.
+**Revenue model:** Open-source. *Future commercial add-ons (not yet enumerated as features in `CORE-Features.md`):* cloud audit export; managed Qdrant. These are monetisation mechanics under consideration; they will get F-IDs and `Sourcing: commercial` stamps when they crystallise into committed roadmap.
 
 **Strategic role:** This is where developers become believers. The consequence chain is the demo. A governor watches CORE detect a violation, generate a proposal, receive approval, execute the fix, and re-audit to confirmation — in a single session. That story is not available anywhere else.
 
@@ -129,20 +129,26 @@ The long-term platform play. A third-party product — an IDE plugin, an AI codi
 
 ## 5. Tier Comparison Summary
 
-| Capability | Audit | Solo | Team | Enterprise | Embedded |
-|---|:---:|:---:|:---:|:---:|:---:|
-| Constitution enforcement (stateless) | ● | ● | ● | ● | ● |
-| Autonomous remediation loop | | ● | ● | ● | ● |
-| Consequence chain (full causal trace) | | ● | ● | ● | ● |
-| Multi-user / shared governance | | | ● | ● | ● |
-| Convergence graph dashboard | | | ● | ● | ● |
-| Federated constitution (org + team) | | | | ● | ● |
-| Regulatory export (GxP / EU AI Act) | | | | ● | ● |
-| Air-gapped / local-only LLM | | ○ | ○ | ● | ● |
-| OEM API surface | | | | | ● |
+Feature IDs refer to `CORE-Features.md` — the canonical feature registry and
+the authoritative open/commercial contract (`Sourcing:` field).
+
+| Capability | Feature ID(s) | Audit | Solo | Team | Enterprise | Embedded |
+|---|---|:---:|:---:|:---:|:---:|:---:|
+| Constitution enforcement (stateless) | F-01–F-07, F-10 | ● | ● | ● | ● | ● |
+| Autonomous remediation loop | F-13 | | ● | ● | ● | ● |
+| Consequence chain (full causal trace) | F-17, F-18 | | ● | ● | ● | ● |
+| Multi-user / shared governance | F-31, F-32 | | | ● | ● | ● |
+| Convergence graph dashboard | F-19 (metric), F-20 (UI) | | | ● | ● | ● |
+| Federated constitution (org + team) | F-35 | | | | ● | ● |
+| Regulatory export (GxP / EU AI Act) | F-37 | | | | ● | ● |
+| Air-gapped / local-only LLM | F-27 (supported), F-38 (guaranteed) | | ○ | ○ | ● | ● |
+| OEM API surface | F-40 | | | | | ● |
 
 ○ = supported with configuration, not default
 ● = included
+
+For the full 43-feature x 5-tier matrix and `Sourcing:` stamps, see
+`CORE-Features.md` §4 (registry) and §5 (tier mapping).
 
 ---
 
@@ -167,6 +173,7 @@ A commercial representative must not:
 - Promise features from tiers that are not yet implemented (Embedded is a horizon play, not a shipping product)
 - Represent CORE as a SaaS product without qualifying that customer code never transits external servers
 - Use the phrase "we use AI to write code" without the full frame: "and a deterministic governance system to ensure that code is constitutional before it executes"
+- Name any specific LLM provider (Anthropic, OpenAI, Ollama, Mistral, etc.) as a CORE dependency or default. CORE is provider-agnostic by architecture (`core.llm_resources` is per-resource per ADR-052) and the operator chooses. Refer to "LLM provider", "local LLM", "external LLM API" — never the vendor brand. *Exception:* naming a competitor's product (Claude Code, Cursor, Copilot) as a competitor or as the buyer's existing tool is fine; that is not vendor coupling.
 
 ---
 
