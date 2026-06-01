@@ -147,6 +147,44 @@ mappings:
           fit the six-dimension contract, or (b) a second consumer appears
           that uses only a subset of dimensions — at which point splitting
           into per-dimension gatherers becomes net cleaner.
+      - file: src/body/services/crawl_service/main_module.py
+        class: CrawlService
+        category: facade
+        rationale: >
+          Single gateway for RepoCrawlerWorker's persistence cycle.
+          Surface breadth reflects the five tables touched per crawl
+          (crawl_runs, repo_artifacts, symbol_calls, artifact_symbol_links,
+          symbols), each with a named DB method per operation. One
+          consumer. Decomposition into per-table services would multiply
+          gateways for one worker's persistence surface — same
+          multiplication-of-gateways anti-pattern the IntentRepository
+          entry guards against.
+        removal_condition: >
+          A second responsibility emerges in CrawlService — e.g. it
+          begins making policy decisions about which artifacts to skip,
+          owns crawl-cycle state across runs, or grows non-crawl
+          consumers that use only a subset of methods.
+      - file: src/body/services/blackboard_service/blackboard_service.py
+        class: BlackboardService
+        category: facade
+        rationale: >
+          Single gateway for blackboard-entry state transitions
+          (resolve / release / abandon / mark / adjudicate / sweep /
+          update). Every method opens its own session and executes one
+          UPDATE or DELETE on core.blackboard_entries, returning the
+          rowcount. The file's own docstring is explicit:
+          "State-transition write methods — UPDATE to terminal and
+          non-terminal statuses." Surface breadth reflects
+          (caller-context entrypoints × target statuses × selection
+          patterns), not mixed concerns. Decomposition into per-status
+          or per-caller services would multiply gateways and force
+          callers to know which sub-service applies to their transition.
+        removal_condition: >
+          A second responsibility emerges in BlackboardService — e.g.
+          it begins making governance decisions about which entries to
+          transition (beyond mechanical execution), owns blackboard
+          schema migrations, or grows non-transition reads beyond the
+          existing helper queries (currently scoped to dedup checks).
 
   # LAW: Files mixing distinct architectural disciplines MUST be refactored
   # Blocking — requires human judgment before any autonomous action
