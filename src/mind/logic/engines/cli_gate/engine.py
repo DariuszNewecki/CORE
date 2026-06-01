@@ -169,11 +169,33 @@ class CliGateEngine(BaseEngine):
         ``create_core_context`` bootstrap. The first audit run pays
         the cost once; sys.modules caches the import for subsequent
         runs in the same process.
+
+        Normalises ``cmd['file_path']`` to repo-relative before returning
+        (#486). The raw walker emits absolute paths via ``inspect.getfile``,
+        which other consumers (``self_check.py`` metascribe) rely on; the
+        normalisation is local to this engine so finding subjects emitted
+        downstream are repo-relative — matching every other engine and
+        keeping ``ViolationRemediator``'s crate validator from rejecting
+        cli_gate proposals.
         """
         from cli.admin_cli import app as main_app
         from shared.cli.app_introspection import walk_typer_app
 
-        return walk_typer_app(main_app, include_missing_handlers=True)
+        commands = walk_typer_app(main_app, include_missing_handlers=True)
+        repo_root = self._path_resolver.repo_root
+        for cmd in commands:
+            fp = cmd.get("file_path")
+            if not fp or fp in ("none", "unknown"):
+                continue
+            p = Path(fp)
+            if not p.is_absolute():
+                continue
+            try:
+                cmd["file_path"] = str(p.relative_to(repo_root))
+            except ValueError:
+                # Path outside the repo — leave as-is; downstream handles it.
+                continue
+        return commands
 
     # ID: 70dce438-c504-4819-8f1b-d4bdf3362cf6
     async def verify(self, file_path: Path, params: dict[str, Any]) -> EngineResult:
