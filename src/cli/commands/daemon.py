@@ -29,6 +29,7 @@ import asyncio
 import fcntl
 import importlib
 import os
+import re
 import signal
 import subprocess
 import sys
@@ -59,7 +60,88 @@ _CFG = load_operational_config().daemon
 # advisory — kernel-released flock is the source of truth, so crashes never
 # leave stale locks).
 _PID_FILE_REL = Path("var/run/core-daemon.pid")
-_SYSTEMD_UNITS = ("core-daemon", "core-api")
+# ADR-081 Step 2c — the unit list is computed dynamically (see _systemd_units).
+# Base set always present.
+_SYSTEMD_BASE_UNITS = ("core-daemon", "core-api")
+
+# Match core-daemon-worker@<stem>.service or shortened core-daemon-worker@<stem>.
+_TEMPLATE_UNIT_RE = re.compile(r"core-daemon-worker@([^.\s]+)(?:\.service)?")
+
+
+# ID: 7c0c1eef-3a86-4f0b-86f1-e84f81e2a4fa
+def _heavy_worker_stems() -> list[str]:
+    """Stems of active workers declaring requires_dedicated_process: true.
+
+    Source of truth for which dedicated daemons systemd is expected to host
+    (ADR-081 D6). Reads .intent/workers/*.yaml each call so the wrappers
+    pick up YAML changes without a CLI restart. Sorted for deterministic
+    output.
+    """
+    import yaml
+
+    from shared.infrastructure.bootstrap_registry import BootstrapRegistry
+
+    workers_dir = BootstrapRegistry.get_repo_path() / ".intent" / "workers"
+    stems: list[str] = []
+    for f in sorted(workers_dir.glob("*.yaml")):
+        try:
+            decl = yaml.safe_load(f.read_text()) or {}
+        except Exception:
+            continue
+        if decl.get("metadata", {}).get("status") != "active":
+            continue
+        if decl.get("implementation", {}).get("requires_dedicated_process"):
+            stems.append(f.stem)
+    return stems
+
+
+# ID: 4d2f15a9-9e4c-4c3e-bf2a-7e0b30c7da11
+def _systemd_units() -> list[str]:
+    """Full systemd unit list this CLI manages (ADR-081 D6).
+
+    Lightweight core-daemon + core-api + one core-daemon-worker@<stem>.service
+    per active worker declaring requires_dedicated_process: true. Order is
+    base units first, then dedicated units in stem-sorted order.
+    """
+    units = list(_SYSTEMD_BASE_UNITS)
+    units.extend(f"core-daemon-worker@{s}.service" for s in _heavy_worker_stems())
+    return units
+
+
+# ID: 8a3b1c4d-6e7f-4a2b-9c1d-5e2f3a4b5c6d
+def _enabled_template_stems() -> set[str]:
+    """Stems of currently-enabled core-daemon-worker@<stem>.service instances.
+
+    Used by `daemon status` to surface drift between .intent/workers/ state
+    and systemd-enabled state (ADR-081 D6). Best-effort — returns an empty
+    set if the systemctl probe fails, so drift detection degrades to silent
+    rather than blocking the status command.
+    """
+    try:
+        result = subprocess.run(
+            [
+                "systemctl",
+                "--user",
+                "list-unit-files",
+                "--no-legend",
+                "--state=enabled",
+                "core-daemon-worker@*.service",
+            ],
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+    except (subprocess.SubprocessError, FileNotFoundError):
+        return set()
+    stems: set[str] = set()
+    for line in result.stdout.splitlines():
+        parts = line.split()
+        if not parts:
+            continue
+        m = _TEMPLATE_UNIT_RE.match(parts[0])
+        if m:
+            stems.add(m.group(1))
+    return stems
 
 
 # ID: 0b1ce63d-8b46-4d8b-b1d7-2c5b6a93e0a9
@@ -141,8 +223,14 @@ async def start(
 
 # ID: eeac9460-6a08-45d1-8194-e77660355120
 def _systemctl(verb: str) -> int:
-    """Run `systemctl --user <verb> core-daemon core-api` and stream output."""
-    cmd = ["systemctl", "--user", verb, *_SYSTEMD_UNITS]
+    """Run ``systemctl --user <verb>`` against every CORE unit.
+
+    The unit list is computed dynamically per ADR-081 D6 — lightweight
+    core-daemon + core-api + one core-daemon-worker@<stem>.service instance
+    per active worker declaring requires_dedicated_process: true.
+    """
+    units = _systemd_units()
+    cmd = ["systemctl", "--user", verb, *units]
     result = subprocess.run(cmd, capture_output=True, text=True)
     if result.stdout:
         console.print(result.stdout.rstrip())
@@ -154,45 +242,64 @@ def _systemctl(verb: str) -> int:
 @daemon_app.command("up")
 # ID: 6d9e21bf-a63d-4658-b7bb-a0cb470e7c49
 def up() -> None:
-    """Start core-daemon + core-api via systemd (the supported way)."""
+    """Start all CORE units via systemd (the supported way).
+
+    Covers core-daemon, core-api, and every enabled
+    core-daemon-worker@<stem>.service instance (ADR-081 D6).
+    """
     rc = _systemctl("start")
     if rc == 0:
-        console.print("[green]CORE daemon + API up.[/green]")
+        console.print("[green]CORE units up.[/green]")
     raise typer.Exit(code=rc)
 
 
 @daemon_app.command("down")
 # ID: 7231666c-a6b8-4e71-8060-4447468f6b85
 def down() -> None:
-    """Stop core-daemon + core-api via systemd."""
+    """Stop all CORE units via systemd.
+
+    Covers core-daemon, core-api, and every enabled
+    core-daemon-worker@<stem>.service instance (ADR-081 D6).
+    """
     rc = _systemctl("stop")
     if rc == 0:
-        console.print("[green]CORE daemon + API down.[/green]")
+        console.print("[green]CORE units down.[/green]")
     raise typer.Exit(code=rc)
 
 
 @daemon_app.command("restart")
 # ID: e6b00ede-7cf5-4c02-b6b0-f2137a0ddecb
 def restart() -> None:
-    """Restart core-daemon + core-api via systemd."""
+    """Restart all CORE units via systemd.
+
+    Covers core-daemon, core-api, and every enabled
+    core-daemon-worker@<stem>.service instance (ADR-081 D6).
+    """
     rc = _systemctl("restart")
     if rc == 0:
-        console.print("[green]CORE daemon + API restarted.[/green]")
+        console.print("[green]CORE units restarted.[/green]")
     raise typer.Exit(code=rc)
 
 
 @daemon_app.command("status")
 # ID: ad62cbef-7f06-4d8e-9c3c-1b8d0f5a4c52
 def status() -> None:
-    """Show CORE service state and scan for stray (orphan) python processes."""
+    """Show CORE service state and scan for stray (orphan) python processes.
+
+    Unit list is dynamic per ADR-081 D6 — lightweight core-daemon + core-api
+    plus one row per enabled core-daemon-worker@<stem>.service instance.
+    Drift between .intent/workers/ classification and enabled systemd state
+    is surfaced as a separate panel below the unit table.
+    """
     table = Table(title="CORE services", show_header=True, header_style="bold")
     table.add_column("unit")
     table.add_column("active")
     table.add_column("MainPID")
     table.add_column("since")
 
+    units = _systemd_units()
     systemd_pids: set[int] = set()
-    for unit in _SYSTEMD_UNITS:
+    for unit in units:
         is_active = subprocess.run(
             ["systemctl", "--user", "is-active", unit],
             capture_output=True,
@@ -225,9 +332,45 @@ def status() -> None:
 
     console.print(table)
 
+    # ADR-081 D6 — drift between .intent/workers/ classification and enabled
+    # systemd state. Both directions are surfaced so operators can see when a
+    # heavy YAML worker was added without enabling its template instance, or
+    # when a stale template instance was left enabled after the YAML was
+    # demoted / retired.
+    expected_heavy = set(_heavy_worker_stems())
+    enabled_templates = _enabled_template_stems()
+    missing_enable = sorted(expected_heavy - enabled_templates)
+    orphan_enable = sorted(enabled_templates - expected_heavy)
+    if missing_enable or orphan_enable:
+        console.print()
+        drift_table = Table(
+            title="ADR-081 worker / systemd drift",
+            show_header=True,
+            header_style="bold yellow",
+        )
+        drift_table.add_column("class")
+        drift_table.add_column("stem")
+        drift_table.add_column("remediation")
+        for stem in missing_enable:
+            drift_table.add_row(
+                "[yellow]expected unit, not enabled[/yellow]",
+                stem,
+                f"systemctl --user enable --now core-daemon-worker@{stem}.service",
+            )
+        for stem in orphan_enable:
+            drift_table.add_row(
+                "[red]enabled unit, not in YAML[/red]",
+                stem,
+                f"systemctl --user disable --now core-daemon-worker@{stem}.service",
+            )
+        console.print(drift_table)
+
     # Stray scan: any python process under the repo venv that systemd doesn't
     # own. The orphan-daemon trap that motivated this command — a `daemon
     # start` whose shell exited and got adopted by PID 1 — shows up here.
+    # Per ADR-081 D6, daemon invocations with `--only <stem>` for a known
+    # heavy worker are recognised as legitimate even if systemd isn't tracking
+    # their MainPID (e.g. governor ran a foreground daemon for testing).
     from shared.infrastructure.bootstrap_registry import BootstrapRegistry
 
     venv_python = f"{BootstrapRegistry.get_repo_path()}/.venv/bin/python"
@@ -239,6 +382,7 @@ def status() -> None:
 
     strays: list[str] = []
     skip_tokens = ("pytest", "ruff", "mypy", "core-admin daemon status")
+    only_re = re.compile(r"--only\s+(\S+)")
     for line in ps.splitlines()[1:]:
         parts = line.split(None, 6)
         if len(parts) < 7:
@@ -253,6 +397,11 @@ def status() -> None:
         if pid in systemd_pids or pid == os.getpid():
             continue
         if any(tok in cmd for tok in skip_tokens):
+            continue
+        # Recognise dedicated-worker daemons by their --only <stem> signature
+        # when the stem is a known heavy worker. These are legitimate, not strays.
+        m = only_re.search(cmd)
+        if m and m.group(1) in expected_heavy:
             continue
         strays.append(line)
 
