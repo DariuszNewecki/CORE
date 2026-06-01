@@ -71,11 +71,31 @@ async def _fetch_entry(
     return (row.entry_type, row.status, row.subject)
 
 
-async def _delete_entry(db_session: AsyncSession, entry_id: uuid.UUID) -> None:
+async def _delete_entry(
+    db_session: AsyncSession,
+    entry_id: uuid.UUID,
+    worker_uuid: uuid.UUID | None = None,
+) -> None:
+    """Delete the synthetic entry and (if given) the synthetic
+    worker_registry row the test inserted. Blackboard first to satisfy
+    the FK; registry DELETE is guarded by worker_name so it can never
+    reach a live worker.
+    """
     await db_session.execute(
         text("delete from core.blackboard_entries where id = :id"),
         {"id": entry_id},
     )
+    if worker_uuid is not None:
+        await db_session.execute(
+            text(
+                """
+                delete from core.worker_registry
+                 where worker_uuid = :worker_uuid
+                   and worker_name = 'test.post_observation.synthetic'
+                """
+            ),
+            {"worker_uuid": worker_uuid},
+        )
     await db_session.commit()
 
 
@@ -129,7 +149,7 @@ async def test_post_observation_writes_with_terminal_status(
         assert status == "abandoned"
         assert subject == "test.post_observation.synthetic"
     finally:
-        await _delete_entry(db_session, entry_id)
+        await _delete_entry(db_session, entry_id, worker._worker_uuid)
 
 
 def test_terminal_statuses_match_enums_taxonomy() -> None:

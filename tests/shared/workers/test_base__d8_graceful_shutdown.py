@@ -115,16 +115,30 @@ async def _fetch_entry_status(
     return (row.status, row.claimed_by)
 
 
-async def _delete_entry(db_session: AsyncSession, entry_id: str) -> None:
-    """Delete the synthetic entry. Leaves the worker_registry rows alone —
-    they're harmless test markers with worker_name='test.d8.synthetic' and
-    are cheaper to leave than to cascade-clean (FK from blackboard_entries
-    would block deletion anyway if other rows still reference them).
+async def _delete_entry(
+    db_session: AsyncSession, entry_id: str, *worker_uuids: uuid.UUID
+) -> None:
+    """Delete the synthetic entry and the synthetic worker_registry rows
+    the test inserted. The blackboard row goes first — there's an FK from
+    blackboard_entries.worker_uuid → worker_registry.worker_uuid. The
+    registry DELETE is guarded by worker_name='test.d8.synthetic' so it
+    can never reach a live worker even if a UUID overlap occurred.
     """
     await db_session.execute(
         text("delete from core.blackboard_entries where id = cast(:id as uuid)"),
         {"id": entry_id},
     )
+    for worker_uuid in worker_uuids:
+        await db_session.execute(
+            text(
+                """
+                delete from core.worker_registry
+                 where worker_uuid = :worker_uuid
+                   and worker_name = 'test.d8.synthetic'
+                """
+            ),
+            {"worker_uuid": worker_uuid},
+        )
     await db_session.commit()
 
 
@@ -151,7 +165,7 @@ async def test_release_held_claims_releases_my_held_entries(
         assert status == "open"
         assert claimed_by is None
     finally:
-        await _delete_entry(db_session, entry_id)
+        await _delete_entry(db_session, entry_id, worker._worker_uuid)
 
 
 # ID: 072ff400-79e2-4721-956d-867c0e126767
@@ -176,7 +190,7 @@ async def test_release_held_claims_skips_other_workers_claims(
         assert status == "claimed"
         assert claimed_by == other_worker_uuid
     finally:
-        await _delete_entry(db_session, other_entry_id)
+        await _delete_entry(db_session, other_entry_id, other_worker_uuid)
 
 
 # ID: 318b9d91-fc43-4880-8552-ecf962603b8b
@@ -212,4 +226,4 @@ async def test_start_releases_claims_on_cancellation(
         assert status == "open"
         assert claimed_by is None
     finally:
-        await _delete_entry(db_session, entry_id)
+        await _delete_entry(db_session, entry_id, worker._worker_uuid)
