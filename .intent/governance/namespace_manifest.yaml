@@ -232,6 +232,22 @@ classifications:
     governance_namespace: framework
 
   # ---------------------------------------------------------------------
+  # .intent/enforcement/mappings/runtime/** — framework subset.
+  # ADR-081 D7 drift detector. Reads runtime telemetry (loop_hold.sample
+  # blackboard entries) against worker classification state to surface
+  # misclassification as advisory findings.
+  # ---------------------------------------------------------------------
+  - path: .intent/enforcement/mappings/runtime/worker_process_classification.yaml
+    governance_namespace: framework
+
+  # ---------------------------------------------------------------------
+  # .intent/rules/runtime/** — framework subset.
+  # Rule declarations for runtime telemetry-driven invariants.
+  # ---------------------------------------------------------------------
+  - path: .intent/rules/runtime/worker_process_classification.json
+    governance_namespace: framework
+
+  # ---------------------------------------------------------------------
   # .intent/enforcement/** — root-level envelope.
   # ---------------------------------------------------------------------
   - path: .intent/enforcement/constitutional_envelope.yaml

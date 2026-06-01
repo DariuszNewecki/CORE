@@ -1,0 +1,22 @@
+{
+    "$schema": "META/rule_document.schema.json",
+    "kind": "rule_document",
+    "metadata": {
+        "id": "rules.runtime.worker_process_classification",
+        "title": "Worker Process Classification Drift Detector",
+        "version": "1.0.0",
+        "authority": "policy",
+        "phase": "audit",
+        "status": "active"
+    },
+    "rules": [
+        {
+            "id": "runtime.worker_process_classification",
+            "statement": "Every active worker's declared `implementation.requires_dedicated_process` MUST match the empirical loop-hold distribution observed by Step 3a-telemetry. When observed max loop-hold exceeds the escalation threshold across a steady-state cycle window AND the worker is declared shares_process, the audit posts an escalation_required finding proposing the YAML be flipped to requires_dedicated_process: true. When observed max loop-hold stays below the deescalation threshold across the same window AND the worker is declared requires_dedicated_process: true, the audit posts a deescalation_candidate finding for governor review. Both verdicts are advisory; neither blocks. Workers with fewer samples than the cycle window are skipped silently.",
+            "enforcement": "advisory",
+            "authority": "policy",
+            "phase": "audit",
+            "rationale": "ADR-081 D7. The classification claim that each worker declares in its YAML (per Step 1) is verified against runtime evidence; misclassification accumulates as governance debt. The criterion is loop-hold (the perpetrator signal), not cycle-gap inflation (which appears equally on starvation victims) — conflating the two would propose process-isolation for workers whose per-cycle work is trivial. Thresholds (5s escalation, 1s deescalation, 5-cycle window) and rule scope live in operational_config.yaml under worker_classification; engine runtime_gate consumes loop_hold.sample blackboard entries (posted by src/shared/workers/loop_hold_telemetry.py)."
+        }
+    ]
+}

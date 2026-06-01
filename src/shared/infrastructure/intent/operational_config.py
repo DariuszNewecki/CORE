@@ -151,6 +151,23 @@ class DaemonConfig:
 
 
 @dataclass(frozen=True)
+# ID: 7e8f9a0b-1c2d-3e4f-5a6b-7c8d9e0f1a2b
+class WorkerClassificationConfig:
+    """ADR-081 D7 — gates for the runtime.worker_process_classification rule.
+
+    The rule consumes loop_hold.sample blackboard entries (Step 3a-telemetry)
+    and fires advisory findings when observed loop-hold contradicts the
+    declared requires_dedicated_process state on a worker. The three gates
+    here are the thresholds D7 specifies; values are tunable via
+    .intent/enforcement/config/operational_config.yaml without code change.
+    """
+
+    loop_hold_escalation_sec: float = 5.0
+    loop_hold_deescalation_sec: float = 1.0
+    cycle_window: int = 5
+
+
+@dataclass(frozen=True)
 # ID: 546c1ad9-c7b5-43a7-af49-d2083f7fe865
 class ProposalsConfig:
     list_limit: int = 100
@@ -607,6 +624,9 @@ class OperationalConfig:
     blackboard: BlackboardConfig = field(default_factory=BlackboardConfig)
     health_log: HealthLogConfig = field(default_factory=HealthLogConfig)
     daemon: DaemonConfig = field(default_factory=DaemonConfig)
+    worker_classification: WorkerClassificationConfig = field(
+        default_factory=WorkerClassificationConfig
+    )
     proposals: ProposalsConfig = field(default_factory=ProposalsConfig)
     consequence_log: ConsequenceLogConfig = field(default_factory=ConsequenceLogConfig)
     audit: AuditConfig = field(default_factory=AuditConfig)
@@ -698,6 +718,16 @@ def _load_daemon(raw: dict[str, Any]) -> DaemonConfig:
         one_shot_interval_sec=_get_int(sec, "one_shot_interval_sec", 300),
         slow_callback_duration_sec=_get_float(sec, "slow_callback_duration_sec", 0.1),
         set_debug=_get_bool(sec, "set_debug", False),
+    )
+
+
+# ID: 6a7b8c9d-0e1f-2a3b-4c5d-6e7f8a9b0c1d
+def _load_worker_classification(raw: dict[str, Any]) -> WorkerClassificationConfig:
+    sec = _section(raw, "worker_classification")
+    return WorkerClassificationConfig(
+        loop_hold_escalation_sec=_get_float(sec, "loop_hold_escalation_sec", 5.0),
+        loop_hold_deescalation_sec=_get_float(sec, "loop_hold_deescalation_sec", 1.0),
+        cycle_window=_get_int(sec, "cycle_window", 5),
     )
 
 
@@ -1223,6 +1253,7 @@ def load_operational_config() -> OperationalConfig:
         blackboard=_load_blackboard(raw),
         health_log=_load_health_log(raw),
         daemon=_load_daemon(raw),
+        worker_classification=_load_worker_classification(raw),
         proposals=_load_proposals(raw),
         consequence_log=_load_consequence_log(raw),
         audit=_load_audit(raw),

@@ -116,6 +116,18 @@ daemon:
   set_debug: true
 
 # ---------------------------------------------------------------------------
+# Worker classification (ADR-081 D7)
+# ---------------------------------------------------------------------------
+# Gates for the runtime.worker_process_classification audit rule. The rule
+# consumes loop_hold.sample blackboard data from Step 3a-telemetry and
+# compares each worker's observed max loop-hold against these thresholds.
+# Advisory only — findings propose declaration edits, never block.
+worker_classification:
+  loop_hold_escalation_sec: 5.0
+  loop_hold_deescalation_sec: 1.0
+  cycle_window: 5
+
+# ---------------------------------------------------------------------------
 # Proposals
 # ---------------------------------------------------------------------------
 proposals:

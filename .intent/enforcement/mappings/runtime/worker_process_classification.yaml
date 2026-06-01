@@ -1,0 +1,30 @@
+# .intent/enforcement/mappings/runtime/worker_process_classification.yaml
+#
+# ADR-081 D7 — drift detector for per-worker process-isolation classification.
+#
+# Aggregates loop_hold.sample blackboard entries (posted by Step 3a-telemetry
+# in src/shared/workers/loop_hold_telemetry.py) per worker and compares the
+# observed max loop-hold against the declared requires_dedicated_process
+# state in .intent/workers/. Findings are advisory:
+#
+#   escalation_required   — shares_process worker monopolizes the loop
+#   deescalation_candidate — dedicated worker stays consistently quiet
+#
+# Both verdicts propose declaration edits; neither blocks. Thresholds and
+# cycle window live in operational_config.yaml's worker_classification
+# section so the governor can tune them without code change.
+#
+# Engine: runtime_gate (src/mind/logic/engines/runtime_gate.py). Dispatches
+# context-level — the rule evaluates aggregated blackboard state, not a
+# single source file. applies_to anchors on worker.schema.json, the
+# governance artefact that defines requires_dedicated_process; this fires
+# the check once per audit cycle.
+
+mappings:
+  runtime.worker_process_classification:
+    engine: runtime_gate
+    params:
+      check_type: worker_process_classification
+    scope:
+      applies_to:
+        - ".intent/META/worker.schema.json"
