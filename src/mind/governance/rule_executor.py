@@ -137,6 +137,17 @@ async def execute_rule(
             )
             for f in engine_findings:
                 f.severity = severity
+                # Restore check_id == rule.rule_id invariant (#485). The per-file
+                # path at the bottom of this function constructs AuditFinding with
+                # check_id=rule.rule_id; the context-level path historically passed
+                # engine-set check_ids through unmodified, letting them drift to
+                # `<engine_id>.<check_type>` shapes (e.g. cli_gate.resource_first
+                # for rule cli.resource_first). That drift made AuditViolationSensor
+                # dedup work only by string-prefix coincidence. Engine identity is
+                # still recoverable via the rule's mapping in .intent/; per-finding
+                # engine attribution stays available through f.context if a check
+                # records it there.
+                f.check_id = rule.rule_id
             findings.extend(engine_findings)
         return findings
 
