@@ -84,11 +84,13 @@ class PytestSandboxRunner:
         # Unique ID for this run to avoid collision
         run_id = f"sandbox_{int(time.time())}_{symbol_name}"
 
-        # We use a dedicated temp directory for the ENTIRE execution environment
-        # This is safer than writing to var/canary inside the repo
+        # We use a dedicated temp directory for the ENTIRE execution environment.
+        # CLAUDE.md /tmp/ prohibition: temp dir must resolve inside the repo under var/tmp/.
         import tempfile
 
-        with tempfile.TemporaryDirectory(prefix="core_sandbox_") as tmp_dir:
+        with tempfile.TemporaryDirectory(
+            prefix="core_sandbox_", dir=str(self._repo_root / "var" / "tmp")
+        ) as tmp_dir:
             sandbox_root = Path(tmp_dir)
 
             try:

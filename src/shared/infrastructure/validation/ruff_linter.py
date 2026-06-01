@@ -23,13 +23,15 @@ Violation = dict[str, Any]
 
 # ID: 4c86e6d0-20f6-4773-8030-b31d1d109871
 def fix_and_lint_code_with_ruff(
-    code: str, display_filename: str = "<code>"
+    code: str, repo_root: Path, display_filename: str = "<code>"
 ) -> tuple[str, list[Violation]]:
     """
     Fix and lint the provided Python code using Ruff's JSON output format.
 
     Args:
         code (str): Source code to fix and lint.
+        repo_root (Path): Repository root; temp dir resolves under repo_root/var/tmp/
+            per CLAUDE.md /tmp/ prohibition.
         display_filename (str): Optional display name for readable error messages.
 
     Returns:
@@ -40,7 +42,9 @@ def fix_and_lint_code_with_ruff(
     violations: list[Violation] = []
 
     # Use a temporary directory to avoid any explicit filesystem deletions (no os.remove).
-    with tempfile.TemporaryDirectory(prefix="core_ruff_") as tmp_dir:
+    with tempfile.TemporaryDirectory(
+        prefix="core_ruff_", dir=str(repo_root / "var" / "tmp")
+    ) as tmp_dir:
         tmp_path = Path(tmp_dir) / "snippet.py"
         tmp_path.write_text(code, encoding="utf-8")
 

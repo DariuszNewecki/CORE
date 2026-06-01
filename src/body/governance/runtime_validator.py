@@ -63,7 +63,10 @@ class RuntimeValidatorService:
             A tuple of (passed: bool, details: str).
         """
         # Use a tmpdir for isolation.
-        with tempfile.TemporaryDirectory(prefix="core_canary_") as tmpdir:
+        # CLAUDE.md /tmp/ prohibition: temp dir must resolve inside the repo under var/tmp/.
+        with tempfile.TemporaryDirectory(
+            prefix="core_canary_", dir=str(self.repo_root / "var" / "tmp")
+        ) as tmpdir:
             canary_path = Path(tmpdir) / "canary_repo"
             logger.info("Creating canary test environment at %s...", canary_path)
 

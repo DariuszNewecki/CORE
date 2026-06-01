@@ -57,7 +57,9 @@ async def validate_python_code_async(
         return code, all_violations
 
     # 2. LINTING (Standard Tooling)
-    fixed_code, ruff_violations = fix_and_lint_code_with_ruff(formatted_code, path_hint)
+    fixed_code, ruff_violations = fix_and_lint_code_with_ruff(
+        formatted_code, auditor_context.paths.repo_root, path_hint
+    )
     all_violations.extend(ruff_violations)
 
     # 3. SYNTAX VALIDATION (Deterministic Body Check)

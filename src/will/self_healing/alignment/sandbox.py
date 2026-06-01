@@ -22,12 +22,19 @@ async def verify_import_safety(
     module_path = file_path.replace("src/", "").replace(".py", "").replace("/", ".")
     check_code = f"import {module_path}\nprint('ALIVE')"
 
-    with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False) as f:
+    # CLAUDE.md /tmp/ prohibition: temp file must resolve inside the repo under var/tmp/.
+    repo_root = Path(await config_service.get("REPO_PATH", required=True))
+
+    with tempfile.NamedTemporaryFile(
+        mode="w",
+        suffix=".py",
+        delete=False,
+        dir=str(repo_root / "var" / "tmp"),
+    ) as f:
         f.write(check_code)
         temp_path = f.name
 
     try:
-        repo_root = Path(await config_service.get("REPO_PATH", required=True))
         src_path = str((repo_root / "src").resolve())
         proc = await asyncio.create_subprocess_exec(
             "env",
