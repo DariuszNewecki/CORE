@@ -52,7 +52,6 @@ actions:
   fix.modularity: moderate
   fix.path_resolver: moderate
   fix.placeholders: safe
-  fix.policy_ids: safe
   fix.purge_legacy_tags: dangerous
   fix.settings_access: dangerous
   fix.vulture_heal: dangerous

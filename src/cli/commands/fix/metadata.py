@@ -18,7 +18,6 @@ server-side; this module only dispatches, polls, and renders.
 from __future__ import annotations
 
 import logging
-from pathlib import Path
 
 import typer
 from rich.console import Console
@@ -37,7 +36,6 @@ __all__ = [
     "fix_dead_code_cmd",
     "fix_duplicate_ids_command",
     "fix_placeholders_command",
-    "fix_policy_ids_command",
     "fix_tags_command",
     "purge_legacy_tags_command",
 ]
@@ -83,30 +81,6 @@ async def purge_legacy_tags_command(
     removed = data.get("removed", 0)
     mode = "removed" if write else "would be removed (dry-run)"
     console.print(f"[bold green]Obsolete tags {mode}: {removed}[/bold green]")
-
-
-@fix_app.command(
-    "policy-ids", help="Assigns missing IDs to policy files in .intent/policies/."
-)
-@core_command(dangerous=True, confirmation=True)
-# ID: d17af23d-3b5a-4372-bf6a-efeef7f15c03
-async def fix_policy_ids_command(
-    ctx: typer.Context,
-    write: bool = typer.Option(
-        False, "--write", help="Write the IDs to the policy files."
-    ),
-    policies_dir: Path = typer.Option(
-        Path(".intent/policies"), help="Path to the policies directory."
-    ),
-) -> None:
-    """Ensure each policy file has a unique policy_id."""
-    _ = ctx
-    _ = policies_dir
-    final = await _dispatch_and_poll("fix.policy_ids", write=write)
-    data = (final.get("result") or {}).get("data", {})
-    added = data.get("added", 0)
-    mode = "write" if write else "dry-run"
-    console.print(f"[bold green]Policy IDs: added={added} ({mode})[/bold green]")
 
 
 @fix_app.command(

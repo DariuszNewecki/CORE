@@ -15,9 +15,12 @@ description: >
   This file is the LIVE-AUTHORIZATION SURFACE — it enumerates capabilities the
   chokepoint will authorize, not the complete @atomic_action / @register_action
   registry. The two surfaces diverge by exactly the dormant set (see ADR-078
-  D9): a capability that is structurally non-functional today (e.g.
-  fix.policy_ids per #493) is absent from this file but may still appear in
-  .intent/enforcement/config/action_risk.yaml and in src/ as a decorator.
+  D9): a capability that is structurally non-functional today is absent from
+  this file but may still appear in .intent/enforcement/config/action_risk.yaml
+  and in src/ as a decorator. (The prior example — fix.policy_ids — was
+  retired entirely in #493 on identity-shape grounds: policies have
+  human-readable id as TRUE identity; opaque UUIDs were the wrong shape
+  for a human-readable artefact.)
 
   Chokepoint primitives (file.create, file.edit, file.read, file.tag_metadata)
   are NOT capabilities and do not appear here per ADR-078 D8. They are the
