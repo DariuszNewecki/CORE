@@ -23,7 +23,7 @@ mandate:
       - governance
       - compliance
   schedule:
-    max_interval: 120
+    max_interval: 600
 
 implementation:
   module: will.workers.blackboard_shop_manager
