@@ -94,6 +94,7 @@ class ASTGateEngine(BaseEngine):
             "import_order",
             "module_header",
             "schema_conformance",
+            "tempfile_default_dir",
         }
     )
 
@@ -265,6 +266,9 @@ class ASTGateEngine(BaseEngine):
 
         elif check_type == "no_print_statements":
             violations.extend(PurityChecks.check_no_print_statements(tree))
+
+        elif check_type == "tempfile_default_dir":
+            violations.extend(PurityChecks.check_tempfile_default_dir(tree))
 
         elif check_type == "test_file_naming":
             violations.extend(NamingChecks.check_test_file_naming(str(file_path)))

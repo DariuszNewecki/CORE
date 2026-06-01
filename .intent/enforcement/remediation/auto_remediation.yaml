@@ -1194,3 +1194,17 @@ mappings:
       Shape 1 (strip) and Shape 2 (re-route + register/decorate/**kwargs).
       The autonomous remediator cannot pick between the two paths.
     status: DELEGATE
+
+  purity.tempfile_default_dir:
+    action: fix.tempfile_dir
+    confidence: 0.60
+    risk: low
+    description: >
+      Mechanical AST rewrite: add `dir=str(<repo_root> / "var" / "tmp")`
+      kwarg to tempfile.{TemporaryDirectory,NamedTemporaryFile,mkdtemp,
+      mkstemp} calls; replace tempfile.gettempdir() with the same path.
+      The four real-world siblings closed by #508 were fixed directly
+      and no live findings are expected; this entry exists to satisfy
+      the #418 invariant (every active rule must have an entry) and
+      reserves the action name for if/when the class returns.
+    status: PENDING

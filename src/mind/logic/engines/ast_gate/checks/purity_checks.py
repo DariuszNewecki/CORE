@@ -362,6 +362,54 @@ class PurityChecks:
 
         return violations
 
+    _TEMPFILE_REQUIRES_DIR: ClassVar[frozenset[str]] = frozenset(
+        {
+            "tempfile.TemporaryDirectory",
+            "tempfile.NamedTemporaryFile",
+            "tempfile.mkdtemp",
+            "tempfile.mkstemp",
+        }
+    )
+    _TEMPFILE_FORBIDDEN: ClassVar[frozenset[str]] = frozenset({"tempfile.gettempdir"})
+
+    @staticmethod
+    # ID: 3b685f57-0f85-4e12-b21d-d86a9d76bd41
+    def check_tempfile_default_dir(tree: ast.AST) -> list[str]:
+        """Detect tempfile.* calls that resolve to /tmp/.
+
+        Without an explicit `dir=` kwarg, tempfile.TemporaryDirectory,
+        NamedTemporaryFile, mkdtemp, and mkstemp fall through to
+        tempfile.gettempdir(), which is /tmp/ on Linux — prohibited by
+        CLAUDE.md. tempfile.gettempdir() is forbidden outright.
+
+        The check only verifies that `dir=` is *present*; the kwarg's value
+        is not statically validated. This is sound for the four real-world
+        siblings closed by #508 and matches how other purity rules trust
+        present-but-unverified kwargs (e.g. write_defaults_false).
+        """
+        violations: list[str] = []
+        alias_map = ASTHelpers.build_import_alias_map(tree)
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.Call):
+                continue
+            callee = ASTHelpers.full_attr_name(node.func)
+            resolved = ASTHelpers.resolve_qualified_name(node.func, alias_map) or callee
+            if resolved in PurityChecks._TEMPFILE_FORBIDDEN:
+                violations.append(
+                    f"Line {ASTHelpers.lineno(node)}: '{resolved}()' is forbidden — "
+                    "the system temp dir is prohibited by CLAUDE.md; use an explicit "
+                    "repo-internal path under var/tmp/ instead."
+                )
+            elif resolved in PurityChecks._TEMPFILE_REQUIRES_DIR:
+                has_dir_kwarg = any(kw.arg == "dir" for kw in node.keywords)
+                if not has_dir_kwarg:
+                    violations.append(
+                        f"Line {ASTHelpers.lineno(node)}: '{resolved}' must pass an "
+                        "explicit `dir=` keyword pointing under repo_root/var/tmp/ "
+                        "(CLAUDE.md /tmp/ prohibition)."
+                    )
+        return violations
+
 
 def _is_write_mode(node: ast.Call) -> bool:
     """Internal helper to detect 'w' or 'a' in file open() calls."""

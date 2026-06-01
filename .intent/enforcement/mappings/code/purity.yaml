@@ -125,6 +125,23 @@
         applies_to:
           - "src/**/*.py"
 
+    # LAW: tempfile.* without explicit dir= resolves to /tmp/ (CLAUDE.md prohibition).
+    # AST-detected: presence of dir= kwarg on TemporaryDirectory/NamedTemporaryFile/
+    # mkdtemp/mkstemp; outright forbid tempfile.gettempdir(). The dir= VALUE is not
+    # statically validated — trusting the kwarg is present catches the four real-world
+    # silent siblings (#508) and any future regression at the same level of confidence.
+    purity.tempfile_default_dir:
+      engine: ast_gate
+      params:
+        check_type: tempfile_default_dir
+      scope:
+        applies_to:
+          - "src/**/*.py"
+        excludes:
+          - "tests/**/*.py"
+          - "scripts/**/*.py"
+
+
     # 7. LAW: Production source files MUST be reachable from a declared entry point.
     purity.no_orphan_files:
       engine: knowledge_gate

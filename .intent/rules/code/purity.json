@@ -77,6 +77,14 @@
             "phase": "audit",
             "enforcement": "reporting",
             "rationale": "vulture detects unused symbols within files but cannot detect unreachable files. This rule closes that gap via import graph traversal from declared entry points."
+        },
+        {
+            "id": "purity.tempfile_default_dir",
+            "statement": "Calls to tempfile.TemporaryDirectory, tempfile.NamedTemporaryFile, tempfile.mkdtemp, tempfile.mkstemp MUST pass an explicit dir= keyword argument pointing under repo_root/var/tmp/. tempfile.gettempdir() MUST NOT be called.",
+            "authority": "policy",
+            "phase": "audit",
+            "enforcement": "blocking",
+            "rationale": "Without dir=, tempfile resolves to the system temp dir (/tmp/ on Linux), which CLAUDE.md's dev-side contract prohibits. The detection asymmetry — dev contract on Claude Code output but no audit rule against the codebase — let four such sites accumulate undetected; closed by #508 + this rule."
         }
     ]
 }
