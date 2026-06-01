@@ -453,6 +453,22 @@ async def _run_daemon_locked() -> None:
 
     ctx.file_handler = service_registry.get_file_handler()
 
+    # ADR-081 Step 0 — loop-hold instrumentation (Option 1, permanent telemetry).
+    # Gated on operational_config.daemon.set_debug. When enabled, the asyncio
+    # event loop emits a `logger.warning` on the "asyncio" logger whenever a
+    # single handle executes for longer than `slow_callback_duration`. Step 3a
+    # subscribes a structured handler to those emissions; the warnings are the
+    # only low-level loop-hold source CPython provides.
+    loop = asyncio.get_running_loop()
+    if _CFG.set_debug:
+        loop.set_debug(True)
+        loop.slow_callback_duration = _CFG.slow_callback_duration_sec
+        logger.info(
+            "CORE daemon: asyncio debug mode enabled "
+            "(slow_callback_duration=%.3fs) — ADR-081 Step 0",
+            _CFG.slow_callback_duration_sec,
+        )
+
     workers_dir = BootstrapRegistry.get_repo_path() / ".intent" / "workers"
     tasks: list[asyncio.Task[Any]] = []
 
@@ -558,7 +574,7 @@ async def _run_daemon_locked() -> None:
 
     logger.info("CORE daemon: %d worker(s) started.", len(tasks))
 
-    loop = asyncio.get_running_loop()
+    # loop is acquired above (ADR-081 Step 0); reuse it for signal handling.
     stop_event = asyncio.Event()
 
     def _handle_signal() -> None:

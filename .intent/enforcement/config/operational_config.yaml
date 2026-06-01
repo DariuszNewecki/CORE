@@ -107,6 +107,13 @@ health_log:
 # ---------------------------------------------------------------------------
 daemon:
   one_shot_interval_sec: 300
+  # ADR-081 Step 0 — loop-hold instrumentation (Option 1: permanent).
+  # When set_debug is true, the daemon enables asyncio debug mode and sets
+  # slow_callback_duration to surface synchronous-stretch warnings in the
+  # journal. Step 3a-telemetry subscribes a structured handler to those
+  # emissions; do not revert without coordinating with Step 3a/3b.
+  slow_callback_duration_sec: 1.0
+  set_debug: true
 
 # ---------------------------------------------------------------------------
 # Proposals

@@ -79,6 +79,22 @@ def _get_float(sec: dict[str, Any], key: str, default: float) -> float:
         return default
 
 
+# ID: 4d2a8e4c-1a8b-4b6e-9c2a-3f0e7a8b5d11
+def _get_bool(sec: dict[str, Any], key: str, default: bool) -> bool:
+    val = sec.get(key)
+    if val is None:
+        return default
+    if isinstance(val, bool):
+        return val
+    logger.warning(
+        "operational_config: %s should be bool, got %r — using fallback %r.",
+        key,
+        val,
+        default,
+    )
+    return default
+
+
 # ---------------------------------------------------------------------------
 # Section dataclasses
 # ---------------------------------------------------------------------------
@@ -127,6 +143,11 @@ class HealthLogConfig:
 # ID: d6b4d3bb-cb67-4a62-90a7-1a6ca68e50e0
 class DaemonConfig:
     one_shot_interval_sec: int = 300
+    # ADR-081 Step 0 — loop-hold instrumentation. Defaults are the OFF state
+    # so a YAML revert returns to clean baseline. Step 3a-telemetry subscribes
+    # a structured handler to the slow-callback warnings these settings emit.
+    slow_callback_duration_sec: float = 0.1
+    set_debug: bool = False
 
 
 @dataclass(frozen=True)
@@ -674,7 +695,9 @@ def _load_health_log(raw: dict[str, Any]) -> HealthLogConfig:
 def _load_daemon(raw: dict[str, Any]) -> DaemonConfig:
     sec = _section(raw, "daemon")
     return DaemonConfig(
-        one_shot_interval_sec=_get_int(sec, "one_shot_interval_sec", 300)
+        one_shot_interval_sec=_get_int(sec, "one_shot_interval_sec", 300),
+        slow_callback_duration_sec=_get_float(sec, "slow_callback_duration_sec", 0.1),
+        set_debug=_get_bool(sec, "set_debug", False),
     )
 
 
