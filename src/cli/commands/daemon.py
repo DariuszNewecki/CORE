@@ -62,6 +62,21 @@ _PID_FILE_REL = Path("var/run/core-daemon.pid")
 _SYSTEMD_UNITS = ("core-daemon", "core-api")
 
 
+# ID: 0b1ce63d-8b46-4d8b-b1d7-2c5b6a93e0a9
+def _pid_file_for(only: str | None) -> Path:
+    """Repo-relative PID file path for this daemon invocation.
+
+    Default mode (``only is None``): the lightweight core-daemon PID file.
+    Dedicated mode (``--only <stem>``): a per-stem PID file under
+    ``var/run/core-daemon-worker-<stem>.pid``. Per-stem files mean an
+    operator can run the lightweight daemon and one or more dedicated
+    daemons simultaneously without lock contention. Per ADR-081 D4.
+    """
+    if only is None:
+        return _PID_FILE_REL
+    return Path("var/run") / f"core-daemon-worker-{only}.pid"
+
+
 async def _run_one_shot_loop(worker: Any, stem: str, interval: int) -> None:
     """
     Wraps a one-shot worker (has start() but no run_loop()) in a periodic loop.
@@ -85,22 +100,43 @@ async def _run_one_shot_loop(worker: Any, stem: str, interval: int) -> None:
 @daemon_app.command("start")
 @async_command
 # ID: f3d2e3cd-7e95-473a-89d8-4af5438490ea
-async def start() -> None:
+async def start(
+    only: str | None = typer.Option(
+        None,
+        "--only",
+        help=(
+            "Run exactly one worker declared requires_dedicated_process: true, "
+            "alone in its own asyncio loop. Stem is the .intent/workers/<stem>.yaml "
+            "filename without extension. Without --only, the daemon excludes "
+            "every worker with requires_dedicated_process: true and runs the "
+            "remaining lightweight set. Per ADR-081 D5."
+        ),
+    ),
+) -> None:
     """
-    Start all self-scheduling background workers (systemd entry point).
+    Start background workers (systemd entry point).
 
-    Discovers workers dynamically from .intent/workers/*.yaml — no manual
-    registration required. Keeps the process alive until SIGTERM or SIGINT.
+    Default mode (no ``--only``): discovers active workers dynamically from
+    .intent/workers/*.yaml, excludes every worker that declares
+    ``requires_dedicated_process: true``, and runs the lightweight set in a
+    shared asyncio loop. This is the unit systemd starts as ``core-daemon``.
 
-    This is the long-running foreground process that systemd invokes via
-    `ExecStart=...core-admin daemon start`. **Humans should use
-    `core-admin daemon up` instead** — it goes through systemctl, returns
-    immediately, and ensures the supervisor (not your shell) owns the
-    process lifecycle. The PID-file lock here will refuse a second
-    `daemon start` if one is already running, but the `up` path is the
-    only one that registers with systemd in the first place.
+    Dedicated mode (``--only <stem>``): loads exactly that one worker and
+    runs it alone in its own asyncio loop. The stem must be active and must
+    declare ``requires_dedicated_process: true`` — refuses otherwise. This
+    is the unit shape systemd starts as ``core-daemon-worker@<stem>.service``
+    (template unit lands in Step 2c). Per ADR-081 D3 / D5.
+
+    Each invocation acquires a singleton PID lock — default mode uses
+    ``var/run/core-daemon.pid``; dedicated mode uses
+    ``var/run/core-daemon-worker-<stem>.pid`` — so the lightweight daemon
+    and N dedicated daemons can run simultaneously without contention.
+
+    **Humans should use ``core-admin daemon up`` instead** — it goes
+    through systemctl, returns immediately, and ensures the supervisor
+    (not your shell) owns the process lifecycle.
     """
-    await _run_daemon()
+    await _run_daemon(only=only)
 
 
 # ID: eeac9460-6a08-45d1-8194-e77660355120
@@ -309,17 +345,20 @@ def _instantiate_worker(
 
 
 # ID: c6908afb-8ab5-4df2-92eb-43896b3cfbc1
-def _acquire_singleton_lock() -> int:
+def _acquire_singleton_lock(pid_file_rel: Path) -> int:
     """Acquire exclusive flock on the daemon PID file.
 
     Returns the open file descriptor — caller MUST keep it open for the
     daemon's lifetime, since closing the fd releases the lock. On failure
     (another instance holds the lock), logs the holder PID and exits with
     code 1.
+
+    ``pid_file_rel`` is repo-relative — caller passes ``_pid_file_for(only)``
+    so default and dedicated daemons each acquire their own lock (ADR-081 D4).
     """
     from shared.infrastructure.bootstrap_registry import BootstrapRegistry
 
-    pid_file = BootstrapRegistry.get_repo_path() / _PID_FILE_REL
+    pid_file = BootstrapRegistry.get_repo_path() / pid_file_rel
     pid_file.parent.mkdir(parents=True, exist_ok=True)
     fd = os.open(str(pid_file), os.O_CREAT | os.O_RDWR, 0o644)
     try:
@@ -348,11 +387,15 @@ def _acquire_singleton_lock() -> int:
 
 
 # ID: 00438b47-4d36-465d-ae6c-b512a4725be6
-def _release_singleton_lock(fd: int) -> None:
-    """Release the singleton lock and unlink the PID file (both best-effort)."""
+def _release_singleton_lock(fd: int, pid_file_rel: Path) -> None:
+    """Release the singleton lock and unlink the PID file (both best-effort).
+
+    ``pid_file_rel`` is repo-relative — caller passes the same value used at
+    acquisition so the matching PID file is removed (ADR-081 D4).
+    """
     from shared.infrastructure.bootstrap_registry import BootstrapRegistry
 
-    pid_file = BootstrapRegistry.get_repo_path() / _PID_FILE_REL
+    pid_file = BootstrapRegistry.get_repo_path() / pid_file_rel
     try:
         fcntl.flock(fd, fcntl.LOCK_UN)
     except OSError:
@@ -368,7 +411,7 @@ def _release_singleton_lock(fd: int) -> None:
 
 
 # ID: ea1f2f3a-280e-4d88-a120-4b310a2ef31f
-async def _run_daemon() -> None:
+async def _run_daemon(only: str | None = None) -> None:
     """
     Async entry point. Discovers all active workers from .intent/workers/,
     instantiates each one, starts their run_loop (or one-shot loop) as
@@ -383,17 +426,27 @@ async def _run_daemon() -> None:
     Instantiation is tried with progressively simpler kwargs when TypeError
     occurs, so workers with hardcoded declaration_name class attributes and
     plain __init__(self) signatures are still started correctly.
+
+    When ``only`` is set, runs exactly that one heavy worker (ADR-081 D3/D5)
+    against a per-stem PID lock; otherwise excludes every heavy worker and
+    runs the lightweight set against the default daemon PID lock.
     """
-    lock_fd = _acquire_singleton_lock()
+    pid_file_rel = _pid_file_for(only)
+    lock_fd = _acquire_singleton_lock(pid_file_rel)
     try:
-        await _run_daemon_locked()
+        await _run_daemon_locked(only=only)
     finally:
-        _release_singleton_lock(lock_fd)
+        _release_singleton_lock(lock_fd, pid_file_rel)
 
 
 # ID: be19aae3-d399-4955-8ff7-f65aa5267aaf
-async def _run_daemon_locked() -> None:
-    """Body of _run_daemon, executed under the singleton lock."""
+async def _run_daemon_locked(only: str | None = None) -> None:
+    """Body of _run_daemon, executed under the singleton lock.
+
+    ``only`` mirrors the ``--only`` CLI flag (ADR-081 D5). When set, exactly
+    one heavy worker is loaded; when None, every worker with
+    ``requires_dedicated_process: true`` is excluded.
+    """
     # Bootstrap-only imports — see _run_daemon docstring.
     import yaml
 
@@ -470,9 +523,58 @@ async def _run_daemon_locked() -> None:
         )
 
     workers_dir = BootstrapRegistry.get_repo_path() / ".intent" / "workers"
-    tasks: list[asyncio.Task[Any]] = []
 
-    for yaml_file in sorted(workers_dir.glob("*.yaml")):
+    # ADR-081 D5 — daemon discovery contract.
+    # --only <stem>: load exactly that stem, must be active AND heavy.
+    # --only absent: discover all active workers, exclude every heavy one.
+    if only is not None:
+        if "/" in only or ".." in only or only != Path(only).name:
+            logger.error(
+                "CORE daemon: --only stem %r contains path separators or "
+                "traversal — refusing.",
+                only,
+            )
+            return
+        yaml_files = [workers_dir / f"{only}.yaml"]
+        if not yaml_files[0].exists():
+            logger.error(
+                "CORE daemon: --only stem '%s' has no declaration at %s.",
+                only,
+                yaml_files[0],
+            )
+            return
+        only_decl = yaml.safe_load(yaml_files[0].read_text())
+        only_status = only_decl.get("metadata", {}).get("status", "")
+        if only_status != "active":
+            logger.error(
+                "CORE daemon: --only stem '%s' is not active "
+                "(metadata.status=%r). Refusing.",
+                only,
+                only_status,
+            )
+            return
+        if not only_decl.get("implementation", {}).get(
+            "requires_dedicated_process", False
+        ):
+            logger.error(
+                "CORE daemon: --only stem '%s' declares "
+                "requires_dedicated_process=false. Run it under the lightweight "
+                "daemon via `core-admin daemon start` without --only.",
+                only,
+            )
+            return
+        logger.info(
+            "CORE daemon: dedicated mode — running only '%s' "
+            "(requires_dedicated_process: true).",
+            only,
+        )
+    else:
+        yaml_files = sorted(workers_dir.glob("*.yaml"))
+
+    tasks: list[asyncio.Task[Any]] = []
+    excluded_heavy: list[str] = []
+
+    for yaml_file in yaml_files:
         stem = yaml_file.stem
 
         try:
@@ -484,6 +586,18 @@ async def _run_daemon_locked() -> None:
                 continue
 
             impl = declaration.get("implementation", {})
+
+            # ADR-081 D3 — in default mode, never host a worker that declares
+            # requires_dedicated_process: true. Its dedicated systemd unit
+            # runs it alone. --only mode passed the heavy-worker check above.
+            if only is None and impl.get("requires_dedicated_process", False):
+                excluded_heavy.append(stem)
+                logger.info(
+                    "CORE daemon: excluding heavy worker '%s' "
+                    "(requires_dedicated_process: true) — runs in a dedicated daemon.",
+                    stem,
+                )
+                continue
             module_path = impl["module"]
             class_name = impl["class"]
             requires_ctx = impl.get("requires_core_context", False)
@@ -573,6 +687,13 @@ async def _run_daemon_locked() -> None:
             )
 
     logger.info("CORE daemon: %d worker(s) started.", len(tasks))
+    if excluded_heavy:
+        logger.info(
+            "CORE daemon: excluded %d heavy worker(s) requiring dedicated "
+            "processes (ADR-081 D3): %s",
+            len(excluded_heavy),
+            ", ".join(excluded_heavy),
+        )
 
     # loop is acquired above (ADR-081 Step 0); reuse it for signal handling.
     stop_event = asyncio.Event()
