@@ -13,6 +13,7 @@ This uses the existing dynamic rule execution engine but with filtering.
 
 from __future__ import annotations
 
+import asyncio
 import re
 from typing import TYPE_CHECKING
 
@@ -206,6 +207,15 @@ async def run_filtered_audit(
     skipped_context_level: list[str] = []
 
     for rule in filtered_rules:
+        # ADR-081 Step 2b — cooperative yield at the per-rule boundary so
+        # heavy audit cycles can reach a cancellation point between rules.
+        # execute_rule itself is sync-dominated (AST walks per file); this
+        # yield bounds the worst case to one rule's worth of synchronous
+        # work between SIGTERM and Worker.start()'s `finally` block running.
+        # Per-engine inner yields are deferred pending Step 0 evidence
+        # naming which engines dominate the loop-hold.
+        await asyncio.sleep(0)
+
         # Track skipped-context-level explicitly for stats / operator
         # transparency. execute_rule logs the skip; we count it here.
         if file_filter is not None and rule.is_context_level:
