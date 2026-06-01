@@ -24,17 +24,6 @@ class YAMLProcessor(BaseProcessor):
     Implements BaseProcessor template methods using yaml module.
     """
 
-    # ID: 03b8879e-20c9-420e-9a4c-6748732f99a7
-    def _serialize(self, data: dict[str, Any], file_handle: Any) -> None:
-        """Serialize using yaml.dump() with constitutional formatting."""
-        yaml.dump(
-            data,
-            file_handle,
-            default_flow_style=False,
-            allow_unicode=True,
-            sort_keys=False,
-        )
-
     # ID: ccde777c-d73f-4530-8b20-68b35a955416
     def _deserialize(self, file_handle: Any) -> dict[str, Any] | None:
         """Deserialize using yaml.safe_load()."""
