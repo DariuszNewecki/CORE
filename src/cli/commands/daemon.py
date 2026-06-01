@@ -114,33 +114,27 @@ def _enabled_template_stems() -> set[str]:
 
     Used by `daemon status` to surface drift between .intent/workers/ state
     and systemd-enabled state (ADR-081 D6). Best-effort — returns an empty
-    set if the systemctl probe fails, so drift detection degrades to silent
-    rather than blocking the status command.
+    set if the wants directory is missing, so drift detection degrades to
+    silent rather than blocking the status command.
+
+    Probes the user-systemd wants directory directly because
+    ``systemctl --user list-unit-files --state=enabled`` enumerates only
+    the template unit file itself, not its enabled instances. The enabled
+    instances live as symlinks under ``~/.config/systemd/user/default.target.wants/``
+    (the canonical user-systemd location), so listing those is the source
+    of truth.
     """
-    try:
-        result = subprocess.run(
-            [
-                "systemctl",
-                "--user",
-                "list-unit-files",
-                "--no-legend",
-                "--state=enabled",
-                "core-daemon-worker@*.service",
-            ],
-            capture_output=True,
-            text=True,
-            timeout=5,
-        )
-    except (subprocess.SubprocessError, FileNotFoundError):
+    wants_dir = Path.home() / ".config" / "systemd" / "user" / "default.target.wants"
+    if not wants_dir.is_dir():
         return set()
     stems: set[str] = set()
-    for line in result.stdout.splitlines():
-        parts = line.split()
-        if not parts:
-            continue
-        m = _TEMPLATE_UNIT_RE.match(parts[0])
-        if m:
-            stems.add(m.group(1))
+    try:
+        for entry in wants_dir.glob("core-daemon-worker@*.service"):
+            m = _TEMPLATE_UNIT_RE.match(entry.name)
+            if m:
+                stems.add(m.group(1))
+    except OSError:
+        return set()
     return stems
 
 
