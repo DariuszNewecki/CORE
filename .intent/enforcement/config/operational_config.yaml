@@ -95,6 +95,30 @@ workers:
 # ---------------------------------------------------------------------------
 blackboard:
   sla_default_seconds: 3600
+  # ADR-082 — Writer-as-sensor retention policy. Two sweep mechanisms hosted
+  # in BlackboardShopManager. Both run per-cycle with sweep_batch_max as the
+  # row cap rail (memory feedback_destructive_autonomous_needs_rails_first).
+  #
+  # Mechanism 1 — terminal telemetry hygiene. Hard DELETE for rows whose
+  # subject begins with one of telemetry_subject_prefixes, status is
+  # already terminal (resolved/abandoned), and created_at is older than
+  # telemetry_ttl_days. ADR-044 llm_gate_verdicts precedent shape.
+  #
+  # Mechanism 2 — DELEGATE-class OPEN finding sweep. Status transition
+  # open → resolved (with resolved_at = NOW()) for rows whose subject is in
+  # delegate_finding_subjects and created_at is older than
+  # delegate_finding_ttl_days. The matching post_report carries the original
+  # event payload — auto-resolution loses no evidence, only stale governor
+  # alerts. Subjects must be governance-decided as DELEGATE in
+  # .intent/enforcement/remediation/auto_remediation.yaml.
+  telemetry_ttl_days: 7
+  telemetry_subject_prefixes:
+    - "loop_hold.sample::"
+  delegate_finding_ttl_days: 7
+  delegate_finding_subjects:
+    - "coherence.violation_executor.blast_bound"
+    - "coherence.repo_artifacts.drift"
+  sweep_batch_max: 500
 
 # ---------------------------------------------------------------------------
 # Health log

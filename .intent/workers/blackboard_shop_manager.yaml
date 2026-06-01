@@ -15,7 +15,13 @@ identity:
 mandate:
   responsibility: >
     Detect Blackboard entries that have exceeded their constitutional SLA
-    and post a finding for each stale unclaimed or unresolved entry.
+    and post a finding for each stale unclaimed or unresolved entry. Per
+    ADR-082, also runs writer-as-sensor retention sweeps each cycle:
+    Mechanism 1 (hard-DELETE terminal telemetry past TTL) and Mechanism 2
+    (status transition open → resolved for stale DELEGATE-class OPEN
+    findings). Both sweeps are bounded by blackboard.sweep_batch_max and
+    operate on operator-curated subject allowlists in
+    .intent/enforcement/config/operational_config.yaml.
   phase: audit
   approval_required: false
   scope:

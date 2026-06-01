@@ -429,6 +429,138 @@ class BlackboardService:
             "resolved_subjects": resolved_subjects,
         }
 
+    # ID: 0c2f1a8d-3e6b-4c9f-a7d4-5b8e2f1c4a7d
+    async def sweep_terminal_telemetry(
+        self,
+        subject_prefixes: tuple[str, ...],
+        ttl_days: int,
+        batch_max: int,
+    ) -> int:
+        """
+        ADR-082 Mechanism 1 — hard DELETE for terminal telemetry past TTL.
+
+        Removes ``core.blackboard_entries`` rows whose subject starts with any
+        prefix in *subject_prefixes*, whose status is already terminal
+        ('resolved' or 'abandoned'), and whose created_at is older than
+        *ttl_days*. Mirrors ADR-044's ``llm_gate_verdicts`` cache sweep shape.
+
+        The row cap (*batch_max*) is a constitutional rail per
+        ``feedback_destructive_autonomous_needs_rails_first``: even with the
+        TTL filter, a misconfigured prefix list could otherwise scan and
+        delete millions of rows in one transaction. DELETEs select via a
+        bounded subquery so PostgreSQL's lack of DELETE…LIMIT is sidestepped
+        cleanly.
+
+        Returns the count of rows actually deleted. Empty *subject_prefixes*
+        is a no-op (returns 0) — the empty allowlist is fail-closed, not
+        fail-open.
+        """
+        if not subject_prefixes:
+            return 0
+
+        from body.services.service_registry import ServiceRegistry
+
+        async with ServiceRegistry.session() as session:
+            async with session.begin():
+                result = await session.execute(
+                    text(
+                        """
+                        DELETE FROM core.blackboard_entries
+                        WHERE id IN (
+                            SELECT id FROM core.blackboard_entries
+                            WHERE status IN ('resolved', 'abandoned')
+                              AND subject LIKE ANY(
+                                  ARRAY(
+                                      SELECT p || '%%'
+                                      FROM unnest(cast(:prefixes as text[])) AS p
+                                  )
+                              )
+                              AND created_at < now() - make_interval(days => :days)
+                            LIMIT :batch_max
+                        )
+                        """
+                    ),
+                    {
+                        "prefixes": list(subject_prefixes),
+                        "days": int(ttl_days),
+                        "batch_max": int(batch_max),
+                    },
+                )
+                return result.rowcount or 0
+
+    # ID: 8a5f3d6c-2b9e-4f17-c0d8-9e4a1b6f3c8e
+    async def sweep_delegate_open_findings(
+        self,
+        subjects: tuple[str, ...],
+        ttl_days: int,
+        batch_max: int,
+    ) -> int:
+        """
+        ADR-082 Mechanism 2 — status transition open → resolved for stale
+        DELEGATE-class findings.
+
+        Updates ``core.blackboard_entries`` rows whose subject equals one of
+        *subjects*, whose status is 'open', and whose created_at is older than
+        *ttl_days*. Sets status='resolved', resolved_at=now(), updated_at=now(),
+        and stamps payload.resolution with an attribution block so the audit
+        trail records why the row closed without operator action.
+
+        Preserves the row (no DELETE) per the audit-trail principle: the
+        writer-as-sensor's matching run.complete report already carries the
+        original event payload, so the OPEN finding's content is recoverable
+        even after auto-resolution. Status transition is the cheaper
+        rollback path than DELETE if the TTL turns out to be misconfigured.
+
+        Row cap (*batch_max*) is the rail per
+        ``feedback_destructive_autonomous_needs_rails_first``. Empty
+        *subjects* is a no-op — fail-closed allowlist.
+
+        Returns the count of rows updated.
+        """
+        if not subjects:
+            return 0
+
+        from body.services.service_registry import ServiceRegistry
+
+        async with ServiceRegistry.session() as session:
+            async with session.begin():
+                result = await session.execute(
+                    text(
+                        """
+                        UPDATE core.blackboard_entries
+                        SET status = 'resolved',
+                            resolved_at = now(),
+                            updated_at = now(),
+                            payload = jsonb_set(
+                                payload,
+                                '{resolution}',
+                                jsonb_build_object(
+                                    'reason', 'ADR-082 TTL sweep: governor inattention exceeded retention window',
+                                    'resolved_by', 'blackboard_shop_manager',
+                                    'resolution_authority', 'system.ttl_sweep',
+                                    'resolved_at', to_char(now() at time zone 'UTC',
+                                                           'YYYY-MM-DD"T"HH24:MI:SS"Z"')
+                                ),
+                                true
+                            )
+                        WHERE id IN (
+                            SELECT id FROM core.blackboard_entries
+                            WHERE entry_type = 'finding'
+                              AND status = 'open'
+                              AND subject = ANY(cast(:subjects as text[]))
+                              AND created_at < now() - make_interval(days => :days)
+                            LIMIT :batch_max
+                        )
+                        """
+                    ),
+                    {
+                        "subjects": list(subjects),
+                        "days": int(ttl_days),
+                        "batch_max": int(batch_max),
+                    },
+                )
+                return result.rowcount or 0
+
     # ID: 54c114b0-4c6d-484f-8b20-d9ff5fa24caf
     async def update_entry_status(self, entry_id: str, status: str) -> None:
         """

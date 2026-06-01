@@ -1194,5 +1194,8 @@ classifications:
   - path: .specs/decisions/ADR-079-chokepoint-implementation-for-capability-scoped-filesystem-authority.md
     governance_namespace: project::core
     # notes: gray — implements a framework mechanism in CORE src; classed with ADR-062/063/064 implementations; governor review
+  - path: .specs/decisions/ADR-082-writer-as-sensor-retention-policy.md
+    governance_namespace: project::core
+    # notes: gray — generalizes the writer-as-sensor pattern (ADR-070 D8) with a retention policy; mechanisms are CORE-specific but the principle could lift to framework; governor review
   - path: .specs/decisions/README.md
     governance_namespace: project::core

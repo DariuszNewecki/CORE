@@ -4,15 +4,17 @@ BlackboardShopManager - Blackboard Health Supervisory Worker.
 
 Responsibility: Detect Blackboard entries that have exceeded their
 constitutional SLA and post a finding for each stale unclaimed or
-unresolved entry.
+unresolved entry. Per ADR-082, also runs the writer-as-sensor
+retention sweeps (terminal telemetry hard-DELETE + DELEGATE-class OPEN
+finding status transition) as part of the same hygiene cycle.
 
 Constitutional standing:
 - Declaration:      .intent/workers/blackboard_shop_manager.yaml
 - Class:            supervision
 - Phase:            audit
-- Permitted tools:  none — deterministic DB reads only
+- Permitted tools:  none — deterministic DB reads + bounded sweep writes
 - Approval:         false — findings are observations only
-- Schedule:         max_interval=120s, glide_off=12s (10% default)
+- Schedule:         max_interval=600s
 
 SLA tiers (seconds):
 - heartbeat entries:  600   (10 minutes)
@@ -20,6 +22,12 @@ SLA tiers (seconds):
 - report entries:     7200  (2 hours)
 - proposal entries:   1800  (30 minutes)
 - default:            3600  (1 hour)
+
+ADR-082 retention sweeps (per cycle, bounded by sweep_batch_max):
+- Terminal telemetry: hard DELETE for subjects in
+  blackboard.telemetry_subject_prefixes past telemetry_ttl_days.
+- DELEGATE OPEN findings: status open → resolved for subjects in
+  blackboard.delegate_finding_subjects past delegate_finding_ttl_days.
 
 Self-scheduling: BlackboardShopManager manages its own asyncio loop via
 run_loop(). Sanctuary starts run_loop() once on bootstrap.
@@ -123,9 +131,11 @@ class BlackboardShopManager(Worker):
         Execute one Blackboard health cycle:
         1. Post heartbeat
         2. Auto-resolve stale-entry alerts whose target became terminal
-        3. Fetch stale entries per SLA tier
-        4. Post finding for each (deduplicated)
-        5. Post completion report
+        3. ADR-082 Mechanism 1: hard-DELETE terminal telemetry past TTL
+        4. ADR-082 Mechanism 2: transition DELEGATE OPEN findings past TTL
+        5. Fetch stale entries per SLA tier
+        6. Post finding for each (deduplicated)
+        7. Post completion report
         """
         await self.post_heartbeat()
 
@@ -135,6 +145,22 @@ class BlackboardShopManager(Worker):
                 "BlackboardShopManager: auto-resolved %d stale alert(s) "
                 "whose target reached terminal state",
                 auto_resolved,
+            )
+
+        telemetry_swept = await self._sweep_telemetry_ttl()
+        if telemetry_swept:
+            logger.info(
+                "BlackboardShopManager: ADR-082 telemetry sweep — deleted %d "
+                "terminal telemetry row(s) past TTL",
+                telemetry_swept,
+            )
+
+        delegate_swept = await self._sweep_delegate_findings_ttl()
+        if delegate_swept:
+            logger.info(
+                "BlackboardShopManager: ADR-082 DELEGATE sweep — resolved %d "
+                "stale OPEN finding(s) past TTL",
+                delegate_swept,
             )
 
         stale = await self._fetch_stale_entries()
@@ -179,9 +205,18 @@ class BlackboardShopManager(Worker):
             payload={
                 "entries_checked": await self._count_active_entries(),
                 "flagged": flagged,
+                "ttl_sweep": {
+                    "telemetry_deleted": telemetry_swept,
+                    "delegate_resolved": delegate_swept,
+                },
             },
         )
-        logger.info("BlackboardShopManager: cycle complete — flagged=%d", flagged)
+        logger.info(
+            "BlackboardShopManager: cycle complete — flagged=%d, telemetry_swept=%d, delegate_swept=%d",
+            flagged,
+            telemetry_swept,
+            delegate_swept,
+        )
 
     # -------------------------------------------------------------------------
     # DB reads — delegated to BlackboardService
@@ -221,3 +256,25 @@ class BlackboardShopManager(Worker):
 
         svc = await service_registry.get_blackboard_service()
         return await svc.resolve_stale_alerts_for_terminal_targets()
+
+    async def _sweep_telemetry_ttl(self) -> int:
+        """ADR-082 Mechanism 1 — hard-DELETE terminal telemetry past TTL."""
+        from body.services.service_registry import service_registry
+
+        svc = await service_registry.get_blackboard_service()
+        return await svc.sweep_terminal_telemetry(
+            subject_prefixes=_CFG.telemetry_subject_prefixes,
+            ttl_days=_CFG.telemetry_ttl_days,
+            batch_max=_CFG.sweep_batch_max,
+        )
+
+    async def _sweep_delegate_findings_ttl(self) -> int:
+        """ADR-082 Mechanism 2 — open → resolved for stale DELEGATE findings."""
+        from body.services.service_registry import service_registry
+
+        svc = await service_registry.get_blackboard_service()
+        return await svc.sweep_delegate_open_findings(
+            subjects=_CFG.delegate_finding_subjects,
+            ttl_days=_CFG.delegate_finding_ttl_days,
+            batch_max=_CFG.sweep_batch_max,
+        )

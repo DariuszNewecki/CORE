@@ -95,6 +95,24 @@ def _get_bool(sec: dict[str, Any], key: str, default: bool) -> bool:
     return default
 
 
+# ID: 9b4f3e2c-7a8d-4e1f-b3c5-2d6e9f0a1b8c
+def _get_str_tuple(
+    sec: dict[str, Any], key: str, default: tuple[str, ...]
+) -> tuple[str, ...]:
+    val = sec.get(key)
+    if val is None:
+        return default
+    if isinstance(val, list) and all(isinstance(x, str) for x in val):
+        return tuple(val)
+    logger.warning(
+        "operational_config: %s should be a list of strings, got %r — using fallback %r.",
+        key,
+        val,
+        default,
+    )
+    return default
+
+
 # ---------------------------------------------------------------------------
 # Section dataclasses
 # ---------------------------------------------------------------------------
@@ -130,7 +148,35 @@ class ChunkingConfig:
 @dataclass(frozen=True)
 # ID: dee98ce9-d8e4-4ad7-bc41-f0c9a2291389
 class BlackboardConfig:
+    """Blackboard hygiene + ADR-082 writer-as-sensor retention knobs.
+
+    sla_default_seconds — fallback SLA tier when entry_type is unmapped.
+
+    ADR-082 retention policy — two sweep mechanisms hosted in
+    BlackboardShopManager:
+
+    - Mechanism 1 (terminal telemetry): hard DELETE rows whose subject
+      starts with one of telemetry_subject_prefixes, status is already
+      terminal, and created_at is older than telemetry_ttl_days.
+    - Mechanism 2 (DELEGATE OPEN findings): transition status open →
+      resolved for rows whose subject is in delegate_finding_subjects
+      and created_at is older than delegate_finding_ttl_days. The
+      writer's run.complete report preserves the event payload, so
+      auto-resolution is information-preserving.
+
+    sweep_batch_max — row cap per sweep run (rails per
+    feedback_destructive_autonomous_needs_rails_first).
+    """
+
     sla_default_seconds: int = 3600
+    telemetry_ttl_days: int = 7
+    telemetry_subject_prefixes: tuple[str, ...] = ("loop_hold.sample::",)
+    delegate_finding_ttl_days: int = 7
+    delegate_finding_subjects: tuple[str, ...] = (
+        "coherence.violation_executor.blast_bound",
+        "coherence.repo_artifacts.drift",
+    )
+    sweep_batch_max: int = 500
 
 
 @dataclass(frozen=True)
@@ -701,7 +747,21 @@ def _load_chunking(raw: dict[str, Any]) -> ChunkingConfig:
 def _load_blackboard(raw: dict[str, Any]) -> BlackboardConfig:
     sec = _section(raw, "blackboard")
     return BlackboardConfig(
-        sla_default_seconds=_get_int(sec, "sla_default_seconds", 3600)
+        sla_default_seconds=_get_int(sec, "sla_default_seconds", 3600),
+        telemetry_ttl_days=_get_int(sec, "telemetry_ttl_days", 7),
+        telemetry_subject_prefixes=_get_str_tuple(
+            sec, "telemetry_subject_prefixes", ("loop_hold.sample::",)
+        ),
+        delegate_finding_ttl_days=_get_int(sec, "delegate_finding_ttl_days", 7),
+        delegate_finding_subjects=_get_str_tuple(
+            sec,
+            "delegate_finding_subjects",
+            (
+                "coherence.violation_executor.blast_bound",
+                "coherence.repo_artifacts.drift",
+            ),
+        ),
+        sweep_batch_max=_get_int(sec, "sweep_batch_max", 500),
     )
 
 
