@@ -78,7 +78,10 @@ fenced block labelled with its path. The governor reviews whole files, not diff 
 
 **Verification after editing.** Before reporting completion: run `ruff check` on every file
 touched. Run small import/instantiation smoke tests where possible. Do NOT run `pytest`, do
-NOT restart `core-daemon`, do NOT commit — those are governor actions.
+NOT commit — those are governor actions. Restarting `core-daemon` + `core-api` is in-scope
+when a fix needs operationalization (the running daemon caches imported modules, so a code
+fix only lands after restart). Avoid restarting mid-flight against an active CCC scan or
+long-running remediation; otherwise it's a normal step in the development loop.
 
 **When in doubt, ask.** A five-second clarifying question is cheaper than a fifteen-minute
 implementation against the wrong assumption. Do not invent requirements; do not infer CLI
