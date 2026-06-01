@@ -38,3 +38,9 @@ implementation:
   module: will.workers.audit_ingest_worker
   class: AuditIngestWorker
   requires_core_context: true
+  # ADR-081 D2(2) — calls auditor.run_full_audit_async() which triggers a full
+  # constitutional audit (AST walks across the entire codebase). Step 0
+  # evidence (2026-06-01) confirms: observed max loop-hold 77.81s, vastly over
+  # the 5s D2(1) gate. Promoted from the ADR's anchor list under D8 Step 1's
+  # "any other worker subsequently confirmed by D2(1) loop-hold measurement."
+  requires_dedicated_process: true

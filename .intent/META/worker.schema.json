@@ -215,6 +215,10 @@
                     "type": "boolean",
                     "description": "Whether this worker requires a CoreContext instance injected at construction."
                 },
+                "requires_dedicated_process": {
+                    "type": "boolean",
+                    "description": "When true, this worker must run in its own asyncio event loop (its own OS process). The lightweight daemon refuses to host it; a dedicated systemd unit runs it alone. Authority: ADR-081. Default (absent): false. Workers whose per-cycle execution includes long synchronous CPU-bound stretches (full-codebase AST walks, graph computation) must declare true — their presence in a shared loop starves peer workers' cooperative scheduling. Network-await work (e.g. embedding via httpx.AsyncClient) is NOT in this category and must declare false even when its observed cycle gaps are large — its inflation is starvation by AST-walker peers, not loop monopolization. See ADR-081 D2 for the classification criterion."
+                },
                 "params": {
                     "type": "object",
                     "description": "Arbitrary constructor kwargs passed to the worker at instantiation time by the daemon loader. Use for worker-specific configuration that cannot be expressed through standard schema fields (e.g. dry_run: false to mark sensor findings as actionable by downstream remediators). Values are merged into the kwargs dict after standard fields (declaration_name, rule_namespace, core_context) are resolved, so they may not override those.",

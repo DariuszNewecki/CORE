@@ -32,5 +32,9 @@ implementation:
   module: will.workers.audit_violation_sensor
   class: AuditViolationSensor
   requires_core_context: true
+  # ADR-081 D2(2) — full-codebase AST walks; categorical heavy worker.
+  # Step 0 evidence (2026-06-01): observed max loop-hold 79.41s, vastly over
+  # the 5s D2(1) gate. Must run in its own asyncio event loop.
+  requires_dedicated_process: true
   params:
     dry_run: false
