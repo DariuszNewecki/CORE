@@ -33,6 +33,7 @@ from cli.commands.check.formatters import (
 )
 from cli.logic.audit_renderer import AuditStats, render_overview, to_audit_finding
 from cli.utils import core_command
+from cli.utils.annotation_formatter import format_payload
 from cli.utils.exit_codes import (
     EXIT_CONFIG_ERROR,
     EXIT_FINDINGS,
@@ -97,14 +98,17 @@ async def audit_command(
             "ADR-085 §D5 for the F-10 exit criterion this serves."
         ),
     ),
-    json_output: bool = typer.Option(
-        False,
-        "--json",
+    output_format: str = typer.Option(
+        "text",
+        "--format",
         help=(
-            "F-10.1b: emit the audit result as JSON on stdout instead of "
-            "the human-readable Rich rendering. Currently supported only "
-            "in combination with --offline; the daemon-driven path has a "
-            "different result shape. Schema documented in #535."
+            "F-10.1b / F-10.2: output format. `text` (default) renders "
+            "the human-readable Rich output. `json` emits the F-10.1a "
+            "payload verbatim on stdout (schema documented in #535). "
+            "`github-annotations` emits GitHub Actions workflow-command "
+            "lines so findings surface inline in PR diff view "
+            "(#529 / F-10.2). Non-text formats require --offline; the "
+            "daemon-driven path has a different result shape."
         ),
     ),
 ) -> None:
@@ -115,10 +119,18 @@ async def audit_command(
     """
     min_severity = parse_min_severity(severity)
 
-    if json_output and not offline:
+    if output_format not in {"text", "json", "github-annotations"}:
         console.print(
-            "[bold red]--json currently requires --offline[/bold red] "
-            "(daemon-driven path has a different result shape; see #535)"
+            f"[bold red]--format must be one of "
+            f"text|json|github-annotations[/bold red] (got {output_format!r})"
+        )
+        raise typer.Exit(EXIT_CONFIG_ERROR)
+
+    if output_format != "text" and not offline:
+        console.print(
+            f"[bold red]--format={output_format} currently requires "
+            f"--offline[/bold red] (daemon-driven path has a different "
+            "result shape; see #535)"
         )
         raise typer.Exit(EXIT_CONFIG_ERROR)
 
@@ -126,7 +138,7 @@ async def audit_command(
         await _run_offline_audit(
             files=list(files),
             min_severity_str=severity,
-            json_output=json_output,
+            output_format=output_format,
         )
         return
 
@@ -204,9 +216,9 @@ async def _run_offline_audit(
     *,
     files: list[str],
     min_severity_str: str,
-    json_output: bool,
+    output_format: str,
 ) -> None:
-    """F-10.1b — execute the stateless audit + render or emit JSON.
+    """F-10.1b / F-10.2 — execute the stateless audit + render per format.
 
     Routes to mind.governance.stateless_audit (F-10.1a). Exit code matrix:
 
@@ -219,25 +231,19 @@ async def _run_offline_audit(
     the merge-block path: 1 = "your code has violations" (developer action);
     64 = "the gate itself crashed" (operator action). External CI branch
     protection rules should treat them differently.
+
+    output_format dispatches the rendering: ``text`` -> Rich console
+    (default for humans); ``json`` -> F-10.1a payload verbatim (CLI
+    integrations); ``github-annotations`` -> GH workflow-command lines
+    (F-10.3 Action, F-10.5 pre-commit hook).
     """
+    structured = output_format in {"json", "github-annotations"}
+
     try:
         intent_repo = get_intent_repository()
         repo_path = get_repo_root()
     except Exception as exc:
-        if json_output:
-            sys.stdout.write(
-                json.dumps(
-                    {
-                        "verdict": "ERROR",
-                        "passed": False,
-                        "error": f"configuration error: {exc!s}",
-                        "mode": "stateless",
-                    }
-                )
-                + "\n"
-            )
-        else:
-            console.print(f"[bold red]Configuration error:[/bold red] {exc}")
+        _emit_error(output_format, "configuration error", exc)
         raise typer.Exit(EXIT_CONFIG_ERROR) from exc
 
     min_severity = parse_min_severity(min_severity_str)
@@ -250,64 +256,79 @@ async def _run_offline_audit(
         )
     except Exception as exc:
         logger.exception("Stateless audit crashed")
-        if json_output:
-            sys.stdout.write(
-                json.dumps(
-                    {
-                        "verdict": "ERROR",
-                        "passed": False,
-                        "error": f"internal error: {exc!s}",
-                        "mode": "stateless",
-                    }
-                )
-                + "\n"
-            )
-        else:
-            console.print(f"[bold red]Internal error:[/bold red] {exc}")
+        _emit_error(output_format, "internal error", exc)
         raise typer.Exit(EXIT_INTERNAL_ERROR) from exc
 
     blocking_findings = [
         f for f in result["findings"] if to_audit_finding(f).severity >= min_severity
     ]
 
-    if json_output:
-        # Emit the F-10.1a payload verbatim. F-10.1b layers nothing on
-        # top of the runner's contract — the CLI is purely a transport.
+    if output_format == "json":
         sys.stdout.write(json.dumps(result, indent=2, default=str) + "\n")
+    elif output_format == "github-annotations":
+        sys.stdout.write(format_payload(result))
     else:
-        all_findings = [to_audit_finding(f) for f in result["findings"]]
-        stats = result.get("stats", {})
-        audit_stats = AuditStats(
-            total_rules=stats.get("total_rules", 0),
-            executed_rules=stats.get("runnable_rules", 0),
-            coverage_percent=0,
-            total_declared_rules=stats.get("total_rules", 0),
-            crashed_rules=0,
-            unmapped_rules=0,
-            effective_coverage_percent=0,
-            context_level_rules=0,
-            per_file_rules=0,
-        )
-        render_overview(
-            console,
-            all_findings,
-            audit_stats,
-            result.get("duration_sec", 0.0),
-            result["passed"],
-            verdict_str=result["verdict"],
-        )
-        skipped = result.get("skipped_rules", [])
-        if skipped:
-            console.print(
-                f"[dim]Skipped {len(skipped)} rule(s) in stateless mode "
-                f"(knowledge_gate + llm_gate require DB); pass --json to "
-                f"see structured reasons.[/dim]"
-            )
-        filtered = [f for f in all_findings if f.severity >= min_severity]
-        if filtered:
-            print_summary_findings(filtered)
+        _render_text_summary(result, min_severity)
 
     raise typer.Exit(EXIT_FINDINGS if blocking_findings else EXIT_OK)
+
+
+# ID: 4d8287ab-678e-4fb9-bcf5-05eab155ace1
+def _emit_error(output_format: str, kind: str, exc: Exception) -> None:
+    """Emit an error payload in the active format (CI parsers vs humans)."""
+    if output_format == "json":
+        sys.stdout.write(
+            json.dumps(
+                {
+                    "verdict": "ERROR",
+                    "passed": False,
+                    "error": f"{kind}: {exc!s}",
+                    "mode": "stateless",
+                }
+            )
+            + "\n"
+        )
+    elif output_format == "github-annotations":
+        msg = f"{kind}: {exc!s}".replace("%", "%25").replace("\n", "%0A")
+        sys.stdout.write(f"::error title=CORE audit {kind}::{msg}\n")
+    else:
+        console.print(f"[bold red]{kind.capitalize()}:[/bold red] {exc}")
+
+
+# ID: c70adf31-b238-466d-9e78-f1461e437f67
+def _render_text_summary(result: dict, min_severity: object) -> None:
+    """Human-readable Rich rendering for the offline path."""
+    all_findings = [to_audit_finding(f) for f in result["findings"]]
+    stats = result.get("stats", {})
+    audit_stats = AuditStats(
+        total_rules=stats.get("total_rules", 0),
+        executed_rules=stats.get("runnable_rules", 0),
+        coverage_percent=0,
+        total_declared_rules=stats.get("total_rules", 0),
+        crashed_rules=0,
+        unmapped_rules=0,
+        effective_coverage_percent=0,
+        context_level_rules=0,
+        per_file_rules=0,
+    )
+    render_overview(
+        console,
+        all_findings,
+        audit_stats,
+        result.get("duration_sec", 0.0),
+        result["passed"],
+        verdict_str=result["verdict"],
+    )
+    skipped = result.get("skipped_rules", [])
+    if skipped:
+        console.print(
+            f"[dim]Skipped {len(skipped)} rule(s) in stateless mode "
+            f"(knowledge_gate + llm_gate require DB); pass "
+            f"--format=json to see structured reasons.[/dim]"
+        )
+    filtered = [f for f in all_findings if f.severity >= min_severity]
+    if filtered:
+        print_summary_findings(filtered)
 
 
 async def _print_coherence_advisory(

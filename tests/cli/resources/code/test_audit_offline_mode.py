@@ -58,7 +58,7 @@ async def test_offline_audit_exits_zero_when_no_findings(tmp_path: Path) -> None
             await _run_offline_audit(
                 files=[],
                 min_severity_str="high",
-                json_output=True,
+                output_format="json",
             )
     assert exc_info.value.exit_code == EXIT_OK
 
@@ -88,7 +88,7 @@ async def test_offline_audit_exits_one_when_blocking_findings(tmp_path: Path) ->
             await _run_offline_audit(
                 files=[],
                 min_severity_str="high",
-                json_output=True,
+                output_format="json",
             )
     assert exc_info.value.exit_code == EXIT_FINDINGS
 
@@ -114,7 +114,7 @@ async def test_offline_audit_exits_config_error_when_intent_repo_fails(
             await _run_offline_audit(
                 files=[],
                 min_severity_str="high",
-                json_output=False,
+                output_format="text",
             )
     assert exc_info.value.exit_code == EXIT_CONFIG_ERROR
 
@@ -141,7 +141,7 @@ async def test_offline_audit_exits_internal_error_when_runner_crashes(
             await _run_offline_audit(
                 files=[],
                 min_severity_str="high",
-                json_output=False,
+                output_format="text",
             )
     assert exc_info.value.exit_code == EXIT_INTERNAL_ERROR
 
@@ -171,7 +171,7 @@ async def test_offline_json_output_emits_f_10_1a_payload_verbatim(
             await _run_offline_audit(
                 files=[],
                 min_severity_str="high",
-                json_output=True,
+                output_format="json",
             )
     captured = capsys.readouterr()
     parsed = json.loads(captured.out)
@@ -203,7 +203,7 @@ async def test_offline_audit_passes_files_filter_through(tmp_path: Path) -> None
             await _run_offline_audit(
                 files=["src/foo.py"],
                 min_severity_str="high",
-                json_output=True,
+                output_format="json",
             )
     mock_runner.assert_called_once()
     assert mock_runner.call_args.kwargs["files"] == ["src/foo.py"]
@@ -231,7 +231,7 @@ async def test_offline_json_error_payload_when_intent_repo_fails(
             await _run_offline_audit(
                 files=[],
                 min_severity_str="high",
-                json_output=True,
+                output_format="json",
             )
     captured = capsys.readouterr()
     parsed = json.loads(captured.out)
@@ -239,3 +239,81 @@ async def test_offline_json_error_payload_when_intent_repo_fails(
     assert parsed["passed"] is False
     assert "configuration error" in parsed["error"]
     assert parsed["mode"] == "stateless"
+
+
+@pytest.mark.asyncio
+async def test_offline_github_annotations_emits_workflow_commands(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """--format=github-annotations emits GH workflow-command lines.
+
+    Each finding renders as ::error/::warning/::notice; the summary
+    appears last. Exit code semantics unchanged from --format=json.
+    """
+    findings = [
+        {
+            "rule_id": "r.high",
+            "file": "src/x.py",
+            "line": 7,
+            "severity": "high",
+            "message": "block this",
+        },
+        {
+            "rule_id": "r.low",
+            "file": "src/y.py",
+            "line": 3,
+            "severity": "low",
+            "message": "fyi",
+        },
+    ]
+    with (
+        patch("cli.resources.code.audit.get_intent_repository") as mock_repo,
+        patch("cli.resources.code.audit.get_repo_root", return_value=tmp_path),
+        patch(
+            "cli.resources.code.audit.run_stateless_audit",
+            new=AsyncMock(return_value=_result(passed=False, findings=findings)),
+        ),
+    ):
+        mock_repo.return_value = MagicMock()
+        with pytest.raises(typer.Exit) as exc_info:
+            await _run_offline_audit(
+                files=[],
+                min_severity_str="high",
+                output_format="github-annotations",
+            )
+    out = capsys.readouterr().out
+    assert "::error " in out
+    assert "r.high" in out
+    assert "::notice " in out
+    assert "::notice title=CORE audit summary::" in out
+    assert "verdict=FAIL" in out
+    assert exc_info.value.exit_code == EXIT_FINDINGS
+
+
+@pytest.mark.asyncio
+async def test_offline_github_annotations_error_envelope_on_config_error(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """--format=github-annotations + config error emits ::error workflow command.
+
+    A bare Rich console.print would corrupt the workflow log parser. The
+    error path must speak the same protocol as the success path.
+    """
+    with (
+        patch(
+            "cli.resources.code.audit.get_intent_repository",
+            side_effect=FileNotFoundError(".intent/ missing"),
+        ),
+        patch("cli.resources.code.audit.get_repo_root", return_value=tmp_path),
+    ):
+        with pytest.raises(typer.Exit):
+            await _run_offline_audit(
+                files=[],
+                min_severity_str="high",
+                output_format="github-annotations",
+            )
+    out = capsys.readouterr().out
+    assert out.startswith("::error ")
+    assert "configuration error" in out
