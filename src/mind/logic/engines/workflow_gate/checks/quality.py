@@ -10,8 +10,11 @@ from typing import Any
 
 from mind.logic.engines.workflow_gate.base_check import WorkflowCheck
 from shared.infrastructure.intent.operational_config import load_operational_config
+from shared.logger import getLogger
 from shared.path_resolver import PathResolver
 
+
+logger = getLogger(__name__)
 
 _CFG = load_operational_config().workflow_gate
 
@@ -44,6 +47,20 @@ class QualityGateCheck(WorkflowCheck):
                 # We return the FIRST line of the error to keep the report clean
                 error_msg = output.split("\n")[0]
                 return [f"Quality Gate {self.check_type} failed: {error_msg}"]
+        except FileNotFoundError as exc:
+            # Tool not installed in this environment (the F-10.3 Action's
+            # slim Docker image ships without mypy/pytest/pip-audit by
+            # design). Silent skip rather than surfacing as a finding —
+            # the consumer cannot act on tool-absence from a PR change,
+            # and the noise consumes GitHub's per-check-run annotation
+            # budget. See #549.
+            logger.debug(
+                "%s skipped: tool '%s' not installed in this environment (%s)",
+                self.check_type,
+                exc.filename or self.cmd[0],
+                exc,
+            )
+            return []
         except Exception as e:
             return [f"Gate {self.check_type} error: {e!s}"]
         return []

@@ -91,8 +91,10 @@ class RuffFormatCheck(WorkflowCheck):
             violations.append(
                 f"Ruff format check timed out (>{_CFG.ruff_format_timeout_sec:g}s)"
             )
-        except FileNotFoundError:
-            violations.append("ruff not found in PATH — cannot check formatting")
+        except FileNotFoundError as exc:
+            # ruff not installed in this environment. Silent skip; see #549.
+            logger.debug("%s skipped: ruff not installed (%s)", self.check_type, exc)
+            return []
         except Exception as e:
             violations.append(f"Ruff format check error: {e}")
 

@@ -68,10 +68,10 @@ class LinterComplianceCheck(WorkflowCheck):
 
         except TimeoutError:
             violations.append(f"Ruff check timed out (>{_CFG.linter_timeout_sec:g}s)")
-        except FileNotFoundError:
-            violations.append(
-                "Ruff not found. Install with: pip install ruff --break-system-packages"
-            )
+        except FileNotFoundError as exc:
+            # ruff not installed in this environment (e.g., F-10.3 Action's
+            # slim Docker image). Silent skip; see #549.
+            logger.debug("%s skipped: ruff not installed (%s)", self.check_type, exc)
         except Exception as e:
             violations.append(f"Ruff check error: {e}")
 
@@ -94,10 +94,9 @@ class LinterComplianceCheck(WorkflowCheck):
 
         except TimeoutError:
             violations.append(f"Black check timed out (>{_CFG.linter_timeout_sec:g}s)")
-        except FileNotFoundError:
-            violations.append(
-                "Black not found. Install with: pip install black --break-system-packages"
-            )
+        except FileNotFoundError as exc:
+            # black not installed in this environment. Silent skip; see #549.
+            logger.debug("%s skipped: black not installed (%s)", self.check_type, exc)
         except Exception as e:
             violations.append(f"Black check error: {e}")
 

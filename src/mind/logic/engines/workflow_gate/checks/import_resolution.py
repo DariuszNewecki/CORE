@@ -89,8 +89,12 @@ class ImportResolutionCheck(WorkflowCheck):
             violations.append(
                 f"Import resolution check timed out (>{_CFG.import_timeout_sec:g}s)"
             )
-        except FileNotFoundError:
-            violations.append("ruff not found in PATH — cannot check imports")
+        except FileNotFoundError as exc:
+            # ruff not installed in this environment (the F-10.3 Action's
+            # slim Docker image ships without it). Silent skip rather
+            # than surfacing as a finding — see #549.
+            logger.debug("%s skipped: ruff not installed (%s)", self.check_type, exc)
+            return []
         except Exception as e:
             violations.append(f"Import resolution check error: {e}")
 
