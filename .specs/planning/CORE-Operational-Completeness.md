@@ -29,7 +29,7 @@ That returns exactly the seven gate issues (F-10 #384, F-27 #401, F-40 #414, F-4
 
 | Item | F-ID | Issue | Current status | "Done" looks like | Notes |
 |---|---|---|---|---|---|
-| CI/CD gate | F-10 | [#384](https://github.com/DariuszNewecki/CORE/issues/384) | roadmap | `status: shipping`; PR annotations + merge-blocking demonstrated against a real external repo | Top of the adoption funnel (Tiers paper §2). Likely 3–5 sub-issues' worth of work (GitHub Action / GitLab CI step / pre-commit hook / annotation format / exit codes) — not yet decomposed. |
+| CI/CD gate | F-10 | [#384](https://github.com/DariuszNewecki/CORE/issues/384) | roadmap | `status: shipping`; PR annotations + merge-blocking demonstrated against a real external repo | Top of the adoption funnel (Tiers paper §2). **Decomposed 2026-06-02 into 5 MVP sub-issues + 1 deferred** (see §2.3 below). The audit engine itself already runs (`.github/workflows/nightly-audit.yml`); F-10's gap is packaging + distribution + output formatting + external-repo verification. F-10 ships when F-10.4 closes. |
 | Local LLM | F-27 | [#401](https://github.com/DariuszNewecki/CORE/issues/401) | **partial** | promotes from `partial` to `shipping`; reliable local-LLM-only Solo run for ≥7 days | Smallest finishing touch in the list. Building on existing infrastructure. |
 | OEM API surface | F-40 | [#414](https://github.com/DariuszNewecki/CORE/issues/414) | roadmap | `status: shipping`; documented public contract; sidecar-shape commercial features F-20/F-34/F-45/F-47 can attach without private hooks (ADR-084 D6) | Largest unblocker — releases four commercial sidecars at once. Per ADR-084, interface symmetry means the API surface must be documented as the contract third-parties consume, not just an internal API. |
 | Extension interfaces | F-41 + F-42 + F-43 | [#415](https://github.com/DariuszNewecki/CORE/issues/415) [#416](https://github.com/DariuszNewecki/CORE/issues/416) [#417](https://github.com/DariuszNewecki/CORE/issues/417) | all roadmap | all three `status: shipping`; one first-party non-code instantiation exists as proof of the plugin-interface contract | F-41 ships first (F-42 and F-43 depend on it). F-42 + F-43 can land in parallel. The "one non-code instantiation" criterion exists to prove the plugin-interface contract is real, not aspirational. |
@@ -42,6 +42,39 @@ That returns exactly the seven gate issues (F-10 #384, F-27 #401, F-40 #414, F-4
 | Docs polish | system property | An outside developer installs + runs the full thesis (encounter → audit → remediate → verify) from public docs alone, without source-tree archaeology | Recruit a developer who has never seen the project; observe their setup attempt; record gaps; close them; repeat | Not started; not measured. Baseline observation pending. |
 | Demo reliability | system property | The consequence-chain bootstrap demo (Tiers §3.2) runs cleanly on first attempt, three times in a row, from a clean repo clone on a freshly-provisioned machine | Scripted: provision VM → clone → run demo → record outcome. Repeat from clean VM until three consecutive clean runs. | Not started; not measured. |
 | Signal quality | derived metric | F-19 convergence metric reports resolution rate ≥ creation rate, sustained ≥ 30 days, on this repo | (1) Verify F-19 query produces honest data; (2) start measurement window; (3) sustain for 30 days; (4) record met-date | F-19 query not yet verified honest. Per ADR-085 §Consequences, this verification is in scope for engineering capacity under D1 because it advances signal-quality. |
+
+---
+
+### 2.3 F-10 sub-task decomposition (added 2026-06-02)
+
+F-10 is the only feature in the 5+3 list that was decomposed at gate
+authoring time. The decomposition is operational (lives in this doc and
+in GH parent/sub-issue relations), not constitutional (no ADR required).
+Other gate items can be similarly decomposed in-session when scoping
+makes them concrete.
+
+| Sub | Issue | Sized | Blocks | Purpose |
+|---|---|---|---|---|
+| F-10.1 | [#528](https://github.com/DariuszNewecki/CORE/issues/528) | ~1 session | F-10.2, F-10.3, F-10.5, F-10.P2 | Standalone CLI contract: `--json`, severity-mapped exit codes |
+| F-10.2 | [#529](https://github.com/DariuszNewecki/CORE/issues/529) | ~1 session | F-10.3, F-10.4 | `--format=github-annotations` output |
+| F-10.3 | [#530](https://github.com/DariuszNewecki/CORE/issues/530) | 1–2 sessions | F-10.4, F-10.P2 | `action.yml` + `Dockerfile` + Marketplace prep |
+| F-10.4 | [#531](https://github.com/DariuszNewecki/CORE/issues/531) | ~1 session | F-10 status flip → shipping | External-repo end-to-end verification — **closes F-10** |
+| F-10.5 | [#532](https://github.com/DariuszNewecki/CORE/issues/532) | ~½ session | — | `.pre-commit-hooks.yaml` distribution (nearly-free bonus) |
+| F-10.P2 | [#533](https://github.com/DariuszNewecki/CORE/issues/533) | deferred | — | GitLab CI step + CodeClimate format. Out of MVP; lands after F-10 ships. |
+
+**Total MVP path:** ~5 sessions of focused work.
+
+**Picking order for sessions:** F-10.1 first (everything else depends on
+it). After F-10.1 ships, F-10.2 and F-10.3 can land in parallel — they
+share no edits. F-10.5 can land any time after F-10.1 (independent of
+F-10.2/F-10.3). F-10.4 is last among MVP because it's the verification
+that fires only when F-10.2 + F-10.3 are both ready.
+
+All six sub-issues carry the `goal:operational-completeness` label and
+are parented to #384 via GH's native sub-issue relation. The default
+`gh issue list --label goal:operational-completeness --state open`
+query now returns 13 items (7 gates + 6 F-10 sub-tasks). For a F-10-
+only view: `gh issue list --search "is:open is:issue parent:384"`.
 
 ---
 
@@ -106,6 +139,7 @@ When all eight items show satisfied state:
 | Date | Event |
 |---|---|
 | 2026-06-02 | ADR-085 accepted; constraint active; tracker created. Seven gate issues labeled `goal:operational-completeness`. F-27 starts at `partial`; all others at `roadmap`. All three quality goals at "not started." |
+| 2026-06-02 | F-10 decomposed into 5 MVP sub-issues + 1 deferred (#528–#533). Parented to #384; all labeled `goal:operational-completeness`; 8 internal blocked-by edges wired; added to Project #6. F-10's body updated to point at the decomposition; tracker §2.3 added. MVP picking order: F-10.1 first, then F-10.2 + F-10.3 + F-10.5 in parallel, F-10.4 last. |
 
 ---
 
