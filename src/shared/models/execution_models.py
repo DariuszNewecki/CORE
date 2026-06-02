@@ -58,7 +58,7 @@ class ExecutionTask(BaseModel):
         allowed = _get_allowed_task_types()
         if value not in allowed:
             raise ValueError(
-                f"Invalid task_type {value!r}; allowed values are " f"{sorted(allowed)}"
+                f"Invalid task_type {value!r}; allowed values are {sorted(allowed)}"
             )
         return value
 
