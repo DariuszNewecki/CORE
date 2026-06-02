@@ -35,7 +35,12 @@ from will.governance.daemon_runner import (
 logger = getLogger(__name__)
 
 
-router = APIRouter(prefix="/daemon")
+router = APIRouter(
+    prefix="/daemon",
+    # F-40.1: internal — daemon lifecycle is operator concern, not part
+    # of the OEM API contract. Excluded from /v1/openapi.json per ADR-087.
+    include_in_schema=False,
+)
 
 
 @router.get("/status")

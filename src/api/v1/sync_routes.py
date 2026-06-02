@@ -52,7 +52,14 @@ from will.governance.sync_runner import (
 logger = getLogger(__name__)
 
 
-router = APIRouter(prefix="/sync")
+router = APIRouter(
+    prefix="/sync",
+    # F-40.1: internal — knowledge-graph + vector sync is operator
+    # scheduler concern (DbSyncWorker runs on a ~5-minute cadence),
+    # not part of the OEM API contract. Excluded from /v1/openapi.json
+    # per ADR-087.
+    include_in_schema=False,
+)
 
 
 # ID: 6e3a0f8b-2d7c-4f5a-0431-f6789a0bcdef

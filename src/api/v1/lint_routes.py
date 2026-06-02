@@ -23,7 +23,12 @@ from will.governance.lint_runner import run_lint
 logger = getLogger(__name__)
 
 
-router = APIRouter(prefix="/lint")
+router = APIRouter(
+    prefix="/lint",
+    # F-40.1: internal — lint dispatch is CI-internal, not part of the
+    # OEM API contract. Excluded from /v1/openapi.json per ADR-087.
+    include_in_schema=False,
+)
 
 
 @router.post("")

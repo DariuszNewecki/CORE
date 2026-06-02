@@ -27,7 +27,13 @@ from will.lifecycle.integration_runner import run_integration
 logger = getLogger(__name__)
 
 
-router = APIRouter(prefix="/integrate")
+router = APIRouter(
+    prefix="/integrate",
+    # F-40.1: internal — integration/build dispatch is CI-internal, not
+    # part of the OEM API contract. Excluded from /v1/openapi.json per
+    # ADR-087.
+    include_in_schema=False,
+)
 
 
 # ID: fd724178-3586-48bb-a519-280de29821a3

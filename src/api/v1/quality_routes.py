@@ -56,7 +56,13 @@ from will.governance.fix_runner import (
 logger = getLogger(__name__)
 
 
-router = APIRouter(prefix="/quality")
+router = APIRouter(
+    prefix="/quality",
+    # F-40.1: internal — quality-gate dispatch (mypy/pytest/pip-audit/
+    # ruff/radon/vulture) is CI-internal, not a sidecar concern.
+    # Excluded from /v1/openapi.json per ADR-087.
+    include_in_schema=False,
+)
 
 
 # ID: 3b42b16d-03d5-4114-bbda-75965bf614ad

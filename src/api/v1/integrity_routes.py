@@ -37,7 +37,13 @@ from will.governance.integrity_runner import (
 logger = getLogger(__name__)
 
 
-router = APIRouter(prefix="/integrity")
+router = APIRouter(
+    prefix="/integrity",
+    # F-40.1: internal — file-integrity baseline/verify is operator
+    # concern, not part of the OEM API contract. Excluded from
+    # /v1/openapi.json per ADR-087.
+    include_in_schema=False,
+)
 
 
 # ID: f3564baa-a7fb-4c21-a12d-25e06b416ea6

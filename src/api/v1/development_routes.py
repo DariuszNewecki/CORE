@@ -21,7 +21,12 @@ from shared.infrastructure.repositories.task_repository import TaskRepository
 from will.autonomy.autonomous_developer import develop_from_goal
 
 
-router = APIRouter()
+router = APIRouter(
+    # F-40.1: internal — autonomous-developer goal submission is a
+    # CORE-internal autonomy entry point, not part of the OEM API
+    # contract. Excluded from /v1/openapi.json per ADR-087.
+    include_in_schema=False,
+)
 
 
 # ID: 7b83814d-b747-4c17-b054-9e8f2b8b8325
