@@ -69,6 +69,16 @@ def severity_to_channel(severity: str) -> str:
 def format_finding(finding: dict[str, Any]) -> str:
     """Format a single finding as one GH workflow-command line.
 
+    Reads the canonical ``AuditFinding.as_dict()`` shape: ``file_path``,
+    ``line_number``, ``check_id``, ``severity``, ``message``. When
+    ``file_path`` is missing or the legacy ``"none"`` sentinel, the
+    annotation degrades to workflow-level (no ``file=`` param) so
+    GitHub renders it in the job log rather than emitting a malformed
+    inline annotation with empty file. When ``line_number`` is null but
+    a file is present, defaults to line 1 — GitHub still renders the
+    annotation at the file's first line, which is better than dropping
+    the file association entirely.
+
     Newlines and ``%``/``\\r`` characters in the message are URL-encoded
     per GitHub's escaping rules; otherwise a multi-line message breaks
     the workflow-command parser and the annotation never renders.
@@ -76,10 +86,12 @@ def format_finding(finding: dict[str, Any]) -> str:
     severity = str(finding.get("severity", "info"))
     channel = severity_to_channel(severity)
 
-    file_path = finding.get("file", "")
-    line_no = finding.get("line", 1) or 1
-    raw_message = str(finding.get("message", "") or finding.get("rule_id", ""))
-    rule_id = finding.get("rule_id", "")
+    file_path = finding.get("file_path") or ""
+    if file_path == "none":
+        file_path = ""
+    line_no = finding.get("line_number")
+    rule_id = finding.get("check_id", "")
+    raw_message = str(finding.get("message", "") or rule_id)
     title = f"{rule_id} [{severity}]" if rule_id else severity
 
     # GH's workflow-command parser breaks on raw newlines and on the
@@ -90,7 +102,11 @@ def format_finding(finding: dict[str, Any]) -> str:
     )
     safe_title = title.replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A")
 
-    parts = [f"file={file_path}", f"line={line_no}", f"title={safe_title}"]
+    parts: list[str] = []
+    if file_path:
+        parts.append(f"file={file_path}")
+        parts.append(f"line={line_no if line_no else 1}")
+    parts.append(f"title={safe_title}")
     return f"::{channel} {','.join(parts)}::{safe_message}"
 
 
