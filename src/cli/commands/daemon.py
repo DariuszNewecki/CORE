@@ -501,9 +501,11 @@ def _acquire_singleton_lock(pid_file_rel: Path) -> int:
     so default and dedicated daemons each acquire their own lock (ADR-081 D4).
     """
     from shared.infrastructure.bootstrap_registry import BootstrapRegistry
+    from shared.infrastructure.storage.file_handler import FileHandler
 
-    pid_file = BootstrapRegistry.get_repo_path() / pid_file_rel
-    pid_file.parent.mkdir(parents=True, exist_ok=True)
+    repo_path = BootstrapRegistry.get_repo_path()
+    pid_file = repo_path / pid_file_rel
+    FileHandler(str(repo_path)).ensure_dir(str(pid_file_rel.parent))
     fd = os.open(str(pid_file), os.O_CREAT | os.O_RDWR, 0o644)
     try:
         fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
@@ -538,8 +540,9 @@ def _release_singleton_lock(fd: int, pid_file_rel: Path) -> None:
     acquisition so the matching PID file is removed (ADR-081 D4).
     """
     from shared.infrastructure.bootstrap_registry import BootstrapRegistry
+    from shared.infrastructure.storage.file_handler import FileHandler
 
-    pid_file = BootstrapRegistry.get_repo_path() / pid_file_rel
+    repo_path = BootstrapRegistry.get_repo_path()
     try:
         fcntl.flock(fd, fcntl.LOCK_UN)
     except OSError:
@@ -549,7 +552,7 @@ def _release_singleton_lock(fd: int, pid_file_rel: Path) -> None:
     except OSError:
         pass
     try:
-        pid_file.unlink()
+        FileHandler(str(repo_path)).remove_file(str(pid_file_rel))
     except OSError:
         pass
 
