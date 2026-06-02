@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict r1207jRvEJN9GzYrSH4yfBFFo9d6MBDsWuv6I0XvX9B79GzqEDFa0gDw21NrO62
+\restrict dIRsdMQ46sgpj6IdTQ2kjGaGXEZaJOtdO12srzYhKcDsXeGwiUuYYUwYGqvO5CK
 
 -- Dumped from database version 16.13 (Ubuntu 16.13-0ubuntu0.24.04.1)
 -- Dumped by pg_dump version 16.14 (Ubuntu 16.14-0ubuntu0.24.04.1)
@@ -79,36 +79,36 @@ WHERE s.symbol_path = ''body.cli.check:audit''
 
 
 --
--- Name: non_empty_text; Type: DOMAIN; Schema: core; Owner: lira_user
+-- Name: non_empty_text; Type: DOMAIN; Schema: core; Owner: core_db
 --
 
 CREATE DOMAIN core.non_empty_text AS text
 	CONSTRAINT non_empty_text_check CHECK ((TRIM(BOTH FROM VALUE) <> ''::text));
 
 
-ALTER DOMAIN core.non_empty_text OWNER TO lira_user;
+ALTER DOMAIN core.non_empty_text OWNER TO core_db;
 
 --
--- Name: probability; Type: DOMAIN; Schema: core; Owner: lira_user
+-- Name: probability; Type: DOMAIN; Schema: core; Owner: core_db
 --
 
 CREATE DOMAIN core.probability AS numeric(3,2)
 	CONSTRAINT probability_check CHECK (((VALUE >= (0)::numeric) AND (VALUE <= (1)::numeric)));
 
 
-ALTER DOMAIN core.probability OWNER TO lira_user;
+ALTER DOMAIN core.probability OWNER TO core_db;
 
 --
--- Name: semantic_version; Type: DOMAIN; Schema: core; Owner: lira_user
+-- Name: semantic_version; Type: DOMAIN; Schema: core; Owner: core_db
 --
 
 CREATE DOMAIN core.semantic_version AS text;
 
 
-ALTER DOMAIN core.semantic_version OWNER TO lira_user;
+ALTER DOMAIN core.semantic_version OWNER TO core_db;
 
 --
--- Name: severity_level; Type: TYPE; Schema: core; Owner: lira_user
+-- Name: severity_level; Type: TYPE; Schema: core; Owner: core_db
 --
 
 CREATE TYPE core.severity_level AS ENUM (
@@ -119,10 +119,10 @@ CREATE TYPE core.severity_level AS ENUM (
 );
 
 
-ALTER TYPE core.severity_level OWNER TO lira_user;
+ALTER TYPE core.severity_level OWNER TO core_db;
 
 --
--- Name: symbol_kind; Type: TYPE; Schema: core; Owner: lira_user
+-- Name: symbol_kind; Type: TYPE; Schema: core; Owner: core_db
 --
 
 CREATE TYPE core.symbol_kind AS ENUM (
@@ -133,10 +133,10 @@ CREATE TYPE core.symbol_kind AS ENUM (
 );
 
 
-ALTER TYPE core.symbol_kind OWNER TO lira_user;
+ALTER TYPE core.symbol_kind OWNER TO core_db;
 
 --
--- Name: task_status; Type: TYPE; Schema: core; Owner: lira_user
+-- Name: task_status; Type: TYPE; Schema: core; Owner: core_db
 --
 
 CREATE TYPE core.task_status AS ENUM (
@@ -150,10 +150,10 @@ CREATE TYPE core.task_status AS ENUM (
 );
 
 
-ALTER TYPE core.task_status OWNER TO lira_user;
+ALTER TYPE core.task_status OWNER TO core_db;
 
 --
--- Name: analyze_index_usage(); Type: FUNCTION; Schema: core; Owner: lira_user
+-- Name: analyze_index_usage(); Type: FUNCTION; Schema: core; Owner: core_db
 --
 
 CREATE FUNCTION core.analyze_index_usage() RETURNS TABLE(tablename text, indexname text, index_size text, idx_scan bigint, idx_tup_read bigint, idx_tup_fetch bigint, usage_ratio numeric)
@@ -176,10 +176,10 @@ ORDER BY idx_scan DESC, relname;
 $$;
 
 
-ALTER FUNCTION core.analyze_index_usage() OWNER TO lira_user;
+ALTER FUNCTION core.analyze_index_usage() OWNER TO core_db;
 
 --
--- Name: audit_symbols_changes(); Type: FUNCTION; Schema: core; Owner: lira_user
+-- Name: audit_symbols_changes(); Type: FUNCTION; Schema: core; Owner: core_db
 --
 
 CREATE FUNCTION core.audit_symbols_changes() RETURNS trigger
@@ -201,10 +201,10 @@ END;
 $$;
 
 
-ALTER FUNCTION core.audit_symbols_changes() OWNER TO lira_user;
+ALTER FUNCTION core.audit_symbols_changes() OWNER TO core_db;
 
 --
--- Name: cleanup_observability_logs(); Type: FUNCTION; Schema: core; Owner: lira_user
+-- Name: cleanup_observability_logs(); Type: FUNCTION; Schema: core; Owner: core_db
 --
 
 CREATE FUNCTION core.cleanup_observability_logs() RETURNS void
@@ -223,17 +223,17 @@ END;
 $$;
 
 
-ALTER FUNCTION core.cleanup_observability_logs() OWNER TO lira_user;
+ALTER FUNCTION core.cleanup_observability_logs() OWNER TO core_db;
 
 --
--- Name: FUNCTION cleanup_observability_logs(); Type: COMMENT; Schema: core; Owner: lira_user
+-- Name: FUNCTION cleanup_observability_logs(); Type: COMMENT; Schema: core; Owner: core_db
 --
 
 COMMENT ON FUNCTION core.cleanup_observability_logs() IS 'Delete logs older than 90 days per observability policy';
 
 
 --
--- Name: cleanup_observability_metrics(); Type: FUNCTION; Schema: core; Owner: lira_user
+-- Name: cleanup_observability_metrics(); Type: FUNCTION; Schema: core; Owner: core_db
 --
 
 CREATE FUNCTION core.cleanup_observability_metrics() RETURNS void
@@ -252,17 +252,17 @@ END;
 $$;
 
 
-ALTER FUNCTION core.cleanup_observability_metrics() OWNER TO lira_user;
+ALTER FUNCTION core.cleanup_observability_metrics() OWNER TO core_db;
 
 --
--- Name: FUNCTION cleanup_observability_metrics(); Type: COMMENT; Schema: core; Owner: lira_user
+-- Name: FUNCTION cleanup_observability_metrics(); Type: COMMENT; Schema: core; Owner: core_db
 --
 
 COMMENT ON FUNCTION core.cleanup_observability_metrics() IS 'Delete metrics older than 1 year per observability policy';
 
 
 --
--- Name: generate_decorator_code(uuid); Type: FUNCTION; Schema: core; Owner: lira_user
+-- Name: generate_decorator_code(uuid); Type: FUNCTION; Schema: core; Owner: core_db
 --
 
 CREATE FUNCTION core.generate_decorator_code(p_symbol_id uuid) RETURNS text
@@ -312,17 +312,17 @@ END;
 $$;
 
 
-ALTER FUNCTION core.generate_decorator_code(p_symbol_id uuid) OWNER TO lira_user;
+ALTER FUNCTION core.generate_decorator_code(p_symbol_id uuid) OWNER TO core_db;
 
 --
--- Name: FUNCTION generate_decorator_code(p_symbol_id uuid); Type: COMMENT; Schema: core; Owner: lira_user
+-- Name: FUNCTION generate_decorator_code(p_symbol_id uuid); Type: COMMENT; Schema: core; Owner: core_db
 --
 
 COMMENT ON FUNCTION core.generate_decorator_code(p_symbol_id uuid) IS 'Generate Python decorator code for a symbol. Usage: SELECT core.generate_decorator_code(symbol_id);';
 
 
 --
--- Name: get_symbol_id(text); Type: FUNCTION; Schema: core; Owner: lira_user
+-- Name: get_symbol_id(text); Type: FUNCTION; Schema: core; Owner: core_db
 --
 
 CREATE FUNCTION core.get_symbol_id(path text) RETURNS uuid
@@ -332,17 +332,17 @@ CREATE FUNCTION core.get_symbol_id(path text) RETURNS uuid
 $$;
 
 
-ALTER FUNCTION core.get_symbol_id(path text) OWNER TO lira_user;
+ALTER FUNCTION core.get_symbol_id(path text) OWNER TO core_db;
 
 --
--- Name: FUNCTION get_symbol_id(path text); Type: COMMENT; Schema: core; Owner: lira_user
+-- Name: FUNCTION get_symbol_id(path text); Type: COMMENT; Schema: core; Owner: core_db
 --
 
 COMMENT ON FUNCTION core.get_symbol_id(path text) IS 'Helper to look up symbol UUID by its natural key (symbol_path). Usage: get_symbol_id(''my.module:MyClass'')';
 
 
 --
--- Name: refresh_materialized_view(text); Type: FUNCTION; Schema: core; Owner: lira_user
+-- Name: refresh_materialized_view(text); Type: FUNCTION; Schema: core; Owner: core_db
 --
 
 CREATE FUNCTION core.refresh_materialized_view(view_name text) RETURNS TABLE(duration_ms integer, rows_affected integer)
@@ -375,17 +375,17 @@ END;
 $$;
 
 
-ALTER FUNCTION core.refresh_materialized_view(view_name text) OWNER TO lira_user;
+ALTER FUNCTION core.refresh_materialized_view(view_name text) OWNER TO core_db;
 
 --
--- Name: FUNCTION refresh_materialized_view(view_name text); Type: COMMENT; Schema: core; Owner: lira_user
+-- Name: FUNCTION refresh_materialized_view(view_name text); Type: COMMENT; Schema: core; Owner: core_db
 --
 
 COMMENT ON FUNCTION core.refresh_materialized_view(view_name text) IS 'Refresh a materialized view with logging. Usage: SELECT * FROM core.refresh_materialized_view(''core.mv_symbol_usage_patterns'');';
 
 
 --
--- Name: set_updated_at(); Type: FUNCTION; Schema: core; Owner: lira_user
+-- Name: set_updated_at(); Type: FUNCTION; Schema: core; Owner: core_db
 --
 
 CREATE FUNCTION core.set_updated_at() RETURNS trigger
@@ -398,10 +398,10 @@ END;
 $$;
 
 
-ALTER FUNCTION core.set_updated_at() OWNER TO lira_user;
+ALTER FUNCTION core.set_updated_at() OWNER TO core_db;
 
 --
--- Name: touch_blackboard_updated_at(); Type: FUNCTION; Schema: core; Owner: lira_user
+-- Name: touch_blackboard_updated_at(); Type: FUNCTION; Schema: core; Owner: core_db
 --
 
 CREATE FUNCTION core.touch_blackboard_updated_at() RETURNS trigger
@@ -414,10 +414,10 @@ end;
 $$;
 
 
-ALTER FUNCTION core.touch_blackboard_updated_at() OWNER TO lira_user;
+ALTER FUNCTION core.touch_blackboard_updated_at() OWNER TO core_db;
 
 --
--- Name: validate_symbol_array(); Type: FUNCTION; Schema: core; Owner: lira_user
+-- Name: validate_symbol_array(); Type: FUNCTION; Schema: core; Owner: core_db
 --
 
 CREATE FUNCTION core.validate_symbol_array() RETURNS trigger
@@ -440,7 +440,7 @@ END;
 $$;
 
 
-ALTER FUNCTION core.validate_symbol_array() OWNER TO lira_user;
+ALTER FUNCTION core.validate_symbol_array() OWNER TO core_db;
 
 SET default_tablespace = '';
 
@@ -1656,7 +1656,7 @@ COMMENT ON COLUMN core.symbols.definition_status IS 'pending: symbol discovered 
 
 
 --
--- Name: knowledge_graph; Type: VIEW; Schema: core; Owner: lira_user
+-- Name: knowledge_graph; Type: VIEW; Schema: core; Owner: core_db
 --
 
 CREATE VIEW core.knowledge_graph AS
@@ -1681,7 +1681,7 @@ CREATE VIEW core.knowledge_graph AS
      LEFT JOIN core.symbol_vector_links svl ON ((svl.symbol_id = s.id)));
 
 
-ALTER VIEW core.knowledge_graph OWNER TO lira_user;
+ALTER VIEW core.knowledge_graph OWNER TO core_db;
 
 --
 -- Name: llm_exchange_log; Type: TABLE; Schema: core; Owner: core_db
@@ -2635,7 +2635,7 @@ COMMENT ON COLUMN core.tasks.relevant_symbols IS 'Array of symbol UUIDs retrieve
 
 
 --
--- Name: v_agent_context; Type: VIEW; Schema: core; Owner: lira_user
+-- Name: v_agent_context; Type: VIEW; Schema: core; Owner: core_db
 --
 
 CREATE VIEW core.v_agent_context AS
@@ -2662,7 +2662,7 @@ CREATE VIEW core.v_agent_context AS
   ORDER BY created_at;
 
 
-ALTER VIEW core.v_agent_context OWNER TO lira_user;
+ALTER VIEW core.v_agent_context OWNER TO core_db;
 
 --
 -- Name: v_agent_workload; Type: VIEW; Schema: core; Owner: core_db
@@ -2690,7 +2690,7 @@ CREATE VIEW core.v_agent_workload AS
 ALTER VIEW core.v_agent_workload OWNER TO core_db;
 
 --
--- Name: v_observability_action_health; Type: VIEW; Schema: core; Owner: lira_user
+-- Name: v_observability_action_health; Type: VIEW; Schema: core; Owner: core_db
 --
 
 CREATE VIEW core.v_observability_action_health AS
@@ -2709,17 +2709,17 @@ CREATE VIEW core.v_observability_action_health AS
   ORDER BY (count(*)) DESC;
 
 
-ALTER VIEW core.v_observability_action_health OWNER TO lira_user;
+ALTER VIEW core.v_observability_action_health OWNER TO core_db;
 
 --
--- Name: VIEW v_observability_action_health; Type: COMMENT; Schema: core; Owner: lira_user
+-- Name: VIEW v_observability_action_health; Type: COMMENT; Schema: core; Owner: core_db
 --
 
 COMMENT ON VIEW core.v_observability_action_health IS 'Health metrics for each atomic action (last 24 hours)';
 
 
 --
--- Name: v_observability_recent_failures; Type: VIEW; Schema: core; Owner: lira_user
+-- Name: v_observability_recent_failures; Type: VIEW; Schema: core; Owner: core_db
 --
 
 CREATE VIEW core.v_observability_recent_failures AS
@@ -2734,17 +2734,17 @@ CREATE VIEW core.v_observability_recent_failures AS
   ORDER BY "timestamp" DESC;
 
 
-ALTER VIEW core.v_observability_recent_failures OWNER TO lira_user;
+ALTER VIEW core.v_observability_recent_failures OWNER TO core_db;
 
 --
--- Name: VIEW v_observability_recent_failures; Type: COMMENT; Schema: core; Owner: lira_user
+-- Name: VIEW v_observability_recent_failures; Type: COMMENT; Schema: core; Owner: core_db
 --
 
 COMMENT ON VIEW core.v_observability_recent_failures IS 'Last 24 hours of failures for quick debugging';
 
 
 --
--- Name: v_orphan_symbols; Type: VIEW; Schema: core; Owner: lira_user
+-- Name: v_orphan_symbols; Type: VIEW; Schema: core; Owner: core_db
 --
 
 CREATE VIEW core.v_orphan_symbols AS
@@ -2761,10 +2761,10 @@ CREATE VIEW core.v_orphan_symbols AS
   ORDER BY s.last_modified DESC;
 
 
-ALTER VIEW core.v_orphan_symbols OWNER TO lira_user;
+ALTER VIEW core.v_orphan_symbols OWNER TO core_db;
 
 --
--- Name: v_schema_health; Type: VIEW; Schema: core; Owner: lira_user
+-- Name: v_schema_health; Type: VIEW; Schema: core; Owner: core_db
 --
 
 CREATE VIEW core.v_schema_health AS
@@ -2791,10 +2791,10 @@ UNION ALL
   WHERE (s.id IS NULL);
 
 
-ALTER VIEW core.v_schema_health OWNER TO lira_user;
+ALTER VIEW core.v_schema_health OWNER TO core_db;
 
 --
--- Name: v_stale_materialized_views; Type: VIEW; Schema: core; Owner: lira_user
+-- Name: v_stale_materialized_views; Type: VIEW; Schema: core; Owner: core_db
 --
 
 CREATE VIEW core.v_stale_materialized_views AS
@@ -2809,10 +2809,10 @@ CREATE VIEW core.v_stale_materialized_views AS
   ORDER BY last_refresh_completed NULLS FIRST;
 
 
-ALTER VIEW core.v_stale_materialized_views OWNER TO lira_user;
+ALTER VIEW core.v_stale_materialized_views OWNER TO core_db;
 
 --
--- Name: v_symbol_blast_radius; Type: VIEW; Schema: core; Owner: lira_user
+-- Name: v_symbol_blast_radius; Type: VIEW; Schema: core; Owner: core_db
 --
 
 CREATE VIEW core.v_symbol_blast_radius AS
@@ -2859,10 +2859,10 @@ CREATE VIEW core.v_symbol_blast_radius AS
   WHERE (s.state <> 'deprecated'::text);
 
 
-ALTER VIEW core.v_symbol_blast_radius OWNER TO lira_user;
+ALTER VIEW core.v_symbol_blast_radius OWNER TO core_db;
 
 --
--- Name: v_symbol_decorator_stack; Type: VIEW; Schema: core; Owner: lira_user
+-- Name: v_symbol_decorator_stack; Type: VIEW; Schema: core; Owner: core_db
 --
 
 CREATE VIEW core.v_symbol_decorator_stack AS
@@ -2877,17 +2877,17 @@ CREATE VIEW core.v_symbol_decorator_stack AS
   GROUP BY s.id, s.symbol_path, s.module, s.qualname;
 
 
-ALTER VIEW core.v_symbol_decorator_stack OWNER TO lira_user;
+ALTER VIEW core.v_symbol_decorator_stack OWNER TO core_db;
 
 --
--- Name: VIEW v_symbol_decorator_stack; Type: COMMENT; Schema: core; Owner: lira_user
+-- Name: VIEW v_symbol_decorator_stack; Type: COMMENT; Schema: core; Owner: core_db
 --
 
 COMMENT ON VIEW core.v_symbol_decorator_stack IS 'Complete decorator stack for each symbol in application order';
 
 
 --
--- Name: v_symbols_missing_decorators; Type: VIEW; Schema: core; Owner: lira_user
+-- Name: v_symbols_missing_decorators; Type: VIEW; Schema: core; Owner: core_db
 --
 
 CREATE VIEW core.v_symbols_missing_decorators AS
@@ -2907,17 +2907,17 @@ CREATE VIEW core.v_symbols_missing_decorators AS
   ORDER BY s.module, s.symbol_path;
 
 
-ALTER VIEW core.v_symbols_missing_decorators OWNER TO lira_user;
+ALTER VIEW core.v_symbols_missing_decorators OWNER TO core_db;
 
 --
--- Name: VIEW v_symbols_missing_decorators; Type: COMMENT; Schema: core; Owner: lira_user
+-- Name: VIEW v_symbols_missing_decorators; Type: COMMENT; Schema: core; Owner: core_db
 --
 
 COMMENT ON VIEW core.v_symbols_missing_decorators IS 'Symbols that should have decorators based on inference rules but do not';
 
 
 --
--- Name: v_symbols_needing_embedding; Type: VIEW; Schema: core; Owner: lira_user
+-- Name: v_symbols_needing_embedding; Type: VIEW; Schema: core; Owner: core_db
 --
 
 CREATE VIEW core.v_symbols_needing_embedding AS
@@ -2932,10 +2932,10 @@ CREATE VIEW core.v_symbols_needing_embedding AS
   ORDER BY last_modified DESC;
 
 
-ALTER VIEW core.v_symbols_needing_embedding OWNER TO lira_user;
+ALTER VIEW core.v_symbols_needing_embedding OWNER TO core_db;
 
 --
--- Name: v_verified_coverage; Type: VIEW; Schema: core; Owner: lira_user
+-- Name: v_verified_coverage; Type: VIEW; Schema: core; Owner: core_db
 --
 
 CREATE VIEW core.v_verified_coverage AS
@@ -2951,7 +2951,7 @@ CREATE VIEW core.v_verified_coverage AS
   ORDER BY c.domain, c.name;
 
 
-ALTER VIEW core.v_verified_coverage OWNER TO lira_user;
+ALTER VIEW core.v_verified_coverage OWNER TO core_db;
 
 --
 -- Name: vector_sync_log; Type: TABLE; Schema: core; Owner: core_db
@@ -5452,118 +5452,6 @@ CREATE POLICY settings_write_policy ON core.runtime_settings USING ((CURRENT_USE
 
 
 --
--- Name: TYPE non_empty_text; Type: ACL; Schema: core; Owner: lira_user
---
-
-GRANT ALL ON TYPE core.non_empty_text TO core_db;
-
-
---
--- Name: TYPE probability; Type: ACL; Schema: core; Owner: lira_user
---
-
-GRANT ALL ON TYPE core.probability TO core_db;
-
-
---
--- Name: TYPE semantic_version; Type: ACL; Schema: core; Owner: lira_user
---
-
-GRANT ALL ON TYPE core.semantic_version TO core_db;
-
-
---
--- Name: TYPE severity_level; Type: ACL; Schema: core; Owner: lira_user
---
-
-GRANT ALL ON TYPE core.severity_level TO core_db;
-
-
---
--- Name: TYPE symbol_kind; Type: ACL; Schema: core; Owner: lira_user
---
-
-GRANT ALL ON TYPE core.symbol_kind TO core_db;
-
-
---
--- Name: TYPE task_status; Type: ACL; Schema: core; Owner: lira_user
---
-
-GRANT ALL ON TYPE core.task_status TO core_db;
-
-
---
--- Name: FUNCTION analyze_index_usage(); Type: ACL; Schema: core; Owner: lira_user
---
-
-GRANT ALL ON FUNCTION core.analyze_index_usage() TO core_db;
-
-
---
--- Name: FUNCTION audit_symbols_changes(); Type: ACL; Schema: core; Owner: lira_user
---
-
-GRANT ALL ON FUNCTION core.audit_symbols_changes() TO core_db;
-
-
---
--- Name: FUNCTION cleanup_observability_logs(); Type: ACL; Schema: core; Owner: lira_user
---
-
-GRANT ALL ON FUNCTION core.cleanup_observability_logs() TO core_db;
-
-
---
--- Name: FUNCTION cleanup_observability_metrics(); Type: ACL; Schema: core; Owner: lira_user
---
-
-GRANT ALL ON FUNCTION core.cleanup_observability_metrics() TO core_db;
-
-
---
--- Name: FUNCTION generate_decorator_code(p_symbol_id uuid); Type: ACL; Schema: core; Owner: lira_user
---
-
-GRANT ALL ON FUNCTION core.generate_decorator_code(p_symbol_id uuid) TO core_db;
-
-
---
--- Name: FUNCTION get_symbol_id(path text); Type: ACL; Schema: core; Owner: lira_user
---
-
-GRANT ALL ON FUNCTION core.get_symbol_id(path text) TO core_db;
-
-
---
--- Name: FUNCTION refresh_materialized_view(view_name text); Type: ACL; Schema: core; Owner: lira_user
---
-
-GRANT ALL ON FUNCTION core.refresh_materialized_view(view_name text) TO core_db;
-
-
---
--- Name: FUNCTION set_updated_at(); Type: ACL; Schema: core; Owner: lira_user
---
-
-GRANT ALL ON FUNCTION core.set_updated_at() TO core_db;
-
-
---
--- Name: FUNCTION touch_blackboard_updated_at(); Type: ACL; Schema: core; Owner: lira_user
---
-
-GRANT ALL ON FUNCTION core.touch_blackboard_updated_at() TO core_db;
-
-
---
--- Name: FUNCTION validate_symbol_array(); Type: ACL; Schema: core; Owner: lira_user
---
-
-GRANT ALL ON FUNCTION core.validate_symbol_array() TO core_db;
-
-
---
 -- Name: TABLE _backup_symbol_vector_links; Type: ACL; Schema: core; Owner: core_db
 --
 
@@ -5767,11 +5655,10 @@ GRANT ALL ON TABLE core.symbols TO core;
 
 
 --
--- Name: TABLE knowledge_graph; Type: ACL; Schema: core; Owner: lira_user
+-- Name: TABLE knowledge_graph; Type: ACL; Schema: core; Owner: core_db
 --
 
 GRANT ALL ON TABLE core.knowledge_graph TO core;
-GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE core.knowledge_graph TO core_db;
 
 
 --
@@ -5929,91 +5816,80 @@ GRANT ALL ON TABLE core.tasks TO core;
 
 
 --
--- Name: TABLE v_agent_context; Type: ACL; Schema: core; Owner: lira_user
+-- Name: TABLE v_agent_context; Type: ACL; Schema: core; Owner: core_db
 --
 
 GRANT ALL ON TABLE core.v_agent_context TO core;
-GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE core.v_agent_context TO core_db;
 
 
 --
--- Name: TABLE v_observability_action_health; Type: ACL; Schema: core; Owner: lira_user
+-- Name: TABLE v_observability_action_health; Type: ACL; Schema: core; Owner: core_db
 --
 
 GRANT ALL ON TABLE core.v_observability_action_health TO core;
-GRANT ALL ON TABLE core.v_observability_action_health TO core_db;
 
 
 --
--- Name: TABLE v_observability_recent_failures; Type: ACL; Schema: core; Owner: lira_user
+-- Name: TABLE v_observability_recent_failures; Type: ACL; Schema: core; Owner: core_db
 --
 
 GRANT ALL ON TABLE core.v_observability_recent_failures TO core;
-GRANT ALL ON TABLE core.v_observability_recent_failures TO core_db;
 
 
 --
--- Name: TABLE v_orphan_symbols; Type: ACL; Schema: core; Owner: lira_user
+-- Name: TABLE v_orphan_symbols; Type: ACL; Schema: core; Owner: core_db
 --
 
 GRANT ALL ON TABLE core.v_orphan_symbols TO core;
-GRANT ALL ON TABLE core.v_orphan_symbols TO core_db;
 
 
 --
--- Name: TABLE v_schema_health; Type: ACL; Schema: core; Owner: lira_user
+-- Name: TABLE v_schema_health; Type: ACL; Schema: core; Owner: core_db
 --
 
 GRANT ALL ON TABLE core.v_schema_health TO core;
-GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE core.v_schema_health TO core_db;
 
 
 --
--- Name: TABLE v_stale_materialized_views; Type: ACL; Schema: core; Owner: lira_user
+-- Name: TABLE v_stale_materialized_views; Type: ACL; Schema: core; Owner: core_db
 --
 
 GRANT ALL ON TABLE core.v_stale_materialized_views TO core;
-GRANT ALL ON TABLE core.v_stale_materialized_views TO core_db;
 
 
 --
--- Name: TABLE v_symbol_blast_radius; Type: ACL; Schema: core; Owner: lira_user
+-- Name: TABLE v_symbol_blast_radius; Type: ACL; Schema: core; Owner: core_db
 --
 
 GRANT ALL ON TABLE core.v_symbol_blast_radius TO core;
-GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE core.v_symbol_blast_radius TO core_db;
 
 
 --
--- Name: TABLE v_symbol_decorator_stack; Type: ACL; Schema: core; Owner: lira_user
+-- Name: TABLE v_symbol_decorator_stack; Type: ACL; Schema: core; Owner: core_db
 --
 
 GRANT ALL ON TABLE core.v_symbol_decorator_stack TO core;
-GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE core.v_symbol_decorator_stack TO core_db;
 
 
 --
--- Name: TABLE v_symbols_missing_decorators; Type: ACL; Schema: core; Owner: lira_user
+-- Name: TABLE v_symbols_missing_decorators; Type: ACL; Schema: core; Owner: core_db
 --
 
 GRANT ALL ON TABLE core.v_symbols_missing_decorators TO core;
-GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE core.v_symbols_missing_decorators TO core_db;
 
 
 --
--- Name: TABLE v_symbols_needing_embedding; Type: ACL; Schema: core; Owner: lira_user
+-- Name: TABLE v_symbols_needing_embedding; Type: ACL; Schema: core; Owner: core_db
 --
 
 GRANT ALL ON TABLE core.v_symbols_needing_embedding TO core;
-GRANT ALL ON TABLE core.v_symbols_needing_embedding TO core_db;
 
 
 --
--- Name: TABLE v_verified_coverage; Type: ACL; Schema: core; Owner: lira_user
+-- Name: TABLE v_verified_coverage; Type: ACL; Schema: core; Owner: core_db
 --
 
 GRANT ALL ON TABLE core.v_verified_coverage TO core;
-GRANT ALL ON TABLE core.v_verified_coverage TO core_db;
 
 
 --
@@ -6038,35 +5914,7 @@ GRANT ALL ON TABLE core.worker_registry TO core;
 
 
 --
--- Name: DEFAULT PRIVILEGES FOR SEQUENCES; Type: DEFAULT ACL; Schema: core; Owner: lira_user
---
-
-ALTER DEFAULT PRIVILEGES FOR ROLE lira_user IN SCHEMA core GRANT ALL ON SEQUENCES TO core_db;
-
-
---
--- Name: DEFAULT PRIVILEGES FOR TYPES; Type: DEFAULT ACL; Schema: core; Owner: lira_user
---
-
-ALTER DEFAULT PRIVILEGES FOR ROLE lira_user IN SCHEMA core GRANT ALL ON TYPES TO core_db;
-
-
---
--- Name: DEFAULT PRIVILEGES FOR FUNCTIONS; Type: DEFAULT ACL; Schema: core; Owner: lira_user
---
-
-ALTER DEFAULT PRIVILEGES FOR ROLE lira_user IN SCHEMA core GRANT ALL ON FUNCTIONS TO core_db;
-
-
---
--- Name: DEFAULT PRIVILEGES FOR TABLES; Type: DEFAULT ACL; Schema: core; Owner: lira_user
---
-
-ALTER DEFAULT PRIVILEGES FOR ROLE lira_user IN SCHEMA core GRANT SELECT,INSERT,DELETE,UPDATE ON TABLES TO core_db;
-
-
---
 -- PostgreSQL database dump complete
 --
 
-\unrestrict r1207jRvEJN9GzYrSH4yfBFFo9d6MBDsWuv6I0XvX9B79GzqEDFa0gDw21NrO62
+\unrestrict dIRsdMQ46sgpj6IdTQ2kjGaGXEZaJOtdO12srzYhKcDsXeGwiUuYYUwYGqvO5CK
