@@ -378,7 +378,7 @@ and it is fully artifact-agnostic.
 
 <a id="F-20"></a>
 **F-20 — Convergence graph dashboard**
-Status: `roadmap` | Scope: `primitive` | Sourcing: `commercial`
+Status: `roadmap` | Scope: `primitive` | Sourcing: `commercial` | Shape: `sidecar` (ADR-084 D1)
 
 A web UI rendering the convergence metric as a time-series graph. Finding rate
 versus resolution rate over time. The anchor feature for Team tier adoption.
@@ -535,7 +535,7 @@ sync in a single pass. Currently scoped to source code maintenance operations.
 
 <a id="F-31"></a>
 **F-31 — Shared consequence chain (multi-user)**
-Status: `roadmap` | Scope: `primitive` | Sourcing: `commercial`
+Status: `roadmap` | Scope: `primitive` | Sourcing: `commercial` | Shape: `runtime fork` (ADR-084 D1)
 
 All proposals, findings, and executions visible to every member of a shared
 CORE instance. Governance state is team-level, not per-governor. Applies
@@ -545,7 +545,7 @@ equally to any governed artifact type.
 
 <a id="F-32"></a>
 **F-32 — Role-based constitutional authority (RBAC)**
-Status: `roadmap` | Scope: `primitive` | Sourcing: `commercial`
+Status: `roadmap` | Scope: `primitive` | Sourcing: `commercial` | Shape: `runtime fork` (ADR-084 D1)
 
 Explicit governance over who can approve proposals and who can amend `.intent/`.
 Role assignments are themselves governed artefacts. A team member without
@@ -556,7 +556,7 @@ not convention.
 
 <a id="F-33"></a>
 **F-33 — Multi-repository support**
-Status: `roadmap` | Scope: `primitive` | Sourcing: `commercial`
+Status: `roadmap` | Scope: `primitive` | Sourcing: `commercial` | Shape: `runtime fork` (ADR-084 D1)
 
 A single CORE instance governing multiple repositories. Each repository has its
 own `.intent/` constitution; shared governance infrastructure (Blackboard,
@@ -566,7 +566,7 @@ workers, dashboard) is common.
 
 <a id="F-34"></a>
 **F-34 — Web dashboard**
-Status: `roadmap` | Scope: `primitive` | Sourcing: `commercial`
+Status: `roadmap` | Scope: `primitive` | Sourcing: `commercial` | Shape: `sidecar` (ADR-084 D1)
 
 Browser-based governance interface. Views: convergence graph (F-20), proposal
 queue, audit history, worker health. Replaces CLI as the primary interface for
@@ -580,7 +580,7 @@ team governors who are not working in a terminal.
 
 <a id="F-35"></a>
 **F-35 — Federated constitution**
-Status: `roadmap` | Scope: `primitive` | Sourcing: `commercial`
+Status: `roadmap` | Scope: `primitive` | Sourcing: `commercial` | Shape: `runtime fork` (ADR-084 D1)
 
 An org-level root constitution that team-level constitutions inherit and cannot
 override. Teams can extend the root; they cannot weaken it. The root
@@ -590,7 +590,7 @@ constitution is the compliance floor. Applies to any governed artifact type.
 
 <a id="F-36"></a>
 **F-36 — SSO / SAML / OIDC**
-Status: `roadmap` | Scope: `primitive` | Sourcing: `commercial`
+Status: `roadmap` | Scope: `primitive` | Sourcing: `commercial` | Shape: `runtime fork` (ADR-084 D1)
 
 Enterprise identity integration. Role assignments (F-32) bind to SSO identities.
 Required for regulated-industry deployments where identity auditability is
@@ -600,7 +600,7 @@ mandatory.
 
 <a id="F-37"></a>
 **F-37 — Regulatory export (GxP / EU AI Act)**
-Status: `roadmap` | Scope: `primitive` | Sourcing: `commercial`
+Status: `roadmap` | Scope: `primitive` | Sourcing: `commercial` | Shape: `plugin` (atomic action, ADR-084 D1)
 
 Structured, signed export of the full consequence chain formatted for
 regulatory submission. For GxP customers, the export IS the Change Control
@@ -617,7 +617,7 @@ governed artifact is source code, a document, or a regulated process output.
 
 <a id="F-38"></a>
 **F-38 — Air-gapped deployment (guaranteed)**
-Status: `roadmap` | Scope: `primitive` | Sourcing: `commercial`
+Status: `roadmap` | Scope: `primitive` | Sourcing: `commercial` | Shape: `build overlay` (outside three-shape taxonomy, ADR-084 D1)
 
 Local-only LLM with no outbound network traffic. Governed artifacts never leave
 the customer perimeter. Builds on F-27 but guarantees network isolation at the
@@ -627,7 +627,7 @@ infrastructure level rather than relying on configuration.
 
 <a id="F-39"></a>
 **F-39 — SLA support**
-Status: `roadmap` | Scope: `primitive` | Sourcing: `commercial`
+Status: `roadmap` | Scope: `primitive` | Sourcing: `commercial` | Shape: `not software` (outside three-shape taxonomy, ADR-084 D1)
 
 Contractual support SLA with defined response times. Not a software feature;
 a commercial and operational commitment required for regulated-industry
@@ -641,7 +641,7 @@ procurement.
 
 <a id="F-40"></a>
 **F-40 — OEM API surface**
-Status: `roadmap` | Scope: `primitive` | Sourcing: `commercial`
+Status: `roadmap` | Scope: `primitive` | Sourcing: `commercial` | Shape: `sidecar-interface` (the open contract every sidecar-shape feature consumes, ADR-084 D3)
 
 A stable, versioned API exposing the CORE enforcement engine to third-party
 platforms (IDE plugins, AI coding platforms, DevSecOps tools, GitHub Apps).
@@ -665,7 +665,7 @@ supported model.
 
 <a id="F-41"></a>
 **F-41 — Artifact type registry**
-Status: `roadmap` | Scope: `extension` | Sourcing: `open`
+Status: `roadmap` | Scope: `extension` | Sourcing: `open` | Shape: `plugin-interface` (the open contract plugin-shape features attach through, ADR-084 D2)
 
 A declared model for registering governed artifact types beyond source code.
 An artifact type declaration specifies: artifact schema, identity key format,
@@ -681,7 +681,7 @@ governance requires custom wiring against the primitives directly.
 
 <a id="F-42"></a>
 **F-42 — Pluggable sensor model**
-Status: `roadmap` | Scope: `extension` | Sourcing: `open`
+Status: `roadmap` | Scope: `extension` | Sourcing: `open` | Shape: `plugin-interface` (the open contract plugin-shape sensors attach through, ADR-084 D2)
 
 An abstract sensor interface that decouples artifact observation from the audit
 engine. A sensor implementation declares: the artifact type it observes, the
@@ -698,7 +698,7 @@ observer to participate in the governance loop without modifying the engine.
 
 <a id="F-43"></a>
 **F-43 — Pluggable action model**
-Status: `roadmap` | Scope: `extension` | Sourcing: `open`
+Status: `roadmap` | Scope: `extension` | Sourcing: `open` | Shape: `plugin-interface` (the open contract plugin-shape actions attach through, ADR-084 D2)
 
 An abstract action interface that decouples remediation execution from artifact
 type. An action implementation declares: the artifact type it operates on, the
@@ -710,6 +710,82 @@ Currently all atomic actions operate on Python source files. This feature makes
 the action layer extensible — enabling document remediation actions, compliance
 record correction actions, or any other artifact-type handler to participate in
 the autonomous remediation loop.
+
+---
+
+### 3.12 Commercial Extensions of Shipping Primitives
+
+These four features are the commercial polish surfaces that extend already-shipping
+open primitives. They follow the F-19 / F-20 split pattern: the open primitive is
+untouched; the polished, hosted, or curated surface is a new feature stamped
+`commercial`. ADR-083 codifies this as the canonical commercial-extension shape —
+new commercial features that extend a shipping open primitive must take this form,
+and reclassifying an existing `open` stamp is foreclosed by §1.
+
+---
+
+<a id="F-44"></a>
+**F-44 — Premium rule libraries (industry packs)**
+Status: `roadmap` | Scope: `source-code instantiation` | Sourcing: `commercial` | Shape: `plugin` (`.intent/rules/` overlay via F-04 loader, ADR-084 D2)
+
+Curated rule packs targeting regulated-industry compliance domains. Initial
+candidates: GxP, IEC 62304 (medical device software), EU AI Act Article 9 (risk
+management), PCI-DSS, SOC 2. Each pack is a complete `.intent/rules/` overlay
+that drops alongside the default rule library (F-05) and adds domain-specific
+constitutional checks. Distributed under commercial license, not MIT. Versioned
+and supported.
+
+Extends F-05. The engine that loads the packs (F-01) ships open; a customer can
+author their own equivalent packs against the open engine. This feature
+monetises authorship, not capability.
+
+---
+
+<a id="F-45"></a>
+**F-45 — Hosted findings dashboard**
+Status: `roadmap` | Scope: `source-code instantiation` | Sourcing: `commercial` | Shape: `sidecar` (consumes F-40, ADR-084 D3)
+
+A cloud-hosted web UI rendering audit findings (F-09) for Audit-tier customers
+who installed the CI gate (F-10) but do not run a daemon, database, or web tier
+locally. Read-only view: rule, file, severity, message, and history across PR
+runs. Per-organisation deployment with SSO.
+
+Extends F-09. Distinct from F-20 (Convergence graph dashboard, Team+, full
+convergence metric over time): F-45 renders point-in-time findings from
+stateless audit runs; F-20 renders the full convergence trajectory from a
+stateful Blackboard. They are different surfaces and do not overlap.
+
+---
+
+<a id="F-46"></a>
+**F-46 — Cloud audit export (signed)**
+Status: `roadmap` | Scope: `source-code instantiation` | Sourcing: `commercial` | Shape: `plugin` (atomic action via F-43, ADR-084 D2)
+
+Structured, cryptographically signed export of audit findings (and, where Solo+
+stateful operation is in use, surrounding proposal context) for customers who
+need a portable evidence artifact but do not need the Enterprise-grade
+regulatory submission package.
+
+Extends F-09. Distinct from F-37 (Regulatory export, Enterprise+, full
+consequence chain formatted for GxP / EU AI Act submission): F-46 is *evidence
+of audit*; F-37 is *evidence of governed change*. F-46 is the simpler artifact
+aimed at non-regulated buyers and the path to first commercial revenue from
+Solo-tier installations.
+
+---
+
+<a id="F-47"></a>
+**F-47 — Managed Qdrant**
+Status: `roadmap` | Scope: `primitive` | Sourcing: `commercial` | Shape: `sidecar` (managed infrastructure, ADR-084 D3)
+
+Managed hosting of the vector store layer (F-25 collections — `core-code`,
+`core-docs`, etc.) on infrastructure operated by the commercial product line.
+Solo customers point their daemon at the managed endpoint via a configuration
+switch; all governance semantics remain identical.
+
+Extends F-25. Provided primarily to remove infrastructure friction from the
+Solo demo for non-regulated customers. Regulated and air-gapped deployments
+(F-38) cannot use this and continue to self-host — that is explicit, not a gap.
 
 ---
 
@@ -760,15 +836,45 @@ the autonomous remediation loop.
 | F-41 | Artifact type registry | roadmap | extension | open |
 | F-42 | Pluggable sensor model | roadmap | extension | open |
 | F-43 | Pluggable action model | roadmap | extension | open |
+| F-44 | Premium rule libraries (industry packs) | roadmap | source-code instantiation | commercial |
+| F-45 | Hosted findings dashboard | roadmap | source-code instantiation | commercial |
+| F-46 | Cloud audit export (signed) | roadmap | source-code instantiation | commercial |
+| F-47 | Managed Qdrant | roadmap | primitive | commercial |
 
-**Shipping: 23** | **Partial: 1** (F-27) | **Roadmap: 19**
+**Shipping: 23** | **Partial: 1** (F-27) | **Roadmap: 23**
 
 Of the 23 shipping features: 16 are primitives, 7 are source-code instantiations.
 
-**Sourcing split:** Open: 32 | Commercial: 11.
+**Sourcing split:** Open: 32 | Commercial: 15.
 Of the 23 shipping features, **all 23 are open**.
-Of the 19 roadmap features, **8 are open** (F-10 CI/CD gate; F-41–F-43 extension
-interfaces) and **11 are commercial** (F-20 dashboard; F-31–F-40 Team/Enterprise/Embedded).
+Of the 23 roadmap features, **8 are open** (F-10 CI/CD gate; F-41–F-43 extension
+interfaces) and **15 are commercial** (F-20 dashboard; F-31–F-40 Team/Enterprise/Embedded;
+F-44–F-47 commercial extensions of shipping primitives, ADR-083).
+
+### 4.1 Commercial-surface shape buckets (ADR-084 D8)
+
+ADR-084 categorises every commercial feature into one of three structural shapes
+plus two outside-the-taxonomy carve-outs. The bucketing determines which open
+public interface the feature attaches through, which private repo (D5) hosts
+it, and what sequencing constraint binds its release. The Shape annotation on
+each §3 entry restates this per-feature.
+
+| Shape | Open contract it uses | Count | F-IDs |
+|---|---|:---:|---|
+| Plugin | F-04 loader (rule packs), F-41/F-42/F-43 (artifact types, sensors, actions), atomic action registry | 3 | F-37, F-44, F-46 |
+| Sidecar | F-40 OEM API surface | 4 | F-20, F-34, F-45, F-47 |
+| Runtime fork | open codebase as published library | 5 | F-31, F-32, F-33, F-35, F-36 |
+| Build overlay (outside taxonomy) | signed image + configuration, not a feature shape | 1 | F-38 |
+| Not software (outside taxonomy) | n/a | 1 | F-39 |
+| Plugin-interface contract | F-40 is itself the sidecar-interface contract | 1 | F-40 |
+| **Total commercial** | | **15** | |
+
+The three open extension interfaces F-41–F-43 are stamped `open` (not commercial)
+but carry shape `plugin-interface` — they are the structural counterparts to the
+plugin shape on the commercial side. The F-40 OEM API surface is stamped
+`commercial` per its tier-packaging but carries shape `sidecar-interface` because
+it is the open contract sidecar-shape features (including third-party sidecars)
+consume; ADR-084 D6 codifies this asymmetric-but-symmetric role.
 
 ---
 
@@ -778,16 +884,26 @@ Tier definitions in `CORE-Product-Tiers.md` reference features by ID.
 
 **Sourcing-to-tier mapping** (the open/commercial line, restated as tiers):
 
-- **Audit + Solo tiers = `open`.** Everything required to reproduce the thesis,
-  including the autonomous remediation loop and the full consequence chain, ships
-  in the open distribution. A technical user can run the entire engine without
-  payment, indefinitely.
-- **Team + Enterprise + Embedded tiers = `commercial`** *with one carve-out*:
-  the extension interfaces F-41–F-43, although tier-packaged at Enterprise+, are
-  stamped `open` because they are plugin APIs. Anyone may write a sensor or
-  action against the public interface; the first-party non-code instantiations
-  CORE builds on top of them (e.g. a GxP document sensor) are separate features
-  and will receive their own `commercial` stamps when they exist.
+- **Audit + Solo tiers ship as fully open distributions.** Everything required
+  to reproduce the thesis — including the autonomous remediation loop, the full
+  consequence chain, the CI/CD gate (F-10), and the extension interfaces
+  (F-41–F-43) — is present without payment. A technical user can run the entire
+  engine indefinitely.
+- **Commercial add-ons attach at every tier.** F-44 (premium rule packs) and
+  F-45 (hosted findings dashboard) are available from Audit+; F-46 (cloud audit
+  export) and F-47 (managed Qdrant) are available from Solo+. These are pure
+  additions to the open base and never replace open functionality (ADR-083 D6
+  codifies this as the canonical commercial-extension pattern).
+- **Team + Enterprise + Embedded tiers add the multi-user, regulated-industry,
+  and platform commercial features** (F-20 dashboard; F-31–F-40 covering shared
+  state, RBAC, multi-repo, web UI, federated constitution, SSO, regulatory
+  export, air-gap guarantee, SLA support, and the OEM API surface) *with one
+  carve-out*: the extension interfaces F-41–F-43, although tier-packaged at
+  Enterprise+, are stamped `open` because they are plugin APIs. Anyone may
+  write a sensor or action against the public interface; the first-party
+  non-code instantiations CORE builds on top of them (e.g. a GxP document
+  sensor) are separate features and will receive their own `commercial` stamps
+  when they exist.
 
 The canonical tier x feature mapping:
 
@@ -836,9 +952,14 @@ The canonical tier x feature mapping:
 | F-41 Artifact type registry | | | | . | . |
 | F-42 Pluggable sensor model | | | | . | . |
 | F-43 Pluggable action model | | | | . | . |
+| F-44 Premium rule libraries (commercial) | . | . | . | . | . |
+| F-45 Hosted findings dashboard (commercial) | . | . | . | . | . |
+| F-46 Cloud audit export (commercial) | | . | . | . | . |
+| F-47 Managed Qdrant (commercial) | | . | . | . | . |
 
 o = supported with configuration, not default
 . = included
+*(commercial)* annotation: a paid add-on available at that tier and above; not included in the open distribution.
 
 ---
 

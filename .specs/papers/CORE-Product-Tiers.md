@@ -50,7 +50,7 @@ A stateless audit engine deployable as a GitHub Action, GitLab CI step, or pre-c
 
 **Deployment:** pip package or Docker image. First findings visible within minutes of installation.
 
-**Revenue model:** Open-source core. *Future commercial add-ons (not yet enumerated as features in `CORE-Features.md`):* premium rule libraries; hosted findings dashboard. These are monetisation mechanics under consideration; they will get F-IDs and `Sourcing: commercial` stamps when they crystallise into committed roadmap.
+**Revenue model:** Open-source core. Commercial add-ons at this tier (stamped in ADR-083): **F-44 — Premium rule libraries** (industry-specific compliance packs: GxP, IEC 62304, EU AI Act Article 9, PCI-DSS, SOC 2) and **F-45 — Hosted findings dashboard** (cloud-hosted UI for Audit-tier customers who installed the CI gate but do not run their own web tier). Both are roadmap; first-SKU selection sits with the governor (see Products doc).
 
 **Strategic role:** This is the top of the funnel. The cost of adoption is near zero. The purpose is to make CORE's governance visible to a developer who has not yet heard of CORE.
 
@@ -64,7 +64,7 @@ The current reference implementation. Full daemon with workers, sensors, remedia
 
 **Deployment:** Docker Compose on developer machine or private server.
 
-**Revenue model:** Open-source. *Future commercial add-ons (not yet enumerated as features in `CORE-Features.md`):* cloud audit export; managed Qdrant. These are monetisation mechanics under consideration; they will get F-IDs and `Sourcing: commercial` stamps when they crystallise into committed roadmap.
+**Revenue model:** Open-source. Commercial add-ons at this tier (stamped in ADR-083): **F-46 — Cloud audit export (signed)** (signed audit-findings export for non-regulated buyers; distinct from F-37 Regulatory export) and **F-47 — Managed Qdrant** (managed hosting of the F-25 vector store for customers who want to skip local Qdrant operation; not available for air-gapped deployments). Both are roadmap.
 
 **Strategic role:** This is where developers become believers. The consequence chain is the demo. A governor watches CORE detect a violation, generate a proposal, receive approval, execute the fix, and re-audit to confirmation — in a single session. That story is not available anywhere else.
 
@@ -124,6 +124,8 @@ The long-term platform play. A third-party product — an IDE plugin, an AI codi
 **Revenue model:** Platform license plus per-governed-execution fee or royalty arrangement.
 
 **Strategic role:** This is the distribution multiplier. CORE reaches customers who will never install it directly. The constraint is that the API surface must be stable enough to make the integration reliable — this tier follows, rather than precedes, Team and Enterprise maturity.
+
+**F-40's elevated structural role (ADR-084 D3, D6):** F-40 is no longer only the integration story for third-party OEM partners. After ADR-084, F-40 is the open public-API contract every sidecar-shape commercial feature consumes — including CORE's own first-party sidecars (F-20 convergence dashboard, F-34 web dashboard, F-45 hosted findings dashboard, F-47 managed Qdrant). Interface symmetry (D6) requires first-party sidecars to use only the same F-40 surface a third party would; this is what makes the OEM integration story honest. The practical consequence is that F-40 ships before four other commercial features are even unblocked — Embedded-tier preparation work is therefore prerequisite to Team-tier and Solo-tier commercial revenue, not (as the original Embedded tier description framed it) work that "follows Team and Enterprise maturity." The tier ordering as a deployment story is unchanged; the engineering ordering of F-40 within the open roadmap is materially elevated.
 
 ---
 
