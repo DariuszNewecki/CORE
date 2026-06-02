@@ -74,7 +74,15 @@ class RunAutonomousRequest(BaseModel):
 # ---------- GET endpoints -------------------------------------------------
 
 
-@router.get("/threshold")
+@router.get(
+    "/threshold",
+    summary="Constitutional modularity threshold",
+    description=(
+        "Return the constitutional modularity score threshold — files "
+        "scoring above this are refactor candidates. Sidecar configuration "
+        "surface."
+    ),
+)
 # ID: 4b8c0d6e-7f9a-4b1c-2d3e-4f5a6b7c8d9a
 async def refactor_threshold(request: Request) -> dict:
     """Return the constitutional modularity threshold."""
@@ -83,7 +91,15 @@ async def refactor_threshold(request: Request) -> dict:
     return {"threshold": get_refactor_threshold(repo_root)}
 
 
-@router.get("/score")
+@router.get(
+    "/score",
+    summary="Per-file modularity score",
+    description=(
+        "Return the per-file modularity score for `file` (relative path). "
+        "Returns 404 if the file is unknown / missing; analyzable files "
+        "return the full details payload from the modularity engine."
+    ),
+)
 # ID: 5c9d1e7f-8a0b-4c2d-3e4f-5a6b7c8d9e0b
 async def refactor_score(
     request: Request,
@@ -102,7 +118,16 @@ async def refactor_score(
     return payload
 
 
-@router.get("/candidates")
+@router.get(
+    "/candidates",
+    summary="Refactor candidates ranked by score",
+    description=(
+        "Return files exceeding the modularity threshold, highest score "
+        "first. `min_score` filters to files at or above the given score "
+        "(0-200); `limit` caps results (default 50, max 500). F-34 "
+        "dashboards use this as an actionable refactor backlog view."
+    ),
+)
 # ID: 6d0e2f8a-9b1c-4d3e-4f5a-6b7c8d9e0f1c
 async def refactor_candidates(
     request: Request,
@@ -115,7 +140,15 @@ async def refactor_candidates(
     return get_refactor_candidates(repo_root, min_score=min_score, limit=limit)
 
 
-@router.get("/stats")
+@router.get(
+    "/stats",
+    summary="Modularity-score distribution",
+    description=(
+        "Return the aggregate modularity-score distribution across the "
+        "codebase — histogram + percentile summary used for trend analysis "
+        "and dashboard rendering."
+    ),
+)
 # ID: 7e1f3a9b-0c2d-4e4f-5a6b-7c8d9e0f1a2d
 async def refactor_stats(request: Request) -> dict:
     """Return aggregate modularity-score distribution."""
@@ -127,7 +160,13 @@ async def refactor_stats(request: Request) -> dict:
 # ---------- POST async autonomous ----------------------------------------
 
 
-@router.post("/autonomous")
+@router.post(
+    "/autonomous",
+    # F-40.1: internal — dispatches the A3 autonomous refactor cycle.
+    # Autonomy surface, not a sidecar concern. Excluded from
+    # /v1/openapi.json per ADR-087.
+    include_in_schema=False,
+)
 # ID: 8f2a4b0c-1d3e-4f5a-6b7c-8d9e0f1a2b3e
 async def run_refactor_autonomous(
     request: Request,
@@ -183,7 +222,15 @@ async def run_refactor_autonomous(
     }
 
 
-@router.get("/runs/{run_id}")
+@router.get(
+    "/runs/{run_id}",
+    summary="Fetch a persisted refactor run",
+    description=(
+        "Read back a refactor run's persisted record by `run_id`: status, "
+        "timestamps, captured proposal_ids in `result`, error. Returns "
+        "404 if no run exists with that id."
+    ),
+)
 # ID: 0b4c6d2e-3f5a-4b7c-8d9e-0f1a2b3c4d50
 async def get_refactor_run(
     run_id: UUID,

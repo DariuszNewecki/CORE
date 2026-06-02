@@ -105,7 +105,16 @@ class InteractiveTestsRequest(BaseModel):
 # ---------- GET endpoints -------------------------------------------------
 
 
-@router.get("/check")
+@router.get(
+    "/check",
+    summary="Constitutional coverage compliance check",
+    description=(
+        "Run the constitutional coverage compliance check — pass/fail "
+        "verdict against the configured coverage targets. F-45 (hosted "
+        "findings) renders this alongside audit findings for the same "
+        "PR snapshot."
+    ),
+)
 # ID: 1a5b7c3d-4e6f-4a8b-9c0d-1e2f3a4b5c63
 async def coverage_check(request: Request) -> dict:
     """Run the constitutional coverage compliance check."""
@@ -113,7 +122,17 @@ async def coverage_check(request: Request) -> dict:
     return await get_coverage_check(core_context)
 
 
-@router.get("/report")
+@router.get(
+    "/report",
+    summary="Pytest coverage report",
+    description=(
+        "Return the pytest coverage report. `format=text` (default) "
+        "returns the term report in `stdout_tail`; `format=html` runs "
+        "pytest with the HTML reporter and returns the `htmlcov/` "
+        "directory path in `html_path`. `show_missing` toggles "
+        "per-module missing-lines reporting."
+    ),
+)
 # ID: 2b6c8d4e-5f7a-4b9c-0d1e-2f3a4b5c6d74
 async def coverage_report(
     request: Request,
@@ -132,7 +151,14 @@ async def coverage_report(
     return await get_coverage_report(core_context, show_missing=show_missing)
 
 
-@router.get("/targets")
+@router.get(
+    "/targets",
+    summary="Coverage targets",
+    description=(
+        "Return the constitutional coverage targets — module-level thresholds "
+        "the audit gate enforces. Sidecar configuration surface."
+    ),
+)
 # ID: 3c7d9e5f-6a8b-4c0d-1e2f-3a4b5c6d7e85
 async def coverage_targets(request: Request) -> dict:
     """Return the constitutional coverage targets."""
@@ -140,7 +166,16 @@ async def coverage_targets(request: Request) -> dict:
     return get_coverage_targets(core_context)
 
 
-@router.get("/gaps")
+@router.get(
+    "/gaps",
+    summary="Coverage gaps ranked by deficit",
+    description=(
+        "Return modules ranked by coverage deficit below `threshold` "
+        "(default 75.0, range 0-100). `limit` caps results (default 20, "
+        "max 200). F-34 dashboards use this as an actionable surface for "
+        "operators to triage test debt."
+    ),
+)
 # ID: 4d8e0f6a-7b9c-4d1e-2f3a-4b5c6d7e8f96
 async def coverage_gaps(
     request: Request,
@@ -152,7 +187,15 @@ async def coverage_gaps(
     return await get_coverage_gaps(core_context, threshold=threshold, limit=limit)
 
 
-@router.get("/history")
+@router.get(
+    "/history",
+    summary="Coverage history",
+    description=(
+        "Return recent coverage measurements (newest first). `limit` "
+        "defaults to 30, max 500. F-20-adjacent — surfaces coverage "
+        "trajectory alongside the convergence metric."
+    ),
+)
 # ID: 5e9f1a7b-8c0d-4e2f-3a4b-5c6d7e8f9a07
 async def coverage_history(
     request: Request,
@@ -163,7 +206,13 @@ async def coverage_history(
     return get_coverage_history(core_context, limit=limit)
 
 
-@router.get("/methods")
+@router.get(
+    "/methods",
+    # F-40.1: internal — legacy-vs-adaptive method comparison is
+    # CORE-internal autonomy concern; sidecars don't care. Excluded
+    # from /v1/openapi.json per ADR-087.
+    include_in_schema=False,
+)
 # ID: 6f0a2b8c-9d1e-4f3a-4b5c-6d7e8f9a0b18
 async def coverage_methods(request: Request) -> dict:
     """Return the legacy-vs-adaptive coverage method comparison."""
@@ -174,7 +223,13 @@ async def coverage_methods(request: Request) -> dict:
 # ---------- POST async generation ----------------------------------------
 
 
-@router.post("/generate")
+@router.post(
+    "/generate",
+    # F-40.1: internal — triggers adaptive test generation via the
+    # autonomy loop. Not a sidecar consumer surface. Excluded from
+    # /v1/openapi.json per ADR-087.
+    include_in_schema=False,
+)
 # ID: 7a1b3c9d-0e2f-4a4b-5c6d-7e8f9a0b1c29
 async def generate_coverage(
     request: Request,
@@ -229,7 +284,12 @@ async def generate_coverage(
     }
 
 
-@router.post("/generate:batch")
+@router.post(
+    "/generate:batch",
+    # F-40.1: internal — batch variant of /generate; same autonomy-loop
+    # concern. Excluded from /v1/openapi.json per ADR-087.
+    include_in_schema=False,
+)
 # ID: 9c3d5e1f-2a4b-4c6d-7e8f-9a0b1c2d3e4b
 async def generate_coverage_batch(
     request: Request,
@@ -292,7 +352,13 @@ async def generate_coverage_batch(
 # ---------- POST sync interactive ----------------------------------------
 
 
-@tests_router.post("/interactive")
+@tests_router.post(
+    "/interactive",
+    # F-40.1: internal — interactive test-shape dispatch is autonomy
+    # surface, not a sidecar concern. Excluded from /v1/openapi.json
+    # per ADR-087.
+    include_in_schema=False,
+)
 # ID: 1e5f7a3b-4c6d-4e8f-9a0b-1c2d3e4f5a6d
 async def interactive_tests(
     request: Request,
@@ -309,7 +375,15 @@ async def interactive_tests(
 # ---------- GET resource read --------------------------------------------
 
 
-@router.get("/runs/{run_id}")
+@router.get(
+    "/runs/{run_id}",
+    summary="Fetch a persisted coverage run",
+    description=(
+        "Read back a coverage run's persisted record by `run_id`: status, "
+        "timestamps, result payload, error. Returns 404 if no run exists "
+        "with that id."
+    ),
+)
 # ID: 2f6a8b4c-5d7e-4f9a-0b1c-2d3e4f5a6b7e
 async def get_coverage_run(
     run_id: UUID,
