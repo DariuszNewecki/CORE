@@ -49,8 +49,8 @@ The `/v1/` URL prefix is the **wire-protocol major-version identifier** for the 
 Specifically:
 
 - **Major bump** (`/v1/` → `/v2/`): triggered by a breaking change to any route classified `public`. New routes are mounted under the new prefix; the old prefix continues to be served for the deprecation window declared in D5. Required when D2's rules do not permit the change in-place.
-- **Minor bump** (e.g., `core-runtime 0.4.X → 0.5.0`): triggered by additive changes — new public routes, new optional fields on responses, new optional query parameters. Surfaces in the OpenAPI spec's `info.version` (which mirrors `core-runtime`'s PyPI version) but does NOT change the URL prefix.
-- **Patch bump** (e.g., `0.5.0 → 0.5.1`): bug fixes, internal-only changes, documentation. No wire-visible change to public routes.
+- **Minor bump** (e.g., `core-runtime 2.6.X → 2.7.0`): triggered by additive changes — new public routes, new optional fields on responses, new optional query parameters. Surfaces in the OpenAPI spec's `info.version` (which mirrors `core-runtime`'s PyPI version) but does NOT change the URL prefix.
+- **Patch bump** (e.g., `2.7.0 → 2.7.1`): bug fixes, internal-only changes, documentation. No wire-visible change to public routes.
 
 The URL prefix is the source of truth on the wire. The OpenAPI spec's `info.version` is the source of truth in the spec. They are bound: `/v1/openapi.json` must report a version whose major component equals 1.
 
@@ -156,7 +156,7 @@ When auth lands per F-40.5:
 
 Every claim made by this ADR is realized through the OpenAPI spec produced by F-40.3 (#552). The spec carries:
 
-- `info.version` mirroring `core-runtime`'s PyPI version (e.g., `0.7.2`).
+- `info.version` mirroring `core-runtime`'s PyPI version (e.g., `2.6.0`).
 - `info.x-stability-policy: https://github.com/DariuszNewecki/CORE/blob/main/.specs/decisions/ADR-087-oem-api-versioning-and-stability-policy.md` — a link consumers can follow.
 - Per-route `deprecated: true` markers where applicable.
 - Per-schema closed-vs-open-vocabulary annotations on enums (e.g., `x-vocabulary: closed`).

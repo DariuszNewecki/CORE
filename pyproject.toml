@@ -4,7 +4,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
 name = "core-runtime"
-version = "0.1.6"
+version = "2.6.0"
 description = "CORE: executable constitutional governance for AI-assisted software development."
 authors = ["Dariusz Newecki <d.newecki@gmail.com>"]
 license = "MIT"
@@ -24,7 +24,7 @@ keywords = [
     "llm",
 ]
 classifiers = [
-    "Development Status :: 3 - Alpha",
+    "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
     "Intended Audience :: Information Technology",
     "License :: OSI Approved :: MIT License",
