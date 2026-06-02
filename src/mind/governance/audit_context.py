@@ -139,11 +139,17 @@ class AuditorContext:
         intent_repository: IntentRepository | None = None,
         session_provider: SessionProviderProtocol | None = None,
         llm_client: LLMClient | None = None,
+        stateless: bool = False,
     ):
         self.session_provider = session_provider
         self.intent_repo = intent_repository or get_intent_repository()
         self.repo_path = repo_path.resolve()
         self.llm_client = llm_client
+        # F-10.1a: when True, the context is built for stateless invocation
+        # (CI gate, pre-commit hook). load_knowledge_graph and
+        # sweep_llm_gate_cache short-circuit; the stateless_audit driver
+        # filters knowledge_gate and llm_gate rules out before dispatch.
+        self.stateless = stateless
 
         self.paths = PathResolver(self.repo_path)
 
@@ -253,6 +259,13 @@ class AuditorContext:
         if self._llm_gate_cache_swept:
             return 0
         self._llm_gate_cache_swept = True
+
+        # F-10.1a: stateless mode has no DB to sweep. Explicit short-circuit
+        # mirrors the load_knowledge_graph guard; the existing session-None
+        # fallthrough below would also return 0, but being explicit here
+        # documents the invariant.
+        if self.stateless:
+            return 0
 
         # ADR-044 §Decision: TTL is hygiene, not correctness. Hash mismatch
         # is the correctness mechanism. So an unavailable config or DB
@@ -456,6 +469,11 @@ class AuditorContext:
     # ID: 3d1f1c34-fd1e-4bb8-8b4f-3f9a6c6dfd41
     async def load_knowledge_graph(self, force: bool = False) -> None:
         """Load knowledge graph from the database (SSOT)."""
+        # F-10.1a: stateless mode (CI gate) intentionally has no graph.
+        # Rules requiring the graph are filtered out by stateless_audit
+        # before dispatch and surfaced in skipped_rules.
+        if self.stateless:
+            return
         cache_key = str(self.repo_path)
         if not force and cache_key in _KNOWLEDGE_GRAPH_CACHE:
             cached = _KNOWLEDGE_GRAPH_CACHE[cache_key]
