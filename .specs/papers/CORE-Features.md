@@ -240,7 +240,7 @@ assumption about artifact type. Finding history is queryable.
 
 <a id="F-10"></a>
 **F-10 — CI/CD gate**
-Status: `roadmap` | Scope: `source-code instantiation` | Sourcing: `open`
+Status: `shipping` | Scope: `source-code instantiation` | Sourcing: `open`
 
 Stateless audit packaged as a GitHub Action, GitLab CI step, or pre-commit
 hook. No daemon, database, or workers required. Findings reported as PR
@@ -799,7 +799,7 @@ consumable beyond `git clone`. Constitutionally load-bearing for ADR-084 D4
 
 <a id="F-48"></a>
 **F-48 — Open library distribution (PyPI + Docker registry)**
-Status: `roadmap` | Scope: `primitive` | Sourcing: `open` | Shape: `engine` (the open codebase as a consumable library, ADR-084 D4)
+Status: `shipping` | Scope: `primitive` | Sourcing: `open` | Shape: `engine` (the open codebase as a consumable library, ADR-084 D4)
 
 The open CORE codebase, published as semantic-versioned Python packages
 (PyPI) and container images (Docker registry) so that runtime forks —
@@ -833,7 +833,7 @@ Constitutionally load-bearing per ADR-084 D7 §4 (library-grade openness).
 | F-07 | Stateless constitutional audit | shipping | source-code instantiation | open |
 | F-08 | Continuous audit (sensor-driven) | shipping | source-code instantiation | open |
 | F-09 | Audit finding persistence | shipping | primitive | open |
-| F-10 | CI/CD gate | roadmap | source-code instantiation | open |
+| F-10 | CI/CD gate | shipping | source-code instantiation | open |
 | F-11 | Remediation map | shipping | source-code instantiation | open |
 | F-12 | Atomic action registry (source code) | shipping | source-code instantiation | open |
 | F-13 | Autonomous remediation loop | shipping | primitive | open |
@@ -871,18 +871,17 @@ Constitutionally load-bearing per ADR-084 D7 §4 (library-grade openness).
 | F-45 | Hosted findings dashboard | roadmap | source-code instantiation | commercial |
 | F-46 | Cloud audit export (signed) | roadmap | source-code instantiation | commercial |
 | F-47 | Managed Qdrant | roadmap | primitive | commercial |
-| F-48 | Open library distribution (PyPI + Docker registry) | roadmap | primitive | open |
+| F-48 | Open library distribution (PyPI + Docker registry) | shipping | primitive | open |
 
-**Shipping: 23** | **Partial: 1** (F-27) | **Roadmap: 24**
+**Shipping: 29** | **Partial: 1** (F-27) | **Roadmap: 18**
 
-Of the 23 shipping features: 16 are primitives, 7 are source-code instantiations.
+Of the 29 shipping features: 19 are primitives, 10 are source-code instantiations.
 
 **Sourcing split:** Open: 33 | Commercial: 15.
-Of the 23 shipping features, **all 23 are open**.
-Of the 24 roadmap features, **9 are open** (F-10 CI/CD gate; F-41–F-43 extension
-interfaces; F-48 open library distribution) and **15 are commercial** (F-20 dashboard;
-F-31–F-40 Team/Enterprise/Embedded; F-44–F-47 commercial extensions of shipping
-primitives, ADR-083).
+Of the 29 shipping features, **all 29 are open**.
+Of the 18 roadmap features, **3 are open** (F-41–F-43 extension interfaces)
+and **15 are commercial** (F-20 dashboard; F-31–F-40 Team/Enterprise/Embedded;
+F-44–F-47 commercial extensions of shipping primitives, ADR-083).
 
 ### 4.1 Commercial-surface shape buckets (ADR-084 D8)
 

@@ -50,6 +50,17 @@ The definition this ADR adopts is a 5+3 list: five feature commitments (open-roa
 
 The 5+3 framing collapses F-41/F-42/F-43 into one "extension interfaces" item because the three are interlocked: F-42 and F-43 both depend on F-41, and the contract symmetry that ADR-084 D6 requires is satisfied only when all three ship together. Operationally these are three separate registry transitions; strategically they are one gate.
 
+#### Verification log (append-only, per gate item closure)
+
+This log records each 5+3 gate item as its exit criterion is met. The original row above is preserved verbatim — closure markers are additive, not in-place. The constraint in D1 below does not relax on a per-item basis; it relaxes only when all eight items are satisfied (D5).
+
+| Date | Item | Verification |
+|---|---|---|
+| 2026-06-02 | F-10 CI/CD gate | ✅ `status: shipping` (`CORE-Features.md` registry row flipped). PR annotations + merge-blocking demonstrated against `DariuszNewecki/core-audit-demo` PR #1 via core-runtime 0.1.4 (the F-48-published wheel), verified through the GitHub check-runs API — 18 inline annotations with structured `path` field; workflow exit 1 → check-run conclusion `failure`. Closed via #384 (parent) + #531 (verification sub-issue). Carrier commits: `73c75f31` (annotation-formatter key fix, #546) + `8e3c7dcb` (version bump). Underlying engine fix: `1701c669` (#545 — engine-side intent loaders use cwd-walk discovery). |
+| 2026-06-02 | F-48 Open library distribution | ✅ `status: shipping`. `pip install core-runtime==X.Y.Z` works for five published versions (0.1.0 → 0.1.4); five clean semver tags; F-48.2's GitHub Actions workflow (Trusted Publisher OIDC) ran cleanly for both 0.1.3 and 0.1.4 publishes during the same session that closed F-10. Closed via #527 (parent) + #537 / #538 (F-48.1 / F-48.2 MVP sub-issues). F-48.3 (Docker/GHCR), F-48.4 (public-vs-internal API), F-48.5 (semver policy doc) remain open as post-exit / v1.0.0-milestone scope per `CORE-Operational-Completeness.md` §2.4 — not gating because not in this ADR's exit criterion. |
+
+Remaining 5+3 items: F-27 Local LLM (partial → shipping), F-40 OEM API surface, F-41/F-42/F-43 extension interfaces; plus three quality goals (docs polish, demo reliability, signal quality).
+
 ### Why the three quality goals are NOT in the registry
 
 The five features have F-IDs. The three quality goals do not. They are excluded from the registry deliberately:
