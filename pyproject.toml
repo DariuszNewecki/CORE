@@ -3,12 +3,39 @@ requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
-name = "core"
-version = "2.5.0"
-description = "CORE: A self-governing, intent-driven software development system."
+name = "core-runtime"
+version = "0.1.0"
+description = "CORE: executable constitutional governance for AI-assisted software development."
 authors = ["Dariusz Newecki <d.newecki@gmail.com>"]
 license = "MIT"
 readme = "README.md"
+homepage = "https://github.com/DariuszNewecki/CORE"
+repository = "https://github.com/DariuszNewecki/CORE"
+documentation = "https://dariusznewecki.github.io/CORE/"
+keywords = [
+    "governance",
+    "audit",
+    "ci",
+    "constitutional",
+    "software-factory",
+    "code-quality",
+    "intent-driven",
+    "ai-assisted",
+    "llm",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Information Technology",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: POSIX :: Linux",
+    "Operating System :: MacOS",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Quality Assurance",
+    "Topic :: Software Development :: Testing",
+    "Topic :: System :: Systems Administration",
+]
 packages = [
     { include = "api", from = "src" },
     { include = "body", from = "src" },
