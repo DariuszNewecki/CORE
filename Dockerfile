@@ -13,7 +13,7 @@ FROM python:3.12-slim
 # Pin the core-runtime version. Bump on every action release that needs
 # a newer audit engine; otherwise the action remains stable against this
 # version.
-ARG CORE_RUNTIME_VERSION=0.1.4
+ARG CORE_RUNTIME_VERSION=0.1.5
 
 # Minimal OS-level dependencies. `core-runtime` brings everything else
 # (pydantic, jsonschema, sqlalchemy, etc.) via its declared Requires-Dist;
