@@ -789,6 +789,37 @@ Solo demo for non-regulated customers. Regulated and air-gapped deployments
 
 ---
 
+### 3.13 Open Distribution Infrastructure
+
+This section covers open infrastructure features that make the open codebase
+consumable beyond `git clone`. Constitutionally load-bearing for ADR-084 D4
+(runtime-fork shape) and D7 §4 (library-grade openness honesty commitment).
+
+---
+
+<a id="F-48"></a>
+**F-48 — Open library distribution (PyPI + Docker registry)**
+Status: `roadmap` | Scope: `primitive` | Sourcing: `open` | Shape: `engine` (the open codebase as a consumable library, ADR-084 D4)
+
+The open CORE codebase, published as semantic-versioned Python packages
+(PyPI) and container images (Docker registry) so that runtime forks —
+first-party and third-party — can depend on the open codebase as a library
+on equal terms.
+
+Today the open distribution is git-clone-only. ADR-084 D4 requires that
+runtime-fork commercial features (F-31, F-32, F-33, F-35, F-36) depend on
+the published library and not vendor or copy. Without F-48, that
+requirement cannot be satisfied by any party; with F-48, the dependency
+path is the same for first-party and third-party forks (interface symmetry
+per ADR-084 D6).
+
+Scope: define the public package boundary, set up the build pipeline
+(`pyproject.toml` + build backend), release CI for tag-driven publish,
+semantic-versioning policy, and public-vs-internal API distinction.
+Constitutionally load-bearing per ADR-084 D7 §4 (library-grade openness).
+
+---
+
 ## 4. Feature x Status Summary
 
 | ID | Feature | Status | Scope | Sourcing |
@@ -840,16 +871,18 @@ Solo demo for non-regulated customers. Regulated and air-gapped deployments
 | F-45 | Hosted findings dashboard | roadmap | source-code instantiation | commercial |
 | F-46 | Cloud audit export (signed) | roadmap | source-code instantiation | commercial |
 | F-47 | Managed Qdrant | roadmap | primitive | commercial |
+| F-48 | Open library distribution (PyPI + Docker registry) | roadmap | primitive | open |
 
-**Shipping: 23** | **Partial: 1** (F-27) | **Roadmap: 23**
+**Shipping: 23** | **Partial: 1** (F-27) | **Roadmap: 24**
 
 Of the 23 shipping features: 16 are primitives, 7 are source-code instantiations.
 
-**Sourcing split:** Open: 32 | Commercial: 15.
+**Sourcing split:** Open: 33 | Commercial: 15.
 Of the 23 shipping features, **all 23 are open**.
-Of the 23 roadmap features, **8 are open** (F-10 CI/CD gate; F-41–F-43 extension
-interfaces) and **15 are commercial** (F-20 dashboard; F-31–F-40 Team/Enterprise/Embedded;
-F-44–F-47 commercial extensions of shipping primitives, ADR-083).
+Of the 24 roadmap features, **9 are open** (F-10 CI/CD gate; F-41–F-43 extension
+interfaces; F-48 open library distribution) and **15 are commercial** (F-20 dashboard;
+F-31–F-40 Team/Enterprise/Embedded; F-44–F-47 commercial extensions of shipping
+primitives, ADR-083).
 
 ### 4.1 Commercial-surface shape buckets (ADR-084 D8)
 
@@ -875,6 +908,15 @@ plugin shape on the commercial side. The F-40 OEM API surface is stamped
 `commercial` per its tier-packaging but carries shape `sidecar-interface` because
 it is the open contract sidecar-shape features (including third-party sidecars)
 consume; ADR-084 D6 codifies this asymmetric-but-symmetric role.
+
+F-48 (Open library distribution) is stamped `open` and carries shape `engine` —
+the structural counterpart to the runtime-fork shape on the commercial side.
+It is the open infrastructure prerequisite for every runtime-fork commercial
+feature (F-31, F-32, F-33, F-35, F-36) and is required for interface symmetry
+under ADR-084 D4 and D6: first-party runtime forks consume the published
+library on the same terms third-party forks would. Like F-41–F-43 for plugin
+shape and F-40 for sidecar shape, F-48 makes the open base load-bearing for a
+commercial-side shape without itself being commercial.
 
 ---
 
@@ -956,6 +998,7 @@ The canonical tier x feature mapping:
 | F-45 Hosted findings dashboard (commercial) | . | . | . | . | . |
 | F-46 Cloud audit export (commercial) | | . | . | . | . |
 | F-47 Managed Qdrant (commercial) | | . | . | . | . |
+| F-48 Open library distribution | . | . | . | . | . |
 
 o = supported with configuration, not default
 . = included

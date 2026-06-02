@@ -3,7 +3,7 @@
 **Status:** Authoritative (visualization of `CORE-Features.md` + ADR-084 D8)
 **Location:** `.specs/planning/CORE-Feature-Dependency-Graph.md`
 **Audience:** Internal — sequencing, commercial planning, sprint scoping
-**Last updated:** 2026-06-02 (ADR-083 + ADR-084 landed)
+**Last updated:** 2026-06-02 (ADR-083 + ADR-084 landed; F-48 filed)
 
 ---
 
@@ -42,7 +42,7 @@ graph TD
     F41["F-41 Artifact registry #415"]
     F42["F-42 Pluggable sensor #416"]
     F43["F-43 Pluggable action #417"]
-    PYPI["open library<br/>PyPI-published<br/>(no F-ID yet)"]
+    F48["F-48 Open library<br/>distribution #527"]
   end
 
   subgraph plugins ["Commercial — Plugin shape (ADR-084 D2)"]
@@ -89,16 +89,16 @@ graph TD
   F10 --> F45
   F19 --> F20
 
-  PYPI --> F31
-  PYPI --> F32
-  PYPI --> F33
-  PYPI --> F35
-  PYPI --> F36
+  F48 --> F31
+  F48 --> F32
+  F48 --> F33
+  F48 --> F35
+  F48 --> F36
   F31 -.-> F32
   F32 -.-> F36
 
   class F01,F04,F05,F09,F19,F25 shipping
-  class F10,F40,PYPI openRoadmap
+  class F10,F40,F48 openRoadmap
   class F41,F42,F43 pluginIface
   class F37,F44,F46 plugin
   class F20,F34,F45,F47 sidecar
@@ -120,7 +120,7 @@ The graph makes the open/commercial sequencing constraint structural rather than
 
 **C. F-43 unblocks two commercial features.** Plus the plugin shape becomes available to third-party authors at the same moment, which is the F-41/F-42/F-43 trio's stated purpose.
 
-**D. The runtime-fork cluster is gated on a non-feature.** There is no F-ID for "open codebase published as PyPI/Docker artifacts" yet — it's a piece of infrastructure work that materially blocks five commercial features (F-31, F-32, F-33, F-35, F-36). This is a planning gap; consider filing an F-48 (or similar) to make it visible in the registry.
+**D. The runtime-fork cluster is gated on F-48.** Open library distribution (PyPI + Docker registry, issue #527) is the shared open-infrastructure prerequisite for all five runtime-fork commercial features (F-31, F-32, F-33, F-35, F-36). F-48 has no hard blockers itself — it could ship today; the public-vs-internal API distinction is part of its scope. *Previously this was a planning gap (the graph had to invent a "PYPI" pseudo-node); ADR-084 §Consequences flagged it for filing; closed 2026-06-02.*
 
 ---
 
@@ -132,12 +132,12 @@ The structured version of the graph. Use this for filtering and for generating t
 |---|---|---|---|---|---|
 | F-10 | #384 | engine | open roadmap | none | top-of-funnel, ships independently |
 | F-20 | #394 | sidecar | commercial | F-40, F-19 (F-19 ships) | dashboard rendering the convergence metric |
-| F-31 | #405 | runtime fork | commercial | PyPI-published open library | multi-user state model |
-| F-32 | #406 | runtime fork | commercial | PyPI; soft on F-31 | authority model change |
-| F-33 | #407 | runtime fork | commercial | PyPI | daemon architecture change |
+| F-31 | #405 | runtime fork | commercial | F-48 | multi-user state model |
+| F-32 | #406 | runtime fork | commercial | F-48; soft on F-31 | authority model change |
+| F-33 | #407 | runtime fork | commercial | F-48 | daemon architecture change |
 | F-34 | #408 | sidecar | commercial | F-40 | full web governance UI |
-| F-35 | #409 | runtime fork | commercial | PyPI | constitution loader change |
-| F-36 | #410 | runtime fork | commercial | PyPI; soft on F-32 | identity model change |
+| F-35 | #409 | runtime fork | commercial | F-48 | constitution loader change |
+| F-36 | #410 | runtime fork | commercial | F-48; soft on F-32 | identity model change |
 | F-37 | #411 | plugin | commercial | F-43 | regulatory export atomic action |
 | F-38 | #412 | build overlay | commercial (outside taxonomy) | signed image infra | not really a "feature" |
 | F-39 | #413 | not software | commercial (outside taxonomy) | n/a | support contract |
@@ -149,6 +149,7 @@ The structured version of the graph. Use this for filtering and for generating t
 | F-45 | #524 | sidecar | commercial | F-40, F-10 | Audit-tier polish surface |
 | F-46 | #525 | plugin | commercial | F-43 | non-regulated audit export |
 | F-47 | #526 | sidecar | commercial | none materially (F-25 ships) | managed infrastructure, not application code |
+| F-48 | #527 | engine | open roadmap | none (could ship today) | unblocks all 5 runtime-fork commercial features |
 
 ---
 
