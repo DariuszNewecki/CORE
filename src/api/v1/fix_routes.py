@@ -109,7 +109,19 @@ class RunIRRequest(BaseModel):
     kind: Literal["triage", "log"]
 
 
-@router.post("/run/{fix_id}")
+@router.post(
+    "/run/{fix_id}",
+    summary="Dispatch an atomic fix action",
+    description=(
+        "Run an atomic action from the registry by `fix_id` (e.g. "
+        "`fix.format`, `fix.imports`, `fix.docstrings`). Returns 422 if "
+        "`fix_id` is unknown — the response body includes a registered "
+        "ids count. Valid ids return 202 + a `run_id` to poll. `write=false` "
+        "is the dry-run default (ADR-014). `params` carries action-specific "
+        "kwargs (e.g. `fix.docstrings`'s `limit`) and is forwarded as "
+        "`**kwargs` to ActionExecutor.execute."
+    ),
+)
 # ID: 4f1f7aa0-ad2c-4e49-8ab4-5712af1516e6
 async def run_fix(
     fix_id: str,
@@ -256,7 +268,15 @@ async def _dispatch_flow(
     }
 
 
-@router.post("/all")
+@router.post(
+    "/all",
+    summary="Dispatch the curated fix sequence",
+    description=(
+        "Run the `flow.fix_code` curated sequence — a registered Flow YAML "
+        "that bundles the standard fix-category atomic actions in their "
+        "ADR-sanctioned execution order. Returns 202 + a `run_id`."
+    ),
+)
 # ID: ee17fca7-f08a-4792-beaf-e1f0006f0e74
 async def run_fix_all(
     request: Request,
@@ -277,7 +297,16 @@ async def run_fix_all(
     )
 
 
-@router.post("/modularity")
+@router.post(
+    "/modularity",
+    summary="Dispatch the modularity remediation cycle",
+    description=(
+        "Run the modularity remediation cycle — a Python-level workflow "
+        "(ModularityRemediationService), not a Flow YAML — so there's no "
+        "flow_id to validate. `params` supports `min_score` + `limit` for "
+        "candidate selection. Returns 202 + a `run_id`."
+    ),
+)
 # ID: e6c995f2-6eab-4613-97dd-722689161e2b
 async def run_fix_modularity(
     request: Request,
@@ -333,7 +362,17 @@ async def run_fix_modularity(
     }
 
 
-@router.post("/ir")
+@router.post(
+    "/ir",
+    summary="Bootstrap an IR scaffold file",
+    description=(
+        "Bootstrap an Intent Representation (IR) scaffold file of the "
+        "requested `kind` (`triage` or `log`). Synchronous — returns the "
+        "relative path that was written. No background task; no "
+        "core.fix_runs row. Returns 422 if `kind` is outside the closed "
+        "vocabulary."
+    ),
+)
 # ID: d638b36f-dfb4-4417-bba7-a180de2cf193
 async def run_fix_ir(
     request: Request,
@@ -353,7 +392,14 @@ async def run_fix_ir(
     return {"path": path}
 
 
-@router.get("/commands")
+@router.get(
+    "/commands",
+    summary="List registered fix-category atomic actions",
+    description=(
+        "Return metadata for atomic actions whose category is `fix`. Use "
+        "`GET /v1/actions` for the unfiltered view across every category."
+    ),
+)
 # ID: e1dfec9d-5e9f-4aec-a96b-2bc1532360eb
 async def list_fix_commands() -> dict:
     """Return metadata for registered fix-category atomic actions.
@@ -366,7 +412,17 @@ async def list_fix_commands() -> dict:
     return {"count": len(commands), "commands": commands}
 
 
-@router.get("/runs/{run_id}")
+@router.get(
+    "/runs/{run_id}",
+    summary="Fetch a persisted fix run",
+    description=(
+        "Read back a fix run's persisted record by `run_id`. The response "
+        "shape matches ADR-055 D2: run_id, status, fix_id, kind, write, "
+        "result, error. `result` is the JSONB ActionResult payload written "
+        "by the background task; null while the run is still pending or "
+        "executing. Returns 404 if no run exists with that id."
+    ),
+)
 # ID: 1a8efd3f-7107-4aaf-98cc-82f01a93a5cb
 async def get_fix_run(
     run_id: UUID,
@@ -416,7 +472,16 @@ async def get_fix_run(
     }
 
 
-@actions_router.get("/actions")
+@actions_router.get(
+    "/actions",
+    summary="List registered atomic actions",
+    description=(
+        "Return metadata for every registered atomic action. Used by OEM "
+        "integrators to discover what governance primitives are available "
+        "for embedding. For the fix-category-only view, use "
+        "`GET /v1/fix/commands`."
+    ),
+)
 # ID: 64f8b369-b83d-4caf-ab08-fc46984bcc44
 async def list_actions() -> dict:
     """Return metadata for every registered atomic action.

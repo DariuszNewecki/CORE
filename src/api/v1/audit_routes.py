@@ -77,7 +77,17 @@ class CreateAuditRunRequest(BaseModel):
     source: str = "api"
 
 
-@router.post("/runs")
+@router.post(
+    "/runs",
+    summary="Start an audit run",
+    description=(
+        "Start a constitutional audit run against the repo. With `wait=false` "
+        "(default) returns 202 + a `run_id` to poll; the audit executes on a "
+        "background task. With `wait=true` blocks and returns the full result "
+        "(verdict + findings + stats) in-band (status 200). Audit duration is "
+        "~60s; clients invoking `wait=true` must set a long HTTP timeout."
+    ),
+)
 # ID: 26d3745c-b1a3-419f-a521-06691b8a2c75
 async def create_audit_run(
     request: Request,
@@ -132,7 +142,16 @@ async def create_audit_run(
     return {"run_id": str(run_id), "status": "pending"}
 
 
-@router.get("/runs/{run_id}")
+@router.get(
+    "/runs/{run_id}",
+    summary="Fetch a persisted audit run",
+    description=(
+        "Read back an audit run's persisted record by `run_id`: verdict + "
+        "counts + timestamps + status + findings list. Returns 404 if the run "
+        "doesn't exist. Findings are denormalized on `core.audit_runs.findings` "
+        "per ADR-054 amendment; pre-amendment rows return an empty list."
+    ),
+)
 # ID: 7c4903f0-e174-4e52-915d-54988fe40d22
 async def get_audit_run(
     run_id: UUID,
@@ -191,7 +210,18 @@ class CreateRemediationRequest(BaseModel):
     requested_by: str = "api"
 
 
-@router.post("/remediations")
+@router.post(
+    "/remediations",
+    summary="Dispatch autonomous remediation",
+    description=(
+        "Trigger autonomous remediation of findings from a prior audit run "
+        "(`audit_run_id`). `mode` selects aggressiveness — wire vocabulary "
+        "is `safe` | `medium` | `all`. `write=false` is the dry-run default "
+        "(ADR-014). Returns 202 + a `run_id` for the new remediation run; "
+        "use `GET /v1/audit/remediations/{run_id}` to read the result. 422 "
+        "if `mode` is outside the allowed vocabulary."
+    ),
+)
 # ID: 5c8d9e0f-1a2b-4c3d-4e5f-6a7b8c9d0e1f
 async def create_remediation_run(
     request: Request,
@@ -259,7 +289,15 @@ async def create_remediation_run(
     }
 
 
-@router.get("/remediations/{run_id}")
+@router.get(
+    "/remediations/{run_id}",
+    summary="Fetch a remediation run",
+    description=(
+        "Read back a remediation run's persisted record by `run_id`: mode, "
+        "write flag, status, timestamps, result, and error if any. Returns "
+        "404 if the run doesn't exist."
+    ),
+)
 # ID: 7e0f1a2b-3c4d-4e5f-6a7b-8c9d0e1f2a3b
 async def get_remediation_run(
     run_id: UUID,

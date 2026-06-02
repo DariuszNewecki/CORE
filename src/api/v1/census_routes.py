@@ -79,7 +79,16 @@ class CreateBaselineRequest(BaseModel):
     snapshot_file: str | None = None
 
 
-@router.post("/runs")
+@router.post(
+    "/runs",
+    summary="Dispatch a structural census",
+    description=(
+        "Trigger a CIM-0 structural census snapshot of the constitution and "
+        "codebase. Returns 202 + a `run_id` to poll. F-20 (Convergence "
+        "dashboard) ingests these snapshots over time to render the "
+        "finding-rate vs resolution-rate trajectory."
+    ),
+)
 # ID: 0e7a4f2b-6d1c-4f9a-aedb-90123ab456f7
 async def create_census_run(
     request: Request,
@@ -128,7 +137,15 @@ async def create_census_run(
     }
 
 
-@router.get("/runs/{run_id}")
+@router.get(
+    "/runs/{run_id}",
+    summary="Fetch a persisted census run",
+    description=(
+        "Read back a census run's persisted record by `run_id`: snapshot, "
+        "baseline_name, status, timestamps, result, error. Returns 404 if "
+        "the run doesn't exist."
+    ),
+)
 # ID: 2a9c6b4d-8f3e-4b1c-c0fd-b2345cd6789a
 async def get_census_run(
     run_id: UUID,
@@ -170,7 +187,16 @@ async def get_census_run(
     }
 
 
-@router.post("/baselines/{name}")
+@router.post(
+    "/baselines/{name}",
+    summary="Create a named census baseline",
+    description=(
+        "Promote a census snapshot to a named baseline. F-20 dashboards use "
+        "baselines as reference points for the convergence trajectory. "
+        "`snapshot_file` is optional; when omitted, the most recent snapshot "
+        "is used. Returns 422 if no usable snapshot exists."
+    ),
+)
 # ID: 3b0d7c5e-9a4f-4c2d-d10e-c3456de789ab
 async def create_census_baseline(
     request: Request,
@@ -188,7 +214,11 @@ async def create_census_baseline(
     return {"baseline": baseline}
 
 
-@router.get("/baselines")
+@router.get(
+    "/baselines",
+    summary="List census baselines",
+    description="Return all named baselines (newest first).",
+)
 # ID: 4c1e8d6f-0b5a-4d3e-e21f-d4567ef89abc
 async def list_census_baselines(request: Request) -> dict:
     """Return all named baselines (newest first)."""
@@ -196,7 +226,16 @@ async def list_census_baselines(request: Request) -> dict:
     return list_baselines(core_context)
 
 
-@router.get("/diff")
+@router.get(
+    "/diff",
+    summary="Compare current state to a baseline",
+    description=(
+        "Diff the current census state against a baseline. The optional "
+        "`baseline` query param selects which named baseline to compare "
+        "against; omit to use the default baseline if configured. Returns "
+        "the structured delta consumed by F-20 dashboards."
+    ),
+)
 # ID: 5d2f9e7a-1c6b-4e4f-f320-e5678f0abcde
 async def census_diff(
     request: Request,

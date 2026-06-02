@@ -20,7 +20,16 @@ from shared.infrastructure.knowledge.knowledge_service import KnowledgeService
 router = APIRouter(prefix="/knowledge")
 
 
-@router.get("/capabilities")
+@router.get(
+    "/capabilities",
+    summary="List known capabilities",
+    description=(
+        "Return the capability registry from the knowledge graph. Sidecar "
+        "consumers (F-34 web dashboard) use this to render the capability "
+        "tree and to anchor proposal/action views against the constitutional "
+        "capability taxonomy."
+    ),
+)
 # ID: 0016df93-d0e5-45b0-b5b8-8f4170de3d9d
 async def list_capabilities(
     session: AsyncSession = Depends(get_api_session),
