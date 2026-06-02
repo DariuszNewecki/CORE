@@ -3,7 +3,7 @@
 **Status:** Authoritative (operational surface for ADR-085)
 **Location:** `.specs/planning/CORE-Operational-Completeness.md`
 **Audience:** Internal — engineering sequencing, session-protocol "what to pick next"
-**Last updated:** 2026-06-02 (ADR-085 lock-in)
+**Last updated:** 2026-06-02 (F-10.1a/1b/2 shipped; ADR-086 accepted; F-48 decomposed and resequenced ahead of F-10.3)
 
 ---
 
@@ -29,11 +29,11 @@ That returns exactly the seven gate issues (F-10 #384, F-27 #401, F-40 #414, F-4
 
 | Item | F-ID | Issue | Current status | "Done" looks like | Notes |
 |---|---|---|---|---|---|
-| CI/CD gate | F-10 | [#384](https://github.com/DariuszNewecki/CORE/issues/384) | roadmap | `status: shipping`; PR annotations + merge-blocking demonstrated against a real external repo | Top of the adoption funnel (Tiers paper §2). **Decomposed 2026-06-02 into 5 MVP sub-issues + 1 deferred** (see §2.3 below). The audit engine itself already runs (invoked via `core-admin code audit` against core-api; the in-repo `.github/workflows/nightly-audit.yml` was removed in `a8a232ef` per #534 and will be reinstated against the F-10.3 Action per ADR-086); F-10's gap is packaging + distribution + output formatting + external-repo verification. F-10 ships when F-10.4 closes. |
+| CI/CD gate | F-10 | [#384](https://github.com/DariuszNewecki/CORE/issues/384) | **partial** | `status: shipping`; PR annotations + merge-blocking demonstrated against a real external repo | Top of the adoption funnel (Tiers paper §2). **Decomposed 2026-06-02; F-10.1a/F-10.1b/F-10.2 shipped same day** (`d2bf1639`, `0396abbe`, `2513dac9`); F-10.3/4/5 outstanding — see §2.3. The in-repo `.github/workflows/nightly-audit.yml` was removed in `a8a232ef` per #534 and will be reinstated against the F-10.3 Action per ADR-086. F-10 ships when F-10.4 closes. **F-10.3 now blocked by F-48.2** per ADR-086 D1+D7 (Dockerfile pulls `core-runtime` from PyPI). |
 | Local LLM | F-27 | [#401](https://github.com/DariuszNewecki/CORE/issues/401) | **partial** | promotes from `partial` to `shipping`; reliable local-LLM-only Solo run for ≥7 days | Smallest finishing touch in the list. Building on existing infrastructure. |
 | OEM API surface | F-40 | [#414](https://github.com/DariuszNewecki/CORE/issues/414) | roadmap | `status: shipping`; documented public contract; sidecar-shape commercial features F-20/F-34/F-45/F-47 can attach without private hooks (ADR-084 D6) | Largest unblocker — releases four commercial sidecars at once. Per ADR-084, interface symmetry means the API surface must be documented as the contract third-parties consume, not just an internal API. |
 | Extension interfaces | F-41 + F-42 + F-43 | [#415](https://github.com/DariuszNewecki/CORE/issues/415) [#416](https://github.com/DariuszNewecki/CORE/issues/416) [#417](https://github.com/DariuszNewecki/CORE/issues/417) | all roadmap | all three `status: shipping`; one first-party non-code instantiation exists as proof of the plugin-interface contract | F-41 ships first (F-42 and F-43 depend on it). F-42 + F-43 can land in parallel. The "one non-code instantiation" criterion exists to prove the plugin-interface contract is real, not aspirational. |
-| Open library distribution | F-48 | [#527](https://github.com/DariuszNewecki/CORE/issues/527) | roadmap | `status: shipping`; `pip install core-runtime` works; semver tags; CI publishes on tag | Filed 2026-06-02 to close ADR-084 D4 planning gap. No hard blockers; public-vs-internal API distinction is part of its scope. Constitutionally load-bearing per ADR-084 D7 §4. |
+| Open library distribution | F-48 | [#527](https://github.com/DariuszNewecki/CORE/issues/527) | roadmap | `status: shipping`; `pip install core-runtime` works; semver tags; CI publishes on tag | Filed 2026-06-02 to close ADR-084 D4 planning gap. **Decomposed 2026-06-02 into 5 sub-issues** (see §2.4). **Re-sequenced ahead of F-10.3** because ADR-086 D1+D7 makes F-10.3's Dockerfile depend on `core-runtime` being PyPI-published. Constitutionally load-bearing per ADR-084 D7 §4. |
 
 ### 2.2 Three quality goals
 
@@ -64,30 +64,30 @@ subset that doesn't need the knowledge graph; graph-dependent rules
 skip with structured reason — is recorded in #528's body as
 "Architectural Option A."
 
-| Sub | Issue | Sized | Blocks | Purpose |
+| Sub | Issue | Sized | Status | Purpose |
 |---|---|---|---|---|
-| F-10.1a | [#528](https://github.com/DariuszNewecki/CORE/issues/528) | 1-2 sessions | F-10.1b | Stateless audit runner — DB-free path; graceful skip for graph-rules |
-| F-10.1b | [#535](https://github.com/DariuszNewecki/CORE/issues/535) | ~1 session | F-10.2, F-10.3, F-10.5, F-10.P2 | CLI surface: `--offline`, `--json`, exit codes, `--severity` |
-| F-10.2 | [#529](https://github.com/DariuszNewecki/CORE/issues/529) | ~1 session | F-10.3, F-10.4 | `--format=github-annotations` output |
-| F-10.3 | [#530](https://github.com/DariuszNewecki/CORE/issues/530) | 1–2 sessions | F-10.4, F-10.P2 | `action.yml` + `Dockerfile` + Marketplace prep |
-| F-10.4 | [#531](https://github.com/DariuszNewecki/CORE/issues/531) | ~1 session | F-10 status flip → shipping | External-repo end-to-end verification — **closes F-10** |
-| F-10.5 | [#532](https://github.com/DariuszNewecki/CORE/issues/532) | ~½ session | — | `.pre-commit-hooks.yaml` distribution (nearly-free bonus) |
+| F-10.1a | [#528](https://github.com/DariuszNewecki/CORE/issues/528) | 1-2 sessions | ✅ shipped `d2bf1639` | Stateless audit runner — DB-free path; graceful skip for graph-rules |
+| F-10.1b | [#535](https://github.com/DariuszNewecki/CORE/issues/535) | ~1 session | ✅ shipped `0396abbe` | CLI surface: `--offline`, `--json`, exit codes, `--severity` |
+| F-10.2 | [#529](https://github.com/DariuszNewecki/CORE/issues/529) | ~1 session | ✅ shipped `2513dac9` | `--format=github-annotations` output |
+| F-10.3 | [#530](https://github.com/DariuszNewecki/CORE/issues/530) | 1–2 sessions | blocked by F-48.2 | `action.yml` + `Dockerfile` + Marketplace prep |
+| F-10.4 | [#531](https://github.com/DariuszNewecki/CORE/issues/531) | ~1 session | blocked by F-10.3 | External-repo end-to-end verification — **closes F-10** |
+| F-10.5 | [#532](https://github.com/DariuszNewecki/CORE/issues/532) | ~½ session | open | `.pre-commit-hooks.yaml` distribution (nearly-free bonus) |
 | F-10.P2 | [#533](https://github.com/DariuszNewecki/CORE/issues/533) | deferred | — | GitLab CI step + CodeClimate format. Out of MVP; lands after F-10 ships. |
 
-**Total MVP path:** ~6 sessions of focused work (revised up from ~5
-after the F-10.1 split).
+**Total MVP path remaining:** F-10.3 (1–2 sessions, blocked by F-48.2) +
+F-10.5 (½ session, can land anytime) + F-10.4 (~1 session, last). Plus
+the F-48.1 → F-48.2 dependency ahead of F-10.3 (~2 sessions; see §2.4).
 
-**Picking order for sessions:** F-10.1a first (foundation; everything
-else depends on it through F-10.1b). Then F-10.1b. Then F-10.2 + F-10.3
-in parallel. F-10.5 anytime after F-10.1b. F-10.4 is last among MVP
-because it's the verification that fires only when F-10.2 + F-10.3 are
-both ready.
+**Picking order for sessions (revised 2026-06-02 post-ADR-086):**
+F-48.1 → F-48.2 (PyPI publish; see §2.4) → F-10.3 + F-10.5 in parallel
+→ F-10.4 last. F-10.5 can also land alongside the F-48 work since it
+only needs the F-10.1b surface already shipped.
 
-All seven sub-issues carry the `goal:operational-completeness` label and
-are parented to #384 via GH's native sub-issue relation. The default
-`gh issue list --label goal:operational-completeness --state open`
-query now returns 14 items (7 gates + 7 F-10 sub-tasks). For a F-10-
-only view: `gh issue list --search "is:open is:issue parent:384"`.
+All seven F-10 sub-issues are parented to #384 via GH's native sub-issue
+relation. The default `gh issue list --label goal:operational-completeness
+--state open` query now returns the open gate set plus open F-10 and
+F-48 sub-issues. For a F-10-only view: `gh issue list --search "is:open
+is:issue parent:384"`. For F-48: replace `384` with `527`.
 
 **Tracked separately (not in F-10 scope):** #534 — `.github/workflows/
 nightly-audit.yml` called `python -m src.core.capabilities`, a module
@@ -98,14 +98,49 @@ against this repo per ADR-086.
 
 ---
 
+### 2.4 F-48 sub-task decomposition (added 2026-06-02)
+
+F-48 was decomposed during F-10.3 reconnaissance. ADR-086 D1+D7 (accepted
+same day as F-10's decomposition) introduced a dependency F-10.3's
+original scope did not anticipate: the Audit-tier Dockerfile pulls
+`core-runtime:X.Y.Z` from PyPI. That made F-48 (PyPI publish) a
+prerequisite for F-10.3, which prompted the decomposition + Tier-1
+re-sequencing (see §3).
+
+Decomposition is operational (this doc + GH parent/sub-issue relations),
+not constitutional — mirrors the §2.3 F-10 pattern.
+
+| Sub | Issue | Sized | Blocks | Purpose |
+|---|---|---|---|---|
+| F-48.1 | [#537](https://github.com/DariuszNewecki/CORE/issues/537) | ~1 session | F-48.2, F-48.3, F-48.4, F-48.5 | Rename distribution `core` → `core-runtime`; PyPI metadata; reset version to `v0.1.0`; verify `poetry build` |
+| F-48.2 | [#538](https://github.com/DariuszNewecki/CORE/issues/538) | ~1 session | **F-10.3 #530** | PyPI release workflow via Trusted Publisher (OIDC); first publish `v0.1.0` |
+| F-48.3 | [#539](https://github.com/DariuszNewecki/CORE/issues/539) | ~1 session | Solo install (post-exit) | Docker `core-engine` image + GHCR release workflow |
+| F-48.4 | [#540](https://github.com/DariuszNewecki/CORE/issues/540) | 1–2 sessions | F-31/32/33/35/36 commercial sidecars; `v1.0.0` | Public-vs-internal API distinction (`__all__` declarations) |
+| F-48.5 | [#541](https://github.com/DariuszNewecki/CORE/issues/541) | ~½ session | `v1.0.0` | Semver policy doc per ADR-086 D7 |
+
+**MVP path to unblock F-10.3:** F-48.1 → F-48.2 → tag `v0.1.0`. ~2
+sessions of focused work.
+
+**Picking order:** F-48.1 first (foundation; everything else blocks on
+it). F-48.2 next (the F-10.3 unblocker). F-48.5 anytime after F-48.1
+(small doc; no implementation dependency). F-48.3 + F-48.4 land after
+F-10.3 ships — not on the F-10 critical path; their consumers
+(Solo install, commercial sidecars) are post ADR-085 exit.
+
+All five sub-issues carry `goal:operational-completeness` and are
+parented to #527 via GH's native sub-issue relation. F-10.3 #530's
+blocked-by set was extended with F-48.2 #538 the same day.
+
+---
+
 ## 3. Sequencing (operational, updateable)
 
 Per ADR-085 D6, this ADR does not prescribe ordering inside the list, but the dependency graph constrains it. Current best estimate:
 
-**Tier-1 (any can ship next, choose by engineering velocity):**
-- **F-10** CI/CD gate — top of adoption funnel; visible-impact win
+**Tier-1 (current sequence, post-ADR-086):**
+- **F-48** Open library distribution — **next.** MVP path F-48.1 → F-48.2 unblocks F-10.3 per ADR-086 D1+D7. ~2 sessions. See §2.4.
+- **F-10** CI/CD gate — partial; F-10.1a/1b/2 shipped. Remaining sub-items (F-10.3/4/5) re-enter Tier-1 picking once F-48.2 ships.
 - **F-40** OEM API surface — largest downstream-unblocker (releases 4 commercial sidecars)
-- **F-48** Open library distribution — closes the ADR-084 D4 constitutional gap; smallest engineering surface among Tier-1
 
 **Tier-2 (F-41 first, then F-42 + F-43 in parallel):**
 - **F-41** Artifact type registry — prerequisite for F-42 + F-43
@@ -161,6 +196,9 @@ When all eight items show satisfied state:
 | 2026-06-02 | ADR-085 accepted; constraint active; tracker created. Seven gate issues labeled `goal:operational-completeness`. F-27 starts at `partial`; all others at `roadmap`. All three quality goals at "not started." |
 | 2026-06-02 | F-10 decomposed into 5 MVP sub-issues + 1 deferred (#528–#533). Parented to #384; all labeled `goal:operational-completeness`; 8 internal blocked-by edges wired; added to Project #6. F-10's body updated to point at the decomposition; tracker §2.3 added. MVP picking order: F-10.1 first, then F-10.2 + F-10.3 + F-10.5 in parallel, F-10.4 last. |
 | 2026-06-02 | F-10.1 reconnaissance discovered no standalone audit path exists today; `core-admin code audit` requires core-api + DB; `nightly-audit.yml` calls a phantom module. F-10.1 split into 1a (#528 runner refactor, Option A — graph-rule skip) and 1b (#535 CLI surface). 5 new dep edges wired; downstream sub-tasks now depend on 1b instead of original 1. Tracker §2.3 revised; F-10 #384 body updated. Surfaced bug #534 filed separately for the broken nightly workflow. MVP estimate revised: ~5 sessions → ~6 sessions. |
+| 2026-06-02 | F-10.1a (#528), F-10.1b (#535), F-10.2 (#529) all closed and merged in commits `d2bf1639`, `0396abbe`, `2513dac9`. F-10's `Current status` advanced from `roadmap` → `partial`. |
+| 2026-06-02 | ADR-086 accepted (`a99b0088`) — Installation Architecture. D1+D7 introduce a `core-runtime`-on-PyPI dependency for F-10.3's Dockerfile that wasn't visible when F-10 was originally decomposed; surfaces F-48 as F-10.3's prerequisite. |
+| 2026-06-02 | F-48 decomposed into 5 sub-issues (#537–#541), parented to #527, all labeled `goal:operational-completeness`. F-10.3 #530's blocked-by set extended with F-48.2 #538. Tier-1 sequence revised: F-48 ahead of F-10's remaining sub-items. Tracker §2.4 added; §3 Tier-1 reordered. MVP estimate: ~2 F-48 sessions ahead of F-10.3. |
 
 ---
 
