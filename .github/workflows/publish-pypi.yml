@@ -1,0 +1,73 @@
+# .github/workflows/publish-pypi.yml
+#
+# F-48.2 — PyPI release workflow via Trusted Publisher (OIDC).
+#
+# Triggered on a semver-shaped tag push (v*.*.*). Builds the wheel + sdist
+# and publishes `core-runtime` to PyPI with zero stored credentials —
+# authentication is via OIDC token minted by GitHub Actions and verified
+# by PyPI against a pre-registered trusted publisher configuration.
+#
+# See docs/release.md for the one-time setup (pending-publisher form and
+# PyPI environment configuration). After setup, releases are:
+#   1. Bump version in pyproject.toml
+#   2. git tag vX.Y.Z && git push --tags
+#   3. This workflow fires automatically.
+
+name: Publish to PyPI
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-publish:
+    name: Build and publish core-runtime to PyPI
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/p/core-runtime
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+        with:
+          version: "1.8.3"
+          virtualenvs-create: true
+          virtualenvs-in-project: true
+
+      - name: Verify tag matches pyproject.toml version
+        run: |
+          TAG_VERSION="${GITHUB_REF_NAME#v}"
+          PROJECT_VERSION=$(poetry version --short)
+          if [ "$TAG_VERSION" != "$PROJECT_VERSION" ]; then
+            echo "::error::Tag v${TAG_VERSION} does not match pyproject.toml version ${PROJECT_VERSION}. Bump the version in pyproject.toml before tagging."
+            exit 1
+          fi
+          echo "Tag matches: v${TAG_VERSION}"
+
+      - name: Build wheel + sdist
+        run: poetry build
+
+      - name: Inspect built artifacts
+        run: ls -la dist/
+
+      - name: Publish to PyPI (Trusted Publisher OIDC)
+        uses: pypa/gh-action-pypi-publish@release/v1
+        # No `with: password` — Trusted Publisher uses the OIDC token
+        # minted by GitHub Actions (id-token: write permission above).
+        # PyPI verifies the token against the trusted publisher
+        # configuration registered for `core-runtime`.
