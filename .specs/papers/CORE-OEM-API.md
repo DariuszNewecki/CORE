@@ -233,7 +233,24 @@ A quick walk-through of each sidecar's needs against the `public` set:
 
 No sidecar needs a route classified `internal`. **F-40 Phase A's "without private hooks" criterion is provisionally met by this classification.** F-40.4 will formalise the walk-through and produce the verification doc that closes F-40.
 
-## 6. What this contract does NOT promise
+## 6. Machine-readable spec
+
+The published OpenAPI spec for `/v1/` lives at `.specs/contracts/oem_api_v1.openapi.json` (snapshot, committed) and is also served at `/v1/openapi.json` by the running daemon. Both surfaces are generated from the same FastAPI route annotations in `src/api/v1/*_routes.py` — the committed snapshot is a point-in-time copy for consumers who want the contract without running CORE.
+
+Per ADR-087 D9:
+- `info.version` mirrors `core-runtime`'s PyPI version (or `0.0.0+source` in source-tree development mode).
+- `info.x-stability-policy` links to ADR-087.
+- Routes marked `internal` are absent from the spec (`include_in_schema=False`).
+
+To regenerate the snapshot after a route annotation change:
+
+```bash
+python -c "import json; from api.main import app; json.dump(app.openapi(), open('.specs/contracts/oem_api_v1.openapi.json', 'w'), indent=2)"
+```
+
+There is no CI gate enforcing snapshot freshness today. A pre-commit hook or CI step that regenerates and diffs is straightforward follow-up work but is not gating F-40.
+
+## 7. What this contract does NOT promise
 
 This classification declares route membership in the public contract. It does NOT yet promise:
 
@@ -244,7 +261,7 @@ This classification declares route membership in the public contract. It does NO
 
 A consumer reading this doc today understands which routes will be stable; they cannot yet call them remotely or learn their exact shape from a spec. Both follow.
 
-## 7. Updating this document
+## 8. Updating this document
 
 This is an operational document; it can change without an ADR amendment when:
 
@@ -257,7 +274,7 @@ An ADR amendment is required when:
 - The classification model itself changes (e.g., adding a fourth class beyond public/internal/deprecated).
 - Interface symmetry (ADR-084 D6) is challenged by a proposed first-party-commercial-only route.
 
-## 8. References
+## 9. References
 
 - **Parent issue:** #414 (F-40 OEM API surface)
 - **F-40.1 (this doc's source issue):** #550
