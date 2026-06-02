@@ -144,8 +144,8 @@ Two phases: Phase A satisfies ADR-085's literal exit criterion (sidecar attachab
 
 | Sub | Issue | Sized | Blocks | Purpose |
 |---|---|---|---|---|
-| F-40.1 | [#550](https://github.com/DariuszNewecki/CORE/issues/550) | ~1 session | F-40.2, F-40.3, F-40.4 | Public-vs-internal route classification |
-| F-40.2 | [#551](https://github.com/DariuszNewecki/CORE/issues/551) | ~1 session | F-40.3, F-40.4 | Versioning + stability policy ADR for `/v1/` |
+| F-40.1 | [#550](https://github.com/DariuszNewecki/CORE/issues/550) | ~1 session | F-40.2, F-40.3, F-40.4 | ✅ shipped `22144571` — `papers/CORE-OEM-API.md` route classification |
+| F-40.2 | [#551](https://github.com/DariuszNewecki/CORE/issues/551) | ~1 session | F-40.3, F-40.4 | ✅ shipped `831a95cc` — ADR-087 versioning + stability policy |
 | F-40.3 | [#552](https://github.com/DariuszNewecki/CORE/issues/552) | ~1–2 sessions | F-40.4 | OpenAPI spec + per-route annotation pass |
 | F-40.4 | [#553](https://github.com/DariuszNewecki/CORE/issues/553) | ~1 session | **F-40 #414 ship** | Sidecar attachment verification — closes F-40 |
 
@@ -173,7 +173,7 @@ Per ADR-085 D6, this ADR does not prescribe ordering inside the list, but the de
 **Tier-1 (current sequence, post 2026-06-02 F-10/F-48 ship):**
 - **F-48** Open library distribution — ✅ shipped 2026-06-02. F-48.1 + F-48.2 closed; F-48.3/4/5 post-exit or v1.0.0-gated (see §2.4).
 - **F-10** CI/CD gate — ✅ shipped 2026-06-02. All MVP sub-items closed; F-10.5 (pre-commit-hooks) open as bonus delivery channel.
-- **F-40** OEM API surface — **active.** Decomposed 2026-06-02 (see §2.5). MVP path F-40.1 → F-40.2 → F-40.3 → F-40.4 (~4–5 sessions). Releases 3 commercial sidecars (F-20, F-34, F-45 read-side) on closure. **F-40.1 (#550) is the next sub-pickup.**
+- **F-40** OEM API surface — **active.** Decomposed 2026-06-02 (see §2.5). MVP path F-40.1 → F-40.2 → F-40.3 → F-40.4 (~4–5 sessions). Releases 3 commercial sidecars (F-20, F-34, F-45 read-side) on closure. **F-40.1 ✅ closed 2026-06-02 (`22144571`); F-40.2 ✅ closed 2026-06-02 (`831a95cc`, ADR-087). F-40.3 (#552) is the next sub-pickup.**
 
 **Tier-2 (F-41 first, then F-42 + F-43 in parallel):**
 - **F-41** Artifact type registry — prerequisite for F-42 + F-43
