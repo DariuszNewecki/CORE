@@ -45,7 +45,7 @@ That returns exactly the seven gate issues (F-10 #384, F-27 #401, F-40 #414, F-4
 
 ---
 
-### 2.3 F-10 sub-task decomposition (added 2026-06-02)
+### 2.3 F-10 sub-task decomposition (added 2026-06-02; revised same day after recon)
 
 F-10 is the only feature in the 5+3 list that was decomposed at gate
 authoring time. The decomposition is operational (lives in this doc and
@@ -53,28 +53,46 @@ in GH parent/sub-issue relations), not constitutional (no ADR required).
 Other gate items can be similarly decomposed in-session when scoping
 makes them concrete.
 
+**Recon-driven revision (2026-06-02):** F-10.1's original "1 session"
+estimate undercounted. Reconnaissance showed there is no standalone
+audit invocation today — `core-admin code audit` requires core-api +
+DB, and the in-repo `nightly-audit.yml` workflow calls a phantom
+`src.core.capabilities` module (bug tracked as #534). F-10.1 is
+therefore split into 1a (runner refactor) and 1b (CLI surface). The
+architectural decision behind 1a — stateless mode covers the rule
+subset that doesn't need the knowledge graph; graph-dependent rules
+skip with structured reason — is recorded in #528's body as
+"Architectural Option A."
+
 | Sub | Issue | Sized | Blocks | Purpose |
 |---|---|---|---|---|
-| F-10.1 | [#528](https://github.com/DariuszNewecki/CORE/issues/528) | ~1 session | F-10.2, F-10.3, F-10.5, F-10.P2 | Standalone CLI contract: `--json`, severity-mapped exit codes |
+| F-10.1a | [#528](https://github.com/DariuszNewecki/CORE/issues/528) | 1-2 sessions | F-10.1b | Stateless audit runner — DB-free path; graceful skip for graph-rules |
+| F-10.1b | [#535](https://github.com/DariuszNewecki/CORE/issues/535) | ~1 session | F-10.2, F-10.3, F-10.5, F-10.P2 | CLI surface: `--offline`, `--json`, exit codes, `--severity` |
 | F-10.2 | [#529](https://github.com/DariuszNewecki/CORE/issues/529) | ~1 session | F-10.3, F-10.4 | `--format=github-annotations` output |
 | F-10.3 | [#530](https://github.com/DariuszNewecki/CORE/issues/530) | 1–2 sessions | F-10.4, F-10.P2 | `action.yml` + `Dockerfile` + Marketplace prep |
 | F-10.4 | [#531](https://github.com/DariuszNewecki/CORE/issues/531) | ~1 session | F-10 status flip → shipping | External-repo end-to-end verification — **closes F-10** |
 | F-10.5 | [#532](https://github.com/DariuszNewecki/CORE/issues/532) | ~½ session | — | `.pre-commit-hooks.yaml` distribution (nearly-free bonus) |
 | F-10.P2 | [#533](https://github.com/DariuszNewecki/CORE/issues/533) | deferred | — | GitLab CI step + CodeClimate format. Out of MVP; lands after F-10 ships. |
 
-**Total MVP path:** ~5 sessions of focused work.
+**Total MVP path:** ~6 sessions of focused work (revised up from ~5
+after the F-10.1 split).
 
-**Picking order for sessions:** F-10.1 first (everything else depends on
-it). After F-10.1 ships, F-10.2 and F-10.3 can land in parallel — they
-share no edits. F-10.5 can land any time after F-10.1 (independent of
-F-10.2/F-10.3). F-10.4 is last among MVP because it's the verification
-that fires only when F-10.2 + F-10.3 are both ready.
+**Picking order for sessions:** F-10.1a first (foundation; everything
+else depends on it through F-10.1b). Then F-10.1b. Then F-10.2 + F-10.3
+in parallel. F-10.5 anytime after F-10.1b. F-10.4 is last among MVP
+because it's the verification that fires only when F-10.2 + F-10.3 are
+both ready.
 
-All six sub-issues carry the `goal:operational-completeness` label and
+All seven sub-issues carry the `goal:operational-completeness` label and
 are parented to #384 via GH's native sub-issue relation. The default
 `gh issue list --label goal:operational-completeness --state open`
-query now returns 13 items (7 gates + 6 F-10 sub-tasks). For a F-10-
+query now returns 14 items (7 gates + 7 F-10 sub-tasks). For a F-10-
 only view: `gh issue list --search "is:open is:issue parent:384"`.
+
+**Tracked separately (not in F-10 scope):** #534 — `.github/workflows/
+nightly-audit.yml` calls `python -m src.core.capabilities`, a module that
+no longer exists. Workflow has been silently shipping a non-functional
+gate. Fix or remove as a one-shot, separate from F-10.
 
 ---
 
@@ -140,6 +158,7 @@ When all eight items show satisfied state:
 |---|---|
 | 2026-06-02 | ADR-085 accepted; constraint active; tracker created. Seven gate issues labeled `goal:operational-completeness`. F-27 starts at `partial`; all others at `roadmap`. All three quality goals at "not started." |
 | 2026-06-02 | F-10 decomposed into 5 MVP sub-issues + 1 deferred (#528–#533). Parented to #384; all labeled `goal:operational-completeness`; 8 internal blocked-by edges wired; added to Project #6. F-10's body updated to point at the decomposition; tracker §2.3 added. MVP picking order: F-10.1 first, then F-10.2 + F-10.3 + F-10.5 in parallel, F-10.4 last. |
+| 2026-06-02 | F-10.1 reconnaissance discovered no standalone audit path exists today; `core-admin code audit` requires core-api + DB; `nightly-audit.yml` calls a phantom module. F-10.1 split into 1a (#528 runner refactor, Option A — graph-rule skip) and 1b (#535 CLI surface). 5 new dep edges wired; downstream sub-tasks now depend on 1b instead of original 1. Tracker §2.3 revised; F-10 #384 body updated. Surfaced bug #534 filed separately for the broken nightly workflow. MVP estimate revised: ~5 sessions → ~6 sessions. |
 
 ---
 
