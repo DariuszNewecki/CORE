@@ -50,9 +50,18 @@ def core_command(
     dangerous: bool = False,
     confirmation: bool = False,
     requires_context: bool = True,
+    offline_capable: bool = False,
 ):
     """
     Primary constitutional wrapper for CORE CLI commands.
+
+    `offline_capable=True` declares that the command can run without a DB
+    or Qdrant connection when invoked with `--offline`. When the runtime
+    flag is set and this declaration is in place, the wrapper skips the
+    eager fetch of `qdrant_service` / `cognitive_service` /
+    `auditor_context` — those services connect to PostgreSQL/Qdrant on
+    construction and would crash for a pip-installed runtime that has no
+    DB available. See #544.
     """
 
     # ID: e5c51712-e73d-44d2-97a9-82b48817646d
@@ -104,9 +113,22 @@ def core_command(
                     return cast(Any, func)(*args, **kwargs)
                 return cast(Any, func)(*args, **kwargs)
 
+            # When the command declares `offline_capable=True` AND the
+            # runtime invocation passes `--offline`, skip the eager
+            # service fetch — the offline path uses the stateless
+            # audit runner directly and never reaches DB or Qdrant.
+            offline_run = bool(
+                offline_capable and cast(dict[str, Any], kwargs).get("offline", False)
+            )
+
             async def _run_with_teardown():
                 try:
-                    if ctx and ctx.obj and hasattr(ctx.obj, "registry"):
+                    if (
+                        not offline_run
+                        and ctx
+                        and ctx.obj
+                        and hasattr(ctx.obj, "registry")
+                    ):
                         core_context = ctx.obj
                         if getattr(core_context, "qdrant_service", None) is None:
                             core_context.qdrant_service = (

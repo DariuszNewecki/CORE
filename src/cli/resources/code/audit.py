@@ -53,7 +53,7 @@ logger = logging.getLogger(__name__)
 
 
 @app.command("audit")
-@core_command(dangerous=False, requires_context=False)
+@core_command(dangerous=False, requires_context=False, offline_capable=True)
 # ID: 67107783-c506-4634-a23c-c118e86befa8
 async def audit_command(
     ctx: typer.Context,

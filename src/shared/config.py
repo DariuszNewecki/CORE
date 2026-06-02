@@ -32,6 +32,26 @@ logger = getLogger(__name__)
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
 
+# ID: e2f3a5b1-7c4d-4f8a-9d2e-1b6c8a3e4f9d
+def _resolve_default_repo_path() -> Path:
+    """Discover the repo root by walking up from cwd looking for ``.intent/``.
+
+    Falls back to ``REPO_ROOT`` (the source-tree-relative path computed
+    above) when no ``.intent/`` is found anywhere up the cwd chain. This
+    makes the audit gate work against the consumer's repository when
+    ``core-runtime`` is pip-installed: the consumer ``cd`` s into their
+    repo and the audit auto-discovers ``.intent/`` without any env
+    var configuration. Source-tree usage is unaffected — ``REPO_ROOT``
+    contains ``.intent/`` and is the first matching candidate. See #544
+    for the F-10.3 incident this resolves.
+    """
+    cwd = Path.cwd()
+    for candidate in [cwd, *cwd.parents]:
+        if (candidate / ".intent").is_dir():
+            return candidate
+    return REPO_ROOT
+
+
 # ID: 8d63432d-6c04-4696-b9e0-33d1174ebdf8
 class Settings(BaseSettings):
     """
@@ -57,13 +77,17 @@ class Settings(BaseSettings):
     _path_resolver: PathResolver | None = PrivateAttr(default=None)
 
     # --- Canonical Roots ---
-    REPO_PATH: Path = REPO_ROOT
-    MIND: Path = REPO_ROOT / ".intent"
-    SPECS: Path = REPO_ROOT / ".specs"
-    BODY: Path = REPO_ROOT / "src"
+    # Resolved via _resolve_default_repo_path() so pip-installed
+    # consumers auto-discover their repo from cwd. See #544.
+    REPO_PATH: Path = Field(default_factory=_resolve_default_repo_path)
+    MIND: Path = Field(default_factory=lambda: _resolve_default_repo_path() / ".intent")
+    SPECS: Path = Field(default_factory=lambda: _resolve_default_repo_path() / ".specs")
+    BODY: Path = Field(default_factory=lambda: _resolve_default_repo_path() / "src")
 
     # --- Standard Infrastructure Paths ---
-    KEY_STORAGE_DIR: Path = REPO_ROOT / ".intent" / "keys"
+    KEY_STORAGE_DIR: Path = Field(
+        default_factory=lambda: _resolve_default_repo_path() / ".intent" / "keys"
+    )
     CORE_ACTION_LOG_PATH: Path = Field(
         default_factory=lambda: __import__(
             "shared.path_resolver", fromlist=["PathResolver"]
@@ -74,8 +98,16 @@ class Settings(BaseSettings):
     )
 
     # --- Infrastructure Attributes ---
-    DATABASE_URL: str = Field(..., validation_alias="DATABASE_URL")
-    QDRANT_URL: str = Field(..., validation_alias="QDRANT_URL")
+    # DATABASE_URL and QDRANT_URL default to None so that import-time
+    # `Settings()` instantiation succeeds even when these env vars are
+    # absent — the F-10.3 audit-gate runtime ships a pip-installed
+    # core-runtime that must reach the `--offline` audit path without
+    # any DB or Qdrant configuration. Consumers that actually need
+    # these values (DB session manager, Qdrant client, etc.) still
+    # fail loudly at the point of consumption rather than at import
+    # time. See #544 for the full incident.
+    DATABASE_URL: str | None = Field(None, validation_alias="DATABASE_URL")
+    QDRANT_URL: str | None = Field(None, validation_alias="QDRANT_URL")
 
     LLM_API_URL: str = Field("", validation_alias="LLM_API_URL")
     LLM_API_KEY: str | None = Field(None, validation_alias="LLM_API_KEY")
