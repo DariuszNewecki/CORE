@@ -29,7 +29,7 @@ That returns exactly the seven gate issues (F-10 #384, F-27 #401, F-40 #414, F-4
 
 | Item | F-ID | Issue | Current status | "Done" looks like | Notes |
 |---|---|---|---|---|---|
-| CI/CD gate | F-10 | [#384](https://github.com/DariuszNewecki/CORE/issues/384) | roadmap | `status: shipping`; PR annotations + merge-blocking demonstrated against a real external repo | Top of the adoption funnel (Tiers paper §2). **Decomposed 2026-06-02 into 5 MVP sub-issues + 1 deferred** (see §2.3 below). The audit engine itself already runs (`.github/workflows/nightly-audit.yml`); F-10's gap is packaging + distribution + output formatting + external-repo verification. F-10 ships when F-10.4 closes. |
+| CI/CD gate | F-10 | [#384](https://github.com/DariuszNewecki/CORE/issues/384) | roadmap | `status: shipping`; PR annotations + merge-blocking demonstrated against a real external repo | Top of the adoption funnel (Tiers paper §2). **Decomposed 2026-06-02 into 5 MVP sub-issues + 1 deferred** (see §2.3 below). The audit engine itself already runs (invoked via `core-admin code audit` against core-api; the in-repo `.github/workflows/nightly-audit.yml` was removed in `a8a232ef` per #534 and will be reinstated against the F-10.3 Action per ADR-086); F-10's gap is packaging + distribution + output formatting + external-repo verification. F-10 ships when F-10.4 closes. |
 | Local LLM | F-27 | [#401](https://github.com/DariuszNewecki/CORE/issues/401) | **partial** | promotes from `partial` to `shipping`; reliable local-LLM-only Solo run for ≥7 days | Smallest finishing touch in the list. Building on existing infrastructure. |
 | OEM API surface | F-40 | [#414](https://github.com/DariuszNewecki/CORE/issues/414) | roadmap | `status: shipping`; documented public contract; sidecar-shape commercial features F-20/F-34/F-45/F-47 can attach without private hooks (ADR-084 D6) | Largest unblocker — releases four commercial sidecars at once. Per ADR-084, interface symmetry means the API surface must be documented as the contract third-parties consume, not just an internal API. |
 | Extension interfaces | F-41 + F-42 + F-43 | [#415](https://github.com/DariuszNewecki/CORE/issues/415) [#416](https://github.com/DariuszNewecki/CORE/issues/416) [#417](https://github.com/DariuszNewecki/CORE/issues/417) | all roadmap | all three `status: shipping`; one first-party non-code instantiation exists as proof of the plugin-interface contract | F-41 ships first (F-42 and F-43 depend on it). F-42 + F-43 can land in parallel. The "one non-code instantiation" criterion exists to prove the plugin-interface contract is real, not aspirational. |
@@ -90,9 +90,11 @@ query now returns 14 items (7 gates + 7 F-10 sub-tasks). For a F-10-
 only view: `gh issue list --search "is:open is:issue parent:384"`.
 
 **Tracked separately (not in F-10 scope):** #534 — `.github/workflows/
-nightly-audit.yml` calls `python -m src.core.capabilities`, a module that
-no longer exists. Workflow has been silently shipping a non-functional
-gate. Fix or remove as a one-shot, separate from F-10.
+nightly-audit.yml` called `python -m src.core.capabilities`, a module
+that no longer exists; workflow had been silently shipping a
+non-functional gate. **Closed 2026-06-02 via `a8a232ef` (Option 1:
+remove).** Replacement target is the F-10.3 GitHub Action running
+against this repo per ADR-086.
 
 ---
 
