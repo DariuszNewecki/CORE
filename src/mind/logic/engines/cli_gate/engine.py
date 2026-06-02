@@ -171,31 +171,49 @@ class CliGateEngine(BaseEngine):
         runs in the same process.
 
         Normalises ``cmd['file_path']`` to repo-relative before returning
-        (#486). The raw walker emits absolute paths via ``inspect.getfile``,
-        which other consumers (``self_check.py`` metascribe) rely on; the
-        normalisation is local to this engine so finding subjects emitted
-        downstream are repo-relative — matching every other engine and
-        keeping ``ViolationRemediator``'s crate validator from rejecting
-        cli_gate proposals.
+        (#486). Commands whose source file lives outside the consumer's
+        ``repo_root`` are dropped from the audit list (#547) — when
+        ``core-runtime`` is pip-installed against a consumer repo, the
+        ``from cli.admin_cli`` import resolves to the wheel under
+        site-packages, and the rule's discipline applies to whatever
+        CLI the consumer themselves authored, not to framework code
+        they didn't write.
         """
         from cli.admin_cli import app as main_app
         from shared.cli.app_introspection import walk_typer_app
 
         commands = walk_typer_app(main_app, include_missing_handlers=True)
         repo_root = self._path_resolver.repo_root
+        filtered: list[dict[str, Any]] = []
         for cmd in commands:
             fp = cmd.get("file_path")
             if not fp or fp in ("none", "unknown"):
+                # Registry-level entry without a resolved source file; keep
+                # so registry-shape checks (no_duplicates, resource_first
+                # against the command tree) still see it.
+                filtered.append(cmd)
                 continue
             p = Path(fp)
             if not p.is_absolute():
+                # Already relative; trust the upstream walker.
+                filtered.append(cmd)
                 continue
             try:
                 cmd["file_path"] = str(p.relative_to(repo_root))
+                filtered.append(cmd)
             except ValueError:
-                # Path outside the repo — leave as-is; downstream handles it.
-                continue
-        return commands
+                # Path outside the consumer's repo (e.g. pip-installed
+                # core-runtime under site-packages). The rule applies to
+                # the consumer's own CLI surface, not to framework code
+                # vendored by the wheel — drop the entry rather than
+                # surfacing a finding the consumer can't act on. See #547.
+                logger.debug(
+                    "cli_gate: dropping out-of-repo command %s (file_path=%s, repo_root=%s)",
+                    cmd.get("command"),
+                    fp,
+                    repo_root,
+                )
+        return filtered
 
     # ID: 70dce438-c504-4819-8f1b-d4bdf3362cf6
     async def verify(self, file_path: Path, params: dict[str, Any]) -> EngineResult:
