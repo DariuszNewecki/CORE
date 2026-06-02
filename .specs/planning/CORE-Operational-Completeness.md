@@ -31,7 +31,7 @@ That returns the remaining gate issues. F-10 #384 and F-48 #527 closed 2026-06-0
 |---|---|---|---|---|---|
 | CI/CD gate | F-10 | [#384](https://github.com/DariuszNewecki/CORE/issues/384) | **shipping** ✅ | `status: shipping`; PR annotations + merge-blocking demonstrated against a real external repo ✅ | Top of the adoption funnel (Tiers paper §2). **Shipped 2026-06-02.** F-10.1a/1b/2/3 landed earlier same day (`d2bf1639`, `0396abbe`, `2513dac9`, `dfe2cad2`); F-10.4 verified via core-runtime 0.1.4 (`73c75f31` + `8e3c7dcb`) against demo PR #1 (https://github.com/DariuszNewecki/core-audit-demo/pull/1) — GitHub check-runs API returned 18 inline annotations with structured `path` field; workflow exit 1 confirms merge-blocking surface. F-10.5 (pre-commit-hooks distribution) remains open as a bonus delivery channel, not part of the gate criterion. F-10.P2 (GitLab + CodeClimate) deferred. The in-repo `.github/workflows/nightly-audit.yml` removed in `a8a232ef` per #534; reinstatement against the F-10.3 Action per ADR-086 is follow-on work. |
 | Local LLM | F-27 | [#401](https://github.com/DariuszNewecki/CORE/issues/401) | **partial** | promotes from `partial` to `shipping`; reliable local-LLM-only Solo run for ≥7 days | Smallest finishing touch in the list. Building on existing infrastructure. |
-| OEM API surface | F-40 | [#414](https://github.com/DariuszNewecki/CORE/issues/414) | roadmap | `status: shipping`; documented public contract; sidecar-shape commercial features F-20/F-34/F-45/F-47 can attach without private hooks (ADR-084 D6) | Largest unblocker — releases four commercial sidecars at once. Per ADR-084, interface symmetry means the API surface must be documented as the contract third-parties consume, not just an internal API. |
+| OEM API surface | F-40 | [#414](https://github.com/DariuszNewecki/CORE/issues/414) | roadmap | `status: shipping`; documented public contract; sidecar-shape commercial features F-20/F-34/F-45/F-47 can attach without private hooks (ADR-084 D6) | Largest unblocker — releases **three** commercial sidecars (F-20, F-34, F-45 read-side). F-47 dropped from F-40 dependents during 2026-06-02 recon — it's managed Qdrant infrastructure, not a FastAPI consumer; the ADR-084 D8 bucket list correction lands as part of F-40.4. **Decomposed 2026-06-02 into 4 MVP sub-issues + 2 post-exit** (see §2.5). MVP path: F-40.1 (classify) → F-40.2 (versioning ADR) → F-40.3 (OpenAPI spec) → F-40.4 (sidecar attach verification). ~4-5 sessions. Phase B (auth, host binding, rate limiting — #554/#555) post-exit. |
 | Extension interfaces | F-41 + F-42 + F-43 | [#415](https://github.com/DariuszNewecki/CORE/issues/415) [#416](https://github.com/DariuszNewecki/CORE/issues/416) [#417](https://github.com/DariuszNewecki/CORE/issues/417) | all roadmap | all three `status: shipping`; one first-party non-code instantiation exists as proof of the plugin-interface contract | F-41 ships first (F-42 and F-43 depend on it). F-42 + F-43 can land in parallel. The "one non-code instantiation" criterion exists to prove the plugin-interface contract is real, not aspirational. |
 | Open library distribution | F-48 | [#527](https://github.com/DariuszNewecki/CORE/issues/527) | **shipping** ✅ | `status: shipping`; `pip install core-runtime` works; semver tags; CI publishes on tag ✅ | **Shipped 2026-06-02.** F-48.1 (#537) renamed the distribution to `core-runtime` + PyPI metadata; F-48.2 (#538) shipped the Trusted-Publisher OIDC release workflow. Five semver tags published (v0.1.0–v0.1.4); 0.1.3 and 0.1.4 CI-published cleanly during this session as part of the #545/#546 F-10 unblock chain. F-48.3 (Docker/GHCR), F-48.4 (public-vs-internal API), F-48.5 (semver policy doc) remain open as post-exit / v1.0.0-milestone scope per §2.4. Constitutionally load-bearing per ADR-084 D7 §4. |
 
@@ -132,6 +132,40 @@ blocked-by set was extended with F-48.2 #538 the same day.
 
 ---
 
+### 2.5 F-40 sub-task decomposition (added 2026-06-02 after recon)
+
+F-40 was decomposed once F-10 + F-48 closed and engineering capacity routed to the next 5+3 item. The recon surfaced that **F-40's substance is mostly declaration + contracting**, not new endpoint development — ~30 of the ~74 endpoints under `src/api/v1/` already cover what sidecars need. The four "mixed" routers (`/coverage`, `/quality`, `/lint`, `/refactor`) need per-route classification; the cross-cutting work (versioning policy, OpenAPI spec, sidecar verification) closes the gap.
+
+Decomposition is operational (this doc + GH parent/sub-issue relations), not constitutional — mirrors the §2.3 / §2.4 patterns.
+
+Two phases: Phase A satisfies ADR-085's literal exit criterion (sidecar attachability over localhost — what's required to ship F-40); Phase B is the fuller third-party OEM consumption story (auth, host binding, rate limiting). Phase A gates F-40 closure; Phase B is explicitly post-exit and does NOT block the status flip.
+
+**Phase A — Sidecar attachability (MVP path, gates F-40 ship)**
+
+| Sub | Issue | Sized | Blocks | Purpose |
+|---|---|---|---|---|
+| F-40.1 | [#550](https://github.com/DariuszNewecki/CORE/issues/550) | ~1 session | F-40.2, F-40.3, F-40.4 | Public-vs-internal route classification |
+| F-40.2 | [#551](https://github.com/DariuszNewecki/CORE/issues/551) | ~1 session | F-40.3, F-40.4 | Versioning + stability policy ADR for `/v1/` |
+| F-40.3 | [#552](https://github.com/DariuszNewecki/CORE/issues/552) | ~1–2 sessions | F-40.4 | OpenAPI spec + per-route annotation pass |
+| F-40.4 | [#553](https://github.com/DariuszNewecki/CORE/issues/553) | ~1 session | **F-40 #414 ship** | Sidecar attachment verification — closes F-40 |
+
+**Phase B — Third-party OEM consumption (post-exit; does NOT gate)**
+
+| Sub | Issue | Sized | Blocks | Purpose |
+|---|---|---|---|---|
+| F-40.5 | [#554](https://github.com/DariuszNewecki/CORE/issues/554) | ~2 sessions | F-40.6 | Authentication + authorization scheme |
+| F-40.6 | [#555](https://github.com/DariuszNewecki/CORE/issues/555) | ~1–2 sessions | — | Host binding + rate limiting + OpenAPI publication |
+
+**MVP path to F-40 ship**: F-40.1 → F-40.2 → F-40.3 → F-40.4. **~4–5 sessions.**
+
+**Picking order:** F-40.1 first (foundation; everything else depends on it). F-40.2 next (versioning policy can be drafted in parallel once F-40.1's classification list is stable). F-40.3 then F-40.4 sequentially. Phase B can run independently after F-40 ships; F-40.5 first within Phase B (auth model unlocks rate limiting + safe host binding).
+
+**Sidecar correction**: F-47 (managed Qdrant) was originally listed as a sidecar consumer of F-40 in ADR-084 D8's bucket. Recon showed F-47 doesn't consume the FastAPI surface at all — its "API" is the Qdrant wire protocol. The correction lands in F-40.4's verification doc; effective F-40 consumers are F-20, F-34, F-45 (read-side only).
+
+All six sub-issues carry `goal:operational-completeness` (Phase A) or are unlabeled-as-gate (Phase B) and parented to #414. F-40 itself remains `roadmap` until F-40.4 closes.
+
+---
+
 ## 3. Sequencing (operational, updateable)
 
 Per ADR-085 D6, this ADR does not prescribe ordering inside the list, but the dependency graph constrains it. Current best estimate:
@@ -139,7 +173,7 @@ Per ADR-085 D6, this ADR does not prescribe ordering inside the list, but the de
 **Tier-1 (current sequence, post 2026-06-02 F-10/F-48 ship):**
 - **F-48** Open library distribution — ✅ shipped 2026-06-02. F-48.1 + F-48.2 closed; F-48.3/4/5 post-exit or v1.0.0-gated (see §2.4).
 - **F-10** CI/CD gate — ✅ shipped 2026-06-02. All MVP sub-items closed; F-10.5 (pre-commit-hooks) open as bonus delivery channel.
-- **F-40** OEM API surface — **next.** Largest downstream-unblocker (releases 4 commercial sidecars). The active Tier-1 pickup.
+- **F-40** OEM API surface — **active.** Decomposed 2026-06-02 (see §2.5). MVP path F-40.1 → F-40.2 → F-40.3 → F-40.4 (~4–5 sessions). Releases 3 commercial sidecars (F-20, F-34, F-45 read-side) on closure. **F-40.1 (#550) is the next sub-pickup.**
 
 **Tier-2 (F-41 first, then F-42 + F-43 in parallel):**
 - **F-41** Artifact type registry — prerequisite for F-42 + F-43
@@ -201,6 +235,7 @@ When all eight items show satisfied state:
 | 2026-06-02 | **F-48 ships.** F-48.1 (#537) + F-48.2 (#538) closed earlier same day; PyPI release workflow ran cleanly for v0.1.0 → v0.1.4 across the session. Exit criterion per ADR-085 5+3 row (`pip install` works; semver tags; CI publishes on tag) met. F-48.3/4/5 remain open as post-exit / v1.0.0-milestone scope. Registry row (`CORE-Features.md`) flipped `roadmap` → `shipping`. |
 | 2026-06-02 | **F-10 ships.** F-10.3 (#530) shipped earlier same day (`dfe2cad2`); F-10.4 (#531) verified against external demo PR #1 via core-runtime 0.1.4 (#545 engine-side cwd-walk + #546 annotation-formatter key fix, commits `73c75f31` + `8e3c7dcb`). GitHub check-runs API returned 18 inline annotations with structured `path` field; workflow exit 1 → merge-blocking surface works. Exit criterion per ADR-085 5+3 row met. F-10.5 (pre-commit-hooks) remains open as bonus delivery channel. Two 5+3 gate items closed in one session (F-10 + F-48); remaining: F-27, F-40, F-41/F-42/F-43, plus three quality goals. |
 | 2026-06-02 | **Post-ship cleanup**: #547 + #549 closed via core-runtime 0.1.5 + 0.1.6. #547 (`6fc4602a`) made cli_gate's `_walk_registry` drop Typer commands rooted outside `repo_root` — removed 5 site-packages-path annotations from the demo PR. #549 (`a12e928b`) made workflow_gate checks silent-skip on `FileNotFoundError` for absent tools (mypy/pytest/pip-audit/ruff/black not in the Action's slim image) — reduced System-path annotations from 7 to 1. Demo PR signal density: ~61% → 94% (16 of 16 inline annotations actionable, 1 remaining cli_gate.discovery_strict context-level entry as a known governance-semantic question). Open: #548 (low — `line_number` population polish). Total this session: 4 PyPI releases (0.1.3 → 0.1.6), 6 issues closed, 2 ADR-085 5+3 items satisfied. |
+| 2026-06-02 | F-40 decomposed into 4 MVP sub-issues (#550–#553) + 2 post-exit sub-issues (#554, #555) parented to #414, all labeled `goal:operational-completeness` on Phase A. Recon surfaced: ~30 endpoints in current `src/api/v1/` are clear public-contract candidates; ~24 are clear internal; ~24 in four mixed routers need per-route classification (F-40.1's work). F-47 dropped from F-40 dependents — not a FastAPI consumer; correction lands in F-40.4's verification doc. Tracker §2.5 added; §2.1 F-40 row + §3 Tier-1 updated; F-40 #414 body updated with the decomposition table. F-40.1 #550 is the active sub-pickup. |
 
 ---
 
