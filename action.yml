@@ -1,0 +1,41 @@
+# F-10.3 — Reusable GitHub Action for the CORE constitutional audit gate.
+#
+# Wraps `core-admin code audit --offline --format=github-annotations` from
+# the `core-runtime` PyPI package (F-48.2) in a Docker container action.
+# Findings appear inline in the PR diff via GitHub annotations; a failing
+# exit code blocks merge when branch protection is configured to require
+# this check.
+#
+# Per ADR-086 D1+D7, this is the Audit-tier slice of CORE's installation
+# architecture: no daemon, no database, no Qdrant — just the stateless
+# audit (F-10.1a) running against the consumer repository's .intent/.
+
+name: 'CORE Constitutional Audit'
+description: 'Audit a repository against the constitutional rules declared in its .intent/ directory.'
+author: 'Dariusz Newecki'
+
+branding:
+  icon: 'shield'
+  color: 'blue'
+
+inputs:
+  intent-path:
+    description: 'Path to the .intent/ directory (relative to the repository root).'
+    required: false
+    default: '.intent/'
+  severity:
+    description: 'Minimum severity to surface. One of: block, high, medium, low, info.'
+    required: false
+    default: 'block'
+  format:
+    description: 'Output format. One of: github-annotations, json, text.'
+    required: false
+    default: 'github-annotations'
+
+outputs:
+  verdict:
+    description: 'PASS if no findings at or above severity; FAIL if findings present; ERROR on internal failure.'
+
+runs:
+  using: 'docker'
+  image: 'Dockerfile'
