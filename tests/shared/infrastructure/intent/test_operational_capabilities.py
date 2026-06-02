@@ -78,7 +78,9 @@ def intent_tree(tmp_path: Path) -> Callable[..., Path]:
             )
         if not skip_action_risk:
             (tmp_path / ".intent/enforcement/config/action_risk.yaml").write_text(
-                action_risk_yaml if action_risk_yaml is not None else _MINIMAL_ACTION_RISK
+                action_risk_yaml
+                if action_risk_yaml is not None
+                else _MINIMAL_ACTION_RISK
             )
         if not skip_taxonomy:
             (tmp_path / ".intent/taxonomies/operational_capabilities.yaml").write_text(
@@ -195,7 +197,8 @@ def test_top_level_not_mapping_raises(intent_tree: Callable[..., Path]) -> None:
 def test_missing_capabilities_block_raises(intent_tree: Callable[..., Path]) -> None:
     root = intent_tree(taxonomy_yaml="other_key: value\n")
     with pytest.raises(
-        OperationalCapabilityTaxonomyError, match="missing or non-mapping 'capabilities:' block"
+        OperationalCapabilityTaxonomyError,
+        match="missing or non-mapping 'capabilities:' block",
     ):
         load_operational_capabilities(repo_root=root)
 
@@ -216,7 +219,9 @@ def test_d6_grammar_violation_hyphen_raises(intent_tree: Callable[..., Path]) ->
         load_operational_capabilities(repo_root=root)
 
 
-def test_d6_grammar_violation_nested_dot_raises(intent_tree: Callable[..., Path]) -> None:
+def test_d6_grammar_violation_nested_dot_raises(
+    intent_tree: Callable[..., Path],
+) -> None:
     taxonomy = _MINIMAL_TAXONOMY.replace("fix.example", "sync.has.nested")
     risk = "actions:\n  sync.has.nested: safe\n"
     root = intent_tree(taxonomy_yaml=taxonomy, action_risk_yaml=risk)
@@ -228,7 +233,9 @@ def test_d8_chokepoint_primitive_id_raises(intent_tree: Callable[..., Path]) -> 
     taxonomy = _MINIMAL_TAXONOMY.replace("fix.example", "file.create")
     risk = "actions:\n  file.create: safe\n"
     root = intent_tree(taxonomy_yaml=taxonomy, action_risk_yaml=risk)
-    with pytest.raises(OperationalCapabilityTaxonomyError, match="chokepoint primitive"):
+    with pytest.raises(
+        OperationalCapabilityTaxonomyError, match="chokepoint primitive"
+    ):
         load_operational_capabilities(repo_root=root)
 
 
@@ -244,7 +251,9 @@ def test_missing_description_raises(intent_tree: Callable[..., Path]) -> None:
         "      delete: []\n"
     )
     root = intent_tree(taxonomy_yaml=taxonomy)
-    with pytest.raises(OperationalCapabilityTaxonomyError, match="missing required field"):
+    with pytest.raises(
+        OperationalCapabilityTaxonomyError, match="missing required field"
+    ):
         load_operational_capabilities(repo_root=root)
 
 
@@ -269,9 +278,7 @@ def test_risk_outside_vocabulary_raises(intent_tree: Callable[..., Path]) -> Non
 def test_risk_not_in_action_risk_raises(intent_tree: Callable[..., Path]) -> None:
     risk = "actions:\n  some.other_action: safe\n"
     root = intent_tree(action_risk_yaml=risk)
-    with pytest.raises(
-        OperationalCapabilityTaxonomyError, match="not declared in"
-    ):
+    with pytest.raises(OperationalCapabilityTaxonomyError, match="not declared in"):
         load_operational_capabilities(repo_root=root)
 
 
@@ -306,9 +313,7 @@ def test_fs_profile_unknown_key_raises(intent_tree: Callable[..., Path]) -> None
         "      delete: []\n      unknown_op: []\n",
     )
     root = intent_tree(taxonomy_yaml=taxonomy)
-    with pytest.raises(
-        OperationalCapabilityTaxonomyError, match="unknown key"
-    ):
+    with pytest.raises(OperationalCapabilityTaxonomyError, match="unknown key"):
         load_operational_capabilities(repo_root=root)
 
 
@@ -350,7 +355,9 @@ def test_pattern_entry_unknown_mode_raises(intent_tree: Callable[..., Path]) -> 
         load_operational_capabilities(repo_root=root)
 
 
-def test_pattern_entry_missing_path_pattern_raises(intent_tree: Callable[..., Path]) -> None:
+def test_pattern_entry_missing_path_pattern_raises(
+    intent_tree: Callable[..., Path],
+) -> None:
     taxonomy = (
         "capabilities:\n"
         "  fix.example:\n"
@@ -364,9 +371,7 @@ def test_pattern_entry_missing_path_pattern_raises(intent_tree: Callable[..., Pa
         "      delete: []\n"
     )
     root = intent_tree(taxonomy_yaml=taxonomy)
-    with pytest.raises(
-        OperationalCapabilityTaxonomyError, match="entry missing field"
-    ):
+    with pytest.raises(OperationalCapabilityTaxonomyError, match="entry missing field"):
         load_operational_capabilities(repo_root=root)
 
 
@@ -417,12 +422,16 @@ def test_malformed_enums_json_raises(intent_tree: Callable[..., Path]) -> None:
         load_operational_capabilities(repo_root=root)
 
 
-def test_missing_fs_operation_class_enum_raises(intent_tree: Callable[..., Path]) -> None:
-    bad_enums = json.dumps({
-        "definitions": {
-            "operational_mode": {"enum": ["dev", "live"]},
+def test_missing_fs_operation_class_enum_raises(
+    intent_tree: Callable[..., Path],
+) -> None:
+    bad_enums = json.dumps(
+        {
+            "definitions": {
+                "operational_mode": {"enum": ["dev", "live"]},
+            }
         }
-    })
+    )
     root = intent_tree(enums_json=bad_enums)
     with pytest.raises(
         OperationalCapabilityTaxonomyError,
@@ -432,11 +441,13 @@ def test_missing_fs_operation_class_enum_raises(intent_tree: Callable[..., Path]
 
 
 def test_missing_operational_mode_enum_raises(intent_tree: Callable[..., Path]) -> None:
-    bad_enums = json.dumps({
-        "definitions": {
-            "fs_operation_class": {"enum": ["read", "create", "modify", "delete"]},
+    bad_enums = json.dumps(
+        {
+            "definitions": {
+                "fs_operation_class": {"enum": ["read", "create", "modify", "delete"]},
+            }
         }
-    })
+    )
     root = intent_tree(enums_json=bad_enums)
     with pytest.raises(
         OperationalCapabilityTaxonomyError,

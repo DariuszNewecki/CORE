@@ -148,7 +148,7 @@ async def test_clean_tree_yields_no_findings(tmp_path: Path) -> None:
         capability_ids=["fix.format", "check.imports"],
         decoration_sources={
             "fixers/format.py": textwrap.dedent(
-                '''
+                """
                 from shared.atomic_action import atomic_action
 
                 @atomic_action(action_id="fix.format")
@@ -158,7 +158,7 @@ async def test_clean_tree_yields_no_findings(tmp_path: Path) -> None:
                 @atomic_action(action_id="check.imports")
                 async def check_imports(**kwargs):
                     pass
-                '''
+                """
             ),
         },
     )
@@ -178,13 +178,13 @@ async def test_phantom_yields_one_finding_with_resolution_prompt(
         capability_ids=["fix.format", "secrets.set"],  # secrets.set has no decoration
         decoration_sources={
             "fixers/format.py": textwrap.dedent(
-                '''
+                """
                 from shared.atomic_action import atomic_action
 
                 @atomic_action(action_id="fix.format")
                 async def fix_format(**kwargs):
                     pass
-                '''
+                """
             ),
         },
     )
@@ -193,7 +193,10 @@ async def test_phantom_yields_one_finding_with_resolution_prompt(
     )
     assert len(findings) == 1
     finding = findings[0]
-    assert finding.check_id == "governance.taxonomy.operational_capabilities_decorator_backing"
+    assert (
+        finding.check_id
+        == "governance.taxonomy.operational_capabilities_decorator_backing"
+    )
     assert finding.file_path == ".intent/taxonomies/operational_capabilities.yaml"
     assert finding.context == {"capability_id": "secrets.set"}
     assert "secrets.set" in finding.message
@@ -225,13 +228,13 @@ async def test_attribute_access_decoration_counts_as_backing(tmp_path: Path) -> 
         capability_ids=["fix.format"],
         decoration_sources={
             "fixers/format.py": textwrap.dedent(
-                '''
+                """
                 import shared.atomic_action as atomic_module
 
                 @atomic_module.atomic_action(action_id="fix.format")
                 async def fix_format(**kwargs):
                     pass
-                '''
+                """
             ),
         },
     )
@@ -253,7 +256,7 @@ async def test_non_literal_action_id_is_not_counted_as_backing(
         capability_ids=["fix.format"],
         decoration_sources={
             "fixers/format.py": textwrap.dedent(
-                '''
+                """
                 from shared.atomic_action import atomic_action
 
                 MY_ID = "fix.format"
@@ -261,7 +264,7 @@ async def test_non_literal_action_id_is_not_counted_as_backing(
                 @atomic_action(action_id=MY_ID)
                 async def fix_format(**kwargs):
                     pass
-                '''
+                """
             ),
         },
     )
@@ -282,13 +285,13 @@ async def test_unparseable_python_file_is_skipped(tmp_path: Path) -> None:
         decoration_sources={
             "broken/syntax.py": "this is not (valid python\n",
             "fixers/format.py": textwrap.dedent(
-                '''
+                """
                 from shared.atomic_action import atomic_action
 
                 @atomic_action(action_id="fix.format")
                 async def fix_format(**kwargs):
                     pass
-                '''
+                """
             ),
         },
     )

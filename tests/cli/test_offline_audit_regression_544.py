@@ -83,8 +83,7 @@ def test_offline_audit_from_fresh_venv_with_no_env_vars(tmp_path: Path) -> None:
         check=False,
     )
     assert install_result.returncode == 0, (
-        f"pip install of {wheel.name} failed.\n"
-        f"stderr: {install_result.stderr[-1000:]}"
+        f"pip install of {wheel.name} failed.\nstderr: {install_result.stderr[-1000:]}"
     )
 
     # Step 3: minimal workspace with a copied .intent/ from this repo

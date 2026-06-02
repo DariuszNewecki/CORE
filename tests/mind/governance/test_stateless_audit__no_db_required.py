@@ -27,9 +27,7 @@ async def test_stateless_context_skips_knowledge_graph_load() -> None:
     never attempts a connection in the first place.
     """
     context = AuditorContext(repo_path=Path("/test/repo"), stateless=True)
-    with patch(
-        "mind.governance.audit_context.KnowledgeService"
-    ) as mock_service_class:
+    with patch("mind.governance.audit_context.KnowledgeService") as mock_service_class:
         await context.load_knowledge_graph()
         mock_service_class.assert_not_called()
     assert context.knowledge_graph == {"symbols": {}}
@@ -46,9 +44,7 @@ async def test_non_stateless_context_still_attempts_knowledge_graph() -> None:
     """
     context = AuditorContext(repo_path=Path("/test/repo"), stateless=False)
     mock_graph = {"symbols": {"X": {}}}
-    with patch(
-        "mind.governance.audit_context.KnowledgeService"
-    ) as mock_service_class:
+    with patch("mind.governance.audit_context.KnowledgeService") as mock_service_class:
         mock_service_instance = MagicMock()
         mock_service_instance.get_graph = AsyncMock(return_value=mock_graph)
         mock_service_class.return_value = mock_service_instance

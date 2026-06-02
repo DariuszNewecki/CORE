@@ -23,7 +23,9 @@ from mind.governance.stateless_audit import (
 
 def _rule(rule_id: str, engine: str) -> ExecutableRule:
     """Minimal ExecutableRule for partition tests."""
-    return ExecutableRule(rule_id=rule_id, engine=engine, params={}, enforcement="error")
+    return ExecutableRule(
+        rule_id=rule_id, engine=engine, params={}, enforcement="error"
+    )
 
 
 @pytest.mark.asyncio

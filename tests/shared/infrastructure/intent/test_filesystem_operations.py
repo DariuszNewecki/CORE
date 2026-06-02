@@ -66,8 +66,7 @@ def intent_tree(tmp_path: Path) -> Callable[..., Path]:
             "    read_text:  { op_class: read,  match: leaf }\n"
         )
         default_watched = (
-            "  watched:\n"
-            '    "os.replace": { op_class: write, match: qualified }\n'
+            '  watched:\n    "os.replace": { op_class: write, match: qualified }\n'
         )
 
         yaml = (
@@ -119,8 +118,7 @@ def test_pathlib_path_invalid_match_mode_still_rejected(
 ) -> None:
     """Relaxation is narrow: unknown match modes remain rejected."""
     pathlib_block = (
-        "  pathlib_path:\n"
-        "    write_text: { op_class: write, match: nonsense }\n"
+        "  pathlib_path:\n    write_text: { op_class: write, match: nonsense }\n"
     )
     root = intent_tree(pathlib_block=pathlib_block)
 
@@ -132,10 +130,7 @@ def test_pathlib_path_missing_match_field_still_rejected(
     intent_tree: Callable[..., Path],
 ) -> None:
     """``match`` remains a required per-entry field after the relaxation."""
-    pathlib_block = (
-        "  pathlib_path:\n"
-        "    write_text: { op_class: write }\n"
-    )
+    pathlib_block = "  pathlib_path:\n    write_text: { op_class: write }\n"
     root = intent_tree(pathlib_block=pathlib_block)
 
     with pytest.raises(FilesystemOperationTaxonomyError, match="missing required"):

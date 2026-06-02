@@ -69,7 +69,9 @@ def test_first_call_logs_then_quiet(
 ) -> None:
     """INFO log fires once on first resolution per process."""
     monkeypatch.setenv("CORE_OPERATIONAL_MODE", "dev")
-    with caplog.at_level("INFO", logger="shared.infrastructure.intent.operational_mode"):
+    with caplog.at_level(
+        "INFO", logger="shared.infrastructure.intent.operational_mode"
+    ):
         current_mode()
         first_call_records = list(caplog.records)
         current_mode()

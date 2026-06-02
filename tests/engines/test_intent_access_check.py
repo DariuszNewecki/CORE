@@ -141,9 +141,9 @@ class C:
         sl(content)
 """
     findings = _check(source)
-    assert any(
-        "yaml.safe_load" in f and "parsing" in f.lower() for f in findings
-    ), findings
+    assert any("yaml.safe_load" in f and "parsing" in f.lower() for f in findings), (
+        findings
+    )
 
 
 def test_dotted_yaml_safe_load_still_flagged() -> None:

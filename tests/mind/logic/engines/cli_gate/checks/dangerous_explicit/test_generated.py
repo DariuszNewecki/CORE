@@ -1,4 +1,3 @@
-
 import pytest
 
 from mind.logic.engines.cli_gate.audit_severity import AuditSeverity

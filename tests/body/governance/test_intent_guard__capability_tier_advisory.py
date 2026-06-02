@@ -49,7 +49,9 @@ def _make_capability(
     the chokepoint tier expects.
     """
 
-    def _entries(spec: tuple[tuple[str, tuple[str, ...]], ...]) -> tuple[FsPatternEntry, ...]:
+    def _entries(
+        spec: tuple[tuple[str, tuple[str, ...]], ...],
+    ) -> tuple[FsPatternEntry, ...]:
         return tuple(FsPatternEntry(path_pattern=p, modes=m) for p, m in spec)
 
     fs_profile = (
@@ -306,9 +308,9 @@ def test_check_transaction_capability_tier_does_not_mutate_verdict(
 
     # Premise: the capability tier actually ran (advisory log fired).
     msgs = [r.getMessage() for r in caplog_intent.records]
-    assert any(
-        _ADVISORY_MARKER in m and "unknown_capability" in m for m in msgs
-    ), "Capability tier didn't run — test premise broken; rest of assertions vacuous."
+    assert any(_ADVISORY_MARKER in m and "unknown_capability" in m for m in msgs), (
+        "Capability tier didn't run — test premise broken; rest of assertions vacuous."
+    )
 
     # Contract: stage 1 is observability-only.
     assert result.is_valid is True, (

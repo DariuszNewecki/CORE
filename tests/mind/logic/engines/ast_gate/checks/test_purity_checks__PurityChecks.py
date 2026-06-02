@@ -28,53 +28,78 @@ def _build_fs_taxonomy() -> FsOperationTaxonomy:
     pathlib_entries = frozenset(
         [
             FsOperationEntry(
-                name="write_text", op_class="write", match="leaf",
+                name="write_text",
+                op_class="write",
+                match="leaf",
                 namespace="pathlib_path",
             ),
             FsOperationEntry(
-                name="write_bytes", op_class="write", match="leaf",
+                name="write_bytes",
+                op_class="write",
+                match="leaf",
                 namespace="pathlib_path",
             ),
             FsOperationEntry(
-                name="unlink", op_class="write", match="leaf",
+                name="unlink",
+                op_class="write",
+                match="leaf",
                 namespace="pathlib_path",
             ),
             FsOperationEntry(
-                name="rmdir", op_class="write", match="leaf",
+                name="rmdir",
+                op_class="write",
+                match="leaf",
                 namespace="pathlib_path",
             ),
             FsOperationEntry(
-                name="mkdir", op_class="write", match="leaf",
+                name="mkdir",
+                op_class="write",
+                match="leaf",
                 namespace="pathlib_path",
             ),
             FsOperationEntry(
-                name="touch", op_class="write", match="leaf",
+                name="touch",
+                op_class="write",
+                match="leaf",
                 namespace="pathlib_path",
             ),
             FsOperationEntry(
-                name="chmod", op_class="write", match="leaf",
+                name="chmod",
+                op_class="write",
+                match="leaf",
                 namespace="pathlib_path",
             ),
             FsOperationEntry(
-                name="open", op_class="write", match="leaf",
-                namespace="pathlib_path", predicate="write_mode",
+                name="open",
+                op_class="write",
+                match="leaf",
+                namespace="pathlib_path",
+                predicate="write_mode",
             ),
             # Collision-prone leaves declared qualified per #489 trap.
             FsOperationEntry(
-                name="replace", op_class="write", match="qualified",
+                name="replace",
+                op_class="write",
+                match="qualified",
                 namespace="pathlib_path",
             ),
             FsOperationEntry(
-                name="rename", op_class="write", match="qualified",
+                name="rename",
+                op_class="write",
+                match="qualified",
                 namespace="pathlib_path",
             ),
             # Read entries — must never trigger.
             FsOperationEntry(
-                name="read_text", op_class="read", match="leaf",
+                name="read_text",
+                op_class="read",
+                match="leaf",
                 namespace="pathlib_path",
             ),
             FsOperationEntry(
-                name="exists", op_class="read", match="leaf",
+                name="exists",
+                op_class="read",
+                match="leaf",
                 namespace="pathlib_path",
             ),
         ]
@@ -82,31 +107,46 @@ def _build_fs_taxonomy() -> FsOperationTaxonomy:
     watched_entries = frozenset(
         [
             FsOperationEntry(
-                name="open", op_class="write", match="qualified",
-                namespace="watched", predicate="write_mode",
+                name="open",
+                op_class="write",
+                match="qualified",
+                namespace="watched",
+                predicate="write_mode",
             ),
             FsOperationEntry(
-                name="os.replace", op_class="write", match="qualified",
+                name="os.replace",
+                op_class="write",
+                match="qualified",
                 namespace="watched",
             ),
             FsOperationEntry(
-                name="os.rename", op_class="write", match="qualified",
+                name="os.rename",
+                op_class="write",
+                match="qualified",
                 namespace="watched",
             ),
             FsOperationEntry(
-                name="os.remove", op_class="write", match="qualified",
+                name="os.remove",
+                op_class="write",
+                match="qualified",
                 namespace="watched",
             ),
             FsOperationEntry(
-                name="os.mkdir", op_class="write", match="qualified",
+                name="os.mkdir",
+                op_class="write",
+                match="qualified",
                 namespace="watched",
             ),
             FsOperationEntry(
-                name="shutil.rmtree", op_class="write", match="qualified",
+                name="shutil.rmtree",
+                op_class="write",
+                match="qualified",
                 namespace="watched",
             ),
             FsOperationEntry(
-                name="shutil.copyfile", op_class="write", match="qualified",
+                name="shutil.copyfile",
+                op_class="write",
+                match="qualified",
                 namespace="watched",
             ),
         ]
@@ -206,11 +246,7 @@ class TestPurityChecks:
         forbidden = ["os.system", "subprocess.Popen"]
 
         # 1. Bare-import form.
-        code_bare = (
-            "from os import system\n"
-            "def f():\n"
-            "    system('ls')\n"
-        )
+        code_bare = "from os import system\ndef f():\n    system('ls')\n"
         violations = PurityChecks.check_forbidden_primitives(
             ast.parse(code_bare), forbidden
         )
@@ -218,11 +254,7 @@ class TestPurityChecks:
         assert "os.system" in violations[0]
 
         # 2. Module alias form.
-        code_mod_alias = (
-            "import os as o\n"
-            "def f():\n"
-            "    o.system('ls')\n"
-        )
+        code_mod_alias = "import os as o\ndef f():\n    o.system('ls')\n"
         violations = PurityChecks.check_forbidden_primitives(
             ast.parse(code_mod_alias), forbidden
         )
@@ -230,11 +262,7 @@ class TestPurityChecks:
         assert "os.system" in violations[0]
 
         # 3. Aliased function-name form.
-        code_func_alias = (
-            "from subprocess import Popen as P\n"
-            "def f():\n"
-            "    P(['ls'])\n"
-        )
+        code_func_alias = "from subprocess import Popen as P\ndef f():\n    P(['ls'])\n"
         violations = PurityChecks.check_forbidden_primitives(
             ast.parse(code_func_alias), forbidden
         )
@@ -242,11 +270,7 @@ class TestPurityChecks:
         assert "subprocess.Popen" in violations[0]
 
         # 4. Dotted form still flagged (no regression).
-        code_dotted = (
-            "import os\n"
-            "def f():\n"
-            "    os.system('ls')\n"
-        )
+        code_dotted = "import os\ndef f():\n    os.system('ls')\n"
         violations = PurityChecks.check_forbidden_primitives(
             ast.parse(code_dotted), forbidden
         )
@@ -259,12 +283,7 @@ class TestPurityChecks:
         # Test omitted (intentional behavior, not a bug).
 
         # 6. Unrelated bare name — no false positive.
-        code_clean = (
-            "def system(x):\n"
-            "    return x\n"
-            "def use():\n"
-            "    system('hello')\n"
-        )
+        code_clean = "def system(x):\n    return x\ndef use():\n    system('hello')\n"
         violations = PurityChecks.check_forbidden_primitives(
             ast.parse(code_clean), forbidden
         )
@@ -369,11 +388,7 @@ class TestPurityChecks:
         taxonomy = _build_fs_taxonomy()
 
         # 1. Bare import — the bypass case.
-        code_bare = (
-            "from os import replace\n"
-            "def mutate():\n"
-            "    replace('a', 'b')\n"
-        )
+        code_bare = "from os import replace\ndef mutate():\n    replace('a', 'b')\n"
         violations = PurityChecks.check_no_direct_writes(
             ast.parse(code_bare), taxonomy=taxonomy
         )
@@ -381,11 +396,7 @@ class TestPurityChecks:
         assert "os.replace" in violations[0]
 
         # 2. Aliased import.
-        code_alias = (
-            "from os import replace as r\n"
-            "def mutate():\n"
-            "    r('a', 'b')\n"
-        )
+        code_alias = "from os import replace as r\ndef mutate():\n    r('a', 'b')\n"
         violations = PurityChecks.check_no_direct_writes(
             ast.parse(code_alias), taxonomy=taxonomy
         )
@@ -393,11 +404,7 @@ class TestPurityChecks:
         assert "os.replace" in violations[0]
 
         # 3. `import ... as` for a module — Attribute receiver via alias.
-        code_mod_alias = (
-            "import os as o\n"
-            "def mutate():\n"
-            "    o.rename('a', 'b')\n"
-        )
+        code_mod_alias = "import os as o\ndef mutate():\n    o.rename('a', 'b')\n"
         violations = PurityChecks.check_no_direct_writes(
             ast.parse(code_mod_alias), taxonomy=taxonomy
         )
@@ -405,11 +412,7 @@ class TestPurityChecks:
         assert "os.rename" in violations[0]
 
         # 4. Dotted form still flagged (no regression).
-        code_dotted = (
-            "import shutil\n"
-            "def mutate():\n"
-            "    shutil.rmtree('dir')\n"
-        )
+        code_dotted = "import shutil\ndef mutate():\n    shutil.rmtree('dir')\n"
         violations = PurityChecks.check_no_direct_writes(
             ast.parse(code_dotted), taxonomy=taxonomy
         )
@@ -436,10 +439,7 @@ class TestPurityChecks:
         # map carries no entry for it, so qualified resolution returns
         # "replace" (not "os.replace") and matches no taxonomy entry.
         code_clean = (
-            "def replace(a, b):\n"
-            "    return a + b\n"
-            "def use():\n"
-            "    replace('a', 'b')\n"
+            "def replace(a, b):\n    return a + b\ndef use():\n    replace('a', 'b')\n"
         )
         violations = PurityChecks.check_no_direct_writes(
             ast.parse(code_clean), taxonomy=taxonomy
@@ -467,8 +467,7 @@ class TestPurityChecks:
 
         # str.replace collision — must NOT fire.
         code_str = (
-            "def normalize(s):\n"
-            "    return s.replace('a', 'b').replace('c', 'd')\n"
+            "def normalize(s):\n    return s.replace('a', 'b').replace('c', 'd')\n"
         )
         assert (
             PurityChecks.check_no_direct_writes(ast.parse(code_str), taxonomy=taxonomy)
@@ -485,11 +484,7 @@ class TestPurityChecks:
 
         # Path("x").replace(target) — Call receiver, unresolvable
         # qualified; today's pre-existing accepted gap. No fire expected.
-        code_path = (
-            "from pathlib import Path\n"
-            "def m():\n"
-            "    Path('a').replace('b')\n"
-        )
+        code_path = "from pathlib import Path\ndef m():\n    Path('a').replace('b')\n"
         assert (
             PurityChecks.check_no_direct_writes(ast.parse(code_path), taxonomy=taxonomy)
             == []
