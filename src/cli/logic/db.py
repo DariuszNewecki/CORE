@@ -19,10 +19,6 @@ from sqlalchemy import text
 
 from shared.context import CoreContext
 from shared.infrastructure.database.session_manager import get_session
-from shared.infrastructure.repositories.db.migration_service import (
-    MigrationServiceError,
-    migrate_db,
-)
 from shared.infrastructure.storage.file_handler import FileHandler
 from shared.logger import getLogger
 from shared.path_resolver import PathResolver
@@ -124,15 +120,35 @@ db_app.command("sync-domains")(sync_domains)
 # ID: e8d94b4b-0257-4b03-8c83-03f04d8fb2a8
 async def migrate_db_command(
     apply: bool = typer.Option(
-        False, "--apply", help="Apply pending migrations (default: dry run)."
+        False, "--apply", help="(Currently inert — framework is dormant.)"
     ),
 ) -> None:
-    """Initialize DB schema and apply pending migrations."""
-    try:
-        await migrate_db(apply)
-    except MigrationServiceError as exc:
-        logger.error("%s", exc)
-        raise typer.Exit(exc.exit_code) from exc
+    """Show the current migration-framework status (currently dormant).
+
+    The repo operates under a schema-as-truth model — `infra/sql/db_schema_live.sql`
+    is the canonical schema. One-off SQL files under `infra/scripts/migrations/`
+    are historical record and are NOT replayed through this CLI. See #438.
+    """
+    _ = apply  # currently unused; kept for forward-compat
+    from rich.console import Console
+
+    _console = Console()
+    _console.print()
+    _console.print("[yellow]⏸  Migration framework is currently dormant.[/yellow]")
+    _console.print()
+    _console.print("Schema-as-truth model is in effect:")
+    _console.print("  • Canonical schema:  [cyan]infra/sql/db_schema_live.sql[/cyan]")
+    _console.print(
+        "  • Regenerate via:    [cyan]pg_dump --schema-only --schema=core[/cyan]"
+    )
+    _console.print(
+        "  • One-off SQL files: [cyan]infra/scripts/migrations/[/cyan] (historical record)"
+    )
+    _console.print()
+    _console.print(
+        "This command will be revived if ledger-based migrations are reintroduced."
+    )
+    _console.print("See #438 for the framework-orphan history.")
 
 
 db_app.command("migrate")(migrate_db_command)

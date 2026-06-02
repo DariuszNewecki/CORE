@@ -1,14 +1,16 @@
 # src/cli/resources/database/migrate.py
 """
-Database migration command.
+Database migration command — currently dormant.
 
-Runs pending policy-driven migrations via MigrationService.
-No Alembic — raw SQL scripts, custom ledger in core._migrations.
+The repo operates under a schema-as-truth model: `infra/sql/db_schema_live.sql`
+is the canonical schema, regenerated via `pg_dump --schema-only`. One-off SQL
+changes are committed under `infra/scripts/migrations/` as historical record
+but are NOT replayed through this CLI. The ledger-based migration framework
+(MigrationService + core._migrations table) is preserved but unused; this
+command will be revived if it is reintroduced. See #438 for history.
 """
 
 from __future__ import annotations
-
-import logging
 
 import typer
 from rich.console import Console
@@ -18,49 +20,38 @@ from cli.utils import core_command
 from .hub import app
 
 
-logger = logging.getLogger(__name__)
 console = Console()
 
 
 @app.command("migrate")
-@core_command(dangerous=True, requires_context=False)
+@core_command(dangerous=False, requires_context=False)
 # ID: d8b7978f-d801-4ba2-a669-f0fd48851b01
 async def migrate_database(
     ctx: typer.Context,
     apply: bool = typer.Option(
-        False, "--apply", help="Apply migrations (default: show pending)"
+        False, "--apply", help="(Currently inert — framework is dormant.)"
     ),
 ) -> None:
+    """Show the current migration-framework status.
+
+    Currently dormant: schema-as-truth via `infra/sql/db_schema_live.sql` is
+    the canonical model. This command will be revived if ledger-based
+    migrations are reintroduced.
     """
-    Run pending database migrations.
-
-    Uses policy-driven migration system to apply schema changes.
-
-    Examples:
-        # Show pending migrations
-        core-admin database migrate
-
-        # Apply all pending migrations
-        core-admin database migrate --apply
-    """
-    console.print("[bold cyan]🔄 Database Migration[/bold cyan]")
-    console.print(f"Mode: {'APPLY' if apply else 'PREVIEW'}")
+    _ = apply  # currently unused; kept for forward-compat
     console.print()
-    try:
-        from shared.infrastructure.repositories.db.migration_service import (
-            MigrationServiceError,
-            migrate_db,
-        )
-
-        await migrate_db(apply=apply)
-        console.print("[green]✅ Migration completed[/green]")
-        if not apply:
-            console.print()
-            console.print("[yellow]💡 Run with --apply to execute migrations[/yellow]")
-    except MigrationServiceError as e:
-        console.print(f"[red]❌ Migration failed: {e}[/red]")
-        raise typer.Exit(e.exit_code)
-    except Exception as e:
-        logger.error("Migration failed", exc_info=True)
-        console.print(f"[red]❌ Error: {e}[/red]")
-        raise typer.Exit(1)
+    console.print("[yellow]⏸  Migration framework is currently dormant.[/yellow]")
+    console.print()
+    console.print("Schema-as-truth model is in effect:")
+    console.print("  • Canonical schema:  [cyan]infra/sql/db_schema_live.sql[/cyan]")
+    console.print(
+        "  • Regenerate via:    [cyan]pg_dump --schema-only --schema=core[/cyan]"
+    )
+    console.print(
+        "  • One-off SQL files: [cyan]infra/scripts/migrations/[/cyan] (historical record)"
+    )
+    console.print()
+    console.print(
+        "This command will be revived if ledger-based migrations are reintroduced."
+    )
+    console.print("See #438 for the framework-orphan history.")
