@@ -224,7 +224,7 @@ A4 — Self-Replication     🔮  Writes CORE.NG from its own understanding of i
 
 | Dependency  | Version      |
 |-------------|--------------|
-| Python      | ≥ 3.11       |
+| Python      | 3.12+        |
 | PostgreSQL  | ≥ 14         |
 | Qdrant      | latest       |
 | Docker      | for services |

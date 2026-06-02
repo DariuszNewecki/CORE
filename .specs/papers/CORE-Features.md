@@ -641,7 +641,7 @@ procurement.
 
 <a id="F-40"></a>
 **F-40 — OEM API surface**
-Status: `roadmap` | Scope: `primitive` | Sourcing: `commercial` | Shape: `sidecar-interface` (the open contract every sidecar-shape feature consumes, ADR-084 D3)
+Status: `shipping` | Scope: `primitive` | Sourcing: `commercial` | Shape: `sidecar-interface` (the open contract every sidecar-shape feature consumes, ADR-084 D3)
 
 A stable, versioned API exposing the CORE enforcement engine to third-party
 platforms (IDE plugins, AI coding platforms, DevSecOps tools, GitHub Apps).
@@ -863,7 +863,7 @@ Constitutionally load-bearing per ADR-084 D7 §4 (library-grade openness).
 | F-37 | Regulatory export (GxP / EU AI Act) | roadmap | primitive | commercial |
 | F-38 | Air-gapped deployment (guaranteed) | roadmap | primitive | commercial |
 | F-39 | SLA support | roadmap | primitive | commercial |
-| F-40 | OEM API surface | roadmap | primitive | commercial |
+| F-40 | OEM API surface | shipping | primitive | commercial |
 | F-41 | Artifact type registry | roadmap | extension | open |
 | F-42 | Pluggable sensor model | roadmap | extension | open |
 | F-43 | Pluggable action model | roadmap | extension | open |
@@ -873,14 +873,17 @@ Constitutionally load-bearing per ADR-084 D7 §4 (library-grade openness).
 | F-47 | Managed Qdrant | roadmap | primitive | commercial |
 | F-48 | Open library distribution (PyPI + Docker registry) | shipping | primitive | open |
 
-**Shipping: 29** | **Partial: 1** (F-27) | **Roadmap: 18**
+**Shipping: 30** | **Partial: 1** (F-27) | **Roadmap: 17**
 
-Of the 29 shipping features: 19 are primitives, 10 are source-code instantiations.
+Of the 30 shipping features: 20 are primitives, 10 are source-code instantiations.
 
 **Sourcing split:** Open: 33 | Commercial: 15.
-Of the 29 shipping features, **all 29 are open**.
-Of the 18 roadmap features, **3 are open** (F-41–F-43 extension interfaces)
-and **15 are commercial** (F-20 dashboard; F-31–F-40 Team/Enterprise/Embedded;
+Of the 30 shipping features, **29 are open and 1 is commercial** — F-40
+is the first commercial-sourced feature to reach `shipping`, by virtue
+of being the sidecar-interface contract whose substance is the open
+public API surface itself (ADR-084 D6: no commercial-only API surface).
+Of the 17 roadmap features, **3 are open** (F-41–F-43 extension interfaces)
+and **14 are commercial** (F-20 dashboard; F-31–F-39 Team/Enterprise/Embedded;
 F-44–F-47 commercial extensions of shipping primitives, ADR-083).
 
 ### 4.1 Commercial-surface shape buckets (ADR-084 D8)
