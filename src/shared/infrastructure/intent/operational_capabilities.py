@@ -42,20 +42,13 @@ from typing import Any
 
 import yaml
 
+from shared.config import resolve_default_repo_path
 from shared.infrastructure.intent.errors import GovernanceError
 
 
 OPERATIONAL_CAPABILITIES_REL = ".intent/taxonomies/operational_capabilities.yaml"
 ENUMS_REL = ".intent/META/enums.json"
 ACTION_RISK_REL = ".intent/enforcement/config/action_risk.yaml"
-
-# src/shared/infrastructure/intent/operational_capabilities.py
-#   parents[0] = intent
-#   parents[1] = infrastructure
-#   parents[2] = shared
-#   parents[3] = src
-#   parents[4] = repo root
-_REPO_ROOT_DEFAULT = Path(__file__).resolve().parents[4]
 
 # ADR-078 D6: capability-id grammar regex. Exactly one dot; both halves
 # lowercase + underscore. The loader fails closed on any violation.
@@ -127,7 +120,7 @@ def load_operational_capabilities(
     risk classification agreement. Raises
     ``OperationalCapabilityTaxonomyError`` on any structural deviation.
     """
-    root = (repo_root or _REPO_ROOT_DEFAULT).resolve()
+    root = (repo_root or resolve_default_repo_path()).resolve()
 
     fs_op_classes, valid_modes = _load_enums(root)
     action_risk_map = _load_action_risk(root)

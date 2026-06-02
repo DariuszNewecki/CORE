@@ -24,6 +24,7 @@ from typing import Literal
 import jsonschema
 from jsonschema import RefResolver
 
+from shared.config import resolve_default_repo_path
 from shared.logger import getLogger
 
 
@@ -33,14 +34,6 @@ CANONICAL_HEADING = "## Canonical Vocabulary (Machine Section)"
 VOCABULARY_PAPER_REL = ".specs/papers/CORE-Vocabulary.md"
 VOCABULARY_JSON_REL = ".intent/META/vocabulary.json"
 VOCABULARY_SCHEMA_REL = ".intent/META/vocabulary.schema.json"
-
-# src/shared/infrastructure/intent/vocabulary_projection.py
-#   parents[0] = intent
-#   parents[1] = infrastructure
-#   parents[2] = shared
-#   parents[3] = src
-#   parents[4] = repo root
-_REPO_ROOT_DEFAULT = Path(__file__).resolve().parents[4]
 
 
 @dataclass(frozen=True)
@@ -173,7 +166,7 @@ def load_vocabulary_projection(
     on broken (missing file, malformed JSON, schema validation failure, or
     canonical source paper not parseable).
     """
-    root = (repo_root or _REPO_ROOT_DEFAULT).resolve()
+    root = (repo_root or resolve_default_repo_path()).resolve()
     json_path = root / VOCABULARY_JSON_REL
     schema_path = root / VOCABULARY_SCHEMA_REL
 

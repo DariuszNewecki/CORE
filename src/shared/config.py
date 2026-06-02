@@ -33,7 +33,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 
 
 # ID: e2f3a5b1-7c4d-4f8a-9d2e-1b6c8a3e4f9d
-def _resolve_default_repo_path() -> Path:
+def resolve_default_repo_path() -> Path:
     """Discover the repo root by walking up from cwd looking for ``.intent/``.
 
     Falls back to ``REPO_ROOT`` (the source-tree-relative path computed
@@ -43,7 +43,8 @@ def _resolve_default_repo_path() -> Path:
     repo and the audit auto-discovers ``.intent/`` without any env
     var configuration. Source-tree usage is unaffected — ``REPO_ROOT``
     contains ``.intent/`` and is the first matching candidate. See #544
-    for the F-10.3 incident this resolves.
+    for the F-10.3 incident this resolves; #545 promoted the helper to
+    a public API so the engine-side intent loaders can share it.
     """
     cwd = Path.cwd()
     for candidate in [cwd, *cwd.parents]:
@@ -77,16 +78,16 @@ class Settings(BaseSettings):
     _path_resolver: PathResolver | None = PrivateAttr(default=None)
 
     # --- Canonical Roots ---
-    # Resolved via _resolve_default_repo_path() so pip-installed
+    # Resolved via resolve_default_repo_path() so pip-installed
     # consumers auto-discover their repo from cwd. See #544.
-    REPO_PATH: Path = Field(default_factory=_resolve_default_repo_path)
-    MIND: Path = Field(default_factory=lambda: _resolve_default_repo_path() / ".intent")
-    SPECS: Path = Field(default_factory=lambda: _resolve_default_repo_path() / ".specs")
-    BODY: Path = Field(default_factory=lambda: _resolve_default_repo_path() / "src")
+    REPO_PATH: Path = Field(default_factory=resolve_default_repo_path)
+    MIND: Path = Field(default_factory=lambda: resolve_default_repo_path() / ".intent")
+    SPECS: Path = Field(default_factory=lambda: resolve_default_repo_path() / ".specs")
+    BODY: Path = Field(default_factory=lambda: resolve_default_repo_path() / "src")
 
     # --- Standard Infrastructure Paths ---
     KEY_STORAGE_DIR: Path = Field(
-        default_factory=lambda: _resolve_default_repo_path() / ".intent" / "keys"
+        default_factory=lambda: resolve_default_repo_path() / ".intent" / "keys"
     )
     CORE_ACTION_LOG_PATH: Path = Field(
         default_factory=lambda: __import__(

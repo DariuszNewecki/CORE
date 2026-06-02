@@ -26,19 +26,12 @@ from typing import Any
 
 import yaml
 
+from shared.config import resolve_default_repo_path
 from shared.infrastructure.intent.errors import GovernanceError
 
 
 FILESYSTEM_OPERATIONS_REL = ".intent/taxonomies/filesystem_operations.yaml"
 ENUMS_REL = ".intent/META/enums.json"
-
-# src/shared/infrastructure/intent/filesystem_operations.py
-#   parents[0] = intent
-#   parents[1] = infrastructure
-#   parents[2] = shared
-#   parents[3] = src
-#   parents[4] = repo root
-_REPO_ROOT_DEFAULT = Path(__file__).resolve().parents[4]
 
 # Match-mode vocabulary. Closed at code level — extending requires an ADR
 # revision and a coordinated loader edit. ADR-077 §2 declares the two
@@ -115,7 +108,7 @@ def load_filesystem_operations(
     ``.intent/META/enums.json`` (ADR-080 D3). Raises
     ``FilesystemOperationTaxonomyError`` on any structural deviation.
     """
-    root = (repo_root or _REPO_ROOT_DEFAULT).resolve()
+    root = (repo_root or resolve_default_repo_path()).resolve()
 
     fs_audit_op_classes = _load_fs_audit_op_class_enum(root)
     document = _load_document(root)

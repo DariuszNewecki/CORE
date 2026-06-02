@@ -25,18 +25,11 @@ from pathlib import Path
 
 import yaml
 
+from shared.config import resolve_default_repo_path
 from shared.infrastructure.intent.errors import GovernanceError
 
 
 COGNITIVE_ROLES_REL = ".intent/taxonomies/cognitive_roles.yaml"
-
-# src/shared/infrastructure/intent/cognitive_roles.py
-#   parents[0] = intent
-#   parents[1] = infrastructure
-#   parents[2] = shared
-#   parents[3] = src
-#   parents[4] = repo root
-_REPO_ROOT_DEFAULT = Path(__file__).resolve().parents[4]
 
 
 # ID: 45793fcc-9feb-4352-a03e-09c03f44b5a6
@@ -54,7 +47,7 @@ def load_cognitive_roles(repo_root: Path | None = None) -> frozenset[str]:
     on any failure — including an empty role set, which is treated as a
     structural defect rather than a permissive state.
     """
-    root = (repo_root or _REPO_ROOT_DEFAULT).resolve()
+    root = (repo_root or resolve_default_repo_path()).resolve()
     path = root / COGNITIVE_ROLES_REL
 
     if not path.is_file():
