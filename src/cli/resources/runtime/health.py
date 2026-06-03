@@ -385,7 +385,7 @@ async def _query_dashboard_data(session: Any) -> dict[str, Any]:
             text("""
             SELECT
                 COUNT(*) FILTER (WHERE created_at >= :cutoff) AS created_24h,
-                COUNT(*) FILTER (WHERE updated_at >= :cutoff AND status = 'resolved') AS resolved_24h,
+                COUNT(*) FILTER (WHERE resolved_at >= :cutoff AND status = 'resolved') AS resolved_24h,
                 COUNT(*) FILTER (WHERE status IN ('open', 'awaiting_reaudit')
                                  AND entry_type = 'finding') AS total_open
             FROM core.blackboard_entries
