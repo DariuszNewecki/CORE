@@ -476,7 +476,7 @@ capabilities (local / external / API-routable), not brand names.
 
 <a id="F-27"></a>
 **F-27 — Local LLM support**
-Status: `partial` | Scope: `primitive` | Sourcing: `open`
+Status: `shipping` | Scope: `primitive` | Sourcing: `open`
 
 CORE supports any HTTP-API-served local LLM. In the current Solo reference
 deployment, local models are the default routing target; no external provider
@@ -850,7 +850,7 @@ Constitutionally load-bearing per ADR-084 D7 §4 (library-grade openness).
 | F-24 | Worker health monitoring | shipping | primitive | open |
 | F-25 | Vector artifact indexing | shipping | source-code instantiation | open |
 | F-26 | LLM integration (API) | shipping | primitive | open |
-| F-27 | Local LLM support | partial | primitive | open |
+| F-27 | Local LLM support | shipping | primitive | open |
 | F-28 | Context builder | shipping | source-code instantiation | open |
 | F-29 | CLI governance surface | shipping | primitive | open |
 | F-30 | Constitutional maintenance commands | shipping | source-code instantiation | open |
@@ -873,9 +873,9 @@ Constitutionally load-bearing per ADR-084 D7 §4 (library-grade openness).
 | F-47 | Managed Qdrant | roadmap | primitive | commercial |
 | F-48 | Open library distribution (PyPI + Docker registry) | shipping | primitive | open |
 
-**Shipping: 30** | **Partial: 1** (F-27) | **Roadmap: 17**
+**Shipping: 31** | **Partial: 0** | **Roadmap: 17**
 
-Of the 30 shipping features: 20 are primitives, 10 are source-code instantiations.
+Of the 31 shipping features: 21 are primitives, 10 are source-code instantiations.
 
 **Sourcing split:** Open: 33 | Commercial: 15.
 Of the 30 shipping features, **29 are open and 1 is commercial** — F-40
