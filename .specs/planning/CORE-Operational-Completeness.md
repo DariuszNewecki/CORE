@@ -37,11 +37,13 @@ That returns the remaining gate issues. F-10 #384 and F-48 #527 closed 2026-06-0
 
 ### 2.2 Three quality goals
 
-| Item | Type | "Done" looks like | Verification path | Current state |
+**Live status:** `gh issue list --label goal:operational-completeness --state all` returns both feature commitments (§2.1) and quality goals. Each quality goal carries a GH issue filed 2026-06-03; closing the issue records met-date + evidence in the closure comment.
+
+| Item | GH issue | Type | "Done" looks like | Verification path |
 |---|---|---|---|---|
-| Docs polish | system property | An outside developer installs + runs the full thesis (encounter → audit → remediate → verify) from public docs alone, without source-tree archaeology | Recruit a developer who has never seen the project; observe their setup attempt; record gaps; close them; repeat | Not started; not measured. Baseline observation pending. |
-| Demo reliability | system property | The consequence-chain bootstrap demo (Tiers §3.2) runs cleanly on first attempt, three times in a row, from a clean repo clone on a freshly-provisioned machine | Scripted: provision VM → clone → run demo → record outcome. Repeat from clean VM until three consecutive clean runs. | Not started; not measured. |
-| Signal quality | derived metric | F-19 convergence metric reports resolution rate ≥ creation rate, sustained ≥ 30 days, on this repo | (1) Verify F-19 query produces honest data; (2) start measurement window; (3) sustain for 30 days; (4) record met-date | F-19 query not yet verified honest. Per ADR-085 §Consequences, this verification is in scope for engineering capacity under D1 because it advances signal-quality. |
+| Docs polish | [#561](https://github.com/DariuszNewecki/CORE/issues/561) | system property | An outside developer installs + runs the full thesis (encounter → audit → remediate → verify) from public docs alone, without source-tree archaeology | Recruit a developer who has never seen the project; observe their setup attempt; record gaps; close them; repeat |
+| Demo reliability | [#562](https://github.com/DariuszNewecki/CORE/issues/562) | system property | The consequence-chain bootstrap demo (Tiers §3.2) runs cleanly on first attempt, three times in a row, from a clean repo clone on a freshly-provisioned machine | Scripted: provision VM → clone → run demo → record outcome. Repeat from clean VM until three consecutive clean runs. |
+| Signal quality | [#563](https://github.com/DariuszNewecki/CORE/issues/563) | derived metric | F-19 convergence metric reports resolution rate ≥ creation rate, sustained ≥ 30 days, on this repo | (1) Verify F-19 query produces honest data; (2) start measurement window; (3) sustain for 30 days; (4) record met-date in #563 closure comment. Per ADR-085 §Consequences, F-19 honesty verification is in scope for engineering capacity under D1. |
 
 ---
 
@@ -173,25 +175,23 @@ All six sub-issues carry `goal:operational-completeness` (Phase A) or are unlabe
 
 ## 3. Sequencing (operational, updateable)
 
-Per ADR-085 D6, this ADR does not prescribe ordering inside the list, but the dependency graph constrains it. Current best estimate:
+Per ADR-085 D6, this ADR does not prescribe ordering inside the list, but the dependency graph constrains it.
 
-**Tier-1 (current sequence, post 2026-06-02 F-10/F-48/F-40 triple ship):**
-- **F-48** Open library distribution — ✅ shipped 2026-06-02. F-48.1 + F-48.2 closed; F-48.3/4/5 post-exit or v1.0.0-gated (see §2.4).
-- **F-10** CI/CD gate — ✅ shipped 2026-06-02. All MVP sub-items closed; F-10.5 (pre-commit-hooks) open as bonus delivery channel.
-- **F-40** OEM API surface — ✅ **shipped 2026-06-02.** All 4 MVP sub-issues closed in one session (F-40.1 → F-40.2 → F-40.3 → F-40.4); zero gaps in the sidecar verification walk. Three commercial sidecars (F-20, F-34, F-45 read-side) unblocked. Phase B (#554, #555) remains open as post-exit polish.
-- **F-27** Local LLM — ✅ **shipped 2026-06-03.** ADR-089 D1 capability demonstration ran in-session: `build.tests` on `src/shared/models/audit_rendering.py` returned `ok=True` (90.4s) via `ollama_qwen_coder_small` (qwen2.5-coder:3b); `llm_exchange_log` recorded 0 remote-locality generative calls during the 18:20:23–18:28:27Z window. Routing flipped back to baseline (DeepSeek/Anthropic) post-demonstration. **Four of five 5+3 features now closed (F-10 + F-48 + F-40 + F-27)**; remaining: F-41/F-42/F-43 trio.
+**Live state:** `gh issue list --label goal:operational-completeness --state open` — what remains open. Closed items + closure dates are in §6 activity log.
 
-**Tier-2 (F-41 first, then F-42 + F-43 in parallel):**
-- **F-41** Artifact type registry — prerequisite for F-42 + F-43
-- **F-42** Pluggable sensor model — after F-41
-- **F-43** Pluggable action model — after F-41; can run alongside F-42
+**Remaining-work order (best-estimate, updateable without ADR):**
 
-**Tier-3 (finishing touches, advanced alongside Tier-1/Tier-2 work):**
-- **Docs polish** — work continues with every feature
-- **Demo reliability** — verification work after each Tier-1 ship
-- **Signal quality** — F-19 query verification then sustained-window measurement
+**Tier-A — Extension interfaces (F-41 first, then F-42 + F-43 parallel):**
+- **F-41** Artifact type registry — [#415](https://github.com/DariuszNewecki/CORE/issues/415) — prerequisite for F-42 + F-43
+- **F-42** Pluggable sensor model — [#416](https://github.com/DariuszNewecki/CORE/issues/416) — after F-41
+- **F-43** Pluggable action model — [#417](https://github.com/DariuszNewecki/CORE/issues/417) — after F-41; can run alongside F-42
 
-(F-27 was a Tier-3 entry before ADR-089. With the criterion amended from a 7-day usage window to a one-shot capability demonstration, F-27 promotion is a Tier-1 in-session act, not a finishing touch — it has moved into Tier-1's "next" slot above.)
+**Tier-B — Quality goals (parallel with Tier-A; any can start now):**
+- **Docs polish** — [#561](https://github.com/DariuszNewecki/CORE/issues/561) — work continues with every feature; ready for fresh-developer recruit any time
+- **Demo reliability** — [#562](https://github.com/DariuszNewecki/CORE/issues/562) — scripted VM-provisioning harness is the first action item
+- **Signal quality** — [#563](https://github.com/DariuszNewecki/CORE/issues/563) — Step 1 (F-19 query honesty verification, in-scope per ADR-085 §Consequences) can start now; Step 2 (sustained 30-day window) requires Step 1
+
+Historical Tier-1 ships (F-10 + F-27 + F-40 + F-48 closed 2026-06-02 / 2026-06-03) are recorded in §6 activity log.
 
 This ordering is the current best estimate and lives in this doc. Updating it is operational, not constitutional — change without an ADR amendment.
 
