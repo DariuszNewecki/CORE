@@ -1,354 +1,189 @@
 # CORE: Roadmap
 
-**Document type:** Strategic reference
+**Document type:** Strategic paper — sequencing surface
 **Location:** `.specs/papers/CORE-Roadmap.md`
-**Status:** Authoritative
-**Author:** Dariusz Newecki
-**Audience:** Internal — governance, commercial, investor
-**Derived from:** `.specs/papers/CORE-Features.md`
+**Status:** Authoritative (replaces prior shape 2026-06-03)
+**Audience:** Internal — governance, engineering sequencing, commercial planning, investor conversation
+**Authority floor:** This document owns sequencing + the single product milestone. Substance (feature definitions, tier definitions, decisions) lives in the canonical surfaces this doc references. When this doc disagrees with the registry, the registry wins.
 
 ---
 
 ## 1. Purpose
 
-This document sequences CORE's unshipped features into a delivery order
-governed by tier dependency and inter-feature dependency. It is the planning
-surface for milestone and sprint decisions.
+CORE has one named, achievable, definable milestone:
 
-The feature registry (`CORE-Features.md`) is the vocabulary. This document
-is the sequence. When a feature's status changes, update the registry first;
-this document follows.
+> **Open Base Fully Operational** — the open distribution ships every primitive required to reproduce the full thesis (constitutionally-governed AI code generation with autonomous remediation and full consequence chain), and the three system-quality goals that gate adoption are demonstrably met.
 
-**Reading the roadmap:** Features within a tier are listed in recommended
-build order — features that unblock others come first. Features that are
-genuinely parallel within a tier are noted as such.
+Everything else on the roadmap is sequenced relative to this milestone. Commercial features ship after it — using only the open surfaces it makes load-bearing. Versioning evolves alongside it but is not gated by it (see §5).
 
-**Scope boundary.** This roadmap sequences *features* — registry entries, each
-carrying an F-ID. CORE's internal capability and architecture milestones — the
-A3 autonomy state, the API-as-governance-interface migration, and the
-Constitutional Coherence Checker — are **not** features and are not sequenced
-here. They appear in §2 only as the realized baseline the remaining feature
-work builds on. Their canonical homes are `CORE-A3-plan.md`, the ADR ledger
-(ADR-053 / ADR-054 / ADR-055), and ADR-067 respectively.
+This roadmap is **structurally stable** by design: the milestone definition, the commercial-after-milestone ordering, the tier mapping — none of these change as features ship. Only the *status* of items inside changes. When a new feature is added to the registry (constitutional act per `Features.md §1`), the roadmap absorbs it without restructure.
+
+When this doc disagrees with `CORE-Features.md` on feature status, the registry wins. When it disagrees with `CORE-Product-Tiers.md` on tier definitions, Tiers wins. This doc is the navigation surface; substance is canonical elsewhere.
 
 ---
 
-## 2. Current State
+## 2. The milestone: Open Base Fully Operational
 
-As of May 2026.
+### 2.1 Definition
 
-### Realized baseline
+The milestone is constitutionally declared by **ADR-085 D5** (mechanical-check exit criteria). When all eight items below show satisfied state, the open base is "fully operational" per the open-core honesty contract (ADR-084 D7 §1).
 
-Since the previous roadmap revision, three internal milestones moved from plan
-to fact. They are not features, but they define the floor every roadmap item
-now builds on.
+| Group | Item | Type | "Done" criterion | Status today |
+|---|---|---|---|---|
+| Feature commitments (5) | F-10 CI/CD gate | registry | `Status: shipping`; PR annotations + merge-blocking demonstrated against external repo | ✅ shipped 2026-06-02 |
+| | F-27 Local LLM | registry | `Status: shipping`; capability demonstration per ADR-089 D1 | ✅ shipped 2026-06-03 |
+| | F-40 OEM API surface | registry | `Status: shipping`; documented public contract; sidecar attachability proven | ✅ shipped 2026-06-02 |
+| | F-41 + F-42 + F-43 extension interfaces | registry | All three `Status: shipping`; one first-party non-code instantiation as plugin-contract proof | ⬜ roadmap |
+| | F-48 Open library distribution | registry | `Status: shipping`; `pip install core-runtime` works; semver tags; CI publishes on tag | ✅ shipped 2026-06-02 |
+| Quality goals (3) | Docs polish | system property | Outside developer installs + runs the full thesis from public docs alone, without source-tree archaeology | ⬜ not started |
+| | Demo reliability | system property | Consequence-chain bootstrap demo runs cleanly on first attempt, three times in a row, from a clean repo clone on a freshly-provisioned machine | ⬜ not started |
+| | Signal quality | derived metric | F-19 convergence metric reports resolution rate ≥ creation rate, sustained ≥ 30 days, on this repo | ⬜ not started (F-19 query honesty verification not yet executed) |
 
-- **A3 governed autonomy achieved.** All four A3 gates are cleared and held:
-  loop closure (G1), convergence (G2, closed 2026-05-12), consequence chain
-  (G3, closed 2026-05-01), and governance-in-`.intent/` (G4, closed
-  2026-05-10). The daemon finds, proposes, and fixes violations unattended;
-  the human role is reviewer/governor. A3 is a state, not a feature — see
-  `CORE-A3-plan.md`.
+**Progress as of 2026-06-03:** 4 of 5 feature commitments closed; 0 of 3 quality goals met. The remaining feature work is the F-41 / F-42 / F-43 extension-interfaces trio (F-41 first, F-42 + F-43 in parallel afterward).
 
-- **API as the single governed interface.** The CLI-to-HTTP migration
-  (ADR-053) is live through its first two capability phases: `/audit` +
-  `/proposals` (ADR-054) and `/fix` + `/quality` (ADR-055). The CLI is now a
-  typed client over `api.*` rather than a direct caller of the engine. This is
-  the load-bearing surface that F-34 (web dashboard) and F-40 (OEM API)
-  require.
+### 2.2 What this milestone is NOT
 
-- **Constitutional Coherence Checker live.** A read-only instrument (ADR-067)
-  that detects drift between the constitution and the codebase and surfaces
-  triage candidates. It strengthens the evidentiary basis for F-37 (regulatory
-  export) without itself being a tiered feature.
+- **Not "all 33 open-stamped features at shipping."** F-48 closed when the parent gate criterion (pip install + tag + CI publish) was met; F-48 sub-items (F-48.3 Docker/GHCR, F-48.4 public Python surface, F-48.5 semver policy doc) continue as post-milestone polish per the Operational-Completeness tracker §2.4. The milestone is the constitutional definition, not the all-shipping-features definition.
+- **Not the v3.0.0 trigger.** Version bumps are governed by public-surface contract change per ADR-088 D5, independent of milestone status. The milestone may land in 2.x; v3.0 ships when public-surface contract changes break, not when the milestone achieves.
+- **Not a commercial readiness signal.** Customer signal sequences commercial features (§3); the milestone unblocks them constitutionally but does not predict adoption velocity.
 
-### Feature counts
+### 2.3 Achieving the milestone
 
-Authoritative in `CORE-Features.md`:
-
-- **23 features shipping** — full Solo reference implementation, including
-  F-05 (default rule library), promoted from partial since the last revision.
-- **1 feature partial** — F-27 (local LLM), opt-in via configuration.
-- **19 features on roadmap** — distributed across Audit, Solo-completion,
-  Team, Enterprise, and Embedded tiers.
-
-The shipping baseline is the Solo tier minus F-27 completion. Every roadmap
-item below is net-new capability.
+Per ADR-085 D5, achievement is mechanical: each item's "Done" cell evaluates true. The governor authors a follow-on ADR (or amends ADR-085) declaring the constraint relaxed and authorizing commercial engineering work to begin. Until that authoring step, the constraint stays active even if all items appear satisfied — the relaxation is an explicit governance act, not an automatic state transition.
 
 ---
 
-## 3. Roadmap by Tier
+## 3. After the milestone — commercial sequencing
 
-### Tier 1 — Audit
+Commercial features sit on this roadmap explicitly. They are not omitted, not flattened into "later," and not dated. Each entry below carries one of two structural conditions:
 
-The Audit tier has one unshipped feature. It is the entire delivery
-mechanism for the tier — without it, Audit has no product.
+- **Structural-readiness condition:** can ship once the open prerequisites are present (the post-milestone authorized state).
+- **Customer-signal condition:** depends on a buyer commitment beyond engineering effort — first regulated customer, first OEM partner, first hosted-tier subscriber.
 
----
+The first-SKU candidate is **F-44 (Premium rule libraries)** per ADR-083 §Consequences and ADR-084 §Consequences (structural-readiness from independent arguments). The decision belongs to the governor and is not closed; the candidate set is no longer ambiguous.
 
-**F-10 — CI/CD gate** `roadmap` `source-code instantiation`
-*Blocked by: nothing. Blocks: nothing within Audit.*
+Sequencing is also constrained by the three commercial-surface shapes (ADR-084 D8). Each shape attaches via a different open contract:
 
-Stateless audit packaged as a GitHub Action, GitLab CI step, and pre-commit
-hook. This is the top-of-funnel entry point — the first thing a developer
-encounters before they know what CORE is. Everything in the adoption funnel
-depends on this existing.
+- **Plugin shape** attaches via F-04 loader + F-41/F-42/F-43 extension interfaces + atomic action registry
+- **Sidecar shape** attaches via F-40 OEM API surface (open, already shipping)
+- **Runtime fork shape** attaches via F-48 published library (open, already shipping)
+- **Outside taxonomy:** F-38 (build overlay), F-39 (not software)
 
-**Build first.**
+### 3.1 Plugin-shape commercial features (3)
 
----
+| F-ID | Name | Tier | Shape | Ships when |
+|---|---|---|---|---|
+| F-44 | Premium rule libraries (industry packs) | Audit + | Plugin (rule overlay via F-04 + F-05) | **Structural-ready today** (only commercial feature with all open prerequisites shipping). Lowest-friction first-SKU candidate per ADR-083 / ADR-084. Customer signal: any regulated industry buyer commits to one of GxP / IEC 62304 / EU AI Act / PCI-DSS / SOC 2 pack. |
+| F-46 | Cloud audit export (signed) | Solo + | Plugin (atomic action via registry) | Structurally ready (registry shipping); customer signal: any non-regulated buyer wants signed export. |
+| F-37 | Regulatory export (GxP / EU AI Act) | Enterprise + | Plugin (atomic action via registry) | Customer signal required: regulated customer signing on (GxP, EU AI Act Article 9, IEC 62304 evidence). Distinct from F-46 — this is the regulator-facing variant. |
 
-### Tier 2 — Solo (completions)
+### 3.2 Sidecar-shape commercial features (4)
 
-One feature remains partial in the Solo implementation. It does not block the
-core governance loop; completing it improves deployment resilience and unlocks
-the Enterprise air-gapped guarantee. (F-05 completed since the previous
-revision and is now shipping; it no longer appears here.)
+| F-ID | Name | Tier | Shape | Ships when |
+|---|---|---|---|---|
+| F-45 | Hosted findings dashboard | Audit + | Sidecar (read-side via F-40) | Structurally ready (F-40 shipping); customer signal: any Audit-tier customer wants hosted UI without their own web tier. |
+| F-20 | Convergence graph dashboard | Team + | Sidecar (via F-40) | Structurally ready (F-40 shipping, F-19 metric shipping); part of Team-tier package. Ships with first Team customer. |
+| F-34 | Web dashboard | Team + | Sidecar (via F-40) | Same as F-20 — Team-tier package. Ships with first Team customer. |
+| F-47 | Managed Qdrant | Solo + | Sidecar (degenerate — managed infrastructure, no FastAPI consumption) | Operational: managed-infra repo + hosting commitment. Customer signal: customer wants to skip local Qdrant operation. |
 
----
+### 3.3 Runtime-fork-shape commercial features (5)
 
-**F-27 — Local LLM support** `partial` `primitive`
-*Blocked by: nothing. Required before F-38.*
+All depend on F-48 published library (shipping) and on Team-tier infrastructure decisions. Ships as one bundle per ADR-084 D4 / D5 (one private repo per shape; runtime-fork repo materialises with first feature).
 
-Local model support exists but is opt-in via configuration. Completion means
-making local execution a first-class deployment mode with documented model
-requirements and fallback behaviour. Prerequisite for the guaranteed
-air-gapped deployment at Enterprise (F-38).
+| F-ID | Name | Tier | Shape | Ships when |
+|---|---|---|---|---|
+| F-32 | RBAC | Team + | Runtime fork | Structurally ready. Foundation for F-31 (shared consequence chain depends on identity). Ships first within the Team bundle. |
+| F-31 | Shared consequence chain (multi-user) | Team + | Runtime fork | Depends on F-32. |
+| F-33 | Multi-repository support | Team + | Runtime fork | Independent of F-31/F-32 within the bundle. |
+| F-35 | Federated constitution | Enterprise + | Runtime fork | Enterprise-tier requirement (org root + team extensions, no override). |
+| F-36 | SSO / SAML / OIDC | Enterprise + | Runtime fork | Enterprise-tier requirement; regulated-industry procurement gate. |
 
----
+### 3.4 Outside-taxonomy commercial commitments (2)
 
-### Tier 3 — Team
+| F-ID | Name | Tier | Shape | Ships when |
+|---|---|---|---|---|
+| F-38 | Air-gapped deployment (guaranteed) | Enterprise + | Build overlay (signed image + configuration) | Depends on F-27 (capability — shipping) + F-48.3 (Docker/GHCR). Customer signal: regulated customer requires contractual air-gap guarantee. |
+| F-39 | SLA support | Enterprise + | Not software (operational commitment) | Operational commitment; customer signal: any Enterprise contract requiring response-time SLA. |
 
-Five features. Two dependency chains:
+### 3.5 Open distribution finishing items (post-milestone, not commercial)
 
-- F-32 → F-31 (RBAC is the foundation for shared governance)
-- F-20 → F-34 (convergence data before convergence UI)
-- F-33 is independent
+F-48 closed at the milestone-gate level; sub-items continue as open distribution polish, not commercial work. Per `CORE-Operational-Completeness.md` §2.4:
 
----
+| Sub-item | Name | Status | Sequencing |
+|---|---|---|---|
+| F-48.3 | Docker `core-engine` image + GHCR release workflow | open | Solo install-path enabler; needed before F-38. |
+| F-48.4 | Public Python API surface declaration (`__all__`) | recently shipped — **verify status** | Gates F-31/F-32/F-33/F-35/F-36 commercial sidecars per ADR-084 D4; also gates ADR-088 D2 PyPI `Production/Stable` classifier promotion. |
+| F-48.5 | Semver policy doc | open | Inherits ADR-088 D5 baseline; documents what `core-runtime` users can rely on. |
 
-**F-32 — Role-based constitutional authority (RBAC)** `roadmap` `primitive`
-*Blocked by: nothing. Blocks: F-31, F-35, F-36.*
-
-Who can approve proposals. Who can amend `.intent/`. Enforced by the system,
-not by convention. Foundation for every multi-user governance guarantee.
-Build before anything else in Team — F-31 and the Enterprise identity
-features (F-35, F-36) depend on it.
-
----
-
-**F-31 — Shared consequence chain** `roadmap` `primitive`
-*Blocked by: F-32. Blocks: nothing.*
-
-All proposals, findings, and executions visible to every member of a shared
-instance. Governance state becomes team-level. Requires RBAC to exist so
-that visibility is governed, not open.
+(F-48.4 status reconciliation is a known open item — see recon `var/recon-product-state-2026-06-03.md` §C2.)
 
 ---
 
-**F-33 — Multi-repository support** `roadmap` `primitive`
-*Blocked by: nothing. Parallel with F-31 and F-32.*
+## 4. Tier × feature mapping
 
-Single CORE instance governing multiple repositories under a shared
-Blackboard and worker pool. Each repository retains its own `.intent/`
-constitution. No dependency on RBAC or shared consequence chain; can be
-built in parallel.
+The canonical tier x feature mapping is `CORE-Features.md` §5 (registry-authoritative). The canonical tier definitions are `CORE-Product-Tiers.md` §4. This roadmap does not re-declare either.
 
----
+The relevant view this roadmap adds is: **for each tier, what's available today vs. what's gated behind §2 or §3.**
 
-**F-20 — Convergence graph dashboard** `roadmap` `primitive`
-*Blocked by: nothing (data is already in the Blackboard). Blocks: F-34.*
+| Tier | Available today | Adds after milestone | Customer-signal-gated |
+|---|---|---|---|
+| **Audit** | Stateless audit; default rule library; CI/CD gate (F-10); pre-commit-hooks distribution (F-10.5, bonus) | Premium rule packs (F-44); hosted findings dashboard (F-45) | F-44 with first regulated buyer; F-45 with first Audit-tier hosting customer |
+| **Solo** | Full daemon; autonomous remediation; consequence chain; local + external LLM routing; CLI | Cloud audit export (F-46); managed Qdrant (F-47) | F-46 with first non-regulated buyer; F-47 with operational hosting commitment |
+| **Team** | None of Team-tier features ship today | F-20 + F-31 + F-32 + F-33 + F-34 (the Team bundle) | First Team customer signing on |
+| **Enterprise** | None of Enterprise-tier features ship today | F-35 + F-36 + F-37 + F-38 + F-39 (the Enterprise bundle) | First regulated customer; SLA commitment |
+| **Embedded** | F-40 OEM API surface shipping (the contract); OpenAPI spec published | F-40 Phase B (auth, host binding, rate limiting per ADR-087 D8); commercial Embedded engagement | First OEM partner; auth model decided per ADR-087 D8 |
 
-The convergence metric (F-19) is shipping; the UI is not. Finding rate versus
-resolution rate over time — the anchor KPI for Team adoption. Build before
-the full web dashboard since the dashboard depends on this view existing.
-
----
-
-**F-34 — Web dashboard** `roadmap` `primitive`
-*Blocked by: F-20. Blocks: nothing.*
-
-Browser-based governance interface: convergence graph, proposal queue, audit
-history, worker health. Replaces CLI as the primary interface for governors
-not working in a terminal. Depends on F-20 being the anchor view.
-
-The HTTP service layer it renders over is now live (ADR-053 / ADR-054 /
-ADR-055), so the remaining work is the browser interface itself, not the
-underlying API. This lowers build risk; it does not change the F-20 → F-34
-sequence.
+Each tier has a complete and honest answer today. Audit + Solo are deployable as fully open distributions. Team + Enterprise + Embedded are honest pre-commitments — the contract surfaces (F-40, F-48, F-41–F-43) that make them load-bearing exist or are nearing completion.
 
 ---
 
-### Tier 4 — Enterprise
+## 5. Versioning relationship
 
-Eight features across three dependency chains:
+Per ADR-088, `core-runtime` PyPI sits at v2.x and tracks the constitutional repo's narrative release history. Version bumps are governed by **public-surface contract change**, not by milestone or feature status:
 
-- F-32 (Team) → F-35 → F-37
-- F-32 (Team) → F-36 → F-37
-- F-27 (Solo completion) → F-38
-- F-41 → F-42, F-43
-- F-39 is commercial, no technical dependency
+- **Patch** (`2.6.0 → 2.6.1`): bug fixes, internal-only refactors, documentation — no surface change.
+- **Minor** (`2.6 → 2.7`): additive features, new public symbols, new public routes, new optional response fields.
+- **Major** (`2.x → 3.x`): breaking change to the Python public surface (per F-48.4 when defined) **OR** wire-surface major bump per ADR-087 D6 (`/v1/` → `/v2/`).
 
----
-
-**F-35 — Federated constitution** `roadmap` `primitive`
-*Blocked by: F-32. Blocks: F-37.*
-
-Org-level root constitution that team-level constitutions inherit and cannot
-override. The compliance floor for enterprise deployments. Requires RBAC
-(F-32) to exist so that amendment authority at the org level is enforced.
+The milestone (§2) and the version track (this section) evolve independently. Achieving the milestone in 2.x is normal. Crossing to 3.0 requires a breaking-surface trigger, which may happen before, during, or after the milestone. PyPI `Development Status` classifier promotion to `Production/Stable` is gated on F-40 (shipping) + F-48.4 (status pending verification) per ADR-088 D2.
 
 ---
 
-**F-36 — SSO / SAML / OIDC** `roadmap` `primitive`
-*Blocked by: F-32. Blocks: F-37.*
+## 6. Maintenance discipline
 
-Enterprise identity integration. Role assignments bind to SSO identities.
-Requires RBAC (F-32) to have a role model to bind to. Parallel with F-35.
+This roadmap is updated under two distinct disciplines:
 
----
+**Status updates (operational, no ADR required):**
+- A feature ships → its "Status today" cell in §2.1 or §3 flips to ✅, with date.
+- A quality goal reaches met state → §2.1's "Status today" cell records the date.
+- A customer signal arrives that re-orders §3 commercial sequencing → reorder freely; the structural conditions stay.
 
-**F-41 — Artifact type registry** `roadmap` `extension`
-*Blocked by: nothing. Blocks: F-42, F-43.*
+**Structural updates (constitutional, ADR required):**
+- A new F-ID is added to the registry → this roadmap's relevant section absorbs it.
+- The milestone definition changes (e.g., ADR-085 D5 amended) → §2.1 follows the amendment.
+- A feature's `Sourcing` changes (open ↔ commercial) → governance amendment per Features.md §1; this roadmap reflects the new section placement.
+- The three commercial-surface shapes change (ADR-084 D8 amended) → §3 reorganization follows.
 
-Declared model for registering governed artifact types beyond source code.
-The enabling feature for non-code governance. Must exist before F-42 and F-43
-can be built — they are its first consumers.
-
----
-
-**F-42 — Pluggable sensor model** `roadmap` `extension`
-*Blocked by: F-41. Blocks: nothing. Parallel with F-43.*
-
-Abstract sensor interface making the audit loop extensible to non-code
-artifact types. First consumer of F-41's artifact type registry.
+The structural stability of the document is itself a discipline: avoid restructure when status updates suffice. The prior `CORE-Roadmap.md` shape drifted because per-tier "what to build next" prose decayed against the registry by ~8 ships in three weeks; this version delegates that prose to the registry to prevent recurrence.
 
 ---
 
-**F-43 — Pluggable action model** `roadmap` `extension`
-*Blocked by: F-41. Blocks: nothing. Parallel with F-42.*
+## 7. References
 
-Abstract action interface making the remediation loop extensible to non-code
-artifact types. First consumer of F-41 alongside F-42.
-
----
-
-**F-38 — Air-gapped deployment (guaranteed)** `roadmap` `primitive`
-*Blocked by: F-27 (completion). Blocks: nothing.*
-
-Local-only LLM with guaranteed network isolation. Builds on F-27's partial
-local model support and promotes it from configuration option to
-infrastructure guarantee. Required for defence, pharma, and financial
-services deployments.
-
----
-
-**F-37 — Regulatory export (GxP / EU AI Act)** `roadmap` `primitive`
-*Blocked by: F-35, F-36. Blocks: nothing.*
-
-Structured, signed export of the full consequence chain for regulatory
-submission. The consequence chain data is already shipping (F-17); this
-feature wraps it in a signed, timestamped, regulator-formatted package.
-Requires federated constitution (F-35) and SSO (F-36) so that approvals
-carry verified identity before submission.
-
-Request-level identity attribution (ADR-053 D7) and the Constitutional
-Coherence Checker (ADR-067) further strengthen the export's evidentiary
-basis: attribution makes each approval traceable to an identity, and the
-Coherence Checker provides a standing record that the constitution and the
-governed codebase have not drifted apart. Neither is a prerequisite F-ID; both
-raise the defensibility of the eventual export.
+- `CORE-Features.md` §3 (feature definitions), §4 (status counts + shape buckets), §5 (tier mapping) — authoritative for feature status, sourcing, and tier inclusion
+- `CORE-Product-Tiers.md` §2 (adoption funnel), §3 (non-goals), §4 (tier definitions), §5 (tier comparison) — authoritative for tier-level claims and positioning
+- `commercial/CORE-Products.md` — operational view of the open/commercial line; first-SKU candidate set
+- `planning/CORE-Operational-Completeness.md` — operational tracker for milestone progress; per-item status + closure verification log
+- `planning/CORE-Feature-Dependency-Graph.md` — picture-form of the prerequisite graph; supports §3 structural-readiness conditions
+- ADR-083 — stamps F-44/F-45/F-46/F-47 as commercial; first-SKU structural argument for F-44
+- ADR-084 — three commercial-surface shapes (D1); interface symmetry (D6); four open-core honesty commitments (D7); shape-bucket reclassification (D8)
+- ADR-085 — open-base completeness as engineering's sole goal (D1); exit criteria (D5); the milestone in §2 is this ADR's own framing
+- ADR-086 — installation architecture; three distribution channels; tier-install profile mapping
+- ADR-087 — OEM API versioning and stability policy; Phase B scope (D8) referenced in §3.2 / §4
+- ADR-088 — PyPI version alignment; semver bump rules (D5) referenced in §5
+- ADR-089 — F-27 exit criterion amendment; precedent for milestone exit criteria refinement
+- `var/recon-product-state-2026-06-03.md` — recon audit that surfaced the drifts this roadmap reshape addresses (B7: prior `CORE-Roadmap.md` stale by 8+ ships)
 
 ---
 
-**F-39 — SLA support** `roadmap` `primitive`
-*Blocked by: nothing technical. Parallel with all Enterprise features.*
-
-Contractual support SLA. A commercial and operational commitment, not a
-software feature. Can be established as soon as the Enterprise tier has
-enough implemented features to support it.
-
----
-
-### Tier 5 — Embedded
-
-One feature. Depends on Team and Enterprise reaching sufficient maturity.
-
----
-
-**F-40 — OEM API surface** `roadmap` `primitive`
-*Blocked by: Team and Enterprise tier maturity. No specific F-ID dependency.*
-
-Stable, versioned API for third-party platform integration. The FastAPI layer
-is now load-bearing following the API migration (ADR-053 / ADR-054 / ADR-055),
-which removes one prior prerequisite. The remaining prerequisites are
-stabilising the atomic action registry as a public contract and versioning the
-constitution schema for external authors. This is the distribution multiplier —
-built last, after the product is stable enough to make integrations reliable.
-
----
-
-## 4. Dependency Graph (summary)
-
-```
-F-10  (Audit gate)
-  └── no dependencies
-
-F-27  (local LLM completion)
-  └── F-38  (air-gapped guaranteed)
-
-F-32  (RBAC)
-  ├── F-31  (shared consequence chain)
-  ├── F-35  (federated constitution)
-  │     └── F-37  (regulatory export)
-  └── F-36  (SSO / SAML / OIDC)
-        └── F-37  (regulatory export)
-
-F-33  (multi-repository)          — independent
-F-20  (convergence graph)
-  └── F-34  (web dashboard)
-
-F-41  (artifact type registry)
-  ├── F-42  (pluggable sensor)
-  └── F-43  (pluggable action)
-
-F-39  (SLA support)               — commercial, parallel
-F-40  (OEM API surface)           — follows tier maturity
-```
-
----
-
-## 5. Sequencing Principles
-
-**F-10 before anything else.** Without the CI gate, the Audit tier has no
-delivery mechanism and the adoption funnel has no entry point.
-
-**F-32 before F-31, F-35, F-36.** RBAC is the foundation of every
-multi-user governance guarantee. Building shared governance without role
-enforcement produces a governance system that cannot be trusted.
-
-**F-41 before F-42 and F-43.** The extension features are consumers of the
-artifact type registry. Building them without the registry produces
-point solutions, not an extensible platform.
-
-**F-37 last among Enterprise features.** Regulatory export depends on
-verified identity (F-36) and federated authority (F-35). Producing a
-compliance package without those guarantees in place is not defensible.
-
-**F-40 follows tier maturity, not a specific feature.** The OEM API surface
-is only valuable when the product is stable enough to make integrations
-reliable. Building it early produces an unstable contract.
-
-**The API foundation is in place.** F-34 and F-40 previously carried an
-implicit dependency on a load-bearing HTTP interface. That interface now
-exists (ADR-053 / ADR-054 / ADR-055). Their remaining work is interface and
-contract surface, not service-layer construction — this lowers their build
-risk but does not change their position in the sequence.
-
----
-
-*This document reflects roadmap state as of May 2026, following the A3
-milestone, the API-as-governance-interface migration (ADR-053), and the
-Constitutional Coherence Checker (ADR-067). Update when feature status changes.
-Feature definitions are authoritative in `.specs/papers/CORE-Features.md`; this
-document governs sequence only.*
+*This roadmap supersedes the prior shape of `CORE-Roadmap.md` (preserved in git history). The reshape is operational, not constitutional: no ADR required because no decision changed. The structural-stability discipline in §6 is the safeguard against the drift that motivated the reshape.*

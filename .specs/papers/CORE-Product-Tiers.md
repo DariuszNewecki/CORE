@@ -125,7 +125,7 @@ The long-term platform play. A third-party product — an IDE plugin, an AI codi
 
 **Strategic role:** This is the distribution multiplier. CORE reaches customers who will never install it directly. The constraint is that the API surface must be stable enough to make the integration reliable — this tier follows, rather than precedes, Team and Enterprise maturity.
 
-**F-40's elevated structural role (ADR-084 D3, D6):** F-40 is no longer only the integration story for third-party OEM partners. After ADR-084, F-40 is the open public-API contract every sidecar-shape commercial feature consumes — including CORE's own first-party sidecars (F-20 convergence dashboard, F-34 web dashboard, F-45 hosted findings dashboard, F-47 managed Qdrant). Interface symmetry (D6) requires first-party sidecars to use only the same F-40 surface a third party would; this is what makes the OEM integration story honest. The practical consequence is that F-40 ships before four other commercial features are even unblocked — Embedded-tier preparation work is therefore prerequisite to Team-tier and Solo-tier commercial revenue, not (as the original Embedded tier description framed it) work that "follows Team and Enterprise maturity." The tier ordering as a deployment story is unchanged; the engineering ordering of F-40 within the open roadmap is materially elevated.
+**F-40's elevated structural role (ADR-084 D3, D6):** F-40 is no longer only the integration story for third-party OEM partners. After ADR-084, F-40 is the open public-API contract every sidecar-shape commercial feature consumes — including CORE's own first-party sidecars (F-20 convergence dashboard, F-34 web dashboard, F-45 hosted findings dashboard, F-47 managed Qdrant). Interface symmetry (D6) requires first-party sidecars to use only the same F-40 surface a third party would; this is what makes the OEM integration story honest. The practical consequence is that F-40 ships before four other commercial features are even unblocked (✅ F-40 closed 2026-06-02 in ADR-085's first wave) — Embedded-tier preparation work is therefore prerequisite to Team-tier and Solo-tier commercial revenue, not (as the original Embedded tier description framed it) work that "follows Team and Enterprise maturity." The tier ordering as a deployment story is unchanged; the engineering ordering of F-40 within the open roadmap was materially elevated, and that elevation has now landed.
 
 ---
 
@@ -149,7 +149,7 @@ the authoritative open/commercial contract (`Sourcing:` field).
 ○ = supported with configuration, not default
 ● = included
 
-For the full 43-feature x 5-tier matrix and `Sourcing:` stamps, see
+For the full 48-feature x 5-tier matrix and `Sourcing:` stamps, see
 `CORE-Features.md` §4 (registry) and §5 (tier mapping).
 
 ---

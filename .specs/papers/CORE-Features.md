@@ -878,7 +878,7 @@ Constitutionally load-bearing per ADR-084 D7 §4 (library-grade openness).
 Of the 31 shipping features: 21 are primitives, 10 are source-code instantiations.
 
 **Sourcing split:** Open: 33 | Commercial: 15.
-Of the 30 shipping features, **29 are open and 1 is commercial** — F-40
+Of the 31 shipping features, **30 are open and 1 is commercial** — F-40
 is the first commercial-sourced feature to reach `shipping`, by virtue
 of being the sidecar-interface contract whose substance is the open
 public API surface itself (ADR-084 D6: no commercial-only API surface).
