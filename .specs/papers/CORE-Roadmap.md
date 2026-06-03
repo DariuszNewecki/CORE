@@ -43,7 +43,7 @@ The milestone is constitutionally declared by **ADR-085 D5** (mechanical-check e
 
 ### 2.2 What this milestone is NOT
 
-- **Not "all 33 open-stamped features at shipping."** F-48 closed when the parent gate criterion (pip install + tag + CI publish) was met; F-48 sub-items (F-48.3 Docker/GHCR, F-48.4 public Python surface, F-48.5 semver policy doc) continue as post-milestone polish per the Operational-Completeness tracker §2.4. The milestone is the constitutional definition, not the all-shipping-features definition.
+- **Not "all 33 open-stamped features at shipping."** F-48 closed when the parent gate criterion (pip install + tag + CI publish) was met; F-48 sub-items F-48.3 (Docker/GHCR) and F-48.5 (semver policy doc) continue as post-milestone polish per the Operational-Completeness tracker §2.4. (F-48.4 public Python surface also shipped 2026-06-02 — verified 2026-06-03 — and satisfies ADR-088 D2's gate for PyPI `Production/Stable` classifier promotion.) The milestone is the constitutional definition, not the all-shipping-features definition.
 - **Not the v3.0.0 trigger.** Version bumps are governed by public-surface contract change per ADR-088 D5, independent of milestone status. The milestone may land in 2.x; v3.0 ships when public-surface contract changes break, not when the milestone achieves.
 - **Not a commercial readiness signal.** Customer signal sequences commercial features (§3); the milestone unblocks them constitutionally but does not predict adoption velocity.
 
@@ -112,10 +112,8 @@ F-48 closed at the milestone-gate level; sub-items continue as open distribution
 | Sub-item | Name | Status | Sequencing |
 |---|---|---|---|
 | F-48.3 | Docker `core-engine` image + GHCR release workflow | open | Solo install-path enabler; needed before F-38. |
-| F-48.4 | Public Python API surface declaration (`__all__`) | recently shipped — **verify status** | Gates F-31/F-32/F-33/F-35/F-36 commercial sidecars per ADR-084 D4; also gates ADR-088 D2 PyPI `Production/Stable` classifier promotion. |
+| F-48.4 | Public Python API surface declaration (`__all__`) | ✅ shipped 2026-06-02 (commit `34f597c1`) | Closes the gate for F-31/F-32/F-33/F-35/F-36 commercial runtime forks per ADR-084 D4; satisfies ADR-088 D2's gate for PyPI `Production/Stable` classifier promotion (governor decision, not automatic). |
 | F-48.5 | Semver policy doc | open | Inherits ADR-088 D5 baseline; documents what `core-runtime` users can rely on. |
-
-(F-48.4 status reconciliation is a known open item — see recon `var/recon-product-state-2026-06-03.md` §C2.)
 
 ---
 
@@ -145,7 +143,7 @@ Per ADR-088, `core-runtime` PyPI sits at v2.x and tracks the constitutional repo
 - **Minor** (`2.6 → 2.7`): additive features, new public symbols, new public routes, new optional response fields.
 - **Major** (`2.x → 3.x`): breaking change to the Python public surface (per F-48.4 when defined) **OR** wire-surface major bump per ADR-087 D6 (`/v1/` → `/v2/`).
 
-The milestone (§2) and the version track (this section) evolve independently. Achieving the milestone in 2.x is normal. Crossing to 3.0 requires a breaking-surface trigger, which may happen before, during, or after the milestone. PyPI `Development Status` classifier promotion to `Production/Stable` is gated on F-40 (shipping) + F-48.4 (status pending verification) per ADR-088 D2.
+The milestone (§2) and the version track (this section) evolve independently. Achieving the milestone in 2.x is normal. Crossing to 3.0 requires a breaking-surface trigger, which may happen before, during, or after the milestone. PyPI `Development Status` classifier promotion to `Production/Stable` is gated on F-40 + F-48.4 per ADR-088 D2; **both gates are now met** (F-40 closed 2026-06-02, F-48.4 closed 2026-06-02 verified 2026-06-03). The promotion is a governor decision per ADR-088 D2 — not automatic.
 
 ---
 
