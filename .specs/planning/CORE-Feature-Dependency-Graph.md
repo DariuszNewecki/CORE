@@ -3,7 +3,7 @@
 **Status:** Authoritative (visualization of `CORE-Features.md` + ADR-084 D8)
 **Location:** `.specs/planning/CORE-Feature-Dependency-Graph.md`
 **Audience:** Internal — sequencing, commercial planning, sprint scoping
-**Last updated:** 2026-06-02 (ADR-083 + ADR-084 landed; F-48 filed)
+**Last updated:** 2026-06-04 (post-F-10/F-40/F-48 ship coherence pass; Track column drops ship-state per §5)
 
 ---
 
@@ -32,17 +32,17 @@ graph TD
     F04["F-04 .intent loader #378"]
     F05["F-05 Default rules #379"]
     F09["F-09 Finding persistence #383"]
+    F10["F-10 CI/CD gate #384"]
     F19["F-19 Convergence metric #393"]
     F25["F-25 Vector indexing #399"]
+    F40["F-40 OEM API surface #414"]
+    F48["F-48 Open library<br/>distribution #527"]
   end
 
   subgraph openRoadmap ["Open roadmap — prerequisites for commercial"]
-    F10["F-10 CI/CD gate #384"]
-    F40["F-40 OEM API surface #414"]
     F41["F-41 Artifact registry #415"]
     F42["F-42 Pluggable sensor #416"]
     F43["F-43 Pluggable action #417"]
-    F48["F-48 Open library<br/>distribution #527"]
   end
 
   subgraph plugins ["Commercial — Plugin shape (ADR-084 D2)"]
@@ -97,8 +97,7 @@ graph TD
   F31 -.-> F32
   F32 -.-> F36
 
-  class F01,F04,F05,F09,F19,F25 shipping
-  class F10,F40,F48 openRoadmap
+  class F01,F04,F05,F09,F10,F19,F25,F40,F48 shipping
   class F41,F42,F43 pluginIface
   class F37,F44,F46 plugin
   class F20,F34,F45,F47 sidecar
@@ -112,15 +111,15 @@ Edge legend: solid arrow = hard dependency (`blocked by`); dashed arrow = soft d
 
 ## 3. Sequencing implications
 
-The graph makes the open/commercial sequencing constraint structural rather than aspirational. Three observations follow directly from the picture:
+The graph makes the open/commercial sequencing constraint structural rather than aspirational. Four observations follow directly from the picture:
 
-**A. F-44 is the only commercial feature whose open dependencies all ship today.** F-04 (`.intent/` loader) and F-05 (default rule library) are both `status: shipping`. Every other commercial feature waits on at least one open roadmap item. This is the same first-SKU argument both ADR-083 §Consequences and ADR-084 §Consequences arrived at independently.
+**A. Most commercial features now have all-shipping open dependencies.** With F-10, F-40, and F-48 all shipped (2026-06-02), the commercial features F-20, F-34, F-44, F-45, F-47, and the F-31–F-36 runtime-fork cluster are no longer dependency-blocked. Only F-37 and F-46 (both blocked by F-43) still wait on a roadmap item. ADR-083 designated F-44 as the first-SKU candidate when F-44 was uniquely unblocked; that uniqueness no longer holds, but ADR-083's strategic argument for sequencing the rule-pack SKU first remains.
 
-**B. F-40 unblocks four commercial features at once.** OEM API surface is no longer an "Embedded tier preparation" feature (the original framing in Tiers paper §3.5 pre-ADR-084). It is the single largest commercial-unblocker in the registry — shipping it releases F-20, F-34, F-45, and F-47 simultaneously to commercial work. ADR-084 D3 codified this; the picture makes it visceral.
+**B. F-40 unblocked four commercial features at once.** Shipping F-40 (2026-06-02) released F-20, F-34, F-45, and F-47 simultaneously to commercial work. ADR-084 D3 codified the elevation from "Embedded tier preparation" (Tiers paper §3.5 pre-ADR-084) to single-largest commercial unblocker.
 
-**C. F-43 unblocks two commercial features.** Plus the plugin shape becomes available to third-party authors at the same moment, which is the F-41/F-42/F-43 trio's stated purpose.
+**C. F-43 unblocks two commercial features.** Plus the plugin shape becomes available to third-party authors at the same moment, which is the F-41/F-42/F-43 trio's stated purpose. The trio is now the last remaining open-side dependency gate for any commercial feature.
 
-**D. The runtime-fork cluster is gated on F-48.** Open library distribution (PyPI + Docker registry, issue #527) is the shared open-infrastructure prerequisite for all five runtime-fork commercial features (F-31, F-32, F-33, F-35, F-36). F-48 has no hard blockers itself — it could ship today; the public-vs-internal API distinction is part of its scope. *Previously this was a planning gap (the graph had to invent a "PYPI" pseudo-node); ADR-084 §Consequences flagged it for filing; closed 2026-06-02.*
+**D. F-48 shipped (2026-06-02) — runtime-fork cluster no longer gated.** Open library distribution (PyPI + Docker registry, issue #527) was the shared open-infrastructure prerequisite for all five runtime-fork commercial features (F-31, F-32, F-33, F-35, F-36); that gate is now lifted. *Previously this was a planning gap (the graph had to invent a "PYPI" pseudo-node); ADR-084 §Consequences flagged it for filing.*
 
 ---
 
@@ -128,9 +127,11 @@ The graph makes the open/commercial sequencing constraint structural rather than
 
 The structured version of the graph. Use this for filtering and for generating the GitHub Project #6 `Blocked by` field.
 
-| F-ID | Issue | Shape | Status | Hard `blocked by` | Notes |
+Track is sourcing (open vs commercial), not ship-state — current ship-state lives in `CORE-Operational-Completeness.md` §1 and on GitHub Project #6 per §5.
+
+| F-ID | Issue | Shape | Track | Hard `blocked by` | Notes |
 |---|---|---|---|---|---|
-| F-10 | #384 | engine | open roadmap | none | top-of-funnel, ships independently |
+| F-10 | #384 | engine | open | none | top-of-funnel, ships independently |
 | F-20 | #394 | sidecar | commercial | F-40, F-19 (F-19 ships) | dashboard rendering the convergence metric |
 | F-31 | #405 | runtime fork | commercial | F-48 | multi-user state model |
 | F-32 | #406 | runtime fork | commercial | F-48; soft on F-31 | authority model change |
@@ -141,15 +142,15 @@ The structured version of the graph. Use this for filtering and for generating t
 | F-37 | #411 | plugin | commercial | F-43 | regulatory export atomic action |
 | F-38 | #412 | build overlay | commercial (outside taxonomy) | signed image infra | not really a "feature" |
 | F-39 | #413 | not software | commercial (outside taxonomy) | n/a | support contract |
-| F-40 | #414 | sidecar-interface | open roadmap | F-09 (ships) | **highest-leverage open feature** |
-| F-41 | #415 | plugin-interface | open roadmap | F-01 (ships) | artifact type registry |
-| F-42 | #416 | plugin-interface | open roadmap | F-41 | pluggable sensor model |
-| F-43 | #417 | plugin-interface | open roadmap | F-41 | pluggable action model |
+| F-40 | #414 | sidecar-interface | open | F-09 (ships) | OEM API surface — unblocks 4 commercial sidecars |
+| F-41 | #415 | plugin-interface | open | F-01 (ships) | artifact type registry |
+| F-42 | #416 | plugin-interface | open | F-41 | pluggable sensor model |
+| F-43 | #417 | plugin-interface | open | F-41 | pluggable action model |
 | F-44 | #523 | plugin | commercial | none (F-04, F-05 ship) | **unblocked — first-SKU candidate** |
 | F-45 | #524 | sidecar | commercial | F-40, F-10 | Audit-tier polish surface |
 | F-46 | #525 | plugin | commercial | F-43 | non-regulated audit export |
 | F-47 | #526 | sidecar | commercial | none materially (F-25 ships) | managed infrastructure, not application code |
-| F-48 | #527 | engine | open roadmap | none (could ship today) | unblocks all 5 runtime-fork commercial features |
+| F-48 | #527 | engine | open | none | unblocks all 5 runtime-fork commercial features |
 
 ---
 

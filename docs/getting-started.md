@@ -4,13 +4,13 @@
 
 | Dependency | Version |
 |------------|---------|
-| Python | ≥ 3.11 |
+| Python | ≥ 3.12 |
 | PostgreSQL | ≥ 14 |
 | Qdrant | latest |
 | Docker | for services |
 | Poetry | for deps |
 
-You will also need an Anthropic API key. CORE uses Claude as its primary cognitive resource.
+You will also need an LLM resource — local model server or external API, your choice. Configure it via `.env` (see `.env.example` for the shape).
 
 ---
 
