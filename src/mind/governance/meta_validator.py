@@ -114,40 +114,54 @@ class MetaValidator:
         documents_valid = 0
         documents_invalid = 0
 
-        for ext in ("*.yaml", "*.yml", "*.json"):
-            for doc_file in self.intent_root.rglob(ext):
-                # Skip the schemas themselves and excluded paths
-                if "/schemas/" in str(doc_file).replace("\\", "/"):
-                    continue
-                # Skip META schema definition files — they are schema
-                # definitions, not governed documents.
-                if doc_file.name.endswith(".schema.json") or doc_file.name in (
-                    "enums.json",
-                    "GLOBAL-DOCUMENT-META-SCHEMA.json",
-                    "intent_tree.yaml",
+        # F-41 ADR-090 Phase 3: YAML/YML discovery routed through the
+        # intent_yaml artifact-type declaration in the registry. JSON is
+        # not covered by intent_yaml's scope (it may form its own
+        # artifact_type in a future ADR) and continues to walk via rglob.
+        # Behavioral identity gate: file set scanned before/after is the
+        # same; only the route to discovery is now declarative.
+        intent_yaml_globs = self.repo.get_artifact_type("intent_yaml").content[
+            "discovery"
+        ]
+        repo_root = self.intent_root.parent
+        yaml_paths: set[Path] = set()
+        for glob in intent_yaml_globs:
+            yaml_paths.update(repo_root.glob(glob))
+        json_paths: set[Path] = set(self.intent_root.rglob("*.json"))
+
+        for doc_file in sorted(yaml_paths | json_paths):
+            # Skip the schemas themselves and excluded paths
+            if "/schemas/" in str(doc_file).replace("\\", "/"):
+                continue
+            # Skip META schema definition files — they are schema
+            # definitions, not governed documents.
+            if doc_file.name.endswith(".schema.json") or doc_file.name in (
+                "enums.json",
+                "GLOBAL-DOCUMENT-META-SCHEMA.json",
+                "intent_tree.yaml",
+            ):
+                continue
+
+            rel_path = doc_file.relative_to(self.intent_root)
+            # Restrict the walk to directories declared as validated in
+            # intent_tree.yaml. Files outside are silently skipped. If
+            # validated_directories is absent, fall back to walking
+            # everything (subject to META exclusions above).
+            if self._validated_directories is not None:
+                rel_str = str(rel_path).replace("\\", "/")
+                if not any(
+                    rel_str == d or rel_str.startswith(d + "/")
+                    for d in self._validated_directories
                 ):
                     continue
+            if any(str(rel_path).startswith(ex) for ex in excludes):
+                continue
 
-                rel_path = doc_file.relative_to(self.intent_root)
-                # Restrict the walk to directories declared as validated in
-                # intent_tree.yaml. Files outside are silently skipped. If
-                # validated_directories is absent, fall back to walking
-                # everything (subject to META exclusions above).
-                if self._validated_directories is not None:
-                    rel_str = str(rel_path).replace("\\", "/")
-                    if not any(
-                        rel_str == d or rel_str.startswith(d + "/")
-                        for d in self._validated_directories
-                    ):
-                        continue
-                if any(str(rel_path).startswith(ex) for ex in excludes):
-                    continue
-
-                documents_checked += 1
-                if self._validate_document(doc_file, rel_path):
-                    documents_valid += 1
-                else:
-                    documents_invalid += 1
+            documents_checked += 1
+            if self._validate_document(doc_file, rel_path):
+                documents_valid += 1
+            else:
+                documents_invalid += 1
 
         return ValidationReport(
             valid=len(self.errors) == 0,
