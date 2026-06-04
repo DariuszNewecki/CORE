@@ -1763,6 +1763,57 @@ Closes #490.
 
 ---
 
+## ADR-090 — 2026-06-04
+
+F-41 artifact type registry as the unified governance contract. CORE's
+three artifact-class pipelines — Python source (AuditViolationSensor),
+`.intent/` YAML (MetaValidator), and `.specs/` markdown (CoherenceChecker) —
+had grown separately under three bespoke conventions. The ADR consolidates
+them under one declared model: `META/artifact_type.schema.json` plus
+declarations at `.intent/artifact_types/<id>.yaml`. Three reference
+declarations ship — `python`, `intent_yaml`, `spec_markdown` — and each
+of the three existing pipelines now routes its discovery through the
+registry. Behavioural identity verified per phase.
+
+**`META/artifact_type.schema.json` is the first ADR-084 D1 published
+contract.** Schema changes are governance acts: field additions must be
+backward-compatible (new optional fields permitted); existing field
+semantics and the closed vocabularies on `identity_key` and
+`change_record` extend only by amendment. This stability commitment is
+what makes BYOR multi-language artifact-type plugins viable — a third-party
+declaration written today must still load tomorrow.
+
+The wider thesis recorded by this ADR: CORE is a deterministic
+consistency/compliance engine; source code is one artifact class.
+`.intent/` and `.specs/` are CORE's own self-governance surfaces — BYOR
+consumers add their own artifact-type declarations alongside, not children
+of CORE's. Per ADR-084 D1 / D7, the open base ships the registry contract;
+commercial extensions attach via additional declarations.
+
+Phased migration completed in four commits (`76e11985` Phase 1 — registry
++ schema + 3 declarations; `d9ff3622` Phase 2 — AuditViolationSensor;
+`17c18408` Phase 3 — MetaValidator; `eb2ce2ca` Phase 4 — CoherenceChecker
+paper discovery). Verification gates 1, 2, 5 fully closed; 4, 6 partially
+closed. Gates 3 (`crawl_scopes.yaml` retirement), 7 (F-42/F-43 fields
+populated), 9 (anti-regression rule) remain for follow-up sessions.
+
+Files:
+`.specs/decisions/ADR-090-f41-artifact-type-registry-as-unified-governance-contract.md`,
+`.intent/META/artifact_type.schema.json` (new),
+`.intent/META/intent_tree.yaml` (artifact_types added to optional + validated),
+`.intent/META/GLOBAL-DOCUMENT-META-SCHEMA.json` (artifact_type added to kind enum),
+`.intent/artifact_types/python.yaml`,
+`.intent/artifact_types/intent_yaml.yaml`,
+`.intent/artifact_types/spec_markdown.yaml`,
+`src/shared/infrastructure/intent/intent_repository.py`,
+`src/will/workers/audit_violation_sensor.py`,
+`src/mind/governance/meta_validator.py`,
+`src/mind/coherence/checker.py`.
+Commits `6382e0b3` (Accepted), `76e11985`, `d9ff3622`, `17c18408`,
+`eb2ce2ca`.
+
+---
+
 ## Notes
 
 * This changelog intentionally avoids implementation detail
