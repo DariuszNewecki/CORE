@@ -123,7 +123,19 @@ class AuditViolationSensor(Worker):
         auditor_context.reload_governance()
         auditor_context.invalidate_file_cache()
 
-        file_count = sum(1 for _ in auditor_context.repo_path.rglob("*.py"))
+        # F-41 ADR-090 Phase 2: discovery globs come from the python artifact
+        # type declaration in the registry, not an implicit rglob("*.py").
+        # Findings themselves still come from the auditor whose scope is its
+        # own config — this log-line migration is the smallest Phase-2 step
+        # that proves registry consumption without changing audit behavior.
+        # F-42 (#416) will replace the hardcoded "python" lookup with the
+        # artifact_type named on the sensor's worker declaration.
+        python_globs = intent_repo.get_artifact_type("python").content["discovery"]
+        file_count = sum(
+            1
+            for pattern in python_globs
+            for _ in auditor_context.repo_path.glob(pattern)
+        )
         rule_count = len(intent_repo._rule_index or {})
         logger.info(
             "audit_sensor_%s: rescanned %d files, %d rules loaded",
