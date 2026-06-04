@@ -61,10 +61,12 @@ class HealthLogService:
             # intentionally absent from the exclusion list — those rows
             # represent unresolved work awaiting sensor adjudication, and
             # should remain visible in the trajectory.
+            # F-19 Finding #4 (#563): COUNT(DISTINCT subject) — the per-cycle
+            # row-recycling firehose otherwise inflates this 2x+ vs reality.
             r = await session.execute(
                 text(
                     """
-                    SELECT COUNT(*) FROM core.blackboard_entries
+                    SELECT COUNT(DISTINCT subject) FROM core.blackboard_entries
                     WHERE entry_type = 'finding'
                       AND status NOT IN (
                           'resolved',

@@ -376,20 +376,51 @@ async def _query_dashboard_data(session: Any) -> dict[str, Any]:
     data: dict[str, Any] = {}
 
     # --- Panel 1: Convergence Direction ---
+    # F-19 honest convergence (#563): counts are by DISTINCT subject, not row,
+    # so the per-cycle recycling firehose doesn't amplify flow.
+    # `abandoned` is split per memory `reference_blackboard_abandoned_two_semantics`
+    # (governor decision 2026-06-04, Option A on #563):
+    #   - Type A (sensor-by-design audit trail: worker.silent::*, worker.error,
+    #     *.cycle_error, *.scope_collision::*) folds into `resolved` as
+    #     resolved-by-policy.
+    #   - Type B (audit.violation::* abandoned by violation_executor) goes to
+    #     `stuck` — the real "daemon cannot self-heal" signal, kept outside both
+    #     created and resolved.
     # total_open counts both 'open' and 'awaiting_reaudit' (ADR-045):
     # the quarantine queue is unresolved work pending sensor adjudication,
-    # not terminal state. Matches the open_findings count in
-    # health_log_service so the dashboard and the trajectory series agree.
+    # not terminal state.
     row = (
         await session.execute(
             text("""
+            WITH window_data AS (
+                SELECT
+                    subject,
+                    MIN(created_at) AS first_seen,
+                    BOOL_OR(status = 'resolved' AND resolved_at >= :cutoff) AS resolved_in_window,
+                    BOOL_OR(status = 'abandoned' AND resolved_at >= :cutoff) AS abandoned_in_window,
+                    BOOL_OR(status IN ('open', 'awaiting_reaudit')) AS is_open,
+                    MAX(CASE
+                        WHEN subject LIKE 'worker.silent::%' THEN 'type_a'
+                        WHEN subject = 'worker.error' THEN 'type_a'
+                        WHEN subject LIKE '%.cycle_error' THEN 'type_a'
+                        WHEN subject LIKE '%.scope_collision::%' THEN 'type_a'
+                        ELSE 'type_b'
+                    END) AS classification
+                FROM core.blackboard_entries
+                WHERE entry_type = 'finding'
+                GROUP BY subject
+            )
             SELECT
-                COUNT(*) FILTER (WHERE created_at >= :cutoff) AS created_24h,
-                COUNT(*) FILTER (WHERE resolved_at >= :cutoff AND status = 'resolved') AS resolved_24h,
-                COUNT(*) FILTER (WHERE status IN ('open', 'awaiting_reaudit')
-                                 AND entry_type = 'finding') AS total_open
-            FROM core.blackboard_entries
-            WHERE entry_type = 'finding'
+                COUNT(*) FILTER (WHERE first_seen >= :cutoff) AS created_24h,
+                COUNT(*) FILTER (
+                    WHERE resolved_in_window
+                       OR (abandoned_in_window AND classification = 'type_a')
+                ) AS resolved_24h,
+                COUNT(*) FILTER (
+                    WHERE abandoned_in_window AND classification = 'type_b'
+                ) AS stuck_24h,
+                COUNT(*) FILTER (WHERE is_open) AS total_open
+            FROM window_data
             """),
             {"cutoff": cutoff_24h},
         )
@@ -460,9 +491,18 @@ async def _query_dashboard_data(session: Any) -> dict[str, Any]:
             "direction": "insufficient-data",
         }
 
+    created = row.created_24h if row else 0
+    resolved = row.resolved_24h if row else 0
+    stuck = row.stuck_24h if row else 0
+    # Finding #6 (#563): when nothing flowed in or out, the system is frozen,
+    # not stable. Override "stable" trajectory to "frozen" when 24h flow is zero.
+    flow_zero = created == 0 and resolved == 0 and stuck == 0
+    if flow_zero and trajectory["direction"] == "stable":
+        trajectory["direction"] = "frozen"
     data["convergence"] = {
-        "created": row.created_24h if row else 0,
-        "resolved": row.resolved_24h if row else 0,
+        "created": created,
+        "resolved": resolved,
+        "stuck": stuck,
         "total_open": row.total_open if row else 0,
         "trajectory": trajectory,
     }
@@ -653,10 +693,12 @@ def _build_panels(data: dict[str, Any]) -> list[Panel]:
             "converging": ("green", "Converging ↓"),
             "diverging": ("red", "Diverging ↑"),
             "stable": ("amber", "Stable →"),
+            "frozen": ("red", "Frozen ⏸ — no flow in 24h"),
             "insufficient-data": ("grey", "Insufficient data"),
         }
         signal, headline = direction_meta.get(direction, ("grey", "Insufficient data"))
 
+        conv = data["convergence"]
         panels.append(
             _make_panel(
                 "Convergence Direction",
@@ -669,6 +711,9 @@ def _build_panels(data: dict[str, Any]) -> list[Panel]:
                         str(prior) if prior is not None else "—",
                     ),
                     ("Delta", f"{delta:+d}" if delta is not None else "—"),
+                    ("Created 24h (subjects)", str(conv["created"])),
+                    ("Resolved 24h (subjects)", str(conv["resolved"])),
+                    ("Stuck 24h (Type B abandoned)", str(conv["stuck"])),
                 ],
             )
         )
@@ -851,11 +896,13 @@ def _render_dashboard_plain(data: dict[str, Any]) -> None:
 
     # Panel 1: Convergence — backlog trajectory over the lookback window.
     try:
-        traj = data["convergence"]["trajectory"]
+        conv = data["convergence"]
+        traj = conv["trajectory"]
         direction_label = {
             "converging": "Converging (↓)",
             "diverging": "Diverging (↑)",
             "stable": "Stable (→)",
+            "frozen": "Frozen (⏸) — no flow in 24h",
             "insufficient-data": "Insufficient data",
         }.get(traj["direction"], "Insufficient data")
 
@@ -878,6 +925,9 @@ def _render_dashboard_plain(data: dict[str, Any]) -> None:
             "  delta:            %s",
             f"{delta:+d}" if delta is not None else "—",
         )
+        logger.info("  created_24h:      %s (distinct subjects)", conv["created"])
+        logger.info("  resolved_24h:     %s (distinct subjects)", conv["resolved"])
+        logger.info("  stuck_24h:        %s (Type B abandoned)", conv["stuck"])
     except Exception:
         logger.info("-- Convergence Direction: UNKNOWN --")
 
