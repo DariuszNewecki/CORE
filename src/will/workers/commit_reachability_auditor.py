@@ -68,7 +68,7 @@ class CommitReachabilityAuditor(Worker):
         from body.services.service_registry import service_registry
 
         blackboard_service = await service_registry.get_blackboard_service()
-        existing = await blackboard_service.fetch_open_finding_subjects_by_prefix(
+        existing = await blackboard_service.fetch_active_finding_subjects_by_prefix(
             "governance.edge5.orphan_sha::%"
         )
 
