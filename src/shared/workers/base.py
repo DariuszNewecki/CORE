@@ -332,6 +332,40 @@ class Worker(ABC):
                 f"Use post_finding for status='open' (actionable findings) "
                 f"or post_report for status='resolved' completion records."
             )
+        if status == "indeterminate":
+            # Indeterminate is "permanent until explicit governor revival"
+            # per this function's contract. Re-emission for the same subject
+            # is categorically a contract violation, not a soft duplicate.
+            # The caller-level dedup in CommitReachabilityAuditor was lost
+            # in the post_finding -> post_observation migration (#450) and
+            # silently accumulated 861 duplicate rows over 10 days. This
+            # API-layer guard makes the contract enforceable regardless of
+            # caller discipline.
+            from sqlalchemy import text
+
+            async with get_session() as session:
+                result = await session.execute(
+                    text(
+                        """
+                        SELECT 1 FROM core.blackboard_entries
+                        WHERE subject = :subject
+                          AND status = 'indeterminate'
+                          AND entry_type = 'finding'
+                        LIMIT 1
+                        """
+                    ),
+                    {"subject": subject},
+                )
+                if result.first() is not None:
+                    raise ValueError(
+                        f"post_observation refuses duplicate indeterminate "
+                        f"post for subject={subject!r}. Indeterminate "
+                        f"findings are permanent until explicit governor "
+                        f"revival; re-emission is a contract violation. "
+                        f"Use BlackboardService."
+                        f"fetch_active_finding_subjects_by_prefix to dedup "
+                        f"before posting."
+                    )
         return await self._post_entry(
             entry_type="finding",
             subject=subject,
