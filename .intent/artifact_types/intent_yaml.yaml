@@ -1,0 +1,24 @@
+$schema: "META/artifact_type.schema.json"
+kind: artifact_type
+
+id: intent_yaml
+title: Constitutional .intent YAML
+description: >
+  YAML documents under .intent/ that declare CORE's own governance state —
+  policies, rules, workers, taxonomies, workflows, phases, enforcement
+  mappings, data contracts. Governed by the META schemas referenced via
+  each document's $schema field. This declaration covers CORE's self-
+  governance surface; BYOR consumers add their own declarations for their
+  own governance YAML if any.
+
+discovery:
+  - ".intent/**/*.yaml"
+  - ".intent/**/*.yml"
+
+identity_key: path
+schema_ref: "META/intent_tree.schema.json"   # tree-level validation; per-doc schemas declared via $schema
+change_record: structured_patch
+vector_collection: constitution
+
+supported_sensors: []   # F-42 forward (ADR-090 D5)
+supported_actions: []   # F-43 forward (ADR-090 D5)

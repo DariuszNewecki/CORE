@@ -21,7 +21,8 @@
         "worker",
         "flow",
         "data_contract",
-        "phase"
+        "phase",
+        "artifact_type"
       ]
     },
     "metadata": {

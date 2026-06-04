@@ -1,0 +1,21 @@
+$schema: "META/artifact_type.schema.json"
+kind: artifact_type
+
+id: python
+title: Python source files
+description: >
+  Python source files governed by the constitutional rule engine via the
+  AST gate and the audit sensor cohort. The reference artifact type
+  exercised by every CORE-on-CORE governance loop today.
+
+discovery:
+  - "src/**/*.py"
+  - "tests/**/*.py"
+
+identity_key: path
+schema_ref: null   # AST-parsed, not JSON-schema-validated
+change_record: text_diff
+vector_collection: code
+
+supported_sensors: []   # F-42 forward (ADR-090 D5)
+supported_actions: []   # F-43 forward (ADR-090 D5)

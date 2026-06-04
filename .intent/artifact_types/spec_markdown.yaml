@@ -1,0 +1,23 @@
+$schema: "META/artifact_type.schema.json"
+kind: artifact_type
+
+id: spec_markdown
+title: Constitutional .specs markdown
+description: >
+  Markdown documents under .specs/ — ADRs, papers, requirements, planning
+  documents. Governed by the Constitutional Coherence Checker (CCC) for
+  required-section presence, cross-reference integrity, and architectural
+  coherence. This declaration covers CORE's own architectural-reasoning
+  surface; BYOR consumers add their own declarations for compliance docs,
+  regulatory evidence, or any prose-shaped artifact they want governed.
+
+discovery:
+  - ".specs/**/*.md"
+
+identity_key: path
+schema_ref: null   # semantic / structural checks, not JSON-schema-validated
+change_record: text_diff
+vector_collection: constitution
+
+supported_sensors: []   # F-42 forward (ADR-090 D5)
+supported_actions: []   # F-43 forward (ADR-090 D5)

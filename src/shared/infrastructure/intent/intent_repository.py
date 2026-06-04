@@ -52,6 +52,22 @@ class RuleRef:
     rule_content_hash: str
 
 
+@dataclass(frozen=True)
+# ID: 1144e885-b01b-4045-a2a9-6393606e0981
+class ArtifactTypeRef:
+    """A loaded artifact-type declaration from .intent/artifact_types/.
+
+    Per ADR-090 D1, artifact types are first-class constitutional declarations
+    with their own META schema (artifact_type.schema.json). The full content
+    dict is preserved so consumers can read any declared field without the
+    repository needing to know about each one.
+    """
+
+    id: str
+    path: Path
+    content: dict[str, Any]
+
+
 # ID: 7c4e8b2f-1d6a-49f3-b0e8-3a5c8d4e9f1b
 def compute_rule_content_hash(content: dict[str, Any]) -> str:
     """SHA-256 over a canonicalised rule body, for ADR-044 cache keying.
@@ -100,6 +116,7 @@ class IntentRepository(RootedRepository):
         self._policy_index: dict[str, PolicyRef] | None = None
         self._rule_index: dict[str, RuleRef] | None = None
         self._hierarchy: dict[str, list[str]] | None = None
+        self._artifact_type_index: dict[str, ArtifactTypeRef] | None = None
 
         self._check_root_safety()
         validate_intent_tree(self._root, strict=self._strict)
@@ -121,6 +138,7 @@ class IntentRepository(RootedRepository):
             self._policy_index = None
             self._rule_index = None
             self._hierarchy = None
+            self._artifact_type_index = None
         self._ensure_index()
 
     # ID: 57f50f3a-fc99-4e47-9ddf-24da5f105863
@@ -483,11 +501,40 @@ class IntentRepository(RootedRepository):
         assert self._hierarchy is not None
         return {k: list(v) for k, v in self._hierarchy.items()}
 
+    # ID: 3a1b4d07-980d-4869-b512-3c57fbb85297
+    def list_artifact_types(self) -> list[ArtifactTypeRef]:
+        """Return all loaded artifact-type declarations, sorted by id.
+
+        Per ADR-090 D1, artifact types declare how CORE governs each class
+        of artifact. The list is the authoritative answer to "what artifact
+        classes does this CORE instance know about?".
+        """
+        self._ensure_index()
+        assert self._artifact_type_index is not None
+        return sorted(self._artifact_type_index.values(), key=lambda r: r.id)
+
+    # ID: f41ea217-1027-4923-afca-bdba87069f1f
+    def get_artifact_type(self, artifact_type_id: str) -> ArtifactTypeRef:
+        """Look up a single artifact-type declaration by its `id`.
+
+        Raises GovernanceError if no declaration with that id is registered.
+        """
+        self._ensure_index()
+        assert self._artifact_type_index is not None
+        ref = self._artifact_type_index.get(artifact_type_id)
+        if ref is None:
+            raise GovernanceError(
+                f"Unknown artifact_type id: {artifact_type_id!r}. "
+                f"Registered: {sorted(self._artifact_type_index.keys())}"
+            )
+        return ref
+
     def _ensure_index(self) -> None:
         if (
             self._policy_index is not None
             and self._rule_index is not None
             and self._hierarchy is not None
+            and self._artifact_type_index is not None
         ):
             return
 
@@ -496,21 +543,80 @@ class IntentRepository(RootedRepository):
                 self._policy_index is not None
                 and self._rule_index is not None
                 and self._hierarchy is not None
+                and self._artifact_type_index is not None
             ):
                 return
 
             policy_index, hierarchy = self._build_policy_index()
             rule_index = self._build_rule_index(policy_index)
+            artifact_type_index = self._build_artifact_type_index()
 
             self._policy_index = policy_index
             self._rule_index = rule_index
             self._hierarchy = hierarchy
+            self._artifact_type_index = artifact_type_index
 
             logger.info(
-                "IntentRepository indexed %s policies and %s rules.",
+                "IntentRepository indexed %s policies, %s rules, "
+                "and %s artifact types.",
                 len(self._policy_index),
                 len(self._rule_index),
+                len(self._artifact_type_index),
             )
+
+    def _build_artifact_type_index(self) -> dict[str, ArtifactTypeRef]:
+        """Walk .intent/artifact_types/ and load each declaration.
+
+        Per ADR-090 D1, declarations live at .intent/artifact_types/<id>.yaml.
+        Each declaration's top-level `id` field is the lookup key (NOT the
+        filename — the filename is convention, the id is authority).
+
+        Duplicate ids fail in strict mode; in lenient mode the second one is
+        skipped with a warning.
+        """
+        artifact_types_dir = self._root / "artifact_types"
+        index: dict[str, ArtifactTypeRef] = {}
+
+        if not artifact_types_dir.exists():
+            return index
+
+        for path in self._iter_policy_files(artifact_types_dir):
+            try:
+                content = self.load_document(path)
+            except GovernanceError as e:
+                if self._strict:
+                    raise
+                logger.warning("Skipping unreadable artifact_type %s: %s", path, e)
+                continue
+
+            artifact_type_id = content.get("id")
+            if not isinstance(artifact_type_id, str) or not artifact_type_id.strip():
+                msg = (
+                    f"artifact_type declaration missing 'id' field: {path}. "
+                    f"Per ADR-090 D2, 'id' is required."
+                )
+                if self._strict:
+                    raise GovernanceError(msg)
+                logger.warning(msg)
+                continue
+
+            if artifact_type_id in index:
+                msg = (
+                    f"Duplicate artifact_type id: {artifact_type_id!r} "
+                    f"({index[artifact_type_id].path} vs {path})"
+                )
+                if self._strict:
+                    raise GovernanceError(msg)
+                logger.warning(msg)
+                continue
+
+            index[artifact_type_id] = ArtifactTypeRef(
+                id=artifact_type_id,
+                path=path,
+                content=content,
+            )
+
+        return index
 
     def _build_policy_index(self) -> tuple[dict[str, PolicyRef], dict[str, list[str]]]:
         search_roots = self._load_active_folders()
