@@ -282,10 +282,25 @@ class CoherenceChecker:
         return sorted(decisions.glob("ADR-*.md"))
 
     def _paper_paths(self) -> list[Path]:
-        papers = self._repo_root / ".specs" / "papers"
-        if not papers.exists():
+        # F-41 ADR-090 Phase 4: discovery routes through the spec_markdown
+        # artifact-type universe in the registry, filtered to .specs/papers/.
+        # Behavioral identity: filtered universe == old papers.glob("*.md")
+        # because .specs/papers/ has no subdirectories at present.
+        # F-42 (#416) will replace the hardcoded subdir filter with the
+        # sub-scope semantics declared on the CCC sensor.
+        from shared.infrastructure.intent.intent_repository import (
+            get_intent_repository,
+        )
+
+        repo = get_intent_repository()
+        spec_md_globs = repo.get_artifact_type("spec_markdown").content["discovery"]
+        universe: set[Path] = set()
+        for glob in spec_md_globs:
+            universe.update(self._repo_root.glob(glob))
+        papers_dir = self._repo_root / ".specs" / "papers"
+        if not papers_dir.exists():
             return []
-        return sorted(papers.glob("*.md"))
+        return sorted(p for p in universe if p.is_relative_to(papers_dir))
 
     def _northstar_paths(self) -> list[Path]:
         northstar = self._repo_root / ".specs" / "northstar"
