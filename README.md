@@ -127,7 +127,7 @@ Every autonomous operation is governed by the same constitutional loop:
 ```mermaid
 flowchart TD
     A["🟢 GOAL\nHUMAN INTENT"] --> B["📂 CONTEXT\nRepo state • knowledge • history"]
-    B --> C["🔒 CONSTRAINTS\nImmutable rules\n188 rules • 10 engines"]
+    B --> C["🔒 CONSTRAINTS\nImmutable rules\n194 rules • 11 engines"]
     C --> D["🗺️ PLAN\nStep-by-step reasoning\nRule-aware plan"]
     D --> E["✨ GENERATE\nCode • changes • tool calls"]
     E --> F["✅ VALIDATE\nDeterministic checks\nAST • semantic • intent • style"]
@@ -197,6 +197,7 @@ Enforcement strengths: **Blocking** · **Reporting** · **Advisory**
 | `knowledge_gate`  | Responsibility and ownership validation      |
 | `action_gate`     | Atomic-action invariants                     |
 | `passive_gate`    | Substrate-enforced rules (DB/runtime marker) |
+| `taxonomy_gate`   | Capability-id ↔ atomic-action coherence (ADR-079 D9) |
 | `llm_gate`        | LLM-assisted semantic checks                 |
 | `IntentGuard`*    | Runtime write authorization (not audit)      |
 
@@ -204,7 +205,7 @@ Enforcement strengths: **Blocking** · **Reporting** · **Advisory**
 
 Deterministic when possible. LLM only when necessary.
 
-188 rules across 42 rule documents. All mapped.
+194 rules across 45 rule documents. All mapped.
 
 ---
 

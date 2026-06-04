@@ -51,7 +51,7 @@ Once installed, run a constitutional audit to see the current state of the codeb
 poetry run core-admin code audit
 ```
 
-This runs 120 constitutional rules across 7 enforcement engines and reports:
+This runs the full constitutional rule library across all enforcement engines and reports:
 
 - **Blocking violations** — must be resolved before autonomous operation
 - **Warnings** — tracked but non-blocking
