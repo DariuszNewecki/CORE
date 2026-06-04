@@ -115,7 +115,11 @@ async def workers_blackboard_purge_cmd(
         ...,
         "--status",
         "-s",
-        help="Filter by status (required): open | claimed | resolved | abandoned.",
+        help=(
+            "Filter by status (required): open | claimed | resolved | abandoned | "
+            "indeterminate | dry_run_complete | deferred_to_proposal | awaiting_reaudit | "
+            "suppressed."
+        ),
     ),
     rule: str | None = typer.Option(
         None,
