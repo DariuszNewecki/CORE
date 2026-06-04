@@ -30,30 +30,43 @@ if TYPE_CHECKING:
 
 logger = getLogger(__name__)
 
-_CRAWL_SCOPES: list[tuple[str, str]] = [
-    ("src/**/*.py", "python"),
-    ("docs/**/*.md", "doc"),
-    ("docs/**/*.rst", "doc"),
-    ("tests/**/*.py", "test"),
-    ("var/prompts/**/model.yaml", "prompt"),
-    ("var/prompts/**/system.txt", "prompt"),
-    ("var/prompts/**/user.txt", "prompt"),
-    ("reports/**/*.yaml", "report"),
-    ("reports/**/*.md", "report"),
-    (".intent/**/*.yaml", "intent"),
-    (".intent/**/*.json", "intent"),
-    ("infra/**/*.sql", "infra"),
-]
+# F-41 ADR-090 D7: crawl scopes and Qdrant collection routing are derived
+# from the artifact_type registry (.intent/artifact_types/*.yaml) instead
+# of the previously-hardcoded module constants. crawl_scopes.yaml — which
+# claimed authority for these values but was never actually loaded by the
+# running code — is retired in the same change. The registry is now the
+# single source of truth.
 
-_QDRANT_COLLECTION_MAP: dict[str, str] = {
-    "python": "core-code",
-    "doc": "core-docs",
-    "test": "core-tests",
-    "prompt": "core-prompts",
-    "report": "core-reports",
-    "intent": "core-patterns",
-    "infra": "core-docs",
-}
+
+def _load_crawl_scopes_from_registry() -> tuple[list[tuple[str, str]], dict[str, str]]:
+    """Derive (crawl_scopes, qdrant_collection_map) from the registry.
+
+    Iterates every registered artifact_type. Types with crawler_indexed:
+    false (default true) are excluded — they are governed but not indexed
+    for semantic search (e.g. self-governance surfaces that don't warrant
+    vector embeddings yet).
+
+    Returns:
+        crawl_scopes: list of (glob_pattern, artifact_type_id) tuples in
+            registry sort order.
+        qdrant_collection_map: artifact_type_id → vector_collection name.
+    """
+    from shared.infrastructure.intent.intent_repository import (
+        get_intent_repository,
+    )
+
+    repo = get_intent_repository()
+    scopes: list[tuple[str, str]] = []
+    collection_map: dict[str, str] = {}
+    for at in repo.list_artifact_types():
+        if not at.content.get("crawler_indexed", True):
+            continue
+        type_id = at.id
+        collection_map[type_id] = at.content["vector_collection"]
+        for glob in at.content["discovery"]:
+            scopes.append((glob, type_id))
+    return scopes, collection_map
+
 
 # Stale-running janitor threshold for the crawl_runs table (#179).
 # Set to 6x RepoCrawlerWorker.max_interval (600s). A run sitting in 'running'
@@ -166,7 +179,16 @@ class CrawlOrchestrator:
             existing_hashes = await svc.load_artifact_hashes()
             seen_paths: set[str] = set()
 
-            for glob_pattern, artifact_type in _CRAWL_SCOPES:
+            # F-41 ADR-090 D7: scopes + collection map derived from registry.
+            crawl_scopes, qdrant_collection_map = _load_crawl_scopes_from_registry()
+            logger.info(
+                "CrawlOrchestrator: %d crawl scopes, %d collections "
+                "(from artifact_type registry)",
+                len(crawl_scopes),
+                len(qdrant_collection_map),
+            )
+
+            for glob_pattern, artifact_type in crawl_scopes:
                 for file_path in sorted(repo_root.glob(glob_pattern)):
                     if file_path.is_symlink():
                         continue
@@ -184,6 +206,7 @@ class CrawlOrchestrator:
                                 symbol_index=symbol_index,
                                 crawl_run_id=crawl_run_id,
                                 stats=stats,
+                                qdrant_collection_map=qdrant_collection_map,
                             )
                         else:
                             changed = await self._crawl_artifact_file(
@@ -195,6 +218,7 @@ class CrawlOrchestrator:
                                 symbol_index=symbol_index,
                                 crawl_run_id=crawl_run_id,
                                 stats=stats,
+                                qdrant_collection_map=qdrant_collection_map,
                             )
                         if changed:
                             stats["files_changed"] += 1
@@ -319,11 +343,12 @@ class CrawlOrchestrator:
         symbol_index: dict[str, str],
         crawl_run_id: uuid.UUID,
         stats: dict[str, int],
+        qdrant_collection_map: dict[str, str],
     ) -> bool:
         """Register a Python artifact and extract call-graph edges on change."""
         svc = self._service
         await svc.upsert_python_artifact(
-            rel_path, content_hash, _QDRANT_COLLECTION_MAP["python"], str(crawl_run_id)
+            rel_path, content_hash, qdrant_collection_map["python"], str(crawl_run_id)
         )
         if existing_hashes.get(rel_path) == content_hash:
             return False
@@ -360,6 +385,7 @@ class CrawlOrchestrator:
         symbol_index: dict[str, str],
         crawl_run_id: uuid.UUID,
         stats: dict[str, int],
+        qdrant_collection_map: dict[str, str],
     ) -> bool:
         """Register a non-Python artifact and cross-reference symbols on change."""
         svc = self._service
@@ -368,7 +394,7 @@ class CrawlOrchestrator:
             rel_path,
             artifact_type,
             content_hash,
-            _QDRANT_COLLECTION_MAP.get(artifact_type),
+            qdrant_collection_map.get(artifact_type),
             str(crawl_run_id),
         )
         if not changed:

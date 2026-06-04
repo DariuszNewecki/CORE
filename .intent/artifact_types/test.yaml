@@ -1,0 +1,23 @@
+$schema: "META/artifact_type.schema.json"
+kind: artifact_type
+
+id: test
+title: Python test source
+description: >
+  Python test source files. Governance-equivalent to Python application
+  source (same AST gate, same audit rules), but routed to a distinct
+  vector collection so semantic search can target test vs application
+  code independently. Authored at ADR-090 D7 (crawl_scopes.yaml retirement
+  2026-06-04).
+
+discovery:
+  - "tests/**/*.py"
+
+identity_key: path
+schema_ref: null   # AST-parsed, not JSON-schema-validated
+change_record: text_diff
+vector_collection: core-tests
+crawler_indexed: true
+
+supported_sensors: []   # F-42 forward (ADR-090 D5)
+supported_actions: []   # F-43 forward (ADR-090 D5)

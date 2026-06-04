@@ -1,0 +1,25 @@
+$schema: "META/artifact_type.schema.json"
+kind: artifact_type
+
+id: intent_json
+title: Constitutional .intent JSON
+description: >
+  JSON documents under .intent/ — enums, schema definitions, global
+  meta-schema, vocabulary projection, and other structured constitutional
+  state encoded in JSON rather than YAML. Sibling to intent_yaml; the
+  two carry different change-record formats (structured_patch is
+  appropriate for both, but loader cadence and tooling differ enough
+  to warrant separate declarations). Authored at ADR-090 D7
+  (crawl_scopes.yaml retirement 2026-06-04).
+
+discovery:
+  - ".intent/**/*.json"
+
+identity_key: path
+schema_ref: null   # per-doc schemas declared via $schema header
+change_record: structured_patch
+vector_collection: core-patterns   # routed alongside intent_yaml
+crawler_indexed: true
+
+supported_sensors: []   # F-42 forward (ADR-090 D5)
+supported_actions: []   # F-43 forward (ADR-090 D5)

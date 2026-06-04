@@ -16,7 +16,6 @@ V2.7 ADDITIONS:
 - audit_findings_path: canonical path to raw audit findings
 - audit_findings_processed_path: canonical path to processed audit findings
 - governance_config_path: canonical path to governance_paths.yaml
-- crawl_scopes_config_path: canonical path to crawl_scopes.yaml
 - workers_dir: canonical path to .intent/workers/
 These replace all hardcoded Path("...") constants in Body and Will layers.
 """
@@ -215,16 +214,6 @@ class PathResolver:
         return self._intent_root / "enforcement" / "config" / "governance_paths.yaml"
 
     @property
-    # ID: a1b2c3d4-e5f6-7890-abcd-ef0000000002
-    def crawl_scopes_config_path(self) -> Path:
-        """
-        Path to the crawl scopes & Qdrant collection mapping config.
-        Source of truth for RepoCrawlerWorker scopes and collection names.
-        File: .intent/enforcement/config/crawl_scopes.yaml
-        """
-        return self._intent_root / "enforcement" / "config" / "crawl_scopes.yaml"
-
-    @property
     # ID: a1b2c3d4-e5f6-7890-abcd-ef0000000003
     def remediation_map_path(self) -> Path:
         """
@@ -319,11 +308,8 @@ class PathResolver:
                 "(create .intent/enforcement/config/governance_paths.yaml)"
             )
 
-        if not self.crawl_scopes_config_path.exists():
-            errors.append(
-                f"Missing crawl scopes config: {self.crawl_scopes_config_path} "
-                "(create .intent/enforcement/config/crawl_scopes.yaml)"
-            )
+        # ADR-090 D7: crawl_scopes.yaml retired 2026-06-04. Scopes and Qdrant
+        # routing now derived from .intent/artifact_types/ via the registry.
 
         return ValidationResult(
             ok=not errors,

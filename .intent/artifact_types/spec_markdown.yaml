@@ -17,7 +17,8 @@ discovery:
 identity_key: path
 schema_ref: null   # semantic / structural checks, not JSON-schema-validated
 change_record: text_diff
-vector_collection: constitution
+vector_collection: core-specs   # ADR-090 D7 — new collection for .specs/ markdown semantic search
+crawler_indexed: true   # ADR-090 D7 — .specs/ becomes crawler-indexed (was implicitly skipped)
 
 supported_sensors: []   # F-42 forward (ADR-090 D5)
 supported_actions: []   # F-43 forward (ADR-090 D5)

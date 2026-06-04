@@ -1,0 +1,24 @@
+$schema: "META/artifact_type.schema.json"
+kind: artifact_type
+
+id: doc
+title: Project documentation
+description: >
+  Project-level documentation under docs/ — markdown and reStructuredText.
+  Distinct from .specs/ markdown (which is architectural reasoning) and
+  CCC's scope. Authored at ADR-090 D7 (crawl_scopes.yaml retirement
+  2026-06-04). Empty universe on CORE's own repo today (no docs/
+  directory) — declared so BYOR users who maintain docs/ get coverage.
+
+discovery:
+  - "docs/**/*.md"
+  - "docs/**/*.rst"
+
+identity_key: path
+schema_ref: null
+change_record: text_diff
+vector_collection: core-docs
+crawler_indexed: true
+
+supported_sensors: []   # F-42 forward (ADR-090 D5)
+supported_actions: []   # F-43 forward (ADR-090 D5)

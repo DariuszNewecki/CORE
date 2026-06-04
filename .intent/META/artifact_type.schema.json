@@ -83,6 +83,11 @@
             "minLength": 1,
             "description": "Qdrant collection routing for vector indexing of instances. Absorbs the role of _QDRANT_COLLECTION_MAP in the crawler (ADR-090 D7)."
         },
+        "crawler_indexed": {
+            "type": "boolean",
+            "default": true,
+            "description": "Whether the repo crawler indexes instances of this type into the vector_collection. Optional; default true (any type in the registry is crawled unless it explicitly opts out). False allows a type to be governed without being indexed for semantic search. Added 2026-06-04 alongside ADR-090 D7 retirement — backward-compatible optional field per ADR-090 D6."
+        },
         "supported_sensors": {
             "type": "array",
             "items": {
