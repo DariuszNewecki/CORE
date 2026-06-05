@@ -21,6 +21,8 @@ mandate:
   permitted_tools: []
   scope:
     rule_namespace: "style"
+    artifact_type:
+      - python
     domains:
       - audit
       - compliance

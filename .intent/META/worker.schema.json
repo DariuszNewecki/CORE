@@ -147,7 +147,18 @@
                             "type": "string",
                             "minLength": 1,
                             "maxLength": 128,
-                            "description": "Rule ID namespace prefix this worker is scoped to (e.g. 'purity', 'logic', 'architecture.channels'). The daemon passes this as rule_namespace to the worker constructor. Rule IDs are resolved dynamically from IntentRepository at runtime — all rules whose ID starts with this prefix are in scope."
+                            "description": "Per ADR-091 D1 (widened semantics). Audit topic this worker emits findings under — formerly 'rule ID prefix'. Where the topic matches a declared rule namespace (the AuditViolationSensor case), rule resolution proceeds: all rules whose ID starts with this prefix are in scope, resolved dynamically from IntentRepository at runtime. Where the topic does not match any rule prefix (e.g. test.coverage, coherence.incoherence), resolution returns an empty set and the sensor's run() does not iterate over rules — but the topic still anchors the canonical subject format declared in ADR-091 D2."
+                        },
+                        "artifact_type": {
+                            "type": "array",
+                            "items": {
+                                "type": "string",
+                                "minLength": 2,
+                                "maxLength": 64,
+                                "pattern": "^[a-z][a-z0-9_]*$"
+                            },
+                            "minItems": 1,
+                            "description": "Per ADR-091 D1. Array of registered artifact_type ids from .intent/artifact_types/ that this sensor observes. Single-element arrays are the common case; multi-element arrays declare joint observation (e.g. [python, test] for sensors that cross-reference instances of multiple types). Cross-validation invariant (ADR-091 D4): every element must appear in that artifact_type's supported_sensors array. Conditional enforcement (`if class == sensing then required`) is staged behind #570 sensing-class reclassification; in Phase 1 the field is optional even for sensing-class declarations so the nine misclassified workers (embedders, crawlers, transformers) do not fail validation before #570 closes."
                         },
                         "notes": {
                             "type": "string",

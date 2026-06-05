@@ -29,6 +29,9 @@ mandate:
   permitted_tools: []
   approval_required: false
   scope:
+    rule_namespace: "coherence.incoherence"
+    artifact_type:
+      - python
     domains:
       - governance
       - compliance

@@ -22,5 +22,17 @@ crawler_indexed: true
 # semantic-search separation. Both are governance-equivalent Python source
 # — the split is a vector-index concern, not a governance concern.
 
-supported_sensors: []   # F-42 forward (ADR-090 D5)
+supported_sensors:        # ADR-091 D4 — authored set; introspected via taxonomy_gate
+  - audit_sensor_architecture
+  - audit_sensor_cli
+  - audit_sensor_layout
+  - audit_sensor_linkage
+  - audit_sensor_logic
+  - audit_sensor_modularity
+  - audit_sensor_purity
+  - audit_sensor_style
+  - audit_violation_sensor
+  - coherence_sensor
+  - test_coverage_sensor
+  - test_runner_sensor
 supported_actions: []   # F-43 forward (ADR-090 D5)

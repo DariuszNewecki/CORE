@@ -1,0 +1,29 @@
+{
+    "$schema": "META/rule_document.schema.json",
+    "kind": "rule_document",
+    "metadata": {
+        "id": "rules.governance.sensor_taxonomy",
+        "title": "Sensor-to-Artifact-Type Coherence",
+        "version": "1.0.0",
+        "authority": "constitution",
+        "phase": "audit",
+        "status": "active"
+    },
+    "rules": [
+        {
+            "id": "governance.taxonomy.sensor_supported_by_declaration",
+            "statement": "Every sensor worker declaration (`class: sensing` in `.intent/workers/*.yaml`) that declares `mandate.scope.artifact_type` MUST appear in each declared artifact_type's `supported_sensors` array, and every entry in an artifact_type's `supported_sensors` MUST be backed by a sensor worker declaration whose `mandate.scope.artifact_type` array contains the artifact_type's id. The two sets — authored (artifact_type `supported_sensors`) and introspected (sensor declarations) — MUST be equal.",
+            "enforcement": "reporting",
+            "authority": "constitution",
+            "phase": "audit",
+            "rationale": "ADR-091 D4. The cross-validation invariant mirrors ADR-079 D9's `operational_capabilities_decorator_backing` pattern (YAML↔AST coherence). A sensor declaring an artifact_type whose worker_id is not listed in that artifact_type's `supported_sensors` array is a coherence failure: the registry's authored view does not match the worker fleet's introspected view. An entry in `supported_sensors` that no sensor declaration backs is a phantom (ADR-079 D9 class) — a registered sensor reference with no live sensor implementation. Together with `operational_capabilities_decorator_backing`, this rule completes the F-41 ↔ F-42 boundary invariant; the cognate `action_supported_by_declaration` (F-43 forward) will complete the triad. Ships at `reporting` per ADR-091 D5 Phase 1; promotes to `blocking` at Phase 7 once #570 sensing-class reclassification lands. Sensor declarations without `mandate.scope.artifact_type` are excluded from the introspected set during the Phase-1 transition window so the nine misclassified `class: sensing` workers do not surface as phantoms before reclassification.",
+            "scope": {
+                "paths": [
+                    ".intent/workers/*.yaml",
+                    ".intent/artifact_types/*.yaml"
+                ],
+                "notes": "Context-level check — substrate is the cross-product of all sensor declarations and all artifact_type declarations. Per-file dispatch is never engaged. Both glob patterns appear in scope so an edit on either side triggers re-evaluation."
+            }
+        }
+    ]
+}

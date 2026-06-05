@@ -1814,6 +1814,62 @@ Commits `6382e0b3` (Accepted), `76e11985`, `d9ff3622`, `17c18408`,
 
 ---
 
+## ADR-091 — 2026-06-05
+
+F-42 pluggable sensor model as the second published contract. F-41
+made artifact type a declared parameter at the registry layer; the
+sensor layer still encoded Python implicitly — three of four shipping
+sensors took no artifact-type input, the fourth hardcoded the literal
+string `"python"`. ADR-091 ships the contract: every sensing-class
+worker declares `mandate.scope.artifact_type` (list-form, one or more
+registered artifact_type ids); the framework computes finding subject
+strings in one canonical format from declaration metadata; the
+authored ↔ introspected coherence invariant for F-41's
+`supported_sensors` field is enforced advisory in Phase 1, blocking in
+Phase 7.
+
+**`META/worker.schema.json` + the canonical subject format
+(`<artifact_type>::<sub_namespace>::<identity_key_value>`) + the typed
+`post_artifact_finding` API on `shared.workers.base.Worker`
+constitute the second ADR-084 D1 published contract.** First was
+`META/artifact_type.schema.json` (ADR-090). Schema additions remain
+backward-compatible; existing field semantics and the closed
+`identity.class` vocabulary extend only by governance amendment.
+
+D5 Phase 1 lands schema extension + framework typed API + advisory
+invariant rule (`governance.taxonomy.sensor_supported_by_declaration`,
+hosted by the extended taxonomy_gate engine) in one atomic change-set.
+Twelve true sensor declarations gain `artifact_type` and (where
+absent) `rule_namespace`. The artifact_types `python` and `test` gain
+populated `supported_sensors` arrays mirroring the sensor fleet. Behavioural
+identity is preserved — sensors continue using the legacy
+`post_finding(subject, payload)` API; the typed API is introduced
+alongside for sensor migration in Phases 3 and 5.
+
+The conditional schema enforcement `if class == sensing then
+artifact_type required` is staged behind #570 — pre-implementation
+recon surfaced nine `class: sensing` workers (embedders, crawlers,
+transformers, aggregate auditors) whose actual role is not artifact
+observation; #570 tracks their reclassification before D1's
+conditional requirement can promote.
+
+Files:
+`.specs/decisions/ADR-091-f42-pluggable-sensor-model-as-second-published-contract.md`,
+`.intent/META/worker.schema.json`,
+`.intent/rules/governance/sensor_taxonomy.json` (new),
+`.intent/enforcement/mappings/governance/sensor_taxonomy.yaml` (new),
+`src/mind/logic/engines/taxonomy_gate.py`,
+`src/shared/workers/base.py`,
+eight `.intent/workers/audit_sensor_*.yaml`,
+`.intent/workers/audit_violation_sensor.yaml`,
+`.intent/workers/coherence_sensor.yaml`,
+`.intent/workers/test_coverage_sensor.yaml`,
+`.intent/workers/test_runner_sensor.yaml`,
+`.intent/artifact_types/python.yaml`,
+`.intent/artifact_types/test.yaml`.
+
+---
+
 ## Notes
 
 * This changelog intentionally avoids implementation detail

@@ -1,20 +1,29 @@
 # src/mind/logic/engines/taxonomy_gate.py
 
 """
-Taxonomy Gate Engine — operational-capability taxonomy invariants.
+Taxonomy Gate Engine — context-level taxonomy invariants.
 
-Single-check context-level engine that enforces ADR-079 D9's
-phantom-decoration invariant: every capability id declared in
-``.intent/taxonomies/operational_capabilities.yaml`` must be backed by
-exactly one ``@atomic_action(action_id="<id>")`` decoration in ``src/``.
+Hosts two cross-artifact taxonomy checks:
 
-The check is cross-artifact (whole YAML against every src/ AST), which is why
-this is its own engine rather than a per-file check under ``ast_gate``.
-The substrate is the live YAML + decoration sweep, not a single file_path.
+1. ``operational_capabilities_decorator_backing`` (ADR-079 D9) — every
+   capability id in ``.intent/taxonomies/operational_capabilities.yaml``
+   must be backed by exactly one ``@atomic_action(action_id="<id>")``
+   decoration in ``src/``.
+
+2. ``sensor_supported_by_declaration`` (ADR-091 D4) — every sensor worker
+   declaration carrying ``mandate.scope.artifact_type`` must appear in
+   that artifact_type's ``supported_sensors`` array, and vice versa. The
+   authored set (artifact_type.supported_sensors) and the introspected
+   set (sensor declarations) must be equal.
+
+Both checks are cross-artifact (whole-YAML against another whole surface),
+which is why they live in a context-level engine rather than under
+``ast_gate``. The substrate is a live cross-surface sweep, not a single
+file_path.
 
 CONSTITUTIONAL ALIGNMENT:
 - Async-first verify per the BaseEngine contract (ADR-076 D1/D2).
-- Context-level dispatch for the one check_type it owns.
+- Context-level dispatch for every check_type owned.
 - Fail-soft on per-file parse errors (a single unparseable file must not
   crash the audit cycle — log and skip).
 """
@@ -25,6 +34,7 @@ import ast
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+from shared.infrastructure.intent.intent_repository import get_intent_repository
 from shared.infrastructure.intent.operational_capabilities import (
     OperationalCapabilityTaxonomyError,
     load_operational_capabilities,
@@ -32,6 +42,7 @@ from shared.infrastructure.intent.operational_capabilities import (
 from shared.logger import getLogger
 from shared.models import AuditFinding, AuditSeverity
 from shared.path_resolver import PathResolver
+from shared.processors.yaml_processor import strict_yaml_processor
 
 from .base import BaseEngine, EngineResult
 
@@ -43,21 +54,38 @@ logger = getLogger(__name__)
 
 
 _DECORATOR_BACKING_CHECK = "operational_capabilities_decorator_backing"
+_SENSOR_SUPPORT_CHECK = "sensor_supported_by_declaration"
 _YAML_REL_PATH = ".intent/taxonomies/operational_capabilities.yaml"
+_WORKERS_REL_DIR = ".intent/workers"
+_ARTIFACT_TYPES_REL_DIR = ".intent/artifact_types"
 
 
 # ID: 8c4e1f7b-2d6a-4b58-9e3c-1a7f6d4b5e89
 class TaxonomyGateEngine(BaseEngine):
-    """Operational-capability taxonomy backing auditor.
+    """Context-level taxonomy invariant auditor.
 
-    Implements ADR-079 D9's phantom-decoration invariant. A capability id
-    in the YAML with no matching ``@atomic_action(action_id=<id>)``
-    decoration in ``src/`` is a phantom — it cannot be authorized by the
-    chokepoint because no caller can ever set ``_executor_token`` to it.
+    Hosts two cross-artifact checks:
 
-    Stage 1 ships at ``reporting`` enforcement (advisory). Stage 2 of
-    ADR-079 D10 promotes to ``blocking`` together with the phantom
-    resolution change-set (#495).
+    - ``operational_capabilities_decorator_backing`` (ADR-079 D9) —
+      phantom-decoration invariant. A capability id in the YAML with no
+      matching ``@atomic_action(action_id=<id>)`` decoration in ``src/``
+      is a phantom — it cannot be authorized by the chokepoint because no
+      caller can ever set ``_executor_token`` to it.
+
+    - ``sensor_supported_by_declaration`` (ADR-091 D4) — sensor↔artifact_type
+      coherence. The authored set (each artifact_type's
+      ``supported_sensors``) and the introspected set (sensor worker
+      declarations carrying ``mandate.scope.artifact_type``) must be
+      equal. Sensor declarations without ``artifact_type`` are excluded
+      from the introspected set during the Phase-1 transition window so
+      the nine misclassified sensing-class workers do not surface as
+      phantoms before #570 closes.
+
+    Decorator-backing: stage 1 shipped at ``reporting``; promoted to
+    ``blocking`` at ADR-079 D10 stage 2 (#495).
+
+    Sensor support: ships at ``reporting`` per ADR-091 D5 Phase 1;
+    promotes to ``blocking`` at Phase 7 once #570 closes.
     """
 
     engine_id = "taxonomy_gate"
@@ -65,8 +93,8 @@ class TaxonomyGateEngine(BaseEngine):
     @classmethod
     # ID: f3a8d672-5c19-4e2b-b481-6d9e7f3a2c14
     def is_context_level_for(cls, check_type: str | None) -> bool:
-        """The decorator-backing check is cross-artifact, not per-file."""
-        return check_type == _DECORATOR_BACKING_CHECK
+        """Both checks are cross-artifact, not per-file."""
+        return check_type in (_DECORATOR_BACKING_CHECK, _SENSOR_SUPPORT_CHECK)
 
     def __init__(self, path_resolver: PathResolver) -> None:
         """Initialize with the audit's path resolver — used for the repo-root
@@ -109,13 +137,16 @@ class TaxonomyGateEngine(BaseEngine):
         check_type = params.get("check_type")
         if check_type == _DECORATOR_BACKING_CHECK:
             return self._build_decorator_backing_findings(context.repo_path)
+        if check_type == _SENSOR_SUPPORT_CHECK:
+            return self._build_sensor_support_findings(context.repo_path)
         return [
             AuditFinding(
                 check_id="taxonomy_gate.unknown_check_type",
                 severity=AuditSeverity.BLOCK,
                 message=(
                     f"taxonomy_gate: unknown check_type {check_type!r}; "
-                    f"valid values: {_DECORATOR_BACKING_CHECK!r}"
+                    f"valid values: {_DECORATOR_BACKING_CHECK!r}, "
+                    f"{_SENSOR_SUPPORT_CHECK!r}"
                 ),
                 file_path="none",
             )
@@ -164,6 +195,127 @@ class TaxonomyGateEngine(BaseEngine):
             )
             for cap_id in phantoms
         ]
+
+    def _build_sensor_support_findings(self, repo_root: Path) -> list[AuditFinding]:
+        """Compute sensor↔artifact_type set difference; one finding per asymmetry.
+
+        Per ADR-091 D4: the introspected set ``{(artifact_type_id, sensor_id)}``
+        is built from every sensor worker declaration that carries
+        ``mandate.scope.artifact_type``. The authored set is built from every
+        artifact_type's ``supported_sensors`` array. The two sets must be equal.
+
+        Sensor declarations without ``artifact_type`` are excluded from the
+        introspected set during the Phase-1 transition window so the nine
+        misclassified ``class: sensing`` workers (embedders, crawlers,
+        transformers — tracked at #570) do not surface as phantoms before
+        reclassification.
+        """
+        intent_repo = get_intent_repository()
+        try:
+            intent_repo.initialize()
+        except Exception as exc:
+            return [
+                AuditFinding(
+                    check_id=(
+                        "governance.taxonomy.sensor_supported_by_declaration"
+                        ".load_failed"
+                    ),
+                    severity=AuditSeverity.BLOCK,
+                    message=(
+                        f"taxonomy_gate: cannot initialize IntentRepository for "
+                        f"sensor_supported_by_declaration: {exc}"
+                    ),
+                    file_path=_ARTIFACT_TYPES_REL_DIR,
+                )
+            ]
+
+        authored: set[tuple[str, str]] = set()
+        for ref in intent_repo.list_artifact_types():
+            for sensor_id in ref.content.get("supported_sensors", []) or []:
+                if isinstance(sensor_id, str) and sensor_id.strip():
+                    authored.add((ref.id, sensor_id))
+
+        introspected = _collect_sensor_artifact_pairs(repo_root / _WORKERS_REL_DIR)
+
+        findings: list[AuditFinding] = []
+        for artifact_type_id, sensor_id in sorted(introspected - authored):
+            findings.append(
+                AuditFinding(
+                    check_id="governance.taxonomy.sensor_supported_by_declaration",
+                    severity=AuditSeverity.INFO,
+                    message=(
+                        f"Sensor '{sensor_id}' declares artifact_type "
+                        f"'{artifact_type_id}' but is not listed in that "
+                        f"artifact_type's supported_sensors array. Per ADR-091 D4, "
+                        f"the authored set must mirror the introspected set: add "
+                        f"'{sensor_id}' to "
+                        f".intent/artifact_types/{artifact_type_id}.yaml under "
+                        f"supported_sensors."
+                    ),
+                    file_path=f"{_ARTIFACT_TYPES_REL_DIR}/{artifact_type_id}.yaml",
+                    context={
+                        "artifact_type_id": artifact_type_id,
+                        "sensor_id": sensor_id,
+                        "direction": "introspected_not_authored",
+                    },
+                )
+            )
+        for artifact_type_id, sensor_id in sorted(authored - introspected):
+            findings.append(
+                AuditFinding(
+                    check_id="governance.taxonomy.sensor_supported_by_declaration",
+                    severity=AuditSeverity.INFO,
+                    message=(
+                        f"artifact_type '{artifact_type_id}' lists sensor "
+                        f"'{sensor_id}' in supported_sensors but no sensor "
+                        f"declaration in .intent/workers/ declares "
+                        f"mandate.scope.artifact_type containing "
+                        f"'{artifact_type_id}'. Per ADR-091 D4 this is a phantom — "
+                        f"either remove the supported_sensors entry or add the "
+                        f"artifact_type to the sensor's mandate.scope."
+                    ),
+                    file_path=f"{_ARTIFACT_TYPES_REL_DIR}/{artifact_type_id}.yaml",
+                    context={
+                        "artifact_type_id": artifact_type_id,
+                        "sensor_id": sensor_id,
+                        "direction": "authored_not_introspected",
+                    },
+                )
+            )
+        return findings
+
+
+def _collect_sensor_artifact_pairs(workers_dir: Path) -> set[tuple[str, str]]:
+    """Walk .intent/workers/*.yaml; emit (artifact_type_id, sensor_id) pairs.
+
+    Sensor id is the YAML filename stem (e.g. ``audit_sensor_purity``) —
+    matches ``declaration_name`` on the Worker base class. Declarations
+    without ``class: sensing`` or without ``mandate.scope.artifact_type``
+    contribute nothing (Phase 1 transition allowance for #570).
+    """
+    pairs: set[tuple[str, str]] = set()
+    if not workers_dir.is_dir():
+        return pairs
+    for yaml_path in sorted(workers_dir.glob("*.yaml")):
+        try:
+            data = strict_yaml_processor.load_strict(yaml_path)
+        except Exception as exc:
+            logger.debug("taxonomy_gate: cannot load %s: %s", yaml_path, exc)
+            continue
+        if not isinstance(data, dict):
+            continue
+        identity = data.get("identity") or {}
+        if identity.get("class") != "sensing":
+            continue
+        scope = (data.get("mandate") or {}).get("scope") or {}
+        artifact_types = scope.get("artifact_type")
+        if not isinstance(artifact_types, list):
+            continue
+        sensor_id = yaml_path.stem
+        for artifact_type_id in artifact_types:
+            if isinstance(artifact_type_id, str) and artifact_type_id.strip():
+                pairs.add((artifact_type_id, sensor_id))
+    return pairs
 
 
 def _collect_atomic_action_ids(src_root: Path) -> set[str]:

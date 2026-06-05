@@ -264,7 +264,86 @@ class Worker(ABC):
 
     # ID: e9594dc5-0100-49c1-9000-135b2613f7c0
     async def post_finding(self, subject: str, payload: dict[str, Any]) -> uuid.UUID:
-        """Post a new finding to the blackboard. Returns the entry ID."""
+        """Post a new finding to the blackboard. Returns the entry ID.
+
+        DEPRECATED by ADR-091 D2 in favour of ``post_artifact_finding`` which
+        constructs canonical subject strings from declaration metadata
+        (``<artifact_type>::<sub_namespace>::<identity_key_value>``). Removed
+        in ADR-091 D5 Phase 6. Existing sensors continue using this API during
+        the two-API coexistence window (Phases 1-6).
+        """
+        return await self._post_entry(
+            entry_type="finding",
+            subject=subject,
+            payload=payload,
+            status="open",
+        )
+
+    # ID: 7f9d2a1c-3b8e-4d05-9c6f-1e8a7b4c2d50
+    async def post_artifact_finding(
+        self,
+        artifact_type: str,
+        sub_namespace: str,
+        identity_key_value: str,
+        payload: dict[str, Any],
+    ) -> uuid.UUID:
+        """Post a finding under the ADR-091 D2 canonical subject format.
+
+        The framework constructs the subject string from typed parameters:
+        ``f"{artifact_type}::{sub_namespace}::{identity_key_value}"``.
+
+        Validation (ADR-091 D2):
+        - ``artifact_type`` must appear in this worker's declared
+          ``mandate.scope.artifact_type`` array. When the list is absent or
+          empty (Phase 1 transition allowance — sensor declarations not yet
+          updated), validation no-ops with a debug log.
+        - ``sub_namespace`` must equal this worker's declared
+          ``mandate.scope.rule_namespace`` or extend it via dotted suffix
+          (e.g. ``test.runner`` permits ``test.runner.missing``). Same
+          transition allowance applies when ``rule_namespace`` is absent.
+
+        Phase 1 of ADR-091 D5 introduces this API alongside the legacy
+        ``post_finding(subject, payload)``. Sensors migrate to this method
+        in Phases 3 and 5 with concurrent Blackboard subject rewrites. Phase 6
+        removes the legacy method and renames this one to ``post_finding``.
+        """
+        scope = self._declaration["mandate"].get("scope") or {}
+        declared_types = scope.get("artifact_type") or []
+        declared_namespace = scope.get("rule_namespace")
+
+        if declared_types and artifact_type not in declared_types:
+            raise ValueError(
+                f"post_artifact_finding: artifact_type {artifact_type!r} not in "
+                f"declared mandate.scope.artifact_type {declared_types!r}. "
+                f"Per ADR-091 D2, sensors may only emit findings under "
+                f"artifact types they have declared they observe."
+            )
+        if not declared_types:
+            logger.debug(
+                "post_artifact_finding called by %s with no declared "
+                "artifact_type; ADR-091 Phase 1 transition allowance applies",
+                self._worker_name,
+            )
+
+        if declared_namespace:
+            if sub_namespace != declared_namespace and not sub_namespace.startswith(
+                f"{declared_namespace}."
+            ):
+                raise ValueError(
+                    f"post_artifact_finding: sub_namespace {sub_namespace!r} "
+                    f"must equal declared rule_namespace {declared_namespace!r} "
+                    f"or extend it via dotted suffix. Per ADR-091 D2 the "
+                    f"sub-namespace must equal or extend the sensor's declared "
+                    f"rule_namespace."
+                )
+        else:
+            logger.debug(
+                "post_artifact_finding called by %s with no declared "
+                "rule_namespace; ADR-091 Phase 1 transition allowance applies",
+                self._worker_name,
+            )
+
+        subject = f"{artifact_type}::{sub_namespace}::{identity_key_value}"
         return await self._post_entry(
             entry_type="finding",
             subject=subject,

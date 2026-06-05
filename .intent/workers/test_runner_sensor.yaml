@@ -20,6 +20,14 @@ mandate:
   phase: audit
   permitted_tools: []
   approval_required: false
+  scope:
+    rule_namespace: "test.runner"
+    artifact_type:
+      - python
+      - test
+    domains:
+      - quality
+      - compliance
   schedule:
     max_interval: 300
 

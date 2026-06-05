@@ -29,6 +29,9 @@ mandate:
   permitted_tools: []
   scope:
     paths: []
+    rule_namespace: "audit.violation"
+    artifact_type:
+      - python
     domains:
       - audit
       - compliance

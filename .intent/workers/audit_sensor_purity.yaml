@@ -21,6 +21,8 @@ mandate:
   permitted_tools: []
   scope:
     rule_namespace: "purity"
+    artifact_type:
+      - python
     domains:
       - audit
       - compliance

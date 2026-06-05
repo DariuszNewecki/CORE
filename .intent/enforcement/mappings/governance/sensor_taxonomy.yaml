@@ -1,0 +1,32 @@
+# .intent/enforcement/mappings/governance/sensor_taxonomy.yaml
+#
+# Enforcement mappings for sensor↔artifact_type coherence.
+# Based on: .intent/rules/governance/sensor_taxonomy.json
+#
+# ADR-091 D4. The F-41 artifact_type registry declared `supported_sensors`
+# as a forward-contract field; F-42 completes the contract by making the
+# field authored ∧ introspectively verified. The taxonomy_gate engine
+# (extended by ADR-091 D5 Phase 1) walks both surfaces and emits one
+# finding per asymmetric entry.
+#
+# Promotion path: Phase 1 ships at `reporting` (advisory). Phase 7
+# promotes to `blocking` once #570 (sensing-class taxonomy audit) closes.
+
+mappings:
+  # Rule: governance.taxonomy.sensor_supported_by_declaration
+  # Engine: taxonomy_gate (context-level; cross-artifact sensor↔artifact_type sweep)
+  #
+  # Context-level check — substrate is the cross-product of all sensor
+  # declarations and all artifact_type declarations. The engine's
+  # verify_context method walks both directories independently.
+  # applies_to anchor points at a representative sensor declaration to
+  # satisfy the gate per #158; file_filter intersection is not the
+  # trigger mechanism. Mirrors the cognate pattern in
+  # governance/taxonomy.yaml (operational_capabilities_decorator_backing).
+  governance.taxonomy.sensor_supported_by_declaration:
+    engine: taxonomy_gate
+    params:
+      check_type: sensor_supported_by_declaration
+    scope:
+      applies_to:
+        - ".intent/workers/audit_violation_sensor.yaml"
