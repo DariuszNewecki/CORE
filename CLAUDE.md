@@ -73,6 +73,16 @@ Only then edit. For non-trivial changes (multi-file edits, schema changes, new f
 shared models, anything touching more than three files) pause after reconnaissance and wait
 for the governor to review before making edits.
 
+**Tests are part of the change.** When you change a public function/class signature or
+behavior in `src/`, update the corresponding test in the same change. When you add a new
+public function/class, write at least basic tests for it. You cannot run `pytest` yourself
+— the governor verifies — but you must author the tests. Do not rely on the autonomous
+test-generation loop to compensate for skipped tests: the loop has a known import-validation
+gap (#574) and a known semantic-miscapture rate of roughly 30% (see #572), and signature
+drift accumulates silently across sessions when source ships without test updates (#572 Cat
+B, ~80–100 tests, is the canonical evidence). The minimum-scope principle does **not**
+exempt test updates — tests are part of the change, not scope expansion.
+
 **Complete files, not diffs.** When modifying a file, output the complete file content in a
 fenced block labelled with its path. The governor reviews whole files, not diff fragments.
 
@@ -523,6 +533,9 @@ only the governor can run it.
     specific file this turn
 13. Every relevant ADR in `.specs/decisions/` has been honored
 14. No writes to `/tmp/` or any path outside the repo — temporary files use `var/tmp/` only
+15. Any signature/behavior change in `src/` has a corresponding test update in the same
+    commit. Any new public symbol has at least a basic test. See "Tests are part of the
+    change" above for why this isn't covered by the autonomous test-gen loop
 
 ---
 
