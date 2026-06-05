@@ -40,10 +40,19 @@ from shared.workers.base import Worker
 
 logger = getLogger(__name__)
 
-# Subjects used for blackboard deduplication
-_SUBJECT_STRUCTURAL = "intent_inspector.structural"
-_SUBJECT_COHERENCE = "intent_inspector.coherence"
-_SUBJECT_ALIGNMENT = "intent_inspector.alignment"
+# Artifact type these findings are about. ADR-091 D2: subjects are
+# <artifact_type>::<sub_namespace>::<identity_key_value>. intent_inspector
+# scans .intent/**/*.yaml only (JSON inspection is aspirational per the
+# worker declaration but not yet implemented), so every emission is about
+# an intent_yaml instance.
+_ARTIFACT_TYPE = "intent_yaml"
+
+# Sub-namespaces under the declared rule_namespace ("intent.inspection").
+# Each extends the declared namespace via dotted suffix per ADR-091 D2
+# (post_artifact_finding validator).
+_SUB_NAMESPACE_STRUCTURAL = "intent.inspection.structural"
+_SUB_NAMESPACE_COHERENCE = "intent.inspection.coherence"
+_SUB_NAMESPACE_ALIGNMENT = "intent.inspection.alignment"
 
 # Fields every governed .intent/ document must declare
 _REQUIRED_TOP_LEVEL_FIELDS = ("kind", "metadata")
@@ -129,17 +138,25 @@ class IntentInspector(Worker):
         # Fetch existing open structural subjects once to avoid re-posting the
         # same "missing $schema" warning every cycle for files that will never
         # resolve automatically (e.g. config files, workflow stages).
-        existing_structural = await self._fetch_existing_subjects(_SUBJECT_STRUCTURAL)
+        existing_structural = await self._fetch_existing_subjects(
+            _SUB_NAMESPACE_STRUCTURAL
+        )
         valid_statuses = self._load_valid_worker_statuses(intent_root)
         structural_findings = self._pass_structural(documents, valid_statuses)
         structural_posted = 0
         structural_skipped = 0
         for finding in structural_findings:
-            subject = f"{_SUBJECT_STRUCTURAL}::{finding['path']}"
+            identity_key = finding["path"]
+            subject = f"{_ARTIFACT_TYPE}::{_SUB_NAMESPACE_STRUCTURAL}::{identity_key}"
             if subject in existing_structural:
                 structural_skipped += 1
                 continue
-            await self.post_finding(subject=subject, payload=finding)
+            await self.post_artifact_finding(
+                artifact_type=_ARTIFACT_TYPE,
+                sub_namespace=_SUB_NAMESPACE_STRUCTURAL,
+                identity_key_value=identity_key,
+                payload=finding,
+            )
             structural_posted += 1
 
         if structural_skipped:
@@ -274,13 +291,16 @@ class IntentInspector(Worker):
             )
         except Exception as e:
             logger.error("IntentInspector: cannot load coherence PromptModel — %s", e)
-            await self.post_finding(
-                subject=f"{_SUBJECT_COHERENCE}::setup_error",
+            await self.post_observation(
+                subject=f"{_SUB_NAMESPACE_COHERENCE}::setup_error",
                 payload={"error": str(e), "pass": "coherence"},
+                status="abandoned",
             )
             return 1
 
-        existing_coherence = await self._fetch_existing_subjects(_SUBJECT_COHERENCE)
+        existing_coherence = await self._fetch_existing_subjects(
+            _SUB_NAMESPACE_COHERENCE
+        )
         posted = 0
         skipped = 0
 
@@ -292,7 +312,8 @@ class IntentInspector(Worker):
             if not raw_yaml.strip():
                 continue
 
-            subject = f"{_SUBJECT_COHERENCE}::{doc['path']}"
+            identity_key = doc["path"]
+            subject = f"{_ARTIFACT_TYPE}::{_SUB_NAMESPACE_COHERENCE}::{identity_key}"
             if subject in existing_coherence:
                 skipped += 1
                 continue
@@ -316,7 +337,12 @@ class IntentInspector(Worker):
             if findings:
                 existing_coherence.add(subject)
                 for finding in findings:
-                    await self.post_finding(subject=subject, payload=finding)
+                    await self.post_artifact_finding(
+                        artifact_type=_ARTIFACT_TYPE,
+                        sub_namespace=_SUB_NAMESPACE_COHERENCE,
+                        identity_key_value=identity_key,
+                        payload=finding,
+                    )
                     posted += 1
 
             # Yield control between documents — this is a long-running worker
@@ -349,9 +375,10 @@ class IntentInspector(Worker):
             )
         except Exception as e:
             logger.error("IntentInspector: cannot load alignment PromptModel — %s", e)
-            await self.post_finding(
-                subject=f"{_SUBJECT_ALIGNMENT}::setup_error",
+            await self.post_observation(
+                subject=f"{_SUB_NAMESPACE_ALIGNMENT}::setup_error",
                 payload={"error": str(e), "pass": "alignment"},
+                status="abandoned",
             )
             return 1
 
@@ -377,14 +404,22 @@ class IntentInspector(Worker):
             logger.error("IntentInspector alignment: LLM failed — %s", e)
             return 0
 
-        existing_alignment = await self._fetch_existing_subjects(_SUBJECT_ALIGNMENT)
+        existing_alignment = await self._fetch_existing_subjects(
+            _SUB_NAMESPACE_ALIGNMENT
+        )
         findings = self._parse_llm_findings(response, "cross-document", "alignment")
         for finding in findings:
-            subject = f"{_SUBJECT_ALIGNMENT}::{finding.get('path', 'cross-document')}"
+            identity_key = finding.get("path", "cross-document")
+            subject = f"{_ARTIFACT_TYPE}::{_SUB_NAMESPACE_ALIGNMENT}::{identity_key}"
             if subject in existing_alignment:
                 continue
             existing_alignment.add(subject)
-            await self.post_finding(subject=subject, payload=finding)
+            await self.post_artifact_finding(
+                artifact_type=_ARTIFACT_TYPE,
+                sub_namespace=_SUB_NAMESPACE_ALIGNMENT,
+                identity_key_value=identity_key,
+                payload=finding,
+            )
             posted += 1
 
         return posted
@@ -585,15 +620,21 @@ class IntentInspector(Worker):
 
         return findings
 
-    async def _fetch_existing_subjects(self, subject_prefix: str) -> set[str]:
+    async def _fetch_existing_subjects(self, sub_namespace: str) -> set[str]:
         """
-        Query the blackboard for all already-open findings under a subject
-        prefix, regardless of which worker posted them.
+        Query the blackboard for all already-open findings under a sub-namespace
+        for this worker's artifact type, regardless of which worker posted them.
 
         Intentionally does NOT filter by worker_uuid. Deduplication must be
         by subject content, not by poster identity. This prevents different
         daemon generations from re-posting the same finding when their UUIDs
         differ across restarts.
+
+        Per ADR-091 D2 the canonical subject is
+        ``<artifact_type>::<sub_namespace>::<identity_key_value>``; the prefix
+        we filter on is everything up to the identity_key segment.
         """
         svc = await self._core_context.registry.get_blackboard_service()
-        return await svc.fetch_open_finding_subjects_by_prefix(f"{subject_prefix}::%")
+        return await svc.fetch_open_finding_subjects_by_prefix(
+            f"{_ARTIFACT_TYPE}::{sub_namespace}::%"
+        )
