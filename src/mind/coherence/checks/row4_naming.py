@@ -46,7 +46,7 @@ class Row4NamingCheck:
             return []
         accepted_adr_texts = self._collect_accepted_adr_text()
         candidates: list[CoherenceCandidate] = []
-        for path in _iter_intent_artifacts(intent):
+        for path in _iter_intent_artifacts(self._repo_root):
             rel = str(path.relative_to(self._repo_root))
             if any(rel in text for text in accepted_adr_texts):
                 continue
@@ -76,11 +76,28 @@ class Row4NamingCheck:
         return candidates
 
     def _collect_accepted_adr_text(self) -> list[str]:
+        # F-42 ADR-091 D5 Phase 4: ADR discovery routes through the
+        # spec_markdown artifact-type universe filtered to .specs/decisions/
+        # with the ADR-N name pattern.
+        from shared.infrastructure.intent.intent_repository import (
+            get_intent_repository,
+        )
+
+        repo = get_intent_repository()
+        spec_md_globs = repo.get_artifact_type("spec_markdown").content["discovery"]
         decisions = self._repo_root / ".specs" / "decisions"
         if not decisions.is_dir():
             return []
+        universe: set[Path] = set()
+        for glob in spec_md_globs:
+            universe.update(self._repo_root.glob(glob))
+        adr_paths = sorted(
+            p
+            for p in universe
+            if p.is_relative_to(decisions) and p.name.startswith("ADR-")
+        )
         texts: list[str] = []
-        for adr in sorted(decisions.glob("ADR-*.md")):
+        for adr in adr_paths:
             content = adr.read_text(encoding="utf-8", errors="replace")
             if _STATUS_ACCEPTED.search(content):
                 texts.append(content)
@@ -115,12 +132,28 @@ class Row4NamingCheck:
             return None
 
 
-def _iter_intent_artifacts(intent_root: Path):
-    for path in sorted(intent_root.rglob("*")):
+def _iter_intent_artifacts(repo_root: Path):
+    """Yield `.intent/` governance artifacts (yaml, yml, json), excluding META.
+
+    F-42 ADR-091 D5 Phase 4: discovery routes through the intent_yaml +
+    intent_json artifact-type universes. The META exclusion preserves the
+    original semantic — META-tree files are governance infrastructure
+    (schemas, enums, global meta-schema), not governance artifacts subject
+    to row4_naming ADR-citation requirements.
+    """
+    from shared.infrastructure.intent.intent_repository import (
+        get_intent_repository,
+    )
+
+    repo = get_intent_repository()
+    yaml_globs = repo.get_artifact_type("intent_yaml").content["discovery"]
+    json_globs = repo.get_artifact_type("intent_json").content["discovery"]
+    universe: set[Path] = set()
+    for glob in (*yaml_globs, *json_globs):
+        universe.update(repo_root.glob(glob))
+    for path in sorted(universe):
         if not path.is_file():
             continue
         if _META_PARTS.intersection(path.parts):
-            continue
-        if path.suffix.lower() not in {".json", ".yaml", ".yml"}:
             continue
         yield path

@@ -1870,6 +1870,53 @@ eight `.intent/workers/audit_sensor_*.yaml`,
 
 ---
 
+## ADR-091 Phase 4 — 2026-06-05
+
+F-42 D5 Phase 4: CCC sub-discovery routes through the F-41 artifact_type
+registry. The Constitutional Coherence Checker had eight discovery
+surfaces still inline-globbing `.specs/` and `.intent/` directly —
+`CoherenceChecker._adr_paths`, `_northstar_paths`, `_phase_paths`, and
+the row-check discovery in `mind.coherence.checks.{row2_grounding,
+row3_citation, row4_naming, vocabulary}`. Each now consults the
+appropriate artifact_type's `discovery` globs from
+`IntentRepository.get_artifact_type()` and filters to the subdirectory
+the check governs.
+
+Three artifact types consulted: `spec_markdown` for ADR / paper /
+northstar / governance-markdown discovery; `intent_yaml` for `.intent/`
+YAML discovery (`_phase_paths` and the row4 intent walk); `intent_json`
+for `.intent/` JSON discovery (row4 intent walk).
+
+Behavioural identity preserved per surface: pre-migration path-set
+baseline captured at `var/tmp/adr091_phase4/before.json` (91 ADRs, 3
+northstar, 6 phases, 73 papers, 222 intent artifacts, 168 governance
+markdown); post-migration recapture diffs empty across all eight
+surfaces.
+
+Two ADR amendments accompanied this phase, both surfacing through
+pre-implementation recon: (1) the original D3 amendment claimed
+`.specs/phases/*.yaml` was an un-typed registry gap; actual code reads
+`.intent/phases/*.yaml`, fully covered by `intent_yaml`, no sub-issue
+needed; (2) the original Phase 4 description named three row checks
+but missed `vocabulary` which carries the same spec_markdown discovery
+shape. Both corrections are in-line in ADR-091 with a Note appendix
+entry recording the changes.
+
+**Closes F-41 verification gate 6 (fully).** Gate 4 (Python pipeline
+migration via AuditViolationSensor end-to-end) remains the open F-41
+gate, awaiting F-42 D5 Phase 3.
+
+Files:
+`.specs/decisions/ADR-091-f42-pluggable-sensor-model-as-second-published-contract.md`
+(D3 + Phase 4 + verification gate 6 amendments + Note appendix),
+`src/mind/coherence/checker.py`,
+`src/mind/coherence/checks/row2_grounding.py`,
+`src/mind/coherence/checks/row3_citation.py`,
+`src/mind/coherence/checks/row4_naming.py`,
+`src/mind/coherence/checks/vocabulary.py`.
+
+---
+
 ## Notes
 
 * This changelog intentionally avoids implementation detail

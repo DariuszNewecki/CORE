@@ -68,11 +68,23 @@ class Row3CitationCheck:
 
     # ID: 8cbccb3a-6a50-4d88-82d6-e6b231434064
     async def run(self) -> list[CoherenceCandidate]:
+        # F-42 ADR-091 D5 Phase 4: paper discovery routes through the
+        # spec_markdown artifact-type universe filtered to .specs/papers/.
+        from shared.infrastructure.intent.intent_repository import (
+            get_intent_repository,
+        )
+
+        repo = get_intent_repository()
+        spec_md_globs = repo.get_artifact_type("spec_markdown").content["discovery"]
         papers = self._repo_root / ".specs" / "papers"
         if not papers.is_dir():
             return []
+        universe: set[Path] = set()
+        for glob in spec_md_globs:
+            universe.update(self._repo_root.glob(glob))
+        paper_paths = sorted(p for p in universe if p.is_relative_to(papers))
         candidates: list[CoherenceCandidate] = []
-        for path in sorted(papers.glob("*.md")):
+        for path in paper_paths:
             content = path.read_text(encoding="utf-8", errors="replace")
             rel = str(path.relative_to(self._repo_root))
             for heading, section_text in _iter_sections(content):

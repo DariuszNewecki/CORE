@@ -34,11 +34,28 @@ class Row2GroundingCheck:
 
     # ID: 460370e4-9d2d-479e-967c-df37f7e7ab9e
     async def run(self) -> list[CoherenceCandidate]:
+        # F-42 ADR-091 D5 Phase 4: ADR discovery routes through the
+        # spec_markdown artifact-type universe filtered to .specs/decisions/
+        # with the ADR-N name pattern.
+        from shared.infrastructure.intent.intent_repository import (
+            get_intent_repository,
+        )
+
+        repo = get_intent_repository()
+        spec_md_globs = repo.get_artifact_type("spec_markdown").content["discovery"]
         decisions = self._repo_root / ".specs" / "decisions"
         if not decisions.is_dir():
             return []
+        universe: set[Path] = set()
+        for glob in spec_md_globs:
+            universe.update(self._repo_root.glob(glob))
+        adr_paths = sorted(
+            p
+            for p in universe
+            if p.is_relative_to(decisions) and p.name.startswith("ADR-")
+        )
         candidates: list[CoherenceCandidate] = []
-        for adr_path in sorted(decisions.glob("ADR-*.md")):
+        for adr_path in adr_paths:
             content = adr_path.read_text(encoding="utf-8", errors="replace")
             if not _STATUS_ACCEPTED.search(content):
                 continue

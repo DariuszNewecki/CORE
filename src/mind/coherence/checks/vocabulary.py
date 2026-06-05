@@ -106,7 +106,23 @@ def _whole_word(content: str, token: str) -> bool:
 
 
 def _iter_governance_markdown(repo_root: Path):
-    for sub in ("decisions", "papers", "northstar"):
-        directory = repo_root / ".specs" / sub
-        if directory.is_dir():
-            yield from sorted(directory.glob("*.md"))
+    """Yield governance markdown from .specs/{decisions,papers,northstar}/.
+
+    F-42 ADR-091 D5 Phase 4: discovery routes through the spec_markdown
+    artifact-type universe filtered to the three governance subdirectories.
+    """
+    from shared.infrastructure.intent.intent_repository import (
+        get_intent_repository,
+    )
+
+    repo = get_intent_repository()
+    spec_md_globs = repo.get_artifact_type("spec_markdown").content["discovery"]
+    universe: set[Path] = set()
+    for glob in spec_md_globs:
+        universe.update(repo_root.glob(glob))
+    governance_dirs = [
+        repo_root / ".specs" / sub for sub in ("decisions", "papers", "northstar")
+    ]
+    for path in sorted(universe):
+        if any(path.is_relative_to(d) for d in governance_dirs):
+            yield path

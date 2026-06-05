@@ -276,10 +276,28 @@ class CoherenceChecker:
     # ------------------------------------------------------------------ #
 
     def _adr_paths(self) -> list[Path]:
-        decisions = self._repo_root / ".specs" / "decisions"
-        if not decisions.exists():
+        # F-42 ADR-091 D5 Phase 4: discovery routes through the spec_markdown
+        # artifact-type universe filtered to .specs/decisions/ with the
+        # ADR-N name pattern. Behavioural identity preserved: filtered
+        # universe == decisions.glob("ADR-*.md") under current layout
+        # (decisions/ has no subdirectories).
+        from shared.infrastructure.intent.intent_repository import (
+            get_intent_repository,
+        )
+
+        repo = get_intent_repository()
+        spec_md_globs = repo.get_artifact_type("spec_markdown").content["discovery"]
+        universe: set[Path] = set()
+        for glob in spec_md_globs:
+            universe.update(self._repo_root.glob(glob))
+        decisions_dir = self._repo_root / ".specs" / "decisions"
+        if not decisions_dir.exists():
             return []
-        return sorted(decisions.glob("ADR-*.md"))
+        return sorted(
+            p
+            for p in universe
+            if p.is_relative_to(decisions_dir) and p.name.startswith("ADR-")
+        )
 
     def _paper_paths(self) -> list[Path]:
         # F-41 ADR-090 Phase 4: discovery routes through the spec_markdown
@@ -303,16 +321,40 @@ class CoherenceChecker:
         return sorted(p for p in universe if p.is_relative_to(papers_dir))
 
     def _northstar_paths(self) -> list[Path]:
-        northstar = self._repo_root / ".specs" / "northstar"
-        if not northstar.exists():
+        # F-42 ADR-091 D5 Phase 4: spec_markdown universe filtered to
+        # .specs/northstar/. Behavioural identity preserved under current
+        # layout (northstar/ has no subdirectories).
+        from shared.infrastructure.intent.intent_repository import (
+            get_intent_repository,
+        )
+
+        repo = get_intent_repository()
+        spec_md_globs = repo.get_artifact_type("spec_markdown").content["discovery"]
+        universe: set[Path] = set()
+        for glob in spec_md_globs:
+            universe.update(self._repo_root.glob(glob))
+        northstar_dir = self._repo_root / ".specs" / "northstar"
+        if not northstar_dir.exists():
             return []
-        return sorted(northstar.glob("*.md"))
+        return sorted(p for p in universe if p.is_relative_to(northstar_dir))
 
     def _phase_paths(self) -> list[Path]:
-        phases = self._repo_root / ".intent" / "phases"
-        if not phases.exists():
+        # F-42 ADR-091 D5 Phase 4: intent_yaml universe filtered to
+        # .intent/phases/. Behavioural identity preserved under current
+        # layout (phases/ has no subdirectories).
+        from shared.infrastructure.intent.intent_repository import (
+            get_intent_repository,
+        )
+
+        repo = get_intent_repository()
+        intent_yaml_globs = repo.get_artifact_type("intent_yaml").content["discovery"]
+        universe: set[Path] = set()
+        for glob in intent_yaml_globs:
+            universe.update(self._repo_root.glob(glob))
+        phases_dir = self._repo_root / ".intent" / "phases"
+        if not phases_dir.exists():
             return []
-        return sorted(phases.glob("*.yaml"))
+        return sorted(p for p in universe if p.is_relative_to(phases_dir))
 
     # ------------------------------------------------------------------ #
     # Helpers
