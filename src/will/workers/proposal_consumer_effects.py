@@ -76,7 +76,10 @@ async def apply_success_effects(
     Two emissions, in order:
 
     1. For each successful action whose ActionResult carried a
-       finding_to_post: forward it to the blackboard via worker.post_finding.
+       finding_to_post: forward it to the blackboard via
+       worker.post_artifact_finding using the typed parameters carried by
+       the action's finding_to_post dict (ADR-091 D5 Phase 6 — typed
+       finding_to_post replaces the legacy {subject, payload} shape).
        Runs first so a downstream worker reacting to the posted finding
        sees it before any test-coverage entries for the same file
        (per the original ordering invariant from the worker's run loop).
@@ -96,21 +99,36 @@ async def apply_success_effects(
         finding_to_post = ar_data.get("finding_to_post")
         if not finding_to_post:
             continue
-        subject = finding_to_post.get("subject")
+        artifact_type = finding_to_post.get("artifact_type")
+        sub_namespace = finding_to_post.get("sub_namespace")
+        identity_key_value = finding_to_post.get("identity_key_value")
         payload = finding_to_post.get("payload")
-        if not subject or payload is None:
+        if (
+            not artifact_type
+            or not sub_namespace
+            or not identity_key_value
+            or payload is None
+        ):
             logger.warning(
                 "Malformed finding_to_post from action %s "
-                "(missing subject/payload): %r",
+                "(missing artifact_type/sub_namespace/identity_key_value/"
+                "payload): %r",
                 aid,
                 finding_to_post,
             )
             continue
         try:
-            await worker.post_finding(subject=subject, payload=payload)
+            await worker.post_artifact_finding(
+                artifact_type=artifact_type,
+                sub_namespace=sub_namespace,
+                identity_key_value=identity_key_value,
+                payload=payload,
+            )
             logger.info(
-                "ProposalConsumerWorker: posted finding %s from action %s",
-                subject,
+                "ProposalConsumerWorker: posted finding " "%s::%s::%s from action %s",
+                artifact_type,
+                sub_namespace,
+                identity_key_value,
                 aid,
             )
         except Exception as post_err:

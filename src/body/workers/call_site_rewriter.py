@@ -432,7 +432,10 @@ class CallSiteRewriter(Worker):
                         RETURNING id, subject, payload
                         """
                     ),
-                    {"prefix": f"{_SOURCE_SUBJECT}::%", "limit": _CFG.claim_limit},
+                    {
+                        "prefix": f"python::{_SOURCE_SUBJECT}::%",
+                        "limit": _CFG.claim_limit,
+                    },
                 )
                 rows = result.fetchall()
 

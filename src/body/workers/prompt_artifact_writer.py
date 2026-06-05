@@ -180,9 +180,10 @@ class PromptArtifactWriter(Worker):
                 failed += 1
                 continue
 
-            subject = f"{_ARTIFACT_SUBJECT}::{file_path}::{line_number}"
-            await self.post_finding(
-                subject=subject,
+            await self.post_artifact_finding(
+                artifact_type="python",
+                sub_namespace=_ARTIFACT_SUBJECT,
+                identity_key_value=f"{file_path}::{line_number}",
                 payload={
                     "source_extraction_id": extraction_id,
                     "file_path": file_path,

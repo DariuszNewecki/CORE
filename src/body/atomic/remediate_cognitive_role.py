@@ -6,13 +6,14 @@ This action bridges audit findings to the CallSiteRewriter worker by:
 1. Taking audit-violation findings for cognitive role rules (under the
    ADR-091 D2 canonical `python::<rule_id>::<file_path>` subject format)
 2. Preparing prompt.artifact finding data for the calling Worker to post
-   via self.post_finding()
+   via self.post_artifact_finding()
 3. Triggering the rewriter to fix the hardcoded strings
 
 The action does not write to the blackboard itself — ADR-011 requires
 that all blackboard writes flow through Worker attribution. The calling
 Worker (ProposalConsumerWorker) posts the finding described in
-ActionResult.data["finding_to_post"].
+ActionResult.data["finding_to_post"] under the ADR-091 D2 canonical
+subject format: ``python::prompt.artifact::<file_path>``.
 """
 
 from __future__ import annotations
@@ -63,9 +64,10 @@ async def remediate_cognitive_role(
     This action is called by the proposal system when violations are found.
     It does NOT write to the blackboard itself — per ADR-011, all blackboard
     writes must flow through Worker attribution. The action constructs the
-    finding shape (subject + payload) and returns it in
-    ActionResult.data["finding_to_post"]; ProposalConsumerWorker posts via
-    self.post_finding() as part of its post-execution handling.
+    finding shape (artifact_type + sub_namespace + identity_key_value +
+    payload, the typed parameters of post_artifact_finding) and returns it
+    in ActionResult.data["finding_to_post"]; ProposalConsumerWorker posts
+    via self.post_artifact_finding() as part of its post-execution handling.
 
     Args:
         file_path: Path to the file containing the violation
@@ -96,7 +98,9 @@ async def remediate_cognitive_role(
         message=f"Prepared prompt.artifact finding for {file_path}",
         data={
             "finding_to_post": {
-                "subject": f"prompt.artifact::{file_path}",
+                "artifact_type": "python",
+                "sub_namespace": "prompt.artifact",
+                "identity_key_value": file_path,
                 "payload": payload,
             },
             "file_path": file_path,
