@@ -519,9 +519,11 @@ Surviving `post_finding(subject, payload)` callers after commit 1b: 5, all in th
 
 ### Status
 
-Proposed amendment to D2 surfaced during commit 1c recon. Reverses commit 1's Gap 3 framing. Pending governor review and acceptance.
+**Current authoritative proposal: see Revision B below.** Revision A and the original draft are preserved as record of the review trail; both are superseded. Pending governor acceptance of Revision B.
 
-If accepted, this amendment supersedes the deferral in commit 1's Gap 3 Note and replaces commit 1c's scope. If rejected, commit 1c falls back to one of the original Gap 3 options (A schema extension, B fourth canonical subject shape, C narrow-and-rename, D re-anchor, F post_observation/abandoned) and this amendment is recorded as a considered-and-rejected alternative.
+Revision B restructures the amendment per the second external review (Claude.ai). The load-bearing axis shifted from "open → resolved lifecycle" (Revision A) to "`awaiting_reaudit` ineligibility per ADR-045" (Revision B); the implementation shifted from two finding APIs (`post_artifact_finding` + `post_runtime_finding`) to one API plus a declared closed-vocabulary field (`resolution_mechanism`). Both shifts are structural rather than cosmetic; they are recorded here in full so the governance trail is auditable.
+
+If Revision B is accepted, it supersedes the deferral in commit 1's Gap 3 Note and replaces commit 1c's scope. If Revision B is rejected, the named fallbacks remain: Revision A, the original draft, or one of the original Gap 3 options (A schema extension, B fourth canonical subject shape, C narrow-and-rename, D re-anchor, F post_observation/abandoned).
 
 ### Revision A — incorporating external review (2026-06-05)
 
@@ -539,6 +541,8 @@ Revision A also expands commit 1c's implementation scope to honour the resolver 
 
 ### Why this amendment
 
+> **SUPERSEDED by Revision B.** Revision B re-grounds the "why" on `awaiting_reaudit` ineligibility (ADR-045) rather than "observable open → resolved lifecycle"; the latter framing is incidental (one of three workers actually has an in-Python resolution pass; one delegates to SQL; one's yaml says "recovery is out of scope"), while the former is structural and uniform.
+
 Commit 1's Gap 3 Note framed runtime-state findings (the shop managers' emissions) as a "gap in D2" — a problem to close by extending the artifact_type vocabulary, introducing a fourth canonical subject shape, or carving out a narrow legacy-API exemption. Commit 1c recon surfaced that the framing itself was the error. The three options were all reasoning inside the assumption that *every* finding-shaped blackboard emission must fit D2's `<artifact_type>::<sub_namespace>::<identity_key_value>` shape, and the recon kept hitting resistance because that assumption is false.
 
 The shop managers' lifecycle — `post_finding(open)` once per stale entity, `resolve_entries` when the entity recovers — is **not deprecated drift**. It is the correct lifecycle for findings whose subject *has observable recovery*: `worker.silent::<uuid>` IS open while the worker is silent and IS resolved when the worker resumes heartbeating. The `worker_shop_manager` resolution pass and the `blackboard_service.resolve_stale_alerts_for_terminal_targets` SQL sweep aren't legacy cruft — they're the constitutional mechanism that makes the open→resolved transition meaningful.
@@ -546,6 +550,8 @@ The shop managers' lifecycle — `post_finding(open)` once per stale entity, `re
 The honest read of D2's contract is that **two finding cases exist** (artifact findings and runtime-state findings), only one of which D2 currently names. Observations are a separate terminal finding-record contract that sits alongside the finding cases; reports and heartbeats are separate Blackboard entry types.
 
 ### What D2 currently names
+
+> **SUPERSEDED by Revision B.** The "third case D2 doesn't name" framing presumed two finding APIs were the right shape. Revision B replaces this with a single-API + `resolution_mechanism` field design; the cut is between three closing-authority values, not three subject-shape families.
 
 D2 (the canonical subject format decision) names two cases explicitly:
 
@@ -564,6 +570,8 @@ The case D2 also doesn't name — and which commit 1c recon surfaced as the *rea
 
 ### The two finding cases + observations — comparison
 
+> **SUPERSEDED by Revision B.** Revision B's comparison table is keyed on `resolution_mechanism` values (one API column, three field values) rather than on per-API rows.
+
 | Case | API | Subject shape | Lifecycle | Resolver | Caller class | Constitutional pair |
 |---|---|---|---|---|---|---|
 | Artifact findings | `post_artifact_finding(artifact_type, sub_namespace, identity_key_value, payload)` | `<artifact_type>::<sub_namespace>::<identity_key_value>` | open → resolved | remediation worker (separate from emitter) | sensing, acting, supervision | scoped by `sensor_supported_by_declaration` |
@@ -573,6 +581,8 @@ The case D2 also doesn't name — and which commit 1c recon surfaced as the *rea
 Reports (`post_report`) and heartbeats (`post_heartbeat`) are separate Blackboard entry types, not finding-case emissions; they sit alongside this taxonomy.
 
 ### D2 amendment text (proposed)
+
+> **SUPERSEDED by Revision B.** Revision B replaces the "two structural cases, each with its own canonical contract" language with "one finding-posting contract carrying a declared `resolution_mechanism` field"; the subject shape concern dissolves once the cut is moved from API surface to data field.
 
 Replace D2's "the canonical subject format is closed" phrasing with:
 
@@ -589,6 +599,8 @@ Replace D2's "the canonical subject format is closed" phrasing with:
 > Observations (`post_observation(subject, payload, status=<terminal>)`) are a separate entry-type contract for terminal-at-creation records; they sit alongside findings, not within them.
 
 ### Implementation
+
+> **SUPERSEDED by Revision B.** Revision B's implementation drops the rename (no more `post_finding` → `post_runtime_finding`); instead `post_finding` gains a non-omittable keyword-only `resolution_mechanism` argument. The 5 site updates are still 5 sites, but pass a field value rather than calling a renamed function. Schema extension + reaudit guard land in commit 1c; ChatGPT's resolver-obligation invariant carries through, re-targeted at `self_resolve` findings.
 
 Phase 6 commit 1c becomes a mechanical scope-narrowing of the existing API, plus the resolver-obligation backing:
 
@@ -635,6 +647,201 @@ If accepted, this is the first ADR-091 amendment that adds a substantive D2 deci
 
 ### External review record
 
-Revision A folds in findings from an external adversarial review by ChatGPT (read the repo via GitHub connector; verified claims against `src/shared/workers/base.py`, `src/will/workers/{worker,blackboard,proposal_pipeline}_shop_manager.py`, and `src/body/services/blackboard_service/blackboard_service.py`). The review accepted the load-bearing claim that the shop managers have a legitimate open → resolved lifecycle but flagged three concrete refinements: tighten scope to `class: supervision` only, add the resolver-ownership invariant as structural backing for the category boundary, and fix the internally-inconsistent `post_observation` docstring. All three are incorporated in Revision A above. The review's "constitutional fork risk" framing — that without the resolver obligation `post_runtime_finding` becomes a free-string escape hatch — is the load-bearing reason for the invariant.
+**Review 1 — ChatGPT (informed Revision A).** Read the repo via GitHub connector; verified claims against `src/shared/workers/base.py`, `src/will/workers/{worker,blackboard,proposal_pipeline}_shop_manager.py`, and `src/body/services/blackboard_service/blackboard_service.py`. The review accepted the load-bearing claim that the shop managers have a legitimate open → resolved lifecycle but flagged three concrete refinements: tighten scope to `class: supervision` only, add the resolver-ownership invariant as structural backing for the category boundary, and fix the internally-inconsistent `post_observation` docstring. All three are incorporated in Revision A above. The review's "constitutional fork risk" framing — that without the resolver obligation `post_runtime_finding` becomes a free-string escape hatch — is the load-bearing reason for the invariant. The resolver-obligation invariant carries through to Revision B unchanged (re-targeted at `self_resolve` findings); the `post_observation` docstring fix also carries through.
 
-A second adversarial review (Claude.ai via GitHub connector) was requested in parallel but did not arrive before Revision A was prepared. If the second review surfaces additional findings, Revision B will fold them in before governor acceptance.
+**Review 2 — Claude.ai (informed Revision B).** Read the repo via GitHub connector; could not see `post_observation` / `post_artifact_finding` in the indexed snapshot (those APIs postdate the stale `context_core.txt` export — verified by the reviewer who flagged this honestly), so they tested the live code at the three shop-manager call sites and the resolution mechanism, treating docstring claims as inferred rather than verified. Their findings on the structural axis falsified Revision A's load-bearing framing:
+
+1. **"Observable open → resolved lifecycle" is an over-fit** to the one of three workers that has an in-Python resolution pass. `worker_shop_manager` self-resolves; `blackboard_shop_manager`'s `run()` has no resolution pass (the resolution happens at the service layer via `_sweep_resolved_stale_alerts`); `proposal_pipeline_shop_manager`'s declaration says verbatim *"Detection only — recovery is out of scope (issue #170)"* even though the code does close findings when conditions clear. The three workers don't share an identical lifecycle pattern.
+
+2. **The structural cut that does unite all three is `awaiting_reaudit` ineligibility per ADR-045.** That status is the only automated finding-resolution path in CORE, and ADR-045 defines it as gated on owning audit sensor + rule_namespace. Supervision findings have neither. They are constitutionally barred from `awaiting_reaudit`. The artifact/runtime distinction is not about lifecycle — it's about which closing-authority class may transition the finding. This is grounded, all-three-uniform, and survives the factual variability in resolution implementation.
+
+3. **The BlackboardEntry row is already uniform** — `entry_type='finding', status='open'` is identical schema for every finding. The artifact-vs-runtime distinction lives today in subject-string convention and in which worker closes the finding, not in the data contract. Splitting the post API into two functions (Revision A) would hardcode at the API layer a distinction the data layer expresses as state, and would hand F-42's pluggable-sensor contract a two-headed finding format — exactly the constitutional fork Revision A claimed to be preventing.
+
+4. **The cleaner expression is one finding API + a closed-vocabulary field** (`resolution_mechanism ∈ {reaudit, self_resolve, human}`). F-42's pluggable sensors all post through one API and declare a field value; the daemon routes resolution by reading the column. The second published contract stays single-headed.
+
+Revision B incorporates all four findings, with three caveat corrections after pre-revision verification:
+
+- **The `approval_authority` precedent cite is wrong.** That column does not exist on `core.blackboard_entries` (verified via `\d core.blackboard_entries`); the only existing CHECK is `blackboard_entry_status_closed_set`. Revision B's precedent cite for the closed-set + conditional-NULL CHECK pattern is the existing `blackboard_entry_status_closed_set` constraint on the same table.
+- **`post_artifact_finding` integration position must be named.** That API exists in the tree (post-commit 1b) and was exercised by today's commits 0, 1, and 1b. Revision B's position: `post_artifact_finding` becomes a thin wrapper that constructs the canonical subject AND forwards to `post_finding(..., resolution_mechanism='reaudit')`. Preserves the typed-parameter validation (artifact_type-in-declared-list, sub_namespace dotted-suffix); no revert of prior commits needed.
+- **`blackboard.entry_stale::*` should classify as `self_resolve`, not `human`.** Claude.ai's draft classification was too conservative — `blackboard_service.resolve_stale_alerts_for_terminal_targets` IS an automated SQL recovery path that closes the finding when the target row reaches terminal status. The resolver is a named service the emitter delegates to (satisfying the resolver-ownership invariant); the `human` value is reserved for findings with no automated closer at all.
+
+The structural reframing from Revision A to Revision B is the load-bearing reason this amendment merits heightened governor review. Both reviews were genuinely adversarial — neither echoed the prior reasoning back. The trail is preserved in this section and in the SUPERSEDED markers above so the governance record of how the decision was reached is auditable.
+
+## Revision B — single finding API + `resolution_mechanism` field (proposed 2026-06-05, pending governor acceptance)
+
+This section is the **current authoritative proposal**. It supersedes the original draft and Revision A; both are preserved above as record of the review trail.
+
+### Why Revision B exists
+
+Revision A's load-bearing axis was "observable open → resolved lifecycle". Claude.ai's verification of the three shop-manager workers falsified this as the unifying property — they share a different structural property: ineligibility for ADR-045's `awaiting_reaudit` automated resolution path. Revision A's design (two finding APIs — `post_artifact_finding` + `post_runtime_finding`) hardcoded at the API layer a distinction the data contract carries as state, and would have made F-42's pluggable sensor contract two-headed permanently. Revision B re-grounds the axis on `awaiting_reaudit` eligibility and moves the cut from API surface to a declared field on the finding row.
+
+### The load-bearing invariant
+
+> **A finding may be transitioned to `awaiting_reaudit` if and only if its `resolution_mechanism = 'reaudit'`.**
+
+Per ADR-045, `awaiting_reaudit` is the parked-revival status for findings that the owning audit sensor must re-evaluate before closing. The status is gated on having an owning audit sensor + rule_namespace. Supervision findings have neither; they are constitutionally barred from `awaiting_reaudit`. Naming this barrier as a stored, indexable column (rather than as a string-prefix convention or a function-name convention) makes the constitutional knowledge structural and enforceable in SQL.
+
+This is what "these findings are not legacy drift" actually means. It is not a claim about lifecycle, about when the code was written, or about which function the emitter called. It is a claim about which findings the ADR-045 sensor-re-audit machinery is permitted to touch.
+
+### D2 — Decision
+
+A new closed-vocabulary field, `resolution_mechanism`, is added to every `entry_type='finding'` row on `core.blackboard_entries`. It declares which authority class may transition the finding to a terminal state:
+
+| Value | Closing authority | ADR-045 reaudit eligible | Verified carriers (current tree) |
+| --- | --- | :---: | --- |
+| `reaudit` | The owning audit/sensor worker, re-evaluating the subject's truth claim | **yes** | `python::audit.violation::*`, `python::test.run_required::*`, `python::prompt.artifact::*` (any caller of `post_artifact_finding`) |
+| `self_resolve` | The posting supervisor or a service it explicitly delegates to, on a later cycle, when live state recovers | no | `worker.silent::*` (in-Python `resolve_entries`); `blackboard.entry_stale::*` (SQL `resolve_stale_alerts_for_terminal_targets` sweep); `proposal.{stuck_approved, stuck_executing, repeated_failure}::*` (in-Python `resolve_entries` at `proposal_pipeline_shop_manager.run`) |
+| `human` | A human only, via `core-admin blackboard resolve` | no | None in the surviving tree; reserved for findings with no automated closer at all. The conservative default for unclassified legacy rows during backfill. |
+
+`resolution_mechanism` is **orthogonal to** the `abandoned`/`suppressed` re-emission axis governed by `core/enums.json` and the #263 rationale. That axis governs what a sensor does *after* a terminal state; `resolution_mechanism` governs *who may close an open finding*. They do not interact.
+
+### (a) Schema extension on `core.blackboard_entries`
+
+```sql
+ALTER TABLE core.blackboard_entries
+    ADD COLUMN resolution_mechanism text;
+
+ALTER TABLE core.blackboard_entries
+    ADD CONSTRAINT blackboard_entry_resolution_mechanism_closed_set
+    CHECK (
+        -- Non-omittable for findings; forbidden for every other entry_type.
+        (entry_type = 'finding'
+            AND resolution_mechanism IN ('reaudit', 'self_resolve', 'human'))
+        OR
+        (entry_type <> 'finding'
+            AND resolution_mechanism IS NULL)
+    );
+```
+
+Pattern precedent: matches the existing `blackboard_entry_status_closed_set` CHECK constraint on the same table — closed-set vocabulary enforced at the DB layer rather than at the application layer.
+
+Governance artifacts updated atomically with the schema change:
+
+- `.intent/META/enums.json` — new `finding_resolution_mechanism` enum: `reaudit | self_resolve | human`, with the closing-authority semantics above.
+- `.intent/enforcement/contracts/BlackboardEntry.json` (if it exists; verified at implementation) — add `resolution_mechanism` to `properties` (description: closed vocabulary, non-omittable for findings per this ADR) and add an `allOf` clause mirroring the CHECK so the data contract and the DB constraint cannot drift.
+
+### (b) Runtime enforcement of the field
+
+**Write time — non-omittable in the single finding API.** `post_finding` on `shared.workers.base.Worker` gains a keyword-only, non-defaulted parameter:
+
+```python
+async def post_finding(
+    self,
+    subject: str,
+    payload: dict[str, Any],
+    *,
+    resolution_mechanism: str,   # non-omittable: reaudit | self_resolve | human
+) -> uuid.UUID:
+    """Post a new finding. resolution_mechanism declares which authority class
+    may close it, and gates ADR-045 reaudit eligibility. See ADR-091 D2."""
+    return await self._post_entry(
+        entry_type="finding",
+        subject=subject,
+        payload=payload,
+        status="open",
+        resolution_mechanism=resolution_mechanism,
+    )
+```
+
+`_post_entry` threads the new parameter to the INSERT; `post_report` and `post_heartbeat` pass nothing (NULL), satisfied by the CHECK. Because the parameter is keyword-only and has no default on `post_finding`, every caller is forced to classify at the call site — the same discipline ADR-011 imposes on attribution. No raw-SQL bypass exists to evade it (`architecture.blackboard.worker_only_inserts`, blocking).
+
+**`post_artifact_finding` integration.** That API stays as a typed-parameter wrapper for artifact findings (preserves the `artifact_type`-in-declared-list and `sub_namespace` dotted-suffix validation that landed in Phases 1–6). Its implementation forwards to `post_finding` with `resolution_mechanism="reaudit"` supplied automatically:
+
+```python
+async def post_artifact_finding(
+    self,
+    artifact_type: str,
+    sub_namespace: str,
+    identity_key_value: str,
+    payload: dict[str, Any],
+) -> uuid.UUID:
+    # ...existing artifact_type and sub_namespace validation (unchanged)...
+    subject = f"{artifact_type}::{sub_namespace}::{identity_key_value}"
+    return await self.post_finding(
+        subject=subject,
+        payload=payload,
+        resolution_mechanism="reaudit",
+    )
+```
+
+No reversal of commits 0/1/1b is required. The migrated workers continue to call `post_artifact_finding` with the typed parameters; the artifact-finding contract is preserved as the typed-validation entry point that always implies `reaudit`.
+
+**Resolution time — the reaudit guard.** The transition-to-`awaiting_reaudit` site is at `src/body/services/blackboard_service/blackboard_proposal_service.py` (the UPDATE on `core.blackboard_entries` that flips revived findings to `awaiting_reaudit` per ADR-045 proposal-revival flow). It acquires one predicate clause:
+
+```sql
+UPDATE core.blackboard_entries
+SET status = 'awaiting_reaudit', updated_at = now()
+WHERE entry_type = 'finding'
+  AND resolution_mechanism = 'reaudit'   -- ADR-091 D2 invariant
+  AND ...
+```
+
+A `self_resolve` or `human` finding can never be parked into `awaiting_reaudit` by a sensor, because the predicate excludes it. This makes the invariant structural rather than conventional.
+
+### (c) F-42's pluggable sensor contract uses the single API
+
+F-42 declares an abstract sensor interface whose contract includes "the finding format it produces." Under Revision B that format is **single-headed**: every sensor — the existing `AuditViolationSensor`, a future regulated-document sensor, a future process sensor — posts through one `post_finding(subject, payload, resolution_mechanism=...)` call. The sensor does not choose between APIs; it declares a value.
+
+A pluggable sensor declares its resolution mechanism in its `.intent/workers/*.yaml` under `mandate`, validated against `finding_resolution_mechanism` at daemon load. The natural F-42 mapping falls straight out of the enum:
+
+- An **artifact-type sensor** (observes a re-readable subject — a file, a config, any artifact whose truth claim can be re-evaluated) declares `reaudit`. ADR-045 applies; its findings converge through re-audit exactly as `audit.violation` does today.
+- A **runtime/process sensor** (observes a live process, a queue, a liveness signal — no re-readable artifact) declares `self_resolve` (if the sensor owns the recovery transition) or `human` (if recovery is operator-mediated). ADR-045 does not apply; nothing can park its findings into `awaiting_reaudit`.
+
+This is the payoff of the field-based design: F-42's second published contract depends on **one** finding API plus a declared field. A two-function API would have forced every pluggable-sensor author to pick a head, encoding a resolution assumption into the choice of function and making the sensor contract two-headed for all time. The field keeps the extension axis (artifact-type vs runtime sensors) as data, which is exactly where F-42 needs it.
+
+### (d) Resolver-ownership invariant (re-targeted from Revision A / ChatGPT)
+
+ChatGPT's resolver-obligation invariant from Revision A carries through to Revision B, re-targeted at the `self_resolve` field value:
+
+> A finding with `resolution_mechanism = 'self_resolve'` is valid only if the emitting worker (or a service the emitter explicitly names) owns the recovery transition for that subject prefix. The recovery path must be documented in the emitting worker's module docstring and covered by a test proving open → resolved when the underlying runtime condition clears.
+
+A new advisory→blocking governance rule (proposed: `governance.taxonomy.self_resolve_resolver_owned`) flags any `self_resolve` subject prefix lacking a documented resolver + a passing open → resolved test. Ships as `reporting`; promotes to `blocking` once the surviving sites are covered. The invariant prevents `self_resolve` from becoming a "no automated closer" escape hatch — that's what the `human` value is for.
+
+### (e) Commit 1c implementation scope under Revision B
+
+Commit 1c was originally "delete `post_finding(subject, payload)`." Under Revision B it becomes, with no deletion and no rename:
+
+1. **Schema** — the `ALTER TABLE` + CHECK above; `enums.json` `finding_resolution_mechanism`; the BlackboardEntry data contract (`allOf` clause + `properties`) updated to match.
+2. **API surface** — `_post_entry` threads `resolution_mechanism`; `post_finding` gains the non-omittable keyword-only field; `post_artifact_finding` becomes the typed-parameter wrapper that supplies `resolution_mechanism="reaudit"` automatically; `post_report` / `post_heartbeat` unchanged.
+3. **5 call-site classifications** — every surviving direct `post_finding(subject, payload)` caller passes its `resolution_mechanism` value. Per the verified classification:
+   - `worker_shop_manager` (`worker.silent::*`) → `self_resolve`
+   - `blackboard_shop_manager` (`blackboard.entry_stale::*`) → `self_resolve`
+   - `proposal_pipeline_shop_manager` (3 sites: `proposal.{stuck_approved, stuck_executing, repeated_failure}::*`) → `self_resolve`
+4. **Reaudit guard** — add the `AND resolution_mechanism = 'reaudit'` predicate to the `awaiting_reaudit` UPDATE at `blackboard_proposal_service.py`; author the `architecture.blackboard.reaudit_requires_reaudit_mechanism` blocking rule + mapping.
+5. **Resolver-ownership backing** — 3 worker docstring updates (one per shop manager module) naming the resolver path for that worker's subject prefix(es). 5 unit tests (one per surviving call site), each seeding a runtime-state condition, asserting the open finding is posted with `resolution_mechanism='self_resolve'`, clearing the condition, and asserting the next `run()` cycle (or the SQL auto-resolve sweep) transitions the finding to `resolved`.
+6. **`post_observation` docstring fix** at `shared.workers.base.Worker.post_observation`: remove `worker.silent` from the canonical `status="abandoned"` examples (internally inconsistent with the same docstring's "no remediation pathway" framing; `worker.silent` belongs in the `self_resolve` case under Revision B). Remaining canonical examples (`sync.db.failed`, `loop_hold.sample::*`, yield receipts) are genuinely terminal-at-creation.
+7. **Backfill** — existing rows get `resolution_mechanism` by subject-prefix match (`python::*` and any pre-canonical artifact-finding subjects → `reaudit`; `worker.silent::%`, `blackboard.entry_stale::%`, `proposal.{stuck_approved, stuck_executing, repeated_failure}::%` → `self_resolve`; everything else → `human`, the conservative default that grants no reaudit eligibility to unclassified legacy rows). Findings are the only affected rows; `report` / `heartbeat` backfill to NULL.
+8. **Two governance rules** — `architecture.blackboard.reaudit_requires_reaudit_mechanism` (blocking; reaudit guard predicate must co-occur at every `awaiting_reaudit` transition) and `governance.taxonomy.self_resolve_resolver_owned` (advisory→blocking; resolver-ownership invariant).
+
+Acceptance gate (binary): post-migration, `SELECT count(*) FROM core.blackboard_entries WHERE entry_type='finding' AND resolution_mechanism IS NULL` returns 0; the CHECK is enforced; one audit cycle parks only `reaudit` findings into `awaiting_reaudit` (the guard holds on-wire, not just in code).
+
+### (f) Phase 6 commit 2 and Phase 7 under Revision B
+
+- **Phase 6 commit 2** dissolves. There is no API to delete (no rename, no two-headed split). The "two-API coexistence window" closes the moment commit 1c lands with the unified `post_finding(subject, payload, resolution_mechanism=...)` signature: the only finding API is `post_finding`, and `post_artifact_finding` is a typed wrapper over it. The phasing collapses one commit.
+- **Phase 7** (`sensor_supported_by_declaration` advisory → blocking promotion) is unaffected. The constitutional pair scopes to artifact findings via the existing rule; runtime-state findings carry `resolution_mechanism='self_resolve'` or `'human'` and remain outside the pair as before.
+
+### (g) Alternatives considered (under Revision B's framing)
+
+**Keep two published finding APIs (Revision A's design).** Rejected. The BlackboardEntry row is already uniform; two functions hardcode at the API layer a distinction the data layer carries as state, and bind F-42's pluggable sensor contract to a two-headed finding format permanently. The amendment's own counter-test — a future state where two APIs cost more than they save — is realized precisely here: every pluggable sensor author would inherit the fork.
+
+**Delete the generic API and migrate supervision findings onto `post_artifact_finding`** (the original Phase 6 commit 2 plan). Rejected. `worker.silent::<uuid>` has no artifact and no owning sensor; `post_artifact_finding`'s resolution model (ADR-045 reaudit) has nothing to bind to. There is no migration target.
+
+**Derive `resolution_mechanism` from subject prefix at read time instead of storing it.** Rejected. The reaudit guard is a hot-path predicate and must be a stored, indexable column, not a string-prefix computation; and subject convention is exactly the implicit signal this amendment is converting into a governed field.
+
+**Rename `post_finding` to `post_runtime_finding` and add a separate `resolution_mechanism` argument anyway** (a hybrid of Revision A and B). Rejected as redundant. With one API plus a declared field, the rename adds no constitutional content — the field IS the classification.
+
+### (h) Revisit triggers
+
+- A fourth closing-authority class appears (e.g. a finding closed by a peer worker that is neither the owning sensor nor the posting supervisor nor a human). At that point `finding_resolution_mechanism` gains a value; the API and CHECK absorb it without a structural change — which is the design's intent.
+- ADR-045's `awaiting_reaudit` transition is refactored or relocated. The reaudit guard predicate and its rule mapping move with it; the invariant in D2 is the fixed point.
+- `resolution_mechanism` proves insufficient to distinguish `reaudit` from `self_resolve` for some sensor whose subject is both a re-readable artifact and live runtime state. Treat as a classification decision per sensor (the sensor declares one or the other in its `.intent/workers/` yaml), not a schema change.
+- The resolver-ownership invariant proves too restrictive — e.g., a `self_resolve` finding whose recovery is observable only through a poll loop that takes hours, making the open → resolved test impractical. Treat as a per-test scope decision (assert posting only; record the resolver path in the docstring without an integration test), not an invariant change.
+
+### (i) References (under Revision B)
+
+- **ADR-011** — worker-only INSERTs; the attribution discipline this field reuses (non-omittable at the single write boundary, no raw-SQL bypass).
+- **ADR-045** — `awaiting_reaudit` and the owning-sensor re-evaluation contract; the source of the reaudit-eligibility cut and the runtime guard. The load-bearing reference for Revision B's structural axis.
+- **CORE-ShopManager.md §3–§5** — supervision findings, escalation, and the human-resolution path that grounds the `human` value.
+- **F-42 (CORE-Features.md)** — pluggable sensor model; the second published contract that consumes the single finding API.
+- **Worker base class** — `src/shared/workers/base.py`: `post_finding`, `post_artifact_finding`, `_post_entry` (INSERT site amended here).
+- **Existing CHECK precedent** — `blackboard_entry_status_closed_set` on `core.blackboard_entries` (closed-set vocabulary enforced at the DB layer; the pattern Revision B mirrors for `resolution_mechanism`).
