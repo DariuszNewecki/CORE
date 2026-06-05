@@ -11,7 +11,7 @@ available dependency section.
 import json
 from pathlib import Path
 from typing import Any
-from unittest.mock import MagicMock, patch, PropertyMock
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -107,14 +107,20 @@ class TestPolicyCoverageReport:
 class TestPolicyCoverageServiceInit:
     """Tests for ``PolicyCoverageService.__init__``."""
 
-    def test_stores_path_resolver_attributes(self, mock_path_resolver: MagicMock) -> None:
+    def test_stores_path_resolver_attributes(
+        self, mock_path_resolver: MagicMock
+    ) -> None:
         """The constructor should copy repo_root and derive evidence_path."""
         svc = PolicyCoverageService(path_resolver=mock_path_resolver)
         assert svc.repo_root == mock_path_resolver.repo_root
-        expected_evidence = mock_path_resolver.reports_dir / "audit" / "latest_audit.json"
+        expected_evidence = (
+            mock_path_resolver.reports_dir / "audit" / "latest_audit.json"
+        )
         assert svc.evidence_path == expected_evidence
 
-    def test_init_invokes_discovery_and_loading(self, mock_path_resolver: MagicMock) -> None:
+    def test_init_invokes_discovery_and_loading(
+        self, mock_path_resolver: MagicMock
+    ) -> None:
         """The constructor should call ``_discover_rules_via_intent`` and
         ``_load_audit_evidence`` (we verify by checking that internal
         attributes are populated)."""
@@ -137,14 +143,18 @@ class TestRuleRef:
     """Tests for the ``_RuleRef`` helper class."""
 
     def test_simple_construction(self) -> None:
-        rule = _RuleRef(policy_id="P1", rule_id="R1", enforcement="mandatory", has_engine=True)
+        rule = _RuleRef(
+            policy_id="P1", rule_id="R1", enforcement="mandatory", has_engine=True
+        )
         assert rule.policy_id == "P1"
         assert rule.rule_id == "R1"
         assert rule.enforcement == "mandatory"
         assert rule.has_engine is True
 
     def test_missing_engine_flag(self) -> None:
-        rule = _RuleRef(policy_id="P2", rule_id="R2", enforcement="advisory", has_engine=False)
+        rule = _RuleRef(
+            policy_id="P2", rule_id="R2", enforcement="advisory", has_engine=False
+        )
         assert rule.has_engine is False
         assert rule.enforcement == "advisory"
 
@@ -163,12 +173,18 @@ class TestDiscoverRulesViaIntent:
         rules = svc._discover_rules_via_intent()
         assert rules == []
 
-    def test_policy_without_engine_json(self, tmp_path: Path, mock_path_resolver: MagicMock) -> None:
+    def test_policy_without_engine_json(
+        self, tmp_path: Path, mock_path_resolver: MagicMock
+    ) -> None:
         """A rule JSON that lacks an 'engine' key should set ``has_engine`` to False."""
         policy_dir = tmp_path / ".intent" / "policies" / "test_policy"
         policy_dir.mkdir(parents=True)
         rule_file = policy_dir / "r001.json"
-        rule_file.write_text(json.dumps({"rule_id": "R001", "enforcement": "mandatory", "policy_id": "P001"}))
+        rule_file.write_text(
+            json.dumps(
+                {"rule_id": "R001", "enforcement": "mandatory", "policy_id": "P001"}
+            )
+        )
 
         mock_path_resolver.intent_root = tmp_path / ".intent"
         mock_path_resolver.reports_dir = tmp_path / "reports"
@@ -180,18 +196,22 @@ class TestDiscoverRulesViaIntent:
         assert rules[0].rule_id == "R001"
         assert rules[0].has_engine is False
 
-    def test_policy_with_engine_json(self, tmp_path: Path, mock_path_resolver: MagicMock) -> None:
+    def test_policy_with_engine_json(
+        self, tmp_path: Path, mock_path_resolver: MagicMock
+    ) -> None:
         """When engine section present, ``has_engine`` becomes True."""
         policy_dir = tmp_path / ".intent" / "standards" / "my_std"
         policy_dir.mkdir(parents=True)
         rule_file = policy_dir / "s002.json"
         rule_file.write_text(
-            json.dumps({
-                "rule_id": "S002",
-                "enforcement": "advisory",
-                "policy_id": "STD01",
-                "engine": {"type": "regex", "pattern": ".*"},
-            })
+            json.dumps(
+                {
+                    "rule_id": "S002",
+                    "enforcement": "advisory",
+                    "policy_id": "STD01",
+                    "engine": {"type": "regex", "pattern": ".*"},
+                }
+            )
         )
 
         mock_path_resolver.intent_root = tmp_path / ".intent"
@@ -203,15 +223,25 @@ class TestDiscoverRulesViaIntent:
         assert len(rules) == 1
         assert rules[0].has_engine is True
 
-    def test_collects_from_both_search_roots(self, tmp_path: Path, mock_path_resolver: MagicMock) -> None:
+    def test_collects_from_both_search_roots(
+        self, tmp_path: Path, mock_path_resolver: MagicMock
+    ) -> None:
         """Rules from ``policies/`` and ``standards/`` are merged."""
         (tmp_path / ".intent" / "policies" / "pol").mkdir(parents=True)
         (tmp_path / ".intent" / "standards" / "std").mkdir(parents=True)
 
         pol_file = tmp_path / ".intent" / "policies" / "pol" / "p01.json"
-        pol_file.write_text(json.dumps({"rule_id": "P01", "enforcement": "mandatory", "policy_id": "POL"}))
+        pol_file.write_text(
+            json.dumps(
+                {"rule_id": "P01", "enforcement": "mandatory", "policy_id": "POL"}
+            )
+        )
         std_file = tmp_path / ".intent" / "standards" / "std" / "s01.json"
-        std_file.write_text(json.dumps({"rule_id": "S01", "enforcement": "advisory", "policy_id": "STD"}))
+        std_file.write_text(
+            json.dumps(
+                {"rule_id": "S01", "enforcement": "advisory", "policy_id": "STD"}
+            )
+        )
 
         mock_path_resolver.intent_root = tmp_path / ".intent"
         mock_path_resolver.reports_dir = tmp_path / "reports"
@@ -238,7 +268,9 @@ class TestLoadAuditEvidence:
         evidence = svc._load_audit_evidence()
         assert evidence == set()
 
-    def test_evidence_file_with_executed_rules(self, tmp_path: Path, mock_path_resolver: MagicMock) -> None:
+    def test_evidence_file_with_executed_rules(
+        self, tmp_path: Path, mock_path_resolver: MagicMock
+    ) -> None:
         """Return set of rule IDs when the file contains ``executed_rules``."""
         audit_dir = tmp_path / "reports" / "audit"
         audit_dir.mkdir(parents=True)
@@ -252,7 +284,9 @@ class TestLoadAuditEvidence:
         evidence = svc._load_audit_evidence()
         assert evidence == {"R1", "R2", "R3"}
 
-    def test_malformed_evidence_file(self, tmp_path: Path, mock_path_resolver: MagicMock) -> None:
+    def test_malformed_evidence_file(
+        self, tmp_path: Path, mock_path_resolver: MagicMock
+    ) -> None:
         """Return empty set when the JSON is invalid (and log a warning)."""
         audit_dir = tmp_path / "reports" / "audit"
         audit_dir.mkdir(parents=True)
@@ -275,7 +309,9 @@ class TestLoadAuditEvidence:
 class TestRun:
     """Integration-oriented tests for the ``run`` method."""
 
-    def test_happy_path_enforces_rules(self, tmp_path: Path, mock_path_resolver: MagicMock) -> None:
+    def test_happy_path_enforces_rules(
+        self, tmp_path: Path, mock_path_resolver: MagicMock
+    ) -> None:
         """When a rule appears in both intent and evidence, status becomes 'enforced'."""
         # Arrange evidence: rules that have been executed
         audit_dir = tmp_path / "reports" / "audit"
@@ -288,7 +324,14 @@ class TestRun:
         policy_dir.mkdir(parents=True)
         rule_file = policy_dir / "r001.json"
         rule_file.write_text(
-            json.dumps({"rule_id": "R001", "enforcement": "mandatory", "policy_id": "P001", "engine": {}})
+            json.dumps(
+                {
+                    "rule_id": "R001",
+                    "enforcement": "mandatory",
+                    "policy_id": "P001",
+                    "engine": {},
+                }
+            )
         )
 
         mock_path_resolver.reports_dir = tmp_path / "reports"
@@ -302,7 +345,9 @@ class TestRun:
         assert report.repo_root == str(tmp_path)
         assert report.summary.get("enforced", 0) == 1
 
-    def test_implementable_rule_has_engine_but_not_executed(self, tmp_path: Path, mock_path_resolver: MagicMock) -> None:
+    def test_implementable_rule_has_engine_but_not_executed(
+        self, tmp_path: Path, mock_path_resolver: MagicMock
+    ) -> None:
         """Rule with engine but absent from evidence is 'implementable'."""
         audit_dir = tmp_path / "reports" / "audit"
         audit_dir.mkdir(parents=True)
@@ -313,7 +358,14 @@ class TestRun:
         policy_dir.mkdir(parents=True)
         rule_file = policy_dir / "r002.json"
         rule_file.write_text(
-            json.dumps({"rule_id": "R002", "enforcement": "mandatory", "policy_id": "P002", "engine": {"type": "x"}})
+            json.dumps(
+                {
+                    "rule_id": "R002",
+                    "enforcement": "mandatory",
+                    "policy_id": "P002",
+                    "engine": {"type": "x"},
+                }
+            )
         )
 
         mock_path_resolver.reports_dir = tmp_path / "reports"
@@ -326,7 +378,9 @@ class TestRun:
         assert report.summary.get("implementable", 0) == 1
         assert report.summary.get("enforced", 0) == 0
 
-    def test_declared_only_rule_has_no_engine_and_not_executed(self, tmp_path: Path, mock_path_resolver: MagicMock) -> None:
+    def test_declared_only_rule_has_no_engine_and_not_executed(
+        self, tmp_path: Path, mock_path_resolver: MagicMock
+    ) -> None:
         """Rule without engine and absent from evidence is 'declared_only'."""
         audit_dir = tmp_path / "reports" / "audit"
         audit_dir.mkdir(parents=True)
@@ -337,7 +391,9 @@ class TestRun:
         policy_dir.mkdir(parents=True)
         rule_file = policy_dir / "r003.json"
         rule_file.write_text(
-            json.dumps({"rule_id": "R003", "enforcement": "mandatory", "policy_id": "P003"})
+            json.dumps(
+                {"rule_id": "R003", "enforcement": "mandatory", "policy_id": "P003"}
+            )
         )
 
         mock_path_resolver.reports_dir = tmp_path / "reports"
@@ -349,7 +405,9 @@ class TestRun:
 
         assert report.summary.get("declared_only", 0) == 1
 
-    def test_exit_code_nonzero_when_uncovered_errors_exist(self, tmp_path: Path, mock_path_resolver: MagicMock) -> None:
+    def test_exit_code_nonzero_when_uncovered_errors_exist(
+        self, tmp_path: Path, mock_path_resolver: MagicMock
+    ) -> None:
         """If a rule with enforcement 'error' is not enforced, exit_code should be 1."""
         audit_dir = tmp_path / "reports" / "audit"
         audit_dir.mkdir(parents=True)
@@ -360,7 +418,14 @@ class TestRun:
         policy_dir.mkdir(parents=True)
         rule_file = policy_dir / "r004.json"
         rule_file.write_text(
-            json.dumps({"rule_id": "R004", "enforcement": "error", "policy_id": "P004", "engine": {}})
+            json.dumps(
+                {
+                    "rule_id": "R004",
+                    "enforcement": "error",
+                    "policy_id": "P004",
+                    "engine": {},
+                }
+            )
         )
 
         mock_path_resolver.reports_dir = tmp_path / "reports"
@@ -372,7 +437,9 @@ class TestRun:
 
         assert report.exit_code == 1
 
-    def test_exit_code_zero_when_no_uncovered_errors(self, tmp_path: Path, mock_path_resolver: MagicMock) -> None:
+    def test_exit_code_zero_when_no_uncovered_errors(
+        self, tmp_path: Path, mock_path_resolver: MagicMock
+    ) -> None:
         """All 'error' rules enforced -> exit_code 0."""
         audit_dir = tmp_path / "reports" / "audit"
         audit_dir.mkdir(parents=True)
@@ -383,7 +450,14 @@ class TestRun:
         policy_dir.mkdir(parents=True)
         rule_file = policy_dir / "r005.json"
         rule_file.write_text(
-            json.dumps({"rule_id": "R005", "enforcement": "error", "policy_id": "P005", "engine": {}})
+            json.dumps(
+                {
+                    "rule_id": "R005",
+                    "enforcement": "error",
+                    "policy_id": "P005",
+                    "engine": {},
+                }
+            )
         )
 
         mock_path_resolver.reports_dir = tmp_path / "reports"
