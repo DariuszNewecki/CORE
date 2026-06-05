@@ -125,7 +125,7 @@ async def apply_success_effects(
                 payload=payload,
             )
             logger.info(
-                "ProposalConsumerWorker: posted finding " "%s::%s::%s from action %s",
+                "ProposalConsumerWorker: posted finding %s::%s::%s from action %s",
                 artifact_type,
                 sub_namespace,
                 identity_key_value,
