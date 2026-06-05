@@ -60,9 +60,6 @@ from will.workers.audit_violation_normalizer import normalize_audit_findings
 
 logger = getLogger(__name__)
 
-# Blackboard subject prefix for findings posted by this worker
-_FINDING_SUBJECT = "audit.violation"
-
 
 # ID: 7199fd0e-a8ed-40e6-b7f1-5718d6b79ae4
 class AuditViolationSensor(Worker):
@@ -101,6 +98,15 @@ class AuditViolationSensor(Worker):
         self._rule_namespace = rule_namespace
         self._dry_run = dry_run
 
+        # ADR-091 D1: artifact_type is required on every class:sensing
+        # worker. D5 Phase 3 routes discovery and subject construction
+        # through the declared value rather than a hardcoded "python".
+        # Single-element list is the audit-sensor population's universal
+        # case; multi-type joint observation is permitted by D1 but no
+        # audit sensor declares it today.
+        artifact_types = self._declaration["mandate"]["scope"]["artifact_type"]
+        self._artifact_type: str = artifact_types[0]
+
     # ID: 9bf16dc0-5239-4e2b-8085-09732bba745a
     async def run(self) -> None:
         """
@@ -123,17 +129,17 @@ class AuditViolationSensor(Worker):
         auditor_context.reload_governance()
         auditor_context.invalidate_file_cache()
 
-        # F-41 ADR-090 Phase 2: discovery globs come from the python artifact
-        # type declaration in the registry, not an implicit rglob("*.py").
-        # Findings themselves still come from the auditor whose scope is its
-        # own config — this log-line migration is the smallest Phase-2 step
-        # that proves registry consumption without changing audit behavior.
-        # F-42 (#416) will replace the hardcoded "python" lookup with the
-        # artifact_type named on the sensor's worker declaration.
-        python_globs = intent_repo.get_artifact_type("python").content["discovery"]
+        # ADR-091 D5 Phase 3: discovery globs come from the artifact_type
+        # declared on this sensor's worker YAML, not a hardcoded "python".
+        # Single-element list is the common case; multi-element joint
+        # observation is permitted by D1.
+        artifact_type_id = self._artifact_type
+        artifact_globs = intent_repo.get_artifact_type(artifact_type_id).content[
+            "discovery"
+        ]
         file_count = sum(
             1
-            for pattern in python_globs
+            for pattern in artifact_globs
             for _ in auditor_context.repo_path.glob(pattern)
         )
         rule_count = len(intent_repo._rule_index or {})
@@ -187,13 +193,17 @@ class AuditViolationSensor(Worker):
         # to 'open', the rest are resolved with system.audit attribution.
         # Runs after the audit produced this cycle's truth so we can
         # adjudicate without a second evaluation pass.
+        #
+        # ADR-091 D2 canonical subject format applies: subjects emitted by
+        # this sensor are `<artifact_type>::<rule_id>::<file_path>` and the
+        # reaudit drain scopes by `<artifact_type>::<rule_namespace>`.
         current_subjects = {
-            f"{_FINDING_SUBJECT}::{v.get('rule_id', self._rule_namespace)}::{v['file_path']}"
+            f"{artifact_type_id}::{v.get('rule_id', self._rule_namespace)}::{v['file_path']}"
             for v in violations
         }
         bb_svc = await self._core_context.registry.get_blackboard_service()
         reaudit = await bb_svc.adjudicate_awaiting_reaudit_findings(
-            subject_prefix=f"audit.violation::{self._rule_namespace}",
+            subject_prefix=f"{artifact_type_id}::{self._rule_namespace}",
             current_violation_subjects=current_subjects,
             resolved_by="audit_violation_sensor",
         )
@@ -271,7 +281,7 @@ class AuditViolationSensor(Worker):
 
         for v in violations:
             rule_id = v.get("rule_id", self._rule_namespace)
-            subject = f"{_FINDING_SUBJECT}::{rule_id}::{v['file_path']}"
+            subject = f"{artifact_type_id}::{rule_id}::{v['file_path']}"
 
             if subject in existing:
                 skipped += 1
@@ -284,8 +294,10 @@ class AuditViolationSensor(Worker):
                 v["file_path"], lookback_seconds=lookback
             )
 
-            await self.post_finding(
-                subject=subject,
+            await self.post_artifact_finding(
+                artifact_type=artifact_type_id,
+                sub_namespace=rule_id,
+                identity_key_value=v["file_path"],
                 payload={
                     "rule_namespace": self._rule_namespace,
                     "rule": rule_id,
@@ -376,7 +388,10 @@ class AuditViolationSensor(Worker):
         by subject content, not by poster identity. This prevents different
         daemon generations or parallel sensor instances from re-posting the
         same violation when their UUIDs differ.
+
+        ADR-091 D2 canonical format: subject keys are
+        `<artifact_type>::<rule_namespace>%`.
         """
-        prefix = f"{_FINDING_SUBJECT}::{self._rule_namespace}%"
+        prefix = f"{self._artifact_type}::{self._rule_namespace}%"
         svc = await self._core_context.registry.get_blackboard_service()
         return await svc.fetch_active_finding_subjects_by_prefix(prefix)

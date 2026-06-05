@@ -308,9 +308,7 @@ async def _run_rule_pipeline(
     logger.info("Sensor complete.")
     if sense_only:
         logger.info("--sense-only: skipping remediator. Check blackboard for findings:")
-        logger.info(
-            "  core-admin workers blackboard --filter 'audit.violation::%s'", rule
-        )
+        logger.info("  core-admin workers blackboard --filter 'python::%s'", rule)
         return
     logger.info("Step 2/2 - ViolationRemediator")
     remediator = ViolationRemediator(

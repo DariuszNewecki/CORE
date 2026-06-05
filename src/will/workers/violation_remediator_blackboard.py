@@ -5,9 +5,10 @@ Blackboard operations for ViolationRemediatorWorker.
 Collaborator module. Owns the claim-time loader and the five terminal
 transitions for findings:
 
-- load_open_findings: claim open audit.violation findings; immediately
-  release any whose rule has no remediation mapping so they don't stay
-  parked at 'claimed'.
+- load_open_findings: claim open audit-violation findings (subject set
+  derived from `audit_violation_like_patterns()` per ADR-091 D5 Phase 3);
+  immediately release any whose rule has no remediation mapping so they
+  don't stay parked at 'claimed'.
 - resolve_entries: dedup-subsume path. Mark subsumed entries 'resolved'
   with the subsuming proposal_id on payload (URS Q1.F / ADR-015 D4).
   Status is 'resolved' rather than 'deferred_to_proposal' because the
@@ -66,26 +67,28 @@ def _entry_id(finding: dict[str, Any]) -> str:
 async def load_open_findings(
     service: Any,
     *,
-    prefix: str,
+    patterns: list[str],
     claimed_by: Any,
     remediation_map: dict[str, Any],
     limit: int = 200,
 ) -> list[dict[str, Any]]:
-    """Claim open audit.violation findings and filter to those with a remediation mapping.
+    """Claim open audit-violation findings and filter to those with a remediation mapping.
 
-    Atomically claims up to *limit* findings whose subject starts with
-    *prefix*, then partitions them by whether *remediation_map* has an
-    entry for the rule. Mappable findings are returned. Unmappable ids
-    are released back to 'open' inside this call so they don't stay
-    parked at 'claimed' across cycles.
+    Atomically claims up to *limit* findings whose subject matches any of
+    *patterns* (SQL LIKE patterns, typically the value of
+    ``audit_violation_like_patterns()`` per ADR-091 D5 Phase 3), then
+    partitions them by whether *remediation_map* has an entry for the rule.
+    Mappable findings are returned. Unmappable ids are released back to
+    'open' inside this call so they don't stay parked at 'claimed' across
+    cycles.
 
     Fail-soft: a claim-time exception returns an empty list; a release-
     time exception is logged but does not propagate (the mappable
     findings the caller will work on are unaffected).
     """
     try:
-        claimed = await service.claim_violation_findings(
-            prefix=prefix,
+        claimed = await service.claim_findings_by_patterns(
+            patterns=patterns,
             limit=limit,
             claimed_by=claimed_by,
         )

@@ -383,7 +383,7 @@ async def _query_dashboard_data(session: Any) -> dict[str, Any]:
     #   - Type A (sensor-by-design audit trail: worker.silent::*, worker.error,
     #     *.cycle_error, *.scope_collision::*) folds into `resolved` as
     #     resolved-by-policy.
-    #   - Type B (audit.violation::* abandoned by violation_executor) goes to
+    #   - Type B (python::* audit-violation rows abandoned by violation_executor) goes to
     #     `stuck` — the real "daemon cannot self-heal" signal, kept outside both
     #     created and resolved.
     # total_open counts both 'open' and 'awaiting_reaudit' (ADR-045):

@@ -52,7 +52,6 @@ from shared.workers.base import Worker
 
 logger = getLogger(__name__)
 
-_FINDING_SUBJECT_PREFIX = "audit.violation::"
 _CANDIDATE_SUBJECT = "audit.remediation.candidate"
 _BLAST_BOUND_SUBJECT = "coherence.violation_executor.blast_bound"
 _CFG = load_operational_config().workers.violation_executor
@@ -398,13 +397,17 @@ class ViolationExecutorWorker(Worker):
     async def _claim_unmapped_findings(
         self, mapped_rule_ids: set[str]
     ) -> list[dict[str, Any]]:
-        """Atomically claim open audit.violation findings for unmapped rules."""
+        """Atomically claim open audit-violation findings for unmapped rules."""
         try:
             from body.services.service_registry import service_registry
+            from shared.infrastructure.intent.audit_namespaces import (
+                audit_violation_like_patterns,
+            )
 
             svc = await service_registry.get_blackboard_service()
             return await svc.claim_unmapped_violation_findings(
                 mapped_rule_ids=mapped_rule_ids,
+                patterns=audit_violation_like_patterns(),
                 limit=_CFG.claim_limit,
                 claimed_by=self._worker_uuid,
             )

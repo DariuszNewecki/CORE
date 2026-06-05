@@ -489,6 +489,23 @@ class IntentRepository(RootedRepository):
             raise GovernanceError(f"Rule ID not found: {rule_id}")
         return ref
 
+    # ID: c3b33ec1-97ec-419e-8969-1c5da96ca7d2
+    def rule_namespaces(self) -> set[str]:
+        """Return the set of top-level dot segments across all known rule IDs.
+
+        Derived from `_rule_index` at call time — adding a rule to a new
+        namespace (e.g. dropping a `purity.docstrings.required` rule into a
+        previously-empty `purity` directory) automatically grows the set.
+
+        ADR-091 D5 Phase 3 / Phase 5 consumer-distinction predicates read this
+        method to derive which `<sub_namespace>` segments of the canonical
+        `python::<sub_namespace>::<identity>` subject format belong to an
+        audit-violation sensor versus a test/coherence sensor.
+        """
+        self._ensure_index()
+        assert self._rule_index is not None
+        return {rid.split(".", 1)[0] for rid in self._rule_index}
+
     # ID: cb11d848-d66e-4b2b-b076-7489c4670059
     def list_policies(self) -> list[PolicyRef]:
         self._ensure_index()

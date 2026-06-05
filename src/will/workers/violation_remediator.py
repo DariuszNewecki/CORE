@@ -57,8 +57,6 @@ from will.workers.violation_remediator_proposal import (
 
 logger = getLogger(__name__)
 
-_FINDING_SUBJECT_PREFIX = "audit.violation::"
-
 
 def _entry_id(finding: dict[str, Any]) -> str:
     """Extract blackboard entry id ('id' or 'entry_id'); raise on contract violation."""
@@ -337,9 +335,13 @@ class ViolationRemediatorWorker(Worker):
 
     # ID: d6e7f8a9-b0c1-2345-defa-234567890125
     async def _load_open_findings(self) -> list[dict[str, Any]]:
+        from shared.infrastructure.intent.audit_namespaces import (
+            audit_violation_like_patterns,
+        )
+
         return await load_open_findings(
             await self._blackboard_service(),
-            prefix=f"{_FINDING_SUBJECT_PREFIX}%",
+            patterns=audit_violation_like_patterns(),
             claimed_by=self._worker_uuid,
             remediation_map=self._get_remediation_map(),
         )

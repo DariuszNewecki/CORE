@@ -21,7 +21,7 @@ class FindingNormalizer:
         list[dict[str, Any]] where each item resembles:
         {
             "id": "...",
-            "subject": "audit.violation::<rule_id>::<file_path>",
+            "subject": "<artifact_type>::<rule_id>::<file_path>",
             "payload": {
                 "rule_namespace": "...",
                 "rule": "...",
@@ -34,6 +34,12 @@ class FindingNormalizer:
                 ...
             }
         }
+
+        Subject format follows ADR-091 D2: AuditViolationSensor emits under
+        the canonical `<artifact_type>::<rule_id>::<file_path>` shape
+        (today: `python::<rule_id>::<file_path>`). Subject acceptance is
+        delegated to `is_audit_violation_subject` so the discriminator
+        derives from IntentRepository, not a hardcoded literal.
 
     Design principles:
     - deterministic
@@ -119,7 +125,11 @@ class FindingNormalizer:
     def _parse_subject(self, subject: str) -> tuple[str | None, str | None]:
         """
         Parse blackboard subject of the form:
-            audit.violation::<rule_id>::<file_path>
+            <artifact_type>::<rule_id>::<file_path>
+
+        Accepts only audit-violation subjects per ADR-091 D2 canonical format,
+        as decided by `is_audit_violation_subject` (predicate derived from
+        IntentRepository.rule_namespaces() — no literal-string discriminator).
 
         Returns:
             (rule_id, file_path)
@@ -127,14 +137,18 @@ class FindingNormalizer:
         if not subject:
             return None, None
 
+        from shared.infrastructure.intent.audit_namespaces import (
+            is_audit_violation_subject,
+        )
+
+        if not is_audit_violation_subject(subject):
+            return None, None
+
         parts = subject.split("::", 2)
         if len(parts) != 3:
             return None, None
 
-        prefix, rule_id, file_path = parts
-        if prefix != "audit.violation":
-            return None, None
-
+        _artifact_type, rule_id, file_path = parts
         return (rule_id or None, file_path or None)
 
     # ID: d7d7abec-6d94-4890-b7e2-cba9a4b6fbd1

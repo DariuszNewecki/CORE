@@ -170,6 +170,59 @@ class BlackboardQueryService:
             )
             return {row[0] for row in result.fetchall()}
 
+    # ID: 8b732034-7e6f-435e-ad4b-1f09eb248878
+    async def fetch_open_findings_by_patterns(
+        self, patterns: list[str], limit: int
+    ) -> list[dict[str, Any]]:
+        """Return up to *limit* open finding entries matching any of *patterns*.
+
+        Mirrors ``fetch_open_findings`` but accepts a list of SQL LIKE patterns
+        — each pattern joined under ``LIKE ANY(:patterns)``. Used by ADR-091
+        D5 Phase 3 consumers (`violation_remediator` chain) whose subject
+        discriminator is the predicate-derived `audit_violation_like_patterns()`,
+        not a single static prefix.
+
+        An empty *patterns* list returns no rows without executing SQL.
+        """
+        if not patterns:
+            return []
+
+        from body.services.service_registry import ServiceRegistry
+
+        async with ServiceRegistry.session() as session:
+            result = await session.execute(
+                text(
+                    """
+                    SELECT id, subject, payload
+                    FROM core.blackboard_entries
+                    WHERE entry_type = 'finding'
+                      AND subject LIKE ANY(:patterns)
+                      AND status = 'open'
+                    ORDER BY created_at ASC
+                    LIMIT :limit
+                    """
+                ),
+                {"patterns": patterns, "limit": limit},
+            )
+            rows = result.fetchall()
+
+        findings = []
+        for row in rows:
+            raw_payload = row[2]
+            payload = (
+                raw_payload
+                if isinstance(raw_payload, dict)
+                else json.loads(raw_payload)
+            )
+            findings.append(
+                {
+                    "id": str(row[0]),
+                    "subject": row[1],
+                    "payload": payload or {},
+                }
+            )
+        return findings
+
     # ID: e38d5bb0-ad45-4d45-9350-28ca7d92f8de
     async def fetch_stale_entries(self) -> list[dict[str, Any]]:
         """

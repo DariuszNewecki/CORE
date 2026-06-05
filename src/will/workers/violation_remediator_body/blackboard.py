@@ -17,7 +17,6 @@ from shared.logger import getLogger
 
 logger = getLogger(__name__)
 
-_SOURCE_SUBJECT = "audit.violation"
 _FAILED_SUBJECT = "audit.remediation.failed"
 _CFG = load_operational_config().workers.violation_remediator
 
@@ -34,15 +33,21 @@ class BlackboardMixin:
 
     async def _claim_open_findings(self) -> list[dict[str, Any]]:
         """
-        Atomically claim open audit.violation findings for the target rule,
+        Atomically claim open audit-violation findings for the target rule,
         ordered by severity (critical first) then by creation time.
 
         Uses FOR UPDATE SKIP LOCKED to prevent double-claiming across
-        concurrent worker instances.
+        concurrent worker instances. Subject discrimination derives from
+        `audit_violation_like_patterns()` per ADR-091 D5 Phase 3 — no
+        static prefix.
         """
+        from shared.infrastructure.intent.audit_namespaces import (
+            audit_violation_like_patterns,
+        )
+
         bb = await self._ctx.registry.get_blackboard_service()
-        return await bb.claim_violation_findings(
-            prefix=f"{_SOURCE_SUBJECT}::%",
+        return await bb.claim_findings_by_patterns(
+            patterns=audit_violation_like_patterns(),
             limit=_CFG.claim_limit,
             claimed_by=self._worker_uuid,
         )

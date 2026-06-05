@@ -546,9 +546,9 @@ async def _check_namespace_has_drainer(
             continue
         prefix = entry.get("prefix")
         if isinstance(prefix, str) and prefix:
-            # Normalise by stripping trailing colons so both "audit.violation::"
-            # and "audit.violation" registry forms match the bare namespace
-            # returned by SPLIT_PART.
+            # Normalise by stripping trailing colons so both "python::"
+            # and "python" registry forms match the bare namespace returned
+            # by SPLIT_PART.
             registered_normalized.add(prefix.rstrip(":"))
 
     # DB session is injected by the audit driver; absence is a

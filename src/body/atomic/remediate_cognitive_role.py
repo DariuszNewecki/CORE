@@ -3,7 +3,8 @@
 Atomic action for remediating ai.cognitive_role.no_hardcoded_string violations.
 
 This action bridges audit findings to the CallSiteRewriter worker by:
-1. Taking audit.violation findings for cognitive role rules
+1. Taking audit-violation findings for cognitive role rules (under the
+   ADR-091 D2 canonical `python::<rule_id>::<file_path>` subject format)
 2. Preparing prompt.artifact finding data for the calling Worker to post
    via self.post_finding()
 3. Triggering the rewriter to fix the hardcoded strings
