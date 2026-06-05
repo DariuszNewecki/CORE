@@ -337,3 +337,26 @@ The selected mechanism (A2) is encoded in D5 Phase 3 + Phase 5 + Phase 6 text in
 Pre-implementation recon also corrected one factual claim in the strategy framing: the original prompt cited ~5 consumer sites; filesystem grep across `src/` found ~17. The Phase 3 description now treats consumer enumeration as a Phase 3 commit artifact rather than naming a count.
 
 The substantive decisions D1, D2, D3, D4, D6, D7, D8 are unaffected by this amendment.
+
+---
+
+## Note — D5 Phase 3 implementation: predicate-source correction (2026-06-05, same day as Phase 3 ship `0854243e`)
+
+Implementation of D5 Phase 3 surfaced a semantic over-claim in the A2 strategy text above. The amendment said the predicate derives from `IntentRepository.rule_namespaces()` — "the audit-namespace set is `.intent/rules/`'s top-level keys." Pre-rewrite smoke testing showed this matches more subjects than belong to the audit-violation pipeline:
+
+```
+[FAIL] python::coherence.incoherence::abc123              → True  (expected False)
+[FAIL] python::coherence.repo_artifacts.drift::x.yaml     → True  (expected False)
+```
+
+The 24 top-level segments of `_rule_index` include `coherence`, `ai`, `async`, `atomic_actions`, etc. — only 8 of which are backed by an `audit_sensor_*.yaml` declaration. The remaining 16 are rule directories consumed by CCC inline, by `CoherenceSensorWorker`, by `repo_crawler`, or by no production sensor at all. Phase 5 will migrate `coherence_sensor` and `repo_crawler` to post under `python::coherence.*::*` — if the predicate stayed on top-level-segment derivation, `violation_remediator` would start claiming their findings and try to remediate them through the wrong pipeline.
+
+**Correction encoded in `0854243e`:** the predicate's namespace set derives from the `mandate.scope.rule_namespace` values declared by worker declarations whose `implementation.class == "AuditViolationSensor"`, not from `IntentRepository.rule_namespaces()`'s top-segment view. The producer-side declarations ARE the authoritative consumer filter — if no audit sensor is declared to emit under `<ns>`, the violation_remediator pipeline has no business claiming `python::<ns>::*` findings.
+
+`IntentRepository.rule_namespaces()` ships as the general utility the original amendment named (top-level segments of `_rule_index`). The audit-violation predicate uses the tighter, declaration-derived set. This is a Phase 3 module-internal helper (`_audit_violation_namespaces()` in `shared.infrastructure.intent.audit_namespaces`), not a public IntentRepository surface — Phase 5's test-remediation predicate will adopt the same shape against `test_coverage_sensor.yaml`/`test_runner_sensor.yaml`.
+
+**BYOR contract preserved.** A third-party audit sensor shipped as `.intent/workers/audit_sensor_<x>.yaml` with `mandate.scope.rule_namespace: <ns>` and rules at `.intent/rules/<ns>/` is automatically claimed by the predicate. No enumeration drift across consumer call sites; no constitutional vocabulary change.
+
+**Risk re-evaluation.** The Risks entry on predicate-derivation drift in D5 still applies but tightens: a sensor declaring a `rule_namespace` whose `.intent/rules/<ns>/` tree is empty still registers in the predicate set (matched by declaration). `_resolve_rule_ids` returns an empty rule list, so the producer never emits findings, and the predicate stays correct by vacuous truth. The original Risk framing (silent-invisible findings) does not apply under the corrected derivation.
+
+The substantive decisions D1, D2, D3, D4, D6, D7, D8 — and A2's selection over A1/B/C/D/E — are unaffected by this correction. Only the prose specifying the derivation source tightens.
