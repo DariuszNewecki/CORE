@@ -519,11 +519,9 @@ Surviving `post_finding(subject, payload)` callers after commit 1b: 5, all in th
 
 ### Status
 
-**Current authoritative proposal: see Revision B below.** Revision A and the original draft are preserved as record of the review trail; both are superseded. Pending governor acceptance of Revision B.
+**Revision B is the accepted D2 amendment** (governor decision 2026-06-05). The decision text, schema extension, runtime enforcement, F-42 mapping, and commit 1c implementation scope below are constitutional under ADR-091 from this commit forward. Revision A and the original draft are preserved as record of the review trail; both are superseded.
 
-Revision B restructures the amendment per the second external review (Claude.ai). The load-bearing axis shifted from "open → resolved lifecycle" (Revision A) to "`awaiting_reaudit` ineligibility per ADR-045" (Revision B); the implementation shifted from two finding APIs (`post_artifact_finding` + `post_runtime_finding`) to one API plus a declared closed-vocabulary field (`resolution_mechanism`). Both shifts are structural rather than cosmetic; they are recorded here in full so the governance trail is auditable.
-
-If Revision B is accepted, it supersedes the deferral in commit 1's Gap 3 Note and replaces commit 1c's scope. If Revision B is rejected, the named fallbacks remain: Revision A, the original draft, or one of the original Gap 3 options (A schema extension, B fourth canonical subject shape, C narrow-and-rename, D re-anchor, F post_observation/abandoned).
+Implementation of commit 1c per Revision B's section (e) is the next change-set. Pending: that change-set has not landed yet — the amendment is accepted as a governance decision; the code/schema/rule work is queued for its own commit with its own pre-implementation recon.
 
 ### Revision A — incorporating external review (2026-06-05)
 
