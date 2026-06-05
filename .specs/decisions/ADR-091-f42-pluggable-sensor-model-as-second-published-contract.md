@@ -523,13 +523,27 @@ Proposed amendment to D2 surfaced during commit 1c recon. Reverses commit 1's Ga
 
 If accepted, this amendment supersedes the deferral in commit 1's Gap 3 Note and replaces commit 1c's scope. If rejected, commit 1c falls back to one of the original Gap 3 options (A schema extension, B fourth canonical subject shape, C narrow-and-rename, D re-anchor, F post_observation/abandoned) and this amendment is recorded as a considered-and-rejected alternative.
 
+### Revision A — incorporating external review (2026-06-05)
+
+External adversarial review (ChatGPT, reading the repo via GitHub connector) accepted the load-bearing claim that the shop managers have a legitimate open → resolved lifecycle, but surfaced three concrete refinements and one wording clarification. All four are folded into the text below:
+
+1. **Caller-class scope tightened from `supervision + acting` to `supervision` only.** The original draft permitted both classes. Live evidence in `src/will/workers/` shows runtime-state finding callers are supervision-class workers only; the inclusion of `acting` was a reflexive carryover from Note 4's `class: acting` allowance for `post_artifact_finding`'s no-declaration branch — which is the artifact-finding case, not the runtime-state case. Acting workers stay on `post_artifact_finding`. Tightening the scope removes a future temptation for acting workers to escape `artifact_type` declaration via the runtime API.
+
+2. **Resolver-obligation invariant added** as the structural backing for the runtime-state case. Without it, `post_runtime_finding` is a free-string-subject escape hatch — exactly the constitutional fork risk the original draft warned about. The invariant converts the category boundary from descriptive to enforceable.
+
+3. **`post_observation` docstring fix added to commit 1c's implementation scope.** The current docstring at `shared.workers.base.Worker.post_observation` names `worker.silent` as a canonical `status="abandoned"` example, internally inconsistent with the same docstring's "no remediation pathway" framing (`worker.silent` has observable recovery). The example must be removed; the implementation is more authoritative than the example. Failure to fix it leaves a future trap pointing readers toward exactly the wrong migration call this amendment prevents.
+
+4. **Wording clarified** on the "three emission cases" framing, which mixed finding cases with all emission entry-types. Per the review: *D2 names two finding cases (artifact + runtime-state); observations are a separate terminal finding-record contract; reports and heartbeats are separate Blackboard entry types.*
+
+Revision A also expands commit 1c's implementation scope to honour the resolver obligation: each surviving call site requires a documented resolver path in its worker module's docstring plus an open → resolved unit test. Commit 1c grows from "mechanical rename" to "mechanical rename + 5 resolver tests + 3 worker docstring updates + 1 docstring fix on `post_observation` + 2 governance rules" — still smaller than any of the original Gap 3 options.
+
 ### Why this amendment
 
 Commit 1's Gap 3 Note framed runtime-state findings (the shop managers' emissions) as a "gap in D2" — a problem to close by extending the artifact_type vocabulary, introducing a fourth canonical subject shape, or carving out a narrow legacy-API exemption. Commit 1c recon surfaced that the framing itself was the error. The three options were all reasoning inside the assumption that *every* finding-shaped blackboard emission must fit D2's `<artifact_type>::<sub_namespace>::<identity_key_value>` shape, and the recon kept hitting resistance because that assumption is false.
 
 The shop managers' lifecycle — `post_finding(open)` once per stale entity, `resolve_entries` when the entity recovers — is **not deprecated drift**. It is the correct lifecycle for findings whose subject *has observable recovery*: `worker.silent::<uuid>` IS open while the worker is silent and IS resolved when the worker resumes heartbeating. The `worker_shop_manager` resolution pass and the `blackboard_service.resolve_stale_alerts_for_terminal_targets` SQL sweep aren't legacy cruft — they're the constitutional mechanism that makes the open→resolved transition meaningful.
 
-The honest read of CORE's three emission APIs is that they correspond to **three distinct legitimate cases**, only two of which D2 currently names.
+The honest read of D2's contract is that **two finding cases exist** (artifact findings and runtime-state findings), only one of which D2 currently names. Observations are a separate terminal finding-record contract that sits alongside the finding cases; reports and heartbeats are separate Blackboard entry types.
 
 ### What D2 currently names
 
@@ -548,15 +562,15 @@ The case D2 also doesn't name — and which commit 1c recon surfaced as the *rea
 
 - **Runtime-state findings**: findings about runtime DB entities (blackboard rows, worker registry rows, proposal pipeline rows) whose subject has *observable recovery*. The emitter detects the bad state, posts a finding with `status="open"`, and resolves the finding when the bad state clears in a later cycle. No artifact backing on disk; lifecycle is genuinely open → resolved (not terminal-at-creation, not artifact-bound).
 
-### The three emission cases — comparison
+### The two finding cases + observations — comparison
 
-| Case | API | Subject shape | Lifecycle | Constitutional pair |
-|---|---|---|---|---|
-| Artifact findings | `post_artifact_finding(artifact_type, sub_namespace, identity_key_value, payload)` | `<artifact_type>::<sub_namespace>::<identity_key_value>` | open → resolved (by remediation worker) | scoped by `sensor_supported_by_declaration` |
-| Runtime-state findings | `post_finding(subject, payload)` [proposed rename: `post_runtime_finding`] | `<observed_subsystem>.<condition>::<identity>` (string, observer-chosen) | open → resolved (by emitter on recovery) | not scoped (no artifact_type to validate against) |
-| Observations | `post_observation(subject, payload, status=<terminal>)` | free string | terminal at creation | not scoped (terminal at creation) |
+| Case | API | Subject shape | Lifecycle | Resolver | Caller class | Constitutional pair |
+|---|---|---|---|---|---|---|
+| Artifact findings | `post_artifact_finding(artifact_type, sub_namespace, identity_key_value, payload)` | `<artifact_type>::<sub_namespace>::<identity_key_value>` | open → resolved | remediation worker (separate from emitter) | sensing, acting, supervision | scoped by `sensor_supported_by_declaration` |
+| Runtime-state findings | `post_finding(subject, payload)` [proposed rename: `post_runtime_finding`] | `<observed_subsystem>.<condition>::<identity>` (string, observer-chosen) | open → resolved | emitter (or named service) owns recovery | supervision **only** | scoped by `runtime_finding_caller_class` + `runtime_finding_resolver_owned` (proposed) |
+| Observations | `post_observation(subject, payload, status=<terminal>)` | free string | terminal at creation | none — no transition | any | not scoped (terminal at creation) |
 
-Reports (`post_report`) and heartbeats (`post_heartbeat`) are separate entry types, not finding-class emissions; they sit alongside this taxonomy, not within it.
+Reports (`post_report`) and heartbeats (`post_heartbeat`) are separate Blackboard entry types, not finding-case emissions; they sit alongside this taxonomy.
 
 ### D2 amendment text (proposed)
 
@@ -566,20 +580,26 @@ Replace D2's "the canonical subject format is closed" phrasing with:
 >
 > 1. **Artifact findings** — findings about observable code artifacts CORE governs. Canonical subject shape is `<artifact_type>::<sub_namespace>::<identity_key_value>`. Emitted via `post_artifact_finding(artifact_type, sub_namespace, identity_key_value, payload)`. The framework constructs the subject from typed parameters; the emitter never builds the string. Lifecycle is open → resolved by a remediation worker. Scoped by the constitutional pair `sensor_supported_by_declaration`: emitters must declare `mandate.scope.artifact_type` (sensing class) or route through the no-declaration branch (acting and supervision classes).
 >
-> 2. **Runtime-state findings** — findings about runtime entities (blackboard rows, worker registry rows, proposal pipeline rows, etc.) with observable open → resolved lifecycle. Canonical subject shape is a free string chosen by the emitter, conventionally `<observed_subsystem>.<condition>::<identity>`. Emitted via `post_runtime_finding(subject, payload)` (the renamed `post_finding(subject, payload)`). Lifecycle is open → resolved by the emitter itself when the underlying condition recovers in a subsequent cycle. Not scoped by the constitutional pair (no artifact_type to validate against). Reserved for class:supervision and class:acting workers; class:sensing workers MUST use `post_artifact_finding`.
+> 2. **Runtime-state findings** — findings about runtime entities (blackboard rows, worker registry rows, proposal pipeline rows, etc.) with observable open → resolved lifecycle. Canonical subject shape is a free string chosen by the emitter, conventionally `<observed_subsystem>.<condition>::<identity>`. Emitted via `post_runtime_finding(subject, payload)` (the renamed `post_finding(subject, payload)`). Lifecycle is open → resolved by the emitter itself, or by an explicitly named service the emitter delegates to, when the underlying condition recovers in a subsequent cycle. Not scoped by `sensor_supported_by_declaration` (no artifact_type to validate against). **Reserved for `class: supervision` workers only**; `class: sensing` and `class: acting` workers MUST use `post_artifact_finding` (acting workers use its no-declaration branch per the Phase 6 commit 0 Note's Gap 1 amendment).
 >
-> Extending either format (a third shape under either case, a fourth segment, a different separator) is a governance amendment.
+> **Resolver-ownership invariant.** A `post_runtime_finding` subject prefix is valid only if the emitting worker (or a service the emitter explicitly names) owns the recovery transition for that same prefix. The recovery path must be documented in the emitting worker's module docstring and covered by a test proving open → resolved when the underlying runtime condition clears. The category boundary between artifact findings (remediation worker resolves) and runtime-state findings (emitter resolves) is enforced by this invariant, not by subject shape alone; without it, `post_runtime_finding` is a free-string escape hatch for findings that should have been artifact-bound.
+>
+> Extending either format (a third finding case, a fourth segment, a different separator) is a governance amendment.
 >
 > Observations (`post_observation(subject, payload, status=<terminal>)`) are a separate entry-type contract for terminal-at-creation records; they sit alongside findings, not within them.
 
 ### Implementation
 
-Phase 6 commit 1c becomes a mechanical scope-narrowing of the existing API:
+Phase 6 commit 1c becomes a mechanical scope-narrowing of the existing API, plus the resolver-obligation backing:
 
-- Rename `post_finding(subject, payload)` to `post_runtime_finding(subject, payload)` on `shared.workers.base.Worker`. The implementation does not change; only the name and docstring scope.
-- Update the 5 shop manager call sites mechanically (`blackboard_shop_manager`, `worker_shop_manager`, `proposal_pipeline_shop_manager`).
-- No subject-format change. No artifact_type passing. No declaration changes. No SQL row rewrite. The 132 open `blackboard.entry_stale::*` rows stay open; the existing resolution passes (`worker_shop_manager` in-Python `resolve_entries`; `blackboard_service.resolve_stale_alerts_for_terminal_targets` SQL sweep) continue to work unchanged.
-- Add a new governance rule (proposed name: `governance.taxonomy.runtime_finding_caller_class`) that flags any `class: sensing` worker calling `post_runtime_finding`. Ships as `reporting` initially; promotes to `blocking` once the surviving caller set is verified clean (it already is — recon mapped zero sensing-class callers of the legacy API).
+- **Rename**: `post_finding(subject, payload)` → `post_runtime_finding(subject, payload)` on `shared.workers.base.Worker`. The implementation does not change; only the name and docstring scope (the new docstring names the scope-narrowing and the resolver-ownership invariant).
+- **5 mechanical call-site updates**: in `blackboard_shop_manager.run`, `worker_shop_manager.run`, and the three sites in `proposal_pipeline_shop_manager.run`.
+- **No subject-format change. No artifact_type passing. No declaration changes. No SQL row rewrite.** The 132 open `blackboard.entry_stale::*` rows stay open; the existing resolution passes (`worker_shop_manager`'s in-Python `resolve_entries` for recovered workers; `blackboard_service.resolve_stale_alerts_for_terminal_targets` SQL sweep for terminal targets) continue to work unchanged. They are the resolver-ownership invariant's evidence, not legacy cruft to remove.
+- **Resolver-obligation backing — 3 worker docstring updates** (one per shop manager module) naming the resolver path for that worker's subject prefix(es). For example, `worker_shop_manager`'s docstring must name "resolution via in-process `resolve_entries` in the next `run()` cycle when the worker's `seconds_silent` drops below threshold."
+- **Resolver-obligation backing — 5 unit tests** (one per surviving call site), each seeding a runtime-state condition, asserting `post_runtime_finding` opens a finding, clearing the condition, and asserting the next `run()` cycle (or the SQL auto-resolve sweep) transitions the finding to `resolved`.
+- **`post_observation` docstring fix on `shared.workers.base.Worker.post_observation`**: remove `worker.silent` from the canonical `status="abandoned"` examples (it is internally inconsistent with the docstring's "no remediation pathway" framing; `worker.silent` belongs in the runtime-state case under the resolver-ownership invariant). Remaining canonical examples (`sync.db.failed`, `loop_hold.sample::*`, yield receipts) are genuinely terminal-at-creation.
+- **Governance rule 1 — `governance.taxonomy.runtime_finding_caller_class`**: flags any non-`class: supervision` worker calling `post_runtime_finding`. Ships as `reporting` initially; promotes to `blocking` once the surviving caller set is verified clean (it already is — recon mapped only supervision-class callers).
+- **Governance rule 2 — `governance.taxonomy.runtime_finding_resolver_owned`**: flags any `post_runtime_finding` subject prefix that lacks a documented resolver in its emitter's module docstring AND a passing open → resolved unit test. Ships as `reporting` initially; promotes to `blocking` once the 5 surviving sites are covered.
 
 Phase 6 commit 2 (formerly "delete the legacy API") is reframed:
 
@@ -612,3 +632,9 @@ Three structural reasons, recorded for future recon discipline:
 Prior Notes on this ADR have been corrigenda — recording prose under-claims the implementation already encoded. This amendment is structurally different: it surfaces a case D2 *never* named, that the runtime already supported via the API surface (`post_observation` for terminal observations, `post_finding(subject, payload)` for runtime findings with lifecycle). D2's prose lagged the API contract; this amendment closes that lag.
 
 If accepted, this is the first ADR-091 amendment that adds a substantive D2 decision rather than clarifying existing D2 prose. It deserves heightened governor review for that reason.
+
+### External review record
+
+Revision A folds in findings from an external adversarial review by ChatGPT (read the repo via GitHub connector; verified claims against `src/shared/workers/base.py`, `src/will/workers/{worker,blackboard,proposal_pipeline}_shop_manager.py`, and `src/body/services/blackboard_service/blackboard_service.py`). The review accepted the load-bearing claim that the shop managers have a legitimate open → resolved lifecycle but flagged three concrete refinements: tighten scope to `class: supervision` only, add the resolver-ownership invariant as structural backing for the category boundary, and fix the internally-inconsistent `post_observation` docstring. All three are incorporated in Revision A above. The review's "constitutional fork risk" framing — that without the resolver obligation `post_runtime_finding` becomes a free-string escape hatch — is the load-bearing reason for the invariant.
+
+A second adversarial review (Claude.ai via GitHub connector) was requested in parallel but did not arrive before Revision A was prepared. If the second review surfaces additional findings, Revision B will fold them in before governor acceptance.
