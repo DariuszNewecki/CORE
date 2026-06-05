@@ -275,10 +275,10 @@ async def trip(
        `mark_delegated` helper (the existing
        ViolationRemediatorWorker._mark_delegated). This stops the loop
        from re-claiming the same findings on subsequent cycles.
-    2. Post a `governance.circuit_breaker_tripped` finding through the
-       Worker so the entry carries Worker attribution per ADR-011 and
-       surfaces on the operator's hazard queue alongside
-       governance.instrument_degraded.
+    2. Post a `governance.circuit_breaker_tripped` observation (terminal
+       at creation, status=abandoned) through the Worker so the entry
+       carries Worker attribution per ADR-011 and surfaces on the
+       operator's hazard queue alongside governance.instrument_degraded.
 
     Errors in either step are logged but never propagated — the
     remediator's run-loop accounting must not be reversed by a hiccup
@@ -308,13 +308,14 @@ async def trip(
     }
 
     try:
-        await worker.post_finding(
-            "governance.circuit_breaker_tripped",
-            payload,
+        await worker.post_observation(
+            subject="governance.circuit_breaker_tripped",
+            payload=payload,
+            status="abandoned",
         )
     except Exception as exc:
         logger.error(
-            "circuit_breaker: failed to post hazard finding for (%s, %s, %s): %s",
+            "circuit_breaker: failed to post hazard observation for (%s, %s, %s): %s",
             ref_kind,
             ref_id,
             file_path,

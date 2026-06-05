@@ -118,13 +118,14 @@ class ViolationRemediatorWorker(Worker):
                 "ViolationRemediatorWorker: skipping cycle — vocabulary projection broken: %s",
                 projection.reason,
             )
-            await self.post_finding(
-                "governance.instrument_degraded",
-                {
+            await self.post_observation(
+                subject="governance.instrument_degraded",
+                payload={
                     "instrument": "vocabulary_projection",
                     "reason": projection.reason,
                     "worker": self.declaration_name,
                 },
+                status="abandoned",
             )
             return
 

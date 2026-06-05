@@ -248,7 +248,7 @@ class CallSiteRewriter(Worker):
         # 10. Post completion + resolve findings
         for f in findings:
             payload = f["payload"]
-            await self.post_finding(
+            await self.post_report(
                 subject=f"{_COMPLETE_SUBJECT}::{file_path}::{payload['line_number']}",
                 payload={
                     "file_path": file_path,
@@ -393,14 +393,15 @@ class CallSiteRewriter(Worker):
     async def _post_failed(
         self, file_path: str, findings: list[dict[str, Any]], reason: str
     ) -> None:
-        """Post a failure finding to the blackboard."""
-        await self.post_finding(
+        """Post a terminal failure observation to the blackboard."""
+        await self.post_observation(
             subject=f"{_FAILED_SUBJECT}::{file_path}",
             payload={
                 "file_path": file_path,
                 "reason": reason,
                 "finding_ids": [f["id"] for f in findings],
             },
+            status="abandoned",
         )
 
     async def _claim_open_artifacts(self) -> list[dict[str, Any]]:

@@ -32,8 +32,12 @@ logger = getLogger(__name__)
 # The rule we are ingesting findings for
 _TARGET_RULE = "ai.prompt.model_required"
 
-# Blackboard subject prefix for findings posted by this worker
-_FINDING_SUBJECT = "ai.prompt.model_required"
+# Blackboard sub-namespace for findings posted by this worker
+_SUB_NAMESPACE = "ai.prompt.model_required"
+
+# Artifact type these findings are about (Python source files).
+# ADR-091 D2: subjects are <artifact_type>::<sub_namespace>::<identity_key_value>.
+_ARTIFACT_TYPE = "python"
 
 # Regex to extract line number from AuditFinding message, e.g. "Line 163: ..."
 _LINE_RE = re.compile(r"Line (\d+):")
@@ -95,15 +99,18 @@ class AuditIngestWorker(Worker):
         skipped = 0
 
         for v in violations:
-            subject = f"{_FINDING_SUBJECT}::{v['file_path']}::{v['line_number']}"
+            identity_key = f"{v['file_path']}::{v['line_number']}"
+            subject = f"{_ARTIFACT_TYPE}::{_SUB_NAMESPACE}::{identity_key}"
 
             if subject in existing:
                 skipped += 1
                 logger.debug("AuditIngestWorker: skipping already-posted %s", subject)
                 continue
 
-            await self.post_finding(
-                subject=subject,
+            await self.post_artifact_finding(
+                artifact_type=_ARTIFACT_TYPE,
+                sub_namespace=_SUB_NAMESPACE,
+                identity_key_value=identity_key,
                 payload={
                     "rule": _TARGET_RULE,
                     "file_path": v["file_path"],
@@ -203,5 +210,5 @@ class AuditIngestWorker(Worker):
         """
         svc = await self._core_context.registry.get_blackboard_service()
         return await svc.fetch_open_finding_subjects_by_worker(
-            str(self._worker_uuid), f"{_FINDING_SUBJECT}::%"
+            str(self._worker_uuid), f"{_ARTIFACT_TYPE}::{_SUB_NAMESPACE}::%"
         )

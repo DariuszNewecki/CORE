@@ -496,7 +496,7 @@ class ViolationRemediator(
             )
             return False
 
-        await self.post_finding(
+        await self.post_report(
             subject=f"{_COMPLETE_SUBJECT}::{file_path}",
             payload={
                 "file_path": file_path,

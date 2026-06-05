@@ -32,7 +32,11 @@ from shared.workers.base import Worker
 logger = getLogger(__name__)
 
 _SOURCE_RULE = "ai.prompt.model_required"
-_EXTRACTION_SUBJECT = "prompt.extraction"
+_EXTRACTION_SUB_NAMESPACE = "prompt.extraction"
+
+# Artifact type these findings are about (Python source files).
+# ADR-091 D2: subjects are <artifact_type>::<sub_namespace>::<identity_key_value>.
+_ARTIFACT_TYPE = "python"
 
 _CFG = load_operational_config().workers.prompt_extractor
 
@@ -147,10 +151,12 @@ class PromptExtractorWorker(Worker):
             )
             extraction_status = "needs_human" if needs_human else "open"
 
-            subject = f"{_EXTRACTION_SUBJECT}::{file_path_str}::{line_number}"
+            identity_key = f"{file_path_str}::{line_number}"
 
-            await self.post_finding(
-                subject=subject,
+            await self.post_artifact_finding(
+                artifact_type=_ARTIFACT_TYPE,
+                sub_namespace=_EXTRACTION_SUB_NAMESPACE,
+                identity_key_value=identity_key,
                 payload={
                     "source_finding_id": finding_id,
                     "source_rule": _SOURCE_RULE,
@@ -214,7 +220,9 @@ class PromptExtractorWorker(Worker):
         concurrent worker instances.
         """
         svc = await self._core_context.registry.get_blackboard_service()
-        return await svc.claim_open_findings(f"{_SOURCE_RULE}::%", _CFG.claim_limit)
+        return await svc.claim_open_findings(
+            f"{_ARTIFACT_TYPE}::{_SOURCE_RULE}::%", _CFG.claim_limit
+        )
 
     async def _mark_finding(self, finding_id: str, status: str) -> None:
         """Update the status of a blackboard finding by ID."""
