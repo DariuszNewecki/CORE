@@ -384,3 +384,55 @@ The internal helper class set is named `_REMEDIATION_SENSOR_CLASS_NAMES` rather 
 The third predicate use earns the `consumer_domains` factor-up per the protocols-reflex discipline noted at the end of the D5 Phase 3 + Phase 5 amendment.
 
 The substantive decisions D1, D2, D3, D4, D6, D7, D8 — and Phase 5's selection of the same predicate shape as Phase 3 — are unaffected by this correction. Only the prose specifying the derivation source tightens.
+
+## Note — D5 Phase 6 implementation: class:acting allowance + compound identity (2026-06-05, same day as Phase 6 commit 0)
+
+Pre-implementation recon for D5 Phase 6 surfaced two prose/implementation gaps in the D2 contract text. Both are framing under-claims, not behavioural drift — the runtime API and the `sensor_supported_by_declaration` rule already encode the corrected reading; only the ADR prose lagged. This Note closes the gaps in the same shape as the Phase 3 and Phase 5 Notes (`16980564`, `73ad4afc`).
+
+### Gap 1 — "Phase 1 transition allowance" is the permanent class:acting escape
+
+The D2 prose framed `post_artifact_finding`'s no-declaration branch as a "Phase 1 transition allowance — sensor declarations not yet updated" (`shared.workers.base.Worker.post_artifact_finding` docstring, lines around 305). That framing assumed every caller of the typed API is or will become a `class: sensing` worker that declares `mandate.scope.artifact_type`.
+
+Phase 6 recon mapped every surviving `post_finding(subject, payload)` caller and found the assumption wrong. The non-sensor caller set splits cleanly by worker class:
+
+- `class: sensing` workers (`intent_inspector` is the only one in the surviving call set) declare `mandate.scope.artifact_type` and route through the validating branch of `post_artifact_finding`.
+- `class: acting` workers (`prompt_artifact_writer`, `prompt_extractor_worker`, `audit_ingest_worker`, the shop managers, `proposal_consumer_worker` itself) structurally do not declare `mandate.scope.artifact_type` — they emit findings as a consequence of action, not as observation. The "no declared artifact_type" branch is their *permanent* dispatch path, not a transition state.
+
+The constitutional pair `sensor_supported_by_declaration` already encodes this: `taxonomy_gate.py:207-211` excludes worker declarations without `artifact_type` from the introspected set "during the Phase-1 transition window so the nine misclassified `class: sensing` workers... do not surface as phantoms before reclassification." The exclusion is named transient but is structurally permanent for `class: acting` workers — they have nothing to declare and nothing to be paired against. The rule's name (`sensor_supported_by_declaration`, not `worker_supported_by_declaration`) is the corrected reading made explicit.
+
+**Correction.** The Phase 1 transition framing in the `post_artifact_finding` docstring and in the `taxonomy_gate.py` comment is a `class: sensing` reading. The honest framing across worker classes is:
+
+- `class: sensing` workers MUST declare `mandate.scope.artifact_type`; their emissions are validated against the declaration and they participate in the constitutional pair.
+- `class: acting` workers MAY emit via `post_artifact_finding` without declaring `mandate.scope.artifact_type`; the validation no-ops by design and they are structurally outside the constitutional pair (they are not sensors).
+
+The `class: sensing` rule promotion in Phase 7 (`sensor_supported_by_declaration` advisory → blocking) is unaffected by this clarification — the rule already scopes to declaring workers. The clarification only relabels what was named "transition" as what it has always been structurally: the `class: acting` dispatch path.
+
+### Gap 2 — `identity_key_value` MAY contain `::` separators (compound identity)
+
+The D2 prose specified the canonical subject format as `<artifact_type>::<sub_namespace>::<identity_key_value>` and described `identity_key_value` as "a single string." Pre-implementation review for Phase 6 surfaced that two of the existing prompt-pipeline subject families already use compound identity:
+
+- `prompt_artifact_writer.py:184` emits `prompt.artifact::<file_path>::<line_number>` — identity is per-call-site, naturally compound.
+- `proposal_pipeline_shop_manager.py:191` emits `proposal.repeated_failure::<action_id>::<rule_id>` — identity is per-action-per-rule, naturally compound.
+
+The runtime already permits this: `Worker.post_artifact_finding` concatenates `f"{artifact_type}::{sub_namespace}::{identity_key_value}"` without parsing `identity_key_value`; the predicate functions (`is_audit_violation_subject`, `is_test_remediation_subject`) and SQL claim filters (`LIKE 'python::prompt.artifact::%'`) use prefix matching, not split-based parsing. Compound identity "just works" under the existing infrastructure — the ADR prose just hadn't said so.
+
+**Correction.** `identity_key_value` MAY contain `::` separators when the artifact has natural compound identity (e.g., file+line, action_id+rule_id, file+function_name). The framework treats `identity_key_value` as an opaque string passed through to the canonical subject.
+
+**Constraint that keeps compound identity safe** — and the constitutional invariant Phase 6 makes explicit: any consumer that needs to extract `artifact_type` or `sub_namespace` from a subject MUST do so via prefix matching (e.g., `subject.startswith(f"{artifact_type}::{sub_namespace}::")`) or via `split("::", 2)` keeping at most three segments. Consumers MUST NOT call `subject.split("::")` without a limit, because the resulting list length depends on whether the producer's identity is simple or compound. The recon found zero current consumers that violate this invariant; the constraint is documented now so future consumers inherit it.
+
+### Phase 6 commit 0 scope
+
+The substantive Phase 6 work begins with commit 0, which migrates the `prompt.artifact::*` subject family to canonical format. Four files change in one commit:
+
+- `body/atomic/remediate_cognitive_role.py` — return shape switches from `{"subject", "payload"}` to typed `{"artifact_type": "python", "sub_namespace": "prompt.artifact", "identity_key_value": <file_path>, "payload": ...}`.
+- `body/workers/prompt_artifact_writer.py` — `post_finding(subject=f"prompt.artifact::{file}::{line}", ...)` migrates to `post_artifact_finding(artifact_type="python", sub_namespace="prompt.artifact", identity_key_value=f"{file}::{line}", ...)`. Compound identity by design (Gap 2).
+- `body/workers/call_site_rewriter.py` — claim-filter prefix updates from `prompt.artifact::%` to `python::prompt.artifact::%` so the consumer matches the new canonical subject.
+- `will/workers/proposal_consumer_effects.py` — dispatch site at `apply_success_effects` switches from `worker.post_finding(subject, payload)` to `worker.post_artifact_finding(artifact_type, sub_namespace, identity_key_value, payload)` forwarding the typed parameters from the action's finding_to_post. `ProposalConsumerWorker` is `class: acting` (Gap 1); no declaration change.
+
+No blackboard row rewrite was needed — a pre-flight count returned zero `prompt.artifact::*` rows. The `class: sensing` legacy callers (intent_inspector + setup_error sites) and the remaining `class: acting` callers (shop managers, completion/failure reports, instrument signals) migrate in subsequent Phase 6 commits per the recon report; this Note's scope is the prompt.artifact pipeline and the two D2 clarifications that apply across the remaining Phase 6 work.
+
+### Pattern with Phases 3 and 5
+
+Phase 6 is the fourth same-shape ADR-091 prose/implementation gap closed by a same-day Note. The pattern across the four (D3 sensing-class taxonomy, Phase 3 audit-violation predicate source, Phase 5 test-remediation predicate scope, Phase 6 class:acting allowance + compound identity): the ADR prose framed a contract narrowly (specific sensors, specific rule directories, single-component identity), and the implementation surface was always slightly broader (the API takes worker class as a structural input; identity is opaque). Each Note records the implementation's broader honest reading and confirms the substantive D1–D8 decisions are unaffected.
+
+The substantive decisions D1, D2, D3, D4, D6, D7, D8 — and Phase 6's selection of `post_artifact_finding` as the single canonical emission API — are unaffected by these clarifications. The prose of D2 tightens around what `identity_key_value` may contain and what `class: sensing` vs `class: acting` mean for the declaration requirement; the runtime API and the rule do not change.
