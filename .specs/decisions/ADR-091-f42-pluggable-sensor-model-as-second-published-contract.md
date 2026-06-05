@@ -360,3 +360,27 @@ The 24 top-level segments of `_rule_index` include `coherence`, `ai`, `async`, `
 **Risk re-evaluation.** The Risks entry on predicate-derivation drift in D5 still applies but tightens: a sensor declaring a `rule_namespace` whose `.intent/rules/<ns>/` tree is empty still registers in the predicate set (matched by declaration). `_resolve_rule_ids` returns an empty rule list, so the producer never emits findings, and the predicate stays correct by vacuous truth. The original Risk framing (silent-invisible findings) does not apply under the corrected derivation.
 
 The substantive decisions D1, D2, D3, D4, D6, D7, D8 — and A2's selection over A1/B/C/D/E — are unaffected by this correction. Only the prose specifying the derivation source tightens.
+
+---
+
+## Note — D5 Phase 5 implementation: test-remediation predicate scope correction (2026-06-05, same day as Phase 5 ship `e0640a0d`)
+
+Implementation of D5 Phase 5 surfaced a parallel scope over-claim in the Phase 5 prose. The amendment text said the test-remediation predicate is "derived from the sub_namespace set declared by `test_coverage_sensor.yaml` and `test_runner_sensor.yaml`'s `mandate.scope.rule_namespace` plus their D2-permitted dotted extensions (`test.coverage`, `test.runner.missing`, `test.runner.failure`)." Pre-implementation tracing showed this conflates two distinct consumer pipelines:
+
+| Producer subject (Phase 5) | Consumer | Lifecycle role |
+|---|---|---|
+| `python::test.coverage::*` | **TestRunnerSensor** | Work-to-do signal: pick up gap, run pytest on the corresponding test file, emit a runner.* finding |
+| `python::test.runner.missing::*` | **TestRemediatorWorker** | Drive `flow.build_tests` proposal — generate the missing test |
+| `python::test.runner.failure::*` | **TestRemediatorWorker** | Drive `flow.build_tests` proposal — fix the failing test |
+
+Pre-Phase-5 code honored this split: `test_remediator/_operations.py` claimed `test.missing::%` and `test.failure::%` only, never `test.run_required::%` (that was TestRunnerSensor's intake). If the predicate included TestCoverageSensor's namespace, TestRemediator would race-claim against TestRunnerSensor over `python::test.coverage::*` rows under `FOR UPDATE SKIP LOCKED` and route gap signals straight to `build.tests` proposals — bypassing the pytest verification step that establishes whether the test is missing (`runner.missing`) or merely failing (`runner.failure`).
+
+**Correction encoded in `e0640a0d`:** the predicate's namespace set derives from the `mandate.scope.rule_namespace` value declared by workers whose `implementation.class == "TestRunnerSensor"` (today: `{"test.runner"}`), accepting that value AND its D2-permitted dotted extensions (`test.runner.missing`, `test.runner.failure`). TestCoverageSensor's `test.coverage` namespace is intentionally outside the predicate.
+
+The internal helper class set is named `_REMEDIATION_SENSOR_CLASS_NAMES` rather than the broader `_TEST_SENSOR_CLASS_NAMES` from the first draft, to encode the semantic distinction: "test-remediation pipeline interest" ≠ "test-sensor output." If a third test sensor ships later whose output IS routed to TestRemediator, it joins this frozenset.
+
+**Pattern with Phase 3.** The two predicate-source corrections (audit-violation Phase 3 → declaration-derived not rule-tree-derived; test-remediation Phase 5 → remediation-consumer-derived not test-sensor-derived) share a structural lesson: the ADR prose framed each predicate around its OBVIOUS source (rule directories; test sensors), but the HONEST source is "what does the downstream consumer actually claim?" Producer/consumer pipelines route on consumer-side intent, not producer-side classification. The two Notes record the prose→implementation refinement; the substantive decision (A2 derived predicate) holds in both cases.
+
+The third predicate use earns the `consumer_domains` factor-up per the protocols-reflex discipline noted at the end of the D5 Phase 3 + Phase 5 amendment.
+
+The substantive decisions D1, D2, D3, D4, D6, D7, D8 — and Phase 5's selection of the same predicate shape as Phase 3 — are unaffected by this correction. Only the prose specifying the derivation source tightens.
