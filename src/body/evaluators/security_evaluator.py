@@ -109,6 +109,11 @@ class SecurityEvaluator(BaseEvaluator):
         ],
     }
 
+    @property
+    # ID: 47d23799-3245-4f0e-9336-5d91ec907e88
+    def component_id(self) -> str:
+        return "securityevaluator"
+
     # ID: 486b01bb-c6e6-493f-a19a-bf0d7a0ed3d8
     async def execute(
         self,

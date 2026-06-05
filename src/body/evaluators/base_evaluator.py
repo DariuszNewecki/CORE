@@ -39,7 +39,7 @@ class BaseEvaluator(ABC):
 
     @abstractmethod
     # ID: fd232b4d-4cc7-4c80-8e2a-dca89d96b16b
-    async def evaluate(self, *args: Any, **kwargs: Any) -> ComponentResult:
+    async def execute(self, *args: Any, **kwargs: Any) -> ComponentResult:
         """Execute evaluation and return structured result."""
 
     async def _create_result(

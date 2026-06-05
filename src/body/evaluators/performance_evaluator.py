@@ -100,6 +100,11 @@ class PerformanceEvaluator(BaseEvaluator):
         },
     }
 
+    @property
+    # ID: b9fbf8aa-5398-4637-95f4-c61ba7cc0c1a
+    def component_id(self) -> str:
+        return "performanceevaluator"
+
     # ID: 8789c64d-2e2c-465d-947b-cb2899bc80b6
     async def execute(
         self,

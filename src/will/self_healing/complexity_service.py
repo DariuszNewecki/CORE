@@ -176,7 +176,7 @@ class ComplexityRemediationService:
 
             # ── EVALUATE 1: Clarity (mathematical improvement) ─────────────
             clarity_evaluator = ClarityEvaluator()
-            clarity_verdict = await clarity_evaluator.evaluate(
+            clarity_verdict = await clarity_evaluator.execute(
                 original_code=original_code, new_code=primary_new_code
             )
 

@@ -27,6 +27,11 @@ class FailureEvaluator(BaseEvaluator):
     Enables the Will layer to adapt strategies based on observed Body failures.
     """
 
+    @property
+    # ID: 2d893b3c-0b09-4237-9e5a-5ec840dcc6c9
+    def component_id(self) -> str:
+        return "failureevaluator"
+
     # ID: 31ed733a-6ed4-429a-bb5d-f1612a589104
     async def execute(
         self,

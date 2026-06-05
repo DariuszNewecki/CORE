@@ -50,6 +50,11 @@ class AtomicActionsEvaluator(BaseEvaluator):
     (split across atomic_actions_rules.py for the contract definition).
     """
 
+    @property
+    # ID: 1665778b-f695-4b63-b318-ca62c5459043
+    def component_id(self) -> str:
+        return "atomicactionsevaluator"
+
     # ID: a9bd8873-8696-4f14-a055-a32ba0ecd956
     async def execute(self, repo_root: Path, **kwargs: Any) -> ComponentResult:
         """Execute the atomic actions compliance audit."""

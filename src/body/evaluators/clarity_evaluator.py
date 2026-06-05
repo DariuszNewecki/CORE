@@ -32,12 +32,12 @@ class ClarityEvaluator(BaseEvaluator):
     # phase is inherited from BaseEvaluator — all evaluators are AUDIT phase.
 
     # ID: c35226bd-1d63-46fc-9ceb-f3c5a1d63208
-    async def evaluate(
+    async def execute(
         self, original_code: str, new_code: str, **kwargs
     ) -> ComponentResult:
         """
         Calculates the improvement ratio between two versions of code.
-        Implementation of the abstract 'evaluate' method.
+        Implementation of the abstract 'execute' method.
         """
         start_time = time.time()
 
