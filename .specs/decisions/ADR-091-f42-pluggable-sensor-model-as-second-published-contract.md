@@ -514,3 +514,101 @@ The `intent_json` line in `intent_inspector.yaml`'s declared `mandate.scope.arti
 D2 is unaffected. The dotted-suffix sub_namespace extension (`intent.inspection` → `intent.inspection.{structural,coherence,alignment}`) was already documented in D2 prose (`post_artifact_finding` validator at `shared/workers/base.py:328-337`); commit 1b is the first non-test caller to exercise it.
 
 Surviving `post_finding(subject, payload)` callers after commit 1b: 5, all in the three shop managers (Gap 3 deferral). Phase 6 commit 2 (delete legacy API) gates on commit 1c.
+
+## Amendment — D2 third emission case: runtime-state findings with observable lifecycle (proposed 2026-06-05, pending governor acceptance)
+
+### Status
+
+Proposed amendment to D2 surfaced during commit 1c recon. Reverses commit 1's Gap 3 framing. Pending governor review and acceptance.
+
+If accepted, this amendment supersedes the deferral in commit 1's Gap 3 Note and replaces commit 1c's scope. If rejected, commit 1c falls back to one of the original Gap 3 options (A schema extension, B fourth canonical subject shape, C narrow-and-rename, D re-anchor, F post_observation/abandoned) and this amendment is recorded as a considered-and-rejected alternative.
+
+### Why this amendment
+
+Commit 1's Gap 3 Note framed runtime-state findings (the shop managers' emissions) as a "gap in D2" — a problem to close by extending the artifact_type vocabulary, introducing a fourth canonical subject shape, or carving out a narrow legacy-API exemption. Commit 1c recon surfaced that the framing itself was the error. The three options were all reasoning inside the assumption that *every* finding-shaped blackboard emission must fit D2's `<artifact_type>::<sub_namespace>::<identity_key_value>` shape, and the recon kept hitting resistance because that assumption is false.
+
+The shop managers' lifecycle — `post_finding(open)` once per stale entity, `resolve_entries` when the entity recovers — is **not deprecated drift**. It is the correct lifecycle for findings whose subject *has observable recovery*: `worker.silent::<uuid>` IS open while the worker is silent and IS resolved when the worker resumes heartbeating. The `worker_shop_manager` resolution pass and the `blackboard_service.resolve_stale_alerts_for_terminal_targets` SQL sweep aren't legacy cruft — they're the constitutional mechanism that makes the open→resolved transition meaningful.
+
+The honest read of CORE's three emission APIs is that they correspond to **three distinct legitimate cases**, only two of which D2 currently names.
+
+### What D2 currently names
+
+D2 (the canonical subject format decision) names two cases explicitly:
+
+- **Findings** about observable code artifacts: shape `<artifact_type>::<sub_namespace>::<identity_key_value>`, emitted via `post_artifact_finding`, lifecycle open → resolved by a remediation worker.
+- **Reports** about completed worker cycles: shape `<worker_declaration_name>.<event_kind>`, emitted via `post_report`, terminal at creation with `status="resolved"`.
+
+A third case has been load-bearing in the runtime since `post_observation` landed at #450:
+
+- **Observations**: terminal-at-creation records the system observed but will not transition. Free string subject, emitted via `post_observation(subject, payload, status=<terminal>)`. Lifecycle is "terminal at creation with explicit caller-chosen terminal status." Canonical examples: `loop_hold.sample::*`, `governance.edge5.orphan_sha::*`, `autonomy.yielded.scope_collision::*`.
+
+The D2 prose does not name the observation case; it landed as an API extension and the prose was never updated. That is itself a D2 prose gap (call it Gap 4 if needed), but a small one because observations are terminal and don't interact with the artifact-finding lifecycle.
+
+The case D2 also doesn't name — and which commit 1c recon surfaced as the *real* third class — is:
+
+- **Runtime-state findings**: findings about runtime DB entities (blackboard rows, worker registry rows, proposal pipeline rows) whose subject has *observable recovery*. The emitter detects the bad state, posts a finding with `status="open"`, and resolves the finding when the bad state clears in a later cycle. No artifact backing on disk; lifecycle is genuinely open → resolved (not terminal-at-creation, not artifact-bound).
+
+### The three emission cases — comparison
+
+| Case | API | Subject shape | Lifecycle | Constitutional pair |
+|---|---|---|---|---|
+| Artifact findings | `post_artifact_finding(artifact_type, sub_namespace, identity_key_value, payload)` | `<artifact_type>::<sub_namespace>::<identity_key_value>` | open → resolved (by remediation worker) | scoped by `sensor_supported_by_declaration` |
+| Runtime-state findings | `post_finding(subject, payload)` [proposed rename: `post_runtime_finding`] | `<observed_subsystem>.<condition>::<identity>` (string, observer-chosen) | open → resolved (by emitter on recovery) | not scoped (no artifact_type to validate against) |
+| Observations | `post_observation(subject, payload, status=<terminal>)` | free string | terminal at creation | not scoped (terminal at creation) |
+
+Reports (`post_report`) and heartbeats (`post_heartbeat`) are separate entry types, not finding-class emissions; they sit alongside this taxonomy, not within it.
+
+### D2 amendment text (proposed)
+
+Replace D2's "the canonical subject format is closed" phrasing with:
+
+> CORE's blackboard finding emissions split into two structural cases, each with its own canonical contract:
+>
+> 1. **Artifact findings** — findings about observable code artifacts CORE governs. Canonical subject shape is `<artifact_type>::<sub_namespace>::<identity_key_value>`. Emitted via `post_artifact_finding(artifact_type, sub_namespace, identity_key_value, payload)`. The framework constructs the subject from typed parameters; the emitter never builds the string. Lifecycle is open → resolved by a remediation worker. Scoped by the constitutional pair `sensor_supported_by_declaration`: emitters must declare `mandate.scope.artifact_type` (sensing class) or route through the no-declaration branch (acting and supervision classes).
+>
+> 2. **Runtime-state findings** — findings about runtime entities (blackboard rows, worker registry rows, proposal pipeline rows, etc.) with observable open → resolved lifecycle. Canonical subject shape is a free string chosen by the emitter, conventionally `<observed_subsystem>.<condition>::<identity>`. Emitted via `post_runtime_finding(subject, payload)` (the renamed `post_finding(subject, payload)`). Lifecycle is open → resolved by the emitter itself when the underlying condition recovers in a subsequent cycle. Not scoped by the constitutional pair (no artifact_type to validate against). Reserved for class:supervision and class:acting workers; class:sensing workers MUST use `post_artifact_finding`.
+>
+> Extending either format (a third shape under either case, a fourth segment, a different separator) is a governance amendment.
+>
+> Observations (`post_observation(subject, payload, status=<terminal>)`) are a separate entry-type contract for terminal-at-creation records; they sit alongside findings, not within them.
+
+### Implementation
+
+Phase 6 commit 1c becomes a mechanical scope-narrowing of the existing API:
+
+- Rename `post_finding(subject, payload)` to `post_runtime_finding(subject, payload)` on `shared.workers.base.Worker`. The implementation does not change; only the name and docstring scope.
+- Update the 5 shop manager call sites mechanically (`blackboard_shop_manager`, `worker_shop_manager`, `proposal_pipeline_shop_manager`).
+- No subject-format change. No artifact_type passing. No declaration changes. No SQL row rewrite. The 132 open `blackboard.entry_stale::*` rows stay open; the existing resolution passes (`worker_shop_manager` in-Python `resolve_entries`; `blackboard_service.resolve_stale_alerts_for_terminal_targets` SQL sweep) continue to work unchanged.
+- Add a new governance rule (proposed name: `governance.taxonomy.runtime_finding_caller_class`) that flags any `class: sensing` worker calling `post_runtime_finding`. Ships as `reporting` initially; promotes to `blocking` once the surviving caller set is verified clean (it already is — recon mapped zero sensing-class callers of the legacy API).
+
+Phase 6 commit 2 (formerly "delete the legacy API") is reframed:
+
+- The API is not deleted; it is renamed and scope-narrowed.
+- The "two-API coexistence window" closes when commit 1c lands. The two APIs going forward are `post_artifact_finding` (artifact case) and `post_runtime_finding` (runtime case). Both are first-class; neither is deprecated.
+- The "single canonical emission API" framing in D2's prior text becomes "two canonical emission APIs, scoped by case." The prose adjustment lives in D2 itself, not in a Note.
+
+Phase 7 (`sensor_supported_by_declaration` advisory → blocking promotion) is unaffected. The constitutional pair already scopes to artifact findings; runtime-state findings are explicitly outside it under this amendment.
+
+### Effect on prior Notes
+
+Commit 1's Gap 3 Note named three options (A schema extension, B fourth canonical subject shape, C narrow-and-rename). All three were reasoning inside the false-choice frame that runtime-state findings must "fit into" D2 somehow. With this amendment, the framing is reversed: D2 *names a second case explicitly* rather than carving an exemption to a single case.
+
+Option C (narrow-and-rename) was structurally closest to this amendment but framed as a "legacy escape" rather than as a documented case. The honest framing is "two cases, two APIs" not "one API with a legacy carve-out."
+
+Commit 1's Gap 1 amendment (supervision-class workers also use `post_artifact_finding`'s no-declaration branch) stands unchanged — it correctly described the artifact-finding case's per-class behavior. This amendment adds the second case alongside it; it does not contradict Gap 1.
+
+### Why this didn't surface earlier
+
+Three structural reasons, recorded for future recon discipline:
+
+1. **The phasing absorbed the design.** "Phase 6 commit 2 deletes the legacy API" was treated as immovable from Phase 1 onward. When commit 1c recon found the shop managers' case, it was treated as a problem to fit into the closure rather than as evidence that the closure framing was incomplete.
+
+2. **Reaching for abstractions four times in one session triggered no pause.** Across commit 1c recon: register 3 new artifact_types (A), introduce a fourth subject shape (B), ad-hoc artifact_type strings, re-anchor to backing types (D). Each was a new abstraction. The [[feedback-protocols-reflex-check]] discipline says "pause if reaching for an abstraction twice in a session" — four times was a missed signal that the existing constitutional surface was right and the goal was wrong.
+
+3. **Recursion fatigue.** Three Phase 6 commits in one day shaped the recon toward "find the next migration to ship" rather than toward "question whether the next migration should ship at all." When the recon hits resistance, the honest move is to interrogate the goal, not to keep refining options for hitting it.
+
+### Pattern with prior Notes
+
+Prior Notes on this ADR have been corrigenda — recording prose under-claims the implementation already encoded. This amendment is structurally different: it surfaces a case D2 *never* named, that the runtime already supported via the API surface (`post_observation` for terminal observations, `post_finding(subject, payload)` for runtime findings with lifecycle). D2's prose lagged the API contract; this amendment closes that lag.
+
+If accepted, this is the first ADR-091 amendment that adds a substantive D2 decision rather than clarifying existing D2 prose. It deserves heightened governor review for that reason.
