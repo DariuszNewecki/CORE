@@ -7,7 +7,8 @@ proposals that resolved a (check_id, file_path) finding but where a new
 finding for the same (check_id, file_path) appeared after the proposal
 recorded its consequence — i.e. the fixer ran "successfully" yet the
 sensor re-detected the violation. Posts a deduplicated
-coherence.incoherence::<check_id>::<file_hash> finding per occurrence.
+`python::coherence.incoherence::<check_id>::<file_hash>` finding per
+occurrence (ADR-091 D2 canonical subject format).
 
 Constitutional standing:
 - Declaration:      .intent/workers/coherence_sensor.yaml
@@ -40,7 +41,6 @@ from shared.workers.base import Worker
 
 logger = getLogger(__name__)
 
-_FINDING_SUBJECT = "coherence.incoherence"
 _THRESHOLDS_PATH = Path(".intent/cim/thresholds.yaml")
 _LOOKBACK_KEY = "coherence_lookback_seconds"
 _CFG = load_operational_config().workers.coherence_sensor
@@ -88,9 +88,9 @@ class CoherenceSensorWorker(Worker):
     (check_id, file_path) yet a fresh open finding for the same pair
     exists in core.blackboard_entries with created_at after the
     consequence was recorded. Posts one
-    coherence.incoherence::<check_id>::<file_hash> finding per
-    occurrence; deduplicates against open coherence findings so a
-    single ongoing incoherence does not flood the blackboard.
+    `python::coherence.incoherence::<check_id>::<file_hash>` finding per
+    occurrence (ADR-091 D2); deduplicates against open coherence findings
+    so a single ongoing incoherence does not flood the blackboard.
 
     Detection only — does not modify proposals or findings.
     """
@@ -102,12 +102,19 @@ class CoherenceSensorWorker(Worker):
         # kwargs (e.g. cognitive_service) that this worker does not use.
         super().__init__(declaration_name=kwargs.get("declaration_name", ""))
 
+        # ADR-091 D1: artifact_type + rule_namespace required on class:sensing.
+        # Subject construction routes through the declared values per D2's
+        # canonical `<artifact_type>::<rule_namespace>::<identity_key>` shape.
+        scope = self._declaration["mandate"]["scope"]
+        self._artifact_type: str = scope["artifact_type"][0]
+        self._rule_namespace: str = scope["rule_namespace"]
+
     # ID: a2b3c4d5-e6f7-4a8b-9c0d-1e2f3a4b5c6d
     async def run(self) -> None:
         """
         One detection cycle: load lookback threshold, query for incoherent
         (proposal, check_id, file_path) tuples, post a deduplicated
-        coherence.incoherence finding per row.
+        `python::coherence.incoherence` finding per row (ADR-091 D2).
 
         The heartbeat is posted unconditionally before any DB work so a
         downstream failure does not cause the supervisor to flag this
@@ -122,7 +129,7 @@ class CoherenceSensorWorker(Worker):
 
             blackboard_service = await service_registry.get_blackboard_service()
             existing = await blackboard_service.fetch_open_finding_subjects_by_prefix(
-                f"{_FINDING_SUBJECT}::%"
+                f"{self._artifact_type}::{self._rule_namespace}::%"
             )
 
             checked = 0
@@ -144,7 +151,8 @@ class CoherenceSensorWorker(Worker):
                 file_hash = hashlib.md5(
                     file_path.encode("utf-8"), usedforsecurity=False
                 ).hexdigest()[:8]
-                subject = f"{_FINDING_SUBJECT}::{check_id}::{file_hash}"
+                identity_key_value = f"{check_id}::{file_hash}"
+                subject = f"{self._artifact_type}::{self._rule_namespace}::{identity_key_value}"
 
                 if subject in existing:
                     logger.debug(
@@ -153,8 +161,10 @@ class CoherenceSensorWorker(Worker):
                     )
                     continue
 
-                await self.post_finding(
-                    subject=subject,
+                await self.post_artifact_finding(
+                    artifact_type=self._artifact_type,
+                    sub_namespace=self._rule_namespace,
+                    identity_key_value=identity_key_value,
                     payload={
                         "check_id": check_id,
                         "file_path": file_path,

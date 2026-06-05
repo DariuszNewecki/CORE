@@ -23,8 +23,8 @@ LAYER: will/workers — acting worker. Receives CoreContext via constructor.
 All src/ writes delegated to ProposalExecutor → ActionExecutor → Crate → Canary.
 
 The post-execution side-effects (forwarding action findings_to_post,
-emitting test.run_required, posting scope-collision yields) live in
-proposal_consumer_effects.py. The §7a revival contract (revive deferred
+emitting `python::test.coverage::*` findings for changed src/*.py files,
+posting scope-collision yields) live in proposal_consumer_effects.py. The §7a revival contract (revive deferred
 findings + post revival report when a proposal terminates
 non-successfully) lives in proposal_consumer_revival.py. The dispatch
 shell below stays focused on polling, executor invocation, and run

@@ -6,7 +6,7 @@ Collaborator module for ProposalConsumerWorker. Translates ProposalExecutor
 outcomes into blackboard side-effects:
 
 - Success aftermath: forward each action's finding_to_post (ADR-011
-  attribution), post test.run_required for each changed src/*.py file.
+  attribution), post `python::test.coverage::*` for each changed src/*.py file.
 - Yield aftermath: post the scope_collision finding so a downstream worker
   can observe the yield.
 
@@ -78,10 +78,11 @@ async def apply_success_effects(
     1. For each successful action whose ActionResult carried a
        finding_to_post: forward it to the blackboard via worker.post_finding.
        Runs first so a downstream worker reacting to the posted finding
-       sees it before any test.run_required entries for the same file
+       sees it before any test-coverage entries for the same file
        (per the original ordering invariant from the worker's run loop).
     2. For each changed file ending in .py under src/: post a
-       test.run_required::<path> finding carrying the post-execution sha.
+       `python::test.coverage::<path>` finding (ADR-091 D2 canonical
+       format) carrying the post-execution sha.
 
     Malformed or post-time errors are logged and swallowed — matches the
     pre-split fail-soft semantics so a single bad finding does not reverse
@@ -124,8 +125,15 @@ async def apply_success_effects(
     for path in changed_files:
         if path.startswith("src/") and path.endswith(".py"):
             try:
-                await worker.post_finding(
-                    subject=f"test.run_required::{path}",
+                # ADR-091 D2 canonical format. ProposalConsumerWorker is
+                # class:acting (no declared mandate.scope.rule_namespace),
+                # so post_artifact_finding's validation falls under the
+                # Phase-1 transition allowance and emits the canonical
+                # subject without raising.
+                await worker.post_artifact_finding(
+                    artifact_type="python",
+                    sub_namespace="test.coverage",
+                    identity_key_value=path,
                     payload={
                         "source_file": path,
                         "proposal_id": proposal_id,
@@ -134,7 +142,7 @@ async def apply_success_effects(
                 )
             except Exception as test_req_err:
                 logger.warning(
-                    "Could not post test.run_required for proposal %s: %s",
+                    "Could not post test.coverage finding for proposal %s: %s",
                     proposal_id,
                     test_req_err,
                 )

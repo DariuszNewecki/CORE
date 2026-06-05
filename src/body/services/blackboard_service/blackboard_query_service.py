@@ -73,8 +73,9 @@ class BlackboardQueryService:
 
         Used by quarantine drainers (ADR-072) to determine the scope of
         work for the current drain cycle — e.g. TestRunnerSensor uses this
-        to enumerate test_files referenced by quarantined test.failure
-        rows so it can re-run pytest only for what is actually parked.
+        to enumerate test_files referenced by quarantined
+        `python::test.runner.failure::*` rows so it can re-run pytest only
+        for what is actually parked.
         """
         from body.services.service_registry import ServiceRegistry
 

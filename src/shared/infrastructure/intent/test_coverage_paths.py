@@ -129,9 +129,10 @@ def uncovered_source_files(
     Walk source_root and return repo-relative paths for in-scope Python
     source files that have no corresponding test file.
 
-    Shared between TestCoverageSensor (which posts test.run_required for
-    these sources) and TestRunnerSensor (which uses the same set as
-    current_subjects for the test.missing quarantine drain — ADR-072 D5).
+    Shared between TestCoverageSensor (which posts
+    `python::test.coverage::*` for these sources) and TestRunnerSensor (which
+    uses the same set as current_subjects for the
+    `python::test.runner.missing` quarantine drain — ADR-072 D5).
 
     The mapping and scoping rules are entirely owned by
     .intent/enforcement/config/test_coverage.yaml:

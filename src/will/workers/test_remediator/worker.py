@@ -5,17 +5,18 @@ TestRemediatorWorker - Routes test signals to autonomous test generation.
 Constitutional role: acting worker, remediation phase.
 
 Responsibility (from .intent/workers/test_remediator.yaml):
-  Consume open test.missing and test.failure findings from the Blackboard
-  and create one flow.build_tests proposal per distinct source_file to
-  drive autonomous test generation. Every claimed finding is routed to
-  the single 'flow.build_tests' flow (ADR-046 D2) — no remediation map
-  lookup, no unmappable or delegate split.
+  Consume open `python::test.runner.missing` and `python::test.runner.failure`
+  findings from the Blackboard (ADR-091 D2 canonical subject format) and
+  create one flow.build_tests proposal per distinct source_file to drive
+  autonomous test generation. Every claimed finding is routed to the single
+  'flow.build_tests' flow (ADR-046 D2) — no remediation map lookup, no
+  unmappable or delegate split.
 
 The autonomous test loop this participates in:
 
   TestRunnerSensor (sensing)
-      posts test.missing::<source_file> and
-            test.failure::<test_file>::<test_name> findings
+      posts python::test.runner.missing::<source_file> and
+            python::test.runner.failure::<test_file>::<test_name> findings
           ↓
   TestRemediatorWorker (acting)  ← THIS WORKER
       reads open findings from Blackboard
@@ -67,11 +68,12 @@ class TestRemediatorWorker(Worker):
     """
     Acting worker that converts Blackboard test findings into flow.build_tests proposals.
 
-    Claims open test.missing and test.failure findings (two prefixes, merged),
-    groups them by source_file, and creates one 'flow.build_tests' proposal
-    per source_file. Dedup is per source_file — two concurrent
-    flow.build_tests proposals for different source files are valid and
-    must not block each other.
+    Claims open `python::test.runner.missing` and `python::test.runner.failure`
+    findings (ADR-091 D2; both sub_namespaces filtered through the
+    test-remediation predicate), groups them by source_file, and creates one
+    'flow.build_tests' proposal per source_file. Dedup is per source_file —
+    two concurrent flow.build_tests proposals for different source files are
+    valid and must not block each other.
     """
 
     __test__ = False
@@ -89,7 +91,7 @@ class TestRemediatorWorker(Worker):
     async def run(self) -> None:
         """
         Core work unit:
-        1. Claim open test.missing + test.failure findings from Blackboard
+        1. Claim open python::test.runner.missing + python::test.runner.failure findings
         2. Group findings by payload["source_file"]
         3. For each group: check per-source_file dedup against active
            flow.build_tests proposals; create a proposal and defer that

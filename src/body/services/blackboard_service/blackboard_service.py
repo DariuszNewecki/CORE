@@ -341,7 +341,8 @@ class BlackboardService:
         Per ADR-072, every quarantine-capable namespace must call this
         method from a registered drainer worker. Caller passes the full
         subject prefix (e.g. ``python::<rule_namespace>`` under the ADR-091
-        D2 canonical format, or ``test.missing`` until Phase 5 migrates it).
+        D2 canonical format — applies to audit, test-runner, and coherence
+        sensor namespaces).
 
         The two transitions run in one transaction. Returns lists of
         released and resolved subjects for the drainer's release-pass

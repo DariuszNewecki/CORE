@@ -3,9 +3,11 @@
 TestCoverageSensor - Test Coverage Gap Sensing Worker.
 
 Responsibility: Scan the declared source root for Python files with no
-corresponding test file and post a test.run_required finding for each gap.
+corresponding test file and post a `python::test.coverage::<source_file>`
+finding for each gap (ADR-091 D2 canonical subject format).
 TestRunnerSensor consumes these findings, confirms the gap via pytest,
-and posts test.missing for downstream remediation by ViolationRemediatorWorker.
+and posts `python::test.runner.missing` for downstream remediation by
+TestRemediatorWorker.
 
 Scan behaviour is governed entirely by
 .intent/enforcement/config/test_coverage.yaml — no paths or exclusions
@@ -43,15 +45,14 @@ from shared.workers.base import Worker
 
 logger = getLogger(__name__)
 
-_SUBJECT_PREFIX = "test.run_required"
-
 
 # ID: f7e8d9c0-b1a2-4345-8901-234567890abc
 class TestCoverageSensor(Worker):
     """
     Sensing worker. Scans the declared source root for Python source files
-    with no corresponding test file, and posts a test.run_required finding
-    for each gap. Scan config is read from .intent/ at runtime.
+    with no corresponding test file, and posts a `python::test.coverage`
+    finding for each gap (ADR-091 D2 canonical subject format). Scan
+    config is read from .intent/ at runtime.
 
     No LLM calls. No file writes. approval_required: false.
     """
@@ -65,6 +66,15 @@ class TestCoverageSensor(Worker):
         self._glide_off: int = schedule.get(
             "glide_off", max(int(self._max_interval * 0.10), 10)
         )
+
+        # ADR-091 D1: artifact_type and rule_namespace are required on every
+        # class:sensing worker. D5 Phase 5 routes subject construction through
+        # the declared values rather than a hardcoded legacy prefix; the
+        # canonical subject becomes
+        # `<artifact_type>::<rule_namespace>::<source_file>`.
+        scope = self._declaration["mandate"]["scope"]
+        self._artifact_type: str = scope["artifact_type"][0]
+        self._rule_namespace: str = scope["rule_namespace"]
 
         from shared.infrastructure.bootstrap_registry import BootstrapRegistry
 
@@ -130,14 +140,16 @@ class TestCoverageSensor(Worker):
         skipped = 0
 
         for source_file in sorted(uncovered):
-            subject = f"{_SUBJECT_PREFIX}::{source_file}"
+            subject = f"{self._artifact_type}::{self._rule_namespace}::{source_file}"
             if subject in existing:
                 skipped += 1
                 logger.debug("TestCoverageSensor: skipping already-posted %s", subject)
                 continue
 
-            await self.post_finding(
-                subject=subject,
+            await self.post_artifact_finding(
+                artifact_type=self._artifact_type,
+                sub_namespace=self._rule_namespace,
+                identity_key_value=source_file,
                 payload={"source_file": source_file},
             )
             posted += 1
@@ -184,8 +196,8 @@ class TestCoverageSensor(Worker):
 
         Delegates to shared.infrastructure.intent.test_coverage_paths
         .uncovered_source_files — same helper is used by TestRunnerSensor
-        to build current_subjects for the test.missing quarantine drain
-        (ADR-072 D5).
+        to build current_subjects for the `python::test.runner.missing`
+        quarantine drain (ADR-072 D5).
         """
         return uncovered_source_files(self._repo_root, config)
 
@@ -196,13 +208,15 @@ class TestCoverageSensor(Worker):
     # ID: e6f7a8b9-c0d1-4234-3456-789012345f01
     async def _fetch_existing_subjects(self) -> set[str]:
         """
-        Fetch active test.run_required subjects from the Blackboard.
+        Fetch active `python::test.coverage::*` subjects from the Blackboard.
         Dedup is by subject content across all workers, not by this
         worker's UUID — prevents re-posting across daemon restarts.
+        ADR-091 D2 canonical format: keys are
+        `<artifact_type>::<rule_namespace>::%`.
         """
         from body.services.service_registry import service_registry
 
         svc = await service_registry.get_blackboard_service()
         return await svc.fetch_active_finding_subjects_by_prefix(
-            f"{_SUBJECT_PREFIX}::%"
+            f"{self._artifact_type}::{self._rule_namespace}::%"
         )

@@ -23,13 +23,15 @@ from will.autonomy.proposal import (
 
 logger = getLogger(__name__)
 
-_MISSING_SUBJECT_PREFIX = "test.missing::"
-_FAILURE_SUBJECT_PREFIX = "test.failure::"
 # ADR-046 D2: TestRemediator dispatches the build_tests flow, not the bare
 # build.tests action, so flow.build_tests' declared auto-heal steps
 # (fix.imports, fix.headers, fix.format) execute on generated tests.
 _TARGET_FLOW_ID = "flow.build_tests"
-_TARGET_RULES: list[str] = ["test.missing", "test.failure"]
+# ADR-091 D2: rule names track the canonical sub_namespaces emitted by
+# TestRunnerSensor (`python::test.runner.missing` and `python::test.runner.failure`).
+# Used in proposal goal text and constitutional_constraints.rules for audit
+# trail honesty — not for finding lookup (that uses the predicate below).
+_TARGET_RULES: list[str] = ["test.runner.missing", "test.runner.failure"]
 
 _ACTIVE_STATUSES: frozenset[ProposalStatus] = frozenset(
     {
@@ -43,25 +45,31 @@ _ACTIVE_STATUSES: frozenset[ProposalStatus] = frozenset(
 
 async def _load_open_findings(worker_uuid: uuid.UUID) -> list[dict[str, Any]]:
     """
-    Claim open test.missing and test.failure findings from the Blackboard.
+    Claim open `python::test.runner.missing` and `python::test.runner.failure`
+    findings from the Blackboard (ADR-091 D2 canonical subject format).
 
-    Two separate claim_violation_findings calls (one per prefix) whose
-    results are merged. Findings without a source_file in payload are
-    released immediately so they do not stay claimed indefinitely.
+    Single claim_findings_by_patterns call backed by the test-remediation
+    predicate (`shared.infrastructure.intent.test_namespaces`) — derived
+    from `TestRunnerSensor`'s declared `mandate.scope.rule_namespace` value
+    (`test.runner`) plus its D2-permitted dotted extensions. TestCoverageSensor
+    is intentionally outside this set: its `python::test.coverage::*` output
+    is consumed by TestRunnerSensor as work-to-do, not by TestRemediator.
+
+    Findings without a source_file in payload are released immediately so
+    they do not stay claimed indefinitely.
     """
     from body.services.service_registry import service_registry
-
-    merged: list[dict[str, Any]] = []
+    from shared.infrastructure.intent.test_namespaces import (
+        test_remediation_like_patterns,
+    )
 
     try:
         blackboard_service = await service_registry.get_blackboard_service()
-        for prefix in (_MISSING_SUBJECT_PREFIX, _FAILURE_SUBJECT_PREFIX):
-            claimed = await blackboard_service.claim_violation_findings(
-                prefix=f"{prefix}%",
-                limit=200,
-                claimed_by=worker_uuid,
-            )
-            merged.extend(claimed)
+        merged = await blackboard_service.claim_findings_by_patterns(
+            patterns=test_remediation_like_patterns(),
+            limit=200,
+            claimed_by=worker_uuid,
+        )
     except Exception as e:
         logger.error("TestRemediatorWorker: failed to load findings: %s", e)
         return []
