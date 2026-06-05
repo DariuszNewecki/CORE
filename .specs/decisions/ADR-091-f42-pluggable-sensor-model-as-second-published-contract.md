@@ -436,3 +436,71 @@ No blackboard row rewrite was needed — a pre-flight count returned zero `promp
 Phase 6 is the fourth same-shape ADR-091 prose/implementation gap closed by a same-day Note. The pattern across the four (D3 sensing-class taxonomy, Phase 3 audit-violation predicate source, Phase 5 test-remediation predicate scope, Phase 6 class:acting allowance + compound identity): the ADR prose framed a contract narrowly (specific sensors, specific rule directories, single-component identity), and the implementation surface was always slightly broader (the API takes worker class as a structural input; identity is opaque). Each Note records the implementation's broader honest reading and confirms the substantive D1–D8 decisions are unaffected.
 
 The substantive decisions D1, D2, D3, D4, D6, D7, D8 — and Phase 6's selection of `post_artifact_finding` as the single canonical emission API — are unaffected by these clarifications. The prose of D2 tightens around what `identity_key_value` may contain and what `class: sensing` vs `class: acting` mean for the declaration requirement; the runtime API and the rule do not change.
+
+## Note — D5 Phase 6 commit 1 implementation: Gap 1 supervision class + Gap 3 runtime-state findings (2026-06-05, same day as Phase 6 commit 0)
+
+Pre-implementation recon for D5 Phase 6 commit 1 surfaced two further D2 prose/implementation gaps. Both are scope clarifications, not behavioural drift — the runtime is unchanged. This Note records them in the same append-only shape as the prior four. It also pins commit 1's actual landed scope, which is narrower than the recon's first framing.
+
+### Gap 1 amendment — `class: supervision` workers also use the no-declaration branch
+
+The prior Note's Gap 1 enumerated two classes for `post_artifact_finding` callers: `class: sensing` (must declare `mandate.scope.artifact_type`, validated) and `class: acting` (MAY emit without declaring, structurally outside the constitutional pair). Phase 6 commit 1 recon mapped the surviving non-sensor caller set against `.intent/workers/*.yaml` and found three `class: supervision` workers that the prior Note labelled `class: acting`:
+
+- `blackboard_shop_manager` — declared `class: supervision`
+- `worker_shop_manager` — declared `class: supervision`
+- `proposal_pipeline_shop_manager` — declared `class: supervision`
+
+The structural argument the prior Note made still holds: workers that do not declare `mandate.scope.artifact_type` route through the validation no-op branch of `post_artifact_finding`. The branch is keyed on absence-of-declaration, not on `identity.class`. The prior Note's per-class enumeration was incomplete; the corrected reading is:
+
+- `class: sensing` workers MUST declare `mandate.scope.artifact_type`; their emissions are validated and they participate in the constitutional pair (`sensor_supported_by_declaration`).
+- `class: acting` and `class: supervision` workers MAY emit via `post_artifact_finding` without declaring `mandate.scope.artifact_type`; validation no-ops by design and they are structurally outside the constitutional pair (they are not sensors).
+- `class: governance` workers do not call `post_artifact_finding` in the current surviving set.
+
+The rule promotion in Phase 7 (`sensor_supported_by_declaration` advisory → blocking) remains unaffected — the rule already scopes to declaring workers.
+
+### Gap 3 — runtime-state findings (shop managers) do not fit the D2 canonical subject shape
+
+The shop-manager workers emit findings about **runtime DB entities**, not about source-code artifacts on disk:
+
+- `blackboard_shop_manager` emits `blackboard.entry_stale::<entry_uuid>` when a blackboard entry exceeds its SLA tier. The "artifact" is a row in `core.blackboard_entries`, addressed by uuid.
+- `worker_shop_manager` emits `worker.silent::<worker_uuid>` when a worker stops heartbeating. The "artifact" is a row in `core.worker_registry`, addressed by uuid.
+- `proposal_pipeline_shop_manager` emits `proposal.{stuck_approved,stuck_executing,repeated_failure}::*` when a proposal is stuck or an action repeatedly fails. The "artifact" is a row in `core.proposals`, addressed by `proposal_id` or by compound `(action_id, rule_id)`.
+
+These findings have legitimate `open → resolved` lifecycles: the shop managers themselves transition the finding to `resolved` (or `abandoned`) when the underlying runtime state recovers (`worker_shop_manager.py:201-208` calls `resolve_entries([entry_id])` in-process; `blackboard_service.resolve_stale_alerts_for_terminal_targets` SQL-updates open `blackboard.entry_stale::*` findings when the target row transitions terminal). They are not terminal-at-creation observations, so `post_observation` is the wrong API.
+
+Fitting them into D2's canonical `<artifact_type>::<sub_namespace>::<identity_key_value>` shape requires either:
+
+- Registering new `artifact_type` declarations (`runtime_blackboard_entry`, `worker_registry`, `proposal`) in `.intent/artifact_types/` — but the artifact_type schema (`.intent/META/artifact_type.schema.json`) currently requires `discovery` (a glob list, `minItems: 1`), `vector_collection` (qdrant routing), and a closed `identity_key` enum (`path`, `path_plus_anchor`, `uri`). Runtime DB entities have no on-disk discovery glob, no semantically meaningful vector collection, and need uuid-shaped identity keys. Registering them under the current schema is impossible; registering them after schema relaxation is a governance amendment to ADR-090 D2's closed vocabulary, not a Note-shape change.
+- Re-using an existing artifact_type as a placeholder (e.g., `runtime`) — but no such artifact_type is registered, and inventing one without backing it with a declaration is the closed-vocabulary violation #566 will eventually flag.
+
+The honest read is that ADR-091 D2's canonical subject shape was designed for findings about **observable code artifacts**, and runtime-state findings are a fourth subject family alongside findings (`<artifact_type>::<sub_namespace>::<identity_key_value>`), reports (`<worker_declaration_name>.<event_kind>`), heartbeats (`worker.heartbeat`), and observations (free string subject + terminal status). The Phase 6 prose did not name this fourth family; commit 1 surfaces it.
+
+**Resolution.** Gap 3 is deferred to its own sub-decision (commit 1c), scoped to the five shop-manager emission sites. The sub-decision answers: extend the artifact_type schema to admit runtime-state entities (ADR-090 amendment), introduce a fourth canonical subject shape under D2 for runtime-state findings (ADR-091 amendment), or keep the shop managers on `post_finding(subject, payload)` permanently and exempt them from the Phase 6 closure. Each of the three options is heavier than a Note can carry honestly.
+
+### Phase 6 commit 1 scope
+
+With Gap 3 deferred, commit 1 ships the **seven sites that fit the current D2 contract** without schema or vocabulary changes:
+
+- **Two `class: acting` sites** → `post_artifact_finding(artifact_type="python", ...)`:
+  - `will/workers/audit_ingest_worker.py:105` — sub_namespace `ai.prompt.model_required`, compound identity `<file>::<line>`. Self-dedup at `:206` updates to canonical prefix.
+  - `will/workers/prompt_extractor_worker.py:152` — sub_namespace `prompt.extraction`, compound identity `<file>::<line>`. Cross-worker claim filter at `:217` updates to match audit_ingest's new canonical prefix.
+- **Two `post_report` sites** (completion records that were misusing `post_finding` for terminal-resolved events):
+  - `body/workers/call_site_rewriter.py:251` — subject `prompt.rewrite.complete::<file>::<line>`.
+  - `will/workers/violation_remediator_body/worker.py:499` — subject `audit.remediation.complete::<file>`.
+- **Three `post_observation` sites** (terminal-at-creation failure/instrument records, `status=abandoned`):
+  - `body/workers/call_site_rewriter.py:397` — subject `prompt.rewrite.failed::<file>`.
+  - `will/workers/circuit_breaker.py:311` — subject `governance.circuit_breaker_tripped` (singleton).
+  - `will/workers/violation_remediator.py:121` — subject `governance.instrument_degraded` (singleton).
+
+No blackboard row rewrite is needed — pre-flight psql counts returned zero rows for all seven subject families. No schema changes. No new artifact_types.
+
+### Deferred to subsequent Phase 6 commits
+
+- **Commit 1b — `intent_inspector`.** Five sites (`:142`, `:277`, `:319`, `:352`, `:387`). Migration is non-mechanical: API switch + sub_namespace rename `intent_inspector.{structural,coherence,alignment}` → `intent.inspection.{structural,coherence,alignment}` to match the worker's declared `rule_namespace`, plus per-finding `artifact_type` selection between `intent_yaml` and `intent_json` based on path extension. Worker is `metadata.status: paused`; zero rows in flight. The two setup-error sites (`:277`, `:352`) move to `post_observation(status="abandoned")` in the same commit.
+- **Commit 1c — shop managers (Gap 3 resolution).** Five sites across `blackboard_shop_manager`, `worker_shop_manager`, `proposal_pipeline_shop_manager`. Gated on Gap 3's sub-decision. SQL UPDATE migration for ~6140 in-flight legacy rows (`blackboard.entry_stale::*` 5209, `worker.silent::*` 897, `proposal.stuck_approved::*` 34) lands here, scoped to the chosen subject shape. Three lifecycle-drift consumers update atomically with the migration: `blackboard_query_service.py:280-281` (NOT LIKE stale-finder exclusions), `health.py:403` (`worker.silent` F-19 type_a classification), and `blackboard_service.py:45` (auto-resolve sweep for `blackboard.entry_stale::*`).
+- **Commit 2 (delete `post_finding(subject, payload)` from `shared/workers/base.py`)** — gates on commits 1b AND 1c. Until both deferrals land, the legacy API survives as the structural escape for class: sensing intent_inspector (1b) and the unresolved runtime-state question (1c).
+
+### Pattern with the prior Notes
+
+The prior Note's pattern (D2 prose framed narrowly, implementation surface broader) holds here twice over. Gap 1 supervision is a pure prose under-claim that the runtime API already encoded. Gap 3 is structurally different — it surfaces that D2's `<artifact_type>::<sub_namespace>::<identity_key_value>` shape was authored against the on-disk-artifact-with-discovery model and does not cleanly extend to runtime-state DB entities. That gap deserves its own decision-level treatment, which is why commit 1c defers rather than carrying a Note correction.
+
+The substantive D1–D8 decisions remain unaffected by Gap 1's amendment. Gap 3 will require D2 amendment when commit 1c lands; recording the question here now lets the sub-decision begin without re-discovering the recon.
