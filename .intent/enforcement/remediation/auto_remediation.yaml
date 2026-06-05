@@ -1195,6 +1195,27 @@ mappings:
       The autonomous remediator cannot pick between the two paths.
     status: DELEGATE
 
+  governance.taxonomy.sensor_supported_by_declaration:
+    action: fix.modularity
+    confidence: 0.40
+    risk: high
+    description: >
+      ADR-091 D4: sensor↔artifact_type symmetry rule. Every sensor worker
+      declared in .intent/workers/ must be listed under at least one
+      artifact_type's supported_sensors, and every supported_sensors entry
+      must resolve to an existing sensor worker declaration. Asymmetric
+      entries surface here. Resolution is a governor decision: author the
+      missing sensor worker, add the missing supported_sensors entry on the
+      artifact_type, or strip the dangling reference if the linkage is
+      stale. The autonomous remediator cannot pick between the three paths.
+      Mirrors the cognate pattern in
+      governance.taxonomy.operational_capabilities_decorator_backing
+      (ADR-079 D9 Shape 1/2). Explicitly mapped to satisfy the ADR-066
+      unmapped-rules invariant. Promotion path: ADR-091 D4 Phase 7 lifts
+      this rule from `reporting` to `blocking` once #570 closes; mapping
+      stays DELEGATE.
+    status: DELEGATE
+
   purity.tempfile_default_dir:
     action: fix.tempfile_dir
     confidence: 0.60
