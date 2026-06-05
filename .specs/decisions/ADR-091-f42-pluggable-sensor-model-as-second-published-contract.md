@@ -129,11 +129,15 @@ These workers crawl, embed, transform, or audit aggregates — they do not obser
 
 Two consequences for ADR-091 scope:
 
-1. **Phase 1 atomic migration covers only the 12 true sensors.** The D1 conditional constraint `if class == sensing then artifact_type required` is staged behind a separate reclassification pass — the nine misclassified declarations would otherwise fail schema validation. In Phase 1, the schema fields are **optional** for `class: sensing`; the conditional enforcement promotes when the reclassification lands.
+1. **Phase 1 atomic migration covered only the 12 true sensors.** The D1 conditional constraint `if class == sensing then artifact_type required` was staged behind a separate reclassification pass — the nine misclassified declarations would otherwise have failed schema validation. In Phase 1, the schema fields were **optional** for `class: sensing`.
 
-2. **A sub-issue is filed (#570)** tracking the reclassification: "sensing-class taxonomy audit — reclassify embedders / crawlers / transformers before F-42 invariant goes blocking." The ADR-091 D8 promotion (advisory → blocking) waits behind #570's closure.
+2. **A sub-issue was filed and closed (#570)** tracking the reclassification: "sensing-class taxonomy audit — reclassify embedders / crawlers / transformers before F-42 invariant goes blocking." Closed 2026-06-05 with the reclassification landing: five workers → `acting` (audit_ingest_worker, capability_tagger, governance_embedder, prompt_extractor_worker, repo_embedder), two → `governance` (commit_reachability_auditor, observer_worker), one retained `sensing` with declared artifact_type (intent_inspector → `[intent_yaml, intent_json]`), one retained `sensing` with broader artifact_type per ADR-070 D8 writer-as-sensor pattern (repo_crawler → `[python, test, doc, prompt, report, infra, intent_yaml, intent_json, spec_markdown]`).
 
-The D1 stability commitment is unaffected: the schema field *shape* is final; only the conditional *enforcement* is staged.
+**The D1 conditional enforcement is now live.** With every `class: sensing` worker honestly declaring its artifact_type list, the `allOf` block in `META/worker.schema.json` requires `mandate.scope.artifact_type` and `mandate.scope.rule_namespace` for sensing-class declarations. Daemon-load validation rejects sensing-class workers missing either field.
+
+The D1 stability commitment is unaffected: the schema field *shape* is final; the conditional *enforcement* has now landed.
+
+The D8 advisory→blocking promotion of `sensor_supported_by_declaration` remains for Phase 7 (gated on Phase 6 legacy `post_finding(subject, payload)` API removal), independent of the #570 closure.
 
 **No registry-side coverage gap (pre-Phase-4 recon correction).** The original draft of this D3 amendment claimed `.specs/phases/*.yaml` was un-typed and parked `_phase_paths` until a gap-resolution sub-issue closed. Pre-implementation recon for Phase 4 surfaced that CCC's `_phase_paths` actually reads `.intent/phases/*.yaml` — fully covered by `intent_yaml`'s `.intent/**/*.yaml` discovery glob. `.specs/phases/` does not exist. The original gap claim was based on incorrect path assumption; `_phase_paths` migrates normally in Phase 4 with no sub-issue needed.
 
@@ -292,3 +296,22 @@ Pre-implementation recon for D5 Phase 4 surfaced two further corrections to the 
 2. **`vocabulary` check was missed from Phase 4 scope.** The original Phase 4 description named three row checks (`row2_grounding`, `row3_citation`, `row4_naming`). The recon enumeration of CCC discovery surfaces surfaced a fourth: `vocabulary._iter_governance_markdown` walks `.specs/{decisions,papers,northstar}/*.md` and carries the same spec_markdown discovery shape. Without including vocabulary in Phase 4, one CCC discovery surface would remain bypassing the registry. Amended above.
 
 Neither correction alters the substantive Phase 4 decision: CCC discovery routes through the registry, behavioural identity is the gate. Scope tightens to include eight surfaces (not seven) and `_phase_paths` migrates rather than parks.
+
+---
+
+## Note — #570 closed; D1 conditional enforcement landed (2026-06-05)
+
+The sensing-class taxonomy audit filed alongside D3's Phase 1 amendment (#570) closed same-day with the reclassification of the nine workers identified in that amendment:
+
+- **Five → `acting`**: `audit_ingest_worker` (translator: previous-audit-run findings → blackboard findings), `capability_tagger` (LLM-driven capability assignment writer), `governance_embedder` (Qdrant `governance_claims` writer), `prompt_extractor_worker` (source-file prompt extractor), `repo_embedder` (Qdrant collection writer per ADR-018).
+- **Two → `governance`**: `commit_reachability_auditor` (commit-graph aggregate auditor per ADR-019 D1), `observer_worker` (system-state observer feeding `core.system_health_log`).
+- **One retained `sensing` with declared artifact_type**: `intent_inspector` → `[intent_yaml, intent_json]` with `rule_namespace: intent.inspection`.
+- **One retained `sensing` with broader declared artifact_type**: `repo_crawler` → `[python, test, doc, prompt, report, infra, intent_yaml, intent_json, spec_markdown]` with `rule_namespace: coherence.repo_artifacts`. The full list reflects the ADR-070 D8 writer-as-sensor pattern: the crawler walks every crawler-indexed type and emits `coherence.repo_artifacts.drift` findings inline.
+
+No new `identity.class` value was needed. The four existing classes (`sensing`, `acting`, `governance`, `supervision`) covered every reclassified worker honestly.
+
+**The D1 conditional enforcement landed in the same change-set.** `META/worker.schema.json` now carries an `allOf` block requiring `mandate.scope.artifact_type` and `mandate.scope.rule_namespace` for `class: sensing` declarations. Daemon-load validation rejects sensing-class workers missing either field. Phase 1's staged conditional is now active.
+
+Cross-validation invariant (D4) verified post-reclassification: 25 introspected pairs ≡ 25 authored pairs, symmetric diff empty. Adds: 1× `intent_yaml::intent_inspector`, 1× `intent_json::intent_inspector`, 9× repo_crawler across its declared artifact_types. The new `class: sensing` population is 14 workers (12 from Phase 1 + intent_inspector + repo_crawler).
+
+The Phase 7 advisory→blocking promotion of `sensor_supported_by_declaration` remains gated on Phase 6 (legacy `post_finding(subject, payload)` API removal), independent of #570.

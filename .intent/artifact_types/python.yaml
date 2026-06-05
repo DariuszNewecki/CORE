@@ -33,6 +33,7 @@ supported_sensors:        # ADR-091 D4 — authored set; introspected via taxono
   - audit_sensor_style
   - audit_violation_sensor
   - coherence_sensor
+  - repo_crawler
   - test_coverage_sensor
   - test_runner_sensor
 supported_actions: []   # F-43 forward (ADR-090 D5)

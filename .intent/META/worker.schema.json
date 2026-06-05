@@ -158,7 +158,7 @@
                                 "pattern": "^[a-z][a-z0-9_]*$"
                             },
                             "minItems": 1,
-                            "description": "Per ADR-091 D1. Array of registered artifact_type ids from .intent/artifact_types/ that this sensor observes. Single-element arrays are the common case; multi-element arrays declare joint observation (e.g. [python, test] for sensors that cross-reference instances of multiple types). Cross-validation invariant (ADR-091 D4): every element must appear in that artifact_type's supported_sensors array. Conditional enforcement (`if class == sensing then required`) is staged behind #570 sensing-class reclassification; in Phase 1 the field is optional even for sensing-class declarations so the nine misclassified workers (embedders, crawlers, transformers) do not fail validation before #570 closes."
+                            "description": "Per ADR-091 D1. Array of registered artifact_type ids from .intent/artifact_types/ that this sensor observes. Single-element arrays are the common case; multi-element arrays declare joint observation (e.g. [python, test] for sensors that cross-reference instances of multiple types). Cross-validation invariant (ADR-091 D4): every element must appear in that artifact_type's supported_sensors array. The conditional `if class == sensing then required` lands in the top-level allOf block (active after #570 closed 2026-06-05)."
                         },
                         "notes": {
                             "type": "string",
@@ -256,5 +256,39 @@
                 ]
             }
         }
-    }
+    },
+    "allOf": [
+        {
+            "description": "ADR-091 D1 conditional enforcement (active after #570 closed 2026-06-05): sensing-class workers MUST declare mandate.scope.artifact_type and mandate.scope.rule_namespace. The conditional was staged at Phase 1 to keep the daemon loadable while embedders/crawlers/transformers carrying class:sensing were reclassified out. With #570 closed, every class:sensing worker is a true artifact observer and the requirement lands.",
+            "if": {
+                "type": "object",
+                "properties": {
+                    "identity": {
+                        "type": "object",
+                        "properties": {
+                            "class": {"const": "sensing"}
+                        },
+                        "required": ["class"]
+                    }
+                },
+                "required": ["identity"]
+            },
+            "then": {
+                "type": "object",
+                "properties": {
+                    "mandate": {
+                        "type": "object",
+                        "properties": {
+                            "scope": {
+                                "type": "object",
+                                "required": ["artifact_type", "rule_namespace"]
+                            }
+                        },
+                        "required": ["scope"]
+                    }
+                },
+                "required": ["mandate"]
+            }
+        }
+    ]
 }

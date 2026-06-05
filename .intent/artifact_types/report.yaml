@@ -21,5 +21,6 @@ change_record: text_diff
 vector_collection: core-reports
 crawler_indexed: true
 
-supported_sensors: []   # F-42 forward (ADR-090 D5)
+supported_sensors:        # ADR-091 D4 — authored set; introspected via taxonomy_gate
+  - repo_crawler
 supported_actions: []   # F-43 forward (ADR-090 D5)

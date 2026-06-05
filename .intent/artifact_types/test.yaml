@@ -20,6 +20,7 @@ vector_collection: core-tests
 crawler_indexed: true
 
 supported_sensors:        # ADR-091 D4 — authored set; introspected via taxonomy_gate
+  - repo_crawler
   - test_coverage_sensor
   - test_runner_sensor
 supported_actions: []   # F-43 forward (ADR-090 D5)

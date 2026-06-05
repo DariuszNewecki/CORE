@@ -1917,6 +1917,60 @@ Files:
 
 ---
 
+## #570 closed — sensing-class taxonomy audit; ADR-091 D1 conditional landed — 2026-06-05
+
+Sub-issue #570 (filed alongside ADR-091 D3 Phase 1 amendment) closed
+with the reclassification of nine workers carrying `class: sensing`
+whose actual role was not artifact observation. **No new
+`identity.class` value was needed.** All nine fit within the four
+existing classes (`sensing`, `acting`, `governance`, `supervision`).
+
+- **Five → `acting`** (writers / transformers / pipeline heads):
+  `audit_ingest_worker`, `capability_tagger`, `governance_embedder`,
+  `prompt_extractor_worker`, `repo_embedder`.
+- **Two → `governance`** (aggregate-state auditors / observers):
+  `commit_reachability_auditor`, `observer_worker`.
+- **One retained `sensing` with declared artifact_type**:
+  `intent_inspector` → `[intent_yaml, intent_json]` with
+  `rule_namespace: intent.inspection`.
+- **One retained `sensing` with broader artifact_type per ADR-070 D8
+  writer-as-sensor pattern**: `repo_crawler` → `[python, test, doc,
+  prompt, report, infra, intent_yaml, intent_json, spec_markdown]`
+  with `rule_namespace: coherence.repo_artifacts`. The full list
+  reflects every crawler-indexed type the walker observes.
+
+**ADR-091 D1 conditional enforcement landed in the same change-set.**
+`META/worker.schema.json` now carries a top-level `allOf` block
+requiring `mandate.scope.artifact_type` and `mandate.scope.rule_namespace`
+for `class: sensing` declarations. The Phase 1 staging window closes:
+the conditional was deferred so the nine pre-reclassification
+sensing-class workers would not fail validation; with reclassification
+complete, every `class: sensing` worker honestly declares the required
+fields and the daemon-load validator rejects any future violation.
+
+Cross-validation invariant (ADR-091 D4) verified post-reclassification:
+25 introspected pairs ≡ 25 authored pairs, symmetric diff empty.
+`supported_sensors` arrays populated across all nine F-41 artifact_types:
+`python` (13 sensors), `test` (3), `intent_yaml` (2), `intent_json` (2),
+`spec_markdown` (1), `doc` (1), `prompt` (1), `report` (1), `infra` (1).
+The new `class: sensing` population is 14 workers (12 from Phase 1 +
+intent_inspector + repo_crawler).
+
+ADR-091 D8 advisory→blocking promotion of
+`sensor_supported_by_declaration` remains gated on Phase 6 (legacy
+`post_finding(subject, payload)` API removal), independent of #570.
+
+Files:
+`.specs/decisions/ADR-091-f42-pluggable-sensor-model-as-second-published-contract.md`
+(D3 amendment + Note appendix recording #570 closure),
+`.intent/META/worker.schema.json` (D1 conditional `allOf` block),
+nine `.intent/workers/*.yaml` (reclassifications + intent_inspector +
+repo_crawler declarations),
+seven `.intent/artifact_types/*.yaml` (supported_sensors populated /
+extended for new sensors).
+
+---
+
 ## Notes
 
 * This changelog intentionally avoids implementation detail

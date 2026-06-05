@@ -22,7 +22,7 @@ metadata:
 
 identity:
   uuid: "c30a50fa-a761-4013-8088-a7b45d29f3e0"
-  class: sensing
+  class: acting
 
 mandate:
   responsibility: >

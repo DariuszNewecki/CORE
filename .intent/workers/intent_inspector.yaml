@@ -33,6 +33,10 @@ mandate:
   scope:
     paths:
       - ".intent/**"
+    rule_namespace: "intent.inspection"
+    artifact_type:
+      - intent_yaml
+      - intent_json
     domains:
       - governance
       - compliance
