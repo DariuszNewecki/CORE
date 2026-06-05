@@ -41,9 +41,13 @@ class AuditClient:
 
         Returns the dict the server's run_sync_audit emits: verdict,
         passed, stats, findings, executed_rule_ids, auto_ignored,
-        run_id (None for filtered runs), duration_sec. Audit duration
-        is ~60s; uses a 300s HTTP timeout matching integrate() and
-        lint().
+        run_id (None for filtered runs), duration_sec. The full
+        daemon-driven audit runs LLM- and knowledge-graph-backed rules
+        in addition to the stateless set, so a 1800s HTTP timeout is
+        used — matching `poll_audit_remediation_run` and giving
+        headroom over the slowest observed runs. Stateless-mode
+        callers (CI / pre-commit) use `--offline` and bypass this
+        path entirely.
         """
         return await self._facade._request(
             "POST",
@@ -56,7 +60,7 @@ class AuditClient:
                 "source": source,
                 "wait": True,
             },
-            timeout=300.0,
+            timeout=1800.0,
         )
 
     # ID: 7b45ae44-3004-4924-92d9-a2039285cb92
