@@ -11,6 +11,7 @@ from mind.governance.policy_coverage_service import (
     PolicyCoverageReport,
     PolicyCoverageService,
 )
+from shared.path_resolver import PathResolver
 
 
 # Detected return type: PolicyCoverageReport (from run() method)
@@ -27,23 +28,23 @@ class TestPolicyCoverageService:
         intent_dir.mkdir()
 
         # Create a mock settings object if needed, but service should handle missing files
-        service = PolicyCoverageService(repo_root=tmp_path)
+        service = PolicyCoverageService(path_resolver=PathResolver(tmp_path))
 
         assert service.repo_root == tmp_path
-        assert service.evidence_path == tmp_path / "reports/audit/latest_audit.json"
+        assert service.evidence_path == tmp_path / "var/reports/audit/latest_audit.json"
         assert isinstance(service.executed_rules, set)
         assert isinstance(service.all_rules, list)
 
     def test_load_audit_evidence_missing_file(self, tmp_path):
         """Test loading audit evidence when file doesn't exist"""
-        service = PolicyCoverageService(repo_root=tmp_path)
+        service = PolicyCoverageService(path_resolver=PathResolver(tmp_path))
 
         # Evidence file doesn't exist in tmp_path
         assert service.executed_rules == set()
 
     def test_load_audit_evidence_valid_file(self, tmp_path):
         """Test loading audit evidence from valid JSON file"""
-        evidence_path = tmp_path / "reports/audit/latest_audit.json"
+        evidence_path = tmp_path / "var/reports/audit/latest_audit.json"
         evidence_path.parent.mkdir(parents=True)
 
         evidence_data = {
@@ -52,32 +53,32 @@ class TestPolicyCoverageService:
         }
         evidence_path.write_text(json.dumps(evidence_data), encoding="utf-8")
 
-        service = PolicyCoverageService(repo_root=tmp_path)
+        service = PolicyCoverageService(path_resolver=PathResolver(tmp_path))
         assert service.executed_rules == {"rule_1", "rule_2", "rule_3"}
 
     def test_load_audit_evidence_invalid_json(self, tmp_path):
         """Test loading audit evidence from invalid JSON file"""
-        evidence_path = tmp_path / "reports/audit/latest_audit.json"
+        evidence_path = tmp_path / "var/reports/audit/latest_audit.json"
         evidence_path.parent.mkdir(parents=True)
         evidence_path.write_text("invalid json content", encoding="utf-8")
 
-        service = PolicyCoverageService(repo_root=tmp_path)
+        service = PolicyCoverageService(path_resolver=PathResolver(tmp_path))
         assert service.executed_rules == set()
 
     def test_load_audit_evidence_missing_executed_rules_key(self, tmp_path):
         """Test loading audit evidence when executed_rules key is missing"""
-        evidence_path = tmp_path / "reports/audit/latest_audit.json"
+        evidence_path = tmp_path / "var/reports/audit/latest_audit.json"
         evidence_path.parent.mkdir(parents=True)
 
         evidence_data = {"other_field": "value"}
         evidence_path.write_text(json.dumps(evidence_data), encoding="utf-8")
 
-        service = PolicyCoverageService(repo_root=tmp_path)
+        service = PolicyCoverageService(path_resolver=PathResolver(tmp_path))
         assert service.executed_rules == set()
 
     def test_discover_rules_via_intent_no_intent_dir(self, tmp_path):
         """Test rule discovery when .intent directory doesn't exist"""
-        service = PolicyCoverageService(repo_root=tmp_path)
+        service = PolicyCoverageService(path_resolver=PathResolver(tmp_path))
         assert service.all_rules == []
 
     def test_discover_rules_via_intent_valid_policy(self, tmp_path):
@@ -105,7 +106,7 @@ class TestPolicyCoverageService:
         policy_file = policies_dir / "test_policy.json"
         policy_file.write_text(json.dumps(policy_data), encoding="utf-8")
 
-        service = PolicyCoverageService(repo_root=tmp_path)
+        service = PolicyCoverageService(path_resolver=PathResolver(tmp_path))
 
         assert len(service.all_rules) == 2
 
@@ -142,7 +143,7 @@ class TestPolicyCoverageService:
         policy_file = policies_dir / "test_policy.json"
         policy_file.write_text(json.dumps(policy_data), encoding="utf-8")
 
-        service = PolicyCoverageService(repo_root=tmp_path)
+        service = PolicyCoverageService(path_resolver=PathResolver(tmp_path))
 
         assert len(service.all_rules) == 1
         rule = service.all_rules[0]
@@ -157,12 +158,12 @@ class TestPolicyCoverageService:
         invalid_file = policies_dir / "invalid.json"
         invalid_file.write_text("{invalid json", encoding="utf-8")
 
-        service = PolicyCoverageService(repo_root=tmp_path)
+        service = PolicyCoverageService(path_resolver=PathResolver(tmp_path))
         assert service.all_rules == []
 
     def test_discover_rules_via_intent_standards_dir(self, tmp_path):
         """Test rule discovery from standards directory"""
-        standards_dir = tmp_path / ".intent" / "charter" / "standards"
+        standards_dir = tmp_path / ".intent" / "standards"
         standards_dir.mkdir(parents=True)
 
         policy_data = {
@@ -179,7 +180,7 @@ class TestPolicyCoverageService:
         policy_file = standards_dir / "standard_1.json"
         policy_file.write_text(json.dumps(policy_data), encoding="utf-8")
 
-        service = PolicyCoverageService(repo_root=tmp_path)
+        service = PolicyCoverageService(path_resolver=PathResolver(tmp_path))
 
         assert len(service.all_rules) == 1
         rule = service.all_rules[0]
@@ -188,7 +189,7 @@ class TestPolicyCoverageService:
 
     def test_run_no_rules_no_evidence(self, tmp_path):
         """Test run() with no rules and no evidence"""
-        service = PolicyCoverageService(repo_root=tmp_path)
+        service = PolicyCoverageService(path_resolver=PathResolver(tmp_path))
         report = service.run()
 
         assert isinstance(report, PolicyCoverageReport)
@@ -227,13 +228,13 @@ class TestPolicyCoverageService:
         policy_file.write_text(json.dumps(policy_data), encoding="utf-8")
 
         # Create evidence with one rule executed
-        evidence_path = tmp_path / "reports/audit/latest_audit.json"
+        evidence_path = tmp_path / "var/reports/audit/latest_audit.json"
         evidence_path.parent.mkdir(parents=True)
 
         evidence_data = {"executed_rules": ["enforced_rule"]}
         evidence_path.write_text(json.dumps(evidence_data), encoding="utf-8")
 
-        service = PolicyCoverageService(repo_root=tmp_path)
+        service = PolicyCoverageService(path_resolver=PathResolver(tmp_path))
         report = service.run()
 
         assert report.summary["rules_total"] == 2
@@ -282,11 +283,11 @@ class TestPolicyCoverageService:
         policy_file.write_text(json.dumps(policy_data), encoding="utf-8")
 
         # Evidence is empty (no rules executed)
-        evidence_path = tmp_path / "reports/audit/latest_audit.json"
+        evidence_path = tmp_path / "var/reports/audit/latest_audit.json"
         evidence_path.parent.mkdir(parents=True)
         evidence_path.write_text(json.dumps({"executed_rules": []}), encoding="utf-8")
 
-        service = PolicyCoverageService(repo_root=tmp_path)
+        service = PolicyCoverageService(path_resolver=PathResolver(tmp_path))
         report = service.run()
 
         assert report.summary["rules_total"] == 1
@@ -319,7 +320,7 @@ class TestPolicyCoverageService:
         policy_file = policies_dir / "test_policy.json"
         policy_file.write_text(json.dumps(policy_data), encoding="utf-8")
 
-        service = PolicyCoverageService(repo_root=tmp_path)
+        service = PolicyCoverageService(path_resolver=PathResolver(tmp_path))
         report = service.run()
 
         assert report.summary["rules_total"] == 1
@@ -369,13 +370,13 @@ class TestPolicyCoverageService:
         policy_file.write_text(json.dumps(policy_data), encoding="utf-8")
 
         # Evidence with only one rule executed
-        evidence_path = tmp_path / "reports/audit/latest_audit.json"
+        evidence_path = tmp_path / "var/reports/audit/latest_audit.json"
         evidence_path.parent.mkdir(parents=True)
 
         evidence_data = {"executed_rules": ["enforced_error"]}
         evidence_path.write_text(json.dumps(evidence_data), encoding="utf-8")
 
-        service = PolicyCoverageService(repo_root=tmp_path)
+        service = PolicyCoverageService(path_resolver=PathResolver(tmp_path))
         report = service.run()
 
         assert report.summary["rules_total"] == 4
@@ -390,7 +391,7 @@ class TestPolicyCoverageService:
 
     def test_run_report_structure(self, tmp_path):
         """Test the structure and data types of the generated report"""
-        service = PolicyCoverageService(repo_root=tmp_path)
+        service = PolicyCoverageService(path_resolver=PathResolver(tmp_path))
         report = service.run()
 
         # Check report has all required fields
@@ -445,7 +446,7 @@ class TestPolicyCoverageService:
         policy_file = policies_dir / "test_policy.json"
         policy_file.write_text(json.dumps(policy_data), encoding="utf-8")
 
-        service = PolicyCoverageService(repo_root=tmp_path)
+        service = PolicyCoverageService(path_resolver=PathResolver(tmp_path))
 
         # Check that enforcement is normalized to lowercase
         rule = service.all_rules[0]
