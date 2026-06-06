@@ -122,6 +122,49 @@ def test_non_awaiting_reaudit_sql_is_ignored() -> None:
     assert violations == []
 
 
+def test_drainer_sql_filtering_awaiting_reaudit_in_where_is_ignored() -> None:
+    """Drainer SQL transitions OUT of awaiting_reaudit — SET status to a
+    different terminal ('open' for release or 'resolved' for re-evaluation)
+    while filtering ``WHERE status = 'awaiting_reaudit'``. The ADR-091 §Revision
+    B invariant scopes to SET-INTO-awaiting_reaudit; the literal appearing as
+    a WHERE filter is unrelated. Regression for the regex bug where DOTALL +
+    non-greedy `.*?` between SET and the status check crossed past the actual
+    SET assignment and matched the WHERE-clause mention as if it were the SET
+    target. Mirrors the real ``adjudicate_awaiting_reaudit_findings`` SQL at
+    ``src/body/services/blackboard_service/blackboard_service.py``."""
+    violations = _check(
+        """
+        from sqlalchemy import text
+
+        async def drainer():
+            await session.execute(
+                text(
+                    \"\"\"
+                    UPDATE core.blackboard_entries
+                    SET status = 'open',
+                        updated_at = now()
+                    WHERE id = ANY(cast(:ids as uuid[]))
+                      AND status = 'awaiting_reaudit'
+                    \"\"\"
+                )
+            )
+            await session.execute(
+                text(
+                    \"\"\"
+                    UPDATE core.blackboard_entries
+                    SET status = 'resolved',
+                        resolved_at = now(),
+                        updated_at = now()
+                    WHERE id = ANY(cast(:ids as uuid[]))
+                      AND status = 'awaiting_reaudit'
+                    \"\"\"
+                )
+            )
+        """
+    )
+    assert violations == []
+
+
 def test_bare_schema_table_form_is_matched() -> None:
     """Schema-qualified `core.blackboard_entries` and bare `blackboard_entries`
     must both be recognized — the regex uses `(?:core\\.)?` precisely so

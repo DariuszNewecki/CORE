@@ -30,11 +30,14 @@ import re
 # Case-insensitive (SQL is conventionally case-insensitive even when the
 # codebase mixes cases), whitespace/newline-tolerant via re.DOTALL, schema-
 # qualified or bare. The `.*?` between table and SET allows any column list
-# or quoted aliases between them; the second `.*?` between SET and status
-# allows additional SET assignments (status assignments don't have to be
-# first in the SET clause).
+# or quoted aliases between them; the tempered `(?:(?!\bWHERE\b).)*?` between
+# SET and the status assignment allows additional SET assignments (status
+# doesn't have to be the first SET column) without crossing into the WHERE
+# clause — drainer UPDATEs legitimately filter on `status = 'awaiting_reaudit'`
+# in WHERE while SETting status to a different terminal value, and must not
+# trigger this rule.
 _AWAITING_REAUDIT_TRANSITION_RE = re.compile(
-    r"(?is)UPDATE\s+(?:core\.)?blackboard_entries\b.*?SET\b.*?\bstatus\s*=\s*'awaiting_reaudit'"
+    r"(?is)UPDATE\s+(?:core\.)?blackboard_entries\b.*?\bSET\b(?:(?!\bWHERE\b).)*?\bstatus\s*=\s*'awaiting_reaudit'"
 )
 
 # Matches the guard predicate anywhere in the SQL literal. Whitespace-tolerant.
