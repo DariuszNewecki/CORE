@@ -32,7 +32,6 @@ import logging
 import os
 import re
 import signal
-import subprocess
 import sys
 from pathlib import Path
 from typing import Any
@@ -45,6 +44,7 @@ from rich.table import Table
 from cli.utils import async_command
 from shared.infrastructure.intent.operational_config import load_operational_config
 from shared.logger import getLogger
+from shared.utils.subprocess_utils import list_all_processes, run_systemctl
 
 
 logger = getLogger(__name__)
@@ -223,14 +223,17 @@ def _systemctl(verb: str) -> int:
     The unit list is computed dynamically per ADR-081 D6 — lightweight
     core-daemon + core-api + one core-daemon-worker@<stem>.service instance
     per active worker declaring requires_dedicated_process: true.
+
+    Delegates to ``shared.utils.subprocess_utils.run_systemctl`` — the
+    dedicated sanctuary for systemctl invocations under
+    ``governance.dangerous_execution_primitives``.
     """
     units = _systemd_units()
-    cmd = ["systemctl", "--user", verb, *units]
-    result = subprocess.run(cmd, capture_output=True, text=True)
+    result = run_systemctl(verb, *units)
     if result.stdout:
-        console.print(result.stdout.rstrip())
+        console.print(result.stdout)
     if result.stderr:
-        console.print(f"[yellow]{result.stderr.rstrip()}[/yellow]")
+        console.print(f"[yellow]{result.stderr}[/yellow]")
     return result.returncode
 
 
@@ -295,21 +298,9 @@ def status() -> None:
     units = _systemd_units()
     systemd_pids: set[int] = set()
     for unit in units:
-        is_active = subprocess.run(
-            ["systemctl", "--user", "is-active", unit],
-            capture_output=True,
-            text=True,
-        ).stdout.strip()
-        show = subprocess.run(
-            [
-                "systemctl",
-                "--user",
-                "show",
-                unit,
-                "--property=MainPID,ActiveEnterTimestamp",
-            ],
-            capture_output=True,
-            text=True,
+        is_active = run_systemctl("is-active", unit).stdout
+        show = run_systemctl(
+            "show", unit, "--property=MainPID,ActiveEnterTimestamp"
         ).stdout
         props = dict(
             line.split("=", 1) for line in show.strip().splitlines() if "=" in line
@@ -369,11 +360,7 @@ def status() -> None:
     from shared.infrastructure.bootstrap_registry import BootstrapRegistry
 
     venv_python = f"{BootstrapRegistry.get_repo_path()}/.venv/bin/python"
-    ps = subprocess.run(
-        ["ps", "-eo", "pid,ppid,lstart,cmd"],
-        capture_output=True,
-        text=True,
-    ).stdout
+    ps = list_all_processes("pid,ppid,lstart,cmd")
 
     strays: list[str] = []
     skip_tokens = ("pytest", "ruff", "mypy", "core-admin daemon status")

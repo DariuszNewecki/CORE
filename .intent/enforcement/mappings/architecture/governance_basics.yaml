@@ -158,6 +158,13 @@
           # --- STANDARD CONFIG LAYER ---
           - "src/shared/logger.py"
           - "src/shared/config.py" # Authoritative env-var read surface
+          # operational_mode.py is the ADR-079 D4 authoritative surface for
+          # CORE_OPERATIONAL_MODE resolution — architectural peer to
+          # shared/config.py for the operational-mode taxonomy concern. Paper
+          # §6 fail-closed semantics live here; the chokepoint reads
+          # current_mode() once per check_transaction. Sanctuary by design
+          # rather than candidate for refactor.
+          - "src/shared/infrastructure/intent/operational_mode.py" # ADR-079 D4 authoritative surface
 
           # --- GIT INFRASTRUCTURE ---
           - "src/shared/infrastructure/git_service.py" # subprocess is the only git interface

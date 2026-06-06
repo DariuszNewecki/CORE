@@ -15,9 +15,10 @@ Mechanism: structural grep over ADR D-text for the artifact's path. No LLM.
 from __future__ import annotations
 
 import re
-import subprocess
 from datetime import date
 from pathlib import Path
+
+from shared.infrastructure.git_service import GitService
 
 from .base import CoherenceCandidate
 
@@ -104,32 +105,9 @@ class Row4NamingCheck:
         return texts
 
     def _git_first_seen(self, rel_path: str) -> date | None:
-        try:
-            result = subprocess.run(
-                [
-                    "git",
-                    "-C",
-                    str(self._repo_root),
-                    "log",
-                    "--diff-filter=A",
-                    "--format=%aI",
-                    "--",
-                    rel_path,
-                ],
-                capture_output=True,
-                text=True,
-                timeout=15,
-                check=False,
-            )
-        except (OSError, subprocess.TimeoutExpired):
-            return None
-        if result.returncode != 0 or not result.stdout.strip():
-            return None
-        last_line = result.stdout.strip().splitlines()[-1]
-        try:
-            return date.fromisoformat(last_line[:10])
-        except ValueError:
-            return None
+        """Delegate to GitService — the sole permitted subprocess sanctuary
+        for git operations under governance.dangerous_execution_primitives."""
+        return GitService(self._repo_root).first_seen_date(rel_path)
 
 
 def _iter_intent_artifacts(repo_root: Path):

@@ -17,6 +17,7 @@ from __future__ import annotations
 import shutil
 import subprocess
 import uuid
+from datetime import date
 from pathlib import Path
 
 from shared.infrastructure.intent.operational_config import load_operational_config
@@ -265,6 +266,39 @@ class GitService:
             ]
         except RuntimeError:
             return []
+
+    # ID: 9f1e8c4a-5b73-4d29-a6f0-2c8e7b5d1a93
+    def first_seen_date(self, rel_path: str) -> date | None:
+        """Return the date the file at *rel_path* was first added to git, or None.
+
+        Runs ``git log --diff-filter=A --format=%aI -- <rel_path>`` and parses
+        the OLDEST author-date returned. git log outputs in reverse chrono
+        order; the last line is the oldest matching commit, which for the
+        --diff-filter=A filter is the original add (re-adds after deletion
+        appear later in chrono and earlier in the output). Used by
+        ROW4_NAMING coherence check (per ADR-073 D6 / topology §10.2) to
+        derive the grandfather signal — artifacts whose first-seen date
+        predates topology paper acceptance are permitted regardless of
+        D-text naming coverage.
+
+        Fail-soft: returns None on git error, missing file, unparseable date,
+        or any other failure. The caller (ROW4_NAMING) treats "unknown
+        first-seen" as ungrandfathered.
+        """
+        try:
+            output = self._run_command(
+                ["log", "--diff-filter=A", "--format=%aI", "--", rel_path]
+            )
+        except RuntimeError:
+            return None
+        lines = output.splitlines() if output else []
+        if not lines:
+            return None
+        oldest = lines[-1]
+        try:
+            return date.fromisoformat(oldest[:10])
+        except ValueError:
+            return None
 
     # ID: 2204a851-0f11-495b-be3d-c0af82bb13ee
     def create_worktree(self, sha: str) -> ScopedGitService:

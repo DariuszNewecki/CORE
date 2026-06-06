@@ -85,3 +85,40 @@ def run_poetry_command(description: str, command: list[str]):
         if e.stderr:
             logger.error(e.stderr)
         raise SubprocessCommandError("poetry command failed.", exit_code=1) from e
+
+
+# ID: b58e3f7a-c12d-4856-9430-7d9e2c5a8b46
+def run_systemctl(*args: str) -> SubprocessResult:
+    """Run ``systemctl --user <args...>`` and return a typed SubprocessResult.
+
+    Sanctuary entry point for systemctl invocations per ADR-081 D6: CORE
+    delegates daemon-lifecycle (start/stop/restart) and service-inspection
+    (is-active, show) to systemd. Routing every systemctl call through this
+    helper keeps the dangerous-primitive surface confined to this module
+    (already exempted under governance.dangerous_execution_primitives) and
+    gives the rule's enforcement a single typed surface to track.
+    """
+    cmd = ["systemctl", "--user", *args]
+    logger.debug("Sync Exec: %s", " ".join(cmd))
+    result = subprocess.run(cmd, capture_output=True, text=True)
+    return SubprocessResult(
+        stdout=result.stdout.strip(),
+        stderr=result.stderr.strip(),
+        returncode=result.returncode,
+    )
+
+
+# ID: e74f1c9d-3a52-4837-b6c0-5f1a2d8e7c39
+def list_all_processes(format_spec: str) -> str:
+    """Run ``ps -eo <format_spec>`` and return the raw stdout.
+
+    Sanctuary entry point for ps invocations against the full process
+    table. Used by daemon-status stray-scan to detect orphan python
+    processes systemd doesn't own. format_spec is the ``-o`` option's
+    column list (e.g. ``"pid,ppid,lstart,cmd"``); raw output is returned
+    so the caller can parse the column layout it requested.
+    """
+    cmd = ["ps", "-eo", format_spec]
+    logger.debug("Sync Exec: %s", " ".join(cmd))
+    result = subprocess.run(cmd, capture_output=True, text=True)
+    return result.stdout
