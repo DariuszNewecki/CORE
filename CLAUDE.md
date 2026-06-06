@@ -25,13 +25,27 @@ Produce work that earns the verification.
 ```
 src/
   api/        — FastAPI routes and dependency providers only. No business logic.
-  body/       — Analyzers, actors, infrastructure workers. Execution layer.
-  shared/     — Cross-cutting: DB session, models, AST utilities, knowledge graph.
-  will/       — Autonomous developer and autonomy orchestration.
-  cli/        — Typer CLI commands. Rich rendering.
-.intent/      — The Mind: policies, workflows, constitutional rules (YAML).
+  body/       — Analyzers, atomic actions, services, infrastructure workers. Execution layer.
+  cli/        — Typer CLI commands. Rich rendering is allowed here only
+                (architecture.channels.cli_rendering_allowed).
+  mind/       — Constitutional logic engines (ast_gate, glob_gate, llm_gate, runtime_gate, …).
+                Reads .intent/ at runtime and evaluates rules. Mind layer in code: declares no
+                I/O, no execution, no Body or Will invocation. Permitted by
+                architecture.layer_exclusivity; constrained by architecture.mind.* and
+                architecture.layers.no_mind_execution.
+  shared/     — Cross-cutting substrate: DB session, models, AST utilities, knowledge graph,
+                intent infrastructure. Forbidden from importing src/mind/, src/body/, or
+                src/will/ (architecture.shared.no_layer_imports).
+  will/       — Autonomous developer, cognitive orchestration, agents.
+.intent/      — Governance law as data: YAML/JSON policies, rules, mappings, META schemas.
+                Read at runtime by IntentRepository; never imported as Python.
 .specs/       — Architectural reasoning: charter, papers, ADRs, requirements.
 ```
+
+The Mind/Body/Will distinction is between *code* layers (`src/mind/`, `src/body/`, `src/will/`)
+and *data* surfaces (`.intent/` is the governance law that `src/mind/` reads; `.specs/` is the
+reasoning behind it). They are not the same thing — do not conflate "the Mind" (`.intent/`)
+with "the Mind layer in code" (`src/mind/`).
 
 ---
 
@@ -187,79 +201,179 @@ at a different path — that is a container artifact, not a bug to fix.
 
 ---
 
-## Constitutional rules — NEVER violate these
+## Constitutional rules
 
-These rules are enforced by the system's own audit pipeline. Violating them will cause audit
-failures. Read them carefully before every edit.
+This section is a derived operational digest of constitutional rules. `.intent/` is canonical.
+On any divergence between this section and `.intent/`, `.intent/` wins; surface the
+divergence to the governor rather than resolving it in code.
 
-### 1. API layer: no direct database access
-**Rule ID**: `architecture.api.no_direct_database_access`
+Severity below is read from each rule's on-disk `enforcement` field, not inferred from the
+file the rule lives in. **Blocking** rules stop a commit through the audit pipeline.
+**Reporting / advisory** rules surface findings to the governor without blocking. On-disk
+enforcement enum is `blocking` / `reporting` / `advisory` (three tiers, per
+`.intent/META/rule_document.schema.json`); the digest groups the latter two into one
+operational bucket since both surface findings without blocking.
 
-Routes in `src/api/` MUST acquire DB sessions through `api.dependencies` only:
-- `get_api_session` — for route handlers
-- `open_background_session` — for background tasks
+At the time of this digest: 31 blocking + 27 reporting + 9 advisory = 67 rules. Verify by
+re-reading `.intent/rules/architecture/*.json` and
+`.intent/enforcement/mappings/architecture/*.yaml`.
 
-**Never** import from `shared.infrastructure.database` directly in any route file.
-`src/api/dependencies.py` is the ONLY file in the API layer permitted to do so.
+**Integrity check (run before trusting this digest).** The digest's rule-id set must equal
+the `.intent/rules/architecture/*.json` set. Re-derive with
+`jq -r '.rules[].id' .intent/rules/architecture/*.json | sort -u` and compare against the
+backticked ids below. A mismatch means the digest has drifted — surface it to the governor,
+don't edit around it.
 
-```python
-# CORRECT
-from api.dependencies import get_api_session, open_background_session
+### Blocking rules — stop a commit
 
-# WRONG — direct import in a route file
-from shared.infrastructure.database.session_manager import get_db_session
-```
+Format: `rule_id` — scope (`applies_to`) — one-line statement (MUST/SHOULD wording from the
+rule preserved).
 
-### 2. API layer: no body bypass
-**Rule ID**: `architecture.api.no_body_bypass`
+**Atomic actions (`src/body/atomic/`)**
 
-The API layer must not import Body services directly.
-App startup/lifespan is delegated to `body.infrastructure.lifespan.core_lifespan`.
-`CoreContext` is accessed via `request.app.state.core_context` — never constructed in routes.
+- `atomic_actions.must_have_decorator` — `src/body/atomic/**/*.py` — Functions registered with `@register_action` MUST also have `@atomic_action` with required metadata (action_id, intent, impact, policies).
+- `atomic_actions.must_return_action_result` — `src/body/atomic/**/*.py` — `@atomic_action` functions MUST declare `ActionResult` as their return type annotation and actually return `ActionResult` instances.
+- `atomic_actions.result_must_be_structured` — `src/body/atomic/**/*.py` — `ActionResult.data` MUST be a dictionary with string keys; nested structures permitted, top level must be a dict.
+- `atomic_actions.no_governance_bypass` — `src/body/atomic/**/*.py` — No atomic action MAY return types other than `ActionResult` to bypass governance validation; tuple returns are explicitly forbidden.
+- `atomic_actions.must_accept_kwargs` — `src/body/atomic/**/*.py` — `@atomic_action` functions MUST include `**kwargs` in their signature; the check fires at decoration (import) time.
+- `atomic_actions.impact_level_must_be_governed` — `src/body/atomic/**/*.py` — Action impact classification MUST be declared in `.intent/enforcement/config/action_risk.yaml` keyed by `action_id`, not embedded in registration calls in `src/`.
+- `atomic_actions.fix_action_scope` — `src/body/atomic/**/*.py` — `fix.imports` is exclusively scoped to import ordering/sorting; the separate `check.imports` action is the designated authority for import-resolution verification.
+- `architecture.flows.atomic_action_must_not_compose` — `src/body/atomic/**/*.py` — An `@atomic_action` MUST NOT internally invoke other registered AtomicActions via `ActionExecutor.execute()`; composition is the sole responsibility of a Flow.
 
-### 3. Body layer: no settings access
-Body layer components (`src/body/`) must never access the settings module directly.
-All configuration (repo root, prompt root, etc.) must arrive via dependency injection
-as explicit parameters. If a parameter is missing, return a `ComponentResult` with
-`ok=False` and a clear error message — fail fast.
+**Flows (`src/body/flows/`)**
 
-```python
-# CORRECT — body component receives config as parameter
-async def execute(self, repo_root: Path | None = None, **kwargs):
-    if repo_root is None:
-        return ComponentResult(ok=False, data={"error": "repo_root required..."})
+- `architecture.flows.flow_declared_in_intent` — `src/**/*.py` — Every Flow MUST be declared in `.intent/flows/*.yaml` and registered in `FlowRegistry`; Python-data-structure Flows are forbidden.
+- `architecture.flows.flow_must_not_post_to_blackboard` — `src/body/flows/**/*.py` — Flows MUST NOT call `post_finding()`, `post_report()`, `post_heartbeat()`, or INSERT/UPDATE `core.blackboard_entries`.
+- `architecture.flows.flow_must_not_create_proposals` — `src/body/flows/**/*.py` — Flows MUST NOT create, submit, or approve `Proposal` objects.
+- `architecture.flows.flow_must_propagate_write_false` — `src/body/flows/executor.py` — FlowExecutor MUST propagate `write=False` to every step; the flag is caller-supplied and immutable for the duration of a Flow execution.
 
-# WRONG — body component reaching for settings
-from shared.infrastructure.settings import settings
-repo_root = settings.repo_root
-```
+**Blackboard**
 
-### 4. Analyzers are pure functions
-All classes in `src/body/analyzers/` are PARSE phase components. They must be:
-- **Read-only** — no file writes, no DB writes, no side effects
-- **Deterministic** — same input → same output
-- **Phase-correct** — return `ComponentPhase.PARSE` from the `phase` property
+- `architecture.blackboard.worker_only_inserts` — `src/**/*.py` — INSERT against `core.blackboard_entries` MUST originate from the Worker base class; services and atomic actions route through `self.post_finding()` / `post_report()` / `post_heartbeat()`.
+- `architecture.blackboard.reaudit_requires_reaudit_mechanism` — `src/**/*.py` — Every UPDATE transitioning a row to `status='awaiting_reaudit'` MUST co-occur with `resolution_mechanism = 'reaudit'` in the same WHERE clause.
 
-### 5. Layer isolation: Mind and Will boundaries
-**Rule IDs**: `architecture.mind.no_database_access`, `architecture.mind.no_filesystem_writes`, `architecture.layers.no_body_to_will`
+**Privileged-boundary imports**
 
-- `src/will/` (Mind/Will) must **never** access the database directly — use Body services.
-- `src/will/` must **never** write files via `Path.write_text()` — all mutations go through `FileHandler` or `execution.commit_changes`.
-- `src/body/` must **never** import from `src/will/` — Body is the execution layer, Will is the cognitive layer above it.
+- `architecture.boundary.database_session_access` — `src/mind/**/*.py | src/will/**/*.py` — Only infrastructure, Body, and shared services MAY import `get_session` / `AsyncSession` directly; Mind and Will MUST use dependency injection.
+- `architecture.boundary.settings_access` — `src/body/**/*.py | src/mind/**/*.py | src/will/**/*.py` — Only infrastructure and bootstrap modules MAY import `Settings` directly; all other components MUST receive configuration through DI or environment abstraction.
+- `architecture.boundary.file_handler_access` — `src/mind/**/*.py | src/will/**/*.py` — Only Body and infrastructure MAY instantiate `FileHandler` directly; Will and Mind MUST delegate file operations to Body services.
+- `architecture.boundary.llm_client_access` — `src/body/**/*.py | src/mind/**/*.py` — Only Will and autonomous services MAY import LLM client infrastructure; Body MUST NOT make AI decisions, Mind MUST NOT invoke AI.
+- `architecture.shared.no_layer_imports` — `src/shared/**/*.py` — Shared infrastructure components MUST NOT import from `src/mind/`, `src/body/`, or `src/will/`. (Per ADR-049 D1/D3 the YAML carries 8 `excludes:` pending closure ADRs; no new excludes without a companion closure ADR.)
 
-### 6. The Mind is accessed only through IntentRepository
-The `.intent/` directory must be accessed exclusively via `IntentRepository`.
-Never `Path(".intent/...").read_text()` directly from Body, Will, or API code.
+**Channels — blocking**
 
-```python
-# CORRECT
-from shared.infrastructure.intent.intent_repository import get_intent_repository
-repo = get_intent_repository()
-repo.initialize()
+- `architecture.channels.logic_logger_only` — `src/**/*.py` — Non-UI runtime and logic modules MUST use the CORE standard logger for operational output.
+- `architecture.channels.api_structured_output_only` — `src/api/**/*.py` — API modules MUST communicate through structured response mechanisms and MUST NOT use terminal-oriented rendering.
 
-# WRONG — crawling .intent/ directly
-policies = list(Path(".intent/policies").glob("*.yaml"))
-```
+**Async / module-time / paths**
+
+- `async.no_manual_loop_run` — `src/**/*.py` — Logic modules MUST NOT call `asyncio.run()` or manually create new event loops.
+- `logic.di.no_global_session` — `src/features/**/*.py | src/body/services/**/*.py` — Modules MUST NOT import `get_session` globally; database access MUST be injected.
+- `architecture.no_module_async_engine` — `src/**/*.py` — Async execution engines MUST NOT be instantiated at module import time.
+- `architecture.path_access.no_hardcoded_runtime_dirs` — `src/**/*.py` — Runtime output directory names (logs, reports) MUST NOT appear as string literals in path construction in `src/`; route through `PathResolver` or `FileHandler`.
+
+**Patterns / mutation surface**
+
+- `architecture.patterns.action_pattern` — `src/body/atomic/**/*.py | src/cli/commands/**/*.py` — Action commands MUST use `@atomic_action` and have a `write` parameter defaulting to `False`.
+- `governance.mutation_surface.filehandler_required` — `src/**/*.py | features/**/*.py` — All filesystem writes MUST route through `FileHandler`; direct `write_text()`, `write_bytes()`, or `open(...)` in write/append mode are prohibited in production code.
+
+**Constitution / governance read-only**
+
+- `architecture.constitution_read_only` — `src/**/*.py` — The constitutional intent directory MUST be immutable.
+- `architecture.meta_read_only` — `src/**/*.py` — Intent schema and META artifacts MUST NOT be mutated at runtime.
+- `governance.constitution.read_only` — `src/**/*.py` — `.intent/**` MUST be treated as immutable by all system components.
+- `governance.logic_mutation.governed` — `src/**/*.py` — Permanent modifications to production logic within `src/` MUST occur only through governed mutation surfaces.
+
+### Reporting / advisory rules — surface findings, do not block
+
+Same format. Marked `[reporting]` or `[advisory]` per the on-disk `enforcement` field.
+
+**Layer scope — Mind (`src/mind/`)**
+
+- `architecture.mind.no_database_access` — `src/mind/**/*.py` — Mind layer components MUST NOT import database session infrastructure (`get_session`). [reporting]
+- `architecture.mind.no_filesystem_writes` — `src/mind/**/*.py` — Mind layer components MUST NOT write to filesystem. [reporting]
+- `architecture.mind.no_body_invocation` — `src/mind/**/*.py` — Mind layer components MUST NOT import or invoke Body layer. [reporting]
+- `architecture.mind.no_will_invocation` — `src/mind/**/*.py` — Mind layer components MUST NOT import or invoke Will layer. [reporting]
+- `architecture.layers.no_mind_execution` — `src/mind/**/*.py` — Mind layer components MUST NOT perform I/O operations or invoke actions. [reporting]
+- `architecture.mind.no_execution_semantics` — `src/mind/**/*.py` — Mind components MUST NOT contain execution logic (risk classification, decision-making, caching strategies, validation enforcement). [reporting]
+- `architecture.mind.execution_signal` — `src/mind/**/*.py` — Pre-selector flagging files with structural markers of execution semantics for review (produces no verdict). [reporting]
+
+**Layer scope — Body (`src/body/`)**
+
+- `architecture.body.no_rule_evaluation` — `src/body/**/*.py` — Body layer components MUST NOT evaluate constitutional rules directly. [reporting]
+- `architecture.layers.no_body_to_will` — `src/body/**/*.py` — Body layer components MUST NOT import or invoke Will layer. [reporting; narrow 4-sub-path scope per ADR-049 D1 pending tightening to bare prefix]
+
+**Layer scope — Will (`src/will/`)**
+
+- `architecture.will.no_direct_database_access` — `src/will/**/*.py` — Will layer components MUST NOT import `get_session` directly. [reporting]
+- `architecture.will.no_filesystem_operations` — `src/will/**/*.py` — Will layer components SHOULD delegate filesystem operations to Body. [reporting — SHOULD, not MUST]
+- `architecture.will.must_delegate_to_body` — `src/will/agents/**/*.py | src/will/orchestration/**/*.py` — Will orchestration components SHOULD import and delegate to Body services. [reporting]
+
+**Layer scope — API (`src/api/`)**
+
+- `architecture.api.no_direct_database_access` — `src/api/**/*.py | src/api/*.py` — API layer components MUST NOT import `get_session` directly. Sanctioned repositories and services accessed via `api/dependencies.py` and named providers ARE permitted; the broader "MUST NOT access infrastructure directly" framing is superseded by ADR-049 D1 (§6). [reporting]
+- `architecture.api.must_route_through_will` — `src/api/**/*_routes.py` — API route handlers SHOULD delegate all logic to Will layer. [reporting; API → Will use-case layer recorded as architectural debt per ADR-049 D1]
+- `architecture.api.no_body_bypass` — `src/api/**/*.py | src/api/*.py` — API layer components SHOULD NOT directly import Body services. [reporting]
+
+**Layer scope — Shared (`src/shared/`)**
+
+- `architecture.shared.no_strategic_decisions` — `src/shared/**/*.py` — Shared infrastructure components MUST NOT make strategic decisions or orchestrate workflows. [reporting]
+- `architecture.layer_exclusivity` — `src/**/*.py` — All `src/` Python files MUST reside within a constitutional layer (`mind/`, `body/`, `will/`), a sanctioned infrastructure directory (`shared/`, `api/`), or be a root entry point. [reporting]
+
+**Channels — non-blocking**
+
+- `architecture.channels.logic_no_terminal_rendering` — `src/**/*.py` — Non-UI runtime and logic modules MUST NOT perform terminal-oriented rendering. [reporting]
+- `architecture.channels.cli_rendering_allowed` — `src/cli/**/*.py` — CLI surface modules MAY use terminal-oriented rendering for user-facing output. [reporting — positive permission]
+- `architecture.channels.logger_not_presentation` — `src/**/*.py` — The CORE logger MUST be used for operational logging and MUST NOT be used as a presentation renderer. [reporting]
+
+**Logging / governance — non-blocking**
+
+- `logic.logging.standard_only` — `src/**/*.py` — Operational logs MUST use standard `getLogger` and avoid f-strings for lazy evaluation. [reporting]
+- `governance.artifact_mutation.traceable` — `src/**/*.py` — System artifacts, logs, and reports SHOULD be generated via `FileHandler` to ensure audit traceability. [reporting]
+- `governance.dangerous_execution_primitives` — `src/**/*.py` — Dangerous primitives (`eval`, `exec`, `compile`, `subprocess`) require documented justification; Will MUST NOT use them; Body MAY use them in designated sanctuary modules with clear operational need. [reporting]
+
+**Intent access — non-blocking**
+
+- `architecture.intent.no_legacy_root_assumptions` — `src/**/*.py` — Governance consumers MUST NOT hardcode legacy `.intent` root assumptions (`policies/`, `standards/`, `charter/policies/`). [reporting]
+- `architecture.namespace.no_direct_protected_access` — `src/**/*.py` — Non-gateway Python components MUST NOT discover, scan, or load `.intent` governance artifacts through direct filesystem crawling or local parsing logic; access MUST route through shared intent infrastructure. [reporting]
+- `architecture.intent.gateway_is_shared_infrastructure` — `src/**/*.py` — Components outside `src/shared/infrastructure/intent/` SHOULD consume `.intent` through that layer rather than implementing local resolvers. [reporting]
+
+**Modernization — non-blocking**
+
+- `modernization.legacy_signal` — `src/**/*.py` — Pre-selector flagging files with structural markers of legacy / shim / deprecation for evolutionary-purity review (no verdict). [reporting]
+- `modernization.legacy_scars` — `src/**/*.py` — Source code SHOULD be free of obsolete structural shims, unused parameters from prior iterations, and internal logic wrappers that bypass the Universal Workflow Pattern. [advisory]
+
+**Workers / discovery / quality — advisory**
+
+- `architecture.flows.worker_must_not_hardwire_sequence` — `src/**/workers/**/*.py | src/shared/workers/**/*.py` — A Worker's `run()` method MUST NOT contain an explicit ordered sequence of `ActionExecutor.execute()` calls that could be extracted into a named Flow. [advisory]
+- `architecture.artifact_discovery_through_registry` — declared-only (no enforcement mapping) — Discovery components (sensors, validators, crawlers) MUST consult the artifact_type registry via `IntentRepository.list_artifact_types()` / `get_artifact_type(id)`; hardcoded extension-based discovery globs are forbidden. [advisory]
+- `governance.intent_meta.required` — `.intent/META/GLOBAL-DOCUMENT-META-SCHEMA.json` — A single META directory MUST exist at `.intent/META` to serve as the authoritative contract for intent artifacts. [advisory]
+- `governance.no_governance_bypass` — `src/**/*.py` — No action or workflow MAY bypass governance validation; if a precondition cannot be evaluated, the operation MUST be blocked. [advisory]
+- `modularity.unix_philosophy` — `src/**/*.py` — Components SHOULD follow UNIX philosophy: do one thing well, compose via clear interfaces, minimize coupling. [advisory]
+- `quality.type_safety` — `src/**/*.py` — Production code SHOULD be type-safe as verified by MyPy static analysis. [advisory]
+- `quality.security_audit` — `pyproject.toml` — The project dependency tree SHOULD be free of known vulnerabilities as verified by pip-audit. [advisory]
+- `quality.test_integrity` — `tests/**/*.py` — The project test suite SHOULD be functional and passing without collection errors. [advisory]
+
+### Operational corollaries
+
+A few operational corollaries follow from the rule set; they are not separate constitutional
+claims, just the practical shape of conforming code:
+
+- API routes acquire DB sessions through `api.dependencies` (`get_api_session` for handlers,
+  `open_background_session` for background tasks). `src/api/dependencies.py` is the single
+  sanctioned site for the `shared.infrastructure.database` import; direct imports elsewhere
+  in `src/api/` trip `architecture.api.no_direct_database_access`.
+- Body components receive configuration via DI (`repo_root`, `prompt_root`, …); on missing
+  parameters return `ComponentResult(ok=False, …)` rather than reaching for `settings`. This
+  is the practical shape of `architecture.boundary.settings_access`.
+- `.intent/` is accessed through `IntentRepository` (`get_intent_repository().initialize()`),
+  never through raw `Path(".intent/…").read_text()` or `glob()`. This is the practical shape
+  of `architecture.namespace.no_direct_protected_access` /
+  `architecture.intent.gateway_is_shared_infrastructure`.
+- Analyzers in `src/body/analyzers/` are PARSE-phase components: read-only, deterministic,
+  side-effect-free, returning `ComponentPhase.PARSE`. This sits under
+  `architecture.body.no_rule_evaluation` and the general phase discipline (see "Component
+  phases" below).
 
 ---
 
