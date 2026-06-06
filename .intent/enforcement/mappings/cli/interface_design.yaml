@@ -45,6 +45,15 @@ mappings:
     engine: cli_gate
     params:
       check_type: standard_verbs
+      # 2026-06-06 vocabulary expansion: 20 standard CLI idioms added
+      # (bootstrap, build, check, dashboard, down, explain, health, import,
+      # purge, remediate, repair-counts, report, resolve, restart, run,
+      # start, supersede, sync-env, triage, up) covering systemd-style
+      # daemon control, healthchecks, dashboards, and other idioms the
+      # rule was flagging on legitimate uses. Noun-shaped command names
+      # (blackboard, capabilities, commands, search.search) are not
+      # added — they are genuine drift and remain architectural-judgment
+      # per ADR-095 D1 posture.
       allowed_verbs:
         - actions
         - analyze
@@ -52,7 +61,10 @@ mappings:
         - audit
         - audit-duplicates
         - baseline
+        - bootstrap
+        - build
         - chat
+        - check
         - check-imports
         - check-ui
         - clarity
@@ -60,11 +72,14 @@ mappings:
         - complexity
         - coverage
         - create
+        - dashboard
         - delete
         - docs
         - docstrings
+        - down
         - drift
         - execute
+        - explain
         - export
         - export-context
         - fix-atomic
@@ -72,8 +87,10 @@ mappings:
         - forensics
         - format
         - format-imports
-        - get
         - generate
+        - get
+        - health
+        - import
         - info
         - inspect
         - legacy
@@ -84,31 +101,43 @@ mappings:
         - new
         - onboard
         - patterns
+        - purge
         - query
+        - rebuild
+        - refactor
         - refactor-settings
         - refusals
         - reject
-        - rebuild
-        - refactor
+        - remediate
+        - repair-counts
+        - report
+        - resolve
         - resolve-duplicates
+        - restart
         - rewire
         - rewire-imports
+        - run
         - score
         - self-check
         - set
         - show
+        - start
         - stats
         - status
         - strategic_audit
         - suggest
         - summary
+        - supersede
         - sync
         - sync-code
+        - sync-env
         - sync-registry
         - tag
         - test
         - test-stability
         - traces
+        - triage
+        - up
         - validate
         - validate-env
         - verify

@@ -381,14 +381,21 @@ async def _query_dashboard_data(session: Any) -> dict[str, Any]:
     # `abandoned` is split per memory `reference_blackboard_abandoned_two_semantics`
     # (governor decision 2026-06-04, Option A on #563):
     #   - Type A (sensor-by-design audit trail: worker.silent::*, worker.error,
-    #     *.cycle_error, *.scope_collision::*, loop_hold.sample::*) folds into
-    #     `resolved` as resolved-by-policy. The loop_hold.sample::* class was
-    #     added 2026-06-06: it is the ADR-081 D7 worker_process_classification
+    #     *.cycle_error, *.scope_collision::*, loop_hold.sample::*,
+    #     coherence.violation_executor.blast_bound) folds into `resolved` as
+    #     resolved-by-policy. The loop_hold.sample::* class was added
+    #     2026-06-06: it is the ADR-081 D7 worker_process_classification
     #     telemetry stream (operational_config.telemetry_subject_prefixes;
     #     emitted by runtime_gate.py:188) — explicitly sensor-by-design, not
     #     stuck remediation. Without this class it accounted for ~96% of
     #     Panel 4's "abandoned" headline (8,437 rows / 25 distinct subjects
-    #     recycling ~337x/subject).
+    #     recycling ~337x/subject). The coherence.violation_executor.blast_bound
+    #     class was added 2026-06-06 as a sibling fix: per ADR-070 D8 the
+    #     writer-as-sensor pattern posts an OPEN finding every cycle the
+    #     per-cycle cap fires (audit-trail record per its rule body), not a
+    #     stuck-remediation signal. Without this class, a chronically
+    #     saturated cap accumulated ~100 OPEN rows of one subject and
+    #     dominated the inbox under "Delegate (indeterminate)."
     #   - Type B (python::* audit-violation rows abandoned by violation_executor) goes to
     #     `stuck` — the real "daemon cannot self-heal" signal, kept outside both
     #     created and resolved.
@@ -411,6 +418,7 @@ async def _query_dashboard_data(session: Any) -> dict[str, Any]:
                         WHEN subject LIKE '%.cycle_error' THEN 'type_a'
                         WHEN subject LIKE '%.scope_collision::%' THEN 'type_a'
                         WHEN subject LIKE 'loop_hold.sample::%' THEN 'type_a'
+                        WHEN subject = 'coherence.violation_executor.blast_bound' THEN 'type_a'
                         ELSE 'type_b'
                     END) AS classification
                 FROM core.blackboard_entries
@@ -663,6 +671,7 @@ async def _query_dashboard_data(session: Any) -> dict[str, Any]:
             AND subject NOT LIKE '%.cycle_error'
             AND subject NOT LIKE '%.scope_collision::%'
             AND subject NOT LIKE 'loop_hold.sample::%'
+            AND subject <> 'coherence.violation_executor.blast_bound'
             """),
         )
     ).fetchone()
