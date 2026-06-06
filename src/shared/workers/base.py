@@ -263,20 +263,58 @@ class Worker(ABC):
     # -------------------------------------------------------------------------
 
     # ID: e9594dc5-0100-49c1-9000-135b2613f7c0
-    async def post_finding(self, subject: str, payload: dict[str, Any]) -> uuid.UUID:
+    async def post_finding(
+        self,
+        subject: str,
+        payload: dict[str, Any],
+        *,
+        resolution_mechanism: str,
+    ) -> uuid.UUID:
         """Post a new finding to the blackboard. Returns the entry ID.
 
-        DEPRECATED by ADR-091 D2 in favour of ``post_artifact_finding`` which
-        constructs canonical subject strings from declaration metadata
-        (``<artifact_type>::<sub_namespace>::<identity_key_value>``). Removed
-        in ADR-091 D5 Phase 6. Existing sensors continue using this API during
-        the two-API coexistence window (Phases 1-6).
+        The single, canonical finding-posting API under ADR-091 D2
+        Revision B. ``resolution_mechanism`` declares which authority class
+        may close this finding and gates ADR-045 awaiting_reaudit
+        eligibility — the invariant is:
+
+            A finding may be transitioned to awaiting_reaudit if and only
+            if its resolution_mechanism = 'reaudit'.
+
+        Permitted values (closed set per
+        ``.intent/META/enums.json`` ``finding_resolution_mechanism``):
+
+        - ``reaudit`` — the owning audit/sensor worker re-evaluates the
+          subject's truth claim against a re-readable artifact; eligible
+          for ADR-045's parked-revival queue. Artifact findings posted
+          via :meth:`post_artifact_finding` carry this automatically.
+        - ``self_resolve`` — the posting supervisor worker (or a service
+          it explicitly delegates to) owns the open → resolved transition
+          on a later cycle when live state recovers. Not eligible for
+          awaiting_reaudit. The emitting worker's module docstring MUST
+          name the resolver path per Revision B (d)'s resolver-ownership
+          invariant.
+        - ``human`` — closing authority is a human operator only, via
+          ``core-admin blackboard resolve``. Not eligible for
+          awaiting_reaudit; conservative default for findings with no
+          automated closer.
+
+        ``resolution_mechanism`` is keyword-only with no default so every
+        caller classifies at the call site (same write-boundary discipline
+        ADR-011 imposes on attribution). The DB-side CHECK enforces the
+        closed set; no raw-SQL bypass exists.
+
+        For artifact findings (re-readable subjects with a typed
+        ``artifact_type`` declaration) prefer :meth:`post_artifact_finding`
+        — it constructs the canonical
+        ``<artifact_type>::<sub_namespace>::<identity_key_value>`` subject
+        and supplies ``resolution_mechanism="reaudit"`` for you.
         """
         return await self._post_entry(
             entry_type="finding",
             subject=subject,
             payload=payload,
             status="open",
+            resolution_mechanism=resolution_mechanism,
         )
 
     # ID: 7f9d2a1c-3b8e-4d05-9c6f-1e8a7b4c2d50
@@ -302,10 +340,14 @@ class Worker(ABC):
           (e.g. ``test.runner`` permits ``test.runner.missing``). Same
           transition allowance applies when ``rule_namespace`` is absent.
 
-        Phase 1 of ADR-091 D5 introduces this API alongside the legacy
-        ``post_finding(subject, payload)``. Sensors migrate to this method
-        in Phases 3 and 5 with concurrent Blackboard subject rewrites. Phase 6
-        removes the legacy method and renames this one to ``post_finding``.
+        Phase 1 of ADR-091 D5 introduced this API alongside
+        ``post_finding(subject, payload)``. Sensors migrated to this method
+        through Phases 3, 5, and 6. Under Revision B of the D2 amendment
+        (accepted 2026-06-05) ``post_finding`` is the single canonical
+        finding API and is retained — this method is its typed-parameter
+        wrapper for artifact findings, supplying ``resolution_mechanism =
+        "reaudit"`` automatically. The Phase 6 commit-2 "remove the legacy
+        method" plan is superseded.
         """
         scope = self._declaration["mandate"].get("scope") or {}
         declared_types = scope.get("artifact_type") or []
@@ -344,11 +386,10 @@ class Worker(ABC):
             )
 
         subject = f"{artifact_type}::{sub_namespace}::{identity_key_value}"
-        return await self._post_entry(
-            entry_type="finding",
+        return await self.post_finding(
             subject=subject,
             payload=payload,
-            status="open",
+            resolution_mechanism="reaudit",
         )
 
     # ID: 1b5d39a0-8d4c-475c-bcf5-5d50af2c6c2e
@@ -385,8 +426,13 @@ class Worker(ABC):
 
         - abandoned: "workers gave up but the underlying issue persists;
           sensor MAY re-emit on a fresh detection." Right for transient
-          failures (sync.db.failed, worker.silent) and for per-event
-          records where the same root condition recurs (yield receipts).
+          failures (sync.db.failed) and for per-event records where the
+          same root condition recurs (yield receipts). worker.silent is
+          NOT a canonical example here — under ADR-091 D2 Revision B it
+          is a self_resolve open finding (post_finding with
+          resolution_mechanism='self_resolve'), not a terminal-at-creation
+          observation; the resolver is WorkerShopManager's in-Python
+          resolve_entries pass when the worker resumes heartbeating.
         - indeterminate: "no worker may claim or transition without
           explicit revival." Right for detection-only audits that need
           governor review (orphan SHA detection).
@@ -586,6 +632,7 @@ class Worker(ABC):
         subject: str,
         payload: dict[str, Any],
         status: str,
+        resolution_mechanism: str | None = None,
     ) -> uuid.UUID:
         """
         Write a constitutional record to the blackboard.
@@ -595,6 +642,12 @@ class Worker(ABC):
 
         Payload is sanitized to ASCII before insert — the DB is SQL_ASCII
         encoded and will reject non-ASCII characters with UntranslatableCharacterError.
+
+        resolution_mechanism is non-omittable for entry_type='finding' (the
+        callers post_finding / post_artifact_finding enforce that at their
+        signatures) and forbidden for every other entry_type. The DB-side
+        CHECK blackboard_entry_resolution_mechanism_closed_set enforces both
+        halves; see ADR-091 D2 Revision B.
         """
         import json
 
@@ -608,9 +661,10 @@ class Worker(ABC):
                     text(
                         """
                         insert into core.blackboard_entries
-                            (id, worker_uuid, entry_type, phase, status, subject, payload, resolved_at)
+                            (id, worker_uuid, entry_type, phase, status, subject, payload, resolution_mechanism, resolved_at)
                         values
                             (:id, :worker_uuid, :entry_type, :phase, :status, :subject, cast(:payload as jsonb),
+                             :resolution_mechanism,
                              case when :status in ('resolved', 'abandoned', 'indeterminate') then now() else null end)
                     """
                     ),
@@ -622,6 +676,7 @@ class Worker(ABC):
                         "status": status,
                         "subject": subject,
                         "payload": json.dumps(_sanitize_payload(payload)),
+                        "resolution_mechanism": resolution_mechanism,
                     },
                 )
 

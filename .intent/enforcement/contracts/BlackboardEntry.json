@@ -4,7 +4,7 @@
     "metadata": {
         "id": "contracts.blackboard_entry",
         "title": "BlackboardEntry — constitutional coordination ledger row contract",
-        "version": "1.0.1",
+        "version": "1.0.2",
         "authority": "constitution",
         "status": "active"
     },
@@ -79,6 +79,10 @@
         "updated_at": {
             "type": "string",
             "description": "Row last-update timestamp. NOT NULL, server default now()."
+        },
+        "resolution_mechanism": {
+            "type": "string",
+            "description": "Closing-authority classification for finding rows. Non-omittable for entry_type='finding'; forbidden (NULL) for every other entry_type. Governed vocabulary: finding_resolution_mechanism enum in .intent/META/enums.json — values reaudit | self_resolve | human. Gates ADR-045 awaiting_reaudit eligibility per the ADR-091 D2 invariant: a finding may be transitioned to awaiting_reaudit if and only if its resolution_mechanism = 'reaudit'. Enforced at the DB layer by blackboard_entry_resolution_mechanism_closed_set CHECK. Authority: ADR-091 D2 Revision B."
         }
     },
     "allOf": [
@@ -110,6 +114,22 @@
             },
             "then": {
                 "properties": {"status": {"const": "open"}}
+            }
+        },
+        {
+            "description": "RESOLUTION_MECHANISM: entry_type=finding entries MUST carry a resolution_mechanism value from the finding_resolution_mechanism enum; non-finding entries MUST omit it (NULL). Mirrors the DB CHECK blackboard_entry_resolution_mechanism_closed_set so the data contract and the constraint cannot drift. Authority: ADR-091 D2 Revision B.",
+            "if": {
+                "required": ["entry_type"],
+                "properties": {"entry_type": {"const": "finding"}}
+            },
+            "then": {
+                "required": ["resolution_mechanism"],
+                "properties": {
+                    "resolution_mechanism": {
+                        "type": "string",
+                        "enum": ["reaudit", "self_resolve", "human"]
+                    }
+                }
             }
         }
     ]

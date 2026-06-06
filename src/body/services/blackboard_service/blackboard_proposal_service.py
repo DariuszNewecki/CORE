@@ -193,6 +193,19 @@ class BlackboardProposalService:
                 # RETURNING id, subject so the Worker can persist both in
                 # the revival report payload (IDs for queries, subjects for
                 # audit trails).
+                #
+                # ADR-091 D2 Revision B reaudit guard:
+                #   AND resolution_mechanism = 'reaudit'
+                # The load-bearing invariant — only findings whose emitter
+                # declared resolution_mechanism='reaudit' may be parked into
+                # awaiting_reaudit. self_resolve and human findings are
+                # constitutionally barred from this transition because
+                # ADR-045's sensor-re-audit machinery has nothing to bind
+                # to for them (no owning audit sensor, no re-readable
+                # artifact). The predicate makes the invariant structural
+                # in SQL: a non-reaudit finding cannot be revived to
+                # awaiting_reaudit even if every other predicate matches.
+                # See ADR-091 lines 668-845 (Revision B (b), Accepted).
                 update_result = await session.execute(
                     text(
                         """
@@ -203,6 +216,7 @@ class BlackboardProposalService:
                             resolved_at = NULL,
                             updated_at = now()
                         WHERE entry_type = 'finding'
+                          AND resolution_mechanism = 'reaudit'
                           AND status = 'deferred_to_proposal'
                           AND payload->>'proposal_id' = :proposal_id
                         RETURNING id, subject

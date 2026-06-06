@@ -19,12 +19,37 @@ Constitutional standing:
 - Approval:         false — findings are observations only
 - Schedule:         max_interval=300s
 
-Out of scope: recovery / unstick logic. The worker only detects and
-posts findings — see issue #170 explicit out-of-scope note.
+Out of scope: recovery / unstick logic for the *proposal itself*. The
+worker does not advance, retry, or terminate stuck/failed proposals —
+that's the operator's responsibility. The worker DOES however own the
+open → resolved transition of its OWN findings; see the resolution
+classification block below.
 
 LAYER: will/workers — supervisory worker. Reads core.autonomous_proposals
 via the body-layer ProposalSupervisionService. Writes findings to
 Blackboard via the Worker base class. No LLM. No file writes.
+
+ADR-091 D2 Revision B resolution classification:
+- Subject prefixes:      proposal.stuck_approved::<proposal_id>
+                         proposal.stuck_executing::<proposal_id>
+                         proposal.repeated_failure::<action_id>::<rule_id>
+- resolution_mechanism:  self_resolve
+- Resolver path:         this worker's own run() method, in-Python
+                         resolve_entries loop. After the three flagging
+                         passes, every open proposal.* finding whose
+                         subject is NOT in this cycle's flagged_subjects
+                         set is resolved via
+                         BlackboardService.resolve_entries — the finding
+                         clears when the proposal exits its stuck status
+                         (operator unstuck, retry, terminate) or the
+                         repeated-failure window slides past the
+                         threshold. The "out of scope" line above refers
+                         to recovery of the *proposal*, not closure of
+                         the *finding* this worker posted — the latter
+                         is in scope per Revision B (d).
+- Not eligible for ADR-045 awaiting_reaudit: proposal pipeline state is
+  live runtime state; there is no re-readable artifact for a sensor to
+  re-evaluate against.
 """
 
 from __future__ import annotations
@@ -148,6 +173,7 @@ class ProposalPipelineShopManager(Worker):
                     "seconds_stuck": row["seconds_stuck"],
                     "sla_seconds": _CFG.stuck_approved_sla_sec,
                 },
+                resolution_mechanism="self_resolve",
             )
             flagged += 1
             logger.warning(
@@ -171,6 +197,7 @@ class ProposalPipelineShopManager(Worker):
                     "seconds_stuck": row["seconds_stuck"],
                     "sla_seconds": _CFG.stuck_executing_sla_sec,
                 },
+                resolution_mechanism="self_resolve",
             )
             flagged += 1
             logger.warning(
@@ -199,6 +226,7 @@ class ProposalPipelineShopManager(Worker):
                     "last_failure_at": _isoformat(row["last_failure_at"]),
                     "sample_proposal_ids": row["proposal_ids"],
                 },
+                resolution_mechanism="self_resolve",
             )
             flagged += 1
             logger.warning(

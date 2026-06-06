@@ -157,6 +157,15 @@
         "finding_suppressed"
       ]
     },
+    "finding_resolution_mechanism": {
+      "description": "Closing-authority classification for entry_type='finding' rows on core.blackboard_entries. Declared at write time; non-omittable for findings, forbidden for non-findings (enforced by blackboard_entry_resolution_mechanism_closed_set CHECK). Gates ADR-045 awaiting_reaudit eligibility per the ADR-091 D2 invariant: a finding may be transitioned to awaiting_reaudit if and only if its resolution_mechanism = 'reaudit'. (1) reaudit — closing authority is the owning audit/sensor worker re-evaluating the subject's truth claim against a re-readable artifact; eligible for ADR-045's parked-revival queue. Carriers today: every caller of post_artifact_finding (audit.violation, test.run_required, prompt.artifact). (2) self_resolve — closing authority is the posting supervisor worker (or a service it explicitly delegates to) on a later cycle when live state recovers; NOT eligible for awaiting_reaudit. Requires a documented resolver path on the emitting worker per the resolver-ownership invariant (Revision B (d)). Carriers today: worker.silent (worker_shop_manager in-Python resolve_entries), blackboard.entry_stale (blackboard_shop_manager → SQL resolve_stale_alerts_for_terminal_targets), proposal.{stuck_approved, stuck_executing, repeated_failure} (proposal_pipeline_shop_manager in-Python resolve_entries). (3) human — closing authority is a human operator only, via core-admin blackboard resolve; NOT eligible for awaiting_reaudit. Conservative default for findings with no automated closer and for unclassified legacy rows during backfill. Orthogonal to the abandoned/suppressed re-emission axis (blackboard_entry_status) which governs what a sensor does after a terminal state; resolution_mechanism governs who may close an open finding. Authority: ADR-091 D2 Revision B (2026-06-05).",
+      "type": "string",
+      "enum": [
+        "reaudit",
+        "self_resolve",
+        "human"
+      ]
+    },
     "blackboard_entry_type": {
       "description": "Canonical values for BlackboardEntry.entry_type. Governed by ADR-056 D5 (#366). Posted via shared/workers/base.py post_finding/post_report/post_heartbeat helpers. The 'claim' value is reserved for future use; current workers track claims via status='claimed' on existing entries rather than posting a new entry_type='claim'. The 'proposal' value is used by the proposal pipeline.",
       "type": "string",

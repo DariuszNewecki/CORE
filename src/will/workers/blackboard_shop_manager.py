@@ -34,6 +34,22 @@ run_loop(). Sanctuary starts run_loop() once on bootstrap.
 
 LAYER: will/workers — supervisory worker. Reads Blackboard only.
 Writes findings to Blackboard. No LLM. No file writes.
+
+ADR-091 D2 Revision B resolution classification:
+- Subject prefix:        blackboard.entry_stale::<entry_id>
+- resolution_mechanism:  self_resolve
+- Resolver path:         named delegate — BlackboardService's
+                         resolve_stale_alerts_for_terminal_targets SQL
+                         sweep (and the ADR-082 DELEGATE-class OPEN
+                         finding TTL sweep above). The blackboard.entry_stale
+                         finding is auto-resolved when its referenced
+                         target entry itself reaches a terminal status.
+                         This worker does NOT run an in-Python resolve
+                         loop for its own findings; closure is delegated
+                         to the named service.
+- Not eligible for ADR-045 awaiting_reaudit: stale-entry alerts observe
+  live runtime state of other Blackboard rows; there is no re-readable
+  artifact for a sensor to re-evaluate against.
 """
 
 from __future__ import annotations
@@ -189,6 +205,7 @@ class BlackboardShopManager(Worker):
                     "age_seconds": entry["age_seconds"],
                     "sla_seconds": entry["sla_seconds"],
                 },
+                resolution_mechanism="self_resolve",
             )
             flagged += 1
             logger.warning(

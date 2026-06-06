@@ -20,6 +20,20 @@ Sanctuary starts run_loop() once on bootstrap.
 LAYER: will/workers — supervisory worker. Reads worker_registry, reads
 .intent/workers/ declarations for scheduled workers. Writes to Blackboard
 only. No LLM. No file writes.
+
+ADR-091 D2 Revision B resolution classification:
+- Subject prefix:        worker.silent::<worker_uuid>
+- resolution_mechanism:  self_resolve
+- Resolver path:         this worker's own run() method, in-Python
+                         resolve_entries loop. After the flagging pass,
+                         every open worker.silent::* finding whose subject
+                         is NOT in this cycle's flagged set is resolved
+                         via BlackboardService.resolve_entries — the
+                         finding clears when the absent worker resumes
+                         heartbeating and falls back under threshold.
+- Not eligible for ADR-045 awaiting_reaudit: worker liveness is a live
+  runtime signal with no re-readable artifact for a sensor to re-evaluate;
+  the constitutional cut is per ADR-091 D2.
 """
 
 from __future__ import annotations
@@ -185,6 +199,7 @@ class WorkerShopManager(Worker):
                         "seconds_silent": seconds_silent,
                         "threshold": threshold,
                     },
+                    resolution_mechanism="self_resolve",
                 )
                 flagged += 1
                 logger.warning(

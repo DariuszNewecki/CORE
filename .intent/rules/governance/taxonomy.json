@@ -3,8 +3,8 @@
     "kind": "rule_document",
     "metadata": {
         "id": "rules.governance.taxonomy",
-        "title": "Operational-Capability Taxonomy Backing",
-        "version": "1.0.0",
+        "title": "Taxonomy Backing and Resolver-Ownership Invariants",
+        "version": "1.1.0",
         "authority": "constitution",
         "phase": "audit",
         "status": "active"
@@ -23,6 +23,21 @@
                     ".intent/taxonomies/operational_capabilities.yaml"
                 ],
                 "notes": "Context-level check — the substrate is the whole YAML cross-referenced against AST decorations across src/. Per-file dispatch is never engaged. The taxonomy file appears in scope so a YAML edit triggers re-evaluation; the src/ glob ensures the same on any decoration change."
+            }
+        },
+        {
+            "id": "governance.taxonomy.self_resolve_resolver_owned",
+            "statement": "Every distinct subject prefix appearing on a post_finding(..., resolution_mechanism='self_resolve') call site in `src/` MUST be backed by a documented resolver path in the emitting worker's module docstring AND a unit test proving open → resolved transition when the underlying runtime condition clears. A self_resolve subject prefix with no documented resolver or no resolution test is a constitutional violation: it would make self_resolve a no-automated-closer escape hatch (which is what the `human` resolution_mechanism value exists for).",
+            "enforcement": "reporting",
+            "authority": "constitution",
+            "phase": "audit",
+            "rationale": "ADR-091 D2 Revision B (d) — the resolver-ownership invariant. self_resolve declares that the emitting worker (or a service it explicitly names) owns the open → resolved transition for the subject prefix. Without this rule, self_resolve would silently degrade into 'no automated closer' over time as call sites are added or refactored — exactly the failure mode the closed-vocabulary resolution_mechanism field was meant to prevent. The check is two-part: (1) AST sweep for self_resolve post_finding call sites in src/, mapping each to its subject prefix; (2) for each prefix, verify the emitting module's docstring contains the canonical 'ADR-091 D2 Revision B resolution classification:' block naming the resolver path, AND verify at least one passing test in tests/ exercises the open → resolved transition (or the documented scope-decision exemption per Revision B (h)). Engine implementation is deferred to a follow-up issue per ADR-091 D2 commit 1c scoping; this rule ships as advisory in the interim so the constitutional content is on the books from commit 1c forward. The five surviving sites at commit 1c (three shop managers, five call sites total) carry the docstring resolver block; their tests live at tests/will/workers/test_resolution_mechanism_classification.py. Target enforcement: blocking once the engine lands and one audit cycle confirms the surviving five sites pass.",
+            "scope": {
+                "paths": [
+                    "src/**/*.py",
+                    "tests/**/*.py"
+                ],
+                "notes": "Context-level check — the substrate is every self_resolve post_finding call site cross-referenced against the emitting module's docstring and tests/. Per-file dispatch is never engaged. The src/ glob ensures the check re-fires on any new call site; the tests/ glob ensures it re-fires when a covering test is added or removed."
             }
         }
     ]
