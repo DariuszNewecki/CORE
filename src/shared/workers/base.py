@@ -496,6 +496,15 @@ class Worker(ABC):
             subject=subject,
             payload=payload,
             status=status,
+            # ADR-091 D2 Revision B: observation findings are
+            # terminal-at-creation records with no automated closer; they
+            # match the constitutional definition of the `human` closing
+            # authority ("no automated closer at all"). Classifying them
+            # `human` also keeps them constitutionally barred from
+            # awaiting_reaudit by the same predicate that guards
+            # self_resolve findings, which is correct — observations have
+            # no re-readable artifact for an audit sensor to re-evaluate.
+            resolution_mechanism="human",
         )
 
     # -------------------------------------------------------------------------

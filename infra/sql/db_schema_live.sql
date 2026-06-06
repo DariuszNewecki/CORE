@@ -842,7 +842,7 @@ CREATE TABLE core.blackboard_entries (
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
     CONSTRAINT blackboard_entry_status_closed_set CHECK ((status = ANY (ARRAY['open'::text, 'claimed'::text, 'awaiting_reaudit'::text, 'resolved'::text, 'abandoned'::text, 'deferred_to_proposal'::text, 'dry_run_complete'::text, 'indeterminate'::text, 'suppressed'::text]))),
-    CONSTRAINT blackboard_entry_resolution_mechanism_closed_set CHECK (((entry_type = 'finding'::text AND resolution_mechanism = ANY (ARRAY['reaudit'::text, 'self_resolve'::text, 'human'::text])) OR (entry_type <> 'finding'::text AND resolution_mechanism IS NULL)))
+    CONSTRAINT blackboard_entry_resolution_mechanism_closed_set CHECK (((entry_type = 'finding'::text AND resolution_mechanism IS NOT NULL AND resolution_mechanism = ANY (ARRAY['reaudit'::text, 'self_resolve'::text, 'human'::text])) OR (entry_type <> 'finding'::text AND resolution_mechanism IS NULL)))
 );
 
 
