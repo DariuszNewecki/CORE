@@ -152,3 +152,139 @@ CORE's working hypothesis is that the constitution shall be verified, not assume
 This URS records the governor's requirement that CORE begin consuming its own URSs. The first instrument is a Verifier — a sensor. The first verdict shape is per-criterion, deterministic, declared-classification-driven, with author authority preserved over verification strategy. Decomposer, ADR proposer, and the full intake pipeline framed in the CONCEPT remain ahead; this URS is the foundation under them.
 
 The CONCEPT §11 Reception records the four external reviews that shaped this URS's scope. The convergence — MVP-narrow, sensor reframe, declared classification, author authority, decomposer deferred — is baked into the requirements above. The divergences that survived are recorded as paper-scope decisions (criterion manifest storage form, double-duty resolution) so the downstream paper author can adjudicate with full context.
+
+---
+
+## Appendix A — Criterion Manifest (provisional shape, per ADR-093 D8)
+
+Per ADR-093 D8, this URS retrofits its own criterion manifest to close the recursive defect surfaced after authoring: R-011 of this URS rejects any URS without a manifest as malformed by construction; the URS authoring itself would have failed that test. The manifest below is provisional — its exact storage form (embedded YAML, separate manifest file, structured table) is paper-scope per ADR-093 D5. The shape used here is an embedded YAML block as a working stake in the ground.
+
+The four other pre-URS-line URSs are grandfathered per ADR-093 D7 and do not require this retrofit.
+
+```yaml
+criteria:
+  - id: R-001
+    claim: "Every URS shall declare its acceptance criteria with id, claim, verification_class, and verifier_hint per criterion."
+    verification_class: behavioral
+    verifier_hint: >
+      Walk .specs/requirements/*.md; for each URS, parse the manifest
+      (provisional: an Appendix A YAML block matching this shape). Emit a
+      finding when a URS file post-URS-line lacks a manifest, or when a
+      criterion in any manifest is missing one of {id, claim,
+      verification_class, verifier_hint}.
+
+  - id: R-002
+    claim: "The Verifier is implemented as a worker of class: sensing under .intent/workers/, sharing the existing daemon cycle."
+    verification_class: mechanical
+    verifier_hint: >
+      grep .intent/workers/ for a worker declaration whose
+      implementation maps to the Verifier (e.g.,
+      urs_satisfaction_sensor.yaml) carrying identity.class = sensing
+      and mandate.scope.artifact_type referencing a registered F-41
+      artifact_type covering .specs/requirements/.
+
+  - id: R-003
+    claim: "Verifier verdicts are deterministic, per-criterion, from the closed set {satisfied, unsatisfied, unverifiable_no_evidence_path, requires_human_evidence, misclassified}; no LLM in the verdict path."
+    verification_class: behavioral
+    verifier_hint: >
+      Run the Verifier against a fixture URS designed to exercise each
+      verdict class. Assert: (a) emitted verdicts are drawn only from
+      the closed set; (b) two consecutive runs over unchanged input
+      produce identical verdicts (determinism); (c) no llm_exchange_log
+      entries reference the Verifier's worker_uuid during a run.
+
+  - id: R-004
+    claim: "When a criterion's declared verification_class does not resolve, the Verifier emits a 'misclassified' finding and does not silently reclassify."
+    verification_class: behavioral
+    verifier_hint: >
+      Fixture URS declares a criterion with
+      verification_class: mechanical but a verifier_hint that resolves
+      to no mechanical evidence path. Assert the Verifier emits
+      verdict: misclassified for that criterion (not satisfied,
+      unsatisfied, or silently routed under a different class).
+
+  - id: R-005
+    claim: "Finding subjects follow the pattern urs::<urs_id>::<criterion_id> per ADR-091 D2 canonical format; satisfied criteria emit no findings."
+    verification_class: mechanical
+    verifier_hint: >
+      After a Verifier run, query core.blackboard_entries for subjects
+      emitted by the Verifier worker_uuid. Assert: (a) every subject
+      matches the pattern '^urs::[a-z_-]+::[A-Z]-[0-9]+$' (or the
+      paper-scope refinement of it); (b) no subject corresponds to a
+      satisfied criterion in the input URS.
+
+  - id: R-006
+    claim: "Every criterion with verification_class: behavioral has at least one fixture file under .intent/ or .specs/."
+    verification_class: mechanical
+    verifier_hint: >
+      For each behavioral criterion across all URS manifests, resolve
+      its declared fixture reference (paper-scope to specify the
+      reference field). Emit a finding when the referenced fixture
+      file does not exist or lives outside .intent/ or .specs/.
+
+  - id: R-007
+    claim: "The Verifier module declares its trusted kernel as an explicit, reviewable list."
+    verification_class: mechanical
+    verifier_hint: >
+      Verifier module exposes a constant or module attribute (e.g.,
+      TRUSTED_KERNEL) enumerating the trusted-kernel files. The list
+      is reachable by import and inspectable in one sitting (paper-scope
+      to specify the inspection-time bound).
+
+  - id: R-008
+    claim: "Every Verifier run produces a coverage manifest enumerating every URS and every criterion as checked or skipped (with rationale)."
+    verification_class: mechanical
+    verifier_hint: >
+      Verifier run output includes a coverage manifest section. Assert:
+      (a) the manifest enumerates every URS file under .specs/requirements/;
+      (b) every criterion in every URS is marked checked or skipped;
+      (c) skipped entries carry a non-empty rationale field.
+
+  - id: R-009
+    claim: "The Verifier verdict and the standard audit verdict are independent: a system may hold a clean audit and unsatisfied URS findings, or vice versa."
+    verification_class: behavioral
+    verifier_hint: >
+      Exercise: (a) clean standard audit + Verifier finds an
+      unsatisfied criterion → Verifier surfaces the finding; standard
+      audit verdict unchanged. (b) Standard audit finds a violation +
+      all URS criteria satisfied → standard audit surfaces the
+      violation; Verifier verdict reports satisfied. Verify both
+      surfaces report independently.
+
+  - id: R-010
+    claim: "The Verifier is invokable as a normal CORE operation; findings flow through the standard blackboard and appear on the governor dashboard."
+    verification_class: mechanical
+    verifier_hint: >
+      Verifier sensor is registered in the daemon's worker registry;
+      its findings appear in core.blackboard_entries with the urs::
+      namespace; the governor dashboard's Convergence Direction panel
+      counts them alongside other findings.
+
+  - id: R-011
+    claim: "A URS authored post-URS-line without a manifest fails the Verifier's first invocation on it (authoring obligation, upstream gate)."
+    verification_class: behavioral
+    verifier_hint: >
+      Author a fixture URS file under .specs/requirements/ without a
+      manifest. Assert the Verifier's coverage manifest reports it as
+      checked with verdict: malformed_no_manifest (or paper-scope
+      refinement), and a corresponding finding is emitted on the
+      blackboard.
+
+  - id: R-012
+    claim: "A misclassified verdict on one criterion does not halt evaluation of other criteria in the same URS or other URSs."
+    verification_class: behavioral
+    verifier_hint: >
+      Author a fixture URS with one misclassified criterion among many
+      well-formed ones. Assert the Verifier completes the full pass,
+      emits one misclassified finding for the bad criterion, and emits
+      verdicts (satisfied / unsatisfied / etc.) for every other
+      criterion in the same URS and in every subsequent URS in the
+      run.
+```
+
+Notes on the manifest's provisional shape:
+
+- The YAML block lives in the URS body for now (Appendix A). The future paper may move it to a separate `.urs.manifest.yaml` file, to a structured table, or to a frontmatter-style section.
+- `verifier_hint` is free-form prose because the verifier_hint vocabulary is explicitly paper-scope per the URS §6 Non-Requirements list. The paper may constrain it later.
+- `evidence_required`, `unverifiable_behavior`, and similar fields proposed by Reviewer 4 in the CONCEPT §11 Reception are not yet included — they remain paper-scope. The minimum manifest above is what R-001 strictly requires.
+- This appendix is itself the Manifest. Once the paper specifies a different storage form, the appendix migrates and this URS gets an amendment noting the move.

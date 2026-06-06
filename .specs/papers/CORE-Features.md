@@ -376,8 +376,9 @@ and it is fully artifact-agnostic.
 
 ---
 
-<a id="F-20"></a>
-**F-20 — Convergence graph dashboard**
+<a id="E-20"></a>
+<a id="F-20"></a> <!-- redirect: F-20 → E-20 per ADR-093 D3 (2026-06-06) -->
+**E-20 — Convergence graph dashboard**
 Status: `roadmap` | Scope: `primitive` | Sourcing: `commercial` | Shape: `sidecar` (ADR-084 D1)
 
 A web UI rendering the convergence metric as a time-series graph. Finding rate
@@ -564,8 +565,9 @@ workers, dashboard) is common.
 
 ---
 
-<a id="F-34"></a>
-**F-34 — Web dashboard**
+<a id="E-34"></a>
+<a id="F-34"></a> <!-- redirect: F-34 → E-34 per ADR-093 D3 (2026-06-06) -->
+**E-34 — Web dashboard**
 Status: `roadmap` | Scope: `primitive` | Sourcing: `commercial` | Shape: `sidecar` (ADR-084 D1)
 
 Browser-based governance interface. Views: convergence graph (F-20), proposal
@@ -598,8 +600,9 @@ mandatory.
 
 ---
 
-<a id="F-37"></a>
-**F-37 — Regulatory export (GxP / EU AI Act)**
+<a id="E-37"></a>
+<a id="F-37"></a> <!-- redirect: F-37 → E-37 per ADR-093 D3 (2026-06-06) -->
+**E-37 — Regulatory export (GxP / EU AI Act)**
 Status: `roadmap` | Scope: `primitive` | Sourcing: `commercial` | Shape: `plugin` (atomic action, ADR-084 D1)
 
 Structured, signed export of the full consequence chain formatted for
@@ -724,8 +727,9 @@ and reclassifying an existing `open` stamp is foreclosed by §1.
 
 ---
 
-<a id="F-44"></a>
-**F-44 — Premium rule libraries (industry packs)**
+<a id="E-44"></a>
+<a id="F-44"></a> <!-- redirect: F-44 → E-44 per ADR-093 D3 (2026-06-06) -->
+**E-44 — Premium rule libraries (industry packs)**
 Status: `roadmap` | Scope: `source-code instantiation` | Sourcing: `commercial` | Shape: `plugin` (`.intent/rules/` overlay via F-04 loader, ADR-084 D2)
 
 Curated rule packs targeting regulated-industry compliance domains. Initial
@@ -741,8 +745,9 @@ monetises authorship, not capability.
 
 ---
 
-<a id="F-45"></a>
-**F-45 — Hosted findings dashboard**
+<a id="E-45"></a>
+<a id="F-45"></a> <!-- redirect: F-45 → E-45 per ADR-093 D3 (2026-06-06) -->
+**E-45 — Hosted findings dashboard**
 Status: `roadmap` | Scope: `source-code instantiation` | Sourcing: `commercial` | Shape: `sidecar` (consumes F-40, ADR-084 D3)
 
 A cloud-hosted web UI rendering audit findings (F-09) for Audit-tier customers
@@ -757,8 +762,9 @@ stateful Blackboard. They are different surfaces and do not overlap.
 
 ---
 
-<a id="F-46"></a>
-**F-46 — Cloud audit export (signed)**
+<a id="E-46"></a>
+<a id="F-46"></a> <!-- redirect: F-46 → E-46 per ADR-093 D3 (2026-06-06) -->
+**E-46 — Cloud audit export (signed)**
 Status: `roadmap` | Scope: `source-code instantiation` | Sourcing: `commercial` | Shape: `plugin` (atomic action via F-43, ADR-084 D2)
 
 Structured, cryptographically signed export of audit findings (and, where Solo+
@@ -843,7 +849,7 @@ Constitutionally load-bearing per ADR-084 D7 §4 (library-grade openness).
 | F-17 | Full consequence chain | shipping | primitive | open |
 | F-18 | Commit-level attribution | shipping | source-code instantiation | open |
 | F-19 | Convergence metric | shipping | primitive | open |
-| F-20 | Convergence graph dashboard | roadmap | primitive | commercial |
+| E-20 | Convergence graph dashboard | roadmap | primitive | commercial |
 | F-21 | Daemon runtime | shipping | primitive | open |
 | F-22 | Worker declaration model | shipping | primitive | open |
 | F-23 | Blackboard coordination ledger | shipping | primitive | open |
@@ -857,34 +863,31 @@ Constitutionally load-bearing per ADR-084 D7 §4 (library-grade openness).
 | F-31 | Shared consequence chain (multi-user) | roadmap | primitive | commercial |
 | F-32 | Role-based constitutional authority (RBAC) | roadmap | primitive | commercial |
 | F-33 | Multi-repository support | roadmap | primitive | commercial |
-| F-34 | Web dashboard | roadmap | primitive | commercial |
+| E-34 | Web dashboard | roadmap | primitive | commercial |
 | F-35 | Federated constitution | roadmap | primitive | commercial |
 | F-36 | SSO / SAML / OIDC | roadmap | primitive | commercial |
-| F-37 | Regulatory export (GxP / EU AI Act) | roadmap | primitive | commercial |
+| E-37 | Regulatory export (GxP / EU AI Act) | roadmap | primitive | commercial |
 | F-38 | Air-gapped deployment (guaranteed) | roadmap | primitive | commercial |
 | F-39 | SLA support | roadmap | primitive | commercial |
 | F-40 | OEM API surface | shipping | primitive | commercial |
 | F-41 | Artifact type registry | shipping | extension | open |
 | F-42 | Pluggable sensor model | shipping | extension | open |
 | F-43 | Pluggable action model | shipping | extension | open |
-| F-44 | Premium rule libraries (industry packs) | roadmap | source-code instantiation | commercial |
-| F-45 | Hosted findings dashboard | roadmap | source-code instantiation | commercial |
-| F-46 | Cloud audit export (signed) | roadmap | source-code instantiation | commercial |
+| E-44 | Premium rule libraries (industry packs) | roadmap | source-code instantiation | commercial |
+| E-45 | Hosted findings dashboard | roadmap | source-code instantiation | commercial |
+| E-46 | Cloud audit export (signed) | roadmap | source-code instantiation | commercial |
 | F-47 | Managed Qdrant | roadmap | primitive | commercial |
 | F-48 | Open library distribution (PyPI + Docker registry) | shipping | primitive | open |
 
-**Shipping: 34** | **Partial: 0** | **Roadmap: 14**
+**Class split (ADR-093, 2026-06-06):** F-NN (Features, built into the engine): 42 entries — 34 shipping / 8 roadmap. E-NN (Extensions, attach via published interfaces): 6 entries — 0 shipping / 6 roadmap.
+
+**Shipping: 34** | **Partial: 0** | **Roadmap: 14** (all 14 roadmap entries are commercial — 8 F-NN engine-shape + 6 E-NN extension-shape; pre-ADR-093 line read "3 open F-41/F-42/F-43 + 14 commercial," which became stale when F-41/F-42/F-43 shipped 2026-06-05/06).
 
 Of the 34 shipping features: 21 are primitives, 10 are source-code instantiations, 3 are plugin-interfaces (F-41 + F-42 + F-43).
 
 **Sourcing split:** Open: 33 | Commercial: 15.
-Of the 31 shipping features, **30 are open and 1 is commercial** — F-40
-is the first commercial-sourced feature to reach `shipping`, by virtue
-of being the sidecar-interface contract whose substance is the open
-public API surface itself (ADR-084 D6: no commercial-only API surface).
-Of the 17 roadmap features, **3 are open** (F-41–F-43 extension interfaces)
-and **14 are commercial** (F-20 dashboard; F-31–F-39 Team/Enterprise/Embedded;
-F-44–F-47 commercial extensions of shipping primitives, ADR-083).
+Of the 34 shipping features (post-2026-06-06 with F-41/F-42/F-43 + F-43 shipped per the extension-interfaces trio), 33 are open and 1 is commercial (F-40 — the sidecar-interface contract whose substance is the open public API surface itself, ADR-084 D6: no commercial-only API surface).
+Of the 14 roadmap features (all commercial): 8 are F-NN engine-shape (F-31/F-32/F-33/F-35/F-36 runtime-fork + F-38 air-gapped + F-39 SLA + F-47 managed Qdrant) and 6 are E-NN extension-shape (E-20 + E-34 + E-37 + E-44 + E-45 + E-46 — the migrated entries per ADR-093 D3).
 
 ### 4.1 Commercial-surface shape buckets (ADR-084 D8)
 
@@ -896,8 +899,8 @@ each §3 entry restates this per-feature.
 
 | Shape | Open contract it uses | Count | F-IDs |
 |---|---|:---:|---|
-| Plugin | F-04 loader (rule packs), F-41/F-42/F-43 (artifact types, sensors, actions), atomic action registry | 3 | F-37, F-44, F-46 |
-| Sidecar | F-40 OEM API surface | 4 | F-20, F-34, F-45, F-47 |
+| Plugin | F-04 loader (rule packs), F-41/F-42/F-43 (artifact types, sensors, actions), atomic action registry | 3 | E-37, E-44, E-46 |
+| Sidecar | F-40 OEM API surface | 4 | E-20, E-34, E-45, F-47 |
 | Runtime fork | open codebase as published library | 5 | F-31, F-32, F-33, F-35, F-36 |
 | Build overlay (outside taxonomy) | signed image + configuration, not a feature shape | 1 | F-38 |
 | Not software (outside taxonomy) | n/a | 1 | F-39 |

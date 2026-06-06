@@ -1,5 +1,7 @@
 <!-- path: .specs/decisions/ADR-084-commercial-surface-taxonomy-and-open-core-honesty.md -->
 
+> **Note (2026-06-06, per ADR-093 D3 + D6):** F-20, F-34, F-37, F-44, F-45, F-46 references in this ADR's body now point at E-20, E-34, E-37, E-44, E-45, E-46 (the Extension class, attaching via published interfaces). F-31/F-32/F-33/F-35/F-36 (runtime-fork engine-shape), F-38 (build overlay), F-39 (not software), F-47 (managed infrastructure) remain F-NN. Body text preserved verbatim per ADR-074 D13 + ADR-080 §D5 append-only discipline. The §D8 commercial-surface shape buckets still describe the correct architectural truth — only the namespace prefix on the bucket members has changed.
+
 # ADR-084 — Commercial-surface taxonomy, add-on architecture, and the open-core honesty contract
 
 **Date:** 2026-06-02

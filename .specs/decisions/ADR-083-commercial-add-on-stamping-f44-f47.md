@@ -1,5 +1,7 @@
 <!-- path: .specs/decisions/ADR-083-commercial-add-on-stamping-f44-f47.md -->
 
+> **Note (2026-06-06, per ADR-093 D3 + D6):** F-44, F-45, F-46 references in this ADR's body now point at E-44, E-45, E-46 (the Extension class, attaching via published interfaces). F-47 remains F-NN (managed-infrastructure shape, does not attach via published API per F-40.4 verification). Body text preserved verbatim per ADR-074 D13 + ADR-080 §D5 append-only discipline. The filename, title, and historical commit references retain their original "F-44–F-47" form for archaeological continuity.
+
 # ADR-083 — Stamping Tier 1/2 commercial add-ons as F-44–F-47
 
 **Date:** 2026-06-02
