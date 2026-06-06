@@ -69,6 +69,39 @@ Mind defines what is allowed, required, or forbidden. It contains machine-readab
 Meta → Constitution → Policy → Code
 ```
 
+In `.intent/` this expands to a chain that ends at the engines which actually read `src/`:
+
+```mermaid
+flowchart TD
+    META[".intent/META/<br/>schemas + meta-rules<br/><i>how rules are written</i>"]
+    CONST[".intent/constitution/<br/>founding rules<br/><i>what CORE will not do</i>"]
+    RULES[".intent/rules/<br/>executable rule definitions"]
+    MAP[".intent/enforcement/mappings/<br/>rule → engine + file scope"]
+    ENG["Engines<br/>ast_gate · glob_gate · intent_gate<br/>knowledge_gate · workflow_gate<br/>regex_gate · llm_gate"]
+    CODE["src/"]
+    BB["blackboard_entries<br/>audit.violation::&lt;rule&gt;"]
+
+    META --> CONST
+    CONST --> RULES
+    RULES --> MAP
+    MAP --> ENG
+    ENG --> CODE
+    CODE -.->|violates| BB
+    BB -.->|cites| RULES
+
+    classDef law       fill:#d1e7ff,stroke:#0d6efd,stroke-width:2px
+    classDef binding   fill:#fff3cd,stroke:#ffc107,stroke-width:2px
+    classDef engine    fill:#e7f5e7,stroke:#28a745,stroke-width:2px
+    classDef observed  fill:#f8f9fa,stroke:#495057,stroke-width:2px
+
+    class META,CONST,RULES law
+    class MAP binding
+    class ENG engine
+    class CODE,BB observed
+```
+
+Every executable rule has a mapping; every mapping names exactly one engine; every engine reads files only — never the other way around. Violations land on the blackboard as `audit.violation::<rule>` and cite back at the rule that produced them, which is how the [Proof Index](proof-index.md) audit-state query observes them.
+
 **Mind never executes. Mind never mutates. Mind defines law.**
 
 The `.intent/` directory is the authoritative source for operational governance. It is human-authored and immutable at runtime. CORE cannot write to it. No autonomous operation can amend constitutional law.
@@ -96,6 +129,40 @@ INTERPRET → PLAN → GENERATE → VALIDATE → STYLE CHECK → EXECUTE
 Body contains deterministic, atomic components: analyzers, evaluators, file operations, git services, test runners, CLI commands.
 
 **Body performs mutations. Body does not judge. Body does not govern.**
+
+---
+
+## How an Action Executes
+
+Every mutation in CORE flows through one path. Workers do not call each other; they post to the blackboard. `ProposalConsumerWorker` claims approved proposals and dispatches them through `ActionExecutor`, which is the only caller permitted to invoke an `@atomic_action`. The decorator refuses any other caller — a direct call raises `GovernanceBypassError`.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant W as Worker / Will
+    participant BB as blackboard_entries
+    participant PC as ProposalConsumerWorker
+    participant AE as ActionExecutor
+    participant AA as "@atomic_action"
+    participant AR as core.action_results
+    participant AVS as AuditViolationSensor
+
+    W->>BB: post proposal
+    BB->>PC: claim (status=open)
+    PC->>AE: execute(action_id, params)
+    AE->>AE: set governance token
+    AE->>AA: invoke decorated function
+    AA-->>AE: ActionResult(ok, data, impact)
+    AE->>AR: INSERT row (audit trail)
+    AE-->>PC: ActionResult
+    PC->>BB: post report (status=resolved)
+    AVS->>BB: post audit.violation::<rule> if scan finds one
+```
+
+Two things this diagram makes structural:
+
+- **No bypass.** The governance token is set inside `ActionExecutor.execute` and read by the `@atomic_action` decorator. A direct call (step 5 without step 3) finds no token and refuses. This is the mechanism behind row 2 of the [Proof Index](proof-index.md).
+- **No untracked mutation.** Every successful step 5 produces a step 7 — a row in `core.action_results` with `agent_id = 'ActionExecutor'`. The audit trail is the record of what ran, not a summary of what was attempted. This is row 4 of the [Proof Index](proof-index.md).
 
 ---
 
