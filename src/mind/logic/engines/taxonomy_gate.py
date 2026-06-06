@@ -55,9 +55,12 @@ logger = getLogger(__name__)
 
 _DECORATOR_BACKING_CHECK = "operational_capabilities_decorator_backing"
 _SENSOR_SUPPORT_CHECK = "sensor_supported_by_declaration"
+_SELF_RESOLVE_RESOLVER_OWNED_CHECK = "self_resolve_resolver_owned"
 _YAML_REL_PATH = ".intent/taxonomies/operational_capabilities.yaml"
 _WORKERS_REL_DIR = ".intent/workers"
 _ARTIFACT_TYPES_REL_DIR = ".intent/artifact_types"
+_TESTS_REL_DIR = "tests"
+_RESOLVER_DOCSTRING_BLOCK = "ADR-091 D2 Revision B resolution classification:"
 
 
 # ID: 8c4e1f7b-2d6a-4b58-9e3c-1a7f6d4b5e89
@@ -93,8 +96,12 @@ class TaxonomyGateEngine(BaseEngine):
     @classmethod
     # ID: f3a8d672-5c19-4e2b-b481-6d9e7f3a2c14
     def is_context_level_for(cls, check_type: str | None) -> bool:
-        """Both checks are cross-artifact, not per-file."""
-        return check_type in (_DECORATOR_BACKING_CHECK, _SENSOR_SUPPORT_CHECK)
+        """All three checks are cross-artifact, not per-file."""
+        return check_type in (
+            _DECORATOR_BACKING_CHECK,
+            _SENSOR_SUPPORT_CHECK,
+            _SELF_RESOLVE_RESOLVER_OWNED_CHECK,
+        )
 
     def __init__(self, path_resolver: PathResolver) -> None:
         """Initialize with the audit's path resolver — used for the repo-root
@@ -139,6 +146,8 @@ class TaxonomyGateEngine(BaseEngine):
             return self._build_decorator_backing_findings(context.repo_path)
         if check_type == _SENSOR_SUPPORT_CHECK:
             return self._build_sensor_support_findings(context.repo_path)
+        if check_type == _SELF_RESOLVE_RESOLVER_OWNED_CHECK:
+            return self._build_self_resolve_findings(context.repo_path)
         return [
             AuditFinding(
                 check_id="taxonomy_gate.unknown_check_type",
@@ -146,7 +155,8 @@ class TaxonomyGateEngine(BaseEngine):
                 message=(
                     f"taxonomy_gate: unknown check_type {check_type!r}; "
                     f"valid values: {_DECORATOR_BACKING_CHECK!r}, "
-                    f"{_SENSOR_SUPPORT_CHECK!r}"
+                    f"{_SENSOR_SUPPORT_CHECK!r}, "
+                    f"{_SELF_RESOLVE_RESOLVER_OWNED_CHECK!r}"
                 ),
                 file_path="none",
             )
@@ -284,6 +294,79 @@ class TaxonomyGateEngine(BaseEngine):
             )
         return findings
 
+    def _build_self_resolve_findings(self, repo_root: Path) -> list[AuditFinding]:
+        """Compute the ADR-091 D2 Revision B (d) resolver-ownership findings.
+
+        Every distinct subject prefix appearing on a
+        post_finding(..., resolution_mechanism='self_resolve') call site in
+        src/ MUST be backed by (1) a documented resolver path in the
+        emitting worker's module docstring (the canonical
+        "ADR-091 D2 Revision B resolution classification:" block) AND
+        (2) at least one test under tests/ that references the subject prefix
+        as a string.
+
+        The check walks src/, builds a map
+        {subject_prefix: set[emitting_module]}, then verifies both conditions
+        over the union of each prefix's emitting modules — a prefix passes if
+        ANY emitter carries the docstring block AND the prefix appears as a
+        substring of any string in ANY test file. Generous signal per
+        Revision B (h)'s scope-decision tolerance: a posting-side test that
+        references the prefix is taken to exercise resolver ownership for
+        that prefix, since Revision B (h) explicitly permits posting-only
+        tests when full open → resolved integration is impractical.
+
+        Emits one AuditFinding per uncovered prefix.
+        """
+        site_map = _collect_self_resolve_call_sites(repo_root / "src")
+        tests_root = repo_root / _TESTS_REL_DIR
+
+        findings: list[AuditFinding] = []
+        for prefix, emitting_modules in sorted(site_map.items()):
+            has_docstring = any(
+                _module_docstring_has_canonical_block(mod) for mod in emitting_modules
+            )
+            has_test = _prefix_appears_in_tests(prefix, tests_root)
+            if has_docstring and has_test:
+                continue
+            rep_module = sorted(emitting_modules)[0]
+            try:
+                rel_module = rep_module.relative_to(repo_root)
+            except ValueError:
+                rel_module = rep_module
+            gaps: list[str] = []
+            if not has_docstring:
+                gaps.append("module docstring lacks the canonical resolver block")
+            if not has_test:
+                gaps.append("no test file references the subject prefix")
+            module_list = sorted(
+                str(m.relative_to(repo_root)) for m in emitting_modules
+            )
+            findings.append(
+                AuditFinding(
+                    check_id="governance.taxonomy.self_resolve_resolver_owned",
+                    severity=AuditSeverity.INFO,
+                    message=(
+                        f"self_resolve subject prefix '{prefix}' is missing "
+                        f"resolver-ownership backing: {' and '.join(gaps)}. "
+                        f"Per ADR-091 D2 Revision B (d), every self_resolve "
+                        f"emission must document its resolver path "
+                        f"('{_RESOLVER_DOCSTRING_BLOCK}' block in the emitter's "
+                        f"module docstring) and have at least one test "
+                        f"referencing the subject prefix (or invoke the "
+                        f"per-test scope-decision exemption per Revision B (h)). "
+                        f"Emitting module(s): {', '.join(module_list)}."
+                    ),
+                    file_path=str(rel_module),
+                    context={
+                        "subject_prefix": prefix,
+                        "missing_docstring_block": not has_docstring,
+                        "missing_test_coverage": not has_test,
+                        "emitting_modules": module_list,
+                    },
+                )
+            )
+        return findings
+
 
 def _collect_sensor_artifact_pairs(workers_dir: Path) -> set[tuple[str, str]]:
     """Walk .intent/workers/*.yaml; emit (artifact_type_id, sensor_id) pairs.
@@ -379,3 +462,247 @@ def _extract_action_id(decorator: ast.expr) -> str | None:
             return value.value
         return None
     return None
+
+
+def _collect_self_resolve_call_sites(src_root: Path) -> dict[str, set[Path]]:
+    """AST-walk src/ collecting post_finding(..., resolution_mechanism='self_resolve')
+    call sites; for each, trace the subject prefix and map it to the emitting
+    module path.
+
+    Subject prefix tracing supports the patterns the surviving five sites use:
+
+    - ``subject = f"{_CONST}::{...}"`` then
+      ``post_finding(subject=subject, ...)`` →
+      prefix = ``module_constants[_CONST]`` split on ``::``.
+    - ``post_finding(subject=f"{_CONST}::{...}", ...)`` → same.
+    - ``post_finding(subject="literal::id", ...)`` → prefix = ``"literal"``.
+
+    Skips files that cannot be read or parsed (a single broken file must
+    not crash the audit cycle — log and skip). Skips calls whose subject
+    cannot be traced — those are too rare in the surviving tree to silently
+    grant backing credit; if they arise, the call site's prefix will not
+    appear in the site map and the rule will not flag it. Future hardening
+    can promote untraceable sites to their own finding class.
+    """
+    site_map: dict[str, set[Path]] = {}
+    if not src_root.is_dir():
+        return site_map
+    for py in src_root.rglob("*.py"):
+        try:
+            source = py.read_text(encoding="utf-8")
+        except OSError as exc:
+            logger.debug("taxonomy_gate: cannot read %s: %s", py, exc)
+            continue
+        try:
+            tree = ast.parse(source)
+        except SyntaxError as exc:
+            logger.debug("taxonomy_gate: cannot parse %s: %s", py, exc)
+            continue
+
+        module_constants = _collect_module_string_constants(tree)
+
+        for fn in ast.walk(tree):
+            if not isinstance(fn, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                continue
+            subject_assigns = _collect_subject_assignments_by_lineno(fn)
+            for node in ast.walk(fn):
+                if not isinstance(node, ast.Call):
+                    continue
+                if not _is_post_finding_self_resolve_call(node):
+                    continue
+                prefix = _extract_subject_prefix(
+                    node, subject_assigns, module_constants
+                )
+                if prefix is None:
+                    continue
+                site_map.setdefault(prefix, set()).add(py)
+    return site_map
+
+
+def _collect_module_string_constants(tree: ast.AST) -> dict[str, str]:
+    """Return ``{name: value}`` for every module-level
+    ``NAME = "string literal"`` assignment. Used to resolve subject-prefix
+    constants referenced from inside f-strings at post_finding call sites.
+    """
+    constants: dict[str, str] = {}
+    if not isinstance(tree, ast.Module):
+        return constants
+    for node in tree.body:
+        if not isinstance(node, ast.Assign):
+            continue
+        if not isinstance(node.value, ast.Constant) or not isinstance(
+            node.value.value, str
+        ):
+            continue
+        for target in node.targets:
+            if isinstance(target, ast.Name):
+                constants[target.id] = node.value.value
+    return constants
+
+
+def _collect_subject_assignments_by_lineno(
+    fn: ast.AST,
+) -> list[tuple[int, ast.expr]]:
+    """Return ``[(lineno, value), ...]`` for every ``subject = <expr>``
+    assignment in the function body, sorted by lineno.
+
+    A flat "name → last value" dict would lose the per-call-site binding
+    when ``subject`` is rebound multiple times within the same function
+    (e.g., proposal_pipeline_shop_manager's three sequential for-loops,
+    each rebinding ``subject = f"{_CONST_n}::{id}"`` before calling
+    ``post_finding``). Returning the lineno-ordered list lets the caller
+    pick the closest preceding assignment for each call site, which is
+    the right binding under straight-line code. Conditional flow (if/else
+    branches that both write ``subject``) is rare in the surviving tree
+    and not worth tracing here; the engine would over-attribute to the
+    later branch, which the rule statement's "any emitter" generosity
+    absorbs.
+    """
+    assigns: list[tuple[int, ast.expr]] = []
+    for node in ast.walk(fn):
+        if not isinstance(node, ast.Assign):
+            continue
+        for target in node.targets:
+            if isinstance(target, ast.Name) and target.id == "subject":
+                assigns.append((node.lineno, node.value))
+    assigns.sort()
+    return assigns
+
+
+def _is_post_finding_self_resolve_call(call: ast.Call) -> bool:
+    """True iff ``call`` invokes ``post_finding`` (bare or attribute access)
+    with a keyword argument ``resolution_mechanism="self_resolve"`` whose
+    value is a string literal. Tracks only literal-string classifications;
+    dynamically-computed mechanism values are too rare to warrant tracing
+    here and would also bypass the closed-vocabulary-at-call-site discipline
+    Revision B (b) imposes.
+    """
+    func = call.func
+    if isinstance(func, ast.Attribute):
+        method_name = func.attr
+    elif isinstance(func, ast.Name):
+        method_name = func.id
+    else:
+        return False
+    if method_name != "post_finding":
+        return False
+    for kw in call.keywords:
+        if kw.arg != "resolution_mechanism":
+            continue
+        if isinstance(kw.value, ast.Constant) and kw.value.value == "self_resolve":
+            return True
+    return False
+
+
+def _extract_subject_prefix(
+    call: ast.Call,
+    subject_assigns: list[tuple[int, ast.expr]],
+    module_constants: dict[str, str],
+) -> str | None:
+    """Trace ``post_finding(subject=…)``'s subject expression to its prefix.
+
+    Returns the module-level constant value (split on ``::``) when the
+    expression is an f-string with a Name reference, or the literal prefix
+    before ``::`` when the expression is a string constant. Returns None
+    when the chain cannot be resolved (e.g., the subject is built from a
+    function-argument variable or a runtime computation).
+
+    When ``subject=`` is the local-variable Name ``subject``, the binding
+    is resolved by picking the closest preceding ``subject = <expr>``
+    assignment in ``subject_assigns`` (lineno < call.lineno; max lineno
+    wins). This handles the proposal_pipeline_shop_manager pattern where
+    three sequential for-loops each rebind ``subject`` before calling
+    ``post_finding``, producing three distinct prefixes.
+    """
+    subject_expr: ast.expr | None = None
+    for kw in call.keywords:
+        if kw.arg == "subject":
+            subject_expr = kw.value
+            break
+    if subject_expr is None:
+        return None
+    if isinstance(subject_expr, ast.Name) and subject_expr.id == "subject":
+        call_lineno = getattr(call, "lineno", 0)
+        binding: ast.expr | None = None
+        for lineno, value in subject_assigns:
+            if lineno < call_lineno:
+                binding = value
+            else:
+                break
+        if binding is None:
+            return None
+        return _prefix_from_expr(binding, module_constants)
+    return _prefix_from_expr(subject_expr, module_constants)
+
+
+def _prefix_from_expr(expr: ast.expr, module_constants: dict[str, str]) -> str | None:
+    """Extract a subject prefix from an f-string or constant expression.
+
+    Supported shapes:
+
+    - ``f"{NAME}::{...}"`` → ``module_constants[NAME]`` split on ``::``.
+    - ``f"literal::{...}"`` → ``"literal"``.
+    - ``"literal::id"`` → ``"literal"``.
+
+    Concatenation (``a + b``) and other dynamic constructions return None.
+    """
+    if isinstance(expr, ast.JoinedStr):
+        if not expr.values:
+            return None
+        first = expr.values[0]
+        if isinstance(first, ast.FormattedValue) and isinstance(first.value, ast.Name):
+            const_value = module_constants.get(first.value.id)
+            if const_value is None:
+                return None
+            return const_value.split("::", 1)[0]
+        if isinstance(first, ast.Constant) and isinstance(first.value, str):
+            return first.value.split("::", 1)[0]
+        return None
+    if isinstance(expr, ast.Constant) and isinstance(expr.value, str):
+        return expr.value.split("::", 1)[0]
+    return None
+
+
+def _module_docstring_has_canonical_block(module_path: Path) -> bool:
+    """True iff ``module_path``'s top-level docstring (the first string
+    literal at the module body's head) contains the canonical
+    ``ADR-091 D2 Revision B resolution classification:`` block. Read-only;
+    parse failures and IO errors return False (treated as missing).
+    """
+    try:
+        source = module_path.read_text(encoding="utf-8")
+    except OSError:
+        return False
+    try:
+        tree = ast.parse(source)
+    except SyntaxError:
+        return False
+    docstring = ast.get_docstring(tree)
+    if docstring is None:
+        return False
+    return _RESOLVER_DOCSTRING_BLOCK in docstring
+
+
+def _prefix_appears_in_tests(prefix: str, tests_root: Path) -> bool:
+    """True iff ``prefix`` appears anywhere in any ``*.py`` source file
+    under ``tests_root``. Generous signal per Revision B (h)'s scope-
+    decision tolerance: a test referencing the prefix as a string (in an
+    assertion, fixture, or seed value) is taken to exercise resolver
+    ownership for that prefix.
+
+    Substring match against file source is intentionally simple — parsing
+    test bodies for transition assertions would be brittle and would false-
+    positive on legitimate posting-only tests like
+    ``tests/will/workers/test_resolution_mechanism_classification.py``,
+    which is the exemption shape Revision B (h) explicitly permits.
+    """
+    if not tests_root.is_dir():
+        return False
+    for py in tests_root.rglob("*.py"):
+        try:
+            source = py.read_text(encoding="utf-8")
+        except OSError:
+            continue
+        if prefix in source:
+            return True
+    return False

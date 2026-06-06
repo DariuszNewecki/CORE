@@ -8,6 +8,7 @@ from typing import Any, ClassVar
 
 from mind.logic.engines.ast_gate.checks import (
     AsyncChecks,
+    AwaitingReauditChecks,
     CapabilityChecks,
     ConservationChecks,
     GenericASTChecks,
@@ -95,6 +96,7 @@ class ASTGateEngine(BaseEngine):
             "module_header",
             "schema_conformance",
             "tempfile_default_dir",
+            "reaudit_requires_reaudit_mechanism",
         }
     )
 
@@ -269,6 +271,11 @@ class ASTGateEngine(BaseEngine):
 
         elif check_type == "tempfile_default_dir":
             violations.extend(PurityChecks.check_tempfile_default_dir(tree))
+
+        elif check_type == "reaudit_requires_reaudit_mechanism":
+            violations.extend(
+                AwaitingReauditChecks.check_reaudit_requires_mechanism(tree)
+            )
 
         elif check_type == "test_file_naming":
             violations.extend(NamingChecks.check_test_file_naming(str(file_path)))

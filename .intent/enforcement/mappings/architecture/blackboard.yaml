@@ -1,7 +1,9 @@
 # .intent/enforcement/mappings/architecture/blackboard.yaml
-# Enforcement mappings for Blackboard Attribution governance
+# Enforcement mappings for Blackboard Attribution and Resolution-Authority
+# invariants.
 # Rule document: .intent/rules/architecture/blackboard.json
-# Codifies: ADR-011 (Workers own blackboard attribution; services do not post)
+# Codifies: ADR-011 (Workers own blackboard attribution) +
+#           ADR-091 D2 Revision B (reaudit guard)
 
 mappings:
 
@@ -27,5 +29,33 @@ mappings:
         # subclasses routes here.
         - "src/shared/workers/base.py"
         # Standard exclusions matching the conventions of other mapping files.
+        - "tests/**/*.py"
+        - "**/__init__.py"
+
+  # Rule: architecture.blackboard.reaudit_requires_reaudit_mechanism
+  # Engine: ast_gate (per-file AST scan over sqlalchemy.text(...) string
+  #         literals)
+  #
+  # ADR-091 D2 Revision B (b). Every UPDATE on core.blackboard_entries
+  # that transitions a row to status='awaiting_reaudit' MUST co-occur
+  # with `resolution_mechanism = 'reaudit'` in the same WHERE clause.
+  # The check walks ast.Call nodes for text(...) invocations and flags
+  # any string-literal argument containing the awaiting_reaudit
+  # transition pattern without the guard predicate.
+  #
+  # Promotion path: ships at `reporting`; promotes to `blocking` after
+  # one clean audit cycle confirms zero violations. Issue #575 step (4).
+  # Expected violations at engine landing: zero — the only current
+  # awaiting_reaudit write site (revive_findings_for_failed_proposal at
+  # src/body/services/blackboard_service/blackboard_proposal_service.py)
+  # already carries the guard from commit 1c (b2887afe).
+  architecture.blackboard.reaudit_requires_reaudit_mechanism:
+    engine: ast_gate
+    params:
+      check_type: reaudit_requires_reaudit_mechanism
+    scope:
+      applies_to:
+        - "src/**/*.py"
+      excludes:
         - "tests/**/*.py"
         - "**/__init__.py"

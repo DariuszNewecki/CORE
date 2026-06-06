@@ -1,15 +1,8 @@
 # .intent/enforcement/mappings/governance/taxonomy.yaml
 #
-# Enforcement mappings for the operational-capability taxonomy invariants.
+# Enforcement mappings for the operational-capability taxonomy invariants
+# and the ADR-091 D2 Revision B resolver-ownership invariant.
 # Based on: .intent/rules/governance/taxonomy.json
-#
-# ADR-079 D9. The chokepoint requires every capability id in
-# operational_capabilities.yaml to be backed by an @atomic_action decoration
-# in src/. The taxonomy_gate engine walks both surfaces and emits one
-# finding per phantom (YAML entry without backing decoration).
-#
-# Promotion path: stage 1 ships at `reporting`. Stage 2 (per ADR-079 D10)
-# promotes to `blocking` together with the phantom-resolution change-set.
 
 mappings:
   # Rule: governance.taxonomy.operational_capabilities_decorator_backing
@@ -23,6 +16,9 @@ mappings:
   # applies_to is referenced here only to satisfy the gate — the check
   # fires once per audit cycle regardless of file_filter intersection.
   # Mirrors the cognate pattern in governance/namespace.yaml.
+  #
+  # Promotion path: stage 1 ships at `reporting`. Stage 2 (per ADR-079 D10)
+  # promotes to `blocking` together with the phantom-resolution change-set.
   governance.taxonomy.operational_capabilities_decorator_backing:
     engine: taxonomy_gate
     params:
@@ -30,3 +26,37 @@ mappings:
     scope:
       applies_to:
         - ".intent/taxonomies/operational_capabilities.yaml"
+
+  # Rule: governance.taxonomy.self_resolve_resolver_owned
+  # Engine: taxonomy_gate (context-level; cross-artifact src/ call sites vs
+  #         docstrings vs tests/ references)
+  #
+  # ADR-091 D2 Revision B (d). The resolver-ownership invariant: every
+  # subject prefix appearing on post_finding(..., resolution_mechanism=
+  # 'self_resolve') in src/ must be backed by a documented resolver path
+  # (the canonical "ADR-091 D2 Revision B resolution classification:"
+  # block in the emitter's module docstring) AND a test referencing the
+  # subject prefix. The engine walks src/ for call sites, traces each
+  # subject= kwarg back to its module-level prefix constant, then
+  # verifies the docstring block + test reference per prefix. Test signal
+  # is generous (any test file mentioning the prefix as a string) per
+  # Revision B (h)'s scope-decision tolerance — posting-only tests like
+  # tests/will/workers/test_resolution_mechanism_classification.py count.
+  #
+  # scope.applies_to declares both surfaces the check walks. The context-
+  # level dispatch fires once per audit cycle regardless of file-filter
+  # intersection; the entries here exist so a change to either surface
+  # re-triggers the check.
+  #
+  # Promotion path: ships at `reporting`; promotes to `blocking` after one
+  # clean audit cycle confirms zero violations on the five surviving sites
+  # (worker.silent, blackboard.entry_stale, proposal.{stuck_approved,
+  # stuck_executing, repeated_failure}). Issue #575 step (4).
+  governance.taxonomy.self_resolve_resolver_owned:
+    engine: taxonomy_gate
+    params:
+      check_type: self_resolve_resolver_owned
+    scope:
+      applies_to:
+        - "src/**/*.py"
+        - "tests/**/*.py"
