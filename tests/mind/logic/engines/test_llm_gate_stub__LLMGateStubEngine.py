@@ -18,7 +18,7 @@ from mind.logic.engines.llm_gate_stub import LLMGateStubEngine
 def test_llm_gate_stub_engine_initialization():
     """Test that LLMGateStubEngine initializes correctly."""
     engine = LLMGateStubEngine()
-    assert engine.engine_id == "llm_gate"
+    assert engine.engine_id == "llm_gate_stub"
 
 
 @pytest.mark.asyncio
@@ -33,7 +33,7 @@ async def test_verify_always_returns_ok():
     assert result.ok
     assert result.message == "LLM check skipped (stub mode - no API call)"
     assert result.violations == []
-    assert result.engine_id == "llm_gate"
+    assert result.engine_id == "llm_gate_stub"
 
 
 @pytest.mark.asyncio
@@ -47,7 +47,7 @@ async def test_verify_with_empty_params():
 
     assert result.ok
     assert result.violations == []
-    assert result.engine_id == "llm_gate"
+    assert result.engine_id == "llm_gate_stub"
 
 
 @pytest.mark.asyncio
@@ -94,7 +94,7 @@ async def test_verify_with_additional_params_ignored():
 
     assert result.ok
     assert result.violations == []
-    assert result.engine_id == "llm_gate"
+    assert result.engine_id == "llm_gate_stub"
 
 
 @pytest.mark.asyncio
@@ -110,7 +110,7 @@ async def test_verify_returns_same_result_for_identical_calls():
     assert result1.ok == result2.ok is True
     assert result1.message == result2.message
     assert result1.violations == result2.violations == []
-    assert result1.engine_id == result2.engine_id == "llm_gate"
+    assert result1.engine_id == result2.engine_id == "llm_gate_stub"
 
 
 @pytest.mark.asyncio

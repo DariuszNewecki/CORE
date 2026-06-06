@@ -5,16 +5,19 @@
 - Generated: 2026-01-07 22:13:56
 """
 
+import uuid
+
 from shared.utils.common_knowledge import get_deterministic_id
 
 
-# Detected return type: int (64-bit unsigned, safe for Qdrant/Postgres)
+# Detected return type: str (UUID5 hex, constitutional identity)
 
 
-def test_get_deterministic_id_returns_int():
-    """Basic test to ensure the function returns an integer."""
+def test_get_deterministic_id_returns_uuid_string():
+    """Basic test to ensure the function returns a UUID string."""
     result = get_deterministic_id("test string")
-    assert isinstance(result, int)
+    assert isinstance(result, str)
+    uuid.UUID(result)
 
 
 def test_get_deterministic_id_deterministic():
@@ -35,17 +38,18 @@ def test_get_deterministic_id_different_inputs():
 def test_get_deterministic_id_empty_string():
     """Function should handle empty string input."""
     result = get_deterministic_id("")
-    assert isinstance(result, int)
+    assert isinstance(result, str)
+    uuid.UUID(result)
     # Ensure it's deterministic for empty string as well
     assert result == get_deterministic_id("")
 
 
-def test_get_deterministic_id_range():
-    """Output must be within the positive signed 64-bit integer range [0, 2^63 - 1]."""
+def test_get_deterministic_id_valid_uuid_format():
+    """Output must be a parseable UUID string for any input."""
     test_strings = ["", "a", "hello world", "unicode: café and café", "a" * 1000]
     for text in test_strings:
         result = get_deterministic_id(text)
-        assert 0 <= result < 2**63
+        uuid.UUID(result)
 
 
 def test_get_deterministic_id_unicode():
