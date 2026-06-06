@@ -25,6 +25,7 @@ crawler_indexed: true
 supported_sensors:        # ADR-091 D4 — authored set; introspected via taxonomy_gate
   - audit_sensor_architecture
   - audit_sensor_cli
+  - audit_sensor_governance
   - audit_sensor_layout
   - audit_sensor_linkage
   - audit_sensor_logic
