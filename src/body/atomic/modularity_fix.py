@@ -483,13 +483,7 @@ def _validate_plan_against_inventory(
     description="Split a file that violates modularity rules using two-phase LLM analysis",
     category=ActionCategory.FIX,
     policies=["rules/architecture/modularity"],
-    remediates=[
-        "architecture.max_file_size",
-        "modularity.refactor_score_threshold",
-        "modularity.single_responsibility",
-        "modularity.import_coupling",
-        "modularity.semantic_cohesion",
-    ],
+    remediates=[],  # ADR-095 D5: governor-invoked CLI tool only; no autonomous rule binding.
 )
 @atomic_action(
     action_id="fix.modularity",

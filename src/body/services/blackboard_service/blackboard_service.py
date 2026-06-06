@@ -7,6 +7,9 @@ from __future__ import annotations
 from sqlalchemy import text
 
 
+CORE_ROLE = "facade"  # ADR-095 D3
+
+
 # ID: a3842b9b-9285-49d3-bd7e-4fb8f8cbf6b7
 class BlackboardService:
     # ID: 1b4d6e9f-2c7a-4f08-9b53-8a6d2e4c1f3b

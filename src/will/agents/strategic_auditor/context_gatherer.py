@@ -34,6 +34,8 @@ if TYPE_CHECKING:
 
 logger = getLogger(__name__)
 
+CORE_ROLE = "facade"  # ADR-095 D3
+
 _CFG_SA = load_operational_config().strategic_auditor
 
 

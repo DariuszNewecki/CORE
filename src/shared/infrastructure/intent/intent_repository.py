@@ -34,6 +34,8 @@ from shared.processors.yaml_processor import strict_yaml_processor
 
 logger = getLogger(__name__)
 
+CORE_ROLE = "facade"  # ADR-095 D3
+
 
 @dataclass(frozen=True)
 # ID: cfe1ab6c-7706-41e1-bf99-18359a12849c

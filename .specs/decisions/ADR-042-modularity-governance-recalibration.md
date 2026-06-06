@@ -9,6 +9,8 @@ seam/class distinction and non-automatable classification are preserved)
 **Depends on:** ADR-036 (PathResolver exclusion — generalised into the mechanism
 defined here)
 
+> Note (2026-06-06, per ADR-095): D4's commitment "retired when modularity.unix_philosophy comes online" is amended. The LLM-gate shape was the wrong mechanism for architectural judgment; the LOC stack is no longer transitional infrastructure waiting on the gate. D3's `governed_exclusions` register is also retired in favor of in-file `CORE_ROLE` declarations. See ADR-095 D3 + D6.
+
 ---
 
 ## Context

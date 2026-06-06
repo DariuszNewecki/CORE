@@ -11,6 +11,9 @@ from will.self_healing.remediation_interpretation.models import (
 )
 
 
+CORE_ROLE = "algorithm"  # ADR-095 D3
+
+
 # ID: 6c7a5f21-60b5-4f52-8d5e-bc1ef6e52c9a
 class FileRoleDetector:
     """

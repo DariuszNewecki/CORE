@@ -29,6 +29,8 @@ logger = getLogger(__name__)
 
 __all__ = ["CoherenceService"]
 
+CORE_ROLE = "facade"  # ADR-095 D3
+
 
 # ID: be79ccfb-6907-4aa7-abc1-b50af356cf6d
 class CoherenceService(SessionAttachedService):

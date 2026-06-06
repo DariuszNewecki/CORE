@@ -34,6 +34,8 @@ if TYPE_CHECKING:
 
 logger = getLogger(__name__)
 
+CORE_ROLE = "catalog"  # ADR-095 D3
+
 
 # ID: 75006a3a-ed9f-4f99-b1dc-8217cb03ad9f
 class PathResolver:

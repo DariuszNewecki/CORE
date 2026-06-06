@@ -40,6 +40,8 @@ from shared.workers.base import Worker
 
 logger = getLogger(__name__)
 
+CORE_ROLE = "algorithm"  # ADR-095 D3
+
 # Artifact type these findings are about. ADR-091 D2: subjects are
 # <artifact_type>::<sub_namespace>::<identity_key_value>. intent_inspector
 # scans .intent/**/*.yaml only (JSON inspection is aspirational per the

@@ -34,6 +34,8 @@ from shared.processors.yaml_processor import strict_yaml_processor
 
 logger = getLogger(__name__)
 
+CORE_ROLE = "facade"  # ADR-095 D3
+
 # PostgreSQL DB is SQL_ASCII encoded — non-ASCII characters cause
 # UntranslatableCharacterError on insert. Sanitize all payload strings.
 _NON_ASCII_RE = re.compile(r"[^\x09\x0A\x0D\x20-\x7E]")

@@ -168,14 +168,14 @@ mappings:
 
   modularity.needs_split:
     action: fix.modularity
-    confidence: 0.85
+    confidence: 0.40
     risk: high
     description: >
-      Files exceeding line limit with single coherent responsibility are split
-      using two-phase LLM analysis. Phase 1 (Architect, modularity_analyze) finds
-      the seam. Phase 2 (Architect, modularity_split) executes. Logic Conservation
-      Gate validates before any write. Defers automatically on low/medium confidence.
-    status: ACTIVE
+      ADR-095 D1: modularity family is architectural-judgment, not autonomous
+      remediation. Even mechanical-split candidates can be facades the filter
+      cannot distinguish (proposal 3703c54a on coherence_service.py was the
+      triage case). Routed to governor inbox as DELEGATE.
+    status: DELEGATE
 
   ai.cognitive_role.no_hardcoded_string:
     action: remediate.cognitive_role
@@ -227,10 +227,10 @@ mappings:
     confidence: 0.40
     risk: high
     description: >
-      Class-level refactors require human architectural decision —
-      non-automatable per ADR-007. Routed to governor inbox as DELEGATE.
-      Explicitly mapped to prevent ViolationExecutorWorker from claiming
-      these findings as unmapped. Human review required before any action.
+      ADR-007 + ADR-095 D1: class-level refactors are architectural
+      judgment — non-automatable. The action: field is a placeholder
+      to satisfy ADR-066's mapping invariant; DELEGATE status prevents
+      autonomous remediation. Routed to governor inbox.
     status: DELEGATE
 
   architecture.channels.logger_not_presentation:
@@ -376,8 +376,12 @@ mappings:
     confidence: 0.40
     risk: high
     description: >
-      Structural/boundary rule with no automatable fixer. Human review
-      required.
+      ADR-095 D6 sibling case: llm_gate rule producing yes/no verdicts on
+      Mind layer execution semantics. Mixed precision (true on real LLM
+      calls, false on `field(default_factory=list)` and dataclass
+      definitions). Same posture as modularity.unix_philosophy: deferred
+      until agentic-invocation successor capability ships. action: field
+      is placeholder for ADR-066 mapping invariant.
     status: DELEGATE
 
   architecture.mind.no_filesystem_writes:
@@ -594,8 +598,9 @@ mappings:
     confidence: 0.40
     risk: high
     description: >
-      Structural/boundary rule with no automatable fixer. Human review
-      required.
+      ADR-095 D2: duplication detection routed to a file-splitter was a
+      cross-namespace misrouting. Architectural-judgment: a real dedup
+      action could ship later. Routed to governor inbox as DELEGATE.
     status: DELEGATE
 
   purity.no_dead_code:
@@ -615,8 +620,9 @@ mappings:
     confidence: 0.40
     risk: high
     description: >
-      Structural/boundary rule with no automatable fixer. Human review
-      required.
+      ADR-095 D2: orphan resolution routed to a file-splitter was a
+      cross-namespace misrouting. Architectural-judgment: remove vs
+      integrate is a design call. Routed to governor inbox as DELEGATE.
     status: DELEGATE
 
   purity.no_semantic_duplication:
@@ -624,8 +630,9 @@ mappings:
     confidence: 0.40
     risk: high
     description: >
-      Structural/boundary rule with no automatable fixer. Human review
-      required.
+      ADR-095 D2: semantic duplication detection routed to a file-splitter
+      was a cross-namespace misrouting. Architectural-judgment: a real
+      dedup/refactor action could ship later. Routed to governor inbox.
     status: DELEGATE
 
   governance.remediation.all_rules_mapped:
@@ -755,8 +762,9 @@ mappings:
     confidence: 0.40
     risk: high
     description: >
-      PENDING: Mixed-discipline files require human architectural decision
-      before any autonomous action. Blocking rule — human review required.
+      ADR-095 D1: mixed-discipline files require architectural judgment;
+      no autonomous remediation. action: field is placeholder to satisfy
+      ADR-066. PENDING status keeps the entry out of the active map.
     status: PENDING
 
   architecture.path_access.no_hardcoded_runtime_dirs:

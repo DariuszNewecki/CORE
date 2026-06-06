@@ -61,6 +61,28 @@ from will.workers.audit_violation_normalizer import normalize_audit_findings
 logger = getLogger(__name__)
 
 
+# ADR-095 D4: architectural-judgment rules carry resolution_authority on
+# their findings so the autonomous remediator's filter is mechanical
+# (skip principal.governor findings) rather than YAML-only routing.
+# Per ADR-068 principal role taxonomy.
+#
+# Extended 2026-06-06 to include architecture.mind.no_execution_semantics
+# (ADR-095 D6 sibling case): llm_gate rule, same yes/no-verdict-at-scale
+# pattern that motivated D6's deferral of modularity.unix_philosophy.
+_ARCHITECTURAL_JUDGMENT_RULES: frozenset[str] = frozenset(
+    {
+        "modularity.needs_split",
+        "modularity.class_too_large",
+        "modularity.needs_refactor",
+        "modularity.unix_philosophy",
+        "purity.no_ast_duplication",
+        "purity.no_semantic_duplication",
+        "purity.no_orphan_files",
+        "architecture.mind.no_execution_semantics",
+    }
+)
+
+
 # ID: 7199fd0e-a8ed-40e6-b7f1-5718d6b79ae4
 class AuditViolationSensor(Worker):
     """
@@ -294,25 +316,29 @@ class AuditViolationSensor(Worker):
                 v["file_path"], lookback_seconds=lookback
             )
 
+            payload: dict[str, Any] = {
+                "rule_namespace": self._rule_namespace,
+                "rule": rule_id,
+                "file_path": v["file_path"],
+                "line_number": v.get("line_number"),
+                "message": v["message"],
+                "severity": v["severity"],
+                "dry_run": self._dry_run,
+                "status": "unprocessed",
+                "causing_proposal_id": cause["causing_proposal_id"],
+                "causing_commit_sha": cause["causing_commit_sha"],
+                "cause_attribution": (
+                    "heuristic" if cause["causing_proposal_id"] else "untracked"
+                ),
+            }
+            if rule_id in _ARCHITECTURAL_JUDGMENT_RULES:
+                payload["resolution_authority"] = "principal.governor"
+
             await self.post_artifact_finding(
                 artifact_type=artifact_type_id,
                 sub_namespace=rule_id,
                 identity_key_value=v["file_path"],
-                payload={
-                    "rule_namespace": self._rule_namespace,
-                    "rule": rule_id,
-                    "file_path": v["file_path"],
-                    "line_number": v.get("line_number"),
-                    "message": v["message"],
-                    "severity": v["severity"],
-                    "dry_run": self._dry_run,
-                    "status": "unprocessed",
-                    "causing_proposal_id": cause["causing_proposal_id"],
-                    "causing_commit_sha": cause["causing_commit_sha"],
-                    "cause_attribution": (
-                        "heuristic" if cause["causing_proposal_id"] else "untracked"
-                    ),
-                },
+                payload=payload,
             )
             posted += 1
             logger.debug("AuditViolationSensor: posted finding for %s", v["file_path"])

@@ -20,6 +20,8 @@ from shared.logger import getLogger
 
 logger = getLogger(__name__)
 
+CORE_ROLE = "facade"  # ADR-095 D3
+
 
 # ID: 5f469d78-73c8-46c8-8b6c-d0b0c5cd9ed7
 class CrawlService:

@@ -26,6 +26,8 @@ from shared.logger import getLogger
 
 logger = getLogger(__name__)
 
+CORE_ROLE = "catalog"  # ADR-095 D3
+
 
 # ---------------------------------------------------------------------------
 # Coercion helpers

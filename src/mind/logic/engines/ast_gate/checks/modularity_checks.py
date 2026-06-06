@@ -22,6 +22,25 @@ from shared.logger import getLogger
 logger = getLogger(__name__)
 
 
+_CORE_ROLE_VALUES = frozenset({"facade", "algorithm", "catalog"})
+
+
+def _has_core_role_declaration(tree: ast.AST) -> bool:
+    """Return True if module declares `CORE_ROLE = "<facade|algorithm|catalog>"` (ADR-095 D3)."""
+    if not isinstance(tree, ast.Module):
+        return False
+    for node in tree.body:
+        if not isinstance(node, ast.Assign) or len(node.targets) != 1:
+            continue
+        target = node.targets[0]
+        if not (isinstance(target, ast.Name) and target.id == "CORE_ROLE"):
+            continue
+        value = node.value
+        if isinstance(value, ast.Constant) and value.value in _CORE_ROLE_VALUES:
+            return True
+    return False
+
+
 # ID: a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d
 class ModularityChecker:
     """Enforces modularity and refactoring thresholds constitutionally."""
@@ -305,9 +324,12 @@ class ModularityChecker:
             if loc <= max_lines:
                 return []
 
+            tree = ast.parse(content)
+            if _has_core_role_declaration(tree):
+                return []
+
             responsibilities = self._detect_responsibilities(content)
 
-            tree = ast.parse(content)
             dominant_name, dominant_lines, dominant_ratio = self._find_dominant_class(
                 tree, loc
             )
@@ -350,6 +372,9 @@ class ModularityChecker:
         try:
             content = file_path.read_text(encoding="utf-8")
             tree = ast.parse(content)
+            if _has_core_role_declaration(tree):
+                return []
+
             loc = len(content.splitlines())
             name, class_lines, class_ratio = self._find_dominant_class(tree, loc)
 

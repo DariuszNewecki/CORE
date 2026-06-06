@@ -33,6 +33,8 @@ if TYPE_CHECKING:
 
 logger = getLogger(__name__)
 
+CORE_ROLE = "algorithm"  # ADR-095 D3
+
 _CFG = load_operational_config().context
 
 
