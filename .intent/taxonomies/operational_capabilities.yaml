@@ -56,6 +56,7 @@ capabilities:
   build.tests:
     description: Generates a pytest test file for a source file via CoderAgent; path mapping governed by .intent/enforcement/config/test_coverage.yaml.
     risk: safe
+    artifact_type: [test]
     fs_profile:
       read:
         - {path_pattern: ".intent/rules/**", modes: [dev, live]}
@@ -135,6 +136,7 @@ capabilities:
   fix.atomic_actions:
     description: "@atomic_action decorator placement and presence fixer per .intent/rules/architecture/atomic_actions.json."
     risk: moderate
+    artifact_type: [python]
     fs_profile:
       read:
         - {path_pattern: ".intent/rules/architecture/atomic_actions.json", modes: [dev, live]}
@@ -146,6 +148,7 @@ capabilities:
   fix.body_ui:
     description: Body-layer UI/CLI rendering separation fixer — moves Rich rendering out of body/.
     risk: dangerous
+    artifact_type: [python]
     fs_profile:
       read: []
       create: []
@@ -156,6 +159,7 @@ capabilities:
   fix.capability_tagging:
     description: Capability tag injector — adds canonical dot-notation capability keys to symbols per .intent/taxonomies/capability_taxonomy.yaml.
     risk: moderate
+    artifact_type: [python]
     fs_profile:
       read:
         - {path_pattern: ".intent/taxonomies/capability_taxonomy.yaml", modes: [dev, live]}
@@ -167,6 +171,7 @@ capabilities:
   fix.docstrings:
     description: Missing-docstring remediator per .intent/rules/code/purity.json.
     risk: moderate
+    artifact_type: [python]
     fs_profile:
       read:
         - {path_pattern: ".intent/rules/code/purity.json", modes: [dev, live]}
@@ -178,6 +183,7 @@ capabilities:
   fix.duplicate_ids:
     description: "Dedupes duplicate # ID: <uuid> comments per .intent/rules/code/linkage.json."
     risk: moderate
+    artifact_type: [python]
     fs_profile:
       read:
         - {path_pattern: ".intent/rules/code/linkage.json", modes: [dev, live]}
@@ -189,6 +195,7 @@ capabilities:
   fix.format:
     description: Constitutional code-style formatter (ruff-format wrapper) per .intent/rules/code/style.json. Absorbs the retired format.code capability per ADR-078 D7.
     risk: safe
+    artifact_type: [python, test]
     fs_profile:
       read:
         - {path_pattern: ".intent/rules/code/style.json", modes: [dev, live]}
@@ -201,6 +208,7 @@ capabilities:
   fix.headers:
     description: Path-header injector per ADR-040 and .intent/rules/code/layout.json.
     risk: safe
+    artifact_type: [python]
     fs_profile:
       read:
         - {path_pattern: ".intent/rules/code/layout.json", modes: [dev, live]}
@@ -212,6 +220,7 @@ capabilities:
   fix.ids:
     description: "Injects # ID: <uuid> comments on public defs/classes per .intent/rules/code/linkage.json."
     risk: safe
+    artifact_type: [python]
     fs_profile:
       read:
         - {path_pattern: ".intent/rules/code/linkage.json", modes: [dev, live]}
@@ -223,6 +232,7 @@ capabilities:
   fix.imports:
     description: Import organization fixer per .intent/rules/code/imports.json.
     risk: safe
+    artifact_type: [python]
     fs_profile:
       read:
         - {path_pattern: ".intent/rules/code/imports.json", modes: [dev, live]}
@@ -234,6 +244,7 @@ capabilities:
   fix.logging:
     description: Logger-not-presentation fixer — separates logger.* from console.* per .intent/rules/code/purity.json.
     risk: safe
+    artifact_type: [python]
     fs_profile:
       read:
         - {path_pattern: ".intent/rules/code/purity.json", modes: [dev, live]}
@@ -245,6 +256,7 @@ capabilities:
   fix.modularity:
     description: Oversize-module splitter per .intent/rules/code/modularity.json.
     risk: moderate
+    artifact_type: [python]
     fs_profile:
       read:
         - {path_pattern: ".intent/rules/code/modularity.json", modes: [dev, live]}
@@ -256,6 +268,7 @@ capabilities:
   fix.path_resolver:
     description: Routes file-path operations through PathResolver per .intent/rules/architecture/path_access.json.
     risk: moderate
+    artifact_type: [python]
     fs_profile:
       read:
         - {path_pattern: ".intent/rules/architecture/path_access.json", modes: [dev, live]}
@@ -267,6 +280,7 @@ capabilities:
   fix.placeholders:
     description: Replaces TBD/placeholder literals with finalized values; rule consumed at invocation time (parameterized).
     risk: safe
+    artifact_type: [python]
     fs_profile:
       read: []
       create: []
@@ -277,6 +291,7 @@ capabilities:
   fix.purge_legacy_tags:
     description: Removes legacy decorator/tag lines per pattern argument (parameterized; mechanical line removal).
     risk: dangerous
+    artifact_type: [python]
     fs_profile:
       read: []
       create: []
@@ -287,6 +302,7 @@ capabilities:
   fix.settings_access:
     description: Body-layer settings-import remover — routes body/ config through dependency injection per .intent/rules/architecture/layer_separation.json.
     risk: dangerous
+    artifact_type: [python]
     fs_profile:
       read:
         - {path_pattern: ".intent/rules/architecture/layer_separation.json", modes: [dev, live]}
@@ -298,6 +314,7 @@ capabilities:
   fix.vulture_heal:
     description: Vulture-driven dead-code remover; reads vulture report at runtime (parameterized).
     risk: dangerous
+    artifact_type: [python]
     fs_profile:
       read: []
       create: []

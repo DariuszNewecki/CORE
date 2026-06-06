@@ -86,6 +86,21 @@ class ActionDefinition:
     ActionRegistry.apply_risk_config(). Never authored in code.
     """
 
+    artifact_type: tuple[str, ...] = ()
+    """
+    F-41 artifact_type IDs this action mutates (ADR-091 D6 item 3, ADR-092 D1).
+
+    Defaults to () — overlaid at executor init from
+    .intent/taxonomies/operational_capabilities.yaml via
+    ActionRegistry.apply_artifact_type_config(). Never authored in code.
+
+    Empty tuple means the action does not engage the F-43 registry-coupling
+    chokepoint (the ~13 infrastructure capabilities — DB-only, dispatcher,
+    read-only — legitimately have no artifact target per ADR-092
+    sub-question (i)). Non-empty tuple means ActionExecutor.execute() refuses
+    dispatch when any declared ID is not present in the F-41 registry.
+    """
+
     requires_db: bool = False
     """Whether this action requires database access"""
 
@@ -193,6 +208,22 @@ class ActionRegistry:
 
         for action_id, definition in self._actions.items():
             definition.impact_level = mapping[action_id]
+
+    # ID: 4e8a1c7d-3b6f-49a2-9e51-7d2c8b4f6a9e
+    def apply_artifact_type_config(self, mapping: dict[str, tuple[str, ...]]) -> None:
+        """
+        Overlay artifact_type on every registered action from the capability
+        mapping loaded from .intent/taxonomies/operational_capabilities.yaml
+        (ADR-091 D6 item 3, ADR-092 D1 + D4 Option B).
+
+        Unlike apply_risk_config, the mapping is permitted to omit actions
+        whose capability declares no artifact_type — per ADR-092 sub-question
+        (i), the ~13 infrastructure capabilities (DB-only, dispatcher,
+        read-only) legitimately have no artifact target. Missing entries
+        leave the action's artifact_type at its default empty tuple.
+        """
+        for action_id, definition in self._actions.items():
+            definition.artifact_type = mapping.get(action_id, ())
 
 
 # Global singleton registry

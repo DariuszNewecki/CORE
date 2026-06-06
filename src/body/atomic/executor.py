@@ -31,6 +31,10 @@ from shared.action_types import ActionImpact, ActionResult
 from shared.atomic_action import atomic_action
 from shared.governance_token import authorize_execution
 from shared.infrastructure.intent.action_risk import load_action_risk
+from shared.infrastructure.intent.intent_repository import get_intent_repository
+from shared.infrastructure.intent.operational_capabilities import (
+    load_operational_capabilities,
+)
 from shared.logger import _current_run_id, getLogger
 
 
@@ -130,6 +134,18 @@ class ActionExecutor:
         risk_mapping = load_action_risk()
         self.registry.apply_risk_config(risk_mapping)
 
+        # ADR-091 D6 item 3 + ADR-092 D1 + D4 Option B: overlay artifact_type
+        # from .intent/taxonomies/operational_capabilities.yaml. Capabilities
+        # without an artifact target legitimately omit the field (ADR-092
+        # sub-question (i)); their actions stay at the default empty tuple
+        # and bypass the registry-coupling refusal check.
+        capability_artifact_map = {
+            cap.id: cap.artifact_type
+            for cap in load_operational_capabilities()
+            if cap.artifact_type
+        }
+        self.registry.apply_artifact_type_config(capability_artifact_map)
+
         logger.debug("ActionExecutor initialized")
 
     @atomic_action(
@@ -197,6 +213,40 @@ class ActionExecutor:
             definition.category.value,
             definition.impact_level,
         )
+
+        # 1.5. F-43 registry-coupling refusal (ADR-091 D6 item 3, ADR-092 D1).
+        # When the action's capability declares an artifact_type, every
+        # declared ID must be present in the F-41 IntentRepository registry.
+        # Actions whose capability omits the field (ADR-092 sub-question (i))
+        # bypass this check — their artifact_type tuple is empty.
+        if definition.artifact_type:
+            intent_repo = get_intent_repository()
+            intent_repo.initialize()
+            registered_ids = {ref.id for ref in intent_repo.list_artifact_types()}
+            unregistered = tuple(
+                at for at in definition.artifact_type if at not in registered_ids
+            )
+            if unregistered:
+                logger.warning(
+                    "Action %s refused: declared artifact_type(s) %s not "
+                    "registered in F-41 IntentRepository",
+                    action_id,
+                    list(unregistered),
+                )
+                return ActionResult(
+                    action_id=action_id,
+                    ok=False,
+                    data={
+                        "error": "Action declared unregistered artifact_type",
+                        "unregistered_artifact_types": list(unregistered),
+                        "registered_artifact_types": sorted(registered_ids),
+                        "constitutional_basis": (
+                            "ADR-091 D6 item 3 registry-coupling enforcement; "
+                            "ADR-092 D1 F-43 exit criterion"
+                        ),
+                    },
+                    duration_sec=time.time() - start_time,
+                )
 
         # 2. Validate constitutional policies
         policy_validation = await self._validate_policies(definition)

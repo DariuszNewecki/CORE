@@ -665,7 +665,7 @@ supported model.
 
 <a id="F-41"></a>
 **F-41 — Artifact type registry**
-Status: `roadmap` | Scope: `extension` | Sourcing: `open` | Shape: `plugin-interface` (the open contract plugin-shape features attach through, ADR-084 D2)
+Status: `shipping` | Scope: `extension` | Sourcing: `open` | Shape: `plugin-interface` (the open contract plugin-shape features attach through, ADR-084 D2)
 
 A declared model for registering governed artifact types beyond source code.
 An artifact type declaration specifies: artifact schema, identity key format,
@@ -681,7 +681,7 @@ governance requires custom wiring against the primitives directly.
 
 <a id="F-42"></a>
 **F-42 — Pluggable sensor model**
-Status: `roadmap` | Scope: `extension` | Sourcing: `open` | Shape: `plugin-interface` (the open contract plugin-shape sensors attach through, ADR-084 D2)
+Status: `shipping` | Scope: `extension` | Sourcing: `open` | Shape: `plugin-interface` (the open contract plugin-shape sensors attach through, ADR-084 D2)
 
 An abstract sensor interface that decouples artifact observation from the audit
 engine. A sensor implementation declares: the artifact type it observes, the
@@ -698,7 +698,7 @@ observer to participate in the governance loop without modifying the engine.
 
 <a id="F-43"></a>
 **F-43 — Pluggable action model**
-Status: `roadmap` | Scope: `extension` | Sourcing: `open` | Shape: `plugin-interface` (the open contract plugin-shape actions attach through, ADR-084 D2)
+Status: `shipping` | Scope: `extension` | Sourcing: `open` | Shape: `plugin-interface` (the open contract plugin-shape actions attach through, ADR-084 D2)
 
 An abstract action interface that decouples remediation execution from artifact
 type. An action implementation declares: the artifact type it operates on, the
@@ -864,18 +864,18 @@ Constitutionally load-bearing per ADR-084 D7 §4 (library-grade openness).
 | F-38 | Air-gapped deployment (guaranteed) | roadmap | primitive | commercial |
 | F-39 | SLA support | roadmap | primitive | commercial |
 | F-40 | OEM API surface | shipping | primitive | commercial |
-| F-41 | Artifact type registry | roadmap | extension | open |
-| F-42 | Pluggable sensor model | roadmap | extension | open |
-| F-43 | Pluggable action model | roadmap | extension | open |
+| F-41 | Artifact type registry | shipping | extension | open |
+| F-42 | Pluggable sensor model | shipping | extension | open |
+| F-43 | Pluggable action model | shipping | extension | open |
 | F-44 | Premium rule libraries (industry packs) | roadmap | source-code instantiation | commercial |
 | F-45 | Hosted findings dashboard | roadmap | source-code instantiation | commercial |
 | F-46 | Cloud audit export (signed) | roadmap | source-code instantiation | commercial |
 | F-47 | Managed Qdrant | roadmap | primitive | commercial |
 | F-48 | Open library distribution (PyPI + Docker registry) | shipping | primitive | open |
 
-**Shipping: 31** | **Partial: 0** | **Roadmap: 17**
+**Shipping: 34** | **Partial: 0** | **Roadmap: 14**
 
-Of the 31 shipping features: 21 are primitives, 10 are source-code instantiations.
+Of the 34 shipping features: 21 are primitives, 10 are source-code instantiations, 3 are plugin-interfaces (F-41 + F-42 + F-43).
 
 **Sourcing split:** Open: 33 | Commercial: 15.
 Of the 31 shipping features, **30 are open and 1 is commercial** — F-40

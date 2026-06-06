@@ -63,6 +63,13 @@ _VALID_RISKS = frozenset({"safe", "moderate", "dangerous"})
 
 # Required-field discipline.
 _REQUIRED_CAPABILITY_FIELDS = frozenset({"description", "risk", "fs_profile"})
+# ADR-092 D1 + D4 (Option B): optional artifact_type binding. Capabilities that
+# mutate an F-41-registered artifact declare their target; the ~13 infrastructure
+# capabilities (DB-only, dispatcher, read-only) omit the field per ADR-092
+# sub-question (i). The ActionExecutor chokepoint refuses dispatch when a
+# declared artifact_type is not present in the F-41 IntentRepository registry.
+_OPTIONAL_CAPABILITY_FIELDS = frozenset({"artifact_type"})
+_KNOWN_CAPABILITY_FIELDS = _REQUIRED_CAPABILITY_FIELDS | _OPTIONAL_CAPABILITY_FIELDS
 _REQUIRED_PATTERN_ENTRY_FIELDS = frozenset({"path_pattern", "modes"})
 
 
@@ -98,6 +105,15 @@ class OperationalCapability:
     description: str
     risk: str
     fs_profile: tuple[tuple[str, tuple[FsPatternEntry, ...]], ...]
+    artifact_type: tuple[str, ...] = ()
+    """
+    F-41 artifact_type IDs this capability mutates. Optional per ADR-092 D4
+    Option B + sub-question (i): non-mutating infrastructure capabilities omit
+    the field (empty tuple). Mutating capabilities declare their targets; the
+    ActionExecutor chokepoint refuses dispatch when any declared ID is not
+    present in the F-41 IntentRepository registry (ADR-091 D6 item 3,
+    ADR-092 D1).
+    """
 
     @property
     # ID: bd74eb57-912d-409c-9d19-76e154f07aed
@@ -306,7 +322,7 @@ def _build_capability(
         raise OperationalCapabilityTaxonomyError(
             f"capability '{cap_id}': missing required field(s): {sorted(missing)}."
         )
-    extra = actual_fields - _REQUIRED_CAPABILITY_FIELDS
+    extra = actual_fields - _KNOWN_CAPABILITY_FIELDS
     if extra:
         raise OperationalCapabilityTaxonomyError(
             f"capability '{cap_id}': unknown field(s): {sorted(extra)}."
@@ -347,12 +363,43 @@ def _build_capability(
         valid_modes=valid_modes,
     )
 
+    artifact_type = _parse_artifact_type(cap_id=cap_id, raw=entry.get("artifact_type"))
+
     return OperationalCapability(
         id=cap_id,
         description=description,
         risk=risk,
         fs_profile=fs_profile,
+        artifact_type=artifact_type,
     )
+
+
+# ID: 9c3b71d4-2e5f-46a8-b1c9-d847e0f3a5b2
+def _parse_artifact_type(*, cap_id: str, raw: Any) -> tuple[str, ...]:
+    """Validate and normalize the optional artifact_type field (ADR-092 D1).
+
+    Absence and empty list both yield an empty tuple — the capability does not
+    engage the F-43 registry-coupling chokepoint. When present and non-empty,
+    every element must be a non-empty string; the F-41 registry check happens
+    at dispatch time in ActionExecutor.execute(), not at load time, so the
+    loader does not consult IntentRepository here.
+    """
+    if raw is None:
+        return ()
+    if not isinstance(raw, list):
+        raise OperationalCapabilityTaxonomyError(
+            f"capability '{cap_id}': 'artifact_type' must be a list of strings, "
+            f"got {type(raw).__name__}."
+        )
+    normalized: list[str] = []
+    for item in raw:
+        if not isinstance(item, str) or not item.strip():
+            raise OperationalCapabilityTaxonomyError(
+                f"capability '{cap_id}': 'artifact_type' entries must be "
+                f"non-empty strings; got {item!r}."
+            )
+        normalized.append(item)
+    return tuple(normalized)
 
 
 def _parse_fs_profile(
