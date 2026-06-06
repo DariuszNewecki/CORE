@@ -381,8 +381,14 @@ async def _query_dashboard_data(session: Any) -> dict[str, Any]:
     # `abandoned` is split per memory `reference_blackboard_abandoned_two_semantics`
     # (governor decision 2026-06-04, Option A on #563):
     #   - Type A (sensor-by-design audit trail: worker.silent::*, worker.error,
-    #     *.cycle_error, *.scope_collision::*) folds into `resolved` as
-    #     resolved-by-policy.
+    #     *.cycle_error, *.scope_collision::*, loop_hold.sample::*) folds into
+    #     `resolved` as resolved-by-policy. The loop_hold.sample::* class was
+    #     added 2026-06-06: it is the ADR-081 D7 worker_process_classification
+    #     telemetry stream (operational_config.telemetry_subject_prefixes;
+    #     emitted by runtime_gate.py:188) — explicitly sensor-by-design, not
+    #     stuck remediation. Without this class it accounted for ~96% of
+    #     Panel 4's "abandoned" headline (8,437 rows / 25 distinct subjects
+    #     recycling ~337x/subject).
     #   - Type B (python::* audit-violation rows abandoned by violation_executor) goes to
     #     `stuck` — the real "daemon cannot self-heal" signal, kept outside both
     #     created and resolved.
@@ -404,6 +410,7 @@ async def _query_dashboard_data(session: Any) -> dict[str, Any]:
                         WHEN subject = 'worker.error' THEN 'type_a'
                         WHEN subject LIKE '%.cycle_error' THEN 'type_a'
                         WHEN subject LIKE '%.scope_collision::%' THEN 'type_a'
+                        WHEN subject LIKE 'loop_hold.sample::%' THEN 'type_a'
                         ELSE 'type_b'
                     END) AS classification
                 FROM core.blackboard_entries
@@ -638,6 +645,12 @@ async def _query_dashboard_data(session: Any) -> dict[str, Any]:
             """),
         )
     ).fetchone()
+    # Panel 4 honesty fix (2026-06-06, #563 honesty defect class): exclude
+    # Type A sensor-by-design audit trail from the "no path forward" headline.
+    # Classification mirrors Panel 1's CASE block above — keep the two in sync.
+    # Pre-fix: this query returned 8,764 (8,437 loop_hold.sample::* +
+    #          327 *.scope_collision::* + Type B); the "daemon cannot
+    #          self-heal" framing was wrong for Type A.
     abandoned = (
         await session.execute(
             text("""
@@ -645,6 +658,11 @@ async def _query_dashboard_data(session: Any) -> dict[str, Any]:
             FROM core.blackboard_entries
             WHERE entry_type = 'finding'
             AND status = 'abandoned'
+            AND subject NOT LIKE 'worker.silent::%'
+            AND subject <> 'worker.error'
+            AND subject NOT LIKE '%.cycle_error'
+            AND subject NOT LIKE '%.scope_collision::%'
+            AND subject NOT LIKE 'loop_hold.sample::%'
             """),
         )
     ).fetchone()
