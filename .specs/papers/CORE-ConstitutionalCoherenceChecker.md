@@ -259,6 +259,19 @@ CORE-Rule-Conflict-Semantics.md if and when the governor confirms it. A
 confirmed rule conflict is a governance error per that paper and must be
 resolved at the source, not through runtime compensation.
 
+### 8.5 URS Verifier (`.specs/papers/CORE-URS-Verifier.md`, ADR-094)
+
+The URS Verifier is the fourth coherence-family instrument, verifying whether
+CORE's runtime state honors the claims its URSs make. The instrument is
+sensor-shaped, deterministic, and uses no LLM in its verdict path.
+
+CCC and the URS Verifier are complementary. CCC asks "do constitutional
+documents agree with each other?" — its candidate generation is LLM-assisted
+and confirmation is governor-driven. The URS Verifier asks "do URSs'
+acceptance claims hold against current runtime state?" — its verdicts are
+deterministic per criterion. Both surface findings to the governor; neither
+acts autonomously. (Amendment added per `CORE-URS-Verifier.md` §12.1.)
+
 ---
 
 ## 9. Scheduling and Trigger Conditions

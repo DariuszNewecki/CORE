@@ -58,6 +58,7 @@ mechanism-layer gap.
 | Constitutional Coherence Checker (ADR-067) | document vs document (ADR/rule/northstar) | LLM as candidate-finder; governor triage |
 | Coherence Sensor (ADR-027) | proposal executed vs violation persists | Deterministic; finding-only |
 | **Mechanism Coherence (this URS)** | **rule declaration vs rule mechanism** | **Deterministic; fail-closed (specified below)** |
+| Requirement Fulfillment Verification (`CORE-URS-Verifier.md`, ADR-094) | URS claim vs CORE runtime state | Deterministic; declared-classification; URS-author authority |
 
 The CCC paper at §10 (Non-Goals) does not list mechanism coherence. It is
 therefore an *unknown-gap* rather than a *deferred-known* — the layer was
