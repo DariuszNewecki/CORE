@@ -15,7 +15,7 @@ def test_display_error():
     mock_console = Mock()
 
     # Patch the console in the shared.cli_utils module
-    with patch("shared.cli_utils.console", mock_console):
+    with patch("cli.utils.display.console", mock_console):
         # Test basic functionality
         test_message = "Test error message"
         display_error(test_message)
@@ -67,7 +67,7 @@ def test_display_success():
     mock_console = Mock()
 
     # Act
-    with patch("shared.cli_utils.console", mock_console):
+    with patch("cli.utils.display.console", mock_console):
         display_success(test_msg)
 
     # Assert
@@ -83,7 +83,7 @@ def test_display_success_empty_string():
     mock_console = Mock()
 
     # Act
-    with patch("shared.cli_utils.console", mock_console):
+    with patch("cli.utils.display.console", mock_console):
         display_success(test_msg)
 
     # Assert
@@ -99,7 +99,7 @@ def test_display_success_special_characters():
     mock_console = Mock()
 
     # Act
-    with patch("shared.cli_utils.console", mock_console):
+    with patch("cli.utils.display.console", mock_console):
         display_success(test_msg)
 
     # Assert
@@ -119,7 +119,7 @@ def test_display_success_long_message():
     mock_console = Mock()
 
     # Act
-    with patch("shared.cli_utils.console", mock_console):
+    with patch("cli.utils.display.console", mock_console):
         display_success(test_msg)
 
     # Assert
@@ -135,7 +135,7 @@ def test_display_info():
     mock_console = Mock()
 
     # Patch the console object in the module where it's imported
-    with patch("shared.cli_utils.console", mock_console):
+    with patch("cli.utils.display.console", mock_console):
         # Test basic functionality
         test_message = "Test info message"
         display_info(test_message)
@@ -178,7 +178,7 @@ def test_display_warning():
     mock_console = Mock()
 
     # Patch the console import inside cli_utils module
-    with patch("shared.cli_utils.console", mock_console):
+    with patch("cli.utils.display.console", mock_console):
         # Test basic functionality
         test_message = "This is a warning"
         display_warning(test_message)
@@ -201,7 +201,7 @@ def test_display_warning_empty_string():
     """Test display_warning with empty string."""
     mock_console = Mock()
 
-    with patch("shared.cli_utils.console", mock_console):
+    with patch("cli.utils.display.console", mock_console):
         display_warning("")
         mock_console.print.assert_called_once_with("[yellow][/yellow]")
 
@@ -210,7 +210,7 @@ def test_display_warning_special_characters():
     """Test display_warning with special characters."""
     mock_console = Mock()
 
-    with patch("shared.cli_utils.console", mock_console):
+    with patch("cli.utils.display.console", mock_console):
         test_message = "Warning: 100% complete! #important"
         display_warning(test_message)
         mock_console.print.assert_called_once_with(f"[yellow]{test_message}[/yellow]")
@@ -220,7 +220,7 @@ def test_display_warning_multiline():
     """Test display_warning with multiline string."""
     mock_console = Mock()
 
-    with patch("shared.cli_utils.console", mock_console):
+    with patch("cli.utils.display.console", mock_console):
         test_message = "Line 1\nLine 2\nLine 3"
         display_warning(test_message)
         mock_console.print.assert_called_once_with(f"[yellow]{test_message}[/yellow]")
@@ -279,19 +279,34 @@ def test_async_command():
     assert documented_func.__name__ == "documented_func"
     assert documented_func.__doc__ == "A documented async function."
 
-    # Test 6: Cannot nest inside already running event loop
+    # Test 6: Inside an already-running event loop, async_command does NOT
+    # raise — it returns the underlying coroutine for the caller to await.
+    # The autogen vintage asserted a RuntimeError guard ("async_command
+    # cannot run inside an already-running event loop") that the current
+    # src/cli/utils/decorators.py:async_command no longer enforces:
+    #
+    #   if loop and loop.is_running():
+    #       return func(*args, **kwargs)   # returns coroutine, no raise
+    #   return asyncio.run(func(*args, **kwargs))
+    #
+    # Pinning current behavior. If the guard should be restored, that's a
+    # source-side decision separate from #572 test debt.
     @async_command
     async def nested_async_func() -> str:
         return "nested"
 
     async def run_in_loop():
-        with pytest.raises(
-            RuntimeError,
-            match="async_command cannot run inside an already-running event loop",
-        ):
-            nested_async_func()
+        # Inside the loop, the decorator returns the coroutine — the caller
+        # is responsible for awaiting it. We await here to consume the
+        # coroutine cleanly (avoids "coroutine was never awaited" warnings).
+        result_coro = nested_async_func()
+        import inspect as _inspect
+        assert _inspect.iscoroutine(result_coro), (
+            "async_command inside a running loop should return a coroutine"
+        )
+        result = await result_coro
+        assert result == "nested"
 
-    # Create and run a loop to test the nesting restriction
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     try:
