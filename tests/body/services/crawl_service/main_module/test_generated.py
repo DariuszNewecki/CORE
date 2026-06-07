@@ -1,43 +1,32 @@
-import unittest
+"""Tests for CrawlService.
+
+2026-06-07 (#572 Cat B batch 20): the autogen vintage of this file was
+an unconditional stub — it referenced ``CrawlService`` and ``Path``
+without importing either (NameError on every test under pytest),
+relied on ``unittest.TestCase`` ``setUp``, and the test bodies were
+just method invocations followed by ``# Add assertions to verify``
+comments. One test even called ``self.assertIsNotEmpty(...)``, which
+isn't a real ``unittest.TestCase`` method.
+
+The scan probe registered the file as 0 PASS / 0 FAIL because the
+class name (``CrawlServiceTest``) uses the ``*Test`` suffix pattern
+that the probe runner doesn't pick up — pytest with unittest
+discovery would have surfaced the NameErrors. Either way the file was
+dead.
+
+Replaced with a single import-smoke test. Deeper behavioural coverage
+of crawl runs requires a real DB session + repo and belongs in the
+integration suite, not in an autogen unit test.
+"""
+
+from __future__ import annotations
 
 
-class CrawlServiceTest(unittest.TestCase):
-    def setUp(self):
-        self.crawler = (
-            CrawlService()
-        )  # Assuming CrawlService is a class from the provided context evidence
+def test_crawl_service_imports_cleanly():
+    """The canonical CrawlService is exported from
+    ``body.services.crawl_service``. This smoke test pins the import
+    surface so a refactor that breaks the public name fails loudly
+    instead of silently."""
+    from body.services.crawl_service import CrawlService
 
-    def test_open_crawl_run(self):
-        crawl_id = "12345678-1234-1234-1234-123456789012"
-        self.crawler.open_crawl_run(crawl_id)
-        # Add assertions to verify that the function behaves as expected
-
-    def test_close_crawl_run_completed(self):
-        crawl_id = "12345678-1234-1234-1234-123456789012"
-        stats = {"files_scanned": 1, "edges_created": 2}
-        self.crawler.close_crawl_run_completed(crawl_id, stats)
-        # Add assertions to verify that the function behaves as expected
-
-    def test_close_crawl_run_failed(self):
-        crawl_id = "12345678-1234-1234-1234-123456789012"
-        error_message = "Some error occurred during the crawl"
-        self.crawler.close_crawl_run_failed(crawl_id, error_message)
-        # Add assertions to verify that the function behaves as expected
-
-    def test_run_crawl(self):
-        repo_root = Path("/path/to/repo")
-        stats = self.crawler.run_crawl(repo_root)
-        self.assertIsNotNone(stats)
-        # Add assertions to verify that the function returns the correct stats and handles errors correctly
-        # Consider testing edge cases, such as files without syntax errors or no changed artifacts
-
-    def test_load_symbol_index(self):
-        symbol_index = self.crawler.load_symbol_index()
-        self.assertIsInstance(symbol_index, dict)
-        self.assertIsNotEmpty(
-            symbol_index
-        )  # Assume some symbols exist in the repository
-
-
-if __name__ == "__main__":
-    unittest.main(argv=[""], exit=False)
+    assert isinstance(CrawlService, type)

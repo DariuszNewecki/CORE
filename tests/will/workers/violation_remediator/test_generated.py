@@ -77,11 +77,27 @@ class TestViolationRemediatorWorker:
 
     @pytest.mark.asyncio
     async def test_run_with_vocabulary_projection_error(self, worker):
-        """Test run method when vocabulary projection is broken."""
-        projection_error = MagicMock()
-        projection_error.reason = "Broken projection"
-        worker.post_finding = AsyncMock()
+        """When vocabulary projection is broken, run() short-circuits to
+        post a ``governance.instrument_degraded`` observation and bails
+        out before loading findings.
+
+        2026-06-07 (#572 Cat B batch 20): two drift shapes corrected.
+        (a) Source checks
+        ``isinstance(projection, VocabularyProjectionError)`` (file:116),
+        so a bare MagicMock with a ``.reason`` attribute slips past the
+        guard. We construct a real VocabularyProjectionError.
+        (b) Source calls ``self.post_observation(subject=..., payload=...,
+        status='abandoned')`` — NOT ``self.post_finding(...)``."""
+        from will.workers.violation_remediator import VocabularyProjectionError
+
+        projection_error = VocabularyProjectionError(
+            state="broken", reason="Broken projection"
+        )
+        worker.post_observation = AsyncMock()
         worker.post_heartbeat = AsyncMock()
+        # Mock _load_open_findings so we can assert it's never reached on
+        # the projection-broken short-circuit path.
+        worker._load_open_findings = AsyncMock()
 
         with patch(
             "will.workers.violation_remediator.load_vocabulary_projection"
@@ -89,13 +105,14 @@ class TestViolationRemediatorWorker:
             mock_load.return_value = projection_error
             await worker.run()
 
-        worker.post_finding.assert_called_once_with(
-            "governance.instrument_degraded",
-            {
+        worker.post_observation.assert_awaited_once_with(
+            subject="governance.instrument_degraded",
+            payload={
                 "instrument": "vocabulary_projection",
                 "reason": "Broken projection",
                 "worker": worker.declaration_name,
             },
+            status="abandoned",
         )
         worker._load_open_findings.assert_not_called()
 
