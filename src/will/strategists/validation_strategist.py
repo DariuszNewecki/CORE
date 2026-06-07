@@ -11,6 +11,15 @@ Constitutional Alignment:
 
 This component determines WHICH validation checks are needed, not HOW to execute them.
 Decision factors: file path, operation type, risk tier, historical compliance.
+
+V2.3-REBIRTH SCAFFOLD (2026-06-07):
+This strategist is part of the V2 Component-pattern scaffolding awaiting a
+concrete Limb consumer per `CORE-V2-Adaptive-Workflow-Pattern.md` §5.5 and
+`CORE-The-Octopus-UNIX-Synthesis.md` §6. It has no live call sites today;
+the `next_suggested="constitutional_evaluator"` hint it emits points at an
+auto-discover dispatch path (`ProcessOrchestrator.run_adaptive()`) that is
+unbuilt. Hand-composition is the live V2 path (see `will/test_generation/`,
+`will/self_healing/`). Activation tracked at GH #590.
 """
 
 from __future__ import annotations

@@ -29,6 +29,19 @@ Usage:
         initial_inputs={"file_path": path},
         max_steps=10
     )
+
+V2.3-REBIRTH SCAFFOLD (2026-06-07):
+This orchestrator is named by two constitutional papers as load-bearing for
+the V2 Adaptive Workflow Pattern and the V2.3 Limb operational model:
+`CORE-V2-Adaptive-Workflow-Pattern.md` §5.5 declares it the constitutional
+Orchestrator pattern; `CORE-The-Octopus-UNIX-Synthesis.md` §6 maps it to the
+"Pipe coordination" substrate for the Limb. Its `run_adaptive()` method's
+auto-discover dispatch is unbuilt — `_resolve_component(next_suggested)` is
+missing, so when a component returns a `next_suggested` hint the loop logs
+`"Cannot auto-discover next component"` and returns instead of dispatching.
+The orchestrator has no live call sites today; live V2 paths use direct
+component composition (see `will/test_generation/`, `will/self_healing/`).
+Activation tracked at GH #590.
 """
 
 from __future__ import annotations

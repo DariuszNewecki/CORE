@@ -12,6 +12,17 @@ CONSTITUTIONAL COMPLIANCE:
 CONSTITUTIONAL FIX (V2.3):
 - Removed unused variable 'target_content' (workflow.dead_code_check).
 - Maintains Mind/Body separation: Evaluates rules using the AuditorContext.
+
+V2.3-REBIRTH SCAFFOLD (2026-06-07):
+This evaluator is part of the V2 Component-pattern scaffolding awaiting a
+concrete Limb consumer per `CORE-V2-Adaptive-Workflow-Pattern.md` §5.5 and
+`CORE-The-Octopus-UNIX-Synthesis.md` §6. Auto-discover dispatch via
+`ProcessOrchestrator.run_adaptive()` is unbuilt; this evaluator has no live
+call sites today. The tests in `tests/body/evaluators/test_constitutional_evaluator.py`
+describe a richer contract than the source implements — that contract is the
+V2.3 target shape, not present behavior. Hand-composition is the live V2 path
+(see `will/test_generation/`, `will/self_healing/`). Activation tracked at
+GH #590.
 """
 
 from __future__ import annotations
