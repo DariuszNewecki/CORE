@@ -1,8 +1,11 @@
 # CORE — A3 Governed Autonomy Plan
 
-**Status:** Active
+**Status:** Closed (Historical) — A3 milestone fully achieved 2026-05-12; preserved as the A3-era record.
+**Post-A3 tracking:** [`CORE-Operational-Completeness.md`](../CORE-Operational-Completeness.md) (ADR-085 5+3 — five feature commitments closed 2026-06-02/03/05/06; three quality goals #561/#562/#563 remain).
+**ADR index in this doc:** frozen at ADR-076 (2026-05-29). ADR-077+ are post-A3 polish; canonical record lives in `.specs/decisions/`.
 **Owner:** Darek (Dariusz Newecki)
-**Last updated:** 2026-05-24
+**Last updated:** 2026-05-24 — content frozen.
+**Archived:** 2026-06-07.
 **Definition:** The daemon runs continuously, the Blackboard clears, the codebase converges, and every action is visible.
 
 ---
